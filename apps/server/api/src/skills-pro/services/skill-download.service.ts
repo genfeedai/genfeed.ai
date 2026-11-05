@@ -279,6 +279,7 @@ export class SkillDownloadService {
         isDeleted: false,
         organizationId,
       },
+      select: { currentVersionId: true, id: true },
     });
     if (!installed) throw new NotFoundException('Skill', skillSlug);
     const targetVersionId =
@@ -306,6 +307,7 @@ export class SkillDownloadService {
         skillId,
         ...(current ? { versionNumber: { lt: current.versionNumber } } : {}),
       },
+      select: { id: true },
     });
     if (!previous) {
       throw new ConflictException('No earlier skill version to restore');

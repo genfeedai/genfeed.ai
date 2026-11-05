@@ -191,6 +191,14 @@ export class BreakoutTextOutputPreparationService {
         platform: scope.platform,
         isDeleted: false,
       },
+      select: {
+        contentDigest: true,
+        externalId: true,
+        logicalPostId: true,
+        nativeSourcePostId: true,
+        publicationFingerprint: true,
+        sourcePostId: true,
+      },
     });
     await admission.reauthorize(this.prisma);
     if (!response) throw new ConflictException('breakout_source_unavailable');

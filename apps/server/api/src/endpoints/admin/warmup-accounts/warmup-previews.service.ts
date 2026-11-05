@@ -156,6 +156,7 @@ export class WarmupPreviewsService {
       await lockWarmup(tx, account.id);
       const current = await tx.warmupAccount.findFirstOrThrow({
         where: scopedWhere(organizationId, { id: account.id }),
+        select: { auditEvents: true },
       });
       await tx.warmupAccount.update({
         data: {

@@ -726,6 +726,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     const evaluation = await this.prisma.evaluation.findFirst({
       where: scopedWhere(organizationId, { id: evaluationId }),
+      select: { data: true },
     });
 
     if (!evaluation) {
@@ -815,6 +816,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     const evaluation = await this.prisma.evaluation.findFirst({
       where: scopedWhere(organizationId, { id: evaluationId }),
+      select: { data: true },
     });
 
     if (!evaluation) {

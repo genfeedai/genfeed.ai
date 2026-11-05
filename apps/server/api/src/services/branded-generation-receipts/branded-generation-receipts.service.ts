@@ -868,7 +868,10 @@ export class BrandedGenerationReceiptsService {
           isDeleted: false,
         };
         if (artifact.kind === 'post') {
-          const post = await tx.post.findFirst({ where });
+          const post = await tx.post.findFirst({
+            where,
+            select: { description: true },
+          });
           if (!post)
             throw new NotFoundException({
               message: 'receipt_artifact_not_found',

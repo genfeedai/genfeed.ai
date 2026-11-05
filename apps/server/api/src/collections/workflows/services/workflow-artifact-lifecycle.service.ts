@@ -173,6 +173,13 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
   }> {
     const existing = await this.prisma.workflowArtifact.findFirst({
       where: scopedWhere(input.organizationId, { id: input.artifactId }),
+      select: {
+        expiresAt: true,
+        id: true,
+        promotionTargetId: true,
+        promotionTargetType: true,
+        state: true,
+      },
     });
     if (!existing) {
       throw new Error(`Workflow artifact ${input.artifactId} was not found`);
@@ -278,6 +285,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
           { cleanupClaimedAt: { lte: staleClaim }, state: 'DELETING' },
         ],
       } satisfies Prisma.WorkflowArtifactWhereInput),
+      select: { id: true, storageKey: true, storageProvider: true },
     });
 
     let deleted = 0;

@@ -224,6 +224,7 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
         sourceIdentity: mediaSourceIdentity(source),
         state: 'READY',
       },
+      select: { storageKey: true },
     });
     if (
       !variant?.storageKey?.startsWith(

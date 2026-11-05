@@ -54,6 +54,7 @@ export async function persistQuoteGroupDisposition(
               isDeleted: false,
               workloadType: MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
             },
+            select: { id: true, metadata: true, status: true },
           });
           if (!hold || hold.status !== CreditReservationStatus.RESERVED)
             throw new BusinessLogicException(

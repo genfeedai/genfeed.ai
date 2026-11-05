@@ -321,6 +321,13 @@ export class AgentArtifactReferenceService {
       where: scopedWhere(params.readContext.organizationId, {
         id: params.messageId,
       }),
+      select: {
+        artifactReferences: true,
+        id: true,
+        isLegacyArtifactReferenceEligible: true,
+        legacyArtifactReferenceReadCount: true,
+        metadata: true,
+      },
     });
     if (!message) {
       throw artifactNotFound('Agent message', params.messageId);

@@ -463,6 +463,7 @@ export class BrandInterviewService {
   ): Promise<BrandInterview> {
     const session = await this.prisma.brandInterview.findFirst({
       where: scopedWhere(organizationId, { id: interviewId }),
+      select: { status: true },
     });
 
     if (!session) {

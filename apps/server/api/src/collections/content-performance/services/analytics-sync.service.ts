@@ -80,6 +80,20 @@ export class AnalyticsSyncService {
       orderBy: [{ date: 'asc' }, { id: 'asc' }],
       take: MAX_DISCOVERY_ITEMS + 1,
       where: scopedWhere(options.organizationId, where),
+      select: {
+        brandId: true,
+        clicks: true,
+        date: true,
+        id: true,
+        platform: true,
+        postId: true,
+        totalComments: true,
+        totalLikes: true,
+        totalSaves: true,
+        totalShares: true,
+        totalViews: true,
+        userId: true,
+      },
     });
     if (analytics.length > MAX_DISCOVERY_ITEMS) {
       throw new Error(

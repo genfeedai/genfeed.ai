@@ -50,6 +50,7 @@ export class AdOptimizationConfigsService {
     try {
       const existing = await this.prisma.adOptimizationConfig.findFirst({
         where: scopedWhere(organizationId),
+        select: { config: true, id: true },
       });
 
       const config = this.buildConfigPayload(data, existing?.config);

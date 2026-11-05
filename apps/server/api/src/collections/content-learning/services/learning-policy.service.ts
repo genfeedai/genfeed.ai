@@ -78,6 +78,7 @@ export class LearningPolicyService {
     const read = async (client: Prisma.TransactionClient) => {
       const account = await client.contentLearningAccount.findFirst({
         where: { organizationId, credentialId, isDeleted: false },
+        select: { brandId: true, epoch: true, failureReason: true, mode: true },
       });
       if (account?.mode !== 'live' || account.failureReason) return null;
       const scope = await this.scopes.read(
@@ -141,6 +142,12 @@ export class LearningPolicyService {
           createdAt: { gte: new Date(Date.now() - 30 * 86400000) },
         },
         orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        select: {
+          composite: true,
+          createdAt: true,
+          decisionId: true,
+          id: true,
+        },
       });
       for (const reward of rewards) {
         if (
@@ -164,6 +171,7 @@ export class LearningPolicyService {
             synthetic: false,
             isDeleted: false,
           },
+          select: { id: true },
         });
         if (
           decision &&
@@ -226,6 +234,13 @@ export class LearningPolicyService {
           isDeleted: false,
         },
         orderBy: { version: 'desc' },
+        select: {
+          composite: true,
+          createdAt: true,
+          id: true,
+          status: true,
+          version: true,
+        },
       });
       if (
         reward?.status !== 'valid' ||
@@ -333,6 +348,7 @@ export class LearningPolicyService {
           isDeleted: false,
         },
         orderBy: { version: 'desc' },
+        select: { id: true, version: true },
       });
       policy = await tx.contentLearningPolicyVersion.create({
         data: {
@@ -453,6 +469,7 @@ export class LearningPolicyService {
       await tx.$queryRaw`SELECT id FROM content_learning_scope_states WHERE id = ${scope.id} AND "organizationId" = ${organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
       const current = await tx.contentLearningAccount.findFirst({
         where: { id: account.id, organizationId, isDeleted: false },
+        select: { epoch: true, evidenceRevision: true, revision: true },
       });
       const currentScope = await this.scopes.read(
         tx,

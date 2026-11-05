@@ -59,6 +59,14 @@ export class LearningExperimentEvidenceService {
           organizationId: input.organizationId,
           isDeleted: false,
         },
+        select: {
+          brandId: true,
+          credentialId: true,
+          enrollmentId: true,
+          experimentId: true,
+          id: true,
+          organizationId: true,
+        },
       });
       if (!opportunity)
         throw new BadRequestException('Opportunity scope mismatch');
@@ -91,6 +99,7 @@ export class LearningExperimentEvidenceService {
             opportunityId: opportunity.id,
             isDeleted: false,
           },
+          select: { id: true },
         });
         if (!original)
           throw new BadRequestException('Correction scope mismatch');
@@ -219,6 +228,7 @@ export class LearningExperimentEvidenceService {
         sourceId: input.attemptId,
         isDeleted: false,
       },
+      select: { opportunityId: true },
     });
     if (!attempts.length)
       throw new BadRequestException('Cost attempt must precede settlement');

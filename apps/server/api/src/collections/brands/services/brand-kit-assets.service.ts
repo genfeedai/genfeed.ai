@@ -537,6 +537,7 @@ export class BrandKitAssetsService {
         parentOrgId: organizationId,
         parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
       },
+      select: { id: true, referenceCategory: true },
     });
 
     if (existing) {

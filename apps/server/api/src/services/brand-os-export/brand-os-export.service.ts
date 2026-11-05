@@ -214,7 +214,14 @@ export class BrandOsExportService {
       });
       if (!revision) throw new NotFoundException({ message: 'Not found' });
       this.artifact(revision, 'public');
-      const existing = await tx.brandOsPublication.findFirst({ where });
+      const existing = await tx.brandOsPublication.findFirst({
+        where,
+        select: {
+          publishedRevisionIds: true,
+          revisionId: true,
+          revokedAt: true,
+        },
+      });
       if (existing?.revisionId === revisionId && !existing.revokedAt) return;
       const publishedRevisionIds =
         existing && !existing.revokedAt

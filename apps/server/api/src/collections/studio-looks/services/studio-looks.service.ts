@@ -80,6 +80,7 @@ export class StudioLooksService extends BaseService<StudioLookDocument> {
         brandId: scope.brandId,
         id,
       }),
+      select: { assetType: true },
     });
     if (!existing) {
       return null;

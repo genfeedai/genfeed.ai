@@ -164,6 +164,7 @@ export class ContentPerformanceService extends BaseService<
     if (dto.brandId) {
       const brand = await this.prisma.brand.findFirst({
         where: scopedWhere(organizationId, { id: dto.brandId }),
+        select: { id: true },
       });
       if (!brand) {
         throw new BadRequestException(
@@ -223,6 +224,7 @@ export class ContentPerformanceService extends BaseService<
     if (dto.brandId) {
       const brand = await this.prisma.brand.findFirst({
         where: scopedWhere(organizationId, { id: dto.brandId }),
+        select: { id: true },
       });
       if (!brand) {
         throw new BadRequestException(

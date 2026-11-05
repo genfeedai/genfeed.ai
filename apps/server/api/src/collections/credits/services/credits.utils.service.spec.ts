@@ -860,6 +860,7 @@ describe('CreditsUtilsService', () => {
         category: 'refund',
         idempotencyKey: 'batch-refund:batch:1',
       },
+      select: { balanceAfter: true },
     });
     expect(creditBalanceService.updateBalance).not.toHaveBeenCalled();
     expect(

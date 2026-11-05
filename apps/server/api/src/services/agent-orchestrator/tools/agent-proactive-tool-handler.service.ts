@@ -237,6 +237,7 @@ export class AgentProactiveToolHandler {
     if (brandId && !ctx.brandId) {
       const brand = await this.prisma.brand.findFirst({
         where: scopedWhere(ctx.organizationId, { id: brandId }),
+        select: { id: true },
       });
       if (!brand) {
         return {

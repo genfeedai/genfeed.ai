@@ -296,6 +296,15 @@ export class SocialWarmupEnrollmentsService {
         brandId: params.brandId,
         credentialId: params.credentialId,
       }),
+      select: {
+        blueprintId: true,
+        blueprintVersion: true,
+        brandId: true,
+        credentialId: true,
+        enrolledByUserId: true,
+        id: true,
+        organizationId: true,
+      },
     });
     if (!enrollment) {
       return;
@@ -757,6 +766,7 @@ export class SocialWarmupEnrollmentsService {
         enrollmentId: params.enrollmentId,
         key: params.key,
       }),
+      select: { id: true },
     });
 
     if (existing) {

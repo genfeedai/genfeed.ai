@@ -199,9 +199,17 @@ describe('LearningReleaseService shared create entry', () => {
         status: 'completed',
         isDeleted: false,
       },
+      select: { id: true, synthetic: true },
     });
     expect(f.tx.contentLearningSharedPolicy.findMany).toHaveBeenCalledWith({
       where: { id: { in: ['A', 'B'] }, isDeleted: false },
+      select: {
+        cell: true,
+        id: true,
+        synthetic: true,
+        validity: true,
+        version: true,
+      },
     });
     expect(f.dependencies.valid).toHaveBeenCalledWith(
       'run',

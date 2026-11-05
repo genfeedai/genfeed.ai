@@ -265,6 +265,7 @@ export class BrandedGenerationArtifactMaterialService {
           brandId: actor.brandId,
           isDeleted: false,
         },
+        select: { s3Key: true },
       });
       if (!ingredient)
         throw new NotFoundException({ message: 'receipt_artifact_not_found' });

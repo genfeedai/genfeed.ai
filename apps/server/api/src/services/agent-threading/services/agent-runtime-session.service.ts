@@ -87,6 +87,7 @@ export class AgentRuntimeSessionService {
       where: scopedWhere(params.organizationId, {
         threadId: params.threadId,
       }),
+      select: { data: true, id: true },
     });
 
     let snapshot: Record<string, unknown> | null = null;

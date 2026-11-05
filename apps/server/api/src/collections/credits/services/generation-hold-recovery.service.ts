@@ -330,6 +330,7 @@ export class GenerationHoldRecoveryService {
           organizationId: input.organizationId,
           isDeleted: false,
         },
+        select: { status: true },
       });
       const recorded = await this.activities.recordInTransaction(tx, {
         key:

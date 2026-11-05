@@ -565,6 +565,7 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
     const source = this.readSourceArtifactMetadata(artifact.metadata);
     const existing = await this.prisma.ingredient.findFirst({
       where: scopedWhere(request.context.organizationId, { id: ingredientId }),
+      select: { id: true },
     });
     if (existing) {
       return { artifactId, ingredientId, status: 'linked' };
@@ -576,6 +577,7 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
           where: scopedWhere(request.context.organizationId, {
             id: ingredientId,
           }),
+          select: { id: true },
         });
         if (winner) {
           return;

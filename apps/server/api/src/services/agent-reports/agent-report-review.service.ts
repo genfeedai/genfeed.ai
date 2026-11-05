@@ -51,6 +51,7 @@ export class AgentReportReviewService {
             : IntegrationPlatform.DISCORD,
         status: IntegrationStatus.ACTIVE,
       }),
+      select: { config: true },
     });
     const stillBound = agentReportBindings(integration?.config).some(
       (binding) =>

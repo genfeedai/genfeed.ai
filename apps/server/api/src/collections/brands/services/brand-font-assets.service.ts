@@ -374,6 +374,7 @@ export class BrandFontAssetsService {
     );
     const existing = await this.prisma.asset.findFirst({
       where: { id, parentOrgId: actor.organizationId },
+      select: { id: true },
     });
     if (existing)
       return this.prisma.$transaction(

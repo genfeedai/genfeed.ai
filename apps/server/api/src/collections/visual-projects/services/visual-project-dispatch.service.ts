@@ -50,6 +50,7 @@ export class VisualProjectDispatchService {
           status: 'running',
           leaseExpiresAt: { gt: new Date() },
         },
+        select: { id: true },
       });
       if (live) throw new ConflictException('visual_dispatch_owner_active');
     };
@@ -143,6 +144,7 @@ export class VisualProjectDispatchService {
           isDeleted: false,
           idempotencyKey: `visual-code-${revision.id}`,
         },
+        select: { id: true },
       });
       if (execution) {
         const binding = await this.prisma.visualRevision.updateMany({

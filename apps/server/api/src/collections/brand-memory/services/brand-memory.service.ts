@@ -291,6 +291,7 @@ export class BrandMemoryService extends BaseService<
     const existing = await this.prisma.brandMemory.findFirst({
       orderBy: { updatedAt: 'desc' },
       where: scopedWhere(organizationId, { brandId, type: entry.type }),
+      select: { id: true },
     });
 
     const data = {

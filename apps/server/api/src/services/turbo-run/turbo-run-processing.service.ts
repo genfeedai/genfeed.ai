@@ -125,6 +125,7 @@ export class TurboRunProcessingService {
       // Either the run doesn't exist for this org, or it's already being processed.
       const existing = await this.prisma.turboRun.findFirst({
         where: scopedWhere(orgId, { id: turboRunId }),
+        select: { status: true },
       });
       if (!existing) {
         throw new NotFoundException('Turbo run', turboRunId);

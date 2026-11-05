@@ -329,6 +329,7 @@ export class ThreadContextCompressorService {
     try {
       const existingRecord = await this.prisma.threadContextState.findFirst({
         where: scopedWhere(organizationId, { threadId }),
+        select: { data: true, id: true },
       });
       const existingState = existingRecord
         ? ((existingRecord.data ?? {}) as ThreadContextStateData)

@@ -188,6 +188,57 @@ test('rail navigation paints without waiting for a server render', async ({
   expect(placeholderRequests).toEqual([]);
 });
 
+// Every daily app, clicked from a page outside the rail (brand settings, where
+// no rail item is active). The destination's own page must be in the route
+// shell: a page that reads request data at its top level prerenders as an
+// empty hole, and the click waits for the server render with the progress bar
+// running even though the route was prefetched (Library did, until it moved
+// its legacy-query redirect behind a Suspense boundary).
+for (const appId of [
+  'workspace',
+  'agent',
+  'library',
+  'publishing',
+  'analytics',
+] as const) {
+  test(`the ${appId} rail app paints from brand settings without waiting for a server render`, async ({
+    authenticatedPage: page,
+  }, testInfo) => {
+    const isPrefetched = trackPrefetches(page);
+    await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
+    await mockLibraryData(page);
+    await page.goto(
+      createBrandAppRoute(
+        'test-org',
+        'brand-1',
+        APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
+      ),
+    );
+
+    const target = page.getByTestId(`app-rail-item-${appId}`);
+    await expect(target).toBeVisible();
+    const href = await target.getAttribute('href');
+    await expect
+      .poll(() => isPrefetched(href ?? ''), {
+        message: 'rail destination is prefetched before the click',
+        timeout: PREFETCH_TIMEOUT_MS,
+      })
+      .toBe(true);
+    await delayServerRenders(page);
+    await recordNavigationTiming(page);
+
+    await target.click();
+    await page.waitForURL((url) => url.pathname === href);
+    const elapsedMs = await readClickToCommitMs(page);
+
+    testInfo.annotations.push({
+      description: `${elapsedMs}ms (server render delayed ${SERVER_LATENCY_MS}ms)`,
+      type: 'click-to-destination',
+    });
+    expect(elapsedMs).toBeLessThan(INSTANT_BUDGET_MS);
+  });
+}
+
 // Destinations behind the rail's More menu have no link on screen to prefetch
 // them, so the shell keeps every rail destination prefetched itself. Opening
 // the menu and clicking straight away must paint like a rail click.

@@ -219,6 +219,7 @@ export class LiveSessionCreditsService {
         isDeleted: false,
         status: LiveSessionStatus.OPEN,
       },
+      select: { id: true, organizationId: true, userId: true },
     });
 
     let terminated = 0;

@@ -154,6 +154,7 @@ export class AgentCampaignWorkflowService implements OnModuleInit {
         orchestrationEnabled: true,
         status: 'active',
       }),
+      select: { id: true, nextOrchestratedAt: true, userId: true },
     });
     return {
       items: campaigns.map((campaign) => ({

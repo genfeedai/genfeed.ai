@@ -198,6 +198,7 @@ export class TurboRunCreationService {
           id: dto.agentStrategyId,
           brandId: dto.brandId,
         }),
+        select: { id: true },
       });
       if (!strategy)
         throw new BadRequestException(

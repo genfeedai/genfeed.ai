@@ -486,6 +486,7 @@ export class BillingAccountsService {
         organizationId,
         status: BillingAccountOrganizationStatus.LINKED,
       },
+      select: { id: true },
     });
     if (alreadyLinked) {
       return;
@@ -698,6 +699,7 @@ export class BillingAccountsService {
               organizationId: input.organizationId,
               status: CreditReservationStatus.RESERVED,
             },
+            select: { id: true },
           });
           if (activeReservation) {
             throw new ConflictException(
@@ -752,6 +754,7 @@ export class BillingAccountsService {
             where: scopedWhere(input.organizationId, {
               billingAccountId: input.billingAccountId,
             }),
+            select: { id: true, organizationId: true },
           });
           if (wallet?.organizationId === input.organizationId) {
             // `{ not }` carries no tenant proof by design; OWNER role proven.
@@ -877,6 +880,7 @@ export class BillingAccountsService {
   ): Promise<BillingAccountMemberRole | null> {
     const member = await this.prisma.billingAccountMember.findFirst({
       where: { billingAccountId, isDeleted: false, userId },
+      select: { role: true },
     });
     return parseBillingAccountMemberRole(member?.role);
   }

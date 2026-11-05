@@ -661,6 +661,7 @@ export class LearningRunService {
   }) {
     const dataset = await this.prisma.contentLearningDataset.findFirst({
       where: { id: input.datasetId, isDeleted: false },
+      select: { id: true, manifestHash: true, synthetic: true },
     });
     if (
       !dataset ||

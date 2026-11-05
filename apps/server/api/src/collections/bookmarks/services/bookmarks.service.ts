@@ -121,6 +121,7 @@ export class BookmarksService extends BaseService<
 
     const bookmark = await this.delegate.findFirst({
       where: scopedWhere(organizationId, { id: bookmarkId }),
+      select: { id: true },
     });
 
     if (!bookmark) {

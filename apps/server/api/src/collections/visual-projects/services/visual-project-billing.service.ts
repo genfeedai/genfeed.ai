@@ -413,6 +413,7 @@ export class VisualProjectBillingService {
           brandId: scope.brandId,
           isDeleted: false,
         },
+        select: { receipts: true },
       });
       const prior = current.receipts as unknown as IVisualCodeReceipt[];
       if (prior.some((entry) => entry.kind === 'settlement')) return;
@@ -465,6 +466,7 @@ export class VisualProjectBillingService {
             idempotencyKey: `visual-code-${revision.id}`,
             isDeleted: false,
           },
+          select: { id: true },
         });
         reservationId = reservation?.id ?? null;
       }

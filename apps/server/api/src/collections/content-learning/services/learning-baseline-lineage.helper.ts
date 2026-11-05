@@ -125,6 +125,7 @@ async function validBaselineContributors(
           ),
         },
       },
+      select: { measurement: true, postId: true },
     });
     if (
       !checkpoint ||
@@ -188,6 +189,13 @@ async function validDecisionDependencies(
       isDeleted: false,
     },
     orderBy: { id: 'asc' },
+    select: {
+      sourceId: true,
+      sourceKind: true,
+      sourceOrganizationId: true,
+      sourceVersion: true,
+      valid: true,
+    },
   });
   if (
     !edges.some(

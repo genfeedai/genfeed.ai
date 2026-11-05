@@ -519,6 +519,7 @@ export class TurboRunReviewService {
           if (item.postId) {
             const post = await transaction.post.findFirst({
               where: scopedWhere(orgId, { id: item.postId }),
+              select: { id: true, targetExecutionState: true, updatedAt: true },
             });
             if (
               !post ||
@@ -629,6 +630,14 @@ export class TurboRunReviewService {
               targetExecutionState: TargetExecutionState.DRAFT,
               reviewDecision: null,
             }),
+            select: {
+              agentStrategyId: true,
+              brandId: true,
+              createdAt: true,
+              id: true,
+              personaId: true,
+              platform: true,
+            },
           });
           if (!post || (!post.agentStrategyId && !post.personaId)) continue;
           const reviewTimeoutHours =

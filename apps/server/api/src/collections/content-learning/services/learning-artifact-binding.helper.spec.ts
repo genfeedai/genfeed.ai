@@ -189,6 +189,7 @@ describe('bindLearningPublicationV1', () => {
         credentialId: 'credential',
         isDeleted: false,
       },
+      select: { epoch: true, revision: true },
     });
     expect(f.tx.post.updateMany).toHaveBeenCalledWith({
       where: { id: 'post', organizationId: 'org', isDeleted: false },

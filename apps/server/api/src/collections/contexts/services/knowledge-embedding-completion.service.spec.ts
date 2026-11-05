@@ -405,6 +405,7 @@ describe('sealed Knowledge embedding generations', () => {
         candidateVersionId: 'version',
         status: { in: ['QUEUED', 'PROCESSING'] },
       }),
+      select: { id: true },
     });
     expect(f.tx.knowledgeSourceVersion.findFirst).toHaveBeenCalledWith({
       where: expect.objectContaining({ id: 'previous', isCurrent: true }),

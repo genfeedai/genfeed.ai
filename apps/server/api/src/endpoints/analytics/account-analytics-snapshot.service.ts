@@ -77,6 +77,7 @@ export class AccountAnalyticsSnapshotService {
         credentialId: input.credentialId,
         date,
       }),
+      select: { id: true },
     });
     if (existing) {
       await this.prisma.accountAnalyticsSnapshot.updateMany({

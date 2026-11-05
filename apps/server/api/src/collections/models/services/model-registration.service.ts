@@ -259,6 +259,7 @@ export class ModelRegistrationService {
     for (const training of allTrainings) {
       const model = await this.prisma.model.findFirst({
         where: { trainingId: training.id },
+        select: { id: true },
       });
       if (!model) {
         orphanedTrainings.push(training);

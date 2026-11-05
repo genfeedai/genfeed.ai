@@ -185,6 +185,7 @@ export class ModelProviderOffersService {
                 executionModelId: source.id,
                 modelId: { notIn: [id, source.id] },
               },
+              select: { id: true },
             });
             if (existingOwner)
               throw new BadRequestException(
@@ -235,6 +236,7 @@ export class ModelProviderOffersService {
                   isDeleted: false,
                 },
               },
+              select: { id: true },
             }))
           ) {
             if (model.provider !== patch.pinnedProvider)

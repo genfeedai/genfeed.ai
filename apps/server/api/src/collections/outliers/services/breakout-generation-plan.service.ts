@@ -133,6 +133,15 @@ export class BreakoutGenerationPlanService {
         ...request.scope,
         id: request.responseId,
       }),
+      select: {
+        contentDigest: true,
+        externalId: true,
+        logicalPostId: true,
+        nativeSourcePostId: true,
+        publicationFingerprint: true,
+        sourcePostId: true,
+        state: true,
+      },
     });
     await request.reauthorize(this.prisma);
     if (!response || !['detected', 'planned'].includes(response.state))

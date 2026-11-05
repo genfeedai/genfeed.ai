@@ -375,6 +375,7 @@ export class TasksService extends BaseService<
         id: taskId,
         OR: [{ checkoutAgentId: null }, { checkoutAgentId: agentId }],
       }),
+      select: { id: true },
     });
 
     if (!existing) return null;

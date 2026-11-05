@@ -307,6 +307,7 @@ export class LifecycleEmailDeliveryService {
 
     const preference = await this.prisma.lifecycleEmailPreference.findUnique({
       where: { unsubscribeToken: normalized },
+      select: { id: true, marketingUnsubscribedAt: true },
     });
 
     if (!preference) {

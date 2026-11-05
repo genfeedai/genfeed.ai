@@ -42,11 +42,11 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // BillingAccountMember role on the account, not by any organizationId.
     {
       file: 'apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts',
-      line: 500,
+      line: 501,
     },
     {
       file: 'apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts',
-      line: 911,
+      line: 915,
     },
     // #5511: admin-pinned Featured workflows are platform-curated and read by
     // every organization. The read is limited to the pinned ids, non-deleted
@@ -80,7 +80,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // issuance only and are never returned over HTTP.
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 264,
+      line: 265,
     },
     // Platform-admin cross-organization media: the admin Library and Generations
     // list other tenants' assets, so preview grants for ids the organization
@@ -89,7 +89,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // and only a signed preview URL leaves the service.
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 807,
+      line: 808,
     },
     // Platform-admin batch refresh of those previews: the batch route verifies
     // the platform-admin role and reads only the ids the client already holds.
@@ -103,11 +103,11 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // only the signed picture URL leaves the service (never the storage key).
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 473,
+      line: 474,
     },
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 500,
+      line: 501,
     },
     // Access discovery: findActiveForUserAccess lists the caller's own active
     // memberships by canonical users.id (userId in the where) to resolve which
@@ -171,7 +171,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     },
     {
       file: 'apps/server/api/src/collections/models/services/model-provider-offers.service.ts',
-      line: 253,
+      line: 255,
     },
     // #6120: superadmin model lifecycle transition on the platform registry.
     // #6593: pricing projection extraction moves the existing three hatches;
@@ -232,7 +232,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // receipt.
     {
       file: 'apps/server/api/src/skills-pro/services/skill-download.service.ts',
-      line: 380,
+      line: 382,
     },
     // #6120: superadmin platform billing-account migration; each write targets
     // that organization's own rows.
@@ -244,7 +244,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // billing account, after the OWNER proof.
     {
       file: 'apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts',
-      line: 758,
+      line: 761,
     },
     // #6120: superadmin may edit any live brand's handle.
     {
@@ -313,7 +313,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // account.
     {
       file: 'apps/server/api/src/collections/content-learning/services/learning-account.service.ts',
-      line: 945,
+      line: 956,
     },
     // #6120: superadmin dataset assembly across consenting organizations, each
     // fenced by learningOrgFence.
@@ -329,7 +329,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: read-only pin lookups across contributing organizations.
     {
       file: 'apps/server/api/src/collections/content-learning/services/learning-dependency.service.ts',
-      line: 754,
+      line: 756,
     },
     // #6120: the actor's own userId-scoped memberships in other organizations
     // (grantable organizations).
@@ -346,7 +346,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // organizations.
     {
       file: 'apps/server/api/src/collections/referrals/services/referrals.service.ts',
-      line: 279,
+      line: 286,
     },
     // #6120: short codes are globally unique; public redirects resolve without
     // an organization.
@@ -401,7 +401,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // is cross-organization.
     {
       file: 'apps/server/api/src/collections/credits/services/credits.utils.service.ts',
-      line: 695,
+      line: 697,
     },
     // The free-trial expiry sweep discovers never-paid organizations past the
     // window across tenants; each one is then expired in its own
@@ -419,13 +419,13 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // owned organizations.
     {
       file: 'apps/server/api/src/collections/credits/services/onboarding-credit-grants.service.ts',
-      line: 105,
+      line: 106,
     },
     // The free-trial entitlement is user-scoped across the user's owned
     // organizations, exactly like the signup gift above.
     {
       file: 'apps/server/api/src/collections/credits/services/onboarding-credit-grants.service.ts',
-      line: 448,
+      line: 456,
     },
     // Free-credit abuse gate: the same mailbox, IP and grant velocity are
     // compared across all other users' organizations by design.

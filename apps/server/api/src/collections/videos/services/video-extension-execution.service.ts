@@ -191,6 +191,7 @@ export class VideoExtensionExecutionService {
           in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
         },
       },
+      select: { s3Key: true },
     });
     if (!storedFrame?.s3Key)
       throw new BadRequestException(
@@ -226,6 +227,7 @@ export class VideoExtensionExecutionService {
           in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
         },
       },
+      select: { brandId: true, s3Key: true },
     });
     if (!source?.s3Key || !source.brandId)
       throw new BadRequestException(

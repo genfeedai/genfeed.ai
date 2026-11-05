@@ -67,7 +67,7 @@ export async function linkExternalPublicationCredentialWrite(
       targetExecutionState: TargetExecutionState.PUBLISHED,
       targetSettings: { path: ['extensionCapture', 'version'], equals: 1 },
     });
-    const post = await tx.post.findFirst({ where });
+    const post = await tx.post.findFirst({ where, select: { platform: true } });
     if (!post) throw new NotFoundException('Post', input.postId);
     const key = JSON.stringify([
       'extension-publication',

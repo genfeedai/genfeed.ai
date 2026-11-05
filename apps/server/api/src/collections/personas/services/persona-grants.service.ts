@@ -173,6 +173,7 @@ export class PersonaGrantsService {
       async (tx) => {
         const locked = await tx.persona.findFirst({
           where: scopedWhere(params.organizationId, { id: persona.id }),
+          select: { brandId: true },
         });
         if (!locked) {
           throw new NotFoundException('Character', params.personaId);
@@ -197,6 +198,7 @@ export class PersonaGrantsService {
             recipientOrganizationId: params.recipientOrganizationId,
             revokedAt: null,
           },
+          select: { availabilityMode: true, availableBrandIds: true, id: true },
         });
         const grant = existing
           ? await tx.personaGrant.update({
@@ -255,6 +257,7 @@ export class PersonaGrantsService {
         personaId: params.personaId,
         revokedAt: null,
       },
+      select: { id: true, recipientOrganizationId: true },
     });
     if (!grant) {
       throw new NotFoundException('Character grant', params.grantId);
@@ -272,6 +275,12 @@ export class PersonaGrantsService {
             ownerOrganizationId: params.organizationId,
             personaId: params.personaId,
             revokedAt: null,
+          },
+          select: {
+            availabilityMode: true,
+            availableBrandIds: true,
+            id: true,
+            recipientOrganizationId: true,
           },
         });
         if (!active) {

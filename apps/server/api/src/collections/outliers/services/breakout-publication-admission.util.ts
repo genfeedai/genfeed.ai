@@ -188,6 +188,16 @@ async function assertCurrentSourceGrowth(
       state: 'planned',
       isDeleted: false,
     },
+    select: {
+      contentDigest: true,
+      externalId: true,
+      logicalPostId: true,
+      nativeSourcePostId: true,
+      outputPlanFingerprint: true,
+      publicationFingerprint: true,
+      sourcePostId: true,
+      triggerReceiptId: true,
+    },
   });
   await admission.reauthorize(tx);
   if (!response?.outputPlanFingerprint) hold('response_unavailable');
@@ -200,6 +210,13 @@ async function assertCurrentSourceGrowth(
       credentialId: scope.credentialId,
       workflowExecutionId: admission.workflowExecutionId,
       isDeleted: false,
+    },
+    select: {
+      format: true,
+      heldReason: true,
+      kind: true,
+      ordinal: true,
+      state: true,
     },
   });
   await admission.reauthorize(tx);
@@ -301,6 +318,7 @@ async function assertCurrentQuality(
       data: { path: ['breakoutQuality'], equals: binding },
     },
     orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    select: { data: true, id: true },
   });
   await admission.reauthorize(tx);
   const analysis = analysisSchema.safeParse(readRecord(score?.data));

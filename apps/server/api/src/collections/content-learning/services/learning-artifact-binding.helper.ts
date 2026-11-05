@@ -311,6 +311,7 @@ export async function bindLearningPublicationV1(
         credentialId: decision.credentialId,
         isDeleted: false,
       },
+      select: { epoch: true, revision: true },
     });
     if (
       !account ||

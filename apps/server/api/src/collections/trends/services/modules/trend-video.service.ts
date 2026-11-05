@@ -114,6 +114,7 @@ export class TrendVideoService {
       orderBy: { createdAt: 'desc' },
       take: limit * 5,
       where: { isDeleted: false },
+      select: { data: true, id: true },
     });
 
     const hours =
@@ -394,6 +395,7 @@ export class TrendVideoService {
       orderBy: { createdAt: 'desc' },
       take: limit * 5,
       where: { isDeleted: false },
+      select: { data: true, id: true },
     });
 
     const hashtags = docs
@@ -567,6 +569,7 @@ export class TrendVideoService {
       orderBy: { createdAt: 'desc' },
       take: limit * 5,
       where: { isDeleted: false },
+      select: { data: true, id: true },
     });
 
     const sounds = docs
@@ -726,6 +729,7 @@ export class TrendVideoService {
         createdAt: { gte: sinceDate },
         isDeleted: false,
       },
+      select: { data: true, id: true },
     });
 
     const videos = docs

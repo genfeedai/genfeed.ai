@@ -121,6 +121,7 @@ export class WorkflowKnowledgeGroundingService {
         sourceId,
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       }),
+      select: { id: true, provenance: true, version: true },
     });
     const source = version
       ? await this.prisma.knowledgeSource.findFirst({

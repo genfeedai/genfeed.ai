@@ -238,6 +238,7 @@ export class RemotionCompositionsService implements OnModuleInit {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${id}, 0))::text`;
       const existing = await tx.editorProject.findFirst({
         where: { id, organizationId: user.organizationId, isDeleted: false },
+        select: { config: true },
       });
       if (existing) {
         const config = this.projects.readProjectConfig(existing.config);

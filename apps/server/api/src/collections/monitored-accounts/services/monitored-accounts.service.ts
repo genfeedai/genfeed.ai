@@ -133,6 +133,7 @@ export class MonitoredAccountsService extends BaseService<
         where: tenantOrganizationId
           ? scopedWhere(tenantOrganizationId, { id })
           : { id },
+        select: { config: true },
       });
       if (!existing) {
         throw new NotFoundException('MonitoredAccount', id);
@@ -180,6 +181,7 @@ export class MonitoredAccountsService extends BaseService<
   ): Promise<MonitoredAccountDocument> {
     const existing = await this.prisma.monitoredAccount.findFirst({
       where: scopedWhere(organizationId, { id }),
+      select: { config: true },
     });
     const config = (existing?.config as AccountConfig) ?? {};
 
@@ -279,6 +281,7 @@ export class MonitoredAccountsService extends BaseService<
   ): Promise<MonitoredAccountDocument | null> {
     const existing = await this.prisma.monitoredAccount.findFirst({
       where: scopedWhere(organizationId, { id }),
+      select: { config: true },
     });
 
     if (!existing) return null;

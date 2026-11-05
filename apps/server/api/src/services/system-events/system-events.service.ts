@@ -65,6 +65,7 @@ export class SystemEventsService {
     // tenant-scope-ignore: deployment-wide operator settings
     const row = await this.prisma.systemNotificationSettings.findUnique({
       where: { id: 'default' },
+      select: { enabled: true, eventTypes: true },
     });
     return {
       enabled: row?.enabled ?? true,
@@ -190,6 +191,7 @@ export class SystemEventsService {
     // tenant-scope-ignore: super-admin retries a single non-deleted event
     const row = await this.prisma.systemEventWebhook.findFirst({
       where: { id, isDeleted: false },
+      select: { deliveredAt: true, failedAt: true, skippedAt: true },
     });
     if (!row) throw new NotFoundException('Notification not found');
     if (row.deliveredAt || row.skippedAt) return;

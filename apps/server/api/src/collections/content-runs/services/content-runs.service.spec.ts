@@ -293,6 +293,7 @@ describe('ContentRunsService', () => {
 
     expect(contentRun.findFirst).toHaveBeenCalledWith({
       where: { id: 'run-1', isDeleted: false, organizationId: 'org-1' },
+      select: { config: true },
     });
     expect(contentRun.update).toHaveBeenCalledWith({
       data: {

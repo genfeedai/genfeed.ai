@@ -47,6 +47,7 @@ export class LearningReleaseService {
           status: 'completed',
           isDeleted: false,
         },
+        select: { id: true, synthetic: true },
       });
       if (!report)
         throw new BadRequestException(
@@ -54,6 +55,13 @@ export class LearningReleaseService {
         );
       const artifacts = await tx.contentLearningSharedPolicy.findMany({
         where: { id: { in: input.artifactIds }, isDeleted: false },
+        select: {
+          cell: true,
+          id: true,
+          synthetic: true,
+          validity: true,
+          version: true,
+        },
       });
       if (
         artifacts.length !== input.artifactIds.length ||
@@ -295,10 +303,18 @@ export class LearningReleaseService {
   async receive(organizationId: string, credentialId: string, cell: string) {
     const account = await this.prisma.contentLearningAccount.findFirst({
       where: { organizationId, credentialId, isDeleted: false },
+      select: {
+        brandId: true,
+        id: true,
+        mode: true,
+        pinnedReleaseId: true,
+        sharedReleasePreference: true,
+      },
     });
     if (!account || account.sharedReleasePreference === 'disabled') return null;
     const brand = await this.prisma.contentLearningBrandPreference.findFirst({
       where: { organizationId, brandId: account.brandId, isDeleted: false },
+      select: { pinnedReleaseId: true, preference: true },
     });
     if (brand?.preference === 'disabled') return null;
     const pinned =

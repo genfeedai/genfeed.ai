@@ -420,6 +420,7 @@ export class LearningDependencyService {
     if (!organizationId) return null;
     const organization = await tx.organization.findFirst({
       where: { id: organizationId, isDeleted: false },
+      select: { id: true, isDeleted: true },
     });
     if (
       !organization ||
@@ -559,6 +560,7 @@ export class LearningDependencyService {
           organizationId: row.organizationId,
           isDeleted: false,
         },
+        select: { sharingConsentVersion: true },
       });
       return account?.sharingConsentVersion === row.version
         ? String(row.version)

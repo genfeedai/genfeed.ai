@@ -276,6 +276,7 @@ export class AdWatchedAdvertisersService extends BaseService<
 
     const brand = await this.prisma.brand.findFirst({
       where: scopedWhere(organizationId, { id: brandId }),
+      select: { id: true },
     });
     if (!brand) {
       throw new BadRequestException(
@@ -300,6 +301,7 @@ export class AdWatchedAdvertisersService extends BaseService<
         id: credentialId,
         platform: toPrismaCredentialPlatform(credentialPlatform),
       }),
+      select: { brandId: true },
     });
     if (
       !credential ||

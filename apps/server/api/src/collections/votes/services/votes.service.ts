@@ -77,6 +77,7 @@ export class VotesService extends BaseService<
           userId,
           ...platformOrTenantScope(organizationId),
         },
+        select: { id: true },
       });
 
       try {

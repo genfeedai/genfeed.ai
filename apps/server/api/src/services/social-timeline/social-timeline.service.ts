@@ -236,6 +236,12 @@ export class SocialTimelineService implements OnModuleInit {
             }),
       }),
       take: 20,
+      select: {
+        externalHandle: true,
+        externalName: true,
+        id: true,
+        platform: true,
+      },
     });
     if (credentialId && !credentials.length)
       throw new NotFoundException({ message: 'Connected account not found.' });
@@ -458,6 +464,7 @@ export class SocialTimelineService implements OnModuleInit {
         id: postId,
         brandId: scope.brandId,
       }),
+      select: { externalId: true, platform: true },
     });
     if (!post) throw new NotFoundException({ message: 'Post not found.' });
     if (!timelineCapability(post.platform).actions.includes(input.action))
@@ -471,6 +478,7 @@ export class SocialTimelineService implements OnModuleInit {
         platform: toPrismaCredentialPlatform(post.platform),
         isConnected: true,
       }),
+      select: { grantedScopes: true, grantedScopesCapturedAt: true, id: true },
     });
     if (!credential)
       throw new NotFoundException({

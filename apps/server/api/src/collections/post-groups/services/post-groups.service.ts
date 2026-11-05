@@ -318,6 +318,7 @@ export class PostGroupsService {
     if (post.groupId) {
       const existing = await this.prisma.postGroup.findFirst({
         where: scopedWhere(organizationId, { id: post.groupId }),
+        select: { id: true },
       });
       if (existing) {
         return this.persistenceService.hydrateWithDerivedStatus(

@@ -57,6 +57,7 @@ export class AgentGenerationDecisionService {
           isDeleted: false,
           status: 'active',
         },
+        select: { brandId: true, contextVersion: true },
       });
       if (!thread)
         throw new NotFoundException(

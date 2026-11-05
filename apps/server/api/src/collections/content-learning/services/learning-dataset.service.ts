@@ -250,6 +250,7 @@ export class LearningDatasetService {
                 requestId: input.requestId,
                 isDeleted: false,
               },
+              select: { payloadHash: true, resultReferences: true },
             });
             if (previous) {
               if (previous.payloadHash !== payloadHash)

@@ -556,7 +556,10 @@ export class OnboardingDraftRunsService {
       skipDuplicates: true,
     });
     if (!created.count) {
-      const existing = await this.prisma.contentRun.findFirst({ where });
+      const existing = await this.prisma.contentRun.findFirst({
+        where,
+        select: { config: true, status: true },
+      });
       const config = configSchema.safeParse(existing?.config);
       if (
         (existing?.status === ContentRunStatus.COMPLETED ||

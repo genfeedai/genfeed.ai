@@ -909,6 +909,12 @@ export class PersonasService extends BaseService<
       // Re-read under the lock so a concurrent change cannot slip past.
       const locked = await tx.persona.findFirst({
         where: scopedWhere(params.organizationId, { id: persona.id }),
+        select: {
+          availabilityMode: true,
+          availableBrandIds: true,
+          brandId: true,
+          handle: true,
+        },
       });
       if (!locked) {
         throw new NotFoundException('Persona', params.personaId);

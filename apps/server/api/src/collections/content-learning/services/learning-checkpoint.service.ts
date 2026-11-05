@@ -241,6 +241,7 @@ export class LearningCheckpointService {
         credentialId: input.credentialId,
         isDeleted: false,
       },
+      select: { publishedAt: true },
     });
     if (
       !post?.publishedAt ||
@@ -364,6 +365,7 @@ export class LearningCheckpointService {
         publishedAt: input.publishedAt,
         isDeleted: false,
       },
+      select: { id: true },
     });
     const currentCredential = await tx.credential.findFirst({
       where: {
@@ -372,6 +374,7 @@ export class LearningCheckpointService {
         brandId,
         isDeleted: false,
       },
+      select: { id: true },
     });
     if (!currentPost || !currentCredential) return null;
     return currentAccount;
@@ -494,6 +497,7 @@ export class LearningCheckpointService {
         isDeleted: false,
       },
       orderBy: { revision: 'desc' },
+      select: { revision: true },
     });
     return await tx.contentLearningCheckpoint.create({
       data: {

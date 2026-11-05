@@ -445,6 +445,12 @@ export class EmailPerformanceService {
         isDeleted: false,
         acceptedAt: { not: null },
       },
+      select: {
+        destinationUrl: true,
+        id: true,
+        organizationId: true,
+        userId: true,
+      },
     });
     if (!message) throw new NotFoundException('Email link');
     // A destination approved when the link was issued can stop validating if
@@ -624,6 +630,7 @@ export class EmailPerformanceService {
     // tenant-scope-ignore: a signed provider message ID resolves its tenant before any message mutation.
     const message = await this.prisma.emailMessage.findFirst({
       where: { providerMessageId, isDeleted: false },
+      select: { id: true, organizationId: true, recipientHash: true },
     });
     if (!message) return;
     // tenant-scope-ignore: provider receipts are globally identified; only this verified message's receipts are read.
@@ -631,6 +638,7 @@ export class EmailPerformanceService {
       where: { providerMessageId, processedAt: null },
       orderBy: { occurredAt: 'asc' },
       take: 100,
+      select: { eventType: true, id: true, occurredAt: true },
     });
     for (const event of events) {
       const field =

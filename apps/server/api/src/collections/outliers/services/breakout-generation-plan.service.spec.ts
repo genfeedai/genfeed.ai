@@ -189,6 +189,15 @@ describe('actual pricing and native-admitted breakout planning', () => {
     });
     expect(h.prisma.breakoutResponse.findFirst).toHaveBeenCalledWith({
       where: { ...h.request.scope, id: h.request.responseId, isDeleted: false },
+      select: {
+        contentDigest: true,
+        externalId: true,
+        logicalPostId: true,
+        nativeSourcePostId: true,
+        publicationFingerprint: true,
+        sourcePostId: true,
+        state: true,
+      },
     });
     expect(h.registry.listCallableTextModels).toHaveBeenCalledWith('org-a');
     expect(h.router.resolveModelKey).toHaveBeenCalledWith({

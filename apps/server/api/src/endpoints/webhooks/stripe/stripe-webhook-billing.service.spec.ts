@@ -131,6 +131,13 @@ describe('StripeWebhookBillingService', () => {
     });
     expect(prisma.customer.findFirst).toHaveBeenCalledWith({
       where: { id: 'customer_1', organizationId: 'org_1', isDeleted: false },
+      select: {
+        billingAccountId: true,
+        id: true,
+        isDeleted: true,
+        organizationId: true,
+        stripeCustomerId: true,
+      },
     });
   });
   it.each([undefined, null, '', ' ', {}, { id: undefined }, { id: 1 }])(

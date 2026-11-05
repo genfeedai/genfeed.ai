@@ -126,6 +126,7 @@ export class AdCreativeMappingsService {
     try {
       const existing = await this.prisma.adCreativeMapping.findFirst({
         where: scopedWhere(organizationId, { id }),
+        select: { data: true },
       });
 
       if (!existing) {
@@ -168,6 +169,7 @@ export class AdCreativeMappingsService {
     try {
       const existing = await this.prisma.adCreativeMapping.findFirst({
         where: scopedWhere(organizationId, { id }),
+        select: { id: true },
       });
 
       if (!existing) {

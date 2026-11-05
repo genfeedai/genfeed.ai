@@ -90,6 +90,7 @@ export class LearningRunControlService {
           requestId: input.requestId,
           isDeleted: false,
         },
+        select: { payloadHash: true },
       });
       if (prior) {
         if (prior.payloadHash !== payloadHash)

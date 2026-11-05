@@ -36,6 +36,14 @@ export class SocialInboxSuggestedReplyService {
     const { organizationId } = scope;
     const conversation = await this.prisma.socialConversation.findFirst({
       where: { id: conversationId, organizationId, isDeleted: false },
+      select: {
+        brandId: true,
+        conversationType: true,
+        participantHandle: true,
+        participantName: true,
+        platform: true,
+        sourceContentTitle: true,
+      },
     });
     if (!conversation)
       throw new NotFoundException('Conversation', conversationId);

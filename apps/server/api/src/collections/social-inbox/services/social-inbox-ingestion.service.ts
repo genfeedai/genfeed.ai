@@ -642,6 +642,14 @@ export class SocialInboxIngestionService {
           scope.organizationId,
           ownedPublicInboxPostFilter(Platform.LINKEDIN, credential.id, brandId),
         ),
+        select: {
+          brandId: true,
+          description: true,
+          externalId: true,
+          id: true,
+          label: true,
+          url: true,
+        },
       });
 
       for (const post of posts) {

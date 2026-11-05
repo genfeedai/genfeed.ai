@@ -36,7 +36,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/web/app/(protected)/admin/settings/system-notifications-panel.test.tsx',
   'apps/web/app/(protected)/protected-layout-client.platform-flags.test.tsx',
   'apps/web/app/(protected)/root-resolver-client.test.tsx',
-  'apps/web/app/oauth/[platform]/oauth-platform-form.test.tsx',
   'apps/web/src/features/analytics/posts-list/posts-content.test.tsx',
   'apps/web/src/features/settings/search/use-settings-navigation.test.ts',
   'apps/web/src/server/overview-page-data.server.test.ts',

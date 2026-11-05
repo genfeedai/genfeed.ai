@@ -62,6 +62,17 @@ export async function reserveBreakoutCapacityPlan(
       platform,
       isDeleted: false,
     },
+    select: {
+      contentDigest: true,
+      externalId: true,
+      id: true,
+      logicalPostId: true,
+      nativeSourcePostId: true,
+      outputPlanFingerprint: true,
+      publicationFingerprint: true,
+      sourcePostId: true,
+      triggerReceiptId: true,
+    },
   });
   if (!response) return { status: 'missing_response' };
   const source = await loadBreakoutPublication(tx, {
