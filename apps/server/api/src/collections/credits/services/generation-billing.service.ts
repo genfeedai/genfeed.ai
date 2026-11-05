@@ -1,19 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import {
-  GENERATION_OUTPUT_TERMINAL_EVENT,
-  type GenerationOutputTerminalEvent,
-} from '@api/collections/credits/constants/generation-output-events.constants';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import {
   GenerationByokUsage,
   SETTLEABLE_STATUSES,
 } from '@api/collections/credits/services/generation-byok-usage';
-import {
-  isCrunBillingDispositionAllowed,
-  recordCrunSubmissionFailure,
-  runCrunBillingMutation,
-} from '@api/collections/credits/services/generation-crun-billing-guard';
+import { bindCrunBillingGuard } from '@api/collections/credits/services/generation-crun-billing-guard';
 import {
   queueHoldSettlement,
   queueLateHoldCharge,
@@ -28,6 +20,7 @@ import {
   type HoldReconcileStats,
   pollHoldAtCeiling,
 } from '@api/collections/credits/services/generation-hold-recovery-backoff.util';
+import { GenerationOutputTerminal } from '@api/collections/credits/services/generation-output-terminal';
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import type { ReservationCreditsConfig } from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import {
@@ -53,7 +46,6 @@ import {
   MEDIA_GENERATION_WORKLOAD_TYPE,
 } from '@genfeedai/contracts/constants';
 import type { ICreditReservation } from '@genfeedai/contracts/interfaces/billing';
-import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
@@ -106,6 +98,8 @@ const TERMINAL_FAILURE_STATUSES: readonly string[] = [
 @Injectable()
 export class GenerationBillingService {
   private readonly byok: GenerationByokUsage;
+  private readonly terminal: GenerationOutputTerminal;
+  private readonly crun: ReturnType<typeof bindCrunBillingGuard>;
 
   constructor(
     private readonly credits: CreditsUtilsService,
@@ -114,10 +108,12 @@ export class GenerationBillingService {
     private readonly logger: LoggerService,
     private readonly quoteGroups: GenerationQuoteGroupService,
     @Optional() private readonly holdRecovery?: GenerationHoldRecoveryService,
-    @Optional() private readonly receipts?: MediaGenerationReceiptsService,
-    @Optional() private readonly events?: EventEmitter2,
+    @Optional() receipts?: MediaGenerationReceiptsService,
+    @Optional() events?: EventEmitter2,
   ) {
     this.byok = new GenerationByokUsage(queue, prisma, logger);
+    this.terminal = new GenerationOutputTerminal(logger, receipts, events);
+    this.crun = bindCrunBillingGuard(prisma);
   }
 
   /**
@@ -322,9 +318,9 @@ export class GenerationBillingService {
     ingredientId: string,
     organizationId: string,
   ): Promise<void> {
-    if (await this.recordCrunFailure(ingredientId, organizationId)) return;
+    if (await this.crun.recordFailure(ingredientId, organizationId)) return;
     if (
-      !(await this.crunDispositionAllowed(
+      !(await this.crun.dispositionAllowed(
         ingredientId,
         organizationId,
         'release',
@@ -348,9 +344,9 @@ export class GenerationBillingService {
     ingredientId: string,
     organizationId: string,
   ): Promise<void> {
-    if (await this.recordCrunFailure(ingredientId, organizationId)) return;
+    if (await this.crun.recordFailure(ingredientId, organizationId)) return;
     if (
-      !(await this.crunDispositionAllowed(
+      !(await this.crun.dispositionAllowed(
         ingredientId,
         organizationId,
         'release',
@@ -372,34 +368,24 @@ export class GenerationBillingService {
     return this.quoteGroups.reconcileAbortedCrunDispatches(now);
   }
 
-  /**
-   * Success: queue one reserved settlement for the output's hold. The output's
-   * outcome is announced after the hold moves, whatever the hold step returns.
-   */
+  /** Success: queue one reserved settlement for the output's hold. */
   async settleOutput(
     ingredientId: string,
     organizationId: string,
     completion: { durationSeconds?: number } = {},
   ): Promise<GenerationSettlementOutcome> {
-    void this.receipts?.syncTerminal(organizationId, ingredientId, 'settled');
-    try {
-      return await this.settleOutputHold(
-        ingredientId,
-        organizationId,
-        completion,
-      );
-    } finally {
-      this.emitOutputTerminal(ingredientId, organizationId, 'settled');
-    }
+    return this.terminal.track(ingredientId, organizationId, 'settled', () =>
+      this.settleHold(ingredientId, organizationId, completion),
+    );
   }
 
-  private async settleOutputHold(
+  private async settleHold(
     ingredientId: string,
     organizationId: string,
     completion: { durationSeconds?: number },
   ): Promise<GenerationSettlementOutcome> {
     if (
-      !(await this.crunDispositionAllowed(
+      !(await this.crun.dispositionAllowed(
         ingredientId,
         organizationId,
         'settle',
@@ -505,43 +491,6 @@ export class GenerationBillingService {
     return `${MEDIA_GENERATION_LATE_SETTLEMENT_KEY_PREFIX}:${reservationId}`;
   }
 
-  private crunMutation<T>(
-    ingredientId: string,
-    organizationId: string,
-    disposition: 'settle' | 'release',
-    mutate: (tx: Prisma.TransactionClient) => Promise<T>,
-  ): Promise<T | 'held' | undefined> {
-    return runCrunBillingMutation(
-      this.prisma,
-      ingredientId,
-      organizationId,
-      disposition,
-      mutate,
-    );
-  }
-  private recordCrunFailure(
-    ingredientId: string,
-    organizationId: string,
-  ): Promise<boolean> {
-    return recordCrunSubmissionFailure(
-      this.prisma,
-      ingredientId,
-      organizationId,
-    );
-  }
-  private crunDispositionAllowed(
-    ingredientId: string,
-    organizationId: string,
-    disposition: 'settle' | 'release',
-  ): Promise<boolean> {
-    return isCrunBillingDispositionAllowed(
-      this.prisma,
-      ingredientId,
-      organizationId,
-      disposition,
-    );
-  }
-
   private async reconcileByok(now: Date): Promise<number> {
     let cursor: string | undefined;
     let acted = 0;
@@ -568,7 +517,7 @@ export class GenerationBillingService {
         if (!receipt || !row.organizationId) continue;
         try {
           if (
-            !(await this.crunDispositionAllowed(
+            !(await this.crun.dispositionAllowed(
               row.id,
               row.organizationId,
               SETTLEABLE_STATUSES.includes(row.status) ? 'settle' : 'release',
@@ -612,30 +561,24 @@ export class GenerationBillingService {
     return acted;
   }
 
-  /**
-   * Failure or timeout: give the output's hold back without charging. The
-   * output's outcome is announced after the hold moves.
-   */
+  /** Failure or timeout: give the output's hold back without charging. */
   async releaseOutput(
     ingredientId: string,
     organizationId: string,
     reason: 'release' | 'expiry' = 'release',
   ): Promise<GenerationReleaseOutcome> {
-    void this.receipts?.syncTerminal(organizationId, ingredientId, 'released');
-    try {
-      return await this.releaseOutputHold(ingredientId, organizationId, reason);
-    } finally {
-      this.emitOutputTerminal(ingredientId, organizationId, 'released');
-    }
+    return this.terminal.track(ingredientId, organizationId, 'released', () =>
+      this.releaseHold(ingredientId, organizationId, reason),
+    );
   }
 
-  private async releaseOutputHold(
+  private async releaseHold(
     ingredientId: string,
     organizationId: string,
     reason: 'release' | 'expiry',
   ): Promise<GenerationReleaseOutcome> {
     if (
-      !(await this.crunDispositionAllowed(
+      !(await this.crun.dispositionAllowed(
         ingredientId,
         organizationId,
         'release',
@@ -877,7 +820,7 @@ export class GenerationBillingService {
       try {
         const ingredient = byKey.get(`${hold.organizationId}:${ingredientId}`);
         if (
-          !(await this.crunDispositionAllowed(
+          !(await this.crun.dispositionAllowed(
             ingredientId,
             hold.organizationId,
             ingredient &&
@@ -991,7 +934,7 @@ export class GenerationBillingService {
     ingredientId: string,
     organizationId: string,
   ): Promise<boolean> {
-    const crun = await this.crunMutation(
+    const crun = await this.crun.mutate(
       ingredientId,
       organizationId,
       'release',
@@ -1024,27 +967,6 @@ export class GenerationBillingService {
       organizationId,
     });
     return true;
-  }
-
-  /** Announces the output's terminal outcome. Emitting never throws. */
-  private emitOutputTerminal(
-    ingredientId: string,
-    organizationId: string,
-    outcome: GenerationOutputTerminalEvent['outcome'],
-  ): void {
-    try {
-      this.events?.emit(GENERATION_OUTPUT_TERMINAL_EVENT, {
-        ingredientId,
-        organizationId,
-        outcome,
-      } satisfies GenerationOutputTerminalEvent);
-    } catch (error: unknown) {
-      this.logger.warn('Failed to emit generation output terminal event', {
-        error,
-        ingredientId,
-        organizationId,
-      });
-    }
   }
 
   private async findHold(

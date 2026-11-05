@@ -11,6 +11,7 @@ import {
 import { MEDIA_GENERATION_WORKLOAD_TYPE } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { readRecord, readString } from '@genfeedai/utils/data/extract.util';
+import { traced } from '@libs/tracing/traced';
 
 /**
  * Projection of the agent-turn workflow result JSON that a transfer mirrors.
@@ -412,68 +413,73 @@ export async function settleAgentTransferFromExecution(
  *
  * @returns how many transfers this call finished.
  */
-export async function settleAgentTransferMediaOutput(
-  prisma: PrismaService,
-  signal: MediaOutputSignal & { organizationId: string },
-): Promise<number> {
-  const { organizationId } = signal;
-  const transfers = await prisma.agentTransfer.findMany({
-    select: {
-      completionSummary: true,
-      destinationExecutionId: true,
-      failureReason: true,
-      id: true,
-      outputArtifactReferences: true,
-    },
-    take: 20,
-    where: scopedWhere(organizationId, {
-      outputArtifactReferences: {
-        array_contains: [{ kind: 'ingredient', recordId: signal.ingredientId }],
+export const settleAgentTransferMediaOutput = traced(
+  'settleAgentTransferMediaOutput',
+  async (
+    prisma: PrismaService,
+    signal: MediaOutputSignal & { organizationId: string },
+  ): Promise<number> => {
+    const { organizationId } = signal;
+    const transfers = await prisma.agentTransfer.findMany({
+      select: {
+        completionSummary: true,
+        destinationExecutionId: true,
+        failureReason: true,
+        id: true,
+        outputArtifactReferences: true,
       },
-      status: AgentTransferStatus.RUNNING,
-    }),
-  });
-
-  let finished = 0;
-  for (const transfer of transfers) {
-    if (!transfer.destinationExecutionId) continue;
-    const execution = await prisma.workflowExecution.findFirst({
-      select: { status: true },
+      take: 20,
       where: scopedWhere(organizationId, {
-        id: transfer.destinationExecutionId,
+        outputArtifactReferences: {
+          array_contains: [
+            { kind: 'ingredient', recordId: signal.ingredientId },
+          ],
+        },
+        status: AgentTransferStatus.RUNNING,
       }),
     });
-    if (
-      !execution ||
-      projectAgentTransferStatus(execution.status) !==
-        AgentTransferStatus.COMPLETED
-    ) {
-      continue;
-    }
-    const outputs = Array.isArray(transfer.outputArtifactReferences)
-      ? (transfer.outputArtifactReferences as unknown[])
-      : [];
-    const media = await readMediaOutcomes(
-      prisma,
-      organizationId,
-      outputs,
-      signal,
-    );
-    if (media.pending.size > 0) continue;
-    const moved = await finishTransfer(prisma, {
-      data: { completedAt: new Date() },
-      executionId: transfer.destinationExecutionId,
-      organizationId,
-      summary: transfer.completionSummary,
-      transferId: transfer.id,
-      ...applyMediaOutcomes({
-        failedIngredientIds: media.failed,
-        failureReason: transfer.failureReason,
+
+    let finished = 0;
+    for (const transfer of transfers) {
+      if (!transfer.destinationExecutionId) continue;
+      const execution = await prisma.workflowExecution.findFirst({
+        select: { status: true },
+        where: scopedWhere(organizationId, {
+          id: transfer.destinationExecutionId,
+        }),
+      });
+      if (
+        !execution ||
+        projectAgentTransferStatus(execution.status) !==
+          AgentTransferStatus.COMPLETED
+      ) {
+        continue;
+      }
+      const outputs = Array.isArray(transfer.outputArtifactReferences)
+        ? (transfer.outputArtifactReferences as unknown[])
+        : [];
+      const media = await readMediaOutcomes(
+        prisma,
+        organizationId,
         outputs,
-        status: AgentTransferStatus.COMPLETED,
-      }),
-    });
-    if (moved) finished += 1;
-  }
-  return finished;
-}
+        signal,
+      );
+      if (media.pending.size > 0) continue;
+      const moved = await finishTransfer(prisma, {
+        data: { completedAt: new Date() },
+        executionId: transfer.destinationExecutionId,
+        organizationId,
+        summary: transfer.completionSummary,
+        transferId: transfer.id,
+        ...applyMediaOutcomes({
+          failedIngredientIds: media.failed,
+          failureReason: transfer.failureReason,
+          outputs,
+          status: AgentTransferStatus.COMPLETED,
+        }),
+      });
+      if (moved) finished += 1;
+    }
+    return finished;
+  },
+);
