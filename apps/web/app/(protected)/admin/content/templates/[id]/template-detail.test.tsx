@@ -1,4 +1,14 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import type { QueryClient } from '@tanstack/react-query';
+import {
+  render as renderWithoutClient,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import messages from '../../../../../../messages/en/pages/adminTemplates.json';
 import TemplateDetail from './template-detail';
@@ -30,7 +40,11 @@ const getService = vi.hoisted(() => async () => ({
   getTemplate: mocks.getTemplate,
 }));
 
-// Stable like the real hook: a new function per render re-runs the load effect.
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getService,
 }));
@@ -56,6 +70,21 @@ vi.mock('@services/core/notifications.service', () => ({
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mocks.push }),
 }));
+
+function render(ui: ReactElement, client?: QueryClient) {
+  return renderWithoutClient(ui, { wrapper: queryClientWrapper(client) });
+}
+
+const VIDEO_TEMPLATE = {
+  category: 'video',
+  content: '{{{prompt}}}',
+  description: 'Default video prompt',
+  id: 'template-1',
+  isActive: true,
+  key: 'content.video.default',
+  label: 'Video default',
+  variables: null,
+};
 
 describe('TemplateDetail shell-first loading', () => {
   beforeEach(() => {
@@ -112,5 +141,46 @@ describe('TemplateDetail shell-first loading', () => {
     expect(screen.getByText('content.video.default')).toBeVisible();
     expect(screen.getByText('{{{prompt}}}')).toBeVisible();
     expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it('paints a cached template at once when it is reopened', async () => {
+    mocks.getTemplate.mockResolvedValueOnce(VIDEO_TEMPLATE);
+    const client = createTestQueryClient();
+    const first = render(<TemplateDetail templateId="template-1" />, client);
+    await screen.findByRole('heading', { name: 'Video default' });
+    first.unmount();
+
+    mocks.getTemplate.mockReturnValue(new Promise(() => undefined));
+    render(<TemplateDetail templateId="template-1" />, client);
+
+    expect(
+      screen.getByRole('heading', { name: 'Video default' }),
+    ).toBeVisible();
+    expect(screen.getByText('{{{prompt}}}')).toBeVisible();
+  });
+
+  it('never paints one cached template for another', async () => {
+    mocks.getTemplate.mockResolvedValueOnce(VIDEO_TEMPLATE);
+    const client = createTestQueryClient();
+    const first = render(<TemplateDetail templateId="template-1" />, client);
+    await screen.findByRole('heading', { name: 'Video default' });
+    first.unmount();
+
+    mocks.getTemplate.mockReturnValue(new Promise(() => undefined));
+    render(<TemplateDetail templateId="template-2" />, client);
+
+    expect(screen.getByRole('heading', { name: 'Template' })).toBeVisible();
+    expect(screen.queryByText('Video default')).not.toBeInTheDocument();
+  });
+
+  it('sends the operator back to the list when the template cannot be read', async () => {
+    mocks.getTemplate.mockRejectedValueOnce(new Error('gone'));
+
+    render(<TemplateDetail templateId="template-1" />);
+
+    await waitFor(() => {
+      expect(mocks.push).toHaveBeenCalledWith('/admin/content/templates');
+    });
+    expect(mocks.error).toHaveBeenCalledWith('Failed to load template');
   });
 });

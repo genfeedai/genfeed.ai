@@ -1,9 +1,8 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { IContentTemplate } from '@genfeedai/contracts/interfaces/content/template-ui.interface';
 import { Pre } from '@genfeedai/ui';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { TemplateService } from '@services/content/template.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -19,7 +18,7 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import type { TemplateDetailProps } from '@/features/admin/props/templates.props';
 import { toTemplateView } from '../template-view';
 import { DetailCard, MetadataRow } from './template-detail-helpers';
@@ -33,33 +32,32 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
   const { push } = useRouter();
   const notificationsService = NotificationsService.getInstance();
 
-  const getTemplatesService = useAuthedService((token: string) =>
-    TemplateService.getInstance(token),
-  );
-
-  const [template, setTemplate] = useState<IContentTemplate | null | undefined>(
-    undefined,
-  );
-
-  const loadTemplate = useCallback(async () => {
-    setTemplate(undefined);
-
-    try {
-      const service = await getTemplatesService();
+  // Cached per template: reopening it paints the details at once while they
+  // refresh. Under the templates list key, so list changes refresh it too.
+  const templateQuery = useAuthedQuery({
+    queryFn: async (service) => {
       const data = await service.getTemplate(templateId);
-
-      setTemplate(data);
       logger.info('Loaded template', { id: templateId });
-    } catch (error) {
-      logger.error('Failed to load template', error);
-      notificationsService.error(t('detailLoadError'));
-      push(APP_ROUTES.ADMIN.CONTENT.TEMPLATES);
-    }
-  }, [templateId, getTemplatesService, notificationsService, push, t]);
+      return data;
+    },
+    queryKey: ['admin', 'templates', 'detail', templateId],
+    service: (token: string) => TemplateService.getInstance(token),
+  });
+  const template = templateQuery.data;
+  const hasLoadFailed = templateQuery.isError && template === undefined;
+  const loadError = hasLoadFailed ? templateQuery.error : null;
+  const loadErrorMessage = t('detailLoadError');
 
+  // A template that cannot be read sends the operator back to the list; a
+  // failed background refresh keeps the cached details on screen.
   useEffect(() => {
-    loadTemplate();
-  }, [loadTemplate]);
+    if (!loadError) {
+      return;
+    }
+    logger.error('Failed to load template', loadError);
+    notificationsService.error(loadErrorMessage);
+    push(APP_ROUTES.ADMIN.CONTENT.TEMPLATES);
+  }, [loadError, loadErrorMessage, notificationsService, push]);
 
   const isLoading = template === undefined;
   const view = template ? toTemplateView(template) : undefined;
