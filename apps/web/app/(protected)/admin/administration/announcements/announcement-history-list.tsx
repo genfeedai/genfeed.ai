@@ -40,7 +40,7 @@ export default function AnnouncementHistoryList({
           <SkeletonCard key={key} showImage={false} />
         ))
       ) : announcements.length === 0 ? (
-        <EmptyState surface="card" title="No announcements yet" />
+        <EmptyState surface="card" title="No announcements found" />
       ) : (
         announcements.map((announcement) => (
           <div

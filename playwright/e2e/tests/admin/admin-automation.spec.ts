@@ -28,9 +28,12 @@ test.describe('Admin Automation', () => {
     });
   }
 
-  test('bots list stays interactive', async ({ adminPage }) => {
+  test('bots list is the shared table with the shared empty state', async ({
+    adminPage,
+  }) => {
     await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.AUTOMATION.BOTS);
-    await tryClick(adminPage, '[data-testid="automation-bots-surface"]');
+    await expect(adminPage.getByText('No bots found')).toBeVisible();
+    await expect(adminPage.getByText('No bots yet')).toHaveCount(0);
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();
   });

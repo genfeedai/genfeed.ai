@@ -1,0 +1,17 @@
+{
+  "title": "Bots",
+  "empty": "No bots found",
+  "loadError": "Failed to load bots",
+  "columns": {
+    "bot": "Bot",
+    "status": "Status",
+    "category": "Category",
+    "platforms": "Platforms",
+    "targets": "Targets",
+    "messages": "Messages",
+    "engagements": "Engagements",
+    "lastActivity": "Last activity"
+  },
+  "never": "Never",
+  "totalLabel": "bots"
+}
