@@ -45,7 +45,9 @@ export default function PublishingContentThumbnail({
       {media?.isVideo ? (
         <Play
           aria-hidden="true"
-          className="absolute bottom-1 left-1 size-3.5 fill-white text-white drop-shadow"
+          className={
+            'absolute bottom-1 left-1 size-3.5 fill-white text-white drop-shadow' /* design-system-allow-content-color -- play mark over media */
+          }
         />
       ) : null}
     </div>

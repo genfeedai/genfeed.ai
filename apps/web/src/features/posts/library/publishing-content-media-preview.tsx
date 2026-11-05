@@ -35,8 +35,17 @@ export default function PublishingContentMediaPreview({
         />
       )}
       {media.isVideo ? (
-        <span className="absolute bottom-2 left-2 flex size-6 items-center justify-center rounded-full bg-black/60">
-          <Play aria-hidden="true" className="size-3 fill-white text-white" />
+        <span
+          className={
+            'absolute bottom-2 left-2 flex size-6 items-center justify-center rounded-full bg-black/60' /* design-system-allow-content-color -- play mark over media */
+          }
+        >
+          <Play
+            aria-hidden="true"
+            className={
+              'size-3 fill-white text-white' /* design-system-allow-content-color -- play mark over media */
+            }
+          />
         </span>
       ) : null}
     </div>
