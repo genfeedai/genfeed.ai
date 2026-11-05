@@ -83,6 +83,11 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
+// The sidebar's activity block has its own test; this suite mocks React Query.
+vi.mock('./user-sidebar-activity', () => ({
+  default: () => null,
+}));
+
 vi.mock('@services/organization/users.service', () => ({
   UsersService: {
     getInstance: () => ({

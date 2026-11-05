@@ -28,3 +28,7 @@ export interface AdminUserDetailSectionProps {
   footer?: ReactNode;
   children: ReactNode;
 }
+
+export interface UserSidebarActivityProps {
+  userId: string;
+}
