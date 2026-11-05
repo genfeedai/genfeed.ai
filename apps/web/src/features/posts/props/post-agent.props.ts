@@ -1,7 +1,7 @@
 import type { IPost } from '@genfeedai/contracts/interfaces';
 
 export interface UsePostAgentOptions {
-  post: IPost | undefined;
+  post: IPost | null | undefined;
   /** Current HTML of the post body, as the editor holds it. */
   descriptionDraft: string;
   labelDraft: string;

@@ -212,7 +212,11 @@ describe('useAgentDraftContext', () => {
   });
 
   it("puts the route's context back when the draft unmounts", () => {
-    const routeContext = { placeholder: 'Ask about your posts...', route: '/' };
+    const routeContext = {
+      placeholder: 'Ask about your posts...',
+      route: '/',
+      suggestedActions: [],
+    };
     useAgentChatStore.getState().setPageContext(routeContext);
 
     const { unmount } = renderHook(() =>
@@ -226,7 +230,11 @@ describe('useAgentDraftContext', () => {
   });
 
   it('leaves the page context alone while disabled', () => {
-    const routeContext = { placeholder: 'Ask about your posts...', route: '/' };
+    const routeContext = {
+      placeholder: 'Ask about your posts...',
+      route: '/',
+      suggestedActions: [],
+    };
     useAgentChatStore.getState().setPageContext(routeContext);
 
     renderHook(() =>
