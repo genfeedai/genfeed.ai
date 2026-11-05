@@ -158,7 +158,7 @@ export function useMediaPlayback({
   const isLoading = isCurrent && snapshot.status === 'loading';
   const isPlaying = isCurrent && snapshot.status === 'playing';
 
-  const handleToggle = async () => {
+  const handleToggle = async (startAt?: number) => {
     if (!audioUrl) {
       return;
     }
@@ -169,7 +169,7 @@ export function useMediaPlayback({
       return;
     }
 
-    if (isCurrent && !audio.paused) {
+    if (isCurrent && !audio.paused && startAt === undefined) {
       audio.pause();
       return;
     }
@@ -177,12 +177,14 @@ export function useMediaPlayback({
     setSharedSnapshot({
       currentUrl: audioUrl,
       status: 'loading',
-      ...(isCurrent ? {} : { currentTime: 0, duration: 0 }),
+      ...(isCurrent ? {} : { currentTime: startAt ?? 0, duration: 0 }),
     });
 
     if (audio.src !== new URL(audioUrl, document.baseURI).toString()) {
       audio.src = audioUrl;
     }
+    // Before metadata loads this sets where playback will start.
+    if (startAt !== undefined) audio.currentTime = startAt;
 
     try {
       await audio.play();
@@ -191,14 +193,19 @@ export function useMediaPlayback({
     }
   };
 
-  const toggle = () => {
-    handleToggle().catch(() => {
+  const run = (startAt?: number) => {
+    handleToggle(startAt).catch(() => {
       setSharedSnapshot({
         currentUrl: audioUrl ?? null,
         status: 'error',
       });
     });
   };
+
+  const toggle = () => run();
+
+  /** Starts this clip at `time`, loading it first when another one is current. */
+  const playFrom = (time: number) => run(time);
 
   const seek = (time: number) => {
     if (sharedAudio && isCurrent) sharedAudio.currentTime = time;
@@ -218,6 +225,7 @@ export function useMediaPlayback({
     isLoading,
     isPlaying,
     isMuted: snapshot.isMuted,
+    playFrom,
     seek,
     toggle,
     toggleMute,
