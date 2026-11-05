@@ -24,7 +24,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/web/app/(protected)/admin/configuration/elements/camera-movements/camera-movements-list.test.tsx',
   'apps/web/app/(protected)/admin/configuration/elements/cameras/cameras-list.test.tsx',
   'apps/web/app/(protected)/admin/configuration/elements/moods/moods-list.test.tsx',
-  'apps/web/app/(protected)/admin/configuration/elements/scenes/scenes-list.test.tsx',
   'apps/web/app/(protected)/admin/configuration/elements/sounds/sounds-list.test.tsx',
   'apps/web/app/(protected)/admin/configuration/elements/styles/styles-list.test.tsx',
   'apps/web/app/(protected)/admin/configuration/fonts/font-families-list.test.tsx',

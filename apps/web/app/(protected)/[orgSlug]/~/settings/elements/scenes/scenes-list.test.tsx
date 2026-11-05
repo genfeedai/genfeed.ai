@@ -1,6 +1,11 @@
 import { paginatedResponse } from '@app-tests/paginated-response';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
-import type { ElementScene } from '@models/elements/scene.model';
+import { ElementScene } from '@models/elements/scene.model';
+import type { QueryClient } from '@tanstack/react-query';
 
 import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -20,6 +25,20 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => getServiceMock),
 }));
 
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
+const scope = vi.hoisted(() => ({ organizationId: 'org-1' }));
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ organizationId: scope.organizationId }),
+}));
+
+function renderScenes(client: QueryClient = createTestQueryClient()) {
+  return render(<ScenesList />, { wrapper: queryClientWrapper(client) });
+}
+
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(() => '/org-123/~/settings/elements/scenes'),
   useRouter: vi.fn(() => ({
@@ -38,20 +57,27 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
+const DUSK_PIER = new ElementScene({
+  id: 'scene-1',
+  key: 'dusk',
+  label: 'Dusk Pier',
+});
+
 describe('ScenesList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    scope.organizationId = 'org-1';
     findAllPageMock.mockResolvedValue(paginatedResponse([]));
   });
 
   it('renders the empty list', async () => {
-    const { container } = render(<ScenesList />);
+    const { container } = renderScenes();
     expect(container.firstChild).toBeInTheDocument();
     expect(await screen.findByText('No scenes found')).toBeInTheDocument();
   });
 
   it('offers the shared search field', async () => {
-    render(<ScenesList />);
+    renderScenes();
     expect(
       screen.getByRole('textbox', { name: 'Search scenes' }),
     ).toBeInTheDocument();
@@ -61,7 +87,7 @@ describe('ScenesList', () => {
     findAllPageMock.mockResolvedValue(
       paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
     );
-    const { rerender } = render(<ScenesList />);
+    const { rerender } = renderScenes();
     expect(await screen.findByText('61 scenes')).toBeVisible();
 
     rerender(<ScenesList />);
@@ -79,11 +105,38 @@ describe('ScenesList', () => {
       }),
     );
 
-    render(<ScenesList />);
+    renderScenes();
     expect(screen.getByText('0 scenes')).toBeVisible();
     await act(async () => {
       resolvePage?.(paginatedResponse([]));
     });
     expect(screen.getByText('0 scenes')).toBeVisible();
+  });
+
+  it('paints the cached scenes at once when coming back', async () => {
+    findAllPageMock.mockResolvedValue(paginatedResponse([DUSK_PIER]));
+    const client = createTestQueryClient();
+    const firstVisit = renderScenes(client);
+    expect(await screen.findByText('Dusk Pier')).toBeVisible();
+    firstVisit.unmount();
+
+    findAllPageMock.mockReturnValue(new Promise(() => {}));
+    renderScenes(client);
+
+    expect(screen.getByText('Dusk Pier')).toBeVisible();
+  });
+
+  it('never shows one organization’s scenes under another', async () => {
+    findAllPageMock.mockResolvedValue(paginatedResponse([DUSK_PIER]));
+    const client = createTestQueryClient();
+    const firstVisit = renderScenes(client);
+    expect(await screen.findByText('Dusk Pier')).toBeVisible();
+    firstVisit.unmount();
+
+    scope.organizationId = 'org-2';
+    findAllPageMock.mockReturnValue(new Promise(() => {}));
+    renderScenes(client);
+
+    expect(screen.queryByText('Dusk Pier')).not.toBeInTheDocument();
   });
 });
