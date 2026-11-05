@@ -94,26 +94,28 @@ export default function PublishingContentBoard({
         )}
       />
       {canScrollStart ? (
-        <Button
-          ariaLabel={translate('scrollLeft')}
-          className="absolute top-1/2 left-2 -translate-y-1/2 rounded-full shadow-md"
-          icon={<ChevronLeft aria-hidden="true" />}
-          size={ButtonSize.ICON}
-          variant={ButtonVariant.SECONDARY}
-          withWrapper={false}
-          onClick={() => scrollByColumn(-1)}
-        />
+        <span className="absolute top-1/2 left-2 -translate-y-1/2">
+          <Button
+            ariaLabel={translate('scrollLeft')}
+            icon={<ChevronLeft aria-hidden="true" />}
+            size={ButtonSize.ICON}
+            variant={ButtonVariant.SECONDARY}
+            withWrapper={false}
+            onClick={() => scrollByColumn(-1)}
+          />
+        </span>
       ) : null}
       {canScrollEnd ? (
-        <Button
-          ariaLabel={translate('scrollRight')}
-          className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full shadow-md"
-          icon={<ChevronRight aria-hidden="true" />}
-          size={ButtonSize.ICON}
-          variant={ButtonVariant.SECONDARY}
-          withWrapper={false}
-          onClick={() => scrollByColumn(1)}
-        />
+        <span className="absolute top-1/2 right-2 -translate-y-1/2">
+          <Button
+            ariaLabel={translate('scrollRight')}
+            icon={<ChevronRight aria-hidden="true" />}
+            size={ButtonSize.ICON}
+            variant={ButtonVariant.SECONDARY}
+            withWrapper={false}
+            onClick={() => scrollByColumn(1)}
+          />
+        </span>
       ) : null}
     </div>
   );
