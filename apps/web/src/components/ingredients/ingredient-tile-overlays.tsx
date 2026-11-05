@@ -105,7 +105,11 @@ export default function IngredientTileOverlays({
             {caption.label}
           </span>
           {caption.duration ? (
-            <span className="shrink-0 font-mono tabular-nums text-white/70">
+            <span
+              className={
+                'shrink-0 font-mono tabular-nums text-white/70' /* design-system-allow-content-color -- caption over media */
+              }
+            >
               {caption.duration}
             </span>
           ) : null}
