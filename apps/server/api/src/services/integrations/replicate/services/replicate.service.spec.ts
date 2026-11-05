@@ -7,7 +7,6 @@ import { AgentFailureReason } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { downloadBounded } from '@libs/security/bounded-download';
 import Replicate from 'replicate';
 import { ReplicateService } from './replicate.service';
 
@@ -16,13 +15,6 @@ vi.mock('@genfeedai/config', async (importOriginal) => ({
   isCloudDeployment: vi.fn(() => false),
 }));
 
-vi.mock('@libs/security/bounded-download', () => ({
-  downloadBounded: vi.fn(),
-}));
-
-const filesCreate = vi.fn(async (_file: Blob) => ({
-  urls: { get: 'https://api.replicate.com/v1/files/source-file' },
-}));
 const predictionsCreate = vi.fn();
 const predictionsGet = vi.fn();
 const predictionsCancel = vi.fn();
@@ -38,7 +30,6 @@ vi.mock('replicate', () => ({
   default: vi.fn(function MockReplicate(this: unknown, options: unknown) {
     constructed.push(options as { auth?: string });
     Object.assign(this as object, {
-      files: { create: filesCreate },
       models: { create: modelsCreate },
       predictions: {
         cancel: predictionsCancel,
@@ -89,99 +80,6 @@ function createHarness(
 }
 
 describe('ReplicateService', () => {
-  it('preserves an extensionless Topaz video as a typed named provider file', async () => {
-    vi.mocked(downloadBounded).mockResolvedValue({
-      data: Buffer.from('synthetic mp4 fixture'),
-      headers: new Headers({ 'content-type': 'video/mp4' }),
-    });
-    predictionsCreate.mockResolvedValue({ id: 'typed-upscale' });
-    const { service } = createHarness();
-    const id = await service.runModel(
-      MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
-      {
-        video:
-          'https://storage.test/ingredients/videos/opaque-key?signature=redacted',
-        target_fps: 30,
-        target_resolution: '1080p',
-      },
-    );
-    expect(id).toBe('typed-upscale');
-    const file = filesCreate.mock.calls[0]?.[0];
-    expect(file).toBeInstanceOf(File);
-    if (!(file instanceof File))
-      throw new Error('Expected named provider file');
-    expect(file.name).toBe('source.mp4');
-    expect(file.type).toBe('video/mp4');
-    expect(await file.text()).toBe('synthetic mp4 fixture');
-    expect(predictionsCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        input: {
-          video: 'https://api.replicate.com/v1/files/source-file',
-          target_fps: 30,
-          target_resolution: '1080p',
-        },
-      }),
-    );
-  });
-
-  it('rejects an unreadable extensionless container before prediction submission', async () => {
-    vi.mocked(downloadBounded).mockResolvedValue({
-      data: Buffer.from('not a video'),
-      headers: new Headers({ 'content-type': 'text/html' }),
-    });
-    const { service } = createHarness();
-    const submitted = vi.fn();
-    await expect(
-      service.runModel(
-        MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
-        { video: 'https://storage.test/opaque' },
-        undefined,
-        undefined,
-        submitted,
-      ),
-    ).rejects.toThrow();
-    expect(submitted).not.toHaveBeenCalled();
-    expect(predictionsCreate).not.toHaveBeenCalled();
-    expect(filesCreate).not.toHaveBeenCalled();
-  });
-
-  it('does not submit a paid prediction when the source upload fails', async () => {
-    vi.mocked(downloadBounded).mockResolvedValue({
-      data: Buffer.from('synthetic mp4 fixture'),
-      headers: new Headers({ 'content-type': 'video/mp4' }),
-    });
-    filesCreate.mockRejectedValueOnce(new Error('File upload unavailable'));
-    const { service } = createHarness();
-    const submitted = vi.fn();
-    await expect(
-      service.runModel(
-        MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
-        { video: 'https://storage.test/opaque' },
-        undefined,
-        undefined,
-        submitted,
-      ),
-    ).rejects.toThrow();
-    expect(submitted).not.toHaveBeenCalled();
-    expect(predictionsCreate).not.toHaveBeenCalled();
-  });
-
-  it('keeps a named video URL and unrelated model inputs unchanged', async () => {
-    predictionsCreate.mockResolvedValue({ id: 'named-upscale' });
-    const { service } = createHarness();
-    const source = {
-      video: 'https://storage.test/source.mp4?signature=redacted',
-    };
-    await expect(
-      service.runModel(MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE, source),
-    ).resolves.toBe('named-upscale');
-    expect(predictionsCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ input: source }),
-    );
-    expect(filesCreate).not.toHaveBeenCalled();
-    expect(downloadBounded).not.toHaveBeenCalled();
-  });
-
   it.each([undefined, '', '   '])(
     'rejects an unconfigured image provider before submission: %j',
     async (key) => {

@@ -24,6 +24,7 @@ describe('WorkflowUpscaleFundingService', () => {
   const findFirst = vi.fn();
   const error = vi.fn();
   const getPresignedDownloadUrlForObjectKey = vi.fn();
+  const copyInS3 = vi.fn();
   const service = new WorkflowUpscaleFundingService(
     {
       bindOutput,
@@ -34,7 +35,10 @@ describe('WorkflowUpscaleFundingService', () => {
     { quoteSnapshotByKey } as unknown as ModelCreditQuoteService,
     { ingredient: { findFirst } } as unknown as PrismaService,
     { error, warn: vi.fn() } as unknown as LoggerService,
-    { getPresignedDownloadUrlForObjectKey } as unknown as FilesClientService,
+    {
+      copyInS3,
+      getPresignedDownloadUrlForObjectKey,
+    } as unknown as FilesClientService,
     { isAuthorizedMediaDeliveryEnabled: false } as unknown as ConfigService,
   );
   const input = {
@@ -60,6 +64,7 @@ describe('WorkflowUpscaleFundingService', () => {
     getPresignedDownloadUrlForObjectKey.mockResolvedValue(
       'https://storage.test/issued-source',
     );
+    copyInS3.mockResolvedValue(undefined);
     quoteSnapshotByKey.mockResolvedValue({ credits: 7 });
     findFirst.mockResolvedValue({
       metadata: { duration: 12.5, height: 768, width: 1024 },
@@ -164,6 +169,26 @@ describe('WorkflowUpscaleFundingService', () => {
         target_fps: 60,
         target_resolution: '4k',
       });
+    });
+
+    it('issues a presigned URL for an .mp4-named copy of the stored video', async () => {
+      const funding = await service.fund(video);
+
+      expect(copyInS3).toHaveBeenCalledWith(
+        'source-key',
+        'provider-inputs/videos/source-1.mp4',
+      );
+      expect(getPresignedDownloadUrlForObjectKey).toHaveBeenCalledWith(
+        'provider-inputs/videos/source-1.mp4',
+      );
+      expect(funding.sourceUrl).toBe('https://storage.test/issued-source');
+    });
+
+    it('holds nothing when the video copy fails', async () => {
+      copyInS3.mockRejectedValue(new Error('copy unavailable'));
+
+      await expect(service.fund(video)).rejects.toThrow('copy unavailable');
+      expect(holdForService).not.toHaveBeenCalled();
     });
 
     it('prices the direct-endpoint defaults of 1080p at 30 fps when the node has none', async () => {
