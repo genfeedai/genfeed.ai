@@ -1,3 +1,5 @@
+import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
+import { BALANCE_TX_OPTIONS } from '@api/collections/credits/services/credit-transaction-options';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
 import {
@@ -12,6 +14,7 @@ import {
   RETRY_CREDIT_BACK_SOURCE,
   RETRY_CREDIT_BACK_WINDOW_MS,
 } from '@genfeedai/contracts/constants';
+import type { IAddCreditsOptions } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
@@ -128,26 +131,23 @@ export class RetryCreditBackService {
     // Cheap early exit only. The amount is decided again inside the ledger
     // transaction, so concurrent grants cannot both spend the same cap.
     if ((await decide(this.prisma)) <= 0) return 0;
-    const credits =
-      await this.credits.addOrganizationCreditsDecidedInTransaction({
-        decideCredits: (tx) => decide(tx),
-        description: 'Retry credit back',
-        expiresAt: new Date(Date.now() + RETRY_CREDIT_BACK_EXPIRY_MS),
-        options: {
-          actorUserId: userId,
-          brandId: retry.brandId,
-          idempotencyKey,
-          metadata: {
-            chargedCredits: input.chargedCredits,
-            ingredientId,
-            kind: 'promotional',
-          },
-          referenceId: ingredientId,
-          referenceType: RETRY_CREDIT_BACK_SOURCE,
+    const credits = await this.grantWithinCap({
+      decide,
+      expiresAt: new Date(Date.now() + RETRY_CREDIT_BACK_EXPIRY_MS),
+      options: {
+        actorUserId: userId,
+        brandId: retry.brandId,
+        idempotencyKey,
+        metadata: {
+          chargedCredits: input.chargedCredits,
+          ingredientId,
+          kind: 'promotional',
         },
-        organizationId,
-        source: RETRY_CREDIT_BACK_SOURCE,
-      });
+        referenceId: ingredientId,
+        referenceType: RETRY_CREDIT_BACK_SOURCE,
+      },
+      organizationId,
+    });
     if (credits <= 0) return 0;
     this.logger.log(`${this.constructorName} granted retry credit back`, {
       credits,
@@ -216,6 +216,52 @@ export class RetryCreditBackService {
         ingredientId: input.ingredientId,
         organizationId: input.organizationId,
       });
+    }
+  }
+
+  /**
+   * Decides the amount and writes the grant in one Serializable transaction,
+   * again on every conflict retry, so two concurrent grants cannot both spend
+   * the same cap headroom. Returns the credits written (0 if none, or if the
+   * grant had already been applied).
+   */
+  private async grantWithinCap(input: {
+    decide: (db: Pick<PrismaService, 'creditTransaction'>) => Promise<number>;
+    expiresAt: Date;
+    options: IAddCreditsOptions;
+    organizationId: string;
+  }): Promise<number> {
+    const { decide, organizationId, ...grant } = input;
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        const { credits, result } = await this.prisma.$transaction(
+          async (tx) => {
+            const decided = await decide(tx);
+            if (!(decided > 0)) return { credits: 0, result: null };
+            const added = await this.credits.addPromotionalCreditsInTransaction(
+              {
+                ...grant,
+                creditsToAdd: decided,
+                description: 'Retry credit back',
+                organizationId,
+                source: RETRY_CREDIT_BACK_SOURCE,
+              },
+              tx,
+            );
+            return { credits: decided, result: added };
+          },
+          BALANCE_TX_OPTIONS,
+        );
+        if (!result?.wasApplied) return 0;
+        await this.credits.publishCreditAddition(
+          organizationId,
+          credits,
+          result,
+        );
+        return credits;
+      } catch (error: unknown) {
+        if (!isCreditTransactionConflict(error) || attempt >= 3) throw error;
+      }
     }
   }
 
