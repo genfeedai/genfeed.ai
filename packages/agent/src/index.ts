@@ -143,12 +143,6 @@ export type {
   UpdateAgentStrategyPayload,
 } from '@genfeedai/agent/models/agent-strategy.model';
 export type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
-// Models
-export type {
-  ClipperRunCardState,
-  ClipperRunModes,
-  ClipperRunStep,
-} from '@genfeedai/agent/models/clipper-run-card.model';
 export type {
   ConversationComposerActionDefinition,
   ConversationComposerActionInvocation,
@@ -223,6 +217,12 @@ export {
 } from '@genfeedai/agent/utils/format-agent-error.util';
 export { formatDuration } from '@genfeedai/agent/utils/format-duration';
 export { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
+// Models
+export type {
+  ClipperRunCardState,
+  ClipperRunModes,
+  ClipperRunStep,
+} from '@genfeedai/contracts/interfaces';
 export type {
   AttachmentItem,
   ChatAttachment,

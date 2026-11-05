@@ -1,6 +1,6 @@
 import '@agent-tests/media-preview-mocks';
 import { IngredientAlternativesCard } from '@genfeedai/agent/components/IngredientAlternativesCard';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import {
   act,
@@ -46,7 +46,9 @@ function makeApiService(overrides: ApiOverrides = {}): AgentApiService {
   } as unknown as AgentApiService;
 }
 
-function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
+function makeAction(
+  overrides: Partial<AgentUiActionOf<'ingredient_alternatives_card'>> = {},
+): AgentUiActionOf<'ingredient_alternatives_card'> {
   return {
     alternatives: [
       {
@@ -64,7 +66,7 @@ function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
     title: 'Try an alternative',
     type: 'ingredient_alternatives_card',
     ...overrides,
-  } as AgentUiAction;
+  } as AgentUiActionOf<'ingredient_alternatives_card'>;
 }
 
 describe('IngredientAlternativesCard', () => {

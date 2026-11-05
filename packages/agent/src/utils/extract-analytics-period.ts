@@ -1,4 +1,4 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 
 const ANALYTICS_SNAPSHOT_ID_PREFIX = 'analytics-snapshot:';
 
@@ -50,7 +50,9 @@ function periodFromTitle(title: string): string | undefined {
  * Resolve the analytics period an action describes, preferring explicit
  * `data.period`, then the action id, then a parenthesised title suffix.
  */
-export function extractAnalyticsPeriod(action: AgentUiAction): string {
+export function extractAnalyticsPeriod(
+  action: AgentUiActionOf<'analytics_snapshot_card'>,
+): string {
   const dataPeriod = action.data?.period;
   if (typeof dataPeriod === 'string' && dataPeriod.trim()) {
     return dataPeriod.trim();

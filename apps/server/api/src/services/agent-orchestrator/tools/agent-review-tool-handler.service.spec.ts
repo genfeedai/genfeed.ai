@@ -1,6 +1,7 @@
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentReviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-review-tool-handler.service';
 import { readReviewQueueSnapshot } from '@api/services/agent-orchestrator/utils/agent-review-queue-context.util';
+import { requireUiAction } from '@api-test/helpers/agent-ui-action';
 import { ReviewDecision, TurboRunItemStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { describe, expect, it, vi } from 'vitest';
@@ -37,9 +38,9 @@ describe('review result follow-ups', () => {
       'review-create',
       'review-ideas',
     ]);
-    expect(ui.uiActions[0]?.summaryText).toBe(
-      'Nothing is waiting for review right now.',
-    );
+    expect(
+      requireUiAction(ui.uiActions, 'completion_summary_card').summaryText,
+    ).toBe('Nothing is waiting for review right now.');
   });
 
   it('adds a decidable review gate card for pending workflow gates', async () => {
@@ -81,9 +82,10 @@ describe('review result follow-ups', () => {
       ],
       type: 'review_gate_card',
     });
-    expect(result.nextActions?.[1]?.summaryText).toContain(
-      '1 workflow review gate is waiting for a decision.',
-    );
+    expect(
+      requireUiAction(result.nextActions, 'completion_summary_card')
+        .summaryText,
+    ).toContain('1 workflow review gate is waiting for a decision.');
   });
 
   it('still lists the inbox when review gates cannot be loaded', async () => {

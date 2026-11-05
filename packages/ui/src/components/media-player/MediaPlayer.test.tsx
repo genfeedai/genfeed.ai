@@ -102,7 +102,7 @@ describe('MediaPlayer', () => {
     ).toBeDisabled();
   });
 
-  it('starts playback instead of seeking when the waveform of an idle clip is pressed', async () => {
+  it('starts an idle clip from the point pressed on its waveform', async () => {
     render(
       <MediaPlayer
         knownDuration={34}
@@ -112,12 +112,16 @@ describe('MediaPlayer', () => {
       />,
     );
     expect(screen.getByText('0:00 / 0:34')).toBeInTheDocument();
-    const positionBefore = audio.currentTime;
     fireEvent.keyDown(screen.getByRole('slider', { name: 'Seek Idle' }), {
       key: 'ArrowRight',
     });
-    await waitFor(() => expect(audio.play).toHaveBeenCalledOnce());
-    expect(audio.currentTime).toBe(positionBefore);
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Pause preview for Idle' }),
+      ).toBeInTheDocument(),
+    );
+    expect(audio.currentTime).toBe(5);
+    expect(screen.getByText('0:05 / 0:34')).toBeInTheDocument();
   });
 
   it('shows the tile caption with its badge and keeps the same controls', () => {

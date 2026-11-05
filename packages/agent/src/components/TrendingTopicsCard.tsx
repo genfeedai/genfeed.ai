@@ -1,4 +1,4 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
@@ -6,7 +6,7 @@ import { Flame, SquarePen, TrendingUp } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 interface TrendingTopicsCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'trending_topics_card'>;
   onCreatePost?: (trend: { id: string; label: string }) => void;
 }
 

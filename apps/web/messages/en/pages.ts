@@ -2,6 +2,7 @@ import about from './pages/about.json';
 import accountHistoryImport from './pages/accountHistoryImport.json';
 import activities from './pages/activities.json';
 import adminAgents from './pages/adminAgents.json';
+import adminBots from './pages/adminBots.json';
 import adminCreditHolds from './pages/adminCreditHolds.json';
 import adminEconomics from './pages/adminEconomics.json';
 import adminFlags from './pages/adminFlags.json';
@@ -79,6 +80,7 @@ const pages = {
   accountHistoryImport,
   activities,
   adminAgents,
+  adminBots,
   adminCreditHolds,
   adminEconomics,
   adminFlags,

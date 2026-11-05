@@ -1,5 +1,6 @@
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IPaginationParams } from '@genfeedai/contracts/interfaces';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   toBrandListParams,
@@ -8,8 +9,9 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { type QueryKey, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   type CloudWorkflowData,
   createWorkflowApiService,
@@ -19,6 +21,19 @@ import {
 import { useCloudSession } from '@/hooks/useCloudSession';
 
 export const WORKFLOW_LIBRARY_PAGE_SIZE = ITEMS_PER_PAGE;
+
+interface WorkflowLibraryPageData {
+  items: WorkflowSummary[];
+  pagination: IPaginationParams;
+}
+
+const EMPTY_WORKFLOWS: WorkflowSummary[] = [];
+const FIRST_PAGE_PAGINATION: IPaginationParams = {
+  limit: WORKFLOW_LIBRARY_PAGE_SIZE,
+  page: 1,
+  pages: 1,
+  total: 0,
+};
 
 interface WorkflowLibraryOptions {
   relatedWorkflows?: WorkflowSummary[];
@@ -36,81 +51,83 @@ export function useWorkflowLibraryPage({
   const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
   const { isConnected, isCapable } = useCloudSession();
   const notificationsService = NotificationsService.getInstance();
-  const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState<IPaginationParams>({
-    limit: WORKFLOW_LIBRARY_PAGE_SIZE,
-    page: 1,
-    pages: 1,
-    total: 0,
-  });
-  const loadedScopeKeyRef = useRef<string | null>(null);
 
-  const getService = useAuthedService(createWorkflowApiService);
-
-  const loadWorkflows = useCallback(
-    async (signal: AbortSignal) => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const service = await getService();
-        if (signal.aborted) return;
-
-        const scopeKey = `${organizationId}:${pageScope}:${brandId ?? ''}:${searchInput}`;
-        const requestPage = loadedScopeKeyRef.current === scopeKey ? page : 1;
-        if (loadedScopeKeyRef.current !== scopeKey && page !== 1) {
-          setPage(1);
-        }
-        loadedScopeKeyRef.current = scopeKey;
-
-        const params: Record<string, unknown> = {
-          ...toBrandListParams({ brandId }),
-          limit: WORKFLOW_LIBRARY_PAGE_SIZE,
-          page: requestPage,
-        };
-        if (searchInput) params.search = searchInput;
-
-        const data = await service.listPage(params);
-        if (signal.aborted) return;
-
-        setWorkflows(data.items);
-        setPagination(data.pagination);
-      } catch (err) {
-        if (signal.aborted) return;
-        const message =
-          err instanceof Error ? err.message : 'Failed to load workflows';
-        logger.error('Failed to load workflows', { error: err });
-        setError(message);
-      } finally {
-        if (!signal.aborted) {
-          setIsLoading(false);
-        }
-      }
+  // The page belongs to the scope it was picked in: a new organization,
+  // brand, scope or search starts on page 1 without a request for the old
+  // page number first.
+  const scopeKey = `${organizationId}:${pageScope}:${brandId ?? ''}:${searchInput}`;
+  const [pageState, setPageState] = useState({ page: 1, scopeKey });
+  const page = pageState.scopeKey === scopeKey ? pageState.page : 1;
+  const setPage = useCallback(
+    (nextPage: number) => {
+      setPageState({ page: nextPage, scopeKey });
     },
-    [brandId, getService, organizationId, page, pageScope, searchInput],
+    [scopeKey],
   );
 
-  useEffect(() => {
-    if (!isReady || !organizationId) {
-      return;
-    }
-    if (pageScope === 'brand' && !brandId) {
-      return;
-    }
+  const getService = useAuthedService(createWorkflowApiService);
+  const queryClient = useQueryClient();
 
-    const controller = new AbortController();
-    loadWorkflows(controller.signal);
-    return () => controller.abort();
-  }, [brandId, isReady, loadWorkflows, organizationId, pageScope]);
+  const isScopeLoadable =
+    isReady && Boolean(organizationId) && (pageScope !== 'brand' || !!brandId);
+  const scopeQueryKey = useMemo<QueryKey>(
+    () => ['workflow-library', organizationId, pageScope, brandId ?? null],
+    [brandId, organizationId, pageScope],
+  );
+  const pageQueryKey = useMemo<QueryKey>(
+    () => [...scopeQueryKey, { page, search: searchInput }],
+    [page, scopeQueryKey, searchInput],
+  );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: org, brand, search, and scope changes must reset pagination and bulk selection before the next request.
+  const workflowsQuery = useAuthedQuery({
+    enabled: isScopeLoadable,
+    // A new page or search keeps the current rows on screen until it lands.
+    keepPreviousDataWithin: scopeQueryKey,
+    queryFn: async (service: ReturnType<typeof createWorkflowApiService>) => {
+      const params: Record<string, unknown> = {
+        ...toBrandListParams({ brandId }),
+        limit: WORKFLOW_LIBRARY_PAGE_SIZE,
+        page,
+      };
+      if (searchInput) params.search = searchInput;
+
+      try {
+        return await service.listPage(params);
+      } catch (err) {
+        logger.error('Failed to load workflows', { error: err });
+        throw err;
+      }
+    },
+    queryKey: pageQueryKey,
+    service: createWorkflowApiService,
+  });
+  const workflows = workflowsQuery.data?.items ?? EMPTY_WORKFLOWS;
+  const pagination = workflowsQuery.data?.pagination ?? FIRST_PAGE_PAGINATION;
+  const isLoading = workflowsQuery.isPending;
+  const error = workflowsQuery.error
+    ? workflowsQuery.error.message || 'Failed to load workflows'
+    : null;
+  const { refetch } = workflowsQuery;
+
+  const loadWorkflows = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
+
+  const setWorkflows = useCallback(
+    (update: (current: WorkflowSummary[]) => WorkflowSummary[]) => {
+      queryClient.setQueriesData<WorkflowLibraryPageData>(
+        { queryKey: scopeQueryKey },
+        (current) =>
+          current ? { ...current, items: update(current.items) } : current,
+      );
+    },
+    [queryClient, scopeQueryKey],
+  );
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: org, brand, search, and scope changes must reset bulk selection before the next request.
   useEffect(() => {
-    setPage((current) => (current === 1 ? current : 1));
     setSelectedIds((current) => (current.size === 0 ? current : new Set()));
   }, [brandId, organizationId, pageScope, searchInput]);
 
@@ -160,7 +177,7 @@ export function useWorkflowLibraryPage({
         });
       }
     },
-    [getService, workflows, relatedWorkflows, onWorkflowRemoved],
+    [getService, workflows, relatedWorkflows, onWorkflowRemoved, setWorkflows],
   );
 
   const handleToggleSchedule = useCallback(
@@ -220,6 +237,7 @@ export function useWorkflowLibraryPage({
       workflows,
       relatedWorkflows,
       onWorkflowUpdated,
+      setWorkflows,
     ],
   );
 
@@ -280,7 +298,7 @@ export function useWorkflowLibraryPage({
         ),
       );
     },
-    [onWorkflowUpdated],
+    [onWorkflowUpdated, setWorkflows],
   );
 
   return {

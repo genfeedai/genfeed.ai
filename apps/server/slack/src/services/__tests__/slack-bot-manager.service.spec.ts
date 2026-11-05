@@ -1,8 +1,11 @@
-import { OrgIntegration, REDIS_EVENTS } from '@genfeedai/integrations';
+import {
+  type BotManagerLogger,
+  OrgIntegration,
+  REDIS_EVENTS,
+} from '@genfeedai/integrations';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
-import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@slack/config/config.service';
 import { SlackBotManager } from '@slack/services/slack-bot-manager.service';
@@ -31,6 +34,8 @@ vi.mock('@slack/bolt', () => ({
   App: MockAppConstructor,
 }));
 
+type SlackBotInstance = Parameters<SlackBotManager['destroyBotInstance']>[0];
+
 function httpResponse<T>(data: T): AxiosResponse<T> {
   return {
     config: { headers: new AxiosHeaders() },
@@ -51,7 +56,7 @@ describe('SlackBotManager', () => {
   let _configService: Mocked<ConfigService>;
   let httpService: Mocked<HttpService>;
   let redisService: Mocked<RedisService>;
-  let loggerRef: Logger;
+  let loggerRef: BotManagerLogger;
 
   const mockIntegration: OrgIntegration = {
     botToken: 'mock-bot-token-test',
@@ -124,10 +129,10 @@ describe('SlackBotManager', () => {
 
     // Mock logger to avoid console noise
     loggerRef = service['logger'];
-    vi.spyOn(loggerRef, 'log').mockImplementation();
-    vi.spyOn(loggerRef, 'warn').mockImplementation();
-    vi.spyOn(loggerRef, 'error').mockImplementation();
-    vi.spyOn(loggerRef, 'debug').mockImplementation();
+    vi.spyOn(loggerRef, 'log').mockImplementation(() => undefined);
+    vi.spyOn(loggerRef, 'warn').mockImplementation(() => undefined);
+    vi.spyOn(loggerRef, 'error').mockImplementation(() => undefined);
+    vi.spyOn(loggerRef, 'debug').mockImplementation(() => undefined);
   });
 
   afterEach(() => {
@@ -250,8 +255,8 @@ describe('SlackBotManager', () => {
 
   describe('destroyBotInstance', () => {
     it('should stop the Slack app', async () => {
-      const mockInstance = {
-        app: mockApp,
+      const mockInstance: SlackBotInstance = {
+        app: mockApp as unknown as SlackBotInstance['app'],
         id: mockIntegration.id,
         integration: mockIntegration,
         orgId: mockIntegration.orgId,
@@ -265,8 +270,8 @@ describe('SlackBotManager', () => {
     });
 
     it('should handle app stop failure gracefully', async () => {
-      const mockInstance = {
-        app: mockApp,
+      const mockInstance: SlackBotInstance = {
+        app: mockApp as unknown as SlackBotInstance['app'],
         id: mockIntegration.id,
         integration: mockIntegration,
         orgId: mockIntegration.orgId,
@@ -502,7 +507,7 @@ describe('SlackBotManager', () => {
       const handlers = new Map<string, (message: unknown) => void>();
 
       redisService.subscribe.mockImplementation(
-        (channel: string, handler?: (message: unknown) => void) => {
+        async (channel: string, handler?: (message: unknown) => void) => {
           if (handler) {
             handlers.set(channel, handler);
           }

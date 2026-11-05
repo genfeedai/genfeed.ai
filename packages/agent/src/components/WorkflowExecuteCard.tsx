@@ -1,4 +1,4 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import type {
   AgentApiService,
   WorkflowInterfaceField,
@@ -22,7 +22,7 @@ import { WorkflowExecuteCardStatusPanel } from './WorkflowExecuteCardStatusPanel
 import { WorkflowExecuteCardWorkflowInfo } from './WorkflowExecuteCardWorkflowInfo';
 
 interface WorkflowExecuteCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'workflow_execute_card'>;
   apiService: AgentApiService;
 }
 

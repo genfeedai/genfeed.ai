@@ -1,8 +1,8 @@
 import { AGENT_CONVERSATION_SURFACE_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type {
-  AgentUiAction,
   AgentUiActionCta,
   AgentUiActionHandler,
+  AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { normalizeAgentAppHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
@@ -16,7 +16,7 @@ import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 interface NextStepsCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'next_steps_card'>;
   onUiAction?: AgentUiActionHandler;
 }
 

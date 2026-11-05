@@ -2,8 +2,8 @@ import { useAgentUiActionRequest } from '@genfeedai/agent/hooks/use-agent-ui-act
 import type {
   AgentPublishSettingField,
   AgentPublishTargetProposal,
-  AgentUiAction,
   AgentUiActionHandler,
+  AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant, PostVisibility } from '@genfeedai/contracts';
 import { usePostingSets } from '@hooks/data/content/use-posting-sets/use-posting-sets';
@@ -54,7 +54,7 @@ const VISIBILITY_MESSAGE_KEYS = {
 } as const;
 
 interface PublishPostCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'publish_post_card'>;
   onUiAction?: AgentUiActionHandler;
 }
 

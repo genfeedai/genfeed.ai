@@ -6,8 +6,8 @@ import {
   AGENT_CONVERSATION_SURFACE_CLASS,
 } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type {
-  AgentUiAction,
   AgentUiActionHandler,
+  AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
@@ -32,7 +32,7 @@ import { useTranslations } from 'next-intl';
 import { type ReactElement, useMemo, useState } from 'react';
 
 interface AgentTransferProvenanceCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'agent_transfer_card'>;
   apiService?: AgentApiService;
   onCopy?: (content: string) => void | Promise<void>;
   onUiAction?: AgentUiActionHandler;
@@ -41,7 +41,9 @@ interface AgentTransferProvenanceCardProps {
 const TERMINAL_SUCCESS = new Set(['COMPLETED', 'DELIVERED']);
 const ACTIVE = new Set(['PENDING', 'QUEUED', 'RUNNING']);
 
-function readTransfer(action: AgentUiAction): AgentTransferPresentation | null {
+function readTransfer(
+  action: AgentUiActionOf<'agent_transfer_card'>,
+): AgentTransferPresentation | null {
   const transfer = action.data?.transfer;
   return transfer && typeof transfer === 'object'
     ? (transfer as AgentTransferPresentation)

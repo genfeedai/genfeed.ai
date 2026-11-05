@@ -67,3 +67,7 @@ export interface AnalyticsOrganizationsListProps {
   /** Adds a release access column linking each organization to its config page. */
   getReleaseAccessHref?: (organizationId: string) => string;
 }
+
+export interface OrganizationSidebarActivityProps {
+  organizationId: string;
+}

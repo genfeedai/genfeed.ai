@@ -1,7 +1,7 @@
 import { useAgentUiActionRequest } from '@genfeedai/agent/hooks/use-agent-ui-action-request';
 import type {
-  AgentUiAction,
   AgentUiActionHandler,
+  AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { type ReactElement, useCallback } from 'react';
 
 interface LivestreamBotCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'bot_created_card' | 'livestream_bot_status_card'>;
   onUiAction?: AgentUiActionHandler;
 }
 

@@ -6,6 +6,7 @@ import {
   lineOf,
 } from './core';
 import {
+  type ClassConstants,
   collectConstantClassStrings,
   collectStrings,
   utilityOf,
@@ -23,7 +24,7 @@ export const SHARED_PACKAGE = /^packages\/ui\//;
 export function classUtilities(
   source: HandBuiltSource,
   tag: JsxTag,
-  constants: Map<string, string[]>,
+  constants: ClassConstants,
 ): Set<string> {
   const strings: string[] = [];
   for (const attribute of tag.attributes.properties) {
@@ -51,11 +52,7 @@ export function tagNameOf(source: HandBuiltSource, tag: JsxTag): string {
 /** The opening element of each JSX element, with its child elements. */
 export function walkJsx(
   source: HandBuiltSource,
-  visit: (
-    tag: JsxTag,
-    children: JsxTag[],
-    constants: Map<string, string[]>,
-  ) => void,
+  visit: (tag: JsxTag, children: JsxTag[], constants: ClassConstants) => void,
 ): void {
   const constants = collectConstantClassStrings(source.sourceFile);
 

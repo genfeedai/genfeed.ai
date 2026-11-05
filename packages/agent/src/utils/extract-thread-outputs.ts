@@ -4,6 +4,10 @@ import type {
   AgentUiAction,
   AgentUiActionCta,
 } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentContentFormat,
+  AgentContentPreviewCardAction,
+} from '@genfeedai/contracts/interfaces';
 
 export type ThreadOutputKind = 'audio' | 'image' | 'text' | 'video';
 
@@ -14,7 +18,7 @@ export interface ThreadOutputVariant {
   ctas?: AgentUiActionCta[];
   id: string;
   kind: ThreadOutputKind;
-  contentFormat?: AgentUiAction['contentFormat'];
+  contentFormat?: AgentContentFormat;
   messageId: string;
   platform?: string;
   preheader?: string;
@@ -55,26 +59,61 @@ function inferIngredientType(
   return ingredient.type === 'video' ? 'video' : 'image';
 }
 
+/** The written fields an output variant copies from its card. */
+type TextOutputSource = Pick<
+  AgentContentPreviewCardAction,
+  | 'brandId'
+  | 'contentFormat'
+  | 'credentialId'
+  | 'platform'
+  | 'preheader'
+  | 'subject'
+  | 'textContent'
+  | 'tweets'
+>;
+
+/** The cards that carry written output, and the fields they carry. */
+function readTextOutputSource(action: AgentUiAction): TextOutputSource | null {
+  switch (action.type) {
+    case 'content_preview_card':
+      return action;
+    case 'brand_voice_profile_card':
+      return { brandId: action.brandId, textContent: action.textContent };
+    case 'ai_text_action_card':
+    case 'publish_post_card':
+      return { textContent: action.textContent };
+    default:
+      return null;
+  }
+}
+
 function buildTextVariants(
   action: AgentUiAction,
   messageId: string,
 ): ThreadOutputVariant[] {
+  const source = readTextOutputSource(action);
+  if (!source) {
+    return [];
+  }
   const variants: ThreadOutputVariant[] = [];
+  const textFields = {
+    brandId: source.brandId,
+    contentFormat: source.contentFormat,
+    credentialId: source.credentialId,
+    ctas: action.ctas,
+    messageId,
+    platform: source.platform,
+  };
   const threadSegments =
-    action.contentFormat === 'thread'
-      ? action.tweets?.map((text) => text.trim()).filter(Boolean)
+    source.contentFormat === 'thread'
+      ? source.tweets?.map((text) => text.trim()).filter(Boolean)
       : undefined;
 
   if (threadSegments && threadSegments.length > 0) {
     variants.push({
-      ctas: action.ctas,
-      contentFormat: action.contentFormat,
-      brandId: action.brandId,
-      credentialId: action.credentialId,
+      ...textFields,
       id: `${messageId}:${action.id}:thread`,
       kind: 'text',
-      messageId,
-      platform: action.platform,
       textContent: threadSegments[0],
       threadSegments,
       title: action.title,
@@ -83,40 +122,30 @@ function buildTextVariants(
     return variants;
   }
 
-  action.tweets?.forEach((text, index) => {
+  source.tweets?.forEach((text, index) => {
     if (!text.trim()) {
       return;
     }
 
     variants.push({
-      ctas: action.ctas,
-      contentFormat: action.contentFormat,
-      brandId: action.brandId,
-      credentialId: action.credentialId,
+      ...textFields,
       id: `${messageId}:${action.id}:tweet:${index}`,
       kind: 'text',
-      messageId,
-      platform: action.platform,
-      preheader: action.preheader,
-      subject: action.subject,
+      preheader: source.preheader,
+      subject: source.subject,
       textContent: text,
       title: `Text ${index + 1}`,
     });
   });
 
-  if (action.textContent?.trim()) {
+  if (source.textContent?.trim()) {
     variants.push({
-      ctas: action.ctas,
-      contentFormat: action.contentFormat,
-      brandId: action.brandId,
-      credentialId: action.credentialId,
+      ...textFields,
       id: `${messageId}:${action.id}:text-content`,
       kind: 'text',
-      messageId,
-      platform: action.platform,
-      preheader: action.preheader,
-      subject: action.subject,
-      textContent: action.textContent,
+      preheader: source.preheader,
+      subject: source.subject,
+      textContent: source.textContent,
       title: action.title,
     });
   }
@@ -124,93 +153,100 @@ function buildTextVariants(
   return variants;
 }
 
+function buildUrlVariants(
+  action: AgentUiAction,
+  messageId: string,
+  kind: Exclude<ThreadOutputKind, 'text'>,
+  urls: string[] | undefined,
+  assetId?: string,
+): ThreadOutputVariant[] {
+  return (urls ?? []).flatMap((url, index) =>
+    url
+      ? [
+          {
+            assetId: urls?.length === 1 ? assetId : undefined,
+            ctas: action.ctas,
+            id: `${messageId}:${action.id}:${kind}:${index}`,
+            kind,
+            messageId,
+            title: action.title,
+            url,
+          },
+        ]
+      : [],
+  );
+}
+
 function buildMediaVariants(
   action: AgentUiAction,
   messageId: string,
 ): ThreadOutputVariant[] {
-  const variants: ThreadOutputVariant[] = [];
+  switch (action.type) {
+    case 'content_preview_card':
+      return [
+        ...buildUrlVariants(
+          action,
+          messageId,
+          'image',
+          action.images,
+          action.assetId,
+        ),
+        ...buildUrlVariants(action, messageId, 'video', action.videos),
+        ...buildUrlVariants(action, messageId, 'audio', action.audio),
+      ];
+    case 'image_transform_card':
+      return buildUrlVariants(action, messageId, 'image', action.images);
+    case 'ingredient_picker_card':
+      return action.ingredients.flatMap((ingredient, index) =>
+        ingredient.url
+          ? [
+              {
+                assetId: ingredient.id,
+                ctas: action.ctas,
+                id: `${messageId}:${action.id}:ingredient:${index}`,
+                kind: inferIngredientType(ingredient),
+                messageId,
+                thumbnailUrl: ingredient.thumbnailUrl,
+                title: ingredient.title ?? action.title,
+                url: ingredient.url,
+              },
+            ]
+          : [],
+      );
+    default:
+      return [];
+  }
+}
 
-  action.images?.forEach((url, index) => {
-    if (!url) {
-      return;
+function buildSummaryVariants(
+  action: AgentUiAction,
+  messageId: string,
+): ThreadOutputVariant[] {
+  if (action.type !== 'completion_summary_card') {
+    return [];
+  }
+  return (action.outputVariants ?? []).flatMap((variant) => {
+    if (variant.kind === 'text' && !variant.textContent?.trim()) {
+      return [];
+    }
+    if (variant.kind !== 'text' && !variant.url) {
+      return [];
     }
 
-    variants.push({
-      ctas: action.ctas,
-      id: `${messageId}:${action.id}:image:${index}`,
-      assetId:
-        action.ingredients?.find((ingredient) => ingredient.url === url)?.id ??
-        (action.images?.length === 1 ? action.assetId : undefined),
-      kind: 'image',
-      messageId,
-      thumbnailUrl: action.ingredients?.find(
-        (ingredient) => ingredient.url === url,
-      )?.thumbnailUrl,
-      title:
-        action.ingredients?.find((ingredient) => ingredient.url === url)
-          ?.title ?? action.title,
-      url,
-    });
+    return [
+      {
+        ctas: action.ctas,
+        id: `${messageId}:${action.id}:output:${variant.id}`,
+        kind: variant.kind,
+        messageId,
+        textContent: variant.textContent,
+        threadSegments: variant.threadSegments,
+        thumbnailUrl: variant.thumbnailUrl,
+        title: variant.title,
+        url: variant.url,
+      } satisfies ThreadOutputVariant,
+    ];
   });
-
-  action.videos?.forEach((url, index) => {
-    if (!url) {
-      return;
-    }
-
-    variants.push({
-      ctas: action.ctas,
-      id: `${messageId}:${action.id}:video:${index}`,
-      kind: 'video',
-      messageId,
-      thumbnailUrl: action.ingredients?.find(
-        (ingredient) => ingredient.url === url,
-      )?.thumbnailUrl,
-      title:
-        action.ingredients?.find((ingredient) => ingredient.url === url)
-          ?.title ?? action.title,
-      url,
-    });
-  });
-
-  action.audio?.forEach((url, index) => {
-    if (!url) {
-      return;
-    }
-
-    variants.push({
-      ctas: action.ctas,
-      id: `${messageId}:${action.id}:audio:${index}`,
-      kind: 'audio',
-      messageId,
-      thumbnailUrl: action.ingredients?.find(
-        (ingredient) => ingredient.url === url,
-      )?.thumbnailUrl,
-      title:
-        action.ingredients?.find((ingredient) => ingredient.url === url)
-          ?.title ?? action.title,
-      url,
-    });
-  });
-
-  action.ingredients?.forEach((ingredient, index) => {
-    if (!ingredient.url) {
-      return;
-    }
-
-    variants.push({
-      ctas: action.ctas,
-      id: `${messageId}:${action.id}:ingredient:${index}`,
-      assetId: ingredient.id,
-      kind: inferIngredientType(ingredient),
-      messageId,
-      thumbnailUrl: ingredient.thumbnailUrl,
-      title: ingredient.title ?? action.title,
-      url: ingredient.url,
-    });
-  });
-
-  return variants;
 }
 
 function buildActionGroup(
@@ -224,34 +260,7 @@ function buildActionGroup(
   const variants =
     directVariants.length > 0
       ? directVariants
-      : (action.outputVariants ?? []).flatMap((variant) => {
-          if (variant.kind === 'text' && !variant.textContent?.trim()) {
-            return [];
-          }
-          if (variant.kind !== 'text' && !variant.url) {
-            return [];
-          }
-
-          return [
-            {
-              ctas: action.ctas,
-              contentFormat: action.contentFormat,
-              brandId: action.brandId,
-              credentialId: action.credentialId,
-              id: `${messageId}:${action.id}:output:${variant.id}`,
-              kind: variant.kind,
-              messageId,
-              platform: action.platform,
-              preheader: action.preheader,
-              subject: action.subject,
-              textContent: variant.textContent,
-              threadSegments: variant.threadSegments,
-              thumbnailUrl: variant.thumbnailUrl,
-              title: variant.title,
-              url: variant.url,
-            } satisfies ThreadOutputVariant,
-          ];
-        });
+      : buildSummaryVariants(action, messageId);
 
   if (variants.length === 0) {
     return null;
@@ -264,7 +273,7 @@ function buildActionGroup(
     messageId,
     sourceActionId: action.id,
     sourceActionType: action.type,
-    status: action.status,
+    status: 'status' in action ? action.status : undefined,
     title: action.title,
     variants,
   };

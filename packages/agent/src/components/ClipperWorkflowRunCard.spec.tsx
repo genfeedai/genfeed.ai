@@ -1,5 +1,5 @@
 import { ClipperWorkflowRunCard } from '@genfeedai/agent/components/ClipperWorkflowRunCard';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { buildClipperDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -25,7 +25,7 @@ describe('ClipperWorkflowRunCard', () => {
       value: locationMock,
     });
 
-    const action: AgentUiAction = {
+    const action: AgentUiActionOf<'clipper_workflow_run_card'> = {
       brandId: 'brand-123',
       clipperRun: {
         autonomousMode: false,
@@ -37,6 +37,7 @@ describe('ClipperWorkflowRunCard', () => {
       id: 'clip-review-1',
       title: 'Launch clip',
       type: 'clipper_workflow_run_card',
+      workflows: [],
     };
 
     const apiService = {
@@ -102,7 +103,7 @@ describe('ClipperWorkflowRunCard', () => {
   });
 
   it('blocks clip generation when identity defaults are incomplete', async () => {
-    const action: AgentUiAction = {
+    const action: AgentUiActionOf<'clipper_workflow_run_card'> = {
       clipperRun: {
         identity: {
           isComplete: false,
@@ -117,6 +118,7 @@ describe('ClipperWorkflowRunCard', () => {
       id: 'clip-missing-identity-1',
       title: 'Launch clip',
       type: 'clipper_workflow_run_card',
+      workflows: [],
     };
 
     const apiService = {

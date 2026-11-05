@@ -1,4 +1,4 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -8,7 +8,7 @@ import { Check, FastForward, MessageSquare, Pencil } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
 
 interface EngagementOpportunityCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'engagement_opportunity_card'>;
   onApprove?: (reply: string) => void;
   onEdit?: (reply: string) => void;
   onSkip?: () => void;

@@ -1,9 +1,11 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { describe, expect, it } from 'vitest';
 import { extractAnalyticsPeriod } from './extract-analytics-period';
 
-function action(partial: Partial<AgentUiAction>): AgentUiAction {
-  return partial as AgentUiAction;
+function action(
+  partial: Partial<AgentUiActionOf<'analytics_snapshot_card'>>,
+): AgentUiActionOf<'analytics_snapshot_card'> {
+  return partial as AgentUiActionOf<'analytics_snapshot_card'>;
 }
 
 describe('extractAnalyticsPeriod', () => {

@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
 
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { KnowledgeProcessingState } from '@genfeedai/contracts';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   authEpoch: 0,
+  viewer: { orgId: 'org-1', userId: 'user-1' },
   tokenWait: null as Promise<void> | null,
   findOne: vi.fn(),
   findForBrand: vi.fn(),
@@ -32,6 +37,27 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     return getter;
   },
 }));
+
+// The signed-in viewer the cache is keyed by: a new actor or organization is a
+// new key, so nothing read for the previous viewer is shown.
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
+    getToken: async () => 'token',
+    orgId: mocks.viewer.orgId,
+    sessionId: 'session-1',
+    userId: mocks.viewer.userId,
+  }),
+}));
+
+/** Moves the viewer to another actor or organization. */
+function changeViewer(change: string): void {
+  mocks.authEpoch++;
+  if (change === 'organization') {
+    mocks.viewer = { ...mocks.viewer, orgId: `org-${mocks.authEpoch + 1}` };
+  } else {
+    mocks.viewer = { ...mocks.viewer, userId: `user-${mocks.authEpoch + 1}` };
+  }
+}
 
 vi.mock('@services/content/knowledge-sources.service', () => ({
   KnowledgeSourcesService: {
@@ -62,6 +88,7 @@ describe('useKnowledgeLibrary', () => {
     vi.clearAllMocks();
     getterByFactory.clear();
     mocks.authEpoch = 0;
+    mocks.viewer = { orgId: 'org-1', userId: 'user-1' };
     mocks.tokenWait = null;
     mocks.findOne
       .mockReset()
@@ -79,8 +106,9 @@ describe('useKnowledgeLibrary', () => {
   it('folds the current version and space membership onto each source', async () => {
     mocks.findForBrand.mockResolvedValue([{ id: 's1', title: 'Pricing' }]);
 
-    const { result } = renderHook(() =>
-      useKnowledgeLibrary({ brandId: 'brand-a' }),
+    const { result } = renderHook(
+      () => useKnowledgeLibrary({ brandId: 'brand-a' }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -111,7 +139,7 @@ describe('useKnowledgeLibrary', () => {
 
     const { rerender, result } = renderHook(
       ({ brandId }: { brandId: string }) => useKnowledgeLibrary({ brandId }),
-      { initialProps: { brandId: 'brand-a' } },
+      { initialProps: { brandId: 'brand-a' }, wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(mocks.findForBrand).toHaveBeenCalledTimes(1));
     rerender({ brandId: 'brand-b' });
@@ -125,33 +153,35 @@ describe('useKnowledgeLibrary', () => {
     expect(result.current.rows.map((row) => row.source.id)).toEqual(['s2']);
   });
 
-  it('keeps the list while only the selection changes, and hides stale selected details', async () => {
+  it('keeps the list while only the selection changes, and paints an on-page selection at once', async () => {
     mocks.findForBrand.mockResolvedValue([{ id: 's1' }, { id: 's2' }]);
     const { rerender, result } = renderHook(
       ({ selectedSourceId }: { selectedSourceId?: string }) =>
         useKnowledgeLibrary({ brandId: 'brand-a', selectedSourceId }),
-      { initialProps: { selectedSourceId: 's1' } },
+      {
+        initialProps: { selectedSourceId: 's1' },
+        wrapper: queryClientWrapper(),
+      },
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.selectedRow?.source.id).toBe('s1');
 
     rerender({ selectedSourceId: 's2' });
 
-    expect(result.current.isLoading).toBe(true);
+    expect(result.current.isLoading).toBe(false);
     expect(result.current.rows.map((row) => row.source.id)).toEqual([
       's1',
       's2',
     ]);
-    expect(result.current.selectedRow).toBeNull();
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.selectedRow?.source.id).toBe('s2');
   });
 
   it('reports a load error without leaking partial rows', async () => {
     mocks.findForBrand.mockRejectedValue(new Error('boom'));
 
-    const { result } = renderHook(() =>
-      useKnowledgeLibrary({ brandId: 'brand-a' }),
+    const { result } = renderHook(
+      () => useKnowledgeLibrary({ brandId: 'brand-a' }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -165,12 +195,14 @@ describe('useKnowledgeLibrary', () => {
     }));
     mocks.findForBrand.mockResolvedValue(page);
     mocks.findMemberships.mockResolvedValue([{ sourceId: 'offpage' }]);
-    const { result } = renderHook(() =>
-      useKnowledgeLibrary({
-        brandId: 'brand-a',
-        page: 3,
-        selectedSourceId: 'offpage',
-      }),
+    const { result } = renderHook(
+      () =>
+        useKnowledgeLibrary({
+          brandId: 'brand-a',
+          page: 3,
+          selectedSourceId: 'offpage',
+        }),
+      { wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(mocks.findOne).toHaveBeenCalledWith(
@@ -199,8 +231,9 @@ describe('useKnowledgeLibrary', () => {
 
   it('reuses the freshly scoped onpage row without an extra source or versions read', async () => {
     mocks.findForBrand.mockResolvedValue([{ id: 's1' }]);
-    const { result } = renderHook(() =>
-      useKnowledgeLibrary({ brandId: 'brand-a', selectedSourceId: 's1' }),
+    const { result } = renderHook(
+      () => useKnowledgeLibrary({ brandId: 'brand-a', selectedSourceId: 's1' }),
+      { wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.selectedRow).toBe(result.current.rows[0]);
@@ -212,8 +245,9 @@ describe('useKnowledgeLibrary', () => {
     'never dispatches a selected-source read for invalid ID %j',
     async (selectedSourceId) => {
       mocks.findForBrand.mockResolvedValue([]);
-      const { result } = renderHook(() =>
-        useKnowledgeLibrary({ brandId: 'brand-a', selectedSourceId }),
+      const { result } = renderHook(
+        () => useKnowledgeLibrary({ brandId: 'brand-a', selectedSourceId }),
+        { wrapper: queryClientWrapper() },
       );
       await waitFor(() => expect(result.current.isLoading).toBe(false));
       expect(mocks.findOne).not.toHaveBeenCalled();
@@ -227,8 +261,9 @@ describe('useKnowledgeLibrary', () => {
   it('clears the selected onpage panel when its version read is denied, preserving the separate page', async () => {
     mocks.findForBrand.mockResolvedValue([{ id: 's1' }]);
     mocks.findVersions.mockRejectedValue(new Error('PRIVATE_VERSION_DENIAL'));
-    const { result } = renderHook(() =>
-      useKnowledgeLibrary({ brandId: 'brand-a', selectedSourceId: 's1' }),
+    const { result } = renderHook(
+      () => useKnowledgeLibrary({ brandId: 'brand-a', selectedSourceId: 's1' }),
+      { wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.selectedRow).toBeNull();
@@ -241,8 +276,13 @@ describe('useKnowledgeLibrary', () => {
   });
 
   it('does not read a selected source without a brand', async () => {
-    const { result } = renderHook(() =>
-      useKnowledgeLibrary({ brandId: undefined, selectedSourceId: 'offpage' }),
+    const { result } = renderHook(
+      () =>
+        useKnowledgeLibrary({
+          brandId: undefined,
+          selectedSourceId: 'offpage',
+        }),
+      { wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(mocks.findOne).not.toHaveBeenCalled();
@@ -255,11 +295,13 @@ describe('useKnowledgeLibrary', () => {
       if (failure === 'wrong-id')
         mocks.findOne.mockResolvedValue({ id: 'other', title: 'SENSITIVE' });
       else mocks.findOne.mockRejectedValue(new Error(`SENSITIVE ${failure}`));
-      const { result } = renderHook(() =>
-        useKnowledgeLibrary({
-          brandId: 'brand-a',
-          selectedSourceId: 'offpage',
-        }),
+      const { result } = renderHook(
+        () =>
+          useKnowledgeLibrary({
+            brandId: 'brand-a',
+            selectedSourceId: 'offpage',
+          }),
+        { wrapper: queryClientWrapper() },
       );
       await waitFor(() => expect(result.current.isLoading).toBe(false));
       expect(result.current.selectedRow).toBeNull();
@@ -271,7 +313,7 @@ describe('useKnowledgeLibrary', () => {
     },
   );
 
-  it.each(['brand', 'actor', 'session', 'organization'])(
+  it.each(['brand', 'actor', 'organization'])(
     'prevents HTTP dispatch after delayed token resolution and %s scope change',
     async (change) => {
       let complete!: () => void;
@@ -282,9 +324,9 @@ describe('useKnowledgeLibrary', () => {
       const { rerender, result } = renderHook(
         ({ brandId }) =>
           useKnowledgeLibrary({ brandId, selectedSourceId: 'offpage' }),
-        { initialProps: { brandId: 'brand-a' } },
+        { initialProps: { brandId: 'brand-a' }, wrapper: queryClientWrapper() },
       );
-      if (change !== 'brand') mocks.authEpoch++;
+      if (change !== 'brand') changeViewer(change);
       mocks.tokenWait = null;
       rerender({ brandId: change === 'brand' ? 'brand-b' : 'brand-a' });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -316,13 +358,14 @@ describe('useKnowledgeLibrary', () => {
             brandId: 'brand-a',
             selectedSourceId: 'offpage' as string | undefined,
           },
+          wrapper: queryClientWrapper(),
         },
       );
       await waitFor(() => expect(mocks.findOne).toHaveBeenCalledTimes(1));
       const signal = mocks.findOne.mock.calls[0][2] as AbortSignal;
       if (change === 'unmount') unmount();
       else {
-        if (change === 'identity') mocks.authEpoch++;
+        if (change === 'identity') changeViewer('actor');
         mocks.findOne.mockResolvedValue({ id: 'next', title: 'Next' });
         rerender({
           brandId: change === 'brand' ? 'brand-b' : 'brand-a',
@@ -341,7 +384,7 @@ describe('useKnowledgeLibrary', () => {
     },
   );
 
-  it.each(['brand', 'actor', 'session', 'organization', 'selection'])(
+  it.each(['brand', 'actor', 'organization', 'selection'])(
     'ignores a delayed selected version after %s scope changes',
     async (change) => {
       let complete!: (versions: unknown[]) => void;
@@ -355,12 +398,14 @@ describe('useKnowledgeLibrary', () => {
       const { result, rerender } = renderHook(
         ({ brandId, selectedSourceId }) =>
           useKnowledgeLibrary({ brandId, selectedSourceId }),
-        { initialProps: { brandId: 'brand-a', selectedSourceId: 'offpage' } },
+        {
+          initialProps: { brandId: 'brand-a', selectedSourceId: 'offpage' },
+          wrapper: queryClientWrapper(),
+        },
       );
       await waitFor(() => expect(mocks.findVersions).toHaveBeenCalledTimes(1));
       const signal = mocks.findVersions.mock.calls[0][2] as AbortSignal;
-      if (['actor', 'session', 'organization'].includes(change))
-        mocks.authEpoch++;
+      if (change === 'actor' || change === 'organization') changeViewer(change);
       mocks.findOne.mockResolvedValue({ id: 'next', title: 'Next' });
       mocks.findVersions.mockResolvedValue([{ id: 'safe', isCurrent: true }]);
       rerender({
@@ -383,8 +428,13 @@ describe('useKnowledgeLibrary', () => {
     mocks.tokenWait = new Promise<void>((resolve) => {
       complete = resolve;
     });
-    const { unmount } = renderHook(() =>
-      useKnowledgeLibrary({ brandId: 'brand-a', selectedSourceId: 'offpage' }),
+    const { unmount } = renderHook(
+      () =>
+        useKnowledgeLibrary({
+          brandId: 'brand-a',
+          selectedSourceId: 'offpage',
+        }),
+      { wrapper: queryClientWrapper() },
     );
     unmount();
     await act(async () => {
@@ -400,8 +450,13 @@ describe('useKnowledgeLibrary', () => {
       { id: 'latest', isCurrent: false },
       { id: 'older', isCurrent: false },
     ]);
-    const { result } = renderHook(() =>
-      useKnowledgeLibrary({ brandId: 'brand-a', selectedSourceId: 'offpage' }),
+    const { result } = renderHook(
+      () =>
+        useKnowledgeLibrary({
+          brandId: 'brand-a',
+          selectedSourceId: 'offpage',
+        }),
+      { wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.selectedRow?.version?.id).toBe('latest');
@@ -411,8 +466,9 @@ describe('useKnowledgeLibrary', () => {
     const id = `A_${'z'.repeat(125)}-`;
     mocks.findForBrand.mockResolvedValue([]);
     mocks.findOne.mockResolvedValue({ id });
-    const { result } = renderHook(() =>
-      useKnowledgeLibrary({ brandId: 'brand-a', selectedSourceId: id }),
+    const { result } = renderHook(
+      () => useKnowledgeLibrary({ brandId: 'brand-a', selectedSourceId: id }),
+      { wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.selectedRow?.source.id).toBe(id);
@@ -425,21 +481,30 @@ describe('useKnowledgeLibrary', () => {
 
   it('clears actionable selected details after a refresh denial and reloads updated offpage details', async () => {
     mocks.findForBrand.mockResolvedValue([]);
-    const { result } = renderHook(() =>
-      useKnowledgeLibrary({ brandId: 'brand-a', selectedSourceId: 'offpage' }),
+    const { result } = renderHook(
+      () =>
+        useKnowledgeLibrary({
+          brandId: 'brand-a',
+          selectedSourceId: 'offpage',
+        }),
+      { wrapper: queryClientWrapper() },
     );
     await waitFor(() =>
       expect(result.current.selectedRow?.source.id).toBe('offpage'),
     );
     mocks.findOne.mockRejectedValueOnce(new Error('SENSITIVE_DENIAL'));
     await act(() => result.current.refresh());
+    await waitFor(() => {
+      expect(result.current.selectionError).toBe(
+        'Knowledge could not be loaded.',
+      );
+    });
     expect(result.current.selectedRow).toBeNull();
-    expect(result.current.selectionError).toBe(
-      'Knowledge could not be loaded.',
-    );
     mocks.findOne.mockResolvedValue({ id: 'offpage', title: 'Updated' });
     await act(() => result.current.refresh());
-    expect(result.current.selectedRow?.source.title).toBe('Updated');
+    await waitFor(() => {
+      expect(result.current.selectedRow?.source.title).toBe('Updated');
+    });
   });
 
   it('clears offpage actionable details after a denied background poll', async () => {
@@ -452,11 +517,13 @@ describe('useKnowledgeLibrary', () => {
           processingState: KnowledgeProcessingState.PROCESSING,
         },
       ]);
-      const { result } = renderHook(() =>
-        useKnowledgeLibrary({
-          brandId: 'brand-a',
-          selectedSourceId: 'offpage',
-        }),
+      const { result } = renderHook(
+        () =>
+          useKnowledgeLibrary({
+            brandId: 'brand-a',
+            selectedSourceId: 'offpage',
+          }),
+        { wrapper: queryClientWrapper() },
       );
       await waitFor(() =>
         expect(result.current.selectedRow?.source.id).toBe('offpage'),
@@ -465,10 +532,12 @@ describe('useKnowledgeLibrary', () => {
       await act(() =>
         vi.advanceTimersByTimeAsync(KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS),
       );
+      await waitFor(() => {
+        expect(result.current.selectionError).toBe(
+          'Knowledge could not be loaded.',
+        );
+      });
       expect(result.current.selectedRow).toBeNull();
-      expect(result.current.selectionError).toBe(
-        'Knowledge could not be loaded.',
-      );
       expect(result.current.rows.map((row) => row.source.id)).toEqual(['s1']);
     } finally {
       vi.useRealTimers();
@@ -492,11 +561,13 @@ describe('useKnowledgeLibrary', () => {
         .mockResolvedValue([
           { isCurrent: true, processingState: KnowledgeProcessingState.READY },
         ]);
-      const { result } = renderHook(() =>
-        useKnowledgeLibrary({
-          brandId: 'brand-a',
-          selectedSourceId: 'offpage',
-        }),
+      const { result } = renderHook(
+        () =>
+          useKnowledgeLibrary({
+            brandId: 'brand-a',
+            selectedSourceId: 'offpage',
+          }),
+        { wrapper: queryClientWrapper() },
       );
       await waitFor(() =>
         expect(result.current.selectedRow?.version?.processingState).toBe(
@@ -506,15 +577,19 @@ describe('useKnowledgeLibrary', () => {
       await act(() =>
         vi.advanceTimersByTimeAsync(KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS),
       );
-      expect(result.current.selectedRow?.version?.processingState).toBe(
-        KnowledgeProcessingState.PROCESSING,
-      );
+      await waitFor(() => {
+        expect(result.current.selectedRow?.version?.processingState).toBe(
+          KnowledgeProcessingState.PROCESSING,
+        );
+      });
       await act(() =>
         vi.advanceTimersByTimeAsync(KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS),
       );
-      expect(result.current.selectedRow?.version?.processingState).toBe(
-        KnowledgeProcessingState.READY,
-      );
+      await waitFor(() => {
+        expect(result.current.selectedRow?.version?.processingState).toBe(
+          KnowledgeProcessingState.READY,
+        );
+      });
       const count = mocks.findOne.mock.calls.length;
       await act(() =>
         vi.advanceTimersByTimeAsync(KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS * 2),
@@ -523,6 +598,48 @@ describe('useKnowledgeLibrary', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('paints the cached list at once when the Library is opened again', async () => {
+    mocks.findForBrand.mockResolvedValue([{ id: 's1', title: 'Pricing' }]);
+    const client = createTestQueryClient();
+    const firstVisit = renderHook(
+      () => useKnowledgeLibrary({ brandId: 'brand-a' }),
+      { wrapper: queryClientWrapper(client) },
+    );
+    await waitFor(() => expect(firstVisit.result.current.rows).toHaveLength(1));
+    firstVisit.unmount();
+
+    mocks.findForBrand.mockImplementation(() => new Promise(() => undefined));
+    const secondVisit = renderHook(
+      () => useKnowledgeLibrary({ brandId: 'brand-a' }),
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(secondVisit.result.current.isLoading).toBe(false);
+    expect(secondVisit.result.current.rows.map((row) => row.source.id)).toEqual(
+      ['s1'],
+    );
+  });
+
+  it('never paints one brand cached list for another brand', async () => {
+    mocks.findForBrand.mockResolvedValue([{ id: 's1', title: 'Pricing' }]);
+    const client = createTestQueryClient();
+    const firstVisit = renderHook(
+      () => useKnowledgeLibrary({ brandId: 'brand-a' }),
+      { wrapper: queryClientWrapper(client) },
+    );
+    await waitFor(() => expect(firstVisit.result.current.rows).toHaveLength(1));
+    firstVisit.unmount();
+
+    mocks.findForBrand.mockImplementation(() => new Promise(() => undefined));
+    const otherBrand = renderHook(
+      () => useKnowledgeLibrary({ brandId: 'brand-b' }),
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(otherBrand.result.current.isLoading).toBe(true);
+    expect(otherBrand.result.current.rows).toEqual([]);
   });
 
   describe('while ingestion is pending', () => {
@@ -544,8 +661,9 @@ describe('useKnowledgeLibrary', () => {
         )
         .mockResolvedValue(currentVersion(KnowledgeProcessingState.READY));
 
-      const { result } = renderHook(() =>
-        useKnowledgeLibrary({ brandId: 'brand-a' }),
+      const { result } = renderHook(
+        () => useKnowledgeLibrary({ brandId: 'brand-a' }),
+        { wrapper: queryClientWrapper() },
       );
       await waitFor(() =>
         expect(result.current.rows[0]?.version?.processingState).toBe(
@@ -588,8 +706,9 @@ describe('useKnowledgeLibrary', () => {
         currentVersion(KnowledgeProcessingState.PROCESSING),
       );
 
-      const { result } = renderHook(() =>
-        useKnowledgeLibrary({ brandId: 'brand-a' }),
+      const { result } = renderHook(
+        () => useKnowledgeLibrary({ brandId: 'brand-a' }),
+        { wrapper: queryClientWrapper() },
       );
       await waitFor(() => expect(result.current.rows).toHaveLength(1));
 
@@ -597,7 +716,8 @@ describe('useKnowledgeLibrary', () => {
         vi.advanceTimersByTimeAsync(KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS),
       );
 
-      expect(mocks.findForBrand).toHaveBeenCalledTimes(2);
+      await waitFor(() => expect(mocks.findForBrand).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
       expect(result.current.rows.map((row) => row.source.id)).toEqual(['s1']);
       expect(result.current.error).toBeNull();
     });

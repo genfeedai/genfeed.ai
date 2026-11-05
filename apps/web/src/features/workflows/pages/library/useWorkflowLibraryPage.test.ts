@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { WorkflowLifecycle } from '@genfeedai/contracts';
 import { buildSystemWorkflowMetadata } from '@genfeedai/contracts/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
@@ -45,6 +49,11 @@ vi.mock('@/hooks/useCloudSession', () => ({
     isConnected: mocks.isConnected,
     isCapable: mocks.isCapable,
   }),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -126,7 +135,9 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
   });
 
   it('requests a paginated workflow page from the API', async () => {
-    renderHook(() => useWorkflowLibraryPage());
+    renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(mocks.serviceListPage).toHaveBeenCalled());
     expect(mocks.serviceListPage).toHaveBeenCalledWith({
@@ -144,7 +155,9 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
       pageScope: 'org',
     };
 
-    renderHook(() => useWorkflowLibraryPage());
+    renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(mocks.serviceListPage).not.toHaveBeenCalled();
   });
@@ -157,7 +170,9 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
       pageScope: 'org',
     };
 
-    renderHook(() => useWorkflowLibraryPage());
+    renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(mocks.serviceListPage).toHaveBeenCalled());
     expect(mocks.serviceListPage).toHaveBeenCalledWith({
@@ -167,7 +182,9 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
   });
 
   it('calls updateSchedule with isScheduleEnabled=true when toggling on a workflow that has a schedule', async () => {
-    const { result } = renderHook(() => useWorkflowLibraryPage());
+    const { result } = renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(result.current.workflows).toHaveLength(2));
 
@@ -183,15 +200,19 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
   });
 
   it('reflects the derived next run after the toggle resolves', async () => {
-    const { result } = renderHook(() => useWorkflowLibraryPage());
+    const { result } = renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.workflows).toHaveLength(2));
 
     await act(async () => {
       await result.current.handleToggleSchedule('wf-1', true);
     });
 
-    const wf = result.current.workflows.find((w) => w.id === 'wf-1');
-    expect(wf?.nextRunAt).toBe('2099-01-01T09:00:00.000Z');
+    await waitFor(() => {
+      const wf = result.current.workflows.find((w) => w.id === 'wf-1');
+      expect(wf?.nextRunAt).toBe('2099-01-01T09:00:00.000Z');
+    });
   });
 
   it('applies an optimistic update before the API resolves', async () => {
@@ -206,7 +227,9 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
         }),
     );
 
-    const { result } = renderHook(() => useWorkflowLibraryPage());
+    const { result } = renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.workflows).toHaveLength(2));
 
     act(() => {
@@ -228,7 +251,9 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
       new Error('network error'),
     );
 
-    const { result } = renderHook(() => useWorkflowLibraryPage());
+    const { result } = renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.workflows).toHaveLength(2));
 
     await act(async () => {
@@ -242,7 +267,9 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
   });
 
   it('does nothing when toggling a workflow with no schedule', async () => {
-    const { result } = renderHook(() => useWorkflowLibraryPage());
+    const { result } = renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.workflows).toHaveLength(2));
 
     await act(async () => {
@@ -275,7 +302,9 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
       timezone: 'UTC',
     });
 
-    const { result } = renderHook(() => useWorkflowLibraryPage());
+    const { result } = renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.workflows).toHaveLength(1));
 
     await act(async () => {
@@ -287,7 +316,9 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
       schedule: '0 8 * * *',
       timezone: 'UTC',
     });
-    expect(result.current.workflows[0]?.isScheduleEnabled).toBe(false);
+    await waitFor(() => {
+      expect(result.current.workflows[0]?.isScheduleEnabled).toBe(false);
+    });
   });
 
   it('disables schedules for every selected workflow that has a cadence', async () => {
@@ -308,7 +339,9 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
       }),
     ]);
 
-    const { result } = renderHook(() => useWorkflowLibraryPage());
+    const { result } = renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.workflows).toHaveLength(2));
 
     act(() => {
@@ -325,7 +358,9 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
   });
 
   it('merges a schedule dialog result into the loaded summaries', async () => {
-    const { result } = renderHook(() => useWorkflowLibraryPage());
+    const { result } = renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.workflows).toHaveLength(2));
 
     act(() => {
@@ -338,11 +373,13 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
       });
     });
 
-    const wf = result.current.workflows.find((w) => w.id === 'wf-2');
-    expect(wf?.schedule).toBe('0 9 * * *');
-    expect(wf?.timezone).toBe('Europe/Paris');
-    expect(wf?.isScheduleEnabled).toBe(true);
-    expect(wf?.nextRunAt).toBe('2099-01-01T09:00:00.000Z');
+    await waitFor(() => {
+      const wf = result.current.workflows.find((w) => w.id === 'wf-2');
+      expect(wf?.schedule).toBe('0 9 * * *');
+      expect(wf?.timezone).toBe('Europe/Paris');
+      expect(wf?.isScheduleEnabled).toBe(true);
+      expect(wf?.nextRunAt).toBe('2099-01-01T09:00:00.000Z');
+    });
   });
 });
 
@@ -376,7 +413,9 @@ describe('useWorkflowLibraryPage — workflow duplication and deletion', () => {
   });
 
   it('routes to the editable duplicated workflow returned by the API', async () => {
-    const { result } = renderHook(() => useWorkflowLibraryPage());
+    const { result } = renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.workflows).toHaveLength(1));
 
     await act(async () => {
@@ -393,7 +432,9 @@ describe('useWorkflowLibraryPage — workflow duplication and deletion', () => {
     mocks.serviceDuplicate.mockRejectedValueOnce(
       new Error('brand unavailable'),
     );
-    const { result } = renderHook(() => useWorkflowLibraryPage());
+    const { result } = renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.workflows).toHaveLength(1));
 
     await act(async () => {
@@ -417,7 +458,9 @@ describe('useWorkflowLibraryPage — workflow duplication and deletion', () => {
       }),
     ]);
 
-    const { result } = renderHook(() => useWorkflowLibraryPage());
+    const { result } = renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.workflows).toHaveLength(1));
 
     await act(async () => {
@@ -497,7 +540,9 @@ describe('useWorkflowLibraryPage — query scope and selection', () => {
   });
 
   it('requests page 1 when the organization changes from a later page', async () => {
-    const { result, rerender } = renderHook(() => useWorkflowLibraryPage());
+    const { result, rerender } = renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(mocks.serviceListPage).toHaveBeenCalled());
     expect(mocks.serviceListPage).toHaveBeenCalledWith(
@@ -528,7 +573,9 @@ describe('useWorkflowLibraryPage — query scope and selection', () => {
   });
 
   it('clears selection when organization, page, search, or scope changes', async () => {
-    const { result, rerender } = renderHook(() => useWorkflowLibraryPage());
+    const { result, rerender } = renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.workflows).toHaveLength(2));
 
     act(() => {
@@ -575,7 +622,9 @@ describe('useWorkflowLibraryPage — query scope and selection', () => {
   });
 
   it('bulk-disables only selected workflows that remain on the current query page', async () => {
-    const { result } = renderHook(() => useWorkflowLibraryPage());
+    const { result } = renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.workflows).toHaveLength(2));
 
     act(() => {
@@ -610,5 +659,26 @@ describe('useWorkflowLibraryPage — query scope and selection', () => {
       timezone: 'UTC',
     });
     expect(result.current.selectedIds.size).toBe(0);
+  });
+
+  it('paints the cached workflows at once when the library is opened again', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() =>
+      expect(firstVisit.result.current.workflows).toHaveLength(2),
+    );
+    firstVisit.unmount();
+
+    mocks.serviceListPage.mockImplementationOnce(() => new Promise(() => {}));
+    const secondVisit = renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(secondVisit.result.current.isLoading).toBe(false);
+    expect(
+      secondVisit.result.current.workflows.map((workflow) => workflow.id),
+    ).toEqual(['wf-1', 'wf-2']);
   });
 });

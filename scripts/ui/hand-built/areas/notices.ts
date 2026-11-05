@@ -6,7 +6,11 @@ import {
   isAllowed,
   lineOf,
 } from '../core';
-import { collectConstantClassStrings, collectStrings } from '../restyle';
+import {
+  type ClassConstants,
+  collectConstantClassStrings,
+  collectStrings,
+} from '../restyle';
 
 const WHITESPACE_RUN_PATTERN = /\s+/;
 const UI_PACKAGE_PATH_PATTERN = /^packages\/ui\//;
@@ -40,7 +44,7 @@ const NOTICE_TAGS = new Set(['div', 'p', 'section', 'aside']);
 function classTokens(
   element: ts.JsxOpeningElement | ts.JsxSelfClosingElement,
   sourceFile: ts.SourceFile,
-  constants: Map<string, string[]>,
+  constants: ClassConstants,
 ): Set<string> {
   const strings: string[] = [];
   for (const attribute of element.attributes.properties) {

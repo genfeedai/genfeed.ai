@@ -1,4 +1,4 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -7,7 +7,9 @@ import {
   shouldRenderCompletionSummary,
 } from './should-render-completion-summary';
 
-function completion(partial: Partial<AgentUiAction> = {}): AgentUiAction {
+function completion(
+  partial: Partial<AgentUiActionOf<'completion_summary_card'>> = {},
+): AgentUiActionOf<'completion_summary_card'> {
   return {
     id: 'done-1',
     type: 'completion_summary_card',
@@ -17,7 +19,9 @@ function completion(partial: Partial<AgentUiAction> = {}): AgentUiAction {
   };
 }
 
-function turboRunResult(partial: Partial<AgentUiAction> = {}): AgentUiAction {
+function turboRunResult(
+  partial: Partial<AgentUiActionOf<'turbo_run_result_card'>> = {},
+): AgentUiActionOf<'turbo_run_result_card'> {
   return {
     id: 'batch-1',
     type: 'turbo_run_result_card',
@@ -25,12 +29,17 @@ function turboRunResult(partial: Partial<AgentUiAction> = {}): AgentUiAction {
     description: 'Generated 20 X drafts.',
     turboRunCount: 20,
     completedCount: 0,
+    creditsUsed: 0,
     failedCount: 20,
+    platforms: ['twitter'],
+    status: 'failed',
     ...partial,
   };
 }
 
-function contentPreview(partial: Partial<AgentUiAction> = {}): AgentUiAction {
+function contentPreview(
+  partial: Partial<AgentUiActionOf<'content_preview_card'>> = {},
+): AgentUiActionOf<'content_preview_card'> {
   return {
     id: 'preview-1',
     type: 'content_preview_card',

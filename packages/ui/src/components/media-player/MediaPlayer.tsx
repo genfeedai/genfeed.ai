@@ -61,6 +61,7 @@ export default function MediaPlayer({
     isLoading,
     isMuted,
     isPlaying,
+    playFrom,
     seek,
     toggle,
     toggleMute,
@@ -103,7 +104,7 @@ export default function MediaPlayer({
   const waveform =
     variant === 'button' ? null : (
       <PlayerWaveform
-        // A waveform scrubs only the clip that is loaded; before that a click starts playback.
+        // On an idle clip a click starts playback from that point once it loads.
         className={cn(
           variant === 'row' && 'h-7',
           isInspector && 'h-16',
@@ -113,7 +114,7 @@ export default function MediaPlayer({
         duration={total}
         isDisabled={!src}
         label={label}
-        onSeek={(time) => (isCurrent ? seek(time) : toggle())}
+        onSeek={(time) => (isCurrent ? seek(time) : playFrom(time))}
         peakCount={PEAK_COUNT[variant]}
         seed={src || label}
       />

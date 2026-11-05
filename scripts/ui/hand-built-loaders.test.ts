@@ -60,6 +60,50 @@ describe('metric guard, alternate path and looked-up tone', () => {
   });
 });
 
+describe('metric guard, class constants in lexical scope', () => {
+  const header = "import MetricCard from '@ui/cards/metric-card/MetricCard';\n";
+
+  it.each([
+    [
+      'a function-local padding constant',
+      'export function A() {\n  const padded = "p-6";\n  return <MetricCard className={padded} label="a" value="1" />;\n}',
+      ['metric-card-restyle'],
+    ],
+    [
+      'a constant local to an arrow body',
+      'export const A = () => {\n  const tile = cn("rounded-xl", "bg-muted");\n  return <MetricCard className={tile} label="a" value="1" />;\n};',
+      ['metric-card-restyle'],
+    ],
+    [
+      'a module-level padding constant',
+      'const padded = "p-6";\nexport const A = () => <MetricCard className={padded} label="a" value="1" />;',
+      ['metric-card-restyle'],
+    ],
+    [
+      'a function-local layout constant',
+      'export function A() {\n  const wide = "w-full col-span-2";\n  return <MetricCard className={wide} label="a" value="1" />;\n}',
+      [],
+    ],
+    [
+      'a local layout constant shadowing a module padding one',
+      'const tile = "p-6";\nexport function A() {\n  const tile = "w-full";\n  return <MetricCard className={tile} label="a" value="1" />;\n}',
+      [],
+    ],
+    [
+      'a padding constant in another function',
+      'function B() {\n  const tile = "p-6";\n  return tile;\n}\nexport function A({ tile }) {\n  return <MetricCard className={tile} label="a" value="1" />;\n}',
+      [],
+    ],
+    [
+      'a layout constant beside a padding one of the same name elsewhere',
+      'function B() {\n  const tile = "p-6";\n  return tile;\n}\nexport function A() {\n  const tile = "w-full";\n  return <MetricCard className={tile} label="a" value="1" />;\n}',
+      [],
+    ],
+  ])('with %s', (_label, body, expected) => {
+    expect(scan(metric, `${header}${body}`)).toEqual(expected);
+  });
+});
+
 describe('table guard', () => {
   it('flags padding and typography on cells', () => {
     expect(

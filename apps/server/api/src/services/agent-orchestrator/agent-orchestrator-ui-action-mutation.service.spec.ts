@@ -54,6 +54,8 @@ describe('persisted mutation approvals', () => {
       brandId: 'brand-1',
       scopeVersion: 2,
       status: 'pending',
+      summary: 'Generate turbo content',
+      items: [],
       expiresAt: new Date(Date.now() + 60_000).toISOString(),
     },
   });

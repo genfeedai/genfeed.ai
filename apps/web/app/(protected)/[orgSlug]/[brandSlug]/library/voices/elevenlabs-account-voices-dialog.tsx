@@ -3,12 +3,14 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   ElevenLabsAccountVoice,
-  ElevenLabsConnectionStatus,
+  ElevenLabsAccountVoicePage,
 } from '@genfeedai/contracts/interfaces';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { VoicesService } from '@services/ingredients/voices.service';
+import { useQueryClient } from '@tanstack/react-query';
 import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -27,6 +29,24 @@ import type { ElevenLabsAccountVoicesDialogProps } from '@/features/library/prop
 import { useDebounce } from '@/hooks/utils/use-debounce/use-debounce';
 
 const SEARCH_DEBOUNCE_MS = 350;
+const EMPTY_VOICES: ElevenLabsAccountVoice[] = [];
+const ACCOUNT_VOICES_KEY = ['elevenlabs-account-voices'] as const;
+
+/** One search of the connected account: its first page plus every later page loaded. */
+function accountVoicesQueryKey(search: string) {
+  return [...ACCOUNT_VOICES_KEY, search] as const;
+}
+
+function appendUniqueVoices(
+  current: ElevenLabsAccountVoice[],
+  next: ElevenLabsAccountVoice[],
+): ElevenLabsAccountVoice[] {
+  const seen = new Set(current.map((voice) => voice.externalVoiceId));
+  return [
+    ...current,
+    ...next.filter((voice) => !seen.has(voice.externalVoiceId)),
+  ];
+}
 
 /**
  * Browses the organization's connected ElevenLabs account and saves voices
@@ -45,52 +65,48 @@ export default function ElevenLabsAccountVoicesDialog({
 
   const [query, setQuery] = useState('');
   const search = useDebounce(query.trim(), SEARCH_DEBOUNCE_MS);
-  const [status, setStatus] = useState<ElevenLabsConnectionStatus | null>(null);
-  const [voices, setVoices] = useState<ElevenLabsAccountVoice[]>([]);
-  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+  // Each search is its own cache entry, so reopening the dialog paints the
+  // voices already loaded, and a failed search never shows another search's
+  // results or cursor.
+  const voicesQuery = useAuthedQuery<VoicesService, ElevenLabsAccountVoicePage>(
+    {
+      queryFn: async (service, signal) => {
+        try {
+          return await service.findAccountVoices(
+            { search: search || undefined },
+            signal,
+          );
+        } catch (error) {
+          if (!signal.aborted) {
+            logger.error('Failed to load ElevenLabs account voices', error);
+          }
+          throw error;
+        }
+      },
+      queryKey: accountVoicesQueryKey(search),
+      service: (token: string) => VoicesService.getInstance(token),
+    },
+  );
+  const { data: accountVoices, refetch: refetchVoices } = voicesQuery;
+  const status = accountVoices?.connection.status ?? null;
+  const voices = accountVoices?.voices ?? EMPTY_VOICES;
+  const nextPageToken = accountVoices?.hasMore
+    ? accountVoices.nextPageToken
+    : null;
+  // A retry after a failed read has nothing to show yet, so it loads too.
+  const isLoading =
+    voicesQuery.isPending ||
+    (accountVoices === undefined && voicesQuery.isFetching);
+  const hasError = voicesQuery.isError;
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const [reload, setReload] = useState(0);
   const [importingId, setImportingId] = useState<string | null>(null);
   // A later page belongs to the search that requested it; a new search
   // cancels it so stale voices and cursors never land in the new list.
   const loadMoreControllerRef = useRef<AbortController | null>(null);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reload deliberately refetches the first page.
-  useEffect(() => {
-    const controller = new AbortController();
-    loadMoreControllerRef.current?.abort();
-    setIsLoading(true);
-    setHasError(false);
-    // A failed search must not leave the previous results or cursor usable.
-    setVoices([]);
-    setNextPageToken(null);
-
-    void (async () => {
-      try {
-        const service = await getVoicesService();
-        const page = await service.findAccountVoices(
-          { search: search || undefined },
-          controller.signal,
-        );
-        if (controller.signal.aborted) return;
-        setStatus(page.connection.status);
-        setVoices(page.voices);
-        setNextPageToken(page.hasMore ? page.nextPageToken : null);
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        logger.error('Failed to load ElevenLabs account voices', error);
-        setHasError(true);
-      } finally {
-        if (!controller.signal.aborted) setIsLoading(false);
-      }
-    })();
-
-    return () => controller.abort();
-  }, [getVoicesService, search, reload]);
-
-  useEffect(() => () => loadMoreControllerRef.current?.abort(), []);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new search cancels the later page of the one before it.
+  useEffect(() => () => loadMoreControllerRef.current?.abort(), [search]);
 
   const loadMore = useCallback(async () => {
     if (!nextPageToken) return;
@@ -108,8 +124,18 @@ export default function ElevenLabsAccountVoicesDialog({
         controller.signal,
       );
       if (controller.signal.aborted) return;
-      setVoices((previous) => [...previous, ...page.voices]);
-      setNextPageToken(page.hasMore ? page.nextPageToken : null);
+      queryClient.setQueriesData<ElevenLabsAccountVoicePage>(
+        { queryKey: accountVoicesQueryKey(search) },
+        (current) =>
+          current
+            ? {
+                ...current,
+                hasMore: page.hasMore,
+                nextPageToken: page.nextPageToken,
+                voices: appendUniqueVoices(current.voices, page.voices),
+              }
+            : current,
+      );
     } catch (error) {
       if (controller.signal.aborted) return;
       logger.error('Failed to load more ElevenLabs voices', error);
@@ -120,7 +146,14 @@ export default function ElevenLabsAccountVoicesDialog({
         setIsLoadingMore(false);
       }
     }
-  }, [getVoicesService, nextPageToken, notifications, search, translate]);
+  }, [
+    getVoicesService,
+    nextPageToken,
+    notifications,
+    queryClient,
+    search,
+    translate,
+  ]);
 
   const importVoice = useCallback(
     async (voice: ElevenLabsAccountVoice) => {
@@ -128,12 +161,20 @@ export default function ElevenLabsAccountVoicesDialog({
       try {
         const service = await getVoicesService();
         const saved = await service.importAccountVoice(voice.externalVoiceId);
-        setVoices((previous) =>
-          previous.map((item) =>
-            item.externalVoiceId === voice.externalVoiceId
-              ? { ...item, savedVoiceId: String(saved.id) }
-              : item,
-          ),
+        // Every cached search shows the voice as saved.
+        queryClient.setQueriesData<ElevenLabsAccountVoicePage>(
+          { queryKey: ACCOUNT_VOICES_KEY },
+          (current) =>
+            current
+              ? {
+                  ...current,
+                  voices: current.voices.map((item) =>
+                    item.externalVoiceId === voice.externalVoiceId
+                      ? { ...item, savedVoiceId: String(saved.id) }
+                      : item,
+                  ),
+                }
+              : current,
         );
         notifications.success(translate('importSuccess', { name: voice.name }));
         onImported(saved);
@@ -148,7 +189,7 @@ export default function ElevenLabsAccountVoicesDialog({
         setImportingId(null);
       }
     },
-    [getVoicesService, notifications, onImported, translate],
+    [getVoicesService, notifications, onImported, queryClient, translate],
   );
 
   const isConnected = status === 'connected';
@@ -201,7 +242,9 @@ export default function ElevenLabsAccountVoicesDialog({
                 <Button
                   label={translate('retry')}
                   variant={ButtonVariant.SECONDARY}
-                  onClick={() => setReload((value) => value + 1)}
+                  onClick={() => {
+                    void refetchVoices();
+                  }}
                 />
               </div>
             ) : null}

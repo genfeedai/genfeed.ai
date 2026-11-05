@@ -1,4 +1,7 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentIngredientItem,
+  AgentUiActionOf,
+} from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Metadata } from '@genfeedai/models/content/metadata.model';
 import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.model';
@@ -11,10 +14,10 @@ import { Button } from '@ui/primitives/button';
 import { Check, Image } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
 
-type Ingredient = NonNullable<AgentUiAction['ingredients']>[number];
+type Ingredient = AgentIngredientItem;
 
 interface IngredientPickerCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'ingredient_picker_card'>;
   onSelect?: (ingredient: { id: string; title?: string }) => void;
 }
 

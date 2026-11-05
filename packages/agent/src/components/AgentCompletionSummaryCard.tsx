@@ -5,9 +5,9 @@ import {
   AGENT_CONVERSATION_SURFACE_CLASS,
 } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type {
-  AgentUiAction,
   AgentUiActionCta,
   AgentUiActionHandler,
+  AgentUiActionOf,
   AgentUiActionOutputVariant,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { normalizeAgentAppHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
@@ -28,7 +28,7 @@ import {
 import { type ReactElement, useMemo, useState } from 'react';
 
 interface AgentCompletionSummaryCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'completion_summary_card'>;
   onCopy?: (content: string) => void | Promise<void>;
   onRetry?: () => void | Promise<void>;
   onUiAction?: AgentUiActionHandler;

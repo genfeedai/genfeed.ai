@@ -1,5 +1,9 @@
 import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
-import type { AgentNextStepOption } from '@genfeedai/contracts/interfaces';
+import { requireUiAction } from '@api-test/helpers/agent-ui-action';
+import type {
+  AgentNextStepOption,
+  AgentUiAction,
+} from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 
 type PrepareHandlerCtor = ConstructorParameters<typeof AgentPrepareToolHandler>;
@@ -15,9 +19,9 @@ function createHandler(): AgentPrepareToolHandler {
 }
 
 function readSteps(result: {
-  nextActions?: { nextSteps?: AgentNextStepOption[] }[];
+  nextActions?: AgentUiAction[];
 }): AgentNextStepOption[] {
-  return result.nextActions?.[0]?.nextSteps ?? [];
+  return requireUiAction(result.nextActions, 'next_steps_card').nextSteps;
 }
 
 describe('AgentPrepareToolHandler.suggestNextSteps', () => {

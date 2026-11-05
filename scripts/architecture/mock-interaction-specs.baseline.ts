@@ -11,7 +11,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/web/app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/EditorPreview.test.tsx',
   'apps/web/app/(protected)/[orgSlug]/[brandSlug]/library/assets/asset-deep-link.test.tsx',
   'apps/web/app/(protected)/[orgSlug]/[brandSlug]/library/voices/library-voices-page.test.tsx',
-  'apps/web/app/(protected)/[orgSlug]/[brandSlug]/messages/replies/replies-warmup-queue.test.tsx',
   'apps/web/app/(protected)/[orgSlug]/[brandSlug]/messages/use-messages-realtime.test.ts',
   'apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/useReviewInboxApprovals.test.tsx',
   'apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/use-workspace-task-href.test.ts',

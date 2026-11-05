@@ -1,3 +1,4 @@
+export * from '@serializers/configs/billing/admin-credit-ledger-entry.config';
 export * from '@serializers/configs/billing/avatar-generation-quote.config';
 export * from '@serializers/configs/billing/billing-account.config';
 export * from '@serializers/configs/billing/cost-report-entry.config';

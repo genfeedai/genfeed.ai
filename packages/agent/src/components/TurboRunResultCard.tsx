@@ -6,9 +6,9 @@ import { AGENT_CONVERSATION_SURFACE_CLASS } from '@genfeedai/agent/constants/con
 import { useAgentUiActionRequest } from '@genfeedai/agent/hooks/use-agent-ui-action-request';
 import { useTurboRunProgress } from '@genfeedai/agent/hooks/use-turbo-run-progress';
 import type {
-  AgentUiAction,
   AgentUiActionCta,
   AgentUiActionHandler,
+  AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { normalizeAgentAppHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
@@ -22,7 +22,10 @@ import {
   createPublishingApprovalsRoute,
   formatCreditCost,
 } from '@genfeedai/contracts/constants';
-import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentUiActionItem,
+  ITurboRunSummary,
+} from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
@@ -34,11 +37,11 @@ import { useTranslations } from 'next-intl';
 import { type ReactElement, useState } from 'react';
 
 interface TurboRunResultCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'turbo_run_result_card'>;
   onUiAction?: AgentUiActionHandler;
 }
 
-type TurboRunPreviewItem = NonNullable<AgentUiAction['items']>[number];
+type TurboRunPreviewItem = AgentUiActionItem;
 
 /** Drafts shown in the thread; the rest are one click away in the approval queue. */
 const MAX_LIVE_PREVIEWS = 10;
@@ -60,7 +63,7 @@ interface TurboRunResultView {
  * appears in the thread.
  */
 function resolveRunView(
-  action: AgentUiAction,
+  action: AgentUiActionOf<'turbo_run_result_card'>,
   run: ITurboRunSummary | null,
 ): TurboRunResultView {
   if (!run) {
@@ -131,7 +134,7 @@ function renderCta(cta: AgentUiActionCta, index: number): ReactElement | null {
 }
 
 interface TurboRunDraftPreviewProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'turbo_run_result_card'>;
   item: TurboRunPreviewItem;
   onUiAction?: AgentUiActionHandler;
   reviewHref?: string;
@@ -218,7 +221,9 @@ function TurboRunDraftPreview({
   );
 }
 
-function resolveReviewHref(action: AgentUiAction): string | undefined {
+function resolveReviewHref(
+  action: AgentUiActionOf<'turbo_run_result_card'>,
+): string | undefined {
   const reviewCta = action.ctas?.find(
     (cta) =>
       typeof cta.href === 'string' &&

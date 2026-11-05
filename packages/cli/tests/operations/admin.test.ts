@@ -24,6 +24,7 @@ import {
   readOnboardingFunnel,
   readOrganizationAppsReport,
   readOrganizationBrand,
+  readOrganizationCreditLedger,
   readOrganizationsReport,
   readPublishPipeline,
   readTrainingsReport,
@@ -422,6 +423,25 @@ describe('operations/admin', () => {
         external: [{ specifier: 'private-pack', state: 'unresolvable' }],
       };
       expect(findMissingExternalPacks(failed, ['brand-pack'])).toEqual(['brand-pack']);
+    });
+  });
+
+  describe('organization credit ledger', () => {
+    it('reads one organization ledger window through the admin session', async () => {
+      mockAdminGet.mockResolvedValue({
+        data: [{ amount: -1, createdAt: '2026-10-27T07:41:00.000Z', id: 'tx-1' }],
+      });
+
+      const entries = await readOrganizationCreditLedger('org/1', {
+        from: '2026-10-27T07:00:00.000Z',
+        limit: 50,
+        to: '2026-10-27T08:30:00.000Z',
+      });
+
+      expect(mockAdminGet).toHaveBeenCalledWith(
+        '/admin/organizations/org%2F1/credits/ledger?from=2026-10-27T07%3A00%3A00.000Z&to=2026-10-27T08%3A30%3A00.000Z&limit=50'
+      );
+      expect(entries).toEqual([{ amount: -1, createdAt: '2026-10-27T07:41:00.000Z', id: 'tx-1' }]);
     });
   });
 

@@ -1,7 +1,11 @@
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { requireUiAction } from '@api-test/helpers/agent-ui-action';
 import { TargetExecutionState } from '@genfeedai/contracts';
-import type { AgentUiAction } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentUiAction,
+  AgentUiActionOf,
+} from '@genfeedai/contracts/interfaces';
 import {
   ONBOARDING_JOURNEY_MISSIONS,
   type OnboardingJourneyMissionId,
@@ -128,13 +132,8 @@ function createHandler(options?: {
 
 function getChecklist(result: {
   nextActions?: AgentUiAction[];
-}): AgentUiAction {
-  const checklist = result.nextActions?.[0];
-  expect(checklist?.type).toBe('onboarding_checklist_card');
-  if (!checklist) {
-    throw new Error('Expected onboarding checklist action');
-  }
-  return checklist;
+}): AgentUiActionOf<'onboarding_checklist_card'> {
+  return requireUiAction(result.nextActions, 'onboarding_checklist_card');
 }
 
 afterEach(() => {

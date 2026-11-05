@@ -1,5 +1,15 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
+  fireEvent,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import RepliesWarmupQueue from './replies-warmup-queue';
 
@@ -23,9 +33,17 @@ const getService = () => Promise.resolve(service);
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getService,
 }));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 vi.mock('sonner', () => ({
   toast: { error: vi.fn(), message: vi.fn(), success: vi.fn() },
 }));
+
+function render(ui: ReactElement, client = createTestQueryClient()) {
+  return rtlRender(ui, { wrapper: queryClientWrapper(client) });
+}
 
 const USAGE = {
   awaiting: 1,
@@ -121,5 +139,22 @@ describe('RepliesWarmupQueue', () => {
       expect(service.dismissReplyQueueItem).toHaveBeenCalledWith('activity-1'),
     );
     expect(window.open).not.toHaveBeenCalled();
+  });
+
+  it('paints the queue it already loaded straight away when Replies is reopened', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = render(<RepliesWarmupQueue />, client);
+    await screen.findByDisplayValue('Sharp take.');
+    await screen.findByText(/usage/);
+    firstVisit.unmount();
+
+    service.findAwaitingApproval.mockReturnValue(new Promise(() => {}));
+    service.getReplyQueueUsage.mockReturnValue(new Promise(() => {}));
+    render(<RepliesWarmupQueue />, client);
+
+    expect(screen.getByDisplayValue('Sharp take.')).toBeInTheDocument();
+    expect(screen.getByText('@target')).toBeInTheDocument();
+    expect(screen.getByText(/usage/)).toBeInTheDocument();
+    expect(screen.queryByText('empty')).not.toBeInTheDocument();
   });
 });

@@ -65,9 +65,21 @@ export function ownedClasses(
     });
 }
 
+/**
+ * Class strings bound to names (`const padded = 'p-6'`), looked up from the
+ * place a name is used. A binding resolves in its own lexical scope, so a
+ * function-local constant is read and a same-name binding in another function
+ * is never attributed to this one.
+ */
+export interface ClassConstants {
+  resolve(identifier: ts.Identifier): readonly string[];
+}
+
+const NO_CONSTANTS: ClassConstants = { resolve: () => [] };
+
 export function collectStrings(
   node: ts.Node,
-  constants: Map<string, string[]>,
+  constants: ClassConstants,
   out: string[],
 ): void {
   if (ts.isStringLiteralLike(node)) {
@@ -83,32 +95,112 @@ export function collectStrings(
     return;
   }
   if (ts.isIdentifier(node)) {
-    out.push(...(constants.get(node.text) ?? []));
+    out.push(...constants.resolve(node));
     return;
   }
   ts.forEachChild(node, (child) => collectStrings(child, constants, out));
 }
 
+function isBlockScope(node: ts.Node): boolean {
+  return (
+    ts.isSourceFile(node) ||
+    ts.isBlock(node) ||
+    ts.isModuleBlock(node) ||
+    ts.isCaseBlock(node) ||
+    ts.isCatchClause(node) ||
+    ts.isForStatement(node) ||
+    ts.isForInStatement(node) ||
+    ts.isForOfStatement(node) ||
+    ts.isFunctionLike(node)
+  );
+}
+
+function isFunctionScope(node: ts.Node): boolean {
+  return ts.isSourceFile(node) || ts.isFunctionLike(node);
+}
+
+/** `let`/`const` bind in the nearest block, `var` in the nearest function. */
+function scopeOf(declaration: ts.VariableDeclaration): ts.Node {
+  const list = declaration.parent;
+  if (ts.isCatchClause(list)) {
+    return list;
+  }
+  const isVar = (list.flags & ts.NodeFlags.BlockScoped) === 0;
+  let node: ts.Node = list.parent;
+  while (!(isVar ? isFunctionScope(node) : isBlockScope(node))) {
+    node = node.parent;
+  }
+  return node;
+}
+
+function bindingNames(name: ts.BindingName): string[] {
+  if (ts.isIdentifier(name)) {
+    return [name.text];
+  }
+  return name.elements.flatMap((element) =>
+    ts.isOmittedExpression(element) ? [] : bindingNames(element.name),
+  );
+}
+
+/**
+ * Module-level class constants, or with `isScopeLocal` every binding in its
+ * own scope: function-local constants, and parameters and locals that shadow
+ * an outer name.
+ */
 export function collectConstantClassStrings(
   sourceFile: ts.SourceFile,
-): Map<string, string[]> {
-  const constants = new Map<string, string[]>();
-  for (const statement of sourceFile.statements) {
-    if (!ts.isVariableStatement(statement)) {
-      continue;
-    }
-    for (const declaration of statement.declarationList.declarations) {
-      if (!ts.isIdentifier(declaration.name) || !declaration.initializer) {
-        continue;
+  options: { isScopeLocal?: boolean } = {},
+): ClassConstants {
+  const { isScopeLocal = false } = options;
+  const scopes = new Map<ts.Node, Map<string, readonly string[]>>();
+  // A binding with no class strings still shadows an outer one of its name.
+  const bind = (scope: ts.Node, name: string, strings: readonly string[]) => {
+    const bindings = scopes.get(scope) ?? new Map<string, readonly string[]>();
+    bindings.set(name, strings);
+    scopes.set(scope, bindings);
+  };
+
+  function visit(node: ts.Node): void {
+    if (ts.isVariableDeclaration(node)) {
+      const scope = scopeOf(node);
+      // Without `isScopeLocal` a nested binding is neither read nor shadows.
+      if (isScopeLocal || scope === sourceFile) {
+        if (ts.isIdentifier(node.name) && node.initializer) {
+          const strings: string[] = [];
+          collectStrings(node.initializer, NO_CONSTANTS, strings);
+          bind(scope, node.name.text, strings);
+        } else {
+          for (const name of bindingNames(node.name)) {
+            bind(scope, name, []);
+          }
+        }
       }
-      const strings: string[] = [];
-      collectStrings(declaration.initializer, new Map(), strings);
-      if (strings.length > 0) {
-        constants.set(declaration.name.text, strings);
+    } else if (isScopeLocal && ts.isFunctionLike(node)) {
+      for (const parameter of node.parameters) {
+        for (const name of bindingNames(parameter.name)) {
+          bind(node, name, []);
+        }
       }
     }
+    ts.forEachChild(node, visit);
   }
-  return constants;
+  visit(sourceFile);
+
+  return {
+    resolve: (identifier) => {
+      for (
+        let node: ts.Node | undefined = identifier.parent;
+        node;
+        node = node.parent
+      ) {
+        const strings = scopes.get(node)?.get(identifier.text);
+        if (strings) {
+          return strings;
+        }
+      }
+      return [];
+    },
+  };
 }
 
 /**
@@ -162,6 +254,11 @@ export interface RestyleRuleOptions {
   isSizeOwned: boolean;
   /** Also flag a className read from a looked-up tone (`status.color`). */
   isToneLookupFlagged?: boolean;
+  /**
+   * Resolve class constants in their lexical scope, so a function-local
+   * constant is read too. Off, only module-level constants are read.
+   */
+  isScopeLocal?: boolean;
   /** Rule id, also the key in the baseline and in `ui-guard-allow:<rule>`. */
   rule: string;
 }
@@ -185,7 +282,9 @@ export function scanRestyle(
     return [];
   }
 
-  const constants = collectConstantClassStrings(source.sourceFile);
+  const constants = collectConstantClassStrings(source.sourceFile, {
+    isScopeLocal: options.isScopeLocal,
+  });
   const findings: HandBuiltFinding[] = [];
 
   function visit(node: ts.Node): void {

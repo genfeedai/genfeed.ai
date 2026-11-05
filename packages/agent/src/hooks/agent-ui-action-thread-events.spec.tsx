@@ -19,6 +19,7 @@ import type {
   AgentProposedPlan,
   AgentThread,
   AgentUiAction,
+  AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -81,10 +82,12 @@ function thread(id: string): AgentThread {
   } as AgentThread;
 }
 
-const approvalCard: AgentUiAction = {
+const approvalCard: AgentUiActionOf<'mutation_approval_card'> = {
   ctas: [{ action: 'confirm_mutation', label: 'Approve' }],
   data: {
     approvalId: 'approval-1',
+    brandId: null,
+    expiresAt: '2099-01-01T00:00:00.000Z',
     items: [{ label: 'Draft', value: 'Launch post' }],
     sourceActionId: 'mutation-approval:approval-1',
     status: 'pending',
@@ -98,7 +101,7 @@ const approvalCard: AgentUiAction = {
  * What `AgentOrchestratorUiActionMutationService` resolves the card to when
  * the approved action returns `success: false`.
  */
-const failedApprovalCard: AgentUiAction = {
+const failedApprovalCard: AgentUiActionOf<'mutation_approval_card'> = {
   ...approvalCard,
   ctas: [],
   data: {
@@ -113,7 +116,7 @@ const approvalPayload = {
   approvalId: 'approval-1',
   sourceActionId: 'mutation-approval:approval-1',
 };
-const resolvedApprovalCard: AgentUiAction = {
+const resolvedApprovalCard: AgentUiActionOf<'mutation_approval_card'> = {
   ...approvalCard,
   ctas: [],
   data: {
@@ -122,6 +125,16 @@ const resolvedApprovalCard: AgentUiAction = {
     status: 'approved',
   },
 };
+
+/** The stored card, which the test expects to be the approval card it rendered. */
+function approvalCardFrom(
+  card: AgentUiAction | undefined,
+): AgentUiActionOf<'mutation_approval_card'> {
+  if (card?.type !== 'mutation_approval_card') {
+    throw new Error(`Expected a mutation approval card, got ${card?.type}`);
+  }
+  return card;
+}
 
 function message(
   id: string,
@@ -260,7 +273,7 @@ describe('ui-action results as thread events', () => {
     await act(async () => {
       await handleAgentUiAction('reprepare_mutation', approvalPayload, deps());
     });
-    const fresh: AgentUiAction = {
+    const fresh: AgentUiActionOf<'mutation_approval_card'> = {
       ...approvalCard,
       id: 'mutation-approval:approval-2',
       requiresConfirmation: true,
@@ -828,7 +841,7 @@ describe('ui-action results as thread events', () => {
       executionStatus: 'failed',
       status: 'approved',
     });
-    render(<MutationApprovalCard action={sourceCard ?? approvalCard} />);
+    render(<MutationApprovalCard action={approvalCardFrom(sourceCard)} />);
     expect(screen.getByRole('alert')).toHaveTextContent('failedTitle');
     expect(screen.queryByRole('button', { name: 'approve' })).toBeNull();
     expect(uiActionState()).toMatchObject({
@@ -901,7 +914,7 @@ describe('ui-action results as thread events', () => {
   });
 
   it('settles every queued card run after a reload, not just the one the thread is running', async () => {
-    const secondCard: AgentUiAction = {
+    const secondCard: AgentUiActionOf<'mutation_approval_card'> = {
       ...approvalCard,
       data: {
         ...approvalCard.data,
@@ -1104,7 +1117,7 @@ describe('ui-action results as thread events', () => {
   });
 
   describe('two queued card runs after a reload', () => {
-    const secondCard: AgentUiAction = {
+    const secondCard: AgentUiActionOf<'mutation_approval_card'> = {
       ...approvalCard,
       data: {
         ...approvalCard.data,
@@ -1113,7 +1126,7 @@ describe('ui-action results as thread events', () => {
       },
       id: 'mutation-approval:approval-2',
     };
-    const failedSecondCard: AgentUiAction = {
+    const failedSecondCard: AgentUiActionOf<'mutation_approval_card'> = {
       ...failedApprovalCard,
       data: {
         ...failedApprovalCard.data,
@@ -1241,7 +1254,7 @@ describe('ui-action results as thread events', () => {
         executionStatus: 'failed',
         status: 'approved',
       });
-      render(<MutationApprovalCard action={card ?? secondCard} />);
+      render(<MutationApprovalCard action={approvalCardFrom(card)} />);
       expect(screen.getByRole('alert')).toHaveTextContent('failedTitle');
       expect(screen.queryByRole('button', { name: 'approve' })).toBeNull();
     });

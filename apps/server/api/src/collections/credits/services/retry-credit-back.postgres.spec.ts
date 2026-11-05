@@ -46,6 +46,74 @@ const connectionString = process.env.BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL;
 const PROMPT = 'A red fox running through fresh snow at dawn';
 const MODEL = 'google/imagen-4';
 const HOUR_MS = 60 * 60 * 1000;
+/** How long one preliminary cap read waits for the others before the test fails. */
+const READ_BARRIER_TIMEOUT_MS = 5000;
+
+type CapRead = (args: unknown) => Promise<{ _sum: { amount: number | null } }>;
+
+/**
+ * Resolves once `parties` callers have arrived, and rejects any caller that is
+ * still waiting after the bounded wait, so calls that never overlap fail the
+ * test instead of passing it by serializing.
+ */
+function createReadBarrier(parties: number) {
+  let arrived = 0;
+  let releaseAll: () => void = () => undefined;
+  const allArrived = new Promise<void>((resolve) => {
+    releaseAll = resolve;
+  });
+  return async () => {
+    arrived += 1;
+    if (arrived >= parties) releaseAll();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timedOut = new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`only ${arrived} of ${parties} reads arrived`)),
+        READ_BARRIER_TIMEOUT_MS,
+      );
+    });
+    try {
+      await Promise.race([allArrived, timedOut]);
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+}
+
+function bindToTarget<T extends object>(target: T, property: PropertyKey) {
+  const value: unknown = Reflect.get(target, property);
+  return typeof value === 'function' ? value.bind(target) : value;
+}
+
+/**
+ * The client with every cap read made outside a transaction (the service's
+ * cheap early exit) held at `afterRead` once it completes. Reads inside the
+ * ledger transaction go through the transaction client and are never held.
+ */
+function holdPreliminaryCapReads(
+  client: PrismaClient,
+  afterRead: (earnedCredits: number) => Promise<void>,
+): PrismaService {
+  const aggregate = client.creditTransaction.aggregate.bind(
+    client.creditTransaction,
+  ) as unknown as CapRead;
+  const creditTransaction = new Proxy(client.creditTransaction, {
+    get: (target, property) =>
+      property === 'aggregate'
+        ? async (args: unknown) => {
+            const result = await aggregate(args);
+            await afterRead(result._sum.amount ?? 0);
+            return result;
+          }
+        : bindToTarget(target, property),
+  });
+  return new Proxy(client, {
+    get: (target, property) =>
+      property === 'creditTransaction'
+        ? creditTransaction
+        : bindToTarget(target, property),
+  }) as unknown as PrismaService;
+}
 
 interface Attempt {
   createdAt?: Date;
@@ -79,6 +147,9 @@ describe.skipIf(!connectionString)('retry credit back (PostgreSQL)', () => {
   let billingAccountId: string;
   let brandId: string;
   let service: RetryCreditBackService;
+  let createService: (
+    prismaForService: PrismaService,
+  ) => RetryCreditBackService;
 
   async function seedOrganization(isPaying: boolean): Promise<void> {
     const db = database();
@@ -232,12 +303,9 @@ describe.skipIf(!connectionString)('retry credit back (PostgreSQL)', () => {
       transaction,
       freeTrial,
     );
-    service = new RetryCreditBackService(
-      prismaService,
-      credits,
-      freeTrial,
-      logger,
-    );
+    createService = (prismaForService) =>
+      new RetryCreditBackService(prismaForService, credits, freeTrial, logger);
+    service = createService(prismaService);
   });
 
   afterEach(async () => {
@@ -374,10 +442,11 @@ describe.skipIf(!connectionString)('retry credit back (PostgreSQL)', () => {
 
   it('keeps concurrent grants for one user under the per-user daily cap', async () => {
     await seedOrganization(true);
+    const headroom = 60;
     await database().creditTransaction.create({
       data: {
         actorUserId: userId,
-        amount: RETRY_CREDIT_BACK_DAILY_CAP_CREDITS - 60,
+        amount: RETRY_CREDIT_BACK_DAILY_CAP_CREDITS - headroom,
         category: CreditTransactionCategory.ADD,
         organizationId,
         source: RETRY_CREDIT_BACK_SOURCE,
@@ -387,13 +456,30 @@ describe.skipIf(!connectionString)('retry credit back (PostgreSQL)', () => {
     const first = await attempt({ createdAt: new Date(Date.now() - HOUR_MS) });
     const second = await attempt();
 
+    // Neither call may enter its ledger transaction until both have read the
+    // same headroom, so only the in-transaction decision can keep the cap.
+    const preliminaryReads: number[] = [];
+    const bothRead = createReadBarrier(2);
+    service = createService(
+      holdPreliminaryCapReads(database(), async (earnedCredits) => {
+        preliminaryReads.push(earnedCredits);
+        await bothRead();
+      }),
+    );
+
     // Each retry is worth 100 on its own and fits the 60 left when read alone.
     const granted = await Promise.all([
       creditBack(first.id, 400),
       creditBack(second.id, 400),
     ]);
 
-    expect(granted.reduce((total, credits) => total + credits, 0)).toBe(60);
+    expect(preliminaryReads).toEqual([
+      RETRY_CREDIT_BACK_DAILY_CAP_CREDITS - headroom,
+      RETRY_CREDIT_BACK_DAILY_CAP_CREDITS - headroom,
+    ]);
+    expect(granted.reduce((total, credits) => total + credits, 0)).toBe(
+      headroom,
+    );
     const earned = (await grants()).reduce(
       (total, grant) => total + grant.amount,
       0,

@@ -8,6 +8,7 @@ import { CronFalModelWatcherService } from '@workers/crons/fal-model-watcher/cro
 import { FalPlatformClient } from '@workers/crons/fal-model-watcher/fal-platform.client';
 import type { IFalModel } from '@workers/interfaces/model-discovery.interface';
 import { FalModelContractSyncService } from '@workers/services/fal-model-contract-sync.service';
+import type { Mocked } from 'vitest';
 
 describe('CronFalModelWatcherService', () => {
   let service: CronFalModelWatcherService;
@@ -23,8 +24,8 @@ describe('CronFalModelWatcherService', () => {
     fetchPricing: ReturnType<typeof vi.fn>;
     isListedActive: ReturnType<typeof vi.fn>;
   };
-  let configService: vi.Mocked<ConfigService>;
-  let loggerService: vi.Mocked<LoggerService>;
+  let configService: Mocked<ConfigService>;
+  let loggerService: Mocked<LoggerService>;
   let activityRecorder: { dispatch: ReturnType<typeof vi.fn> };
 
   /** Operator-approved fal rows already in the registry. */
