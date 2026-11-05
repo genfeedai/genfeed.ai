@@ -10,6 +10,7 @@ import { ChartEmptyState } from '@ui/primitives/chart-empty-state';
 import LoadingOverlay from '@ui/primitives/loading-overlay';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import {
@@ -67,6 +68,7 @@ export function BrandPerformanceChart({
   className = '',
   emptyAction,
 }: BrandPerformanceChartProps) {
+  const translate = useTranslations('pages.analytics.charts.brandPerformance');
   const [activeMetric, setActiveMetric] = useState<BrandMetricKey>(
     String(metric).toLowerCase() as BrandMetricKey,
   );
@@ -96,7 +98,6 @@ export function BrandPerformanceChart({
   const hasMetricSignal = Boolean(data?.some((row) => row[activeMetric] > 0));
   const hasPostSignal = Boolean(data?.some((row) => row.posts > 0));
   const isMetricEmpty = !isEmpty && !hasMetricSignal;
-  const metricLabel = METRIC_LABELS[activeMetric].toLowerCase();
 
   // Sort and take top 10 brands by selected metric
   const sortedData =
@@ -138,9 +139,9 @@ export function BrandPerformanceChart({
           {isEmpty && !isLoading ? (
             <ChartEmptyState
               action={emptyAction}
-              description="Brands rank here once they publish posts in this date range."
+              description={translate('emptyDescription')}
               shape="bars"
-              title="No brand performance yet"
+              title={translate('emptyTitle')}
             />
           ) : null}
 
@@ -149,14 +150,14 @@ export function BrandPerformanceChart({
               action={
                 hasPostSignal && activeMetric !== 'posts'
                   ? {
-                      label: 'Show posts',
+                      label: translate('showPosts'),
                       onClick: () => setActiveMetric('posts'),
                     }
                   : undefined
               }
-              description={`Posts are published, but no platform has reported ${metricLabel} for this date range yet. It shows up after the next metrics sync.`}
+              description={translate(`metricEmpty.${activeMetric}.description`)}
               shape="bars"
-              title={`No ${metricLabel} yet`}
+              title={translate(`metricEmpty.${activeMetric}.title`)}
             />
           ) : null}
 

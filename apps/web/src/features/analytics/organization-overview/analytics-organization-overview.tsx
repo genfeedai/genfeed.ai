@@ -32,6 +32,7 @@ import { Skeleton } from '@ui/primitives/skeleton';
 import { Building2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import AnalyticsTopAccounts from '@/features/analytics/accounts/analytics-top-accounts';
 import AnalyticsBrandSummary from '@/features/analytics/brands-list/analytics-brand-summary';
@@ -151,6 +152,7 @@ export default function AnalyticsOrganizationOverview({
 }: AnalyticsOrganizationOverviewProps) {
   const { isSignedIn } = useAuthIdentity();
   const router = useRouter();
+  const translateOverview = useTranslations('pages.analytics.overview');
   const { orgHref } = useOrgUrl();
   const scope = useCollectionScope();
   const organizationId = organizationIdProp ?? scope.organizationId;
@@ -247,7 +249,7 @@ export default function AnalyticsOrganizationOverview({
   const connectAccountsAction: EmptyStateAction | undefined = organizationIdProp
     ? undefined
     : {
-        label: 'Connect accounts',
+        label: translateOverview('connectAccounts'),
         onClick: () => router.push(orgHref(APP_ROUTES.SETTINGS.BRANDS)),
       };
 

@@ -57,6 +57,9 @@ export function PlatformComparisonChart({
   emptyAction,
 }: PlatformComparisonChartProps) {
   const selectionLabels = useTranslations('ui.selectionGroups');
+  const translate = useTranslations(
+    'pages.analytics.charts.platformComparison',
+  );
   const [activeMetrics, setActiveMetrics] = useState<
     PlatformComparisonMetricType[]
   >([AnalyticsMetric.VIEWS, AnalyticsMetric.LIKES]);
@@ -115,9 +118,9 @@ export function PlatformComparisonChart({
         {isEmpty && !isLoading && (
           <ChartEmptyState
             action={emptyAction}
-            description="Views and engagement per platform appear here once connected accounts report metrics."
+            description={translate('emptyDescription')}
             shape="bars"
-            title="No platform data available"
+            title={translate('emptyTitle')}
           />
         )}
 

@@ -5,6 +5,7 @@ import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { ChartEmptyState } from '@ui/primitives/chart-empty-state';
 import LoadingOverlay from '@ui/primitives/loading-overlay';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import type { PieLabelRenderProps } from 'recharts';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import {
@@ -46,6 +47,9 @@ export function PlatformBreakdownChart({
   className = '',
   emptyAction,
 }: PlatformBreakdownChartProps) {
+  const translate = useTranslations(
+    'pages.analytics.charts.platformDistribution',
+  );
   const chartData = data ?? [];
   // Zero-value platforms are noise — empty when nothing has signal.
   const filteredData = chartData.filter((item) => item.value > 0);
@@ -64,9 +68,9 @@ export function PlatformBreakdownChart({
           {isEmpty && !isLoading ? (
             <ChartEmptyState
               action={emptyAction}
-              description="Views split by platform once a connected account reports them for this date range."
+              description={translate('emptyDescription')}
               shape="donut"
-              title="No platform distribution yet"
+              title={translate('emptyTitle')}
             />
           ) : null}
 

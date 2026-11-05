@@ -63,6 +63,7 @@ export function PlatformTimeSeriesChart({
   emptyAction,
 }: PlatformTimeSeriesChartProps) {
   const selectionLabels = useTranslations('ui.selectionGroups');
+  const translate = useTranslations('pages.analytics.charts.platformTrends');
   const [selectionOverride, setSelectionOverride] =
     useState<PlatformSelectionOverride | null>(null);
   const activeSelectionOverride =
@@ -145,17 +146,15 @@ export function PlatformTimeSeriesChart({
         {isEmpty && !isLoading ? (
           <ChartEmptyState
             action={emptyAction}
-            description={
+            description={translate(
               hasConnectedPlatforms
-                ? 'Daily views per platform appear here after connected accounts publish and metrics sync back.'
-                : 'Connect a social account to see how each platform trends over time.'
-            }
+                ? 'noTrendsDescription'
+                : 'noPlatformsDescription',
+            )}
             shape="area"
-            title={
-              hasConnectedPlatforms
-                ? 'No performance trends yet'
-                : 'No connected platforms yet'
-            }
+            title={translate(
+              hasConnectedPlatforms ? 'noTrendsTitle' : 'noPlatformsTitle',
+            )}
           />
         ) : null}
 
