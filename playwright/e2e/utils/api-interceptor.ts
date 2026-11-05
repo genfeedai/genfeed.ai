@@ -10,6 +10,7 @@ import {
   TargetAnalyticsCollectionState,
 } from '@genfeedai/contracts';
 import {
+  APP_ROUTES,
   DEFAULT_PLATFORM_FLAGS,
   EXPERT_FIRST_SYSTEM_CREDIT_COST,
   NATIVE_SECONDARY_APP_IDS,
@@ -1208,7 +1209,7 @@ function createMockAccountAnalytics(credentialId: string): IAccountAnalytics {
       firstTrackedAt: null,
       isConnected: true,
       label: 'Mock account',
-      manageHref: '/settings/connected-accounts',
+      manageHref: `${APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS}?credential=${credentialId}`,
       platform:
         credentialId === MOCK_X_ACCOUNT_ID ? Platform.TWITTER : Platform.TIKTOK,
     },
@@ -2617,6 +2618,26 @@ export async function setupApiMocks(
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify(DEFAULT_PLATFORM_FLAGS),
+    });
+  });
+
+  // Agent-written Studio drafts are an LLM call (StudioProposalsResult, not a
+  // JSON:API document). The default is the real shape with no drafts, so the
+  // starter ideas show; specs that need drafts register their own handler.
+  await routeApi('/brands/*/content/studio-proposals', async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.fallback();
+      return;
+    }
+    const body = route.request().postDataJSON() as { surface?: string } | null;
+    await route.fulfill({
+      body: JSON.stringify({
+        isBrandApproved: true,
+        proposals: [],
+        surface: body?.surface ?? 'image',
+      }),
+      contentType: 'application/json',
+      status: 200,
     });
   });
 

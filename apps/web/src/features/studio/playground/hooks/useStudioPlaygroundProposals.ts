@@ -71,10 +71,13 @@ export function useStudioPlaygroundProposals(
         const next = {
           isBrandApproved: result.isBrandApproved,
           key,
+          // Only drafts for the surface asked for; any other answer shows the
+          // starter ideas instead.
           proposals:
-            result.surface === 'storyboard' || result.surface === 'turbo'
-              ? EMPTY_PROPOSALS
-              : result.proposals.slice(0, PLAYGROUND_PROPOSAL_COUNT),
+            (result.surface === 'image' || result.surface === 'video') &&
+            result.surface === surface
+              ? result.proposals.slice(0, PLAYGROUND_PROPOSAL_COUNT)
+              : EMPTY_PROPOSALS,
         };
         if (next.isBrandApproved) proposalsCache.set(key, next);
         setRecord(next);
