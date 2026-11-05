@@ -159,7 +159,8 @@ export default function ConnectionSuccess({
     trace.dataset.ready = 'true';
   }, []);
 
-  const hasAccount = Boolean(account?.avatarUrl || account?.name);
+  const accountName = account?.name?.trim();
+  const hasAccount = Boolean(account?.avatarUrl || accountName);
 
   return (
     <div
@@ -234,6 +235,8 @@ export default function ConnectionSuccess({
       )}
       <output aria-live="polite" className="block space-y-1">
         <span className="block text-base font-semibold">{title}</span>
+        {/* The picture is decorative, so the polite status carries who connected. */}
+        {accountName ? <span className="sr-only">{accountName}</span> : null}
         {description ? (
           <span className="block text-sm text-muted-foreground">
             {description}

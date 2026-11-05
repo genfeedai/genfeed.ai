@@ -51,6 +51,7 @@ describe('ConnectionSuccess', () => {
     );
 
     expect(screen.getByRole('status')).toHaveTextContent('Instagram Connected');
+    expect(screen.getByRole('status')).toHaveTextContent('Shayla');
     expect(
       container.querySelector('[data-connection-account]'),
     ).toBeInTheDocument();
@@ -76,6 +77,18 @@ describe('ConnectionSuccess', () => {
     );
 
     expect(document.body).toHaveTextContent('SF');
+  });
+
+  it('announces only the success when the account has a picture but no name', () => {
+    render(
+      <ConnectionSuccess
+        account={{ avatarUrl: 'https://cdn.example/x.jpg', name: '  ' }}
+        brand={resolvePlatformConnectionBrand('instagram')}
+        title="Instagram Connected"
+      />,
+    );
+
+    expect(screen.getByRole('status').textContent).toBe('Instagram Connected');
   });
 
   it('keeps the logo-only state when the account has neither picture nor name', () => {
