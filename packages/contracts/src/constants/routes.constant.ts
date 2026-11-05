@@ -342,7 +342,7 @@ export const APP_ROUTES = {
      * Google Ads, Twitter, etc.). Canonical home for "connect accounts".
      * Brand-only destination; organization BYOK settings use INTEGRATIONS.
      */
-    CONNECTED_ACCOUNTS: '/settings/connected-accounts',
+    CONNECTED_ACCOUNTS: '/settings/accounts',
     /** Brand-enabled agent skills and organization-owned skill variants. */
     SKILLS: '/settings/skills',
     USAGE: '/settings/usage',

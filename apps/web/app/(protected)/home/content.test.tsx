@@ -634,7 +634,7 @@ describe('OperationalHomeContent', () => {
     const accounts = screen.getByTestId('operational-home-credentials');
     expect(
       within(accounts).getByRole('link', { name: 'Connect account' }),
-    ).toHaveAttribute('href', '/acme/moonrise/settings/connected-accounts');
+    ).toHaveAttribute('href', '/acme/moonrise/settings/accounts');
   });
 
   it('opens the post editor from a publishing row and leads it with the account avatar', () => {
@@ -943,7 +943,7 @@ describe('OperationalHomeContent', () => {
     );
     expect(queue.getByRole('link', { name: 'Reconnect' })).toHaveAttribute(
       'href',
-      '/acme/moonrise/settings/connected-accounts',
+      '/acme/moonrise/settings/accounts',
     );
 
     // The status badge sits in the same cluster as the action it explains.

@@ -166,7 +166,7 @@ describe('ModalPostBatch', () => {
 
     expect(screen.getByText('preview panel')).toBeVisible();
   });
-  it('sends the reconnect action to the brand connected-accounts page', async () => {
+  it('sends the reconnect action to the brand accounts page', async () => {
     const ingredient = {
       category: IngredientCategory.IMAGE,
       id: 'ingredient-1',
@@ -192,8 +192,6 @@ describe('ModalPostBatch', () => {
       await screen.findByRole('button', { name: 'Reconnect Account' }),
     );
 
-    expect(mockPush).toHaveBeenCalledWith(
-      '/acme/brand-slug/settings/connected-accounts',
-    );
+    expect(mockPush).toHaveBeenCalledWith('/acme/brand-slug/settings/accounts');
   });
 });

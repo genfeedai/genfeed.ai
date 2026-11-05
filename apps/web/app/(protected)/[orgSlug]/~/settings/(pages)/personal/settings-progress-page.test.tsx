@@ -60,7 +60,7 @@ vi.mock('@/hooks/utils/use-setup-card/use-setup-card', () => ({
       },
       {
         description: 'Connect Instagram, TikTok, etc.',
-        href: '/acme/coffee/settings/connected-accounts',
+        href: '/acme/coffee/settings/accounts',
         isCompleted: true,
         key: 'platforms',
         label: 'Social accounts',
@@ -195,7 +195,7 @@ describe('SettingsProgressPage', () => {
     );
     expect(screen.getByRole('link', { name: 'Review' })).toHaveAttribute(
       'href',
-      '/acme/coffee/settings/connected-accounts',
+      '/acme/coffee/settings/accounts',
     );
   });
 

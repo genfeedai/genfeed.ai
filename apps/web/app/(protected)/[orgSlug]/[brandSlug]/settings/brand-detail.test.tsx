@@ -342,7 +342,7 @@ describe('BrandDetail', () => {
     );
     expect(
       screen.getByText(
-        'Manage social: /org-one/brand-handle/settings/connected-accounts',
+        'Manage social: /org-one/brand-handle/settings/accounts',
       ),
     ).toBeInTheDocument();
   });
