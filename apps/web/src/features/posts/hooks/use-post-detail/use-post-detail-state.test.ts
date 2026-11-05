@@ -1,4 +1,8 @@
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
   IngredientFormat,
   PageScope,
   Platform,
@@ -6,10 +10,6 @@ import {
   PostStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import {
-  createTestQueryClient,
-  queryClientWrapper,
-} from '@app-tests/query-client.harness';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -119,7 +119,8 @@ describe('usePostDetailState', () => {
     mockFindOne.mockRejectedValue(serviceOperationError(404, 'Post not found'));
 
     const { result } = renderHook(
-      () => usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
       { wrapper: queryClientWrapper() },
     );
 
@@ -135,7 +136,8 @@ describe('usePostDetailState', () => {
     );
 
     const { result } = renderHook(
-      () => usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
       { wrapper: queryClientWrapper() },
     );
 
@@ -165,7 +167,8 @@ describe('usePostDetailState', () => {
     });
 
     const hook = renderHook(
-      () => usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
       { wrapper: queryClientWrapper() },
     );
 
@@ -209,7 +212,8 @@ describe('usePostDetailState', () => {
     const client = createTestQueryClient();
     mockFindOne.mockResolvedValueOnce({ id: 'post-1', label: 'Launch teaser' });
     const firstVisit = renderHook(
-      () => usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
       { wrapper: queryClientWrapper(client) },
     );
     await waitFor(() =>
@@ -219,7 +223,8 @@ describe('usePostDetailState', () => {
 
     mockFindOne.mockImplementationOnce(() => new Promise(() => {}));
     const secondVisit = renderHook(
-      () => usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
       { wrapper: queryClientWrapper(client) },
     );
 
@@ -231,7 +236,8 @@ describe('usePostDetailState', () => {
     const client = createTestQueryClient();
     mockFindOne.mockResolvedValueOnce({ id: 'post-1', label: 'Launch teaser' });
     const firstVisit = renderHook(
-      () => usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
       { wrapper: queryClientWrapper(client) },
     );
     await waitFor(() => expect(firstVisit.result.current.post).not.toBeNull());
@@ -239,7 +245,8 @@ describe('usePostDetailState', () => {
 
     mockFindOne.mockImplementationOnce(() => new Promise(() => {}));
     const otherPost = renderHook(
-      () => usePostDetailState({ postId: 'post-2', scope: PageScope.PUBLISHING }),
+      () =>
+        usePostDetailState({ postId: 'post-2', scope: PageScope.PUBLISHING }),
       { wrapper: queryClientWrapper(client) },
     );
 

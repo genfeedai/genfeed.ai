@@ -22,8 +22,8 @@ import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useQueryClient } from '@tanstack/react-query';
 import { isServiceOperationError } from '@services/core/operation-error';
+import { useQueryClient } from '@tanstack/react-query';
 import { Eye, Heart, MessageSquare, TrendingUp, Zap } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -472,6 +472,7 @@ export function usePostDetailState({
       isUpdating,
       getPostsService,
       notificationsService,
+      setPost,
       updateDescriptionRefs,
       updateLabelRefs,
     ],
@@ -492,7 +493,7 @@ export function usePostDetailState({
         };
       });
     },
-    [],
+    [setPost],
   );
 
   return {

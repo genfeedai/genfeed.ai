@@ -1,10 +1,10 @@
-import { ArticleStatus, AssetCategory, AssetScope } from '@genfeedai/contracts';
-import { BRAND_HANDLE_FORMAT_MESSAGE } from '@genfeedai/contracts/constants';
-import type { IBrand } from '@genfeedai/contracts/interfaces';
 import {
   createTestQueryClient,
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
+import { ArticleStatus, AssetCategory, AssetScope } from '@genfeedai/contracts';
+import { BRAND_HANDLE_FORMAT_MESSAGE } from '@genfeedai/contracts/constants';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
@@ -162,7 +162,9 @@ describe('useBrandDetail', () => {
   });
 
   it('derives brand id from params and loads brand data', async () => {
-    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -286,7 +288,9 @@ describe('useBrandDetail', () => {
   });
 
   it('copies text via clipboard service', async () => {
-    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await result.current.handleCopy('copy-me');
 
@@ -294,7 +298,9 @@ describe('useBrandDetail', () => {
   });
 
   it('opens upload modal with brand details', async () => {
-    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -321,7 +327,9 @@ describe('useBrandDetail', () => {
         scope: AssetScope.BRAND,
         slug: 'brand-1',
       });
-      const hook = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+      const hook = renderHook(() => useBrandDetail(), {
+        wrapper: queryClientWrapper(),
+      });
       await waitFor(() => {
         expect(hook.result.current.brand).not.toBeNull();
       });
@@ -386,7 +394,9 @@ describe('useBrandDetail', () => {
 
   describe('handleUpdateAccount scope toggle', () => {
     async function renderLoadedBrand() {
-      const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+      const { result } = renderHook(() => useBrandDetail(), {
+        wrapper: queryClientWrapper(),
+      });
 
       await waitFor(() => {
         expect(result.current.brand).not.toBeNull();
@@ -557,7 +567,9 @@ describe('useBrandDetail', () => {
       patch: mockPatch,
     });
 
-    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -607,7 +619,9 @@ describe('useBrandDetail', () => {
       patch: mockPatch,
     });
 
-    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -639,7 +653,9 @@ describe('useBrandDetail', () => {
       patch: mockPatch,
     });
 
-    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -662,7 +678,9 @@ describe('useBrandDetail', () => {
   });
 
   it('opens the generate modal for banner and logo', async () => {
-    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -682,7 +700,9 @@ describe('useBrandDetail', () => {
   });
 
   it('selects a link and clears it on confirm', async () => {
-    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -729,7 +749,9 @@ describe('useBrandDetail', () => {
       scope: AssetScope.BRAND,
     } as unknown as IBrand);
 
-    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -762,7 +784,9 @@ describe('useBrandDetail', () => {
       scope: AssetScope.BRAND,
     } as unknown as IBrand);
 
-    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -796,7 +820,9 @@ describe('useBrandDetail', () => {
       scope: AssetScope.BRAND,
     } as unknown as IBrand);
 
-    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -833,7 +859,9 @@ describe('useBrandDetail', () => {
       scope: AssetScope.BRAND,
     } as unknown as IBrand);
 
-    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -848,7 +876,9 @@ describe('useBrandDetail', () => {
     mockFindPublicImages.mockResolvedValue([{ id: 'image-1' }]);
     mockFindPublicArticles.mockRejectedValue(new Error('articles down'));
 
-    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.images).toEqual([{ id: 'image-1' }]);

@@ -39,11 +39,11 @@ import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useRouteParams } from '@hooks/navigation/use-route-params';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   buildSocialConnections,
   getAccountConnectionStatus,
 } from '@ui/modals/brands/brand/ModalBrand.types';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSaveQueue } from '@/hooks/utils/use-save-queue/use-save-queue';
@@ -378,13 +378,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
         }
       });
     },
-    [
-      brand,
-      applyBrand,
-      enqueueSave,
-      getBrandsService,
-      notificationsService,
-    ],
+    [brand, applyBrand, enqueueSave, getBrandsService, notificationsService],
   );
 
   // The handle is the `[brandSlug]` route segment, so a saved rename moves the
