@@ -613,12 +613,7 @@ describe('unchanged read-only workflow service contracts', () => {
       organizationId: selectedOrg,
       OR: [
         { userId: user.userId },
-        {
-          metadata: {
-            equals: 'organization',
-            path: [expect.any(String), 'visibility'],
-          },
-        },
+        { systemWorkflowVisibility: 'organization' },
       ],
     });
     const builder = instance(WorkflowBuilderController, {
