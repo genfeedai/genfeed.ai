@@ -15,7 +15,6 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -68,7 +67,6 @@ import { v4 as uuidv4 } from 'uuid';
 @AutoSwagger()
 @ApiTags('editor-projects')
 @ApiBearerAuth()
-@FeatureFlag('editor')
 @OrganizationModule('editor')
 @Controller('editor-projects')
 @UseGuards(RolesGuard)

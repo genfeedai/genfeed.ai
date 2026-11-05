@@ -6,7 +6,8 @@ import {
 /**
  * Product modules a superadmin can switch off for the whole platform from
  * Admin → Flags (#5468). Off hides the module's app-rail entry and
- * routes and answers its API with 404. Every module defaults on.
+ * routes and answers its API with 404, except `studio`, which only hides
+ * Playground so generation is never shut off (#8796). Every module defaults on.
  */
 export const PLATFORM_MODULE_FLAG_KEYS = [
   'agent',

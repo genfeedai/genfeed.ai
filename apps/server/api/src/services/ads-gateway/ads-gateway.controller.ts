@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -44,7 +43,6 @@ const ADS_READ_SCOPES = [
 ] as const;
 
 @AutoSwagger()
-@FeatureFlag('discovery')
 @OrganizationModule('discovery')
 @Controller('ads')
 @UseGuards(RolesGuard)

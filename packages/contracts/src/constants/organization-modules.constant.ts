@@ -10,9 +10,10 @@ import {
 /**
  * Modules an organization shows or hides for its members. A switch only
  * hides the module's app: the API and MCP never refuse work because of it.
- * New work is gated by the module's release (Admin → Flags `release_<id>`),
- * its platform kill switch (`platformFlagKey`) and, on cloud, the
- * subscription for paid modules.
+ * New work is gated by the module's release (Admin → Flags `release_<id>`)
+ * and, on cloud, the subscription for paid modules. The platform kill switch
+ * (`platformFlagKey`) answers every module route with 404, except
+ * Playground (see `isOrganizationModuleSwitchedOff`).
  */
 export const ORGANIZATION_MODULES = {
   playground: {
@@ -164,6 +165,22 @@ export function isOrganizationModuleOffered(
   return (
     isPlatformFlagOn(flags, ORGANIZATION_MODULES[moduleId].platformFlagKey) &&
     isReleaseItemVisible(moduleId, settings, flags)
+  );
+}
+
+/**
+ * Whether the API refuses the module because an operator switched its
+ * platform kill switch off in Admin → Flags (#8796). Playground is exempt:
+ * it carries every generation endpoint, so switching Studio off only hides
+ * the app and its routes and can never shut generation off by accident.
+ */
+export function isOrganizationModuleSwitchedOff(
+  moduleId: OrganizationModuleId,
+  flags: OrganizationModuleFlagInput,
+): boolean {
+  return (
+    moduleId !== 'playground' &&
+    !isPlatformFlagOn(flags, ORGANIZATION_MODULES[moduleId].platformFlagKey)
   );
 }
 

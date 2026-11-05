@@ -15,7 +15,6 @@ import { withNextRunAt } from '@api/collections/workflows/utils/workflow-next-ru
 import { toWorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { assertCanIncludeSystemWorkflows } from '@api/collections/workflows/utils/workflow-system-access.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -74,7 +73,6 @@ export interface WorkflowStatisticsResponse {
  * `WorkflowsController`.
  */
 @AutoSwagger()
-@FeatureFlag('automation')
 @OrganizationModule('automation')
 @Controller('workflows')
 @UseGuards(RolesGuard)

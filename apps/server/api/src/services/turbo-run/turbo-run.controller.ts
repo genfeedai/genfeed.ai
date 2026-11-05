@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
@@ -46,7 +45,6 @@ import type { Request } from 'express';
 
 @ApiTags('Turbo runs')
 @AutoSwagger()
-@FeatureFlag('studio')
 @OrganizationModule('turbo')
 @Controller('turbo-runs')
 @UseGuards(RolesGuard)

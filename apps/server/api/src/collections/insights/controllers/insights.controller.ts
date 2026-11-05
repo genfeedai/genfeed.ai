@@ -6,7 +6,6 @@ import { UpdateInsightDto } from '@api/collections/insights/dto/update-insight.d
 import { InsightsService } from '@api/collections/insights/services/insights.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -45,7 +44,6 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @ApiTags('Insights')
-@FeatureFlag('analytics')
 @OrganizationModule('analytics')
 @Controller('insights')
 @UseInterceptors(CreditsInterceptor)

@@ -1,6 +1,5 @@
 import { PublishingSetupService } from '@api/collections/publishing-setup/services/publishing-setup.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -23,7 +22,6 @@ import { ApiTags } from '@nestjs/swagger';
  */
 @AutoSwagger()
 @ApiTags('PublishingSetup')
-@FeatureFlag('publishing')
 @OrganizationModule('publishing')
 @Controller('publishing-setup')
 @UseGuards(RolesGuard)

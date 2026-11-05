@@ -20,7 +20,6 @@ import {
   TopContentQueryDto,
   ViralHooksQueryDto,
 } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -61,7 +60,6 @@ import type {
 } from 'express';
 
 @AutoSwagger()
-@FeatureFlag('analytics')
 @OrganizationModule('analytics')
 @Controller('analytics')
 @UseGuards(RolesGuard)

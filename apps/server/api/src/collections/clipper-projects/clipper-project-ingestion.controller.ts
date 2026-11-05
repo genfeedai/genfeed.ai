@@ -15,7 +15,6 @@ import {
 } from '@api/collections/clipper-projects/services/clipper-project-ingestion.service';
 import { ClipperProjectLibrarySourceService } from '@api/collections/clipper-projects/services/clipper-project-library-source.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -41,7 +40,6 @@ import type { Request } from 'express';
 @AutoSwagger()
 @ApiTags('clipper-projects')
 @ApiBearerAuth()
-@FeatureFlag('clipper')
 @OrganizationModule('clipper')
 @Controller('clipper-projects')
 @UseGuards(RolesGuard)

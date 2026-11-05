@@ -7,7 +7,6 @@ import { QueryContentPerformanceDto } from '@api/collections/content-performance
 import { AttributionService } from '@api/collections/content-performance/services/attribution.service';
 import { ContentPerformanceService } from '@api/collections/content-performance/services/content-performance.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -35,7 +34,6 @@ import {
 import type { Request } from 'express';
 
 @AutoSwagger()
-@FeatureFlag('analytics')
 @OrganizationModule('analytics')
 @Controller('content-performance')
 @UseGuards(RolesGuard)

@@ -11,7 +11,6 @@ import { AgentStrategyWorkflowRunService } from '@api/collections/agent-strategi
 import { toWorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { parseOptionalBoolean } from '@api/helpers/dto/optional-boolean.transform';
@@ -54,7 +53,6 @@ import type { Request } from 'express';
 
 @ApiTags('Agent Strategies')
 @AutoSwagger()
-@FeatureFlag('automation')
 @OrganizationModule('automation')
 @Controller('agent-strategies')
 export class AgentStrategiesController extends BaseCRUDController<

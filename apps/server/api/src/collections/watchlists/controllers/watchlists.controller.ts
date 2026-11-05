@@ -5,7 +5,6 @@ import { WatchlistsQueryDto } from '@api/collections/watchlists/dto/watchlists-q
 import { WatchlistsService } from '@api/collections/watchlists/services/watchlists.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -35,7 +34,6 @@ import {
 import type { Request } from 'express';
 
 @AutoSwagger()
-@FeatureFlag('discovery')
 @OrganizationModule('discovery')
 @Controller('watchlists')
 export class WatchlistsController {

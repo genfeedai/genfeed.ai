@@ -11,7 +11,6 @@ import { CreatePostingCadenceDto } from '@api/collections/posting-cadences/dto/c
 import { UpdatePostingCadenceDto } from '@api/collections/posting-cadences/dto/update-posting-cadence.dto';
 import { PostingCadencesService } from '@api/collections/posting-cadences/services/posting-cadences.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -43,7 +42,6 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @ApiTags('PostingCadences')
-@FeatureFlag('publishing')
 @OrganizationModule('publishing')
 @Controller('posting-cadences')
 export class PostingCadencesController {

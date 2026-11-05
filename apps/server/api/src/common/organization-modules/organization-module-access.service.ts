@@ -1,8 +1,10 @@
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { hasOrganizationBilling } from '@genfeedai/config';
 import {
+  isOrganizationModuleSwitchedOff,
   isReleaseItemVisible,
   ORGANIZATION_MODULES,
   type OrganizationModuleAccess,
@@ -10,10 +12,14 @@ import {
   type ReleaseItemId,
   resolveOrganizationModuleAccess,
 } from '@genfeedai/contracts/constants';
+import type { IPlatformFeatureSettingsState } from '@genfeedai/contracts/interfaces';
 import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
-/** Shared admission for HTTP and execution adapters; no balance/key/admin bypass. */
+/**
+ * Shared admission for HTTP and execution adapters; no balance or key bypass.
+ * A superadmin passes only the platform kill switch.
+ */
 @Traced()
 @Injectable()
 export class OrganizationModuleAccessService {
@@ -64,15 +70,32 @@ export class OrganizationModuleAccessService {
     );
   }
 
+  /**
+   * Admission for one module operation. A module whose platform kill switch
+   * is off answers 404 for every operation, as its app route does; only a
+   * superadmin passes, so an operator can inspect it. Writes then also need
+   * the module's release and, on cloud, its subscription; superadmins get no
+   * bypass there.
+   */
   async assertAccess(
     organizationId: string,
     moduleId: OrganizationModuleAccessInput['moduleId'],
     operation: OrganizationModuleAccessInput['operation'] = 'write',
+    { isSuperAdmin = false }: { isSuperAdmin?: boolean } = {},
   ): Promise<void> {
+    const platformState = Object.hasOwn(ORGANIZATION_MODULES, moduleId)
+      ? await this.readPlatformState(moduleId)
+      : null;
+    if (
+      platformState &&
+      !isSuperAdmin &&
+      isOrganizationModuleSwitchedOff(moduleId, platformState.settings.flags)
+    ) {
+      throw new NotFoundException('Route');
+    }
     // Read/export callers still perform their normal authentication and tenant checks.
     if (operation !== 'write') return;
-    if (!organizationId || !Object.hasOwn(ORGANIZATION_MODULES, moduleId))
-      this.reject(moduleId, 'unavailable');
+    if (!organizationId || !platformState) this.reject(moduleId, 'unavailable');
     let access: OrganizationModuleAccess;
     try {
       const organization = await this.prisma.organization.findFirst({
@@ -80,13 +103,10 @@ export class OrganizationModuleAccessService {
         select: { id: true },
       });
       if (!organization) this.reject(moduleId, 'unavailable');
-      const [settings, platformState] = await Promise.all([
-        this.prisma.organizationSetting.findUnique({
-          where: { organizationId },
-          select: { isReleasePreviewEnabled: true, releasedItemIds: true },
-        }),
-        this.platformSettings.getFeatureSettingsState(),
-      ]);
+      const settings = await this.prisma.organizationSetting.findUnique({
+        where: { organizationId },
+        select: { isReleasePreviewEnabled: true, releasedItemIds: true },
+      });
       const isBilling = hasOrganizationBilling();
       // Unread releases must not pass for unreleased: retry instead.
       if (isBilling && !platformState.isResolved)
@@ -128,6 +148,16 @@ export class OrganizationModuleAccessService {
       this.reject(moduleId, 'unavailable');
     }
     if (!access.isAllowed) this.reject(moduleId, access.reason);
+  }
+
+  private async readPlatformState(
+    moduleId: OrganizationModuleAccessInput['moduleId'],
+  ): Promise<IPlatformFeatureSettingsState> {
+    try {
+      return await this.platformSettings.getFeatureSettingsState();
+    } catch {
+      this.reject(moduleId, 'unavailable');
+    }
   }
 
   private reject(

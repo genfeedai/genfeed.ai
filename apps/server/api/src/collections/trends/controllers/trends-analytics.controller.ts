@@ -5,7 +5,6 @@ import type {
 } from '@api/collections/trends/interfaces/trend-turnover.interface';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -29,7 +28,6 @@ import {
 import { ApiOperation } from '@nestjs/swagger';
 
 @AutoSwagger()
-@FeatureFlag('discovery')
 @OrganizationModule('discovery')
 @Controller('trends')
 @UseInterceptors(CreditsInterceptor)

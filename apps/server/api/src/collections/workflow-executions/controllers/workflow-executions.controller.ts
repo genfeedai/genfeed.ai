@@ -13,7 +13,6 @@ import { WorkflowExecutionAuthorizationService } from '@api/collections/workflow
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -77,7 +76,6 @@ export const WORKFLOW_EXECUTION_SORT_FIELDS: readonly string[] = [
 
 @ApiTags('Workflow Executions')
 @ApiBearerAuth()
-@FeatureFlag('automation')
 @OrganizationModule('automation')
 @Controller('workflow-executions')
 @UseGuards(RolesGuard)

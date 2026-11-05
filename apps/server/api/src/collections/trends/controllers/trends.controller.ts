@@ -11,7 +11,6 @@ import { TrendPreferencesService } from '@api/collections/trends/services/trend-
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -51,7 +50,6 @@ import {
 import type { Request } from 'express';
 
 @AutoSwagger()
-@FeatureFlag('discovery')
 @OrganizationModule('discovery')
 @Controller('trends')
 @UseInterceptors(CreditsInterceptor)
