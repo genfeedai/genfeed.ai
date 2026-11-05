@@ -186,6 +186,83 @@ const BRAND_WRITE_ROUTES: ReadonlyArray<
   ],
 ];
 
+const BRAND_ANALYTICS_ROUTES: ReadonlyArray<
+  readonly [string, ControllerClass, Handler]
+> = [
+  [
+    'GET /brands/:brandId/analytics',
+    BrandsRelationshipsController,
+    BrandsRelationshipsController.prototype.findBrandAnalytics,
+  ],
+  [
+    'GET /brands/:brandId/platforms/:platform/analytics',
+    BrandsRelationshipsController,
+    BrandsRelationshipsController.prototype.findBrandPlatformAnalytics,
+  ],
+  [
+    'GET /brands/:brandId/analytics/timeseries',
+    BrandsRelationshipsController,
+    BrandsRelationshipsController.prototype.findBrandAnalyticsTimeSeries,
+  ],
+];
+
+const BRAND_READ_ROUTES: ReadonlyArray<
+  readonly [string, ControllerClass, Handler]
+> = [
+  ['GET /brands', BrandsController, BrandsController.prototype.findAll],
+  [
+    'GET /brands/:brandId',
+    BrandsController,
+    BrandsController.prototype.findOne,
+  ],
+  [
+    'GET /brands/slug',
+    BrandsController,
+    BrandsController.prototype.findOneBySlug,
+  ],
+  [
+    'GET /brands/:id/relocation-preview',
+    BrandsController,
+    BrandsController.prototype.previewRelocation,
+  ],
+  [
+    'GET /brands/agent-config/strategy-templates',
+    BrandsController,
+    BrandsController.prototype.getStrategyTemplates,
+  ],
+  [
+    'GET /brands/:brandId/font-assets',
+    BrandFontAssetsController,
+    BrandFontAssetsController.prototype.list,
+  ],
+  [
+    'GET /brands/:id/brand-os/revisions',
+    BrandOsRevisionsController,
+    BrandOsRevisionsController.prototype.list,
+  ],
+  [
+    'GET /brands/:id/brand-os/revisions/:revisionId',
+    BrandOsRevisionsController,
+    BrandOsRevisionsController.prototype.get,
+  ],
+  [
+    'GET /brands/:id/brand-os/scan',
+    BrandOsScanController,
+    BrandOsScanController.prototype.get,
+  ],
+  [
+    'GET /brands/:id/relocations/:operationId',
+    BrandRelocationsController,
+    BrandRelocationsController.prototype.getRelocation,
+  ],
+  [
+    'GET /brands/:id/brand-kit/brand-os',
+    BrandsAgentConfigController,
+    BrandsAgentConfigController.prototype.readClaimedBrandOsPreview,
+  ],
+  ...BRAND_ANALYTICS_ROUTES,
+];
+
 const BRAND_CONTROLLERS: readonly ControllerClass[] = [
   BrandFontAssetsController,
   BrandLutController,
@@ -199,10 +276,10 @@ const BRAND_CONTROLLERS: readonly ControllerClass[] = [
 ];
 
 /**
- * Names of the handlers that change something (any HTTP method but GET),
- * including ones inherited from a base controller.
+ * Names of a controller's GET handlers (`reads`) or of the handlers that
+ * change something (any other method), including inherited ones.
  */
-function mutatingHandlerNames(controller: ControllerClass): string[] {
+function handlerNames(controller: ControllerClass, reads: boolean): string[] {
   const names = new Set<string>();
   for (
     let prototype = controller.prototype as object | null;
@@ -215,7 +292,7 @@ function mutatingHandlerNames(controller: ControllerClass): string[] {
         METHOD_METADATA,
         (controller.prototype as Record<string, unknown>)[name] as object,
       );
-      if (method !== undefined && method !== RequestMethod.GET) {
+      if (method !== undefined && (method === RequestMethod.GET) === reads) {
         names.add(name);
       }
     }
@@ -258,7 +335,63 @@ describe('brand write route coverage', () => {
         .map(([, , handler]) => handler.name)
         .sort();
 
-      expect(mutatingHandlerNames(controller)).toEqual(listed);
+      expect(handlerNames(controller, false)).toEqual(listed);
+    },
+  );
+});
+
+describe.each(BRAND_READ_ROUTES)(
+  '%s API key scope',
+  (_route, controller, handler) => {
+    it('refuses a key with no brand scope', async () => {
+      const guard = buildGuard(keyWithScopes(['images:read']));
+
+      await expect(
+        guard.canActivate(brandRouteContext(controller, handler)),
+      ).rejects.toThrow(new UnauthorizedException('Insufficient permissions'));
+    });
+
+    it.each([['brands:read'], ['brands:write']])(
+      'allows a key with %s',
+      async (scope) => {
+        const guard = buildGuard(keyWithScopes([scope]));
+
+        await expect(
+          guard.canActivate(brandRouteContext(controller, handler)),
+        ).resolves.toBe(true);
+      },
+    );
+  },
+);
+
+describe.each(BRAND_ANALYTICS_ROUTES)(
+  '%s analytics scope',
+  (_route, controller, handler) => {
+    it('allows a key with analytics:read', async () => {
+      const guard = buildGuard(keyWithScopes(['analytics:read']));
+
+      await expect(
+        guard.canActivate(brandRouteContext(controller, handler)),
+      ).resolves.toBe(true);
+    });
+  },
+);
+
+describe('brand read route coverage', () => {
+  it.each(
+    BRAND_CONTROLLERS.map(
+      (controller) => [controller.name, controller] as const,
+    ),
+  )(
+    '%s lists every route that reads a brand in the scope table',
+    (_name, controller) => {
+      const listed = BRAND_READ_ROUTES.filter(
+        ([, tableController]) => tableController === controller,
+      )
+        .map(([, , handler]) => handler.name)
+        .sort();
+
+      expect(handlerNames(controller, true)).toEqual(listed);
     },
   );
 });

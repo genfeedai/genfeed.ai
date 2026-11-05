@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandReadScopes } from '@api/collections/brands/decorators/brand-read-scopes.decorator';
 import { BrandFontAssetsQueryDto } from '@api/collections/brands/dto/brand-font-assets-query.dto';
 import { UploadBrandFontDto } from '@api/collections/brands/dto/upload-brand-font.dto';
 import {
@@ -42,6 +43,7 @@ import type { Request, Response } from 'express';
 @AutoSwagger()
 @Controller('brands/:brandId/font-assets')
 @UseGuards(RolesGuard)
+@BrandReadScopes()
 export class BrandFontAssetsController {
   constructor(private readonly fonts: BrandFontAssetsService) {}
   private actor(user: AuthenticatedUser, brandId: string): BrandFontActor {

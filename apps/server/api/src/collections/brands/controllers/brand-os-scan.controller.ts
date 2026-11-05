@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandReadScopes } from '@api/collections/brands/decorators/brand-read-scopes.decorator';
 import { BrandOsScanDto } from '@api/collections/brands/dto/brand-os-scan.dto';
 import { BrandOsScanService } from '@api/collections/brands/services/brand-os-scan.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -26,6 +27,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @Controller('brands/:id/brand-os/scan')
 @UseGuards(RolesGuard)
+@BrandReadScopes()
 export class BrandOsScanController {
   constructor(private readonly scans: BrandOsScanService) {}
   @Post()

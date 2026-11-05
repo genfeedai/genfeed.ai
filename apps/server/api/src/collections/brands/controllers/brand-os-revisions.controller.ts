@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandReadScopes } from '@api/collections/brands/decorators/brand-read-scopes.decorator';
 import {
   ApproveBrandOsRevisionDto,
   CreateBrandOsRevisionDto,
@@ -36,6 +37,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @Controller('brands/:id/brand-os/revisions')
 @UseGuards(RolesGuard)
+@BrandReadScopes()
 export class BrandOsRevisionsController {
   constructor(private readonly revisions: BrandOsRevisionsService) {}
 

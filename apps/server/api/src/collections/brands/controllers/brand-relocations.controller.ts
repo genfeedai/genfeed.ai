@@ -3,6 +3,7 @@ import { findBrandToRelocate } from '@api/collections/brands/controllers/brand-a
 import { toRelocationActor } from '@api/collections/brands/controllers/brand-relocation.helpers';
 import { decorateBrandResponse } from '@api/collections/brands/controllers/brand-response.helpers';
 import { BrandFleetAccess } from '@api/collections/brands/decorators/brand-fleet-access.decorator';
+import { BrandReadScopes } from '@api/collections/brands/decorators/brand-read-scopes.decorator';
 import { BrandRelocationJobsService } from '@api/collections/brands/services/brand-relocation-jobs.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -22,6 +23,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @Controller('brands')
 @BrandFleetAccess()
+@BrandReadScopes()
 export class BrandRelocationsController {
   constructor(
     private readonly relocationJobs: BrandRelocationJobsService,

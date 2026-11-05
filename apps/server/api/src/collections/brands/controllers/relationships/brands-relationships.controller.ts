@@ -12,6 +12,7 @@ import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-access.helpers';
+import { BrandReadScopes } from '@api/collections/brands/decorators/brand-read-scopes.decorator';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import {
@@ -24,6 +25,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import {
   AnalyticSerializer,
@@ -35,6 +37,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @Controller('brands')
 @UseGuards(RolesGuard)
+@BrandReadScopes(ApiKeyScope.ANALYTICS_READ)
 export class BrandsRelationshipsController {
   constructor(
     private readonly analyticsAggregationService: AnalyticsAggregationService,

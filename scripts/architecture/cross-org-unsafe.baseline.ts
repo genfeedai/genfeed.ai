@@ -260,7 +260,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #7016: unchanged relocation preview, after extracting the async status controller; assertCanRelocate authorizes both tenants.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 318,
+      line: 320,
     },
     // #7016: unchanged superadmin brand list filtered across organizations; retained after extracting async status reads.
     {

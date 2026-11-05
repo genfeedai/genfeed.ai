@@ -11,6 +11,7 @@ import {
 import { toRelocationActor } from '@api/collections/brands/controllers/brand-relocation.helpers';
 import { decorateBrandResponse } from '@api/collections/brands/controllers/brand-response.helpers';
 import { BrandFleetAccess } from '@api/collections/brands/decorators/brand-fleet-access.decorator';
+import { BrandReadScopes } from '@api/collections/brands/decorators/brand-read-scopes.decorator';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
@@ -78,6 +79,7 @@ import type { Request, Response } from 'express';
 @AutoSwagger()
 @Controller('brands')
 @BrandFleetAccess()
+@BrandReadScopes()
 export class BrandsController extends BaseCRUDController<
   BrandDocument,
   CreateBrandDto,
@@ -381,9 +383,7 @@ export class BrandsController extends BaseCRUDController<
   }
 
   @Get()
-  // No @RolesDecorator('superadmin'): members list brands for their org via
-  // `GET /brands?organization=`. Class-level RolesGuard still requires auth +
-  // org membership.
+  // Members list their own org's brands too; RolesGuard checks membership.
   async findAll(
     @Req() request: Request,
     @CurrentUser() user: User,

@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BRAND_PROFILE_GENERATION_CREDIT_COST } from '@api/collections/brands/constants/brand-profile.constant';
 import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-access.helpers';
+import { BrandReadScopes } from '@api/collections/brands/decorators/brand-read-scopes.decorator';
 import { ApplyBrandKitDto } from '@api/collections/brands/dto/apply-brand-kit.dto';
 import { CrawlBrandKitDto } from '@api/collections/brands/dto/crawl-brand-kit.dto';
 import { GenerateBrandVoiceDto } from '@api/collections/brands/dto/generate-brand-voice.dto';
@@ -57,6 +58,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @Controller('brands')
 @UseGuards(RolesGuard)
+@BrandReadScopes()
 export class BrandsAgentConfigController {
   constructor(
     private readonly brandsService: BrandsService,
