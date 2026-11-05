@@ -2,6 +2,11 @@ import { promises as fs } from 'node:fs';
 import { SecurityUtil } from '@files/helpers/utils/security/security.util';
 import type { Mock } from 'vitest';
 
+/** A value an untyped caller (request body, CLI argument) can hand a guard. */
+function untrusted<T>(value: unknown): T {
+  return value as T;
+}
+
 vi.mock('fs', () => ({
   promises: {
     access: vi.fn(),
@@ -32,7 +37,7 @@ describe('SecurityUtil', () => {
     });
 
     it('throws for non-string values', () => {
-      expect(() => SecurityUtil.validateFilePath(null)).toThrow(
+      expect(() => SecurityUtil.validateFilePath(untrusted(null))).toThrow(
         'File path is required and must be a string',
       );
     });
@@ -208,9 +213,9 @@ describe('SecurityUtil', () => {
     });
 
     it('throws for non-string arguments', () => {
-      expect(() => SecurityUtil.sanitizeCommandArgs([123, 'file.mp4'])).toThrow(
-        'All command arguments must be strings',
-      );
+      expect(() =>
+        SecurityUtil.sanitizeCommandArgs(untrusted([123, 'file.mp4'])),
+      ).toThrow('All command arguments must be strings');
     });
   });
 
@@ -227,9 +232,9 @@ describe('SecurityUtil', () => {
       expect(() => SecurityUtil.validateNumericParam(NaN, 'width')).toThrow(
         'width must be a valid number',
       );
-      expect(() => SecurityUtil.validateNumericParam('50', 'width')).toThrow(
-        'width must be a valid number',
-      );
+      expect(() =>
+        SecurityUtil.validateNumericParam(untrusted('50'), 'width'),
+      ).toThrow('width must be a valid number');
     });
 
     it('throws when values are outside bounds', () => {
@@ -256,9 +261,9 @@ describe('SecurityUtil', () => {
       expect(() => SecurityUtil.validateStringParam('', 'param')).toThrow(
         'param is required and must be a string',
       );
-      expect(() => SecurityUtil.validateStringParam(null, 'param')).toThrow(
-        'param is required and must be a string',
-      );
+      expect(() =>
+        SecurityUtil.validateStringParam(untrusted(null), 'param'),
+      ).toThrow('param is required and must be a string');
     });
 
     it('rejects strings that exceed max length', () => {

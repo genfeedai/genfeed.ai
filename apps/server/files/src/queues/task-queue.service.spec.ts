@@ -71,7 +71,7 @@ describe('TaskQueueService', () => {
     it('should queue an upscale job with correct params', async () => {
       const jobData: TaskJobData = {
         assetId: 'asset-abc',
-        config: { quality: 'high', resolution: '4k' },
+        config: { resolution: '4k' },
         organizationId: 'org-789',
         taskId: 'task-123',
         userId: 'user-456',
@@ -95,7 +95,7 @@ describe('TaskQueueService', () => {
     it('should queue a caption job with correct params', async () => {
       const jobData: TaskJobData = {
         assetId: 'asset-abc',
-        config: { position: 'bottom', style: 'minimal' },
+        config: { captionContent: 'Launch day', captionLanguage: 'en' },
         organizationId: 'org-789',
         taskId: 'task-123',
         userId: 'user-456',
