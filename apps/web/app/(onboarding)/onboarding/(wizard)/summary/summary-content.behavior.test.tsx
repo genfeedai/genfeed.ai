@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -12,18 +16,14 @@ const {
   assignMock,
   getBootstrapMock,
   getInstallReadinessMock,
-  getUsersServiceMock,
   patchSettingsMock,
   pushMock,
-  resolveAuthTokenMock,
 } = vi.hoisted(() => ({
   assignMock: vi.fn(),
   getBootstrapMock: vi.fn(),
   getInstallReadinessMock: vi.fn(),
-  getUsersServiceMock: vi.fn(),
   patchSettingsMock: vi.fn(),
   pushMock: vi.fn(),
-  resolveAuthTokenMock: vi.fn(),
 }));
 
 vi.mock('@genfeedai/auth-client/react', () => ({
@@ -45,12 +45,14 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
   }),
 }));
 
-vi.mock('@helpers/auth/auth.helper', () => ({
-  resolveAuthToken: (...args: unknown[]) => resolveAuthTokenMock(...args),
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => getUsersServiceMock,
+  useAuthedService: (factory: (token: string) => unknown) => async () =>
+    factory('api-token'),
 }));
 
 vi.mock('@hooks/ui/use-gsap-entrance', () => ({
@@ -160,13 +162,10 @@ describe('SummaryContent behavior', () => {
     assignMock.mockReset();
     getBootstrapMock.mockReset();
     getInstallReadinessMock.mockReset();
-    getUsersServiceMock.mockReset();
     patchSettingsMock.mockReset();
     pushMock.mockReset();
-    resolveAuthTokenMock.mockReset();
     localStorageMock.clear();
 
-    resolveAuthTokenMock.mockResolvedValue('api-token');
     getInstallReadinessMock.mockResolvedValue({
       access: {
         byokConfiguredProviders: [],
@@ -207,10 +206,6 @@ describe('SummaryContent behavior', () => {
         organizationId: 'org-123',
       },
     });
-    getUsersServiceMock.mockResolvedValue({
-      getBootstrap: getBootstrapMock,
-      patchSettings: patchSettingsMock,
-    });
     getBootstrapMock.mockResolvedValue({
       access: {
         brandId: 'brand-123',
@@ -243,7 +238,7 @@ describe('SummaryContent behavior', () => {
   });
 
   it('persists self-hosted mode and advances to success', async () => {
-    render(<SummaryContent />);
+    render(<SummaryContent />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(
@@ -330,7 +325,7 @@ describe('SummaryContent behavior', () => {
       },
     });
 
-    render(<SummaryContent />);
+    render(<SummaryContent />, { wrapper: queryClientWrapper() });
 
     expect(await screen.findByText('Your plan')).toBeInTheDocument();
     expect(await screen.findByText('Scale')).toBeInTheDocument();
@@ -341,7 +336,7 @@ describe('SummaryContent behavior', () => {
   });
 
   it('persists cloud mode and redirects to cloud signup with onboarding context', async () => {
-    render(<SummaryContent />);
+    render(<SummaryContent />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(
@@ -377,5 +372,46 @@ describe('SummaryContent behavior', () => {
     expect(redirectUrl.searchParams.get('brandName')).toBe('Acme');
     expect(redirectUrl.searchParams.get('source')).toBe('oss-onboarding');
     expect(pushMock).not.toHaveBeenCalledWith('/onboarding/success');
+  });
+
+  it('paints the cached install summary at once when the step is revisited', async () => {
+    const client = createTestQueryClient();
+    const first = render(<SummaryContent />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(await screen.findByText('Codex CLI')).toBeInTheDocument();
+    first.unmount();
+
+    getInstallReadinessMock.mockReturnValue(new Promise(() => {}));
+    render(<SummaryContent />, { wrapper: queryClientWrapper(client) });
+
+    expect(screen.getByText('Codex CLI')).toBeInTheDocument();
+    expect(screen.getByText('openai')).toBeInTheDocument();
+    expect(screen.queryByText('Checking...')).not.toBeInTheDocument();
+  });
+
+  it('shows a choice saved here as current when the step is revisited', async () => {
+    const client = createTestQueryClient();
+    const first = render(<SummaryContent />, {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Continue with self-hosted' }),
+      ).toBeEnabled();
+    });
+    expect(screen.queryByText('Current')).not.toBeInTheDocument();
+    getInstallReadinessMock.mockReturnValue(new Promise(() => {}));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Continue with self-hosted' }),
+    );
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith('/onboarding/success');
+    });
+    first.unmount();
+
+    render(<SummaryContent />, { wrapper: queryClientWrapper(client) });
+
+    expect(screen.getByText('Current')).toBeInTheDocument();
   });
 });

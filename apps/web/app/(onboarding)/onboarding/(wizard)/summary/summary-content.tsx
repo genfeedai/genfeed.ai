@@ -7,15 +7,12 @@ import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { OnboardingAccessMode } from '@genfeedai/contracts/interfaces';
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
-import type { AccessBootstrapState } from '@services/auth/auth.service';
 import { AuthService } from '@services/auth/auth.service';
 import { logger } from '@services/core/logger.service';
 import type { InstallReadinessResponse } from '@services/onboarding/onboarding.service';
-import { OnboardingService } from '@services/onboarding/onboarding.service';
 import { UsersService } from '@services/organization/users.service';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
@@ -23,7 +20,8 @@ import { Button } from '@ui/primitives/button';
 import { ArrowLeft, ArrowUpRight, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type MouseEvent, useEffect, useMemo, useState } from 'react';
+import { type MouseEvent, useMemo, useState } from 'react';
+import { useInstallReadiness } from '@/hooks/data/onboarding/use-install-readiness/use-install-readiness';
 import {
   buildGenfeedCloudSignupUrl,
   buildOnboardingAccessSettingsPatch,
@@ -59,47 +57,6 @@ const TIMELINE_STEPS = [
   },
 ];
 
-const EMPTY_READINESS: InstallReadinessResponse = {
-  access: {
-    byokConfiguredProviders: [],
-    byokEnabled: false,
-    runtimeMode: 'server',
-    selectedMode: null,
-    serverDefaultsReady: false,
-  },
-  authMode: 'better_auth',
-  billingMode: 'oss_local',
-  localTools: {
-    anyDetected: false,
-    claude: false,
-    codex: false,
-    detected: [],
-  },
-  providers: {
-    anyConfigured: false,
-    configured: [],
-    fal: false,
-    imageGenerationReady: false,
-    openai: false,
-    openrouter: false,
-    replicate: false,
-    textGenerationReady: false,
-  },
-  ui: {
-    showBilling: false,
-    showCloudUpgradeCta: true,
-    showCredits: false,
-    showLocalTools: false,
-    showPricing: false,
-  },
-  workspace: {
-    brandId: null,
-    hasBrand: false,
-    hasOrganization: false,
-    organizationId: null,
-  },
-};
-
 function formatSelectedAccessLabel(
   readiness: InstallReadinessResponse,
 ): string {
@@ -131,76 +88,43 @@ function formatSelectedAccessLabel(
 
 export default function SummaryContent() {
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
-  const { getToken } = useAuthIdentity();
   const { currentUser } = useCurrentUser();
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
-  );
-  const getAuthService = useAuthedService((token: string) =>
-    AuthService.getInstance(token),
   );
   const { push } = useRouter();
   const [pendingMode, setPendingMode] = useState<OnboardingAccessMode | null>(
     null,
   );
-  const [readiness, setReadiness] =
-    useState<InstallReadinessResponse>(EMPTY_READINESS);
-  const [billingState, setBillingState] = useState<AccessBootstrapState | null>(
-    null,
-  );
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadReadiness = async () => {
+  const {
+    isLoading: isLoadingReadiness,
+    markAccessModeSaved,
+    readiness,
+  } = useInstallReadiness();
+  // In billing-enabled (cloud/SaaS) deployments, surface the user's real
+  // subscription tier and credit balance so a replayed summary reflects what
+  // they already have instead of a blank or OSS-only view.
+  const isBillingShown = readiness.ui.showBilling;
+  const billingQuery = useAuthedQuery({
+    enabled: isBillingShown,
+    queryFn: async (service) => {
       try {
-        const token = await resolveAuthToken(getToken);
-        if (!token || cancelled) {
-          setLoading(false);
-          return;
-        }
-
-        const service = OnboardingService.getInstance(token);
-        const response = await service.getInstallReadiness();
-
-        if (cancelled) {
-          return;
-        }
-
-        setReadiness(response);
-
-        // In billing-enabled (cloud/SaaS) deployments, surface the user's real
-        // subscription tier and credit balance so a replayed summary reflects
-        // what they already have instead of a blank or OSS-only view.
-        if (response.ui.showBilling) {
-          try {
-            const authService = await getAuthService();
-            const bootstrap = await authService.getBootstrap();
-
-            if (!cancelled) {
-              setBillingState(bootstrap.access);
-            }
-          } catch (billingError) {
-            logger.error(
-              'Failed to load billing state for onboarding summary',
-              billingError,
-            );
-          }
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        const bootstrap = await service.getBootstrap();
+        return bootstrap.access;
+      } catch (billingError) {
+        logger.error(
+          'Failed to load billing state for onboarding summary',
+          billingError,
+        );
+        throw billingError;
       }
-    };
-
-    void loadReadiness();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [getToken, getAuthService]);
+    },
+    queryKey: ['onboarding-summary-billing'],
+    service: (token: string) => AuthService.getInstance(token),
+  });
+  const billingState = billingQuery.data ?? null;
+  const loading =
+    isLoadingReadiness || (isBillingShown && billingQuery.isLoading);
 
   const workspaceStatus = useMemo(() => {
     if (readiness.workspace.hasOrganization && readiness.workspace.hasBrand) {
@@ -255,6 +179,7 @@ export default function SummaryContent() {
       });
 
       await service.patchSettings(currentUser.id, patch);
+      markAccessModeSaved(accessMode);
     } catch (error) {
       logger.error('Failed to persist onboarding access mode', error);
     }

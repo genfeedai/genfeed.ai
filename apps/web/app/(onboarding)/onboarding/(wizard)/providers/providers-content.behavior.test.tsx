@@ -2,6 +2,10 @@
 
 import '@testing-library/jest-dom/vitest';
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
   fireEvent,
   render,
   screen,
@@ -17,20 +21,16 @@ const {
   assignMock,
   getDesktopBridgeMock,
   getInstallReadinessMock,
-  getUsersServiceMock,
   handleStepCompleteMock,
   patchSettingsMock,
   pushMock,
-  resolveAuthTokenMock,
 } = vi.hoisted(() => ({
   assignMock: vi.fn(),
   getDesktopBridgeMock: vi.fn(() => null),
   getInstallReadinessMock: vi.fn(),
-  getUsersServiceMock: vi.fn(),
   handleStepCompleteMock: vi.fn(),
   patchSettingsMock: vi.fn(),
   pushMock: vi.fn(),
-  resolveAuthTokenMock: vi.fn(),
 }));
 
 vi.mock('@genfeedai/auth-client/react', () => ({
@@ -62,12 +62,14 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
   }),
 }));
 
-vi.mock('@helpers/auth/auth.helper', () => ({
-  resolveAuthToken: (...args: unknown[]) => resolveAuthTokenMock(...args),
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => getUsersServiceMock,
+  useAuthedService: (factory: (token: string) => unknown) => async () =>
+    factory('api-token'),
 }));
 
 vi.mock('@hooks/ui/use-gsap-entrance', () => ({
@@ -175,14 +177,11 @@ describe('ProvidersContent behavior', () => {
     getDesktopBridgeMock.mockReset();
     getDesktopBridgeMock.mockReturnValue(null);
     getInstallReadinessMock.mockReset();
-    getUsersServiceMock.mockReset();
     handleStepCompleteMock.mockReset();
     patchSettingsMock.mockReset();
     pushMock.mockReset();
-    resolveAuthTokenMock.mockReset();
     localStorageMock.clear();
 
-    resolveAuthTokenMock.mockResolvedValue('api-token');
     getInstallReadinessMock.mockResolvedValue({
       access: {
         byokConfiguredProviders: [],
@@ -223,9 +222,6 @@ describe('ProvidersContent behavior', () => {
         organizationId: 'org-123',
       },
     });
-    getUsersServiceMock.mockResolvedValue({
-      patchSettings: patchSettingsMock,
-    });
     patchSettingsMock.mockResolvedValue({});
     handleStepCompleteMock.mockResolvedValue(undefined);
 
@@ -246,7 +242,7 @@ describe('ProvidersContent behavior', () => {
   });
 
   it('persists server mode and advances to the summary step', async () => {
-    render(<ProvidersContent />);
+    render(<ProvidersContent />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(
@@ -278,7 +274,7 @@ describe('ProvidersContent behavior', () => {
   });
 
   it('persists BYOK mode before routing to organization API keys', async () => {
-    render(<ProvidersContent />);
+    render(<ProvidersContent />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(
@@ -351,7 +347,7 @@ describe('ProvidersContent behavior', () => {
       },
     });
 
-    render(<ProvidersContent />);
+    render(<ProvidersContent />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(
@@ -375,7 +371,7 @@ describe('ProvidersContent behavior', () => {
       },
     });
 
-    render(<ProvidersContent />);
+    render(<ProvidersContent />, { wrapper: queryClientWrapper() });
 
     const openRouterRow = (
       await screen.findByRole('heading', { name: 'OpenRouter' })
@@ -433,7 +429,7 @@ describe('ProvidersContent behavior', () => {
       },
     });
 
-    render(<ProvidersContent />);
+    render(<ProvidersContent />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(
@@ -454,7 +450,7 @@ describe('ProvidersContent behavior', () => {
   });
 
   it('persists cloud mode and redirects to cloud signup with brand context', async () => {
-    render(<ProvidersContent />);
+    render(<ProvidersContent />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(
@@ -506,7 +502,7 @@ describe('ProvidersContent behavior', () => {
       },
     });
 
-    render(<ProvidersContent />);
+    render(<ProvidersContent />, { wrapper: queryClientWrapper() });
 
     expect(await screen.findByText('Claude CLI')).toBeVisible();
     expect(screen.getByText('Codex CLI')).toBeVisible();
@@ -518,5 +514,26 @@ describe('ProvidersContent behavior', () => {
       screen.getByRole('button', { name: 'Continue to workspace' }),
     );
     expect(pushMock).toHaveBeenCalledWith('/desktop/local');
+  });
+
+  it('paints the cached provider readiness at once when the step is revisited', async () => {
+    const client = createTestQueryClient();
+    const first = render(<ProvidersContent />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(
+      await screen.findByText('Runtime: server defaults are ready'),
+    ).toBeInTheDocument();
+    first.unmount();
+
+    getInstallReadinessMock.mockReturnValue(new Promise(() => {}));
+    render(<ProvidersContent />, { wrapper: queryClientWrapper(client) });
+
+    expect(
+      screen.getByText('Runtime: server defaults are ready'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Checking current access state...'),
+    ).not.toBeInTheDocument();
   });
 });

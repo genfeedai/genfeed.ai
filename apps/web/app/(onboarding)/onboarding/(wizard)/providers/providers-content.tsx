@@ -6,17 +6,15 @@ import { isDesktopClient } from '@genfeedai/config/deployment';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IDesktopLocalToolReadiness } from '@genfeedai/contracts/desktop';
 import type { OnboardingAccessMode } from '@genfeedai/contracts/interfaces';
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { logger } from '@services/core/logger.service';
 import type { InstallReadinessResponse } from '@services/onboarding/onboarding.service';
-import { OnboardingService } from '@services/onboarding/onboarding.service';
 import { UsersService } from '@services/organization/users.service';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type MouseEvent, useEffect, useMemo, useState } from 'react';
+import { useInstallReadiness } from '@/hooks/data/onboarding/use-install-readiness/use-install-readiness';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
 import {
   buildGenfeedCloudSignupUrl,
@@ -57,46 +55,8 @@ const TIMELINE_STEPS = [
   },
 ];
 
-const EMPTY_READINESS: InstallReadinessResponse = {
-  access: {
-    byokConfiguredProviders: [],
-    byokEnabled: false,
-    runtimeMode: 'server',
-    selectedMode: null,
-    serverDefaultsReady: false,
-  },
-  authMode: 'better_auth',
-  billingMode: 'oss_local',
-  localTools: {
-    anyDetected: false,
-    claude: false,
-    codex: false,
-    detected: [],
-  },
-  providers: {
-    anyConfigured: false,
-    configured: [],
-    fal: false,
-    imageGenerationReady: false,
-    openai: false,
-    openrouter: false,
-    replicate: false,
-    textGenerationReady: false,
-  },
-  ui: {
-    showBilling: false,
-    showCloudUpgradeCta: true,
-    showCredits: false,
-    showLocalTools: false,
-    showPricing: false,
-  },
-  workspace: {
-    brandId: null,
-    hasBrand: false,
-    hasOrganization: false,
-    organizationId: null,
-  },
-};
+/** A desktop shell first asks its bridge whether it runs offline. */
+type DesktopProbe = 'pending' | 'local' | 'remote';
 
 function formatAccessStatus(readiness: InstallReadinessResponse): string {
   if (readiness.access.selectedMode === 'cloud') {
@@ -130,7 +90,6 @@ function formatAccessStatus(readiness: InstallReadinessResponse): string {
 export default function ProvidersContent() {
   const translate = useTranslations('pages.onboarding.providers');
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
-  const { getToken } = useAuthIdentity();
   const { currentUser } = useCurrentUser();
   const { handleStepComplete } = useOnboarding();
   const getUsersService = useAuthedService((token: string) =>
@@ -140,61 +99,70 @@ export default function ProvidersContent() {
   const [pendingMode, setPendingMode] = useState<OnboardingAccessMode | null>(
     null,
   );
-  const [readiness, setReadiness] =
-    useState<InstallReadinessResponse>(EMPTY_READINESS);
   const [desktopLocalTools, setDesktopLocalTools] =
     useState<IDesktopLocalToolReadiness | null>(null);
-  const [isDesktopLocal, setIsDesktopLocal] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [desktopProbe, setDesktopProbe] = useState<DesktopProbe>(() =>
+    isDesktopClient() ? 'pending' : 'remote',
+  );
+  const isDesktopLocal = desktopProbe === 'local';
+  const {
+    isLoading: isLoadingReadiness,
+    markAccessModeSaved,
+    readiness,
+  } = useInstallReadiness({ enabled: desktopProbe === 'remote' });
+  const loading =
+    desktopProbe === 'pending' ||
+    (desktopProbe === 'remote' && isLoadingReadiness);
 
+  // An offline desktop shell detects its local CLIs through the bridge; every
+  // other client reads the install readiness from the API.
   useEffect(() => {
+    if (desktopProbe !== 'pending') {
+      return;
+    }
     const abortController = new AbortController();
 
-    const loadReadiness = async () => {
+    const probeDesktop = async () => {
+      const bridge = getDesktopBridge();
+      if (!bridge) {
+        setDesktopProbe('remote');
+        return;
+      }
+
       try {
-        if (isDesktopClient()) {
-          const bridge = getDesktopBridge();
-          if (bridge) {
-            const bootstrap = await bridge.app.getBootstrap();
-            if (abortController.signal.aborted) {
-              return;
-            }
-
-            if (bootstrap.isOfflineMode) {
-              setIsDesktopLocal(true);
-              const tools = await bridge.app.detectLocalTools();
-              if (!abortController.signal.aborted) {
-                setDesktopLocalTools(tools);
-              }
-              return;
-            }
-          }
+        const bootstrap = await bridge.app.getBootstrap();
+        if (abortController.signal.aborted) {
+          return;
         }
-
-        const token = await resolveAuthToken(getToken);
-        if (!token || abortController.signal.aborted) {
+        if (!bootstrap.isOfflineMode) {
+          setDesktopProbe('remote');
           return;
         }
 
-        const service = OnboardingService.getInstance(token);
-        const response = await service.getInstallReadiness();
-
-        if (!abortController.signal.aborted) {
-          setReadiness(response);
+        let tools: IDesktopLocalToolReadiness | null = null;
+        try {
+          tools = await bridge.app.detectLocalTools();
+        } catch (error) {
+          logger.error('Failed to detect local CLIs', error);
         }
-      } finally {
         if (!abortController.signal.aborted) {
-          setLoading(false);
+          setDesktopLocalTools(tools);
+          setDesktopProbe('local');
+        }
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          logger.error('Failed to detect the desktop runtime', error);
+          setDesktopProbe('remote');
         }
       }
     };
 
-    void loadReadiness();
+    void probeDesktop();
 
     return () => {
       abortController.abort();
     };
-  }, [getToken]);
+  }, [desktopProbe]);
 
   const providerRows = useMemo(
     () => [
@@ -276,6 +244,7 @@ export default function ProvidersContent() {
       });
 
       await service.patchSettings(currentUser.id, patch);
+      markAccessModeSaved(accessMode);
     } catch (error) {
       logger.error('Failed to persist onboarding access mode', error);
     }
