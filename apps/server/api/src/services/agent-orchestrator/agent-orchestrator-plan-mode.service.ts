@@ -90,6 +90,10 @@ const PLAN_MODE_INSTRUCTION =
  */
 /** Draws the planner gets when a model answers with no text. */
 const MAX_PLANNING_ATTEMPTS = 2;
+// A blank first answer means the model spent its whole output cap on
+// reasoning, so the same request would blank again. The second draw gets
+// four times the cap and the lightest reasoning the gateway accepts.
+const PLANNING_RETRY_MAX_TOKENS = 8192;
 
 const PLAN_MODE_QUESTION_INSTRUCTION = `If the request leaves out something that would change the plan, ask one question instead of planning. Respond with valid JSON only: {"title":"optional thread title","question":{"title":"short card title","prompt":"the question","options":[{"id":"short-id","label":"Choice","description":"optional"}],"recommendedOptionId":"optional option id","allowFreeText":true}}. Offer two to five options and ask one question per turn. Ask only for what you cannot infer from the request, the brand context or earlier answers. For a video check the ${formatBriefLabels(VIDEO_BRIEF_CHECKLIST.map((field) => field.label))}. For an image check the ${formatBriefLabels(IMAGE_BRIEF_CHECKLIST.map((field) => field.label))}. For a post check the ${formatBriefLabels(POST_BRIEF_CHECKLIST.map((field) => field.label))}. When nothing important is missing, plan.`;
 
@@ -303,14 +307,20 @@ export class AgentOrchestratorPlanModeService {
       // A blank completion would persist a plan with nothing to review and
       // still ask for approval. Failing inside the round releases the hold,
       // so an empty answer is not billed. A reasoning model can spend its
-      // whole budget thinking and return no text, and a second draw usually
-      // answers, so one blank reply is retried before the turn fails.
+      // whole budget thinking and return no text, so one blank reply is
+      // retried with more output room and less reasoning before the turn fails.
       run: async () => {
         let lastFinishReason: string | null = null;
         let lastModel = chatParams.model;
         for (let attempt = 1; attempt <= MAX_PLANNING_ATTEMPTS; attempt += 1) {
           const response = await this.llmDispatcher.chatCompletion(
-            chatParams,
+            attempt === 1
+              ? chatParams
+              : {
+                  ...chatParams,
+                  max_tokens: PLANNING_RETRY_MAX_TOKENS,
+                  reasoning: { effort: 'minimal' },
+                },
             params.context.organizationId,
             {
               brandId: params.context.scope?.brandId,
