@@ -100,7 +100,7 @@ export default function BrandKitPage() {
       onDraftCreated={canManage ? persistRevision : undefined}
       onBrandOsDraftAccepted={() => captureBrandOsFunnelStage('draft_accepted')}
       onBrandOsDraftLoaded={() => captureBrandOsFunnelStage('draft_saved')}
-      onRefreshBrand={() => handleRefreshBrand(true)}
+      onRefreshBrand={() => handleRefreshBrand()}
     />
   );
   const manual = (
@@ -108,7 +108,7 @@ export default function BrandKitPage() {
       brand={brand}
       brandId={brandId}
       onDraftCreated={canManage ? persistRevision : undefined}
-      onRefreshBrand={() => handleRefreshBrand(true)}
+      onRefreshBrand={() => handleRefreshBrand()}
       onUploadBanner={() => handleOpenUploadModal(AssetCategory.BANNER)}
       onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
       onUploadReference={() => handleOpenUploadModal(AssetCategory.REFERENCE)}
@@ -122,7 +122,7 @@ export default function BrandKitPage() {
         brandId={brandId}
         refreshKey={refreshKey}
         fieldGroups={FIELD_GROUPS[tab]}
-        onRefreshBrand={() => handleRefreshBrand(true)}
+        onRefreshBrand={() => handleRefreshBrand()}
         renderWorkspace={(workspace) => (
           <BrandKitWorkspace
             {...workspace}
@@ -173,7 +173,7 @@ export default function BrandKitPage() {
                 brand={brand}
                 brandId={brandId}
                 section={tab === 'strategy' ? 'strategy' : 'voice'}
-                onRefreshBrand={() => handleRefreshBrand(true)}
+                onRefreshBrand={() => handleRefreshBrand()}
               />
             }
             assets={
@@ -195,17 +195,17 @@ export default function BrandKitPage() {
                 <BrandWatermarkSettings
                   brand={brand}
                   brandId={brandId}
-                  onRefreshBrand={() => handleRefreshBrand(true)}
+                  onRefreshBrand={() => handleRefreshBrand()}
                 />
                 <BrandEndCardSettings
                   brand={brand}
                   brandId={brandId}
-                  onRefreshBrand={() => handleRefreshBrand(true)}
+                  onRefreshBrand={() => handleRefreshBrand()}
                 />
                 <BrandLutSettings
                   brand={brand}
                   brandId={brandId}
-                  onRefreshBrand={() => handleRefreshBrand(true)}
+                  onRefreshBrand={() => handleRefreshBrand()}
                 />
                 <BrandDetailReferencesCard
                   brand={brand}

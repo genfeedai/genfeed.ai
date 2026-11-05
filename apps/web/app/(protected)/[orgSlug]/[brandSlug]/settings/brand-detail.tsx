@@ -76,7 +76,7 @@ export default function BrandDetail() {
 
   const handleLinkConfirm = useCallback(async () => {
     selectLink(null);
-    await handleRefreshBrand(true);
+    await handleRefreshBrand();
   }, [handleRefreshBrand, selectLink]);
 
   const { imageModels } = useElements();
@@ -93,7 +93,7 @@ export default function BrandDetail() {
 
   const handleGenerateConfirm = () => {
     setGenerateModalType(null);
-    void handleRefreshBrand(true);
+    void handleRefreshBrand();
   };
 
   const handleCopyPublicProfile = () => {
@@ -181,7 +181,7 @@ export default function BrandDetail() {
                   ).catch(() => undefined);
                 }}
                 onRefreshBrand={async () => {
-                  await handleRefreshBrand(true);
+                  await handleRefreshBrand();
                 }}
                 onOpenLinkModal={handleOpenLinkModal}
                 onUploadBanner={() =>

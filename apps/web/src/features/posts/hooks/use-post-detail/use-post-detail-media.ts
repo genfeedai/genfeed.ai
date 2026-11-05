@@ -25,7 +25,7 @@ export interface UsePostDetailMediaOptions {
   sortedChildren: IPost[];
   getPostsService: () => Promise<PostsService>;
   notificationsService: NotificationsService;
-  fetchPost: (isRefresh?: boolean) => Promise<void>;
+  fetchPost: () => Promise<void>;
   handleUpdateChild: (childId: string, updates: Partial<IPost>) => void;
   setSelectedIngredients: React.Dispatch<React.SetStateAction<IIngredient[]>>;
   setIsSavingIngredients: React.Dispatch<React.SetStateAction<boolean>>;
@@ -113,7 +113,7 @@ export function usePostDetailMedia({
             ingredients: uniqueIngredients,
           });
         }
-        await fetchPost(true);
+        await fetchPost();
       } finally {
         setIsSavingIngredients(false);
       }
@@ -195,7 +195,7 @@ export function usePostDetailMedia({
               'Illustration generated and attached!',
             );
 
-            await fetchPost(true);
+            await fetchPost();
           } catch (err) {
             logger.error('Failed to attach illustration', err);
             notificationsService.error('Failed to attach illustration to post');

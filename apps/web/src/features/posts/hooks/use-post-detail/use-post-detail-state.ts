@@ -20,7 +20,9 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import { validateCarouselCount } from '@genfeedai/utils/carousel-validation';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useQueryClient } from '@tanstack/react-query';
 import { isServiceOperationError } from '@services/core/operation-error';
 import { Eye, Heart, MessageSquare, TrendingUp, Zap } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -120,7 +122,7 @@ export interface UsePostDetailStateReturn {
   carouselValidation: { valid: boolean; errors: string[] };
 
   // Fetch
-  fetchPost: (isRefresh?: boolean) => Promise<void>;
+  fetchPost: () => Promise<void>;
 
   updateActivePost: (
     updates: PostUpdateInput,
@@ -148,10 +150,57 @@ export function usePostDetailState({
 
   const notificationsService = NotificationsService.getInstance();
 
-  // Core state
-  const [post, setPost] = useState<IPost | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Core state: the post reads through React Query, so reopening a post
+  // paints the cached one at once and refreshes it in the background.
+  const queryClient = useQueryClient();
+  const postRef = useRef<IPost | null>(null);
+  const postQuery = useAuthedQuery<PostsService, IPost | null>({
+    queryFn: async (service) => {
+      const url = `GET /posts/${postId}`;
+      try {
+        const data = await service.findOne(postId);
+        logger.info(`${url} successful`, data);
+        const previous = postRef.current;
+        // Keep the credential through a refresh that answers without it, so
+        // the account header never flashes empty.
+        return data && previous?.id === data.id
+          ? { ...data, credential: data.credential ?? previous.credential }
+          : data;
+      } catch (err: unknown) {
+        // A post the API cannot find (deleted, or outside the viewer's scope)
+        // is an expected state: the page shows its not-found card, and the
+        // Sentry error stays for real failures.
+        if (isServiceOperationError(err) && err.status === 404) {
+          logger.info(`${url} not found`);
+          return null;
+        }
+        logger.error('Failed to fetch post', err);
+        throw err;
+      }
+    },
+    queryKey: ['post-detail', postId],
+    service: (token: string) => PostsService.getInstance(token),
+  });
+  const post = postQuery.data ?? null;
+  postRef.current = post;
+  const isLoading = postQuery.isPending;
+  const error = postQuery.error
+    ? postQuery.error.message || 'Failed to load post'
+    : null;
+  const { refetch: refetchPost } = postQuery;
+
+  const setPost = useCallback<
+    React.Dispatch<React.SetStateAction<IPost | null>>
+  >(
+    (update) => {
+      queryClient.setQueriesData<IPost | null>(
+        { queryKey: ['post-detail', postId] },
+        (current) =>
+          typeof update === 'function' ? update(current ?? null) : update,
+      );
+    },
+    [postId, queryClient],
+  );
 
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
   const [focusedPostId, setFocusedPostId] = useState<string | null>(null);
@@ -339,56 +388,10 @@ export function usePostDetailState({
     lastSavedLabelsRef.current.set(refPostId, label);
   }, []);
 
-  // Fetch post
-  const fetchPost = useCallback(
-    async (isRefresh: boolean = false) => {
-      const url = `GET /posts/${postId}`;
-
-      try {
-        if (!isRefresh) {
-          setIsLoading(true);
-        }
-        setError(null);
-
-        const service = await getPostsService();
-        const data = await service.findOne(postId);
-        logger.info(`${url} successful`, data);
-
-        if (isRefresh) {
-          setPost((prevPost) => ({
-            ...data,
-            credential: data.credential ?? prevPost?.credential,
-          }));
-        } else {
-          setPost(data);
-        }
-      } catch (err: unknown) {
-        // A post the API cannot find (deleted, or outside the viewer's scope)
-        // is an expected state: leave `post` empty so the page shows its
-        // not-found card, and keep the Sentry error for real failures.
-        if (isServiceOperationError(err) && err.status === 404) {
-          logger.info(`${url} not found`);
-          if (!isRefresh) {
-            setPost(null);
-          }
-          return;
-        }
-        logger.error('Failed to fetch post', err);
-        const message =
-          err instanceof Error ? err.message : 'Failed to load post';
-        setError(message);
-      } finally {
-        if (!isRefresh) {
-          setIsLoading(false);
-        }
-      }
-    },
-    [postId, getPostsService],
-  );
-
-  useEffect(() => {
-    fetchPost();
-  }, [fetchPost]);
+  // A refresh keeps the post on screen while it reads.
+  const fetchPost = useCallback(async () => {
+    await refetchPost();
+  }, [refetchPost]);
 
   // Sync view mode based on publication status
   useEffect(() => {

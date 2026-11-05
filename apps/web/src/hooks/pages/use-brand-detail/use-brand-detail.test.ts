@@ -1,6 +1,10 @@
 import { ArticleStatus, AssetCategory, AssetScope } from '@genfeedai/contracts';
 import { BRAND_HANDLE_FORMAT_MESSAGE } from '@genfeedai/contracts/constants';
 import type { IBrand } from '@genfeedai/contracts/interfaces';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
@@ -86,6 +90,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(),
 }));
 
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('@helpers/ui/modal/modal.helper', () => ({
   openModal: (...args: unknown[]) => mockOpenModal(...args),
 }));
@@ -153,7 +162,7 @@ describe('useBrandDetail', () => {
   });
 
   it('derives brand id from params and loads brand data', async () => {
-    const { result } = renderHook(() => useBrandDetail());
+    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -164,16 +173,16 @@ describe('useBrandDetail', () => {
     expect(mockFindOne).toHaveBeenCalledWith('brand-1');
   });
 
-  it('keeps the loaded brand on screen when the auth identity changes and refetches', async () => {
-    const { result, rerender } = renderHook(() => useBrandDetail());
+  it('keeps the loaded brand on screen while a refresh is in flight', async () => {
+    const { result } = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
     });
     expect(result.current.isLoading).toBe(false);
 
-    // A new service function is what `useAuthedService` hands out once the
-    // session identity settles after an OAuth redirect; it re-runs the fetch.
     let finishRefetch: (brand: IBrand) => void = () => {};
     mockFindOne.mockImplementationOnce(
       () =>
@@ -181,10 +190,9 @@ describe('useBrandDetail', () => {
           finishRefetch = resolve;
         }),
     );
-    (useAuthedService as ReturnType<typeof vi.fn>).mockReturnValue(
-      vi.fn().mockResolvedValue({ findOneBySlug: mockFindOne }),
-    );
-    rerender();
+    act(() => {
+      void result.current.handleRefreshBrand();
+    });
 
     await waitFor(() => {
       expect(mockFindOne).toHaveBeenCalledTimes(2);
@@ -193,47 +201,78 @@ describe('useBrandDetail', () => {
     expect(result.current.brand?.id).toBe('brand-1');
 
     await act(async () => {
-      finishRefetch({ id: 'brand-1', links: [] } as unknown as IBrand);
+      finishRefetch({
+        id: 'brand-1',
+        label: 'Refreshed',
+        links: [],
+      } as unknown as IBrand);
     });
-    expect(result.current.isLoading).toBe(false);
+    expect(result.current.brand?.label).toBe('Refreshed');
   });
 
-  it('ignores a slower, older brand response once a newer fetch has answered', async () => {
-    let finishFirst: (brand: IBrand) => void = () => {};
-    mockFindOne.mockImplementationOnce(
-      () =>
-        new Promise<IBrand>((resolve) => {
-          finishFirst = resolve;
-        }),
-    );
-    const { result, rerender } = renderHook(() => useBrandDetail());
-
-    await waitFor(() => {
-      expect(mockFindOne).toHaveBeenCalledTimes(1);
+  it('paints the cached brand at once when a settings page is opened again', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(client),
     });
-    expect(result.current.isLoading).toBe(true);
+    await waitFor(() => {
+      expect(firstVisit.result.current.brand?.id).toBe('brand-1');
+    });
+    firstVisit.unmount();
 
-    (useAuthedService as ReturnType<typeof vi.fn>).mockReturnValue(
-      vi.fn().mockResolvedValue({ findOneBySlug: mockFindOne }),
-    );
-    rerender();
+    mockFindOne.mockImplementationOnce(() => new Promise<IBrand>(() => {}));
+    const secondVisit = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(client),
+    });
 
+    expect(secondVisit.result.current.isLoading).toBe(false);
+    expect(secondVisit.result.current.brand?.id).toBe('brand-1');
+  });
+
+  it('keeps only the latest answer when refreshes overlap', async () => {
+    const { result } = renderHook(() => useBrandDetail(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => {
       expect(result.current.brand?.id).toBe('brand-1');
     });
 
+    let finishOlder: (brand: IBrand) => void = () => {};
+    mockFindOne
+      .mockImplementationOnce(
+        () =>
+          new Promise<IBrand>((resolve) => {
+            finishOlder = resolve;
+          }),
+      )
+      .mockResolvedValueOnce({
+        id: 'brand-1',
+        label: 'Latest',
+        links: [],
+      } as unknown as IBrand);
+
+    act(() => {
+      void result.current.handleRefreshBrand();
+    });
+    await waitFor(() => {
+      expect(mockFindOne).toHaveBeenCalledTimes(2);
+    });
     await act(async () => {
-      finishFirst({
+      await result.current.handleRefreshBrand();
+    });
+    await act(async () => {
+      finishOlder({
         id: 'brand-1',
         label: 'Stale',
         links: [],
       } as unknown as IBrand);
     });
-    expect(result.current.brand?.label).toBeUndefined();
+
+    expect(result.current.brand?.label).toBe('Latest');
   });
 
   it('uses article-native public query params for latest articles', async () => {
-    renderHook(() => useBrandDetail());
+    renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(mockFindPublicArticles).toHaveBeenCalledWith({
@@ -247,7 +286,7 @@ describe('useBrandDetail', () => {
   });
 
   it('copies text via clipboard service', async () => {
-    const { result } = renderHook(() => useBrandDetail());
+    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
 
     await result.current.handleCopy('copy-me');
 
@@ -255,7 +294,7 @@ describe('useBrandDetail', () => {
   });
 
   it('opens upload modal with brand details', async () => {
-    const { result } = renderHook(() => useBrandDetail());
+    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -282,7 +321,7 @@ describe('useBrandDetail', () => {
         scope: AssetScope.BRAND,
         slug: 'brand-1',
       });
-      const hook = renderHook(() => useBrandDetail());
+      const hook = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
       await waitFor(() => {
         expect(hook.result.current.brand).not.toBeNull();
       });
@@ -347,7 +386,7 @@ describe('useBrandDetail', () => {
 
   describe('handleUpdateAccount scope toggle', () => {
     async function renderLoadedBrand() {
-      const { result } = renderHook(() => useBrandDetail());
+      const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
 
       await waitFor(() => {
         expect(result.current.brand).not.toBeNull();
@@ -518,7 +557,7 @@ describe('useBrandDetail', () => {
       patch: mockPatch,
     });
 
-    const { result } = renderHook(() => useBrandDetail());
+    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -568,7 +607,7 @@ describe('useBrandDetail', () => {
       patch: mockPatch,
     });
 
-    const { result } = renderHook(() => useBrandDetail());
+    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -600,7 +639,7 @@ describe('useBrandDetail', () => {
       patch: mockPatch,
     });
 
-    const { result } = renderHook(() => useBrandDetail());
+    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -623,7 +662,7 @@ describe('useBrandDetail', () => {
   });
 
   it('opens the generate modal for banner and logo', async () => {
-    const { result } = renderHook(() => useBrandDetail());
+    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -643,7 +682,7 @@ describe('useBrandDetail', () => {
   });
 
   it('selects a link and clears it on confirm', async () => {
-    const { result } = renderHook(() => useBrandDetail());
+    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -690,7 +729,7 @@ describe('useBrandDetail', () => {
       scope: AssetScope.BRAND,
     } as unknown as IBrand);
 
-    const { result } = renderHook(() => useBrandDetail());
+    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -723,7 +762,7 @@ describe('useBrandDetail', () => {
       scope: AssetScope.BRAND,
     } as unknown as IBrand);
 
-    const { result } = renderHook(() => useBrandDetail());
+    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -757,7 +796,7 @@ describe('useBrandDetail', () => {
       scope: AssetScope.BRAND,
     } as unknown as IBrand);
 
-    const { result } = renderHook(() => useBrandDetail());
+    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -794,7 +833,7 @@ describe('useBrandDetail', () => {
       scope: AssetScope.BRAND,
     } as unknown as IBrand);
 
-    const { result } = renderHook(() => useBrandDetail());
+    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(result.current.brand).not.toBeNull();
@@ -809,7 +848,7 @@ describe('useBrandDetail', () => {
     mockFindPublicImages.mockResolvedValue([{ id: 'image-1' }]);
     mockFindPublicArticles.mockRejectedValue(new Error('articles down'));
 
-    const { result } = renderHook(() => useBrandDetail());
+    const { result } = renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(result.current.images).toEqual([{ id: 'image-1' }]);
@@ -820,7 +859,7 @@ describe('useBrandDetail', () => {
   });
 
   it('registers an asset-status websocket subscription', async () => {
-    renderHook(() => useBrandDetail());
+    renderHook(() => useBrandDetail(), { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(mockSubscribe).toHaveBeenCalledWith(

@@ -22,7 +22,7 @@ export default function AgentDefaults() {
       <BrandDetailIdentityCard
         brand={brand}
         brandId={brandId}
-        onRefreshBrand={() => handleRefreshBrand(true)}
+        onRefreshBrand={() => handleRefreshBrand()}
       />
       <BrandDetailDefaultModelsCard brand={brand} />
       <BrandWritingVoiceEditor
@@ -30,7 +30,7 @@ export default function AgentDefaults() {
         brand={brand}
         brandId={brandId}
         section="agent"
-        onRefreshBrand={() => handleRefreshBrand(true)}
+        onRefreshBrand={() => handleRefreshBrand()}
       />
       {brand.text ? (
         <BrandDetailSystemPrompt text={brand.text} onCopy={handleCopy} />

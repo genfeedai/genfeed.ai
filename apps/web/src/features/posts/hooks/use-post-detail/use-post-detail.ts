@@ -145,7 +145,7 @@ export interface UsePostDetailReturn {
   notificationsService: NotificationsService;
 
   // Refresh
-  refreshPost: (isRefresh?: boolean) => Promise<void>;
+  refreshPost: () => Promise<void>;
 
   // Navigation
   pathname: string;

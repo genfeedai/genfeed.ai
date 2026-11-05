@@ -374,7 +374,7 @@ describe('BrandSettingsPublishingPage', () => {
         },
       });
     });
-    expect(mocks.brandDetail.handleRefreshBrand).toHaveBeenCalledWith(true);
+    expect(mocks.brandDetail.handleRefreshBrand).toHaveBeenCalled();
     expect(mocks.success).toHaveBeenCalledWith(
       'Brand publishing defaults saved',
     );
