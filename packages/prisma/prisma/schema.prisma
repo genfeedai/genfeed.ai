@@ -3115,6 +3115,7 @@ learningCheckpoints ContentLearningCheckpoint[]
   @@index([brandId, isDeleted, scheduledDate], map: "posts_brand_deleted_scheduled_date_idx")
   @@index([isDeleted, nextScheduledDate, status])
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([userId, isDeleted, createdAt(sort: Desc)], map: "posts_user_deleted_created_at_idx")
   @@index([brandId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, isDeleted, status, createdAt(sort: Desc)], map: "posts_org_deleted_status_created_at_idx")
   @@index([brandId, isDeleted, status, createdAt(sort: Desc)], map: "posts_brand_deleted_status_created_at_idx")
