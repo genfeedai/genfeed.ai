@@ -341,8 +341,12 @@ export function buildExecutionHarness(
       prisma,
       logger,
       {
-        findOne: async (query: { id: string; organizationId: string }) =>
+        findOneSelect: (
+          query: { id: string; organizationId: string },
+          select: { id: true },
+        ) =>
           db.brand.findFirst({
+            select,
             where: scopedWhere(query.organizationId, { id: query.id }),
           }),
       } as Stub,

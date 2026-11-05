@@ -396,7 +396,7 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
     // thread's identity layer still resolves to it, but RAG scoping must key
     // off the *caller's* explicit brandId, never this fallback.
     const fakeMembersService = {
-      findOne: vi.fn().mockResolvedValue({ currentBrandId: 'brand-a' }),
+      findOneSelect: vi.fn().mockResolvedValue({ currentBrandId: 'brand-a' }),
     };
     agentContextAssembly = new AgentContextAssemblyService(
       fakeBrandsService as never,
