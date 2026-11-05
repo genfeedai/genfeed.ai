@@ -1,4 +1,5 @@
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import type { Request } from 'express';
 
 /**
  * Business context every API wide event carries: who made the request, for
@@ -6,15 +7,10 @@ import type { RequestWithContext } from '@api/common/middleware/request-context.
  * response finishes, so it reflects whatever the guards resolved, including
  * for requests that were rejected after authentication.
  */
-export function describeApiRequest(
-  request: RequestWithContext,
-): Record<string, unknown> {
-  const user = request.user;
+export function describeApiRequest(request: Request): Record<string, unknown> {
+  const { context, user } = request as Request &
+    Pick<RequestWithContext, 'context' | 'user'>;
   if (!user) return { auth_method: 'anonymous' };
-
-  // Role and plan come from the hydrated request context, which honours the
-  // admin IP allowlist, not from the raw identity.
-  const context = request.context;
 
   return {
     action_origin: user.actionOrigin,
@@ -24,6 +20,8 @@ export function describeApiRequest(
     organization: { id: user.organizationId },
     user: {
       id: user.userId || user.id,
+      // Role and plan come from the hydrated request context, which honours
+      // the admin IP allowlist, not from the raw identity.
       is_super_admin: context?.isSuperAdmin ? true : undefined,
       subscription_tier: context?.subscriptionTier,
     },

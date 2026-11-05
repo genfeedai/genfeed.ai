@@ -1,13 +1,13 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
-import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { describeApiRequest } from '@api/helpers/wide-event/describe-api-request.util';
+import type { Request } from 'express';
 
 function createRequest(
   user?: Partial<AuthenticatedUser>,
   context?: Partial<IRequestContext>,
-): RequestWithContext {
-  return { context, user } as unknown as RequestWithContext;
+): Request {
+  return { context, user } as unknown as Request;
 }
 
 describe('describeApiRequest', () => {
