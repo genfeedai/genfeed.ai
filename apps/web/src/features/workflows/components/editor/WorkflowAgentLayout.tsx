@@ -18,10 +18,7 @@ export function WorkflowAgentLayout({ children }: WorkflowAgentLayoutProps) {
   const translate = useTranslations('pages.workflows.agentLayout');
 
   return (
-    <AgentOutputShell
-      isOutputExpandable
-      outputLabel={translate('canvas')}
-    >
+    <AgentOutputShell isOutputExpandable outputLabel={translate('canvas')}>
       {children}
     </AgentOutputShell>
   );
