@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export type AdminMemberRoleKey = 'admin' | 'member';
@@ -37,6 +38,7 @@ function createHandle(email: string): string {
  * memberships, and the only other way in is an invitation, which emails the
  * person. This path writes the membership directly and sends nothing.
  */
+@Traced()
 @Injectable()
 export class AdminOrganizationMembersService {
   constructor(private readonly prisma: PrismaService) {}

@@ -33,6 +33,7 @@ import { ActivityKey, ActivitySource, MemberRole } from '@genfeedai/contracts';
 import { McpApprovalStatus, Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -48,6 +49,7 @@ import {
  */
 const MAX_PENDING_APPROVALS_PER_ORG = 100;
 
+@Traced()
 @Injectable()
 export class McpApprovalsService extends BaseService<
   McpApprovalDocument,

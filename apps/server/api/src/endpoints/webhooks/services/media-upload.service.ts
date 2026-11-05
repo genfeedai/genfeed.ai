@@ -7,8 +7,10 @@ import {
 } from '@genfeedai/contracts';
 import type { IFileMetadata } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class MediaUploadService {
   private readonly logContext = 'MediaUploadService';

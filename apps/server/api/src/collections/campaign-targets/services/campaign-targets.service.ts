@@ -30,6 +30,7 @@ import {
 } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const SCOPED_METHOD_ERROR =
@@ -73,6 +74,7 @@ function dueTargetWhere(now: Date): Prisma.CampaignTargetWhereInput {
   };
 }
 
+@Traced()
 @Injectable()
 export class CampaignTargetsService extends BaseService<
   CampaignTargetDocument,

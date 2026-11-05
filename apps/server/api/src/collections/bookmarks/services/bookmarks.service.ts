@@ -9,6 +9,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const BOOKMARK_CREATE_SCALAR_FIELDS = [
@@ -57,6 +58,7 @@ type BookmarkOwnershipInput = {
 
 type BookmarkCreateInput = CreateBookmarkDto & BookmarkOwnershipInput;
 
+@Traced()
 @Injectable()
 export class BookmarksService extends BaseService<
   Bookmark,

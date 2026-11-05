@@ -14,6 +14,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 /**
@@ -41,6 +42,7 @@ const USER_FIND_ALL_SELECT = {
   settings: true,
 };
 
+@Traced()
 @Injectable()
 export class UsersService extends BaseService<
   UserDocument,

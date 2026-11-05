@@ -18,6 +18,7 @@ import {
 } from '@genfeedai/prisma';
 import { readRecordCopy } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface CreateContentPlanItemInput {
@@ -44,6 +45,7 @@ export interface CreateContentPlanItemInput {
   confidence?: number;
 }
 
+@Traced()
 @Injectable()
 export class ContentPlanItemsService {
   constructor(

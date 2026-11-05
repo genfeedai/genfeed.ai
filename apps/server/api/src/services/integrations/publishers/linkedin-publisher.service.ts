@@ -22,6 +22,7 @@ import {
 } from '@genfeedai/integrations';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -33,6 +34,7 @@ function linkedInSupports(capability: IntegrationProviderCapability): boolean {
     : false;
 }
 
+@Traced()
 @Injectable()
 export class LinkedInPublisherService extends BasePublisherService {
   readonly platform =

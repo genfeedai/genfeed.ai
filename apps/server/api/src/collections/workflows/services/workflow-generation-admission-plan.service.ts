@@ -13,6 +13,7 @@ import {
   type ExecutableNode,
   getExecutableNodeOperationId,
 } from '@genfeedai/workflows/engine';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 function unavailable(detail: string): never {
@@ -29,6 +30,7 @@ function mediaActionId(node: ExecutableNode): 'imageGen' | 'videoGen' | null {
 }
 
 /** Compiles static Replicate image/video allocations from frozen admission source. */
+@Traced()
 @Injectable()
 export class WorkflowGenerationAdmissionPlanService {
   private readonly graph = new WorkflowExecutionGraphService();

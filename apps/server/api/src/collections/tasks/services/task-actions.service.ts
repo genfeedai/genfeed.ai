@@ -18,6 +18,7 @@ import {
   serializeWorkspaceTaskProgress,
   type WorkspaceTaskProgressSnapshot,
 } from '@genfeedai/serializers';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
 export type TaskEventInput = {
@@ -49,6 +50,7 @@ type OutputIdArrayField = 'approvedOutputIds' | 'linkedOutputIds';
  * latter stays a thin persistence/CRUD/lifecycle surface. `TasksService` keeps
  * thin delegators to these methods, so the HTTP contract is unchanged.
  */
+@Traced()
 @Injectable()
 export class TaskActionsService {
   constructor(

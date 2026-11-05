@@ -8,6 +8,7 @@ import { ApiKeyCategory, PlatformRole } from '@genfeedai/contracts';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import { hasApiAccess, PLAN_LABELS } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -67,6 +68,7 @@ function readApiKeyMetadata(
     : undefined;
 }
 
+@Traced()
 @Injectable()
 export class AgentAuthService {
   constructor(

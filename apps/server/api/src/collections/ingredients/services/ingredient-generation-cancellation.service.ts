@@ -11,6 +11,7 @@ import { FailedGenerationService } from '@api/shared/services/failed-generation/
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface CancelProcessingIngredientInput {
@@ -24,6 +25,7 @@ export interface CancelProcessingIngredientInput {
  * mark the placeholder FAILED so waitForCompletion unblocks and webhooks
  * no-op on a later completion.
  */
+@Traced()
 @Injectable()
 export class IngredientGenerationCancellationService {
   constructor(

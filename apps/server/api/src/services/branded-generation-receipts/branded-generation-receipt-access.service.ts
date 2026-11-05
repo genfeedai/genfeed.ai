@@ -4,7 +4,9 @@ import type { BrandedGenerationActorV1 } from '@api/services/branded-generation-
 import { isCloudDeployment } from '@genfeedai/config';
 import { MemberRole } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
+@Traced()
 @Injectable()
 export class BrandedGenerationReceiptAccessService {
   constructor(private readonly brandAccessService: BrandAccessService) {}

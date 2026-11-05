@@ -2,6 +2,7 @@ import { BrandMemoryService } from '@api/collections/brand-memory/services/brand
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface PerformanceThresholdAlert {
@@ -47,6 +48,7 @@ const MIN_WINNER_BASELINE_POSTS = 3;
 const WINNER_BASELINE_DAYS = 10;
 const MAX_HOOK_LENGTH = 140;
 
+@Traced()
 @Injectable()
 export class BrandMemorySyncService {
   constructor(

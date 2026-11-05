@@ -33,6 +33,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { ICalendarSlot } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -48,6 +49,7 @@ import type {
 const SLOT_BRAND_CONTEXT_UNAVAILABLE =
   'Calendar copy unavailable: brand context could not be loaded, so nothing was generated or charged. Try again.';
 
+@Traced()
 @Injectable()
 export class PostingCadenceCopyService {
   private static readonly TEXT_MAX_OVERDRAFT_CREDITS = 5;

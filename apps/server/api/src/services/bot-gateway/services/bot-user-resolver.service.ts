@@ -3,9 +3,11 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type { IBotResolvedUser } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class BotUserResolverService {
   private readonly constructorName: string = String(this.constructor.name);

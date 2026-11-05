@@ -21,6 +21,7 @@ import {
   escapeSystemEmailHtml,
   sanitizeSystemEmailUrl,
 } from '@helpers/email/system-email.helper';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 import { SystemEmailEligibilityService } from './system-email-eligibility.service';
 
@@ -106,6 +107,7 @@ export type LifecycleEmailDeliveryState = {
   template?: EmailTemplate;
 };
 
+@Traced()
 @Injectable()
 export class LifecycleEmailDeliveryService {
   constructor(

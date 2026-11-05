@@ -29,6 +29,7 @@ import type {
   SocialInboxUnreadCountQuery,
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const MAX_AGENT_CONTEXT_REFERENCES = 20;
@@ -68,6 +69,7 @@ function toAgentMessageContext(
   };
 }
 
+@Traced()
 @Injectable()
 export class SocialInboxQueryService {
   constructor(private readonly prisma: PrismaService) {}

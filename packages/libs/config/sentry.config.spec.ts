@@ -61,6 +61,7 @@ describe('getSentryConfig', () => {
         },
         userInfo: false,
       },
+      propagateTraceparent: true,
       tracesSampleRate: PRODUCTION_TRACES_SAMPLE_RATE,
     });
   });
@@ -93,6 +94,7 @@ describe('getSentryConfig', () => {
         },
         userInfo: false,
       },
+      propagateTraceparent: true,
       tracesSampleRate: 0,
     });
   });

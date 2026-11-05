@@ -5,6 +5,7 @@ import { HeyGenIdentityService } from '@api/services/integrations/heygen/service
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { VoiceProvider } from '@genfeedai/contracts';
 import type { AgentClipperRunIdentity } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface ResolveClipperIdentityParams {
@@ -16,6 +17,7 @@ export interface ResolveClipperIdentityParams {
   voiceProvider?: string;
 }
 
+@Traced()
 @Injectable()
 export class ClipperIdentityResolutionService {
   constructor(

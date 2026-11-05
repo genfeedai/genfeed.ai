@@ -4,10 +4,10 @@ import { ActivityRecorderService } from '@api/services/activity-recording/activi
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { SignupPrefillWorkflowService } from '@api/services/signup-prefill/signup-prefill-workflow.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import * as Sentry from '@sentry/nestjs';
-
 import { BETTER_AUTH_USER_CREATED_EVENT } from '../better-auth.constants';
 import type { IBetterAuthUserCreatedEvent } from '../better-auth.types';
 
@@ -34,6 +34,7 @@ function readHttpsUrl(value: string | null | undefined): string | undefined {
  * (magic-link-preserved) user keeps their existing resources because every step
  * is get-or-create.
  */
+@Traced()
 @Injectable()
 export class UserProvisioningListener {
   private readonly context = 'UserProvisioningListener';

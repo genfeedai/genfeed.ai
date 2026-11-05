@@ -7,6 +7,7 @@ import {
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -34,6 +35,7 @@ function withPrismaTagWrite(
   } as unknown as CreateFolderDto | UpdateFolderDto;
 }
 
+@Traced()
 @Injectable()
 export class FoldersService extends BaseService<
   FolderDocument,

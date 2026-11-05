@@ -26,6 +26,7 @@ import {
   parsePlatform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
 /**
@@ -35,6 +36,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
  * or validation that could not confirm) leaves the draft held for a member, and
  * the publish gate keeps it from going out unattended.
  */
+@Traced()
 @Injectable()
 export class WorkflowPostGenerationService {
   private readonly membership: WorkflowActorMembershipVerifier;

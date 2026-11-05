@@ -15,6 +15,7 @@ import type {
   WinnerPostsQuery,
 } from '@genfeedai/contracts/interfaces';
 import { classifyWinners } from '@genfeedai/helpers';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Posts read per request, newest analytics first; each keeps only its latest row. */
@@ -47,6 +48,7 @@ function isObserved(availability: unknown, key: string): boolean {
  * account × platform × content-type baseline (`classifyWinners`). Analytics
  * Posts reads its Winners filter from here.
  */
+@Traced()
 @Injectable()
 export class WinnerClassificationService {
   constructor(

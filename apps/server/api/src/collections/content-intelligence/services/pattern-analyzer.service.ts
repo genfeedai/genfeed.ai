@@ -25,6 +25,7 @@ import {
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { ContentPatternLabels } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -68,6 +69,7 @@ interface ExtractedPattern extends ContentPatternLabels {
   rawExample: string;
 }
 
+@Traced()
 @Injectable()
 export class PatternAnalyzerService {
   private readonly constructorName = this.constructor.name;

@@ -14,8 +14,10 @@ import type {
   IReserveCreditsInput,
   ISettleCreditReservationInput,
 } from '@genfeedai/contracts/interfaces/billing';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class OssCreditsUtilsService implements ICreditsUtilsService {
   async checkOrganizationCreditsAvailable(

@@ -8,6 +8,7 @@ import {
 } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
 export interface AnalyticsSyncOptions {
@@ -53,6 +54,7 @@ export interface PersistedAnalyticsSyncItem {
 
 const MAX_DISCOVERY_ITEMS = 500;
 
+@Traced()
 @Injectable()
 export class AnalyticsSyncService {
   constructor(

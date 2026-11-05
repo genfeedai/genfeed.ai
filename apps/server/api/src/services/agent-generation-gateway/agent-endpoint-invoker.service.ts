@@ -18,6 +18,7 @@ import type {
 } from '@api/services/agent-generation-gateway/agent-endpoint.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable, type Type } from '@nestjs/common';
 
 /**
@@ -33,6 +34,7 @@ import { ForbiddenException, Injectable, type Type } from '@nestjs/common';
  * It is deliberately endpoint-agnostic. Gateways own the descriptors; this
  * class owns the sequence.
  */
+@Traced()
 @Injectable()
 export class AgentEndpointInvoker {
   private readonly validationPipe = new ValidationPipe();

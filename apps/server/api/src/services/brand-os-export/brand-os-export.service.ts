@@ -16,12 +16,14 @@ import {
 } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   ConflictException,
   Injectable,
   UnprocessableEntityException,
 } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class BrandOsExportService {
   constructor(

@@ -27,6 +27,7 @@ import {
   type Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 export type LearningRewardCommitResult =
   | {
@@ -41,6 +42,7 @@ type LearningPreparedReward = Exclude<
   Awaited<ReturnType<LearningRewardService['prepareReward']>>,
   { reason: string }
 >;
+@Traced()
 @Injectable()
 export class LearningRewardService {
   constructor(

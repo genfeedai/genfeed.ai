@@ -15,6 +15,7 @@ import {
   type SystemNotificationTarget,
 } from '@libs/interfaces/system-event.interface';
 import { discordWebhookUrl } from '@libs/security/discord-webhook-url';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const DISCORD_CHANNEL_TEST_FAILURES: Record<DiscordChannelTestFailure, string> =
@@ -40,6 +41,7 @@ const DISCORD_TEST_CHANNELS: readonly DiscordTestChannel[] = [
   'users',
 ];
 
+@Traced()
 @Injectable()
 export class SystemNotificationDestinationsService {
   constructor(

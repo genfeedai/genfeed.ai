@@ -1,6 +1,8 @@
 import { TagsService } from '@api/collections/tags/services/tags.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class TagResolutionService {
   constructor(private readonly tagsService: TagsService) {}

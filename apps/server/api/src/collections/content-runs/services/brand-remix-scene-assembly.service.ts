@@ -30,6 +30,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import { videoStitchJobId } from '@genfeedai/contracts/interfaces';
 import { assertSafeObjectKey } from '@libs/security';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -68,6 +69,7 @@ export function toStoryboardRunStitchRequest(
   };
 }
 
+@Traced()
 @Injectable()
 export class BrandRemixSceneAssemblyService {
   constructor(

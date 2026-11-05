@@ -47,11 +47,13 @@ import {
   toPrismaJson,
 } from '@genfeedai/prisma';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+@Traced()
 @Injectable()
 export class LearningAccountService {
   constructor(

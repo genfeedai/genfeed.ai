@@ -16,7 +16,10 @@ import { WebhookDispatchService } from './webhook-dispatch.service';
 vi.mock('@api/services/webhook-client/webhook-endpoint.validator', () => ({
   assertSafeWebhookEndpoint: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock('@sentry/nestjs', () => ({ captureException: vi.fn() }));
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
+  captureException: vi.fn(),
+}));
 
 describe('PublishEventWebhookService', () => {
   let logger: {

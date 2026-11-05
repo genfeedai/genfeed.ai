@@ -8,6 +8,7 @@ import {
   readChannelSettingString,
 } from '@genfeedai/contracts/api-types/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { TwitterApi } from 'twitter-api-v2';
@@ -58,6 +59,7 @@ export class TwitterPublishingService {
     private readonly resolveCredential: ResolveTwitterCredential,
   ) {}
 
+  @Traced()
   async uploadMedia(
     organizationId: string,
     brandId: string,
@@ -129,6 +131,7 @@ export class TwitterPublishingService {
     }
   }
 
+  @Traced()
   async postTweet(
     organizationId: string,
     brandId: string,
@@ -173,6 +176,7 @@ export class TwitterPublishingService {
     }
   }
 
+  @Traced()
   async repostTweet(
     organizationId: string,
     brandId: string,

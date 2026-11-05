@@ -32,6 +32,7 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   ConflictException,
   Injectable,
@@ -45,6 +46,7 @@ const RETRYABLE_MESSAGE =
 export const STORYBOARD_BRAND_CONTEXT_UNAVAILABLE =
   'Brand context is unavailable for this storyboard. Nothing was changed; try again.';
 
+@Traced()
 @Injectable()
 export class StoryboardPlanDraftService {
   constructor(

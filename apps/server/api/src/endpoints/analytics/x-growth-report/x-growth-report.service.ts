@@ -16,6 +16,7 @@ import type {
   PublicationInsightsScope,
 } from '@genfeedai/contracts/interfaces/content/publication-insights.interface';
 import { PrismaService } from '@libs/prisma/prisma.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const PUBLICATION_PAGE_SIZE = 100;
@@ -33,6 +34,7 @@ interface XGrowthReportRequest {
  * calls no X API and spends no credits. Nothing it returns ties a follower to
  * a post or a reply.
  */
+@Traced()
 @Injectable()
 export class XGrowthReportService {
   constructor(

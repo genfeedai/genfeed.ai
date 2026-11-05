@@ -10,6 +10,7 @@ import {
   type KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
 import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -19,6 +20,7 @@ import { Injectable } from '@nestjs/common';
  * correction, deletion, hiding or scope change between retrieval and the end of
  * the turn drops the citation instead of showing stale evidence.
  */
+@Traced()
 @Injectable()
 export class KnowledgeReceiptVerifierService {
   constructor(

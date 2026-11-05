@@ -12,6 +12,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { HeyGenAvatarRef } from '@genfeedai/contracts/interfaces';
 import { isAutoStudioModelKey } from '@genfeedai/pricing';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
@@ -20,6 +21,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
  * animation has no engine field on HeyGen's image request, so it is priced on
  * its own per-second `heygen/avatar` row.
  */
+@Traced()
 @Injectable()
 export class AvatarVideoModelService {
   constructor(

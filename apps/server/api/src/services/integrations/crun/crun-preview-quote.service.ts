@@ -13,10 +13,12 @@ import type { CrunFrozenImageQuote } from '@api/services/integrations/crun/crun-
 import { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export type CrunConsumedQuote = CrunConsumedQuoteOf<CrunFrozenImageQuote>;
 
+@Traced()
 @Injectable()
 export class CrunPreviewQuoteService extends CrunPreviewQuoteLifecycle<
   CrunImageQuoteIntent,

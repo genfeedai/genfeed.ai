@@ -12,6 +12,7 @@ import {
   extractStringArray,
 } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface ScrapedPost {
@@ -129,6 +130,7 @@ interface TikTokVideoData {
   webVideoUrl?: string;
 }
 
+@Traced()
 @Injectable()
 export class CreatorScraperService {
   private readonly constructorName = this.constructor.name;

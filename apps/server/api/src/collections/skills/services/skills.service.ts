@@ -44,6 +44,7 @@ import type { IBrandEffectiveSkillSelection } from '@genfeedai/contracts/interfa
 import { isSkillOnSurface } from '@genfeedai/helpers';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface ListSkillsOptions {
@@ -115,6 +116,7 @@ export interface InstallManagedSkillPackageInput {
   workflowStage: CreateSkillDto['workflowStage'];
 }
 
+@Traced()
 @Injectable()
 export class SkillsService {
   constructor(

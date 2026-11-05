@@ -34,6 +34,7 @@ import type {
   AgentToolResult,
   AgentUiActionCta,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Inject,
@@ -106,6 +107,7 @@ function buildClipperRunSteps(mergeGeneratedVideos: boolean) {
   ];
 }
 
+@Traced()
 @Injectable()
 export class AgentPrepareToolHandler {
   constructor(

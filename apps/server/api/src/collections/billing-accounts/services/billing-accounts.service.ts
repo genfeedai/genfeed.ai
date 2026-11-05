@@ -43,6 +43,7 @@ import {
   runWithTenantContext,
   withBillingAccountScopeRollback,
 } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   ConflictException,
   ForbiddenException,
@@ -52,6 +53,7 @@ import {
 const MUTATING_ROLE = BillingAccountMemberRole.ADMINISTRATOR;
 const OWNER_ROLE = BillingAccountMemberRole.OWNER;
 
+@Traced()
 @Injectable()
 export class BillingAccountsService {
   constructor(

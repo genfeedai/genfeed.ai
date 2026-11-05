@@ -27,6 +27,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 interface RemixLineagePayload {
@@ -63,6 +64,7 @@ const DEFAULT_PROMPT_REFERENCE_PACK_LIMIT = 12;
 const MAX_REFERENCE_QUERY_LIMIT = 100;
 const promptReferencePackBuilder = new TrendPromptReferencePackBuilder();
 
+@Traced()
 @Injectable()
 export class TrendReferenceCorpusService {
   constructor(

@@ -19,6 +19,7 @@ import {
   normalizeGoogleAdsCampaignMetricsRecord,
   normalizeMetaCampaignInsightRecord,
 } from '@genfeedai/integrations/ads';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 
@@ -70,6 +71,7 @@ type SerializableAdOptimizationRecommendation = Omit<
 const DEFAULT_SYNC_DAYS = 30;
 const EXPIRY_HOURS = 72;
 
+@Traced()
 @Injectable()
 export class AdAutomationWorkflowService {
   constructor(

@@ -11,6 +11,7 @@ import {
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -46,6 +47,7 @@ interface PinterestMetricNumber {
   value: number;
   source: string;
 }
+@Traced()
 @Injectable()
 export class PinterestService {
   private readonly constructorName = String(this.constructor.name);

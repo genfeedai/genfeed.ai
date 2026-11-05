@@ -40,6 +40,7 @@ import type {
 import type { TurboProject, TurboProjectItem } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const SCHEDULED_EXECUTION_STATES = new Set<string>([
@@ -88,6 +89,7 @@ type Destination = { credentialId: string; platform: Platform };
  * are recorded per destination so only unfinished ones are retried. A
  * destination without a date publishes now.
  */
+@Traced()
 @Injectable()
 export class TurboProjectSchedulingService {
   private readonly context = TurboProjectSchedulingService.name;

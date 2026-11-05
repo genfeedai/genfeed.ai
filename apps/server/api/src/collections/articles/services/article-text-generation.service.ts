@@ -15,8 +15,10 @@ import { ReplicateService } from '@api/services/integrations/replicate/services/
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { ModelCategory, SystemPromptKey } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ArticleTextGenerationService {
   constructor(

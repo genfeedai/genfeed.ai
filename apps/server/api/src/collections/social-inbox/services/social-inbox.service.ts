@@ -23,6 +23,7 @@ import type {
   SocialInboxUnreadCount,
   SocialInboxUnreadCountQuery,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export type {
@@ -37,6 +38,7 @@ export type {
   XReplyTargetPost,
 } from '@api/collections/social-inbox/services/social-inbox.types';
 
+@Traced()
 @Injectable()
 export class SocialInboxService {
   constructor(

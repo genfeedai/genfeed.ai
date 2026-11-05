@@ -5,6 +5,7 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface CiTriagePayload {
@@ -28,6 +29,7 @@ const CI_TRIAGE_NATIVE_MODEL = CI_TRIAGE_MODEL.slice('anthropic/'.length);
 const CI_TRIAGE_MODEL_LABEL =
   getAgentChatModel(CI_TRIAGE_MODEL)?.label ?? CI_TRIAGE_NATIVE_MODEL;
 
+@Traced()
 @Injectable()
 export class CiTriageWebhookService {
   private readonly constructorName = String(this.constructor.name);

@@ -8,6 +8,7 @@ import type {
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { Prisma } from '@genfeedai/prisma';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -30,6 +31,7 @@ import { Injectable } from '@nestjs/common';
  * to the finite set of rows that matched when that lap started, via
  * `findUpperBoundary`/`findUpperBoundaryAncient` below (#5319).
  */
+@Traced()
 @Injectable()
 export class StalePendingSystemExecutionFinderService {
   constructor(private readonly prisma: PrismaService) {}

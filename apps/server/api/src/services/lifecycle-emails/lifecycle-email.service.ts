@@ -2,6 +2,7 @@ import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-w
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import {
   LIFECYCLE_SCHEDULING_ACTION_IDS,
@@ -48,6 +49,7 @@ type SubscriptionLapsedInput = {
   userId: string;
 };
 
+@Traced()
 @Injectable()
 export class LifecycleEmailService implements OnModuleInit {
   private readonly context = { service: LifecycleEmailService.name };

@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { JWT_BEARER_GRANT_TYPE } from '@api/oauth/enterprise-managed-auth.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { safeFetch } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import type { RegisterOAuthClientDto } from '../dto/register-client.dto';
@@ -178,6 +179,7 @@ function validateRedirectUri(value: string): string {
   );
 }
 
+@Traced()
 @Injectable()
 export class OAuthClientService {
   private readonly documentClients = new Map<

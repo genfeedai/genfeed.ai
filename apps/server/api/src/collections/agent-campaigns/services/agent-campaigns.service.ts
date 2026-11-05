@@ -19,6 +19,7 @@ import { AgentAutonomyMode, AgentRunFrequency } from '@genfeedai/contracts';
 import { getAgentProgramTemplate } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export type AgentCampaignWriteDto = Partial<
@@ -62,6 +63,7 @@ const COLUMN_BACKED_KEYS = [
   'status',
 ] as const;
 
+@Traced()
 @Injectable()
 export class AgentCampaignsService extends BaseService<
   AgentCampaignDocument,

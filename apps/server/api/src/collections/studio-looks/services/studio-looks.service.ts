@@ -9,6 +9,7 @@ import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-resu
 import type { StudioLookAssetType } from '@genfeedai/contracts/interfaces';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface StudioLookRequestScope {
@@ -17,6 +18,7 @@ export interface StudioLookRequestScope {
   userId: string;
 }
 
+@Traced()
 @Injectable()
 export class StudioLooksService extends BaseService<StudioLookDocument> {
   constructor(

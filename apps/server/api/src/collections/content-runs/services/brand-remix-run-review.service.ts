@@ -32,6 +32,7 @@ import {
   brandRemixRunConfigSchema,
   type SubmitBrandRemixRunForReview,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import { Traced } from '@libs/tracing/traced';
 import {
   ConflictException,
   Inject,
@@ -78,6 +79,7 @@ type ReviewHandoffState = ReviewClaimedState & {
   };
 };
 
+@Traced()
 @Injectable()
 export class BrandRemixRunReviewService implements OnModuleInit {
   constructor(

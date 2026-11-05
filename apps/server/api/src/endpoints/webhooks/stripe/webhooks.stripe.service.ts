@@ -13,6 +13,7 @@ import type {
   StripeSubscription,
 } from '@api/services/integrations/stripe/services/stripe.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -21,6 +22,7 @@ import { Injectable } from '@nestjs/common';
  * All billing logic lives in the handlers under ./handlers; this service
  * only dispatches on the event type.
  */
+@Traced()
 @Injectable()
 export class StripeWebhookService {
   private readonly constructorName: string = String(this.constructor.name);

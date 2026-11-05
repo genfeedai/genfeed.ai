@@ -21,6 +21,7 @@ import type {
   BrandRemixRunConfig,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { CredentialPlatform } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   BadRequestException,
@@ -85,6 +86,7 @@ type MetaDraftState = {
   workflowLabel?: string;
 };
 
+@Traced()
 @Injectable()
 export class PausedMetaCampaignDraftService implements OnModuleInit {
   constructor(

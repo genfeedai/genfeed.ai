@@ -29,6 +29,7 @@ import {
   toPrismaJson,
 } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -54,6 +55,7 @@ class BrandOsScanContentError extends Error {
   }
 }
 
+@Traced()
 @Injectable()
 export class BrandOsScanService {
   constructor(

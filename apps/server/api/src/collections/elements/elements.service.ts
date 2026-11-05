@@ -13,8 +13,10 @@ import {
 } from '@api/collections/elements/shared/element-scope.util';
 import { ElementsSoundsService } from '@api/collections/elements/sounds/services/sounds.service';
 import { ElementsStylesService } from '@api/collections/elements/styles/services/styles.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ElementsService {
   constructor(

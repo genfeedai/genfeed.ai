@@ -33,6 +33,7 @@ import { TelegramWorkflowRunnerService } from '@api/services/telegram-bot/telegr
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   Injectable,
   type OnModuleDestroy,
@@ -41,6 +42,7 @@ import {
 } from '@nestjs/common';
 import { Bot, type Context } from 'grammy';
 
+@Traced()
 @Injectable()
 export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
   private bot: Bot | null = null;

@@ -9,6 +9,7 @@ import {
   seedWorkflows,
   type WorkflowsSeedResult,
 } from '@api-scripts/seeds/workflows.seed';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { SeedArticlesDto } from './dto/seed-articles.dto';
 import type { SeedTemplatesDto } from './dto/seed-templates.dto';
@@ -35,6 +36,7 @@ export interface TemplatesSeedSummary {
   written: number;
 }
 
+@Traced()
 @Injectable()
 export class AdminSeedsService {
   constructor(

@@ -6,6 +6,7 @@ import type {
   ISubscriptionOssReadModel,
   ISubscriptionsService,
 } from '@genfeedai/contracts/interfaces/billing';
+import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
 function organizationBillingUnavailable(): never {
@@ -32,6 +33,7 @@ function organizationBillingUnavailable(): never {
  *   `ForbiddenException` — surfacing "billing unavailable" to a user clicking
  *   subscribe is correct; fabricating a record would be a lie.
  */
+@Traced()
 @Injectable()
 export class OssSubscriptionsService implements ISubscriptionsService {
   async findOne(

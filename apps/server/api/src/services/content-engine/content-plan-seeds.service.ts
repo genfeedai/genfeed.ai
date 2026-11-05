@@ -12,6 +12,7 @@ import type {
   IContentPlanSeedSource,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** How many watched-advertiser ads to read when computing per-advertiser counts. */
@@ -27,6 +28,7 @@ const PATTERN_COUNT_LIMIT = 50;
  * creative-pattern sources `PlanPerformanceContextService` seeds a cold-start
  * plan from by default, surfaced so the caller can choose a subset instead.
  */
+@Traced()
 @Injectable()
 export class ContentPlanSeedsService {
   constructor(

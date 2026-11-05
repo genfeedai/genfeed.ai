@@ -12,9 +12,11 @@ import {
   SUBSCRIPTION_ATTRIBUTIONS_SERVICE,
 } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
 /** Records subscription attribution (UTM/source metadata) from checkout sessions. */
+@Traced()
 @Injectable()
 export class StripeAttributionTrackerService {
   private readonly constructorName: string = String(this.constructor.name);

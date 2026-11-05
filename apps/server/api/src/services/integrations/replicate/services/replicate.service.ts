@@ -19,11 +19,11 @@ import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { unwrapFencedJson } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, Optional } from '@nestjs/common';
 import Replicate from 'replicate';
 import type { ZodType } from 'zod';
-
 import type { ReplicateStructuredTextParams } from '../dto/replicate-structured-text.dto';
 
 function readPositiveInteger(value: unknown): number | undefined {
@@ -146,6 +146,7 @@ function withMediaContent(
   });
 }
 
+@Traced()
 @Injectable()
 export class ReplicateService {
   private readonly constructorName: string = String(this.constructor.name);

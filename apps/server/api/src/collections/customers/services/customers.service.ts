@@ -11,6 +11,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const ORGANIZATION_BILLING_LOCK_TTL_SECONDS = 30;
@@ -18,6 +19,7 @@ const ORGANIZATION_BILLING_LOCK_RETRY_DELAYS_MS = [
   50, 100, 200, 300, 400, 500, 500,
 ];
 
+@Traced()
 @Injectable()
 export class CustomersService extends BaseService<
   CustomerDocument,

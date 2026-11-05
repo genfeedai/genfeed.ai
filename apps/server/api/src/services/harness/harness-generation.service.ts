@@ -72,6 +72,7 @@ import {
   type HarnessSourceRecord,
 } from '@genfeedai/harness';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   ForbiddenException,
   Injectable,
@@ -186,6 +187,7 @@ function performanceWinnerStage(
  * vector product. Profile few-shots are always-on; similar winners/library are
  * retrieved when a topic is present.
  */
+@Traced()
 @Injectable()
 export class HarnessGenerationService {
   private readonly constructorName = String(this.constructor.name);

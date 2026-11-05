@@ -51,11 +51,13 @@ import {
 import { resolveDirectMessageCapability } from '@genfeedai/helpers';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
 const X_DM_MAX_PAGES = 5;
 
+@Traced()
 @Injectable()
 export class SocialInboxIngestionService {
   constructor(

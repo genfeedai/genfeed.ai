@@ -46,6 +46,7 @@ import {
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 type TurboRunProcessingCounts = {
@@ -97,6 +98,7 @@ function toTurboRunItemFailureMessage(error: unknown): string {
   return firstLine ?? message;
 }
 
+@Traced()
 @Injectable()
 export class TurboRunProcessingService {
   constructor(

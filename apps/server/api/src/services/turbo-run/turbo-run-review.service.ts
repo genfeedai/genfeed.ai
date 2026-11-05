@@ -76,6 +76,8 @@ import { toPrismaTurboRunStatus } from '@api/services/turbo-run/turbo-run-status
 import { TurboRunSummaryService } from '@api/services/turbo-run/turbo-run-summary.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { Traced } from '@libs/tracing/traced';
+@Traced()
 @Injectable()
 export class TurboRunReviewService {
   constructor(

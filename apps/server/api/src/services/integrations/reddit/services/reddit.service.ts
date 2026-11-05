@@ -10,6 +10,7 @@ import {
   readChannelSettingString,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable } from '@nestjs/common';
@@ -52,6 +53,7 @@ export interface RedditTrend {
   url?: string;
 }
 
+@Traced()
 @Injectable()
 export class RedditService {
   private readonly oauthUrl = 'https://www.reddit.com/api/v1/authorize';

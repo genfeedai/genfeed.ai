@@ -33,6 +33,7 @@ import { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -131,6 +132,7 @@ type FeatureSettingsCacheEntry = {
   value: IPlatformFeatureSettings;
 };
 
+@Traced()
 @Injectable()
 export class PlatformSettingsService
   extends BaseService<

@@ -9,6 +9,7 @@ import {
 import { type ElevenLabs, ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { ApiKeyCategory, FileInputType } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -61,6 +62,7 @@ type ForcedAlignmentWord = {
   text: string;
 };
 
+@Traced()
 @Injectable()
 export class ElevenLabsService {
   private readonly constructorName: string = String(this.constructor.name);

@@ -17,6 +17,7 @@ import {
   TEXT_GENERATION_WORKLOAD_TYPE,
 } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -37,6 +38,7 @@ const MAX_UNFUNDED_DISPATCHES = 50;
  * releases it; whatever no dispatch claimed goes back with `releaseRun`.
  * BYOK runs and free models take no hold.
  */
+@Traced()
 @Injectable()
 export class PostAccountGenerationBillingService {
   private readonly logContext = 'PostAccountGenerationBillingService';

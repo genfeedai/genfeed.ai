@@ -25,6 +25,7 @@ import {
   CampaignTargetType,
   CampaignType,
 } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export type CampaignTargetsPage = FrontendPagination<CampaignTargetDocument> & {
@@ -43,6 +44,7 @@ interface ParsedUrlResult {
   valid: boolean;
 }
 
+@Traced()
 @Injectable()
 export class OutreachCampaignTargetOperationsService {
   constructor(

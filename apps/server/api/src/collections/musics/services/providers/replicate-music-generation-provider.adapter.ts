@@ -8,6 +8,7 @@ import { ReplicateService } from '@api/services/integrations/replicate/services/
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { ModelProvider } from '@genfeedai/contracts';
 import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -16,6 +17,7 @@ import { Injectable } from '@nestjs/common';
  * model and executes against the registry row's own endpoint — never a
  * hardcoded model/version constant.
  */
+@Traced()
 @Injectable()
 export class ReplicateMusicGenerationProviderAdapter
   implements MusicGenerationProviderAdapter

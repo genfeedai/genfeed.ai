@@ -30,6 +30,7 @@ import type {
   BrandIdentitySnapshotV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, HttpException, Injectable } from '@nestjs/common';
 
 const COMPLETED_STATUSES: ReadonlySet<string> = new Set<string>([
@@ -80,6 +81,7 @@ const CHARGED_HOLD_STATUSES: ReadonlySet<string> = new Set<string>([
  * Receipts are evidence, never a gate: every write is serialized per output in
  * this process, runs off the generation path, and logs instead of throwing.
  */
+@Traced()
 @Injectable()
 export class MediaGenerationReceiptsService {
   private readonly inflight = new Map<string, Promise<void>>();

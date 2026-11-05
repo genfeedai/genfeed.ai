@@ -5,6 +5,7 @@ import type {
   AgentToolResult,
   AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
 interface AgentTransferActor {
@@ -41,6 +42,7 @@ interface AgentTransfersServiceLike {
   ): Promise<unknown[]>;
 }
 
+@Traced()
 @Injectable()
 export class AgentTransferToolHandler {
   constructor(

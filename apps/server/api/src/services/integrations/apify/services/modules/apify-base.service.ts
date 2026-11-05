@@ -18,6 +18,7 @@ import type { ByokResolutionResult } from '@genfeedai/contracts/interfaces';
 import { extractHashtags } from '@genfeedai/utils/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import {
   Injectable,
@@ -125,6 +126,7 @@ const APIFY_ACTOR_REGISTRY: Readonly<Record<string, ApifyActorRegistration>> = {
  * Shared utilities for all Apify platform sub-services.
  * Provides actor execution, polling, API token management, and metrics helpers.
  */
+@Traced()
 @Injectable()
 export class ApifyBaseService {
   /**

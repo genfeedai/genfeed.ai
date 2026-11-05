@@ -35,6 +35,7 @@ import {
   CredentialPlatform as PrismaCredentialPlatform,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -63,6 +64,7 @@ interface DailyState extends DailyAccount {
   outcome?: string;
 }
 
+@Traced()
 @Injectable()
 export class DailyPublishingService implements OnModuleInit {
   constructor(

@@ -67,6 +67,7 @@ import type {
   HeyGenConnectionRef,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -82,6 +83,7 @@ type HeyGenSpeechInput =
       voiceId?: string;
     };
 
+@Traced()
 @Injectable()
 export class HeyGenService {
   private readonly constructorName: string = String(this.constructor.name);

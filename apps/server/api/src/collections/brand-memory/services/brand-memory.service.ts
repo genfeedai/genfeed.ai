@@ -11,6 +11,7 @@ import {
   toPrismaJson,
 } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface BrandMemoryEntryInput {
@@ -77,6 +78,7 @@ export interface BrandMemoryDateRange {
   to?: Date;
 }
 
+@Traced()
 @Injectable()
 export class BrandMemoryService extends BaseService<
   BrandMemoryDocument,

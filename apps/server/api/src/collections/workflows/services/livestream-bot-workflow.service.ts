@@ -6,11 +6,13 @@ import { BotsRestreamChatService } from '@api/collections/bots/services/bots-res
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { CacheService } from '@api/services/cache/cache.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional, type Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
 const LIVESTREAM_BOT_LOCK_TTL_SECONDS = 60;
 
+@Traced()
 @Injectable()
 export class LivestreamBotWorkflowService {
   constructor(

@@ -44,12 +44,14 @@ import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
 /** Ledger reference namespace of every Stripe checkout credit-pack grant. */
 const CREDIT_PACK_REFERENCE_PREFIX = 'stripe-checkout-session:';
 
+@Traced()
 @Injectable()
 export class OrganizationSettingsService extends BaseService<
   OrganizationSettingDocument,

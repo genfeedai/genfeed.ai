@@ -18,6 +18,7 @@ import {
   type AgentMemoryRevision,
   Prisma,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { stableStringify } from '@libs/utils/canonical-hash.util';
 import {
   BadRequestException,
@@ -71,6 +72,7 @@ function summarize(content: string): string {
  * appends an immutable revision, moves the memory's current pointer to it, and
  * replaces the context entries derived from the memory, all in one transaction.
  */
+@Traced()
 @Injectable()
 export class AgentMemoryRevisionsService {
   constructor(

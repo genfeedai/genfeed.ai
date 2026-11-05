@@ -22,6 +22,7 @@ import {
 } from '@api/collections/agent-strategies/services/agent-strategy-conversation-queue.util';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -42,6 +43,7 @@ interface QueueOwner {
  * reply that was sent. The lifecycle is the strategy opportunity's, mapped as
  * new = queued, drafted = approved, replied = published, dismissed = discarded.
  */
+@Traced()
 @Injectable()
 export class AgentStrategyConversationQueueService {
   constructor(

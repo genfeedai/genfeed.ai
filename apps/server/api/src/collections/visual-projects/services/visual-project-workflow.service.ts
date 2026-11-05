@@ -39,6 +39,7 @@ import {
   type VisualRevision,
 } from '@genfeedai/prisma';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   ConflictException,
   Injectable,
@@ -93,6 +94,7 @@ function actor(revision: VisualRevision): AuthenticatedUser {
 type VisualExecutionOwnership = WorkflowNodeClaimLease & {
   abortSignal?: AbortSignal;
 };
+@Traced()
 @Injectable()
 export class VisualProjectWorkflowService implements OnModuleInit {
   private readonly ownership =

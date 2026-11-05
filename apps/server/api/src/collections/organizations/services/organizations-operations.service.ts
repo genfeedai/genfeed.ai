@@ -26,6 +26,7 @@ import {
   getUpgradeTierForLimit,
 } from '@genfeedai/pricing';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -41,6 +42,7 @@ export interface OrganizationSelectionResult {
   organization: { id: string; label: string };
 }
 
+@Traced()
 @Injectable()
 export class OrganizationsOperationsService {
   constructor(

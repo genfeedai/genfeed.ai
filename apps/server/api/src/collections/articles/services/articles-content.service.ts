@@ -67,6 +67,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/content/article.interface';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 export type {
@@ -98,6 +99,7 @@ function toGeneratedArticleSlug(
   );
 }
 
+@Traced()
 @Injectable()
 export class ArticlesContentService {
   private readonly constructorName = this.constructor.name;

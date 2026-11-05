@@ -1,5 +1,6 @@
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type { IScrapedBrandData } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface BrandWebsitePreviewData {
@@ -17,6 +18,7 @@ export interface BrandWebsitePreviewResponse {
   data: BrandWebsitePreviewData;
 }
 
+@Traced()
 @Injectable()
 export class BrandWebsitePreviewService {
   constructor(private readonly brandScraperService: BrandScraperService) {}

@@ -25,6 +25,7 @@ import { OPENROUTER_FIRST_PARTY_PROVIDER_POLICY } from '@api/services/integratio
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
@@ -67,6 +68,7 @@ export interface ClipperHighlightDetectionOptions {
   model?: string;
 }
 
+@Traced()
 @Injectable()
 export class ClipperHighlightDetector {
   private readonly logContext = 'ClipperHighlightDetector';

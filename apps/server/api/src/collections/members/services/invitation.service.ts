@@ -14,6 +14,7 @@ import {
 import type { Invitation, Member, Prisma, User } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -159,6 +160,7 @@ function toInvitationView(invitation: Invitation): InvitationView {
   };
 }
 
+@Traced()
 @Injectable()
 export class InvitationService {
   private readonly context = { service: InvitationService.name };

@@ -8,6 +8,7 @@ import {
   TIKTOK_AD_LIBRARY_COUNTRIES,
 } from '@genfeedai/integrations/ads';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 export interface PaidCreativeFetchParams {
@@ -21,6 +22,7 @@ export interface PaidCreativeFetchParams {
   query: string;
 }
 
+@Traced()
 @Injectable()
 export class ApifyAdsService {
   readonly ADS_ACTORS = {

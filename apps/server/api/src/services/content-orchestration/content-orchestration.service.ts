@@ -37,6 +37,7 @@ import {
 } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   Inject,
   Injectable,
@@ -51,6 +52,7 @@ export type PipelineConfig = PipelineConfigV2;
 
 type WorkflowStepOutcome = StepOutcome & { timingMs: number };
 
+@Traced()
 @Injectable()
 export class ContentOrchestrationService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);

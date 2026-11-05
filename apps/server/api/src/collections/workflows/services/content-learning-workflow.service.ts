@@ -48,6 +48,7 @@ import type {
   ContentLearningCheckpoint,
   ContentLearningScopeState,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -61,6 +62,7 @@ type RefreshInput = {
   scopeCursor?: string;
   refreshBucket?: number;
 };
+@Traced()
 @Injectable()
 export class ContentLearningWorkflowService implements OnModuleInit {
   constructor(

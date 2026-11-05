@@ -5,8 +5,10 @@ import { isSceneOperationActive } from '@api/collections/content-runs/services/b
 import { ContentRunStatus } from '@genfeedai/contracts';
 import type { BrandRemixRunConfig } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { brandRemixRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class BrandRemixSceneStoreService {
   constructor(

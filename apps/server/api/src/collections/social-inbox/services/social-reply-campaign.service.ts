@@ -29,6 +29,7 @@ import {
 } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
@@ -59,6 +60,7 @@ export function buildRecipientIdempotencyKey(
   return `reply-campaign:${campaignId}:${conversationId}`;
 }
 
+@Traced()
 @Injectable()
 export class SocialReplyCampaignService {
   constructor(

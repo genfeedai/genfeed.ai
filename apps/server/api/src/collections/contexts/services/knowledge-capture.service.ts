@@ -19,6 +19,7 @@ import type {
   KnowledgeSource,
   KnowledgeSourceVersion,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface KnowledgeCaptureResult {
@@ -83,6 +84,7 @@ export function buildCaptureVersion(
  * hand the exact version to the immutable ingestion workflow. Nothing else
  * fetches, extracts, chunks or embeds.
  */
+@Traced()
 @Injectable()
 export class KnowledgeCaptureService {
   constructor(

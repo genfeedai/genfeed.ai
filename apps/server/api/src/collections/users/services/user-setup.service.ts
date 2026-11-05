@@ -40,6 +40,7 @@ import {
   resolveSignupWorkspaceLabel,
 } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
 export interface UserSetupProfile {
@@ -55,6 +56,7 @@ export interface UserSetupResult {
   member: MemberDocument;
 }
 
+@Traced()
 @Injectable()
 export class UserSetupService {
   private readonly context = 'UserSetupService';

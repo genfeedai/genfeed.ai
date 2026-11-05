@@ -4,8 +4,10 @@ import type {
   SocialInboxRealtimeEvent,
   SocialInboxSyncRealtimeEvent,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class SocialInboxRealtimeService {
   constructor(

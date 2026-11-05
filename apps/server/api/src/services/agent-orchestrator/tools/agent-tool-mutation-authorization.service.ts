@@ -59,6 +59,7 @@ import {
   WorkflowExecutionStatus,
 } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 
@@ -85,6 +86,7 @@ export type AgentMutationPolicyCollaborators = {
  * `AgentToolExecutorService` to keep that class's constructor and file size
  * within the `check:runtime-complexity` guard.
  */
+@Traced()
 @Injectable()
 export class AgentToolMutationAuthorizationService {
   private readonly constructorName = String(this.constructor.name);

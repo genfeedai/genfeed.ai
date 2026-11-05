@@ -37,8 +37,10 @@ import type {
   ServerAnalyticsCollectionState,
 } from '@genfeedai/contracts/interfaces';
 import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class AnalyticsSocialCollectionService {
   constructor(

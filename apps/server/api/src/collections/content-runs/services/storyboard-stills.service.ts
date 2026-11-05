@@ -45,6 +45,7 @@ import {
   resolveAgentGenerationDimensions,
 } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -81,6 +82,7 @@ function parseInput<T>(schema: ZodType<T>, value: unknown): T {
  * the image pipeline holds and this service settles only for a still that
  * renders, or releases when it fails.
  */
+@Traced()
 @Injectable()
 export class StoryboardStillsService {
   constructor(

@@ -14,6 +14,7 @@ import {
   VoiceCloneStatus,
   VoiceProvider,
 } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface FleetVoiceCloneWebhookPayload {
@@ -54,6 +55,7 @@ type FleetWebhookOutcome = {
 
 const FLEET_VOICE_CLONE_REFERENCE_TYPE = 'fleet:voice-clone';
 
+@Traced()
 @Injectable()
 export class FleetWebhookService {
   constructor(

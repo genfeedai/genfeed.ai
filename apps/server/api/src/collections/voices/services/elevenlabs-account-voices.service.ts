@@ -31,6 +31,7 @@ import {
   type Prisma,
 } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
@@ -73,6 +74,7 @@ const SAVED_VOICE_SELECT = {
  * Saved references live in `ingredients` (category VOICE, voiceSource
  * `imported`); the shared ExternalVoice catalog never receives them.
  */
+@Traced()
 @Injectable()
 export class ElevenLabsAccountVoicesService {
   private readonly constructorName = String(this.constructor.name);

@@ -15,6 +15,7 @@ import {
   crossOrgUnsafe,
   runWithTenantContext,
 } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
 type ApiKeyRoleContext = Pick<AuthenticatedUser, 'isApiKey' | 'scopes'>;
@@ -38,6 +39,7 @@ export interface CharacterGrantView {
  * carries identity only and the receiving organization pays for what it
  * generates.
  */
+@Traced()
 @Injectable()
 export class PersonaGrantsService {
   constructor(

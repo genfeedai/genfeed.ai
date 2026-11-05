@@ -22,6 +22,7 @@ import type {
   AgentKnowledgeConflictSource,
   KnowledgeReceipt,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Conflicts shown under one answer; the rest are one tap away in Knowledge. */
@@ -39,6 +40,7 @@ export interface FinalizedAgentCitations {
  * and each is re-checked against what the acting user may read at the end of
  * the turn, so a source corrected or hidden mid-turn is dropped, not shown.
  */
+@Traced()
 @Injectable()
 export class AgentKnowledgeCitationService {
   constructor(

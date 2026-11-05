@@ -24,6 +24,7 @@ import {
 import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/constants/agent-type.constants';
 import { AnalyticsMetric } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -114,6 +115,7 @@ export type TriggerEvaluationResult = {
   summary: string;
 };
 
+@Traced()
 @Injectable()
 export class TriggerEvaluatorService {
   private readonly logContext = 'TriggerEvaluatorService';

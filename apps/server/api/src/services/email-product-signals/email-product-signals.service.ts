@@ -19,6 +19,7 @@ import {
   buildSystemEmailParagraph,
 } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import {
   isLongGeneration,
@@ -33,6 +34,7 @@ import {
 
 const PAGE_SIZE = 100;
 const DAY_MS = 86_400_000;
+@Traced()
 @Injectable()
 export class EmailProductSignalsService implements OnModuleInit {
   constructor(

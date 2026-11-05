@@ -8,6 +8,7 @@ import { CreateSkillCheckoutDto } from '@api/skills-pro/dto/create-skill-checkou
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -28,6 +29,7 @@ type CheckoutLineItem = NonNullable<
 
 const STRIPE_SECRET_KEY_PATTERN = /^[sr]k_(live|test)_/;
 
+@Traced()
 @Injectable()
 export class SkillCheckoutService {
   private readonly constructorName: string = String(this.constructor.name);

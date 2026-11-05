@@ -9,6 +9,7 @@ import {
   type ToolRequiredRole,
 } from '@genfeedai/actions';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type ToolCatalogSurface = 'agent' | 'mcp' | 'cli' | 'all';
@@ -36,6 +37,7 @@ const TOOL_CATALOG_ROLES: ToolRequiredRole[] = ['user', 'admin', 'superadmin'];
  * Live Genfeed tool catalog listing for operator questions.
  * Extracted from AgentToolExecutorService per #519.
  */
+@Traced()
 @Injectable()
 export class AgentToolCatalogHandler {
   async listGenfeedTools(

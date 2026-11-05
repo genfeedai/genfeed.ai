@@ -1,9 +1,11 @@
 import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Terminal media billing failures are recoverable and must preserve durable outputs. */
+@Traced()
 @Injectable()
 export class WebhookGenerationSettlementService {
   constructor(

@@ -6,6 +6,7 @@ import type {
 } from '@api/services/source-collector/source-collector.types';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
@@ -87,6 +88,7 @@ function date(value: unknown): Date | undefined {
     : undefined;
 }
 
+@Traced()
 @Injectable()
 export class YoutubePublicProvider implements SourceTimelineProvider {
   readonly name = 'app-api-key' as const;

@@ -52,6 +52,7 @@ import type {
   PublishExecutionClaim,
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 
 export type {
@@ -103,6 +104,7 @@ export class PublishApprovalsService {
     return this.contractCodec.toInterface(row as PublishApprovalRow);
   }
 
+  @Traced()
   async assertPostMutable(
     organizationId: string,
     postId: string,
@@ -131,6 +133,7 @@ export class PublishApprovalsService {
     }
   }
 
+  @Traced()
   async createForCurrentPost(
     params: CreateCurrentPostPublishApprovalParams<Prisma.TransactionClient>,
   ): Promise<IPublishApproval> {
@@ -168,6 +171,7 @@ export class PublishApprovalsService {
     });
   }
 
+  @Traced()
   async createForPost(
     params: CreatePostPublishApprovalParams<Prisma.TransactionClient>,
   ): Promise<IPublishApproval> {
@@ -379,6 +383,7 @@ export class PublishApprovalsService {
    * The post must be an eligible target and not held by its brand receipt or,
    * for a workflow or MCP publish, by the brand Policy.
    */
+  @Traced()
   private async assertCreatable(
     post: ApprovalPost,
     transaction?: Prisma.TransactionClient,
@@ -395,6 +400,7 @@ export class PublishApprovalsService {
   }
 
   /** A claim for a held post only goes through if a member minted the approval. */
+  @Traced()
   private async assertClaimNotHeld(
     approval: PublishApprovalRow,
   ): Promise<void> {
@@ -407,6 +413,7 @@ export class PublishApprovalsService {
     });
   }
 
+  @Traced()
   async markQueued(
     approvalId: string,
     organizationId: string,
@@ -420,6 +427,7 @@ export class PublishApprovalsService {
     );
   }
 
+  @Traced()
   async markEnqueueFailed(
     approvalId: string,
     organizationId: string,
@@ -434,6 +442,7 @@ export class PublishApprovalsService {
     );
   }
 
+  @Traced()
   async claimForExecution(
     params: ClaimPublishExecutionParams,
   ): Promise<PublishExecutionClaim> {
@@ -558,6 +567,7 @@ export class PublishApprovalsService {
     }
   }
 
+  @Traced()
   async completeExecution(
     params: CompletePublishExecutionParams,
   ): Promise<IPublishApproval> {
@@ -571,6 +581,7 @@ export class PublishApprovalsService {
     return approval;
   }
 
+  @Traced()
   async invalidatePost(
     organizationId: string,
     postId: string,
@@ -651,6 +662,7 @@ export class PublishApprovalsService {
     else emit();
   }
 
+  @Traced()
   private async completeClaimedExecution(
     params: CompletePublishExecutionParams,
   ): Promise<IPublishApproval> {
@@ -759,6 +771,7 @@ export class PublishApprovalsService {
     });
   }
 
+  @Traced()
   private async transitionStatus(
     approvalId: string,
     organizationId: string,
@@ -802,6 +815,7 @@ export class PublishApprovalsService {
     return this.contractCodec.toInterface(updated);
   }
 
+  @Traced()
   private async assertApprovalScope(
     approval: PublishApprovalRow,
     post: ApprovalPost,
@@ -896,6 +910,7 @@ export class PublishApprovalsService {
     }
   }
 
+  @Traced()
   private async assertCurrentAuthorization(
     approval: PublishApprovalRow,
   ): Promise<void> {
@@ -924,6 +939,7 @@ export class PublishApprovalsService {
     }
   }
 
+  @Traced()
   private async activatePostApproval(
     post: ApprovalPost,
     approval: PublishApprovalRow,
@@ -953,6 +969,7 @@ export class PublishApprovalsService {
     }
   }
 
+  @Traced()
   private async getPostOrThrow(
     organizationId: string,
     postId: string,

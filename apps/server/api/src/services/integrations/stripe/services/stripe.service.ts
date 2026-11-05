@@ -34,6 +34,7 @@ import {
 } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import StripeConstructor from 'stripe';
@@ -89,6 +90,7 @@ function resolveStripeApiVersion(
   return STRIPE_PINNED_API_VERSION;
 }
 
+@Traced()
 @Injectable()
 export class StripeService {
   private readonly constructorName: string = String(this.constructor.name);

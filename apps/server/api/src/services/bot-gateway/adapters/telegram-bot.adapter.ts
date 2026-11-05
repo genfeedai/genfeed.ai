@@ -11,6 +11,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -32,6 +33,7 @@ interface TelegramUpdateMessage {
   text?: string;
 }
 
+@Traced()
 @Injectable()
 export class TelegramBotAdapter implements IBotPlatformAdapter {
   private readonly constructorName: string = String(this.constructor.name);

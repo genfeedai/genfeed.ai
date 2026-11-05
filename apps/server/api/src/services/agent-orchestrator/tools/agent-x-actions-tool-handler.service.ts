@@ -23,6 +23,7 @@ import { X_READ_CREDIT_COST } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -42,6 +43,7 @@ function readOptionalString(value: unknown): string | undefined {
  * X/Twitter agent tools for search, fetch, activity, and approval-gated
  * quote/repost drafts (#2663).
  */
+@Traced()
 @Injectable()
 export class AgentXActionsToolHandler {
   private readonly constructorName = String(this.constructor.name);

@@ -25,6 +25,7 @@ import {
 } from '@genfeedai/harness';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type PackModule = {
@@ -113,6 +114,7 @@ function resolveModuleSpecifier(
   }
 }
 
+@Traced()
 @Injectable()
 export class ContentHarnessService implements OnModuleInit {
   private readonly constructorName = String(this.constructor.name);

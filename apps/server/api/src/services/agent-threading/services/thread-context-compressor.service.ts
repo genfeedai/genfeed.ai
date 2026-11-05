@@ -9,6 +9,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { type ThreadContextState, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const LOCK_TTL_SECONDS = 30;
@@ -53,6 +54,7 @@ type ThreadContextStateWithData = ThreadContextState & {
   data: ThreadContextStateData;
 };
 
+@Traced()
 @Injectable()
 export class ThreadContextCompressorService {
   private readonly constructorName = String(this.constructor.name);

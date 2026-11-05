@@ -23,6 +23,7 @@ import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import type { ExecutionContext } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -176,6 +177,7 @@ function newsletterDraftWorkflow(): SystemWorkflowGraphDefinition {
   };
 }
 
+@Traced()
 @Injectable()
 export class NewslettersService
   extends BaseService<

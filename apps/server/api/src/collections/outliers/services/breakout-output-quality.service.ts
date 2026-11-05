@@ -41,6 +41,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 export type BreakoutOutputQualityRequest = Readonly<{
@@ -53,6 +54,7 @@ export type BreakoutOutputQualityResult = Readonly<{
 }>;
 
 /** Runs the existing strategy quality gate on retained canonical text/thread material. Never publishes. */
+@Traced()
 @Injectable()
 export class BreakoutOutputQualityService {
   constructor(

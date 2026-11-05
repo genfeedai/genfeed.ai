@@ -6,6 +6,7 @@ import type {
   IHarnessGoodFeedbackEntry,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -59,6 +60,7 @@ export type RecordReviewDecisionParams = {
  * Every call is fire-and-forget safe: failures are logged and swallowed so a
  * harness feedback write can never fail the review action that triggered it.
  */
+@Traced()
 @Injectable()
 export class HarnessReviewFeedbackService {
   private readonly constructorName = String(this.constructor.name);

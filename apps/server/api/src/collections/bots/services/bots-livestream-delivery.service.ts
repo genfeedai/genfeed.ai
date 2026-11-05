@@ -7,6 +7,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Platform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
@@ -23,6 +24,7 @@ function requireString(
   return value;
 }
 
+@Traced()
 @Injectable()
 export class BotsLivestreamDeliveryService {
   constructor(

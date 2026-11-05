@@ -33,6 +33,7 @@ import { KnowledgeSourcePurpose } from '@genfeedai/contracts';
 import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
 import { computeBrandKitReadiness } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable, Optional } from '@nestjs/common';
 import {
   BRAND_CONTEXT_CHARACTER_BUDGET,
@@ -82,6 +83,7 @@ type EffectiveBrandAgentConfig = ReturnType<
   typeof resolveEffectiveBrandAgentConfig
 >;
 
+@Traced()
 @Injectable()
 export class AgentContextAssemblyService {
   private readonly constructorName = String(this.constructor.name);

@@ -20,6 +20,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { serializeExternalConnectionRequest } from '@genfeedai/helpers/integrations/external-connection-request.helper';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const SUPPORTED_CONNECTION_PLATFORMS = new Set<string>([
@@ -32,6 +33,7 @@ const SUPPORTED_CONNECTION_PLATFORMS = new Set<string>([
   CredentialPlatform.YOUTUBE,
 ]);
 
+@Traced()
 @Injectable()
 export class AgentConnectionRequestService {
   constructor(

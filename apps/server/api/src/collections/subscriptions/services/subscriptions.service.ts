@@ -56,6 +56,7 @@ import {
 } from '@genfeedai/contracts/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
@@ -86,6 +87,7 @@ const STRIPE_PRICE_ID_PATTERN = /^price_[A-Za-z0-9]+$/;
  * `stripeCustomerId` is derived from the related customer for Stripe calls and
  * is not persisted on the subscription row.
  */
+@Traced()
 @Injectable()
 export class SubscriptionsService
   extends BaseService<

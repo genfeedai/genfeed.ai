@@ -88,6 +88,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -108,6 +109,7 @@ type BrandCreateInput = CreateBrandDto & {
   userId?: string;
 };
 
+@Traced()
 @Injectable()
 export class BrandsService extends BaseService<
   BrandDocument,

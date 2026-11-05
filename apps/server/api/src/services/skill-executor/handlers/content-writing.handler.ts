@@ -15,8 +15,10 @@ import {
   measurePlatformText,
 } from '@genfeedai/helpers/content/platform-text-length.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ContentWritingHandler implements SkillHandler {
   constructor(

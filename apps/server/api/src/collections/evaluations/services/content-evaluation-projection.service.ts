@@ -8,6 +8,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientCategory } from '@genfeedai/contracts';
 import type { IEvaluation } from '@genfeedai/contracts/interfaces';
 import { normalizePersuasionScores } from '@genfeedai/harness/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 function persistedContentType(
@@ -41,6 +42,7 @@ function targetKey(
   ]);
 }
 
+@Traced()
 @Injectable()
 export class ContentEvaluationProjectionService {
   constructor(private readonly prisma: PrismaService) {}

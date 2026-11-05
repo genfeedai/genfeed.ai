@@ -2,6 +2,7 @@ import { ORGANIZATION_CREATED_EVENT } from '@api/collections/organizations/const
 import type { OrganizationCreatedEvent } from '@api/collections/organizations/organization-events.types';
 import { SignupPrefillWorkflowService } from '@api/services/signup-prefill/signup-prefill-workflow.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 
@@ -13,6 +14,7 @@ import { OnEvent } from '@nestjs/event-emitter';
  * Only the website the creator typed is scanned. The creator's email domain is
  * deliberately not passed: it identifies their first company, not this one.
  */
+@Traced()
 @Injectable()
 export class OrganizationCreatedPrefillListener {
   private readonly context = {

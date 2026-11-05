@@ -17,8 +17,10 @@ import { StudioElementSeedService } from '@api/seeds/studio-element-seed.service
 import { StudioPresetSeedService } from '@api/seeds/studio-preset-seed.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ReferenceDataSyncService {
   private readonly context = 'ReferenceDataSyncService';

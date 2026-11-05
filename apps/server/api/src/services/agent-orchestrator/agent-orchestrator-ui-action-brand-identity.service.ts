@@ -20,6 +20,7 @@ import {
   type ValidatedAgentScope,
 } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -44,6 +45,7 @@ type BrandIdentityMessage = {
   role?: unknown;
 };
 
+@Traced()
 @Injectable()
 export class AgentOrchestratorUiActionBrandIdentityService {
   constructor(

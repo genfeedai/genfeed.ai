@@ -13,6 +13,7 @@ import {
 } from '@api/helpers/utils/credits/organization-credits-gate.util';
 import type { TextByokDispatch } from '@api/services/byok/text-dispatch-byok.util';
 import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -23,6 +24,7 @@ import type { Request } from 'express';
  * dispatches; only a request that is not BYOK must hold the platform-credit
  * floor for its text steps.
  */
+@Traced()
 @Injectable()
 export class ArticleGenerationCreditsService {
   constructor(

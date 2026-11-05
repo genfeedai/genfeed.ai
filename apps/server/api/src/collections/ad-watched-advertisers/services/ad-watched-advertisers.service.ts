@@ -16,6 +16,7 @@ import {
   normalizeAdvertiserHandle,
 } from '@genfeedai/integrations/ads';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const CREATE_SCALAR_FIELDS = [
@@ -85,6 +86,7 @@ const CREDENTIAL_PLATFORM_BY_PLATFORM: Record<
  * scalar fields directly instead of merging a config blob (contrast
  * `WatchlistsService`).
  */
+@Traced()
 @Injectable()
 export class AdWatchedAdvertisersService extends BaseService<
   AdWatchedAdvertiserDocument,

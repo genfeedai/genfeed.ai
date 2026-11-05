@@ -27,6 +27,7 @@ import { AssetCategory, AssetParent } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   ForbiddenException,
   Injectable,
@@ -36,6 +37,7 @@ import {
 import * as Sentry from '@sentry/nestjs';
 
 /** Only record identities cross this boundary; raw URLs/keys are never inputs. */
+@Traced()
 @Injectable()
 export class AuthorizedMediaUrlService implements OnModuleInit {
   private hasReportedMisconfiguration = false;

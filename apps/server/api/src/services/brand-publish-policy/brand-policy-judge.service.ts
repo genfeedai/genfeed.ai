@@ -12,6 +12,7 @@ import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatc
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { IBrandPolicyViolation } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 
@@ -91,6 +92,7 @@ function toViolation(
  * It fails closed: an unavailable model, budget or answer is reported as a
  * `policy_judge_unavailable` violation, which holds the draft for review.
  */
+@Traced()
 @Injectable()
 export class BrandPolicyJudgeService {
   private readonly constructorName = String(this.constructor.name);

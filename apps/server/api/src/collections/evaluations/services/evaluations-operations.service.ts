@@ -25,6 +25,7 @@ import {
   normalizePersuasionScores,
 } from '@genfeedai/harness';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 interface EvaluationContext {
@@ -100,6 +101,7 @@ type EvaluationPromptOptions = PromptBuilderParams & {
   threadLength?: number;
 };
 
+@Traced()
 @Injectable()
 export class EvaluationsOperationsService {
   private readonly constructorName: string = String(this.constructor.name);

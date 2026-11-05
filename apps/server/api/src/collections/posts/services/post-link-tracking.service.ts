@@ -13,12 +13,14 @@ import type {
   TrackPostLinkInput,
 } from '@genfeedai/contracts/interfaces/content/extension-publication.interface';
 import { CredentialPlatform } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class PostLinkTrackingService {
   constructor(

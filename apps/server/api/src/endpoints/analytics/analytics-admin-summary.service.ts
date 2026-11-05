@@ -23,8 +23,10 @@ import {
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/contracts/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class AnalyticsAdminSummaryService {
   constructor(

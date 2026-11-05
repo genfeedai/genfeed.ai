@@ -22,8 +22,10 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { BrandRemixRunListQuery } from '@genfeedai/contracts/api-types/contracts/brand-remix-run-summary.contract';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class BrandRemixRunPersistenceService {
   constructor(private readonly prisma: PrismaService) {}

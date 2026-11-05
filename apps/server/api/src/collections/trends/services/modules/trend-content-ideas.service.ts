@@ -13,6 +13,7 @@ import {
   type TrendDigestAngle,
 } from '@genfeedai/contracts/api-types/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Minimal brand voice context for trend-idea prompts (#5219). */
@@ -22,6 +23,7 @@ export interface TrendIdeaBrandContext {
   text?: string;
 }
 
+@Traced()
 @Injectable()
 export class TrendContentIdeasService {
   constructor(

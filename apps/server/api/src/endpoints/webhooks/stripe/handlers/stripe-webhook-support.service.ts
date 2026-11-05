@@ -40,6 +40,7 @@ import {
 } from '@genfeedai/contracts/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
@@ -118,6 +119,7 @@ type SubscriptionCreditGrantLookup = {
  * Each helper is the single definition of a block that was previously
  * duplicated across the monolithic StripeWebhookService.
  */
+@Traced()
 @Injectable()
 export class StripeWebhookSupportService {
   private readonly constructorName: string = String(this.constructor.name);

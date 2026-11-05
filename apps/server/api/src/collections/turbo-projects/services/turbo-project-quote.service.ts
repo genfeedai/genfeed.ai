@@ -19,6 +19,7 @@ import type {
   TurboProjectBillingMode,
 } from '@genfeedai/contracts/interfaces';
 import type { TurboProjectItem } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -41,6 +42,7 @@ type PricedModel = {
  * second from their own script and settle to the clip length. A format the
  * organization pays with its own key quotes 0 platform credits.
  */
+@Traced()
 @Injectable()
 export class TurboProjectQuoteService {
   constructor(

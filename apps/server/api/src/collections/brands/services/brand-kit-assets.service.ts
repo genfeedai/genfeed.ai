@@ -33,6 +33,7 @@ import { Prisma } from '@genfeedai/prisma';
 import { projectSocialAvatarUrls } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { signCdnUrl } from '@libs/media/media-url.util';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const BRAND_KIT_IMPORT_MAX_BYTES = 50 * 1024 * 1024;
@@ -105,6 +106,7 @@ type BrandKitAssetBrandFinder = (
   criteria: Record<string, unknown>,
 ) => Promise<BrandDocument | null>;
 
+@Traced()
 @Injectable()
 export class BrandKitAssetsService {
   constructor(

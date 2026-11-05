@@ -7,6 +7,7 @@ import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util'
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/contracts';
 import { AssetCategory, AssetParent } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -81,6 +82,7 @@ const ALLOWED_DESKTOP_MIME_TYPES = new Set([
   'application/pdf',
 ]);
 
+@Traced()
 @Injectable()
 export class DesktopSyncService {
   constructor(

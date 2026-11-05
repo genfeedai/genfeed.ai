@@ -21,9 +21,11 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class HeygenAvatarProvider implements AvatarVideoProvider {
   readonly providerName: AvatarVideoProviderName = 'heygen';

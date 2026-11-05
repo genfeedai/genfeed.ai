@@ -14,12 +14,14 @@ import type {
   AgentUiAction,
   IReviewInboxItem,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 /**
  * Review-queue tools (`get_review_queue`, `review_turbo_items`).
  * Extracted from AgentToolExecutorService per #519.
  */
+@Traced()
 @Injectable()
 export class AgentReviewToolHandler {
   constructor(

@@ -46,12 +46,14 @@ import {
   MetadataExtension,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
 } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class AgentImportedSourceIngestService {
   constructor(

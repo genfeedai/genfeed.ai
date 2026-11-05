@@ -11,8 +11,10 @@ import { readRecordOrEmpty } from '@api/shared/utils/object/read-record-or-empty
 import { CreatorAnalysisStatus } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ContentIntelligenceService extends BaseService<
   CreatorAnalysisDocument,

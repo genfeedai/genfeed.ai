@@ -26,6 +26,7 @@ import {
 } from '@genfeedai/harness';
 import { resolveMediaSubjectLock } from '@genfeedai/helpers/brand/brand-offering.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -134,6 +135,7 @@ function hasKnowledgeSelection(
   );
 }
 
+@Traced()
 @Injectable()
 export class MediaPromptEnhancementService {
   constructor(

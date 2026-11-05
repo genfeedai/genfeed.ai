@@ -6,12 +6,14 @@ import type {
   ITopbarBalances,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 const PROVIDER_BALANCE_TIMEOUT_MS = 2500;
 
+@Traced()
 @Injectable()
 export class TopbarBalancesService {
   constructor(

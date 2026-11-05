@@ -43,6 +43,7 @@ import {
 import type { KnowledgeSourceRefreshPolicyRequest } from '@genfeedai/contracts/interfaces';
 import type { KnowledgeSourceRefreshRun } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const LEASE_MS = 5 * 60 * 1000;
@@ -64,6 +65,7 @@ export interface KnowledgeRefreshResult {
   sourceId: string;
 }
 
+@Traced()
 @Injectable()
 export class KnowledgeRefreshService {
   constructor(

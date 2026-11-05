@@ -5,8 +5,10 @@ import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class BatchInterpolationReferenceService {
   constructor(

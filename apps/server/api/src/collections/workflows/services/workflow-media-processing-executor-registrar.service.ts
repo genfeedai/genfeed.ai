@@ -36,6 +36,7 @@ import {
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -65,6 +66,7 @@ export function toWorkflowStitchRequest(
   };
 }
 
+@Traced()
 @Injectable()
 export class WorkflowMediaProcessingExecutorRegistrarService {
   constructor(

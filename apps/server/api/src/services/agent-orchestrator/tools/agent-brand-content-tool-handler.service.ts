@@ -25,6 +25,7 @@ import type {
   IGeneratedBrandProfile,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   ForbiddenException,
   Inject,
@@ -90,6 +91,7 @@ interface BrandVoiceProfileDraft {
  * Monthly content calendar + brand voice draft/save tools.
  * Extracted from AgentToolExecutorService per #519.
  */
+@Traced()
 @Injectable()
 export class AgentBrandContentToolHandler {
   constructor(

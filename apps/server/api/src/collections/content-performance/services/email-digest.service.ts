@@ -27,6 +27,7 @@ import {
   escapeSystemEmailHtml,
 } from '@helpers/email/system-email.helper';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
 export interface EmailDigestResult {
@@ -94,6 +95,7 @@ export interface EmailDigestRendered {
   deliveries: EmailDigestDelivery[];
 }
 
+@Traced()
 @Injectable()
 export class EmailDigestService {
   constructor(

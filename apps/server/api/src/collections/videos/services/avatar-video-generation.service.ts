@@ -54,11 +54,13 @@ import {
   VoiceProvider,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { AvatarVideoLifecycleService } from './avatar-video-lifecycle.service';
 
+@Traced()
 @Injectable()
 export class AvatarVideoGenerationService {
   private readonly constructorName = String(this.constructor.name);

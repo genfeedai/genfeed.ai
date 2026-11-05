@@ -19,6 +19,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { ContentHarnessContribution } from '@genfeedai/harness';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type GenerationIdentity = Pick<AuthenticatedUser, 'brandId' | 'organizationId'>;
@@ -37,6 +38,7 @@ export interface PostAccountLearningSession {
  * says it was applied, and learning never blocks generation: every failure
  * degrades to an `unavailable` receipt with no contribution.
  */
+@Traced()
 @Injectable()
 export class PostAccountLearningService {
   private readonly logContext = 'PostAccountLearningService';

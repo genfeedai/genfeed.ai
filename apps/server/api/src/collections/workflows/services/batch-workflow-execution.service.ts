@@ -7,6 +7,7 @@ import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-w
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -24,6 +25,7 @@ export type StartBatchWorkflowExecutionInput = {
   workflowId: string;
 };
 
+@Traced()
 @Injectable()
 export class BatchWorkflowExecutionService implements OnModuleInit {
   constructor(

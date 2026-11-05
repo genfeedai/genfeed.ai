@@ -11,6 +11,7 @@ import {
   PricingType,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 /** What a lip-sync node dispatches with and how its output is funded. */
@@ -40,6 +41,7 @@ interface LipSyncFundingInput {
  * holds the lip-sync model's own tariff at the same measured length and the
  * Replicate webhook settles it. A customer key holds nothing.
  */
+@Traced()
 @Injectable()
 export class WorkflowLipSyncFundingService {
   constructor(

@@ -47,6 +47,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import type {
   AnalyticsAggRow,
@@ -100,6 +101,7 @@ const SORT_FIELD_MAP: Record<LeaderboardSort, SortableMetric> = {
   [LeaderboardSort.GENERATIONS]: 'totalGenerations',
 };
 
+@Traced()
 @Injectable()
 export class EntityLeaderboardService {
   constructor(

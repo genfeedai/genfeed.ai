@@ -4,6 +4,7 @@ import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
@@ -68,6 +69,7 @@ const MUREKA_POLL_TIMEOUT_MS = 180_000;
  * Each returns a task `id`, polled on /v1/song/query/{id} or
  * /v1/instrumental/query/{id} respectively. Neither accepts a duration.
  */
+@Traced()
 @Injectable()
 export class MurekaService {
   private readonly logContext = 'MurekaService';

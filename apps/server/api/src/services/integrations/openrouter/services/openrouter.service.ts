@@ -13,6 +13,7 @@ import {
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
@@ -58,6 +59,7 @@ function parseRawProviderError(value: unknown): UnknownRecord | undefined {
   }
 }
 
+@Traced()
 @Injectable()
 export class OpenRouterService {
   private readonly apiUrl = 'https://openrouter.ai/api/v1/chat/completions';

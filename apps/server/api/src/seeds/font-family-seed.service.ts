@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { FONT_FAMILY_METADATA } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export type FontFamilySeedResult = {
@@ -18,6 +19,7 @@ export function fontFamilyId(key: string): string {
  * Platform font families, one row per shipped TTF. Insert-if-missing like the
  * studio elements: a superadmin's rename, edit or delete is never overwritten.
  */
+@Traced()
 @Injectable()
 export class FontFamilySeedService {
   private readonly context = 'FontFamilySeedService';

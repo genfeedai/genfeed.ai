@@ -15,6 +15,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const LABEL_LENGTH = 80;
@@ -30,6 +31,7 @@ export interface ReviewablePostInput extends GeneratedContentInput {
   workflowExecutionId?: string;
 }
 
+@Traced()
 @Injectable()
 export class ReviewablePostsService {
   constructor(

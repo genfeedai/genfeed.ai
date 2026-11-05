@@ -22,6 +22,7 @@ import {
   resolvePaidCreativeProvider,
 } from '@genfeedai/integrations/ads';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   HttpException,
   HttpStatus,
@@ -69,6 +70,7 @@ export type PaidCreativeIngestionOptions = {
  * them or reporting an empty archive: "we could not look" and "the competitor
  * is running nothing" are different facts and the operator sees which one.
  */
+@Traced()
 @Injectable()
 export class PaidCreativeResearchIngestionService {
   private readonly logContext = 'PaidCreativeResearchIngestionService';

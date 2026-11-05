@@ -10,6 +10,7 @@ import type {
   ICampaignPerformancePlatform,
   ICampaignPerformancePost,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export function rollupCampaignMetric(
@@ -45,6 +46,7 @@ function emptyOrganic(totalPostCount: number): ICampaignOrganicTotals {
   };
 }
 
+@Traced()
 @Injectable()
 export class CampaignPerformanceService {
   constructor(private readonly prisma: PrismaService) {}

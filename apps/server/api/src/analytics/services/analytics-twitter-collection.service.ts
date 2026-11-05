@@ -30,6 +30,7 @@ import type {
   ServerAnalyticsCollectionState,
 } from '@genfeedai/contracts/interfaces';
 import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Inject, Injectable } from '@nestjs/common';
 import {
@@ -47,6 +48,7 @@ type TwitterBatchOutcome = {
   failedTargets: AnalyticsCollectionAttemptRef[];
   firstProcessingError: unknown;
 };
+@Traced()
 @Injectable()
 export class AnalyticsTwitterCollectionService {
   constructor(

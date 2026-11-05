@@ -38,6 +38,9 @@ export function getSentryConfig(
   return {
     dsn,
     environment: process.env.SENTRY_ENVIRONMENT || 'development',
+    // Send W3C `traceparent` beside `sentry-trace` and `baggage` so services
+    // that only speak OpenTelemetry continue our traces.
+    propagateTraceparent: true,
     release: process.env.npm_package_version || '1.0.0',
     // Never attach request bodies or IP/user defaults — prompt text must not
     // ride Sentry events in any environment, including staging and local opt-in.

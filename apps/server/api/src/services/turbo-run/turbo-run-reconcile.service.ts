@@ -24,6 +24,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TurboRunItemStatus, TurboRunStatus } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** A run whose run died and which the sweep wants handed back to the queue. */
@@ -49,6 +50,7 @@ export type StrandedTurboRun = {
  * not a tenant-facing query, and every result carries its own `organizationId`
  * so downstream work stays scoped.
  */
+@Traced()
 @Injectable()
 export class TurboRunReconcileService {
   private reviewSweepCursor?: string;

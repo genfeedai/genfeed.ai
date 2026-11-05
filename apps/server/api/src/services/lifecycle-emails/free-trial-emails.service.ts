@@ -23,6 +23,7 @@ import {
   escapeSystemEmailHtml,
 } from '@helpers/email/system-email.helper';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -38,6 +39,7 @@ const TRIAL_EMAIL_TOPICS: Record<FreeTrialEmailTemplateKey, string> = {
   'trial-ending': 'lifecycle.onboarding',
 };
 
+@Traced()
 @Injectable()
 export class FreeTrialEmailsService {
   constructor(

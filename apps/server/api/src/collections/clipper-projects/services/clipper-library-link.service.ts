@@ -19,6 +19,7 @@ import {
   clipperResultGenerationSource,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface ClipperLibraryLinkInput {
@@ -43,6 +44,7 @@ interface CreatedLibraryAsset {
   metadataId: string;
 }
 
+@Traced()
 @Injectable()
 export class ClipperLibraryLinkService {
   private readonly logContext = 'ClipperLibraryLinkService';

@@ -13,6 +13,7 @@ import {
 } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 /** What a workflow upscale node dispatches with and how its output is funded. */
@@ -58,6 +59,7 @@ export interface WorkflowUpscaleFundingInput {
  * workflow charges what the direct upscale would. A source with no stored size
  * or length is refused before any hold or provider call exists.
  */
+@Traced()
 @Injectable()
 export class WorkflowUpscaleFundingService {
   constructor(

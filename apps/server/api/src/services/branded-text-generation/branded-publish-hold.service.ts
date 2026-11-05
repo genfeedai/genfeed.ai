@@ -13,6 +13,7 @@ import {
   type Prisma,
   type PrismaClient,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException } from '@nestjs/common';
 
 const TEXT_LOOKUP_LIMIT = 20;
@@ -131,6 +132,7 @@ export class BrandedPublishHoldService implements IPublishApprovalHold {
     private readonly policy: HoldPolicy,
   ) {}
 
+  @Traced()
   async findHold(
     organizationId: string,
     postId: string,
@@ -161,6 +163,7 @@ export class BrandedPublishHoldService implements IPublishApprovalHold {
    * publish node saves a fresh post from a caption). Identical text that any
    * receipt cleared is not held; text only uncleared receipts produced is.
    */
+  @Traced()
   async findHoldForText(
     organizationId: string,
     brandId: string,
@@ -181,6 +184,7 @@ export class BrandedPublishHoldService implements IPublishApprovalHold {
     return this.holdFor(organizationId, brandId, receipts);
   }
 
+  @Traced()
   private async holdFor(
     organizationId: string,
     brandId: string,
@@ -206,6 +210,7 @@ export class BrandedPublishHoldService implements IPublishApprovalHold {
   }
 
   /** The brand Policy hold on a saved post, with its violations recorded on it. */
+  @Traced()
   async findPolicyHold(
     organizationId: string,
     postId: string,
@@ -240,6 +245,7 @@ export class BrandedPublishHoldService implements IPublishApprovalHold {
    * The hold on text a workflow is about to publish as new posts, one per
    * destination platform: any platform the Policy holds holds them all.
    */
+  @Traced()
   async findPolicyHoldForText(
     facts: Omit<BrandPolicyDraftFacts, 'platform' | 'postId'>,
     platforms: readonly string[],
@@ -266,6 +272,7 @@ export class BrandedPublishHoldService implements IPublishApprovalHold {
       : null;
   }
 
+  @Traced()
   async assertPostPublishable(input: {
     organizationId: string;
     postId: string;

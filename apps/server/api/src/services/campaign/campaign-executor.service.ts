@@ -57,6 +57,7 @@ import type {
   IReplyBotCredentialData,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
@@ -84,6 +85,7 @@ type CampaignReplyWorkflowState = {
   targetId: string;
 };
 
+@Traced()
 @Injectable()
 export class CampaignExecutorService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);

@@ -15,6 +15,7 @@ import {
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { type Prisma } from '@genfeedai/prisma';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 
@@ -360,6 +361,7 @@ function learningWalkHasCycle(
   }
   return false;
 }
+@Traced()
 @Injectable()
 export class LearningDependencyService {
   constructor(private readonly prisma: PrismaService) {}

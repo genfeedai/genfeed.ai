@@ -21,8 +21,10 @@ import {
   type BrandRemixRunView,
   brandRemixRunConfigSchema,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class BrandRemixRunStateService {
   constructor(

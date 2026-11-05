@@ -33,6 +33,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { RedisService } from '@libs/redis/redis.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -72,6 +73,7 @@ export interface ApiKeyRateLimitResult {
   retryAfterSeconds: number;
 }
 
+@Traced()
 @Injectable()
 export class ApiKeysService extends BaseService<
   ApiKeyDocument,

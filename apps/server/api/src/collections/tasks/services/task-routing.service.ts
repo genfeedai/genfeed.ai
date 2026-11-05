@@ -9,6 +9,7 @@ import {
 } from '@api/collections/tasks/schemas/task.schema';
 import { resolveTaskRoutingDecisionRollout } from '@api/collections/tasks/services/task-routing-decision.config';
 import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export type TaskRoutingDecision = Pick<
@@ -181,6 +182,7 @@ const OUTPUT_TYPE_DECISION_QUESTION =
  * a hard gate, and no decision reaches it — the decided outputType only picks
  * the modality the gate is asked about.
  */
+@Traced()
 @Injectable()
 export class TaskRoutingService {
   constructor(

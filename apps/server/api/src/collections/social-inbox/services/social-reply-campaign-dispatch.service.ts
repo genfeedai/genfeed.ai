@@ -37,6 +37,7 @@ import {
 } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 /**
@@ -88,6 +89,7 @@ type SocialReplyCampaignDispatchState = {
   workflowRunId?: string;
 };
 
+@Traced()
 @Injectable()
 export class SocialReplyCampaignDispatchService implements OnModuleInit {
   private readonly logContext = 'SocialReplyCampaignDispatchService';

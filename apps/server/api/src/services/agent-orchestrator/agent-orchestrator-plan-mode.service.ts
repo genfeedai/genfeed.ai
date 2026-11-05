@@ -5,8 +5,8 @@ import { canThreadSourceReviewPlans } from '@api/collections/agent-threads/utils
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { AgentAutoModelResolverService } from '@api/services/agent-orchestrator/agent-auto-model-resolver.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
-import { AgentPlannerEmptyPlanError } from '@api/services/agent-orchestrator/agent-planner-empty-plan.error';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
+import { AgentPlannerEmptyPlanError } from '@api/services/agent-orchestrator/agent-planner-empty-plan.error';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import type {
@@ -59,6 +59,7 @@ import type {
 import { AgentMessageRole, AgentThreadMode } from '@genfeedai/contracts';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { AgentAutoRoutingResolution } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Logger } from '@nestjs/common';
 
 /**
@@ -108,6 +109,7 @@ function isProseReply(response: ReturnType<typeof parsePlanResponse>): boolean {
   return !response.parsed && !response.candidate.startsWith('{');
 }
 
+@Traced()
 @Injectable()
 export class AgentOrchestratorPlanModeService {
   private readonly logger = new Logger(AgentOrchestratorPlanModeService.name);

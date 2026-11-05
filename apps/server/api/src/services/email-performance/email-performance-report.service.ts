@@ -4,10 +4,12 @@ import type {
   IEmailPerformanceReport,
 } from '@genfeedai/contracts/interfaces';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const DAY_MS = 86_400_000;
 
+@Traced()
 @Injectable()
 export class EmailPerformanceReportService {
   constructor(private readonly prisma: PrismaService) {}

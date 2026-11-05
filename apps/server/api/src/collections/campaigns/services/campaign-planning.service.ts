@@ -20,6 +20,7 @@ import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatc
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentCampaignStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -36,6 +37,7 @@ export const campaignPlanSchema = z.object({
   brief: z.string().trim().min(1).max(8000),
 });
 
+@Traced()
 @Injectable()
 export class CampaignPlanningService {
   constructor(

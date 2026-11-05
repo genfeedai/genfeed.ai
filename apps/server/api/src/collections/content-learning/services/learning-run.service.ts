@@ -40,6 +40,7 @@ import {
   Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -79,6 +80,7 @@ export function learningRunOperationStatus(status: string): string | null {
       : status
     : null;
 }
+@Traced()
 @Injectable()
 export class LearningRunService {
   constructor(

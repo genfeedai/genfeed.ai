@@ -30,10 +30,12 @@ import {
   quoteBrandRemixScenesSchema,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 type SceneStage = BrandRemixScenePipeline['scenes'][string]['image'];
 
+@Traced()
 @Injectable()
 export class BrandRemixSceneService {
   constructor(

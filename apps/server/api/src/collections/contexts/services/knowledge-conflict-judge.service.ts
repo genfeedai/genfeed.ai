@@ -10,6 +10,7 @@ import {
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 
@@ -24,6 +25,7 @@ export type KnowledgeConflictVerdict =
  * unavailable model or answer is `unavailable`, never a conflict, so the pair
  * is judged again on a later scan instead of being shown or cleared.
  */
+@Traced()
 @Injectable()
 export class KnowledgeConflictJudgeService {
   private readonly constructorName = String(this.constructor.name);

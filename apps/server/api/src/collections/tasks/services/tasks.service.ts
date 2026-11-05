@@ -36,6 +36,7 @@ import {
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   forwardRef,
@@ -91,6 +92,7 @@ type TaskWriteInput = CreateTaskDto & {
  * thin delegators so the HTTP contract (the controller still calls them here) is
  * preserved.
  */
+@Traced()
 @Injectable()
 export class TasksService extends BaseService<
   TaskDocument,

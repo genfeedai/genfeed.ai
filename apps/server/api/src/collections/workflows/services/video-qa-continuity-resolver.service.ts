@@ -6,6 +6,7 @@ import type {
   VideoContinuityVerdict,
 } from '@genfeedai/contracts/interfaces';
 import { createNotAssessedContinuityDimension } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const VISION_FEATURES = new Set([
@@ -31,6 +32,7 @@ type ContinuityInput = {
   videoUrl: string;
 };
 
+@Traced()
 @Injectable()
 export class VideoQaContinuityResolverService {
   constructor(

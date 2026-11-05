@@ -10,6 +10,7 @@ import { VISUAL_CODE_LIMITS } from '@genfeedai/contracts/constants';
 import type { IVisualCodeReceipt } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { toPrismaJson, type VisualRevision } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 const terminal = [
@@ -17,6 +18,7 @@ const terminal = [
   VisualCodeStatus.FAILED,
   VisualCodeStatus.CANCELLED,
 ] as string[];
+@Traced()
 @Injectable()
 export class VisualProjectDispatchService {
   constructor(

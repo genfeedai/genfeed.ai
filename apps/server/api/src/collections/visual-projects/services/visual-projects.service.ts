@@ -26,6 +26,7 @@ import {
   visualCodeQuoteAttributes,
   visualProjectData,
 } from '@genfeedai/serializers';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -39,6 +40,7 @@ const terminal = [
   VisualCodeStatus.FAILED,
   VisualCodeStatus.CANCELLED,
 ] as string[];
+@Traced()
 @Injectable()
 export class VisualProjectsService implements OnModuleInit {
   constructor(

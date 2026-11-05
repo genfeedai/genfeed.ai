@@ -25,6 +25,7 @@ import { readRecordOrUndefined } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const JEV_ORIGIN = new URL(JEV_SYSTEM_ONE_URL).origin;
@@ -150,6 +151,7 @@ interface JevEvaluation {
  * cooldown the vendor asked for and fails fast until it expires, so a rate
  * limit costs one request, not a burst.
  */
+@Traced()
 @Injectable()
 export class JevTypedDecisionProvider implements TypedDecisionProvider {
   readonly name = JEV_TYPED_DECISION_PROVIDER_NAME;

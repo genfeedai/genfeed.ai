@@ -42,6 +42,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/linkedin-authorized-signals.contract';
 import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -155,6 +156,7 @@ function organizationIdFromUrn(urn: string | undefined): string | undefined {
   return match?.[1];
 }
 
+@Traced()
 @Injectable()
 export class LinkedInAuthorizedSignalsService {
   private readonly constructorName = this.constructor.name;

@@ -13,8 +13,10 @@ import {
   type AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class AgentStreamEffectsService {
   private readonly constructorName = String(this.constructor.name);

@@ -6,6 +6,7 @@ import {
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -23,6 +24,7 @@ function passedReport(value: unknown): boolean {
     value.synthetic === false
   );
 }
+@Traced()
 @Injectable()
 export class LearningReleaseService {
   constructor(

@@ -24,6 +24,7 @@ import { Timeframe } from '@genfeedai/contracts';
 import type { TrendRefreshReason } from '@genfeedai/contracts/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Separator that cannot appear in a platform id or external id. */
@@ -33,6 +34,7 @@ function trendKey(...parts: string[]): string {
   return parts.join(TREND_KEY_SEPARATOR);
 }
 
+@Traced()
 @Injectable()
 export class TrendVideoService {
   private readonly CACHE_PREFIX = 'trends';

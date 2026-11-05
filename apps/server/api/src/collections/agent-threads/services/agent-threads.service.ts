@@ -36,6 +36,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -109,6 +110,7 @@ export type AgentExternalTurnAppendResult = {
   userMessage: AgentMessageDocument;
 };
 
+@Traced()
 @Injectable()
 export class AgentThreadsService extends BaseService<
   AgentRoomDocument,

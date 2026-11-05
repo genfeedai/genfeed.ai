@@ -7,6 +7,7 @@ import {
   parsePlatform,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadGatewayException,
   BadRequestException,
@@ -52,6 +53,7 @@ const VARIATION_CAPABLE_PLATFORMS = new Map<
  * one account per platform asks the content engine for distinct variations and
  * hands each account its own.
  */
+@Traced()
 @Injectable()
 export class PostAccountFanoutService {
   constructor(

@@ -26,8 +26,10 @@ import {
   SKILL_ACTION_IDS,
   SKILL_WORKFLOW_IDS,
 } from '@api/services/skill-executor/skill-workflow-definition';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class SkillWorkflowService implements OnModuleInit {
   private readonly handlers: Record<ExecutableSkillSlug, SkillHandler>;

@@ -74,6 +74,7 @@ import {
 import type { IBrandRelocationSummary } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -161,6 +162,7 @@ type BrandSameOrganizationPatch = (
   updates: Partial<UpdateBrandDto>,
 ) => Promise<BrandDocument>;
 
+@Traced()
 @Injectable()
 export class BrandRelocationService {
   private readonly constructorName = this.constructor.name;

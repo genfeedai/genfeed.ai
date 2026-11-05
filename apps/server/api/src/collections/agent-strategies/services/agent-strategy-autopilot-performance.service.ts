@@ -31,6 +31,7 @@ import { scopedWhere } from '@api/index';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import type { AgentStrategyCadenceStatus } from '@genfeedai/contracts/interfaces';
 import { computePostingWindows } from '@genfeedai/helpers';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Posting windows need weeks of history, so they read a wider range than the report period. */
@@ -56,6 +57,7 @@ interface SnapshotCoreMetrics {
   creditsSpent: number;
 }
 
+@Traced()
 @Injectable()
 export class AgentStrategyAutopilotPerformanceService {
   constructor(

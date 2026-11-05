@@ -4,8 +4,10 @@ import type {
   AvatarVideoProvider,
 } from '@api/services/avatar-video/avatar-video-provider.interface';
 import type { AvatarVideoProviderName } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, NotImplementedException } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class DidAvatarProvider implements AvatarVideoProvider {
   readonly providerName: AvatarVideoProviderName = 'did';

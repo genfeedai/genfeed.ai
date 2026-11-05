@@ -2,11 +2,13 @@ import type { GoogleAdsOAuthTokens } from '@api/services/integrations/google-ads
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+@Traced()
 @Injectable()
 export class GoogleAdsOAuthService {
   private readonly GOOGLE_AUTH_URL =

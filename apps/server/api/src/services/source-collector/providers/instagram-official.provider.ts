@@ -8,6 +8,7 @@ import type {
 import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -122,6 +123,7 @@ function mapMediaNode(
  * limit or the `since` window is reached; insights are dropped (not the whole
  * page) when the account lacks the insights scope.
  */
+@Traced()
 @Injectable()
 export class InstagramOfficialProvider implements SourceTimelineProvider {
   readonly name = 'brand-oauth' as const;

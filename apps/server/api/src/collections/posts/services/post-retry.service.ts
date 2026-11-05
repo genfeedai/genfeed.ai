@@ -3,8 +3,10 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class PostRetryService {
   constructor(private readonly postsService: PostsService) {}

@@ -9,7 +9,10 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import type { ArgumentsHost } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 
-vi.mock('@sentry/nestjs', () => ({ captureException: vi.fn() }));
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
+  captureException: vi.fn(),
+}));
 
 describe('knowledge refresh source HTTP contract', () => {
   it('returns the safe production JSON:API 422 without reporting to Sentry', async () => {

@@ -23,6 +23,7 @@ import {
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type WatchFetchResult = ReplyPostWatchWorkflowInput & {
@@ -30,6 +31,7 @@ type WatchFetchResult = ReplyPostWatchWorkflowInput & {
   items: ReplyInboundWorkflowInput[];
 };
 
+@Traced()
 @Injectable()
 export class ReplyPostWatchService implements OnModuleInit {
   constructor(

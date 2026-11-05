@@ -3,6 +3,7 @@ import { MEDIA_RECOVERY_BATCH_SIZE } from '@api/services/media-urls/media-recove
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
@@ -54,6 +55,7 @@ export type MediaKeyRepairTotals = {
  * canonical key is derived from the id, and it is written only after the files
  * service confirms the object exists, so a key is never invented.
  */
+@Traced()
 @Injectable()
 export class MediaKeyRepairService {
   private readonly context = 'MediaKeyRepairService';

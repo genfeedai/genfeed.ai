@@ -11,6 +11,7 @@ import { MetaAdsService } from '@api/services/integrations/meta-ads/services/met
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 
@@ -224,6 +225,7 @@ export const AD_BULK_UPLOAD_CHILD_WORKFLOWS = [
   ),
 ] satisfies SystemWorkflowGraphDefinition[];
 
+@Traced()
 @Injectable()
 export class AdBulkUploadWorkflowService {
   constructor(

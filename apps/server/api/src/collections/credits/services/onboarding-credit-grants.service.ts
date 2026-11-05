@@ -32,6 +32,7 @@ import {
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const REWARD_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
@@ -42,6 +43,7 @@ const ANSWER_CAMPAIGN = 'onboarding-answer';
 const trialIdempotencyKey = (userId: string): string =>
   `onboarding:trial:${userId}`;
 
+@Traced()
 @Injectable()
 export class OnboardingCreditGrantsService {
   constructor(

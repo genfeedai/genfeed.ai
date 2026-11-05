@@ -30,6 +30,7 @@ import {
 } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -77,6 +78,7 @@ export interface AgentFeedbackMemoryDocument extends AgentMemoryDocument {
   generationInfluence: AgentFeedbackMemoryInfluence;
 }
 
+@Traced()
 @Injectable()
 export class AgentMemoriesService extends BaseService<
   AgentMemoryDocument,

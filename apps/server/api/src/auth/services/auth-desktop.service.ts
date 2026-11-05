@@ -22,6 +22,7 @@ import {
   ApiKeyScope,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -89,6 +90,7 @@ interface DesktopAuthExchangeResult {
   userName?: string;
 }
 
+@Traced()
 @Injectable()
 export class AuthDesktopService {
   constructor(

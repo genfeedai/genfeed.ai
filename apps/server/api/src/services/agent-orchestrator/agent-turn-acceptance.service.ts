@@ -27,6 +27,7 @@ import {
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 function matchMultiSelectOptions(
@@ -85,6 +86,7 @@ function stableUuid(...parts: string[]): string {
   ].join('-');
 }
 
+@Traced()
 @Injectable()
 export class AgentTurnAcceptanceService {
   constructor(

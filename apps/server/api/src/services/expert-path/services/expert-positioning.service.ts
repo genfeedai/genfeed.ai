@@ -17,6 +17,7 @@ import {
 import type { IExpertPositioningScore } from '@genfeedai/contracts/interfaces';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface ExpertPositioningDraftResult {
@@ -34,6 +35,7 @@ function readStringList(value: unknown): string[] {
  * Expert Path positioning: persists interview answers as typed brand memory
  * and turns them into a scored harness profile draft.
  */
+@Traced()
 @Injectable()
 export class ExpertPositioningService {
   constructor(

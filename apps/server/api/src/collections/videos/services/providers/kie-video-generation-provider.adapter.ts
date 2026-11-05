@@ -4,7 +4,9 @@ import type {
   VideoGenerationProviderResult,
 } from '@api/collections/videos/services/video-generation.types';
 import { KieService } from '@api/services/integrations/kie/kie.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
+@Traced()
 @Injectable()
 export class KieVideoGenerationProviderAdapter
   implements VideoGenerationProviderAdapter

@@ -22,6 +22,7 @@ import type { IAgentStrategyPerformanceSnapshot } from '@genfeedai/contracts/int
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type AgentStrategyWriteDto = Partial<
@@ -122,6 +123,7 @@ const POLICIES_BACKED_KEYS = [
   'reportingPolicy',
 ] as const;
 
+@Traced()
 @Injectable()
 export class AgentStrategiesService extends BaseService<
   AgentStrategyDocument,

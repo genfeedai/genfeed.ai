@@ -32,6 +32,7 @@ import {
 } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 /**
@@ -89,6 +90,7 @@ export interface FetchContentOptions {
   organizationId?: string;
 }
 
+@Traced()
 @Injectable()
 export class SocialMonitorService {
   private readonly constructorName: string = String(this.constructor.name);

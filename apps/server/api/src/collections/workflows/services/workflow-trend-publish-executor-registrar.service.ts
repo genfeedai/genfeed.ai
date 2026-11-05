@@ -62,8 +62,10 @@ import {
 } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class WorkflowTrendPublishExecutorRegistrarService {
   private readonly logContext = 'WorkflowEngineAdapterService';

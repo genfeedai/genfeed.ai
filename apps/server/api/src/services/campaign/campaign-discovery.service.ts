@@ -27,6 +27,7 @@ import {
   ReplyBotPlatform,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -47,6 +48,7 @@ export interface DiscoveredTarget {
   matchedKeyword?: string;
 }
 
+@Traced()
 @Injectable()
 export class CampaignDiscoveryService {
   private readonly constructorName: string = String(this.constructor.name);

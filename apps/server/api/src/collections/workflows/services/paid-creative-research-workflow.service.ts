@@ -3,6 +3,7 @@ import {
   PaidCreativeResearchIngestionService,
   type WatchedAdvertiserScope,
 } from '@api/services/paid-creative-research/services/paid-creative-research-ingestion.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type PaidCreativeResearchAction = typeof AUTOMATION_WORKFLOW_IDS.PAID_CREATIVE;
@@ -28,6 +29,7 @@ export interface PaidCreativeResearchWorkflowResult {
  * writing an empty snapshot, so "we could not look" never reads downstream as
  * "the competitor is running no ads".
  */
+@Traced()
 @Injectable()
 export class PaidCreativeResearchWorkflowService {
   constructor(

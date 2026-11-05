@@ -7,6 +7,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 interface AnalyticsOverview {
@@ -15,6 +16,7 @@ interface AnalyticsOverview {
   totalViews: number;
 }
 
+@Traced()
 @Injectable()
 export class AgentGoalsService {
   constructor(

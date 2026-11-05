@@ -15,11 +15,13 @@ import {
   type ValidatedAgentScope,
 } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const AGENT_INPUT_RESPONSE_WORKFLOW_ID = 'agent.thread.input-response';
 const AGENT_UI_ACTION_WORKFLOW_ID = 'agent.thread.ui-action';
 
+@Traced()
 @Injectable()
 export class AgentOrchestratorService {
   constructor(

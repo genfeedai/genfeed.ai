@@ -17,6 +17,7 @@ import type { AgentTeamMentionItem } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const DEFAULT_TEAM_MENTION_LIMIT = 50;
@@ -42,6 +43,7 @@ type TeamMentionRecord = {
   };
 };
 
+@Traced()
 @Injectable()
 export class MembersService extends BaseService<
   MemberDocument,

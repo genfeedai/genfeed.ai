@@ -20,6 +20,7 @@ import type {
   NodeExecutor,
 } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 export interface PendingWorkflowOutput {
@@ -27,6 +28,7 @@ export interface PendingWorkflowOutput {
   metadataId: string;
 }
 
+@Traced()
 @Injectable()
 export class WorkflowEngineExecutorHelperService {
   constructor(

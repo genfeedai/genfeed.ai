@@ -74,6 +74,7 @@ import {
   type ScheduleCanonicalPostInput,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   Inject,
   Injectable,
@@ -89,6 +90,7 @@ type CredentialsServiceLike = Pick<CredentialsService, 'find'>;
  * Agent publishing tools: confirmed content publish, schedule, create_post, schedule_post.
  * Extracted/extended from AgentToolExecutorService per #519/#520.
  */
+@Traced()
 @Injectable()
 export class AgentPublishToolHandler {
   private readonly constructorName = String(this.constructor.name);

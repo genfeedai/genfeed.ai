@@ -30,6 +30,7 @@ import {
   buildBrandKitDraftFromWebsiteScrape,
 } from '@genfeedai/helpers';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const BRAND_KIT_SCALAR_FIELDS: Partial<Record<BrandKitFieldKey, string>> = {
@@ -117,6 +118,7 @@ type BrandKitBrandWriter = (
   expectedAgentConfig: BrandDocument['agentConfig'],
 ) => Promise<BrandDocument>;
 
+@Traced()
 @Injectable()
 export class BrandKitDraftService {
   private static readonly SUPPORTED_GUIDANCE_EXTENSIONS = new Set([

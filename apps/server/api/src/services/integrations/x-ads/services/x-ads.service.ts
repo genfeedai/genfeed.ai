@@ -15,6 +15,7 @@ import type {
   XAdsTweet,
 } from '@api/services/integrations/x-ads/interfaces/x-ads.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadGatewayException,
@@ -43,6 +44,7 @@ function safeXAdsErrorMetadata(error: unknown): {
  * token and secret. OAuth 2.0 bearer and refresh semantics are intentionally
  * absent from this surface.
  */
+@Traced()
 @Injectable()
 export class XAdsService {
   private static readonly RATE_LIMIT_DELAY_MS = 250;

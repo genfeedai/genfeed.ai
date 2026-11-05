@@ -32,6 +32,7 @@ import type {
   BrandCapabilityPreflightInputV1,
   BrandCapabilityPreflightResultV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException } from '@nestjs/common';
 
 /** What a caller may add to one validation. Absent means no provider-backed reading. */
@@ -176,6 +177,7 @@ export class BrandValidationService {
     };
   }
 
+  @Traced()
   async validateBrandArtifact(
     input: BrandArtifactValidationInputV1,
     options: BrandValidationOptions = {},

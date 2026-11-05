@@ -29,6 +29,7 @@ import {
   brandRemixRunConfigSchema,
   type PreparePausedMetaCampaignDraft,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -40,6 +41,7 @@ type PaidDraftResult =
   | PausedMetaCampaignDraftResult
   | PausedXAdsCampaignDraftResult;
 
+@Traced()
 @Injectable()
 export class BrandRemixRunPaidDraftService {
   constructor(

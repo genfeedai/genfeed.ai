@@ -20,6 +20,7 @@ import {
   type IRemotionCompositionJob,
 } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -34,6 +35,7 @@ import { validate } from 'class-validator';
 const hash = (value: unknown): string =>
   createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
+@Traced()
 @Injectable()
 export class RemotionCompositionsService implements OnModuleInit {
   constructor(

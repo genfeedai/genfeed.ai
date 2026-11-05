@@ -18,6 +18,7 @@ import {
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const READY_SOURCE_STATUSES = [
@@ -76,6 +77,7 @@ type LocalizationMetadataData = Awaited<
   ReturnType<SharedService['createMediaDocumentsInternal']>
 >['metadataData'];
 
+@Traced()
 @Injectable()
 export class MediaLocalizationService {
   constructor(

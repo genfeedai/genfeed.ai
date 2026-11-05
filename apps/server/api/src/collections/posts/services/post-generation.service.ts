@@ -41,6 +41,7 @@ import {
   measurePlatformText,
 } from '@genfeedai/helpers/content/platform-text-length.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -65,6 +66,7 @@ type GenerationMetadata = Pick<
  * `PostsOperationsController` so the controller stays a thin HTTP boundary
  * (issue #691), mirroring the existing posts analytics service split.
  */
+@Traced()
 @Injectable()
 export class PostGenerationService {
   constructor(

@@ -14,6 +14,7 @@ import {
   type AiInfluencerWorkflowRequest,
   findAiInfluencerWorkflowDefinition,
 } from '@api/services/ai-influencer/ai-influencer-workflow-definition';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type PostState = AiInfluencerWorkflowRequest & {
@@ -33,6 +34,7 @@ type ForEachResult = {
   results: Array<{ index: number; result: unknown }>;
 };
 
+@Traced()
 @Injectable()
 export class AiInfluencerWorkflowService implements OnModuleInit {
   constructor(

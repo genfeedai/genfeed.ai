@@ -7,6 +7,7 @@ import type { ApiKeysService } from '@api/collections/api-keys/services/api-keys
 import type { ChatAuthContext } from '@api/services/telegram-bot/telegram-bot.types';
 import { extractCommandArgs } from '@api/services/telegram-bot/telegram-command-args.util';
 import { ParseMode } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import type { Context } from 'grammy';
 
 export class TelegramAuthContextService {
@@ -35,6 +36,7 @@ export class TelegramAuthContextService {
    * Re-check a cached API-key chat identity against `findActiveById` so a
    * revoked or expired key cannot keep running workflows until `/connect`.
    */
+  @Traced()
   async resolveLiveAuthContext(
     chatId: number,
   ): Promise<ChatAuthContext | null> {
@@ -83,6 +85,7 @@ export class TelegramAuthContextService {
   }
 
   /** Attach a verified API-key identity to a private Telegram chat. */
+  @Traced()
   async handleConnect(ctx: Context): Promise<void> {
     const chatId = ctx.chat?.id;
     if (!chatId) {

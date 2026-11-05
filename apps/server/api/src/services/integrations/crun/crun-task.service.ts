@@ -29,6 +29,7 @@ import { crunCreditsEqual } from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
 import { type CrunGenerationTask, toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -38,6 +39,7 @@ import {
 /** Prepared rows live seconds; anything older was abandoned mid-dispatch. */
 const STALE_PREPARED_AGE_MS = 15 * 60 * 1000;
 
+@Traced()
 @Injectable()
 export class CrunTaskService {
   constructor(

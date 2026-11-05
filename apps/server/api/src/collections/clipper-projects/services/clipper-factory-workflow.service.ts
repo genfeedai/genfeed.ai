@@ -27,6 +27,7 @@ import {
   isClipperResultMode,
   isSupportedAvatarVideoProviderName,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type HighlightedClipperFactoryInput = {
@@ -50,6 +51,7 @@ export type ClipperFactoryGenerationPlan = {
   remainingItems: number[];
 };
 
+@Traced()
 @Injectable()
 export class ClipperFactoryWorkflowService implements OnModuleInit {
   constructor(

@@ -31,6 +31,7 @@ import {
   platformOrTenantScope,
   withPlatformTenantArm,
 } from '@libs/prisma/platform-scope';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import Handlebars from 'handlebars';
 
@@ -84,6 +85,7 @@ function toTemplateDocument(
   } as TemplateDocument;
 }
 
+@Traced()
 @Injectable()
 export class TemplatesService {
   constructor(

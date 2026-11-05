@@ -6,6 +6,7 @@ import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 import { SOCIAL_REPLY_NOTIFICATION_TOPIC } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export const SOCIAL_REPLY_SOURCE_TYPE = 'social_credential';
@@ -79,6 +80,7 @@ export function formatSocialReplySummary(
  * credential, keyed by the newest new reply id so a re-run of the same batch
  * returns the first activity and writes nothing new.
  */
+@Traced()
 @Injectable()
 export class SocialReplyNotificationService {
   private readonly context = {

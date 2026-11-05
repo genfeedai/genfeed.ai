@@ -13,9 +13,11 @@ import type {
   ExecutableNode,
   ExecutionContext,
 } from '@genfeedai/workflows/engine';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 /** Authorizes the stored actor and frozen funding before any media provider dispatch. */
+@Traced()
 @Injectable()
 export class WorkflowMediaDispatchAdmissionService {
   constructor(

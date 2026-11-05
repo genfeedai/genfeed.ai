@@ -30,6 +30,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { TrendRefreshReason } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 
 export interface TrendProviderExecutionOptions {
   allowApifyFallback?: boolean;
@@ -109,6 +110,7 @@ export class TrendFetchService {
    * Fetch Twitter/X trends: official X API first (cached org/brand-keyed),
    * falling back to Grok with Apify fallback when the X API has no signal.
    */
+  @Traced()
   async fetchTwitterTrends(
     organizationId?: string,
     brandId?: string,
@@ -151,6 +153,7 @@ export class TrendFetchService {
     return trends;
   }
 
+  @Traced()
   private async resolveTwitterTrends(
     organizationId?: string,
     brandId?: string,
@@ -230,6 +233,7 @@ export class TrendFetchService {
     return this.fetchTwitterApifyFallback(nativeReason);
   }
 
+  @Traced()
   private async fetchTwitterApifyFallback(
     nativeReason: 'native_empty' | 'native_failed',
   ): Promise<TrendData[]> {
@@ -293,6 +297,7 @@ export class TrendFetchService {
   /**
    * Fetch LinkedIn trend signals from public LinkedIn pages via LinkedInService.
    */
+  @Traced()
   async fetchLinkedInTrends(
     organizationId?: string,
     brandId?: string,
@@ -315,6 +320,7 @@ export class TrendFetchService {
     }));
   }
 
+  @Traced()
   private async fetchRedditTrends(
     organizationId?: string,
     brandId?: string,
@@ -353,6 +359,7 @@ export class TrendFetchService {
     );
   }
 
+  @Traced()
   private async fetchYoutubeTrends(
     organizationId?: string,
     brandId?: string,
@@ -446,6 +453,7 @@ export class TrendFetchService {
     );
   }
 
+  @Traced()
   private async fetchPinterestTrends(
     organizationId?: string,
     brandId?: string,
@@ -488,6 +496,7 @@ export class TrendFetchService {
    * organization and brand. A scrape that throws is not cached, so the caller's
    * failure handling and the account-limit breaker still see the error.
    */
+  @Traced()
   private async getSharedApifyTrends(
     platform: string,
     scrape: () => Promise<ApifyTrendItem[]>,
@@ -509,6 +518,7 @@ export class TrendFetchService {
     return trends;
   }
 
+  @Traced()
   private async fetchNativeFirst(
     platform: string,
     nativeFetch: () => Promise<TrendData[]>,
@@ -556,6 +566,7 @@ export class TrendFetchService {
     }
   }
 
+  @Traced()
   private async fetchInstagramTrends(
     organizationId?: string,
     brandId?: string,
@@ -607,6 +618,7 @@ export class TrendFetchService {
     );
   }
 
+  @Traced()
   private async fetchTikTokTrends(
     organizationId?: string,
     brandId?: string,
@@ -676,6 +688,7 @@ export class TrendFetchService {
    * charges per actor run, so a cache miss is a bill, and an uncached failure
    * is a bill repeated on every caller.
    */
+  @Traced()
   async fetchPlatformTrends(
     platform: string,
     organizationId?: string,
@@ -839,6 +852,7 @@ export class TrendFetchService {
   /**
    * Fetch and cache trends for all platforms
    */
+  @Traced()
   async fetchAndCacheTrends(
     organizationId?: string,
     brandId?: string,
@@ -918,6 +932,7 @@ export class TrendFetchService {
     return captured.result;
   }
 
+  @Traced()
   private async saveTrend(
     trendData: TrendData,
     organizationId: string | undefined,

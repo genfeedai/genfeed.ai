@@ -4,6 +4,7 @@ import { AD_PRESETS } from '@genfeedai/contracts/constants/ad-presets.constant';
 import { B2B_PLAYBOOKS } from '@genfeedai/contracts/constants/b2b-playbooks.constant';
 import { STUDIO_SYSTEM_PRESETS } from '@genfeedai/contracts/constants/studio-system-presets.constant';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export type StudioPresetSeedResult = {
@@ -29,6 +30,7 @@ const catalog = [
   })),
 ];
 
+@Traced()
 @Injectable()
 export class StudioPresetSeedService {
   constructor(

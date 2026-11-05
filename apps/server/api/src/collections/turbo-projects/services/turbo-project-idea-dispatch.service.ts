@@ -47,6 +47,7 @@ import type { TurboProject, TurboProjectItem } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { readRecord, readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   ConflictException,
   Injectable,
@@ -91,6 +92,7 @@ function errorMessage(error: unknown): string {
  * 3. the provider runs; reconciliation settles the hold when a usable output
  *    lands and releases it when generation fails.
  */
+@Traced()
 @Injectable()
 export class TurboProjectIdeaDispatchService implements OnModuleInit {
   private readonly context = TurboProjectIdeaDispatchService.name;

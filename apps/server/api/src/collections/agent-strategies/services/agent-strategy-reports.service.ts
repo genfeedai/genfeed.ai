@@ -11,6 +11,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type CreateReportInput = Omit<
@@ -29,6 +30,7 @@ type CreateReportInput = Omit<
   metadata?: Record<string, unknown>;
 };
 
+@Traced()
 @Injectable()
 export class AgentStrategyReportsService {
   constructor(

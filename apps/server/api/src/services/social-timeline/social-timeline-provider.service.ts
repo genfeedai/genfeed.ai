@@ -13,6 +13,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { google } from 'googleapis';
@@ -101,6 +102,7 @@ export function classifyTimelineError(error: unknown): {
   };
 }
 
+@Traced()
 @Injectable()
 export class SocialTimelineProviderService {
   constructor(

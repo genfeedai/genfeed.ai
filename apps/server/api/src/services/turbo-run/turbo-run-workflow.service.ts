@@ -21,12 +21,14 @@ import type { TurboRunWorkflowInput } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export function turboRunJobId(turboRunId: string): string {
   return `turbo-run-${turboRunId}`;
 }
 
+@Traced()
 @Injectable()
 export class TurboRunWorkflowService implements OnModuleInit {
   private readonly logContext = 'TurboRunWorkflowService';

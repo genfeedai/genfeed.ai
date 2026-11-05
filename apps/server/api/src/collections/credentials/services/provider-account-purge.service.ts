@@ -5,6 +5,7 @@ import {
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -23,6 +24,7 @@ import { Injectable } from '@nestjs/common';
  * needs `prisma`) to keep that file under the runtime-complexity file-lines
  * ratchet; `CredentialsService.purgeProviderAccount` delegates here.
  */
+@Traced()
 @Injectable()
 export class ProviderAccountPurgeService {
   constructor(

@@ -11,6 +11,7 @@ import { isSaaS } from '@genfeedai/config';
 import type { SocialPostUrlReference } from '@genfeedai/contracts';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** YouTube channel ids are `UC` followed by 22 URL-safe characters. */
@@ -62,6 +63,7 @@ function readDate(value: unknown): Date | undefined {
  * X, YouTube and LinkedIn throw when APIFY_API_TOKEN is missing (honest
  * failure).
  */
+@Traced()
 @Injectable()
 export class ApifySocialProvider implements SourceTimelineProvider {
   readonly name = 'apify' as const;

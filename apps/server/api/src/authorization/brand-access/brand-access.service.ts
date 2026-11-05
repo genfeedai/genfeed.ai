@@ -4,6 +4,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import { MemberRole } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
 export interface BrandAccessActor {
@@ -14,6 +15,7 @@ export interface BrandAccessActor {
   scopes?: string[];
 }
 
+@Traced()
 @Injectable()
 export class BrandAccessService {
   constructor(private readonly prisma: PrismaService) {}

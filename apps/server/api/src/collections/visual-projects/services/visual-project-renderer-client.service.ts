@@ -9,6 +9,7 @@ import type {
   IVisualSandboxResult,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -49,6 +50,7 @@ function isNonEmptyConfigString(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0;
 }
 
+@Traced()
 @Injectable()
 export class VisualProjectRendererClientService {
   constructor(private readonly config: ConfigService) {}

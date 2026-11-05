@@ -4,9 +4,11 @@ import type { LinkDocument } from '@api/collections/links/schemas/link.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Brand-owned external links (website, social profiles). */
+@Traced()
 @Injectable()
 export class LinksService extends BaseService<
   LinkDocument,

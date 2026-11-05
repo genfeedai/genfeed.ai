@@ -4,6 +4,7 @@ import { RouterService } from '@api/services/router/router.service';
 import { hasOrganizationBilling } from '@genfeedai/config';
 import { ModelCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -19,6 +20,7 @@ import { Injectable } from '@nestjs/common';
  * still pay for nothing useful; this is the signal the app uses to show the
  * upgrade state once the trial credits are spent.
  */
+@Traced()
 @Injectable()
 export class DefaultGenerationAffordabilityService {
   private readonly context = {

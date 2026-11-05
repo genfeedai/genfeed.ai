@@ -4,9 +4,11 @@ import type {
   IMediaResult,
 } from '@genfeedai/contracts/interfaces';
 import { RedisService } from '@libs/redis/redis.service';
+import { Traced } from '@libs/tracing/traced';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class NotificationsPublisherService {
   constructor(private readonly redisService: RedisService) {}

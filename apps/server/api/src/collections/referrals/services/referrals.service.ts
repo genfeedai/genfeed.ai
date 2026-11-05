@@ -34,6 +34,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 
@@ -89,6 +90,7 @@ function addDays(value: Date, days: number): Date {
   return new Date(value.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
+@Traced()
 @Injectable()
 export class ReferralsService {
   constructor(

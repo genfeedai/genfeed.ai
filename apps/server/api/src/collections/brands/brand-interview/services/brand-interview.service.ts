@@ -33,6 +33,7 @@ import type {
 import { computeBrandCompleteness } from '@genfeedai/helpers';
 import type { BrandInterview, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   BRAND_FIELD_META,
@@ -44,6 +45,7 @@ import {
   resolveInterviewQuestionCatalog,
 } from '../constants/brand-interview-question-catalog.constant';
 
+@Traced()
 @Injectable()
 export class BrandInterviewService {
   private readonly constructorName = this.constructor.name;

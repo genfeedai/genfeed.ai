@@ -37,6 +37,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -95,6 +96,7 @@ function readFirstSystemStatus(value: unknown): ExpertFirstSystemStatus {
  * the plan. Approved items run through the plan-item workflow, which lands
  * each post in the review queue — nothing publishes without approval.
  */
+@Traced()
 @Injectable()
 export class ExpertFirstSystemService {
   constructor(

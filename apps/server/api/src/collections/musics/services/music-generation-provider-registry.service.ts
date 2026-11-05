@@ -9,6 +9,7 @@ import { FalMusicGenerationProviderAdapter } from '@api/collections/musics/servi
 import { MurekaMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/mureka-music-generation-provider.adapter';
 import { ReplicateMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/replicate-music-generation-provider.adapter';
 import type { ModelProvider } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -16,6 +17,7 @@ import { Injectable } from '@nestjs/common';
  * dispatches generation to it. Mirrors the image/video generation provider
  * registries so music gains the same provider-neutral dispatch story.
  */
+@Traced()
 @Injectable()
 export class MusicGenerationProviderRegistryService {
   private readonly adapters: readonly MusicGenerationProviderAdapter[];

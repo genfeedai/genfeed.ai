@@ -1,6 +1,7 @@
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BRAND_END_CARD_MIME_TYPES } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
@@ -9,6 +10,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
  * concerns do not keep growing the core brand CRUD service past the file-lines
  * ratchet.
  */
+@Traced()
 @Injectable()
 export class BrandWatermarkLogoService {
   constructor(private readonly prisma: PrismaService) {}

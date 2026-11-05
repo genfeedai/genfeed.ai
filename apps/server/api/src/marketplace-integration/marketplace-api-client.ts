@@ -4,6 +4,7 @@ import {
   type DestinationGuardOptions,
   safeFetch,
 } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 interface MarketplaceListingResponse {
@@ -44,6 +45,7 @@ interface MarketplaceListingQuery {
   sort?: string;
 }
 
+@Traced()
 @Injectable()
 export class MarketplaceApiClient {
   private readonly baseUrl: string;

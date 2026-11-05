@@ -4,6 +4,7 @@ import type { ReplicatePredictionRecord } from '@genfeedai/contracts/interfaces'
 import { ConfigService } from '@libs/config/config.service';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -35,6 +36,7 @@ function isPredictionRecord(
  * output — from Replicate's own API using the account token, and suppresses
  * replays of a captured legitimate delivery.
  */
+@Traced()
 @Injectable()
 export class ReplicateWebhookVerificationService {
   private readonly constructorName: string = String(this.constructor.name);

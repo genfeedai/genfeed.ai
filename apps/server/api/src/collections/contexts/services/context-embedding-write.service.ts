@@ -34,6 +34,7 @@ import {
   toPrismaJson,
 } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { stableStringify } from '@libs/utils/canonical-hash.util';
 import {
   BadRequestException,
@@ -83,6 +84,7 @@ const WINNER_ITEM: HiddenWorkflowRule = {
   ],
 };
 
+@Traced()
 @Injectable()
 export class ContextEmbeddingWriteService {
   constructor(

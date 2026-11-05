@@ -32,6 +32,7 @@ import {
 } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { resolveSafeDestination } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 
 const VOICE_FIELDS = [
@@ -44,6 +45,7 @@ const VOICE_FIELDS = [
   'voiceSampleOutput',
 ] as const;
 
+@Traced()
 @Injectable()
 export class BrandFromUrlService {
   private readonly logger = new Logger(BrandFromUrlService.name);

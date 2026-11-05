@@ -14,6 +14,7 @@ import type {
   ApifyYouTubeVideo,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -24,6 +25,7 @@ import { Injectable } from '@nestjs/common';
  * per-platform fetchers are collapsed behind a single dispatch table in
  * {@link fetchTrendSourceItems}.
  */
+@Traced()
 @Injectable()
 export class TrendSourceItemsService {
   /**

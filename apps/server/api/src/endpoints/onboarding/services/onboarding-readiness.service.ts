@@ -19,6 +19,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const PLACEHOLDER_KEY_PATTERN =
@@ -31,6 +32,7 @@ const PLACEHOLDER_KEY_PATTERN =
  * provider env keys, local CLI detection, BYOK configuration, and the
  * install-readiness aggregate.
  */
+@Traced()
 @Injectable()
 export class OnboardingReadinessService {
   constructor(

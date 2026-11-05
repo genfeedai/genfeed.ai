@@ -15,10 +15,12 @@ import {
   HeygenPollJobData,
 } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
+@Traced()
 @Injectable()
 export class HeygenPollQueueService {
   private readonly logContext = 'HeygenPollQueueService';

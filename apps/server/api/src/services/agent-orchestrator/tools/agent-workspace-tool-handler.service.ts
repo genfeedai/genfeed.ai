@@ -44,6 +44,7 @@ import {
   serializeAgentPost,
 } from '@genfeedai/serializers';
 import { readIngredientMediaUrlWithFallback } from '@libs/media/media-url.util';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, Inject, Injectable, Optional } from '@nestjs/common';
 
 type AgentBrandsServiceLike = {
@@ -114,6 +115,7 @@ function readTagIds(value: unknown): string[] | string | undefined {
   return value;
 }
 
+@Traced()
 @Injectable()
 export class AgentWorkspaceToolHandler {
   @Inject(BrandAccessService)

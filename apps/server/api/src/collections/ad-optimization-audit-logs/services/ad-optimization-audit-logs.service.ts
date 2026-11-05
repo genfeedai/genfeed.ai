@@ -5,9 +5,11 @@ import {
 } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Inject, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class AdOptimizationAuditLogsService {
   private readonly constructorName = this.constructor.name;

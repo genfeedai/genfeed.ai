@@ -52,6 +52,7 @@ import {
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
@@ -59,6 +60,7 @@ type StartedVideoGeneration = VideoGenerationProviderResult & {
   externalId: string;
 };
 
+@Traced()
 @Injectable()
 export class VideoGenerationExecutionService {
   private readonly submissionStarted = new WeakMap<

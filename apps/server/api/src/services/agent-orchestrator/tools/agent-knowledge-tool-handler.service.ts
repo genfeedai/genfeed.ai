@@ -24,6 +24,7 @@ import type {
   KnowledgeSourceVersion,
 } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export type KnowledgeToolName =
@@ -170,6 +171,7 @@ function readText(payload: unknown): string | undefined {
  * Brand Knowledge actions for the Agent and MCP surfaces. Tenant and brand
  * come from the execution context; ids in parameters only narrow within it.
  */
+@Traced()
 @Injectable()
 export class AgentKnowledgeToolHandler {
   constructor(

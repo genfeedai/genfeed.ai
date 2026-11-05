@@ -19,6 +19,7 @@ import {
 import { resolveYouTubeUploadVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Optional } from '@nestjs/common';
@@ -30,6 +31,7 @@ const THUMBNAIL_FRAME_SECONDS = 1;
 /** 1080 wide gives a 1080x1920 still for a 9:16 Short (YouTube minimum is 640px). */
 const THUMBNAIL_WIDTH = 1080;
 
+@Traced()
 @Injectable()
 export class YoutubeUploadService implements ServerYoutubeUploader {
   private readonly constructorName = this.constructor.name;

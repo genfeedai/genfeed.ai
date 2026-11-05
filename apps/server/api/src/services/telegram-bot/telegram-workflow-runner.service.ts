@@ -13,6 +13,7 @@ import { TELEGRAM_SYSTEM_WORKFLOW_PREFIX } from '@api/services/telegram-bot/tele
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ParseMode, WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import type { Context } from 'grammy';
 
 type TelegramMediaOutput = {
@@ -30,6 +31,7 @@ export class TelegramWorkflowRunnerService {
     ) => ChatAuthContext | null | Promise<ChatAuthContext | null>,
   ) {}
 
+  @Traced()
   async execute(
     ctx: Context,
     chatId: number,
@@ -110,6 +112,7 @@ export class TelegramWorkflowRunnerService {
    * "any active brand in the org" — the bot must be configured with a brand
    * before it can run media workflows.
    */
+  @Traced()
   private async resolveExecutionBrand(
     organizationId: string,
     authContext: ChatAuthContext,
@@ -166,6 +169,7 @@ export class TelegramWorkflowRunnerService {
     return ((Date.now() - startedAt) / 1000).toFixed(1);
   }
 
+  @Traced()
   private async sendResults(
     ctx: Context,
     result: unknown,

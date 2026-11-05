@@ -11,6 +11,7 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { PromptEnhancementService } from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import { ByokProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface AiActionResult {
@@ -19,6 +20,7 @@ export interface AiActionResult {
   isByok: boolean;
 }
 
+@Traced()
 @Injectable()
 export class AiActionsService {
   private readonly constructorName: string = String(this.constructor.name);

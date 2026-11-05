@@ -56,6 +56,7 @@ import { scopedWhere } from '@api/index';
 import { Timeframe } from '@genfeedai/contracts';
 import type { TrendDigestAngle } from '@genfeedai/contracts/api-types/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -66,6 +67,7 @@ import { Injectable } from '@nestjs/common';
  * Prelaunch/bootstrap seed corpus is hard-cut — empty feed when there is no
  * real data.
  */
+@Traced()
 @Injectable()
 export class TrendsService {
   constructor(

@@ -18,6 +18,7 @@ import {
   assertSafeSegment,
   createStorageProvider,
 } from '@genfeedai/storage';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -52,6 +53,7 @@ export interface BrandFontAssetListResult {
   hasMore: boolean;
   nextCursor: string | null;
 }
+@Traced()
 @Injectable()
 export class BrandFontAssetsService {
   private readonly storage = createStorageProvider();

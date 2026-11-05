@@ -34,6 +34,7 @@ import {
   calculateVideoGenerationCredits,
 } from '@genfeedai/pricing';
 import type { LiveSession } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 type LiveSessionCreditsRequest = {
@@ -42,6 +43,7 @@ type LiveSessionCreditsRequest = {
   user?: AuthenticatedUser;
 };
 
+@Traced()
 @Injectable()
 export class LiveSessionCreditsService {
   constructor(

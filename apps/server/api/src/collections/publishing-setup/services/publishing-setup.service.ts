@@ -15,6 +15,7 @@ import {
 } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const SEVERITY_ORDER: Record<PublishingDiagnosticSeverity, number> = {
@@ -31,6 +32,7 @@ const SEVERITY_ORDER: Record<PublishingDiagnosticSeverity, number> = {
  * configuration *presence* plus bounded liveness probes; no provider network
  * calls are made and no configured value is ever echoed back.
  */
+@Traced()
 @Injectable()
 export class PublishingSetupService {
   private static readonly PROBE_TIMEOUT_MS = 2_000;

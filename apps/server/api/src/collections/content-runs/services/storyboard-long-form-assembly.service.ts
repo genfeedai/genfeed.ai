@@ -36,6 +36,7 @@ import type {
   IEditorTrack,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 export const LONG_FORM_EDIT_FPS = 30;
@@ -160,6 +161,7 @@ function withoutCutaways(
  * the A-roll track and the cutaways on a B-roll track above it, opened as an
  * Editor project the creator or the agent finishes and exports.
  */
+@Traced()
 @Injectable()
 export class StoryboardLongFormAssemblyService {
   constructor(

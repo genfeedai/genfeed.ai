@@ -46,6 +46,7 @@ import {
   toPrismaJson,
 } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -54,6 +55,7 @@ const TERMINAL_CLOSE_GRACE_MS = 10 * 60 * 1000;
 const TERMINAL_CLOSE_PAGE_SIZE = 100;
 const TERMINAL_CLOSE_MAX_PAGES = 10;
 
+@Traced()
 @Injectable()
 export class WorkflowGenerationBillingService {
   constructor(

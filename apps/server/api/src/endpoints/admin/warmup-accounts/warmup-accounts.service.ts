@@ -41,6 +41,7 @@ import {
   WarmupAccountStatus,
 } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import {
   BadRequestException,
@@ -134,6 +135,7 @@ function toSafeInvitation(invitation: InvitationView): IWarmupInvitation {
   };
 }
 
+@Traced()
 @Injectable()
 export class AdminWarmupAccountsService {
   private readonly context = { service: AdminWarmupAccountsService.name };

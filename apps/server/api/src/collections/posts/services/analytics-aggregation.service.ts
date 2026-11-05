@@ -34,6 +34,7 @@ import {
   Prisma,
   CredentialPlatform as PrismaCredentialPlatform,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export type {
@@ -52,6 +53,7 @@ export type {
 
 const postAnalyticsProjection = new PostAnalyticsProjection();
 
+@Traced()
 @Injectable()
 export class AnalyticsAggregationService {
   constructor(

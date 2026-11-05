@@ -16,6 +16,7 @@ import { MAX_FILE_SIZE } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -70,6 +71,7 @@ interface MastodonMediaAttachment {
   description: string | null;
 }
 
+@Traced()
 @Injectable()
 export class MastodonService {
   private readonly constructorName = String(this.constructor.name);

@@ -34,6 +34,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { LearningGenerationReceipt } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   HttpException,
@@ -79,6 +80,7 @@ const SHORTEN_KEY_SUFFIX = ':shorten';
 /** A retry asks for less than the limit: URLs, emoji and counting slack. */
 const SHORTEN_TARGET_RATIO = 0.9;
 
+@Traced()
 @Injectable()
 export class PostDraftGenerationService {
   constructor(

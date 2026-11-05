@@ -10,6 +10,7 @@ import {
 import { WorkspaceTaskQualityService } from '@api/services/task-orchestration/workspace-task-quality.service';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Longer than a quality assessment can take; also the retry backoff. */
@@ -27,6 +28,7 @@ export const TASK_ROLLUP_MAX_ATTEMPTS = 3;
 const RECOVERY_LOG_PREFIX = 'workspace-task-rollup-recovery';
 const STALLED_ROLLUP_BATCH_SIZE = 25;
 
+@Traced()
 @Injectable()
 export class TaskOrchestratorService {
   private readonly logContext = 'TaskOrchestratorService';

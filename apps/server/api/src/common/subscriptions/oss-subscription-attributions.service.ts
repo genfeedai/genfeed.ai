@@ -1,4 +1,5 @@
 import type { ISubscriptionAttributionsService } from '@genfeedai/contracts/interfaces/billing';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -10,6 +11,7 @@ import { Injectable } from '@nestjs/common';
  * analytics is a cloud billing concern and its absence must not break webhook
  * delivery.
  */
+@Traced()
 @Injectable()
 export class OssSubscriptionAttributionsService
   implements ISubscriptionAttributionsService

@@ -24,6 +24,7 @@ import type {
   IMasterPrompt,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, RequestTimeoutException } from '@nestjs/common';
 
@@ -76,6 +77,7 @@ type MasterPromptBillingContext = {
   userId: string;
 };
 
+@Traced()
 @Injectable()
 export class MasterPromptGeneratorService {
   private readonly constructorName: string = String(this.constructor.name);

@@ -10,6 +10,7 @@ import { OnboardingCreditGrantsService } from '@api/collections/credits/services
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 
@@ -22,6 +23,7 @@ import { OnEvent } from '@nestjs/event-emitter';
  * the verification redirect. The trial credits are not released here: they
  * need a saved card (see `TrialCardController`).
  */
+@Traced()
 @Injectable()
 export class EmailVerifiedCreditsListener {
   private readonly context = { service: EmailVerifiedCreditsListener.name };

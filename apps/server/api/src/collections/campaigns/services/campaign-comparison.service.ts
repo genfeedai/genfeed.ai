@@ -5,8 +5,10 @@ import type {
   CampaignComparisonMetric,
   ICampaignComparison,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class CampaignComparisonService {
   constructor(

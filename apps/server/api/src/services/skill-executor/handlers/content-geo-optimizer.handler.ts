@@ -18,6 +18,7 @@ import {
   type JsonLdValue,
 } from '@helpers/content/schema-org.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const GEO_SKILL_SLUG = 'content-geo-optimizer';
@@ -55,6 +56,7 @@ interface HowToStepParam {
   text: string;
 }
 
+@Traced()
 @Injectable()
 export class ContentGeoOptimizerHandler implements SkillHandler {
   constructor(

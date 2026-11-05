@@ -3,6 +3,7 @@ import {
   PollTimeoutException,
 } from '@api/shared/services/poll-until/poll-until.exception';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface PollOptions {
@@ -41,6 +42,7 @@ export interface PollResult<T> {
  * );
  * ```
  */
+@Traced()
 @Injectable()
 export class PollUntilService {
   constructor(private readonly logger: LoggerService) {}

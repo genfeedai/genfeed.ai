@@ -31,6 +31,7 @@ import {
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   HttpException,
@@ -62,6 +63,7 @@ interface TrainingOwnerMetadata {
   userId?: string;
 }
 
+@Traced()
 @Injectable()
 export class TrainingsService extends BaseService<
   TrainingDocument,

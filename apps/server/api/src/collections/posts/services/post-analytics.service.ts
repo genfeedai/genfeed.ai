@@ -53,8 +53,10 @@ import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interface
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { CredentialPlatform, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class PostAnalyticsService extends BaseService<
   PostAnalyticsDocument,

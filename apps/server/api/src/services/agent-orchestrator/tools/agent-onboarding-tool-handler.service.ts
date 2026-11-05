@@ -36,6 +36,7 @@ import {
   type OnboardingJourneyMissionId,
   resolveMissionCtaHref,
 } from '@genfeedai/contracts/types';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -85,6 +86,7 @@ interface AgentBrandsServiceLike {
 /**
  * Onboarding / activation tools extracted from AgentToolExecutorService per #519.
  */
+@Traced()
 @Injectable()
 export class AgentOnboardingToolHandler {
   constructor(

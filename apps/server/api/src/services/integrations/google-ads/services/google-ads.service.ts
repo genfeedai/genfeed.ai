@@ -20,6 +20,7 @@ import type {
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -49,6 +50,7 @@ export function isGoogleRefreshTokenRejectedError(error: unknown): boolean {
   return (status === 400 || status === 401) && oauthError === 'invalid_grant';
 }
 
+@Traced()
 @Injectable()
 export class GoogleAdsService {
   private readonly API_VERSION = 'v25';

@@ -1,4 +1,5 @@
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { TwitterApi } from 'twitter-api-v2';
@@ -196,6 +197,7 @@ export class TwitterInboxService {
     private readonly resolveMentionsCredential: ResolveTwitterCredential,
   ) {}
 
+  @Traced()
   async listMentions(
     organizationId: string,
     brandId: string,
@@ -215,6 +217,7 @@ export class TwitterInboxService {
    * One page of mentions, newest first. Pass `paginationToken` from the
    * previous page's `nextToken` to read older mentions for the same query.
    */
+  @Traced()
   async listMentionsPage(
     organizationId: string,
     brandId: string,
@@ -273,6 +276,7 @@ export class TwitterInboxService {
     }
   }
 
+  @Traced()
   async listPostReplies(
     organizationId: string,
     brandId: string,
@@ -313,6 +317,7 @@ export class TwitterInboxService {
     );
   }
 
+  @Traced()
   async listDirectMessages(
     organizationId: string,
     brandId: string,
@@ -360,6 +365,7 @@ export class TwitterInboxService {
     }
   }
 
+  @Traced()
   async sendCommentReplyDm(
     organizationId: string,
     brandId: string,

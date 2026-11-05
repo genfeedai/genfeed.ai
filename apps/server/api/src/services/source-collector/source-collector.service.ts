@@ -24,6 +24,7 @@ import type {
 import type { SocialPostUrlReference } from '@genfeedai/contracts';
 import { isPlatform, SocialSourcePlatform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 function hasExternalPostId(
@@ -48,6 +49,7 @@ function hasExternalPostId(
  * Throws {@link SourceCollectionFailedException} when every provider fails
  * (no silent empty success), naming each provider's failure class.
  */
+@Traced()
 @Injectable()
 export class SourceCollectorService {
   private readonly providers: SourceTimelineProvider[];

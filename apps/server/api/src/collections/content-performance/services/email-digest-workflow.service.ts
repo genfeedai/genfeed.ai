@@ -15,6 +15,7 @@ import {
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import type { EmailDigestWorkflowInput } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export const EMAIL_DIGEST_ACTION_IDS = {
@@ -137,6 +138,7 @@ export function buildEmailDigestWorkflowDefinition(): SystemWorkflowGraphDefinit
   };
 }
 
+@Traced()
 @Injectable()
 export class EmailDigestWorkflowService implements OnModuleInit {
   constructor(

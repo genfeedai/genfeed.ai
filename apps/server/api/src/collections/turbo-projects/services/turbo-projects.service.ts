@@ -52,6 +52,7 @@ import type {
 import type { TurboProject, TurboProjectItem } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -80,6 +81,7 @@ const REVIEWABLE_STATUSES = new Set<string>([
  * `TurboProjectReconcileService`), outputs reach publishing through the
  * shared review inbox, and scheduling uses the shared post scheduling path.
  */
+@Traced()
 @Injectable()
 export class TurboProjectsService {
   private readonly context = TurboProjectsService.name;

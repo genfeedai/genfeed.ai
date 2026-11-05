@@ -34,6 +34,7 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const IMAGE_POPULATE = [
@@ -43,6 +44,7 @@ const IMAGE_POPULATE = [
 ];
 const PROVIDER_DISPATCH_GRACE_MS = 5 * 60 * 1000;
 
+@Traced()
 @Injectable()
 export class ImageGenerationAdmissionService {
   constructor(

@@ -13,6 +13,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -31,6 +32,7 @@ export function normalizeShopifyShopDomain(value: string): string {
   return shop;
 }
 
+@Traced()
 @Injectable()
 export class ShopifyService {
   private readonly constructorName = String(this.constructor.name);

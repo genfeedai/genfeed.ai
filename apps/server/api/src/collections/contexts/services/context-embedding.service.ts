@@ -26,6 +26,7 @@ import {
   KnowledgeSourceSyncState,
   Prisma,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 function record(value: unknown): Record<string, unknown> {
@@ -37,6 +38,7 @@ function nonempty(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+@Traced()
 @Injectable()
 export class ContextEmbeddingService {
   constructor(

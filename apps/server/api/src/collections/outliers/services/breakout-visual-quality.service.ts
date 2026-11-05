@@ -23,6 +23,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 /** A prompt bound that covers the evaluation template, rubric and the longest caption. */
@@ -53,6 +54,7 @@ export type BreakoutVisualQualityRequest = Readonly<{
  * charge afterwards. A retained hold means an earlier attempt already ran, so it is never
  * repeated. Never publishes.
  */
+@Traced()
 @Injectable()
 export class BreakoutVisualQualityService {
   constructor(

@@ -16,6 +16,7 @@ import {
   parseRedisConnection,
 } from '@libs/redis/redis-connection.utils';
 import { isInProcessRedis } from '@libs/redis/redis-driver';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import {
@@ -40,6 +41,7 @@ type MicroserviceUrlKey =
   | 'GENFEEDAI_MICROSERVICES_MCP_URL'
   | 'GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL';
 
+@Traced()
 @Injectable()
 export class MicroservicesService implements OnModuleInit, HealthContributor {
   private readonly constructorName: string = String(this.constructor.name);

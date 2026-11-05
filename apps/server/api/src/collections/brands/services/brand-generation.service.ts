@@ -34,6 +34,7 @@ import {
   type TurboIdeaFormat,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export type BrandFinder = (
@@ -54,6 +55,7 @@ function splitTurboIdeaCount(count: number): number[] {
   );
 }
 
+@Traced()
 @Injectable()
 export class BrandGenerationService {
   private readonly constructorName = this.constructor.name;

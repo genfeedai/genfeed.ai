@@ -30,6 +30,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { getModelCapability } from '@genfeedai/helpers/model-capability.helper';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type StoryboardCapabilityConfig = Pick<
@@ -160,6 +161,7 @@ export function storyboardCatalogCapability(model: ModelDocument): {
   };
 }
 
+@Traced()
 @Injectable()
 export class StoryboardRunCapabilitiesService {
   constructor(

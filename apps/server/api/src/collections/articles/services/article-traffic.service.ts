@@ -9,6 +9,7 @@ import type {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const DAY_MS = 86_400_000;
@@ -17,6 +18,7 @@ const QUERY_ORIGINS = new Set([
   'https://us.posthog.com',
 ]);
 
+@Traced()
 @Injectable()
 export class ArticleTrafficService {
   constructor(

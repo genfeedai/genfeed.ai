@@ -3,6 +3,7 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { RouterService } from '@api/services/router/router.service';
 import { ModelCategory } from '@genfeedai/contracts';
 import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { isAxiosError } from 'axios';
 
@@ -23,6 +24,7 @@ export class ContextEmbeddingProviderError extends Error {
   }
 }
 
+@Traced()
 @Injectable()
 export class ContextEmbeddingProviderService {
   constructor(

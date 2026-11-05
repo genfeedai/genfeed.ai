@@ -11,6 +11,7 @@ import {
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { Prisma } from '@genfeedai/prisma';
 import { getTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -32,6 +33,7 @@ function isBulkUploadStatus(value: unknown): value is BulkUploadStatus {
   );
 }
 
+@Traced()
 @Injectable()
 export class AdBulkUploadJobsService {
   private readonly constructorName = this.constructor.name;

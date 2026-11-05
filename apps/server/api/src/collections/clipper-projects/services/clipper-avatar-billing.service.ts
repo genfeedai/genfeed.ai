@@ -8,6 +8,7 @@ import type {
 import { ActivitySource, ByokProvider } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 /**
@@ -16,6 +17,7 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
  * settles it to the duration HeyGen returns or releases it on failure. A
  * customer HeyGen connection holds nothing.
  */
+@Traced()
 @Injectable()
 export class ClipperAvatarBillingService {
   constructor(

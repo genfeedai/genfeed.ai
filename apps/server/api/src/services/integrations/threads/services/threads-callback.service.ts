@@ -9,6 +9,7 @@ import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -21,6 +22,7 @@ export interface ThreadsDataDeletionResponse {
   url: string;
 }
 
+@Traced()
 @Injectable()
 export class ThreadsCallbackService {
   constructor(

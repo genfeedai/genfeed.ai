@@ -35,6 +35,7 @@ import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { readIngredientMediaUrlWithFallback } from '@libs/media/media-url.util';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadGatewayException,
   BadRequestException,
@@ -99,6 +100,7 @@ const SOURCE_CONTEXT_CHUNK_SIZE = 280;
 
 const REPURPOSE_WORKFLOW_NAME = 'post-repurpose';
 
+@Traced()
 @Injectable()
 export class PostRepurposeService {
   constructor(

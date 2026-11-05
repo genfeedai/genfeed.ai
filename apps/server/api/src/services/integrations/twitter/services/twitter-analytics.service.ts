@@ -1,4 +1,5 @@
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { TwitterApi } from 'twitter-api-v2';
 import {
@@ -39,6 +40,7 @@ export class TwitterAnalyticsService {
    * @param accessToken Decrypted OAuth2 user access token. Without one the app
    * bearer is used and only public metrics are requested.
    */
+  @Traced()
   async getMediaAnalytics(
     tweetId: string,
     accessToken?: string,
@@ -57,6 +59,7 @@ export class TwitterAnalyticsService {
    * @param accessToken Decrypted OAuth2 user access token. Without one the app
    * bearer is used and only public metrics are requested.
    */
+  @Traced()
   async getMediaAnalyticsBatch(
     tweetIds: string[],
     accessToken?: string,
@@ -82,6 +85,7 @@ export class TwitterAnalyticsService {
     }
   }
 
+  @Traced()
   private async fetchTweetMetrics(
     tweetIds: string[],
     accessToken?: string,
@@ -133,6 +137,7 @@ export class TwitterAnalyticsService {
    * Pinned posts are excluded from learning, so a failed lookup resolves to
    * `undefined` (unknown) instead of failing the metrics collection.
    */
+  @Traced()
   private async fetchPinnedTweetId(
     client: TwitterApi,
   ): Promise<string | null | undefined> {

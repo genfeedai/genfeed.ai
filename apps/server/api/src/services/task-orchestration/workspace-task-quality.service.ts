@@ -1,6 +1,7 @@
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type WorkspaceQualityGate = 'pass' | 'needs_revision' | 'fail';
@@ -28,6 +29,7 @@ export interface WorkspaceTaskQualityAssessmentInput {
   summaries: string[];
 }
 
+@Traced()
 @Injectable()
 export class WorkspaceTaskQualityService {
   private readonly rubricVersion = 'founder-gtm-v1';

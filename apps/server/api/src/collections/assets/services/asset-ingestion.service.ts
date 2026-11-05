@@ -23,6 +23,7 @@ import {
   IngredientCategory,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
@@ -30,6 +31,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class AssetIngestionService {
   private readonly constructorName = String(this.constructor.name);

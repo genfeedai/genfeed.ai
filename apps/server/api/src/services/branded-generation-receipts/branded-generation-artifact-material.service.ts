@@ -25,6 +25,7 @@ import {
   STORAGE_READ_MAX_BYTES,
   StorageReadError,
 } from '@genfeedai/storage';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -32,6 +33,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class BrandedGenerationArtifactMaterialService {
   private readonly storage = createStorageProvider();

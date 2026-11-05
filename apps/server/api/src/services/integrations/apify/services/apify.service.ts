@@ -25,6 +25,7 @@ import { ApifyTwitterService } from '@api/services/integrations/apify/services/m
 import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
 import type { SocialSourceResearchContext } from '@api/services/source-collector/source-collector.types';
 import { Platform } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -43,6 +44,7 @@ import { Injectable } from '@nestjs/common';
  * - ApifyPinterestService: Pinterest trends
  * - ApifyLinkedInService: LinkedIn public profile posts
  */
+@Traced()
 @Injectable()
 export class ApifyService {
   private readonly constructorName: string = String(this.constructor.name);

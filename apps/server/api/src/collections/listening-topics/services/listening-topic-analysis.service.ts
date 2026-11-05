@@ -17,6 +17,7 @@ import {
   type ListeningSignalType,
   type SourcePostMetrics,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const MAX_WINDOW_MILLISECONDS = 31 * 24 * 60 * 60 * 1000;
@@ -108,6 +109,7 @@ type SignalCalculation = {
   value: number | null;
 };
 
+@Traced()
 @Injectable()
 export class ListeningTopicAnalysisService {
   constructor(private readonly prisma: PrismaService) {}

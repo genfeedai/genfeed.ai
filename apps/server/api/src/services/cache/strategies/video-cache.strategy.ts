@@ -1,6 +1,8 @@
 import { CacheService } from '@api/services/cache/cache.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class VideoCacheStrategy {
   constructor(private readonly cacheService: CacheService) {}

@@ -6,6 +6,7 @@ import type {
   PaidCreativeProvider,
 } from '@genfeedai/integrations/ads';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -15,6 +16,7 @@ import { Injectable } from '@nestjs/common';
  * competitor research therefore reads the public library surface through an
  * Apify actor.
  */
+@Traced()
 @Injectable()
 export class MetaAdLibraryProvider extends ApifyArchiveProvider {
   readonly documentationUrl = 'https://www.facebook.com/ads/library/';

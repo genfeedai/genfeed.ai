@@ -22,6 +22,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -34,6 +35,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
  * through {@link dispatch}. `check:architecture` fails on an activity or
  * outbox write anywhere else.
  */
+@Traced()
 @Injectable()
 export class ActivityRecorderService {
   private readonly context = { service: ActivityRecorderService.name };

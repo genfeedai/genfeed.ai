@@ -3,8 +3,10 @@ import type { ParsedVercelWebhookPayload } from '@api/endpoints/webhooks/vercel/
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class VercelWebhookService {
   constructor(

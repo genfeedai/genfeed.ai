@@ -4,8 +4,10 @@ import type {
   GenerationHarnessSettings,
   UpdateGenerationHarnessSettings,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class GenerationHarnessSettingsService {
   constructor(private readonly prisma: PrismaService) {}

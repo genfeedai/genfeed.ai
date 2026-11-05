@@ -7,6 +7,7 @@ import type {
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import OpenAI from 'openai';
 import type {
@@ -14,6 +15,7 @@ import type {
   ChatCompletionTool,
 } from 'openai/resources/chat/completions';
 
+@Traced()
 @Injectable()
 export class OpenAiLlmService {
   private readonly constructorName: string = String(this.constructor.name);

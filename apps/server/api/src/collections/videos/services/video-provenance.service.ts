@@ -22,6 +22,7 @@ import {
   buildMediaWatermarkAttributionEvaluation,
 } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 function toIsoString(value: Date | string | null | undefined): string | null {
@@ -40,6 +41,7 @@ function toIsoString(value: Date | string | null | undefined): string | null {
  * Metadata, and Caption records. Pure assembly: no external generation or upload
  * side effects.
  */
+@Traced()
 @Injectable()
 export class VideoProvenanceService {
   private readonly constructorName: string = String(this.constructor.name);

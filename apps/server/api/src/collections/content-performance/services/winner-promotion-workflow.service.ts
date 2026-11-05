@@ -7,6 +7,7 @@ import type { WinnerPromotionCandidate } from '@api/services/harness/harness-win
 import { HarnessWinnerPromotionService } from '@api/services/harness/harness-winner-promotion.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ExecutionContext } from '@genfeedai/workflows/engine';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -33,6 +34,7 @@ export interface WinnerPromotionWorkflowResult {
  * ranked winner through an explicit child workflow into the harness
  * performance-winners context base (#3018).
  */
+@Traced()
 @Injectable()
 export class WinnerPromotionWorkflowService {
   constructor(

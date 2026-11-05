@@ -17,6 +17,7 @@ import { hydrateWorkflowDefinition } from '@api/collections/workflows/workflow-v
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 
 export class RetiredWorkflowExecutionError extends Error {
   constructor(workflowId: string, workflowVersionId: string) {
@@ -30,6 +31,7 @@ export class RetiredWorkflowExecutionError extends Error {
 export class WorkflowExecutorDocumentService {
   constructor(private readonly prisma: PrismaService) {}
 
+  @Traced()
   async findMatchingWorkflows(
     event: TriggerEvent,
   ): Promise<WorkflowDocument[]> {
@@ -56,6 +58,7 @@ export class WorkflowExecutorDocumentService {
     });
   }
 
+  @Traced()
   async findPinnedWorkflow(
     workflowId: string,
     workflowVersionId: string,

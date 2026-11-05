@@ -11,6 +11,7 @@ import type {
 } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface CreatePatternDto {
@@ -52,6 +53,7 @@ function buildDataFilter(
   return { data: { path, ...operator } as Prisma.JsonFilter };
 }
 
+@Traced()
 @Injectable()
 export class PatternStoreService extends BaseService<
   ContentPatternDocument,

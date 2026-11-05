@@ -5,6 +5,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export const BREAKOUT_REMIX_OFFER_ENTITY_MODEL = 'BreakoutResponse';
@@ -59,6 +60,7 @@ function snippet(text: string | null | undefined): string | null {
  * detected response: a repeat collection of the same post returns the first
  * activity and writes nothing.
  */
+@Traced()
 @Injectable()
 export class BreakoutRemixOfferService {
   private readonly context = { service: BreakoutRemixOfferService.name };

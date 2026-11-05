@@ -33,6 +33,7 @@ import { type AgentType, KnowledgeMemoryScope } from '@genfeedai/contracts';
 import type { IAgentCampaignContentRotation } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 
 interface AnalyticsOverview {
@@ -130,6 +131,7 @@ export interface ContentEngineCycleResult {
   summary: string;
 }
 
+@Traced()
 @Injectable()
 export class ContentEngineService {
   private readonly logContext = 'CampaignContentEngineService';

@@ -23,6 +23,7 @@ import {
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { readIngredientMediaUrl } from '@libs/media/media-url.util';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -40,6 +41,7 @@ export interface QualityScoreResult {
   status: QualityStatus;
 }
 
+@Traced()
 @Injectable()
 export class ContentQualityScorerService {
   private readonly constructorName = String(this.constructor.name);

@@ -20,6 +20,7 @@ import {
   quoteModelBillablePricing,
 } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   ForbiddenException,
   Injectable,
@@ -27,6 +28,7 @@ import {
 } from '@nestjs/common';
 
 /** Registry-backed model selection and recommendation policy. */
+@Traced()
 @Injectable()
 export class RouterService {
   /**

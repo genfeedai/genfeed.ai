@@ -16,6 +16,7 @@ import { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/me
 import type { BrandVisionModelKind } from '@genfeedai/contracts/constants';
 import type { IBrandVisionModelOption } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 import type { Prediction } from 'replicate';
@@ -213,6 +214,7 @@ function modelSlug(identifier: string): string {
  * or unpriced fails closed. Frames already read in this process are not paid
  * for again.
  */
+@Traced()
 @Injectable()
 export class BrandReplicateVisionProvider implements BrandVisionProvider {
   private readonly constructorName = String(this.constructor.name);

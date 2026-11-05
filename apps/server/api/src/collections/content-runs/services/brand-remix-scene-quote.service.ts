@@ -31,8 +31,10 @@ type SceneQuoteItem = (
 ) => void;
 
 import { LLM_DEFAULTS, MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class BrandRemixSceneQuoteService {
   constructor(

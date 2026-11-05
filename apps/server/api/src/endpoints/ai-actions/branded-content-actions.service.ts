@@ -19,6 +19,7 @@ import {
   splitReplyVariants,
 } from '@genfeedai/helpers/content/text-action/reply-variants.helper';
 import type { TextActionGate } from '@genfeedai/helpers/content/text-action/text-action-text.helper';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const DEFAULT_CHANNEL_LIMIT = 5000;
@@ -45,6 +46,7 @@ const NO_USABLE_DRAFT: TextActionFailureV1 = {
  * generation to the branded runner, so every proposal is written from the
  * brand, backed by a receipt and never produced by an unreceipted call.
  */
+@Traced()
 @Injectable()
 export class BrandedContentActionsService {
   constructor(private readonly runner: BrandedTextRunnerService) {}

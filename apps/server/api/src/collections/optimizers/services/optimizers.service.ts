@@ -35,9 +35,11 @@ import {
 import { describePlatformTextLimit } from '@genfeedai/helpers/content/platform-text-length.helper';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import type { ZodType } from 'zod';
 
+@Traced()
 @Injectable()
 export class OptimizersService {
   constructor(

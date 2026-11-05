@@ -37,6 +37,7 @@ import type {
 import { type Credential, type Prisma } from '@genfeedai/prisma';
 import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 export interface AssessAccountHealthParams {
@@ -166,6 +167,7 @@ function isOverrideActive(
   );
 }
 
+@Traced()
 @Injectable()
 export class AccountHealthService {
   constructor(

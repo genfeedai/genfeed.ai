@@ -16,6 +16,7 @@ import { SystemNotificationDestinationsService } from '@api/services/system-even
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SYSTEM_EVENT_TYPES } from '@libs/interfaces/system-event.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type Stripe from 'stripe';
 
@@ -28,6 +29,7 @@ export const RECOVER_BATCH_SIZE = 20;
  */
 export const MAX_EVENT_ATTEMPTS = 32;
 
+@Traced()
 @Injectable()
 export class SystemEventsService {
   constructor(

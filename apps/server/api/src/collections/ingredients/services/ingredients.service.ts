@@ -57,6 +57,7 @@ import {
   getTenantContext,
   isCrossOrgUnsafe,
 } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -65,6 +66,7 @@ function requestOrganizationId(): string | undefined {
   return isCrossOrgUnsafe() ? undefined : getTenantContext()?.organizationId;
 }
 
+@Traced()
 @Injectable()
 export class IngredientsService extends BaseService<
   IngredientDocument,

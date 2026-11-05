@@ -3,6 +3,7 @@ import { PollUntilService } from '@api/shared/services/poll-until/poll-until.ser
 import { fal } from '@fal-ai/client';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
@@ -47,6 +48,7 @@ interface FalResponseData extends Record<string, unknown> {
  * Supports image generation (FLUX), video generation (Kling), and more.
  * Uses fal.subscribe() for synchronous polling (no webhooks needed).
  */
+@Traced()
 @Injectable()
 export class FalService {
   private readonly logContext = 'FalService';

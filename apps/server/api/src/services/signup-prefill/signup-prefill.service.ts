@@ -34,6 +34,7 @@ import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { resolveSafeDestination } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -111,6 +112,7 @@ const PREFILL_MARKER_KEY = 'signupPrefill';
  * Every stage is best-effort. A prefill failure must never leave the account
  * unusable, so the marker records what happened and the brand stays valid.
  */
+@Traced()
 @Injectable()
 export class SignupPrefillService {
   private readonly inFlightScans = new Set<string>();

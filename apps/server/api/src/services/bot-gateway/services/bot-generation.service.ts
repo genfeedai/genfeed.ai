@@ -10,6 +10,7 @@ import type {
   IBotResolvedUser,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -18,6 +19,7 @@ interface GenerationResult {
   message: string;
 }
 
+@Traced()
 @Injectable()
 export class BotGenerationService {
   private readonly constructorName: string = String(this.constructor.name);

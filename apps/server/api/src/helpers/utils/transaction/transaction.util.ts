@@ -1,6 +1,7 @@
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export type PrismaTransactionClient = Prisma.TransactionClient;
@@ -21,6 +22,7 @@ type PrismaTransactionOptions = {
  * });
  * ```
  */
+@Traced()
 @Injectable()
 export class TransactionUtil {
   constructor(

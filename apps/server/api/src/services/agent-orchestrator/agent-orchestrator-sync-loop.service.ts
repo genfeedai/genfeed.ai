@@ -61,8 +61,10 @@ import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.s
 import type { CuratedActionName } from '@genfeedai/actions';
 import { AgentMessageRole, type RouterPriority } from '@genfeedai/contracts';
 import type { AgentAutoRoutingResolution } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class AgentOrchestratorSyncLoopService {
   constructor(

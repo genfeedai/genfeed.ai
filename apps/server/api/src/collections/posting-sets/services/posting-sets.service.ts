@@ -29,6 +29,7 @@ import {
 import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type { IPostingSetScope } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const CREDENTIAL_REF_SELECT = {
@@ -38,6 +39,7 @@ const CREDENTIAL_REF_SELECT = {
   platform: true,
 } as const;
 
+@Traced()
 @Injectable()
 export class PostingSetsService {
   constructor(

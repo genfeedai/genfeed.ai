@@ -21,6 +21,7 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const DEFAULT_CLIP_SOURCE_MAX_RETRIES = 3;
@@ -45,6 +46,7 @@ interface LibraryClipperSourceMedia {
  * asset against the caller's organization and brand and the Clips source
  * limits, then queues highlight analysis.
  */
+@Traced()
 @Injectable()
 export class ClipperProjectLibrarySourceService {
   constructor(

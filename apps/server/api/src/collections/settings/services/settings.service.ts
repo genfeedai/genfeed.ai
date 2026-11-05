@@ -11,6 +11,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 type FavoriteWorkflowIdsCarrier = { favoriteWorkflowIds?: unknown };
@@ -25,6 +26,7 @@ function readFavoriteWorkflowIds(value: unknown): string[] | null {
     : null;
 }
 
+@Traced()
 @Injectable()
 export class SettingsService extends BaseService<
   SettingDocument,

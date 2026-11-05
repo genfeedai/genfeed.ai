@@ -28,6 +28,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { readIngredientMediaUrlWithFallback } from '@libs/media/media-url.util';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -45,6 +46,7 @@ function requiredString(value: unknown, label: string): string {
   return value.trim();
 }
 
+@Traced()
 @Injectable()
 export class AgentWorkObjectService {
   constructor(

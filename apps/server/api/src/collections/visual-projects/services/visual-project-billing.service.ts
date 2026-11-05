@@ -19,6 +19,7 @@ import type {
   IVisualCodeSettings,
 } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson, type VisualRevision } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -26,6 +27,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class VisualProjectBillingService {
   constructor(

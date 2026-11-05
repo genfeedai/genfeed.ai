@@ -38,6 +38,7 @@ import {
 import { getOutreachCapabilityRefusal } from '@genfeedai/contracts/api-types/contracts/outreach-capabilities.contract';
 import type { ICampaignScope } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
@@ -58,6 +59,7 @@ type CampaignDmWorkflowState = {
   targetId: string;
 };
 
+@Traced()
 @Injectable()
 export class DmCampaignExecutorService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);

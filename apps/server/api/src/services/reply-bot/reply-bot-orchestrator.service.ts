@@ -68,6 +68,7 @@ import type { IReplyBotCredentialData } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export interface ProcessingResult {
@@ -80,6 +81,7 @@ export interface ProcessingResult {
   errors: number;
 }
 
+@Traced()
 @Injectable()
 export class ReplyBotOrchestratorService implements OnModuleInit {
   constructor(

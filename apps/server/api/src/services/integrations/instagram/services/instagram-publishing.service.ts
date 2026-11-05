@@ -8,6 +8,7 @@ import type {
   InstagramMessageRecipient,
 } from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -45,6 +46,7 @@ export class InstagramPublishingService {
   ) {}
 
   /** Replies inside the provider's existing messaging window. */
+  @Traced()
   async sendDirectMessage(
     organizationId: string,
     brandId: string,
@@ -67,6 +69,7 @@ export class InstagramPublishingService {
    *
    * @see https://developers.facebook.com/documentation/business-messaging/messenger-platform/webhooks
    */
+  @Traced()
   async subscribePageToMessageWebhooks(
     organizationId: string,
     brandId: string,
@@ -117,6 +120,7 @@ export class InstagramPublishingService {
   }
 
   /** Initial comment replies use comment_id, not the commenter's scoped ID. */
+  @Traced()
   async sendPrivateReply(
     organizationId: string,
     brandId: string,
@@ -133,6 +137,7 @@ export class InstagramPublishingService {
     );
   }
 
+  @Traced()
   private async sendMessage(
     organizationId: string,
     brandId: string,
@@ -185,6 +190,7 @@ export class InstagramPublishingService {
     }
   }
 
+  @Traced()
   async uploadImage(
     organizationId: string,
     brandId: string,
@@ -234,6 +240,7 @@ export class InstagramPublishingService {
     }
   }
 
+  @Traced()
   async uploadReel(
     organizationId: string,
     brandId: string,
@@ -292,6 +299,7 @@ export class InstagramPublishingService {
     }
   }
 
+  @Traced()
   async uploadCarousel(
     organizationId: string,
     brandId: string,
@@ -360,6 +368,7 @@ export class InstagramPublishingService {
     }
   }
 
+  @Traced()
   async postComment(
     organizationId: string,
     brandId: string,
@@ -411,6 +420,7 @@ export class InstagramPublishingService {
     );
   }
 
+  @Traced()
   private async waitForMediaProcessing(
     containerId: string,
     accessToken: string,
@@ -436,6 +446,7 @@ export class InstagramPublishingService {
     throw new Error('Media processing timeout');
   }
 
+  @Traced()
   private async getMediaShortcode(
     mediaId: string,
     accessToken: string,
