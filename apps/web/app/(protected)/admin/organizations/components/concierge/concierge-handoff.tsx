@@ -25,7 +25,13 @@ import { format } from 'date-fns';
 import { Ban, Mail, RotateCw, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import type {
   ConciergeHandoffProps,
   ConciergeInvitationAction,
@@ -62,9 +68,13 @@ export default function ConciergeHandoff({
   // The sidebar reuses this component when another organization is selected;
   // work started for the previous one must not touch the new selection.
   const activeConciergeIdRef = useRef(conciergeId);
-  activeConciergeIdRef.current = conciergeId;
   const onAccountChangeRef = useRef(onAccountChange);
-  onAccountChangeRef.current = onAccountChange;
+  // Synced after commit, never during render; a layout effect runs before any
+  // awaited work from a handler can resume and read them.
+  useLayoutEffect(() => {
+    activeConciergeIdRef.current = conciergeId;
+    onAccountChangeRef.current = onAccountChange;
+  }, [conciergeId, onAccountChange]);
   const getService = useAuthedService((token: string) =>
     AdminWarmupAccountsService.getInstance(token),
   );
