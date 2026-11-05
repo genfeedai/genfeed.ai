@@ -1,15 +1,12 @@
 import AssetDeepLink from '@app/(protected)/[orgSlug]/[brandSlug]/library/assets/asset-deep-link';
+import LegacyLibraryQueryRedirect from '@app/(protected)/[orgSlug]/[brandSlug]/library/assets/legacy-library-query-redirect';
 import { LibraryPlace, PageScope } from '@genfeedai/contracts';
-import {
-  createBrandAppRoute,
-  resolveLegacyLibraryRoute,
-} from '@genfeedai/contracts/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import { permanentRedirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { IngredientsMediaGridSkeleton } from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientsList from '@/features/ingredients/list/ingredients-list';
 import LibraryBrowser from '@/features/library/browser/library-browser';
+import type { LegacyLibraryQueryRedirectProps } from '@/features/library/props/legacy-library-query-redirect.props';
 import LibraryCreditNotice from '../library-credit-notice';
 
 export const generateMetadata = createPageMetadata('All assets');
@@ -19,27 +16,23 @@ export const generateMetadata = createPageMetadata('All assets');
  * type and folder available as filters on top (uploads and imports sit on the
  * References shelf) — the per-type routes are the
  * same page with their chips pre-selected.
+ *
+ * The page itself reads no request data, so the browser frame is part of the
+ * prerendered route shell and the Library rail click paints it at once. Only
+ * the legacy-query redirect reads the URL, inside its own Suspense boundary.
  */
-export default async function LibraryAssetsPage({
+export default function LibraryAssetsPage({
   params,
   searchParams,
-}: {
-  params: Promise<{ brandSlug: string; orgSlug: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const [{ brandSlug, orgSlug }, search] = await Promise.all([
-    params,
-    searchParams,
-  ]);
-  // Old links carried the view in the query (`?place=trash`, `?shelf=…`, a type
-  // preset's `?categories=…`); each of those views is a route now.
-  const legacyRoute = resolveLegacyLibraryRoute(search);
-  if (legacyRoute) {
-    permanentRedirect(createBrandAppRoute(orgSlug, brandSlug, legacyRoute));
-  }
-
+}: LegacyLibraryQueryRedirectProps) {
   return (
     <LibraryBrowser place={LibraryPlace.ASSETS} scope={PageScope.BRAND}>
+      <Suspense fallback={null}>
+        <LegacyLibraryQueryRedirect
+          params={params}
+          searchParams={searchParams}
+        />
+      </Suspense>
       <LibraryCreditNotice />
       <Suspense fallback={<IngredientsMediaGridSkeleton />}>
         <AssetDeepLink />
