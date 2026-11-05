@@ -66,6 +66,7 @@ describe('GhostController', () => {
             createPendingForBrand: vi
               .fn()
               .mockResolvedValue({ id: 'pending-credential-id' }),
+            findBrandAccounts: vi.fn().mockResolvedValue([]),
             updateExternalProfile: vi.fn(),
           },
         },
@@ -207,34 +208,70 @@ describe('GhostController', () => {
       },
     );
 
-    it('stores the site address without the Ghost Admin path', async () => {
+    it('refuses an address that answers without a Ghost site', async () => {
       brandsService.findOne.mockResolvedValue(mockBrand as never);
-      ghostService.getSiteInfo.mockResolvedValue({
-        title: 'My Ghost Blog',
-      } as never);
-      credentialsService.updateExternalProfile.mockImplementation(
-        async (
-          _id: string,
-          _organizationId: string,
-          profile: ExternalCredentialProfile,
-        ) => ({ externalProfile: profile }) as never,
-      );
+      ghostService.getSiteInfo.mockResolvedValue(undefined as never);
 
-      const result = await controller.connect(mockRequest, mockUser, {
-        ...validBody,
-        ghostUrl: 'https://myblog.ghost.io/ghost/#/dashboard',
-      });
+      const failure = await controller
+        .connect(mockRequest, mockUser, validBody)
+        .catch((error: HttpException) => ({
+          code: (error.getResponse() as { code: string }).code,
+          status: error.getStatus(),
+        }));
 
-      expect(result).toEqual({
-        data: {
-          externalProfile: {
-            handle: undefined,
-            id: 'https://myblog.ghost.io',
-            name: 'My Ghost Blog',
-          },
-        },
+      expect(failure).toEqual({
+        code: 'API_KEY_CONNECT_API_NOT_FOUND',
+        status: 400,
       });
     });
+
+    it.each([
+      [
+        'without the Ghost Admin path',
+        'https://myblog.ghost.io/ghost/#/dashboard',
+        [],
+        'https://myblog.ghost.io',
+      ],
+      [
+        'as the brand already stores it, so a reconnect updates that account',
+        'https://MyBlog.ghost.io',
+        [{ externalId: 'myblog.ghost.io/' }],
+        'myblog.ghost.io/',
+      ],
+    ])(
+      'stores the site address %s',
+      async (_case, ghostUrl, existingAccounts, storedId) => {
+        brandsService.findOne.mockResolvedValue(mockBrand as never);
+        ghostService.getSiteInfo.mockResolvedValue({
+          title: 'My Ghost Blog',
+        } as never);
+        credentialsService.findBrandAccounts.mockResolvedValue(
+          existingAccounts as never,
+        );
+        credentialsService.updateExternalProfile.mockImplementation(
+          async (
+            _id: string,
+            _organizationId: string,
+            profile: ExternalCredentialProfile,
+          ) => ({ externalProfile: profile }) as never,
+        );
+
+        const result = await controller.connect(mockRequest, mockUser, {
+          ...validBody,
+          ghostUrl,
+        });
+
+        expect(result).toEqual({
+          data: {
+            externalProfile: {
+              handle: undefined,
+              id: storedId,
+              name: 'My Ghost Blog',
+            },
+          },
+        });
+      },
+    );
   });
 
   // createPost

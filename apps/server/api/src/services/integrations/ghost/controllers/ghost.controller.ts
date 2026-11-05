@@ -13,8 +13,14 @@ import {
   createApiKeyConnectException,
 } from '@api/services/integrations/_shared/api-key-connect-error.util';
 import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
-import { parseGhostConnectInput } from '@api/services/integrations/ghost/utils/ghost-connect-input.util';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import {
+  parseGhostConnectInput,
+  toGhostSiteKey,
+} from '@api/services/integrations/ghost/utils/ghost-connect-input.util';
+import {
+  ApiKeyConnectErrorCode,
+  CredentialPlatform,
+} from '@genfeedai/contracts';
 import type {
   GhostConnectPayload,
   GhostCreatePostPayload,
@@ -54,7 +60,13 @@ export class GhostController {
       ghostUrl: body.ghostUrl,
     });
 
-    if (!body.ghostUrl || !body.apiKey || !body.brandId) {
+    if (
+      typeof body.ghostUrl !== 'string' ||
+      typeof body.apiKey !== 'string' ||
+      !body.ghostUrl ||
+      !body.apiKey ||
+      !body.brandId
+    ) {
       return returnBadRequest({
         detail: 'Missing ghostUrl, apiKey, or brandId',
         title: 'Invalid payload',
@@ -78,7 +90,7 @@ export class GhostController {
       throw createApiKeyConnectException(input.code);
     }
 
-    let siteTitle: string;
+    let siteTitle: string | undefined;
     try {
       // Verify the pair by reading the site: proves the URL is a Ghost site
       // and that it accepts the key.
@@ -86,13 +98,39 @@ export class GhostController {
         input.ghostUrl,
         input.apiKey,
       );
-      siteTitle = siteInfo.title;
+      siteTitle = siteInfo?.title;
     } catch (error: unknown) {
       const code = classifyApiKeyConnectError(error);
       // The service already logged the failure; only the outcome goes here.
       this.loggerService.warn(`${url} refused`, { code });
       throw createApiKeyConnectException(code);
     }
+    // A site that answers 200 without Ghost's site object (a page that
+    // serves every path, say) has no Ghost Admin API at this address.
+    if (typeof siteTitle !== 'string') {
+      this.loggerService.warn(`${url} refused`, {
+        code: ApiKeyConnectErrorCode.API_NOT_FOUND,
+      });
+      throw createApiKeyConnectException(ApiKeyConnectErrorCode.API_NOT_FOUND);
+    }
+
+    // Sites connected before the address was cleaned up are stored as typed
+    // (`https://myblog.com/`, say). Reuse that spelling when it names the
+    // same site, so reconnecting updates the account instead of adding one.
+    const existingAccounts = await this.credentialsService.findBrandAccounts(
+      brand.organizationId,
+      brand.id,
+      CredentialPlatform.GHOST,
+    );
+    const siteKey = toGhostSiteKey(input.ghostUrl);
+    const siteId =
+      existingAccounts
+        .map((account) => account.externalId)
+        .find(
+          (externalId): externalId is string =>
+            typeof externalId === 'string' &&
+            toGhostSiteKey(externalId) === siteKey,
+        ) ?? input.ghostUrl;
 
     // Provision the row first, then let identity reconciliation decide
     // whether this is a reconnect of a site the brand already has or an
@@ -111,7 +149,7 @@ export class GhostController {
       {
         // A Ghost site URL is an address, not a public @handle.
         handle: undefined,
-        id: input.ghostUrl,
+        id: siteId,
         name: siteTitle,
       },
     );

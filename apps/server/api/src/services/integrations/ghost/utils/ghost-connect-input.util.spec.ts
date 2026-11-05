@@ -1,5 +1,8 @@
 import { ApiKeyConnectErrorCode } from '@genfeedai/contracts';
-import { parseGhostConnectInput } from './ghost-connect-input.util';
+import {
+  parseGhostConnectInput,
+  toGhostSiteKey,
+} from './ghost-connect-input.util';
 
 // A fake Admin key in Ghost's `id:secret` hex shape.
 const KEY = `${'a'.repeat(24)}:${'b'.repeat(64)}`;
@@ -49,5 +52,16 @@ describe('parseGhostConnectInput', () => {
     ],
   ])('refuses %j with key %j as %s', (url, apiKey, code) => {
     expect(parseGhostConnectInput(url, apiKey)).toEqual({ code, ok: false });
+  });
+});
+
+describe('toGhostSiteKey', () => {
+  it.each([
+    ['https://myblog.com', 'myblog.com'],
+    ['HTTPS://MyBlog.com/', 'myblog.com'],
+    ['myblog.com/ghost/#/dashboard', 'myblog.com'],
+    ['https://example.com/blog/', 'example.com/blog'],
+  ])('reads %s as the site %s', (siteUrl, key) => {
+    expect(toGhostSiteKey(siteUrl)).toBe(key);
   });
 });

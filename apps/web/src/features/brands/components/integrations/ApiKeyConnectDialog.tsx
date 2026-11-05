@@ -3,7 +3,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import type { ApiKeyConnectDialogProps } from '@props/pages/brand-integrations.props';
+import type {
+  ApiKeyConnectDialogProps,
+  ApiKeyConnectTarget,
+} from '@props/pages/brand-integrations.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
@@ -22,7 +25,7 @@ import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useRef, useState } from 'react';
 import {
   getApiKeyConnectFormFields,
   resolveApiKeyConnectErrorMessageKey,
@@ -49,6 +52,27 @@ export default function ApiKeyConnectDialog({
   const [publicationId, setPublicationId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessageKey, setErrorMessageKey] = useState<string | null>(null);
+  const [formTarget, setFormTarget] = useState<ApiKeyConnectTarget | null>(
+    null,
+  );
+  // Bumped on every close and new target: a request still in flight from an
+  // earlier opening must not close or fill the form shown now.
+  const submissionGeneration = useRef(0);
+
+  // Each opening passes a new target; start its form from the account being
+  // reconnected, if any.
+  if (target !== formTarget) {
+    setFormTarget(target);
+    if (target) {
+      const targetFields = getApiKeyConnectFormFields(target.platform);
+      const externalId = target.reconnectExternalId ?? '';
+      setSiteUrl(targetFields.hasSiteUrl ? externalId : '');
+      setPublicationId(targetFields.hasPublicationId ? externalId : '');
+      setApiKey('');
+      setErrorMessageKey(null);
+      setIsSubmitting(false);
+    }
+  }
 
   if (!target) {
     return null;
@@ -61,10 +85,12 @@ export default function ApiKeyConnectDialog({
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
+      submissionGeneration.current += 1;
       setSiteUrl('');
       setApiKey('');
       setPublicationId('');
       setErrorMessageKey(null);
+      setIsSubmitting(false);
     }
     onOpenChange(nextOpen);
   };
@@ -75,6 +101,9 @@ export default function ApiKeyConnectDialog({
       return;
     }
 
+    submissionGeneration.current += 1;
+    const generation = submissionGeneration.current;
+    const isCurrent = () => submissionGeneration.current === generation;
     setIsSubmitting(true);
     setErrorMessageKey(null);
     try {
@@ -95,16 +124,22 @@ export default function ApiKeyConnectDialog({
           ? { publicationId: trimmedPublicationId }
           : {}),
       });
-      NotificationsService.getInstance().success(
-        translate(`${messages}.connected`),
-      );
-      handleOpenChange(false);
+      if (isCurrent()) {
+        NotificationsService.getInstance().success(
+          translate(`${messages}.connected`),
+        );
+        handleOpenChange(false);
+      }
       await onConnected();
     } catch (error) {
       logger.error(`Failed to connect ${target.servicePath}`, error);
-      setErrorMessageKey(resolveApiKeyConnectErrorMessageKey(error));
+      if (isCurrent()) {
+        setErrorMessageKey(resolveApiKeyConnectErrorMessageKey(error));
+      }
     } finally {
-      setIsSubmitting(false);
+      if (isCurrent()) {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -132,7 +167,8 @@ export default function ApiKeyConnectDialog({
                   name="ghostUrl"
                   onChange={(event) => setSiteUrl(event.target.value)}
                   placeholder={translate(`${messages}.urlPlaceholder`)}
-                  type="url"
+                  // `url` would refuse `myblog.com`, which the server accepts.
+                  type="text"
                   value={siteUrl}
                 />
               </Field>

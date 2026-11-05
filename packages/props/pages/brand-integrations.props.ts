@@ -129,6 +129,11 @@ export interface ConnectAccountModalProps {
 /** The connect tile a key form opens for (Ghost, dev.to or Beehiiv). */
 export interface ApiKeyConnectTarget {
   platform: CredentialPlatform;
+  /**
+   * The stored account being reconnected: Ghost's site URL or Beehiiv's
+   * publication id, filled in so the reconnect updates that account.
+   */
+  reconnectExternalId?: string | null;
   /** `/v1/services/{servicePath}/connect`; also names the form's messages. */
   servicePath: string;
 }

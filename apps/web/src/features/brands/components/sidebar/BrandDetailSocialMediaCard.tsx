@@ -420,6 +420,11 @@ export default function BrandDetailSocialMediaCard({
       setIsDialogOpen(false);
       setApiKeyConnectTarget({
         platform: item.platform,
+        reconnectExternalId: credentialId
+          ? connections.find(
+              (connection) => connection.credentialId === credentialId,
+            )?.externalId
+          : undefined,
         servicePath: resolveOAuthServicePath(item.platform, item.servicePath),
       });
       setIsApiKeyConnectOpen(true);

@@ -49,7 +49,7 @@ export class DevtoController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { brandId: body.brandId });
 
-    if (!body.apiKey || !body.brandId) {
+    if (typeof body.apiKey !== 'string' || !body.apiKey || !body.brandId) {
       return returnBadRequest({
         detail: 'API key and brand ID are required',
         title: 'Invalid payload',

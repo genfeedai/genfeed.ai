@@ -14,9 +14,10 @@ import {
 } from '@services/core/base.service';
 import type { AxiosRequestConfig } from 'axios';
 
-// Every refusal of a key-based connect is a 400 the form explains in place.
+// A refused key-based connect is a 400 (a 500 when the server cannot say
+// why); the form explains both in place.
 const API_KEY_CONNECT_REQUEST: AxiosRequestConfig & IHttpRequestOptions = {
-  handledErrorStatuses: [400],
+  handledErrorStatuses: [400, 500],
 };
 
 export interface OAuthConnectReadinessResponse {

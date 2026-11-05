@@ -257,10 +257,11 @@ export class GhostService {
       );
 
       this.loggerService.log(`${url} success`, {
-        siteTitle: response.data.site.title,
+        siteTitle: response.data?.site?.title,
       });
 
-      return response.data.site;
+      // A non-Ghost page answering 200 has no `site`; the caller refuses it.
+      return response.data?.site;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
@@ -314,10 +315,8 @@ export class GhostService {
   private normalizeUrl(ghostUrl: string): string {
     let normalized = trimTrailingCharacter(ghostUrl, '/');
 
-    if (
-      !normalized.startsWith('http://') &&
-      !normalized.startsWith('https://')
-    ) {
+    // The connect form keeps the scheme as typed, so `HTTPS://` counts too.
+    if (!/^https?:\/\//i.test(normalized)) {
       normalized = `https://${normalized}`;
     }
 

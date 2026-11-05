@@ -225,4 +225,32 @@ describe('ApiKeyConnectDialog', () => {
     expect(await screen.findByText('Accounts reloaded')).toBeInTheDocument();
     expect(connectState.requests).toEqual([{ body, servicePath: 'beehiiv' }]);
   });
+
+  it.each([
+    [
+      'Ghost',
+      { ...GHOST, reconnectExternalId: 'https://example-blog.com' },
+      /Site URL/,
+      'https://example-blog.com',
+    ],
+    [
+      'Beehiiv',
+      { ...BEEHIIV, reconnectExternalId: 'pub_456' },
+      /Publication ID/,
+      'pub_456',
+    ],
+  ])(
+    'fills in the %s account being reconnected',
+    (_platform, target, label, value) => {
+      render(<Harness target={target} />);
+
+      expect(screen.getByLabelText(label)).toHaveValue(value);
+    },
+  );
+
+  it('accepts a site address typed without https://', () => {
+    render(<Harness target={GHOST} />);
+
+    expect(screen.getByLabelText(/Site URL/)).toHaveAttribute('type', 'text');
+  });
 });

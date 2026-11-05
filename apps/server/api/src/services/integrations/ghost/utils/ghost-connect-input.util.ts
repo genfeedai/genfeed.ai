@@ -11,6 +11,8 @@ const TRAILING_SLASHES_PATTERN = /\/+$/;
 /** People paste the address of Ghost Admin (`…/ghost/#/dashboard`). */
 const GHOST_ADMIN_SUFFIX_PATTERN = /\/ghost$/i;
 
+const HTTP_SCHEME_PATTERN = /^https?:\/\//i;
+
 export type GhostConnectInput =
   | { readonly apiKey: string; readonly ghostUrl: string; readonly ok: true }
   | { readonly code: ApiKeyConnectErrorCode; readonly ok: false };
@@ -25,6 +27,25 @@ export type GhostConnectInput =
  * a Ghost site address is removed: surrounding space, a hash, trailing
  * slashes and a trailing `/ghost` admin path.
  */
+function stripGhostSiteExtras(rawUrl: string): string {
+  const withoutHash = rawUrl.trim().split('#')[0] ?? '';
+  return withoutHash
+    .replace(TRAILING_SLASHES_PATTERN, '')
+    .replace(GHOST_ADMIN_SUFFIX_PATTERN, '')
+    .replace(TRAILING_SLASHES_PATTERN, '');
+}
+
+/**
+ * One spelling per Ghost site, for matching a stored account to a new
+ * connect: scheme, case and the extras `parseGhostConnectInput` strips do not
+ * change which site an address names.
+ */
+export function toGhostSiteKey(siteUrl: string): string {
+  return stripGhostSiteExtras(siteUrl)
+    .replace(HTTP_SCHEME_PATTERN, '')
+    .toLowerCase();
+}
+
 export function parseGhostConnectInput(
   rawUrl: string,
   rawApiKey: string,
@@ -34,11 +55,7 @@ export function parseGhostConnectInput(
     return { code: ApiKeyConnectErrorCode.INVALID_KEY_FORMAT, ok: false };
   }
 
-  const withoutHash = rawUrl.trim().split('#')[0] ?? '';
-  const ghostUrl = withoutHash
-    .replace(TRAILING_SLASHES_PATTERN, '')
-    .replace(GHOST_ADMIN_SUFFIX_PATTERN, '')
-    .replace(TRAILING_SLASHES_PATTERN, '');
+  const ghostUrl = stripGhostSiteExtras(rawUrl);
 
   let parsed: URL;
   try {
