@@ -53,7 +53,6 @@ import {
   getSystemWorkflowMetadata,
   isHiddenSystemWorkflowMetadata,
   isProtectedSystemWorkflowMetadata,
-  SYSTEM_WORKFLOW_METADATA_KEY,
   SYSTEM_WORKFLOW_PRINCIPAL_ID,
 } from '@api/collections/workflows/system-workflow.contract';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
@@ -2070,9 +2069,6 @@ function canonicalMirrorPredicate() {
     organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
     userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
     isDeleted: false,
-    metadata: {
-      path: [SYSTEM_WORKFLOW_METADATA_KEY, 'canonicalId'],
-      equals: 'visual-code.execute',
-    },
+    systemWorkflowCanonicalId: 'visual-code.execute',
   };
 }

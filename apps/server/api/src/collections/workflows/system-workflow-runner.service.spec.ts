@@ -301,11 +301,8 @@ describe('SystemWorkflowRunnerService definitions', () => {
       include: { currentVersion: true },
       where: {
         isDeleted: false,
-        metadata: {
-          equals: definition.canonicalId,
-          path: [SYSTEM_WORKFLOW_METADATA_KEY, 'canonicalId'],
-        },
         organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        systemWorkflowCanonicalId: definition.canonicalId,
         userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
       },
     });

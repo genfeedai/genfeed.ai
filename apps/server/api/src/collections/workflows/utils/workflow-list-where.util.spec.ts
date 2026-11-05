@@ -1,9 +1,7 @@
-import { SYSTEM_WORKFLOW_METADATA_KEY } from '@api/collections/workflows/system-workflow.contract';
 import {
   buildWorkflowListWhere,
   EXCLUDE_SYSTEM_WORKFLOW,
 } from '@api/collections/workflows/utils/workflow-list-where.util';
-import { Prisma } from '@genfeedai/prisma';
 import { describe, expect, it } from 'vitest';
 
 const baseInput = {
@@ -32,21 +30,8 @@ describe('buildWorkflowListWhere', () => {
       AND: [
         {
           OR: [
-            { metadata: { equals: Prisma.AnyNull } },
-            {
-              metadata: {
-                equals: Prisma.AnyNull,
-                path: [SYSTEM_WORKFLOW_METADATA_KEY, 'kind'],
-              },
-            },
-            {
-              NOT: {
-                metadata: {
-                  equals: 'system-workflow',
-                  path: [SYSTEM_WORKFLOW_METADATA_KEY, 'kind'],
-                },
-              },
-            },
+            { systemWorkflowKind: null },
+            { systemWorkflowKind: { not: 'system-workflow' } },
           ],
         },
       ],
@@ -73,15 +58,7 @@ describe('buildWorkflowListWhere', () => {
         referencable: false,
       }),
     ).toEqual({
-      OR: [
-        { userId: 'user-1' },
-        {
-          metadata: {
-            equals: 'organization',
-            path: [SYSTEM_WORKFLOW_METADATA_KEY, 'visibility'],
-          },
-        },
-      ],
+      OR: [{ userId: 'user-1' }, { systemWorkflowVisibility: 'organization' }],
       isDeleted: false,
       organizationId: 'org-1',
     });

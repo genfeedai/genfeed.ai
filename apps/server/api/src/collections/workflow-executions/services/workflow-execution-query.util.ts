@@ -63,11 +63,8 @@ function systemWorkflowIds(canonicalId: string, prisma: PrismaService) {
         select: { id: true },
         where: {
           isDeleted: false,
-          metadata: {
-            path: ['systemWorkflow', 'canonicalId'],
-            equals: canonicalId,
-          },
           organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+          systemWorkflowCanonicalId: canonicalId,
         },
       }),
   );
@@ -150,10 +147,7 @@ export function buildCustomerExecutionWhere(
     workflow: {
       organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
       isDeleted: false,
-      metadata: {
-        path: ['systemWorkflow', 'canonicalId'],
-        equals: 'agent.turn.execute',
-      },
+      systemWorkflowCanonicalId: 'agent.turn.execute',
     },
   };
   // A batch run's parent execution is also a hidden system workflow (#5398)
@@ -171,10 +165,7 @@ export function buildCustomerExecutionWhere(
     workflow: {
       organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
       isDeleted: false,
-      metadata: {
-        path: ['systemWorkflow', 'canonicalId'],
-        equals: BATCH_WORKFLOW_EXECUTION_ID,
-      },
+      systemWorkflowCanonicalId: BATCH_WORKFLOW_EXECUTION_ID,
     },
   };
   return {

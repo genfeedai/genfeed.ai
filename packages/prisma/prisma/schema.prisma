@@ -5404,6 +5404,15 @@ model Workflow {
   // so the index lives only in the migration; this field documents its purpose.
   defaultRecurringBrandId String?
 
+  /// Keys copied out of `metadata` so hot filters never read or detoast it. The
+  /// `promote_workflow_metadata` trigger recomputes them on every insert and on
+  /// every update of `metadata`; never write them directly. `metadata` keeps its
+  /// copy. `systemWorkflow*` come from `metadata.systemWorkflow`.
+  systemWorkflowKind        String?
+  systemWorkflowCanonicalId String?
+  systemWorkflowVisibility  String?
+  sourceTemplateId          String?
+
   tags       Tag[]               @relation("workflow_tags")
   versions   WorkflowVersion[]   @relation("workflow_versions")
   executions WorkflowExecution[]

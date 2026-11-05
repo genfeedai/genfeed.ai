@@ -19,10 +19,7 @@ const batch = {
   workflow: {
     organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
     isDeleted: false,
-    metadata: {
-      path: ['systemWorkflow', 'canonicalId'],
-      equals: BATCH_WORKFLOW_EXECUTION_ID,
-    },
+    systemWorkflowCanonicalId: BATCH_WORKFLOW_EXECUTION_ID,
   },
 };
 
@@ -42,10 +39,7 @@ describe('customer execution visibility', () => {
               workflow: {
                 organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
                 isDeleted: false,
-                metadata: {
-                  path: ['systemWorkflow', 'canonicalId'],
-                  equals: 'agent.turn.execute',
-                },
+                systemWorkflowCanonicalId: 'agent.turn.execute',
               },
             },
             batch,
@@ -95,9 +89,10 @@ describe('customer execution visibility', () => {
 /**
  * Behavioral (#5398): builds a minimal in-memory evaluator for the exact
  * Prisma filter shapes `buildCustomerExecutionWhere` emits (`AND`/`OR`/`NOT`,
- * relation objects, `{ not: null }`, and JSON `{ path, equals }` filters
- * against `workflow.metadata` and the execution `result`) and checks whether representative rows would or
- * would not be selected — the structural tests above catch a shape
+ * relation objects, `null` and `{ not }` scalar filters with SQL NULL
+ * semantics, and JSON `{ path, equals }` filters against the execution
+ * `result`) and checks whether representative rows would or would not be
+ * selected — the structural tests above catch a shape
  * regression, these catch a visibility regression. Same pattern as
  * `daily-publishing.integration.spec.ts`'s file-local `matches()` fake —
  * this repo does not spin up a real Postgres for a where-clause unit test.
@@ -106,7 +101,8 @@ type FakeWorkflow = {
   organizationId: string;
   isDeleted: boolean;
   brandId?: string | null;
-  metadata?: Record<string, unknown>;
+  systemWorkflowCanonicalId?: string;
+  systemWorkflowKind?: string;
 };
 type FakeExecution = {
   organizationId: string;
@@ -170,10 +166,14 @@ function evaluateFilter(
     if (
       expected !== null &&
       typeof expected === 'object' &&
-      'not' in expected &&
-      (expected as { not: unknown }).not === null
+      'not' in expected
     ) {
-      return actual !== null && actual !== undefined;
+      // SQL semantics: NULL is neither equal nor unequal to a value.
+      const excluded = (expected as { not: unknown }).not;
+      return actual !== null && actual !== undefined && actual !== excluded;
+    }
+    if (expected === null) {
+      return actual === null || actual === undefined;
     }
     if (isJsonPathFilter(expected)) {
       const resolved = resolveJsonPath(actual, expected.path);
@@ -216,9 +216,7 @@ function batchParentExecution(
     workflow: {
       organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
       isDeleted: false,
-      metadata: {
-        systemWorkflow: { canonicalId: BATCH_WORKFLOW_EXECUTION_ID },
-      },
+      systemWorkflowCanonicalId: BATCH_WORKFLOW_EXECUTION_ID,
     },
     ...overrides,
   };
@@ -241,9 +239,7 @@ describe('batch execution visibility (behavioral, #5398)', () => {
       workflow: {
         organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
         isDeleted: false,
-        metadata: {
-          systemWorkflow: { canonicalId: 'some.other.system.workflow' },
-        },
+        systemWorkflowCanonicalId: 'some.other.system.workflow',
       },
     });
     expect(isVisible(execution, 'org-1')).toBe(false);
@@ -268,7 +264,7 @@ describe('batch execution visibility (behavioral, #5398)', () => {
       workflow: {
         organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
         isDeleted: false,
-        metadata: { systemWorkflow: { canonicalId: 'agent.turn.execute' } },
+        systemWorkflowCanonicalId: 'agent.turn.execute',
       },
     };
     expect(isVisible(execution, 'org-1')).toBe(true);
@@ -378,7 +374,7 @@ describe('customer execution visibility by workflow id', () => {
       workflow: {
         organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
         isDeleted: false,
-        metadata: { systemWorkflow: { canonicalId: 'agent.turn.execute' } },
+        systemWorkflowCanonicalId: 'agent.turn.execute',
       },
     });
     const batchExecution = batchParentExecution({ workflowId: 'wf-batch' });
@@ -388,9 +384,7 @@ describe('customer execution visibility by workflow id', () => {
       workflow: {
         organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
         isDeleted: false,
-        metadata: {
-          systemWorkflow: { canonicalId: 'some.other.system.workflow' },
-        },
+        systemWorkflowCanonicalId: 'some.other.system.workflow',
       },
     });
     const rows = [

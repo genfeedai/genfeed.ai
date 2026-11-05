@@ -51,6 +51,10 @@ export class WorkflowEntity extends BaseEntity implements WorkflowDocument {
   declare schedule?: string;
   declare scheduleInitiatingActor: WorkflowDocument['scheduleInitiatingActor'];
   declare platformSeedKey: string | null;
+  declare systemWorkflowKind: string | null;
+  declare systemWorkflowCanonicalId: string | null;
+  declare systemWorkflowVisibility: string | null;
+  declare sourceTemplateId: string | null;
   declare timezone?: string;
   declare isScheduleEnabled: boolean;
   declare isPublic: boolean;

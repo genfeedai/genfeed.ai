@@ -94,11 +94,8 @@ describe('AutonomousProducerInstallService', () => {
     expect(s.prisma.workflow.findFirst).toHaveBeenCalledWith({
       select: { id: true },
       where: {
-        metadata: {
-          equals: 'content-engine-production',
-          path: ['sourceTemplateId'],
-        },
         organizationId: 'org-1',
+        sourceTemplateId: 'content-engine-production',
       },
     });
   });
