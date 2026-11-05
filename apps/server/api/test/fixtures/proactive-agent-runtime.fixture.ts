@@ -342,8 +342,9 @@ export class ProactiveAgentRuntimeFixture {
       this.prisma as never,
       this.logger as never,
       {
-        findOne: (where: RecordValue) =>
+        findOneSelect: (where: RecordValue, select: Record<string, true>) =>
           this.prisma.brand.findFirst({
+            select,
             where: {
               id: String(where.id),
               organizationId: String(where.organizationId),
@@ -396,7 +397,7 @@ export class ProactiveAgentRuntimeFixture {
       this.performance,
       this.runner,
       this.credits as never,
-      { findOne: async () => ({}) } as never,
+      { findOneSelect: async () => ({}) } as never,
       {} as never,
       this.cache,
       this.logger as never,
@@ -740,7 +741,7 @@ export class ProactiveAgentRuntimeFixture {
       this.performance,
       this.runner,
       this.credits as never,
-      { findOne: async () => ({}) } as never,
+      { findOneSelect: async () => ({}) } as never,
       {} as never,
       this.cache,
       this.logger as never,

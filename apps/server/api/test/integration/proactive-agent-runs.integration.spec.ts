@@ -479,7 +479,7 @@ describe('proactive organization to strategy run and attributed draft integratio
       {
         getOrganizationCreditsBalance: vi.fn().mockResolvedValue(1000),
       } as never,
-      { findOne: vi.fn().mockResolvedValue({}) } as never,
+      { findOneSelect: vi.fn().mockResolvedValue({}) } as never,
       {} as never,
       {
         acquireLock: vi.fn().mockResolvedValue(true),
@@ -586,7 +586,7 @@ describe('proactive organization to strategy run and attributed draft integratio
     const creation = new TurboRunCreationService(
       prisma as never,
       logger as never,
-      { findOne: vi.fn().mockResolvedValue({ id: 'brand' }) } as never,
+      { findOneSelect: vi.fn().mockResolvedValue({ id: 'brand' }) } as never,
       {} as never,
       {} as never,
       summary as never,
