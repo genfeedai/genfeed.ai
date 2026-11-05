@@ -3913,7 +3913,8 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
         },
       },
     ],
-    sourceUrl: 'https://fal.ai/models/openai/gpt-image-2.6/sunburst/text-to-image',
+    sourceUrl:
+      'https://fal.ai/models/openai/gpt-image-2.6/sunburst/text-to-image',
     verifiedAt: '2026-11-05T00:30:00.000Z',
   },
   {
