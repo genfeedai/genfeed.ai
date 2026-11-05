@@ -42,6 +42,8 @@ import {
 } from '@genfeedai/helpers';
 import { Injectable, Logger } from '@nestjs/common';
 
+const RESOLUTION_K_PATTERN = /^\d+(?:\.\d+)?k$/i;
+
 /** Resolution Replicate runs when none is sent, per the published model schema. */
 const NANO_BANANA_DEFAULT_RESOLUTION: Readonly<Record<string, string>> = {
   [MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2]: '1K',
@@ -426,7 +428,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   ): string | undefined {
     const requested = params.resolution?.trim();
     if (requested) {
-      return /^\d+(?:\.\d+)?k$/i.test(requested)
+      return RESOLUTION_K_PATTERN.test(requested)
         ? requested.toUpperCase()
         : requested;
     }

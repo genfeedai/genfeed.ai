@@ -13,6 +13,8 @@ import { ResearchCollectionRunner } from '@api/services/research-access/research
 import type { SocialSourceResearchContext } from '@api/services/source-collector/source-collector.types';
 import { Injectable } from '@nestjs/common';
 
+const LEADING_HASH_PATTERN = /^#/;
+
 /**
  * ApifyTikTokService
  *
@@ -262,7 +264,7 @@ export class ApifyTikTokService {
   ): Promise<ApifyTikTokVideo[]> {
     try {
       const input = {
-        hashtags: [hashtag.replace(/^#/, '')],
+        hashtags: [hashtag.replace(LEADING_HASH_PATTERN, '')],
         resultsPerPage: options?.limit || 50,
       };
 

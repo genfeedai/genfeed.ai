@@ -51,6 +51,12 @@ export class HeyGenVoiceCatalogService {
         isActive: true,
         isDefaultSelectable: true,
       },
+      select: {
+        externalId: true,
+        name: true,
+        providerData: true,
+        sampleAudioUrl: true,
+      },
     });
     return rows.map(
       (row, index): HeyGenCatalogVoice => ({

@@ -44,6 +44,8 @@ import {
   resolveInterviewQuestionCatalog,
 } from '../constants/brand-interview-question-catalog.constant';
 
+const ANSWER_SEPARATOR_PATTERN = /[\n,]+/;
+
 @Injectable()
 export class BrandInterviewService {
   private readonly constructorName = this.constructor.name;
@@ -459,6 +461,7 @@ export class BrandInterviewService {
   ): Promise<BrandInterview> {
     const session = await this.prisma.brandInterview.findFirst({
       where: scopedWhere(organizationId, { id: interviewId }),
+      select: { status: true },
     });
 
     if (!session) {
@@ -634,7 +637,7 @@ export class BrandInterviewService {
   ): string | string[] {
     if (question.answerType === 'list') {
       const items = raw
-        .split(/[\n,]+/)
+        .split(ANSWER_SEPARATOR_PATTERN)
         .map((s) => s.trim())
         .filter((s) => s.length > 0);
       if (items.length === 0) {

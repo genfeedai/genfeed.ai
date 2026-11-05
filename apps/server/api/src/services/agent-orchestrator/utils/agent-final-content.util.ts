@@ -5,6 +5,17 @@ import {
 } from '@api/services/agent-orchestrator/utils/agent-unproduced-drafts.util';
 import { type AgentUiAction } from '@genfeedai/contracts/interfaces';
 
+const TURBO_DETAILS_HEADING_LINES_PATTERN =
+  /^\s*Turbo(?: run)? Details:\s*$/gim;
+const TURBO_ID_LINES_PATTERN = /^\s*Turbo(?: run)? ID:.*$/gim;
+const STATUS_LINES_PATTERN = /^\s*Status:.*$/gim;
+const CREDITS_USED_LINES_PATTERN = /^\s*Credits used:.*$/gim;
+const EXCESS_BLANK_LINES_PATTERN = /\n{3,}/g;
+const CREATED_POST_CLAIM_PATTERN =
+  /\b(?:I(?:['’]ve| have)?|We(?:['’]ve| have)?)\s+created\s+(?:(?:a|the|your)\s+)?(?:post(?:\s+draft)?|draft(?:\s+post)?)(?!\s+(?:post|draft|proposal)\b)\b/gi;
+const POST_STATUS_CLAIM_PATTERN =
+  /\b(?:(no)\s+)?(?:(?:the|your|a)\s+)?(?:post(?:\s+draft)?|draft(?:\s+post)?)\s+(?:(?:was|is)\s+|has\s+been\s+)?created\b/gi;
+
 /**
  * Normalize empty/partial assistant content into a user-facing final string,
  * including Turbo run result card cleanup and voice-clone fallbacks.
@@ -36,11 +47,11 @@ export function normalizeFinalAssistantContent(
   if (content.trim().length > 0) {
     if (hasTurboRunResultCard) {
       const normalizedTurboContent = content
-        .replace(/^\s*Turbo(?: run)? Details:\s*$/gim, '')
-        .replace(/^\s*Turbo(?: run)? ID:.*$/gim, '')
-        .replace(/^\s*Status:.*$/gim, '')
-        .replace(/^\s*Credits used:.*$/gim, '')
-        .replace(/\n{3,}/g, '\n\n')
+        .replace(TURBO_DETAILS_HEADING_LINES_PATTERN, '')
+        .replace(TURBO_ID_LINES_PATTERN, '')
+        .replace(STATUS_LINES_PATTERN, '')
+        .replace(CREDITS_USED_LINES_PATTERN, '')
+        .replace(EXCESS_BLANK_LINES_PATTERN, '\n\n')
         .trim();
 
       return {
@@ -82,12 +93,9 @@ function normalizePendingPostContent(content: string): string {
   }
 
   return content
+    .replace(CREATED_POST_CLAIM_PATTERN, 'Post proposal ready for review')
     .replace(
-      /\b(?:I(?:['’]ve| have)?|We(?:['’]ve| have)?)\s+created\s+(?:(?:a|the|your)\s+)?(?:post(?:\s+draft)?|draft(?:\s+post)?)(?!\s+(?:post|draft|proposal)\b)\b/gi,
-      'Post proposal ready for review',
-    )
-    .replace(
-      /\b(?:(no)\s+)?(?:(?:the|your|a)\s+)?(?:post(?:\s+draft)?|draft(?:\s+post)?)\s+(?:(?:was|is)\s+|has\s+been\s+)?created\b/gi,
+      POST_STATUS_CLAIM_PATTERN,
       (claim: string, negation: string | undefined) =>
         negation ? claim : 'Post proposal ready for review',
     );

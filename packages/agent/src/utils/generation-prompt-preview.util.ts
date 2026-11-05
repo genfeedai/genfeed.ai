@@ -1,3 +1,5 @@
+const LINE_BREAK_PATTERN = /\r?\n/u;
+
 export const GENERATION_PROMPT_COMPACT_ROWS = 1;
 export const GENERATION_PROMPT_COMPACT_MAX_HEIGHT = 32;
 export const GENERATION_PROMPT_PREVIEW_CHAR_BUDGET = 160;
@@ -8,7 +10,7 @@ export function shouldOfferGenerationPromptPreview(prompt: string): boolean {
     return false;
   }
 
-  const lineCount = prompt.split(/\r?\n/u).length;
+  const lineCount = prompt.split(LINE_BREAK_PATTERN).length;
   return (
     lineCount > GENERATION_PROMPT_COMPACT_ROWS ||
     trimmed.length > GENERATION_PROMPT_PREVIEW_CHAR_BUDGET

@@ -1,6 +1,10 @@
 import type { PlanModeQuestion } from '@api/services/agent-orchestrator/interfaces/agent-orchestrator-plan-mode.interface';
 import type { AgentInputRequestOption } from '@genfeedai/contracts/interfaces/ai/agent-input-request.interface';
 
+const FENCED_JSON_PATTERN = /^```(?:json)?\s*([\s\S]*?)\s*```$/i;
+const TRAILING_FENCED_JSON_OBJECT_PATTERN =
+  /```(?:json)?\s*(\{[\s\S]*\})\s*```$/i;
+
 /** Questions the planner may ask in a row before it must plan with assumptions. */
 export const MAX_PLAN_QUESTION_ROUNDS = 3;
 
@@ -129,10 +133,10 @@ export function parsePlanResponse(assistantContent: string): {
   parsed: Record<string, unknown> | null;
 } {
   const trimmed = assistantContent.trim();
-  const fencedJsonMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  const fencedJsonMatch = trimmed.match(FENCED_JSON_PATTERN);
   const trailingFenceMatch = fencedJsonMatch
     ? null
-    : trimmed.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```$/i);
+    : trimmed.match(TRAILING_FENCED_JSON_OBJECT_PATTERN);
   let candidate =
     fencedJsonMatch?.[1]?.trim() ?? trailingFenceMatch?.[1]?.trim() ?? trimmed;
   let parsed: Record<string, unknown> | null = null;

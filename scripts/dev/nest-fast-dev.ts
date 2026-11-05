@@ -21,6 +21,12 @@ import * as dotenv from 'dotenv';
 import * as esbuild from 'esbuild';
 import { prepareLocalDatabase } from './prepare-local-database';
 
+const BACKSLASHES_PATTERN = /\\/g;
+const TS_EXTENSION_PATTERN = /\.tsx?$/;
+const ANY_PATH_PATTERN = /.*/;
+const TO_ESM_HELPER_PATTERN =
+  /var __toESM = \(mod, isNodeMode, target\) => \([\s\S]*?mod\n\)\);/;
+
 const WORKSPACE_ROOT = path.resolve(import.meta.dir, '../..');
 const SERVER_ROOT = path.join(WORKSPACE_ROOT, 'apps/server');
 const PACKAGES_ROOT = path.join(WORKSPACE_ROOT, 'packages');
@@ -99,7 +105,7 @@ function buildWorkspaceSourceAliases(): Record<string, string> {
 }
 
 function isWorkspacePath(filePath: string): boolean {
-  const normalized = filePath.replace(/\\/g, '/');
+  const normalized = filePath.replace(BACKSLASHES_PATTERN, '/');
   return (
     normalized.includes('/packages/') || normalized.includes('/apps/server/')
   );
@@ -126,7 +132,7 @@ function createSwcPlugin(): esbuild.Plugin {
   return {
     name: 'swc-nest-decorators',
     setup(build) {
-      build.onLoad({ filter: /\.tsx?$/ }, async (args) => {
+      build.onLoad({ filter: TS_EXTENSION_PATTERN }, async (args) => {
         if (args.path.includes(`${path.sep}node_modules${path.sep}`)) {
           if (!isWorkspacePath(args.path)) {
             return null;
@@ -182,7 +188,7 @@ function createBundleWorkspaceOnlyPlugin(): esbuild.Plugin {
   return {
     name: 'bundle-workspace-only',
     setup(build) {
-      build.onResolve({ filter: /.*/ }, (args) => {
+      build.onResolve({ filter: ANY_PATH_PATTERN }, (args) => {
         if (shouldBundleImport(args.path)) {
           return null;
         }
@@ -258,10 +264,7 @@ function patchEsmInterop(outfile: string): void {
     return;
   }
   // Fallback: looser match if esbuild whitespace changes
-  code = code.replace(
-    /var __toESM = \(mod, isNodeMode, target\) => \([\s\S]*?mod\n\)\);/,
-    fixed,
-  );
+  code = code.replace(TO_ESM_HELPER_PATTERN, fixed);
   fs.writeFileSync(outfile, code);
 }
 

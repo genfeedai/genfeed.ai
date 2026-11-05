@@ -8,6 +8,8 @@ import {
   ValidateIf,
 } from 'class-validator';
 
+const SHA256_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
+
 export class CreateBrandOsRevisionDto {
   @ApiProperty({ description: 'Brand OS draft content', type: Object })
   @IsObject()
@@ -31,6 +33,6 @@ export class ApproveBrandOsRevisionDto {
   })
   @ValidateIf((_object, value: unknown) => value !== undefined)
   @Length(71, 71)
-  @Matches(/^sha256:[0-9a-f]{64}$/)
+  @Matches(SHA256_DIGEST_PATTERN)
   reviewedGenerationRulesHash?: string;
 }

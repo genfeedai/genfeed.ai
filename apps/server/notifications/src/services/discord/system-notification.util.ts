@@ -4,6 +4,9 @@ import {
 } from '@libs/interfaces/system-event.interface';
 import { BadRequestException } from '@nestjs/common';
 
+const SYSTEM_EVENT_KEY_PATTERN = /^[a-zA-Z0-9_./-]{1,200}$/;
+const SERVICE_CODE_PATTERN = /^[a-z]{3}$/;
+
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -12,7 +15,7 @@ export function validateSystemEvent(event: unknown): SystemEvent {
     !record(event) ||
     event.version !== 1 ||
     typeof event.id !== 'string' ||
-    !/^[a-zA-Z0-9_./-]{1,200}$/.test(event.id) ||
+    !SYSTEM_EVENT_KEY_PATTERN.test(event.id) ||
     !SYSTEM_EVENT_TYPES.some((type) => type === event.type) ||
     typeof event.occurredAt !== 'string' ||
     !Number.isFinite(Date.parse(event.occurredAt)) ||
@@ -48,7 +51,7 @@ export function validateSystemEvent(event: unknown): SystemEvent {
     ].includes(String(event.type)) &&
     (typeof data.amountMinor !== 'number' ||
       typeof data.currency !== 'string' ||
-      !/^[a-z]{3}$/.test(data.currency))
+      !SERVICE_CODE_PATTERN.test(data.currency))
   )
     throw new BadRequestException('Missing payment amount');
   return {

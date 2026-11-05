@@ -326,6 +326,7 @@ describe('TrendSourcePreviewService', () => {
           isDeleted: false,
           organizationId: null,
         },
+        select: { data: true },
       });
       expect(prisma.trend.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -367,6 +368,7 @@ describe('TrendSourcePreviewService', () => {
       };
       expect(prisma.trend.findFirst).toHaveBeenCalledWith({
         where: expectedWhere,
+        select: { data: true },
       });
       expect(prisma.trend.update).toHaveBeenCalledWith(
         expect.objectContaining({

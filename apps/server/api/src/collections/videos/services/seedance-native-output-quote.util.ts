@@ -1,6 +1,11 @@
 import type { SeedanceVideoReferenceEvidence } from '@api/collections/videos/services/seedance-reference-evidence.util';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 
+const SEEDANCE_2_5_REFERENCE_TO_VIDEO_PATTERN =
+  /^bytedance\/seedance-2\.5\/(?:us\/)?reference-to-video$/;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 // Published output sizes: https://docs.byteplus.com/fr/docs/modelark/seedance-2-5
 // The 480p landscape/portrait ceilings also cover fal's rounded 864x496 sizes.
 const SIZES: Readonly<
@@ -69,7 +74,7 @@ export function prepareSeedanceNativeOutputQuote(
   >[],
 ): SeedanceNativeOutputQuoteEvidence | undefined {
   if (
-    !/^bytedance\/seedance-2\.5\/(?:us\/)?reference-to-video$/.test(endpoint) ||
+    !SEEDANCE_2_5_REFERENCE_TO_VIDEO_PATTERN.test(endpoint) ||
     input.task !== 'extension' ||
     input.aspect_ratio !== 'auto'
   )
@@ -77,7 +82,8 @@ export function prepareSeedanceNativeOutputQuote(
   const reference = references.length === 1 ? references[0] : undefined;
   const resolution = input.draft === true ? '480p' : input.resolution;
   const duration =
-    typeof input.duration === 'string' && /^\d+$/.test(input.duration)
+    typeof input.duration === 'string' &&
+    DIGITS_ONLY_PATTERN.test(input.duration)
       ? Number(input.duration)
       : input.duration;
   const ratio = reference
@@ -89,7 +95,7 @@ export function prepareSeedanceNativeOutputQuote(
       : undefined;
   if (
     !reference ||
-    !/^[a-f0-9]{64}$/.test(reference.sourceVersion) ||
+    !SHA256_HEX_PATTERN.test(reference.sourceVersion) ||
     !dimensions ||
     typeof duration !== 'number' ||
     !Number.isSafeInteger(duration) ||

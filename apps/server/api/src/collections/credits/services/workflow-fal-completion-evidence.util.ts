@@ -4,6 +4,8 @@ import type { ModelBillableCompletionInput } from '@genfeedai/contracts/interfac
 import type { WorkflowGenerationNodeAllocation } from '@genfeedai/contracts/interfaces/billing';
 import type { Prisma } from '@genfeedai/prisma';
 
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 function object(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -57,7 +59,7 @@ export async function readWorkflowFalCompletionEvidence(
       !positive(quantities.sizeBytes) ||
       !Number.isSafeInteger(quantities.sizeBytes) ||
       typeof quantities.assetHash !== 'string' ||
-      !/^[a-f0-9]{64}$/.test(quantities.assetHash)
+      !SHA256_HEX_PATTERN.test(quantities.assetHash)
     )
       unresolved();
     for (const key of ['width', 'height', 'duration'] as const) {

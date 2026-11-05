@@ -6,6 +6,8 @@ import type {
   PaidCreativeUsagePolicy,
 } from './types';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 /**
  * Every `AdPerformance.researchSource` value produced by competitor
  * transparency ingestion. Rows carrying one of these are tenant-owned
@@ -181,7 +183,10 @@ export function normalizeAdvertiserHandle(
   platform: PaidCreativePlatform,
   value: string,
 ): string | null {
-  const normalized = value.trim().replace(/^@/, '').toLowerCase();
+  const normalized = value
+    .trim()
+    .replace(LEADING_AT_SIGN_PATTERN, '')
+    .toLowerCase();
 
   return HANDLE_PATTERN_BY_PLATFORM[platform].test(normalized)
     ? normalized

@@ -49,6 +49,10 @@ import {
 } from 'react';
 import { getSafeExternalUrl } from '@/features/trends/shared/safe-external-url';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+const LEADING_AT_SIGN_PATTERN = /^@/;
+const LEADING_SLASHES_PATTERN = /^\/+/;
+
 const PLATFORM_OPTIONS = [
   { labelKey: 'platforms.twitter', value: SocialSourcePlatform.TWITTER },
   { labelKey: 'platforms.instagram', value: SocialSourcePlatform.INSTAGRAM },
@@ -85,15 +89,18 @@ export function normalizeSearchQuery(value: string): string {
     return '';
   }
   try {
-    if (/^https?:\/\//i.test(trimmed)) {
+    if (HTTP_PROTOCOL_PREFIX_PATTERN.test(trimmed)) {
       const url = new URL(trimmed);
       const path = url.pathname.split('/').find(Boolean) ?? '';
-      return path.replace(/^@/, '').toLowerCase();
+      return path.replace(LEADING_AT_SIGN_PATTERN, '').toLowerCase();
     }
   } catch {
     // treat as plain handle
   }
-  return trimmed.replace(/^@/, '').replace(/^\/+/, '').toLowerCase();
+  return trimmed
+    .replace(LEADING_AT_SIGN_PATTERN, '')
+    .replace(LEADING_SLASHES_PATTERN, '')
+    .toLowerCase();
 }
 
 export function candidateKey(platform: string, handle: string): string {
@@ -250,7 +257,7 @@ export default function FollowSourceModal({
         const nextCandidates: SourceCandidate[] = results.map(
           ({ option, result }) => {
             const resolvedHandle = (result.handle || handle)
-              .replace(/^@/, '')
+              .replace(LEADING_AT_SIGN_PATTERN, '')
               .toLowerCase();
             const key = candidateKey(option.value, resolvedHandle);
             return {

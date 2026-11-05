@@ -35,6 +35,8 @@ import { REPLY_INTENT_VALUES } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 /** Bounded so a link dump cannot blow up the decision payload. */
 const MAX_COMMENT_CHARS = 1_000;
 const MAX_CAPTION_CHARS = 280;
@@ -210,7 +212,7 @@ export class ReplyIntentClassifierService {
   ): Record<string, unknown> {
     return {
       authorHandle: truncate(
-        (params.authorHandle ?? '').replace(/^@/, ''),
+        (params.authorHandle ?? '').replace(LEADING_AT_SIGN_PATTERN, ''),
         MAX_HANDLE_CHARS,
       ),
       comment: truncate(params.commentText, MAX_COMMENT_CHARS),

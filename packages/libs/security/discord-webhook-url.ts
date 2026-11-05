@@ -1,3 +1,5 @@
+const DISCORD_WEBHOOK_PATH_PATTERN = /^\/api\/webhooks\/\d+\/[A-Za-z0-9_-]+$/;
+
 /** Only Discord's canonical HTTPS webhook endpoint; the token is a secret. */
 export function discordWebhookUrl(value: string): URL | null {
   if (value.length > 512) return null;
@@ -11,7 +13,7 @@ export function discordWebhookUrl(value: string): URL | null {
       url.password ||
       url.hash ||
       url.search ||
-      !/^\/api\/webhooks\/\d+\/[A-Za-z0-9_-]+$/.test(url.pathname)
+      !DISCORD_WEBHOOK_PATH_PATTERN.test(url.pathname)
     )
       return null;
     url.searchParams.set('wait', 'true');

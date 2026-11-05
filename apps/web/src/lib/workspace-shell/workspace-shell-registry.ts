@@ -33,6 +33,10 @@ export type {
   WorkspaceShellSurfaceMode,
 } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 
+const ROUTE_PARAMS_PATTERN = /:([A-Za-z][A-Za-z0-9]*)/g;
+const REGEX_SPECIAL_CHARS_PATTERN = /[.*+?^${}()|[\]\\]/g;
+const ROOT_PATH_PATTERN = /^\/$/;
+
 type RouteGroupConfig = {
   readonly adapterStatus?: WorkspaceShellRouteRegistration['adapter']['status'];
   readonly adapter?: WorkspaceShellAdapterSeam;
@@ -439,12 +443,12 @@ function resolveBreadcrumbMetadata(
   params: Readonly<Record<string, string>>,
 ): WorkspaceShellBreadcrumbMetadata {
   const leafLabel = breadcrumb.leafLabel.replace(
-    /:([A-Za-z][A-Za-z0-9]*)/g,
+    ROUTE_PARAMS_PATTERN,
     (_, parameterName: string) =>
       humanizeBreadcrumbLabel(params[parameterName] ?? parameterName),
   );
   const parentLabel = breadcrumb.parentLabel?.replace(
-    /:([A-Za-z][A-Za-z0-9]*)/g,
+    ROUTE_PARAMS_PATTERN,
     (_, parameterName: string) =>
       humanizeBreadcrumbLabel(params[parameterName] ?? parameterName),
   );
@@ -1306,7 +1310,7 @@ export const WORKSPACE_SHELL_OVERLAY_REGISTRY = Object.freeze([
 // source in a bare Node process, where only workspace packages resolve, not
 // the app's `@helpers/*` alias or the unbuilt helpers `dist`.
 function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return value.replace(REGEX_SPECIAL_CHARS_PATTERN, '\\$&');
 }
 
 function compileRoutePattern(
@@ -1314,7 +1318,7 @@ function compileRoutePattern(
 ): CompiledRouteRegistration {
   if (registration.canonicalUrl === '/') {
     return {
-      matcher: /^\/$/,
+      matcher: ROOT_PATH_PATTERN,
       parameterNames: [],
       registration,
       specificity: 10_000,
@@ -1466,7 +1470,7 @@ function interpolateCanonicalPattern(
   params: Readonly<Record<string, string>>,
 ): string | null {
   let isComplete = true;
-  const href = pattern.replace(/:([A-Za-z][A-Za-z0-9]*)/g, (_, key: string) => {
+  const href = pattern.replace(ROUTE_PARAMS_PATTERN, (_, key: string) => {
     const value = params[key];
     if (!value) {
       isComplete = false;

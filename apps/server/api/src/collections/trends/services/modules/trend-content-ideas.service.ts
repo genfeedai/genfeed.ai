@@ -15,6 +15,9 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+const ANGLE_BRACKETS_PATTERN = /[<>]/g;
+const EXCESS_BLANK_LINES_PATTERN = /\n{3,}/g;
+
 /** Minimal brand voice context for trend-idea prompts (#5219). */
 export interface TrendIdeaBrandContext {
   label: string;
@@ -92,8 +95,8 @@ export class TrendContentIdeasService {
 
     // Remove potential prompt injection patterns
     return str
-      .replace(/[<>]/g, '') // Remove angle brackets
-      .replace(/\n{3,}/g, '\n\n') // Limit consecutive newlines
+      .replace(ANGLE_BRACKETS_PATTERN, '') // Remove angle brackets
+      .replace(EXCESS_BLANK_LINES_PATTERN, '\n\n') // Limit consecutive newlines
       .substring(0, 2000); // Limit length to prevent token overflow
   }
 

@@ -21,6 +21,9 @@ import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.
 import { useCallback } from 'react';
 import { requirePostId } from './require-post-id';
 
+const REWRITE_LIMIT_REASON_PATTERN =
+  /^The rewrite does not fit the [1-9]\d{0,5}-character limit for [a-z][a-z_]{0,30}\. Shorten the instruction or the draft and try again\.$/;
+
 export interface UsePostDetailActionsOptions {
   post: IPost | null;
   getPostsService: () => Promise<PostsService>;
@@ -85,12 +88,7 @@ function getSafeRewriteReason(error: unknown): string | undefined {
   ) {
     return detail;
   }
-  if (
-    member?.status === 422 &&
-    /^The rewrite does not fit the [1-9]\d{0,5}-character limit for [a-z][a-z_]{0,30}\. Shorten the instruction or the draft and try again\.$/.test(
-      detail,
-    )
-  ) {
+  if (member?.status === 422 && REWRITE_LIMIT_REASON_PATTERN.test(detail)) {
     return detail;
   }
   return undefined;

@@ -7,12 +7,16 @@ import type {
   ResidualCategory,
 } from './golden-set.types';
 
+const REGEX_SPECIAL_CHARS_PATTERN = /[.*+?^${}()|[\]\\]/g;
+const LEADING_AT_SIGN_PATTERN = /^@/;
+const HYPHENS_PATTERN = /-/g;
+
 function compareCodePoints(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
 function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return value.replace(REGEX_SPECIAL_CHARS_PATTERN, '\\$&');
 }
 
 export function prepareTerms(context: AnonymisationContext): PreparedTerm[] {
@@ -22,9 +26,12 @@ export function prepareTerms(context: AnonymisationContext): PreparedTerm[] {
     brandFixtureId: string | null,
     isOrganization: boolean,
   ): void {
-    const normalized = term.trim().replace(/^@/, '').toLowerCase();
+    const normalized = term
+      .trim()
+      .replace(LEADING_AT_SIGN_PATTERN, '')
+      .toLowerCase();
     const variants = normalized.includes('-')
-      ? [normalized, normalized.replace(/-/g, ' ')]
+      ? [normalized, normalized.replace(HYPHENS_PATTERN, ' ')]
       : [normalized];
     for (const variant of variants) {
       if (variant.length < 3) continue;

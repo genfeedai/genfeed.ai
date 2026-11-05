@@ -17,6 +17,8 @@ import {
   Min,
 } from 'class-validator';
 
+const ASPECT_RATIO_PATTERN = /^(?:[1-9]\d*)(?:\.\d+)?:[1-9]\d*(?:\.\d+)?$|^$/;
+
 export class CreatePresetDto extends ElementDto {
   @IsOptional()
   @IsObject()
@@ -70,7 +72,7 @@ export class CreatePresetDto extends ElementDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^(?:[1-9]\d*)(?:\.\d+)?:[1-9]\d*(?:\.\d+)?$|^$/)
+  @Matches(ASPECT_RATIO_PATTERN)
   @ApiProperty({
     description: 'Output aspect ratio, such as 16:9',
     required: false,

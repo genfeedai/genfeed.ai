@@ -1,5 +1,7 @@
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 
+const UNTRUSTED_CONTENT_TITLE_PATTERN = /untrusted user[- ]generated/i;
+
 /** Agent turns can be much longer than the generation-surface default of 2000. */
 export const AGENT_UNTRUSTED_CONTENT_MAX_LENGTH = 32000;
 
@@ -57,5 +59,5 @@ export function isUntrustedFramingTitle(title: string): boolean {
     return true;
   }
 
-  return /untrusted user[- ]generated/i.test(normalized);
+  return UNTRUSTED_CONTENT_TITLE_PATTERN.test(normalized);
 }

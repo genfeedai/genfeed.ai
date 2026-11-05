@@ -1,5 +1,7 @@
 import type { McpResourceIdentifierResolution } from '@genfeedai/contracts/interfaces';
 
+const MCP_PATH_SUFFIX_PATTERN = /\/mcp(?:\/claude)?\/*$/i;
+
 /**
  * Environment variables consulted, in order, for the public MCP URL. The
  * API (OAuth authorization server) and the MCP server MUST read the same
@@ -20,7 +22,7 @@ export function deriveClaudeMcpResourceIdentifier(
   const url = new URL(standardResource);
   url.search = '';
   url.hash = '';
-  url.pathname = url.pathname.replace(/\/mcp(?:\/claude)?\/*$/i, '/mcp');
+  url.pathname = url.pathname.replace(MCP_PATH_SUFFIX_PATTERN, '/mcp');
   return `${deriveMcpResourceIdentifier(url.toString())}/claude`;
 }
 

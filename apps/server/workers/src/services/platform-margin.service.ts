@@ -35,6 +35,7 @@ export class PlatformMarginService {
     try {
       const row = await this.prisma.platformSetting.findUnique({
         where: { key: PLATFORM_SETTING_KEY },
+        select: { marginMultiplierGeneration: true },
       });
       const multiplier =
         row?.marginMultiplierGeneration ?? DEFAULT_GENERATION_MARGIN_MULTIPLIER;

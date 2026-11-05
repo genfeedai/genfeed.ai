@@ -1,6 +1,20 @@
 import { Platform } from '@genfeedai/contracts';
 import { SocialUrlHelper } from '@genfeedai/helpers';
 
+const TWITTER_STATUS_PATH_PATTERN = /^\/([^/]+)\/status\/(\d+)(?:\/|$)/;
+const POSTS_PATH_ID_PATTERN = /\/posts\/([^/]+)/;
+const POSTS_PATH_ID_NO_QUERY_PATTERN = /\/posts\/([^/?]+)/;
+const MARKETPLACE_ITEM_ID_PATTERN = /\/marketplace\/item\/([^/]+)/;
+const INSTAGRAM_POST_ID_PATTERN = /\/p\/([^/]+)/;
+const INSTAGRAM_REEL_ID_PATTERN = /\/reel\/([^/]+)/;
+const LINKEDIN_ACTIVITY_ID_PATTERN = /activity:(\d+)/;
+const LINKEDIN_FEED_UPDATE_ID_PATTERN = /\/feed\/update\/([^/]+)/;
+const REDDIT_COMMENTS_ID_PATTERN = /\/comments\/([a-z0-9]+)\//;
+const TIKTOK_VIDEO_AUTHOR_PATTERN = /@([^/]+)\/video/;
+const TIKTOK_VIDEO_ID_PATTERN = /\/video\/(\d+)/;
+const TIKTOK_AUTHOR_VIDEO_ID_PATTERN = /@[^/]+\/video\/(\d+)/;
+const THREADS_POST_ID_PATTERN = /\/post\/([^/?#]+)/;
+
 export interface MediaReplyConfig {
   // File input that takes the media once it exists, or after the button is clicked
   fileInput: string;
@@ -70,7 +84,7 @@ function parseTwitterPostUrl(value: string) {
       )
     )
       return null;
-    const match = url.pathname.match(/^\/([^/]+)\/status\/(\d+)(?:\/|$)/);
+    const match = url.pathname.match(TWITTER_STATUS_PATH_PATTERN);
     return match
       ? { tweetId: match[2], username: match[1] === 'i' ? undefined : match[1] }
       : null;
@@ -85,7 +99,7 @@ export const platforms: Record<string, PlatformConfig> = {
       `https://facebook.com/posts/${postId}`,
     extractPostId: (element) => {
       // Facebook post IDs are complex, try to get from URL
-      const match = window.location.pathname.match(/\/posts\/([^/]+)/);
+      const match = window.location.pathname.match(POSTS_PATH_ID_PATTERN);
       if (match) {
         return match[1];
       }
@@ -105,7 +119,7 @@ export const platforms: Record<string, PlatformConfig> = {
           if (href) {
             const hrefMatch = href
               .getAttribute('href')
-              ?.match(/\/posts\/([^/?]+)/);
+              ?.match(POSTS_PATH_ID_NO_QUERY_PATTERN);
             if (hrefMatch) {
               return hrefMatch[1];
             }
@@ -161,9 +175,7 @@ export const platforms: Record<string, PlatformConfig> = {
     constructPostUrl: (postId: string) =>
       `https://facebook.com/marketplace/item/${postId}`,
     extractPostId: () => {
-      const match = window.location.pathname.match(
-        /\/marketplace\/item\/([^/]+)/,
-      );
+      const match = window.location.pathname.match(MARKETPLACE_ITEM_ID_PATTERN);
       return match ? match[1] : null;
     },
     hostnames: ['facebook.com', 'www.facebook.com'],
@@ -188,13 +200,15 @@ export const platforms: Record<string, PlatformConfig> = {
       SocialUrlHelper.buildInstagramUrl(postId),
     extractPostId: (_element) => {
       // Instagram post IDs are in the URL
-      const match = window.location.pathname.match(/\/p\/([^/]+)/);
+      const match = window.location.pathname.match(INSTAGRAM_POST_ID_PATTERN);
       if (match) {
         return match[1];
       }
 
       // Try reel
-      const reelMatch = window.location.pathname.match(/\/reel\/([^/]+)/);
+      const reelMatch = window.location.pathname.match(
+        INSTAGRAM_REEL_ID_PATTERN,
+      );
       if (reelMatch) {
         return reelMatch[1];
       }
@@ -225,7 +239,7 @@ export const platforms: Record<string, PlatformConfig> = {
         if (post) {
           const urn = post.getAttribute('data-urn');
           if (urn) {
-            const match = urn.match(/activity:(\d+)/);
+            const match = urn.match(LINKEDIN_ACTIVITY_ID_PATTERN);
             if (match) {
               return match[1];
             }
@@ -234,7 +248,9 @@ export const platforms: Record<string, PlatformConfig> = {
       }
 
       // Try URL
-      const match = window.location.pathname.match(/\/feed\/update\/([^/]+)/);
+      const match = window.location.pathname.match(
+        LINKEDIN_FEED_UPDATE_ID_PATTERN,
+      );
       if (match) {
         return match[1];
       }
@@ -293,7 +309,7 @@ export const platforms: Record<string, PlatformConfig> = {
       `https://reddit.com/comments/${postId}`,
     extractPostId: (element) => {
       // Reddit post IDs are in the URL
-      const match = window.location.pathname.match(/\/comments\/([a-z0-9]+)\//);
+      const match = window.location.pathname.match(REDDIT_COMMENTS_ID_PATTERN);
       if (match) {
         return match[1];
       }
@@ -354,7 +370,9 @@ export const platforms: Record<string, PlatformConfig> = {
   tiktok: {
     constructPostUrl: (postId: string) => {
       // Extract username from current URL if available
-      const usernameMatch = window.location.pathname.match(/@([^/]+)\/video/);
+      const usernameMatch = window.location.pathname.match(
+        TIKTOK_VIDEO_AUTHOR_PATTERN,
+      );
       if (usernameMatch) {
         return SocialUrlHelper.buildTikTokUrl(postId, usernameMatch[1]);
       }
@@ -362,13 +380,15 @@ export const platforms: Record<string, PlatformConfig> = {
     },
     extractPostId: (_element) => {
       // TikTok video IDs are in the URL
-      const match = window.location.pathname.match(/\/video\/(\d+)/);
+      const match = window.location.pathname.match(TIKTOK_VIDEO_ID_PATTERN);
       if (match) {
         return match[1];
       }
 
       // Try @username/video format
-      const altMatch = window.location.pathname.match(/@[^/]+\/video\/(\d+)/);
+      const altMatch = window.location.pathname.match(
+        TIKTOK_AUTHOR_VIDEO_ID_PATTERN,
+      );
       if (altMatch) {
         return altMatch[1];
       }
@@ -389,7 +409,7 @@ export const platforms: Record<string, PlatformConfig> = {
   threads: {
     constructPostUrl: (postId: string) => `https://www.threads.com/t/${postId}`,
     extractPostId: () =>
-      window.location.pathname.match(/\/post\/([^/?#]+)/)?.[1] ?? null,
+      window.location.pathname.match(THREADS_POST_ID_PATTERN)?.[1] ?? null,
     hostnames: [
       'threads.com',
       'www.threads.com',

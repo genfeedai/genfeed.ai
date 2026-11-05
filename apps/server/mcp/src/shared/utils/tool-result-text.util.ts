@@ -1,5 +1,14 @@
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 
+const TRAILING_HIGH_SURROGATE_PATTERN = /[\uD800-\uDBFF]$/u;
+const OPEN_LINK_LINE_PATTERN = /^\s*(?:-\s+)*\[Open [^\]]+\]\(https?:\/\/.*\)$/;
+const CAMEL_CASE_BOUNDARY_PATTERN = /([a-z0-9])([A-Z])/g;
+const SEPARATORS_PATTERN = /[_-]/g;
+const URL_SUFFIX_PATTERN = /url$/i;
+const URL_LABEL_SUFFIX_PATTERN = / ?url$/i;
+const STATUS_FIELD_PATTERN = /^(status|state|executionState|role)$/;
+const LINE_STARTS_PATTERN = /^/gm;
+
 const MAX_ITEMS = 5;
 const MAX_DEPTH = 3;
 const MAX_FIELDS = 10;
@@ -12,7 +21,7 @@ const PRIORITY_FIELD =
 function preview(value: string): string {
   return value.length <= MAX_STRING_CHARS
     ? value
-    : `${value.slice(0, MAX_STRING_CHARS).replace(/[\uD800-\uDBFF]$/u, '')}… [full text in structured result]`;
+    : `${value.slice(0, MAX_STRING_CHARS).replace(TRAILING_HIGH_SURROGATE_PATTERN, '')}… [full text in structured result]`;
 }
 
 /** Keep complete lines (especially signed links); never cut a URL in half. */
@@ -23,7 +32,7 @@ function boundedSummary(value: string): string {
   let omitted = false;
   for (const line of value.split('\n')) {
     // Action/resource links remain usable for clients that only show text.
-    const isLink = /^\s*(?:-\s+)*\[Open [^\]]+\]\(https?:\/\/.*\)$/.test(line);
+    const isLink = OPEN_LINK_LINE_PATTERN.test(line);
     if (!isLink && length + line.length + 1 > MAX_TEXT_CHARS) {
       omitted = true;
       continue;
@@ -47,7 +56,9 @@ const LABELS: Readonly<Record<string, string>> = {
 export function readableLabel(key: string): string {
   const label =
     LABELS[key] ??
-    key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_-]/g, ' ');
+    key
+      .replace(CAMEL_CASE_BOUNDARY_PATTERN, '$1 $2')
+      .replace(SEPARATORS_PATTERN, ' ');
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
@@ -82,7 +93,7 @@ function fields(value: unknown, depth: number): string {
   const entries = Object.entries(value)
     .filter(
       ([key, item]) =>
-        !ID_FIELD.test(key.replace(/([a-z0-9])([A-Z])/g, '$1_$2')) &&
+        !ID_FIELD.test(key.replace(CAMEL_CASE_BOUNDARY_PATTERN, '$1_$2')) &&
         !PRIVATE_FIELD.test(key) &&
         item !== undefined,
     )
@@ -93,7 +104,7 @@ function fields(value: unknown, depth: number): string {
   const rendered = entries
     .slice(0, MAX_FIELDS)
     .flatMap(([key, item]) => {
-      if (/url$/i.test(key) && typeof item === 'string') {
+      if (URL_SUFFIX_PATTERN.test(key) && typeof item === 'string') {
         try {
           const url = new URL(item);
           if (
@@ -104,7 +115,7 @@ function fields(value: unknown, depth: number): string {
             return [
               `[Open ${
                 readableLabel(key)
-                  .replace(/ ?url$/i, '')
+                  .replace(URL_LABEL_SUFFIX_PATTERN, '')
                   .toLowerCase() || 'link'
               }](${url.href.replaceAll('(', '%28').replaceAll(')', '%29')})`,
             ];
@@ -116,13 +127,12 @@ function fields(value: unknown, depth: number): string {
       const rendered = fields(item, depth + 1);
       if (!rendered) return [];
       const display =
-        /^(status|state|executionState|role)$/.test(key) &&
-        typeof item === 'string'
+        STATUS_FIELD_PATTERN.test(key) && typeof item === 'string'
           ? readableLabel(item.toLowerCase())
           : rendered;
       return [
         isRecord(item) || (Array.isArray(item) && item.length)
-          ? `${readableLabel(key)}:\n${display.replaceAll(/^/gm, '  ')}`
+          ? `${readableLabel(key)}:\n${display.replaceAll(LINE_STARTS_PATTERN, '  ')}`
           : `${readableLabel(key)}: ${display}`,
       ];
     })

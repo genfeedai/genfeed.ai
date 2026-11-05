@@ -3,6 +3,8 @@ import type {
   MediaResourceProjection,
 } from '@genfeedai/contracts/interfaces';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+
 // ts-jsonapi names an included resource after the relationship key, not the
 // configured type, so the many-valued ingredient relations (post and prompt
 // `ingredients`, bookmark `extractedIngredients` / `generatedIngredients`)
@@ -286,7 +288,7 @@ const SOCIAL_AVATAR_PATH_PREFIX = '/ingredients/social-avatars/';
 
 function isSocialAvatarUrl(value: string): boolean {
   if (
-    !/^https?:\/\//i.test(value) ||
+    !HTTP_PROTOCOL_PREFIX_PATTERN.test(value) ||
     !value.includes(SOCIAL_AVATAR_PATH_PREFIX)
   )
     return false;

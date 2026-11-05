@@ -4,6 +4,9 @@ import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 import { config } from 'dotenv';
 
+const START_OF_STRING_PATTERN = /^/;
+const END_OF_STRING_PATTERN = /$/;
+
 type QueryValue = Date | number | string | string[];
 
 interface PgClient {
@@ -573,8 +576,8 @@ export function formatExplainRun(result: ExplainRunResult): string {
       ]
         .map(escapeMarkdownCell)
         .join(' | ')
-        .replace(/^/, '| ')
-        .replace(/$/, ' |'),
+        .replace(START_OF_STRING_PATTERN, '| ')
+        .replace(END_OF_STRING_PATTERN, ' |'),
     );
   }
 

@@ -1,6 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
 
+const ELEMENT_KEY_PATTERN = /^[a-z0-9-]+$/;
+
 export class ElementDto {
   @ApiProperty({
     description:
@@ -9,7 +11,7 @@ export class ElementDto {
   })
   @IsNotEmpty()
   @IsString()
-  @Matches(/^[a-z0-9-]+$/, {
+  @Matches(ELEMENT_KEY_PATTERN, {
     message: 'Key must be lowercase alphanumeric with hyphens only',
   })
   key!: string;

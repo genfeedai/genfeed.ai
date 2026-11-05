@@ -73,6 +73,7 @@ export class TrendReferenceSyncService {
         isDeleted: false,
         platform: sourceItem.platform,
       },
+      select: { data: true, id: true },
     });
     const engagementTotal = getTrendEngagementTotal(sourceItem.metrics);
     const now = new Date();
@@ -228,6 +229,7 @@ export class TrendReferenceSyncService {
           snapshotDate,
           sourceReferenceId: referenceId,
         },
+        select: { id: true },
       });
     const data = {
       engagementTotal,
@@ -266,6 +268,7 @@ export class TrendReferenceSyncService {
         sourceReferenceId: referenceId,
         trendId,
       },
+      select: { id: true },
     });
 
     if (existingLink) {

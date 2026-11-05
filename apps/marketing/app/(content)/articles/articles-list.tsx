@@ -9,6 +9,8 @@ import { Calendar, Clock } from 'lucide-react';
 import Link from 'next/link';
 import ArticleCover from './article-cover';
 
+const HTML_TAGS_PATTERN = /<[^>]*>/g;
+
 interface ArticlesListProps {
   articles: Article[];
   pagination?: PublicListPageProps['pagination'];
@@ -57,7 +59,7 @@ export default function ArticlesList({
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-2">
           {articles.map((article) => {
             const excerpt = article.content
-              ? `${article.content.replace(/<[^>]*>/g, ' ').substring(0, 200)}...`
+              ? `${article.content.replace(HTML_TAGS_PATTERN, ' ').substring(0, 200)}...`
               : null;
 
             return (

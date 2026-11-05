@@ -101,6 +101,7 @@ describe('AgentGenerationDecisionService', () => {
         isDeleted: false,
         status: 'active',
       },
+      select: { brandId: true, contextVersion: true },
     });
   });
   it('arbitrates competing decisions and never permits decline after approval', async () => {

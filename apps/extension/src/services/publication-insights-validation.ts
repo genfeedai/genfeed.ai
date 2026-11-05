@@ -6,6 +6,16 @@ import type { ExtensionPublicationPageLookup } from '@genfeedai/contracts/interf
 import type { ExtensionWorkspaceSnapshot } from '@genfeedai/contracts/interfaces/extension/extension-workspace.interface';
 import * as z from 'zod';
 
+const INVALID_PERCENT_ESCAPE_PATTERN = /%(?![0-9a-f]{2})/i;
+const WWW_PREFIX_PATTERN = /^www\./;
+const URN_PATTERN = /^urn:[^\s]+$/;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const SAFE_TOKEN_PATTERN = /^[a-z0-9_-]+$/i;
+const LINKEDIN_ACTIVITY_URN_PATTERN = /^urn:li:activity:\d+$/;
+const LINKEDIN_ACTIVITY_SLUG_PATTERN = /activity-\d+-/;
+const ALPHANUMERIC_PATTERN = /^[a-z0-9]+$/i;
+const AT_HANDLE_PATTERN = /^@.+/;
+
 const hosts: Record<ExtensionPublicationPlatform, readonly string[]> = {
   twitter: ['x.com', 'twitter.com'],
   linkedin: ['linkedin.com'],
@@ -25,12 +35,13 @@ const platforms = [
   'tiktok',
 ] as const;
 function platformUrl(raw: string): ExtensionPublicationPageLookup | null {
-  if (!raw || raw.length > 2048 || /%(?![0-9a-f]{2})/i.test(raw)) return null;
+  if (!raw || raw.length > 2048 || INVALID_PERCENT_ESCAPE_PATTERN.test(raw))
+    return null;
   try {
     const url = new URL(raw);
     if (url.protocol !== 'https:' || url.username || url.password || url.port)
       return null;
-    const host = url.hostname.replace(/^www\./, '');
+    const host = url.hostname.replace(WWW_PREFIX_PATTERN, '');
     const platform = platforms.find((item) => hosts[item].includes(host));
     return platform ? { platform, pageUrl: url.href } : null;
   } catch {
@@ -64,30 +75,26 @@ export function resolvePublicationInsightPage(
   for (const key of kept) {
     const values = url.searchParams.getAll(key);
     if (values.length > 1 || values.some((value) => !value.trim())) return null;
-    if (
-      key === 'commentUrn' &&
-      values.length &&
-      !/^urn:[^\s]+$/.test(values[0])
-    )
+    if (key === 'commentUrn' && values.length && !URN_PATTERN.test(values[0]))
       return null;
   }
-  const numeric = /^\d+$/;
-  const token = /^[a-z0-9_-]+$/i;
   let supported = false;
   switch (lookup.platform) {
     case 'twitter':
       supported =
-        parts.length === 3 && parts[1] === 'status' && numeric.test(parts[2]);
+        parts.length === 3 &&
+        parts[1] === 'status' &&
+        DIGITS_ONLY_PATTERN.test(parts[2]);
       break;
     case 'linkedin':
       supported =
         (parts.length === 3 &&
           parts[0] === 'feed' &&
           parts[1] === 'update' &&
-          /^urn:li:activity:\d+$/.test(parts[2])) ||
+          LINKEDIN_ACTIVITY_URN_PATTERN.test(parts[2])) ||
         (parts.length === 2 &&
           parts[0] === 'posts' &&
-          /activity-\d+-/.test(parts[1]));
+          LINKEDIN_ACTIVITY_SLUG_PATTERN.test(parts[1]));
       break;
     case 'reddit': {
       const base =
@@ -98,13 +105,13 @@ export function resolvePublicationInsightPage(
             : [];
       supported =
         (base.length === 2 || base.length === 3) &&
-        /^[a-z0-9]+$/i.test(base[0]) &&
-        (base.length !== 3 || /^[a-z0-9]+$/i.test(base[2]));
+        ALPHANUMERIC_PATTERN.test(base[0]) &&
+        (base.length !== 3 || ALPHANUMERIC_PATTERN.test(base[2]));
       break;
     }
     case 'youtube':
       supported =
-        (url.hostname.replace(/^www\./, '') === 'youtu.be' &&
+        (url.hostname.replace(WWW_PREFIX_PATTERN, '') === 'youtu.be' &&
           parts.length === 1) ||
         (parts.length === 1 &&
           parts[0] === 'watch' &&
@@ -115,7 +122,7 @@ export function resolvePublicationInsightPage(
       supported =
         parts.length === 2 &&
         ['p', 'reel'].includes(parts[0]) &&
-        token.test(parts[1]);
+        SAFE_TOKEN_PATTERN.test(parts[1]);
       break;
     case 'facebook':
       supported =
@@ -128,9 +135,9 @@ export function resolvePublicationInsightPage(
     case 'tiktok':
       supported =
         parts.length === 3 &&
-        /^@.+/.test(parts[0]) &&
+        AT_HANDLE_PATTERN.test(parts[0]) &&
         parts[1] === 'video' &&
-        numeric.test(parts[2]);
+        DIGITS_ONLY_PATTERN.test(parts[2]);
       break;
   }
   if (!supported) return null;

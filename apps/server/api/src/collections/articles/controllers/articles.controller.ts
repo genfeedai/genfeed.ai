@@ -46,6 +46,8 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 @AutoSwagger()
 @Controller('articles')
 @UseInterceptors(CreditsInterceptor)
@@ -264,7 +266,7 @@ export class ArticlesController extends BaseCRUDController<
 
     const publicUrl = (
       this.configService.get('GENFEEDAI_PUBLIC_URL') as string | undefined
-    )?.replace(/\/$/, '');
+    )?.replace(TRAILING_SLASH_PATTERN, '');
 
     const signingKey = this.configService.get('TOKEN_ENCRYPTION_KEY') as
       | string

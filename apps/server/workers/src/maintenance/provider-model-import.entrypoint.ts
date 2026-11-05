@@ -14,6 +14,8 @@ import {
   persistProviderModel,
 } from '@workers/maintenance/provider-model-import.persistence';
 
+const PROVIDER_KEY_PATTERN = /^[a-z0-9_]+$/;
+
 async function main(): Promise<void> {
   const args = parseProviderModelImportArgs(process.argv.slice(2));
   const targets = providerModelImportTargets().filter(
@@ -65,7 +67,7 @@ async function main(): Promise<void> {
     } catch (error: unknown) {
       // Never serialize arbitrary exceptions, fetch URLs, provider responses or environment values.
       const reason =
-        error instanceof Error && /^[a-z0-9_]+$/.test(error.message)
+        error instanceof Error && PROVIDER_KEY_PATTERN.test(error.message)
           ? error.message
           : 'provider_collection_failed';
       failures.push({ ...target, reason });

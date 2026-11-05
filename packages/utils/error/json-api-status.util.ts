@@ -1,5 +1,7 @@
 import type { AxiosError } from 'axios';
 
+const HTTP_STATUS_CODE_PATTERN = /^\d{3}$/;
+
 /**
  * Dependency-free JSON:API / HTTP status resolution.
  *
@@ -39,7 +41,10 @@ export function parseHttpStatusCode(value: unknown): number | undefined {
     return value;
   }
 
-  if (typeof value === 'string' && /^\d{3}$/.test(value.trim())) {
+  if (
+    typeof value === 'string' &&
+    HTTP_STATUS_CODE_PATTERN.test(value.trim())
+  ) {
     return Number.parseInt(value, 10);
   }
 

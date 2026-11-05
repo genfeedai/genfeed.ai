@@ -15,6 +15,10 @@ import {
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const DEB_MANIFEST_LINE_PATTERN =
+  /^'([^'\s]+)' ([A-Za-z0-9][A-Za-z0-9+_.%~:-]*\.deb) ([1-9][0-9]*) SHA256:([a-fA-F0-9]{64})$/;
+const MIRROR_PREFIX_PATTERN = /^mirror\+/;
+
 const TOOLS = [
   ['/usr/bin/ffmpeg', ['-version'], 'ffmpeg'],
   ['/usr/bin/ffprobe', ['-version'], 'ffmpeg'],
@@ -35,10 +39,7 @@ export function parseManifest(text) {
         )
       )
         throw new Error('Control character in APT archive manifest');
-      const match =
-        /^'([^'\s]+)' ([A-Za-z0-9][A-Za-z0-9+_.%~:-]*\.deb) ([1-9][0-9]*) SHA256:([a-fA-F0-9]{64})$/.exec(
-          line,
-        );
+      const match = DEB_MANIFEST_LINE_PATTERN.exec(line);
       if (!match) throw new Error('Invalid APT archive manifest');
       const [, uri, name, bytes, digest] = match;
       const scheme = uri.slice(0, uri.indexOf(':'));
@@ -63,7 +64,7 @@ export function parseManifest(text) {
         )
           throw new Error('Invalid APT mirror URI');
       } else {
-        const url = new URL(uri.replace(/^mirror\+/, ''));
+        const url = new URL(uri.replace(MIRROR_PREFIX_PATTERN, ''));
         if (!url.hostname) throw new Error('Invalid APT archive URI');
       }
       names.add(name);

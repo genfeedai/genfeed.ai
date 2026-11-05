@@ -5,6 +5,10 @@ import type {
   ComposerTextSnapshot,
 } from '~types/extension';
 
+const NON_BREAKING_SPACES_PATTERN = /\u00a0/g;
+const TRAILING_NEWLINES_PATTERN = /\n+$/u;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 /** Tells the background this text came from Genfeed, so publishing it may be saved. */
 export function markWrittenByGenfeed(content: string): void {
   try {
@@ -173,11 +177,13 @@ function readDraft(element: HTMLElement): string {
   const raw = isFormField(element)
     ? element.value
     : (element.innerText ?? element.textContent ?? '');
-  return raw.replace(/\u00a0/g, ' ').replace(/\n+$/u, '');
+  return raw
+    .replace(NON_BREAKING_SPACES_PATTERN, ' ')
+    .replace(TRAILING_NEWLINES_PATTERN, '');
 }
 
 function collapseWhitespace(value: string): string {
-  return value.replace(/\s+/g, ' ').trim();
+  return value.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
 }
 
 function setNativeValue(

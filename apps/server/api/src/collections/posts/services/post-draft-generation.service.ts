@@ -41,6 +41,8 @@ import {
   Injectable,
 } from '@nestjs/common';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 export interface PostDraftGenerationOptions {
   /** Server-derived origin of the request; the HTTP route is always `api`. */
   surface?: 'api' | 'onboarding';
@@ -334,7 +336,7 @@ export class PostDraftGenerationService {
         { ttl: RECENT_POSTS_CACHE_TTL_SECONDS },
       );
       const lines = texts
-        .map((text) => text.replace(/\s+/g, ' ').trim())
+        .map((text) => text.replace(WHITESPACE_RUNS_PATTERN, ' ').trim())
         .filter((text) => text.length > 0)
         .map(
           (text, index) =>

@@ -1,5 +1,7 @@
 import { parseSkillPackageArchive } from '@api/collections/skills/utils/skill-package-archive.util';
 
+const FRONTMATTER_BLOCK_PATTERN = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/;
+
 export interface SkillsProPackMetadata {
   category?: string;
   description: string;
@@ -49,7 +51,7 @@ function parseMetadata(content: string): SkillsProPackMetadata {
 }
 
 function stripFrontmatter(markdown: string): string {
-  return markdown.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim();
+  return markdown.replace(FRONTMATTER_BLOCK_PATTERN, '').trim();
 }
 
 export function parseSkillsProPack(archive: Buffer): ParsedSkillsProPack {

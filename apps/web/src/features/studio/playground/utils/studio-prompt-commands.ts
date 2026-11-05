@@ -7,11 +7,14 @@ import type {
   StudioPresetCommandTarget,
 } from '@/features/studio/props/studio-playground.props';
 
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const EDGE_HYPHENS_PATTERN = /^-+|-+$/g;
+
 function toCommandName(label: string, fallback: string): string {
   const slug = label
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
+    .replace(EDGE_HYPHENS_PATTERN, '');
   return slug || fallback;
 }
 

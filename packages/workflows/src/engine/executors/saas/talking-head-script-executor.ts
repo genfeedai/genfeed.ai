@@ -12,6 +12,9 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
+const WHITESPACE_RUN_PATTERN = /\s+/u;
+const WORD_CHAR_PATTERN = /[\p{L}\p{N}]/u;
+
 export const TALKING_HEAD_SCRIPT_LIMITS = {
   clipCount: { max: 20, min: 2 },
   durationSeconds: { max: 300, min: 1 },
@@ -399,8 +402,8 @@ function parseDraft(
 export function countTalkingHeadScriptWords(text: string): number {
   return text
     .trim()
-    .split(/\s+/u)
-    .filter((token) => /[\p{L}\p{N}]/u.test(token)).length;
+    .split(WHITESPACE_RUN_PATTERN)
+    .filter((token) => WORD_CHAR_PATTERN.test(token)).length;
 }
 
 function buildTimedScript(

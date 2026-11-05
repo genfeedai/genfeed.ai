@@ -1,6 +1,8 @@
 import { EXPERT_POSITIONING_DIMENSIONS } from '@genfeedai/contracts/constants';
 import type { ExpertPositioningDimensionKey } from '@genfeedai/contracts/interfaces';
 
+const SENTENCE_PUNCTUATION_PATTERN = /[.!?]/;
+
 /**
  * Deterministic, no-LLM composition of the Expert Path weekly digest's
  * "What won" and "Record next" sections. Everything here is a pure function
@@ -76,7 +78,8 @@ function extractOpeningLine(content: string): string {
   const afterLabel = content.includes(':')
     ? content.split(':').slice(1).join(':')
     : content;
-  const firstSentence = afterLabel.trim().split(/[.!?]/)[0]?.trim() ?? '';
+  const firstSentence =
+    afterLabel.trim().split(SENTENCE_PUNCTUATION_PATTERN)[0]?.trim() ?? '';
   return firstSentence.slice(0, 120);
 }
 

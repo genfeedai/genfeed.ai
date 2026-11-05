@@ -35,6 +35,9 @@ import { ConfigService } from '@libs/config/config.service';
 import { signCdnUrl } from '@libs/media/media-url.util';
 import { Injectable } from '@nestjs/common';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+const LEADING_SLASHES_PATTERN = /^\/+/;
+
 const BRAND_KIT_IMPORT_MAX_BYTES = 50 * 1024 * 1024;
 const BRAND_KIT_ALLOWED_MIME_TYPES = new Set([
   'image/gif',
@@ -532,6 +535,7 @@ export class BrandKitAssetsService {
         parentOrgId: organizationId,
         parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
       },
+      select: { id: true, referenceCategory: true },
     });
 
     if (existing) {
@@ -798,9 +802,12 @@ export class BrandKitAssetsService {
   ): string {
     const objectKey =
       cloudObjectKey?.trim() || `${ASSET_UPLOAD_TYPE_BY_ROLE[role]}/${assetId}`;
-    const cdnBase = this.configService.cdnUrl.replace(/\/+$/, '');
+    const cdnBase = this.configService.cdnUrl.replace(
+      TRAILING_SLASHES_PATTERN,
+      '',
+    );
 
-    return `${cdnBase}/${objectKey.replace(/^\/+/, '')}`;
+    return `${cdnBase}/${objectKey.replace(LEADING_SLASHES_PATTERN, '')}`;
   }
 
   private toResolvedBrandKitAsset(

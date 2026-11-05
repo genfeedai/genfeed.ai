@@ -9,6 +9,8 @@ import {
   STUDIO_APP_ROUTE_PREFIXES,
 } from '@genfeedai/contracts/constants';
 
+const QUERY_OR_HASH_PATTERN = /[?#]/;
+
 /**
  * Scope internal agent CTA paths to the current org/brand so links do not 404.
  */
@@ -21,7 +23,7 @@ export function normalizeAgentAppHref(
   }
 
   const trimmed = href.trim();
-  const queryIndex = trimmed.search(/[?#]/);
+  const queryIndex = trimmed.search(QUERY_OR_HASH_PATTERN);
   const path = queryIndex === -1 ? trimmed : trimmed.slice(0, queryIndex);
   const suffix = queryIndex === -1 ? '' : trimmed.slice(queryIndex);
 

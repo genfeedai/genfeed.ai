@@ -6,6 +6,8 @@ import { ClipboardCheck, Sparkles, SquarePen } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { createElement, useEffect, useMemo, useState } from 'react';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 interface AgentDraftContextInput {
   body?: string;
   contentFormat?: string;
@@ -28,7 +30,7 @@ export interface AgentDraftSuggestionPayload {
 }
 
 function clampContextText(value?: string): string | undefined {
-  const normalized = value?.replace(/\s+/g, ' ').trim();
+  const normalized = value?.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
 
   if (!normalized) {
     return undefined;

@@ -20,6 +20,8 @@ import {
   type ReplicateCandidateContract,
 } from '@workers/services/replicate-model-contract.util';
 
+const PROVIDER_MODEL_ID_PATTERN = /^[\w-]+\/[\w.-]+$/;
+
 export interface ProviderModelImportTarget {
   category: ModelCategory;
   endpoint: string;
@@ -239,7 +241,7 @@ export async function collectProviderModel(
 ): Promise<ProviderModelImportObservation> {
   if (target.provider === ModelProvider.REPLICATE) {
     if (!credentials.replicate) throw new Error('missing_replicate_credential');
-    if (!/^[\w-]+\/[\w.-]+$/.test(target.endpoint))
+    if (!PROVIDER_MODEL_ID_PATTERN.test(target.endpoint))
       throw new Error('invalid_replicate_endpoint');
     const payload = await readJson(
       `https://api.replicate.com/v1/models/${target.endpoint}`,

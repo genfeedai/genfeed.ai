@@ -23,6 +23,8 @@ export type {
   SkillImportInputOptions,
 } from '@/features/settings/props/skills.props';
 
+const UNSAFE_NAME_CHAR_PATTERN = /[\\/:]/;
+
 export class SkillImportInputError extends Error {
   constructor(readonly code: SkillImportInputErrorCode) {
     super('Invalid skill package input.');
@@ -36,7 +38,7 @@ function invalid(code: SkillImportInputErrorCode): never {
 function validateName(name: string): void {
   if (
     !name ||
-    /[\\/:]/.test(name) ||
+    UNSAFE_NAME_CHAR_PATTERN.test(name) ||
     name === '.' ||
     name === '..' ||
     hasSkillPackageControlCharacters(name) ||

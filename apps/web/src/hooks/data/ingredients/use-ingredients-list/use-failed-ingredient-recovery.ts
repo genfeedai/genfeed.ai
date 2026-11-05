@@ -23,6 +23,8 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useRef, useState } from 'react';
 import type { UseFailedIngredientRecoveryProps } from '@/props/content/ingredient-recovery.props';
 
+const ASPECT_RATIO_PATTERN = /^\d+:\d+$/;
+
 /** Executable model key. Display labels are not generation identifiers. */
 function recordedModelKey(ingredient: IIngredient): string | undefined {
   const modelKey = ingredient.modelUsed?.trim() || ingredient.model?.trim();
@@ -34,7 +36,7 @@ function recordedModelKey(ingredient: IIngredient): string | undefined {
  * as 1344×768 do not reduce to the ratio the model was given.
  */
 function aspectRatioForRecovery(ingredient: IIngredient): string | undefined {
-  if (/^\d+:\d+$/.test(ingredient.aspectRatio ?? '')) {
+  if (ASPECT_RATIO_PATTERN.test(ingredient.aspectRatio ?? '')) {
     return ingredient.aspectRatio;
   }
   if (!ingredient.width || !ingredient.height) return undefined;
@@ -247,7 +249,9 @@ export function useFailedIngredientRecovery({
                       : ingredient.folder?.id),
                   format: ingredient.format ?? ingredient.ingredientFormat,
                   height: ingredient.height,
-                  aspectRatio: /^\d+:\d+$/.test(ingredient.aspectRatio ?? '')
+                  aspectRatio: ASPECT_RATIO_PATTERN.test(
+                    ingredient.aspectRatio ?? '',
+                  )
                     ? ingredient.aspectRatio
                     : undefined,
                   duration: saved.duration,

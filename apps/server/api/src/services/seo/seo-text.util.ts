@@ -1,5 +1,16 @@
 import * as cheerio from 'cheerio';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const HTML_TAGS_PATTERN = /<[^>]+>/g;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const SENTENCE_BOUNDARY_PATTERN = /(?<=[.!?])\s+/;
+const ALPHANUMERIC_CHAR_PATTERN = /[a-z0-9]/i;
+const NON_LETTERS_PATTERN = /[^a-z]/g;
+const SILENT_SYLLABLE_SUFFIX_PATTERN = /(?:[^laeiouy]es|ed|[^laeiouy]e)$/;
+const LEADING_Y_PATTERN = /^y/;
+const VOWEL_GROUPS_PATTERN = /[aeiouy]{1,2}/g;
+const REGEX_SPECIAL_CHARS_PATTERN = /[.*+?^${}()|[\]\\]/g;
+
 /** Strip HTML tags and collapse whitespace into plain text. */
 export function stripHtmlToText(html: string): string {
   if (!html) {
@@ -7,11 +18,16 @@ export function stripHtmlToText(html: string): string {
   }
   // cheerio gives accurate text extraction; fall back to regex if parse fails.
   try {
-    return cheerio.load(html).root().text().replace(/\s+/g, ' ').trim();
+    return cheerio
+      .load(html)
+      .root()
+      .text()
+      .replace(WHITESPACE_RUNS_PATTERN, ' ')
+      .trim();
   } catch {
     return html
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s+/g, ' ')
+      .replace(HTML_TAGS_PATTERN, ' ')
+      .replace(WHITESPACE_RUNS_PATTERN, ' ')
       .trim();
   }
 }
@@ -21,7 +37,7 @@ export function countWords(text: string): number {
   if (!text) {
     return 0;
   }
-  return text.split(/\s+/).filter(Boolean).length;
+  return text.split(WHITESPACE_RUN_PATTERN).filter(Boolean).length;
 }
 
 /** Split plain text into sentences. */
@@ -30,14 +46,14 @@ export function splitSentences(text: string): string[] {
     return [];
   }
   return text
-    .split(/(?<=[.!?])\s+/)
+    .split(SENTENCE_BOUNDARY_PATTERN)
     .map((sentence) => sentence.trim())
-    .filter((sentence) => /[a-z0-9]/i.test(sentence));
+    .filter((sentence) => ALPHANUMERIC_CHAR_PATTERN.test(sentence));
 }
 
 /** Estimate syllables in a single word (heuristic, English). */
 export function countSyllablesInWord(word: string): number {
-  const normalised = word.toLowerCase().replace(/[^a-z]/g, '');
+  const normalised = word.toLowerCase().replace(NON_LETTERS_PATTERN, '');
   if (!normalised) {
     return 0;
   }
@@ -45,9 +61,9 @@ export function countSyllablesInWord(word: string): number {
     return 1;
   }
   const groups = normalised
-    .replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '')
-    .replace(/^y/, '')
-    .match(/[aeiouy]{1,2}/g);
+    .replace(SILENT_SYLLABLE_SUFFIX_PATTERN, '')
+    .replace(LEADING_Y_PATTERN, '')
+    .match(VOWEL_GROUPS_PATTERN);
   return groups ? groups.length : 1;
 }
 
@@ -62,7 +78,7 @@ export function countSyllablesInWord(word: string): number {
  */
 export function fleschReadingEase(text: string): number {
   const sentences = splitSentences(text);
-  const words = text.split(/\s+/).filter(Boolean);
+  const words = text.split(WHITESPACE_RUN_PATTERN).filter(Boolean);
   if (sentences.length === 0 || words.length === 0) {
     return 0;
   }
@@ -96,10 +112,15 @@ export function computeKeywordDensity(
   if (totalWords === 0) {
     return 0;
   }
-  const escaped = normalisedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escaped = normalisedKeyword.replace(
+    REGEX_SPECIAL_CHARS_PATTERN,
+    '\\$&',
+  );
   const matches = text.toLowerCase().match(new RegExp(`\\b${escaped}\\b`, 'g'));
   const occurrences = matches ? matches.length : 0;
-  const keywordWordSpan = normalisedKeyword.split(/\s+/).filter(Boolean).length;
+  const keywordWordSpan = normalisedKeyword
+    .split(WHITESPACE_RUN_PATTERN)
+    .filter(Boolean).length;
   return (
     Math.round(((occurrences * keywordWordSpan) / totalWords) * 10000) / 100
   );

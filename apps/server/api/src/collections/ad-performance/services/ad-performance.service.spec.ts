@@ -723,6 +723,7 @@ describe('AdPerformanceService', () => {
 
       expect(findMany).toHaveBeenCalledWith({
         where: { organizationId: 'org-1' },
+        select: { data: true, id: true },
       });
     });
   });

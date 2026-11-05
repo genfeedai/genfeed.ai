@@ -31,6 +31,7 @@ export class ProcessedTweetsService extends BaseService<
   ): Promise<boolean> {
     const existing = await this.prisma.processedTweet.findFirst({
       where: { organizationId, processedBy, tweetId },
+      select: { id: true },
     });
     return !!existing;
   }
@@ -85,6 +86,7 @@ export class ProcessedTweetsService extends BaseService<
   ): Promise<Set<string>> {
     const processed = await this.prisma.processedTweet.findMany({
       where: { organizationId, processedBy, tweetId: { in: tweetIds } },
+      select: { tweetId: true },
     });
     return new Set(processed.map((p) => p.tweetId));
   }

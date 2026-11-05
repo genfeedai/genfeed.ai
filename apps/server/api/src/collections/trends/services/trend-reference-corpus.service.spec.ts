@@ -1137,6 +1137,7 @@ describe('TrendReferenceCorpusService', () => {
         organizationId: 'org_1',
         postId: 'post_1',
       },
+      select: { id: true },
     });
     expect(prisma.trendRemixLineage.update).toHaveBeenCalledWith(
       expect.objectContaining({

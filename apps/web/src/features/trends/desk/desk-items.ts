@@ -10,6 +10,8 @@ import {
   getTrendRemixAvailability,
 } from '@/features/trends/shared/remix-availability';
 
+const FALLBACK_SUFFIX_PATTERN = /-fallback-[1-9]\d*$/;
+
 /**
  * The Discovery Desk always renders inside `DiscoveryRemixProvider`
  * (`discovery/layout.tsx`), so the pure adapters below assume a remix
@@ -22,7 +24,7 @@ const HAS_REMIX_SURFACE = true;
 export function isObservedTrendContent(item: TrendContentItem): boolean {
   return (
     item.sourcePreviewState !== 'fallback' &&
-    !/-fallback-[1-9]\d*$/.test(item.id)
+    !FALLBACK_SUFFIX_PATTERN.test(item.id)
   );
 }
 

@@ -23,6 +23,11 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
+const LINE_BREAK_PATTERN = /\r?\n/;
+const FREEZE_START_PATTERN = /freeze_start:\s*([\d.]+)/;
+const FREEZE_END_PATTERN = /freeze_end:\s*([\d.]+)/;
+const INTEGRATED_LOUDNESS_PATTERN = /I:\s*(-?[\d.]+)\s+LUFS/g;
+
 export const DEFAULT_VIDEO_QA_LOUDNESS_TARGET_LUFS = -16;
 export const DEFAULT_VIDEO_QA_LOUDNESS_TOLERANCE_LUFS = 2;
 export const DEFAULT_VIDEO_QA_BLACK_DURATION_SECONDS = 0.5;
@@ -251,15 +256,15 @@ export function parseFreezeDetectLog(
 ): VideoQaSegment[] {
   const segments: VideoQaSegment[] = [];
   let pendingStart: number | null = null;
-  const lines = log.split(/\r?\n/);
+  const lines = log.split(LINE_BREAK_PATTERN);
 
   for (const line of lines) {
-    const startMatch = line.match(/freeze_start:\s*([\d.]+)/);
+    const startMatch = line.match(FREEZE_START_PATTERN);
     if (startMatch) {
       pendingStart = Number(startMatch[1]);
       continue;
     }
-    const endMatch = line.match(/freeze_end:\s*([\d.]+)/);
+    const endMatch = line.match(FREEZE_END_PATTERN);
     if (endMatch && pendingStart !== null) {
       const end = Number(endMatch[1]);
       if (Number.isFinite(pendingStart) && Number.isFinite(end)) {
@@ -281,7 +286,7 @@ export function parseFreezeDetectLog(
 }
 
 export function parseEbur128IntegratedLoudness(log: string): number | null {
-  const matches = [...log.matchAll(/I:\s*(-?[\d.]+)\s+LUFS/g)];
+  const matches = [...log.matchAll(INTEGRATED_LOUDNESS_PATTERN)];
   const last = matches.at(-1);
   if (!last) {
     return null;

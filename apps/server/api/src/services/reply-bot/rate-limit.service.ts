@@ -58,6 +58,7 @@ export class RateLimitService {
     try {
       const record = await this.prisma.replyBotConfig.findFirst({
         where: scopedWhere(organizationId, { id: botConfigId }),
+        select: { config: true, isActive: true },
       });
 
       if (!record) {
@@ -175,6 +176,7 @@ export class RateLimitService {
     try {
       const record = await this.prisma.replyBotConfig.findFirst({
         where: scopedWhere(organizationId, { id: botConfigId }),
+        select: { config: true },
       });
 
       if (!record) {
@@ -276,6 +278,7 @@ export class RateLimitService {
   ): Promise<{ allowed: boolean; remainingSeconds?: number }> {
     const record = await this.prisma.replyBotConfig.findFirst({
       where: scopedWhere(organizationId, { id: botConfigId }),
+      select: { config: true },
     });
 
     if (!record) {

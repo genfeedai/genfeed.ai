@@ -1,3 +1,5 @@
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+
 /** Canonical database-backed S3 identity; percent escapes remain literal bytes. */
 export function assertStoredObjectKey(
   key: string,
@@ -7,7 +9,7 @@ export function assertStoredObjectKey(
     typeof key !== 'string' ||
     key.length === 0 ||
     key.startsWith('/') ||
-    /^https?:\/\//i.test(key) ||
+    HTTP_PROTOCOL_PREFIX_PATTERN.test(key) ||
     key.includes('\\') ||
     [...key].some(
       (character) =>

@@ -2,6 +2,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+const LEADING_DOT_SLASH_PATTERN = /^\.\//;
+const ALLOWED_ASSET_EXTENSION_PATTERN = /\.(css|json)$/;
+const TRAILING_SLASH_PATTERN = /\/$/;
+const EXACT_SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+const LOCAL_DEPENDENCY_PROTOCOL_PATTERN = /^(file|link):/;
+
 const EXPECTED_REPOSITORY_URL =
   'git+https://github.com/genfeedai/genfeed.ai.git';
 const EXPECTED_HOMEPAGE_PREFIX =
@@ -23,12 +29,16 @@ function isPathInside(parentPath, childPath) {
 
 function isSrcPath(value) {
   const normalized =
-    typeof value === 'string' ? value.replace(/^\.\//, '') : '';
+    typeof value === 'string'
+      ? value.replace(LEADING_DOT_SLASH_PATTERN, '')
+      : '';
   return normalized === 'src' || normalized.startsWith('src/');
 }
 
 function isAllowedSourceAsset(value) {
-  return typeof value === 'string' && /\.(css|json)$/.test(value);
+  return (
+    typeof value === 'string' && ALLOWED_ASSET_EXTENSION_PATTERN.test(value)
+  );
 }
 
 function collectStringValues(value, values = []) {
@@ -46,9 +56,11 @@ function collectStringValues(value, values = []) {
 }
 
 function isPublishedByFiles(target, files) {
-  const normalizedTarget = target.replace(/^\.\//, '');
+  const normalizedTarget = target.replace(LEADING_DOT_SLASH_PATTERN, '');
   return files.some((entry) => {
-    const normalizedEntry = entry.replace(/^\.\//, '').replace(/\/$/, '');
+    const normalizedEntry = entry
+      .replace(LEADING_DOT_SLASH_PATTERN, '')
+      .replace(TRAILING_SLASH_PATTERN, '');
     return (
       normalizedTarget === normalizedEntry ||
       normalizedTarget.startsWith(`${normalizedEntry}/`)
@@ -88,7 +100,7 @@ function validatePublicPackage({ dir, pkg, packageByName, root, violations }) {
       `${rel}: public package name must use the @genfeedai scope`,
     );
   }
-  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(pkg.version ?? '')) {
+  if (!EXACT_SEMVER_PATTERN.test(pkg.version ?? '')) {
     violations.push(`${rel}: missing or unsupported semantic "version"`);
   }
   if (!SUPPORTED_LICENSES.has(pkg.license)) {
@@ -144,7 +156,10 @@ function validatePublicPackage({ dir, pkg, packageByName, root, violations }) {
     }
     if (
       isSrcPath(entry) &&
-      !sourceEntryContainsOnlyAssets(dir, entry.replace(/^\.\//, ''))
+      !sourceEntryContainsOnlyAssets(
+        dir,
+        entry.replace(LEADING_DOT_SLASH_PATTERN, ''),
+      )
     ) {
       violations.push(
         `${rel}: "files" includes source code instead of build output (${entry})`,
@@ -176,7 +191,7 @@ function validatePublicPackage({ dir, pkg, packageByName, root, violations }) {
   for (const field of RUNTIME_DEPENDENCY_FIELDS) {
     for (const [name, version] of Object.entries(pkg[field] ?? {})) {
       if (typeof version !== 'string') continue;
-      if (/^(file|link):/.test(version)) {
+      if (LOCAL_DEPENDENCY_PROTOCOL_PATTERN.test(version)) {
         violations.push(
           `${rel}: ${field}.${name} uses non-publishable specifier (${version})`,
         );

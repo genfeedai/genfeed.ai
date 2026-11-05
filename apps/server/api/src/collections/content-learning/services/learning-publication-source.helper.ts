@@ -231,6 +231,17 @@ async function validEdges(
     },
     orderBy: { id: 'asc' },
     take: 9,
+    select: {
+      derivedId: true,
+      derivedKind: true,
+      derivedOrganizationId: true,
+      isDeleted: true,
+      sourceId: true,
+      sourceKind: true,
+      sourceOrganizationId: true,
+      sourceVersion: true,
+      valid: true,
+    },
   });
   if (edges.length !== 8) return false;
   const remaining = [...refs];
@@ -262,6 +273,7 @@ async function validEdges(
         .map((ref) => ({ derivedKind: ref.kind, derivedId: ref.id })),
     },
     take: 1,
+    select: { id: true },
   });
   if (scopedParents.length) return false;
   const configParents = await tx.contentLearningDependency.findMany({
@@ -272,6 +284,7 @@ async function validEdges(
       isDeleted: false,
     },
     take: 1,
+    select: { id: true },
   });
   return configParents.length === 0;
 }

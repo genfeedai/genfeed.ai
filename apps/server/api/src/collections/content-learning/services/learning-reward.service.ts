@@ -155,6 +155,7 @@ export class LearningRewardService {
         credentialId: decision.credentialId,
         isDeleted: false,
       },
+      select: { epoch: true, mode: true },
     });
     if (!account) return unavailable('account_unavailable');
     if (account.epoch !== decision.epoch) return unavailable('epoch_changed');

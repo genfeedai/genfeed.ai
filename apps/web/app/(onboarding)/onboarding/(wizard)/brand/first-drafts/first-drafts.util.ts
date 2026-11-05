@@ -1,3 +1,6 @@
+const WHITESPACE_CHAR_PATTERN = /\s/;
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+
 const HANDLE_PATTERN = /^@([A-Za-z0-9_]{1,15})$/;
 
 /** A bare `@handle` is an X profile; anything else is passed through for the API to normalize. */
@@ -17,10 +20,10 @@ const HOSTNAME_PATTERN =
  */
 export function isValidOnboardingLink(input: string): boolean {
   const value = toOnboardingLink(input);
-  if (!value || /\s/.test(value)) return false;
+  if (!value || WHITESPACE_CHAR_PATTERN.test(value)) return false;
   try {
     const url = new URL(
-      /^https?:\/\//i.test(value) ? value : `https://${value}`,
+      HTTP_PROTOCOL_PREFIX_PATTERN.test(value) ? value : `https://${value}`,
     );
     return HOSTNAME_PATTERN.test(url.hostname);
   } catch {

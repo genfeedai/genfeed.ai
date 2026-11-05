@@ -106,6 +106,7 @@ export type BillingAccountAccessClient<
   organization: {
     findFirst(args: {
       where: { id: string; isDeleted: boolean };
+      select: { billingAccountId: true };
     }): Promise<{ billingAccountId: string | null } | null>;
   };
 };
@@ -192,6 +193,7 @@ async function resolveBillingAccountAccessInternal<
 
   const organization = await client.organization.findFirst({
     where: { id: organizationId, isDeleted: false },
+    select: { billingAccountId: true },
   });
   if (!organization) {
     throw new NotFoundException('Organization');

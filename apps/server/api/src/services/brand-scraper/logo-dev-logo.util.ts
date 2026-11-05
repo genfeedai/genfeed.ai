@@ -1,6 +1,10 @@
 import { isIP } from 'node:net';
 import { assertHostNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 
+const DOMAIN_LABEL_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+const TRAILING_PERIOD_PATTERN = /\.$/;
+const WWW_PREFIX_PATTERN = /^www\./;
+
 const LOGO_DEV_IMAGE_ORIGIN = 'https://img.logo.dev';
 const LOGO_DEV_IMAGE_SIZE = '128';
 const RESERVED_DOMAIN_SUFFIXES = [
@@ -17,9 +21,7 @@ const RESERVED_DOMAIN_SUFFIXES = [
 
 function isValidDomainLabel(label: string): boolean {
   return (
-    label.length > 0 &&
-    label.length <= 63 &&
-    /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(label)
+    label.length > 0 && label.length <= 63 && DOMAIN_LABEL_PATTERN.test(label)
   );
 }
 
@@ -39,8 +41,8 @@ export function normalizePublicWebsiteDomain(
 
     const hostname = parsed.hostname
       .toLowerCase()
-      .replace(/\.$/, '')
-      .replace(/^www\./, '');
+      .replace(TRAILING_PERIOD_PATTERN, '')
+      .replace(WWW_PREFIX_PATTERN, '');
 
     if (
       hostname.length === 0 ||

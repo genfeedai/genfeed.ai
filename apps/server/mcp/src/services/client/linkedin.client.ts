@@ -6,6 +6,9 @@ import type {
   LinkedInConnectionStatus,
 } from './linkedin.client.types';
 
+const SECRET_TEXT_PATTERN =
+  /bearer\s+|access[_-]?token|refresh[_-]?token|eyJ[A-Za-z0-9_-]{8,}\./i;
+
 const LINKEDIN_CREDENTIAL_PAGE_SIZE = 100;
 
 const DISCONNECTED_CREDENTIAL_REASON =
@@ -167,13 +170,7 @@ function readPublicText(value: unknown): string | null {
   }
 
   const trimmed = value.trim();
-  if (
-    !trimmed ||
-    trimmed.length > 200 ||
-    /bearer\s+|access[_-]?token|refresh[_-]?token|eyJ[A-Za-z0-9_-]{8,}\./i.test(
-      trimmed,
-    )
-  ) {
+  if (!trimmed || trimmed.length > 200 || SECRET_TEXT_PATTERN.test(trimmed)) {
     return null;
   }
 

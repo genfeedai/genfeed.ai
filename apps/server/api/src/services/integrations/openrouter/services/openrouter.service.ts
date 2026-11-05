@@ -17,6 +17,8 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+const REASONING_MANDATORY_ERROR_PATTERN = /reasoning is mandatory/i;
+
 interface OpenRouterErrorDetails {
   message: string;
   providerMessage?: string;
@@ -171,7 +173,7 @@ export class OpenRouterService {
       const isReasoningMandatory =
         params.reasoning?.enabled === false &&
         details.status === 400 &&
-        /reasoning is mandatory/i.test(details.providerMessage ?? '');
+        REASONING_MANDATORY_ERROR_PATTERN.test(details.providerMessage ?? '');
       if (!isReasoningMandatory) {
         throw error;
       }

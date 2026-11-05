@@ -527,6 +527,7 @@ export class KnowledgeRecordsService {
           isDeleted: false,
           id: spaceId,
         },
+        select: { brandId: true, scope: true, userId: true },
       });
       if (
         source.scope !== space.scope ||
@@ -609,6 +610,7 @@ export class KnowledgeRecordsService {
           source: { is: await this.ownership(actor) },
         },
         orderBy: { version: 'desc' },
+        select: { version: true },
       });
       const current = await tx.knowledgeSourceVersion.findFirst({
         where: scopedWhere(actor.organizationId, {
@@ -616,6 +618,7 @@ export class KnowledgeRecordsService {
           isCurrent: true,
           source: { is: await this.ownership(actor, tx) },
         }),
+        select: { id: true },
       });
       await this.embeddingCompletion.assertManualAdmission(
         tx,
@@ -686,6 +689,7 @@ export class KnowledgeRecordsService {
           source: { is: await this.ownership(actor) },
         },
         orderBy: { version: 'desc' },
+        select: { version: true },
       });
       return tx.knowledgeSourceVersion.create({
         data: {

@@ -25,6 +25,8 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 export interface ResolveAccountPublishingContextParams {
   brandId: string;
   credentialId: string;
@@ -213,7 +215,9 @@ export class AccountPublishingContextService {
       return explicitLabel;
     }
 
-    return handle ? `${platform} @${handle.replace(/^@/, '')}` : platform;
+    return handle
+      ? `${platform} @${handle.replace(LEADING_AT_SIGN_PATTERN, '')}`
+      : platform;
   }
 
   private getConstraints(
@@ -288,7 +292,9 @@ export class AccountPublishingContextService {
     ];
 
     if (context.account.handle) {
-      hints.push(`Handle: @${context.account.handle.replace(/^@/, '')}`);
+      hints.push(
+        `Handle: @${context.account.handle.replace(LEADING_AT_SIGN_PATTERN, '')}`,
+      );
     }
 
     if (context.brand.label) {

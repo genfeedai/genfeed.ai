@@ -10,6 +10,10 @@ import { logger } from '@services/core/logger.service';
 import { RawFetchClient } from '@services/core/raw-fetch-client';
 import { ServiceInstanceManager } from '@services/core/service-instance-manager';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const SENTENCE_TERMINATORS_PATTERN = /[.!?]+/;
+const VOWEL_GROUPS_PATTERN = /[aeiouy]{1,2}/g;
+
 export interface IContentScore {
   overall: number;
   breakdown: {
@@ -195,8 +199,10 @@ class ContentOptimizerServiceClass extends RawFetchClient {
     };
     suggestions: string[];
   } {
-    const words = content.trim().split(/\s+/);
-    const sentences = content.split(/[.!?]+/).filter((s) => s.trim());
+    const words = content.trim().split(WHITESPACE_RUN_PATTERN);
+    const sentences = content
+      .split(SENTENCE_TERMINATORS_PATTERN)
+      .filter((s) => s.trim());
     const wordCount = words.length;
     const sentenceCount = sentences.length || 1;
     const avgWordsPerSentence = wordCount / sentenceCount;
@@ -206,7 +212,7 @@ class ContentOptimizerServiceClass extends RawFetchClient {
       if (lowerWord.length <= 3) {
         return 1;
       }
-      const vowels = lowerWord.match(/[aeiouy]{1,2}/g);
+      const vowels = lowerWord.match(VOWEL_GROUPS_PATTERN);
       return vowels ? vowels.length : 1;
     };
 

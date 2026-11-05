@@ -13,6 +13,12 @@ import {
   scanRestyle,
 } from '../restyle';
 
+const INCLUDES_OR_HAS_CALL_PATTERN = /\.(includes|has)$/;
+const OPTIONAL_CHAINS_PATTERN = /\?\./g;
+const BORDER_CLASS_PATTERN = /(^|\s)border(\s|$)/;
+const BORDER_PRIMARY_CLASS_PATTERN = /(^|\s)border-primary(\/\d+)?(\s|$)/;
+const BG_PRIMARY_TINT_CLASS_PATTERN = /(^|\s)bg-primary\/\d+(\s|$)/;
+
 /**
  * Choice controls have shared components: `SegmentedControl` (single or
  * multiple, segmented bar or chips), `OptionTileGroup` + `OptionTile`
@@ -68,8 +74,8 @@ function isSelectionCheck(condition: ts.Expression, text: string): boolean {
     );
   }
   if (ts.isCallExpression(condition)) {
-    return /\.(includes|has)$/.test(
-      condition.expression.getText().replace(/\?\./g, '.'),
+    return INCLUDES_OR_HAS_CALL_PATTERN.test(
+      condition.expression.getText().replace(OPTIONAL_CHAINS_PATTERN, '.'),
     );
   }
   return SELECTION_NAME.test(condition.getText());
@@ -153,9 +159,9 @@ function scanButtons(source: HandBuiltSource): HandBuiltFinding[] {
       const classes = classStrings.join(' ');
       if (
         isUnstyled &&
-        /(^|\s)border(\s|$)/.test(classes) &&
-        /(^|\s)border-primary(\/\d+)?(\s|$)/.test(classes) &&
-        /(^|\s)bg-primary\/\d+(\s|$)/.test(classes) &&
+        BORDER_CLASS_PATTERN.test(classes) &&
+        BORDER_PRIMARY_CLASS_PATTERN.test(classes) &&
+        BG_PRIMARY_TINT_CLASS_PATTERN.test(classes) &&
         !isAllowed(source, node, 'selection-tile')
       ) {
         findings.push({

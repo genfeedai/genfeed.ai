@@ -1,10 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional, IsString, Matches } from 'class-validator';
 
+const RELATIVE_RETURN_PATH_PATTERN = /^\/(?!\/)(?!.*\\)/;
+
 export class CreateTrialCardCheckoutDto {
   @IsOptional()
   @IsString()
-  @Matches(/^\/(?!\/)(?!.*\\)/, {
+  @Matches(RELATIVE_RETURN_PATH_PATTERN, {
     message: 'returnPath must be an origin-relative path',
   })
   @ApiProperty({

@@ -1,3 +1,10 @@
+const CODE_FENCE_MARKERS_PATTERN = /```[a-z]*\n?/gi;
+const MARKDOWN_STRONG_PATTERN = /(\*\*|__)(.*?)\1/g;
+const MARKDOWN_BULLETS_PATTERN = /^\s*[-*]\s+/gm;
+const NEWLINES_WITH_PADDING_PATTERN = /\s*\n\s*/g;
+const REPEATED_WHITESPACE_PATTERN = /\s{2,}/g;
+const MARKDOWN_MARKERS_PATTERN = /[*_`]/g;
+
 /**
  * Output contract for image and video prompt enhancement.
  *
@@ -81,11 +88,11 @@ const EMPTY_NEGATIVE =
 
 function cleanText(value: string): string {
   return value
-    .replace(/```[a-z]*\n?/gi, '')
-    .replace(/(\*\*|__)(.*?)\1/g, '$2')
-    .replace(/^\s*[-*]\s+/gm, '')
-    .replace(/\s*\n\s*/g, ' ')
-    .replace(/\s{2,}/g, ' ')
+    .replace(CODE_FENCE_MARKERS_PATTERN, '')
+    .replace(MARKDOWN_STRONG_PATTERN, '$2')
+    .replace(MARKDOWN_BULLETS_PATTERN, '')
+    .replace(NEWLINES_WITH_PADDING_PATTERN, ' ')
+    .replace(REPEATED_WHITESPACE_PATTERN, ' ')
     .trim();
 }
 
@@ -102,7 +109,10 @@ function splitSections(raw: string): Map<string, string> | null {
     const heading = HEADING_LINE.exec(line);
     if (heading?.[1]) {
       hasHeading = true;
-      current = heading[1].replace(/[*_`]/g, '').trim().toLowerCase();
+      current = heading[1]
+        .replace(MARKDOWN_MARKERS_PATTERN, '')
+        .trim()
+        .toLowerCase();
       if (!sections.has(current)) sections.set(current, []);
       continue;
     }

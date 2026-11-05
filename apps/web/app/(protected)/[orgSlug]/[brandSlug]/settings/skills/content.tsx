@@ -59,6 +59,8 @@ import SkillImportForm, {
 import type { SkillImportInput } from './skill-import-input';
 import SkillsTable from './skills-table';
 
+const PATH_SEPARATOR_CHAR_PATTERN = /[\\/?#]/;
+
 function emptyDraft(): SkillDraft {
   return {
     defaultInstructions: '',
@@ -728,7 +730,7 @@ export default function BrandSettingsSkillsPage() {
           typeof created.id !== 'string' ||
           !created.id ||
           created.id !== created.id.trim() ||
-          /[\\/?#]/.test(created.id) ||
+          PATH_SEPARATOR_CHAR_PATTERN.test(created.id) ||
           [...created.id].some(
             (character) =>
               character.charCodeAt(0) <= 32 ||

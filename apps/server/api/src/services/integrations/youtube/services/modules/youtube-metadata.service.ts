@@ -6,6 +6,8 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { google, type youtube_v3 } from 'googleapis';
 
+const ISO8601_DURATION_PATTERN = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
+
 export interface YoutubeVideoMetadata {
   id: string;
   channelId?: string;
@@ -140,7 +142,7 @@ export class YoutubeMetadataService {
   }
 
   private parseDuration(duration: string): number {
-    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    const match = duration.match(ISO8601_DURATION_PATTERN);
     if (!match) {
       return 0;
     }

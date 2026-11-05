@@ -145,6 +145,7 @@ describe('stopped visual work reconciliation', () => {
         idempotencyKey: 'visual-code-revision',
         isDeleted: false,
       },
+      select: { id: true },
     });
     expect(f.credits.releaseReservation).toHaveBeenCalledWith(
       expect.objectContaining({ reservationId: 'recovered-hold' }),

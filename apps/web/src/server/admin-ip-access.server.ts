@@ -12,6 +12,8 @@ import type { AccessBootstrapState } from '@services/auth/auth.service';
 import { headers } from 'next/headers';
 import { getRequestDeployment } from './request-deployment.server';
 
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+
 function normalizeIp(ip: string): string {
   const trimmed = ip.trim();
   return trimmed.startsWith('::ffff:') ? trimmed.slice(7) : trimmed;
@@ -44,7 +46,7 @@ function buildTrustedProxyList(entries: string[]): BlockList {
 
     if (prefix === undefined) {
       trusted.addAddress(normalized, family);
-    } else if (/^\d+$/.test(prefix)) {
+    } else if (DIGITS_ONLY_PATTERN.test(prefix)) {
       trusted.addSubnet(normalized, Number(prefix), family);
     }
   }

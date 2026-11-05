@@ -11,12 +11,15 @@ import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import { useTranslations } from 'next-intl';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const NON_SLUG_CHARS_PATTERN = /[^a-z0-9-]/g;
+
 /** Catalog keys are lowercase, alphanumeric and hyphenated. */
 export function normalizeElementKey(value: string): string {
   return value
     .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '');
+    .replace(WHITESPACE_RUNS_PATTERN, '-')
+    .replace(NON_SLUG_CHARS_PATTERN, '');
 }
 
 type FieldsTranslator = (key: string) => string;

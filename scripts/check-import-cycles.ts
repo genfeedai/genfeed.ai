@@ -9,6 +9,9 @@ import { createRequire } from 'node:module';
 import { availableParallelism } from 'node:os';
 import path from 'node:path';
 
+const WORKSPACE_ROOT_PATTERN =
+  /^(packages\/[^/]+|apps\/server\/[^/]+|apps\/web\/[^/]+)/;
+
 const ROOT_DIR = process.cwd();
 const ROOT_TSCONFIG = path.join(ROOT_DIR, 'tsconfig.json');
 const BASELINE_FILE = path.join(ROOT_DIR, 'scripts/import-cycle-baseline.json');
@@ -384,9 +387,7 @@ function normalizeCycleFiles(rawFiles: string[], baseDir: string): string[] {
 }
 
 function resolveWorkspaceFromFile(file: string): string | null {
-  const match = /^(packages\/[^/]+|apps\/server\/[^/]+|apps\/web\/[^/]+)/.exec(
-    file,
-  );
+  const match = WORKSPACE_ROOT_PATTERN.exec(file);
   return match?.[1] ?? null;
 }
 

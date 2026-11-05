@@ -1,6 +1,18 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, unlinkSync } from 'node:fs';
 
+const WEB_APP_ARTIFACT_PATTERN = /^apps\/web\/app\/.+\.js(?:\.map)?$/u;
+const WEB_PACKAGES_ARTIFACT_PATTERN =
+  /^apps\/web\/packages\/.+\.js(?:\.map)?$/u;
+const WEB_SRC_ARTIFACT_PATTERN =
+  /^apps\/web\/src\/.+\.(?:js|js\.map|d\.ts|d\.ts\.map)$/u;
+const SERVER_SRC_ARTIFACT_PATTERN =
+  /^apps\/server\/[^/]+\/src\/.+\.(?:js|js\.map|d\.ts|d\.ts\.map)$/u;
+const PACKAGE_SRC_ARTIFACT_PATTERN =
+  /^packages\/[^/]+\/src\/.+\.(?:js|js\.map|d\.ts|d\.ts\.map)$/u;
+const EE_PACKAGE_SRC_ARTIFACT_PATTERN =
+  /^ee\/packages\/[^/]+\/src\/.+\.(?:js|js\.map|d\.ts|d\.ts\.map)$/u;
+
 const SHOULD_FIX = process.argv.includes('--fix');
 
 const SOURCE_ARTIFACT_EXTENSIONS = [
@@ -50,18 +62,12 @@ function isSourceArtifactPath(filePath: string): boolean {
   }
 
   return (
-    /^apps\/web\/app\/.+\.js(?:\.map)?$/u.test(filePath) ||
-    /^apps\/web\/packages\/.+\.js(?:\.map)?$/u.test(filePath) ||
-    /^apps\/web\/src\/.+\.(?:js|js\.map|d\.ts|d\.ts\.map)$/u.test(filePath) ||
-    /^apps\/server\/[^/]+\/src\/.+\.(?:js|js\.map|d\.ts|d\.ts\.map)$/u.test(
-      filePath,
-    ) ||
-    /^packages\/[^/]+\/src\/.+\.(?:js|js\.map|d\.ts|d\.ts\.map)$/u.test(
-      filePath,
-    ) ||
-    /^ee\/packages\/[^/]+\/src\/.+\.(?:js|js\.map|d\.ts|d\.ts\.map)$/u.test(
-      filePath,
-    )
+    WEB_APP_ARTIFACT_PATTERN.test(filePath) ||
+    WEB_PACKAGES_ARTIFACT_PATTERN.test(filePath) ||
+    WEB_SRC_ARTIFACT_PATTERN.test(filePath) ||
+    SERVER_SRC_ARTIFACT_PATTERN.test(filePath) ||
+    PACKAGE_SRC_ARTIFACT_PATTERN.test(filePath) ||
+    EE_PACKAGE_SRC_ARTIFACT_PATTERN.test(filePath)
   );
 }
 

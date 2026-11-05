@@ -15,6 +15,8 @@ import {
   validateCatalogLock,
 } from './skill-catalog-artifact';
 
+const TABS_PATTERN = /\t/g;
+
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
 const SKILLS_SENTINEL = join('media', 'image-prompt-engineer', 'SKILL.md');
 
@@ -54,7 +56,7 @@ function parseFrontmatter(content: string): FirstPartySkillFrontmatter | null {
   let metadataPrefix = '';
 
   for (const rawLine of match[1].split('\n')) {
-    const line = rawLine.replace(/\t/g, '  ');
+    const line = rawLine.replace(TABS_PATTERN, '  ');
     if (!line.trim()) {
       continue;
     }

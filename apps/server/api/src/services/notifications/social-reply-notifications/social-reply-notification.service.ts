@@ -8,6 +8,8 @@ import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 export const SOCIAL_REPLY_SOURCE_TYPE = 'social_credential';
 export const SOCIAL_REPLY_ENTITY_MODEL = 'Credential';
 
@@ -69,7 +71,9 @@ export function formatSocialReplySummary(
   accountHandle: string | null,
 ): string {
   const noun = replyCount === 1 ? 'reply' : 'replies';
-  const handle = accountHandle ? ` on @${accountHandle.replace(/^@/, '')}` : '';
+  const handle = accountHandle
+    ? ` on @${accountHandle.replace(LEADING_AT_SIGN_PATTERN, '')}`
+    : '';
   return `${replyCount} new ${noun}${handle}`;
 }
 
@@ -144,7 +148,8 @@ export class SocialReplyNotificationService {
     }
 
     const newestReplyId = newestReply.externalMessageId;
-    const accountHandle = input.accountHandle?.replace(/^@/, '') || null;
+    const accountHandle =
+      input.accountHandle?.replace(LEADING_AT_SIGN_PATTERN, '') || null;
     const occurredAt = input.occurredAt ?? new Date();
     const deduplicationKey = `${ActivityKey.SOCIAL_REPLIES_RECEIVED}/${input.organizationId}/${input.credentialId}/${newestReplyId}`;
     const payload: SocialReplyNotificationPayload = {

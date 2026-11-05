@@ -1,3 +1,7 @@
+const SVG_EXTENSION_PATTERN = /\.svg$/i;
+const SVG_LENGTH_PATTERN = /^\s*([0-9]*\.?[0-9]+)\s*(px)?\s*$/i;
+const SVG_VIEWBOX_SEPARATORS_PATTERN = /[\s,]+/;
+
 /**
  * Library uploads never send an SVG to storage: a stored SVG is a scriptable
  * document on the media origin, so the server rejects the type. The browser
@@ -17,12 +21,12 @@ export interface SvgSize {
 export function isSvgUpload(file: File): boolean {
   return (
     file.type.toLowerCase() === SVG_MIME_TYPE ||
-    (file.type === '' && /\.svg$/i.test(file.name))
+    (file.type === '' && SVG_EXTENSION_PATTERN.test(file.name))
   );
 }
 
 function parseLength(value: string | null): number | undefined {
-  const match = /^\s*([0-9]*\.?[0-9]+)\s*(px)?\s*$/i.exec(value ?? '');
+  const match = SVG_LENGTH_PATTERN.exec(value ?? '');
   const length = match ? Number(match[1]) : Number.NaN;
   return Number.isFinite(length) && length > 0 ? length : undefined;
 }
@@ -39,7 +43,7 @@ export function readSvgSize(markup: string): SvgSize | undefined {
 
   const viewBox = (root.getAttribute('viewBox') ?? '')
     .trim()
-    .split(/[\s,]+/)
+    .split(SVG_VIEWBOX_SEPARATORS_PATTERN)
     .map(Number);
   const [, , boxWidth, boxHeight] = viewBox;
   const hasViewBox =
@@ -121,8 +125,12 @@ export async function rasterizeSvgFile(file: File): Promise<File> {
   if (!png) {
     throw new Error('The SVG could not be converted. Upload a PNG instead.');
   }
-  return new File([png], `${file.name.replace(/\.svg$/i, '')}.png`, {
-    lastModified: file.lastModified,
-    type: 'image/png',
-  });
+  return new File(
+    [png],
+    `${file.name.replace(SVG_EXTENSION_PATTERN, '')}.png`,
+    {
+      lastModified: file.lastModified,
+      type: 'image/png',
+    },
+  );
 }

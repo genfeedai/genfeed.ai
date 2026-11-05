@@ -570,6 +570,7 @@ export class AgentThreadEngineService {
 
     const existing = await this.prisma.agentThreadSnapshot.findFirst({
       where: scopedWhere(organizationId, { threadId }),
+      select: { data: true, id: true },
     });
 
     const profileData = profileSnapshot as Record<string, unknown>;
@@ -718,6 +719,7 @@ export class AgentThreadEngineService {
       // Store the input request inside snapshot.data.inputRequests[]
       const snapshotRow = await this.prisma.agentThreadSnapshot.findFirst({
         where: scopedWhere(organizationId, { threadId }),
+        select: { data: true, id: true },
       });
 
       if (snapshotRow) {

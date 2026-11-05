@@ -49,6 +49,8 @@ import {
 } from './brand-context-fields.util';
 import { rankByQueryOverlap } from './text-overlap.util';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 const DEFAULT_LAYERS: Required<ContextLayers> = {
   brandGuidance: true,
   brandIdentity: true,
@@ -666,7 +668,7 @@ export class AgentContextAssemblyService {
    * section (a `## ...` or `HEADER:` line) and shift budget priorities.
    */
   private toPromptLine(value: string, maxLength?: number): string {
-    const line = value.replace(/\s+/g, ' ').trim();
+    const line = value.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
     if (maxLength === undefined || line.length <= maxLength) {
       return line;
     }

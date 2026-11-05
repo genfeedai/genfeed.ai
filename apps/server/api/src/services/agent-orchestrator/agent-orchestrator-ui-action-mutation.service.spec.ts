@@ -607,6 +607,7 @@ describe('persisted mutation approvals', () => {
         isDeleted: false,
         status: 'active',
       },
+      select: { brandId: true, contextVersion: true },
     });
     expect(transaction.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
       transaction.agentThread.findFirst.mock.invocationCallOrder[0],
@@ -752,6 +753,7 @@ describe('persisted mutation approvals', () => {
         userId: 'user-1',
         isDeleted: false,
       },
+      select: { brandId: true, contextVersion: true },
     });
   });
   it('does not regress a completed card during approved replay', async () => {

@@ -18,6 +18,9 @@ import {
   Optional,
 } from '@nestjs/common';
 
+const SHA256_PREFIX_PATTERN = /^sha256:/;
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 const DOWNLOAD_URL_TTL_SECONDS = 900;
 const MAX_PACK_DOWNLOAD_BYTES = 1_000_000;
 
@@ -274,6 +277,7 @@ export class SkillDownloadService {
         isDeleted: false,
         organizationId,
       },
+      select: { currentVersionId: true, id: true },
     });
     if (!installed) throw new NotFoundException('Skill', skillSlug);
     const targetVersionId =
@@ -301,6 +305,7 @@ export class SkillDownloadService {
         skillId,
         ...(current ? { versionNumber: { lt: current.versionNumber } } : {}),
       },
+      select: { id: true },
     });
     if (!previous) {
       throw new ConflictException('No earlier skill version to restore');
@@ -522,8 +527,10 @@ export class SkillDownloadService {
   }
 
   private requireChecksum(checksum: string | undefined): string {
-    const normalized = checksum?.replace(/^sha256:/, '').toLowerCase();
-    if (!normalized || !/^[a-f0-9]{64}$/.test(normalized)) {
+    const normalized = checksum
+      ?.replace(SHA256_PREFIX_PATTERN, '')
+      .toLowerCase();
+    if (!normalized || !SHA256_HEX_PATTERN.test(normalized)) {
       throw new ForbiddenException('Skills Pro pack checksum is unavailable');
     }
     return normalized;

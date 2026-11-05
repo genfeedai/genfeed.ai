@@ -6,6 +6,8 @@ import {
 } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import type { ConfigService } from '@libs/config/config.service';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 const DEFAULT_API_URL = 'http://localhost:3010';
 const DEFAULT_APP_URL = 'http://localhost:3000';
 const DEFAULT_MCP_URL = 'http://localhost:3014/mcp';
@@ -13,7 +15,7 @@ const DEFAULT_DOCS_URL = 'https://docs.genfeed.ai';
 const DEFAULT_WEBSITE_URL = 'https://genfeed.ai';
 
 function trimTrailingSlash(value: string): string {
-  return value.replace(/\/+$/, '');
+  return value.replace(TRAILING_SLASHES_PATTERN, '');
 }
 
 function readUrl(

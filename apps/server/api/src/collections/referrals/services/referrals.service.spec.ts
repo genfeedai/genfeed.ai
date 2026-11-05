@@ -567,6 +567,7 @@ describe('ReferralsService', () => {
         idempotencyKey: 'referral-reward-grant:reward_1',
         isDeleted: false,
       },
+      select: { id: true, organizationId: true },
     });
     expect(activities.record).toHaveBeenCalledWith(
       expect.objectContaining({ organizationId: 'org_referrer' }),

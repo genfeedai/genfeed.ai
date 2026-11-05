@@ -1,5 +1,15 @@
 import { SocialSourcePlatform } from './source-collector.enum';
 
+const URL_HOST_AND_PATH_PATTERN = /^https?:\/\/([^/?#]+)((?:\/[^?#]*)?)/i;
+const PORT_SUFFIX_PATTERN = /:\d+$/;
+const TRAILING_PERIOD_PATTERN = /\.$/;
+const WWW_PREFIX_PATTERN = /^www\./;
+const LEADING_AT_SIGN_PATTERN = /^@/;
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const POST_ID_PATTERN = /^[\w-]+$/;
+const LINKEDIN_URN_PATTERN = /^urn:li:(activity|share|ugcPost):\d+$/;
+
 /**
  * A single post extracted from a pasted platform URL.
  *
@@ -43,7 +53,7 @@ const INSTAGRAM_POST_SEGMENTS = new Set(['p', 'reel', 'reels', 'tv']);
 function extractHostAndPath(
   input: string,
 ): { host: string; segments: string[] } | null {
-  const match = /^https?:\/\/([^/?#]+)((?:\/[^?#]*)?)/i.exec(input);
+  const match = URL_HOST_AND_PATH_PATTERN.exec(input);
   if (!match) {
     return null;
   }
@@ -53,10 +63,10 @@ function extractHostAndPath(
     ? authority.slice(authority.lastIndexOf('@') + 1)
     : authority;
   const host = hostWithPort
-    .replace(/:\d+$/, '')
-    .replace(/\.$/, '')
+    .replace(PORT_SUFFIX_PATTERN, '')
+    .replace(TRAILING_PERIOD_PATTERN, '')
     .toLowerCase()
-    .replace(/^www\./, '');
+    .replace(WWW_PREFIX_PATTERN, '');
   if (!host) {
     return null;
   }
@@ -66,7 +76,10 @@ function extractHostAndPath(
 }
 
 function cleanHandle(segment: string | undefined): string | null {
-  const handle = segment?.replace(/^@/, '').trim().toLowerCase();
+  const handle = segment
+    ?.replace(LEADING_AT_SIGN_PATTERN, '')
+    .trim()
+    .toLowerCase();
   return handle ? handle : null;
 }
 
@@ -83,7 +96,7 @@ export function parseSocialPostUrl(
   input: string,
 ): SocialPostUrlReference | null {
   const trimmed = input.trim();
-  if (!/^https?:\/\//i.test(trimmed)) {
+  if (!HTTP_PROTOCOL_PREFIX_PATTERN.test(trimmed)) {
     return null;
   }
 
@@ -99,7 +112,7 @@ export function parseSocialPostUrl(
       (segment) => segment === 'status' || segment === 'statuses',
     );
     const postId = statusIndex >= 0 ? segments[statusIndex + 1] : undefined;
-    if (!postId || !/^\d+$/.test(postId)) {
+    if (!postId || !DIGITS_ONLY_PATTERN.test(postId)) {
       return null;
     }
     const author = statusIndex === 1 ? cleanHandle(segments[0]) : null;
@@ -120,7 +133,7 @@ export function parseSocialPostUrl(
       return null;
     }
     const postId = segments[markerIndex + 1];
-    if (!postId || !/^[\w-]+$/.test(postId)) {
+    if (!postId || !POST_ID_PATTERN.test(postId)) {
       return null;
     }
     return {
@@ -172,7 +185,7 @@ export function parseSocialPostUrl(
     }
     if (segments[0] === 'feed' && segments[1] === 'update' && segments[2]) {
       const urn = decodeURIComponent(segments[2]);
-      if (!/^urn:li:(activity|share|ugcPost):\d+$/.test(urn)) {
+      if (!LINKEDIN_URN_PATTERN.test(urn)) {
         return null;
       }
       return {
@@ -192,7 +205,7 @@ export function parseSocialPostUrl(
       !author?.startsWith('@') ||
       (kind !== 'video' && kind !== 'photo') ||
       !postId ||
-      !/^\d+$/.test(postId)
+      !DIGITS_ONLY_PATTERN.test(postId)
     ) {
       return null;
     }

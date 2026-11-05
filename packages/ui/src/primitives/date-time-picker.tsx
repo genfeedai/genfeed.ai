@@ -11,6 +11,8 @@ import {
   SelectValue,
 } from './select';
 
+const ISO_DATE_TIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/;
+
 interface DateTimeResult {
   date: string;
   time: string;
@@ -65,7 +67,7 @@ function getTimeFormatter(timezone: string): Intl.DateTimeFormat {
 }
 
 function extractDateTimeFromISO(isoString: string): DateTimeResult | null {
-  const match = isoString.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+  const match = isoString.match(ISO_DATE_TIME_PATTERN);
   if (!match || match.length < 6) {
     return null;
   }

@@ -24,6 +24,8 @@ import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail'
 import { useGenerationReceiptMedia } from '@/hooks/ui/generation-receipts/use-generation-receipt-media';
 import { receiptReadUnavailable } from './receipt-read-error.util';
 
+const NON_NEGATIVE_INTEGER_PATTERN = /^(0|[1-9][0-9]{0,9})$/;
+
 function selection(query: ReturnType<typeof useSearchParams>) {
   const ids = query.getAll('receiptId'),
     revisions = query.getAll('revision');
@@ -35,7 +37,7 @@ function selection(query: ReturnType<typeof useSearchParams>) {
     (!id && revisions.length > 0) ||
     (id !== undefined && !learningContractIdSchema.safeParse(id).success) ||
     (raw !== undefined &&
-      (!/^(0|[1-9][0-9]{0,9})$/.test(raw) || Number(raw) > 2147483647));
+      (!NON_NEGATIVE_INTEGER_PATTERN.test(raw) || Number(raw) > 2147483647));
   return {
     receiptId: invalid ? undefined : id,
     revision: raw === undefined ? undefined : Number(raw),

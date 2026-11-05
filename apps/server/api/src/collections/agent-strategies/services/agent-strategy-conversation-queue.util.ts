@@ -11,6 +11,11 @@ import {
   type ConversationSource,
 } from '@api/collections/agent-strategies/services/agent-strategy-conversation-queue.types';
 
+const NON_WORD_RUN_PATTERN = /[^\p{L}\p{N}]+/u;
+const LEADING_AT_SIGN_PATTERN = /^@/;
+const RETWEET_PREFIX_PATTERN = /^RT @/i;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 /** A post older than this is no longer a conversation worth joining. */
 export const CONVERSATION_FRESHNESS_HOURS = 48;
 /** Open items kept per queue; the rest wait until some are decided. */
@@ -25,7 +30,7 @@ const THIN_CONTENT_LENGTH = 40;
 function tokens(text: string): string[] {
   return text
     .toLowerCase()
-    .split(/[^\p{L}\p{N}]+/u)
+    .split(NON_WORD_RUN_PATTERN)
     .filter((token) => token.length >= MIN_TOKEN_LENGTH);
 }
 
@@ -58,8 +63,8 @@ function describeAge(hours: number): string {
 export function isOwnPost(source: ConversationSource, ownHandle?: string) {
   return (
     Boolean(ownHandle) &&
-    source.authorUsername.replace(/^@/, '').toLowerCase() ===
-      ownHandle?.replace(/^@/, '').toLowerCase()
+    source.authorUsername.replace(LEADING_AT_SIGN_PATTERN, '').toLowerCase() ===
+      ownHandle?.replace(LEADING_AT_SIGN_PATTERN, '').toLowerCase()
   );
 }
 
@@ -94,7 +99,7 @@ export function scoreConversation(
     hours < 0 ||
     hours >= CONVERSATION_FRESHNESS_HOURS ||
     isOwnPost(source, context.ownHandle) ||
-    /^RT @/i.test(source.content.trim())
+    RETWEET_PREFIX_PATTERN.test(source.content.trim())
   ) {
     return null;
   }
@@ -160,7 +165,10 @@ export function freshnessDeadline(source: ConversationSource): Date {
 }
 
 export function topicFor(source: ConversationSource): string {
-  const excerpt = source.content.replace(/\s+/g, ' ').trim().slice(0, 100);
+  const excerpt = source.content
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
+    .trim()
+    .slice(0, 100);
   return `Reply to @${source.authorUsername}: ${excerpt}`;
 }
 

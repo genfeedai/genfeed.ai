@@ -8,6 +8,12 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
+const MODULE_CLASS_EXPORT_PATTERN = /export class (\w+Module)/;
+const MODULE_CONST_EXPORT_PATTERN = /export const (\w+Module)\s*=/;
+const FORWARD_REFS_PATTERN = /forwardRef\(\(\)\s*=>\s*(\w+)\)/g;
+const MODULE_IMPORTS_PATTERN = /imports\s*:\s*\[([^\]]*)\]/s;
+const MODULE_REFERENCES_PATTERN = /(?<!\w)([A-Z]\w*Module)(?!\s*\))/g;
+
 const SRC_ROOT = join(import.meta.dir, '../../apps/server/api/src');
 
 function walkModuleFiles(dir: string): string[] {
@@ -26,19 +32,19 @@ function walkModuleFiles(dir: string): string[] {
 
 function extractModuleName(filePath: string, content: string): string {
   return (
-    content.match(/export class (\w+Module)/)?.[1] ??
-    content.match(/export const (\w+Module)\s*=/)?.[1] ??
+    content.match(MODULE_CLASS_EXPORT_PATTERN)?.[1] ??
+    content.match(MODULE_CONST_EXPORT_PATTERN)?.[1] ??
     relative(SRC_ROOT, filePath)
   );
 }
 
 function extractImportedModules(content: string): string[] {
   const imports: string[] = [];
-  for (const match of content.matchAll(/forwardRef\(\(\)\s*=>\s*(\w+)\)/g)) {
+  for (const match of content.matchAll(FORWARD_REFS_PATTERN)) {
     imports.push(match[1]);
   }
-  const block = content.match(/imports\s*:\s*\[([^\]]*)\]/s)?.[1] ?? '';
-  for (const match of block.matchAll(/(?<!\w)([A-Z]\w*Module)(?!\s*\))/g)) {
+  const block = content.match(MODULE_IMPORTS_PATTERN)?.[1] ?? '';
+  for (const match of block.matchAll(MODULE_REFERENCES_PATTERN)) {
     if (!match[1].startsWith('forwardRef') && !imports.includes(match[1])) {
       imports.push(match[1]);
     }

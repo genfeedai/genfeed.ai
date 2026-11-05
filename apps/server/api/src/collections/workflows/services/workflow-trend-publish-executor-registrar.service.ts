@@ -64,6 +64,10 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const EDGE_HYPHEN_PATTERN = /^-|-$/g;
+const LEADING_HASH_PATTERN = /^#/;
+
 @Injectable()
 export class WorkflowTrendPublishExecutorRegistrarService {
   private readonly logContext = 'WorkflowEngineAdapterService';
@@ -177,8 +181,8 @@ export class WorkflowTrendPublishExecutorRegistrarService {
         topic,
         trendId: `analytics-${params.platform}-${topic
           .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-|-$/g, '')}`,
+          .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
+          .replace(EDGE_HYPHEN_PATTERN, '')}`,
         videoUrl: null,
         viralScore: params.minViralScore,
       };
@@ -203,8 +207,9 @@ export class WorkflowTrendPublishExecutorRegistrarService {
               (hashtag
                 ? hashtags.find(
                     (item) =>
-                      item.hashtag.replace(/^#/, '').toLowerCase() ===
-                      hashtag.toLowerCase(),
+                      item.hashtag
+                        .replace(LEADING_HASH_PATTERN, '')
+                        .toLowerCase() === hashtag.toLowerCase(),
                   )
                 : undefined) ?? hashtags[0];
             if (!selected) {

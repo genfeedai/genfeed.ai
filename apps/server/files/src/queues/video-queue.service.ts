@@ -15,6 +15,8 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Job, Queue } from 'bullmq';
 
+const AGENT_SOURCE_JOB_ID_PATTERN = /^c[a-f0-9]{48}$/;
+
 const VIDEO_JOB_CONFIGS: Partial<Record<JobType, JobConfig>> = {
   [JOB_TYPES.RESIZE_VIDEO]: {
     attempts: 3,
@@ -105,7 +107,7 @@ function getRawCutJobId(data: VideoJobData): string | undefined {
 }
 
 function getAgentSourceJobId(data: VideoJobData): string | undefined {
-  return /^c[a-f0-9]{48}$/.test(data.ingredientId) &&
+  return AGENT_SOURCE_JOB_ID_PATTERN.test(data.ingredientId) &&
     data.id === `agent-source-${data.ingredientId}`
     ? data.id
     : undefined;

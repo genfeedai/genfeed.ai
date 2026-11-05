@@ -580,6 +580,13 @@ export class ContextsService {
               }
             : {}),
         }),
+        select: {
+          description: true,
+          id: true,
+          label: true,
+          publicationDate: true,
+          scheduledDate: true,
+        },
       });
 
       const contextBaseId = String(contextBase.id);

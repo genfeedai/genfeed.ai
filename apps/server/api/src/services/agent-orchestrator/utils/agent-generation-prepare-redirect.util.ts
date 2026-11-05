@@ -10,6 +10,8 @@ import {
   isExplicitAgentMediaGenerationMode,
 } from '@genfeedai/contracts';
 
+const NON_ALPHANUMERIC_CHARS_PATTERN = /[^a-z0-9]/g;
+
 /** Per-kind visual names models still emit; recovered onto `generate`. */
 const DIRECT_VISUAL_GENERATION_TOOLS = new Set<string>([
   'generate_as_identity',
@@ -39,7 +41,7 @@ export function normalizeRequestedAgentToolName(toolName: string): string {
 }
 
 function compactToolName(toolName: string): string {
-  return toolName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return toolName.toLowerCase().replace(NON_ALPHANUMERIC_CHARS_PATTERN, '');
 }
 
 function isVoiceGenerateLike(normalizedName: string): boolean {

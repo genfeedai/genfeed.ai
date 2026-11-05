@@ -143,6 +143,13 @@ describe('capture to immediate durable breakout detection', () => {
     );
     expect(h.configuration).toHaveBeenCalledWith({
       where: { organizationId: 'org-a', isDeleted: false },
+      select: {
+        breakoutThreshold: true,
+        maturityHoursByPlatform: true,
+        minimumSampleSize: true,
+        outlierThreshold: true,
+        windowSize: true,
+      },
     });
   });
 

@@ -31,6 +31,9 @@ import type {
 import { isPlatformSuperAdmin } from './better-auth-access.util';
 import { desktopSession } from './plugins/desktop-session.plugin';
 
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const EDGE_HYPHENS_PATTERN = /^-+|-+$/g;
+
 /**
  * Prefix + GC window for Better Auth rate-limit counters in Redis. Active keys
  * refresh their TTL on each write, so the TTL only reclaims idle counters.
@@ -552,8 +555,8 @@ function generateHandle(input: {
   const base =
     (input.email?.split('@')[0] ?? input.name ?? 'user')
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
+      .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
+      .replace(EDGE_HYPHENS_PATTERN, '')
       .slice(0, 24) || 'user';
   return `${base}-${randomUUID().slice(0, 8)}`;
 }

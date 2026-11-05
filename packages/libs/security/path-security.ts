@@ -9,6 +9,10 @@ export {
   type SecurityErrorFactory,
 } from '@genfeedai/storage/path-containment';
 
+const PATH_SEPARATOR_PATTERN = /[\\/]/;
+const QUOTES_AND_BACKSLASHES_PATTERN = /['"\\]/g;
+const FILE_EXTENSION_PATTERN = /^\.[a-z0-9]+$/i;
+
 /**
  * Shared, framework-agnostic path-traversal and command-injection sanitization.
  *
@@ -190,7 +194,7 @@ export function createPathSecurity(options: PathSecurityOptions): PathSecurity {
       !component ||
       component === '.' ||
       component === '..' ||
-      /[\\/]/.test(component)
+      PATH_SEPARATOR_PATTERN.test(component)
     ) {
       throw createError(`${name} must be a single path component`);
     }
@@ -260,7 +264,7 @@ export function createPathSecurity(options: PathSecurityOptions): PathSecurity {
         }
 
         // Additional escaping for shell-unsafe characters
-        return arg.replace(/['"\\]/g, '\\$&');
+        return arg.replace(QUOTES_AND_BACKSLASHES_PATTERN, '\\$&');
       });
     },
 
@@ -294,7 +298,7 @@ export function createPathSecurity(options: PathSecurityOptions): PathSecurity {
         ? extensionValue
         : `.${extensionValue}`;
 
-      if (!/^\.[a-z0-9]+$/i.test(safeExtension)) {
+      if (!FILE_EXTENSION_PATTERN.test(safeExtension)) {
         throw createError('extension must be a single file extension');
       }
 

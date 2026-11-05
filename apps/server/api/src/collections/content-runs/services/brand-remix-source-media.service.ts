@@ -21,6 +21,10 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+const SOURCE_MEDIA_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$/;
+const ISO_TIMESTAMP_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+
 export type RemixSourceMediaIngestResult =
   | {
       assetId: string;
@@ -78,15 +82,13 @@ export class BrandRemixSourceMediaService {
     if (
       media.importPolicy !== 'permitted' ||
       !media.importPermissionRef ||
-      !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$/.test(media.importPermissionRef)
+      !SOURCE_MEDIA_ID_PATTERN.test(media.importPermissionRef)
     ) {
       return { status: 'unavailable', reason: 'import_not_permitted' };
     }
     if (
       media.importExpiresAt !== undefined &&
-      (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(
-        media.importExpiresAt,
-      ) ||
+      (!ISO_TIMESTAMP_PATTERN.test(media.importExpiresAt) ||
         !Number.isFinite(Date.parse(media.importExpiresAt)) ||
         Date.parse(media.importExpiresAt) <= Date.now())
     ) {

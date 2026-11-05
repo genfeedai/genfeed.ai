@@ -20,6 +20,8 @@ export {
   type UnknownRecord,
 } from '@genfeedai/contracts/constants/type-guards.constant';
 
+const HASHTAGS_PATTERN = /#\w+/g;
+
 export type PropertyPath = Array<string | number>;
 
 export function getNestedValue(source: unknown, path: PropertyPath): unknown {
@@ -129,6 +131,6 @@ export function getNumberByPaths(
 }
 
 export function extractHashtags(text: string): string[] {
-  const matches = text.match(/#\w+/g);
+  const matches = text.match(HASHTAGS_PATTERN);
   return matches ? matches.map((tag) => tag.slice(1)) : [];
 }

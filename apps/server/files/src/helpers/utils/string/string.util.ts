@@ -1,10 +1,17 @@
+const SINGLE_QUOTES_PATTERN = /'/g;
+const BACKSLASHES_PATTERN = /\\/g;
+const COLONS_PATTERN = /:/g;
+const PERCENT_SIGNS_PATTERN = /%/g;
+
 /**
  * Lossy escaping for filtergraph text: the apostrophe is replaced outright, so
  * the value can never close its quote. Callers that need the original
  * apostrophe back should use `escapeDrawtextValue` instead.
  */
 export function ffmpegEscapeString(str: string): string {
-  return str.replace(/'/g, '’').replace(/\\/g, '\\\\');
+  return str
+    .replace(SINGLE_QUOTES_PATTERN, '’')
+    .replace(BACKSLASHES_PATTERN, '\\\\');
 }
 
 /**
@@ -23,8 +30,8 @@ export function ffmpegEscapeString(str: string): string {
  */
 export function escapeDrawtextValue(text: string): string {
   return text
-    .replace(/\\/g, '\\\\')
-    .replace(/'/g, "\\'")
-    .replace(/:/g, '\\:')
-    .replace(/%/g, '\\%');
+    .replace(BACKSLASHES_PATTERN, '\\\\')
+    .replace(SINGLE_QUOTES_PATTERN, "\\'")
+    .replace(COLONS_PATTERN, '\\:')
+    .replace(PERCENT_SIGNS_PATTERN, '\\%');
 }

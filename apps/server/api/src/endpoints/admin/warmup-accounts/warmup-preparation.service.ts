@@ -83,6 +83,7 @@ export class WarmupPreparationService {
           idempotencyKey: generation.key,
           isDeleted: false,
         },
+        select: { failedNodeId: true, id: true, status: true },
       });
       if (
         !execution &&
@@ -558,6 +559,7 @@ export class WarmupPreparationService {
             status: 'DRAFT',
             publishedAt: null,
           },
+          select: { id: true },
         });
         if (!article)
           throw new BadRequestException(
@@ -710,6 +712,12 @@ export class WarmupPreparationService {
       await lockWarmup(tx, id);
       const current = await tx.warmupAccount.findFirst({
         where: { id, organizationId, isDeleted: false },
+        select: {
+          auditEvents: true,
+          diagnostics: true,
+          organizationId: true,
+          status: true,
+        },
       });
       if (
         !current ||

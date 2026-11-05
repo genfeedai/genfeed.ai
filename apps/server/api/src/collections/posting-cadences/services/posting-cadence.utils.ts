@@ -24,6 +24,9 @@ import type {
   ReservationRecord,
 } from './posting-cadence.types';
 
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const EDGE_HYPHENS_PATTERN = /^-+|-+$/g;
+
 export function isConsumedReservation(
   reservation?: ReservationRecord,
 ): boolean {
@@ -75,8 +78,8 @@ export function toArticleSlug(label: string, identityKey: string): string {
   const base =
     label
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
+      .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
+      .replace(EDGE_HYPHENS_PATTERN, '')
       .slice(0, 40) || 'article';
   const suffix = identityKey
     ? createHash('sha256').update(identityKey).digest('hex').slice(0, 12)

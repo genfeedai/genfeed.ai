@@ -10,6 +10,14 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative } from 'node:path';
 import { catalogSkillDirectories } from '../apps/server/api/src/collections/skills/catalog/skill-catalog-artifact';
 
+const LINE_BREAKS_PATTERN = /\r?\n/g;
+const PIPES_PATTERN = /\|/g;
+const SKILLS_SECTION_WITH_BOUNDS_PATTERN =
+  /(## Skills\r?\n\r?\n)([\s\S]*?)(\r?\n## (?:Catalog ownership and source updates|Adding a skill))/;
+const SKILL_TABLE_ROW_PATTERN = /^\| `([^`]+)` \| /;
+const SKILLS_SECTION_PATTERN =
+  /## Skills\r?\n\r?\n([\s\S]*?)\r?\n## (?:Catalog ownership and source updates|Adding a skill)/;
+
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
 const ROOT = process.cwd();
 const SKILLS_DIR = join(ROOT, 'skills');
@@ -91,7 +99,7 @@ function loadProductSkills(root: string = ROOT): ProductSkill[] {
 }
 
 function escapeTableCell(value: string): string {
-  return value.replace(/\r?\n/g, ' ').replace(/\|/g, '\\|');
+  return value.replace(LINE_BREAKS_PATTERN, ' ').replace(PIPES_PATTERN, '\\|');
 }
 
 function renderSkillsSection(skills: ProductSkill[]): string {
@@ -110,21 +118,22 @@ function renderSkillsSection(skills: ProductSkill[]): string {
 }
 
 function replaceSkillsSection(readme: string, expectedSection: string): string {
-  const sectionRe =
-    /(## Skills\r?\n\r?\n)([\s\S]*?)(\r?\n## (?:Catalog ownership and source updates|Adding a skill))/;
-  if (!sectionRe.test(readme)) {
+  if (!SKILLS_SECTION_WITH_BOUNDS_PATTERN.test(readme)) {
     fail(
       'skills/README.md must contain "## Skills" before "## Adding a skill".',
     );
   }
 
-  return readme.replace(sectionRe, `$1${expectedSection}$3`);
+  return readme.replace(
+    SKILLS_SECTION_WITH_BOUNDS_PATTERN,
+    `$1${expectedSection}$3`,
+  );
 }
 
 function parseReadmeSkillNames(section: string): string[] {
   const names: string[] = [];
   for (const line of section.split('\n')) {
-    const match = line.match(/^\| `([^`]+)` \| /);
+    const match = line.match(SKILL_TABLE_ROW_PATTERN);
     if (match) {
       names.push(match[1]);
     }
@@ -154,9 +163,7 @@ function main(): void {
     return;
   }
 
-  const currentSection = readme.match(
-    /## Skills\r?\n\r?\n([\s\S]*?)\r?\n## (?:Catalog ownership and source updates|Adding a skill)/,
-  )?.[1];
+  const currentSection = readme.match(SKILLS_SECTION_PATTERN)?.[1];
   const currentNames = currentSection
     ? parseReadmeSkillNames(currentSection)
     : [];

@@ -20,6 +20,18 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+const QUESTION_HEADINGS_PATTERN =
+  /(?:^|\n)\s*#{2,3}\s+(?:what|how|why|when|where|who|can|should|does|is|are)\b/gi;
+const HTTP_PROTOCOLS_PATTERN = /https?:\/\//gi;
+const STRUCTURED_DATA_PATTERN = /application\/ld\+json|schema\.org/i;
+const FRESHNESS_SIGNAL_PATTERN =
+  /\b(?:20\d{2}|updated|last modified|published)\b/i;
+const SENTENCE_BOUNDARY_PATTERN = /(?<=[.!?])\s+/;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const CAPITALIZED_WORD_PATTERN = /^[A-Z][a-z0-9-]+/;
+const HTML_TAGS_PATTERN = /<[^>]+>/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 const GEO_SKILL_SLUG = 'content-geo-optimizer';
 
 /**
@@ -214,24 +226,25 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
   ): GeoScorecard {
     const plainText = this.stripHtml(content);
     const questionHeadingCount = (
-      content.match(
-        /(?:^|\n)\s*#{2,3}\s+(?:what|how|why|when|where|who|can|should|does|is|are)\b/gi,
-      ) ?? []
+      content.match(QUESTION_HEADINGS_PATTERN) ?? []
     ).length;
-    const linkCount = (content.match(/https?:\/\//gi) ?? []).length;
-    const hasJsonLd = /application\/ld\+json|schema\.org/i.test(content);
-    const hasFreshness =
-      /\b(?:20\d{2}|updated|last modified|published)\b/i.test(content);
-    const sentences = plainText.split(/(?<=[.!?])\s+/).filter(Boolean);
+    const linkCount = (content.match(HTTP_PROTOCOLS_PATTERN) ?? []).length;
+    const hasJsonLd = STRUCTURED_DATA_PATTERN.test(content);
+    const hasFreshness = FRESHNESS_SIGNAL_PATTERN.test(content);
+    const sentences = plainText
+      .split(SENTENCE_BOUNDARY_PATTERN)
+      .filter(Boolean);
     const conciseSentences = sentences.filter((sentence) => {
-      const words = sentence.split(/\s+/).filter(Boolean).length;
+      const words = sentence
+        .split(WHITESPACE_RUN_PATTERN)
+        .filter(Boolean).length;
       return words >= 8 && words <= 35;
     }).length;
     const conciseRatio =
       sentences.length > 0 ? conciseSentences / sentences.length : 0;
     const titleTerms = options.title
-      .split(/\s+/)
-      .filter((term) => /^[A-Z][a-z0-9-]+/.test(term));
+      .split(WHITESPACE_RUN_PATTERN)
+      .filter((term) => CAPITALIZED_WORD_PATTERN.test(term));
 
     const dimensions: GeoDimensionScore[] = [
       {
@@ -397,8 +410,9 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
       mainEntityUrl: url,
       publisher: this.getString(params.publisherName),
       url,
-      wordCount: this.stripHtml(input.content).split(/\s+/).filter(Boolean)
-        .length,
+      wordCount: this.stripHtml(input.content)
+        .split(WHITESPACE_RUN_PATTERN)
+        .filter(Boolean).length,
     });
   }
 
@@ -503,13 +517,13 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
 
   private stripHtml(value: string): string {
     return value
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s+/g, ' ')
+      .replace(HTML_TAGS_PATTERN, ' ')
+      .replace(WHITESPACE_RUNS_PATTERN, ' ')
       .trim();
   }
 
   private firstSentence(value: string): string {
-    return value.split(/(?<=[.!?])\s+/)[0]?.trim() ?? '';
+    return value.split(SENTENCE_BOUNDARY_PATTERN)[0]?.trim() ?? '';
   }
 
   private dedupe(values: string[]): string[] {

@@ -7,6 +7,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import ts from 'typescript';
 import { parseVitestList } from './pr-test-plan.mjs';
 
+const BUN_FILE_API_PATTERN = /\bBun\s*\.\s*(?:file|Glob)\b/;
+const TEST_SUPPORT_DIRECTORY_PATTERN =
+  /(?:^|\/)(?:test|tests|__tests__|testing|test-utils|fixtures)(?:\/|\.)/;
+const TEST_SUPPORT_FILE_PATTERN =
+  /(?:^|\/)(?:test[-.]?(?:helpers?|utils?)|source[-.]?(?:reader|contracts?)|[^/]+\.(?:test-utils|test-helpers|fixtures))\.[cm]?[jt]sx?$/;
+
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const SURFACES = [
   { directory: 'apps/web', config: 'vitest.config.mts' },
@@ -60,7 +66,7 @@ export function sourceImports(source) {
   return {
     filesystem:
       imports.some((name) => FS_MODULES.has(name)) ||
-      /\bBun\s*\.\s*(?:file|Glob)\b/.test(source),
+      BUN_FILE_API_PATTERN.test(source),
     imports,
   };
 }
@@ -103,12 +109,8 @@ export function selectSourceContracts(files, { readSource, resolveImport }) {
 // API unit tests simply because configuration itself reads the filesystem.
 export function isTestSupport(file) {
   return (
-    /(?:^|\/)(?:test|tests|__tests__|testing|test-utils|fixtures)(?:\/|\.)/.test(
-      file,
-    ) ||
-    /(?:^|\/)(?:test[-.]?(?:helpers?|utils?)|source[-.]?(?:reader|contracts?)|[^/]+\.(?:test-utils|test-helpers|fixtures))\.[cm]?[jt]sx?$/.test(
-      file,
-    )
+    TEST_SUPPORT_DIRECTORY_PATTERN.test(file) ||
+    TEST_SUPPORT_FILE_PATTERN.test(file)
   );
 }
 

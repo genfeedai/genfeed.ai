@@ -4,6 +4,8 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 /**
  * Path the Better Auth jwt plugin publishes its JWKS at, relative to
  * `BETTER_AUTH_URL`. Mirrors `BETTER_AUTH_BASE_PATH` ('/v1/auth') in the API's
@@ -17,7 +19,7 @@ const LOCAL_BETTER_AUTH_FALLBACK_URL = 'http://localhost:3010';
 
 /** Normalizes the issuer/audience base URL to match the API JWT config. */
 export function normalizeBetterAuthBaseUrl(baseUrl: string): string {
-  return baseUrl.replace(/\/+$/, '');
+  return baseUrl.replace(TRAILING_SLASHES_PATTERN, '');
 }
 
 /**

@@ -45,6 +45,9 @@ import {
 import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 
+const EDGE_QUOTES_PATTERN = /^['"]|['"]$/g;
+const EDGE_BRACKETS_PATTERN = /^\[|\]$/g;
+
 type SeedArgs = {
   dryRun: boolean;
   env?: string;
@@ -127,7 +130,7 @@ function loadEnvFile(envArg?: string): void {
       const value = trimmed
         .slice(eqIndex + 1)
         .trim()
-        .replace(/^['"]|['"]$/g, '');
+        .replace(EDGE_QUOTES_PATTERN, '');
       if (envArg || !process.env[key]) {
         process.env[key] = value;
       }
@@ -140,7 +143,10 @@ function loadEnvFile(envArg?: string): void {
 
 export function isLocalDatabaseUrl(databaseUrl: string): boolean {
   try {
-    const hostname = new URL(databaseUrl).hostname.replace(/^\[|\]$/g, '');
+    const hostname = new URL(databaseUrl).hostname.replace(
+      EDGE_BRACKETS_PATTERN,
+      '',
+    );
     return LOCAL_DATABASE_HOSTS.includes(hostname);
   } catch {
     return false;

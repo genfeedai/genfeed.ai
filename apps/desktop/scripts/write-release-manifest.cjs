@@ -5,6 +5,8 @@ const { execSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 
+const RELEASE_ARTIFACT_EXTENSION_PATTERN = /\.(dmg|zip|blockmap)$/u;
+
 const desktopRoot = path.resolve(__dirname, '..');
 const releaseRoot = path.join(desktopRoot, 'release');
 const packageJsonPath = path.join(desktopRoot, 'package.json');
@@ -55,7 +57,7 @@ function listReleaseArtifacts() {
     .readdirSync(releaseRoot, { withFileTypes: true })
     .filter((entry) => entry.isFile())
     .filter((entry) => entry.name !== path.basename(manifestPath))
-    .filter((entry) => /\.(dmg|zip|blockmap)$/u.test(entry.name))
+    .filter((entry) => RELEASE_ARTIFACT_EXTENSION_PATTERN.test(entry.name))
     .sort((left, right) => left.name.localeCompare(right.name))
     .map((entry) => {
       const filePath = path.join(releaseRoot, entry.name);

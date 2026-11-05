@@ -14,6 +14,8 @@ import {
   SKILL_PACKAGE_MAX_PATH_BYTES,
 } from '@genfeedai/contracts/constants';
 
+const UNSAFE_REFERENCE_CHAR_PATTERN = /[\\:]/;
+
 export interface SkillPackageInputOptions {
   slug: string;
   reference?: readonly string[];
@@ -40,7 +42,7 @@ function validateReference(relativePath: string): void {
   if (
     !relativePath ||
     path.isAbsolute(relativePath) ||
-    /[\\:]/.test(relativePath) ||
+    UNSAFE_REFERENCE_CHAR_PATTERN.test(relativePath) ||
     hasSkillPackageControlCharacters(relativePath) ||
     !relativePath.endsWith('.md') ||
     Buffer.byteLength(relativePath, 'utf8') > SKILL_PACKAGE_MAX_PATH_BYTES ||

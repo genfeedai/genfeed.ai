@@ -16,6 +16,8 @@ import {
 } from '@genfeedai/contracts';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const UNSAFE_QUEUE_KEY_CHARS_PATTERN = /[^A-Za-z0-9_-]/g;
+
 export interface FleetVoiceCloneWebhookPayload {
   assetId?: string;
   duration?: number;
@@ -419,7 +421,7 @@ export class FleetWebhookService {
   }
 
   private toQueueKey(value: string): string {
-    return value.replace(/[^A-Za-z0-9_-]/g, '_');
+    return value.replace(UNSAFE_QUEUE_KEY_CHARS_PATTERN, '_');
   }
 
   private voiceId(voice: IngredientDocument): string {

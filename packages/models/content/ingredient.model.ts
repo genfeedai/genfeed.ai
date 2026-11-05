@@ -23,6 +23,12 @@ import { Prompt } from '@models/content/prompt.model';
 import { Asset } from '@models/ingredients/asset.model';
 import { Brand } from '@models/organization/brand.model';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//;
+const INLINE_URL_SCHEME_PATTERN = /^(?:data:|blob:)/i;
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+const LEADING_SLASHES_PATTERN = /^\/+/;
+const LOCAL_STORAGE_PREFIX_PATTERN = /^local\//;
+
 export class Ingredient extends BaseIngredient {
   private _ingredientUrl: string = '';
 
@@ -276,11 +282,11 @@ export class Ingredient extends BaseIngredient {
       return undefined;
     }
 
-    if (/^https?:\/\//.test(trimmed)) {
+    if (HTTP_PROTOCOL_PREFIX_PATTERN.test(trimmed)) {
       return this.rewriteFilesServiceUrl(trimmed) ?? trimmed;
     }
 
-    if (/^(?:data:|blob:)/i.test(trimmed)) {
+    if (INLINE_URL_SCHEME_PATTERN.test(trimmed)) {
       return trimmed;
     }
 
@@ -306,7 +312,7 @@ export class Ingredient extends BaseIngredient {
   }
 
   private publicCdnOrigin(): string {
-    const cdn = EnvironmentService.cdnUrl.replace(/\/+$/, '');
+    const cdn = EnvironmentService.cdnUrl.replace(TRAILING_SLASHES_PATTERN, '');
     try {
       if (isFilesServiceHostname(new URL(cdn).hostname)) {
         return 'https://staging-cdn.genfeed.ai';
@@ -320,8 +326,8 @@ export class Ingredient extends BaseIngredient {
   private normalizeStoragePath(value?: string | null): string | undefined {
     const trimmed = value
       ?.trim()
-      .replace(/^\/+/, '')
-      .replace(/^local\//, '');
+      .replace(LEADING_SLASHES_PATTERN, '')
+      .replace(LOCAL_STORAGE_PREFIX_PATTERN, '');
     return trimmed || undefined;
   }
 

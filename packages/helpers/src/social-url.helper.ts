@@ -1,12 +1,17 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+const WHITESPACE_CHAR_PATTERN = /\s/;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const TIKTOK_PUBLISH_ID_PATTERN = /^v_[a-z_]+~/i;
+
 export class SocialUrlHelper {
   static buildProfileUrl(
     platform: CredentialPlatform,
     handle?: string | null,
     externalId?: string | null,
   ): string | undefined {
-    const cleanHandle = handle?.trim().replace(/^@/, '');
+    const cleanHandle = handle?.trim().replace(LEADING_AT_SIGN_PATTERN, '');
 
     switch (platform) {
       case CredentialPlatform.YOUTUBE:
@@ -26,7 +31,7 @@ export class SocialUrlHelper {
       case CredentialPlatform.TWITTER:
         return cleanHandle ? `https://x.com/${cleanHandle}` : undefined;
       case CredentialPlatform.LINKEDIN:
-        return cleanHandle && !/\s/.test(cleanHandle)
+        return cleanHandle && !WHITESPACE_CHAR_PATTERN.test(cleanHandle)
           ? `https://www.linkedin.com/in/${cleanHandle}`
           : undefined;
       case CredentialPlatform.FACEBOOK:
@@ -63,14 +68,14 @@ export class SocialUrlHelper {
     }
 
     // Remove @ symbol if present
-    const cleanUsername = username.replace(/^@/, '');
+    const cleanUsername = username.replace(LEADING_AT_SIGN_PATTERN, '');
 
     if (!cleanUsername) {
       throw new Error('Username cannot be empty');
     }
 
     // Validate tweet ID format (should be numeric)
-    if (!/^\d+$/.test(tweetId)) {
+    if (!DIGITS_ONLY_PATTERN.test(tweetId)) {
       throw new Error(`Invalid tweet ID format: ${tweetId}`);
     }
 
@@ -98,7 +103,7 @@ export class SocialUrlHelper {
    * publish job, not a video. They are not valid in a `/video/` URL.
    */
   static isTikTokPublishId(id: string): boolean {
-    return /^v_[a-z_]+~/i.test(id);
+    return TIKTOK_PUBLISH_ID_PATTERN.test(id);
   }
 
   static buildTikTokUrl(videoId: string, username?: string): string {
@@ -107,7 +112,7 @@ export class SocialUrlHelper {
     }
 
     if (username) {
-      const cleanUsername = username.replace(/^@/, '');
+      const cleanUsername = username.replace(LEADING_AT_SIGN_PATTERN, '');
       return `https://www.tiktok.com/@${cleanUsername}/video/${videoId}`;
     }
 

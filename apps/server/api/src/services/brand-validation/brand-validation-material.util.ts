@@ -1,6 +1,8 @@
 import { isArrayBuffer, isUint8Array } from 'node:util/types';
 import type { BrandArtifactValidationMaterialV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 
+const NON_NEGATIVE_INTEGER_PATTERN = /^(0|[1-9]\d*)$/;
+
 function invalid(): never {
   throw new TypeError('brand_validation_invalid_input');
 }
@@ -95,7 +97,7 @@ export function assertBrandValidationMetadata(value: unknown): void {
           invalid();
         if (
           array &&
-          (!/^(0|[1-9]\d*)$/.test(key) ||
+          (!NON_NEGATIVE_INTEGER_PATTERN.test(key) ||
             Number(key) >= descriptors.length.value)
         )
           invalid();

@@ -41,6 +41,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
+const USERNAME_PLACEHOLDERS_PATTERN = /\{\{username\}\}/g;
+const OFFER_PLACEHOLDERS_PATTERN = /\{\{offer\}\}/g;
+const CTA_PLACEHOLDERS_PATTERN = /\{\{cta\}\}/g;
+
 type DmExecutionResult = {
   success: boolean;
   error?: string;
@@ -592,9 +596,9 @@ export class DmCampaignExecutorService implements OnModuleInit {
     // If not using AI, process template
     if (!dmConfig.useAiGeneration && dmConfig.templateText) {
       return dmConfig.templateText
-        .replace(/\{\{username\}\}/g, recipientUsername)
-        .replace(/\{\{offer\}\}/g, dmConfig.offer || '')
-        .replace(/\{\{cta\}\}/g, dmConfig.ctaLink || '');
+        .replace(USERNAME_PLACEHOLDERS_PATTERN, recipientUsername)
+        .replace(OFFER_PLACEHOLDERS_PATTERN, dmConfig.offer || '')
+        .replace(CTA_PLACEHOLDERS_PATTERN, dmConfig.ctaLink || '');
     }
 
     // Build AI instructions

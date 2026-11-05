@@ -16,6 +16,9 @@ import type {
 import { canonicalJson } from '../provenance';
 import { EvalDispatchError, estimateTokens } from '../spend';
 
+const BRACKETED_LABELS_PATTERN = /^- \[([^\]]+)\] /gm;
+const EXACTLY_ONE_OF_PATTERN = /exactly one of: (.+)\.$/m;
+
 export const STUB_PROVIDER = 'stub';
 /** $1 per million tokens: small, non-zero, so spend is visibly metered. */
 export const STUB_DEFAULT_USD_PER_TOKEN = 0.000_001;
@@ -95,7 +98,7 @@ function stubJudgement(
     // better content passes more claims and each claim answers stably.
     const content = between(prompt, '[Content]:', '***') ?? prompt;
     const quality = pointwiseQualityOf(content);
-    const claimIds = [...prompt.matchAll(/^- \[([^\]]+)\] /gm)].map(
+    const claimIds = [...prompt.matchAll(BRACKETED_LABELS_PATTERN)].map(
       (match) => match[1],
     );
     return {
@@ -107,7 +110,7 @@ function stubJudgement(
       })),
     };
   }
-  const choiceList = /exactly one of: (.+)\.$/m.exec(prompt)?.[1];
+  const choiceList = EXACTLY_ONE_OF_PATTERN.exec(prompt)?.[1];
   const choices = choiceList?.split(', ') ?? [];
   if (choices.length === 0) {
     throw new Error('Stub judge could not find the choice list');

@@ -198,6 +198,7 @@ export class AgentAutopilotWorkflowService {
       await lockAgentStrategy(transaction, strategy.id);
       const current = await transaction.agentStrategy.findFirst({
         where: scopedWhere(organizationId, { id: strategy.id }),
+        select: { config: true },
       });
       if (!current) return { status: 'skipped', strategyId: strategy.id };
       const config = this.readRecord(current.config) as AgentStrategyConfig;
@@ -531,6 +532,7 @@ export class AgentAutopilotWorkflowService {
       }
       const current = await transaction.agentStrategy.findFirst({
         where: scopedWhere(strategy.organizationId, { id: strategy.id }),
+        select: { config: true },
       });
       ownership?.assertOwned();
       if (!current) return;
@@ -616,6 +618,7 @@ export class AgentAutopilotWorkflowService {
           brandId: strategy.brandId ?? null,
           userId: strategy.userId,
         }),
+        select: { id: true },
       });
       ownership?.assertOwned();
       if (!current)
@@ -787,6 +790,7 @@ export class AgentAutopilotWorkflowService {
       ownership?.assertOwned();
       const record = await transaction.agentStrategy.findFirst({
         where: scopedWhere(organizationId, { id: strategyId }),
+        select: { config: true, isActive: true },
       });
       ownership?.assertOwned();
       if (!record) return;

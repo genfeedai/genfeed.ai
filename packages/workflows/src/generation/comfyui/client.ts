@@ -5,6 +5,8 @@ import type {
   ComfyUIQueuePromptResponse,
 } from '@genfeedai/contracts/types';
 
+const PATH_OR_QUERY_DELIMITER_PATTERN = /[/?]/;
+
 export interface ComfyUIClientOptions {
   /** Polling interval in ms when waiting for completion */
   pollMs?: number;
@@ -142,7 +144,7 @@ export class ComfyUIClient {
 
     if (!response.ok) {
       const detail = options?.responseType ? '' : `: ${await response.text()}`;
-      const endpoint = path.split(/[/?]/)[1];
+      const endpoint = path.split(PATH_OR_QUERY_DELIMITER_PATTERN)[1];
       throw new Error(
         `ComfyUI /${endpoint} failed (${response.status})${detail}`,
       );

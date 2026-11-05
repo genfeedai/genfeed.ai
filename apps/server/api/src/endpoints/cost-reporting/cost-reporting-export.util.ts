@@ -1,6 +1,9 @@
 import type { WorkflowCostReportExecution } from '@genfeedai/contracts/interfaces';
 import type { ICostReportEntry } from '@genfeedai/contracts/interfaces/billing';
 
+const FORMULA_PREFIX_PATTERN = /^\s*[=+\-@]/;
+const CSV_SPECIAL_CHARS_PATTERN = /[",\r\n]/;
+
 const CSV_HEADERS = [
   'created_at',
   'entry_type',
@@ -17,7 +20,7 @@ const CSV_HEADERS = [
 ] as const;
 
 function neutralizeFormula(value: string): string {
-  return /^\s*[=+\-@]/.test(value) ? `'${value}` : value;
+  return FORMULA_PREFIX_PATTERN.test(value) ? `'${value}` : value;
 }
 
 function csvCell(value: string | number | boolean | null): string {
@@ -27,7 +30,9 @@ function csvCell(value: string | number | boolean | null): string {
       : value === null
         ? ''
         : String(value);
-  return /[",\r\n]/.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe;
+  return CSV_SPECIAL_CHARS_PATTERN.test(safe)
+    ? `"${safe.replaceAll('"', '""')}"`
+    : safe;
 }
 
 export function buildCostReportCsv(entries: ICostReportEntry[]): string {

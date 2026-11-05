@@ -9,13 +9,13 @@ import type {
 } from '@genfeedai/contracts/desktop';
 import type { Terminal as XtermTerminal } from '@xterm/xterm';
 
+const IPC_ERROR_PREFIX_PATTERN =
+  /^Error invoking remote method '[^']+': (?:[A-Za-z]*Error: )?/;
+
 function readErrorMessage(error: unknown): string {
   const message =
     error instanceof Error ? error.message : 'The local terminal failed.';
-  return message.replace(
-    /^Error invoking remote method '[^']+': (?:[A-Za-z]*Error: )?/,
-    '',
-  );
+  return message.replace(IPC_ERROR_PREFIX_PATTERN, '');
 }
 
 function toSessionDto(

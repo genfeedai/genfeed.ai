@@ -19,6 +19,8 @@ import { brandedGenerationReceiptV1Schema } from '@genfeedai/contracts/api-types
 import type { BreakoutOutputRecoveryInput } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 
+const LINE_BREAK_PATTERN = /\r?\n/u;
+
 export type BreakoutMediaArtifactBindingInput = BreakoutOutputRecoveryInput & {
   /** The output's caption draft, a plain text post written by the approved-brand caption. */
   postId: string;
@@ -54,7 +56,7 @@ function held(
 
 /** The post's first line as a title-sized label (YouTube titles hold 100 characters). */
 function captionLabel(caption: string): string {
-  const [first = ''] = caption.trim().split(/\r?\n/u);
+  const [first = ''] = caption.trim().split(LINE_BREAK_PATTERN);
   return first.slice(0, 100);
 }
 
@@ -98,6 +100,16 @@ export async function bindBreakoutMediaPostArtifact(
       platform,
       isDeleted: false,
     },
+    select: {
+      contentDigest: true,
+      externalId: true,
+      logicalPostId: true,
+      nativeSourcePostId: true,
+      outputPlanFingerprint: true,
+      publicationFingerprint: true,
+      sourcePostId: true,
+      state: true,
+    },
   });
   const output = await tx.breakoutResponseOutput.findFirst({
     where: {
@@ -107,6 +119,13 @@ export async function bindBreakoutMediaPostArtifact(
       brandId,
       credentialId,
       isDeleted: false,
+    },
+    select: {
+      format: true,
+      generationKey: true,
+      kind: true,
+      state: true,
+      workflowExecutionId: true,
     },
   });
   if (!response || !output || response.outputPlanFingerprint === null)
@@ -182,6 +201,14 @@ export async function bindBreakoutMediaPostArtifact(
       requestKey: output.generationKey,
       candidateIndex: 0,
       isDeleted: false,
+    },
+    select: {
+      id: true,
+      mode: true,
+      projection: true,
+      providerAttemptRef: true,
+      revision: true,
+      state: true,
     },
   });
   const parsed = brandedGenerationReceiptV1Schema.safeParse(row?.projection);

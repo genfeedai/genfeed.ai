@@ -18,6 +18,8 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const ERROR_CODE_PATTERN = /^[a-z0-9_]{1,120}$/;
+
 const CREATE_SCALAR_FIELDS = [
   'advertiserHandle',
   'advertiserName',
@@ -272,6 +274,7 @@ export class AdWatchedAdvertisersService extends BaseService<
 
     const brand = await this.prisma.brand.findFirst({
       where: scopedWhere(organizationId, { id: brandId }),
+      select: { id: true },
     });
     if (!brand) {
       throw new BadRequestException(
@@ -296,6 +299,7 @@ export class AdWatchedAdvertisersService extends BaseService<
         id: credentialId,
         platform: toPrismaCredentialPlatform(credentialPlatform),
       }),
+      select: { brandId: true },
     });
     if (
       !credential ||
@@ -355,7 +359,7 @@ export class AdWatchedAdvertisersService extends BaseService<
       return null;
     }
 
-    return /^[a-z0-9_]{1,120}$/.test(errorCode)
+    return ERROR_CODE_PATTERN.test(errorCode)
       ? errorCode
       : 'paid_creative_source_unavailable';
   }

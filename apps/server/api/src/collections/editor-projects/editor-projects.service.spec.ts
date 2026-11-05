@@ -75,6 +75,7 @@ describe('EditorProjectsService.updateEditorContent', () => {
     expect(query.values).toEqual(expect.arrayContaining([PROJECT_ID, ORG_ID]));
     expect(tx.editorProject.findFirst).toHaveBeenCalledWith({
       where: { id: PROJECT_ID, isDeleted: false, organizationId: ORG_ID },
+      select: { config: true },
     });
   });
 

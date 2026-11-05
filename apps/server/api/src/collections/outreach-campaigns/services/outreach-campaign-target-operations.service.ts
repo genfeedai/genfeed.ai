@@ -27,6 +27,8 @@ import {
 } from '@genfeedai/contracts';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 export type CampaignTargetsPage = FrontendPagination<CampaignTargetDocument> & {
   meta: { statusCounts: Partial<Record<CampaignTargetStatus, number>> };
 };
@@ -285,7 +287,9 @@ export class OutreachCampaignTargetOperationsService {
     const normalizedUsernames = [
       ...new Set(
         usernames
-          .map((username) => username.trim().replace(/^@/, '').toLowerCase())
+          .map((username) =>
+            username.trim().replace(LEADING_AT_SIGN_PATTERN, '').toLowerCase(),
+          )
           .filter(Boolean),
       ),
     ];

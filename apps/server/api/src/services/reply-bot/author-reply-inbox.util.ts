@@ -20,6 +20,8 @@ import { ReplyBotPlatform } from '@genfeedai/contracts';
 import type { IReplyBotCredentialData } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 const MAX_PARENT_POSTS = 12;
 const MAX_COMMENTS_PER_POST = 40;
 
@@ -73,7 +75,7 @@ export async function collectAuthorReplyInbox(
 
   const cutoff = Date.now() - hours * 60 * 60 * 1000;
   const ourUsername = (credential.username || credential.externalId || '')
-    .replace(/^@/, '')
+    .replace(LEADING_AT_SIGN_PATTERN, '')
     .toLowerCase();
 
   let posts: SocialContentData[] = [];
@@ -180,7 +182,9 @@ function mapAuthorReplyComments(
     if (comment.createdAt && comment.createdAt.getTime() < cutoff) {
       continue;
     }
-    const author = comment.authorUsername.replace(/^@/, '').toLowerCase();
+    const author = comment.authorUsername
+      .replace(LEADING_AT_SIGN_PATTERN, '')
+      .toLowerCase();
     if (ourUsername && author === ourUsername) {
       continue;
     }

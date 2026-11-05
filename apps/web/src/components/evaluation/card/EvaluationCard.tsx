@@ -21,6 +21,8 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { EvaluationCardProps } from '@/props/components/evaluation-card.props';
 
+const UPPERCASE_LETTER_GROUPS_PATTERN = /([A-Z])/g;
+
 const SCORE_THRESHOLDS = [
   {
     tone: 'success',
@@ -80,7 +82,10 @@ const FACTOR_LABELS: Record<string, string> = {
 };
 
 function formatFactorLabel(key: string): string {
-  return FACTOR_LABELS[key] ?? key.replace(/([A-Z])/g, ' $1').trim();
+  return (
+    FACTOR_LABELS[key] ??
+    key.replace(UPPERCASE_LETTER_GROUPS_PATTERN, ' $1').trim()
+  );
 }
 
 /**

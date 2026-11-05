@@ -1,5 +1,9 @@
 import { Parser } from 'htmlparser2';
 
+const CR_LINE_ENDINGS_PATTERN = /\r\n?/g;
+const HORIZONTAL_WHITESPACE_RUNS_PATTERN = /[^\S\n]+/g;
+const EXCESS_BLANK_LINES_PATTERN = /\n{3,}/g;
+
 /**
  * Elements that end a block of prose. Closing one emits a paragraph break.
  */
@@ -88,9 +92,9 @@ export function htmlToText(html: string | null | undefined): string {
 
   const text = parts
     .join('')
-    .replace(/\r\n?/g, '\n')
-    .replace(/[^\S\n]+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n');
+    .replace(CR_LINE_ENDINGS_PATTERN, '\n')
+    .replace(HORIZONTAL_WHITESPACE_RUNS_PATTERN, ' ')
+    .replace(EXCESS_BLANK_LINES_PATTERN, '\n\n');
 
   return text
     .split('\n')

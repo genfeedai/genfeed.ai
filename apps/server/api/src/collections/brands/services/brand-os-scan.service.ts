@@ -36,6 +36,8 @@ import {
 } from '@nestjs/common';
 import { isUUID } from 'class-validator';
 
+const HTTP_URLS_PATTERN = /https?:\/\/[^\s"'<>]+/gi;
+
 const SCAN_TIMEOUT_MS = 60_000;
 const FAILURE_CODES: BrandOsScanFailureCode[] = [
   'brand_scan.timed_out',
@@ -233,6 +235,7 @@ export class BrandOsScanService {
         organizationId: input.organizationId,
         isDeleted: false,
       },
+      select: { agentConfig: true },
     });
     if (!brandSnapshot) return this.readTerminalScan(input);
     let marker: BrandOsScanMarker | null;
@@ -519,9 +522,7 @@ export class BrandOsScanService {
         brandId: brand.id,
         organizationId: brand.organizationId,
         code: marker.errorCode,
-        error: message
-          .replace(/https?:\/\/[^\s"'<>]+/gi, '[website]')
-          .slice(0, 500),
+        error: message.replace(HTTP_URLS_PATTERN, '[website]').slice(0, 500),
       });
     }
   }
@@ -537,6 +538,7 @@ export class BrandOsScanService {
         isDeleted: false,
         status: BrandOsRevisionStatus.APPROVED,
       },
+      select: { content: true, id: true, updatedAt: true },
     });
     return row
       ? {

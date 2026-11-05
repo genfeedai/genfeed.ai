@@ -25,6 +25,11 @@ import {
   parseDocument,
 } from 'yaml';
 
+const FRONTMATTER_START_PATTERN = /^(?:\ufeff)?---\r?\n/;
+const FRONTMATTER_DELIMITER_PATTERN = /(?:^|\n)---(?:\r?\n|$)/;
+const CONTROL_WHITESPACE_PATTERN = /[\t\n\r]/g;
+const BASE64_PATTERN = /^[A-Za-z0-9+/]*={0,2}$/;
+
 const PROTOTYPE_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 
 export interface SkillPackageMetadata {
@@ -98,10 +103,10 @@ function frontmatter(content: string): {
   metadata: SkillPackageMetadata;
   body: string;
 } {
-  const opening = /^(?:\ufeff)?---\r?\n/.exec(content);
+  const opening = FRONTMATTER_START_PATTERN.exec(content);
   if (!opening) invalid('root SKILL.md frontmatter');
   const remaining = content.slice(opening[0].length);
-  const closing = /(?:^|\n)---(?:\r?\n|$)/.exec(remaining);
+  const closing = FRONTMATTER_DELIMITER_PATTERN.exec(remaining);
   if (!closing || closing.index === undefined)
     invalid('frontmatter closing delimiter');
   const payloadEnd = closing.index + (closing[0].startsWith('\n') ? 1 : 0);
@@ -127,7 +132,7 @@ function frontmatter(content: string): {
   const name = boundedText(fields.name, 140, 'name');
   if (hasControls(name)) invalid('name controls');
   const description = boundedText(fields.description, 2000, 'description');
-  if (hasControls(description.replace(/[\t\n\r]/g, '')))
+  if (hasControls(description.replace(CONTROL_WHITESPACE_PATTERN, '')))
     invalid('description controls');
   let version: string | undefined;
   if (Object.hasOwn(fields, 'metadata')) {
@@ -187,7 +192,7 @@ export function parseSkillPackageManifest(
         !encoded ||
         encoded.length > SKILL_PACKAGE_MAX_BASE64_CHARACTERS ||
         encoded.length % 4 !== 0 ||
-        !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded)
+        !BASE64_PATTERN.test(encoded)
       )
         invalid('ZIP base64');
       const bytes = Buffer.from(encoded, 'base64');

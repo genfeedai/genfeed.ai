@@ -20,6 +20,8 @@ import {
   Min,
 } from 'class-validator';
 
+const AUDIO_OR_VIDEO_MIME_PATTERN = /^(audio|video)\/[a-zA-Z0-9.+-]+$/;
+
 export const MAX_CLIP_SOURCE_SIZE_BYTES = 10 * 1024 * 1024 * 1024;
 
 export class PrepareClipperUploadDto {
@@ -38,7 +40,7 @@ export class PrepareClipperUploadDto {
   readonly filename!: string;
 
   @IsString()
-  @Matches(/^(audio|video)\/[a-zA-Z0-9.+-]+$/, {
+  @Matches(AUDIO_OR_VIDEO_MIME_PATTERN, {
     message: 'contentType must be an audio or video MIME type',
   })
   @ApiProperty({ example: 'video/mp4' })

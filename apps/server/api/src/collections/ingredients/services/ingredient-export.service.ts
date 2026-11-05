@@ -80,6 +80,13 @@ export class IngredientExportService {
           parentType: 'BRAND',
           isDeleted: false,
         },
+        select: {
+          category: true,
+          cloudObjectKey: true,
+          id: true,
+          mimeType: true,
+          updatedAt: true,
+        },
       });
       if (!logo?.mimeType?.startsWith('image/'))
         throw new BadRequestException(

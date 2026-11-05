@@ -15,6 +15,8 @@ import type { AxiosInstance, AxiosResponse } from 'axios';
 
 import type { ApiError } from './client.types';
 
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+
 function isHeaderRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -28,7 +30,8 @@ function readRetryAfterSeconds(error: ApiError): number | undefined {
     typeof fromGetter === 'string'
       ? fromGetter
       : (headers['retry-after'] ?? headers['Retry-After']);
-  if (typeof raw !== 'string' || !/^\d+$/.test(raw)) return undefined;
+  if (typeof raw !== 'string' || !DIGITS_ONLY_PATTERN.test(raw))
+    return undefined;
   const seconds = Number(raw);
   return seconds > 0 ? seconds : undefined;
 }

@@ -1,6 +1,11 @@
 import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
 import { Timeframe } from '@genfeedai/contracts';
 
+const LEADING_HASH_PATTERN = /^#/;
+const NON_WORD_CHARS_PATTERN = /[^\p{L}\p{N}\s]/gu;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const WHITESPACE_CHARS_PATTERN = /\s/g;
+
 export const BRAND_NICHE_MAX_QUERIES = 3;
 
 const STOP_WORDS = new Set([
@@ -40,9 +45,9 @@ export interface BrandNicheInput {
 
 function normalizeTerm(value: string): string {
   return value
-    .replace(/^#/, '')
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(LEADING_HASH_PATTERN, '')
+    .replace(NON_WORD_CHARS_PATTERN, ' ')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim()
     .toLowerCase();
 }
@@ -104,7 +109,7 @@ export function matchedNicheTerms(
   }
   const words = new Set(text.split(' '));
   const hashtags = (video.hashtags ?? []).map((tag) =>
-    normalizeTerm(tag).replace(/\s/g, ''),
+    normalizeTerm(tag).replace(WHITESPACE_CHARS_PATTERN, ''),
   );
   const matched: string[] = [];
   for (const term of terms) {

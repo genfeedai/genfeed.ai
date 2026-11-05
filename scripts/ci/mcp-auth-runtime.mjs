@@ -17,6 +17,19 @@ import { createRequire } from 'node:module';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+const GUARD_TOKEN_PATTERN = /^[0-9a-f]{32}$/;
+const FORBIDDEN_ENV_KEY_PATTERN =
+  /(?:GITHUB_TOKEN|GH_TOKEN|TURBO_TOKEN|ACTIONS_|AWS_SESSION_TOKEN|RESEND_API_KEY|ALLOW_EMAIL_VERIFICATION_WITHOUT_MAILER)/;
+const URL_ENV_SUFFIX_PATTERN = /_URL$/;
+const SHA256_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
+const V_SEMVER_PATTERN = /^v[0-9]+\.[0-9]+\.[0-9]+(?:[-+].*)?$/;
+const SEMVER_PATTERN = /^[0-9]+\.[0-9]+\.[0-9]+(?:[-+].*)?$/;
+const SIGNIN_FAILURE_CODE_PATTERN =
+  /^B01_REAL_PRINCIPALS_(SIGNIN|SIGNIN_IDENTITY|SIGNIN_HTTP_[1-5][0-9]{2}(?:_(INVALID_EMAIL_OR_PASSWORD|INVALID_ORIGIN|EMAIL_NOT_VERIFIED|USER_BANNED))?|COOKIE|TOKEN|CONTEXT|TRANSPORT|KEY_MINT|KEY_MINT_HTTP_[1-5][0-9]{2}|KEY_SERIALIZER|KEY_BINDING) failed$/;
+const PROVIDER_NOT_STARTED_FAILURE_CODE_PATTERN =
+  /^B11_PROVIDER_NOT_STARTED_(NEGATIVE_MUTATION_STARTED|PROVIDER_SUBMISSION_ATTEMPTED|(?:MUTATION_SNAPSHOT|NEGATIVE_MUTATION)_(WORKFLOW_EXECUTIONS|INGREDIENTS|CRUN_GENERATION_TASKS|POSTS|BRANDED_GENERATION_RECEIPTS|CREDIT_RESERVATIONS|CREDIT_TRANSACTIONS|CREDIT_BALANCES|BILLING_REVENUE_EVENTS|CONTEXT_BASES|CONTEXT_ENTRIES|KNOWLEDGE_SOURCES|KNOWLEDGE_SOURCE_VERSIONS|KNOWLEDGE_CAPTURE_REQUESTS)) failed$/;
+const SCREAMING_SNAKE_CODE_PATTERN = /^[A-Z_]+$/;
+
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 export const CONTRACT = JSON.parse(
   readFileSync(
@@ -109,7 +122,7 @@ export function validateEnvironment(env) {
     'INVALID_RUNTIME_ENVIRONMENT',
   );
   demand(
-    /^[0-9a-f]{32}$/.test(env.MCP_AUTH_RUNTIME_NONCE ?? ''),
+    GUARD_TOKEN_PATTERN.test(env.MCP_AUTH_RUNTIME_NONCE ?? ''),
     'INVALID_NONCE',
   );
   demand(
@@ -134,13 +147,8 @@ export function validateEnvironment(env) {
     );
     if (!runtimeKeys.has(key))
       demand(value === placeholders[key], 'NON_SYNTHETIC_ENVIRONMENT');
-    demand(
-      !/(?:GITHUB_TOKEN|GH_TOKEN|TURBO_TOKEN|ACTIONS_|AWS_SESSION_TOKEN|RESEND_API_KEY|ALLOW_EMAIL_VERIFICATION_WITHOUT_MAILER)/.test(
-        key,
-      ),
-      'AMBIENT_SECRET',
-    );
-    if (/_URL$/.test(key) && key !== 'DATABASE_URL') {
+    demand(!FORBIDDEN_ENV_KEY_PATTERN.test(key), 'AMBIENT_SECRET');
+    if (URL_ENV_SUFFIX_PATTERN.test(key) && key !== 'DATABASE_URL') {
       const url = new URL(value);
       demand(
         ['127.0.0.1', 'localhost'].includes(url.hostname) &&
@@ -284,7 +292,7 @@ export function validateReceipt(report, identity) {
   demand(
     SHA.test(report.candidateSha) &&
       SHA.test(report.testedSha) &&
-      /^[0-9a-f]{32}$/.test(report.nonce),
+      GUARD_TOKEN_PATTERN.test(report.nonce),
     'RECEIPT_IDENTITY',
   );
   demand(
@@ -309,13 +317,13 @@ export function validateReceipt(report, identity) {
       .sort()
       .join(',') === 'postgres,redis' &&
       Object.values(report.images).every((id) =>
-        /^sha256:[0-9a-f]{64}$/.test(id),
+        SHA256_DIGEST_PATTERN.test(id),
       ) &&
       Object.keys(report.runtime ?? {})
         .sort()
         .join(',') === 'bun,node' &&
-      /^v[0-9]+\.[0-9]+\.[0-9]+(?:[-+].*)?$/.test(report.runtime.node) &&
-      /^[0-9]+\.[0-9]+\.[0-9]+(?:[-+].*)?$/.test(report.runtime.bun),
+      V_SEMVER_PATTERN.test(report.runtime.node) &&
+      SEMVER_PATTERN.test(report.runtime.bun),
     'RECEIPT_RUNTIME_IDENTITY',
   );
   return report;
@@ -346,15 +354,11 @@ export function readProcessNetworkNamespace(pid, runCommand = command) {
 export function readJourneyFailure(output) {
   const lines = output.split('\n');
   const principalFailure = lines.find((line) =>
-    /^B01_REAL_PRINCIPALS_(SIGNIN|SIGNIN_IDENTITY|SIGNIN_HTTP_[1-5][0-9]{2}(?:_(INVALID_EMAIL_OR_PASSWORD|INVALID_ORIGIN|EMAIL_NOT_VERIFIED|USER_BANNED))?|COOKIE|TOKEN|CONTEXT|TRANSPORT|KEY_MINT|KEY_MINT_HTTP_[1-5][0-9]{2}|KEY_SERIALIZER|KEY_BINDING) failed$/.test(
-      line,
-    ),
+    SIGNIN_FAILURE_CODE_PATTERN.test(line),
   );
   if (principalFailure) return principalFailure.slice(0, -' failed'.length);
   const mutationFailure = lines.find((line) =>
-    /^B11_PROVIDER_NOT_STARTED_(NEGATIVE_MUTATION_STARTED|PROVIDER_SUBMISSION_ATTEMPTED|(?:MUTATION_SNAPSHOT|NEGATIVE_MUTATION)_(WORKFLOW_EXECUTIONS|INGREDIENTS|CRUN_GENERATION_TASKS|POSTS|BRANDED_GENERATION_RECEIPTS|CREDIT_RESERVATIONS|CREDIT_TRANSACTIONS|CREDIT_BALANCES|BILLING_REVENUE_EVENTS|CONTEXT_BASES|CONTEXT_ENTRIES|KNOWLEDGE_SOURCES|KNOWLEDGE_SOURCE_VERSIONS|KNOWLEDGE_CAPTURE_REQUESTS)) failed$/.test(
-      line,
-    ),
+    PROVIDER_NOT_STARTED_FAILURE_CODE_PATTERN.test(line),
   );
   if (mutationFailure) return mutationFailure.slice(0, -' failed'.length);
   for (const id of CONTRACT.cases)
@@ -980,7 +984,7 @@ export async function runRuntime(options) {
       'MAIL_DELIVERY_STARTED',
     );
   } catch (error) {
-    failure = /^[A-Z_]+$/.test(error.message ?? '')
+    failure = SCREAMING_SNAKE_CODE_PATTERN.test(error.message ?? '')
       ? error.message
       : 'RUNTIME_FAILURE';
   } finally {

@@ -6,6 +6,8 @@ import {
   SKILL_PACKAGE_MAX_PATH_BYTES,
 } from '@genfeedai/contracts/constants';
 
+const UNSAFE_PATH_CHARS_PATTERN = /[\\:]/;
+
 const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 
 export interface SkillPackageFile {
@@ -67,7 +69,7 @@ function assertPath(path: string): void {
   if (
     !plain ||
     Buffer.byteLength(path, 'utf8') > SKILL_PACKAGE_MAX_PATH_BYTES ||
-    /[\\:]/.test(path) ||
+    UNSAFE_PATH_CHARS_PATTERN.test(path) ||
     [...path].some(
       (char) =>
         char.charCodeAt(0) < 32 ||

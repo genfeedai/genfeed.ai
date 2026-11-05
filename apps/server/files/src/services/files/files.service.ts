@@ -16,6 +16,8 @@ import ffmpegPath from 'ffmpeg-static';
 import { firstValueFrom } from 'rxjs';
 import sharp from 'sharp';
 
+const DIGITS_PATTERN = /\d+/;
+
 @Injectable()
 export class FilesService {
   public readonly isDeleteTempFilesEnabled: boolean = true;
@@ -82,8 +84,8 @@ export class FilesService {
       .readdirSync(imagesPath)
       .filter((file) => file.endsWith(`.${extension}`))
       .sort((a, b) => {
-        const numA = parseInt(a.match(/\d+/)?.[0] || '0', 10);
-        const numB = parseInt(b.match(/\d+/)?.[0] || '0', 10);
+        const numA = parseInt(a.match(DIGITS_PATTERN)?.[0] || '0', 10);
+        const numB = parseInt(b.match(DIGITS_PATTERN)?.[0] || '0', 10);
         return numA - numB;
       });
   }

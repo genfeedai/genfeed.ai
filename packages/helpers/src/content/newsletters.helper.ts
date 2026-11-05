@@ -1,3 +1,5 @@
+const UNDERSCORES_PATTERN = /_/g;
+
 /**
  * Human-readable newsletter status, shared by the archive list and the
  * dedicated newsletter editor so both surfaces label an issue identically.
@@ -11,6 +13,6 @@ export function formatNewsletterStatusLabel(status: string): string {
     case 'ready_for_review':
       return 'Ready For Review';
     default:
-      return status.replace(/_/g, ' ');
+      return status.replace(UNDERSCORES_PATTERN, ' ');
   }
 }

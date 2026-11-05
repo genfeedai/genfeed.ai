@@ -2,6 +2,13 @@ import { normalizeMetaAdLibraryRecord } from './meta-ad-library';
 import { resolvePaidCreativeType } from './paid-creative';
 import type { NormalizedPaidCreativeRecord } from './types';
 
+const YOUTUBE_VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
+const VIDEO_EXTENSION_PATTERN = /\.(mp4|webm|mov|m4v)$/i;
+const VIDEO_PATH_HINT_PATTERN = /video[/_]/i;
+const GOOGLE_ADS_ADVERTISER_ID_PATTERN = /^AR\d+$/i;
+const DOMAIN_NAME_PATTERN =
+  /^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i;
+
 export function archiveObject(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -223,7 +230,7 @@ export function publicAdYouTubeEmbedUrl(value: string): string | undefined {
               ? segments[1]
               : undefined
           : undefined;
-    return id && /^[A-Za-z0-9_-]{11}$/.test(id)
+    return id && YOUTUBE_VIDEO_ID_PATTERN.test(id)
       ? `https://www.youtube-nocookie.com/embed/${id}`
       : undefined;
   } catch {
@@ -235,8 +242,8 @@ function isGoogleVideoUrl(value: string): boolean {
   if (publicAdYouTubeEmbedUrl(value)) return true;
   const url = new URL(value);
   return (
-    /\.(mp4|webm|mov|m4v)$/i.test(url.pathname) ||
-    /video[/_]/i.test(
+    VIDEO_EXTENSION_PATTERN.test(url.pathname) ||
+    VIDEO_PATH_HINT_PATTERN.test(
       url.searchParams.get('mime') ?? url.searchParams.get('mime_type') ?? '',
     ) ||
     url.hostname.endsWith('.googlevideo.com')
@@ -307,7 +314,7 @@ export const TIKTOK_AD_LIBRARY_COUNTRIES =
 
 export function normalizeGoogleAdvertiserQuery(query: string): string | null {
   const value = query.trim();
-  if (/^AR\d+$/i.test(value)) return value.toUpperCase();
+  if (GOOGLE_ADS_ADVERTISER_ID_PATTERN.test(value)) return value.toUpperCase();
   try {
     const url = new URL(value.includes('://') ? value : `https://${value}`);
     if (
@@ -317,9 +324,7 @@ export function normalizeGoogleAdvertiserQuery(query: string): string | null {
     )
       return null;
     const host = url.hostname.toLowerCase();
-    return /^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i.test(host)
-      ? host
-      : null;
+    return DOMAIN_NAME_PATTERN.test(host) ? host : null;
   } catch {
     return null;
   }

@@ -11,12 +11,25 @@ import { showToast } from '~platforms/ui/toast';
 import type { MenuItemSpec } from '~types/genfeed-menu';
 import { logger } from '~utils/logger.util';
 
+const SAFE_POST_ID_PATTERN = /^[\w:-]+$/;
+const WWW_PREFIX_PATTERN = /^www\./;
+const X_HOST_PATTERN = /(^|\.)(x|twitter)\.com$/;
+const X_STATUS_PATH_PATTERN = /^\/[^/]+\/status\/\d+/;
+const REDDIT_HOST_PATTERN = /(^|\.)reddit\.com$/;
+const REDDIT_COMMENTS_PATH_PATTERN = /\/comments\/[a-z0-9]+/i;
+const YOUTUBE_HOST_PATTERN = /(^|\.)youtube\.com$/;
+const YOUTUBE_SHORTS_PATH_PATTERN = /^\/shorts\/[\w-]{6,}/;
+const X_STATUS_URL_PATTERN =
+  /^https?:\/\/(?:www\.)?(?:x|twitter)\.com\/([^/]+)\/status\/(\d+)/;
+const HTTPS_PREFIX_PATTERN = /^https:/;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 const RESET_DELAY_MS = 3000;
 const SOURCE_BUTTON_LABEL = 'Save source for later';
 const SUPPORTED_PLATFORMS: readonly string[] = ['twitter', 'reddit', 'youtube'];
 
 function isSafePostId(postId: string): boolean {
-  return /^[\w:-]+$/.test(postId);
+  return SAFE_POST_ID_PATTERN.test(postId);
 }
 
 /** X post, Reddit post or YouTube video that is open on its own page. */
@@ -26,18 +39,18 @@ export function isSourcePage(
     'hostname' | 'pathname' | 'search'
   > = window.location,
 ): boolean {
-  const host = location.hostname.replace(/^www\./, '');
-  if (/(^|\.)(x|twitter)\.com$/.test(host)) {
-    return /^\/[^/]+\/status\/\d+/.test(location.pathname);
+  const host = location.hostname.replace(WWW_PREFIX_PATTERN, '');
+  if (X_HOST_PATTERN.test(host)) {
+    return X_STATUS_PATH_PATTERN.test(location.pathname);
   }
-  if (/(^|\.)reddit\.com$/.test(host)) {
-    return /\/comments\/[a-z0-9]+/i.test(location.pathname);
+  if (REDDIT_HOST_PATTERN.test(host)) {
+    return REDDIT_COMMENTS_PATH_PATTERN.test(location.pathname);
   }
-  if (/(^|\.)youtube\.com$/.test(host)) {
+  if (YOUTUBE_HOST_PATTERN.test(host)) {
     return (
       (location.pathname === '/watch' &&
         new URLSearchParams(location.search).has('v')) ||
-      /^\/shorts\/[\w-]{6,}/.test(location.pathname)
+      YOUTUBE_SHORTS_PATH_PATTERN.test(location.pathname)
     );
   }
   return false;
@@ -201,11 +214,9 @@ export function captureXPostImage(
   const link = article
     ?.querySelector<HTMLAnchorElement>('a[href*="/status/"] time')
     ?.closest('a');
-  const match = link?.href.match(
-    /^https?:\/\/(?:www\.)?(?:x|twitter)\.com\/([^/]+)\/status\/(\d+)/,
-  );
+  const match = link?.href.match(X_STATUS_URL_PATTERN);
   const url = image.currentSrc || image.src;
-  if (!article || !match || !/^https:/.test(url)) {
+  if (!article || !match || !HTTPS_PREFIX_PATTERN.test(url)) {
     return null;
   }
   const [, handle, tweetId] = match;
@@ -213,7 +224,7 @@ export function captureXPostImage(
   const text =
     article
       .querySelector('[data-testid="tweetText"]')
-      ?.textContent?.replace(/\s+/g, ' ')
+      ?.textContent?.replace(WHITESPACE_RUNS_PATTERN, ' ')
       .trim() ?? '';
   const author =
     article.querySelector('[data-testid="User-Name"] a')?.textContent?.trim() ||

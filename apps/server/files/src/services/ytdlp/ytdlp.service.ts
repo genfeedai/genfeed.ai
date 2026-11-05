@@ -8,6 +8,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { resolveContainedPath } from '@libs/security';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const YTDLP_ERROR_PREFIX_PATTERN = /^ERROR:/i;
+
 const createBadRequest = (message: string) => new BadRequestException(message);
 
 const YT_DLP_STDERR_TAIL_CHARS = 4000;
@@ -22,7 +24,9 @@ function summarizeYtDlpStderr(stderr: string): string {
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean);
-  const errorLine = [...lines].reverse().find((line) => /^ERROR:/i.test(line));
+  const errorLine = [...lines]
+    .reverse()
+    .find((line) => YTDLP_ERROR_PREFIX_PATTERN.test(line));
   return (errorLine ?? lines.at(-1) ?? '').slice(0, 500);
 }
 

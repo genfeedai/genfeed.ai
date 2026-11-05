@@ -13,6 +13,12 @@ import {
   ownedClasses,
 } from '../restyle';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const STATE_VARIANT_PATTERN = /^(hover|focus|focus-visible|active|disabled):/;
+const VARIANT_PREFIX_PATTERN = /^[a-z0-9-]+:/;
+const IMPORTANT_OR_NEGATIVE_PREFIX_PATTERN = /^[!-]+/;
+const LOWERCASE_START_PATTERN = /^[a-z]/;
+
 /**
  * Buttons and clickable things have shared components. A control is never
  * painted, labelled or wired by hand:
@@ -96,18 +102,18 @@ function isUnstyledVariant(initializer: ts.JsxAttribute['initializer']) {
 
 function hasLookClass(classes: string): boolean {
   return classes
-    .split(/\s+/)
+    .split(WHITESPACE_RUN_PATTERN)
     .filter((token) => token.length > 0)
     .some((token) => {
       // Variant-prefixed tokens (`hover:`, `md:`) are classified on the whole
       // token for state prefixes and on the utility for responsive ones.
-      const stateMatch = /^(hover|focus|focus-visible|active|disabled):/.test(
-        token,
-      );
+      const stateMatch = STATE_VARIANT_PATTERN.test(token);
       if (stateMatch) {
         return true;
       }
-      const utility = token.replace(/^[a-z0-9-]+:/, '').replace(/^[!-]+/, '');
+      const utility = token
+        .replace(VARIANT_PREFIX_PATTERN, '')
+        .replace(IMPORTANT_OR_NEGATIVE_PREFIX_PATTERN, '');
       return UNSTYLED_LOOK.some((pattern) => pattern.test(utility));
     });
 }
@@ -184,7 +190,7 @@ function scanElements(source: HandBuiltSource): HandBuiltFinding[] {
   function visit(node: ts.Node): void {
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
       const tag = node.tagName.getText(source.sourceFile);
-      const isIntrinsic = /^[a-z]/.test(tag);
+      const isIntrinsic = LOWERCASE_START_PATTERN.test(tag);
       if (isIntrinsic) {
         const names = new Set(
           node.attributes.properties

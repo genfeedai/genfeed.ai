@@ -20,6 +20,8 @@ import {
 } from './reviewed-provider-pricing';
 import { resolveVariantSelectors } from './reviewed-rates/variant-selectors';
 
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 /**
  * A pending provider contract is price drift only when its normalized rates
  * (`hashReviewedProviderRates`) differ from the reviewed contract's. A schema
@@ -115,7 +117,7 @@ export function quoteModelBillablePricing(
     if (
       pricing.rates.some((rate) => rate.unit === 'input-video-token') &&
       (input.inputDuration ?? 0) > 0 &&
-      !/^[a-f0-9]{64}$/.test(input.referenceEvidenceHash ?? '')
+      !SHA256_HEX_PATTERN.test(input.referenceEvidenceHash ?? '')
     )
       return unresolved(
         'Authorized reference-video source evidence is required',

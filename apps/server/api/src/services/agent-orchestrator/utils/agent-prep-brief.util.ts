@@ -7,6 +7,8 @@ import type {
   AgentPrepBriefSuggestion,
 } from '@genfeedai/contracts/interfaces';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 export const PREP_BRIEF_DEFAULT_WINDOW_DAYS = 30;
 export const PREP_BRIEF_MAX_WINDOW_DAYS = 90;
 export const PREP_BRIEF_MAX_TOPIC_LENGTH = 200;
@@ -80,7 +82,7 @@ export interface PrepBriefInputs {
 const DAY_MS = 86_400_000;
 
 function clip(value: string, max: number): string {
-  const text = value.replace(/\s+/g, ' ').trim();
+  const text = value.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 

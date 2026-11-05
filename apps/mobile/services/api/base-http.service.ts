@@ -1,6 +1,10 @@
 import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import Constants from 'expo-constants';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+const API_VERSION_SUFFIX_PATTERN = /\/v1$/;
+const LEADING_SLASH_PATTERN = /^\//;
+
 export const API_URL =
   Constants.expoConfig?.extra?.apiUrl || 'https://api.genfeed.ai';
 
@@ -28,11 +32,11 @@ export class ApiRequestError extends Error {
 }
 
 export function apiRoot(): string {
-  return `${API_URL.replace(/\/$/, '').replace(/\/v1$/, '')}/v1`;
+  return `${API_URL.replace(TRAILING_SLASH_PATTERN, '').replace(API_VERSION_SUFFIX_PATTERN, '')}/v1`;
 }
 
 function buildUrl(endpoint: string, params?: RequestOptions['params']): string {
-  const url = `${apiRoot()}/${endpoint.replace(/^\//, '')}`;
+  const url = `${apiRoot()}/${endpoint.replace(LEADING_SLASH_PATTERN, '')}`;
   if (!params) {
     return url;
   }
