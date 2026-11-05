@@ -80,7 +80,7 @@ async function main(): Promise<void> {
 
   const port = configService.get('PORT');
 
-  setupServiceShell(app);
+  setupServiceShell(app, { wideEventSink: logger });
 
   app.enableCors({
     ...getGenfeedCorsOptions({

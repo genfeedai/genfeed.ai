@@ -1,5 +1,6 @@
 import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
 import { redactEmailTrackingUrl } from '@api/helpers/utils/email-tracking-url.util';
+import { recordWideEventError } from '@libs/logger/wide-event/wide-event.context';
 import { type ArgumentsHost, Catch, HttpStatus } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import type { Request as ExpressRequest } from 'express';
@@ -35,17 +36,15 @@ export class DatabaseExceptionFilter extends AllExceptionFilter {
       exceptionObj.code === 'P2003' ||
       exceptionObj.code === 'P2025';
 
+    recordWideEventError(exception, {
+      code:
+        typeof exceptionObj.code === 'string' ? exceptionObj.code : undefined,
+      message: `${title}: ${detail}`,
+      status,
+    });
+
     if (this.SENTRY_ENVIRONMENT !== 'development' && !isExpectedClientError) {
       Sentry.captureException(exception);
-    } else {
-      this.loggerService.error(
-        `${req.method} ${redactEmailTrackingUrl(req.originalUrl)} ${status} - ${title}: ${detail}`,
-        {
-          databaseCode: exceptionObj.code,
-          operation: 'catch',
-          service: 'DatabaseExceptionFilter',
-        },
-      );
     }
 
     this.writeJsonApiError(res, {

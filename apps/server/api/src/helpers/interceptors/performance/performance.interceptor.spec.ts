@@ -1,12 +1,11 @@
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import {
-  APIMetricsInterceptor,
-  PerformanceInterceptor,
-} from '@api/helpers/interceptors/performance/performance.interceptor';
+import { PerformanceInterceptor } from '@api/helpers/interceptors/performance/performance.interceptor';
 import { recordPrismaQuery } from '@api/helpers/performance/request-performance.context';
 import { normalizeApiRoute } from '@api/helpers/performance/sentry-performance-monitor';
 import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
+import { runWithWideEvent } from '@libs/logger/wide-event/wide-event.context';
+import type { WideEventRecord } from '@libs/logger/wide-event/wide-event.interface';
+import { startWideEvent } from '@libs/logger/wide-event/wide-event.lifecycle';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
@@ -29,7 +28,7 @@ describe('PerformanceInterceptor', () => {
   let interceptor: PerformanceInterceptor;
   let configService: Pick<ConfigService, 'get'>;
   let configValues: Record<string, string | undefined>;
-  let loggerService: vi.Mocked<LoggerService>;
+  let wideEvent: WideEventRecord;
 
   const mockExecutionContext = {
     getRequest: vi.fn(),
@@ -74,24 +73,30 @@ describe('PerformanceInterceptor', () => {
           provide: ConfigService,
           useValue: configService,
         },
-        {
-          provide: LoggerService,
-          useValue: {
-            debug: vi.fn(),
-            error: vi.fn(),
-            warn: vi.fn(),
-          },
-        },
       ],
     }).compile();
 
     interceptor = module.get<PerformanceInterceptor>(PerformanceInterceptor);
-    loggerService = module.get(LoggerService);
+    wideEvent = startWideEvent({
+      identity: { service: 'api' },
+      kind: 'http',
+      requestId: 'req-1',
+      trace: { spanId: 'span-1', traceId: 'trace-1' },
+    }).event;
 
     mockExecutionContext.getRequest.mockReturnValue(mockRequest);
     mockExecutionContext.getResponse.mockReturnValue(mockResponse);
     mockCallHandler.handle.mockReset();
   });
+
+  /** Runs the interceptor the way the API does: inside the request's wide event. */
+  function interceptRequest(): Promise<unknown> {
+    return runWithWideEvent(wideEvent, () =>
+      firstValueFrom(
+        interceptor.intercept(mockExecutionContext, mockCallHandler),
+      ),
+    );
+  }
 
   it('should be defined', () => {
     expect(interceptor).toBeDefined();
@@ -102,7 +107,7 @@ describe('PerformanceInterceptor', () => {
       '/v1/workflow-executions/run-not-persisted',
       '/v1/workflow-executions/run-not-persisted?include=accounting',
     ])(
-      'keeps the expected execution lookup miss out of ERROR logs: %s',
+      'keeps the expected execution lookup miss off the wide event error: %s',
       async (url) => {
         const error = new NotFoundException('Execution');
         mockExecutionContext.getRequest.mockReturnValue({
@@ -110,16 +115,8 @@ describe('PerformanceInterceptor', () => {
           url,
         });
         mockCallHandler.handle.mockReturnValue(throwError(() => error));
-        await expect(
-          firstValueFrom(
-            interceptor.intercept(mockExecutionContext, mockCallHandler),
-          ),
-        ).rejects.toBe(error);
-        expect(loggerService.error).not.toHaveBeenCalled();
-        expect(loggerService.debug).toHaveBeenCalledWith(
-          'Workflow execution lookup returned no result',
-          expect.objectContaining({ method: 'GET', statusCode: 404, url }),
-        );
+        await expect(interceptRequest()).rejects.toBe(error);
+        expect(wideEvent.error).toBeUndefined();
         expect(Sentry.setTag).toHaveBeenCalledWith('api.status_code', '404');
         expect(Sentry.setTag).not.toHaveBeenCalledWith(
           'api.performance_severity',
@@ -128,7 +125,7 @@ describe('PerformanceInterceptor', () => {
       },
     );
 
-    it('retains slow-request warnings for an expected execution lookup miss', async () => {
+    it('retains the slow severity for an expected execution lookup miss', async () => {
       const error = new NotFoundException('Execution');
       mockExecutionContext.getRequest.mockReturnValue({
         ...mockRequest,
@@ -140,16 +137,9 @@ describe('PerformanceInterceptor', () => {
         .mockReturnValueOnce(0)
         .mockReturnValue(6000);
       try {
-        await expect(
-          firstValueFrom(
-            interceptor.intercept(mockExecutionContext, mockCallHandler),
-          ),
-        ).rejects.toBe(error);
-        expect(loggerService.warn).toHaveBeenCalledWith(
-          'Very slow request detected',
-          expect.objectContaining({ statusCode: 404, severity: 'HIGH' }),
-        );
-        expect(loggerService.error).not.toHaveBeenCalled();
+        await expect(interceptRequest()).rejects.toBe(error);
+        expect(wideEvent.performance_severity).toBe('HIGH');
+        expect(wideEvent.error).toBeUndefined();
       } finally {
         clock.mockRestore();
       }
@@ -161,46 +151,32 @@ describe('PerformanceInterceptor', () => {
       ['POST', '/v1/workflow-executions/run-1', 404],
       ['GET', '/v1/workflow-executions/run-1/steps', 404],
       ['GET', '/v1/posts/post-1', 404],
-    ])('retains error logging for %s %s (%i)', async (method, url, status) => {
-      const error = Object.assign(new Error('Request failed'), { status });
-      mockExecutionContext.getRequest.mockReturnValue({
-        ...mockRequest,
-        method,
-        url,
-      });
-      mockCallHandler.handle.mockReturnValue(throwError(() => error));
-      await expect(
-        firstValueFrom(
-          interceptor.intercept(mockExecutionContext, mockCallHandler),
-        ),
-      ).rejects.toBe(error);
-      expect(loggerService.error).toHaveBeenCalledWith(
-        'Request failed',
-        expect.objectContaining({ statusCode: status }),
-      );
-    });
+    ])(
+      'records the error on the wide event for %s %s (%i)',
+      async (method, url, status) => {
+        const error = Object.assign(new Error('Request failed'), { status });
+        mockExecutionContext.getRequest.mockReturnValue({
+          ...mockRequest,
+          method,
+          url,
+        });
+        mockCallHandler.handle.mockReturnValue(throwError(() => error));
+        await expect(interceptRequest()).rejects.toBe(error);
+        expect(wideEvent.error).toMatchObject({
+          message: 'Request failed',
+          status,
+          type: 'Error',
+        });
+      },
+    );
 
-    it('should log debug for fast requests', async () => {
+    it('marks fast successful requests as low severity', async () => {
       mockCallHandler.handle.mockReturnValue(of('success'));
 
-      await firstValueFrom(
-        interceptor.intercept(mockExecutionContext, mockCallHandler),
-      );
+      await interceptRequest();
 
-      expect(loggerService.debug).toHaveBeenCalledWith(
-        'Request completed',
-        expect.objectContaining({
-          duration: expect.any(Number),
-          method: 'GET',
-          route: '/api/test',
-          severity: 'LOW',
-          statusCode: 200,
-          timestamp: expect.any(String),
-          url: '/api/test',
-          userAgent: 'test-agent',
-          userId: 'user123',
-        }),
-      );
+      expect(wideEvent.performance_severity).toBe('LOW');
+      expect(wideEvent.error).toBeUndefined();
       expect(Sentry.setTag).toHaveBeenCalledWith('api.route', '/api/test');
       expect(Sentry.setMeasurement).toHaveBeenCalledWith(
         'api.request.duration',
@@ -220,26 +196,14 @@ describe('PerformanceInterceptor', () => {
       expect(Sentry.metrics.distribution).not.toHaveBeenCalled();
     });
 
-    it('should warn when a request finishes as 401 without throwing', async () => {
+    it('reports a request that finishes as 401 without throwing to Sentry', async () => {
       mockExecutionContext.getResponse.mockReturnValue({ statusCode: 401 });
       mockCallHandler.handle.mockReturnValue(of('unauthorized'));
 
-      await firstValueFrom(
-        interceptor.intercept(mockExecutionContext, mockCallHandler),
-      );
+      await interceptRequest();
 
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        'Request unauthorized',
-        expect.objectContaining({
-          method: 'GET',
-          statusCode: 401,
-          url: '/api/test',
-        }),
-      );
-      expect(loggerService.debug).not.toHaveBeenCalledWith(
-        'Request completed',
-        expect.anything(),
-      );
+      expect(Sentry.setTag).toHaveBeenCalledWith('api.status_code', '401');
+      expect(wideEvent.error).toBeUndefined();
     });
 
     it('should attach database metrics when Prisma query metrics are enabled', async () => {
@@ -261,26 +225,19 @@ describe('PerformanceInterceptor', () => {
         }),
       );
 
-      await firstValueFrom(
-        interceptor.intercept(mockExecutionContext, mockCallHandler),
-      );
+      await interceptRequest();
 
-      expect(loggerService.debug).toHaveBeenCalledWith(
-        'Request completed',
-        expect.objectContaining({
-          database: {
-            queryCount: 1,
-            queryDuration: 150,
-            slowQueries: [
-              expect.objectContaining({
-                duration: 150,
-                fingerprint: 'SELECT * FROM ? WHERE ? = ?',
-                target: 'prisma:query',
-              }),
-            ],
+      expect(wideEvent.database).toEqual({
+        query_count: 1,
+        query_duration_ms: 150,
+        slow_queries: [
+          {
+            duration_ms: 150,
+            fingerprint: 'SELECT * FROM ? WHERE ? = ?',
+            target: 'prisma:query',
           },
-        }),
-      );
+        ],
+      });
       expect(Sentry.setMeasurement).toHaveBeenCalledWith(
         'api.db.query_duration',
         150,
@@ -382,119 +339,44 @@ describe('PerformanceInterceptor', () => {
       });
       mockCallHandler.handle.mockReturnValue(of('success'));
 
-      await firstValueFrom(
-        interceptor.intercept(mockExecutionContext, mockCallHandler),
-      );
+      await interceptRequest();
 
-      expect(loggerService.debug).toHaveBeenCalledWith(
-        'Request completed',
-        expect.objectContaining({
-          route: '/api/test',
-          severity: 'LOW',
-        }),
-      );
+      expect(wideEvent.performance_severity).toBe('LOW');
     });
 
-    it('should log warn for slow requests', async () => {
-      mockCallHandler.handle.mockReturnValue(of('success'));
+    it.each([
+      ['slow', 2001, 'MEDIUM'],
+      ['very slow', 7000, 'HIGH'],
+    ])(
+      'marks %s requests with %s severity',
+      async (_label, endTime, severity) => {
+        mockCallHandler.handle.mockReturnValue(of('success'));
+        const clock = vi
+          .spyOn(Date, 'now')
+          .mockReturnValueOnce(1000)
+          .mockReturnValue(endTime);
+        try {
+          await interceptRequest();
+        } finally {
+          clock.mockRestore();
+        }
 
-      const originalNow = Date.now;
-      Date.now = vi.fn().mockReturnValueOnce(1000).mockReturnValueOnce(2001);
+        expect(wideEvent.performance_severity).toBe(severity);
+      },
+    );
 
-      await firstValueFrom(
-        interceptor.intercept(mockExecutionContext, mockCallHandler),
-      );
-
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        'Slow request detected',
-        expect.objectContaining({
-          duration: 1001,
-          method: 'GET',
-          severity: 'MEDIUM',
-          url: '/api/test',
-        }),
-      );
-      Date.now = originalNow;
-    });
-
-    it('should log warn for very slow requests', async () => {
-      mockCallHandler.handle.mockReturnValue(of('success'));
-
-      const originalNow = Date.now;
-      Date.now = vi.fn().mockReturnValueOnce(1000).mockReturnValueOnce(7000);
-
-      await firstValueFrom(
-        interceptor.intercept(mockExecutionContext, mockCallHandler),
-      );
-
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        'Very slow request detected',
-        expect.objectContaining({
-          duration: 6000,
-          method: 'GET',
-          severity: 'HIGH',
-          url: '/api/test',
-        }),
-      );
-      Date.now = originalNow;
-    });
-
-    it('should log error for failed requests', async () => {
+    it('records a thrown error with its status, type and message', async () => {
       const error = Object.assign(new Error('Test error'), { status: 400 });
       mockCallHandler.handle.mockReturnValue(throwError(() => error));
 
-      await firstValueFrom(
-        interceptor.intercept(mockExecutionContext, mockCallHandler),
-      ).catch(() => {});
+      await interceptRequest().catch(() => undefined);
 
-      expect(loggerService.error).toHaveBeenCalledWith(
-        'Request failed',
-        expect.objectContaining({
-          duration: expect.any(Number),
-          error: {
-            message: 'Test error',
-            name: 'Error',
-            stack: expect.any(String),
-          },
-          method: 'GET',
-          statusCode: 400,
-          url: '/api/test',
-        }),
-      );
-    });
-
-    it('should handle requests without user', async () => {
-      const requestWithoutUser = { ...mockRequest, user: undefined };
-      mockExecutionContext.getRequest.mockReturnValue(requestWithoutUser);
-      mockCallHandler.handle.mockReturnValue(of('success'));
-
-      await firstValueFrom(
-        interceptor.intercept(mockExecutionContext, mockCallHandler),
-      );
-
-      expect(loggerService.debug).toHaveBeenCalledWith(
-        'Request completed',
-        expect.objectContaining({
-          userId: undefined,
-        }),
-      );
-    });
-
-    it('should handle requests without user-agent', async () => {
-      const requestWithoutUserAgent = { ...mockRequest, headers: {} };
-      mockExecutionContext.getRequest.mockReturnValue(requestWithoutUserAgent);
-      mockCallHandler.handle.mockReturnValue(of('success'));
-
-      await firstValueFrom(
-        interceptor.intercept(mockExecutionContext, mockCallHandler),
-      );
-
-      expect(loggerService.debug).toHaveBeenCalledWith(
-        'Request completed',
-        expect.objectContaining({
-          userAgent: undefined,
-        }),
-      );
+      expect(wideEvent.error).toMatchObject({
+        message: 'Test error',
+        status: 400,
+        type: 'Error',
+      });
+      expect(wideEvent.performance_severity).toBe('ERROR');
     });
   });
 });
@@ -518,120 +400,6 @@ describe('normalizeApiRoute', () => {
         '/v1/videos/aaaaaaaaaaaaaaaaaaaaaaaa/comments/456?include=user',
       ),
     ).toBe('/v1/videos/*/comments/*');
-  });
-});
-
-describe('APIMetricsInterceptor', () => {
-  let interceptor: APIMetricsInterceptor;
-  let loggerService: vi.Mocked<LoggerService>;
-
-  const mockExecutionContext = {
-    getRequest: vi.fn(),
-    switchToHttp: vi.fn().mockReturnThis(),
-  } as unknown as ExecutionContext & { getRequest: ReturnType<typeof vi.fn> };
-
-  const mockCallHandler = {
-    handle: vi.fn<CallHandler['handle']>(),
-  } satisfies CallHandler;
-
-  beforeEach(() => {
-    loggerService = {
-      debug: vi.fn(),
-    } as unknown as vi.Mocked<LoggerService>;
-    interceptor = new APIMetricsInterceptor(loggerService, true);
-  });
-
-  it('should be defined', () => {
-    expect(interceptor).toBeDefined();
-  });
-
-  describe('intercept', () => {
-    it('should log API endpoint usage for v1 routes', async () => {
-      const mockRequest = {
-        method: 'GET',
-        url: '/v1/videos/123',
-      };
-      mockExecutionContext.getRequest.mockReturnValue(mockRequest);
-      mockCallHandler.handle.mockReturnValue(of('success'));
-
-      await firstValueFrom(
-        interceptor.intercept(mockExecutionContext, mockCallHandler),
-      );
-
-      expect(loggerService.debug).toHaveBeenCalledWith(
-        'API endpoint accessed',
-        expect.objectContaining({
-          endpoint: '/v1/videos/*',
-          method: 'GET',
-          timestamp: expect.any(String),
-          type: 'api_usage',
-        }),
-      );
-    });
-
-    it('should skip API endpoint usage logging when disabled', async () => {
-      interceptor = new APIMetricsInterceptor(loggerService, false);
-
-      const mockRequest = {
-        method: 'GET',
-        url: '/v1/videos/123',
-      };
-      mockExecutionContext.getRequest.mockReturnValue(mockRequest);
-      mockCallHandler.handle.mockReturnValue(of('success'));
-
-      await firstValueFrom(
-        interceptor.intercept(mockExecutionContext, mockCallHandler),
-      );
-
-      expect(loggerService.debug).not.toHaveBeenCalled();
-    });
-
-    it('should not log for non-v1 routes', async () => {
-      const mockRequest = {
-        method: 'GET',
-        url: '/api/test',
-      };
-      mockExecutionContext.getRequest.mockReturnValue(mockRequest);
-      mockCallHandler.handle.mockReturnValue(of('success'));
-
-      await firstValueFrom(
-        interceptor.intercept(mockExecutionContext, mockCallHandler),
-      );
-
-      expect(loggerService.debug).not.toHaveBeenCalled();
-    });
-
-    it('should extract endpoint patterns correctly', async () => {
-      const testCases = [
-        {
-          expected: '/v1/videos/*',
-          url: '/v1/videos/aaaaaaaaaaaaaaaaaaaaaaaa',
-        },
-        { expected: '/v1/users/*', url: '/v1/users/123' },
-        { expected: '/v1/posts/*', url: '/v1/posts/my-post-slug' },
-        {
-          expected: '/v1/videos/*/comments/*',
-          url: '/v1/videos/aaaaaaaaaaaaaaaaaaaaaaaa/comments/456',
-        },
-      ];
-
-      for (const { url, expected } of testCases) {
-        const mockRequest = { method: 'GET', url };
-        mockExecutionContext.getRequest.mockReturnValue(mockRequest);
-        mockCallHandler.handle.mockReturnValue(of('success'));
-
-        await firstValueFrom(
-          interceptor.intercept(mockExecutionContext, mockCallHandler),
-        );
-
-        expect(loggerService.debug).toHaveBeenCalledWith(
-          'API endpoint accessed',
-          expect.objectContaining({
-            endpoint: expected,
-          }),
-        );
-      }
-    });
   });
 });
 
@@ -670,15 +438,10 @@ describe('PerformanceInterceptor dormant diagnostic callbacks', () => {
       unavailable: vi.fn(),
     };
     Reflect.set(globalThis, key, observer);
-    const logger = {
-      debug: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    } as unknown as LoggerService;
     const config = {
       get: (name: string) => (name === 'NODE_ENV' ? 'test' : undefined),
     } as unknown as ConfigService;
-    const instance = new PerformanceInterceptor(logger, config);
+    const instance = new PerformanceInterceptor(config);
     const context = {
       switchToHttp: () => ({
         getRequest: () => ({ method: 'GET', url: '/synthetic', headers: {} }),

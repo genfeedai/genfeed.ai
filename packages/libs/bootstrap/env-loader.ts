@@ -4,6 +4,9 @@ import {
   resolveTrustProxyFromReader,
   type TrustProxySetting,
 } from '@genfeedai/config/deployment';
+import { createWideEventMiddleware } from '@libs/logger/wide-event/wide-event.http';
+import type { WideEventSink } from '@libs/logger/wide-event/wide-event.lifecycle';
+import { resolveServiceIdentity } from '@libs/logger/wide-event/wide-event.trace';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import * as dotenv from 'dotenv';
 import type { Request, Response } from 'express';
@@ -34,6 +37,11 @@ export interface ServiceShellOptions {
   redirectPaths?: string[];
   /** Defaults to the deployment-aware `TRUST_PROXY` resolution. */
   trustProxy?: TrustProxySetting;
+  /**
+   * Where each request's wide event is emitted (the service's `LoggerService`).
+   * Every HTTP service passes it; the service name comes from `SERVICE_NAME`.
+   */
+  wideEventSink?: WideEventSink;
 }
 
 /**
@@ -125,10 +133,20 @@ export function setupServiceShell(
     redirectPaths = ['/'],
     redirectTarget,
     trustProxy = resolveTrustProxyFromReader((key) => process.env[key]),
+    wideEventSink,
   } = options;
 
   app.set('trust proxy', trustProxy);
   app.enableShutdownHooks();
+
+  if (wideEventSink) {
+    app.use(
+      createWideEventMiddleware({
+        identity: resolveServiceIdentity(process.env.SERVICE_NAME ?? 'unknown'),
+        sink: wideEventSink,
+      }),
+    );
+  }
 
   if (!redirectTarget) {
     return;

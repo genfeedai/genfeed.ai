@@ -5,6 +5,12 @@ import {
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { ConsoleLogger, Inject, Injectable } from '@nestjs/common';
 import type { Logger as winstonLogger } from 'winston';
+import type { WideEventRecord } from './wide-event/wide-event.interface';
+import {
+  readWideEventLevel,
+  summarizeWideEvent,
+  WIDE_EVENT_TYPE,
+} from './wide-event/wide-event.level';
 
 /**
  * Logger runtime boundary (audit risk 9, issue #1097): this winston-backed
@@ -43,6 +49,19 @@ export class LoggerService extends ConsoleLogger {
       contextObj,
     );
     this.winston.debug(formattedMessage, contextObj);
+  }
+
+  /**
+   * Emits one wide event: a single context-rich record per request or job.
+   * Everything the unit of work learned rides on this one line, so do not log
+   * per-step lines next to it; enrich the event instead.
+   */
+  public wideEvent(event: WideEventRecord): void {
+    const safeEvent = redactSensitiveValue(event) as Record<string, unknown>;
+    this.winston[readWideEventLevel(event)](
+      redactSensitiveString(summarizeWideEvent(event)),
+      { ...safeEvent, type: WIDE_EVENT_TYPE },
+    );
   }
 
   private normalizeContext(
