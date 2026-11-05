@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useStoryboardCapabilities } from './use-storyboard-capabilities';
@@ -5,6 +9,10 @@ import { useStoryboardCapabilities } from './use-storyboard-capabilities';
 const mocks = vi.hoisted(() => ({ get: vi.fn(), brand: 'brand' }));
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrandId: () => mocks.brand,
+}));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
   const service = async () => ({ getStoryboardRunCapabilities: mocks.get });
@@ -35,7 +43,7 @@ describe('revision-scoped video model metadata', () => {
       .mockResolvedValueOnce(response(2));
     const { result, rerender } = renderHook(
       ({ revision }) => useStoryboardCapabilities('run', revision),
-      { initialProps: { revision: 1 } },
+      { initialProps: { revision: 1 }, wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(mocks.get).toHaveBeenCalledOnce());
     const signal = mocks.get.mock.calls[0][2];
@@ -52,7 +60,9 @@ describe('revision-scoped video model metadata', () => {
     mocks.get
       .mockResolvedValueOnce(response(2))
       .mockResolvedValueOnce(response(1));
-    const { result } = renderHook(() => useStoryboardCapabilities('run', 1));
+    const { result } = renderHook(() => useStoryboardCapabilities('run', 1), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() =>
       expect(result.current.capabilityError).toContain('changed'),
     );
@@ -61,5 +71,24 @@ describe('revision-scoped video model metadata', () => {
     await waitFor(() =>
       expect(result.current.capabilities?.runRevision).toBe(1),
     );
+  });
+  it('paints the cached metadata at once when the run is opened again', async () => {
+    const client = createTestQueryClient();
+    mocks.get.mockResolvedValueOnce(response(3));
+    const firstVisit = renderHook(() => useStoryboardCapabilities('run', 3), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() =>
+      expect(firstVisit.result.current.capabilities?.runRevision).toBe(3),
+    );
+    firstVisit.unmount();
+
+    mocks.get.mockImplementation(() => new Promise(() => {}));
+    const { result } = renderHook(() => useStoryboardCapabilities('run', 3), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(result.current.capabilities?.runRevision).toBe(3);
+    expect(result.current.capabilityError).toBeUndefined();
   });
 });
