@@ -21,6 +21,11 @@ export interface AgentThreadsPanelProps {
   onOpenFullThread?: (threadId: string) => void;
   /** Threads marked done that the list above may not carry. */
   resolvedThreads?: readonly AgentThread[];
+  /** More resolved threads exist than `resolvedThreads` carries. */
+  hasMoreResolved?: boolean;
+  isLoadingMoreResolved?: boolean;
+  /** Loads the next page of resolved threads. Leave out to hide the action. */
+  onLoadMoreResolved?: () => void | Promise<void>;
   /** Threads with a resolve or reopen in flight. */
   pendingThreadIds?: ReadonlySet<string>;
   /** Marks a thread resolved. Leave out to hide the action. */

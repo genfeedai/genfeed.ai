@@ -59,8 +59,15 @@ export default function AgentMasterWorkspace({
     isLoaded,
   );
   const resolution = useThreadResolution(agentApiService, isLoaded);
-  const { pendingThreadIds, reopenThread, resolveThread, resolvedThreads } =
-    resolution;
+  const {
+    hasMoreResolved,
+    isLoadingMoreResolved,
+    loadMoreResolved,
+    pendingThreadIds,
+    reopenThread,
+    resolveThread,
+    resolvedThreads,
+  } = resolution;
 
   // A record the operator picked opens in Context; the page's own selections
   // stay a click away on the topbar's Context icon.
@@ -136,7 +143,10 @@ export default function AgentMasterWorkspace({
           <AgentThreadsPanel
             apiService={agentApiService}
             brandId={brandId || null}
+            hasMoreResolved={hasMoreResolved}
             isLoading={isLoading}
+            isLoadingMoreResolved={isLoadingMoreResolved}
+            onLoadMoreResolved={loadMoreResolved}
             onOpenFullThread={openFullThread}
             onOpenThreadChange={setOpenThreadId}
             onReopenThread={reopenThread}
@@ -159,8 +169,11 @@ export default function AgentMasterWorkspace({
     [
       agentApiService,
       brandId,
+      hasMoreResolved,
       host?.contextPanel,
       isLoading,
+      isLoadingMoreResolved,
+      loadMoreResolved,
       openFullThread,
       openThreadId,
       pendingThreadIds,

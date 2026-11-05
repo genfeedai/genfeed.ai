@@ -44,16 +44,43 @@ describe('AgentGoalsService', () => {
     loggerService as unknown as LoggerService,
   );
 
+  type GoalRow = typeof goalRow;
+  type GoalWhere = {
+    id?: string;
+    isDeleted?: boolean;
+    organizationId?: string;
+  };
+  let storedGoal: GoalRow;
+
+  // Behaves like the table: only the live goal of the queried organization
+  // is found or updated.
+  function isStoredGoal(where: GoalWhere): boolean {
+    return (
+      where.id === storedGoal.id &&
+      where.organizationId === storedGoal.organizationId &&
+      where.isDeleted === false
+    );
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
-    agentGoal.findFirst.mockImplementation(async (args) => {
-      guard('findFirst', args);
-      return goalRow;
-    });
-    agentGoal.update.mockImplementation(async (args) => {
-      guard('update', args);
-      return goalRow;
-    });
+    storedGoal = { ...goalRow };
+    agentGoal.findFirst.mockImplementation(
+      async (args: { where: GoalWhere }) => {
+        guard('findFirst', args);
+        return isStoredGoal(args.where) ? storedGoal : null;
+      },
+    );
+    agentGoal.update.mockImplementation(
+      async (args: { data: Partial<GoalRow>; where: GoalWhere }) => {
+        guard('update', args);
+        if (!isStoredGoal(args.where)) {
+          throw new Error('Record to update not found.');
+        }
+        storedGoal = { ...storedGoal, ...args.data };
+        return storedGoal;
+      },
+    );
     analyticsService.getOverview.mockResolvedValue({
       avgEngagementRate: 0,
       totalPosts: 0,
@@ -67,44 +94,21 @@ describe('AgentGoalsService', () => {
       () => service.refreshProgress(GOAL_ID, ORGANIZATION_ID),
     );
 
-    expect(result).toMatchObject({ id: GOAL_ID });
-    expect(agentGoal.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: {
-          config: expect.objectContaining({
-            currentValue: 40,
-            progressPercent: 40,
-          }),
-        },
-        where: {
-          id: GOAL_ID,
-          isDeleted: false,
-          organizationId: ORGANIZATION_ID,
-        },
-      }),
-    );
+    expect(result).toMatchObject({
+      config: { currentValue: 40, progressPercent: 40 },
+      id: GOAL_ID,
+    });
     expect(agentGoal.findUnique).not.toHaveBeenCalled();
-    expect(agentGoal.findFirst).toHaveBeenCalledTimes(2);
-    for (const [args] of agentGoal.findFirst.mock.calls) {
-      expect(args.where).toMatchObject({
-        id: GOAL_ID,
-        isDeleted: false,
-        organizationId: ORGANIZATION_ID,
-      });
-    }
   });
 
   it('does not return a goal that lives in another organization', async () => {
-    agentGoal.findFirst.mockImplementation(async (args) => {
-      guard('findFirst', args);
-      return null;
-    });
+    storedGoal = { ...goalRow, organizationId: 'org_other' };
 
     await expect(
       runWithTenantContext({ organizationId: ORGANIZATION_ID }, () =>
         service.refreshProgress(GOAL_ID, ORGANIZATION_ID),
       ),
     ).rejects.toThrow();
-    expect(agentGoal.update).not.toHaveBeenCalled();
+    expect(storedGoal.config).toEqual(goalRow.config);
   });
 });

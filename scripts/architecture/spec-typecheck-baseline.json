@@ -3929,78 +3929,6 @@
       "workspace": "api"
     },
     {
-      "code": 2344,
-      "count": 1,
-      "file": "packages/config/src/services/base-config.service.spec.ts",
-      "fingerprint": "8a191b90f61ff2c6f712",
-      "message": "Type 'TestEnvConfig' does not satisfy the constraint 'Partial<IEnvConfig>'.   Index signature for type 'string' is missing in type 'TestEnvConfig'.",
-      "workspace": "config"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/config/src/services/base-config.service.spec.ts",
-      "fingerprint": "dad1be94228c689c5826",
-      "message": "Argument of type '(call: [string]) => string' is not assignable to parameter of type '(value: any[], index: number, array: any[][]) => string'.   Types of parameters 'call' and 'value' are incompatible.     Type 'any[]' is not assignable to type '[string]'.       Target requires 1 element(s) but source may have fewer.",
-      "workspace": "config"
-    },
-    {
-      "code": 2345,
-      "count": 3,
-      "file": "packages/config/src/services/base-config.service.spec.ts",
-      "fingerprint": "f14a8e8c4f93ac46f4e4",
-      "message": "Argument of type '(call: [string]) => string' is not assignable to parameter of type '(value: any[], index: number, array: any[][]) => string'.   Types of parameters 'call' and 'value' are incompatible.     Type 'any[]' is not assignable to type '[string]'.       Target requires 1 element(s) but source may have fewer.",
-      "workspace": "config"
-    },
-    {
-      "code": 2540,
-      "count": 10,
-      "file": "packages/config/src/services/base-config.service.spec.ts",
-      "fingerprint": "509e0102eac555af47a0",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "config"
-    },
-    {
-      "code": 2540,
-      "count": 1,
-      "file": "packages/config/src/services/base-config.service.spec.ts",
-      "fingerprint": "d3e6d55202f2a2b43feb",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "config"
-    },
-    {
-      "code": 2344,
-      "count": 1,
-      "file": "packages/config/src/services/create-service-config.spec.ts",
-      "fingerprint": "278e2cabc819d5964368",
-      "message": "Type 'SampleEnvConfig' does not satisfy the constraint 'Partial<IEnvConfig>'.   Index signature for type 'string' is missing in type 'SampleEnvConfig'.",
-      "workspace": "config"
-    },
-    {
-      "code": 2344,
-      "count": 9,
-      "file": "packages/config/src/services/create-service-config.spec.ts",
-      "fingerprint": "632478e56a4aef43142e",
-      "message": "Type 'SampleEnvConfig' does not satisfy the constraint 'Partial<IEnvConfig>'.   Index signature for type 'string' is missing in type 'SampleEnvConfig'.",
-      "workspace": "config"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "packages/config/src/services/create-service-config.spec.ts",
-      "fingerprint": "22dc75edc0f57a5aa6ff",
-      "message": "Argument of type '(call: [string]) => string' is not assignable to parameter of type '(value: any[], index: number, array: any[][]) => string'.   Types of parameters 'call' and 'value' are incompatible.     Type 'any[]' is not assignable to type '[string]'.       Target requires 1 element(s) but source may have fewer.",
-      "workspace": "config"
-    },
-    {
-      "code": 2540,
-      "count": 1,
-      "file": "packages/config/src/services/create-service-config.spec.ts",
-      "fingerprint": "d20323639e86c78d9889",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "config"
-    },
-    {
       "code": 2304,
       "count": 2,
       "file": "packages/helpers/src/aspect-ratio.helper.spec.ts",
@@ -4655,22 +4583,6 @@
       "fingerprint": "d0522ad9eeaaf0b236de",
       "message": "Type '{ id: string; itemId: string; }' is missing the following properties from type 'ISocialWarmupEvent': organizationId, brandId, enrollmentId, provenance, and 6 more.",
       "workspace": "models"
-    },
-    {
-      "code": 2304,
-      "count": 1,
-      "file": "packages/contracts/src/interfaces/components/mask-editor.interface.ts",
-      "fingerprint": "018042c6086ad6f75d5f",
-      "message": "Cannot find name 'CanvasRenderingContext2D'.",
-      "workspace": "pricing"
-    },
-    {
-      "code": 2304,
-      "count": 1,
-      "file": "packages/contracts/src/interfaces/components/mask-editor.interface.ts",
-      "fingerprint": "5b297a951e1e2587906d",
-      "message": "Cannot find name 'ImageData'.",
-      "workspace": "pricing"
     },
     {
       "code": 2322,
@@ -5385,22 +5297,6 @@
       "workspace": "services"
     },
     {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/config/src/services/base-config.service.ts",
-      "fingerprint": "b918dbc342d071090dba",
-      "message": "Cannot find module '@config/interfaces/env-config.interface' or its corresponding type declarations.",
-      "workspace": "storage"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/config/src/services/create-service-config.ts",
-      "fingerprint": "263d10c8be5da53ad96e",
-      "message": "Cannot find module '@config/interfaces/env-config.interface' or its corresponding type declarations.",
-      "workspace": "storage"
-    },
-    {
       "code": 2550,
       "count": 1,
       "file": "packages/agent/src/components/agent-thread-list.helpers.ts",
@@ -5823,70 +5719,6 @@
       "fingerprint": "0dbb271d899e3a634595",
       "message": "Could not find a declaration file for module 'jsdom'. '<root>/node_modules/.bun/jsdom@29.1.1/node_modules/jsdom/lib/api.js' implicitly has an 'any' type.   Try `npm i --save-dev @types/jsdom` if it exists or add a new declaration (.d.ts) file containing `declare module 'jsdom';`",
       "workspace": "ui"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/utils/media/editor-render-style.util.test.ts",
-      "fingerprint": "6e4c2a0dffe1cf441b25",
-      "message": "Cannot find module '@genfeedai/utils/media/editor-render-style.util' or its corresponding type declarations.",
-      "workspace": "utils"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/utils/media/reference.util.test.ts",
-      "fingerprint": "7651c7f9cfaa21ad0ede",
-      "message": "Cannot find module '@services/core/environment.service' or its corresponding type declarations.",
-      "workspace": "utils"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/utils/media/reference.util.test.ts",
-      "fingerprint": "0fe058aa1246bccbf15c",
-      "message": "Argument of type '{ id: string; url: string; }[]' is not assignable to parameter of type 'string | IAsset | (string | IAsset)[] | null | undefined'.   Type '{ id: string; url: string; }[]' is not assignable to type '(string | IAsset)[]'.     Type '{ id: string; url: string; }' is not assignable to type 'string | IAsset'.       Type '{ id: string; url: string; }' is missing the following properties from type 'IAsset': userId, parentType, category, isDeleted, and 2 more.",
-      "workspace": "utils"
-    },
-    {
-      "code": 2345,
-      "count": 11,
-      "file": "packages/utils/media/reference.util.test.ts",
-      "fingerprint": "817a68bca1130168328e",
-      "message": "Argument of type '{ id: string; url: string; }' is not assignable to parameter of type 'string | IAsset | (string | IAsset)[] | null | undefined'.   Type '{ id: string; url: string; }' is missing the following properties from type 'IAsset': userId, parentType, category, isDeleted, and 2 more.",
-      "workspace": "utils"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/utils/moodboard/mood-board-layout.util.test.ts",
-      "fingerprint": "a777a95fcfce305913ea",
-      "message": "Cannot find module '@genfeedai/utils/moodboard/mood-board-layout.util' or its corresponding type declarations.",
-      "workspace": "utils"
-    },
-    {
-      "code": 7006,
-      "count": 1,
-      "file": "packages/utils/moodboard/mood-board-layout.util.test.ts",
-      "fingerprint": "655bcb5485c2f955a56c",
-      "message": "Parameter 'item' implicitly has an 'any' type.",
-      "workspace": "utils"
-    },
-    {
-      "code": 7006,
-      "count": 1,
-      "file": "packages/utils/moodboard/mood-board-layout.util.test.ts",
-      "fingerprint": "7a3639dde1d65159b83c",
-      "message": "Parameter 'item' implicitly has an 'any' type.",
-      "workspace": "utils"
-    },
-    {
-      "code": 7006,
-      "count": 2,
-      "file": "packages/utils/moodboard/mood-board-layout.util.test.ts",
-      "fingerprint": "9c504a29611fb5e0a576",
-      "message": "Parameter 'seed' implicitly has an 'any' type.",
-      "workspace": "utils"
     },
     {
       "code": 2345,
