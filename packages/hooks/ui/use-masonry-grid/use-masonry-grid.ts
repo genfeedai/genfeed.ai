@@ -5,9 +5,35 @@ import type {
   IMasonryGridOptions,
 } from '@genfeedai/contracts/interfaces/components/masonry-grid.interface';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { resolveSettledContainerWidth } from './settled-container-width.util';
 
 interface MasonryItem {
   id?: string;
+}
+
+/** Where every tile sits at one container width. */
+interface ILayoutFrame {
+  height: number;
+  positions: IItemPosition[];
+  width: number;
+}
+
+/**
+ * A container width that is sweeping from one layout to another (a drawer or
+ * rail easing open). Tiles are packed once for each end and follow the sweep.
+ */
+interface ILayoutTransition {
+  from: ILayoutFrame;
+  items: HTMLElement[];
+  to: ILayoutFrame;
+}
+
+/** Hands over once the container stops moving, if the sweep never reports its end. */
+const TRANSITION_SETTLE_MS = 250;
+const WIDTH_TOLERANCE_PX = 1.5;
+
+function lerp(from: number, to: number, progress: number): number {
+  return from + (to - from) * progress;
 }
 
 export function useMasonryGrid<T extends MasonryItem>(
@@ -30,6 +56,13 @@ export function useMasonryGrid<T extends MasonryItem>(
   // being re-packed is what made them lag behind and overlap.
   const isLiveResizeRef = useRef(false);
   const appliedPositionsRef = useRef(new WeakMap<HTMLElement, IItemPosition>());
+  const layoutFrameRef = useRef<{
+    frame: ILayoutFrame;
+    items: HTMLElement[];
+  } | null>(null);
+  const transitionRef = useRef<ILayoutTransition | null>(null);
+  const transitionSettleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scheduleLayoutRef = useRef<(delay?: number) => void>(() => undefined);
   const gap = useMemo(() => options.gap ?? 16, [options.gap]);
   const layoutSignature = useMemo(() => {
     if (itemsCount === 0) {
@@ -101,6 +134,67 @@ export function useMasonryGrid<T extends MasonryItem>(
     ],
   );
 
+  const endTransition = useCallback(() => {
+    transitionRef.current = null;
+    if (transitionSettleTimeoutRef.current) {
+      clearTimeout(transitionSettleTimeoutRef.current);
+      transitionSettleTimeoutRef.current = null;
+    }
+  }, []);
+
+  // Sets every tile to the width the container's columns give it, then packs
+  // them. Write every changed width first, then read every height, so the
+  // browser lays out once instead of once per tile.
+  const measureLayout = useCallback(
+    (masonryItems: HTMLElement[], containerWidth: number): ILayoutFrame => {
+      const columnCount = getColumnCount(containerWidth) ?? 1;
+      const itemWidth =
+        (containerWidth - (columnCount - 1) * gap) / columnCount;
+      const columnHeights: number[] = new Array(columnCount).fill(0);
+
+      // Measure at the target width, not at wherever a running transition has
+      // got to: a tile's height follows its width (aspect-ratio media), so a
+      // height read mid-transition packs the next tile into the wrong slot.
+      const targetWidth = `${itemWidth}px`;
+      for (const item of masonryItems) {
+        if (item.style.width !== targetWidth) {
+          item.style.transition = 'none';
+          item.style.width = targetWidth;
+        }
+      }
+
+      const itemHeights = masonryItems.map(
+        (item) =>
+          item.getBoundingClientRect().height ||
+          item.offsetHeight ||
+          item.scrollHeight,
+      );
+
+      const positions: IItemPosition[] = [];
+
+      itemHeights.forEach((itemHeight, index) => {
+        // First row: maintain horizontal ordering, subsequent: find shortest column
+        const targetColumn =
+          index < columnCount
+            ? index
+            : columnHeights.indexOf(Math.min(...columnHeights));
+
+        const x = targetColumn * (itemWidth + gap);
+        const y = columnHeights[targetColumn];
+
+        positions.push({ height: itemHeight, width: itemWidth, x, y });
+        columnHeights[targetColumn] += itemHeight + gap;
+      });
+
+      return {
+        height: Math.max(Math.max(...columnHeights) - gap, 0),
+        positions,
+        width: containerWidth,
+      };
+    },
+    [gap, getColumnCount],
+  );
+
   const calculateLayout = useCallback(() => {
     if (!containerRef.current || itemsCount === 0 || !isClient) {
       return;
@@ -115,10 +209,8 @@ export function useMasonryGrid<T extends MasonryItem>(
       return; // Wait for container to be sized
     }
 
-    const columnCount = getColumnCount(containerWidth) ?? 1;
-    const itemWidth = (containerWidth - (columnCount - 1) * gap) / columnCount;
-
-    const columnHeights: number[] = new Array(columnCount).fill(0);
+    // A normal pack supersedes any sweep still being followed.
+    endTransition();
 
     // Get all masonry items
     const masonryItems = Array.from(
@@ -132,41 +224,8 @@ export function useMasonryGrid<T extends MasonryItem>(
     const isLive = isLiveResizeRef.current;
     isLiveResizeRef.current = false;
 
-    // Measure at the target width, not at wherever a running transition has
-    // got to: a tile's height follows its width (aspect-ratio media), so a
-    // height read mid-transition packs the next tile into the wrong slot.
-    // Write every changed width first, then read every height, so the browser
-    // lays out once instead of once per tile.
-    const targetWidth = `${itemWidth}px`;
-    for (const item of masonryItems) {
-      if (item.style.width !== targetWidth) {
-        item.style.transition = 'none';
-        item.style.width = targetWidth;
-      }
-    }
-
-    const itemHeights = masonryItems.map(
-      (item) =>
-        item.getBoundingClientRect().height ||
-        item.offsetHeight ||
-        item.scrollHeight,
-    );
-
-    const positions: IItemPosition[] = [];
-
-    itemHeights.forEach((itemHeight, index) => {
-      // First row: maintain horizontal ordering, subsequent: find shortest column
-      const targetColumn =
-        index < columnCount
-          ? index
-          : columnHeights.indexOf(Math.min(...columnHeights));
-
-      const x = targetColumn * (itemWidth + gap);
-      const y = columnHeights[targetColumn];
-
-      positions.push({ height: itemHeight, width: itemWidth, x, y });
-      columnHeights[targetColumn] += itemHeight + gap;
-    });
+    const frame = measureLayout(masonryItems, containerWidth);
+    const { positions } = frame;
 
     container.classList.remove('loading');
 
@@ -199,8 +258,8 @@ export function useMasonryGrid<T extends MasonryItem>(
       appliedPositions.set(item, position);
     });
 
-    const maxHeight = Math.max(...columnHeights) - gap;
-    setContainerHeight(Math.max(maxHeight, 0));
+    layoutFrameRef.current = { frame, items: masonryItems };
+    setContainerHeight(frame.height);
 
     if (!isLayoutReady) {
       setIsLayoutReady(true);
@@ -208,11 +267,133 @@ export function useMasonryGrid<T extends MasonryItem>(
   }, [
     itemsCount,
     layoutSignature,
-    gap,
-    getColumnCount,
+    endTransition,
     isClient,
     isLayoutReady,
+    measureLayout,
   ]);
+
+  // Starts following a container width that CSS is easing toward a settled
+  // value: packs the destination once so the sweep can be interpolated.
+  const beginTransition = useCallback(
+    (currentWidth: number): boolean => {
+      const container = containerRef.current;
+      const previous = layoutFrameRef.current;
+      if (!container || !previous || currentWidth === 0) {
+        return false;
+      }
+
+      const settledWidth = resolveSettledContainerWidth(container);
+      if (
+        settledWidth === null ||
+        Math.abs(settledWidth - currentWidth) < WIDTH_TOLERANCE_PX
+      ) {
+        return false;
+      }
+
+      const items = Array.from(
+        container.querySelectorAll(':scope > .masonry-item'),
+      ) as HTMLElement[];
+      if (
+        items.length === 0 ||
+        items.length !== previous.items.length ||
+        items.some((item, index) => item !== previous.items[index])
+      ) {
+        return false;
+      }
+
+      cancelScheduledLayout();
+      transitionRef.current = {
+        from: previous.frame,
+        items,
+        to: measureLayout(items, settledWidth),
+      };
+      return true;
+    },
+    [cancelScheduledLayout, measureLayout],
+  );
+
+  // Places every tile for the container's current width along the sweep. Writes
+  // only: nothing is measured per frame, so it keeps pace with the drawer.
+  const followTransition = useCallback(
+    (currentWidth: number, canRetarget = true): boolean => {
+      const container = containerRef.current;
+      const transition = transitionRef.current;
+      if (!container || !transition) {
+        return false;
+      }
+
+      const { from, items, to } = transition;
+      const span = to.width - from.width;
+      const rawProgress =
+        Math.abs(span) < WIDTH_TOLERANCE_PX
+          ? 1
+          : (currentWidth - from.width) / span;
+
+      // The width left the sweep: a new transition took over mid-flight.
+      if (rawProgress < -0.05 || rawProgress > 1.05) {
+        if (!canRetarget || !beginTransition(currentWidth)) {
+          endTransition();
+          return false;
+        }
+        return followTransition(currentWidth, false);
+      }
+
+      const isSettled =
+        Math.abs(currentWidth - to.width) < WIDTH_TOLERANCE_PX ||
+        rawProgress >= 1;
+      const progress = isSettled ? 1 : Math.max(rawProgress, 0);
+      const appliedPositions = appliedPositionsRef.current;
+      const positions = to.positions.map((end, index) => {
+        const start = from.positions[index];
+        return {
+          height: lerp(start.height, end.height, progress),
+          width: lerp(start.width, end.width, progress),
+          x: lerp(start.x, end.x, progress),
+          y: lerp(start.y, end.y, progress),
+        };
+      });
+      const height = lerp(from.height, to.height, progress);
+
+      items.forEach((item, index) => {
+        const position = positions[index];
+        item.style.position = 'absolute';
+        item.style.left = '0px';
+        item.style.top = '0px';
+        item.style.transition = 'none';
+        item.style.width = `${position.width}px`;
+        item.style.transform = `translate3d(${position.x}px, ${position.y}px, 0)`;
+        appliedPositions.set(item, position);
+      });
+      container.style.height = `${height}px`;
+      layoutFrameRef.current = {
+        frame: { height, positions, width: currentWidth },
+        items,
+      };
+
+      if (isSettled) {
+        endTransition();
+        setContainerHeight(to.height);
+        return true;
+      }
+
+      // The sweep reports every frame it moves. When it stops short of its
+      // end, repack normally instead of leaving the tiles half way.
+      if (transitionSettleTimeoutRef.current) {
+        clearTimeout(transitionSettleTimeoutRef.current);
+      }
+      transitionSettleTimeoutRef.current = setTimeout(() => {
+        transitionSettleTimeoutRef.current = null;
+        if (transitionRef.current) {
+          transitionRef.current = null;
+          scheduleLayoutRef.current(0);
+        }
+      }, TRANSITION_SETTLE_MS);
+
+      return true;
+    },
+    [beginTransition, endTransition],
+  );
 
   const scheduleLayout = useCallback(
     (delay: number = 0) => {
@@ -237,6 +418,10 @@ export function useMasonryGrid<T extends MasonryItem>(
     },
     [calculateLayout, cancelScheduledLayout],
   );
+
+  useEffect(() => {
+    scheduleLayoutRef.current = scheduleLayout;
+  }, [scheduleLayout]);
 
   // Layout on items change - only when client is ready
   useEffect(() => {
@@ -288,12 +473,24 @@ export function useMasonryGrid<T extends MasonryItem>(
       // The panel the grid lives in resizes (sidebar toggle, inspector): track
       // it frame by frame. Tile size changes (media loading) still debounce.
       if (entries.some((entry) => entry.target === container)) {
+        // A drawer or rail easing open: pack for where it ends and follow it,
+        // so tiles scale with the slide instead of jumping between column
+        // counts. Anything else (a drag, the window) tracks live.
+        const currentWidth = container.clientWidth;
+        const isFollowing = transitionRef.current
+          ? followTransition(currentWidth)
+          : beginTransition(currentWidth) && followTransition(currentWidth);
+        if (isFollowing) {
+          return;
+        }
+
         isLiveResizeRef.current = true;
         scheduleLayout(0);
         return;
       }
-      // A frame-synced pass is already queued; a debounce would replace it.
-      if (isLiveResizeRef.current) {
+      // A frame-synced pass is already queued, or the sweep owns the tiles;
+      // a debounce would replace it.
+      if (isLiveResizeRef.current || transitionRef.current) {
         return;
       }
       scheduleLayout(50);
@@ -310,7 +507,13 @@ export function useMasonryGrid<T extends MasonryItem>(
       }
       cancelScheduledLayout();
     };
-  }, [scheduleLayout, isClient, cancelScheduledLayout]);
+  }, [
+    scheduleLayout,
+    isClient,
+    cancelScheduledLayout,
+    beginTransition,
+    followTransition,
+  ]);
 
   // Function to trigger layout recalculation (for image loads) - debounced
   const recalculateLayout = useCallback(() => {
@@ -324,8 +527,9 @@ export function useMasonryGrid<T extends MasonryItem>(
   useEffect(() => {
     return () => {
       cancelScheduledLayout();
+      endTransition();
     };
-  }, [cancelScheduledLayout]);
+  }, [cancelScheduledLayout, endTransition]);
 
   return {
     containerHeight,

@@ -438,6 +438,118 @@ describe('useMasonryGrid', () => {
       expect(tiles[0].style.transition).toBe('none');
     });
 
+    describe('while a drawer eases the container between two layouts', () => {
+      // The drawer is the body's right margin: 360px of it leaves the grid
+      // 640px wide (2 columns), none leaves it 1000px wide (4 columns).
+      class FakeKeyframeEffect {
+        constructor(
+          readonly target: HTMLElement,
+          private readonly settledMargin: string,
+        ) {}
+
+        getKeyframes() {
+          return [
+            { marginRight: '360px' },
+            { marginRight: this.settledMargin },
+          ];
+        }
+      }
+
+      function mountOpenDrawerGrid() {
+        document.body.style.marginRight = '360px';
+        const mounted = mountObservedContainer([100, 100, 100, 100], {
+          columns: { desktop: 5, mobile: 1, tablet: 3 },
+          gap: 8,
+          minColumnWidth: 240,
+        });
+        setContainerWidth(mounted.container, 640);
+        reportResize();
+        return mounted;
+      }
+
+      function setContainerWidth(container: HTMLElement, width: number) {
+        Object.defineProperty(container, 'clientWidth', {
+          configurable: true,
+          value: width,
+        });
+      }
+
+      function slideTo(container: HTMLElement, width: number) {
+        const observer = MockResizeObserver.instances.at(-1);
+        setContainerWidth(container, width);
+        document.body.style.marginRight = `${1000 - width}px`;
+        act(() => {
+          observer?.callback(
+            [{ target: container } as unknown as ResizeObserverEntry],
+            observer as unknown as ResizeObserver,
+          );
+        });
+      }
+
+      const getAnimations = vi.fn<() => Animation[]>();
+
+      beforeEach(() => {
+        vi.stubGlobal('KeyframeEffect', FakeKeyframeEffect);
+        getAnimations.mockReturnValue([
+          {
+            effect: new FakeKeyframeEffect(document.body, '0px'),
+            transitionProperty: 'margin-right',
+          } as unknown as Animation,
+        ]);
+        // jsdom has no Web Animations API to spy on.
+        Object.defineProperty(document, 'getAnimations', {
+          configurable: true,
+          value: getAnimations,
+        });
+      });
+
+      afterEach(() => {
+        document.body.style.marginRight = '';
+        Reflect.deleteProperty(document, 'getAnimations');
+      });
+
+      it('moves and resizes every tile in step with the slide', () => {
+        const { container } = mountOpenDrawerGrid();
+        const tiles = Array.from(container.children) as HTMLElement[];
+        expect(tiles[0].style.width).toBe('316px');
+        expect(tileOffset(tiles[3])).toEqual({ x: 324, y: 108 });
+
+        slideTo(container, 820);
+
+        expect(tiles[0].style.width).toBe('280px');
+        expect(tileOffset(tiles[3])).toEqual({ x: 540, y: 54 });
+        expect(tiles[3].style.transition).toBe('none');
+      });
+
+      it('lands on the layout for the settled width and reserves its height', () => {
+        const { container, result } = mountOpenDrawerGrid();
+        const tiles = Array.from(container.children) as HTMLElement[];
+
+        slideTo(container, 820);
+        slideTo(container, 1000);
+
+        expect(tiles[0].style.width).toBe('244px');
+        expect(tileOffset(tiles[3])).toEqual({ x: 756, y: 0 });
+        expect(result.current.containerHeight).toBe(100);
+        expect(container.style.height).toBe('100px');
+      });
+
+      it('repacks normally when the slide stops before it reaches its end', () => {
+        const { container } = mountOpenDrawerGrid();
+        const tiles = Array.from(container.children) as HTMLElement[];
+
+        slideTo(container, 820);
+        getAnimations.mockReturnValue([]);
+        act(() => {
+          vi.runAllTimers();
+        });
+
+        // 820px: three columns of 268px.
+        expect(tiles[0].style.width).toBe('268px');
+        expect(tileOffset(tiles[2]).x).toBe(552);
+      });
+    });
+
     it('observes tiles and repacks when intrinsic media heights arrive later', () => {
       const { container, result } = mountObservedContainer([100, 200, 50], {
         columns: { desktop: 2, mobile: 1, tablet: 2 },
