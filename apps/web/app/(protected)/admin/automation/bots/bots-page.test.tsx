@@ -176,20 +176,23 @@ describe('BotsPage shell-first loading', () => {
     expect(cells.getByText('Never')).toBeVisible();
   });
 
-  it('lists the organization picked in the Filters menu', async () => {
-    mocks.searchParams = new URLSearchParams('organization=org-7');
+  it.each([
+    ['organization=org-7', { organizationId: 'org-7', sort: 'createdAt: -1' }],
+    [
+      'organization=org-7&brand=brand-3',
+      { brandId: 'brand-3', organizationId: 'org-7', sort: 'createdAt: -1' },
+    ],
+    ['sort=-label', { sort: 'label: -1' }],
+    ['sort=-messagesCount', { sort: 'createdAt: -1' }],
+  ])('requests bots for the URL %s', async (query, expected) => {
+    mocks.searchParams = new URLSearchParams(query);
     mocks.findAllPage.mockResolvedValueOnce(paginatedResponse([]));
 
     render(<BotsPage />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(mocks.findAllPage).toHaveBeenCalledWith(
-        {
-          limit: ITEMS_PER_PAGE,
-          organizationId: 'org-7',
-          page: 1,
-          sort: 'createdAt: -1',
-        },
+        { limit: ITEMS_PER_PAGE, page: 1, ...expected },
         expect.any(AbortSignal),
       );
     });

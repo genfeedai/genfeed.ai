@@ -28,6 +28,7 @@ import { useAdminOrgBrandParams } from '@/components/content/admin-filters/Admin
 import AdminScopeFilter from '@/components/content/admin-filters/AdminScopeFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 // `bots.status` is the Prisma `BotStatus` enum — SCREAMING_SNAKE on the wire.
 // Every member is mapped explicitly: STOPPED is a deliberate terminal state, so
@@ -49,6 +50,9 @@ function getBotStatusVariant(
 }
 
 const EMPTY_BOTS: Bot[] = [];
+// Bot columns the list endpoint can order by; the rest are JSON or computed.
+const BOT_SORT_KEYS = ['label', 'status', 'category'] as const;
+const DEFAULT_BOT_SORT = 'createdAt: -1';
 const EMPTY_VALUE = '—';
 
 /**
@@ -64,11 +68,17 @@ export default function BotsPage() {
   const currentPage = Number(searchParams.get('page')) || 1;
   const { search, setSearch } = useAdminSearchParam();
   const { brand, organization } = useAdminOrgBrandParams();
+  // The list pages on the server, so it sorts there too.
+  const { onSortChange, sort, sortDirection, sortKey } = useTableSort({
+    allowedKeys: BOT_SORT_KEYS,
+  });
+  const scopeKey = { brand, organization };
 
-  // Cached per page, search and scope: coming back to Bots paints the rows it
-  // already has while it refreshes, and paging keeps the current rows on screen.
+  // Cached per scope, page, search and sort: coming back to Bots paints the
+  // rows it already has while it refreshes, and paging keeps the current rows
+  // on screen. Another organization or brand never shows this one's rows.
   const botsQuery = usePagedAuthedQuery({
-    keepPreviousDataWithin: ['admin', 'bots'],
+    keepPreviousDataWithin: ['admin', 'bots', scopeKey],
     queryFn: async (service, signal) => {
       try {
         const fetchedBots = await service.findAllPage(
@@ -78,7 +88,7 @@ export default function BotsPage() {
             ...(organization ? { organizationId: organization } : {}),
             ...(brand ? { brandId: brand } : {}),
             ...(search ? { search } : {}),
-            sort: 'createdAt: -1',
+            sort: sort ?? DEFAULT_BOT_SORT,
           },
           signal,
         );
@@ -91,11 +101,7 @@ export default function BotsPage() {
         throw error;
       }
     },
-    queryKey: [
-      'admin',
-      'bots',
-      { brand, organization, page: currentPage, search },
-    ],
+    queryKey: ['admin', 'bots', scopeKey, { page: currentPage, search, sort }],
     service: (token: string) => BotsService.getInstance(token),
   });
   const bots = botsQuery.data?.items ?? EMPTY_BOTS;
@@ -116,6 +122,7 @@ export default function BotsPage() {
       {
         header: translate('columns.bot'),
         key: 'label',
+        sortable: true,
         subtext: (bot) => bot.description,
       },
       {
@@ -126,11 +133,13 @@ export default function BotsPage() {
             {formatEnumLabel(bot.status)}
           </Badge>
         ),
+        sortable: true,
       },
       {
         header: translate('columns.category'),
         key: 'category',
         render: (bot) => formatEnumLabel(bot.category),
+        sortable: true,
       },
       {
         header: translate('columns.platforms'),
@@ -150,7 +159,6 @@ export default function BotsPage() {
           ) : (
             EMPTY_VALUE
           ),
-        sortable: false,
       },
       {
         header: translate('columns.targets'),
@@ -159,7 +167,6 @@ export default function BotsPage() {
           bot.targets
             ?.map((target) => target.channelLabel || target.channelId)
             .join(', ') || EMPTY_VALUE,
-        sortable: false,
       },
       {
         header: translate('columns.messages'),
@@ -203,11 +210,15 @@ export default function BotsPage() {
       isRefreshing={isRefreshing}
     >
       <AppTable<Bot>
+        key={`${organization}:${brand}`}
         items={bots}
         columns={columns}
         isLoading={isLoading}
         getRowKey={(bot) => bot.id}
         emptyLabel={translate('empty')}
+        sortKey={sortKey}
+        sortDirection={sortDirection}
+        onSortChange={onSortChange}
       />
       <div className="mt-4">
         <AutoPagination
