@@ -41,9 +41,7 @@ describe('normalizeAgentAppHref', () => {
       }),
     ).toBe('/acme/other/settings/accounts');
     expect(
-      normalizeAgentAppHref(
-        '/acme/~/settings/accounts?platform=x#top',
-      ),
+      normalizeAgentAppHref('/acme/~/settings/accounts?platform=x#top'),
     ).toBe('/acme/~/settings/brands?platform=x#top');
     expect(
       normalizeAgentAppHref('/foreign/~/settings/accounts', {
@@ -75,10 +73,7 @@ describe('normalizeAgentAppHref', () => {
       '/settings/personal',
     );
     expect(
-      normalizeAgentAppHref(
-        'https://example.com/settings/accounts',
-        scope,
-      ),
+      normalizeAgentAppHref('https://example.com/settings/accounts', scope),
     ).toBe('https://example.com/settings/accounts');
     expect(normalizeAgentAppHref('//example.com/overview', scope)).toBe(
       '//example.com/overview',

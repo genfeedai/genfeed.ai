@@ -343,10 +343,7 @@ describe('ReleaseDetailDrawer', () => {
     ).toBeDisabled();
     expect(
       screen.getByRole('link', { name: 'Reconnect Instagram' }),
-    ).toHaveAttribute(
-      'href',
-      '/acme-org/acme-creator/settings/accounts',
-    );
+    ).toHaveAttribute('href', '/acme-org/acme-creator/settings/accounts');
   });
 
   it('lists the validation issues that produced an invalid target', () => {
@@ -821,10 +818,7 @@ describe('ReleaseDetailDrawer', () => {
       ).toBeEnabled();
       expect(
         await screen.findByRole('link', { name: 'Reconnect Instagram' }),
-      ).toHaveAttribute(
-        'href',
-        '/acme-org/acme-creator/settings/accounts',
-      );
+      ).toHaveAttribute('href', '/acme-org/acme-creator/settings/accounts');
     });
   });
 });

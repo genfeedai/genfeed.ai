@@ -135,9 +135,7 @@ describe('useSetupCard', () => {
     const hrefFor = (key: string) =>
       result.current.steps.find((step) => step.key === key)?.href;
 
-    expect(hrefFor('platforms')).toBe(
-      '/acme/coffee/settings/accounts',
-    );
+    expect(hrefFor('platforms')).toBe('/acme/coffee/settings/accounts');
 
     mockScope.brandSlug = '';
     rerender();

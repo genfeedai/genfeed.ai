@@ -177,10 +177,7 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
     const link = await screen.findByRole('link', {
       name: 'Connect more accounts',
     });
-    expect(link).toHaveAttribute(
-      'href',
-      '/acme/brand/settings/accounts',
-    );
+    expect(link).toHaveAttribute('href', '/acme/brand/settings/accounts');
   });
 
   it('does not show the connect-accounts link for high confidence', async () => {

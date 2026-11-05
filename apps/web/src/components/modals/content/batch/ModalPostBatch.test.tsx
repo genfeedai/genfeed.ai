@@ -192,8 +192,6 @@ describe('ModalPostBatch', () => {
       await screen.findByRole('button', { name: 'Reconnect Account' }),
     );
 
-    expect(mockPush).toHaveBeenCalledWith(
-      '/acme/brand-slug/settings/accounts',
-    );
+    expect(mockPush).toHaveBeenCalledWith('/acme/brand-slug/settings/accounts');
   });
 });
