@@ -98,12 +98,15 @@ export class CampaignPlanningService {
       );
       if (existing) return existing;
     }
-    const [harnessBrief, model] = await Promise.all([
-      this.resolveHarnessBrief(organizationId, userId, dto.brandId, name),
-      this.models.findOne({
-        key: baseModelKey(DEFAULT_TEXT_MODEL),
-      }),
-    ]);
+    const harnessBrief = await this.resolveHarnessBrief(
+      organizationId,
+      userId,
+      dto.brandId,
+      name,
+    );
+    const model = await this.models.findOne({
+      key: baseModelKey(DEFAULT_TEXT_MODEL),
+    });
     if (!model)
       throw new BadRequestException(
         'Campaign planning model pricing is unavailable',
