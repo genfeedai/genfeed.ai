@@ -1,6 +1,7 @@
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { AdminOrganizationCreditsController } from '@api/endpoints/admin/organization-credits/organization-credits.controller';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import { BadRequestException } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { describe, expect, it, vi } from 'vitest';
@@ -208,5 +209,73 @@ describe('admin organization credit ledger', () => {
     await expect(
       controller.ledger(ledgerRequest, 'org-1', query),
     ).rejects.toThrow(BadRequestException);
+  });
+});
+
+describe('admin organization credit usage', () => {
+  const usageRequest = {
+    originalUrl: '/v1/admin/organizations/org-1/credits/usage',
+  } as never;
+  const metrics = {
+    breakdown: [{ amount: 12, count: 3, source: 'agent-chat' }],
+    currentBalance: 88,
+    dailySeries: [
+      { amount: 5, date: '2026-11-04' },
+      { amount: 7, date: '2026-11-05' },
+    ],
+    monthlySeries: [],
+    trendPercentage: 0,
+    usage30Days: 12,
+    usage7Days: 12,
+    weeklySeries: [],
+  };
+
+  // Answers only for org-1, and only inside org-1's tenant context.
+  function createUsageTransactions() {
+    return {
+      getUsageMetrics: vi.fn(async (organizationId: string) => {
+        if (
+          organizationId !== 'org-1' ||
+          getTenantContext()?.organizationId !== 'org-1'
+        ) {
+          throw new Error('read outside the path organization');
+        }
+        return metrics;
+      }),
+    };
+  }
+
+  it("returns the path organization's usage in its own tenant context", async () => {
+    const controller = new AdminOrganizationCreditsController(
+      createService() as never,
+      createUsageTransactions() as never,
+    );
+
+    await expect(
+      controller.usage(usageRequest, 'org-1'),
+    ).resolves.toMatchObject({
+      data: {
+        attributes: {
+          breakdown: [{ amount: 12, count: 3, source: 'agent-chat' }],
+          dailySeries: [
+            { amount: 5, date: '2026-11-04' },
+            { amount: 7, date: '2026-11-05' },
+          ],
+          usage30Days: 12,
+        },
+        type: 'credit-usage',
+      },
+    });
+  });
+
+  it('rejects a blank organization id', async () => {
+    const controller = new AdminOrganizationCreditsController(
+      createService() as never,
+      createUsageTransactions() as never,
+    );
+
+    await expect(controller.usage(usageRequest, '  ')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 });
