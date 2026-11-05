@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import type { SavedProfileRef } from '@/features/settings/props/content-rules.props';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 import ContentRulesDeliveryTab from './content-rules-delivery-tab';
 import ContentRulesExamplesTab from './content-rules-examples-tab';
@@ -57,12 +58,6 @@ const CONTENT_RULES_TABS = [
 ] as const;
 
 type ContentRulesTabId = (typeof CONTENT_RULES_TABS)[number];
-
-/** The profile last saved on this page, for the brand it was saved under. */
-interface SavedProfileRef {
-  brandId: string;
-  id: string;
-}
 
 function splitLines(value: string): string[] {
   return value.split('\n').flatMap((line) => {
