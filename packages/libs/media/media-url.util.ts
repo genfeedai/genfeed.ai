@@ -1,4 +1,5 @@
 import { getSignedUrl } from '@aws-sdk/cloudfront-signer';
+import { isFilesServiceHostname } from '@genfeedai/helpers/media/files-service-hostname.helper';
 
 /**
  * Media URLs are derived, never stored.
@@ -46,15 +47,6 @@ function trimSlash(value: string): string {
 
 function isHttpUrl(value: string): boolean {
   return /^https?:\/\//i.test(value);
-}
-
-function isFilesServiceHostname(hostname: string): boolean {
-  const host = hostname.trim().toLowerCase();
-  return (
-    host === 'files.genfeed.ai' ||
-    host === 'files.genfeed.localhost' ||
-    host.endsWith('.files.genfeed.localhost')
-  );
 }
 
 /**

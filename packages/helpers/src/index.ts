@@ -33,6 +33,7 @@ export * from './integrations/connect-genfeed.helper';
 export * from './integrations/external-connection-request.helper';
 export * from './media/cdn/cdn.helper';
 export * from './media/clipper-reference-frame.helper';
+export * from './media/files-service-hostname.helper';
 export * from './media/image-quality/image-quality.helper';
 export * from './media/media-artifact.helper';
 export * from './media/provenance/provenance.helper';

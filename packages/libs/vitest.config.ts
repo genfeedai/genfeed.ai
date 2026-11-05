@@ -19,6 +19,13 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: '@genfeedai/helpers/media/files-service-hostname.helper',
+        replacement: path.resolve(
+          pkgDir,
+          '../helpers/src/media/files-service-hostname.helper.ts',
+        ),
+      },
+      {
         find: '@genfeedai/helpers/security/redact-sensitive-value.helper',
         replacement: path.resolve(
           pkgDir,
