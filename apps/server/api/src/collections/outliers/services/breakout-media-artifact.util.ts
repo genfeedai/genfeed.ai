@@ -1,3 +1,4 @@
+import { lockBreakoutArtifactBinding } from '@api/collections/outliers/services/breakout-artifact-binding-lock.util';
 import {
   isBreakoutMediaFormat,
   resolveBreakoutMediaFormat,
@@ -81,36 +82,7 @@ export async function bindBreakoutMediaPostArtifact(
     outputId,
     postId,
   } = input;
-  await tx.$queryRaw(Prisma.sql`
-    SELECT "id" FROM "posts" WHERE "id" = ${postId} AND "organizationId" = ${organizationId}
-      AND "brandId" = ${brandId} AND "credentialId" = ${credentialId}
-      AND "platform" = ${platform} AND "isDeleted" = false FOR UPDATE
-  `);
-  await tx.$queryRaw(Prisma.sql`
-    SELECT "id" FROM "breakout_responses" WHERE "id" = ${responseId} AND "organizationId" = ${organizationId}
-      AND "brandId" = ${brandId} AND "credentialId" = ${credentialId}
-      AND "platform" = ${platform} AND "isDeleted" = false FOR UPDATE
-  `);
-  const response = await tx.breakoutResponse.findFirst({
-    where: {
-      id: responseId,
-      organizationId,
-      brandId,
-      credentialId,
-      platform,
-      isDeleted: false,
-    },
-    select: {
-      contentDigest: true,
-      externalId: true,
-      logicalPostId: true,
-      nativeSourcePostId: true,
-      outputPlanFingerprint: true,
-      publicationFingerprint: true,
-      sourcePostId: true,
-      state: true,
-    },
-  });
+  const response = await lockBreakoutArtifactBinding(tx, input);
   const output = await tx.breakoutResponseOutput.findFirst({
     where: {
       id: outputId,

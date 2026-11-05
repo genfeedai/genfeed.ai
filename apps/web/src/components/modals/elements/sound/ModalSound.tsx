@@ -8,6 +8,7 @@ import { ButtonVariant, ModalEnum, ModelCategory } from '@genfeedai/contracts';
 import type { ISound } from '@genfeedai/contracts/interfaces';
 import type { ModalSoundProps } from '@genfeedai/props/modals/modal.props';
 import { SoundsService } from '@genfeedai/services/elements/sounds.service';
+import { normalizeElementKey } from '@ui/display/element-scope-badge/element-row-sidebar';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
@@ -20,9 +21,6 @@ import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
 import ElementPlatformFields from '@/components/modals/elements/shared/ElementPlatformFields';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
-
-const WHITESPACE_RUNS_PATTERN = /\s+/g;
-const NON_SLUG_CHARS_PATTERN = /[^a-z0-9-]/g;
 
 export default function ModalSound({ onConfirm }: ModalSoundProps) {
   const t = useTranslations('ui.createModal');
@@ -51,10 +49,7 @@ export default function ModalSound({ onConfirm }: ModalSoundProps) {
 
     // Format key if key field changes
     if (name === 'key') {
-      const formattedKey = value
-        .toLowerCase()
-        .replace(WHITESPACE_RUNS_PATTERN, '-')
-        .replace(NON_SLUG_CHARS_PATTERN, '');
+      const formattedKey = normalizeElementKey(value);
       form.setValue('key', formattedKey, { shouldValidate: true });
     } else {
       form.setValue(name as keyof SoundElementSchema, value, {
