@@ -174,7 +174,7 @@ describe('readonly credit purchase hint', () => {
   function create(readPurchase: () => Promise<unknown>) {
     return new OrganizationSettingsService(
       {
-        billingRevenueEvent: { findFirst: vi.fn(readPurchase) },
+        creditTransaction: { findFirst: vi.fn(readPurchase) },
         organizationSetting: { findFirst: vi.fn().mockResolvedValue(row) },
       } as never,
       { debug: vi.fn(), error: vi.fn(), warn: vi.fn() } as never,
@@ -188,7 +188,7 @@ describe('readonly credit purchase hint', () => {
   }
 
   it.each([
-    ['a paid credit pack', () => Promise.resolve({ id: 'rev-1' }), true],
+    ['a paid credit pack', () => Promise.resolve({ id: 'credit-1' }), true],
     ['no paid credit pack', () => Promise.resolve(null), false],
     [
       'an unavailable revenue read',
@@ -205,13 +205,43 @@ describe('readonly credit purchase hint', () => {
     expect(result?.hasPurchasedCredits).toBe(expected);
   });
 
+  it('counts checkout pack grants and legacy PAYG packs, never plan grants', async () => {
+    vi.mocked(hasOrganizationBilling).mockReturnValue(true);
+    const findFirst = vi.fn().mockResolvedValue(null);
+    const service = new OrganizationSettingsService(
+      {
+        creditTransaction: { findFirst },
+        organizationSetting: { findFirst: vi.fn().mockResolvedValue(row) },
+      } as never,
+      { debug: vi.fn(), error: vi.fn(), warn: vi.fn() } as never,
+      { get: vi.fn().mockReturnValue(null) } as never,
+      {} as never,
+    );
+    await service.findOne({ organizationId: 'org-1' }, [], {
+      includePaidHint: true,
+    });
+    expect(findFirst.mock.calls[0]?.[0]).toEqual({
+      select: { id: true },
+      where: {
+        amount: { gt: 0 },
+        category: 'add',
+        isDeleted: false,
+        organizationId: 'org-1',
+        OR: [
+          { referenceType: { startsWith: 'stripe-checkout-session:' } },
+          { source: 'credits-payg' },
+        ],
+      },
+    });
+  });
+
   it('leaves the hint unresolved for server-side reads', async () => {
     vi.mocked(hasOrganizationBilling).mockReturnValue(true);
-    const result = await create(() => Promise.resolve({ id: 'rev-1' })).findOne(
-      {
-        organizationId: 'org-1',
-      },
-    );
+    const result = await create(() =>
+      Promise.resolve({ id: 'credit-1' }),
+    ).findOne({
+      organizationId: 'org-1',
+    });
     expect(result?.hasPurchasedCredits).toBeNull();
   });
 
