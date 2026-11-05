@@ -515,12 +515,4 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
       file: 'apps/server/api/src/collections/ad-optimization-recommendations/services/ad-optimization-recommendations.service.ts',
       line: 150,
     },
-    // DB load suite (apps/server/api/scripts/db-load): the cross-tenant worker
-    // sweeps it measures (due posts, stale PENDING executions, stalled agent
-    // turns) read every organization by design. It runs only against an
-    // isolated local database (assertIsolatedDatabaseUrl) and never ships.
-    {
-      file: 'apps/server/api/scripts/db-load/catalog.ts',
-      line: 101,
-    },
   ];

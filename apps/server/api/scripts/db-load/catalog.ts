@@ -34,10 +34,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { PrismaService } from '@libs/prisma/prisma.service';
-import {
-  crossOrgUnsafe,
-  runWithTenantContext,
-} from '@libs/prisma/tenant-context';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 import { FANOUT } from './scale';
 
@@ -92,13 +89,6 @@ type ControllerUser = Parameters<PostsController['buildFindAllQuery']>[0];
 
 /** Collaborators that the measured query path never touches. */
 const stub = <T>(): T => ({}) as T;
-
-/**
- * The cross-tenant worker sweeps read every organization by design, so they run
- * under the named tenant-guard hatch. This is the only call site in the suite.
- */
-const acrossAllTenants = <T>(run: () => Promise<T>): Promise<T> =>
-  crossOrgUnsafe(run);
 
 const user = (t: Tenant): ControllerUser =>
   ({
@@ -512,12 +502,10 @@ export const CATALOG: QuerySpec[] = [
     prepare: ({ prisma }) => {
       const finder = new StalePendingSystemExecutionFinderService(prisma);
       return () =>
-        acrossAllTenants(() =>
-          finder.findMany(
-            new Date(Date.now() - 15 * 60_000),
-            new Date(Date.now() - 24 * 3_600_000),
-            { limit: 200 },
-          ),
+        finder.findMany(
+          new Date(Date.now() - 15 * 60_000),
+          new Date(Date.now() - 24 * 3_600_000),
+          { limit: 200 },
         );
     },
     scope: 'global',
@@ -532,12 +520,10 @@ export const CATALOG: QuerySpec[] = [
     prepare: ({ prisma }) => {
       const finder = new StalePendingSystemExecutionFinderService(prisma);
       return () =>
-        acrossAllTenants(() =>
-          finder.findStalledInteractiveAgentTurns(
-            new Date(Date.now() - 5 * 60_000),
-            new Date(Date.now() - 2 * 3_600_000),
-            50,
-          ),
+        finder.findStalledInteractiveAgentTurns(
+          new Date(Date.now() - 5 * 60_000),
+          new Date(Date.now() - 2 * 3_600_000),
+          50,
         );
     },
     scope: 'global',
@@ -552,8 +538,7 @@ export const CATALOG: QuerySpec[] = [
     prepare: ({ prisma, logger }) => {
       const posts = new PostsService(prisma, logger, stub());
       const discovery = new ScheduledPostDiscoveryService(posts);
-      return () =>
-        acrossAllTenants(() => discovery.findDuePosts({ limit: 50 }));
+      return () => discovery.findDuePosts({ limit: 50 });
     },
     scope: 'global',
     source:

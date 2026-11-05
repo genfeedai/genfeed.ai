@@ -163,22 +163,32 @@ describe('db load profile', () => {
 
     let captured: Statement[] | null = null;
     let statementCount = 0;
-    const prisma = new PrismaService(
-      {
-        get: (k: string) => process.env[k],
-        mediaUrlConfig: { cdnUrl: 'https://cdn.loadtest' },
-      } as unknown as ConstructorParameters<typeof PrismaService>[0],
-      {
-        onQueryEvent: (event) => {
-          statementCount++;
-          captured?.push({
-            params: JSON.parse(event.params || '[]'),
-            sql: event.query,
-          });
+    // Tenant-scoped queries run behind the CLOUD tenant guard, as in the hosted
+    // app. The cross-tenant worker sweeps read every organization by design, so
+    // they run on a second client with the guard off (same SQL and pool, no
+    // per-query organizationId assertion).
+    const createClient = (isTenantGuardEnabled: boolean): PrismaService =>
+      new PrismaService(
+        {
+          get: (k: string) =>
+            k === 'GENFEED_CLOUD' && !isTenantGuardEnabled
+              ? undefined
+              : process.env[k],
+          mediaUrlConfig: { cdnUrl: 'https://cdn.loadtest' },
+        } as unknown as ConstructorParameters<typeof PrismaService>[0],
+        {
+          onQueryEvent: (event) => {
+            statementCount++;
+            captured?.push({
+              params: JSON.parse(event.params || '[]'),
+              sql: event.query,
+            });
+          },
         },
-      },
-    );
-    await prisma.$connect();
+      );
+    const prisma = createClient(true);
+    const sweepPrisma = createClient(false);
+    await Promise.all([prisma.$connect(), sweepPrisma.$connect()]);
 
     const tenants = tenantCount(SCALE);
     const rand = mulberry32(20261105);
@@ -196,7 +206,7 @@ describe('db load profile', () => {
       if (FILTER && !FILTER.test(spec.id)) continue;
       const run = spec.prepare({
         logger,
-        prisma,
+        prisma: spec.scope === 'global' ? sweepPrisma : prisma,
         scale: SCALE,
       });
       if (spec.scope === 'global') jobs.push({ kind: 'global', run, spec });
@@ -341,7 +351,7 @@ describe('db load profile', () => {
         2,
       ),
     );
-    await prisma.$disconnect();
+    await Promise.all([prisma.$disconnect(), sweepPrisma.$disconnect()]);
     expect(results.length).toBeGreaterThan(0);
   });
 });
