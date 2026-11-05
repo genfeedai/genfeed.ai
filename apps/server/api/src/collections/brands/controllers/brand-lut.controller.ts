@@ -3,13 +3,14 @@ import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-acc
 import { BrandLutService } from '@api/collections/brands/services/brand-lut.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import { BRAND_LUT_LIMITS } from '@genfeedai/contracts/constants';
 import { BrandSerializer } from '@genfeedai/serializers';
 import {
@@ -39,6 +40,7 @@ export class BrandLutController {
 
   /** Stores the `.cube` file, replacing the brand's current LUT. */
   @Put()
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -80,6 +82,7 @@ export class BrandLutController {
 
   /** Removes the LUT and turns the grade off. */
   @Delete()
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   async remove(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
