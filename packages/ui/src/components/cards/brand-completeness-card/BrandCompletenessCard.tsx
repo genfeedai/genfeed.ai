@@ -166,7 +166,7 @@ export default function BrandCompletenessCard({
         <div className="mt-2 border-t border-border pt-2">
           <Button variant={ButtonVariant.UNSTYLED} withWrapper={false}>
             <Link
-              href={href('/settings/brand-kit/guided-setup')}
+              href={href('/settings/brand-kit/setup')}
               className="text-2xs text-primary/70 hover:text-primary transition-colors duration-150"
             >
               Interview me to fill gaps →

@@ -340,7 +340,7 @@ export default function BrandContentRulesPage() {
     >
       {draft.positioning ? (
         <ContentRulesPositioningScorecard
-          interviewHref={href('/settings/brand-kit/guided-setup')}
+          interviewHref={href('/settings/brand-kit/setup')}
           positioning={draft.positioning}
         />
       ) : null}

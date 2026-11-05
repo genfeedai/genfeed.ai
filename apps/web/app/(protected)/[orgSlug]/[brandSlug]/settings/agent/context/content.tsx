@@ -64,7 +64,7 @@ export default function BrandSettingsAgentContextPage() {
 
   const editHrefs = useMemo<Record<AgentBrandContextEditTarget, string>>(
     () => ({
-      interview: href('/settings/brand-kit/guided-setup'),
+      interview: href('/settings/brand-kit/setup'),
       kit: href('/settings/brand-kit'),
       knowledge: href(APP_ROUTES.SETTINGS.KNOWLEDGE),
       memory: '#agent-context-memories',

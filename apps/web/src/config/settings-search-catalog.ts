@@ -40,7 +40,7 @@ const BRAND_SECTION_ITEMS: SettingsSearchItem[] = [
     group: 'Brand Kit',
     label: 'Guided setup',
     description: 'Brand identity interview',
-    href: `${APP_ROUTES.SETTINGS.BRAND_KIT}/guided-setup`,
+    href: `${APP_ROUTES.SETTINGS.BRAND_KIT}/setup`,
     keywords: ['interview', 'setup', 'identity'],
   },
   {
@@ -49,7 +49,7 @@ const BRAND_SECTION_ITEMS: SettingsSearchItem[] = [
     group: 'Brand Kit',
     label: 'Content rules',
     description: 'Structure, delivery, positioning and examples',
-    href: `${APP_ROUTES.SETTINGS.BRAND_KIT}/content-rules`,
+    href: `${APP_ROUTES.SETTINGS.BRAND_KIT}/rules`,
     keywords: ['harness', 'rules', 'structure', 'delivery', 'examples'],
   },
   {

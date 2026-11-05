@@ -30,7 +30,7 @@ vi.mock('next-intl', async () => {
 });
 
 vi.mock(
-  '@app/(protected)/admin/administration/system-emails/system-email-performance',
+  '@app/(protected)/admin/administration/emails/system-email-performance',
   () => ({
     default: () => <div data-testid="email-performance-report" />,
   }),

@@ -140,8 +140,8 @@ export default function BrandKitPage() {
             }}
             onScan={() => setWorkflow('scan')}
             onManualImport={() => setWorkflow('manual')}
-            guidedSetupHref={href('/settings/brand-kit/guided-setup')}
-            contentRulesHref={href('/settings/brand-kit/content-rules')}
+            guidedSetupHref={href('/settings/brand-kit/setup')}
+            contentRulesHref={href('/settings/brand-kit/rules')}
             overview={
               <>
                 <BrandCompletenessCard brand={brand} />
