@@ -286,4 +286,80 @@ describe('publishing content library federation', () => {
       },
     ]);
   });
+
+  it.each([
+    [
+      'a post video',
+      { ingredients: [{ category: IngredientCategory.VIDEO, id: 'clip-1' }] },
+      {
+        ingredient: { category: IngredientCategory.VIDEO, id: 'clip-1' },
+        isVideo: true,
+      },
+    ],
+    [
+      'a post image',
+      { ingredients: [{ category: IngredientCategory.IMAGE, id: 'img-1' }] },
+      {
+        ingredient: { category: IngredientCategory.IMAGE, id: 'img-1' },
+        isVideo: false,
+      },
+    ],
+    ['a text-only post', { ingredients: [] }, null],
+  ])('shows the first media item of %s', (_case, fields, expected) => {
+    const items = createPublishingContentLibraryItems({
+      articles: [],
+      newsletters: [],
+      posts: [
+        {
+          createdAt: '2026-08-08T10:00:00.000Z',
+          description: 'Hello',
+          id: 'post-1',
+          platform: Platform.TIKTOK,
+          ...fields,
+        },
+      ] as unknown as IPost[],
+    });
+
+    expect(items[0]?.media).toEqual(expected);
+  });
+
+  it.each([
+    [
+      'its first media URL',
+      [
+        {
+          assetId: 'b',
+          kind: 'image',
+          order: 1,
+          url: 'https://cdn.example/b.jpg',
+        },
+        {
+          assetId: 'a',
+          kind: 'video',
+          order: 0,
+          url: 'https://cdn.example/a.jpg',
+        },
+      ],
+      { isVideo: true, url: 'https://cdn.example/a.jpg' },
+    ],
+    ['the text mark when it has no media', [], null],
+  ])('gives a release %s', (_case, media, expected) => {
+    const items = createPublishingContentLibraryItems({
+      articles: [],
+      newsletters: [],
+      posts: [],
+      releases: [
+        {
+          createdAt: '2026-08-08T10:00:00.000Z',
+          id: 'release-1',
+          media,
+          status: 'draft',
+          targets: [],
+          title: 'Launch',
+        },
+      ] as unknown as IReleaseGroup[],
+    });
+
+    expect(items[0]?.media).toEqual(expected);
+  });
 });

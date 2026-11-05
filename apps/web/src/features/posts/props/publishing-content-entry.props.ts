@@ -1,3 +1,4 @@
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { CollectionOverflowAction } from '@props/ui/collection/collection.props';
 import type { ReactNode } from 'react';
 
@@ -24,6 +25,18 @@ export interface PublishingContentEntryProps {
   evalScore?: number | null;
 }
 
+/**
+ * First media item of a Posts library row: the Library asset of a post, or the
+ * resolved URL a release carries for its media.
+ */
+export type PublishingContentMedia =
+  | { ingredient: IIngredient; isVideo: boolean }
+  | { url: string; isVideo: boolean };
+
+export interface PublishingContentThumbnailProps {
+  media: PublishingContentMedia | null;
+}
+
 /** A non-plain format worth a tag on a row; plain posts carry none. */
 export type PublishingContentFormat =
   | 'thread'
@@ -48,6 +61,11 @@ export interface PublishingContentChannelsProps {
 
 export interface PublishingContentIdentityProps
   extends PublishingContentChannelsProps {
+  /**
+   * The row's first media item, shown as a thumbnail. `null` marks a text-only
+   * post; leave it out where the list has no media to show.
+   */
+  media?: PublishingContentMedia | null;
   /** Tag for a non-plain format (thread, long post, video, article, newsletter). */
   format?: PublishingContentFormat;
   summary?: string;

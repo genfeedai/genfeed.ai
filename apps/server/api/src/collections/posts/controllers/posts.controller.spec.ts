@@ -41,6 +41,24 @@ describe('PostsController.buildFindAllQuery', () => {
     } as unknown as PostsController;
   });
 
+  it("loads each row's account and only its first media item", () => {
+    const result = controller.buildFindAllQuery(
+      makeUser(),
+      {} as PostsQueryDto,
+    );
+
+    expect(result.include.credential.select).toMatchObject({
+      externalAvatar: true,
+      externalHandle: true,
+      platform: true,
+    });
+    expect(result.include.ingredientLinks).toMatchObject({
+      include: { ingredient: { select: { category: true, id: true } } },
+      orderBy: [{ position: 'asc' }, { id: 'asc' }],
+      take: 1,
+    });
+  });
+
   it('filters an agent without dropping tenant and brand scope', () => {
     const result = controller.buildFindAllQuery(makeUser(), {
       agentStrategyId: 'agent-1',

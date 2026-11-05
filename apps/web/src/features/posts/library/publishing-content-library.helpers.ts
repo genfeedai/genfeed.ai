@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/contracts';
 import type {
   ICredential,
+  IIngredient,
   IPost,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
@@ -16,6 +17,7 @@ import type { Newsletter } from '@models/content/newsletter.model';
 import type {
   PublishingContentAccount,
   PublishingContentFormat,
+  PublishingContentMedia,
 } from '@/features/posts/props/publishing-content-entry.props';
 
 export const PUBLISHING_CONTENT_TYPES = [
@@ -31,6 +33,8 @@ export interface PublishingContentLibraryItem {
   accounts?: PublishingContentAccount[];
   channels?: string[];
   format?: PublishingContentFormat;
+  /** First media item of a social post; `null` when the post is text only. */
+  media?: PublishingContentMedia | null;
   release?: IReleaseGroup;
   publishedAt?: string | null;
   scheduledAt?: string | null;
@@ -111,6 +115,32 @@ function resolvePostFormat(post: IPost): PublishingContentFormat | undefined {
     return 'video';
   }
   return undefined;
+}
+
+const VIDEO_CATEGORIES = new Set<string>([
+  IngredientCategory.VIDEO,
+  IngredientCategory.VIDEO_EDIT,
+]);
+
+function toPostMedia(
+  ingredient: IIngredient | undefined,
+): PublishingContentMedia | null {
+  return ingredient
+    ? { ingredient, isVideo: VIDEO_CATEGORIES.has(ingredient.category) }
+    : null;
+}
+
+function toReleaseMedia(
+  media: IReleaseGroup['media'] | undefined,
+): PublishingContentMedia | null {
+  const first = [...(Array.isArray(media) ? media : [])].sort(
+    (left, right) => (left.order ?? 0) - (right.order ?? 0),
+  )[0];
+  if (!first) {
+    return null;
+  }
+  // A release without a hydrated URL still has media: say so with the mark.
+  return first.url ? { isVideo: first.kind === 'video', url: first.url } : null;
 }
 
 export function createPublishingContentAccounts(
@@ -199,6 +229,7 @@ export function createPublishingContentLibraryItems({
       ),
       createdAt: release.createdAt,
       id: release.id,
+      media: toReleaseMedia(release.media),
       publishedAt: release.publishedAt ?? null,
       release,
       scheduledAt: release.scheduledAt,
@@ -223,6 +254,7 @@ export function createPublishingContentLibraryItems({
       createdAt: post.createdAt,
       format: resolvePostFormat(post),
       id: post.id,
+      media: toPostMedia(post.ingredients?.[0]),
       publishedAt: post.publishedAt
         ? new Date(post.publishedAt).toISOString()
         : null,

@@ -553,6 +553,7 @@ export default function PublishingContentLibrary() {
             accounts={item.accounts}
             channels={item.channels ?? [item.channel]}
             format={item.format}
+            media={item.media}
             title={item.title}
             summary={item.summary}
             titleHref={getDetailHref(item)}
@@ -721,6 +722,7 @@ export default function PublishingContentLibrary() {
             accounts={item.accounts}
             channels={item.channels ?? [item.channel]}
             format={item.format}
+            media={item.media}
             title={item.title}
             summary={item.summary}
             titleHref={getDetailHref(item)}
