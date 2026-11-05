@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
 
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type {
   ElevenLabsAccountVoice,
   ElevenLabsAccountVoicePage,
 } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import type { QueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -34,6 +39,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', async () => {
       useCallback(async () => factory('token'), []),
   };
 });
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 // Search is exercised by the service request; skip the debounce delay.
 vi.mock('@/hooks/utils/use-debounce/use-debounce', () => ({
@@ -117,15 +127,19 @@ function page(
   };
 }
 
-function renderDialog(onImported = vi.fn()) {
-  render(
+function renderDialog(
+  onImported = vi.fn(),
+  client: QueryClient = createTestQueryClient(),
+) {
+  const view = render(
     <ElevenLabsAccountVoicesDialog
       connectHref="/demo/~/settings/integrations"
       onClose={vi.fn()}
       onImported={onImported}
     />,
+    { wrapper: queryClientWrapper(client) },
   );
-  return { onImported };
+  return { onImported, unmount: view.unmount };
 }
 
 describe('ElevenLabsAccountVoicesDialog', () => {
@@ -205,9 +219,11 @@ describe('ElevenLabsAccountVoicesDialog', () => {
       expect(mocks.importAccountVoice).toHaveBeenCalledWith('el-voice-1');
       expect(onImported).toHaveBeenCalledWith(saved);
     });
-    expect(
-      screen.getByRole('button', { name: 'Import Founder clone' }),
-    ).toBeDisabled();
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Import Founder clone' }),
+      ).toBeDisabled();
+    });
     expect(mocks.notificationSuccess).toHaveBeenCalledWith(
       'Founder clone added to your Library',
     );
@@ -324,6 +340,26 @@ describe('ElevenLabsAccountVoicesDialog', () => {
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Load more voices' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('paints the cached account voices at once when reopened', async () => {
+    mocks.findAccountVoices.mockResolvedValue(page());
+    const client = createTestQueryClient();
+    const firstOpen = renderDialog(vi.fn(), client);
+    expect(
+      await screen.findByRole('button', { name: 'Import Founder clone' }),
+    ).toBeInTheDocument();
+    firstOpen.unmount();
+
+    mocks.findAccountVoices.mockReturnValue(new Promise(() => {}));
+    renderDialog(vi.fn(), client);
+
+    expect(
+      screen.getByRole('button', { name: 'Import Founder clone' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Loading your ElevenLabs voices…'),
     ).not.toBeInTheDocument();
   });
 });
