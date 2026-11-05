@@ -12,6 +12,7 @@ import {
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import type { ModalTagProps } from '@genfeedai/props/modals/modal.props';
 import { TagsService } from '@genfeedai/services/content/tags.service';
+import { normalizeElementKey } from '@ui/display/element-scope-badge/element-row-sidebar';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Alert } from '@ui/primitives/alert';
@@ -27,9 +28,6 @@ import {
 } from '@ui-constants/tags.constant';
 import { type ChangeEvent, useCallback, useMemo, useRef } from 'react';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
-
-const WHITESPACE_RUNS_PATTERN = /\s+/g;
-const NON_SLUG_CHARS_PATTERN = /[^a-z0-9-]/g;
 
 export default function ModalTag({ onConfirm }: ModalTagProps) {
   const defaultValues = useMemo(
@@ -123,10 +121,7 @@ export default function ModalTag({ onConfirm }: ModalTagProps) {
             control={form.control}
             onChange={(e) => {
               // Ensure key is always lowercase with hyphens (replace spaces with hyphens)
-              const value = e.target.value
-                .toLowerCase()
-                .replace(WHITESPACE_RUNS_PATTERN, '-') // Replace spaces with hyphens
-                .replace(NON_SLUG_CHARS_PATTERN, ''); // Remove invalid characters
+              const value = normalizeElementKey(e.target.value);
               e.target.value = value;
               updateModalTag(e);
             }}
