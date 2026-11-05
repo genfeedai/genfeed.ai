@@ -65,6 +65,26 @@ export function isPostMediaRequirementMet(
   return true;
 }
 
+/**
+ * The destinations whose media need the attached media does not meet yet,
+ * one entry per platform with what it still needs.
+ */
+export function getUnmetPostMediaRequirements(
+  platforms: readonly string[],
+  media: readonly IIngredient[],
+): { platform: string; requirement: Exclude<PostMediaRequirement, 'none'> }[] {
+  return platforms.flatMap((platform) => {
+    const requirement = getPostMediaRequirement([platform]);
+    if (
+      requirement === 'none' ||
+      isPostMediaRequirementMet(requirement, media)
+    ) {
+      return [];
+    }
+    return [{ platform, requirement }];
+  });
+}
+
 /** Add picked items after the current ones, keeping order and dropping repeats. */
 export function mergePostMedia(
   current: readonly IIngredient[],

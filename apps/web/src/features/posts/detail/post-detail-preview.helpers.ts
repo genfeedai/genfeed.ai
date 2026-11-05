@@ -1,5 +1,6 @@
 import {
   IngredientCategory,
+  Platform,
   PostVisibility,
   ReleaseTargetSource,
   TargetAnalyticsCapability,
@@ -8,6 +9,7 @@ import {
   TargetExecutionState,
   TargetValidationState,
 } from '@genfeedai/contracts';
+import { displayedYouTubeAudience } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   ICredential,
   IPost,
@@ -30,27 +32,40 @@ function resolveIngredientMediaKind(
   }
 }
 
+/**
+ * Every attached ingredient counts as media, URL or not: the preview's
+ * validation counts items, and a Library asset whose URL is not hydrated is
+ * still attached (the editor shows it). The renderer draws a placeholder for
+ * an item without a URL.
+ */
 function buildPostMedia(post: IPost): IReleaseMediaReference[] {
-  return (post.ingredients ?? []).reduce<IReleaseMediaReference[]>(
-    (media, ingredient, index) => {
-      const url =
-        ingredient.cdnUrl ??
-        ingredient.ingredientUrl ??
-        ingredient.thumbnailUrl;
-      if (!url) {
-        return media;
-      }
+  return (post.ingredients ?? []).map((ingredient, index) => ({
+    assetId: ingredient.id,
+    kind: resolveIngredientMediaKind(ingredient.category),
+    order: index,
+    url:
+      ingredient.cdnUrl ??
+      ingredient.ingredientUrl ??
+      ingredient.thumbnailUrl ??
+      null,
+  }));
+}
 
-      media.push({
-        assetId: ingredient.id,
-        kind: resolveIngredientMediaKind(ingredient.category),
-        order: index,
-        url,
-      });
-      return media;
-    },
-    [],
+/**
+ * The target settings the preview validates. YouTube's required privacy can
+ * live on the post's visibility alone (the composer stores it there), so it
+ * is resolved the same way the YouTube settings panel shows it.
+ */
+function buildPreviewSettings(post: IPost): Record<string, unknown> {
+  const settings = post.targetSettings ?? {};
+  if (post.platform !== Platform.YOUTUBE) {
+    return settings;
+  }
+  const privacyStatus = displayedYouTubeAudience(
+    post.visibility,
+    settings.privacyStatus,
   );
+  return privacyStatus ? { ...settings, privacyStatus } : settings;
 }
 
 /**
@@ -111,7 +126,7 @@ export function buildPostTargetPreview(
       platform: post.platform,
       releaseId: post.groupId ?? post.id,
       retryCount: 0,
-      settings: post.targetSettings ?? {},
+      settings: buildPreviewSettings(post),
       source: ReleaseTargetSource.MANUAL,
       timezone: 'UTC',
       updatedAt: post.updatedAt,

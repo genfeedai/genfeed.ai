@@ -3,6 +3,7 @@ import {
   IngredientStatus,
   Platform,
   PostCategory,
+  PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type {
@@ -85,7 +86,7 @@ describe('buildPostTargetPreview', () => {
     expect(preview?.release.baseContent).toBe('Hello world');
   });
 
-  it('maps ingredients with a resolvable URL onto release media', () => {
+  it('maps every attached ingredient onto release media, URL or not', () => {
     const preview = buildPostTargetPreview(
       makePost({
         ingredients: [
@@ -115,8 +116,36 @@ describe('buildPostTargetPreview', () => {
         order: 1,
         url: 'https://cdn.example.com/b.mp4',
       },
+      {
+        assetId: 'ingredient-3',
+        kind: 'image',
+        order: 2,
+        url: null,
+      },
     ]);
   });
+
+  it.each([
+    ['the post visibility', PostVisibility.PRIVATE, {}, 'private'],
+    ['the saved setting', undefined, { privacyStatus: 'unlisted' }, 'unlisted'],
+    [
+      'the narrower of both',
+      PostVisibility.PUBLIC,
+      { privacyStatus: 'private' },
+      'private',
+    ],
+  ])(
+    'gives a YouTube preview its privacy from %s',
+    (_label, visibility, targetSettings, expected) => {
+      const preview = buildPostTargetPreview(
+        makePost({ platform: Platform.YOUTUBE, targetSettings, visibility }),
+        '',
+        undefined,
+      );
+
+      expect(preview?.target.settings.privacyStatus).toBe(expected);
+    },
+  );
 
   it('uses the post credential when present, falling back to a bare platform credential', () => {
     const credential = {
