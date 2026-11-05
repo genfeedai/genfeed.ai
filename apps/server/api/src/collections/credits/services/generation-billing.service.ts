@@ -1,5 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import {
+  GENERATION_OUTPUT_TERMINAL_EVENT,
+  type GenerationOutputTerminalEvent,
+} from '@api/collections/credits/constants/generation-output-events.constants';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import {
   GenerationByokUsage,
@@ -53,6 +57,7 @@ import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { z } from 'zod';
 
 /** The request-shaped input every generation billing step reads. */
@@ -110,6 +115,7 @@ export class GenerationBillingService {
     private readonly quoteGroups: GenerationQuoteGroupService,
     @Optional() private readonly holdRecovery?: GenerationHoldRecoveryService,
     @Optional() private readonly receipts?: MediaGenerationReceiptsService,
+    @Optional() private readonly events?: EventEmitter2,
   ) {
     this.byok = new GenerationByokUsage(queue, prisma, logger);
   }
@@ -366,13 +372,32 @@ export class GenerationBillingService {
     return this.quoteGroups.reconcileAbortedCrunDispatches(now);
   }
 
-  /** Success: queue one reserved settlement for the output's hold. */
+  /**
+   * Success: queue one reserved settlement for the output's hold. The output's
+   * outcome is announced after the hold moves, whatever the hold step returns.
+   */
   async settleOutput(
     ingredientId: string,
     organizationId: string,
     completion: { durationSeconds?: number } = {},
   ): Promise<GenerationSettlementOutcome> {
     void this.receipts?.syncTerminal(organizationId, ingredientId, 'settled');
+    try {
+      return await this.settleOutputHold(
+        ingredientId,
+        organizationId,
+        completion,
+      );
+    } finally {
+      this.emitOutputTerminal(ingredientId, organizationId, 'settled');
+    }
+  }
+
+  private async settleOutputHold(
+    ingredientId: string,
+    organizationId: string,
+    completion: { durationSeconds?: number },
+  ): Promise<GenerationSettlementOutcome> {
     if (
       !(await this.crunDispositionAllowed(
         ingredientId,
@@ -587,13 +612,28 @@ export class GenerationBillingService {
     return acted;
   }
 
-  /** Failure or timeout: give the output's hold back without charging. */
+  /**
+   * Failure or timeout: give the output's hold back without charging. The
+   * output's outcome is announced after the hold moves.
+   */
   async releaseOutput(
     ingredientId: string,
     organizationId: string,
     reason: 'release' | 'expiry' = 'release',
   ): Promise<GenerationReleaseOutcome> {
     void this.receipts?.syncTerminal(organizationId, ingredientId, 'released');
+    try {
+      return await this.releaseOutputHold(ingredientId, organizationId, reason);
+    } finally {
+      this.emitOutputTerminal(ingredientId, organizationId, 'released');
+    }
+  }
+
+  private async releaseOutputHold(
+    ingredientId: string,
+    organizationId: string,
+    reason: 'release' | 'expiry',
+  ): Promise<GenerationReleaseOutcome> {
     if (
       !(await this.crunDispositionAllowed(
         ingredientId,
@@ -984,6 +1024,27 @@ export class GenerationBillingService {
       organizationId,
     });
     return true;
+  }
+
+  /** Announces the output's terminal outcome. Emitting never throws. */
+  private emitOutputTerminal(
+    ingredientId: string,
+    organizationId: string,
+    outcome: GenerationOutputTerminalEvent['outcome'],
+  ): void {
+    try {
+      this.events?.emit(GENERATION_OUTPUT_TERMINAL_EVENT, {
+        ingredientId,
+        organizationId,
+        outcome,
+      } satisfies GenerationOutputTerminalEvent);
+    } catch (error: unknown) {
+      this.logger.warn('Failed to emit generation output terminal event', {
+        error,
+        ingredientId,
+        organizationId,
+      });
+    }
   }
 
   private async findHold(
