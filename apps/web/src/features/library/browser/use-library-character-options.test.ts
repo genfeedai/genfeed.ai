@@ -1,9 +1,18 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useLibraryCharacterOptions } from './use-library-character-options';
 
 const { listAllCharacters } = vi.hoisted(() => ({
   listAllCharacters: vi.fn(),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
@@ -25,7 +34,7 @@ describe('useLibraryCharacterOptions', () => {
     listAllCharacters.mockReset();
   });
 
-  it('requests characters for the given brand and refetches when it changes', async () => {
+  it('requests characters for the given brand and reads again when it changes', async () => {
     listAllCharacters.mockImplementation(
       async ({ brandId }: { brandId: string }) => [
         { avatarIngredientId: null, id: `char-${brandId}`, label: brandId },
@@ -34,19 +43,16 @@ describe('useLibraryCharacterOptions', () => {
 
     const { result, rerender } = renderHook(
       ({ brandId }) => useLibraryCharacterOptions({ brandId, isEnabled: true }),
-      { initialProps: { brandId: 'brand-a' } },
+      { initialProps: { brandId: 'brand-a' }, wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => expect(result.current[0]?.id).toBe('char-brand-a'));
     expect(listAllCharacters).toHaveBeenLastCalledWith(
       expect.objectContaining({ brandId: 'brand-a' }),
     );
-    const firstSignal = listAllCharacters.mock.calls[0][0]
-      .signal as AbortSignal;
 
     rerender({ brandId: 'brand-b' });
 
-    expect(firstSignal.aborted).toBe(true);
     await waitFor(() => expect(result.current[0]?.id).toBe('char-brand-b'));
     expect(listAllCharacters).toHaveBeenLastCalledWith(
       expect.objectContaining({ brandId: 'brand-b' }),
@@ -66,7 +72,7 @@ describe('useLibraryCharacterOptions', () => {
 
     const { result, rerender } = renderHook(
       ({ brandId }) => useLibraryCharacterOptions({ brandId, isEnabled: true }),
-      { initialProps: { brandId: 'brand-a' } },
+      { initialProps: { brandId: 'brand-a' }, wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(result.current).toHaveLength(1));
 
@@ -78,10 +84,37 @@ describe('useLibraryCharacterOptions', () => {
   });
 
   it('loads nothing when disabled', () => {
-    renderHook(() =>
-      useLibraryCharacterOptions({ brandId: 'brand-a', isEnabled: false }),
+    const { result } = renderHook(
+      () =>
+        useLibraryCharacterOptions({ brandId: 'brand-a', isEnabled: false }),
+      { wrapper: queryClientWrapper() },
     );
 
+    expect(result.current).toEqual([]);
+
     expect(listAllCharacters).not.toHaveBeenCalled();
+  });
+
+  it('paints the cached characters at once when the Library is opened again', async () => {
+    listAllCharacters.mockResolvedValue([
+      { avatarIngredientId: null, id: 'char-1', label: 'Nova' },
+    ]);
+    const client = createTestQueryClient();
+    const first = renderHook(
+      () => useLibraryCharacterOptions({ brandId: 'brand-a', isEnabled: true }),
+      { wrapper: queryClientWrapper(client) },
+    );
+    await waitFor(() => expect(first.result.current).toHaveLength(1));
+    first.unmount();
+
+    listAllCharacters.mockReturnValue(new Promise(() => undefined));
+    const { result } = renderHook(
+      () => useLibraryCharacterOptions({ brandId: 'brand-a', isEnabled: true }),
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(result.current).toEqual([
+      { avatarIngredientId: null, id: 'char-1', label: 'Nova' },
+    ]);
   });
 });
