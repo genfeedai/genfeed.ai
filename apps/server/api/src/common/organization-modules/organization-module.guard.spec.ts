@@ -92,37 +92,55 @@ describe('OrganizationModuleGuard', () => {
       expect(assertAccess).not.toHaveBeenCalled();
     },
   );
-  it.each([
+  const operationCases = [
     ['list', 'GET', 'read'],
     ['export', 'POST', 'export'],
     ['mutatingGet', 'GET', 'write'],
-  ])(
-    'resolves %s over %s as the %s operation from trusted metadata',
-    async (handler, method, operation) => {
-      // Grants only the expected operation, so any other resolution is denied.
-      const assertAccess = vi.fn(
-        async (organizationId: string, moduleId: string, op: string) => {
-          if (
-            organizationId !== 'org-1' ||
-            moduleId !== 'turbo' ||
-            op !== operation
-          ) {
-            throw new Error('disabled');
-          }
-        },
-      );
-      const guard = new OrganizationModuleGuard(new Reflector(), {
-        assertAccess,
-      } as never);
+  ];
 
+  // An access policy for org-1's turbo module that answers `operation` with
+  // `isGranted` and every other operation the opposite way.
+  function policyFor(operation: string, isGranted: boolean) {
+    return async (organizationId: string, moduleId: string, op: string) => {
+      const isMatch =
+        organizationId === 'org-1' && moduleId === 'turbo' && op === operation;
+      if (isMatch !== isGranted) {
+        throw new Error('disabled');
+      }
+    };
+  }
+
+  function canActivate(
+    handler: string,
+    method: string,
+    assertAccess: ReturnType<typeof policyFor>,
+  ) {
+    const guard = new OrganizationModuleGuard(new Reflector(), {
+      assertAccess,
+    } as never);
+    return guard.canActivate(
+      createContext(TurboController, handler, {
+        ...identity,
+        method,
+      }) as never,
+    );
+  }
+
+  it.each(operationCases)(
+    'allows %s over %s when the %s operation is granted',
+    async (handler, method, operation) => {
       await expect(
-        guard.canActivate(
-          createContext(TurboController, handler, {
-            ...identity,
-            method,
-          }) as never,
-        ),
+        canActivate(handler, method, policyFor(operation, true)),
       ).resolves.toBe(true);
+    },
+  );
+
+  it.each(operationCases)(
+    'denies %s over %s when the %s operation is withheld',
+    async (handler, method, operation) => {
+      await expect(
+        canActivate(handler, method, policyFor(operation, false)),
+      ).rejects.toThrow('disabled');
     },
   );
 });

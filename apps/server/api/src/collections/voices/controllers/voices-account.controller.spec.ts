@@ -22,7 +22,8 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 describe('VoicesAccountController', () => {
   const request = {} as Request;
   const organizationId = testId('org');
-  const user = { id: 'user-1', organizationId } as User;
+  const brandId = testId('brand');
+  const user = { brandId, id: 'user-1', organizationId } as User;
   const voice = { id: testId('voice') };
   let accountVoices: {
     browse: ReturnType<typeof vi.fn>;
@@ -38,6 +39,7 @@ describe('VoicesAccountController', () => {
       browse: vi.fn(),
       import: vi.fn(async (importer: User, externalVoiceId: string) => ({
         ...voice,
+        brandId: importer.brandId,
         externalVoiceId,
         organizationId: importer.organizationId,
       })),
@@ -76,6 +78,7 @@ describe('VoicesAccountController', () => {
   it('imports a voice and serializes the saved reference', async () => {
     const imported = {
       ...voice,
+      brandId,
       externalVoiceId: 'el-voice-1',
       organizationId,
     };
