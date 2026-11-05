@@ -207,7 +207,10 @@ Required environment variables:
 - `VERCEL_ORG_ID`, `VERCEL_PROJECT_APP`, `VERCEL_PROJECT_WEB`
 
 Optional: `DOCS_HOST`, `VERCEL_PROJECT_DOCS`. Empty docs project id skips
-that frontend. Marketplace is a separate repository and is not deployed
+that frontend.
+`WORKLOAD_PERMISSIONS_BOUNDARY_ARN` sets an IAM permissions boundary on the
+stack's task roles. Set it when the deploy role may only manage roles that
+carry a boundary. Marketplace is a separate repository and is not deployed
 from this monorepo.
 
 Required repository variables: `AWS_REGION`, `AWS_DEPLOY_ROLE_ARN`.

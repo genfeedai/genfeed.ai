@@ -10,8 +10,9 @@ data "aws_iam_policy_document" "ecs_assume" {
 }
 
 resource "aws_iam_role" "execution" {
-  name               = "${local.name_prefix}-task-execution"
-  assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
+  name                 = "${local.name_prefix}-task-execution"
+  assume_role_policy   = data.aws_iam_policy_document.ecs_assume.json
+  permissions_boundary = local.permissions_boundary_arn
 }
 
 resource "aws_iam_role_policy_attachment" "execution_managed" {
@@ -58,8 +59,9 @@ resource "aws_iam_role_policy" "execution_secrets" {
 
 # ── Task role (app runtime perms) ────────────────────────────────────
 resource "aws_iam_role" "task" {
-  name               = "${local.name_prefix}-task"
-  assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
+  name                 = "${local.name_prefix}-task"
+  assume_role_policy   = data.aws_iam_policy_document.ecs_assume.json
+  permissions_boundary = local.permissions_boundary_arn
 }
 
 data "aws_iam_policy_document" "task" {
@@ -99,6 +101,7 @@ resource "aws_iam_role_policy" "task" {
 # role. They keep an assumable task role so ECS can launch them, with no
 # extra runtime permissions.
 resource "aws_iam_role" "public_task" {
-  name               = "${local.name_prefix}-public-task"
-  assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
+  name                 = "${local.name_prefix}-public-task"
+  assume_role_policy   = data.aws_iam_policy_document.ecs_assume.json
+  permissions_boundary = local.permissions_boundary_arn
 }
