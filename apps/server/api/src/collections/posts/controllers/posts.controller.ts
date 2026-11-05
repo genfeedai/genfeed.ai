@@ -51,6 +51,7 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { PostListSerializer, PostSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -67,6 +68,38 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+
+/**
+ * The Posts list shows each row's account (avatar, name, platform) and a
+ * thumbnail of its first media item, so the list loads the account's display
+ * fields and the first media link only, not the full media or metadata.
+ */
+const POST_LIST_INCLUDE = {
+  credential: {
+    select: {
+      externalAvatar: true,
+      externalHandle: true,
+      externalName: true,
+      id: true,
+      isConnected: true,
+      label: true,
+      platform: true,
+    },
+  },
+  ingredientLinks: {
+    ...orderedPostIngredientLinks({
+      select: {
+        brandId: true,
+        category: true,
+        id: true,
+        isDeleted: true,
+        organizationId: true,
+        status: true,
+      },
+    }),
+    take: 1,
+  },
+} satisfies Prisma.PostInclude;
 
 @AutoSwagger()
 @FeatureFlag('publishing')
@@ -277,7 +310,11 @@ export class PostsController extends BaseCRUDController<
       matchFilter.campaignId = query.campaignId;
     }
 
-    return { where: matchFilter, orderBy: handleQuerySort(query.sort) };
+    return {
+      include: POST_LIST_INCLUDE,
+      orderBy: handleQuerySort(query.sort),
+      where: matchFilter,
+    };
   }
 
   @Get()

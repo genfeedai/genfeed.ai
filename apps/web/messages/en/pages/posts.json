@@ -217,7 +217,6 @@
     "collection": {
       "all": "All",
       "needsYou": "Needs you",
-      "notScheduled": "Not scheduled",
       "open": "Open",
       "retry": "Retry",
       "retryFailed": "Could not retry this post. Please try again.",
@@ -231,7 +230,17 @@
       "openTarget": "Open {platform} post",
       "variations": "Remix {platform} post",
       "setStatus": "Set status to {status}",
-      "statusFailed": "Could not update the post status."
+      "statusFailed": "Could not update the post status.",
+      "textOnlyMark": "Aa",
+      "notScheduled": "Not scheduled",
+      "board": {
+        "label": "Posts board",
+        "empty": "No {status} posts"
+      },
+      "statusTime": {
+        "published": "Published {date}",
+        "scheduled": "Goes out {date}"
+      }
     },
     "admin": {
       "columnPost": "Post",
