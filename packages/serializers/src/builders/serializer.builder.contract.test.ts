@@ -115,17 +115,13 @@ describe('server serializer wire contract (#1096)', () => {
         lastName: 'Founder',
       },
     };
-    const output = PostSerializer.serialize(record) as {
-      data: {
-        relationships: { user: { data: unknown } };
-      };
-      included: unknown[];
-    };
+    const output = PostSerializer.serialize(record);
+    const resource = Array.isArray(output.data) ? undefined : output.data;
 
     // Pre-cleanup `ref: '_id'` never matched hydrated Prisma relations, so
     // populate data was silently dropped (relationship data stayed null and
     // nothing was pushed to `included`).
-    expect(output.data.relationships.user.data).toEqual({
+    expect(resource?.relationships?.user?.data).toEqual({
       id: 'ckuser0000000000000000001',
       type: 'user',
     });

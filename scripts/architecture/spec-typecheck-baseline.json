@@ -4001,30 +4001,6 @@
       "workspace": "config"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/contracts/src/constants/model-capabilities.constant.test.ts",
-      "fingerprint": "1876fc14dc192314e638",
-      "message": "Argument of type 'string' is not assignable to parameter of type '\"leonardoai\" | \"sdxl\" | \"black-forest-labs/flux-schnell\" | \"google/imagen-3\" | \"google/imagen-3-fast\" | \"google/imagen-4\" | \"google/imagen-4-fast\" | \"google/imagen-4-ultra\" | ... 124 more ... | \"genfeed-ai/z-image-turbo-lora\"'.",
-      "workspace": "contracts"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "packages/contracts/src/constants/self-hosted-models.constant.test.ts",
-      "fingerprint": "34456683a759b2d7ade1",
-      "message": "Property 'pricingType' does not exist on type '{ category: ModelCategory; cost: number; costTier: CostTier; description: string; isDefault: boolean; isHighlighted: boolean; key: \"black-forest-labs/flux-3-image\" | \"black-forest-labs/flux-3-image-edit\"; ... 5 more ...; providerCostUsd: number; } | ... 21 more ... | { ...; }'.   Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
-      "workspace": "contracts"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "packages/contracts/src/constants/self-hosted-models.constant.test.ts",
-      "fingerprint": "997d3dd44ab0fe1e5fc1",
-      "message": "Property 'costPerUnit' does not exist on type '{ category: ModelCategory; cost: number; costTier: CostTier; description: string; isDefault: boolean; isHighlighted: boolean; key: \"black-forest-labs/flux-3-image\" | \"black-forest-labs/flux-3-image-edit\"; ... 5 more ...; providerCostUsd: number; } | ... 21 more ... | { ...; }'.   Property 'costPerUnit' does not exist on type '{ category: ModelCategory; cost: number; costTier: CostTier; description: string; isDefault: boolean; isHighlighted: boolean; key: \"black-forest-labs/flux-3-image\" | \"black-forest-labs/flux-3-image-edit\"; ... 5 more ...; providerCostUsd: number; }'.",
-      "workspace": "contracts"
-    },
-    {
       "code": 2540,
       "count": 6,
       "file": "apps/server/discord/src/config/config.service.spec.ts",
@@ -4601,30 +4577,6 @@
       "workspace": "hooks"
     },
     {
-      "code": 2339,
-      "count": 1,
-      "file": "packages/integrations/src/base-bot-manager.test.ts",
-      "fingerprint": "adee40c9155d036ed3b0",
-      "message": "Property 'mockRejectedValueOnce' does not exist on type 'never'.",
-      "workspace": "integrations"
-    },
-    {
-      "code": 2674,
-      "count": 1,
-      "file": "packages/integrations/src/base-bot-manager.test.ts",
-      "fingerprint": "6378e86285540e9efef8",
-      "message": "Constructor of class 'BaseBotManager<TBotInstance>' is protected and only accessible within the class declaration.",
-      "workspace": "integrations"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "packages/integrations/src/http/integration-http-client.test.ts",
-      "fingerprint": "098d6cf688b79d3a1c31",
-      "message": "Property 'method' is missing in type '{ status: number; url: string; }' but required in type 'IntegrationHttpErrorMetadata'.",
-      "workspace": "integrations"
-    },
-    {
       "code": 2493,
       "count": 1,
       "file": "packages/libs/auth/better-auth-jwks.verifier.spec.ts",
@@ -4999,22 +4951,6 @@
       "fingerprint": "5b297a951e1e2587906d",
       "message": "Cannot find name 'ImageData'.",
       "workspace": "pricing"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "packages/serializers/src/builders/serializer.builder.contract.test.ts",
-      "fingerprint": "036850e9fa56f23b9971",
-      "message": "Conversion of type 'JsonApiDocument' to type '{ data: { relationships: { user: { data: unknown; }; }; }; included: unknown[]; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'data' are incompatible.     Type 'JsonApiResource | JsonApiResource[] | undefined' is not comparable to type '{ relationships: { user: { data: unknown; }; }; }'.       Property 'relationships' is missing in type 'JsonApiResource[]' but required in type '{ relationships: { user: { data: unknown; }; }; }'.",
-      "workspace": "serializers"
-    },
-    {
-      "code": 2550,
-      "count": 1,
-      "file": "packages/serializers/src/helpers/turbo-run-item-assignee.helper.test.ts",
-      "fingerprint": "fc927e9650d98357b03e",
-      "message": "Property 'toSorted' does not exist on type 'string[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
-      "workspace": "serializers"
     },
     {
       "code": 2322,
