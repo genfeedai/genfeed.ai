@@ -115,6 +115,10 @@ export default function AgentWorkflowRunDialog({
   const [extraInputs, setExtraInputs] = useState<Record<string, string>>({});
   const [selectedIngredientId, setSelectedIngredientId] =
     useState(NONE_INGREDIENT);
+  // The picked image is kept as chosen, so a background refresh of the
+  // library that no longer lists it never drops the workflow's reference.
+  const [selectedImage, setSelectedImage] =
+    useState<WorkflowIngredientSelection | null>(null);
   // The brand's library images are cached per viewer and brand, so reopening
   // the dialog lists them at once and refreshes them in the background.
   const libraryBrandId = strategy?.brandId ?? strategy?.brand?.id ?? null;
@@ -139,7 +143,20 @@ export default function AgentWorkflowRunDialog({
     ],
     service: (token: string) => ImagesService.getInstance(token),
   });
-  const libraryImages = libraryQuery.data ?? EMPTY_LIBRARY_IMAGES;
+  const loadedLibraryImages = libraryQuery.data ?? EMPTY_LIBRARY_IMAGES;
+  const libraryImages = useMemo(
+    () =>
+      selectedImage &&
+      !loadedLibraryImages.some((image) => image.id === selectedImage.id)
+        ? [selectedImage, ...loadedLibraryImages]
+        : loadedLibraryImages,
+    [loadedLibraryImages, selectedImage],
+  );
+
+  function handleSelectIngredient(id: string) {
+    setSelectedIngredientId(id);
+    setSelectedImage(libraryImages.find((image) => image.id === id) ?? null);
+  }
   const isLoadingLibrary = libraryQuery.isLoading;
 
   useEffect(() => {
@@ -156,6 +173,7 @@ export default function AgentWorkflowRunDialog({
     setReferenceImage('');
     setCta('');
     setSelectedIngredientId(NONE_INGREDIENT);
+    setSelectedImage(null);
     setExtraInputs({});
   }, [isOpen, strategy]);
 
@@ -298,7 +316,7 @@ export default function AgentWorkflowRunDialog({
             </span>
             <Select
               value={selectedIngredientId}
-              onValueChange={setSelectedIngredientId}
+              onValueChange={handleSelectIngredient}
             >
               <SelectTrigger aria-label="Library image for workflow reference">
                 <SelectValue

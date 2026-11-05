@@ -112,12 +112,14 @@ export function useReplyCampaigns() {
   }, [refetchCampaigns, refetchConversations]);
 
   const updateCampaigns = useCallback(
-    (
+    async (
       queryKey: readonly unknown[],
       update: (
         current: SocialReplyCampaignModel[],
       ) => SocialReplyCampaignModel[],
     ) => {
+      // A read still in flight would land its older list after this write.
+      await queryClient.cancelQueries({ queryKey });
       queryClient.setQueriesData<SocialReplyCampaignModel[]>(
         { queryKey },
         (current) => (current ? update(current) : current),
@@ -134,7 +136,10 @@ export function useReplyCampaigns() {
       try {
         const service = await getCampaignsService();
         const campaign = await service.createCampaign(input);
-        updateCampaigns(campaignsScopeKey, (current) => [campaign, ...current]);
+        await updateCampaigns(campaignsScopeKey, (current) => [
+          campaign,
+          ...current,
+        ]);
       } catch (err: unknown) {
         setActionError(getErrorMessage(err));
       } finally {
@@ -152,7 +157,7 @@ export function useReplyCampaigns() {
       try {
         const service = await getCampaignsService();
         const campaign = await service.transition(campaignId, transition);
-        updateCampaigns([REPLY_CAMPAIGNS_KEY], (current) =>
+        await updateCampaigns([REPLY_CAMPAIGNS_KEY], (current) =>
           current.map((item) => (item.id === campaign.id ? campaign : item)),
         );
       } catch (err: unknown) {

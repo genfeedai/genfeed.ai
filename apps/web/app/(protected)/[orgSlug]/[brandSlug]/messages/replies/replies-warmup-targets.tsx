@@ -66,7 +66,11 @@ export default function RepliesWarmupTargets({
     toast.error(translate('loadFailed'));
   }, [loadError, translate]);
 
-  function updateTargets(update: (previous: IReplyTarget[]) => IReplyTarget[]) {
+  /** Cancels a read in flight first, so its older list never lands after the write. */
+  async function updateTargets(
+    update: (previous: IReplyTarget[]) => IReplyTarget[],
+  ) {
+    await queryClient.cancelQueries({ queryKey: targetsKey });
     queryClient.setQueriesData<IReplyTarget[]>(
       { queryKey: targetsKey },
       (previous) => (previous ? update(previous) : previous),
@@ -99,7 +103,7 @@ export default function RepliesWarmupTargets({
     try {
       const service = await getReplyBotConfigsService();
       const result = await service.addWarmupTarget({ brandId, username });
-      updateTargets((previous) => [
+      await updateTargets((previous) => [
         {
           displayName: suggestion.displayName,
           followersCount: suggestion.followersCount,
@@ -128,7 +132,7 @@ export default function RepliesWarmupTargets({
         brandId,
         monitoredAccountId: target.monitoredAccountId,
       });
-      updateTargets((previous) =>
+      await updateTargets((previous) =>
         previous.filter(
           (item) => item.monitoredAccountId !== target.monitoredAccountId,
         ),

@@ -11,6 +11,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   type CampaignTarget,
+  type CampaignTargetsPage,
   type OutreachCampaign,
   OutreachCampaignsService,
 } from '@services/automation/outreach-campaigns.service';
@@ -88,8 +89,24 @@ export function useOutreachCampaignDetail() {
   });
 
   const campaign = campaignQuery.data ?? null;
-  const targetPage = targetsQuery.data ?? null;
-  const targets = targetPage?.targets ?? EMPTY_TARGETS;
+  // A page that fails to load blanks only its own rows: the campaign-wide
+  // KPIs and page totals stay from the last page read for this campaign.
+  const targetsScopeId = targetsScopeKey.join(':');
+  const lastTargetPageRef = useRef<CampaignTargetsPage | null>(null);
+  const lastTargetScopeRef = useRef<string | null>(null);
+  const loadedTargetPage = targetsQuery.data;
+  useEffect(() => {
+    if (loadedTargetPage) {
+      lastTargetPageRef.current = loadedTargetPage;
+      lastTargetScopeRef.current = targetsScopeId;
+    }
+  }, [loadedTargetPage, targetsScopeId]);
+  const lastTargetPage =
+    lastTargetScopeRef.current === targetsScopeId
+      ? lastTargetPageRef.current
+      : null;
+  const targetPage = loadedTargetPage ?? lastTargetPage;
+  const targets = loadedTargetPage?.targets ?? EMPTY_TARGETS;
   const statusCounts = targetPage?.statusCounts ?? EMPTY_STATUS_COUNTS;
   const isLoading = campaignQuery.isPending || targetsQuery.isPending;
   const isRefreshing =
@@ -124,7 +141,9 @@ export function useOutreachCampaignDetail() {
   }, [isFetchReady, refetchCampaign, refetchTargets]);
 
   const setCampaign = useCallback(
-    (updated: OutreachCampaign) => {
+    async (updated: OutreachCampaign) => {
+      // A read still in flight would land the older campaign after this write.
+      await queryClient.cancelQueries({ queryKey: campaignKey });
       queryClient.setQueriesData<OutreachCampaign>(
         { queryKey: campaignKey },
         updated,
@@ -174,7 +193,7 @@ export function useOutreachCampaignDetail() {
     try {
       const service = await getService();
       const updated = await service.start(campaignId);
-      setCampaign(updated);
+      await setCampaign(updated);
       notificationsService.success(translate('notifications.startedPlain'));
     } catch (error) {
       logger.error('Failed to start campaign', error);
@@ -193,7 +212,7 @@ export function useOutreachCampaignDetail() {
     try {
       const service = await getService();
       const updated = await service.pause(campaignId);
-      setCampaign(updated);
+      await setCampaign(updated);
       notificationsService.success(translate('notifications.pausedPlain'));
     } catch (error) {
       logger.error('Failed to pause campaign', error);
@@ -209,7 +228,7 @@ export function useOutreachCampaignDetail() {
     try {
       const service = await getService();
       const updated = await service.complete(campaignId);
-      setCampaign(updated);
+      await setCampaign(updated);
       notificationsService.success(translate('notifications.completedPlain'));
     } catch (error) {
       logger.error('Failed to complete campaign', error);
