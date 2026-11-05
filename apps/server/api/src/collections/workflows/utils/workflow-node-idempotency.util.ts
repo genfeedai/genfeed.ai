@@ -6,7 +6,8 @@
  * re-emit the first result instead of re-executing side-effect nodes.
  */
 
-export type NodeClaimStatus = 'completed' | 'failed' | 'running' | 'pending';
+/** `WorkflowNodeClaim.status`; the in-memory guard uses the same set. */
+export type NodeClaimStatus = 'completed' | 'failed' | 'running';
 
 export type NodeClaimRecord = {
   nodeId: string;
@@ -30,13 +31,10 @@ export function resolveNodeClaimDecision(
   if (!existing) {
     return { action: 'claim' };
   }
-  if (existing.status === 'completed' || existing.status === 'failed') {
-    return { action: 'skip', record: existing };
-  }
   if (existing.status === 'running') {
     return { action: 'busy', record: existing };
   }
-  return { action: 'claim' };
+  return { action: 'skip', record: existing };
 }
 
 /**
@@ -60,7 +58,11 @@ export function claimNodeOnce(
 export function completeNodeClaim(
   claims: Map<string, NodeClaimRecord>,
   key: string,
-  result: { status: 'completed' | 'failed'; output?: unknown; error?: string },
+  result: {
+    status: Exclude<NodeClaimStatus, 'running'>;
+    output?: unknown;
+    error?: string;
+  },
 ): void {
   const current = claims.get(key);
   if (!current) {
