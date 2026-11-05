@@ -1,11 +1,11 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Calendar, Plus } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 interface ContentCalendarCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'content_calendar_card'>;
   onFillGap?: (date: string) => void;
 }
 

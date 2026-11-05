@@ -21,6 +21,12 @@ describe('extractThreadAssets', () => {
               audio: ['https://cdn.genfeed.ai/audio/test.mp3'],
               id: 'action-1',
               images: ['https://cdn.genfeed.ai/images/a.jpg'],
+              title: 'Generated content',
+              type: 'content_preview_card',
+              videos: ['https://cdn.genfeed.ai/videos/v.mp4'],
+            },
+            {
+              id: 'action-2',
               ingredients: [
                 {
                   id: 'ingredient-1',
@@ -29,9 +35,8 @@ describe('extractThreadAssets', () => {
                   url: 'https://cdn.genfeed.ai/images/ingredient.jpg',
                 },
               ],
-              title: 'Generated content',
-              type: 'content_preview_card',
-              videos: ['https://cdn.genfeed.ai/videos/v.mp4'],
+              title: 'Pick an image',
+              type: 'ingredient_picker_card',
             },
           ],
         },

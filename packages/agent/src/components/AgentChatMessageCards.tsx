@@ -1,11 +1,10 @@
 import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
 import { AgentTextArtifactPreview } from '@genfeedai/agent/components/AgentTextArtifactPreview';
 import type {
-  AgentUiAction,
   AgentUiActionHandler,
+  AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { collectConnectPlatforms } from '@genfeedai/agent/utils/collapse-oauth-connect-cards';
 import { normalizeAgentAssetHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
 import {
   ButtonSize,
@@ -15,6 +14,7 @@ import {
   CardVariant,
 } from '@genfeedai/contracts';
 import { parseScopedAppPath } from '@genfeedai/contracts/constants';
+import { collectConnectPlatforms } from '@genfeedai/contracts/interfaces';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -58,7 +58,7 @@ function formatPlatformLabel(platform: string): string {
 function GenericOAuthConnectCard({
   action,
 }: {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'oauth_connect_card'>;
 }): ReactElement {
   const translate = useTranslations('agent.messageCards');
   const { orgHref } = useOrgUrl();
@@ -104,7 +104,7 @@ export function OAuthConnectCard({
   action,
   onConnect,
 }: {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'oauth_connect_card'>;
   onConnect?: (platform: string) => void | Promise<void>;
 }): ReactElement {
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(
@@ -195,7 +195,7 @@ export function ContentPreviewCard({
   onCopy,
   onUiAction,
 }: {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'content_preview_card'>;
   apiService?: AgentApiService;
   onUiAction?: AgentUiActionHandler;
   onCopy?: (content: string) => void | Promise<void>;

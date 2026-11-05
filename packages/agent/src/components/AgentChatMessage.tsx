@@ -13,7 +13,6 @@ import type {
   AgentUiActionHandler,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { collapseOAuthConnectCards } from '@genfeedai/agent/utils/collapse-oauth-connect-cards';
 import { shouldCollapseUserMessage } from '@genfeedai/agent/utils/should-collapse-user-message';
 import {
   hasProductResultCard,
@@ -26,6 +25,7 @@ import {
   CardPadding,
   CardVariant,
 } from '@genfeedai/contracts';
+import { collapseOAuthConnectCards } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import KnowledgeCitationList from '@ui/knowledge/KnowledgeCitationList';

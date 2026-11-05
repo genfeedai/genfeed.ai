@@ -1,4 +1,4 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { ButtonVariant } from '@genfeedai/contracts';
@@ -15,7 +15,7 @@ import { type ReactElement, useCallback, useRef, useState } from 'react';
 import { AgentErrorMessage } from './AgentErrorMessage';
 
 interface WorkflowTriggerCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'workflow_trigger_card'>;
   apiService: AgentApiService;
 }
 

@@ -6,6 +6,7 @@ import { WorkflowCreatedCard } from '@genfeedai/agent/components/WorkflowCreated
 import type {
   AgentUiAction,
   AgentUiActionHandler,
+  AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { getAgentUiActionSourceId } from '@genfeedai/contracts/interfaces';
@@ -99,7 +100,7 @@ type CardCase = {
   runPayload: Record<string, unknown> | undefined;
 };
 
-const publishAction: AgentUiAction = {
+const publishAction: AgentUiActionOf<'publish_post_card'> = {
   contentId: 'ingredient-1',
   data: { availablePlatforms: ['linkedin'] },
   id: 'publish-card-1',
@@ -108,7 +109,7 @@ const publishAction: AgentUiAction = {
   type: 'publish_post_card',
 };
 
-const scheduleAction: AgentUiAction = {
+const scheduleAction: AgentUiActionOf<'schedule_post_card'> = {
   contentId: 'ingredient-2',
   id: 'schedule-card-1',
   platforms: ['instagram'],
@@ -119,7 +120,7 @@ const scheduleAction: AgentUiAction = {
 };
 
 const startInterviewPayload = { brandId: 'brand-1' };
-const interviewAction: AgentUiAction = {
+const interviewAction: AgentUiActionOf<'brand_interview_offer_card'> = {
   ctas: [
     {
       action: 'start_interview',
@@ -133,7 +134,7 @@ const interviewAction: AgentUiAction = {
 };
 
 const installPayload = { sourceId: 'template-1' };
-const workflowAction: AgentUiAction = {
+const workflowAction: AgentUiActionOf<'workflow_created_card'> = {
   ctas: [
     {
       action: 'confirm_install_official_workflow',
@@ -144,14 +145,19 @@ const workflowAction: AgentUiAction = {
   id: 'workflow-card-1',
   title: 'Install official workflow?',
   type: 'workflow_created_card',
+  workflowName: 'Official workflow',
 };
 
 const botPayload = { botId: 'bot-1' };
-const botAction: AgentUiAction = {
+const botAction: AgentUiActionOf<'livestream_bot_status_card'> = {
   ctas: [
     { action: 'pause_livestream_bot', label: 'Pause', payload: botPayload },
   ],
+  botId: 'bot-1',
+  botName: 'StreamBot',
   id: 'bot-card-1',
+  platform: 'youtube',
+  sessionStatus: 'connected',
   title: 'Livestream bot',
   type: 'livestream_bot_status_card',
 };

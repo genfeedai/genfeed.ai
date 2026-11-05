@@ -1,4 +1,7 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentUiAction,
+  AgentUiActionOf,
+} from '@genfeedai/agent/models/agent-chat.model';
 
 const TOOL_ACTIONS_COMPLETED_BULLET_PATTERN =
   /^\d+\s+tool action(s)?\s+completed$/i;
@@ -78,7 +81,7 @@ function isGenericDoneCopy(value: string | undefined): boolean {
 
 /** True when Done carries media, real product bullets, or non-generic copy. */
 export function completionSummaryHasOutcomeSignal(
-  action: AgentUiAction,
+  action: AgentUiActionOf<'completion_summary_card'>,
 ): boolean {
   if ((action.outputVariants?.length ?? 0) > 0) {
     return true;

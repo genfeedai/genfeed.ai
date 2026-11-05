@@ -1,7 +1,10 @@
+import type { AgentUiActionType } from '@genfeedai/contracts/interfaces';
 import type { CuratedActionName } from '../registry/curated-action-catalog';
 import type { ToolsetName } from '../registry/toolset-names';
 
-export type ToolUiActionType =
+/** The card a tool's result renders as; a subset of the agent card types. */
+export type ToolUiActionType = Extract<
+  AgentUiActionType,
   | 'ai_text_action_card'
   | 'analytics_snapshot_card'
   | 'onboarding_checklist_card'
@@ -26,7 +29,8 @@ export type ToolUiActionType =
   | 'schedule_post_card'
   | 'ingredient_picker_card'
   | 'ingredient_alternatives_card'
-  | 'next_steps_card';
+  | 'next_steps_card'
+>;
 
 export interface ToolParameterSchema {
   $defs?: Record<string, unknown>;

@@ -22,6 +22,7 @@ import { toRouterPriority } from '@genfeedai/contracts';
 import {
   type AgentToolResult,
   type AgentUiAction,
+  mergeAgentUiActionData,
 } from '@genfeedai/contracts/interfaces';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -360,13 +361,11 @@ export class AgentOrchestratorUiActionConfirmedToolService {
         const linkedResult = {
           ...execution.result,
           nextActions: [
-            ...(execution.result.nextActions ?? []).map((action) => ({
-              ...action,
-              data: {
-                ...(action.data ?? {}),
+            ...(execution.result.nextActions ?? []).map((action) =>
+              mergeAgentUiActionData(action, {
                 sourceGenerationActionId: request.sourceActionId,
-              },
-            })),
+              }),
+            ),
           ],
         };
         return this.finalizer.finalizeStructuredAssistantTurn({

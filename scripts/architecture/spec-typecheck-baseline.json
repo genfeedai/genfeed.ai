@@ -193,14 +193,6 @@
       "workspace": "agent"
     },
     {
-      "code": 2741,
-      "count": 1,
-      "file": "packages/agent/src/components/MutationApprovalCard.browser.test.tsx",
-      "fingerprint": "2cb453b7b7b56a02ebb0",
-      "message": "Property 'title' is missing in type '{ id: string; type: \"mutation_approval_card\"; data: { approvalId: string; sourceActionId: string; summary: string; items: { label: string; value: string; }[]; status: string; }; }' but required in type 'AgentUiAction'.",
-      "workspace": "agent"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "packages/agent/src/components/MutationApprovalCard.spec.tsx",
@@ -222,38 +214,6 @@
       "file": "packages/agent/src/components/TimelineStreamingRow.spec.tsx",
       "fingerprint": "fa09a34e01a2435ca6ee",
       "message": "Property 'arguments' is missing in type '{ id: string; name: string; startedAt: string; status: \"running\"; }' but required in type 'AgentToolCall'.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/agent/src/components/UiActionRenderer.matrix.spec.tsx",
-      "fingerprint": "f33c10d150bd19db17ed",
-      "message": "Type 'never[]' is not assignable to type 'Record<string, unknown>'.   Index signature for type 'string' is missing in type 'never[]'.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2353,
-      "count": 1,
-      "file": "packages/agent/src/components/UiActionRenderer.matrix.spec.tsx",
-      "fingerprint": "ce71025a5e5015e82786",
-      "message": "Object literal may only specify known properties, and 'change' does not exist in type '{ id: string; label: string; score?: number | undefined; platform?: string | undefined; }'.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2353,
-      "count": 1,
-      "file": "packages/agent/src/components/UiActionRenderer.matrix.spec.tsx",
-      "fingerprint": "e8691d90237048e1f796",
-      "message": "Object literal may only specify known properties, and 'results' does not exist in type 'Partial<AgentUiAction>'.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2561,
-      "count": 1,
-      "file": "packages/agent/src/components/UiActionRenderer.matrix.spec.tsx",
-      "fingerprint": "8cb049095e227365f052",
-      "message": "Object literal may only specify known properties, but 'content' does not exist in type 'Partial<AgentUiAction>'. Did you mean to write 'contentId'?",
       "workspace": "agent"
     },
     {
@@ -542,14 +502,6 @@
       "file": "packages/agent/src/stores/agent-chat.store.actions.spec.ts",
       "fingerprint": "ecec9b3c9cba9bd73612",
       "message": "Conversion of type '{ createdAt: string; id: string; label: string; status: AgentWorkEventStatus.COMPLETED; type: any; }' to type 'AgentWorkEvent' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ createdAt: string; id: string; label: string; status: AgentWorkEventStatus.COMPLETED; type: any; }' is missing the following properties from type 'AgentWorkEvent': threadId, event",
-      "workspace": "agent"
-    },
-    {
-      "code": 2741,
-      "count": 3,
-      "file": "packages/agent/src/stores/agent-chat.store.actions.spec.ts",
-      "fingerprint": "cc81c133dc9aeb101898",
-      "message": "Property 'title' is missing in type '{ id: string; type: \"completion_summary_card\"; }' but required in type 'AgentUiAction'.",
       "workspace": "agent"
     },
     {
@@ -2697,27 +2649,11 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-route-rewrite.service.spec.ts",
-      "fingerprint": "f90d24feef6afad362db",
-      "message": "Type '\"analytics_card\"' is not assignable to type 'AgentUiActionType'.",
-      "workspace": "api"
-    },
-    {
       "code": 2353,
       "count": 1,
       "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-route-rewrite.service.spec.ts",
       "fingerprint": "e4716c4275ccfb037f21",
       "message": "Object literal may only specify known properties, and 'ctaHref' does not exist in type 'AgentUiActionCta'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2741,
-      "count": 2,
-      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-route-rewrite.service.spec.ts",
-      "fingerprint": "e10426109d0536abea8a",
-      "message": "Property 'id' is missing in type '{ ctas: { href: string; label: string; }[]; title: string; type: \"oauth_connect_card\"; }' but required in type 'AgentUiAction'.",
       "workspace": "api"
     },
     {

@@ -92,6 +92,7 @@ describe('AgentRouteRewriteService', () => {
             { href: '/discovery/ads', label: 'Open ads hub' },
           ],
           id: 'ads-search-results-1',
+          items: [],
           title: 'Ads search results',
           type: 'ads_search_results_card',
         },
@@ -134,6 +135,7 @@ describe('AgentRouteRewriteService', () => {
         nextActions: [
           {
             ctas: [{ href: '/settings/api-keys', label: 'Settings' }],
+            id: 'connect',
             title: 'Connect',
             type: 'oauth_connect_card',
           },
@@ -383,6 +385,7 @@ describe('AgentRouteRewriteService', () => {
       nextActions: [
         {
           ctas: [{ href: '/settings/api-keys', label: 'Settings' }],
+          id: 'connect',
           title: 'Connect',
           type: 'oauth_connect_card',
         },
@@ -405,8 +408,9 @@ describe('AgentRouteRewriteService', () => {
         nextActions: [
           {
             ctas: [{ href: '/analytics', label: 'Analytics' }],
+            id: 'analytics',
             title: 'Analytics',
-            type: 'analytics_card',
+            type: 'analytics_snapshot_card',
           },
         ],
         creditsUsed: 0,

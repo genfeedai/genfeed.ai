@@ -1,5 +1,5 @@
 import '@agent-tests/media-preview-mocks';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { VoiceCloneStatus } from '@genfeedai/contracts';
 import {
@@ -49,7 +49,9 @@ function makeApiService(overrides: ApiOverrides = {}): AgentApiService {
   } as unknown as AgentApiService;
 }
 
-function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
+function makeAction(
+  overrides: Partial<AgentUiActionOf<'voice_clone_card'>> = {},
+): AgentUiActionOf<'voice_clone_card'> {
   return {
     audioUrl: 'https://cdn.test/sample.mp3',
     brandId: 'brand-1',
@@ -62,7 +64,7 @@ function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
     title: 'Voice setup',
     type: 'voice_clone_card',
     ...overrides,
-  } as AgentUiAction;
+  } as AgentUiActionOf<'voice_clone_card'>;
 }
 
 function makeAudioFile(name = 'sample.mp3'): File {

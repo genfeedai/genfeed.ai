@@ -2,7 +2,7 @@ import '@agent-tests/media-preview-mocks';
 import { IngredientPickerCard } from '@genfeedai/agent/components/IngredientPickerCard';
 import { ReviewGateCard } from '@genfeedai/agent/components/ReviewGateCard';
 import { SchedulePostCard } from '@genfeedai/agent/components/SchedulePostCard';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -47,7 +47,9 @@ vi.mock('@ui/publisher/PostingSignaturePicker', () => ({
 }));
 
 describe('ReviewGateCard', () => {
-  function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
+  function makeAction(
+    overrides: Partial<AgentUiActionOf<'review_gate_card'>> = {},
+  ): AgentUiActionOf<'review_gate_card'> {
     return {
       description: 'Approve or reject the drafts below.',
       id: 'review-1',
@@ -58,7 +60,7 @@ describe('ReviewGateCard', () => {
       title: 'Review drafts',
       type: 'review_gate_card',
       ...overrides,
-    } as AgentUiAction;
+    } as AgentUiActionOf<'review_gate_card'>;
   }
 
   it('renders items and disables actions until a selection is made', () => {
@@ -196,7 +198,9 @@ describe('ReviewGateCard', () => {
 });
 
 describe('SchedulePostCard', () => {
-  function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
+  function makeAction(
+    overrides: Partial<AgentUiActionOf<'schedule_post_card'>> = {},
+  ): AgentUiActionOf<'schedule_post_card'> {
     return {
       creditEstimate: 12,
       description: 'Pick a time',
@@ -206,7 +210,7 @@ describe('SchedulePostCard', () => {
       title: 'Schedule launch post',
       type: 'schedule_post_card',
       ...overrides,
-    } as AgentUiAction;
+    } as AgentUiActionOf<'schedule_post_card'>;
   }
 
   it('renders suggested values and schedules with them', () => {
@@ -273,7 +277,9 @@ describe('SchedulePostCard', () => {
 });
 
 describe('IngredientPickerCard', () => {
-  function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
+  function makeAction(
+    overrides: Partial<AgentUiActionOf<'ingredient_picker_card'>> = {},
+  ): AgentUiActionOf<'ingredient_picker_card'> {
     return {
       description: 'Pick a base image',
       id: 'picker-1',
@@ -295,7 +301,7 @@ describe('IngredientPickerCard', () => {
       title: 'Choose an ingredient',
       type: 'ingredient_picker_card',
       ...overrides,
-    } as AgentUiAction;
+    } as AgentUiActionOf<'ingredient_picker_card'>;
   }
 
   it('renders the grid with image and video thumbnails', () => {

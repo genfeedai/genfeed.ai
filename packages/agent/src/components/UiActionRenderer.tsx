@@ -103,6 +103,8 @@ export function UiActionRenderer({
   const liveApiService = isReadOnly ? undefined : apiService;
 
   let card: ReactElement | null = null;
+  // Persisted threads can hold card types this build no longer renders.
+  const actionType: string = action.type;
 
   switch (action.type) {
     case 'agent_transfer_card':
@@ -324,7 +326,7 @@ export function UiActionRenderer({
           role="status"
         >
           {translate('unsupportedCard')}
-          {typeof action.type === 'string' ? ` (${action.type})` : ''}
+          {` (${actionType})`}
         </div>
       );
       break;

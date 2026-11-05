@@ -1,4 +1,4 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { isCloudDeployment } from '@genfeedai/config/deployment';
 import { ONBOARDING_JOURNEY_TOTAL_CREDITS } from '@genfeedai/contracts/types/onboarding-journey';
 import { Progress } from '@ui/primitives/progress';
@@ -6,7 +6,7 @@ import { ChevronRight, CircleCheck, Rocket } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 interface OnboardingChecklistCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'onboarding_checklist_card'>;
 }
 
 export function OnboardingChecklistCard({

@@ -265,7 +265,12 @@ describe('agent-chat.store messages and plans', () => {
     const store = useAgentChatStore.getState();
     store.setMessages([makeMessage('m-1')]);
     store.addPendingUiActions([
-      { id: 'other-action', type: 'completion_summary_card' },
+      {
+        id: 'other-action',
+        summaryText: 'Done.',
+        title: 'Done',
+        type: 'completion_summary_card',
+      },
     ]);
     const before = useAgentChatStore.getState();
 
@@ -282,13 +287,22 @@ describe('agent-chat.store messages and plans', () => {
       makeMessage('m-1', {
         metadata: {
           uiActions: [
-            { id: 'message-action', type: 'brand_voice_profile_card' },
+            {
+              id: 'message-action',
+              title: 'Brand voice',
+              type: 'brand_voice_profile_card',
+            },
           ],
         },
       }),
     ]);
     store.addPendingUiActions([
-      { id: 'other-action', type: 'completion_summary_card' },
+      {
+        id: 'other-action',
+        summaryText: 'Done.',
+        title: 'Done',
+        type: 'completion_summary_card',
+      },
     ]);
     const before = useAgentChatStore.getState();
 

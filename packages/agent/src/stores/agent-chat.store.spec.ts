@@ -153,6 +153,7 @@ describe('agent-chat.store stream item upserts', () => {
 
     store.addPendingUiActions([
       {
+        generationType: 'image',
         id: 'action-1',
         title: 'Generate',
         type: 'generation_action_card',
@@ -160,6 +161,7 @@ describe('agent-chat.store stream item upserts', () => {
     ]);
     store.addPendingUiActions([
       {
+        generationType: 'image',
         id: 'action-1',
         status: 'completed',
         title: 'Generate',
@@ -169,6 +171,7 @@ describe('agent-chat.store stream item upserts', () => {
 
     expect(useAgentChatStore.getState().stream.pendingUiActions).toEqual([
       {
+        generationType: 'image',
         id: 'action-1',
         status: 'completed',
         title: 'Generate',

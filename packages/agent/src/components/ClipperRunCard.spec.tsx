@@ -3,7 +3,7 @@ import type {
   ClipperRunCardState,
   ClipperRunModes,
   ClipperRunStep,
-} from '@genfeedai/agent/models/clipper-run-card.model';
+} from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

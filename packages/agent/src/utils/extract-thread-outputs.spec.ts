@@ -38,7 +38,7 @@ describe('extractThreadOutputs', () => {
     ]);
   });
 
-  it('preserves ingredient title and thumbnail on direct video outputs', () => {
+  it('preserves ingredient title and thumbnail on picked video outputs', () => {
     const outputs = extractThreadOutputs([
       {
         id: 'message',
@@ -50,9 +50,8 @@ describe('extractThreadOutputs', () => {
           uiActions: [
             {
               id: 'action',
-              type: 'content_preview_card',
+              type: 'ingredient_picker_card',
               title: 'Group',
-              videos: ['https://cdn.test/clip.mp4'],
               ingredients: [
                 {
                   id: 'clip',
@@ -179,6 +178,7 @@ describe('extractThreadOutputs', () => {
                   url: 'https://cdn.test/summary.png',
                 },
               ],
+              summaryText: 'Done.',
               title: 'Done',
               type: 'completion_summary_card',
             },

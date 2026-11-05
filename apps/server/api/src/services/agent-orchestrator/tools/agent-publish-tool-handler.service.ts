@@ -69,7 +69,7 @@ import { TURBO_RUN_CAPTION_BASE_CREDITS } from '@genfeedai/contracts/constants';
 import {
   type AgentPublishIdempotencyInput,
   type AgentToolResult,
-  type AgentUiAction,
+  type AgentUiActionOf,
   type PublishConfirmedContentInput,
   type ScheduleCanonicalPostInput,
 } from '@genfeedai/contracts/interfaces';
@@ -608,10 +608,10 @@ export class AgentPublishToolHandler {
     description: string;
     scheduledAt?: string;
     sourceActionId: string;
-    targets: AgentUiAction['targets'];
+    targets: AgentUiActionOf<'publish_post_card'>['targets'];
     title: string;
     visibility: PostVisibility;
-  }): AgentUiAction {
+  }): AgentUiActionOf<'publish_post_card'> {
     const selectedPlatforms =
       params.defaultPlatforms && params.defaultPlatforms.length > 0
         ? params.defaultPlatforms.filter((platform) =>

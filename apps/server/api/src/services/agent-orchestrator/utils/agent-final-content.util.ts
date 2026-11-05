@@ -32,8 +32,8 @@ export function normalizeFinalAssistantContent(
   const hasPendingPostProposal = uiActions.some(
     (action) =>
       action.type === 'mutation_approval_card' &&
-      action.title?.trim().toLowerCase() === 'create post' &&
-      action.data?.status === 'pending',
+      action.title.trim().toLowerCase() === 'create post' &&
+      action.data.status === 'pending',
   );
   const proposalContent = hasPendingPostProposal
     ? normalizePendingPostContent(assistantContent)

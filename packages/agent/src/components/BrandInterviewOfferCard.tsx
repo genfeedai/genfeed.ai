@@ -1,7 +1,7 @@
 import { useAgentUiActionRequest } from '@genfeedai/agent/hooks/use-agent-ui-action-request';
 import type {
-  AgentUiAction,
   AgentUiActionHandler,
+  AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
@@ -9,7 +9,7 @@ import { CircleCheck, Sparkles } from 'lucide-react';
 import { type ReactElement, useCallback } from 'react';
 
 interface BrandInterviewOfferCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'brand_interview_offer_card'>;
   onUiAction?: AgentUiActionHandler;
 }
 
