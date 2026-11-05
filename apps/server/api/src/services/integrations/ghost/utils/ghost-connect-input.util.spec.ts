@@ -23,7 +23,7 @@ describe('parseGhostConnectInput', () => {
   it.each([
     ['http://myblog.com', KEY, ApiKeyConnectErrorCode.HTTPS_REQUIRED],
     ['ftp://myblog.com', KEY, ApiKeyConnectErrorCode.INVALID_URL],
-    ['https://user:pass@myblog.com', KEY, ApiKeyConnectErrorCode.INVALID_URL],
+    ['https://someone@myblog.com', KEY, ApiKeyConnectErrorCode.INVALID_URL],
     ['https://myblog.com?x=1', KEY, ApiKeyConnectErrorCode.INVALID_URL],
     ['localhost', KEY, ApiKeyConnectErrorCode.INVALID_URL],
     ['https://', KEY, ApiKeyConnectErrorCode.INVALID_URL],
