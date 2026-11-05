@@ -267,6 +267,10 @@ export class CreditTransactionsService extends BaseService<
     filters?: {
       brandId?: string;
       category?: string;
+      /** Inclusive lower bound on createdAt. */
+      createdFrom?: Date;
+      /** Exclusive upper bound on createdAt. */
+      createdTo?: Date;
       source?: string;
     },
   ): Promise<CreditTransactionsDocument[]> {
@@ -274,12 +278,22 @@ export class CreditTransactionsService extends BaseService<
       const brandId = filters?.brandId?.trim();
       const category = filters?.category?.trim();
       const source = filters?.source?.trim();
+      const createdFrom = filters?.createdFrom;
+      const createdTo = filters?.createdTo;
 
       const where: Prisma.CreditTransactionWhereInput = {
         isDeleted: false,
         organizationId,
         ...(category ? { category } : {}),
         ...(source ? { source } : {}),
+        ...(createdFrom || createdTo
+          ? {
+              createdAt: {
+                ...(createdFrom ? { gte: createdFrom } : {}),
+                ...(createdTo ? { lt: createdTo } : {}),
+              },
+            }
+          : {}),
         // Rows written before the brandId column carry it on metadata only.
         ...(brandId
           ? {

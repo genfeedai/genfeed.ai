@@ -34,6 +34,7 @@ import {
   readOnboardingFunnel,
   readOrganizationAppsReport,
   readOrganizationBrand,
+  readOrganizationCreditLedger,
   readOrganizationsReport,
   readPricingReport,
   readPublishPipeline,
@@ -106,6 +107,12 @@ interface CreditsGrantOptions {
   idempotencyKey?: string;
   reason: string;
   yes?: boolean;
+}
+
+interface CreditsLedgerOptions {
+  from: string;
+  limit?: number;
+  to: string;
 }
 
 interface MemberAddOptions {
@@ -1042,40 +1049,101 @@ function createOrganizationBrandSubcommands(): Command[] {
   ];
 }
 
-function createCreditsCommand(): Command {
-  return new Command('credits').description('Grant credits to an organization').addCommand(
-    new Command('grant')
-      .description('Grant credits to an organization (preview unless --yes)')
-      .argument('<organizationId>', 'Organization id')
-      .requiredOption('--amount <credits>', 'Credits to grant (1-100000)', Number)
-      .requiredOption('--reason <text>', 'Audit reason (8-500 characters)')
-      .option('--expires-in-days <days>', 'Expire the grant after N days', Number)
-      .option('--idempotency-key <key>', 'Stable key so a retry cannot double-grant')
-      .option('--yes', 'Apply the grant')
-      .action(async (organizationId: string, options: CreditsGrantOptions) => {
-        try {
-          if (!options.yes) {
-            print(formatHeader('Credit grant (preview)\n'));
-            print(formatLabel('Organization', organizationId));
-            print(formatLabel('Amount', String(options.amount)));
-            print(formatLabel('Reason', options.reason));
-            print(formatWarning('Re-run with --yes to grant the credits.'));
-            return;
-          }
-          const grant = await grantOrganizationCredits(organizationId, {
-            amount: options.amount,
-            expiresInDays: options.expiresInDays,
-            idempotencyKey: options.idempotencyKey,
-            reason: options.reason,
-          });
-          print(
-            formatSuccess(`Granted ${grant.creditsGranted} credits (balance ${grant.balance})`)
-          );
-        } catch (error) {
-          handleError(error);
+const ZONELESS_TIME = /T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/;
+
+/** Read a CLI time as UTC unless it carries its own offset (JS would use local time). */
+function toIsoInstant(value: string, flag: string): string {
+  const trimmed = value.trim();
+  const instant = new Date(ZONELESS_TIME.test(trimmed) ? `${trimmed}Z` : trimmed);
+  if (Number.isNaN(instant.getTime())) {
+    throw new GenfeedError(`${flag} must be a date or ISO timestamp`, 'Example: 2026-10-27T07:00Z');
+  }
+  return instant.toISOString();
+}
+
+function createCreditsLedgerCommand(): Command {
+  return new Command('ledger')
+    .description("Read an organization's credit ledger in a time window (read-only)")
+    .argument('<organizationId>', 'Organization id')
+    .requiredOption(
+      '--from <time>',
+      'Start, inclusive (ISO timestamp, UTC unless an offset is given)'
+    )
+    .requiredOption('--to <time>', 'End, exclusive (at most 31 days after --from)')
+    .option('--limit <rows>', 'Rows to return, newest first (1-500, default 200)', Number)
+    .option('--json', 'Output as JSON')
+    .action(async (organizationId: string, options: CreditsLedgerOptions, command: Command) => {
+      try {
+        const entries = await readOrganizationCreditLedger(organizationId, {
+          from: toIsoInstant(options.from, '--from'),
+          limit: options.limit,
+          to: toIsoInstant(options.to, '--to'),
+        });
+        if (wantsJson(command)) {
+          printJson(entries);
+          return;
         }
-      })
-  );
+        print(formatHeader(`Credit ledger · ${organizationId}\n`));
+        if (entries.length === 0) {
+          print(chalk.dim('No ledger rows in this window.'));
+          return;
+        }
+        for (const entry of [...entries].reverse()) {
+          const reference = entry.referenceType
+            ? `${entry.referenceType}:${entry.referenceId ?? '?'}`
+            : chalk.yellow('no reference');
+          print(
+            `${entry.createdAt}  ${String(entry.amount).padStart(8)}  ${entry.source ?? '-'}/${entry.category ?? '-'}  ${entry.description ?? ''}`
+          );
+          print(
+            chalk.dim(
+              `  balance ${entry.balanceAfter ?? '?'} · actor ${entry.actorUserId ?? '-'} · brand ${entry.brandId ?? '-'} · ${reference}`
+            )
+          );
+        }
+      } catch (error) {
+        handleError(error);
+      }
+    });
+}
+
+function createCreditsCommand(): Command {
+  return new Command('credits')
+    .description('Grant credits to an organization or read its ledger')
+    .addCommand(createCreditsLedgerCommand())
+    .addCommand(
+      new Command('grant')
+        .description('Grant credits to an organization (preview unless --yes)')
+        .argument('<organizationId>', 'Organization id')
+        .requiredOption('--amount <credits>', 'Credits to grant (1-100000)', Number)
+        .requiredOption('--reason <text>', 'Audit reason (8-500 characters)')
+        .option('--expires-in-days <days>', 'Expire the grant after N days', Number)
+        .option('--idempotency-key <key>', 'Stable key so a retry cannot double-grant')
+        .option('--yes', 'Apply the grant')
+        .action(async (organizationId: string, options: CreditsGrantOptions) => {
+          try {
+            if (!options.yes) {
+              print(formatHeader('Credit grant (preview)\n'));
+              print(formatLabel('Organization', organizationId));
+              print(formatLabel('Amount', String(options.amount)));
+              print(formatLabel('Reason', options.reason));
+              print(formatWarning('Re-run with --yes to grant the credits.'));
+              return;
+            }
+            const grant = await grantOrganizationCredits(organizationId, {
+              amount: options.amount,
+              expiresInDays: options.expiresInDays,
+              idempotencyKey: options.idempotencyKey,
+              reason: options.reason,
+            });
+            print(
+              formatSuccess(`Granted ${grant.creditsGranted} credits (balance ${grant.balance})`)
+            );
+          } catch (error) {
+            handleError(error);
+          }
+        })
+    );
 }
 
 function createMemberCommand(): Command {
