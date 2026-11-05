@@ -23,6 +23,7 @@ import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type {
   ComposerDestination,
+  ModalPostComposerStep,
   ModalPostMediaKind,
   ModalPostProps,
 } from '@genfeedai/props/modals/modal.props';
@@ -47,6 +48,7 @@ import {
 } from 'react';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 import { useModalAutoOpen } from '@/hooks/ui/use-modal-auto-open/use-modal-auto-open';
+import ModalPostComposerStepper from './ModalPostComposerStepper';
 import ModalPostSimpleActions from './ModalPostSimpleActions';
 import ModalPostSimpleFields from './ModalPostSimpleFields';
 import ModalPostSimpleHeader from './ModalPostSimpleHeader';
@@ -112,6 +114,9 @@ export default function ModalPost({
     null,
   );
   const [isThread, setIsThread] = useState(false);
+  // Where it goes first, then what it says.
+  const [composerStep, setComposerStep] =
+    useState<ModalPostComposerStep>('channels');
   // Library media attached to a new post, in posting order. The form keeps the
   // ids; this keeps what the preview and the delivery checks need.
   const [selectedMedia, setSelectedMedia] = useState<IIngredient[]>(() =>
@@ -595,6 +600,7 @@ export default function ModalPost({
     setSelectedCredentialIds([]);
     setDestination(null);
     setIsThread(false);
+    setComposerStep('channels');
     setOpenVersion((version) => version + 1);
   }, [form]);
 
@@ -872,10 +878,17 @@ export default function ModalPost({
       onClose={handleModalClosed}
     >
       <Form spacing="section" ref={formRef} onSubmit={handleFormSubmit}>
-        <ModalPostSimpleHeader
-          title={modalTitle}
-          description={modalDescription}
-        />
+        {isDestinationComposer ? (
+          <ModalPostComposerStepper
+            step={composerStep}
+            onStepChange={setComposerStep}
+          />
+        ) : (
+          <ModalPostSimpleHeader
+            title={modalTitle}
+            description={modalDescription}
+          />
+        )}
 
         <ModalPostSimpleFields
           key={openVersion}
@@ -902,9 +915,11 @@ export default function ModalPost({
                   isLongPost,
                   isThread,
                   onSelectDestination: handleSelectDestination,
+                  onEditChannels: () => setComposerStep('channels'),
                   onThreadChange: setIsThread,
                   onToggleCredential: handleToggleCredential,
                   selectedCredentialIds,
+                  step: composerStep,
                   threadItemCount,
                 }
               : undefined
@@ -947,6 +962,8 @@ export default function ModalPost({
           onPublishNow={handlePublishNow}
           onSchedule={handleSchedule}
           onContinue={handleContinue}
+          composerStep={isDestinationComposer ? composerStep : undefined}
+          onComposerStepChange={setComposerStep}
           showViewDetailsButton={showViewDetailsButton}
           onViewDetails={onViewDetails}
           onViewDetailsClick={handleViewDetails}

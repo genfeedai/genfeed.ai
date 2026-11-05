@@ -49,7 +49,7 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: 'brand-workspace' }),
 }));
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
 vi.mock('@ui/modals/modal/Modal', () => ({
@@ -176,6 +176,7 @@ describe('ModalPost', () => {
     });
     const user = userEvent.setup();
     render(<ModalPost credentials={[]} modalId={ModalEnum.POST_COMPOSE} />);
+    await user.click(screen.getByRole('button', { name: 'Draft with AI' }));
     await user.type(
       screen.getByRole('textbox', { name: 'What do you want to post about?' }),
       'Launch',
@@ -290,6 +291,10 @@ describe('ModalPost', () => {
       );
     }
 
+    async function goToContent(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(screen.getByRole('button', { name: 'Next: content' }));
+    }
+
     async function writeCaption(
       user: ReturnType<typeof userEvent.setup>,
       text: string,
@@ -390,26 +395,37 @@ describe('ModalPost', () => {
         await user.click(screen.getByRole('button', { name: 'Library video' }));
       }
 
-      it('shows the destinations before the media and the caption', () => {
+      it('asks where the post goes before what it says', async () => {
+        const user = userEvent.setup();
         renderComposer();
-        const destinations = screen.getByRole('button', { name: 'Acme on X' });
-        const media = screen.getByRole('button', { name: 'Library video' });
-        const caption = screen.getByRole('textbox', { name: 'Post content' });
 
         expect(
-          destinations.compareDocumentPosition(media) &
-            Node.DOCUMENT_POSITION_FOLLOWING,
-        ).toBeTruthy();
+          screen.queryByRole('textbox', { name: 'Post content' }),
+        ).not.toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+        await goToContent(user);
+
+        expect(screen.getByRole('list', { name: 'Post to' })).toHaveTextContent(
+          'Acme on X',
+        );
         expect(
-          media.compareDocumentPosition(caption) &
-            Node.DOCUMENT_POSITION_FOLLOWING,
-        ).toBeTruthy();
+          screen.getByRole('button', { name: 'Library video' }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('textbox', { name: 'Post content' }),
+        ).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Edit' }));
+        expect(
+          screen.getByRole('button', { name: 'Acme on X' }),
+        ).toHaveAttribute('aria-pressed', 'true');
       });
 
       it('previews a picked Library video and saves its identity in the draft', async () => {
         const user = userEvent.setup();
         renderComposer();
         await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+        await goToContent(user);
         await pickLibraryVideo(user);
 
         expect(
@@ -435,6 +451,7 @@ describe('ModalPost', () => {
       it('removes a picked video so it is not saved', async () => {
         const user = userEvent.setup();
         renderComposer();
+        await goToContent(user);
         await pickLibraryVideo(user);
         await user.click(
           screen.getByRole('button', { name: 'Remove Launch teaser' }),
@@ -459,6 +476,7 @@ describe('ModalPost', () => {
             onComplete([video]),
         );
         renderComposer();
+        await goToContent(user);
         await user.click(screen.getByRole('button', { name: 'Upload video' }));
 
         expect(
@@ -478,6 +496,7 @@ describe('ModalPost', () => {
         await user.click(
           screen.getByRole('button', { name: 'Acme on YouTube' }),
         );
+        await goToContent(user);
 
         expect(
           screen.getByText(
@@ -498,6 +517,7 @@ describe('ModalPost', () => {
         await user.click(
           screen.getByRole('button', { name: 'Acme on YouTube' }),
         );
+        await goToContent(user);
         await user.type(
           screen.getByRole('textbox', { name: 'Title' }),
           'Teaser',
@@ -519,6 +539,7 @@ describe('ModalPost', () => {
       await user.click(
         screen.getByRole('button', { name: 'Acme on LinkedIn' }),
       );
+      await goToContent(user);
       await writeCaption(user, 'Shipping today');
       await user.click(screen.getByRole('button', { name: 'Save draft' }));
 
@@ -543,6 +564,7 @@ describe('ModalPost', () => {
       const user = userEvent.setup();
       renderComposer();
       await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await goToContent(user);
 
       expect(screen.queryByText(/Scheduled Date/)).not.toBeInTheDocument();
       expect(screen.queryByText('Lifecycle')).not.toBeInTheDocument();
@@ -560,6 +582,7 @@ describe('ModalPost', () => {
     it('keeps publish and schedule unavailable without an account', async () => {
       const user = userEvent.setup();
       renderComposer();
+      await goToContent(user);
       await writeCaption(user, 'No account yet');
 
       expect(screen.getByRole('button', { name: 'Save draft' })).toBeEnabled();
@@ -573,6 +596,7 @@ describe('ModalPost', () => {
       const user = userEvent.setup();
       renderComposer();
       await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await goToContent(user);
       await writeCaption(user, 'Ship it');
       await user.click(screen.getByRole('button', { name: 'Publish now' }));
 
@@ -592,6 +616,7 @@ describe('ModalPost', () => {
       const user = userEvent.setup();
       renderComposer();
       await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await goToContent(user);
       await writeCaption(user, 'Just a draft');
       await user.click(screen.getByRole('button', { name: 'Save draft' }));
 
@@ -606,6 +631,7 @@ describe('ModalPost', () => {
       const user = userEvent.setup();
       renderComposer();
       await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await goToContent(user);
       await writeCaption(user, 'Later');
       await user.click(screen.getByRole('button', { name: 'Schedule' }));
 
@@ -620,6 +646,7 @@ describe('ModalPost', () => {
       const user = userEvent.setup();
       renderComposer();
       await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await goToContent(user);
       await writeCaption(user, 'a'.repeat(400));
       await user.click(screen.getByRole('button', { name: 'Save draft' }));
 
@@ -638,6 +665,7 @@ describe('ModalPost', () => {
       const user = userEvent.setup();
       renderComposer();
       await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await goToContent(user);
       await writeCaption(user, 'a'.repeat(25_001));
 
       expect(screen.getByText('25001 / 25000')).toBeInTheDocument();
@@ -648,6 +676,7 @@ describe('ModalPost', () => {
       const user = userEvent.setup();
       renderComposer();
       await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await goToContent(user);
       await writeCaption(user, `${'word '.repeat(70).trim()}.`);
       await user.click(
         screen.getByRole('switch', { name: 'Split into thread' }),
@@ -669,16 +698,16 @@ describe('ModalPost', () => {
     it('only offers the thread option when an X account is selected', async () => {
       const user = userEvent.setup();
       renderComposer();
-      expect(
-        screen.queryByRole('switch', { name: 'Split into thread' }),
-      ).not.toBeInTheDocument();
       await user.click(
         screen.getByRole('button', { name: 'Acme on LinkedIn' }),
       );
+      await goToContent(user);
       expect(
         screen.queryByRole('switch', { name: 'Split into thread' }),
       ).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Back' }));
       await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+      await goToContent(user);
       expect(
         screen.getByRole('switch', { name: 'Split into thread' }),
       ).toBeInTheDocument();
@@ -723,7 +752,7 @@ describe('ModalPost', () => {
         'false',
       );
       expect(
-        screen.getByRole('textbox', { name: 'Post content' }),
+        screen.getByRole('button', { name: 'Next: content' }),
       ).toBeInTheDocument();
     });
   });
