@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -23,6 +27,11 @@ vi.mock(
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => mockUseBrand(),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -64,6 +73,24 @@ const NON_EXPERT_BRAND = {
   selectedBrand: { id: 'brand-1', organization: { accountType: 'STARTUP' } },
 };
 
+const EXPERT_STATUS_COMPLETE = {
+  brandId: 'brand-1',
+  corpus: { isComplete: true, readySourceCount: 3, sourceCount: 3 },
+  firstSystem: {
+    readiness: {
+      creditCost: 0,
+      isReady: true,
+      isUsingInterviewPlatforms: false,
+      missing: [],
+      platforms: ['x'],
+    },
+    status: 'generated',
+  },
+  isExpert: true,
+  positioning: { answeredCount: 7, isComplete: true, totalCount: 7 },
+  publishApproval: { isRequired: false },
+};
+
 const EXPERT_BRAND = {
   brandId: 'brand-1',
   isReady: true,
@@ -90,7 +117,9 @@ describe('useSetupCard', () => {
   });
 
   it('is visible with no completed steps', () => {
-    const { result } = renderHook(() => useSetupCard());
+    const { result } = renderHook(() => useSetupCard(), {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(result.current.isVisible).toBe(true);
     expect(result.current.completedCount).toBe(0);
@@ -101,7 +130,9 @@ describe('useSetupCard', () => {
   it('maps step hrefs, marking completion per step', () => {
     setUser(['preferences']);
 
-    const { result } = renderHook(() => useSetupCard());
+    const { result } = renderHook(() => useSetupCard(), {
+      wrapper: queryClientWrapper(),
+    });
 
     const preferences = result.current.steps.find(
       (step) => step.key === 'preferences',
@@ -120,7 +151,9 @@ describe('useSetupCard', () => {
   it('sends brand-less Social accounts to the organization brands directory', () => {
     mockScope.brandSlug = '';
 
-    const { result } = renderHook(() => useSetupCard());
+    const { result } = renderHook(() => useSetupCard(), {
+      wrapper: queryClientWrapper(),
+    });
     const platforms = result.current.steps.find(
       (step) => step.key === 'platforms',
     );
@@ -131,7 +164,9 @@ describe('useSetupCard', () => {
   });
 
   it('updates account hrefs when the selected scope changes', () => {
-    const { result, rerender } = renderHook(() => useSetupCard());
+    const { result, rerender } = renderHook(() => useSetupCard(), {
+      wrapper: queryClientWrapper(),
+    });
     const hrefFor = (key: string) =>
       result.current.steps.find((step) => step.key === key)?.href;
 
@@ -153,7 +188,9 @@ describe('useSetupCard', () => {
   it('hides when every step is completed', () => {
     setUser(['preferences', 'platforms']);
 
-    const { result } = renderHook(() => useSetupCard());
+    const { result } = renderHook(() => useSetupCard(), {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(result.current.isVisible).toBe(false);
     expect(result.current.completedCount).toBe(result.current.totalCount);
@@ -162,7 +199,9 @@ describe('useSetupCard', () => {
   it('hides for users with PAYG credits', () => {
     mockUseAccessState.mockReturnValue({ hasPaygCredits: true });
 
-    const { result } = renderHook(() => useSetupCard());
+    const { result } = renderHook(() => useSetupCard(), {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(result.current.isVisible).toBe(false);
   });
@@ -170,14 +209,18 @@ describe('useSetupCard', () => {
   it('treats a missing user as having no completed steps', () => {
     setUser(undefined);
 
-    const { result } = renderHook(() => useSetupCard());
+    const { result } = renderHook(() => useSetupCard(), {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(result.current.completedCount).toBe(0);
     expect(result.current.isVisible).toBe(true);
   });
 
   it('does not add Expert Path steps for a non-expert organization', async () => {
-    const { result } = renderHook(() => useSetupCard());
+    const { result } = renderHook(() => useSetupCard(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(mockGetStatus).not.toHaveBeenCalled();
@@ -207,7 +250,9 @@ describe('useSetupCard', () => {
       brandId: 'brand-1',
     });
 
-    const { result } = renderHook(() => useSetupCard());
+    const { result } = renderHook(() => useSetupCard(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(mockGetStatus).toHaveBeenCalledWith(
@@ -261,7 +306,9 @@ describe('useSetupCard', () => {
       brandId: 'brand-1',
     });
 
-    const { result } = renderHook(() => useSetupCard());
+    const { result } = renderHook(() => useSetupCard(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       const positioning = result.current.steps.find(
@@ -277,5 +324,57 @@ describe('useSetupCard', () => {
       result.current.steps.find((step) => step.key === 'first-system')
         ?.isCompleted,
     ).toBe(true);
+  });
+
+  it('shows the cached Expert Path progress at once on a return visit', async () => {
+    mockUseBrand.mockReturnValue(EXPERT_BRAND);
+    mockGetStatus.mockResolvedValue(EXPERT_STATUS_COMPLETE);
+    const client = createTestQueryClient();
+    const first = renderHook(() => useSetupCard(), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() =>
+      expect(first.result.current.steps[0]).toMatchObject({
+        isCompleted: true,
+        key: 'positioning',
+      }),
+    );
+    first.unmount();
+
+    mockGetStatus.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(() => useSetupCard(), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(
+      result.current.steps.slice(0, 3).map((step) => step.isCompleted),
+    ).toEqual([true, true, true]);
+  });
+
+  it("never shows one brand's cached Expert Path progress for another", async () => {
+    mockUseBrand.mockReturnValue(EXPERT_BRAND);
+    mockGetStatus.mockResolvedValue(EXPERT_STATUS_COMPLETE);
+    const client = createTestQueryClient();
+    const first = renderHook(() => useSetupCard(), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() =>
+      expect(first.result.current.steps[0]?.isCompleted).toBe(true),
+    );
+    first.unmount();
+
+    mockUseBrand.mockReturnValue({
+      ...EXPERT_BRAND,
+      brandId: 'brand-2',
+      selectedBrand: { ...EXPERT_BRAND.selectedBrand, id: 'brand-2' },
+    });
+    mockGetStatus.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(() => useSetupCard(), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(
+      result.current.steps.slice(0, 3).map((step) => step.isCompleted),
+    ).toEqual([false, false, false]);
   });
 });
