@@ -53,29 +53,52 @@ function readTransitionTarget(
   return readPixels(lastKeyframe[toCamelCase(property)]);
 }
 
+function isOutOfFlow(element: HTMLElement): boolean {
+  const { position } = getComputedStyle(element);
+  return position === 'absolute' || position === 'fixed';
+}
+
+function growsToFillRow(element: HTMLElement): boolean {
+  return Number.parseFloat(getComputedStyle(element).flexGrow) > 0;
+}
+
 /**
- * A fixed-width sibling of one of the container's ancestors, in a row. The
- * container's ancestor fills what the sibling leaves, so the sibling growing
- * by some pixels shrinks the container by the same amount.
+ * A fixed-width sibling of one of the container's ancestors, in a row where
+ * that ancestor alone fills the space the sibling leaves. The sibling growing
+ * by some pixels then shrinks the container by the same amount; with another
+ * flexible sibling in the row the change would be shared out between them.
  */
 function isRowSiblingOfAncestor(
   target: HTMLElement,
   container: HTMLElement,
 ): boolean {
   const parent = target.parentElement;
-  if (!parent || target.contains(container) || !parent.contains(container)) {
-    return false;
-  }
-
-  const targetStyle = getComputedStyle(target);
-  if (targetStyle.position === 'absolute' || targetStyle.position === 'fixed') {
+  if (
+    !parent ||
+    target.contains(container) ||
+    !parent.contains(container) ||
+    isOutOfFlow(target) ||
+    growsToFillRow(target)
+  ) {
     return false;
   }
 
   const parentStyle = getComputedStyle(parent);
+  if (
+    !parentStyle.display.includes('flex') ||
+    !parentStyle.flexDirection.startsWith('row')
+  ) {
+    return false;
+  }
+
+  const flexibleChildren = Array.from(parent.children).filter(
+    (child): child is HTMLElement =>
+      child instanceof HTMLElement &&
+      !isOutOfFlow(child) &&
+      growsToFillRow(child),
+  );
   return (
-    parentStyle.display.includes('flex') &&
-    parentStyle.flexDirection.startsWith('row')
+    flexibleChildren.length === 1 && flexibleChildren[0].contains(container)
   );
 }
 
