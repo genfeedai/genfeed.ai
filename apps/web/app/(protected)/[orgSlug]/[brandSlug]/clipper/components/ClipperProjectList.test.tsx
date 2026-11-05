@@ -13,7 +13,7 @@ import ClipperProjectList from './ClipperProjectList';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
-  return { useTranslations: translateFromCatalog };
+  return { useLocale: () => 'en', useTranslations: translateFromCatalog };
 });
 
 const mocks = vi.hoisted(() => ({ error: vi.fn() }));
@@ -61,9 +61,16 @@ describe('ClipperProjectList', () => {
   it('lists every project as a row that opens it', () => {
     render(<ClipperProjectList projects={projects} isLoading={false} />);
 
-    const rows = screen.getAllByRole('link', { name: 'Open' });
-    expect(rows).toHaveLength(6);
-    expect(rows[0]).toHaveAttribute('href', '/acme/brand/clipper/project-0');
+    expect(screen.getAllByRole('link')).toHaveLength(6);
+    expect(screen.getByRole('link', { name: /Project 0/ })).toHaveAttribute(
+      'href',
+      '/acme/brand/clipper/project-0',
+    );
+    expect(screen.getByRole('link', { name: /Project 5/ })).toHaveAttribute(
+      'href',
+      '/acme/brand/clipper/project-5',
+    );
+    expect(screen.queryByRole('link', { name: 'Open' })).toBeNull();
     expect(screen.getByText('Project 5')).toBeVisible();
     expect(screen.getAllByText('2 clips')).toHaveLength(6);
   });
@@ -105,13 +112,13 @@ describe('ClipperProjectList', () => {
     );
     await waitFor(() => expect(mocks.error).toHaveBeenCalled());
     expect(all.getByText('Project 0')).toBeVisible();
-    expect(all.getAllByRole('link', { name: 'Open' })).toHaveLength(6);
+    expect(all.getAllByRole('link')).toHaveLength(6);
   });
   it('shows a loading list while the projects load', () => {
     const { rerender } = render(
       <ClipperProjectList projects={[]} isLoading={false} />,
     );
-    expect(screen.queryByRole('link', { name: 'Open' })).toBeNull();
+    expect(screen.queryByRole('link')).toBeNull();
     rerender(<ClipperProjectList projects={[]} isLoading />);
     expect(screen.getByTestId('clipper-project-list-loading')).toBeVisible();
   });
