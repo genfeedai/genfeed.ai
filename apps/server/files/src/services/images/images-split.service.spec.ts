@@ -2,7 +2,7 @@ import { ConfigService } from '@files/config/config.service';
 import { ImagesSplitService } from '@files/services/images/images-split.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import type { Mock, Mocked } from 'vitest';
+import type { Mocked } from 'vitest';
 
 // Mock sharp module
 vi.mock('sharp', () => {

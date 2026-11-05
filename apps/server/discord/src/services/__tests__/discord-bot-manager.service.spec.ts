@@ -1,6 +1,10 @@
 import { ConfigService } from '@discord/config/config.service';
 import { DiscordBotManager } from '@discord/services/discord-bot-manager.service';
-import { OrgIntegration, REDIS_EVENTS } from '@genfeedai/integrations';
+import {
+  type IntegrationEvent,
+  OrgIntegration,
+  REDIS_EVENTS,
+} from '@genfeedai/integrations';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
@@ -84,8 +88,14 @@ function toApiIntegration(integration: OrgIntegration) {
   return { ...fields, organizationId: orgId };
 }
 
+/** The Redis event the API publishes when an integration changes. */
+function integrationEvent(integrationId: string): IntegrationEvent {
+  return { integrationId, orgId: 'org-redis-event', platform: 'DISCORD' };
+}
+
 describe('DiscordBotManager', () => {
   let service: DiscordBotManager;
+  let logger: LoggerService;
   let httpService: HttpService;
   let redisService: RedisService;
 
@@ -142,14 +152,9 @@ describe('DiscordBotManager', () => {
     }).compile();
 
     service = module.get<DiscordBotManager>(DiscordBotManager);
+    logger = module.get(LoggerService);
     httpService = module.get(HttpService);
     redisService = module.get(RedisService);
-
-    // Mock logger to avoid console noise
-    vi.spyOn(service['logger'], 'log').mockImplementation(() => undefined);
-    vi.spyOn(service['logger'], 'warn').mockImplementation(() => undefined);
-    vi.spyOn(service['logger'], 'error').mockImplementation(() => undefined);
-    vi.spyOn(service['logger'], 'debug').mockImplementation(() => undefined);
   });
 
   describe('initialize', () => {
@@ -159,7 +164,7 @@ describe('DiscordBotManager', () => {
       );
       await service.initialize();
 
-      expect(service['logger'].log).toHaveBeenCalledWith(
+      expect(logger.log).toHaveBeenCalledWith(
         'Discord Bot Manager initialized with 0 bots',
       );
       expect(redisService.subscribe).toHaveBeenCalledWith(
@@ -200,7 +205,7 @@ describe('DiscordBotManager', () => {
     it('should shutdown successfully', async () => {
       await service.shutdown();
 
-      expect(service['logger'].log).toHaveBeenCalledWith(
+      expect(logger.log).toHaveBeenCalledWith(
         'Shutting down Discord Bot Manager',
       );
     });
@@ -314,7 +319,7 @@ describe('DiscordBotManager', () => {
 
       await service.destroyBotInstance(mockInstance);
 
-      expect(service['logger'].error).toHaveBeenCalledWith(
+      expect(logger.error).toHaveBeenCalledWith(
         `Error stopping bot ${mockIntegration.id}`,
         expect.objectContaining({ message: error.message }),
       );
@@ -395,7 +400,7 @@ describe('DiscordBotManager', () => {
     it('should handle removal of non-existent integration', async () => {
       await service.removeIntegration('non-existent-discord-id');
 
-      expect(service['logger'].warn).toHaveBeenCalledWith(
+      expect(logger.warn).toHaveBeenCalledWith(
         'Integration non-existent-discord-id not found',
       );
     });
@@ -430,7 +435,10 @@ describe('DiscordBotManager', () => {
         of({ data: toApiIntegration(mockIntegration) }),
       );
 
-      await service['fetchAndAddIntegration']('discord-integration-1');
+      await service.handleRedisEvent(
+        REDIS_EVENTS.INTEGRATION_CREATED,
+        integrationEvent('discord-integration-1'),
+      );
 
       expect(httpService.get).toHaveBeenCalledWith(
         expect.stringContaining(
@@ -452,7 +460,10 @@ describe('DiscordBotManager', () => {
         of({ data: toApiIntegration(mockIntegration) }),
       );
 
-      await service['fetchAndUpdateIntegration']('discord-integration-1');
+      await service.handleRedisEvent(
+        REDIS_EVENTS.INTEGRATION_UPDATED,
+        integrationEvent('discord-integration-1'),
+      );
 
       expect(httpService.get).toHaveBeenCalledWith(
         expect.stringContaining(
