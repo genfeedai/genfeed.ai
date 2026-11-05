@@ -209,7 +209,9 @@ describe('useBrandDetail', () => {
         links: [],
       } as unknown as IBrand);
     });
-    expect(result.current.brand?.label).toBe('Refreshed');
+    await waitFor(() => {
+      expect(result.current.brand?.label).toBe('Refreshed');
+    });
   });
 
   it('paints the cached brand at once when a settings page is opened again', async () => {
@@ -270,7 +272,9 @@ describe('useBrandDetail', () => {
       } as unknown as IBrand);
     });
 
-    expect(result.current.brand?.label).toBe('Latest');
+    await waitFor(() => {
+      expect(result.current.brand?.label).toBe('Latest');
+    });
   });
 
   it('uses article-native public query params for latest articles', async () => {
