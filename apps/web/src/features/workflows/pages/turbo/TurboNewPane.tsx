@@ -11,12 +11,14 @@ import type {
   CreativeAppProjectReference,
   TurboIdeaFormat,
 } from '@genfeedai/contracts/interfaces';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   getJsonApiErrorMember,
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
+import { useQueryClient } from '@tanstack/react-query';
 import CreativeAppNewPane from '@ui/layout/creative-app-new-pane/CreativeAppNewPane';
 import CreativeAppPromptBar from '@ui/layout/creative-app-prompt-bar/CreativeAppPromptBar';
 import ProjectChoicePrompt from '@ui/layout/project-choice-prompt/ProjectChoicePrompt';
@@ -34,6 +36,7 @@ import SubscriptionRequiredState from '@/features/workflows/components/guards/su
 import type { TurboStarter } from '@/features/workflows/props/turbo-presets.props';
 import {
   createWorkflowApiService,
+  type WorkflowApiService,
   type WorkflowSummary,
 } from '@/features/workflows/services/workflow-api';
 import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
@@ -56,6 +59,11 @@ const FORMAT_OPTIONS: readonly (readonly TurboIdeaFormat[])[] = [
   ['image', 'video', 'avatar'],
 ];
 const DEFAULT_FORMATS: readonly TurboIdeaFormat[] = ['image', 'video'];
+const EMPTY_WORKFLOWS: WorkflowSummary[] = [];
+
+function turboWorkflowOptionsQueryKey(brandId: string) {
+  return ['turbo-workflow-options', brandId] as const;
+}
 
 function formatsKey(formats: readonly TurboIdeaFormat[]): string {
   return formats.join('+');
@@ -89,18 +97,8 @@ export default function TurboNewPane() {
   const router = useRouter();
   const isIdeasEnabled = useFeatureFlag('turbo_ideas');
   const getService = useAuthedService(createTurboProjectsApi);
-  const getWorkflows = useAuthedService(createWorkflowApiService);
+  const queryClient = useQueryClient();
   const seedComposer = useAgentChatStore((state) => state.seedComposer);
-  const workflowScope = useMemo(
-    () => ({ brandId, getWorkflows }),
-    [brandId, getWorkflows],
-  );
-  const [workflowResult, setWorkflowResult] = useState<{
-    scope: typeof workflowScope;
-    items: WorkflowSummary[];
-  } | null>(null);
-  const workflows =
-    workflowResult?.scope === workflowScope ? workflowResult.items : [];
   const [kind, setKind] = useState(() =>
     isIdeasEnabled ? TurboProjectKind.IDEAS : TurboProjectKind.WORKFLOW,
   );
@@ -113,7 +111,6 @@ export default function TurboNewPane() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubscriptionRequired, setIsSubscriptionRequired] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<
     CreativeAppProjectReference[] | null
   >(null);
@@ -142,33 +139,48 @@ export default function TurboNewPane() {
       mounted.current = false;
     };
   }, []);
-  useEffect(() => {
-    const controller = new AbortController();
+  // A new brand, source or Automation access starts the workflow choice over.
+  const workflowScope = `${brandId}:${kind}:${isWorkflowEnabled}`;
+  const [seenWorkflowScope, setSeenWorkflowScope] = useState(workflowScope);
+  if (seenWorkflowScope !== workflowScope) {
+    setSeenWorkflowScope(workflowScope);
     setWorkflowId('');
     setError(null);
     setIsSubscriptionRequired(false);
-    setLoading(true);
-    if (!brandId || kind !== TurboProjectKind.WORKFLOW || !isWorkflowEnabled) {
-      setLoading(false);
-      return () => controller.abort();
-    }
-    void getWorkflows()
-      .then((service) =>
-        controller.signal.aborted ? [] : service.list({ brandId }),
-      )
-      .then((items) => {
-        if (!controller.signal.aborted)
-          setWorkflowResult({ scope: workflowScope, items });
-      })
-      .catch((reason: unknown) => {
-        if (!controller.signal.aborted)
-          setError(getJsonApiErrorMessage(reason, t('loadFailed')));
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+  }
+  // The brand's workflows read through React Query, so coming back to a new
+  // workflow project paints the workflow picker at once and refreshes it in
+  // the background.
+  const isWorkflowListEnabled =
+    Boolean(brandId) && kind === TurboProjectKind.WORKFLOW && isWorkflowEnabled;
+  const workflowsQuery = useAuthedQuery<WorkflowApiService, WorkflowSummary[]>({
+    enabled: isWorkflowListEnabled,
+    queryFn: async (service, signal) => {
+      // Leaving the workflow source while the service resolves never reads.
+      signal.throwIfAborted();
+      return service.list({ brandId });
+    },
+    queryKey: turboWorkflowOptionsQueryKey(brandId),
+    service: createWorkflowApiService,
+  });
+  // Leaving the workflow source cancels a read still in flight.
+  useEffect(() => {
+    if (!isWorkflowListEnabled) {
+      void queryClient.cancelQueries({
+        queryKey: turboWorkflowOptionsQueryKey(brandId),
       });
-    return () => controller.abort();
-  }, [getWorkflows, brandId, t, workflowScope, kind, isWorkflowEnabled]);
+    }
+  }, [brandId, isWorkflowListEnabled, queryClient]);
+  const workflows = isWorkflowListEnabled
+    ? (workflowsQuery.data ?? EMPTY_WORKFLOWS)
+    : EMPTY_WORKFLOWS;
+  const loading = isWorkflowListEnabled && workflowsQuery.isPending;
+  // A failed background refresh keeps the cached workflows; the reason shows
+  // only when there are none.
+  const workflowLoadError =
+    isWorkflowListEnabled && workflowsQuery.error && !workflowsQuery.data
+      ? getJsonApiErrorMessage(workflowsQuery.error, t('loadFailed'))
+      : null;
   useEffect(() => {
     const controller = new AbortController();
     setProjects(null);
@@ -357,8 +369,8 @@ export default function TurboNewPane() {
       promptBar={
         <CreativeAppPromptBar
           banner={
-            error ? (
-              <PromptBarNotice>{error}</PromptBarNotice>
+            (error ?? workflowLoadError) ? (
+              <PromptBarNotice>{error ?? workflowLoadError}</PromptBarNotice>
             ) : trimmedPrompt.length > MAX_ANGLE_LENGTH && isIdeas ? (
               <PromptBarNotice>
                 {t('promptTooLong', { max: MAX_ANGLE_LENGTH })}
