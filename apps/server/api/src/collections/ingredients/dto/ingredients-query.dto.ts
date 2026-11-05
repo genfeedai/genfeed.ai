@@ -18,6 +18,8 @@ import {
   MaxLength,
 } from 'class-validator';
 
+const HYPHENS_PATTERN = /-/g;
+
 export class IngredientsQueryDto extends LibraryFilterQueryDto {
   @ApiProperty({
     description:
@@ -113,7 +115,7 @@ export class IngredientsQueryDto extends LibraryFilterQueryDto {
     // Accept legacy lowercase / hyphenated spellings from older clients.
     return values.map((entry) =>
       typeof entry === 'string'
-        ? entry.replace(/-/g, '_').toUpperCase()
+        ? entry.replace(HYPHENS_PATTERN, '_').toUpperCase()
         : entry,
     );
   })

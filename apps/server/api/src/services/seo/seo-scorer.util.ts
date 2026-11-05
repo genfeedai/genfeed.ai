@@ -16,6 +16,23 @@ import {
   splitSentences,
 } from './seo-text.util';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+const URL_SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*:/i;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const HYPHENS_PATTERN = /-/g;
+const MODERN_IMAGE_EXTENSION_PATTERN = /\.(webp|avif)(\?|#|$)/i;
+const HTTPS_PREFIX_PATTERN = /^https:\/\//i;
+const PASSIVE_VOICE_PATTERN =
+  /\b(was|were|is|are|been|being|be)\b\s+\w+(ed|en)\b/i;
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const QUERY_OR_HASH_PATTERN = /[?#]/;
+const FILE_EXTENSION_PATTERN = /\.[a-z0-9]+$/i;
+const GENERIC_IMAGE_FILENAME_PATTERN =
+  /^(img|image|dsc|dscn|photo|screenshot|untitled|pic)[-_]?\d*$/i;
+const HASH_FILENAME_PATTERN = /^[a-f0-9]{16,}$/i;
+
 const DANGEROUS_HREF_SCHEMES = ['javascript:', 'data:', 'vbscript:'] as const;
 
 function hasDangerousHrefScheme(href: string): boolean {
@@ -128,7 +145,7 @@ export function parseSeoHtml(html?: string | null): ParsedSeoHtml {
   $('a[href]').each((_i, el) => {
     const href = ($(el).attr('href') ?? '').trim();
     const text = $(el).text().trim();
-    const isAbsolute = /^https?:\/\//i.test(href);
+    const isAbsolute = HTTP_PROTOCOL_PREFIX_PATTERN.test(href);
     const isAnchorOnly = href.startsWith('#');
     // Named fragment links (#section) are valid HTML; only bare '#' and
     // javascript:/data:/vbscript: URIs are malformed.
@@ -141,7 +158,7 @@ export function parseSeoHtml(html?: string | null): ParsedSeoHtml {
       // are jump links, and scheme URIs (mailto:, tel:, …) are neither internal
       // nor page links, so exclude both from the internal count.
       isInternal:
-        isWellFormed && !isAnchorOnly && !/^[a-z][a-z0-9+.-]*:/i.test(href),
+        isWellFormed && !isAnchorOnly && !URL_SCHEME_PATTERN.test(href),
       isWellFormed,
       opensNewTab: ($(el).attr('target') ?? '') === '_blank',
       text,
@@ -160,7 +177,10 @@ export function parseSeoHtml(html?: string | null): ParsedSeoHtml {
   // script/style/noscript text from the scored plain text.
   const hasJsonLd = $('script[type="application/ld+json"]').length > 0;
   $('script, style, noscript').remove();
-  const plainText = $.root().text().replace(/\s+/g, ' ').trim();
+  const plainText = $.root()
+    .text()
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
+    .trim();
 
   return {
     h1Count: $('h1').length,
@@ -244,7 +264,10 @@ export function buildSeoChecks(input: SeoScorableContent): SeoCheck[] {
   };
 
   // ── Dimension 1: Keyword Placement (20) ──
-  const firstHundredWords = plainText.split(/\s+/).slice(0, 100).join(' ');
+  const firstHundredWords = plainText
+    .split(WHITESPACE_RUN_PATTERN)
+    .slice(0, 100)
+    .join(' ');
   const h2Texts = parsed.headings
     .filter((h) => h.level === 2)
     .map((h) => h.text.toLowerCase());
@@ -278,7 +301,8 @@ export function buildSeoChecks(input: SeoScorableContent): SeoCheck[] {
     'kw_in_slug',
     'Primary keyword in URL slug',
     3,
-    hasKeyword && includesCaseInsensitive(slug.replace(/-/g, ' '), keyword)
+    hasKeyword &&
+      includesCaseInsensitive(slug.replace(HYPHENS_PATTERN, ' '), keyword)
       ? 3
       : 0,
     'Add the primary keyword to the URL slug.',
@@ -567,7 +591,7 @@ export function buildSeoChecks(input: SeoScorableContent): SeoCheck[] {
     hasDescriptiveFilename(img.src),
   ).length;
   const compressed = parsed.images.filter((img) =>
-    /\.(webp|avif)(\?|#|$)/i.test(img.src),
+    MODERN_IMAGE_EXTENSION_PATTERN.test(img.src),
   ).length;
   add(
     'media',
@@ -647,7 +671,7 @@ export function buildSeoChecks(input: SeoScorableContent): SeoCheck[] {
     'https',
     'HTTPS',
     1,
-    url.length === 0 ? 0 : /^https:\/\//i.test(url) ? 1 : 0,
+    url.length === 0 ? 0 : HTTPS_PREFIX_PATTERN.test(url) ? 1 : 0,
     url.length === 0
       ? 'Provide the page URL to verify HTTPS.'
       : 'Serve the page over HTTPS.',
@@ -745,8 +769,7 @@ function scoreActiveVoice(text: string): number {
   if (sentences.length === 0) {
     return 0;
   }
-  const passivePattern = /\b(was|were|is|are|been|being|be)\b\s+\w+(ed|en)\b/i;
-  const passive = sentences.filter((s) => passivePattern.test(s)).length;
+  const passive = sentences.filter((s) => PASSIVE_VOICE_PATTERN.test(s)).length;
   const activeRatio = 1 - ratio(passive, sentences.length);
   if (activeRatio >= 0.8) {
     return 3;
@@ -807,12 +830,12 @@ function scoreSlug(slug: string): number {
   if (!slug) {
     return 0;
   }
-  const isHyphenated = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug);
+  const isHyphenated = SLUG_PATTERN.test(slug);
   if (!isHyphenated) {
     return 0;
   }
   const tokens = slug.split('-').filter(Boolean);
-  const isDateOrIdHeavy = tokens.every((t) => /^\d+$/.test(t));
+  const isDateOrIdHeavy = tokens.every((t) => DIGITS_ONLY_PATTERN.test(t));
   if (isDateOrIdHeavy) {
     return 0;
   }
@@ -829,22 +852,18 @@ function hasDescriptiveFilename(src: string): boolean {
   if (!src) {
     return false;
   }
-  const filename = (src.split('/').pop() ?? '').split(/[?#]/)[0];
+  const filename = (src.split('/').pop() ?? '').split(QUERY_OR_HASH_PATTERN)[0];
   if (!filename) {
     return false;
   }
-  const base = filename.replace(/\.[a-z0-9]+$/i, '');
+  const base = filename.replace(FILE_EXTENSION_PATTERN, '');
   if (base.length < 4) {
     return false;
   }
-  const genericPattern =
-    /^(img|image|dsc|dscn|photo|screenshot|untitled|pic)[-_]?\d*$/i;
-  const numericOnly = /^\d+$/;
-  const hashLike = /^[a-f0-9]{16,}$/i;
   return (
-    !genericPattern.test(base) &&
-    !numericOnly.test(base) &&
-    !hashLike.test(base)
+    !GENERIC_IMAGE_FILENAME_PATTERN.test(base) &&
+    !DIGITS_ONLY_PATTERN.test(base) &&
+    !HASH_FILENAME_PATTERN.test(base)
   );
 }
 

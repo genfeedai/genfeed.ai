@@ -4,6 +4,10 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { JSDOM, VirtualConsole } from 'jsdom';
 
+const URL_SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*:/i;
+const QUERY_OR_HASH_PATTERN = /[?#]/;
+const LEADING_SLASHES_PATTERN = /^\/+/;
+
 const args = process.argv.slice(2);
 const options = Object.fromEntries(
   args.flatMap((value, index) =>
@@ -29,16 +33,18 @@ const safe = (error) => String(error?.message ?? error).slice(0, 1000);
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 async function localFile(reference) {
   if (
-    /^[a-z][a-z0-9+.-]*:/i.test(reference) ||
+    URL_SCHEME_PATTERN.test(reference) ||
     reference.startsWith('//') ||
     reference.includes('\\')
   )
     throw new Error('Remote or unsupported script reference.');
-  const pathname = decodeURIComponent(reference.split(/[?#]/)[0]);
+  const pathname = decodeURIComponent(
+    reference.split(QUERY_OR_HASH_PATTERN)[0],
+  );
   if (pathname.split('/').includes('..'))
     throw new Error('Script traversal rejected.');
   const target = await realpath(
-    path.resolve(directory, pathname.replace(/^\/+/, '')),
+    path.resolve(directory, pathname.replace(LEADING_SLASHES_PATTERN, '')),
   );
   if (
     !target.startsWith(`${directory}${path.sep}`) ||

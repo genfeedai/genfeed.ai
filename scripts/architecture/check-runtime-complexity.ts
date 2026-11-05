@@ -12,6 +12,19 @@ import { globSync } from 'glob';
 import ts from 'typescript';
 import { parseSourceFile } from './parse-source-file';
 
+const FIXTURE_PATH_PATTERN =
+  /(?:^|\/)(?:__fixtures__|fixtures|test-data|testdata)(?:\/|$)/;
+const GENERATED_PATH_PATTERN = /(?:^|\/)(?:generated|migrations)(?:\/|$)/;
+const TEST_FILE_PATTERN = /\.(?:e2e|spec|test|stories)\.(?:cts|mts|ts|tsx)$/;
+const DECLARATION_FILE_PATTERN =
+  /\.(?:config|constants|interface|schema|types)\.(?:cts|mts|ts|tsx)$/;
+const LEADING_DOT_SLASH_PATTERN = /^\.\//;
+const CONTROLLER_FILE_PATTERN = /\.controller\.(?:cts|mts|ts|tsx)$/;
+const SERVICE_FILE_PATTERN =
+  /\.(?:gateway|processor|resolver|service)\.(?:cts|mts|ts|tsx)$/;
+const LINE_BREAK_ANY_PATTERN = /\r\n|\n|\r/;
+const RUNTIME_ROOT_PATTERN = /^(?:apps|ee|packages)\//;
+
 const RUNTIME_GLOB = '{apps,ee,packages}/**/*.{cts,mts,ts,tsx}';
 const RATCHET_BASELINE_PATH =
   'scripts/architecture/runtime-complexity.baseline.json';
@@ -25,26 +38,20 @@ const THRESHOLDS = {
 
 const EXCLUSION_RULES = [
   {
-    matches: (file: string) =>
-      /(?:^|\/)(?:__fixtures__|fixtures|test-data|testdata)(?:\/|$)/.test(file),
+    matches: (file: string) => FIXTURE_PATH_PATTERN.test(file),
     reason: 'fixture or test-data source',
   },
   {
-    matches: (file: string) =>
-      /(?:^|\/)(?:generated|migrations)(?:\/|$)/.test(file),
+    matches: (file: string) => GENERATED_PATH_PATTERN.test(file),
     reason: 'generated or migration source',
   },
   {
     matches: (file: string) =>
-      /\.(?:e2e|spec|test|stories)\.(?:cts|mts|ts|tsx)$/.test(file) ||
-      file.endsWith('.d.ts'),
+      TEST_FILE_PATTERN.test(file) || file.endsWith('.d.ts'),
     reason: 'test, story, or declaration source',
   },
   {
-    matches: (file: string) =>
-      /\.(?:config|constants|interface|schema|types)\.(?:cts|mts|ts|tsx)$/.test(
-        file,
-      ),
+    matches: (file: string) => DECLARATION_FILE_PATTERN.test(file),
     reason: 'declarative-only source',
   },
 ] as const;
@@ -122,7 +129,7 @@ type RuntimeThresholds = {
 };
 
 function normalize(file: string): string {
-  return file.replaceAll('\\', '/').replace(/^\.\//, '');
+  return file.replaceAll('\\', '/').replace(LEADING_DOT_SLASH_PATTERN, '');
 }
 
 function exclusionReason(file: string): string | null {
@@ -135,12 +142,10 @@ function exclusionReason(file: string): string | null {
 }
 
 function classifyRuntimeFile(file: string): RuntimeFileKind | null {
-  if (/\.controller\.(?:cts|mts|ts|tsx)$/.test(file)) {
+  if (CONTROLLER_FILE_PATTERN.test(file)) {
     return 'controller';
   }
-  if (
-    /\.(?:gateway|processor|resolver|service)\.(?:cts|mts|ts|tsx)$/.test(file)
-  ) {
+  if (SERVICE_FILE_PATTERN.test(file)) {
     return 'runtime';
   }
   return null;
@@ -150,7 +155,7 @@ function countPhysicalLines(contents: string): number {
   if (contents.length === 0) {
     return 0;
   }
-  const lines = contents.split(/\r\n|\n|\r/);
+  const lines = contents.split(LINE_BREAK_ANY_PATTERN);
   if (lines.at(-1) === '') {
     lines.pop();
   }
@@ -483,7 +488,7 @@ export function runRuntimeComplexityCheck(
 
   for (const relativeFile of uniqueFiles) {
     if (
-      !/^(?:apps|ee|packages)\//.test(relativeFile) ||
+      !RUNTIME_ROOT_PATTERN.test(relativeFile) ||
       exclusionReason(relativeFile)
     ) {
       continue;

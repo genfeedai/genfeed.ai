@@ -37,6 +37,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import StripeConstructor from 'stripe';
+import { isStripePriceId } from './stripe-price-id.util';
 import { requireSoftwareSubscriptionItem } from './stripe-software-item.util';
 
 type StripeClient = InstanceType<typeof StripeConstructor>;
@@ -126,7 +127,7 @@ export class StripeService {
     const scalePriceId = this.configService.get(
       'STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY',
     );
-    if (!this.isStripePriceId(scalePriceId)) {
+    if (!isStripePriceId(scalePriceId)) {
       this.loggerService.error(
         `${this.constructorName} production subscription price validation failed`,
         { category: 'configuration', tier: 'scale' },
@@ -142,7 +143,7 @@ export class StripeService {
       'STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY',
     );
     if (proPriceId) {
-      if (!this.isStripePriceId(proPriceId)) {
+      if (!isStripePriceId(proPriceId)) {
         this.loggerService.error(
           `${this.constructorName} production subscription price validation failed`,
           { category: 'configuration', tier: 'pro' },
@@ -206,10 +207,6 @@ export class StripeService {
       `${this.constructorName} subscription price validated`,
       { outcome: 'valid', tier },
     );
-  }
-
-  private isStripePriceId(value: unknown): value is string {
-    return typeof value === 'string' && /^price_[A-Za-z0-9]+$/.test(value);
   }
 
   private isProductionCloud(): boolean {

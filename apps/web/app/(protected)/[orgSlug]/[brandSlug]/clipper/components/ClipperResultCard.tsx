@@ -23,6 +23,8 @@ import type {
   ViralityBadgeProps,
 } from '@/props/studio/clipper.props';
 
+const NON_ALPHANUMERIC_CHARS_PATTERN = /[^a-zA-Z0-9]/g;
+
 const STATUS_CONFIG: Record<
   ClipStatus,
   { label?: string; variant: BadgeVariant }
@@ -177,7 +179,7 @@ export default function ClipperResultCard({
 
     await downloadUrl(
       videoUrl,
-      `${clip.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp4`,
+      `${clip.title.replace(NON_ALPHANUMERIC_CHARS_PATTERN, '_')}.mp4`,
     );
   }, [videoUrl, clip.title]);
 

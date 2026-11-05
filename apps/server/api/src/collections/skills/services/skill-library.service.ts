@@ -75,6 +75,9 @@ export type {
 } from '@api/collections/skills/services/skill-resolution-evidence';
 export { isVerifiedOrdinaryUploadVersionReadV1 } from '@api/collections/skills/services/skill-version-reader';
 
+const PROMPT_SNAPSHOT_TOKEN_PATTERN =
+  /^[0-9a-fA-F]{32}:[0-9a-fA-F]+:[0-9a-fA-F]{32}$/;
+
 @Injectable()
 export class SkillLibraryService {
   private readonly versionReader: SkillVersionReader;
@@ -470,7 +473,7 @@ export class SkillLibraryService {
     } catch {
       return;
     }
-    if (!/^[0-9a-fA-F]{32}:[0-9a-fA-F]+:[0-9a-fA-F]{32}$/.test(ciphertext)) {
+    if (!PROMPT_SNAPSHOT_TOKEN_PATTERN.test(ciphertext)) {
       return;
     }
     const contentHash = createHash('sha256')

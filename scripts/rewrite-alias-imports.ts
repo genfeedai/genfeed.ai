@@ -3,6 +3,8 @@ import path from 'node:path';
 import { globSync } from 'glob';
 import ts from 'typescript';
 
+const MODULE_EXTENSION_PATTERN = /\.(d\.)?(ts|tsx|js|jsx|mjs|cjs|mts|cts)$/;
+
 const ROOT_DIR = process.cwd();
 
 const SOURCE_GLOBS = [
@@ -157,7 +159,7 @@ function getTsConfigInfo(tsconfigPath: string): TsConfigInfo {
 }
 
 function stripModuleExtension(value: string): string {
-  return value.replace(/\.(d\.)?(ts|tsx|js|jsx|mjs|cjs|mts|cts)$/, '');
+  return value.replace(MODULE_EXTENSION_PATTERN, '');
 }
 
 function resolveImportTarget(

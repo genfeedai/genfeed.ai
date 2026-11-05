@@ -13,6 +13,11 @@ import {
 import { requestDirectMediaJson } from '@api/services/integrations/direct-media/direct-media-transport';
 import { compileOpenAIImageRequest } from '@api/services/integrations/direct-media/openai/openai-image.compiler';
 
+const LINE_BREAK_CHAR_PATTERN = /[\r\n]/;
+const IMAGE_SIZE_PATTERN = /^(\d+)x(\d+)$/;
+const BASE64_PATTERN =
+  /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+
 function invalidRequest(): never {
   throw new DirectMediaProviderError(
     'PROVIDER_REQUEST_INVALID',
@@ -20,7 +25,11 @@ function invalidRequest(): never {
   );
 }
 function credential(apiKey: unknown): string {
-  if (typeof apiKey !== 'string' || !apiKey.trim() || /[\r\n]/.test(apiKey)) {
+  if (
+    typeof apiKey !== 'string' ||
+    !apiKey.trim() ||
+    LINE_BREAK_CHAR_PATTERN.test(apiKey)
+  ) {
     throw new DirectMediaProviderError(
       'PROVIDER_CREDENTIAL_INVALID',
       'Provider credential is invalid.',
@@ -112,7 +121,7 @@ function revalidate(
   )
     invalidRequest();
   const dimensions =
-    body.size === 'auto' ? undefined : /^(\d+)x(\d+)$/.exec(body.size);
+    body.size === 'auto' ? undefined : IMAGE_SIZE_PATTERN.exec(body.size);
   if (body.size !== 'auto' && !dimensions) invalidRequest();
   if (prepared.mode === 'image-edit' && !Array.isArray(body.images))
     invalidRequest();
@@ -143,13 +152,7 @@ function revalidate(
 }
 /** PNG framing validation; pixel processing and tenant-safe asset persistence belong to admission/persistence. */
 function png(base64: unknown): string {
-  if (
-    typeof base64 !== 'string' ||
-    !base64 ||
-    !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
-      base64,
-    )
-  )
+  if (typeof base64 !== 'string' || !base64 || !BASE64_PATTERN.test(base64))
     invalidResponse();
   const bytes = Buffer.from(base64, 'base64');
   if (

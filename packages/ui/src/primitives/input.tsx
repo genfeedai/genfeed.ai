@@ -19,6 +19,8 @@ import {
 } from './field-control';
 import { Label } from './label';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 export interface InputProps<T extends FieldValues = FieldValues>
   extends Omit<
     InputHTMLAttributes<HTMLInputElement>,
@@ -86,7 +88,8 @@ function renderInput<T extends FieldValues = FieldValues>({
   value,
   ...props
 }: InputBaseProps<T>) {
-  const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
+  const inputId =
+    id || label?.toLowerCase().replace(WHITESPACE_RUNS_PATTERN, '-');
   const isCheckable = type === 'checkbox' || type === 'radio';
   const inputClassName = cn(
     fieldControlClassName,

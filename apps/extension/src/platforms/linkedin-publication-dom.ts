@@ -15,6 +15,9 @@ import {
 } from '~services/publication-capture-validation';
 import { normalizePublicationWrittenText } from '~services/publication-capture-written';
 
+const LINKEDIN_PROFILE_PATH_PATTERN = /^\/in\/([^/]+)\/?$/;
+const TRAILING_ID_NUMBER_PATTERN = /(\d+)\)?$/;
+
 // LinkedIn exposes no test ids, so these are the class names its share box, comment box,
 // feed update and toast carry. Anything that stops matching fails closed: nothing is captured.
 const POST_SUBMIT = 'button.share-actions__primary-action';
@@ -249,7 +252,9 @@ function authorSlug(
   for (const anchor of scope.querySelectorAll<HTMLAnchorElement>(selector)) {
     try {
       const url = new URL(anchor.getAttribute('href') ?? '', origin);
-      const slug = /^\/in\/([^/]+)\/?$/.exec(url.pathname)?.[1]?.toLowerCase();
+      const slug = LINKEDIN_PROFILE_PATH_PATTERN.exec(
+        url.pathname,
+      )?.[1]?.toLowerCase();
       if (
         publicationCapturePlatform(url.href) === 'linkedin' &&
         publicationCaptureLinkedInSlug(slug)
@@ -263,7 +268,7 @@ function authorSlug(
 }
 /** LinkedIn ids are snowflakes: the leading bits are the creation time in milliseconds. */
 function idTime(urn: string): number | null {
-  const id = /(\d+)\)?$/.exec(urn)?.[1];
+  const id = TRAILING_ID_NUMBER_PATTERN.exec(urn)?.[1];
   if (!id) return null;
   try {
     return Number(BigInt(id) >> ID_TIME_SHIFT);

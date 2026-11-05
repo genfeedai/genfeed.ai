@@ -1,3 +1,6 @@
+const LEADING_SLASH_PATTERN = /^\//;
+const TEST_KEYWORD_PATTERN = /test/i;
+
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 
 export function assertIsolatedDatabaseUrl(
@@ -33,8 +36,8 @@ export function assertIsolatedDatabaseUrl(
     );
   }
 
-  const databaseName = parsed.pathname.replace(/^\//, '');
-  if (!/test/i.test(databaseName)) {
+  const databaseName = parsed.pathname.replace(LEADING_SLASH_PATTERN, '');
+  if (!TEST_KEYWORD_PATTERN.test(databaseName)) {
     throw new Error(
       `Isolated publish suite refused to start: database '${databaseName}' does not look like a disposable test database.`,
     );

@@ -3,6 +3,11 @@ import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tool
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { BadRequestException } from '@nestjs/common';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const REPEATED_HYPHENS_PATTERN = /-{2,}/g;
+const EDGE_HYPHEN_PATTERN = /^-|-$/g;
+
 /**
  * Brand identity awaiting confirmation. `voice` and `niche` travel with the
  * confirmation card payload so the confirmed create can store them as
@@ -94,10 +99,10 @@ export function normalizeBrandSlug(value: unknown, label: string): string {
   const raw = typeof value === 'string' && value.trim() ? value.trim() : label;
   const slug = raw
     .toLowerCase()
-    .replace(/^@/, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/-{2,}/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(LEADING_AT_SIGN_PATTERN, '')
+    .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
+    .replace(REPEATED_HYPHENS_PATTERN, '-')
+    .replace(EDGE_HYPHEN_PATTERN, '');
   if (slug.length < 2 || slug.length > 120) {
     throw new BadRequestException(
       'Brand slug must contain between 2 and 120 URL-safe characters.',

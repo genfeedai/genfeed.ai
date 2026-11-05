@@ -4,6 +4,9 @@ import {
   type ClipProcessingFlow,
   type ClipperSourceContract,
 } from '@genfeedai/contracts/interfaces';
+
+const NODES_FAILED_PREFIX_PATTERN = /^Nodes failed: [\w.-]+: /;
+
 export const DEFAULT_CLIP_SOURCE_MAX_RETRIES = 3;
 
 export function buildYoutubeSource(
@@ -42,5 +45,5 @@ export function hashSource(value: string): string {
  * id is an internal step name; the creator sees only the reason.
  */
 export function toClipFailureMessage(workflowError: string): string {
-  return workflowError.replace(/^Nodes failed: [\w.-]+: /, '');
+  return workflowError.replace(NODES_FAILED_PREFIX_PATTERN, '');
 }

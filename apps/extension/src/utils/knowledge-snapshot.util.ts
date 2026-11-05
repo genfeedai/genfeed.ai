@@ -3,6 +3,19 @@ import type {
   KnowledgeSnapshot,
 } from '~models/knowledge-capture.model';
 
+const SENSITIVE_QUERY_PARAM_PATTERN =
+  /token|secret|password|passwd|auth|session|credential|cookie|signature|api.?key|^code$|^key$|^state$|^utm_/i;
+const EXECUTABLE_HTML_ELEMENTS_PATTERN =
+  /<(script|style|noscript|template|iframe|object)\b[^>]*>[\s\S]*?<\/\1\s*>/gi;
+const HTML_TAGS_PATTERN = /<[^>]*>/g;
+const BEARER_TOKENS_PATTERN = /\bBearer\s+[A-Za-z0-9._~+/-]+=*/gi;
+const JWT_PATTERN = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
+const PROVIDER_SECRET_KEY_PATTERN =
+  /\b(?:sk|ghp|gho|github_pat)[-_][A-Za-z0-9_-]{16,}\b/g;
+const SECRET_ASSIGNMENT_PATTERN =
+  /\b(password|passwd|secret|api.?key|access.?token|refresh.?token|authorization|cookie|session.?id)\s*[:=]\s*[^\s,;]+/gi;
+const HTTP_URLS_PATTERN = /https?:\/\/[^\s<>"']+/gi;
+
 export const CAPTURE_TEXT_LIMIT = 200_000;
 export const CAPTURE_BYTES_LIMIT = 800_000;
 
@@ -15,11 +28,7 @@ export function sanitizeCaptureUrl(value: string): string {
   url.password = '';
   url.hash = '';
   for (const key of [...url.searchParams.keys()]) {
-    if (
-      /token|secret|password|passwd|auth|session|credential|cookie|signature|api.?key|^code$|^key$|^state$|^utm_/i.test(
-        key,
-      )
-    ) {
+    if (SENSITIVE_QUERY_PARAM_PATTERN.test(key)) {
       url.searchParams.delete(key);
     }
   }
@@ -29,25 +38,13 @@ export function sanitizeCaptureUrl(value: string): string {
 
 export function sanitizeCaptureText(value: string): string {
   return value
-    .replace(
-      /<(script|style|noscript|template|iframe|object)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,
-      '',
-    )
-    .replace(/<[^>]*>/g, '')
-    .replace(/\bBearer\s+[A-Za-z0-9._~+/-]+=*/gi, '[redacted credential]')
-    .replace(
-      /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g,
-      '[redacted credential]',
-    )
-    .replace(
-      /\b(?:sk|ghp|gho|github_pat)[-_][A-Za-z0-9_-]{16,}\b/g,
-      '[redacted credential]',
-    )
-    .replace(
-      /\b(password|passwd|secret|api.?key|access.?token|refresh.?token|authorization|cookie|session.?id)\s*[:=]\s*[^\s,;]+/gi,
-      '$1=[redacted]',
-    )
-    .replace(/https?:\/\/[^\s<>"']+/gi, (url) => {
+    .replace(EXECUTABLE_HTML_ELEMENTS_PATTERN, '')
+    .replace(HTML_TAGS_PATTERN, '')
+    .replace(BEARER_TOKENS_PATTERN, '[redacted credential]')
+    .replace(JWT_PATTERN, '[redacted credential]')
+    .replace(PROVIDER_SECRET_KEY_PATTERN, '[redacted credential]')
+    .replace(SECRET_ASSIGNMENT_PATTERN, '$1=[redacted]')
+    .replace(HTTP_URLS_PATTERN, (url) => {
       try {
         return sanitizeCaptureUrl(url);
       } catch {

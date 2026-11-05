@@ -3,6 +3,9 @@ import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+const LEADING_JSON_FENCE_PATTERN = /^```(?:json)?\s*/i;
+const TRAILING_CODE_FENCE_PATTERN = /\s*```$/i;
+
 type WorkspaceQualityGate = 'pass' | 'needs_revision' | 'fail';
 
 export interface WorkspaceTaskQualityAssessmentResult {
@@ -109,8 +112,8 @@ export class WorkspaceTaskQualityService {
     input: WorkspaceTaskQualityAssessmentInput,
   ): WorkspaceTaskQualityAssessmentResult {
     const cleaned = raw
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```$/i, '')
+      .replace(LEADING_JSON_FENCE_PATTERN, '')
+      .replace(TRAILING_CODE_FENCE_PATTERN, '')
       .trim();
 
     try {

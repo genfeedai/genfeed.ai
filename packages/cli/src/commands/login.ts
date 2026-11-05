@@ -20,6 +20,12 @@ import { formatHeader, formatLabel, formatSuccess, formatWarning, print } from '
 import { openExternalUrl } from '@/utils/browser';
 import { ApiError, AuthError, GenfeedError, handleError } from '@/utils/errors';
 
+const AMPERSANDS_PATTERN = /&/g;
+const LESS_THAN_SIGNS_PATTERN = /</g;
+const GREATER_THAN_SIGNS_PATTERN = />/g;
+const DOUBLE_QUOTES_PATTERN = /"/g;
+const SINGLE_QUOTES_PATTERN = /'/g;
+
 const CALLBACK_TIMEOUT = 120_000; // 2 minutes
 
 interface PkceParams {
@@ -284,11 +290,11 @@ export async function waitForAdminSession(
 
 function escapeHtml(str: string): string {
   return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(AMPERSANDS_PATTERN, '&amp;')
+    .replace(LESS_THAN_SIGNS_PATTERN, '&lt;')
+    .replace(GREATER_THAN_SIGNS_PATTERN, '&gt;')
+    .replace(DOUBLE_QUOTES_PATTERN, '&quot;')
+    .replace(SINGLE_QUOTES_PATTERN, '&#39;');
 }
 
 function callbackPage(title: string, message: string, success: boolean): string {

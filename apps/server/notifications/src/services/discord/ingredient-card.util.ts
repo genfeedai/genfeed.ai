@@ -12,6 +12,8 @@ import {
 } from '@notifications/services/discord/operator-card.util';
 import { ButtonBuilder, ButtonStyle } from 'discord.js';
 
+const SQUARE_BRACKETS_PATTERN = /[[\]]/g;
+
 export function getIngredientEmbedColor(category: IngredientCategory): number {
   const colorMap: Partial<Record<IngredientCategory, number>> = {
     [IngredientCategory.IMAGE]: 0x00ff00,
@@ -32,7 +34,9 @@ function fitFieldValue(value: string): string {
 
 /** A Discord markdown link, or the bare text when there is nowhere to go. */
 function linkField(text: string, url: string | null): string {
-  return url ? `[${text.replace(/[[\]]/g, '\\$&')}](${url})` : text;
+  return url
+    ? `[${text.replace(SQUARE_BRACKETS_PATTERN, '\\$&')}](${url})`
+    : text;
 }
 
 const CODE_FENCE = '```';

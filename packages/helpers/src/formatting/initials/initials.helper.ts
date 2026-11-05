@@ -1,3 +1,5 @@
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 const LETTER_OR_DIGIT = /[\p{L}\p{N}]/u;
 
 /** Shown when a name has no letter or digit to take initials from. */
@@ -23,7 +25,7 @@ function firstLetterOrDigit(word: string): string {
 export function getInitials(name?: string | null): string {
   const words = (name ?? '')
     .trim()
-    .split(/\s+/)
+    .split(WHITESPACE_RUN_PATTERN)
     .map(firstLetterOrDigit)
     .filter(Boolean);
 

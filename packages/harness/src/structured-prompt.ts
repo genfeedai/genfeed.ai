@@ -1,3 +1,6 @@
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const CLOSED_SENTENCE_PATTERN = /[.!?"]$/;
+
 /**
  * Structured prompt: the slots a media prompt is made of, stored as fields and
  * rendered into text only when a request is sent.
@@ -88,7 +91,7 @@ function cleanText(value: unknown): string | undefined {
   if (typeof value !== 'string') {
     return undefined;
   }
-  const trimmed = value.replace(/\s+/g, ' ').trim();
+  const trimmed = value.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
   return trimmed ? trimmed.slice(0, MAX_SLOT_CHARS) : undefined;
 }
 
@@ -146,7 +149,7 @@ function capitalize(text: string): string {
 
 function closeSentence(text: string): string {
   const trimmed = text.trim();
-  return /[.!?"]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+  return CLOSED_SENTENCE_PATTERN.test(trimmed) ? trimmed : `${trimmed}.`;
 }
 
 function sentence(text: string): string {

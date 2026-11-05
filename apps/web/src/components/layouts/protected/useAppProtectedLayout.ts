@@ -74,6 +74,11 @@ import {
 import { usePageHelp } from './use-page-help';
 import { useOpenTaskComposer } from './useOpenTaskComposer';
 
+const EDITOR_CANVAS_PATH_PATTERN = /^\/editor\/[^/]+$/;
+const WORKFLOW_EDITOR_PATH_PATTERN = /^\/automation\/workflows\/([^/]+)$/;
+const AGENT_PATH_PATTERN = /^\/agent(?:\/|$)/;
+const CLIPPER_OR_STORYBOARD_PATH_PATTERN = /^\/(clipper|storyboard)(?:\/|$)/;
+
 const AUTOMATION_WORKFLOW_RESERVED = new Set([
   'executions',
   'new',
@@ -82,9 +87,9 @@ const AUTOMATION_WORKFLOW_RESERVED = new Set([
 
 export function isProtectedEditorCanvasRoute(pathname: string): boolean {
   return (
-    /^\/editor\/[^/]+$/.test(pathname) ||
+    EDITOR_CANVAS_PATH_PATTERN.test(pathname) ||
     pathname === APP_ROUTES.AUTOMATION.WORKFLOWS_NEW ||
-    (/^\/automation\/workflows\/([^/]+)$/.test(pathname) &&
+    (WORKFLOW_EDITOR_PATH_PATTERN.test(pathname) &&
       !AUTOMATION_WORKFLOW_RESERVED.has(pathname.split('/')[3] ?? ''))
   );
 }
@@ -120,7 +125,7 @@ export function useAppProtectedLayout(
     [rawPathname],
   );
 
-  const isAgentRoute = /^\/agent(?:\/|$)/.test(pathname);
+  const isAgentRoute = AGENT_PATH_PATTERN.test(pathname);
   const isConversationRoute = isAgentRoute;
   const isAdminRoute =
     pathname === APP_ROUTES.ADMIN.ROOT ||
@@ -139,7 +144,7 @@ export function useAppProtectedLayout(
   // Dense studio canvases + mission-control runs: hide shell low-credits strip
   // so it does not steal vertical space under fixed chrome.
   const suppressShellLowCreditsBanner =
-    /^\/(clipper|storyboard)(?:\/|$)/.test(pathname) ||
+    CLIPPER_OR_STORYBOARD_PATH_PATTERN.test(pathname) ||
     pathname === APP_ROUTES.AUTOMATION.RUNS;
   const isSettingsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS);
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);

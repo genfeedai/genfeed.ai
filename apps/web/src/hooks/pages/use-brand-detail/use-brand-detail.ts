@@ -53,6 +53,11 @@ import {
 } from 'react';
 import { useSaveQueue } from '@/hooks/utils/use-save-queue/use-save-queue';
 
+const BRAND_SETTINGS_PATH_PATTERN = /\/~\/settings\/brands\/[^/]+(\/.*)?$/;
+const SETTINGS_PATH_PATTERN = /\/settings(\/.*)?$/;
+const BRAND_ID_PATH_PATTERN = /\/brands\/([^/]+)/;
+const BRAND_PATH_SEGMENT_PATTERN = /\/brands\/[^/]+/;
+
 interface BrandMediaState {
   brand: IBrand | null;
   videos: IVideo[];
@@ -178,10 +183,8 @@ export function useBrandDetail(): UseBrandDetailReturn {
       return;
     }
 
-    const oldRouteMatch = pathname.match(
-      /\/~\/settings\/brands\/[^/]+(\/.*)?$/,
-    );
-    const canonicalRouteMatch = pathname.match(/\/settings(\/.*)?$/);
+    const oldRouteMatch = pathname.match(BRAND_SETTINGS_PATH_PATTERN);
+    const canonicalRouteMatch = pathname.match(SETTINGS_PATH_PATTERN);
     const suffix = oldRouteMatch?.[1] ?? canonicalRouteMatch?.[1] ?? '';
     const canonicalPath = createBrandAppRoute(
       orgSlug,
@@ -512,9 +515,12 @@ export function useBrandDetail(): UseBrandDetailReturn {
       return;
     }
 
-    const match = pathname.match(/\/brands\/([^/]+)/);
+    const match = pathname.match(BRAND_ID_PATH_PATTERN);
     if (match && match[1] !== brandId) {
-      const newPath = pathname.replace(/\/brands\/[^/]+/, `/brands/${brandId}`);
+      const newPath = pathname.replace(
+        BRAND_PATH_SEGMENT_PATTERN,
+        `/brands/${brandId}`,
+      );
       router.replace(newPath);
     }
   }, [brandId, pathname, router]);

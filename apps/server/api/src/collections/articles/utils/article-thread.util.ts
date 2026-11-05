@@ -1,6 +1,11 @@
 import { TwitterThreadResponse } from '@api/collections/articles/dto/article-to-thread.dto';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const NEWLINE_RUNS_PATTERN = /\n+/g;
+const PARAGRAPH_BREAK_PATTERN = /\n\n+/;
+const SENTENCE_BOUNDARY_PATTERN = /(?<=[.!?])\s+/;
+
 /**
  * Pure Twitter/X thread builder for articles.
  *
@@ -43,7 +48,7 @@ function splitIntoTweetSegments(
     }
   };
 
-  for (const word of trimmed.split(/\s+/)) {
+  for (const word of trimmed.split(WHITESPACE_RUN_PATTERN)) {
     if (word.length > maxChars) {
       // No whitespace to break on — chunk the oversized token by characters,
       // carrying any sub-limit remainder forward to pack with following words.
@@ -82,11 +87,13 @@ export function buildTwitterThreadTweets(params: {
   /** Fully-resolved public/preview article URL; omit to skip the link tweet. */
   articleUrl?: string;
 }): TwitterThreadResponse['tweets'] {
-  const content = htmlToText(params.content).replace(/\n+/g, '\n').trim();
+  const content = htmlToText(params.content)
+    .replace(NEWLINE_RUNS_PATTERN, '\n')
+    .trim();
 
   // Split by double newlines (paragraphs) or by sentences if no paragraphs
   const paragraphs = content
-    .split(/\n\n+/)
+    .split(PARAGRAPH_BREAK_PATTERN)
     .filter((paragraph) => paragraph.trim().length > 0);
 
   const tweets: TwitterThreadResponse['tweets'] = [];
@@ -132,7 +139,7 @@ export function buildTwitterThreadTweets(params: {
       // Split long paragraph by sentences, then pack sentence fragments into
       // tweets. A single sentence (or token) longer than the limit is itself
       // hard-split via splitIntoTweetSegments so no over-limit tweet is emitted.
-      const sentences = trimmed.split(/(?<=[.!?])\s+/);
+      const sentences = trimmed.split(SENTENCE_BOUNDARY_PATTERN);
       let currentTweet = '';
 
       const flushCurrentTweet = (): void => {

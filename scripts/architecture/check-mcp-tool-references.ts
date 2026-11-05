@@ -7,6 +7,37 @@ import {
   isMcpListedToolName,
 } from '../../packages/actions/src/registry/mcp-catalog-calls';
 
+const HISTORICAL_MENTION_PATTERN = /\b(?:historical|retired|removed)\b/iu;
+const TRAILING_CALL_VERB_PATTERN =
+  /\b(?:call|calling|invoke|invoking|use|using)\b[^\x60]*$/iu;
+const LEADING_CODE_SPAN_PATTERN = /^`[^`]+`/u;
+const SERVER_MENTION_PATTERN = /^\s*(?:MCP\s+)?server\b/iu;
+const FIELD_MENTION_PATTERN =
+  /\b(?:fields?|parameters?|keys?|IDs?|formats?|labels?|values?)\s*[:=]?[^`]*$/iu;
+const TRAILING_TOOL_VERB_PATTERN =
+  /\b(?:call|calling|invoke|invoking|tools?)\b[^`]*$/iu;
+const LEADING_TOOLS_MENTION_PATTERN =
+  /^\s*(?:tools?\b|(?:and|or)\s+`[^`]+`\s+tools?\b)/iu;
+const TRAILING_USE_VERB_PATTERN = /\b(?:use|using)\b[^`]*$/iu;
+const CLOSING_FENCE_PATTERN = /^\s*(`+|~+)\s*$/u;
+const OPENING_FENCE_PATTERN = /^\s*(`{3,}|~{3,})(.*)$/u;
+const GENFEED_WORD_PATTERN = /genfeed/iu;
+const GENFEED_MCP_SERVER_REFERENCE_PATTERN =
+  /(?:mcp__genfeed__|["']?server["']?\s*:\s*["']genfeed["'])/iu;
+const GENFEED_TOOL_HEADING_PATTERN =
+  /^(?:#{1,6}\s+)?Genfeed\s+(?:tool\s+)?(?:call|tools?|invoke)\b/iu;
+const TOOL_NAME_PROPERTIES_PATTERN =
+  /(?<![a-z0-9_])(?:["']?(tool|tool_name|name)["']?\s*:\s*["'])([a-z][a-z0-9_]+)["']/gu;
+const OPEN_BRACES_PATTERN = /\{/gu;
+const CLOSE_BRACES_PATTERN = /\}/gu;
+const GENFEED_MCP_PREFIX_PATTERN = /^mcp__genfeed__/u;
+const TOOL_COLUMN_HEADER_PATTERN = /^(?:MCP\s+)?Tool(?:\s+name)?$/iu;
+const EDGE_BACKTICKS_PATTERN = /^`|`$/gu;
+const CODE_SPANS_PATTERN = /`([^`]+)`/gu;
+const GENFEED_MCP_TOOL_NAMES_PATTERN = /\bmcp__genfeed__([a-z][a-z0-9_]*)\b/gu;
+const IGNORED_MARKDOWN_PATH_PATTERN =
+  /(?:^|\/)(?:\.git|node_modules|fixtures)(?:\/|$)/u;
+
 const CATALOG = 'packages/actions/src/registry/curated-action-catalog.ts';
 const TOKEN = /^[a-z][a-z0-9_]*$/u;
 function isHistoricalRetiredMention(
@@ -16,10 +47,8 @@ function isHistoricalRetiredMention(
 ): boolean {
   return Boolean(
     getRetiredMcpCatalogTool(name) &&
-      /\b(?:historical|retired|removed)\b/iu.test(line) &&
-      !/\b(?:call|calling|invoke|invoking|use|using)\b[^\x60]*$/iu.test(
-        line.slice(0, offset),
-      ),
+      HISTORICAL_MENTION_PATTERN.test(line) &&
+      !TRAILING_CALL_VERB_PATTERN.test(line.slice(0, offset)),
   );
 }
 
@@ -29,19 +58,14 @@ function isToolInstruction(
   name: string,
 ): boolean {
   const before = line.slice(0, offset);
-  const after = line.slice(offset).replace(/^`[^`]+`/u, '');
+  const after = line.slice(offset).replace(LEADING_CODE_SPAN_PATTERN, '');
   // Parameters, provenance labels, server names and IDs are data.
-  if (/^\s*(?:MCP\s+)?server\b/iu.test(after)) return false;
-  if (
-    /\b(?:fields?|parameters?|keys?|IDs?|formats?|labels?|values?)\s*[:=]?[^`]*$/iu.test(
-      before,
-    )
-  )
-    return false;
+  if (SERVER_MENTION_PATTERN.test(after)) return false;
+  if (FIELD_MENTION_PATTERN.test(before)) return false;
   return (
-    /\b(?:call|calling|invoke|invoking|tools?)\b[^`]*$/iu.test(before) ||
-    /^\s*(?:tools?\b|(?:and|or)\s+`[^`]+`\s+tools?\b)/iu.test(after) ||
-    (name.includes('_') && /\b(?:use|using)\b[^`]*$/iu.test(before))
+    TRAILING_TOOL_VERB_PATTERN.test(before) ||
+    LEADING_TOOLS_MENTION_PATTERN.test(after) ||
+    (name.includes('_') && TRAILING_USE_VERB_PATTERN.test(before))
   );
 }
 
@@ -80,7 +104,7 @@ export function checkReferenceSources(
     const lines = source.text.split('\n');
     let fenceMarker: string | undefined;
     const closesFence = (line: string): boolean => {
-      const marker = /^\s*(`+|~+)\s*$/u.exec(line)?.[1];
+      const marker = CLOSING_FENCE_PATTERN.exec(line)?.[1];
       return Boolean(
         marker &&
           fenceMarker &&
@@ -92,7 +116,7 @@ export function checkReferenceSources(
     let genfeedExample = false;
     const fencedFields = new Map<number, string[]>();
     for (const [index, line] of lines.entries()) {
-      const opener = /^\s*(`{3,}|~{3,})(.*)$/u.exec(line);
+      const opener = OPENING_FENCE_PATTERN.exec(line);
       if (fenceMarker && closesFence(line)) {
         fenceMarker = undefined;
         genfeedExample = false;
@@ -100,7 +124,7 @@ export function checkReferenceSources(
       }
       if (!fenceMarker && opener) {
         fenceMarker = opener[1];
-        genfeedExample = /genfeed/iu.test(opener[2] ?? '');
+        genfeedExample = GENFEED_WORD_PATTERN.test(opener[2] ?? '');
         if (!genfeedExample) {
           const closing = lines.findIndex(
             (next, nextIndex) => nextIndex > index && closesFence(next),
@@ -109,10 +133,8 @@ export function checkReferenceSources(
             .slice(index + 1, closing < 0 ? undefined : closing)
             .join('\n');
           genfeedExample =
-            /(?:mcp__genfeed__|["']?server["']?\s*:\s*["']genfeed["'])/iu.test(
-              example,
-            ) ||
-            /^(?:#{1,6}\s+)?Genfeed\s+(?:tool\s+)?(?:call|tools?|invoke)\b/iu.test(
+            GENFEED_MCP_SERVER_REFERENCE_PATTERN.test(example) ||
+            GENFEED_TOOL_HEADING_PATTERN.test(
               lines
                 .slice(0, index)
                 .findLast((previous) => previous.trim())
@@ -126,18 +148,16 @@ export function checkReferenceSources(
           const block = lines
             .slice(index + 1, end < 0 ? undefined : end)
             .join('\n');
-          for (const field of block.matchAll(
-            /(?<![a-z0-9_])(?:["']?(tool|tool_name|name)["']?\s*:\s*["'])([a-z][a-z0-9_]+)["']/gu,
-          )) {
+          for (const field of block.matchAll(TOOL_NAME_PROPERTIES_PATTERN)) {
             const prefix = block.slice(0, field.index);
             const depth =
-              (prefix.match(/\{/gu)?.length ?? 0) -
-              (prefix.match(/\}/gu)?.length ?? 0);
+              (prefix.match(OPEN_BRACES_PATTERN)?.length ?? 0) -
+              (prefix.match(CLOSE_BRACES_PATTERN)?.length ?? 0);
             if (field[1] === 'name' && depth > 1) continue;
             const fieldLine = index + 1 + prefix.split('\n').length - 1;
             fencedFields.set(fieldLine, [
               ...(fencedFields.get(fieldLine) ?? []),
-              (field[2] ?? '').replace(/^mcp__genfeed__/u, ''),
+              (field[2] ?? '').replace(GENFEED_MCP_PREFIX_PATTERN, ''),
             ]);
           }
         }
@@ -150,19 +170,22 @@ export function checkReferenceSources(
           .slice(1, -1)
           .map((cell) => cell.trim());
         const header = cells.findIndex((cell) =>
-          /^(?:MCP\s+)?Tool(?:\s+name)?$/iu.test(cell),
+          TOOL_COLUMN_HEADER_PATTERN.test(cell),
         );
         if (header >= 0) toolColumn = header;
         else if (toolColumn >= 0) {
-          const token = (cells[toolColumn] ?? '').replace(/^`|`$/gu, '');
-          const name = token.replace(/^mcp__genfeed__/u, '');
+          const token = (cells[toolColumn] ?? '').replace(
+            EDGE_BACKTICKS_PATTERN,
+            '',
+          );
+          const name = token.replace(GENFEED_MCP_PREFIX_PATTERN, '');
           if (TOKEN.test(name)) candidates.add(name);
         }
       } else if (!fenceMarker) toolColumn = -1;
       if (!fenceMarker) {
-        for (const match of line.matchAll(/`([^`]+)`/gu)) {
+        for (const match of line.matchAll(CODE_SPANS_PATTERN)) {
           const token = match[1] ?? '';
-          const name = token.replace(/^mcp__genfeed__/u, '');
+          const name = token.replace(GENFEED_MCP_PREFIX_PATTERN, '');
           if (
             TOKEN.test(name) &&
             !isHistoricalRetiredMention(line, match.index ?? 0, name) &&
@@ -173,9 +196,7 @@ export function checkReferenceSources(
             candidates.add(name);
         }
       }
-      for (const match of line.matchAll(
-        /\bmcp__genfeed__([a-z][a-z0-9_]*)\b/gu,
-      ))
+      for (const match of line.matchAll(GENFEED_MCP_TOOL_NAMES_PATTERN))
         if (!isHistoricalRetiredMention(line, match.index ?? 0, match[1] ?? ''))
           candidates.add(match[1] ?? '');
       for (const field of fencedFields.get(index) ?? []) candidates.add(field);
@@ -217,8 +238,7 @@ function trackedMarkdown(root: string, prefix?: string): ReferenceSource[] {
     .split('\0')
     .filter(
       (file) =>
-        file.endsWith('.md') &&
-        !/(?:^|\/)(?:\.git|node_modules|fixtures)(?:\/|$)/u.test(file),
+        file.endsWith('.md') && !IGNORED_MARKDOWN_PATH_PATTERN.test(file),
     )
     .map((file) => ({
       path: join(root, file),

@@ -30,6 +30,8 @@ import { globSync } from 'glob';
 import ts from 'typescript';
 import { parseSourceFile, scriptKindFor } from './parse-source-file';
 
+const AUTHORIZATION_WORD_PATTERN = /authorization/i;
+
 const FREE_HELPER = 'getRequestOrganizationHeaders';
 const METHOD_HELPER = 'requestOrganizationHeaders';
 const AUTHORIZATION = /^authorization$/i;
@@ -324,7 +326,7 @@ function inspectFile(
   rootDir: string,
 ): { siteCount: number; violations: RawFetchOrgHeaderViolation[] } {
   const sourceText = readFileSync(filePath, 'utf8');
-  if (!/authorization/i.test(sourceText)) {
+  if (!AUTHORIZATION_WORD_PATTERN.test(sourceText)) {
     return { siteCount: 0, violations: [] };
   }
 

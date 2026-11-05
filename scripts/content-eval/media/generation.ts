@@ -1,5 +1,7 @@
 import type { MediaContestant, Medium } from './contracts';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 /**
  * Generation goes through the product API (`POST /images`, `POST /videos`)
  * with an eval-organization API key, so CreditsGuard, brand resolution, the
@@ -389,7 +391,7 @@ export class ProductApiMediaGeneration
   }
 
   private url(path: string): string {
-    return `${this.options.apiUrl.replace(/\/+$/, '')}${path}`;
+    return `${this.options.apiUrl.replace(TRAILING_SLASHES_PATTERN, '')}${path}`;
   }
 
   private headers(): Record<string, string> {

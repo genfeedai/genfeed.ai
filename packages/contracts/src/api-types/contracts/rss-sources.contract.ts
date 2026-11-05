@@ -1,6 +1,13 @@
 import { z } from 'zod';
 import { RssApprovalMode, RssImportPolicy } from '../..';
 
+const LT_ENTITIES_PATTERN = /&lt;/g;
+const GT_ENTITIES_PATTERN = /&gt;/g;
+const QUOT_ENTITIES_PATTERN = /&quot;/g;
+const APOS_ENTITIES_PATTERN = /&apos;/g;
+const AMP_ENTITIES_PATTERN = /&amp;/g;
+const ATOM_ENTRY_TAG_PATTERN = /<entry[\s>]/i;
+
 export const rssTargetChannelSchema = z.object({
   credentialId: z.string().min(1),
   platform: z.string().min(1),
@@ -61,11 +68,11 @@ function decodeCdataSections(value: string): string {
 
 function decodeXmlEntities(value: string): string {
   return decodeCdataSections(value)
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, '&')
+    .replace(LT_ENTITIES_PATTERN, '<')
+    .replace(GT_ENTITIES_PATTERN, '>')
+    .replace(QUOT_ENTITIES_PATTERN, '"')
+    .replace(APOS_ENTITIES_PATTERN, "'")
+    .replace(AMP_ENTITIES_PATTERN, '&')
     .trim();
 }
 
@@ -161,7 +168,7 @@ export function parseRssFeed(xml: string): ParsedRssFeedItem[] {
   if (!xml.trim()) {
     return [];
   }
-  if (/<entry[\s>]/i.test(xml)) {
+  if (ATOM_ENTRY_TAG_PATTERN.test(xml)) {
     return parseAtomItems(xml);
   }
   return parseRss20Items(xml);

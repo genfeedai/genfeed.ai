@@ -60,6 +60,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
+const AUTHOR_PLACEHOLDERS_PATTERN = /\{\{author\}\}/g;
+const CONTENT_PLACEHOLDERS_PATTERN = /\{\{content\}\}/g;
+const KEYWORD_PLACEHOLDERS_PATTERN = /\{\{keyword\}\}/g;
+
 export interface ExecutionResult {
   success: boolean;
   replyText?: string;
@@ -637,9 +641,18 @@ export class CampaignExecutorService implements OnModuleInit {
     target: CampaignTargetDocument,
   ): string {
     return template
-      .replace(/\{\{author\}\}/g, this.asString(target.authorUsername) ?? '')
-      .replace(/\{\{content\}\}/g, this.asString(target.contentText) ?? '')
-      .replace(/\{\{keyword\}\}/g, this.asString(target.matchedKeyword) ?? '');
+      .replace(
+        AUTHOR_PLACEHOLDERS_PATTERN,
+        this.asString(target.authorUsername) ?? '',
+      )
+      .replace(
+        CONTENT_PLACEHOLDERS_PATTERN,
+        this.asString(target.contentText) ?? '',
+      )
+      .replace(
+        KEYWORD_PLACEHOLDERS_PATTERN,
+        this.asString(target.matchedKeyword) ?? '',
+      );
   }
 
   /**

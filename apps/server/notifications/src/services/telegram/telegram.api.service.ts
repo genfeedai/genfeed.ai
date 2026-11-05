@@ -2,6 +2,13 @@ import { ParseMode } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+const AMPERSANDS_PATTERN = /&/g;
+const LESS_THAN_SIGNS_PATTERN = /</g;
+const GREATER_THAN_SIGNS_PATTERN = />/g;
+const DOUBLE_QUOTES_PATTERN = /"/g;
+const SINGLE_QUOTES_PATTERN = /'/g;
+const SLASHES_PATTERN = /\//g;
+
 interface TelegramBot {
   editMessageReplyMarkup(
     replyMarkup: unknown,
@@ -63,12 +70,12 @@ export class TelegramAPIService {
       return '';
     }
     return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;')
-      .replace(/\//g, '&#x2F;');
+      .replace(AMPERSANDS_PATTERN, '&amp;')
+      .replace(LESS_THAN_SIGNS_PATTERN, '&lt;')
+      .replace(GREATER_THAN_SIGNS_PATTERN, '&gt;')
+      .replace(DOUBLE_QUOTES_PATTERN, '&quot;')
+      .replace(SINGLE_QUOTES_PATTERN, '&#x27;')
+      .replace(SLASHES_PATTERN, '&#x2F;');
   }
 
   public sanitizeUserInput(input: string | undefined | null): string {

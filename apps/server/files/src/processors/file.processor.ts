@@ -19,6 +19,8 @@ import type { Job } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 import sharp from 'sharp';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 @Processor(QUEUE_NAMES.FILE_PROCESSING)
 export class FileProcessor extends WorkerHost {
   constructor(
@@ -74,7 +76,7 @@ export class FileProcessor extends WorkerHost {
       } else if (
         this.configService.isAuthorizedMediaDeliveryEnabled &&
         downloadUrl.startsWith(
-          `${this.configService.ingredientsEndpoint.replace(/\/$/, '')}/`,
+          `${this.configService.ingredientsEndpoint.replace(TRAILING_SLASH_PATTERN, '')}/`,
         )
       ) {
         throw new Error('The queued media source has no canonical stored key');

@@ -11,6 +11,18 @@ import type { Credential, Post, Prisma } from '@genfeedai/prisma';
 import { BadRequestException } from '@nestjs/common';
 import { z } from 'zod';
 
+const WWW_PREFIX_PATTERN = /^www\./;
+const TRAILING_SLASH_PATTERN = /\/$/;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const ALPHANUMERIC_PATTERN = /^[a-zA-Z0-9]+$/;
+const LINKEDIN_URN_PATTERN = /^urn:li:(activity|share|ugcPost):(\d+)$/;
+const LINKEDIN_ACTIVITY_SLUG_PATTERN = /activity-(\d+)(?:-|$)/;
+const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9_-]+$/;
+const NUMERIC_ID_PATTERN = /^[0-9]+$/;
+const LINKEDIN_POST_URN_PATTERN = /^urn:li:(share|ugcPost):[0-9]+$/;
+const FACEBOOK_POST_ID_PATTERN = /^[0-9]+_[0-9]+$/;
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 const MAX_PUBLICATION_BYTES = 1048576;
 const PUBLICATION_TOO_LARGE_MESSAGE =
   'This publication is too large to record automatically. Its full text was not saved.';
@@ -153,7 +165,7 @@ function parsePublicationUrl(
   }
   if (url.protocol !== 'https:' || url.username || url.password)
     return invalidUrl();
-  let hostname = url.hostname.replace(/^www\./, '');
+  let hostname = url.hostname.replace(WWW_PREFIX_PATTERN, '');
   if (platform === 'twitter' && hostname === 'x.com') hostname = 'twitter.com';
   if (!PLATFORM_HOSTS[platform].includes(hostname)) return invalidUrl();
   url.hostname = hostname;
@@ -167,7 +179,7 @@ function parsePublicationUrl(
   retained.sort();
   url.search = retained.toString();
   // A single trailing slash has no publication identity significance.
-  url.pathname = url.pathname.replace(/\/$/, '');
+  url.pathname = url.pathname.replace(TRAILING_SLASH_PATTERN, '');
   let segments: string[];
   try {
     segments = url.pathname
@@ -180,9 +192,9 @@ function parsePublicationUrl(
   if (segments.some((segment) => !segment || segment.includes('/')))
     return invalidUrl();
   const numeric = (value: string | undefined) =>
-    value && /^\d+$/.test(value) ? value : null;
+    value && DIGITS_ONLY_PATTERN.test(value) ? value : null;
   const alpha = (value: string | undefined) =>
-    value && /^[a-zA-Z0-9]+$/.test(value) ? value : null;
+    value && ALPHANUMERIC_PATTERN.test(value) ? value : null;
   let postId: string | null = null;
   let replyId: string | null = null;
   let valid = false;
@@ -199,11 +211,11 @@ function parsePublicationUrl(
         segments.length === 3 &&
         segments[0] === 'feed' &&
         segments[1] === 'update'
-          ? /^urn:li:(activity|share|ugcPost):(\d+)$/.exec(segments[2])
+          ? LINKEDIN_URN_PATTERN.exec(segments[2])
           : null;
       const activity =
         segments.length === 2 && segments[0] === 'posts'
-          ? /activity-(\d+)(?:-|$)/.exec(segments[1])
+          ? LINKEDIN_ACTIVITY_SLUG_PATTERN.exec(segments[1])
           : null;
       const isArticle = segments.length === 2 && segments[0] === 'pulse';
       valid = Boolean(feedUrn || activity || isArticle);
@@ -245,7 +257,9 @@ function parsePublicationUrl(
       break;
     case 'instagram':
       valid = segments.length === 2 && ['p', 'reel'].includes(segments[0]);
-      postId = /^[a-zA-Z0-9_-]+$/.test(segments[1] ?? '') ? segments[1] : null;
+      postId = SAFE_IDENTIFIER_PATTERN.test(segments[1] ?? '')
+        ? segments[1]
+        : null;
       break;
     case 'facebook':
       valid =
@@ -305,7 +319,10 @@ export function normalizeExtensionPublication(
       !input.externalId
     )
       return invalidUrl();
-    if (input.platform === 'twitter' && !/^\d+$/.test(input.externalId))
+    if (
+      input.platform === 'twitter' &&
+      !DIGITS_ONLY_PATTERN.test(input.externalId)
+    )
       return invalidUrl();
     const parent = parsePublicationUrl(
       input.contextUrl,
@@ -345,10 +362,10 @@ export function normalizeExtensionPublication(
     if (input.externalId) {
       const compatible =
         input.platform === 'instagram'
-          ? /^[0-9]+$/.test(input.externalId)
+          ? NUMERIC_ID_PATTERN.test(input.externalId)
           : input.platform === 'linkedin'
-            ? /^urn:li:(share|ugcPost):[0-9]+$/.test(input.externalId)
-            : /^[0-9]+_[0-9]+$/.test(input.externalId);
+            ? LINKEDIN_POST_URN_PATTERN.test(input.externalId)
+            : FACEBOOK_POST_ID_PATTERN.test(input.externalId);
       if (compatible) externalId = input.externalId;
       else if (
         input.externalId !== parsed.urlToken &&
@@ -408,12 +425,12 @@ export function extensionPublicationAnalyticsAvailability(
       : 'missing-external-id';
   const compatible =
     platform === 'linkedin'
-      ? /^urn:li:(share|ugcPost):[0-9]+$/.test(externalId)
+      ? LINKEDIN_POST_URN_PATTERN.test(externalId)
       : platform === 'facebook'
-        ? /^[0-9]+_[0-9]+$/.test(externalId)
+        ? FACEBOOK_POST_ID_PATTERN.test(externalId)
         : platform === 'youtube'
           ? externalId.trim().length > 0
-          : /^[0-9]+$/.test(externalId);
+          : NUMERIC_ID_PATTERN.test(externalId);
   if (!compatible) return 'provider-id-unresolved';
   if (!credentialId) return 'missing-credential';
   return 'eligible';
@@ -577,7 +594,7 @@ export function extensionPublicationAuthorMatchesCredential(
 ): boolean {
   if (author?.externalId) return credential.externalId === author.externalId;
   const normalizeHandle = (handle: string | null | undefined) =>
-    handle?.trim().replace(/^@/, '').toLowerCase() ?? '';
+    handle?.trim().replace(LEADING_AT_SIGN_PATTERN, '').toLowerCase() ?? '';
   const handle = normalizeHandle(author?.handle);
   return (
     !!handle &&

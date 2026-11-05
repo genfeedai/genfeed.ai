@@ -12,6 +12,8 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { BadRequestException } from '@nestjs/common';
 
+const BLANK_LINE_PATTERN = /\n\s*\n/;
+
 /** Half a second of slack: transcripts and probes round the source length differently. */
 const SOURCE_END_TOLERANCE_SECONDS = 0.5;
 const EDITED_TITLE_SUFFIX = ' (edited)';
@@ -42,7 +44,7 @@ function readFiniteNumber(value: unknown): number | undefined {
 function countCaptionCues(srt: string): number {
   return srt
     .trim()
-    .split(/\n\s*\n/)
+    .split(BLANK_LINE_PATTERN)
     .filter((block) => block.trim().length > 0).length;
 }
 

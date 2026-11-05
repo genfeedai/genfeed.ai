@@ -1,5 +1,8 @@
 import type { AdminModelPricingReport } from '@genfeedai/contracts/interfaces';
 
+const FORMULA_PREFIX_PATTERN = /^[\s]*[=+@-]/;
+const DOUBLE_QUOTES_PATTERN = /"/g;
+
 function csvCell(value: unknown): string {
   let text =
     value === null || value === undefined
@@ -7,8 +10,8 @@ function csvCell(value: unknown): string {
       : typeof value === 'object'
         ? JSON.stringify(value)
         : String(value);
-  if (/^[\s]*[=+@-]/.test(text)) text = `'${text}`;
-  return `"${text.replace(/"/g, '""')}"`;
+  if (FORMULA_PREFIX_PATTERN.test(text)) text = `'${text}`;
+  return `"${text.replace(DOUBLE_QUOTES_PATTERN, '""')}"`;
 }
 
 /** A faithful snapshot projection: no spreadsheet pricing formulas. */

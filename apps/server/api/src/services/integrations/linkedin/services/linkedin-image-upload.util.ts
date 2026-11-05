@@ -5,6 +5,8 @@ import {
 import type { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
+const LINKEDIN_RESERVED_CHARS_PATTERN = /[\\|{}[\]()<>*_~]/g;
+
 /**
  * Version header of the versioned `/rest` APIs (Images and Posts), which carry
  * multi-image posts. Versions are supported for about a year, so bump this
@@ -129,7 +131,10 @@ async function uploadLinkedInRestImage(
  * stay literal so hashtags in a caption keep working.
  */
 export function escapeLinkedInCommentary(caption: string): string {
-  return caption.replace(/[\\|{}[\]()<>*_~]/g, (character) => `\\${character}`);
+  return caption.replace(
+    LINKEDIN_RESERVED_CHARS_PATTERN,
+    (character) => `\\${character}`,
+  );
 }
 
 /**

@@ -28,6 +28,9 @@ import type { FixtureRow } from '../contracts';
 import type { ProductApiClientOptions } from '../media/generation';
 import { readErrorMessage } from '../media/generation';
 
+const THREAD_SIZE_PATTERN = /(\d+)-post/i;
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 export type ProductTextPlatform = 'linkedin' | 'twitter';
 
 export type ProductTextRoute =
@@ -124,7 +127,7 @@ export function routeRowProblem(row: FixtureRow): string | null {
 
 /** "Write a 4-post thread": the size the row asks for, kept inside the route's range. */
 export function threadSizeOf(prompt: string): number {
-  const asked = Number(/(\d+)-post/i.exec(prompt)?.[1]);
+  const asked = Number(THREAD_SIZE_PATTERN.exec(prompt)?.[1]);
   if (!Number.isInteger(asked)) return THREAD_SIZE.default;
   return Math.min(THREAD_SIZE.max, Math.max(THREAD_SIZE.min, asked));
 }
@@ -505,7 +508,7 @@ export class ProductApiTextGeneration implements TextGenerationPort {
   }
 
   private url(path: string): string {
-    return `${this.options.apiUrl.replace(/\/+$/, '')}${path}`;
+    return `${this.options.apiUrl.replace(TRAILING_SLASHES_PATTERN, '')}${path}`;
   }
 
   private headers(): Record<string, string> {

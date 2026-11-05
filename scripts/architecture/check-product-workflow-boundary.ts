@@ -2,6 +2,50 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 
+const FACECAM_TASK_ACTION_PATTERN =
+  /workspace\.task\.facecam\.(?:attach-output|record-dispatch|schedule-poll)/;
+const PLACEHOLDER_CAPTION_PATTERN =
+  /caption\s*:\s*`Generated caption for topic:/s;
+const GENERATE_CONTENT_ACTION_REGISTRATION_PATTERN =
+  /(?:registerAction\s*\(\s*|actionId\s*:\s*)(?:ARTICLE_GENERATION_(?:ACTION|TOOL)_ID|LINKEDIN_CONTENT_GENERATION_(?:ACTION|TOOL)_ID|['"]generate_content['"])/s;
+const RUN_ACTION_CALL_PATTERN = /\.\s*runAction\s*(?:<[^;{]*?>)?\s*\(/s;
+const QUEUE_SYSTEM_ACTION_CALL_PATTERN = /\.\s*queueSystemAction\s*\(/;
+const CREATE_SYSTEM_ACTION_WORKFLOW_CALL_PATTERN =
+  /\bcreateSystemActionWorkflowDefinition\s*\(/;
+const SYSTEM_WORKFLOW_DEFINITION_CALL_PATTERN =
+  /\.\s*(?:queueSystemWorkflowDefinition|runWorkflowDefinition|startWorkflowDefinition)\s*\(/;
+const ENSURE_SYSTEM_WORKFLOW_CALL_PATTERN = /\bensureSystemWorkflow\s*\(/;
+const ORG_SCOPED_VERSIONED_WORKFLOW_PATTERN =
+  /createVersionedWorkflow\s*\([\s\S]{0,2400}\borganizationId\s*:\s*(?:input\.)?organizationId\b/;
+const EMPTY_INPUT_SCHEMA_PATTERN =
+  /inputSchema\s*:\s*(?:OBJECT_SCHEMA\b|\{\s*type\s*:\s*['"]object['"]\s*,\s*properties\s*:\s*\{\s*\}\s*\})/s;
+const EMPTY_OUTPUT_SCHEMA_PATTERN =
+  /outputSchema\s*:\s*(?:ANY_SCHEMA\b|\{\s*\})/s;
+const SAAS_NODE_DEFINITIONS_REFERENCE_PATTERN = /\bSAAS_NODE_DEFINITIONS\b/;
+const DEFAULT_GENERATION_NODE_TYPES_REFERENCE_PATTERN =
+  /\bDEFAULT_WORKFLOW_GENERATION_NODE_TYPES\b/;
+const NODE_CATEGORY_MAP_REFERENCE_PATTERN = /\bNODE_CATEGORY_MAP\b/;
+const EXECUTE_WORKFLOW_CALL_PATTERN = /\bexecuteWorkflow\s*\(/;
+const DIRECT_SERVICE_REFERENCE_PATTERN =
+  /\b(?:FileQueueService|OpenRouterService|WhisperService|ArticlesService|NewslettersService)\b/;
+const PUBLISHER_PUBLISH_CALL_PATTERN = /\bpublisher\.publish\s*\(/;
+const BOT_ACTION_EXECUTOR_CALL_PATTERN =
+  /\bbotActionExecutorService\s*\.\s*(?:postReply|sendDm|postTweet|postQuoteTweet)\s*\(/;
+const TWEET_CALL_PATTERN = /\bclient\.v2\.tweet\s*\(/;
+const INSTAGRAM_DM_OR_COMMENT_CALL_PATTERN =
+  /\b(?:sendInstagramDm|postInstagramComment)\s*\(/;
+const YOUTUBE_COMMENT_REPLY_CALL_PATTERN =
+  /\byoutubeService\s*\.\s*postCommentReply\s*\(/;
+const INSTAGRAM_REPLY_CALL_PATTERN =
+  /\binstagramService\s*\.\s*(?:replyToComment|sendCommentReplyDm)\s*\(/;
+const POST_GROUPS_CALL_PATTERN =
+  /\bpostGroupsService\s*\.\s*(?:create|publishNow)\s*\(/;
+const POST_COMMENT_CALL_PATTERN = /\bpostComment\s*\(/;
+const RSS_POLL_SOURCE_CALL_PATTERN =
+  /\brssSourcesService\s*\.\s*pollSource\s*\(/;
+const YOUTUBE_COMMENT_INGEST_CALL_PATTERN =
+  /\bsocialInboxService\s*\.\s*ingestYoutubeComments\s*\(/;
+
 const DEFAULT_INCLUDE_GLOBS = [
   'apps/web/**/*.{ts,tsx}',
   'apps/desktop/**/*.{ts,tsx}',
@@ -232,10 +276,7 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
   {
     exceptionAllowed: false,
     id: 'retired-facecam-provider-orchestration-actions',
-    matches: (_file, source) =>
-      /workspace\.task\.facecam\.(?:attach-output|record-dispatch|schedule-poll)/.test(
-        source,
-      ),
+    matches: (_file, source) => FACECAM_TASK_ACTION_PATTERN.test(source),
     message:
       'Facecam provider completion is owned by the durable workflow continuation. Attach, dispatch-recording, and poll-scheduling action planes are retired.',
   },
@@ -250,8 +291,7 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
   {
     exceptionAllowed: false,
     id: 'literal-placeholder-product-mutation',
-    matches: (_file, source) =>
-      /caption\s*:\s*`Generated caption for topic:/s.test(source),
+    matches: (_file, source) => PLACEHOLDER_CAPTION_PATTERN.test(source),
     message:
       'Product mutation endpoints cannot return literal placeholder generation results. Delete the surface or route it through a real action-backed workflow.',
   },
@@ -259,9 +299,7 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
     exceptionAllowed: false,
     id: 'workflow-entry-action-used-as-internal-node',
     matches: (_file, source) =>
-      /(?:registerAction\s*\(\s*|actionId\s*:\s*)(?:ARTICLE_GENERATION_(?:ACTION|TOOL)_ID|LINKEDIN_CONTENT_GENERATION_(?:ACTION|TOOL)_ID|['"]generate_content['"])/s.test(
-        source,
-      ),
+      GENERATE_CONTENT_ACTION_REGISTRATION_PATTERN.test(source),
     message:
       'Workflow-entry tool IDs cannot be reused for a differently shaped internal node. Give the atomic node its own stable action ID and exact contract.',
   },
@@ -269,9 +307,9 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
     exceptionAllowed: false,
     id: 'dynamic-system-action-workflow',
     matches: (_file, source) =>
-      /\.\s*runAction\s*(?:<[^;{]*?>)?\s*\(/s.test(source) ||
-      /\.\s*queueSystemAction\s*\(/.test(source) ||
-      /\bcreateSystemActionWorkflowDefinition\s*\(/.test(source),
+      RUN_ACTION_CALL_PATTERN.test(source) ||
+      QUEUE_SYSTEM_ACTION_CALL_PATTERN.test(source) ||
+      CREATE_SYSTEM_ACTION_WORKFLOW_CALL_PATTERN.test(source),
     message:
       'Dynamic single-action workflow wrappers are retired. Register and execute an explicit immutable workflow graph.',
   },
@@ -279,9 +317,7 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
     exceptionAllowed: false,
     id: 'serialized-system-workflow-definition',
     matches: (_file, source) =>
-      /\.\s*(?:queueSystemWorkflowDefinition|runWorkflowDefinition|startWorkflowDefinition)\s*\(/.test(
-        source,
-      ),
+      SYSTEM_WORKFLOW_DEFINITION_CALL_PATTERN.test(source),
     message:
       'Runtime and queued callers may reference only a registered canonical workflow ID; serialized graph execution is retired.',
   },
@@ -290,10 +326,8 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
     id: 'persisted-hidden-system-workflow-clone',
     matches: (file, source) =>
       file.endsWith('/system-workflow-runner.service.ts') &&
-      (/\bensureSystemWorkflow\s*\(/.test(source) ||
-        /createVersionedWorkflow\s*\([\s\S]{0,2400}\borganizationId\s*:\s*(?:input\.)?organizationId\b/.test(
-          source,
-        )),
+      (ENSURE_SYSTEM_WORKFLOW_CALL_PATTERN.test(source) ||
+        ORG_SCOPED_VERSIONED_WORKFLOW_PATTERN.test(source)),
     message:
       'Hidden system graphs are code-owned and must not create per-organization Workflow clones.',
   },
@@ -302,10 +336,8 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
     id: 'empty-internal-action-contract',
     matches: (file, source) =>
       file.startsWith('packages/actions/src/') &&
-      /inputSchema\s*:\s*(?:OBJECT_SCHEMA\b|\{\s*type\s*:\s*['"]object['"]\s*,\s*properties\s*:\s*\{\s*\}\s*\})/s.test(
-        source,
-      ) &&
-      /outputSchema\s*:\s*(?:ANY_SCHEMA\b|\{\s*\})/s.test(source),
+      EMPTY_INPUT_SCHEMA_PATTERN.test(source) &&
+      EMPTY_OUTPUT_SCHEMA_PATTERN.test(source),
     message:
       'Registered product actions require concrete JSON-schema input and output contracts; empty internal-action placeholders are retired.',
   },
@@ -314,9 +346,9 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
     id: 'hand-written-product-node-inventory',
     matches: (file, source) =>
       file.startsWith('packages/workflows/') &&
-      (/\bSAAS_NODE_DEFINITIONS\b/.test(source) ||
-        /\bDEFAULT_WORKFLOW_GENERATION_NODE_TYPES\b/.test(source) ||
-        /\bNODE_CATEGORY_MAP\b/.test(source)),
+      (SAAS_NODE_DEFINITIONS_REFERENCE_PATTERN.test(source) ||
+        DEFAULT_GENERATION_NODE_TYPES_REFERENCE_PATTERN.test(source) ||
+        NODE_CATEGORY_MAP_REFERENCE_PATTERN.test(source)),
     message:
       'Action-backed workflow node metadata must be generated from the action catalog; do not reintroduce a hand-written product node inventory in packages/workflows.',
   },
@@ -325,7 +357,7 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
     id: 'mcp-direct-workflow-execution-adapter',
     matches: (file, source) =>
       file === 'apps/server/mcp/src/services/client/workflow.client.ts' &&
-      /\bexecuteWorkflow\s*\(/.test(source),
+      EXECUTE_WORKFLOW_CALL_PATTERN.test(source),
     message:
       'MCP must invoke workflows through the curated Agent workflow executor; a second direct workflow-execution client is not allowed.',
   },
@@ -334,32 +366,27 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
     matches: (file, source) =>
       (file.includes('youtube-long-form') ||
         source.includes('YOUTUBE_LONG_FORM_WORKFLOW_ID')) &&
-      /\b(?:FileQueueService|OpenRouterService|WhisperService|ArticlesService|NewslettersService)\b/.test(
-        source,
-      ),
+      DIRECT_SERVICE_REFERENCE_PATTERN.test(source),
     message:
       'YouTube long-form provider and persistence calls must stay inside the documented action adapter invoked by the registered hidden workflow.',
   },
   {
     id: 'direct-publish-call',
-    matches: (_file, source) => /\bpublisher\.publish\s*\(/.test(source),
+    matches: (_file, source) => PUBLISHER_PUBLISH_CALL_PATTERN.test(source),
     message:
       'Direct publish calls must be isolated inside a documented workflow action adapter.',
   },
   {
     id: 'reply-bot-action-call',
-    matches: (_file, source) =>
-      /\bbotActionExecutorService\s*\.\s*(?:postReply|sendDm|postTweet|postQuoteTweet)\s*\(/.test(
-        source,
-      ),
+    matches: (_file, source) => BOT_ACTION_EXECUTOR_CALL_PATTERN.test(source),
     message:
       'Direct reply/DM/social action calls must be isolated inside a documented workflow action adapter.',
   },
   {
     id: 'direct-social-client-action',
     matches: (_file, source) =>
-      /\bclient\.v2\.tweet\s*\(/.test(source) ||
-      /\b(?:sendInstagramDm|postInstagramComment)\s*\(/.test(source),
+      TWEET_CALL_PATTERN.test(source) ||
+      INSTAGRAM_DM_OR_COMMENT_CALL_PATTERN.test(source),
     message:
       'Direct social API actions must be isolated inside a documented workflow action adapter.',
   },
@@ -368,10 +395,8 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
     matches: (file, source) =>
       (file.startsWith('apps/server/api/src/collections/social-inbox/') ||
         file.startsWith('apps/server/api/src/collections/social-inbox/')) &&
-      (/\byoutubeService\s*\.\s*postCommentReply\s*\(/.test(source) ||
-        /\binstagramService\s*\.\s*(?:replyToComment|sendCommentReplyDm)\s*\(/.test(
-          source,
-        )),
+      (YOUTUBE_COMMENT_REPLY_CALL_PATTERN.test(source) ||
+        INSTAGRAM_REPLY_CALL_PATTERN.test(source)),
     message:
       'Social inbox reply/DM platform actions must run through workflow execution or be documented as a bounded migration exception.',
   },
@@ -380,8 +405,8 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
     matches: (file, source) =>
       file ===
         'apps/server/workers/src/crons/engagement/cron.engagement-triggers.service.ts' &&
-      (/\bpostGroupsService\s*\.\s*(?:create|publishNow)\s*\(/.test(source) ||
-        /\bpostComment\s*\(/.test(source)),
+      (POST_GROUPS_CALL_PATTERN.test(source) ||
+        POST_COMMENT_CALL_PATTERN.test(source)),
     message:
       'Engagement rule product actions must be isolated inside a registered workflow action.',
   },
@@ -390,7 +415,7 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
     matches: (file, source) =>
       file ===
         'apps/server/workers/src/crons/rss/cron.rss-autopost.service.ts' &&
-      /\brssSourcesService\s*\.\s*pollSource\s*\(/.test(source),
+      RSS_POLL_SOURCE_CALL_PATTERN.test(source),
     message:
       'RSS source polling must be isolated inside a registered workflow action.',
   },
@@ -399,7 +424,7 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
     matches: (file, source) =>
       file ===
         'apps/server/workers/src/crons/youtube/cron.youtube-messages.service.ts' &&
-      /\bsocialInboxService\s*\.\s*ingestYoutubeComments\s*\(/.test(source),
+      YOUTUBE_COMMENT_INGEST_CALL_PATTERN.test(source),
     message:
       'YouTube social-inbox ingestion must be isolated inside a registered workflow action.',
   },

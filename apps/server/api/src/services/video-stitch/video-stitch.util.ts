@@ -30,6 +30,8 @@ import { assertStoredObjectKey } from '@libs/security/stored-object-key';
 import { BadRequestException } from '@nestjs/common';
 import { z } from 'zod';
 
+const VIDEO_INGREDIENT_KEY_PREFIX_PATTERN = /^ingredients\/(videos|avatars)\//;
+
 const STITCH_STORAGE_KEY = /^ingredients\/(videos|avatars)\/[^\s]+$/;
 
 export function stitchRequestError(
@@ -224,7 +226,7 @@ export function resolveStitchClipStorageKey(
   isAuthorizedDeliveryEnabled = false,
 ): string {
   if (isAuthorizedDeliveryEnabled) {
-    if (!clip.s3Key || !/^ingredients\/(videos|avatars)\//.test(clip.s3Key)) {
+    if (!clip.s3Key || !VIDEO_INGREDIENT_KEY_PREFIX_PATTERN.test(clip.s3Key)) {
       throw stitchRequestError('clipIds', 'Clip has no valid stored media key');
     }
     return assertStoredObjectKey(clip.s3Key, (message) =>

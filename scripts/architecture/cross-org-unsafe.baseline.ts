@@ -19,7 +19,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #7552: superadmin all-organizations library listing; gated by the allOrganizations superadmin check in the controller.
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 250,
+      line: 252,
     },
     // Superadmin failure resolution; the write itself is scoped to the execution row's own tenant.
     {
@@ -80,7 +80,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // issuance only and are never returned over HTTP.
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 260,
+      line: 262,
     },
     // Platform-admin cross-organization media: the admin Library and Generations
     // list other tenants' assets, so preview grants for ids the organization
@@ -89,13 +89,13 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // and only a signed preview URL leaves the service.
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 803,
+      line: 805,
     },
     // Platform-admin batch refresh of those previews: the batch route verifies
     // the platform-admin role and reads only the ids the client already holds.
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 348,
+      line: 350,
     },
     // Public brand pictures: the anonymous public profile (/u/<handle>) has no
     // organization to scope by. projectPublicBrandAssets reads only LOGO and
@@ -103,11 +103,11 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // only the signed picture URL leaves the service (never the storage key).
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 469,
+      line: 471,
     },
     {
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
-      line: 496,
+      line: 498,
     },
     // Access discovery: findActiveForUserAccess lists the caller's own active
     // memberships by canonical users.id (userId in the where) to resolve which
@@ -136,7 +136,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: one shared system-principal mirror lookup for normal and failure binding proofs; both callers retain exact principal/soft-delete fences.
     {
       file: 'apps/server/api/src/collections/visual-projects/services/visual-project-workflow.service.ts',
-      line: 102,
+      line: 104,
     },
     // #6120: superadmin-only cross-organization workflow failure feed.
     {
@@ -178,17 +178,17 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // authorization and cross-tenant behavior are unchanged.
     {
       file: 'apps/server/api/src/collections/models/services/models.service.ts',
-      line: 591,
+      line: 595,
     },
     // #6120: superadmin registry approve.
     {
       file: 'apps/server/api/src/collections/models/services/models.service.ts',
-      line: 777,
+      line: 781,
     },
     // #6120: superadmin registry reject.
     {
       file: 'apps/server/api/src/collections/models/services/models.service.ts',
-      line: 875,
+      line: 879,
     },
     // #6120: skill rows addressed by an already-authorized id or owner;
     // personal and system skills have no organization and grants cross
@@ -215,7 +215,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin pricing report over the platform model registry.
     {
       file: 'apps/server/api/src/endpoints/admin/model-pricing/model-pricing.service.ts',
-      line: 486,
+      line: 488,
     },
     // #6120: platform (organization-less) outbox and activity events.
     {
@@ -232,7 +232,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // receipt.
     {
       file: 'apps/server/api/src/skills-pro/services/skill-download.service.ts',
-      line: 375,
+      line: 378,
     },
     // #6120: superadmin platform billing-account migration; each write targets
     // that organization's own rows.
@@ -313,7 +313,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // account.
     {
       file: 'apps/server/api/src/collections/content-learning/services/learning-account.service.ts',
-      line: 940,
+      line: 943,
     },
     // #6120: superadmin dataset assembly across consenting organizations, each
     // fenced by learningOrgFence.
@@ -346,18 +346,18 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // organizations.
     {
       file: 'apps/server/api/src/collections/referrals/services/referrals.service.ts',
-      line: 275,
+      line: 277,
     },
     // #6120: short codes are globally unique; public redirects resolve without
     // an organization.
     {
       file: 'apps/server/api/src/collections/tracked-links/services/tracked-links.service.ts',
-      line: 144,
+      line: 151,
     },
     // #6120: superadmin platform-wide announcement history.
     {
       file: 'apps/server/api/src/endpoints/admin/announcements/announcements.service.ts',
-      line: 162,
+      line: 164,
     },
     // #6120: runAsPlatformAdmin for the IP-whitelisted, superadmin-guarded
     // warm-up provisioning in the target customer organization.
@@ -482,7 +482,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // createPreviewLink).
     {
       file: 'apps/server/api/src/collections/articles/controllers/articles.controller.ts',
-      line: 146,
+      line: 148,
     },
     // #6120: published public article slugs are unique across all
     // organizations.

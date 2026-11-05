@@ -1,6 +1,8 @@
 import * as SecureStore from 'expo-secure-store';
 import { API_URL } from '@/services/api/base-http.service';
 
+const SET_COOKIE_SEPARATOR_PATTERN = /,(?=\s*[^;,=]+=[^;,]+)/;
+
 const AUTH_BASE_URL = `${API_URL.replace(/\/$/, '').replace(/\/v1$/, '')}/v1/auth`;
 const SESSION_COOKIE_KEY = 'genfeed.better-auth.session-cookie';
 const USER_KEY = 'genfeed.better-auth.user';
@@ -54,7 +56,7 @@ function normalizeUser(
 
 function splitSetCookieHeader(value: string): string[] {
   return value
-    .split(/,(?=\s*[^;,=]+=[^;,]+)/)
+    .split(SET_COOKIE_SEPARATOR_PATTERN)
     .map((cookie) => cookie.trim())
     .filter(Boolean);
 }

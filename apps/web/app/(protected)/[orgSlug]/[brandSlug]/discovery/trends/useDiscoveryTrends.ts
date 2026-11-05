@@ -14,6 +14,8 @@ import { useQuery } from '@tanstack/react-query';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { useState } from 'react';
 
+const LEADING_HASH_PATTERN = /^#/;
+
 const TRENDS_PLATFORMS = [
   PLATFORM_CONFIGS.tiktok,
   PLATFORM_CONFIGS.youtube,
@@ -165,7 +167,7 @@ export function useDiscoveryTrends() {
     ? allVideos.filter((video) =>
         (video.hashtags ?? []).some(
           (tag) =>
-            tag.replace(/^#/, '').toLowerCase() ===
+            tag.replace(LEADING_HASH_PATTERN, '').toLowerCase() ===
             selectedHashtag.toLowerCase(),
         ),
       )

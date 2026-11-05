@@ -1,3 +1,5 @@
+const KEBAB_CASE_BOUNDARY_PATTERN = /-([a-z])/g;
+
 /**
  * The width a masonry container will have once the CSS transitions that are
  * running around it finish.
@@ -25,7 +27,7 @@ const ANCESTOR_INSET_PROPERTIES = new Set([
 ]);
 
 function toCamelCase(property: string): string {
-  return property.replace(/-([a-z])/g, (_, letter: string) =>
+  return property.replace(KEBAB_CASE_BOUNDARY_PATTERN, (_, letter: string) =>
     letter.toUpperCase(),
   );
 }

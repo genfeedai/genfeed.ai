@@ -42,6 +42,9 @@ import {
 } from 'react';
 import { buildAgentRunFailureCopyText } from './AgentRunFailureCard';
 
+const TASK_LABEL_SEPARATOR_PATTERN = /[_-]/;
+const SEPARATOR_RUNS_PATTERN = /[_-]+/g;
+
 interface AgentComposerStatusStackProps {
   activeWorkEvent: AgentWorkEvent | null;
   error: string | null;
@@ -136,8 +139,8 @@ function getWorkTaskLabel(event: AgentWorkEvent): string | null {
     return null;
   }
 
-  if (/[_-]/.test(label)) {
-    const words = label.replace(/[_-]+/g, ' ').toLowerCase();
+  if (TASK_LABEL_SEPARATOR_PATTERN.test(label)) {
+    const words = label.replace(SEPARATOR_RUNS_PATTERN, ' ').toLowerCase();
     return words.charAt(0).toUpperCase() + words.slice(1);
   }
 

@@ -4,6 +4,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 
+const LINE_BREAK_PATTERN = /\r?\n/;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 const execFileAsync = promisify(execFile);
 
 /** Upper bound on OCR text kept per frame; on-screen text is short. */
@@ -54,8 +57,8 @@ export class TesseractOcrService {
   /** Collapse tesseract's blank-line-heavy output into trimmed lines. */
   static normalize(raw: string): string {
     return raw
-      .split(/\r?\n/)
-      .map((line) => line.replace(/\s+/g, ' ').trim())
+      .split(LINE_BREAK_PATTERN)
+      .map((line) => line.replace(WHITESPACE_RUNS_PATTERN, ' ').trim())
       .filter((line) => line.length > 0)
       .join('\n')
       .slice(0, MAX_OCR_TEXT_LENGTH);

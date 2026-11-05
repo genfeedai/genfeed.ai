@@ -3,6 +3,8 @@ import { DESKTOP_IPC_CHANNELS } from '@genfeedai/contracts/desktop';
 import { contextBridge, ipcRenderer } from 'electron';
 import { isTrustedDesktopAppOrigin } from './main/app-shell-origin.util';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 const APP_ORIGIN_ARGUMENT = '--genfeed-app-origin=';
 const WS_ENDPOINT_ARGUMENT = '--genfeed-ws-endpoint=';
 
@@ -41,7 +43,7 @@ const getDesktopWsEndpoint = (): string | null => {
   try {
     const url = new URL(argument.slice(WS_ENDPOINT_ARGUMENT.length));
     return url.protocol === 'https:' || url.protocol === 'http:'
-      ? url.toString().replace(/\/$/, '')
+      ? url.toString().replace(TRAILING_SLASH_PATTERN, '')
       : null;
   } catch {
     return null;

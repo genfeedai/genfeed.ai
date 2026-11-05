@@ -10,6 +10,9 @@ import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
 import RSS from 'rss';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+const RSS_LAST_BUILD_DATE_PATTERN = /<lastBuildDate>[^<]*<\/lastBuildDate>/;
+
 const PUBLISHED_NEWSLETTER_STATUS = 'published';
 const CONTENT_NAMESPACE = 'http://purl.org/rss/1.0/modules/content/';
 
@@ -17,7 +20,7 @@ const CONTENT_NAMESPACE = 'http://purl.org/rss/1.0/modules/content/';
 const FEED_ITEM_LIMIT = 50;
 
 function trimTrailingSlash(value: string): string {
-  return value.replace(/\/+$/, '');
+  return value.replace(TRAILING_SLASHES_PATTERN, '');
 }
 
 function versionedApiUrl(value: string): string {
@@ -98,7 +101,7 @@ export class NewsletterImportFeedService {
     return feed
       .xml()
       .replace(
-        /<lastBuildDate>[^<]*<\/lastBuildDate>/,
+        RSS_LAST_BUILD_DATE_PATTERN,
         `<lastBuildDate>${latestChange.toUTCString()}</lastBuildDate>`,
       );
   }

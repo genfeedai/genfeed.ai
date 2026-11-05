@@ -3,6 +3,8 @@ import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+const TABLE_UNSAFE_CHARS_PATTERN = /[|`<>\r\n]/g;
+
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
 // The reporter observes the completed Vitest modules. It never selects files,
@@ -129,7 +131,7 @@ export default class ApiTestTimingsReporter {
 }
 
 function tableCell(value) {
-  return String(value).replace(/[|`<>\r\n]/g, ' ');
+  return String(value).replace(TABLE_UNSAFE_CHARS_PATTERN, ' ');
 }
 
 export function formatTimingSummary(record) {

@@ -1,5 +1,9 @@
 import type * as cheerio from 'cheerio';
 
+const WIDTH_PLACEHOLDER_PATTERN = /\{width\}/g;
+const QUERY_OR_HASH_PATTERN = /[?#]/;
+const LOGO_KEYWORD_PATTERN = /logo/iu;
+
 function selectedDomNodes(api: cheerio.CheerioAPI, selector: string) {
   return api(selector).toArray();
 }
@@ -29,7 +33,7 @@ export function readImageSource(
     if (value && !value.startsWith('data:')) {
       return {
         isSrcSet: false,
-        value: value.replace(/\{width\}/g, '1024'),
+        value: value.replace(WIDTH_PLACEHOLDER_PATTERN, '1024'),
       };
     }
   }
@@ -51,8 +55,9 @@ export function isLogoImage(
   node: ParsedDomNode,
 ): boolean {
   const element = $(node);
-  const fileName = readImageSource($, node)?.value.split(/[?#]/)[0] ?? '';
-  return /logo/iu.test(
+  const fileName =
+    readImageSource($, node)?.value.split(QUERY_OR_HASH_PATTERN)[0] ?? '';
+  return LOGO_KEYWORD_PATTERN.test(
     [
       element.attr('class'),
       element.attr('id'),

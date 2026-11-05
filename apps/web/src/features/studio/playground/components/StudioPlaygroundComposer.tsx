@@ -135,6 +135,8 @@ import type {
 import { useDesktopRuntimeContext } from '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { useDebounce } from '@/hooks/utils/use-debounce/use-debounce';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//;
+
 /** Types whose prompt is spoken aloud rather than described to a renderer. */
 const SCRIPT_PLACEHOLDER = 'Write the script you want spoken…';
 const PROMPT_PLACEHOLDER = 'Describe what you want to generate…';
@@ -465,7 +467,8 @@ export default function StudioPlaygroundComposer({
             asset.role === (type === 'image-edit' ? 'editSource' : 'reference'),
         )
         .flatMap((asset) =>
-          asset.previewUrl && /^https?:\/\//.test(asset.previewUrl)
+          asset.previewUrl &&
+          HTTP_PROTOCOL_PREFIX_PATTERN.test(asset.previewUrl)
             ? [asset.previewUrl]
             : [],
         ),

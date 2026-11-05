@@ -27,13 +27,16 @@ import {
 import { renderSkillsReadme } from './check-skills-readme-drift';
 import { renderSkillsIndex } from './generate-skills-index';
 
+const GIT_SHA_PATTERN = /^[a-f0-9]{40}$/;
+const SKILL_SOURCE_PATH_PATTERN = /^([^/]+)\/([^/]+)\/SKILL\.md$/;
+
 function git(source: string, ...args: string[]): string {
   return execFileSync('git', ['-C', source, ...args], {
     encoding: 'utf8',
   }).trim();
 }
 export function validateSource(source: string, commit: string): string {
-  if (!/^[a-f0-9]{40}$/.test(commit))
+  if (!GIT_SHA_PATTERN.test(commit))
     throw new Error('A full source commit SHA is required');
   if (
     realpathSync(git(source, 'rev-parse', '--show-toplevel')) !==
@@ -86,7 +89,7 @@ export function sourceSkillPaths(source: string): string[] {
   const modules = new Set(sourceModules(source));
   const bySlug = new Map<string, string>();
   for (const path of git(source, 'ls-files', '-z').split('\0')) {
-    const match = /^([^/]+)\/([^/]+)\/SKILL\.md$/.exec(path);
+    const match = SKILL_SOURCE_PATH_PATTERN.exec(path);
     if (!match || !modules.has(match[1])) continue;
     const slug = match[2];
     const existing = bySlug.get(slug.toLowerCase());

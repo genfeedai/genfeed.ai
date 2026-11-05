@@ -3,6 +3,8 @@ import {
   UNATTRIBUTED_FORWARDED_VALUE,
 } from '@genfeedai/contracts/constants';
 
+const LIST_DELIMITER_PATTERN = /[,;]/;
+
 /**
  * Every admin surface — the `/admin/*` endpoints and super-admin power on any
  * other endpoint — is reachable only from `ADMIN_ALLOWED_IPS`. An empty list
@@ -72,7 +74,7 @@ function declaresUnknownClient(request: AdminIpRequest): boolean {
 
   return values.some((value) =>
     value
-      .split(/[,;]/)
+      .split(LIST_DELIMITER_PATTERN)
       .some(
         (pair) =>
           pair.trim().toLowerCase().replaceAll('"', '') ===

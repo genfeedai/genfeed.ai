@@ -34,6 +34,8 @@ import { ConfigService } from '@libs/config/config.service';
 import { resolveSafeDestination } from '@libs/security/destination-guard';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 const VOICE_FIELDS = [
   'voiceTone',
   'voiceStyle',
@@ -320,7 +322,7 @@ export class BrandFromUrlService {
     });
     const appUrl = String(
       this.config.get('GENFEEDAI_APP_URL') ?? 'https://app.genfeed.ai',
-    ).replace(/\/+$/, '');
+    ).replace(TRAILING_SLASHES_PATTERN, '');
     return `${appUrl}${createBrandAppRoute(organization?.slug ?? organizationId, brandSlug, '/settings/brand-kit')}`;
   }
 }

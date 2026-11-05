@@ -7,6 +7,20 @@ import MarkdownCodeBlock, {
   type MarkdownCodeBlockLabels,
 } from './MarkdownCodeBlock';
 
+const CODE_FENCE_START_PATTERN = /^```/;
+const MARKDOWN_HEADING_PATTERN = /^#{1,6}\s/;
+const HORIZONTAL_RULE_PATTERN = /^(-{3,}|\*{3,}|_{3,})$/;
+const LEADING_INDENT_PATTERN = /^(\s*)/;
+const EXCESS_BLANK_LINES_PATTERN = /\n{3,}/g;
+const MARKDOWN_BULLET_LINE_PATTERN = /^\s*[-*+]\s/m;
+const MARKDOWN_NUMBERED_LINE_PATTERN = /^\s*\d+\.\s/m;
+const MARKDOWN_HEADING_LINE_PATTERN = /^#{1,3}\s/m;
+const CODE_FENCE_PATTERN = /```/;
+const MARKDOWN_TABLE_ROW_PATTERN = /^\s*\|.+\|/m;
+const CAPABILITY_LABEL_LINE_PATTERN = /^([A-Za-z][^:\n]{0,72}):\s+(.+)$/;
+const LOOSE_BULLET_LISTS_PATTERN = /(^- .+\n)\n+(?=- )/gm;
+const CAPABILITY_LABEL_PATTERN = /^[A-Za-z][^:\n]{0,72}:\s+\S/;
+
 function isSafeHref(href?: string): boolean {
   if (!href) {
     return false;
@@ -81,16 +95,16 @@ export function normalizeAssistantListMarkdown(content: string): string {
 
     // Fence / heading / horizontal rule ends the list context.
     if (
-      /^```/.test(line.trim()) ||
-      /^#{1,6}\s/.test(line.trim()) ||
-      /^(-{3,}|\*{3,}|_{3,})$/.test(line.trim())
+      CODE_FENCE_START_PATTERN.test(line.trim()) ||
+      MARKDOWN_HEADING_PATTERN.test(line.trim()) ||
+      HORIZONTAL_RULE_PATTERN.test(line.trim())
     ) {
       continuationIndent = null;
       out.push(line);
       continue;
     }
 
-    const leading = line.match(/^(\s*)/)?.[1].length ?? 0;
+    const leading = line.match(LEADING_INDENT_PATTERN)?.[1].length ?? 0;
     if (leading >= continuationIndent) {
       out.push(line);
       continue;
@@ -101,7 +115,7 @@ export function normalizeAssistantListMarkdown(content: string): string {
   }
 
   // Collapse 3+ blank lines to a single paragraph break.
-  return out.join('\n').replace(/\n{3,}/g, '\n\n');
+  return out.join('\n').replace(EXCESS_BLANK_LINES_PATTERN, '\n\n');
 }
 
 /**
@@ -119,11 +133,11 @@ export function enhanceAssistantMarkdown(content: string): string {
 
   // Already structured — do not rewrite labels (lists already normalized).
   if (
-    /^\s*[-*+]\s/m.test(trimmed) ||
-    /^\s*\d+\.\s/m.test(trimmed) ||
-    /^#{1,3}\s/m.test(trimmed) ||
-    /```/.test(trimmed) ||
-    /^\s*\|.+\|/m.test(trimmed)
+    MARKDOWN_BULLET_LINE_PATTERN.test(trimmed) ||
+    MARKDOWN_NUMBERED_LINE_PATTERN.test(trimmed) ||
+    MARKDOWN_HEADING_LINE_PATTERN.test(trimmed) ||
+    CODE_FENCE_PATTERN.test(trimmed) ||
+    MARKDOWN_TABLE_ROW_PATTERN.test(trimmed)
   ) {
     return normalized;
   }
@@ -142,7 +156,7 @@ export function enhanceAssistantMarkdown(content: string): string {
   }
 
   const rewritten = lines.map((line) => {
-    const match = line.match(/^([A-Za-z][^:\n]{0,72}):\s+(.+)$/);
+    const match = line.match(CAPABILITY_LABEL_LINE_PATTERN);
     if (!match) {
       return line;
     }
@@ -151,11 +165,11 @@ export function enhanceAssistantMarkdown(content: string): string {
   });
 
   // Keep list items contiguous so GFM does not split on blank lines.
-  return rewritten.join('\n').replace(/(^- .+\n)\n+(?=- )/gm, '$1');
+  return rewritten.join('\n').replace(LOOSE_BULLET_LISTS_PATTERN, '$1');
 }
 
 function isCapabilityLabelLine(line: string): boolean {
-  return /^[A-Za-z][^:\n]{0,72}:\s+\S/.test(line.trim());
+  return CAPABILITY_LABEL_PATTERN.test(line.trim());
 }
 
 interface SafeMarkdownProps {

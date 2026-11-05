@@ -1,3 +1,6 @@
+const NORMAL_AVATAR_SUFFIX_PATTERN = /_normal(\.[a-z]+)$/i;
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 /**
  * `user.fields` for a profile whose avatar and header Genfeed reuses. A
  * comma-separated string because twitter-api-v2's field union predates
@@ -19,7 +22,7 @@ export function toTwitterFullSizeAvatarUrl(
     return undefined;
   }
 
-  return profileImageUrl.replace(/_normal(\.[a-z]+)$/i, '_400x400$1');
+  return profileImageUrl.replace(NORMAL_AVATAR_SUFFIX_PATTERN, '_400x400$1');
 }
 
 /**
@@ -35,7 +38,9 @@ export function readTwitterBannerUrl(user: object): string | undefined {
     return undefined;
   }
 
-  const bannerUrl = profileBannerUrl.trim().replace(/\/+$/, '');
+  const bannerUrl = profileBannerUrl
+    .trim()
+    .replace(TRAILING_SLASHES_PATTERN, '');
 
   return TWITTER_BANNER_SIZE_SUFFIX.test(bannerUrl)
     ? bannerUrl

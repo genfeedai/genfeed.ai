@@ -13,8 +13,10 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import type { ArticlePublicPageCardProps } from '@/props/edit/article-public-page.props';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//;
+
 function toDisplayUrl(url: string): string {
-  return url.replace(/^https?:\/\//, '');
+  return url.replace(HTTP_PROTOCOL_PREFIX_PATTERN, '');
 }
 
 /**

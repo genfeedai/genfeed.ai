@@ -8,6 +8,8 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 
+const SAFE_IDENTIFIER_PATTERN = /^[A-Za-z0-9_-]+$/;
+
 const RECEIPT_CURSOR_MAX_JSON_BYTES = 1584;
 const RECEIPT_CURSOR_MAX_ENCODED_CHARS = 2112;
 const cursorSchema = z.strictObject({
@@ -32,7 +34,7 @@ export function decodeBrandedGenerationReceiptCursorV1(
         value.length > RECEIPT_CURSOR_MAX_ENCODED_CHARS
       )
         throw new Error('Invalid cursor');
-      if (!/^[A-Za-z0-9_-]+$/.test(value) || value.length % 4 === 1)
+      if (!SAFE_IDENTIFIER_PATTERN.test(value) || value.length % 4 === 1)
         throw new Error('Invalid cursor');
       const bytes = Buffer.from(value, 'base64url');
       if (bytes.byteLength > RECEIPT_CURSOR_MAX_JSON_BYTES)

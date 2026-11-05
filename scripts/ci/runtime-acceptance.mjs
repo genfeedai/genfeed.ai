@@ -19,6 +19,37 @@ import { Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { pathToFileURL } from 'node:url';
 
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const POSITIVE_INTEGER_PATTERN = /^[1-9]\d*$/;
+const CI_IDENTITY_PART_PATTERN = /^[A-Za-z0-9_-]{1,100}$/;
+const LINE_BREAK_PATTERN = /\r?\n/;
+const REDIS_DB_KEY_PATTERN = /^db\d+:/;
+const SHA256_DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/;
+const SQL_POSITIONAL_PARAM_PATTERN = /^\$[0-9]+$/;
+const POSTGRES_CREDENTIAL_PATTERN = /^[A-Za-z0-9_-]{12,128}$/;
+const HOST_QUERY_PARAM_PATTERN = /^(?:host|hostaddr|service)$/i;
+const DATABASE_INDEX_PATH_PATTERN = /^\/\d+$/;
+const DATASET_BENCHMARK_KEY_PATTERN = /dataset(?:Benchmark|Diagnostic|Smoke)/;
+const CRUN_FLOW_ID_PATTERN = /^crun_flow_[a-f0-9]{32}$/;
+const CRUN_RESOURCE_ID_PATTERN = /^[a-f0-9-]{36}$/;
+const NODE_26_VERSION_PATTERN = /^v26\./;
+const CONTAINER_ID_PATTERN = /^[a-f0-9]{12,64}$/;
+const REGEX_SPECIAL_CHARS_PATTERN = /[.*+?^${}()|[\]\\]/g;
+const TAP_TOTAL_LINE_PATTERN =
+  /^# (?:tests|pass|fail|cancelled|skipped|todo)\b/;
+const TAP_TOTAL_COUNT_PATTERN =
+  /^# (tests|pass|fail|cancelled|skipped|todo) ([0-9]+)$/;
+const SAFE_IDENTIFIER_PATTERN = /^[A-Za-z0-9_-]{1,200}$/;
+const NO_SUCH_CONTAINER_ERROR_PATTERN =
+  /^Error response from daemon: No such (?:container|object):/;
+const LEARNING_CLEANUP_FILE_PATTERN =
+  /^learning-runtime-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}-cleanup\.json$/;
+const VISUAL_CODE_RESULT_FILE_PATTERN = /^visual-code-[a-f0-9]{40}\.result$/;
+// biome-ignore lint/suspicious/noControlCharactersInRegex: strips ANSI escapes and control bytes from CI log text.
+const ANSI_ESCAPES_PATTERN = /\u001b\[[0-9;]*[A-Za-z]/g;
+// biome-ignore lint/suspicious/noControlCharactersInRegex: strips ANSI escapes and control bytes from CI log text.
+const CONTROL_CHARS_PATTERN = /[\u0000-\u0008\u000b-\u001f\u007f]/g;
+
 export const RAW_LIMIT = 50 * 1024 * 1024;
 export const ENVELOPE_LIMIT = 100 * 1024 * 1024;
 const SHA = /^[a-f0-9]{40}$/;
@@ -705,9 +736,9 @@ export function learningCiIdentity(env) {
   const job = env.RUNTIME_ACCEPTANCE_CI_JOB;
   requireThat(
     env.GITHUB_ACTIONS === 'true' &&
-      /^\d+$/.test(runId ?? '') &&
-      /^[1-9]\d*$/.test(runAttempt ?? '') &&
-      /^[A-Za-z0-9_-]{1,100}$/.test(job ?? '') &&
+      DIGITS_ONLY_PATTERN.test(runId ?? '') &&
+      POSITIVE_INTEGER_PATTERN.test(runAttempt ?? '') &&
+      CI_IDENTITY_PART_PATTERN.test(job ?? '') &&
       runId === env.GITHUB_RUN_ID &&
       runAttempt === env.GITHUB_RUN_ATTEMPT &&
       job === env.GITHUB_JOB,
@@ -717,7 +748,7 @@ export function learningCiIdentity(env) {
 }
 export function learningRedisRunId(info) {
   const entries = String(info)
-    .split(/\r?\n/)
+    .split(LINE_BREAK_PATTERN)
     .filter((line) => line.startsWith('run_id:'));
   requireThat(
     entries.length === 1 && SHA.test(entries[0].slice(7)),
@@ -728,8 +759,8 @@ export function learningRedisRunId(info) {
 export function requireLearningRedisBlank(keyspace, sizes) {
   requireThat(
     String(keyspace)
-      .split(/\r?\n/)
-      .every((line) => !/^db\d+:/.test(line)) &&
+      .split(LINE_BREAK_PATTERN)
+      .every((line) => !REDIS_DB_KEY_PATTERN.test(line)) &&
       Array.isArray(sizes) &&
       sizes.length === 5 &&
       sizes.every((size) => String(size).trim() === '0'),
@@ -756,7 +787,7 @@ export function buildLearningRedisReceipt(
     HASH.test(containerId ?? '') &&
       containerId === identity.resources.redis &&
       inspected?.Id === containerId &&
-      /^sha256:[a-f0-9]{64}$/.test(inspected.Image ?? '') &&
+      SHA256_DIGEST_PATTERN.test(inspected.Image ?? '') &&
       inspected.State?.Running === true &&
       inspected.Config?.Image === 'redis:7',
     'LEARNING_CONTAINER_IDENTITY',
@@ -843,7 +874,7 @@ async function learningEndpointInfo(timeout) {
       const headerEnd = bytes.indexOf('\r\n');
       if (headerEnd < 0) return;
       const header = bytes.subarray(0, headerEnd).toString();
-      if (!/^\$[0-9]+$/.test(header))
+      if (!SQL_POSITIONAL_PARAM_PATTERN.test(header))
         return finish(new AcceptanceError('LEARNING_ENDPOINT_PROTOCOL'));
       const length = Number(header.slice(1));
       if (!Number.isSafeInteger(length) || length > 16000)
@@ -1238,7 +1269,7 @@ export function readPostgresCredentials(env) {
     'POSTGRES_CREDENTIALS_REQUIRED',
   );
   requireThat(
-    username === 'genfeed' && /^[A-Za-z0-9_-]{12,128}$/.test(password),
+    username === 'genfeed' && POSTGRES_CREDENTIAL_PATTERN.test(password),
     'INVALID_POSTGRES_CREDENTIALS',
   );
   return { username, password };
@@ -1263,7 +1294,7 @@ export function validateUrl(value, kind, database, credentials) {
   requireThat(
     !url.hash &&
       ![...url.searchParams.keys()].some((key) =>
-        /^(?:host|hostaddr|service)$/i.test(key),
+        HOST_QUERY_PARAM_PATTERN.test(key),
       ),
     'SERVICE_OVERRIDE',
   );
@@ -1288,7 +1319,7 @@ export function validateUrl(value, kind, database, credentials) {
     requireThat(
       url.protocol === 'redis:' &&
         url.port === '6379' &&
-        /^\/\d+$/.test(url.pathname) &&
+        DATABASE_INDEX_PATH_PATTERN.test(url.pathname) &&
         !url.username &&
         !url.password &&
         !url.search,
@@ -1469,7 +1500,7 @@ export function parseDatasetRecords(output, mode) {
     const start = line.indexOf('{');
     if (start < 0) {
       requireThat(
-        !/dataset(?:Benchmark|Diagnostic|Smoke)/.test(line),
+        !DATASET_BENCHMARK_KEY_PATTERN.test(line),
         'MALFORMED_DATASET_RECORD',
       );
       return [];
@@ -1485,7 +1516,7 @@ export function parseDatasetRecords(output, mode) {
         : [];
     } catch {
       requireThat(
-        !/dataset(?:Benchmark|Diagnostic|Smoke)/.test(line),
+        !DATASET_BENCHMARK_KEY_PATTERN.test(line),
         'MALFORMED_DATASET_RECORD',
       );
       return [];
@@ -1594,7 +1625,7 @@ export function validateCrunManifest(manifest, directory) {
     manifest.version === 1 &&
       manifest.ownedDirectory === directory &&
       (manifest.schema === null ||
-        /^crun_flow_[a-f0-9]{32}$/.test(manifest.schema)) &&
+        CRUN_FLOW_ID_PATTERN.test(manifest.schema)) &&
       Array.isArray(manifest.redisKeys) &&
       manifest.redisKeys.length <= 1024 &&
       new Set(manifest.redisKeys).size === manifest.redisKeys.length &&
@@ -1603,7 +1634,7 @@ export function validateCrunManifest(manifest, directory) {
           typeof key === 'string' &&
           (keyPattern.test(key) ||
             (typeof manifest.schema === 'string' &&
-              /^crun_flow_[a-f0-9]{32}$/.test(manifest.schema) &&
+              CRUN_FLOW_ID_PATTERN.test(manifest.schema) &&
               key.startsWith(videoPrefix) &&
               videoKeyPattern.test(key.slice(videoPrefix.length)))),
       ),
@@ -2397,7 +2428,7 @@ export async function cleanupFinalCrunResources(resource, adapters, deadline) {
   await attempt('ownership', 'CRUN_OWNERSHIP', async () => {
     requireThat(
       hasFinalCrunTerminationProof(resource) &&
-        /^[a-f0-9-]{36}$/.test(resource.uuid) &&
+        CRUN_RESOURCE_ID_PATTERN.test(resource.uuid) &&
         resource.manifest === `/tmp/crun-run-${resource.uuid}.json` &&
         resource.directory === `/tmp/crun-owned-${resource.uuid}`,
       'CRUN_OWNERSHIP',
@@ -2682,7 +2713,7 @@ export async function verifyVisualRuntimeProbe(capture, cwd, env, imageId) {
     env,
   );
   requireThat(
-    available === 'true' && /^sha256:[a-f0-9]{64}$/.test(imageId),
+    available === 'true' && SHA256_DIGEST_PATTERN.test(imageId),
     'VISUAL_RUNTIME_PREREQUISITE',
   );
 }
@@ -2783,7 +2814,8 @@ export async function createState(options, env) {
     env.RUNTIME_ACCEPTANCE_JOB_STARTED_MS,
   );
   requireThat(
-    process.platform === 'linux' && /^v26\./.test(process.version),
+    process.platform === 'linux' &&
+      NODE_26_VERSION_PATTERN.test(process.version),
     'HOST_PREREQUISITE',
   );
   const repo = await realpath(options.repo);
@@ -2898,7 +2930,7 @@ async function diskGuard(repo) {
   );
 }
 function serviceId(value) {
-  requireThat(/^[a-f0-9]{12,64}$/.test(value ?? ''), 'SERVICE_ID_REQUIRED');
+  requireThat(CONTAINER_ID_PATTERN.test(value ?? ''), 'SERVICE_ID_REQUIRED');
   return value;
 }
 export function databaseUrl(name, credentials) {
@@ -2975,7 +3007,7 @@ export function visualSelection(index) {
     count: selected.length,
     titles: selected,
     skipped: VISUAL_ALL_TITLES.filter((title) => !selected.includes(title)),
-    pattern: `^(?:${taskNames.map((title) => title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`,
+    pattern: `^(?:${taskNames.map((title) => title.replace(REGEX_SPECIAL_CHARS_PATTERN, '\\$&')).join('|')})$`,
   };
 }
 export function validateVisualSelection(report, index, child) {
@@ -3018,10 +3050,8 @@ export function parseProtocolTotals(output, child) {
   );
   const totals = {};
   for (const line of output.split('\n')) {
-    if (!/^# (?:tests|pass|fail|cancelled|skipped|todo)\b/.test(line)) continue;
-    const match = line.match(
-      /^# (tests|pass|fail|cancelled|skipped|todo) ([0-9]+)$/,
-    );
+    if (!TAP_TOTAL_LINE_PATTERN.test(line)) continue;
+    const match = line.match(TAP_TOTAL_COUNT_PATTERN);
     requireThat(
       match && !Object.hasOwn(totals, match[1]),
       'INVALID_PROTOCOL_TOTALS',
@@ -3088,7 +3118,7 @@ export function validateVisualScenarioEvidence(evidence, caseInfo) {
   ])
     fail(Array.isArray(evidence[field]));
   const safeId = (id) =>
-    typeof id === 'string' && /^[A-Za-z0-9_-]{1,200}$/.test(id);
+    typeof id === 'string' && SAFE_IDENTIFIER_PATTERN.test(id);
   const finite = (value) =>
     typeof value === 'number' && Number.isFinite(value) && value >= 0;
   const unique = (rows) => {
@@ -3118,12 +3148,12 @@ export function validateVisualScenarioEvidence(evidence, caseInfo) {
   fail(markers.every((marker) => evidence.assertions.includes(marker)));
   const sources = [];
   for (const row of evidence.rendererSubmissions) {
-    fail(/^[a-f0-9]{64}$/.test(row.sourceHash ?? ''));
+    fail(HASH.test(row.sourceHash ?? ''));
     sources.push({ id: row.id, sourceHash: row.sourceHash });
   }
   for (const row of evidence.revisions)
     if (row.sourceHash != null) {
-      fail(/^[a-f0-9]{64}$/.test(row.sourceHash));
+      fail(HASH.test(row.sourceHash));
       sources.push({ id: row.id, sourceHash: row.sourceHash });
     }
   for (const row of evidence.rendererReceipts)
@@ -3255,8 +3285,8 @@ export async function verifyVisualScenarioSources(identity, evidence, sources) {
   const hashes = [];
   for (const source of sources) {
     requireThat(
-      /^[A-Za-z0-9_-]{1,200}$/.test(source.id ?? '') &&
-        /^[a-f0-9]{64}$/.test(source.sourceHash ?? ''),
+      SAFE_IDENTIFIER_PATTERN.test(source.id ?? '') &&
+        HASH.test(source.sourceHash ?? ''),
       'VISUAL_SOURCE_HASH',
     );
     const relative = path.join(
@@ -4111,7 +4141,7 @@ export function dedicatedChildEnvironment(env, group, url, redis, owned) {
   requireThat(
     owned?.database === name &&
       owned.migrated === (group === 'agent-production') &&
-      /^[a-f0-9]{64}$/.test(owned.postgres ?? ''),
+      HASH.test(owned.postgres ?? ''),
     'DEDICATED_OWNERSHIP',
   );
   const result = {
@@ -4130,7 +4160,7 @@ export function dedicatedChildEnvironment(env, group, url, redis, owned) {
   delete result.PROACTIVE_AGENT_PRODUCTION_TURN_EXCLUSIVE_DB;
   if (group === 'agent-production') {
     requireThat(
-      /^[a-f0-9]{64}$/.test(owned.redis ?? '') &&
+      HASH.test(owned.redis ?? '') &&
         owned.redis !== owned.postgres &&
         owned.redisEmpty === true &&
         redis === 'redis://127.0.0.1:6379/14',
@@ -4513,7 +4543,7 @@ async function executeDedicatedAcceptance(identity, env, baseline = false) {
           : []),
       ];
       requireThat(
-        ids.every(([, id]) => /^[a-f0-9]{64}$/.test(id ?? '')) &&
+        ids.every(([, id]) => HASH.test(id ?? '')) &&
           new Set(ids.map(([, id]) => id)).size === ids.length,
         'DEDICATED_OWNERSHIP',
       );
@@ -4734,7 +4764,7 @@ async function executeDedicatedAcceptance(identity, env, baseline = false) {
     },
     async removeService(ledger, service, end) {
       requireThat(
-        service.inspected && /^[a-f0-9]{64}$/.test(service.id),
+        service.inspected && HASH.test(service.id),
         'DEDICATED_OWNERSHIP',
       );
       await performDedicatedCleanup(
@@ -4754,9 +4784,7 @@ async function executeDedicatedAcceptance(identity, env, baseline = false) {
           );
           requireThat(
             result.exitCode !== 0 &&
-              /^Error response from daemon: No such (?:container|object):/.test(
-                result.stderr,
-              ),
+              NO_SUCH_CONTAINER_ERROR_PATTERN.test(result.stderr),
             'CONTAINER_ABSENCE_UNCONFIRMED',
           );
           service.removed = true;
@@ -4856,9 +4884,7 @@ export async function verifyFinalLearningCleanup(
   );
   const names = await readdir(resource.directory);
   const cleanupNames = names.filter((name) =>
-    /^learning-runtime-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}-cleanup\.json$/.test(
-      name,
-    ),
+    LEARNING_CLEANUP_FILE_PATTERN.test(name),
   );
   requireThat(
     cleanupNames.length === requireLearningSourceContract().cleanupReceipts &&
@@ -6029,9 +6055,7 @@ export async function execution(identity, env) {
               requireThat(
                 !result.signal &&
                   !result.capped &&
-                  /^Error response from daemon: No such (?:container|object):/.test(
-                    result.stderr,
-                  ),
+                  NO_SUCH_CONTAINER_ERROR_PATTERN.test(result.stderr),
                 'CONTAINER_ABSENCE_UNCONFIRMED',
               );
               return null;
@@ -6048,7 +6072,7 @@ export async function execution(identity, env) {
             const found = await inspect(lookup, end);
             if (found) {
               requireThat(
-                found.Name === `/${name}` && /^[a-f0-9]{64}$/.test(found.Id),
+                found.Name === `/${name}` && HASH.test(found.Id),
                 'CONTAINER_OWNERSHIP',
               );
               if (ownership)
@@ -6312,7 +6336,7 @@ export async function execution(identity, env) {
                   else
                     requireThat(
                       file.name === 'coordinator.lock' ||
-                        /^visual-code-[a-f0-9]{40}\.result$/.test(file.name),
+                        VISUAL_CODE_RESULT_FILE_PATTERN.test(file.name),
                       'RENDERER_OWNERSHIP',
                     );
                 }
@@ -7022,10 +7046,8 @@ const SUMMARY_LINES = 20;
 const SUMMARY_LINE_WIDTH = 300;
 function clipSummaryLines(text, { tail = false } = {}) {
   const lines = String(text)
-    // biome-ignore lint/suspicious/noControlCharactersInRegex: strips ANSI escapes and control bytes from CI log text.
-    .replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
-    // biome-ignore lint/suspicious/noControlCharactersInRegex: strips ANSI escapes and control bytes from CI log text.
-    .replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '')
+    .replace(ANSI_ESCAPES_PATTERN, '')
+    .replace(CONTROL_CHARS_PATTERN, '')
     .split('\n')
     .map((line) => line.trimEnd().slice(0, SUMMARY_LINE_WIDTH));
   while (lines.length && lines[0] === '') lines.shift();

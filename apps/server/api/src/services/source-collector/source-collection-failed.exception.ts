@@ -5,6 +5,14 @@ import type {
 import { getErrorStatus } from '@genfeedai/utils/error/json-api-status.util';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
+const UNAVAILABLE_ERROR_PATTERN = /not found|deleted|private|incomplete/i;
+const UNAUTHORIZED_ERROR_PATTERN =
+  /unauthori[sz]ed|invalid token|token expired|no .*token/i;
+const FORBIDDEN_ERROR_PATTERN = /forbidden|access[- ]denied|permission/i;
+const QUOTA_ERROR_PATTERN =
+  /quota|credits? exhausted|payment required|usage cap/i;
+const RATE_LIMIT_ERROR_PATTERN = /rate[- ]limit|too many requests/i;
+
 const ACCESS_REASONS: ReadonlySet<SourceCollectorFailureReason> = new Set([
   'forbidden',
   'payment_required',
@@ -58,19 +66,19 @@ function readUpstreamStatus(error: unknown): number | undefined {
 }
 
 function reasonFromMessage(message: string): SourceCollectorFailureReason {
-  if (/not found|deleted|private|incomplete/i.test(message)) {
+  if (UNAVAILABLE_ERROR_PATTERN.test(message)) {
     return 'not_found';
   }
-  if (/unauthori[sz]ed|invalid token|token expired|no .*token/i.test(message)) {
+  if (UNAUTHORIZED_ERROR_PATTERN.test(message)) {
     return 'unauthorized';
   }
-  if (/forbidden|access[- ]denied|permission/i.test(message)) {
+  if (FORBIDDEN_ERROR_PATTERN.test(message)) {
     return 'forbidden';
   }
-  if (/quota|credits? exhausted|payment required|usage cap/i.test(message)) {
+  if (QUOTA_ERROR_PATTERN.test(message)) {
     return 'payment_required';
   }
-  if (/rate[- ]limit|too many requests/i.test(message)) {
+  if (RATE_LIMIT_ERROR_PATTERN.test(message)) {
     return 'rate_limited';
   }
   return 'error';

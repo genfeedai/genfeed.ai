@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 export type LivestreamPlatform = 'twitch' | 'youtube';
 
 export interface ResolvedLivestreamContext {
@@ -154,7 +156,7 @@ export class BotsLivestreamRuntimeService {
     return template.text
       .replaceAll('{{topic}}', topic)
       .replaceAll('{{promotion_angle}}', context.promotionAngle?.trim() ?? '')
-      .replaceAll(/\s+/g, ' ')
+      .replaceAll(WHITESPACE_RUNS_PATTERN, ' ')
       .trim();
   }
 }

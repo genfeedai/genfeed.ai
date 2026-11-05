@@ -1,3 +1,7 @@
+const BACKSLASHES_PATTERN = /\\/g;
+const URL_HOST_PATTERN = /^https?:\/*([^/?#]*)/i;
+const SHA256_PREFIX_PATTERN = /^sha256:/;
+
 /**
  * Single source of truth for skill package import limits and the pure
  * shape/size validators. The API is the authority: it keeps its full checks
@@ -58,8 +62,8 @@ export function isValidSkillPackageSourceUrl(value: unknown): value is string {
       !url.password &&
       // Check the authority both raw and with backslashes read as slashes, so
       // `https://host\\@other` cannot smuggle userinfo past either parser.
-      ![value, value.replace(/\\/g, '/')].some((candidate) =>
-        /^https?:\/*([^/?#]*)/i.exec(candidate)?.[1]?.includes('@'),
+      ![value, value.replace(BACKSLASHES_PATTERN, '/')].some((candidate) =>
+        URL_HOST_PATTERN.exec(candidate)?.[1]?.includes('@'),
       )
     );
   } catch {
@@ -75,7 +79,7 @@ export function isValidSkillPackageChecksum(value: unknown): value is string {
 
 /** Lowercase hex digest without the optional `sha256:` prefix. */
 export function normalizeSkillPackageChecksum(value: string): string {
-  return value.replace(/^sha256:/, '').toLowerCase();
+  return value.replace(SHA256_PREFIX_PATTERN, '').toLowerCase();
 }
 
 /** Entry count of a direct file package; ZIP archives are counted by the server. */

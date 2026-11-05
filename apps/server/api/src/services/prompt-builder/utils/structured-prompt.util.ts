@@ -7,6 +7,8 @@ import {
   type StructuredPromptSlot,
 } from '@genfeedai/harness';
 
+const TEMPLATE_SLOTS_PATTERN = /\{\{[^}]*\}?\}\}/g;
+
 /** The request fields that fill the slots of a structured prompt. */
 export type StructuredPromptSource = Pick<
   PromptBuilderParams,
@@ -58,7 +60,7 @@ export function slotsUsedByTemplate(
   if (!templateContent) {
     return [];
   }
-  const placeholders = templateContent.match(/\{\{[^}]*\}?\}\}/g) ?? [];
+  const placeholders = templateContent.match(TEMPLATE_SLOTS_PATTERN) ?? [];
   return TEMPLATE_SLOTS.filter((slot) => {
     // `avoid` is the negative prompt: templates call it `blacklist`.
     const name = slot === 'avoid' ? 'blacklist' : slot;

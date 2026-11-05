@@ -24,6 +24,8 @@ import {
 import type { Request } from 'express';
 import { z } from 'zod';
 
+const APPROVE_RATES_PATH_PATTERN = /\/[^/]+\/approve-rates$/;
+
 const modelIdSchema = z.string().trim().min(1).max(200);
 const approveBodySchema = z
   .object({ expectedPendingVersion: z.string().min(1).max(500) })
@@ -127,7 +129,7 @@ export class AdminModelPricingController {
       request,
       ModelPricingReportSerializer,
       await this.pricing.getReport(
-        this.reportSource(request).replace(/\/[^/]+\/approve-rates$/, ''),
+        this.reportSource(request).replace(APPROVE_RATES_PATH_PATTERN, ''),
       ),
     );
   }

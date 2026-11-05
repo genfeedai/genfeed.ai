@@ -2,6 +2,11 @@ import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 
+const CATALOG_FILE_EXTENSION_PATTERN = /\.(md|json)$/;
+const FRONTMATTER_BLOCK_PATTERN = /^---\r?\n[\s\S]*?\r?\n---/;
+const FRONTMATTER_VERSION_PATTERN = /^\s+version:\s*["']?([^\s"']+)/m;
+const GIT_SHA_PATTERN = /^[a-f0-9]{40}$/;
+
 export const CATALOG_COMPILER_VERSION = 'legacy-v1-char-caps';
 export const SOURCE_REPOSITORY = 'https://github.com/genfeedai/skills';
 export const UPSTREAM_SLUGS = [
@@ -110,7 +115,10 @@ export function inventory(directory: string, upstream = false): CatalogFile[] {
       for (const name of readdirSync(absolute).sort())
         walk(path ? `${path}/${name}` : name);
     } else if (stat.isFile()) {
-      if (upstream && (!/\.(md|json)$/.test(path) || stat.mode & 0o111))
+      if (
+        upstream &&
+        (!CATALOG_FILE_EXTENSION_PATTERN.test(path) || stat.mode & 0o111)
+      )
         throw new Error(`Unsupported upstream file: ${path}`);
       const contents = readFileSync(absolute);
       if (upstream) {
@@ -125,7 +133,7 @@ export function inventory(directory: string, upstream = false): CatalogFile[] {
 }
 export function compileSkill(directory: string, files = inventory(directory)) {
   const content = readFileSync(join(directory, 'SKILL.md'), 'utf8');
-  const body = content.replace(/^---\r?\n[\s\S]*?\r?\n---/, '').trim();
+  const body = content.replace(FRONTMATTER_BLOCK_PATTERN, '').trim();
   const sections: string[] = [];
   const excludedReferences: CatalogEntry['excludedReferences'] = [];
   let total = 0;
@@ -256,7 +264,7 @@ export function createCatalogLock(
         ? JSON.parse(readFileSync(join(dir, 'metadata.json'), 'utf8'))
         : {};
       const version = readFileSync(join(dir, 'SKILL.md'), 'utf8').match(
-        /^\s+version:\s*["']?([^\s"']+)/m,
+        FRONTMATTER_VERSION_PATTERN,
       )?.[1];
       return {
         slug,
@@ -286,7 +294,7 @@ export function validateCatalogLock(directory: string): CatalogLock {
     readFileSync(join(directory, 'catalog.lock.json'), 'utf8'),
   ) as CatalogLock;
   if (
-    !/^[a-f0-9]{40}$/.test(lock.sourceCommit) ||
+    !GIT_SHA_PATTERN.test(lock.sourceCommit) ||
     !Number.isFinite(Date.parse(lock.sourceCommittedAt)) ||
     !Array.isArray(lock.sourceSkillPaths) ||
     lock.sourceSkillPaths.some(

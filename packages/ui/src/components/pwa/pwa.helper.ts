@@ -7,10 +7,13 @@ import type {
 import { PWA_APPS } from '@ui-constants/pwa/pwa-apps.constant';
 import type { Metadata, Viewport } from 'next';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 const DEFAULT_CDN_URL = 'https://cdn.genfeed.ai';
 const LOCAL_PWA_ASSET_APPS = new Set<PWAAppNameKey>(['app']);
 
-const withoutTrailingSlash = (url: string) => url.replace(/\/+$/, '');
+const withoutTrailingSlash = (url: string) =>
+  url.replace(TRAILING_SLASHES_PATTERN, '');
 
 const getCdnUrl = () =>
   withoutTrailingSlash(process.env.NEXT_PUBLIC_CDN_URL || DEFAULT_CDN_URL);

@@ -7,6 +7,9 @@ import type {
 import { BadRequestException } from '@nestjs/common';
 import { z } from 'zod';
 
+const WWW_PREFIX_PATTERN = /^www\./;
+const LINKEDIN_ACTIVITY_ID_DIGITS_PATTERN = /^\d{1,25}$/;
+
 const inputSchema = z
   .object({
     brandId: z.string().refine(isEntityId),
@@ -29,7 +32,7 @@ export function normalizeTrackedPostLink(
   Pick<ExtensionPublicationCaptureInput, 'platform'> {
   let host: string;
   try {
-    host = new URL(raw).hostname.replace(/^www\./, '');
+    host = new URL(raw).hostname.replace(WWW_PREFIX_PATTERN, '');
   } catch {
     throw new BadRequestException('Enter a valid HTTPS post link');
   }
@@ -59,7 +62,7 @@ export function linkedInActivityDate(
   id: string | undefined,
   now = new Date(),
 ): Date | null {
-  if (!id || !/^\d{1,25}$/.test(id)) return null;
+  if (!id || !LINKEDIN_ACTIVITY_ID_DIGITS_PATTERN.test(id)) return null;
   const timestamp = Number(BigInt(id) >> 22n);
   return timestamp >= Date.UTC(2003, 0, 1) &&
     timestamp <= now.getTime() + 5 * 60 * 1000

@@ -1,6 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
+const GENFEED_API_KEY_PATTERN = /^gf_(live|test)_[A-Za-z0-9_-]+$/;
+
 export class VerifyMcpConnectionDto {
   @ApiProperty({
     description:
@@ -14,6 +16,6 @@ export class VerifyMcpConnectionDto {
   @IsString()
   @MinLength(32)
   @MaxLength(256)
-  @Matches(/^gf_(live|test)_[A-Za-z0-9_-]+$/)
+  @Matches(GENFEED_API_KEY_PATTERN)
   readonly key!: string;
 }

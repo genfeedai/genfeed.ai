@@ -1,5 +1,7 @@
 import type { NodeOptions } from '@sentry/nestjs';
 
+const HYPHENS_PATTERN = /-/g;
+
 /**
  * Share of production requests traced. Enough for per-route p50/p95 on the API
  * without paying span overhead or Sentry quota on every request.
@@ -28,7 +30,7 @@ export function getSentryConfig(
 
   const dsn =
     process.env[
-      `SENTRY_DSN_${options.serviceName.toUpperCase().replace(/-/g, '_')}`
+      `SENTRY_DSN_${options.serviceName.toUpperCase().replace(HYPHENS_PATTERN, '_')}`
     ] || process.env.SENTRY_DSN;
 
   if (!dsn) {

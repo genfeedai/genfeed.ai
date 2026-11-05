@@ -13,6 +13,9 @@ import { captureWebsiteAnalyticsEvent } from '../../../../src/analytics/posthog-
 import { hasArticleExperience } from './article-experience-slugs';
 import { copyText } from './copy-text';
 
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const EDGE_HYPHEN_PATTERN = /^-|-$/g;
+
 /** Only one article has a lab; the rest never download it. */
 const ArticleExperience = dynamic(() => import('./article-experience'));
 
@@ -33,8 +36,8 @@ function headingId(label: string, index: number): string {
   const normalized = label
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
+    .replace(EDGE_HYPHEN_PATTERN, '');
 
   return `article-${normalized || 'section'}-${index + 1}`;
 }

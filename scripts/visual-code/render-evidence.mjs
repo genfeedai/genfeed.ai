@@ -1,5 +1,11 @@
 import { createHash } from 'node:crypto';
 
+const ASSET_PATH_PATTERN = /\/assets\/([a-zA-Z0-9_-]{1,200})$/;
+const BASE64_SUFFIX_PATTERN = /;base64$/i;
+const RGB_COLOR_PATTERN =
+  /^rgba?\(\s*(\d+(?:\.\d+)?)[ ,]+(\d+(?:\.\d+)?)[ ,]+(\d+(?:\.\d+)?)(?:\s*[,/]\s*(\d+(?:\.\d+)?%?))?\s*\)$/;
+const CSS_URLS_PATTERN = /url\(\s*(['"]?)(.*?)\1\s*\)/g;
+
 // Observes what Chromium really rendered for an export. Everything here is read
 // through the DevTools protocol (the font engine, the layout tree), never through
 // page JavaScript, because the composition is untrusted and could otherwise
@@ -83,7 +89,7 @@ function assetId(url) {
   } catch {
     // Keep the raw path; the pattern below still has to match.
   }
-  return /\/assets\/([a-zA-Z0-9_-]{1,200})$/.exec(decoded)?.[1] ?? null;
+  return ASSET_PATH_PATTERN.exec(decoded)?.[1] ?? null;
 }
 
 /**
@@ -102,7 +108,7 @@ export function resolveSource(raw, assetHashes, origin, loaded) {
   if (raw.startsWith('data:')) {
     const comma = raw.indexOf(',');
     if (comma < 0) return { kind: 'unknown', assetId: null, contentHash: null };
-    const isBase64 = /;base64$/i.test(raw.slice(0, comma));
+    const isBase64 = BASE64_SUFFIX_PATTERN.test(raw.slice(0, comma));
     try {
       const body = raw.slice(comma + 1);
       const bytes = isBase64
@@ -137,10 +143,7 @@ export function resolveSource(raw, assetHashes, origin, loaded) {
 }
 
 export function parseCssColor(value) {
-  const match =
-    /^rgba?\(\s*(\d+(?:\.\d+)?)[ ,]+(\d+(?:\.\d+)?)[ ,]+(\d+(?:\.\d+)?)(?:\s*[,/]\s*(\d+(?:\.\d+)?%?))?\s*\)$/.exec(
-      String(value ?? '').trim(),
-    );
+  const match = RGB_COLOR_PATTERN.exec(String(value ?? '').trim());
   if (!match) return null;
   const channels = match.slice(1, 4).map((part) => Math.round(Number(part)));
   const alphaPart = match[4];
@@ -324,7 +327,7 @@ export function analyzeSnapshot(
         raw: paintedSource(tag, nodeIndex, layoutIndex),
       });
     const background = style(layoutIndex, 'background-image') ?? 'none';
-    for (const match of background.matchAll(/url\(\s*(['"]?)(.*?)\1\s*\)/g))
+    for (const match of background.matchAll(CSS_URLS_PATTERN))
       sources.push({ role: 'background_image', raw: match[2] });
     for (const source of sources) {
       if (placedAssets.length >= EVIDENCE_LIMITS.placedAssets) {

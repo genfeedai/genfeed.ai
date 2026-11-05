@@ -19,6 +19,8 @@ import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { ConfigService } from '@workers/config/config.service';
 
+const PREDICTION_ID_WITH_INDEX_PATTERN = /^(.+)_(\d+)$/;
+
 /**
  * Type for ingredient results loaded with metadata.
  */
@@ -297,7 +299,7 @@ export class CronIngredientsService {
         const stored = ingredient.metadata?.externalId;
         if (!stored || !ingredient.organizationId) continue;
         // A batch output is stored as `<prediction>_<index>`.
-        const batch = /^(.+)_(\d+)$/.exec(stored);
+        const batch = PREDICTION_ID_WITH_INDEX_PATTERN.exec(stored);
         const jobId = await this.replicatePollQueue.schedule({
           attempt: REPLICATE_POLL_MAX_ATTEMPTS,
           category: ingredient.category,

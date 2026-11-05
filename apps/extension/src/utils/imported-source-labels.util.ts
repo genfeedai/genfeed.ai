@@ -7,6 +7,8 @@ import type {
   KnowledgeHandoff,
 } from '~models/imported-source.model';
 
+const WWW_PREFIX_PATTERN = /^www\./;
+
 export const SOURCE_KIND_LABELS: Record<ImportedSourceKind, string> = {
   article: 'Article',
   audio: 'Audio',
@@ -68,7 +70,7 @@ export function canPrepareMedia(
 }
 
 export function sourceHost(source: ImportedSourceView): string {
-  return source.snapshot.host.replace(/^www\./, '');
+  return source.snapshot.host.replace(WWW_PREFIX_PATTERN, '');
 }
 
 export function sourceAuthorLabel(source: ImportedSourceView): string {

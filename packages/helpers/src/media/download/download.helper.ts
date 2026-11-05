@@ -5,6 +5,9 @@ import {
 } from '@genfeedai/helpers/media/ingredient-type.helper';
 import { saveAs } from 'file-saver';
 
+const UNDERSCORES_PATTERN = /_/g;
+const UNSAFE_FILENAME_CHARS_PATTERN = /[/\\?%*:|"<>]/g;
+
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 const JPEG_SIGNATURE = [0xff, 0xd8, 0xff];
 
@@ -49,7 +52,7 @@ function extensionFromTrustedImageBytes(bytes: Uint8Array): string | undefined {
  * the category is rendered back into the kebab-case spelling users saw before.
  */
 function formatCategoryForFilename(category: string): string {
-  return category.toLowerCase().replace(/_/g, '-');
+  return category.toLowerCase().replace(UNDERSCORES_PATTERN, '-');
 }
 
 /**
@@ -61,7 +64,7 @@ const MAX_FILENAME_LABEL_LENGTH = 80;
 
 export function sanitizeDownloadFilename(filename: string): string {
   const trimmed = filename.trim() || 'download';
-  return trimmed.replace(/[/\\?%*:|"<>]/g, '-').slice(0, 180);
+  return trimmed.replace(UNSAFE_FILENAME_CHARS_PATTERN, '-').slice(0, 180);
 }
 
 export function ingredientDownloadFilename(

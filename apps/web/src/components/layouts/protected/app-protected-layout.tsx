@@ -65,6 +65,9 @@ import {
   useAppProtectedLayout,
 } from './useAppProtectedLayout';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+const APPS_SEGMENT_PATTERN = /\/~\/apps(\/|$)/;
+
 const LazyUniversalWorkspaceShell = dynamic(
   () => import('@/components/workspace-shell/UniversalWorkspaceShell'),
   {
@@ -222,7 +225,8 @@ function AppLayoutWithDynamicMenu({
     [isLibraryRoute],
   );
   const isMessagesInboxRoute =
-    isMessagesRoute && sidebarPathname.replace(/\/$/, '').endsWith('/messages');
+    isMessagesRoute &&
+    sidebarPathname.replace(TRAILING_SLASH_PATTERN, '').endsWith('/messages');
   const messagesNavPanel = useMemo<SidebarNavPanel | null>(
     () =>
       isMessagesInboxRoute
@@ -234,7 +238,7 @@ function AppLayoutWithDynamicMenu({
   );
   const activeNavPanel = libraryNavPanel ?? messagesNavPanel;
 
-  const isAppsRoute = /\/~\/apps(\/|$)/.test(sidebarPathname ?? '');
+  const isAppsRoute = APPS_SEGMENT_PATTERN.test(sidebarPathname ?? '');
   const menuComponent = useMemo(() => {
     // Editor/workflow canvas routes suppress the Automation/module sidebar so
     // the surface can own the left rail (nodes palette, graph chrome) instead

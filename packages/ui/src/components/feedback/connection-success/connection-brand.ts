@@ -8,6 +8,8 @@ import type {
 } from '@genfeedai/props/ui/feedback/connection-success.props';
 import { PlugZap } from 'lucide-react';
 
+const SEPARATOR_RUN_PATTERN = /[-_\s]+/;
+
 /** Marks drawn in black or white by their owners; they follow the theme foreground. */
 const MONOCHROME_PLATFORMS = new Set(['devto', 'threads', 'tiktok', 'twitter']);
 
@@ -24,7 +26,7 @@ const AGENT_BRANDS: Record<ConnectionAgent, ConnectionBrand> = {
 
 function toTitleCase(value: string): string {
   return value
-    .split(/[-_\s]+/)
+    .split(SEPARATOR_RUN_PATTERN)
     .filter(Boolean)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');

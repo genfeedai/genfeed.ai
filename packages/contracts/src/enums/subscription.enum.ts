@@ -1,3 +1,5 @@
+const HYPHENS_PATTERN = /-/g;
+
 export enum SubscriptionCategory {
   MONTHLY = 'monthly',
   PAYG = 'payg',
@@ -83,7 +85,7 @@ export function subscriptionStatusFromStripe(
   status: string | null | undefined,
 ): SubscriptionStatus {
   const normalized = String(status ?? '')
-    .replace(/-/g, '_')
+    .replace(HYPHENS_PATTERN, '_')
     .toUpperCase();
   if (!normalized) {
     return SubscriptionStatus.INCOMPLETE;

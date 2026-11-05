@@ -6,6 +6,9 @@ import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 import { parseSourceFile, scriptKindFor } from './parse-source-file';
 
+const TEST_FILE_PATTERN = /\.(?:spec|test)\.[jt]sx?$/u;
+const LEADING_BLANK_LINES_PATTERN = /^[ \t]*\r?\n(?:[ \t]*\r?\n)?/u;
+
 export type SmokeCandidate = {
   end: number;
   line: number;
@@ -66,7 +69,7 @@ export function isEligibleTestPath(file: string): boolean {
     segments[0] === 'packages' && !PROTECTED_PACKAGES.has(segments[1] ?? '');
   return (
     (isServer || isPackage) &&
-    /\.(?:spec|test)\.[jt]sx?$/u.test(file) &&
+    TEST_FILE_PATTERN.test(file) &&
     !SENSITIVE_PATH.test(file)
   );
 }
@@ -339,7 +342,7 @@ export function analyzeSmokeTests(
       const lineStart = source.lastIndexOf('\n', position - 1) + 1;
       const start =
         source.slice(lineStart, position).trim() === '' ? lineStart : position;
-      const trailing = /^[ \t]*\r?\n(?:[ \t]*\r?\n)?/u.exec(
+      const trailing = LEADING_BLANK_LINES_PATTERN.exec(
         source.slice(test.statement.end),
       );
       removed.push({

@@ -1,5 +1,7 @@
 import type { AppRailItemConfig } from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 /**
  * Path matching only, kept free of the icon-bearing registry so code that runs
  * on every route (analytics) can resolve the active app without pulling icons
@@ -16,7 +18,7 @@ function normalizePath(path?: string): string | undefined {
   }
 
   const [pathname] = path.split('?', 1);
-  const normalizedPathname = pathname.replace(/\/+$/, '');
+  const normalizedPathname = pathname.replace(TRAILING_SLASHES_PATTERN, '');
 
   return normalizedPathname || '/';
 }

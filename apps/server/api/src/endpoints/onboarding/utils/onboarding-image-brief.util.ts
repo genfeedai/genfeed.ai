@@ -5,6 +5,13 @@ import type {
 import type { FirstRunImageSlots } from '@api/helpers/utils/first-run-image-generation/first-run-image-generation.interfaces';
 import { isPlaceholderBrandText } from '@api/services/signup-prefill/utils/brand-system-prompt.util';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const TRAILING_PUNCTUATION_PATTERN = /[\s.,;:!?-]+$/u;
+const HTTP_URLS_PATTERN = /https?:\/\/\S+/g;
+const MENTIONS_AND_HASHTAGS_PATTERN = /[@#][\p{L}\p{N}_]+/gu;
+const EMOJI_SEQUENCES_PATTERN = /\p{Extended_Pictographic}|\u200d|\ufe0f/gu;
+const SENTENCE_BOUNDARY_PATTERN = /(?<=[.!?])\s+/u;
+
 type VisualKind =
   | 'creator'
   | 'generic'
@@ -131,11 +138,11 @@ const MAX_IDEA_CHARS = 200;
 const MAX_FOCUS_CHARS = 120;
 
 function collapse(text: string): string {
-  return text.replace(/\s+/g, ' ').trim();
+  return text.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
 }
 
 function trimTrailingPunctuation(text: string): string {
-  return text.replace(/[\s.,;:!?-]+$/u, '');
+  return text.replace(TRAILING_PUNCTUATION_PATTERN, '');
 }
 
 function clipAtWord(text: string, limit: number): string {
@@ -155,11 +162,11 @@ function clipAtWord(text: string, limit: number): string {
 export function readPostIdea(post: string): string {
   const stripped = collapse(
     post
-      .replace(/https?:\/\/\S+/g, ' ')
-      .replace(/[@#][\p{L}\p{N}_]+/gu, ' ')
-      .replace(/\p{Extended_Pictographic}|\u200d|\ufe0f/gu, ' '),
+      .replace(HTTP_URLS_PATTERN, ' ')
+      .replace(MENTIONS_AND_HASHTAGS_PATTERN, ' ')
+      .replace(EMOJI_SEQUENCES_PATTERN, ' '),
   );
-  const [firstSentence = ''] = stripped.split(/(?<=[.!?])\s+/u);
+  const [firstSentence = ''] = stripped.split(SENTENCE_BOUNDARY_PATTERN);
   return clipAtWord(trimTrailingPunctuation(firstSentence), MAX_IDEA_CHARS);
 }
 
@@ -174,7 +181,7 @@ function readFocus(input: OnboardingImageBriefInput): string | undefined {
 
   if (!isPlaceholderBrandText(input.description)) {
     const [firstSentence = ''] = collapse(input.description ?? '').split(
-      /(?<=[.!?])\s+/u,
+      SENTENCE_BOUNDARY_PATTERN,
     );
     return clipAtWord(trimTrailingPunctuation(firstSentence), MAX_FOCUS_CHARS);
   }

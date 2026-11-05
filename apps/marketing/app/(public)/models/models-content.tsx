@@ -11,6 +11,8 @@ import PageLayout from '@web-components/PageLayout';
 import { ArrowRight, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
+const SEPARATOR_CHAR_PATTERN = /[-_]/;
+
 interface ModelsContentProps {
   models: PublicModelCatalogItem[] | null;
 }
@@ -31,7 +33,7 @@ const CATEGORY_ORDER = [
 
 function titleCase(value: string): string {
   return value
-    .split(/[-_]/)
+    .split(SEPARATOR_CHAR_PATTERN)
     .filter(Boolean)
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(' ');

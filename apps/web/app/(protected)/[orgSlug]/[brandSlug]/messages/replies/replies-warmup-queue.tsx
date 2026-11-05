@@ -15,6 +15,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 /**
  * Replies the account monitor drafted for accounts that never contacted the
  * brand. Genfeed does not post them: each opens in X's own composer and counts
@@ -151,7 +153,7 @@ export default function RepliesWarmupQueue() {
       {items.map((item) => {
         const draft = draftOf(item);
         const author = (item.triggerTweetAuthorUsername ?? '').replace(
-          /^@/,
+          LEADING_AT_SIGN_PATTERN,
           '',
         );
         const isBusy = busyId === item.id;

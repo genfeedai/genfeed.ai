@@ -1,3 +1,5 @@
+const TRAILING_SLASH_PATTERN = /\/$/u;
+
 export const PORTLESS_SERVICES = [
   'app',
   'api',
@@ -73,7 +75,9 @@ const APP_REDIRECT_KEYS = [
 ] as const;
 
 function withPath(origin: string, pathname: string): string {
-  return new URL(pathname, `${origin}/`).toString().replace(/\/$/u, '');
+  return new URL(pathname, `${origin}/`)
+    .toString()
+    .replace(TRAILING_SLASH_PATTERN, '');
 }
 
 function websocketOrigin(origin: string): string {

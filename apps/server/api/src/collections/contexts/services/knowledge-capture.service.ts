@@ -21,6 +21,8 @@ import type {
 } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const KNOWLEDGE_SOURCE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/;
+
 export interface KnowledgeCaptureResult {
   jobId?: string;
   source: KnowledgeSource;
@@ -104,7 +106,7 @@ export class KnowledgeCaptureService {
       this.assertCapturable(dto.kind, dto);
     }
     if (idempotencyKey !== undefined) {
-      if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(idempotencyKey)) {
+      if (!KNOWLEDGE_SOURCE_ID_PATTERN.test(idempotencyKey)) {
         throw new BadRequestException(
           'Idempotency-Key must contain 8–128 letters, digits, dots, colons, underscores or hyphens',
         );

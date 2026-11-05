@@ -2,6 +2,13 @@ import { spawnSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
+const GIT_SHA_PATTERN = /^[0-9a-f]{40}$/;
+const SERVER_IMAGE_REPOSITORY_PATTERN =
+  /^ghcr\.io\/[a-z0-9._-]+\/[a-z0-9._-]+\/server$/;
+const MANIFEST_UNKNOWN_ERROR_PATTERN = /manifest unknown|no such manifest/i;
+const REGISTRY_ACCESS_ERROR_PATTERN = /unauthori[sz]ed|denied|timeout/i;
+const SHA256_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
+
 export function imageRevisions(value) {
   if (!value || typeof value !== 'object') return [];
   const revisions = [];
@@ -21,12 +28,10 @@ export function imageRevisions(value) {
 }
 
 export function resolveServerImage({ repository, sha, execute }) {
-  if (!/^[0-9a-f]{40}$/.test(sha ?? '')) {
+  if (!GIT_SHA_PATTERN.test(sha ?? '')) {
     throw new Error('Server image source must be an exact commit SHA.');
   }
-  if (
-    !/^ghcr\.io\/[a-z0-9._-]+\/[a-z0-9._-]+\/server$/.test(repository ?? '')
-  ) {
+  if (!SERVER_IMAGE_REPOSITORY_PATTERN.test(repository ?? '')) {
     throw new Error(
       'Server image repository must be the canonical GHCR server path.',
     );
@@ -43,16 +48,16 @@ export function resolveServerImage({ repository, sha, execute }) {
     // Auth/network failures must not be mistaken for a missing image and cause
     // an existing immutable SHA tag to be rebuilt or overwritten.
     if (
-      (/manifest unknown|no such manifest/i.test(result.stderr ?? '') ||
+      (MANIFEST_UNKNOWN_ERROR_PATTERN.test(result.stderr ?? '') ||
         (result.stderr ?? '').includes(`${repository}:${sha}: not found`)) &&
-      !/unauthori[sz]ed|denied|timeout/i.test(result.stderr ?? '')
+      !REGISTRY_ACCESS_ERROR_PATTERN.test(result.stderr ?? '')
     ) {
       return { exists: false, digest: '' };
     }
     throw new Error('Could not inspect the server image registry.');
   }
   const digest = JSON.parse(result.stdout);
-  if (!/^sha256:[0-9a-f]{64}$/.test(digest ?? '')) {
+  if (!SHA256_DIGEST_PATTERN.test(digest ?? '')) {
     throw new Error('Server image registry returned an invalid digest.');
   }
   const config = execute([

@@ -11,6 +11,9 @@ import {
   MinLength,
 } from 'class-validator';
 
+const ORGANIZATION_PREFIX_PATTERN = /^[A-Z]{3}$/;
+const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
+
 export class CreateOrganizationDto {
   @IsString()
   @IsNotEmpty()
@@ -40,7 +43,7 @@ export class CreateOrganizationDto {
   @IsOptional()
   @MinLength(3)
   @MaxLength(3)
-  @Matches(/^[A-Z]{3}$/, {
+  @Matches(ORGANIZATION_PREFIX_PATTERN, {
     message: 'Prefix must be exactly 3 uppercase letters (A-Z)',
   })
   @ApiProperty({
@@ -58,7 +61,7 @@ export class CreateOrganizationDto {
   @IsOptional()
   @MinLength(2)
   @MaxLength(48)
-  @Matches(/^[a-z0-9][a-z0-9-]*[a-z0-9]$/, {
+  @Matches(SLUG_PATTERN, {
     message:
       'Slug must be lowercase alphanumeric with hyphens, starting and ending with a letter or number',
   })

@@ -22,13 +22,16 @@ import { toDesktopAsset } from './desktop-asset.util';
 import { toIso } from './time.util';
 import type { DesktopWorkspaceService } from './workspace.service';
 
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const EDGE_HYPHENS_PATTERN = /^-+|-+$/g;
+
 const LOCAL_ORGANIZATION_ID = 'local-org';
 
 const sanitizeFilenamePart = (value: string): string =>
   value
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
+    .replace(EDGE_HYPHENS_PATTERN, '')
     .slice(0, 80) || 'asset';
 
 const pathExists = async (targetPath: string): Promise<boolean> => {

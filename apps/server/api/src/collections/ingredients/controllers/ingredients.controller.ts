@@ -70,6 +70,8 @@ import {
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import type { Request } from 'express';
 
+const INGREDIENTS_PATH_SUFFIX_PATTERN = /\/ingredients\/?$/;
+
 @AutoSwagger()
 @Controller('ingredients')
 @UseGuards(RolesGuard)
@@ -361,7 +363,7 @@ export class IngredientsController {
           ]
         : inOrganization;
     const cdnOrigin = this.configService.ingredientsEndpoint.replace(
-      /\/ingredients\/?$/,
+      INGREDIENTS_PATH_SUFFIX_PATTERN,
       '',
     );
     // The computed `cdnUrl` already covers `s3Key`; resolving here adds the

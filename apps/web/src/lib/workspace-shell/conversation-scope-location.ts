@@ -1,6 +1,9 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 
+const AGENT_PATH_SEGMENT_PATTERN = /\/agent(?:\/|$)/;
+const AGENT_THREAD_PATH_PATTERN = /^\/agent\/([^/]+)(?:\/full)?$/;
+
 interface BuildConversationScopeHrefParams {
   readonly brandSlug: string | null;
   readonly organizationSlug: string;
@@ -36,7 +39,7 @@ export function buildConversationScopeHref({
   nextSearchParams.delete('overlayRef');
 
   const nextPathname = scopedPathname(pathname, organizationSlug, brandSlug);
-  const isConversation = /\/agent(?:\/|$)/.test(nextPathname);
+  const isConversation = AGENT_PATH_SEGMENT_PATTERN.test(nextPathname);
   if (isConversation) {
     nextSearchParams.delete('thread');
   } else if (threadId) {
@@ -69,7 +72,7 @@ export function buildScopedThreadHref(
 export function extractAgentThreadIdFromPathname(
   pathname: string,
 ): string | null {
-  const match = pathname.match(/^\/agent\/([^/]+)(?:\/full)?$/);
+  const match = pathname.match(AGENT_THREAD_PATH_PATTERN);
   if (!match?.[1]) {
     return null;
   }

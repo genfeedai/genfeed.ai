@@ -21,6 +21,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
+const AI_INFLUENCER_PREFIX_PATTERN = /^ai-influencer/;
+
 /** Supported social platforms for AI influencer posts */
 export type AiInfluencerPlatform = 'instagram' | 'twitter';
 
@@ -179,7 +181,7 @@ export class AiInfluencerService {
     this.loggerService.log(caller, { filters });
 
     const matchStage: Record<string, unknown> = {
-      generationSource: { contains: /^ai-influencer/ },
+      generationSource: { contains: AI_INFLUENCER_PREFIX_PATTERN },
       isDeleted: false,
     };
 

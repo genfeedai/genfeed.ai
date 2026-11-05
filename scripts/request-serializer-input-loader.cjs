@@ -8,6 +8,9 @@ const {
 } = require('node:fs');
 const path = require('node:path');
 
+const UUID_LIKE_PATTERN = /^[a-f0-9-]{36}$/;
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 const paths = {
   javaScript: 'packages/serializers/dist/request-runtime.bundle.js',
   sourceMap: 'packages/serializers/dist/request-runtime.bundle.js.map',
@@ -62,7 +65,7 @@ function captureRequestSerializerInput(input) {
   if (
     receipt.schemaVersion !== 1 ||
     receipt.mode !== 'production-default' ||
-    !/^[a-f0-9-]{36}$/.test(receipt.input?.buildId ?? '')
+    !UUID_LIKE_PATTERN.test(receipt.input?.buildId ?? '')
   )
     throw new Error('Missing browser compiler input preflight');
   let readBytes = 0;
@@ -75,7 +78,7 @@ function captureRequestSerializerInput(input) {
       !Number.isSafeInteger(artifact.bytes) ||
       artifact.bytes < 1 ||
       artifact.bytes > 16 * 1024 * 1024 ||
-      !/^[a-f0-9]{64}$/.test(artifact.sha256 ?? '')
+      !SHA256_HEX_PATTERN.test(artifact.sha256 ?? '')
     )
       throw new Error('Invalid authenticated artifact');
     readBytes += statSync(absolute).size;

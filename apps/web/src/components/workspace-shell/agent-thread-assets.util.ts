@@ -3,6 +3,8 @@ import type {
   AgentThread,
 } from '@genfeedai/agent/models/agent-chat.model';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+
 export interface AgentThreadAsset {
   kind: 'image' | 'video' | 'other';
   url: string;
@@ -32,7 +34,7 @@ export function collectThreadAssets(
 ): AgentThreadAsset[] {
   const assets = new Map<string, AgentThreadAsset>();
   const add = (url: string | null | undefined, contentType?: string) => {
-    if (!url || assets.has(url) || !/^https?:\/\//i.test(url)) {
+    if (!url || assets.has(url) || !HTTP_PROTOCOL_PREFIX_PATTERN.test(url)) {
       return;
     }
     assets.set(url, { kind: kindOf(url, contentType), url });

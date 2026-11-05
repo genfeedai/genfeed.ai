@@ -15,6 +15,8 @@ import { isAbsolute, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { validateRuntimeConfig } from './config.mjs';
 
+const JSON_CONTENT_TYPE_PATTERN = /^application\/json(?:;|$)/i;
+
 export const MAIL_LABELS = ['A', 'B', 'M', 'M2', 'S'];
 export const MAIL_REASONS = [
   'authorization',
@@ -335,9 +337,7 @@ export function createLocalMailStub({
     if (request.method === 'GET')
       return reply(200, { isConfigured: true }, () => counts.statusRequests++);
     if (request.method !== 'POST') return reject('method', 405);
-    if (
-      !/^application\/json(?:;|$)/i.test(request.headers['content-type'] ?? '')
-    )
+    if (!JSON_CONTENT_TYPE_PATTERN.test(request.headers['content-type'] ?? ''))
       return reject('contentType', 415);
     let size = 0;
     const chunks = [];

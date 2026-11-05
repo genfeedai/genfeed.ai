@@ -1,6 +1,9 @@
 import type { ProviderVerificationPage } from '@api/services/integrations/publishers/interfaces/publish-verification.interface';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 
+const NEXT_LINK_HEADER_PATTERN = /<([^>]+)>;\s*rel="next"/;
+const NEXT_WORD_PATTERN = /\bnext\b/;
+
 export function verificationRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('Incomplete provider verification record');
@@ -215,9 +218,9 @@ export function parseMastodonVerificationPage(
     throw new Error('Incomplete Mastodon pagination');
   const next =
     typeof link === 'string'
-      ? /<([^>]+)>;\s*rel="next"/.exec(link)?.[1]
+      ? NEXT_LINK_HEADER_PATTERN.exec(link)?.[1]
       : undefined;
-  if (typeof link === 'string' && /\bnext\b/.test(link) && !next)
+  if (typeof link === 'string' && NEXT_WORD_PATTERN.test(link) && !next)
     throw new Error('Incomplete Mastodon pagination format');
   let nextCursor: string | null = null;
   if (next) {

@@ -4,6 +4,12 @@ import {
   stripUntrustedContentFraming,
 } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
 
+const QUOTE_CHARS_PATTERN = /[`"'“”‘’]/g;
+const NON_ALPHANUMERIC_CHARS_PATTERN = /[^a-zA-Z0-9\s]/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const TITLE_UNSAFE_CHARS_PATTERN = /[^\w\s'-]/g;
+const FENCED_JSON_PATTERN = /^```(?:json)?\s*([\s\S]*?)\s*```$/i;
+
 /**
  * Pure thread-title helpers shared across orchestrator chat paths
  * (sync, stream, plan mode, batch, recurring tasks).
@@ -28,10 +34,10 @@ export function buildFallbackThreadTitle(prompt: string): string {
   const fillerPattern =
     /\b(can you|could you|help me|i need|i want|please|let's|lets|show me|tell me|give me|make me|create|generate|draft|write)\b/gi;
   const cleaned = stripUntrustedContentFraming(prompt)
-    .replace(/[`"'“”‘’]/g, ' ')
-    .replace(/[^a-zA-Z0-9\s]/g, ' ')
+    .replace(QUOTE_CHARS_PATTERN, ' ')
+    .replace(NON_ALPHANUMERIC_CHARS_PATTERN, ' ')
     .replace(fillerPattern, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
   const words = cleaned
     .split(' ')
@@ -56,9 +62,9 @@ export function sanitizeGeneratedThreadTitle(
   }
 
   const normalized = title
-    .replace(/[`"'“”‘’]/g, ' ')
-    .replace(/[^\w\s'-]/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(QUOTE_CHARS_PATTERN, ' ')
+    .replace(TITLE_UNSAFE_CHARS_PATTERN, ' ')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
 
   if (!normalized) {
@@ -88,7 +94,7 @@ export function extractThreadEnvelope(params: {
   }
 
   const trimmed = params.assistantContent.trim();
-  const fencedJsonMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  const fencedJsonMatch = trimmed.match(FENCED_JSON_PATTERN);
   const candidate = fencedJsonMatch?.[1]?.trim() ?? trimmed;
   let parsed: {
     content?: unknown;

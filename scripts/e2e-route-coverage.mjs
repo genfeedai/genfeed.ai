@@ -9,6 +9,32 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const ROUTE_GROUP_SEGMENT_PATTERN = /^\(.+\)$/;
+const DYNAMIC_SEGMENT_PATTERN = /^\[.+\]$/;
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+const WILDCARD_ORG_BRAND_PREFIX_PATTERN = /^\/\*\/\*(?=\/|$)/;
+const WILDCARD_ORG_TILDE_PREFIX_PATTERN = /^\/\*\/~(?=\/|$)/;
+const TEST_ORG_BRAND_PREFIX_PATTERN = /^\/test-org\/brand-1(?=\/|$)/;
+const TEST_ORG_TILDE_PREFIX_PATTERN = /^\/test-org\/~(?=\/|$)/;
+const TEST_ORG_PREFIX_PATTERN = /^\/test-org(?=\/|$)/;
+const WILDCARD_PREFIX_PATTERN = /^\/\*(?=\/|$)/;
+const TEMPLATE_PLACEHOLDER_PATTERN = /^\$\{.+\}$/;
+const ROUTE_PARAM_PATTERN = /^:[a-z]/i;
+const ID_LIKE_SEGMENT_PATTERN = /^[0-9a-f-]{8,}$/i;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const SPEC_OR_PAGE_FILE_PATTERN = /\.(spec|page)\.ts$/;
+const LINE_BREAK_PATTERN = /\r?\n/;
+const APP_ROUTES_START_PATTERN = /^export const APP_ROUTES = \{$/;
+const ROUTE_STRING_LINE_PATTERN = /^\s*(['"`])(\/[^'"`]*)\1,?\s*$/;
+const ROUTE_GROUP_START_PATTERN = /^\s*([A-Z][A-Z0-9_]*):\s*\{$/;
+const ROUTE_ENTRY_LINE_PATTERN =
+  /^\s*([A-Z][A-Z0-9_]*):\s*(['"`])(\/[^'"`]*)\2,\s*$/;
+const ROUTE_KEY_LINE_PATTERN = /^\s*([A-Z][A-Z0-9_]*):\s*$/;
+const BLOCK_END_LINE_PATTERN = /^\s*},?\s*$/;
+const ROUTE_SUFFIX_CONCAT_PATTERN = /^\s*\+\s*['"`](\/[^'"`]*)['"`]/;
+const ROUTE_TEMPLATE_SUFFIX_PATTERN = /^\}(\/[\w\-/*]*)/;
+const TEMPLATE_IDENTIFIERS_PATTERN = /\$\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}/g;
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 const appRoot = path.join(repoRoot, 'apps/web/app');
@@ -46,8 +72,10 @@ function pageFileToKey(filePath) {
       ? []
       : relative
           .split(path.sep)
-          .filter((segment) => !/^\(.+\)$/.test(segment))
-          .map((segment) => (/^\[.+\]$/.test(segment) ? '*' : segment));
+          .filter((segment) => !ROUTE_GROUP_SEGMENT_PATTERN.test(segment))
+          .map((segment) =>
+            DYNAMIC_SEGMENT_PATTERN.test(segment) ? '*' : segment,
+          );
 
   return canonicalize(`/${segments.join('/')}`);
 }
@@ -60,16 +88,16 @@ function pageFileToKey(filePath) {
  */
 export function canonicalize(routePath) {
   let p = routePath.split('?')[0].split('#')[0];
-  p = p.replace(/\/+$/, '') || '/';
+  p = p.replace(TRAILING_SLASHES_PATTERN, '') || '/';
 
   // Strip the dynamic tenant prefix in all its forms.
   p = p
-    .replace(/^\/\*\/\*(?=\/|$)/, '') // /[orgSlug]/[brandSlug]
-    .replace(/^\/\*\/~(?=\/|$)/, '') // /[orgSlug]/~
-    .replace(/^\/test-org\/brand-1(?=\/|$)/, '')
-    .replace(/^\/test-org\/~(?=\/|$)/, '')
-    .replace(/^\/test-org(?=\/|$)/, '')
-    .replace(/^\/\*(?=\/|$)/, ''); // bare /[orgSlug]
+    .replace(WILDCARD_ORG_BRAND_PREFIX_PATTERN, '') // /[orgSlug]/[brandSlug]
+    .replace(WILDCARD_ORG_TILDE_PREFIX_PATTERN, '') // /[orgSlug]/~
+    .replace(TEST_ORG_BRAND_PREFIX_PATTERN, '')
+    .replace(TEST_ORG_TILDE_PREFIX_PATTERN, '')
+    .replace(TEST_ORG_PREFIX_PATTERN, '')
+    .replace(WILDCARD_PREFIX_PATTERN, ''); // bare /[orgSlug]
 
   // Replace concrete dynamic-looking segments with `*`. Includes the mock ids
   // and the platform/type enum values specs use for `[platform]` / `[type]`
@@ -109,17 +137,17 @@ export function canonicalize(routePath) {
     .split('/')
     .map((seg) => {
       if (seg === '') return seg;
-      if (/^\$\{.+\}$/.test(seg)) return '*'; // template literal `${id}`
-      if (/^:[a-z]/i.test(seg)) return '*'; // :id style
-      if (/^\[.+\]$/.test(seg)) return '*';
+      if (TEMPLATE_PLACEHOLDER_PATTERN.test(seg)) return '*'; // template literal `${id}`
+      if (ROUTE_PARAM_PATTERN.test(seg)) return '*'; // :id style
+      if (DYNAMIC_SEGMENT_PATTERN.test(seg)) return '*';
       if (mockIds.has(seg.toLowerCase())) return '*';
-      if (/^[0-9a-f-]{8,}$/i.test(seg)) return '*'; // uuid/hash-ish
-      if (/^\d+$/.test(seg)) return '*'; // numeric id
+      if (ID_LIKE_SEGMENT_PATTERN.test(seg)) return '*'; // uuid/hash-ish
+      if (DIGITS_ONLY_PATTERN.test(seg)) return '*'; // numeric id
       return seg;
     })
     .join('/');
 
-  return p.replace(/\/+$/, '') || '/';
+  return p.replace(TRAILING_SLASHES_PATTERN, '') || '/';
 }
 
 // ---------------------------------------------------------------------------
@@ -134,7 +162,7 @@ function listFilesRecursive(dir) {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) out = out.concat(listFilesRecursive(full));
       else if (
-        /\.(spec|page)\.ts$/.test(entry.name) ||
+        SPEC_OR_PAGE_FILE_PATTERN.test(entry.name) ||
         entry.name.endsWith('.page.ts')
       ) {
         out.push(full);
@@ -175,14 +203,14 @@ export function readAppRouteConstants(source) {
   let pendingKey = null;
   const text = source ?? readFileSync(appRoutesFile, 'utf8');
 
-  for (const line of text.split(/\r?\n/)) {
+  for (const line of text.split(LINE_BREAK_PATTERN)) {
     if (!insideAppRoutes) {
-      insideAppRoutes = /^export const APP_ROUTES = \{$/.test(line);
+      insideAppRoutes = APP_ROUTES_START_PATTERN.test(line);
       continue;
     }
 
     if (pendingKey) {
-      const multilineValue = line.match(/^\s*(['"`])(\/[^'"`]*)\1,?\s*$/);
+      const multilineValue = line.match(ROUTE_STRING_LINE_PATTERN);
       if (multilineValue) {
         routes.set(
           ['APP_ROUTES', ...stack, pendingKey].join('.'),
@@ -195,28 +223,26 @@ export function readAppRouteConstants(source) {
       pendingKey = null;
     }
 
-    const group = line.match(/^\s*([A-Z][A-Z0-9_]*):\s*\{$/);
+    const group = line.match(ROUTE_GROUP_START_PATTERN);
     if (group) {
       stack.push(group[1]);
       continue;
     }
 
-    const route = line.match(
-      /^\s*([A-Z][A-Z0-9_]*):\s*(['"`])(\/[^'"`]*)\2,\s*$/,
-    );
+    const route = line.match(ROUTE_ENTRY_LINE_PATTERN);
     if (route) {
       routes.set(['APP_ROUTES', ...stack, route[1]].join('.'), route[3]);
       continue;
     }
 
     // Multiline key with value on the following line (ELEMENTS_CAMERA_MOVEMENTS).
-    const bareKey = line.match(/^\s*([A-Z][A-Z0-9_]*):\s*$/);
+    const bareKey = line.match(ROUTE_KEY_LINE_PATTERN);
     if (bareKey) {
       pendingKey = bareKey[1];
       continue;
     }
 
-    if (/^\s*},?\s*$/.test(line)) {
+    if (BLOCK_END_LINE_PATTERN.test(line)) {
       if (stack.length === 0) break;
       stack.pop();
     }
@@ -238,12 +264,12 @@ export function readAppRouteSuffix(src, matchIndex, matchLength) {
     matchIndex + matchLength,
     matchIndex + matchLength + 48,
   );
-  const concat = after.match(/^\s*\+\s*['"`](\/[^'"`]*)['"`]/);
+  const concat = after.match(ROUTE_SUFFIX_CONCAT_PATTERN);
   if (concat) {
     return concat[1];
   }
   // Template: `${APP_ROUTES.FOO}/mock-id` — after the closing `}` of ${...}
-  const templateTail = after.match(/^\}(\/[\w\-/*]*)/);
+  const templateTail = after.match(ROUTE_TEMPLATE_SUFFIX_PATTERN);
   if (templateTail) {
     return templateTail[1];
   }
@@ -256,7 +282,7 @@ export function readAppRouteSuffix(src, matchIndex, matchLength) {
  * @param {string} raw @param {Record<string,string>} consts
  */
 function resolveTemplate(raw, consts) {
-  return raw.replace(/\$\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}/g, (match, name) =>
+  return raw.replace(TEMPLATE_IDENTIFIERS_PATTERN, (match, name) =>
     Object.hasOwn(consts, name) ? consts[name] : match,
   );
 }

@@ -7,6 +7,12 @@ import type {
   MediaArtifactResult,
 } from '@genfeedai/contracts/interfaces';
 
+const JPEG_URL_PATTERN = /\.jpe?g(\?|$)/i;
+const WEBP_URL_PATTERN = /\.webp(\?|$)/i;
+const GIF_URL_PATTERN = /\.gif(\?|$)/i;
+const AVIF_URL_PATTERN = /\.avif(\?|$)/i;
+const PNG_URL_PATTERN = /\.png(\?|$)/i;
+
 const IMAGE_URL_PATTERN = /\.(avif|gif|jpe?g|png|webp)(\?|$)/i;
 
 function readStringField(
@@ -110,19 +116,19 @@ function inferImageMimeType(url: string | undefined): string | undefined {
   if (!url) {
     return undefined;
   }
-  if (/\.jpe?g(\?|$)/i.test(url)) {
+  if (JPEG_URL_PATTERN.test(url)) {
     return 'image/jpeg';
   }
-  if (/\.webp(\?|$)/i.test(url)) {
+  if (WEBP_URL_PATTERN.test(url)) {
     return 'image/webp';
   }
-  if (/\.gif(\?|$)/i.test(url)) {
+  if (GIF_URL_PATTERN.test(url)) {
     return 'image/gif';
   }
-  if (/\.avif(\?|$)/i.test(url)) {
+  if (AVIF_URL_PATTERN.test(url)) {
     return 'image/avif';
   }
-  return /\.png(\?|$)/i.test(url) ? 'image/png' : undefined;
+  return PNG_URL_PATTERN.test(url) ? 'image/png' : undefined;
 }
 
 function textFallback(artifact: MediaArtifactResult): string {

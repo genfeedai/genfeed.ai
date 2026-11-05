@@ -9,6 +9,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { AgentMemoryCaptureService } from './agent-memory-capture.service';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const PROMPT_UNSAFE_CHARS_PATTERN = /[`<>]/g;
+
 /** Max chars of reviewer free-text persisted into brand generation memory. */
 const MAX_REVIEWER_NOTE_LENGTH = 500;
 
@@ -182,7 +185,7 @@ export class TaskFeedbackMemoryAdapterService {
   }
 
   private compact(value: string): string {
-    return value.trim().replace(/\s+/g, ' ');
+    return value.trim().replace(WHITESPACE_RUNS_PATTERN, ' ');
   }
 
   private compactJson(value: Record<string, unknown>): string {
@@ -249,7 +252,10 @@ export class TaskFeedbackMemoryAdapterService {
         return isControl || isZeroWidth ? ' ' : char;
       })
       .join('');
-    const cleaned = stripped.replace(/[`<>]/g, ' ').replace(/\s+/g, ' ').trim();
+    const cleaned = stripped
+      .replace(PROMPT_UNSAFE_CHARS_PATTERN, ' ')
+      .replace(WHITESPACE_RUNS_PATTERN, ' ')
+      .trim();
     if (!cleaned) {
       return undefined;
     }

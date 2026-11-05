@@ -6,6 +6,8 @@ import http, {
 import https from 'node:https';
 import net from 'node:net';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 /**
  * The bundled Next.js shell bakes its `/v1` rewrite target at build time.
  * Desktop fronts it with this loopback proxy so `/v1/*` follows the server
@@ -38,7 +40,7 @@ export function resolveDesktopShellProxyTarget(
 
   if (isApiPath(incoming.pathname)) {
     const api = new URL(targets.apiEndpoint);
-    const basePath = api.pathname.replace(/\/+$/, '');
+    const basePath = api.pathname.replace(TRAILING_SLASHES_PATTERN, '');
     const suffix = incoming.pathname.slice(API_PATH_PREFIX.length);
 
     return {

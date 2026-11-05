@@ -11,6 +11,43 @@ import { validateCpuEvidence } from './cpu-profile-evidence.mjs';
 import { validateMailStats } from './local-mail-stub.mjs';
 import { MACHINE_TEMPLATES, machineCoverage } from './machine-fixture.mjs';
 
+const V1_PREFIX_PATTERN = /^\/v1(?:\/|$)/;
+const TENANT_ISOLATION_LINE_PATTERN = /Tenant isolation:[^\n]*/;
+const JS_COMMENTS_PATTERN = /\/\*[\s\S]*?\*\/|\/\/[^\n]*/g;
+const CONDITIONAL_REQUIRED_KEYS_PATTERN =
+  /\b([A-Z][A-Z0-9_]+)\s*:\s*conditionalRequired\s*\(/g;
+const CONDITIONAL_REQUIRED_CALLS_PATTERN = /\bconditionalRequired\s*\(/g;
+const ENV_ASSIGNMENT_PATTERN = /^[A-Z][A-Z0-9_]*=/;
+const NUMERIC_PARAMETER_PATTERN =
+  /^(number|page|limit|offset|sequence|afterSequence)$/;
+const ID_SUFFIX_PATTERN = /id$/i;
+const ESCAPED_SLASHES_PATTERN = /~1/g;
+const ESCAPED_TILDES_PATTERN = /~0/g;
+const IDS_SUFFIX_PATTERN = /Ids$/;
+const EMAIL_WORD_PATTERN = /email/i;
+const URL_SUFFIX_PATTERN = /url$/i;
+const ROUTE_PARAMS_PATTERN = /\{([^}]+)\}/g;
+const TOOL_SKIP_REASON_PATTERN =
+  /requires (?:superadmin|admin)|not callable|no agent executor wired up/;
+const TENANT_ISOLATION_MODEL_PATTERN = /Tenant isolation:\s*(\w+) on (\w+)/;
+const HTTP_ROUTE_PATTERN = /(?:GET|POST|PATCH|DELETE|PUT)\s+\S+/;
+const TENANT_ISOLATION_CLASSIFICATION_PATTERN =
+  /Tenant isolation: ([A-Za-z_][A-Za-z0-9_]*) on ([A-Za-z_][A-Za-z0-9_]*)(?= |$)/;
+const TENANT_MISMATCH_DETAIL_PATTERN =
+  /^ used organizationId [^\r\n]* but the request tenant is [^\r\n]*/;
+const BILLING_SCOPE_MISSING_DETAIL_PATTERN =
+  /^ used billingAccountId [^\r\n]* without an active BillingAccountScope in CLOUD mode\./;
+const TOO_FEW_ROUTES_FAILURE_PATTERN =
+  /^Only (\d+) GET routes discovered \(minimum (\d+)\)$/;
+const TOO_FEW_TOOLS_FAILURE_PATTERN =
+  /^Only (\d+) distinct tools discovered \(minimum (\d+)\)$/;
+const TIMED_OUT_REQUESTS_FAILURE_PATTERN =
+  /^(\d+)\/(\d+) requests timed out \(\d+\.\d{2}%; maximum (\d+) unresolved requests\)$/;
+const UNRESOLVED_REQUESTS_FAILURE_PATTERN =
+  /^(\d+) unresolved timeout\/transport requests cannot prove tenant safety$/;
+const GIT_SHA_PATTERN = /^[a-f0-9]{40}$/;
+const QUERY_OR_LINE_BREAK_PATTERN = /[?\n\r]/;
+
 export function createDeadline(
   timeoutMs,
   {
@@ -65,7 +102,7 @@ export const GET_SKIPS = new Map([
 ]);
 
 export function normalizePath(path) {
-  return /^\/v1(?:\/|$)/.test(path)
+  return V1_PREFIX_PATTERN.test(path)
     ? path
     : `/v1${path.startsWith('/') ? '' : '/'}${path}`;
 }
@@ -73,7 +110,7 @@ export function normalizePath(path) {
 export function tenantHit(body) {
   const text = typeof body === 'string' ? body : JSON.stringify(body);
   return (
-    text?.match(/Tenant isolation:[^\n]*/)?.[0] ??
+    text?.match(TENANT_ISOLATION_LINE_PATTERN)?.[0] ??
     (text?.includes('TenantIsolationError') ? 'TenantIsolationError' : null)
   );
 }
@@ -85,13 +122,11 @@ export function logHits(log) {
 export function requiredEnvKeys(sources) {
   const keys = new Set();
   for (const source of sources) {
-    const code = source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '');
-    const matches = [
-      ...code.matchAll(/\b([A-Z][A-Z0-9_]+)\s*:\s*conditionalRequired\s*\(/g),
-    ];
+    const code = source.replace(JS_COMMENTS_PATTERN, '');
+    const matches = [...code.matchAll(CONDITIONAL_REQUIRED_KEYS_PATTERN)];
     if (
       matches.length !==
-      [...code.matchAll(/\bconditionalRequired\s*\(/g)].length
+      [...code.matchAll(CONDITIONAL_REQUIRED_CALLS_PATTERN)].length
     ) {
       throw new Error(
         'Unrecognized conditionalRequired declaration; update CI env-key derivation',
@@ -106,7 +141,7 @@ export function parseEnv(source) {
   return Object.fromEntries(
     source
       .split('\n')
-      .filter((line) => /^[A-Z][A-Z0-9_]*=/.test(line))
+      .filter((line) => ENV_ASSIGNMENT_PATTERN.test(line))
       .map((line) => {
         const index = line.indexOf('=');
         return [line.slice(0, index), line.slice(index + 1)];
@@ -136,10 +171,9 @@ export function parameterValue(name, path, fixture) {
       .findLast((part) => COLLECTION_IDS[part]);
     return fixture[COLLECTION_IDS[collection]] ?? randomUUID();
   }
-  if (/^(number|page|limit|offset|sequence|afterSequence)$/.test(name))
-    return 1;
+  if (NUMERIC_PARAMETER_PATTERN.test(name)) return 1;
   if (name === 'slug') return fixture.organizationSlug ?? 'ci-placeholder';
-  return /id$/i.test(name) ? randomUUID() : 'ci-placeholder';
+  return ID_SUFFIX_PATTERN.test(name) ? randomUUID() : 'ci-placeholder';
 }
 
 export function schemaValue(
@@ -157,7 +191,12 @@ export function schemaValue(
       .slice(2)
       .split('/')
       .reduce(
-        (value, key) => value?.[key.replace(/~1/g, '/').replace(/~0/g, '~')],
+        (value, key) =>
+          value?.[
+            key
+              .replace(ESCAPED_SLASHES_PATTERN, '/')
+              .replace(ESCAPED_TILDES_PATTERN, '~')
+          ],
         root,
       );
     if (!referenced)
@@ -213,7 +252,7 @@ export function schemaValue(
     return Array.from({ length: count }, () =>
       schemaValue(
         schema.items ?? {},
-        name.replace(/Ids$/, 'Id'),
+        name.replace(IDS_SUFFIX_PATTERN, 'Id'),
         fixture,
         root,
         depth + 1,
@@ -227,14 +266,15 @@ export function schemaValue(
       schema.maximum ?? Infinity,
       Math.max(schema.minimum ?? 1, (schema.exclusiveMinimum ?? -1) + 1),
     );
-  if (/id$/i.test(name)) return String(parameterValue(name, '', fixture));
+  if (ID_SUFFIX_PATTERN.test(name))
+    return String(parameterValue(name, '', fixture));
   if (schema.format === 'date-time') return '2026-01-01T00:00:00.000Z';
   if (schema.format === 'date') return '2026-01-01';
-  if (schema.format === 'email' || /email/i.test(name))
+  if (schema.format === 'email' || EMAIL_WORD_PATTERN.test(name))
     return 'ci-placeholder@example.invalid';
   if (schema.format === 'uuid') return randomUUID();
   if (name === 'aspectRatio') return '1:1';
-  if (schema.format === 'uri' || /url$/i.test(name))
+  if (schema.format === 'uri' || URL_SUFFIX_PATTERN.test(name))
     return 'http://localhost:3999/ci-placeholder';
   let value = 'ci-placeholder';
   value = value
@@ -258,7 +298,7 @@ export function getRoutes(document) {
 }
 
 export function expandRoute(route, fixture, document, override) {
-  const path = route.path.replace(/\{([^}]+)\}/g, (_, name) =>
+  const path = route.path.replace(ROUTE_PARAMS_PATTERN, (_, name) =>
     encodeURIComponent(parameterValue(name, route.path, fixture)),
   );
   const query = new URLSearchParams();
@@ -293,12 +333,7 @@ export function distinctTools(agent, mcp) {
 
 export function toolSkipReason(status, body) {
   if (tenantHit(body)) return null;
-  if (
-    (status === 400 || status === 403) &&
-    /requires (?:superadmin|admin)|not callable|no agent executor wired up/.test(
-      body,
-    )
-  )
+  if ((status === 400 || status === 403) && TOOL_SKIP_REASON_PATTERN.test(body))
     return body;
   if (body.includes('UNSUPPORTED_APPROVAL'))
     return 'Approval-required tool has no approvedApprovalId';
@@ -481,7 +516,7 @@ export function durationSummary(durations) {
 export function groupHits(requests, lines) {
   const groups = new Map();
   const add = (route, message, actor) => {
-    const match = message.match(/Tenant isolation:\s*(\w+) on (\w+)/);
+    const match = message.match(TENANT_ISOLATION_MODEL_PATTERN);
     const model = match?.[2] ?? 'unknown';
     const operation = match?.[1] ?? 'unknown';
     const key = `${model}/${operation}/${route}`;
@@ -507,7 +542,7 @@ export function groupHits(requests, lines) {
   for (const evidence of lines) {
     const line = typeof evidence === 'string' ? evidence : evidence.message;
     add(
-      line.match(/(?:GET|POST|PATCH|DELETE|PUT)\s+\S+/)?.[0] ?? 'API stdout',
+      line.match(HTTP_ROUTE_PATTERN)?.[0] ?? 'API stdout',
       tenantHit(line),
       'API stdout',
     );
@@ -897,9 +932,7 @@ function buildSetupEvidence(report) {
 
 function tenantClassification(message) {
   const text = typeof message === 'string' ? message : '';
-  const match = text.match(
-    /Tenant isolation: ([A-Za-z_][A-Za-z0-9_]*) on ([A-Za-z_][A-Za-z0-9_]*)(?= |$)/,
-  );
+  const match = text.match(TENANT_ISOLATION_CLASSIFICATION_PATTERN);
   const model = schemaModels().has(match?.[2]) ? match[2] : 'unknown';
   const operation = TENANT_EVIDENCE_OPERATIONS.includes(match?.[1])
     ? match[1]
@@ -909,17 +942,9 @@ function tenantClassification(message) {
     const tail = text.slice(match.index + match[0].length);
     if (tail.startsWith(' is missing organizationId in CLOUD mode.'))
       reason = 'missing-organization-id';
-    else if (
-      /^ used organizationId [^\r\n]* but the request tenant is [^\r\n]*/.test(
-        tail,
-      )
-    )
+    else if (TENANT_MISMATCH_DETAIL_PATTERN.test(tail))
       reason = 'organization-id-mismatch';
-    else if (
-      /^ used billingAccountId [^\r\n]* without an active BillingAccountScope in CLOUD mode\./.test(
-        tail,
-      )
-    )
+    else if (BILLING_SCOPE_MISSING_DETAIL_PATTERN.test(tail))
       reason = 'billing-account-id-mismatch';
   }
   return { model, operation, reason };
@@ -1059,16 +1084,8 @@ function failureClassification(value) {
   };
   const actor = '(A|B|M2|M|S:A|M:A|M2:B|S)';
   const rules = [
-    [
-      /^Only (\d+) GET routes discovered \(minimum (\d+)\)$/,
-      'get-inventory-minimum',
-      false,
-    ],
-    [
-      /^Only (\d+) distinct tools discovered \(minimum (\d+)\)$/,
-      'tool-inventory-minimum',
-      false,
-    ],
+    [TOO_FEW_ROUTES_FAILURE_PATTERN, 'get-inventory-minimum', false],
+    [TOO_FEW_TOOLS_FAILURE_PATTERN, 'tool-inventory-minimum', false],
     [
       new RegExp(`^${actor}: only (\\d+)/(\\d+) GET routes attempted$`),
       'get-attempt-coverage',
@@ -1113,9 +1130,7 @@ function failureClassification(value) {
       };
     }
   }
-  const timeoutRatio = value.match(
-    /^(\d+)\/(\d+) requests timed out \(\d+\.\d{2}%; maximum (\d+) unresolved requests\)$/,
-  );
+  const timeoutRatio = value.match(TIMED_OUT_REQUESTS_FAILURE_PATTERN);
   if (timeoutRatio) {
     count(Number(timeoutRatio[2]));
     return {
@@ -1125,9 +1140,7 @@ function failureClassification(value) {
       expected: count(Number(timeoutRatio[3])),
     };
   }
-  const unresolved = value.match(
-    /^(\d+) unresolved timeout\/transport requests cannot prove tenant safety$/,
-  );
+  const unresolved = value.match(UNRESOLVED_REQUESTS_FAILURE_PATTERN);
   if (unresolved)
     return {
       ...tuple,
@@ -1159,7 +1172,7 @@ function buildFailureEvidence(report) {
 }
 
 export function buildDiagnosticSummary(report, fixtureProof = {}) {
-  if (!/^[a-f0-9]{40}$/.test(report.sourceSha ?? ''))
+  if (!GIT_SHA_PATTERN.test(report.sourceSha ?? ''))
     throw new Error('Immutable diagnostic source SHA required');
   const machine = machineCoverage(
     report.requests ?? [],
@@ -1191,8 +1204,8 @@ export function buildDiagnosticSummary(report, fixtureProof = {}) {
   for (const template of templates)
     if (
       typeof template !== 'string' ||
-      !/^\/v1(?:\/|$)/.test(template) ||
-      /[?\n\r]/.test(template)
+      !V1_PREFIX_PATTERN.test(template) ||
+      QUERY_OR_LINE_BREAK_PATTERN.test(template)
     )
       throw new Error('Unsafe diagnostic inventory template');
   const mail = report.mailStats ?? {

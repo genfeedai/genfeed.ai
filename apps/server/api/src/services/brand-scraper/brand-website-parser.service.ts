@@ -20,6 +20,32 @@ import { isBrandKitGuidanceNoise } from '@genfeedai/helpers';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const HEX_COLORS_PATTERN = /#(?:[0-9a-fA-F]{3}){1,2}\b/g;
+const RGB_COLORS_PATTERN =
+  /rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}(?:\s*,\s*[\d.]+)?\s*\)/g;
+const SENSITIVE_QUERY_PARAM_PATTERN =
+  /^(token|access_token|api_key|apikey|key|signature|sig|credential|authorization|auth|password|secret)$/i;
+const SIGNED_URL_PARAM_PREFIX_PATTERN =
+  /^(x-amz-|x-goog-|awsaccesskeyid|googleaccessid)/i;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const CSS_INJECTION_CHARS_PATTERN = /[(){}]|\/\*/;
+const QUOTED_VALUE_PATTERN = /^(['"])(.*)\1$/;
+const GENERIC_FONT_FAMILY_PATTERN =
+  /^(system-ui|sans-serif|serif|monospace|cursive|fantasy|ui-serif|ui-sans-serif|ui-monospace|ui-rounded|emoji|math|fangsong|inherit|initial|unset|revert|revert-layer)$/i;
+const FONT_NAME_UNSAFE_CHARS_PATTERN = /['";:]/;
+const BLOCK_COMMENTS_PATTERN = /\/\*[\s\S]*?\*\//g;
+const FONT_FACE_RULES_PATTERN = /@font-face\s*\{([^{}]*)\}/gi;
+const FONT_FAMILY_DECLARATIONS_PATTERN = /font-family\s*:\s*([^;{}]+)/gi;
+const FONT_WEIGHT_DECLARATION_PATTERN = /font-weight\s*:\s*([^;{}]+)/i;
+const FONT_STYLE_DECLARATION_PATTERN = /font-style\s*:\s*([^;{}]+)/i;
+const ICON_SIZE_SEPARATOR_PATTERN = /x/i;
+const LOGO_WORD_PATTERN = /\blogos?\b/iu;
+const ABOUT_US_SENTENCE_PATTERN = /about\s+us[\s:]+([^.]+\.)/i;
+const WHO_WE_ARE_SENTENCE_PATTERN = /who\s+we\s+are[\s:]+([^.]+\.)/i;
+const OUR_MISSION_SENTENCE_PATTERN = /our\s+mission[\s:]+([^.]+\.)/i;
+const WE_ARE_SENTENCE_PATTERN = /we\s+are\s+([^.]+\.)/i;
+
 const MAX_IMAGE_CANDIDATES = 12;
 const MAX_FONT_CANDIDATES = 8;
 const THIRD_PARTY_SECTION =
@@ -100,7 +126,10 @@ export class BrandWebsiteParserService {
     const headings = this.extractHeadingsFromDom($);
 
     // Extract body text for about/value prop extraction
-    const bodyText = $('body').text().replace(/\s+/g, ' ').trim();
+    const bodyText = $('body')
+      .text()
+      .replace(WHITESPACE_RUNS_PATTERN, ' ')
+      .trim();
 
     const valuePropositions = this.extractValuePropositions(bodyText);
     const aboutText = this.extractAboutText(bodyText);
@@ -307,7 +336,7 @@ export class BrandWebsiteParserService {
     const allCss = cssText.join(' ');
 
     // Extract hex colors
-    const hexMatches = allCss.match(/#(?:[0-9a-fA-F]{3}){1,2}\b/g);
+    const hexMatches = allCss.match(HEX_COLORS_PATTERN);
     if (hexMatches) {
       for (const hex of hexMatches) {
         addColor(hex);
@@ -315,9 +344,7 @@ export class BrandWebsiteParserService {
     }
 
     // Extract rgb/rgba colors
-    const rgbMatches = allCss.match(
-      /rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}(?:\s*,\s*[\d.]+)?\s*\)/g,
-    );
+    const rgbMatches = allCss.match(RGB_COLORS_PATTERN);
     if (rgbMatches) {
       for (const rgb of rgbMatches) {
         addColor(rgb);
@@ -346,16 +373,12 @@ export class BrandWebsiteParserService {
       url.password = '';
       url.hash = '';
       for (const key of [...url.searchParams.keys()]) {
-        if (
-          /^(token|access_token|api_key|apikey|key|signature|sig|credential|authorization|auth|password|secret)$/i.test(
-            key,
-          )
-        )
+        if (SENSITIVE_QUERY_PARAM_PATTERN.test(key))
           url.searchParams.delete(key);
       }
       if (
         [...url.searchParams.keys()].some((key) =>
-          /^(x-amz-|x-goog-|awsaccesskeyid|googleaccessid)/i.test(key),
+          SIGNED_URL_PARAM_PREFIX_PATTERN.test(key),
         )
       )
         return undefined;
@@ -373,7 +396,7 @@ export class BrandWebsiteParserService {
         $(el).attr('disabled') !== undefined ||
         !($(el).attr('rel') ?? '')
           .toLowerCase()
-          .split(/\s+/)
+          .split(WHITESPACE_RUN_PATTERN)
           .includes('stylesheet')
       )
         return;
@@ -430,22 +453,19 @@ export class BrandWebsiteParserService {
     ): void => {
       for (const part of value.split(',')) {
         const raw = part.trim();
-        if (raw.includes('\\') || /[(){}]|\/\*/.test(raw)) {
+        if (raw.includes('\\') || CSS_INJECTION_CHARS_PATTERN.test(raw)) {
           warn(
             'font_syntax_unsupported',
             'Unsupported font declaration omitted.',
           );
           continue;
         }
-        const family = raw.replace(/^(['"])(.*)\1$/, '$2').trim();
+        const family = raw.replace(QUOTED_VALUE_PATTERN, '$2').trim();
+        if (!family || GENERIC_FONT_FAMILY_PATTERN.test(family)) continue;
         if (
-          !family ||
-          /^(system-ui|sans-serif|serif|monospace|cursive|fantasy|ui-serif|ui-sans-serif|ui-monospace|ui-rounded|emoji|math|fangsong|inherit|initial|unset|revert|revert-layer)$/i.test(
-            family,
-          )
-        )
-          continue;
-        if (family.length > 512 || /['";:]/.test(family)) {
+          family.length > 512 ||
+          FONT_NAME_UNSAFE_CHARS_PATTERN.test(family)
+        ) {
           warn(
             'font_syntax_unsupported',
             'Unsupported font declaration omitted.',
@@ -507,19 +527,19 @@ export class BrandWebsiteParserService {
     });
     sources.push(...stylesheets);
     for (const source of sources) {
-      const css = source.cssText.replace(/\/\*[\s\S]*?\*\//g, '');
-      const faces = [...css.matchAll(/@font-face\s*\{([^{}]*)\}/gi)];
-      for (const match of css.matchAll(/font-family\s*:\s*([^;{}]+)/gi)) {
+      const css = source.cssText.replace(BLOCK_COMMENTS_PATTERN, '');
+      const faces = [...css.matchAll(FONT_FACE_RULES_PATTERN)];
+      for (const match of css.matchAll(FONT_FAMILY_DECLARATIONS_PATTERN)) {
         const face = faces.find(
           (block) =>
             (match.index ?? 0) >= (block.index ?? 0) &&
             (match.index ?? 0) < (block.index ?? 0) + block[0].length,
         );
         const weight = face?.[1]
-          .match(/font-weight\s*:\s*([^;{}]+)/i)?.[1]
+          .match(FONT_WEIGHT_DECLARATION_PATTERN)?.[1]
           .trim();
         const style = face?.[1]
-          .match(/font-style\s*:\s*([^;{}]+)/i)?.[1]
+          .match(FONT_STYLE_DECLARATION_PATTERN)?.[1]
           .trim();
         addFont(match[1], source.url, match[0], weight, style);
       }
@@ -601,7 +621,9 @@ export class BrandWebsiteParserService {
     const favicons: Array<{ icon: IScrapedImageCandidate; size: number }> = [];
 
     $('link[rel][href]').each((_i, el) => {
-      const rel = ($(el).attr('rel') ?? '').toLowerCase().split(/\s+/);
+      const rel = ($(el).attr('rel') ?? '')
+        .toLowerCase()
+        .split(WHITESPACE_RUN_PATTERN);
       const href = $(el).attr('href')?.trim();
       if (!href || href.startsWith('data:')) {
         return;
@@ -650,8 +672,10 @@ export class BrandWebsiteParserService {
     return Math.max(
       0,
       ...(sizes ?? '')
-        .split(/\s+/)
-        .map((size) => Number.parseInt(size.split(/x/i)[0] ?? '', 10))
+        .split(WHITESPACE_RUN_PATTERN)
+        .map((size) =>
+          Number.parseInt(size.split(ICON_SIZE_SEPARATOR_PATTERN)[0] ?? '', 10),
+        )
         .filter((size) => Number.isFinite(size)),
     );
   }
@@ -857,11 +881,15 @@ export class BrandWebsiteParserService {
             .find((text) => THIRD_PARTY_HEADING.test(text)) ?? '')
         : '';
     if (THIRD_PARTY_SECTION.test(descriptor) || heading) return true;
-    return element.find('img').length >= 4 && /\blogos?\b/iu.test(descriptor);
+    return (
+      element.find('img').length >= 4 && LOGO_WORD_PATTERN.test(descriptor)
+    );
   }
 
   private extractSrcFromSrcSet(value: string): string {
-    return value.split(',')[0]?.trim().split(/\s+/)[0] ?? value;
+    return (
+      value.split(',')[0]?.trim().split(WHITESPACE_RUN_PATTERN)[0] ?? value
+    );
   }
 
   /**
@@ -922,10 +950,10 @@ export class BrandWebsiteParserService {
    */
   private extractAboutText(text: string): string | undefined {
     const aboutPatterns = [
-      /about\s+us[\s:]+([^.]+\.)/i,
-      /who\s+we\s+are[\s:]+([^.]+\.)/i,
-      /our\s+mission[\s:]+([^.]+\.)/i,
-      /we\s+are\s+([^.]+\.)/i,
+      ABOUT_US_SENTENCE_PATTERN,
+      WHO_WE_ARE_SENTENCE_PATTERN,
+      OUR_MISSION_SENTENCE_PATTERN,
+      WE_ARE_SENTENCE_PATTERN,
     ];
 
     for (const pattern of aboutPatterns) {

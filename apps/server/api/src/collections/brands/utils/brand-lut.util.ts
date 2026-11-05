@@ -1,6 +1,10 @@
 import { BRAND_LUT_LIMITS } from '@genfeedai/contracts/constants';
 import { BadRequestException } from '@nestjs/common';
 
+const BACKSLASHES_PATTERN = /\\/g;
+const LINE_BREAK_PATTERN = /\r?\n/;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 const CUBE_FILE_NAME = /\.cube$/i;
 const GRID_SIZE_LINE = /^LUT_3D_SIZE\s+(\d+)$/;
 const DOMAIN_LINE = /^DOMAIN_(MIN|MAX)\s+\S+\s+\S+\s+\S+$/;
@@ -20,7 +24,7 @@ function isControl(character: string): boolean {
 export function normalizeBrandLutFileName(value: string): string {
   const basename =
     (typeof value === 'string' ? value : '')
-      .replace(/\\/g, '/')
+      .replace(BACKSLASHES_PATTERN, '/')
       .split('/')
       .at(-1) ?? '';
   const name = Array.from(basename)
@@ -51,7 +55,7 @@ export function parseBrandCubeLut(buffer: Buffer): ParsedCubeLut {
 
   let gridSize: number | undefined;
   let sampleCount = 0;
-  for (const rawLine of text.split(/\r?\n/)) {
+  for (const rawLine of text.split(LINE_BREAK_PATTERN)) {
     const line = rawLine.trim();
     if (!line || line.startsWith('#') || TITLE_LINE.test(line)) continue;
     if (line.startsWith('LUT_1D_SIZE')) {
@@ -76,7 +80,9 @@ export function parseBrandCubeLut(buffer: Buffer): ParsedCubeLut {
     if (DOMAIN_LINE.test(line)) continue;
     if (
       !SAMPLE_LINE.test(line) ||
-      line.split(/\s+/).some((part) => !Number.isFinite(Number(part)))
+      line
+        .split(WHITESPACE_RUN_PATTERN)
+        .some((part) => !Number.isFinite(Number(part)))
     ) {
       throw new BadRequestException('The LUT file has a line it cannot read');
     }

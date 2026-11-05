@@ -51,6 +51,8 @@ import { ConfigService } from '@libs/config/config.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 
+const UNDERSCORES_PATTERN = /_/g;
+
 function captionWarning(confidence: string, summary?: string): string {
   const warning = `The caption may not match the media (${confidence}).`;
   return summary?.trim()
@@ -580,7 +582,7 @@ export class MediaAssessmentService implements IMediaPublishGate {
           reasons.push({
             assetId,
             code: `vision:${reason}`,
-            message: `Vision review flagged ${reason.replace(/_/g, ' ')} (${flags.severity}).`,
+            message: `Vision review flagged ${reason.replace(UNDERSCORES_PATTERN, ' ')} (${flags.severity}).`,
             source: 'vision',
           });
         }

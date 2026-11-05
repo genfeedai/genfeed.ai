@@ -1,5 +1,8 @@
 import { isHostOrSubdomain } from '../../utils/host.util';
 
+const MOBILE_USER_AGENT_PATTERN = /android|iphone|ipad|ipod/i;
+const ANDROID_USER_AGENT_PATTERN = /android/i;
+
 function getUserAgent(): string {
   if (typeof navigator === 'undefined') {
     return '';
@@ -13,11 +16,11 @@ function getUserAgent(): string {
 }
 
 export function isMobileDevice(): boolean {
-  return /android|iphone|ipad|ipod/i.test(getUserAgent());
+  return MOBILE_USER_AGENT_PATTERN.test(getUserAgent());
 }
 
 export function isAndroidDevice(): boolean {
-  return /android/i.test(getUserAgent());
+  return ANDROID_USER_AGENT_PATTERN.test(getUserAgent());
 }
 
 function getYouTubeDeepLink(

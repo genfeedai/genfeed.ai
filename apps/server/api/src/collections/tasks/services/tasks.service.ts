@@ -43,6 +43,8 @@ import {
   Injectable,
 } from '@nestjs/common';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 const STATUS_TRANSITIONS: Record<TaskStatus, readonly TaskStatus[]> = {
   backlog: ['todo', 'in_progress', 'cancelled'],
   blocked: ['todo', 'in_progress', 'cancelled'],
@@ -772,7 +774,7 @@ export class TasksService extends BaseService<
     }
     const input = createDto as TaskWriteInput;
     const request = input.request ?? '';
-    const compactRequest = request.replace(/\s+/g, ' ').trim();
+    const compactRequest = request.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
     if (!compactRequest) return 'Untitled task';
     if (compactRequest.length <= 72) return compactRequest;
     return `${compactRequest.slice(0, 69).trimEnd()}...`;

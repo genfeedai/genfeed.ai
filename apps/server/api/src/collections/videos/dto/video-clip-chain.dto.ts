@@ -14,6 +14,9 @@ import {
   MinLength,
 } from 'class-validator';
 
+const NON_WHITESPACE_CHAR_PATTERN = /\S/u;
+const ASPECT_RATIO_PATTERN = /^[1-9]\d{0,3}:[1-9]\d{0,3}$/u;
+
 export const CLIP_CHAIN_MAX_SEGMENTS = 30;
 export const CLIP_CHAIN_MAX_IDENTITY_REFERENCES = 10;
 
@@ -88,7 +91,7 @@ export class VideoClipChainDto {
   @ArrayMaxSize(CLIP_CHAIN_MAX_SEGMENTS)
   @IsString({ each: true })
   @MaxLength(10_000, { each: true })
-  @Matches(/\S/u, {
+  @Matches(NON_WHITESPACE_CHAR_PATTERN, {
     each: true,
     message: 'each segment prompt must contain visible text',
   })
@@ -132,7 +135,7 @@ export class VideoClipChainDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^[1-9]\d{0,3}:[1-9]\d{0,3}$/u, {
+  @Matches(ASPECT_RATIO_PATTERN, {
     message: 'aspectRatio must look like 16:9',
   })
   @ApiProperty({ default: '16:9', required: false })

@@ -1,5 +1,7 @@
 import { pathToFileURL } from 'node:url';
 
+const WORKFLOW_FILE_PATTERN = /^\.github\/workflows\/[^/]+\.ya?ml$/u;
+
 // Release gate: the browser-level suites that Full Suite does not run must
 // be green for the release SHA. They are dispatched (or run by their nightly)
 // on master, take 30-60 minutes, and regressions in them have shipped to
@@ -25,7 +27,7 @@ const SHARED_NEUTRAL_PATHS = [
 // actions it uses stay relevant.
 function otherWorkflows(workflow) {
   return (path) =>
-    /^\.github\/workflows\/[^/]+\.ya?ml$/u.test(path) &&
+    WORKFLOW_FILE_PATTERN.test(path) &&
     path !== `.github/workflows/${workflow}`;
 }
 

@@ -25,6 +25,8 @@ export type {
   MessagesSyncOutcome,
 } from '@/features/messages/props/messages-page-state.props';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 export type MessagesPaginationState = Omit<
   IPaginatedResponse<unknown>,
   'items'
@@ -361,7 +363,7 @@ export function getDirectMessageReconnectAccounts(
       brandId: credential.brandId ?? undefined,
       credentialId: credential.id,
       label: credential.externalHandle
-        ? `@${credential.externalHandle.replace(/^@/, '')}`
+        ? `@${credential.externalHandle.replace(LEADING_AT_SIGN_PATTERN, '')}`
         : credential.label || credential.externalName || 'X',
     }));
 }

@@ -1,11 +1,15 @@
 import { multiplyDecimalPricing } from './decimal-pricing';
 
+const DECIMAL_NUMBER_PATTERN = /^\d+(?:\.\d+)?$/;
+const TRAILING_ZEROS_PATTERN = /0+$/;
+const LEADING_ZEROS_PATTERN = /^0+(?=\d)/;
+
 /** Provider receipts and configured exchange rates use plain decimal strings. */
 export function normalizeCrunCredits(value: string): string | null {
-  if (!/^\d+(?:\.\d+)?$/.test(value)) return null;
+  if (!DECIMAL_NUMBER_PATTERN.test(value)) return null;
   const [whole, fraction = ''] = value.split('.');
-  const decimal = fraction.replace(/0+$/, '');
-  return `${whole.replace(/^0+(?=\d)/, '')}${decimal ? `.${decimal}` : ''}`;
+  const decimal = fraction.replace(TRAILING_ZEROS_PATTERN, '');
+  return `${whole.replace(LEADING_ZEROS_PATTERN, '')}${decimal ? `.${decimal}` : ''}`;
 }
 
 export function crunCreditsEqual(left: string, right: string): boolean {

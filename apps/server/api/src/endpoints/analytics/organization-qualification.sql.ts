@@ -14,6 +14,8 @@ import {
   organizationLifecycleFilterSql,
 } from './organization-lifecycle.sql';
 
+const LIKE_WILDCARD_CHARS_PATTERN = /[\\%_]/g;
+
 /**
  * How the admin organizations list qualifies a lead: the owner's email class
  * and usage in the selected date range, as SQL over `organizations e`. Kept beside the
@@ -46,7 +48,7 @@ export function hasOrganizationListFilters(
 
 /** Case-insensitive "contains" pattern with LIKE wildcards escaped. */
 export function toContainsPattern(search: string): string {
-  return `%${search.replace(/[\\%_]/g, '\\$&')}%`;
+  return `%${search.replace(LIKE_WILDCARD_CHARS_PATTERN, '\\$&')}%`;
 }
 
 /**

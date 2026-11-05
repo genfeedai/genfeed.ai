@@ -2,6 +2,10 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
+const LINE_BREAK_PATTERN = /\r?\n/;
+const NOT_FOUND_ERROR_PATTERN = /Not Found|\b404\b/;
+const SAFE_TAG_PATTERN = /^[A-Za-z0-9_.:-]+$/;
+
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const BODY_SHA_PATTERN = /^[0-9a-f]{64}$/;
@@ -447,7 +451,7 @@ function stripTerminalSequences(value) {
 
 function errorLines(log) {
   return stripTerminalSequences(log)
-    .split(/\r?\n/)
+    .split(LINE_BREAK_PATTERN)
     .filter((line) => line.includes('##[error]'));
 }
 
@@ -1114,7 +1118,7 @@ export function validateReleaseRecoveryEvidence({
   run,
   sourceIsAncestor,
 }) {
-  if (!/^[1-9][0-9]*$/.test(requestedRunId ?? '')) {
+  if (!POSITIVE_INT_PATTERN.test(requestedRunId ?? '')) {
     fail('recovery_run_id must be a positive numeric GitHub Actions run ID.');
   }
   if (!Array.isArray(jobs) || !Array.isArray(releases) || !run) {
@@ -1242,7 +1246,7 @@ function remoteReleaseTagPresent({ env, repository, requestedTag, spawnSync }) {
     return true;
   }
   const detail = `${result.stderr ?? ''}\n${result.stdout ?? ''}`;
-  if (/Not Found|\b404\b/.test(detail)) {
+  if (NOT_FOUND_ERROR_PATTERN.test(detail)) {
     return false;
   }
   throw new Error('Could not verify whether the release tag already exists.');
@@ -1281,13 +1285,13 @@ export function runReleaseRecoveryCli({
     const runId = env.RECOVERY_RUN_ID ?? '';
     const repository = env.GITHUB_REPOSITORY ?? '';
     const requestedTag = env.REQUESTED_TAG ?? '';
-    if (!/^[1-9][0-9]*$/.test(runId)) {
+    if (!POSITIVE_INT_PATTERN.test(runId)) {
       fail('recovery_run_id must be a positive numeric GitHub Actions run ID.');
     }
-    if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) {
+    if (!REPOSITORY_PATTERN.test(repository)) {
       fail('GITHUB_REPOSITORY must identify one owner/repository pair.');
     }
-    if (!/^v[0-9]+\.[0-9]+\.[0-9]+$/.test(requestedTag)) {
+    if (!TAG_PATTERN.test(requestedTag)) {
       fail('Recovery requires an exact stable release tag.');
     }
     const run = runGhJson(
@@ -1360,7 +1364,6 @@ export function runReleaseRecoveryCli({
         ? historicalShaIsAncestor(releaseSha, spawnSync)
         : undefined,
     });
-    const outputToken = /^[A-Za-z0-9_.:-]+$/;
     for (const [label, value] of [
       ['artifact_job_id', evidence.artifactJobId],
       ['archive_asset_digest', evidence.archiveAssetDigest],
@@ -1380,7 +1383,7 @@ export function runReleaseRecoveryCli({
       ['release_sha', evidence.releaseSha],
     ]) {
       if (value !== '') {
-        assertOutputToken(value, outputToken, label);
+        assertOutputToken(value, SAFE_TAG_PATTERN, label);
       }
     }
 

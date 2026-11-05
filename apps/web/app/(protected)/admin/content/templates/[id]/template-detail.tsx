@@ -26,6 +26,8 @@ import { DetailCard, MetadataRow } from './template-detail-helpers';
 import TemplateSidebar from './template-sidebar';
 import TemplateVariablesCard from './template-variables-card';
 
+const HYPHENS_PATTERN = /-/g;
+
 export default function TemplateDetail({ templateId }: TemplateDetailProps) {
   const t = useTranslations('pages.adminTemplates');
   const { push } = useRouter();
@@ -107,7 +109,7 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
               <div className="flex flex-wrap gap-2">
                 {template.category && (
                   <Badge variant="outline">
-                    {template.category.replace(/-/g, ' ')}
+                    {template.category.replace(HYPHENS_PATTERN, ' ')}
                   </Badge>
                 )}
                 {template.type && (
@@ -115,7 +117,7 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
                 )}
                 {(template.industry ?? []).map((ind) => (
                   <Badge key={ind} variant="outline">
-                    {ind.replace(/-/g, ' ')}
+                    {ind.replace(HYPHENS_PATTERN, ' ')}
                   </Badge>
                 ))}
                 {(template.tags ?? []).map((tag) => (

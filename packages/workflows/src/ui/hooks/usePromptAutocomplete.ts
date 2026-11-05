@@ -2,6 +2,8 @@ import type { AvailableVariable } from '@genfeedai/contracts/types';
 import type { RefObject } from 'react';
 import { useCallback, useMemo, useState } from 'react';
 
+const TRAILING_MENTION_PATTERN = /@(\w*)$/;
+
 interface UsePromptAutocompleteOptions {
   availableVariables: AvailableVariable[];
   textareaRef: RefObject<HTMLTextAreaElement | null>;
@@ -50,7 +52,7 @@ export function usePromptAutocomplete({
       const textBeforeCursor = localTemplate.slice(0, cursorPos);
       const textAfterCursor = localTemplate.slice(cursorPos);
 
-      const match = textBeforeCursor.match(/@(\w*)$/);
+      const match = textBeforeCursor.match(TRAILING_MENTION_PATTERN);
       if (!match) return;
 
       const atPosition = cursorPos - match[0].length;
@@ -78,7 +80,7 @@ export function usePromptAutocomplete({
 
       const cursorPos = e.target.selectionStart;
       const textBeforeCursor = newValue.slice(0, cursorPos);
-      const match = textBeforeCursor.match(/@(\w*)$/);
+      const match = textBeforeCursor.match(TRAILING_MENTION_PATTERN);
 
       if (match && textareaRef.current) {
         setAutocompleteFilter(match[1] || '');

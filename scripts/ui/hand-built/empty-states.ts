@@ -28,6 +28,10 @@ import {
   scriptKindFor,
 } from '../../architecture/parse-source-file';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const EMPTY_STATE_HINT_PATTERN = /text-center|EmptyState/;
+const TEST_FILE_PATTERN = /\.(test|spec)\./;
+
 export type EmptyStateViolationRule = 'hand-built' | 'restyle';
 
 export type EmptyStateViolation = {
@@ -86,7 +90,7 @@ function classTokens(element: ts.JsxOpeningLikeElement): string[] {
       attribute.initializer
     ) {
       return stringsIn(attribute.initializer).flatMap((text) =>
-        text.split(/\s+/).filter(Boolean),
+        text.split(WHITESPACE_RUN_PATTERN).filter(Boolean),
       );
     }
   }
@@ -133,7 +137,7 @@ export function detectEmptyStateViolations(
   filePath: string,
   source: string,
 ): EmptyStateViolation[] {
-  if (!/text-center|EmptyState/.test(source)) return [];
+  if (!EMPTY_STATE_HINT_PATTERN.test(source)) return [];
 
   const sourceFile = parseSourceFile(
     filePath,
@@ -215,7 +219,7 @@ export function runEmptyStatesGuard(options: {
   ).filter(
     (file) =>
       file.endsWith('.tsx') &&
-      !/\.(test|spec)\./.test(file) &&
+      !TEST_FILE_PATTERN.test(file) &&
       !file.startsWith('apps/mobile/') &&
       file !== 'packages/ui/src/primitives/empty-state.tsx',
   );

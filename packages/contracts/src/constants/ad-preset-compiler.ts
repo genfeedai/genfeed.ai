@@ -13,6 +13,9 @@ import {
   hasAudioReferences,
 } from './model-helpers.constant';
 
+const TEMPLATE_VARIABLES_PATTERN = /\{\{(.*?)\}\}/g;
+const REFERENCE_MENTIONS_PATTERN = /@(Image|Video|Audio)\d+/g;
+
 export type AdPresetCompileErrorCode =
   | 'INVALID_PRESET'
   | 'INVALID_PARAMS'
@@ -171,7 +174,7 @@ export function compileAdPreset(input: CompileAdPresetInput) {
     .map(
       (section) =>
         `## ${section.title}\n${section.template.replace(
-          /\{\{(.*?)\}\}/g,
+          TEMPLATE_VARIABLES_PATTERN,
           (_match, key: string) => {
             if (
               !Object.hasOwn(values, key) ||
@@ -198,7 +201,7 @@ export function compileAdPreset(input: CompileAdPresetInput) {
       'INVALID_PRESET',
       'Templates must include dialogue exactly once and the steer-only audio notice.',
     );
-  for (const token of prompt.match(/@(Image|Video|Audio)\d+/g) ?? []) {
+  for (const token of prompt.match(REFERENCE_MENTIONS_PATTERN) ?? []) {
     if (!seen.has(token))
       throw new AdPresetCompileError(
         'REFERENCE_ROLE_MISMATCH',

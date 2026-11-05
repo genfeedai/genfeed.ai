@@ -36,6 +36,8 @@ import {
 } from '@nestjs/common';
 import { isUUID } from 'class-validator';
 
+const HTTP_URLS_PATTERN = /https?:\/\/[^\s"'<>]+/gi;
+
 const SCAN_TIMEOUT_MS = 60_000;
 const FAILURE_CODES: BrandOsScanFailureCode[] = [
   'brand_scan.timed_out',
@@ -519,9 +521,7 @@ export class BrandOsScanService {
         brandId: brand.id,
         organizationId: brand.organizationId,
         code: marker.errorCode,
-        error: message
-          .replace(/https?:\/\/[^\s"'<>]+/gi, '[website]')
-          .slice(0, 500),
+        error: message.replace(HTTP_URLS_PATTERN, '[website]').slice(0, 500),
       });
     }
   }

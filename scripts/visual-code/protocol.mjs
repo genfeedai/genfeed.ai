@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto';
 
+const BASE64_PATTERN =
+  /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+const SHA256_DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/;
+const EVIDENCE_KEY_PATTERN = /^[a-z][a-z0-9_]{0,95}$/;
+
 export const MAX_BYTES = 64 * 1024 * 1024;
 export const MAX_DIAGNOSTICS = 8192;
 export const DEADLINE_MS = 120_000;
@@ -64,9 +69,7 @@ export function decodeBytes(value) {
   invariant(
     typeof value === 'string' &&
       value.length <= Math.ceil(MAX_BYTES / 3) * 4 &&
-      /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
-        value,
-      ),
+      BASE64_PATTERN.test(value),
     'invalid_base64',
   );
   const bytes = Buffer.from(value, 'base64');
@@ -277,7 +280,7 @@ function validateEvidenceSource(source) {
   );
   invariant(
     source.contentHash === null ||
-      /^sha256:[a-f0-9]{64}$/.test(source.contentHash),
+      SHA256_DIGEST_PATTERN.test(source.contentHash),
     'invalid_evidence',
   );
 }
@@ -420,14 +423,14 @@ export function validateEvidence(evidence) {
     closed(asset, ['id', 'contentHash']);
     invariant(
       namePattern.test(asset.id) &&
-        /^sha256:[a-f0-9]{64}$/.test(asset.contentHash),
+        SHA256_DIGEST_PATTERN.test(asset.contentHash),
       'invalid_evidence',
     );
   }
   invariant(
     Array.isArray(evidence.diagnostics) &&
       evidence.diagnostics.length <= 32 &&
-      evidence.diagnostics.every((code) => /^[a-z][a-z0-9_]{0,95}$/.test(code)),
+      evidence.diagnostics.every((code) => EVIDENCE_KEY_PATTERN.test(code)),
     'invalid_evidence',
   );
   return evidence;

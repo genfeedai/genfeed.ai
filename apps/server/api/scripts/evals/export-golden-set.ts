@@ -21,6 +21,10 @@ import { buildGoldenSet, writeGoldenSetFiles } from './golden-set-export';
 import { PrismaGoldenSetReader } from './prisma-golden-set-reader';
 import { buildSyntheticSnapshot } from './synthetic-seed';
 
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const GOLDEN_SET_ISSUE_COMMENT_URL_PATTERN =
+  /^https:\/\/github\.com\/genfeedai\/genfeed\.ai\/issues\/4923#issuecomment-\d+$/;
+
 const logger = new Logger('ExportGoldenSet');
 const REPO_ROOT = resolve(import.meta.dirname, '../../../../..');
 function required(argv: string[], name: string): string {
@@ -51,7 +55,7 @@ function resolvedOutputPath(path: string): string {
 function date(raw: string, name: string): Date {
   const parsed = new Date(`${raw}T00:00:00.000Z`);
   if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(raw) ||
+    !ISO_DATE_PATTERN.test(raw) ||
     Number.isNaN(parsed.getTime()) ||
     parsed.toISOString().slice(0, 10) !== raw
   )
@@ -65,11 +69,7 @@ export function parseExportArgs(argv: string[]): GoldenSetExportArgs {
   if (source !== 'database')
     throw new UsageError('--source must be synthetic or database');
   const authorization = required(argv, 'authorization');
-  if (
-    !/^https:\/\/github\.com\/genfeedai\/genfeed\.ai\/issues\/4923#issuecomment-\d+$/.test(
-      authorization,
-    )
-  )
+  if (!GOLDEN_SET_ISSUE_COMMENT_URL_PATTERN.test(authorization))
     throw new UsageError('--authorization must be a #4923 issue comment URL');
   const keyFile = required(argv, 'key-file');
   if (!isAbsolute(keyFile)) throw new UsageError('--key-file must be absolute');

@@ -8,6 +8,8 @@ import {
   ValidateIf,
 } from 'class-validator';
 
+const PKCE_CODE_VERIFIER_PATTERN = /^[A-Za-z0-9._~-]+$/;
+
 function requiresAuthorizationCode(dto: OAuthTokenExchangeDto): boolean {
   return dto.grant_type === 'authorization_code';
 }
@@ -49,7 +51,7 @@ export class OAuthTokenExchangeDto {
   @IsString()
   @MinLength(43)
   @MaxLength(128)
-  @Matches(/^[A-Za-z0-9._~-]+$/)
+  @Matches(PKCE_CODE_VERIFIER_PATTERN)
   code_verifier?: string;
 
   @ValidateIf(

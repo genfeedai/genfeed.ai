@@ -4,6 +4,8 @@ import type {
   IDesktopSession,
 } from '@genfeedai/contracts/desktop';
 
+const LEADING_SLASH_PATTERN = /^\//;
+
 interface ParsedSentryDsn {
   endpoint: string;
   publicKey: string;
@@ -90,7 +92,7 @@ export class DesktopTelemetryService {
   private parseDsn(dsn: string): ParsedSentryDsn | null {
     try {
       const url = new URL(dsn);
-      const projectId = url.pathname.replace(/^\//, '');
+      const projectId = url.pathname.replace(LEADING_SLASH_PATTERN, '');
       if (!projectId || !url.username) {
         return null;
       }

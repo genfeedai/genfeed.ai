@@ -25,6 +25,8 @@ import {
 } from '@/features/studio/playground/utils/studio-playground-types';
 import { optionalText, pickStringList } from './studio-playground-values';
 
+const STUDIO_ASPECT_RATIO_PATTERN = /^(auto|\d{1,2}:\d{1,2})$/;
+
 export const STUDIO_PLAYGROUND_STORAGE_KEY = 'genfeed.studio.generate.v1';
 
 export type StudioPlaygroundSettingsByType = Record<
@@ -145,7 +147,7 @@ export function sanitizeStudioPlaygroundSettings(
             modelKey: resolvedModelKey,
             contractVersion: value.crunControls.contractVersion,
             ...(typeof value.crunControls.aspectRatio === 'string' &&
-            /^(auto|\d{1,2}:\d{1,2})$/.test(value.crunControls.aspectRatio)
+            STUDIO_ASPECT_RATIO_PATTERN.test(value.crunControls.aspectRatio)
               ? { aspectRatio: value.crunControls.aspectRatio }
               : {}),
             ...(type === 'video' &&

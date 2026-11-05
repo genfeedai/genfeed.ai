@@ -3,16 +3,19 @@ import { appendFileSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
+const GIT_SHA_PATTERN = /^[0-9a-f]{40}$/;
+const NULL_SHA_PATTERN = /^0{40}$/;
+
 export const SERVER_IMAGE_INPUTS = JSON.parse(
   readFileSync(new URL('./server-image-inputs.json', import.meta.url), 'utf8'),
 );
 
 export function serverImageChanged({ base, head, cwd, git = execFileSync }) {
-  if (!/^[0-9a-f]{40}$/.test(head ?? '')) {
+  if (!GIT_SHA_PATTERN.test(head ?? '')) {
     throw new Error('Image head must be an exact commit SHA');
   }
-  if (!base || /^0{40}$/.test(base)) return true;
-  if (!/^[0-9a-f]{40}$/.test(base)) {
+  if (!base || NULL_SHA_PATTERN.test(base)) return true;
+  if (!GIT_SHA_PATTERN.test(base)) {
     throw new Error('Image base must be an exact commit SHA');
   }
   return (

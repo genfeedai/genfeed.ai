@@ -9,6 +9,22 @@ import type {
   InstagramRemixMode,
 } from '@genfeedai/contracts/interfaces';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const LEADING_AT_SIGN_PATTERN = /^@/;
+const LEADING_HASH_PATTERN = /^#/;
+const NON_SEED_CHAR_RUNS_PATTERN = /[^a-z0-9_]+/g;
+const LIST_SEPARATOR_PATTERN = /[,\n]/;
+const QUESTION_MARK_PATTERN = /\?/;
+const TUTORIAL_SIGNAL_PATTERN = /\bhow to\b|\btutorial\b/;
+const TRANSFORMATION_SIGNAL_PATTERN =
+  /\bbefore\b.*\bafter\b|\btransformation\b/;
+const LISTICLE_SIGNAL_PATTERN = /^\d+\b|\b\d+ (ways|tips|steps)\b/;
+const BEHIND_THE_SCENES_SIGNAL_PATTERN = /\bbehind the scenes\b|\bbts\b/;
+const EDUCATIONAL_SIGNAL_PATTERN = /\bhow to\b|\btutorial\b|\btips\b/;
+const PRODUCT_SIGNAL_PATTERN = /\bproduct\b|\breview\b|\bunboxing\b/;
+const STORY_SIGNAL_PATTERN = /\bstory\b|\bjourney\b/;
+const HUMOR_SIGNAL_PATTERN = /\bfunny\b|\bhumor\b|\bcomedy\b/;
+
 const MAX_SEEDS = 5;
 const CAPTION_SNIPPET_LENGTH = 160;
 const RECENCY_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
@@ -30,19 +46,19 @@ export interface InstagramSeedResult {
 }
 
 function normalizeWhitespace(value: string): string {
-  return value.replace(/\s+/g, ' ').trim();
+  return value.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
 }
 
 export function normalizeInstagramUsername(value: string): string {
-  return value.trim().replace(/^@/, '').toLowerCase();
+  return value.trim().replace(LEADING_AT_SIGN_PATTERN, '').toLowerCase();
 }
 
 export function normalizeInstagramSeed(value: string): string {
   return value
     .trim()
-    .replace(/^#/, '')
+    .replace(LEADING_HASH_PATTERN, '')
     .toLowerCase()
-    .replace(/[^a-z0-9_]+/g, '');
+    .replace(NON_SEED_CHAR_RUNS_PATTERN, '');
 }
 
 function uniqueSeeds(values: string[]): string[] {
@@ -59,7 +75,7 @@ export function deriveInstagramSeeds(
   const explicitHashtags = uniqueSeeds(input.hashtags ?? []);
   const nicheSeeds = uniqueSeeds(
     (input.niche ?? '')
-      .split(/[,\n]/)
+      .split(LIST_SEPARATOR_PATTERN)
       .map((value) => value.trim())
       .filter(Boolean),
   );
@@ -282,12 +298,11 @@ export function analyzeInstagramSignals(
 
   for (const post of posts) {
     const caption = (post.captionSnippet ?? '').toLowerCase();
-    if (/\?/.test(caption)) hooks.add('Question-led opening');
-    if (/\bhow to\b|\btutorial\b/.test(caption)) hooks.add('How-to promise');
-    if (/\bbefore\b.*\bafter\b|\btransformation\b/.test(caption))
+    if (QUESTION_MARK_PATTERN.test(caption)) hooks.add('Question-led opening');
+    if (TUTORIAL_SIGNAL_PATTERN.test(caption)) hooks.add('How-to promise');
+    if (TRANSFORMATION_SIGNAL_PATTERN.test(caption))
       hooks.add('Transformation reveal');
-    if (/^\d+\b|\b\d+ (ways|tips|steps)\b/.test(caption))
-      hooks.add('List-led opening');
+    if (LISTICLE_SIGNAL_PATTERN.test(caption)) hooks.add('List-led opening');
     if (hooks.size === 0) hooks.add('Direct value proposition');
 
     formats.add(post.isVideo ? 'Short-form vertical video' : 'Static visual');
@@ -296,16 +311,14 @@ export function analyzeInstagramSignals(
         ? 'Fast opening followed by compact proof beats'
         : 'Single-frame message with caption-led depth',
     );
-    if (/\bbehind the scenes\b|\bbts\b/.test(caption))
+    if (BEHIND_THE_SCENES_SIGNAL_PATTERN.test(caption))
       styles.add('Behind-the-scenes authenticity');
-    if (/\bhow to\b|\btutorial\b|\btips\b/.test(caption))
+    if (EDUCATIONAL_SIGNAL_PATTERN.test(caption))
       styles.add('Educational demonstration');
-    if (/\bproduct\b|\breview\b|\bunboxing\b/.test(caption))
+    if (PRODUCT_SIGNAL_PATTERN.test(caption))
       styles.add('Product demonstration');
-    if (/\bstory\b|\bjourney\b/.test(caption))
-      styles.add('Personal storytelling');
-    if (/\bfunny\b|\bhumor\b|\bcomedy\b/.test(caption))
-      styles.add('Lightweight humor');
+    if (STORY_SIGNAL_PATTERN.test(caption)) styles.add('Personal storytelling');
+    if (HUMOR_SIGNAL_PATTERN.test(caption)) styles.add('Lightweight humor');
   }
 
   if (styles.size === 0) styles.add('Platform-native social storytelling');

@@ -1,3 +1,6 @@
+const TRAILING_PERIOD_PATTERN = /\.$/;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+
 /** Canonical deployment and client-surface detection. */
 
 export type Deployment = 'cloud' | 'self-hosted';
@@ -83,7 +86,10 @@ export function envFlag(value: string | undefined): boolean {
  * local cloud mode.
  */
 export function isHostedGenfeedHostname(hostname: string): boolean {
-  const host = hostname.trim().toLowerCase().replace(/\.$/, '');
+  const host = hostname
+    .trim()
+    .toLowerCase()
+    .replace(TRAILING_PERIOD_PATTERN, '');
   if (!host) {
     return false;
   }
@@ -267,7 +273,7 @@ export function parseTrustProxy(value: string): TrustProxySetting {
   if (lowered === '' || lowered === 'false') {
     return false;
   }
-  if (/^\d+$/.test(raw)) {
+  if (DIGITS_ONLY_PATTERN.test(raw)) {
     return Number(raw);
   }
 

@@ -7,6 +7,8 @@ import type {
 import { PromptCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 
+const HYPHENS_PATTERN = /-/g;
+
 function buildPromptObject(
   brand: IPromptBrandContext | null | undefined,
   originalPrompt: string,
@@ -62,7 +64,7 @@ function normalizeType(type: string): string {
     key.startsWith('post-content-') ||
     key.startsWith('post-title-')
   ) {
-    return key.replace(/-/g, '_').toUpperCase();
+    return key.replace(HYPHENS_PATTERN, '_').toUpperCase();
   }
 
   // Model category should come from DB via ModelsGuard, not guessed from strings

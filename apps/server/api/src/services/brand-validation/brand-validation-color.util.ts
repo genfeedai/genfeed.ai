@@ -1,3 +1,5 @@
+const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
+
 export type BrandRgb = readonly [number, number, number];
 export type BrandLab = readonly [number, number, number];
 
@@ -24,7 +26,7 @@ function hueAngle(b: number, aPrime: number): number {
 
 /** Parses `#RRGGBB`. The caller owns alpha: `#RRGGBBAA` is not a plain color. */
 export function parseBrandHexColor(hex: string): BrandRgb | null {
-  if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) return null;
+  if (!HEX_COLOR_PATTERN.test(hex)) return null;
   return [
     Number.parseInt(hex.slice(1, 3), 16),
     Number.parseInt(hex.slice(3, 5), 16),
