@@ -647,33 +647,40 @@ export class NotificationInboxService {
       },
     });
     const page = rows.slice(0, PAGE_LIMIT);
-    const {
-      accessibleStrategies,
-      sources,
-      strategyIdFor: strategyIdFromPayload,
-      threads,
-    } = await loadInboxAssociations({
-      member,
-      organizationId,
-      page,
-      prisma: this.prisma,
-      userId,
-    });
-
-    const inboxBrandSlugs = await loadInboxBrandSlugs({
-      member,
-      organizationId,
-      page,
-      prisma: this.prisma,
-    });
-
-    const mcpApprovals = await loadMcpApprovalEntries({
-      member,
-      organizationId,
-      page,
-      prisma: this.prisma,
-      userId,
-    });
+    // The three loaders only read, and each needs just the page and the member:
+    // none consumes another's result, so they run together instead of one
+    // round trip after another.
+    const [
+      {
+        accessibleStrategies,
+        sources,
+        strategyIdFor: strategyIdFromPayload,
+        threads,
+      },
+      inboxBrandSlugs,
+      mcpApprovals,
+    ] = await Promise.all([
+      loadInboxAssociations({
+        member,
+        organizationId,
+        page,
+        prisma: this.prisma,
+        userId,
+      }),
+      loadInboxBrandSlugs({
+        member,
+        organizationId,
+        page,
+        prisma: this.prisma,
+      }),
+      loadMcpApprovalEntries({
+        member,
+        organizationId,
+        page,
+        prisma: this.prisma,
+        userId,
+      }),
+    ]);
 
     const docs = page.map((row) => {
       if (row.event.sourceType === MCP_APPROVAL_SOURCE_TYPE) {
