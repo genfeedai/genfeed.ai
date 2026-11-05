@@ -488,9 +488,6 @@
     "apps/web/src/features/studio/playground/components/StudioPlaygroundInspector.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/src/features/studio/storyboard/components/StoryboardAgentBriefs.tsx": {
-      "unstyled-look": 1
-    },
     "apps/web/src/features/studio/storyboard/components/StoryboardAnimatic.tsx": {
       "unstyled-look": 1
     },
