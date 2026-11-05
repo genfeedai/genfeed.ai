@@ -1,7 +1,4 @@
-import type {
-  ContentScope,
-  IPaginatedResponse,
-} from '@genfeedai/contracts/interfaces';
+import type { ContentScope } from '@genfeedai/contracts/interfaces';
 import type { Sound } from '@models/ingredients/sound.model';
 
 export interface BuildSoundsColumnsParams {
@@ -28,18 +25,3 @@ export interface SoundsListModalsProps {
   scope: ContentScope;
   onConfirm: () => void;
 }
-
-export type SoundFetchStatus = 'loading' | 'refreshing' | 'idle';
-
-export interface SoundsListState {
-  page: IPaginatedResponse<Sound> | null;
-  fetchStatus: SoundFetchStatus;
-  updatingIds: Set<string>;
-}
-
-export type SoundsListAction =
-  | { type: 'FETCH_START'; isRefresh: boolean }
-  | { type: 'FETCH_SUCCESS'; page: IPaginatedResponse<Sound> }
-  | { type: 'FETCH_FINALLY' }
-  | { type: 'ADD_UPDATING_ID'; id: string }
-  | { type: 'REMOVE_UPDATING_ID'; id: string };

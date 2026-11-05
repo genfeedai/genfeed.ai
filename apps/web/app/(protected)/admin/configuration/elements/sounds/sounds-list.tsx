@@ -7,6 +7,7 @@ import {
 import type { IQueryParams, ISound } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { Sound } from '@models/ingredients/sound.model';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -19,47 +20,13 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
-import type {
-  SoundFetchStatus as FetchStatus,
-  SoundsListAction,
-  SoundsListState,
-} from '@/features/admin/props/sounds.props';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 import { buildSoundsColumns } from './sounds-list-columns.helpers';
 import SoundsListModals from './sounds-list-modals';
-
-function soundsListReducer(
-  state: SoundsListState,
-  action: SoundsListAction,
-): SoundsListState {
-  switch (action.type) {
-    case 'FETCH_START':
-      return {
-        ...state,
-        fetchStatus: action.isRefresh ? 'refreshing' : 'loading',
-      };
-    case 'FETCH_SUCCESS':
-      return { ...state, page: action.page };
-    case 'FETCH_FINALLY':
-      return { ...state, fetchStatus: 'idle' };
-    case 'ADD_UPDATING_ID': {
-      const next = new Set(state.updatingIds);
-      next.add(action.id);
-      return { ...state, updatingIds: next };
-    }
-    case 'REMOVE_UPDATING_ID': {
-      const next = new Set(state.updatingIds);
-      next.delete(action.id);
-      return { ...state, updatingIds: next };
-    }
-    default:
-      return state;
-  }
-}
 
 const EMPTY_SOUNDS: Sound[] = [];
 
@@ -86,20 +53,21 @@ function SoundsListContent({
     allowedKeys: SOUND_SORT_KEYS,
   });
 
-  const [state, dispatch] = useReducer(soundsListReducer, undefined, () => ({
-    page: null,
-    fetchStatus: 'loading' as FetchStatus,
-    updatingIds: new Set<string>(),
-  }));
-
-  const { page, fetchStatus, updatingIds } = state;
-  const sounds = page?.items ?? EMPTY_SOUNDS;
+  // Rows with a toggle save in flight.
+  const [updatingIds, setUpdatingIds] = useState<Set<string>>(() => new Set());
+  const markUpdating = (id: string, isUpdating: boolean) =>
+    setUpdatingIds((current) => {
+      const next = new Set(current);
+      if (isUpdating) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
 
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
-
-  // Derive isLoading from fetchStatus instead of storing it in separate state
-  const isLoading = fetchStatus === 'loading';
 
   // Use refs for callback props to prevent unnecessary re-renders
   const onLoadingChangeRef = useRef(onLoadingChange);
@@ -113,112 +81,115 @@ function SoundsListContent({
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
 
-  // Only the latest request may fill the list, so a slow response for an
-  // earlier sort or search cannot replace the current one.
-  const latestRequestRef = useRef(0);
+  // Cached per scope and page: coming back paints the rows and footer it
+  // already has while they refresh, and another page, search or sort keeps
+  // the current rows on screen while it loads.
+  const scopeKey = [
+    'admin',
+    'sounds',
+    { adminBrand, adminOrg, scope },
+  ] as const;
+  const soundsQuery = usePagedAuthedQuery<SoundsService, Sound>({
+    keepPreviousDataWithin: scopeKey,
+    queryFn: async (service, signal) => {
+      const query: IQueryParams = {
+        limit: ITEMS_PER_PAGE,
+        page: currentPage,
+        search: filters?.search || undefined,
+        ...(sort ? { sort } : {}),
+        type: filters?.type || undefined,
+      };
 
-  const findAllSounds = useCallback(
-    async (isRefresh = false) => {
-      const requestId = ++latestRequestRef.current;
-      dispatch({ type: 'FETCH_START', isRefresh });
-
-      // Notify parent of state changes
-      onRefreshingChangeRef.current?.(isRefresh);
-      onLoadingChangeRef.current?.(!isRefresh);
-
-      try {
-        const service = await getSoundsService();
-
-        // Build API query
-        const query: IQueryParams = {
-          limit: ITEMS_PER_PAGE,
-          page: currentPage,
-          search: filters?.search || undefined,
-          ...(sort ? { sort } : {}),
-          type: filters?.type || undefined,
-        };
-
-        if (scope === PageScope.SUPERADMIN) {
-          if (adminOrg) {
-            query.organization = adminOrg;
-          }
-          if (adminBrand) {
-            query.brand = adminBrand;
-          }
+      if (scope === PageScope.SUPERADMIN) {
+        if (adminOrg) {
+          query.organization = adminOrg;
         }
-
-        const data = await service.findAllPage(query);
-        if (requestId !== latestRequestRef.current) {
-          return;
-        }
-        dispatch({ type: 'FETCH_SUCCESS', page: data });
-
-        logger.info('GET /sounds success', data.items);
-      } catch (error) {
-        if (requestId !== latestRequestRef.current) {
-          return;
-        }
-        logger.error('GET /sounds failed', error);
-        notificationsService.error('Failed to load sounds');
-      } finally {
-        if (requestId === latestRequestRef.current) {
-          dispatch({ type: 'FETCH_FINALLY' });
-          onLoadingChangeRef.current?.(false);
-          onRefreshingChangeRef.current?.(false);
+        if (adminBrand) {
+          query.brand = adminBrand;
         }
       }
-    },
-    [
-      currentPage,
-      filters?.search,
-      sort,
-      filters?.type,
-      getSoundsService,
-      notificationsService.error,
-      scope,
-      adminOrg,
-      adminBrand,
-    ],
-  );
 
-  // Fetch data on mount and when search params change
+      try {
+        const data = await service.findAllPage(query, signal);
+        logger.info('GET /sounds success', data.items);
+        return data;
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('GET /sounds failed', error);
+        }
+        throw error;
+      }
+    },
+    queryKey: [
+      ...scopeKey,
+      {
+        page: currentPage,
+        search: filters?.search ?? '',
+        type: filters?.type ?? '',
+        sort: sort ?? null,
+      },
+    ],
+    service: (token: string) => SoundsService.getInstance(token),
+  });
+  const sounds = soundsQuery.data?.items ?? EMPTY_SOUNDS;
+  const {
+    errorUpdatedAt,
+    isError,
+    isFetching,
+    isLoading,
+    refetch: refreshSounds,
+  } = soundsQuery;
+  const isRefreshing = isFetching && !isLoading;
+
+  // One toast per failed read, not one per render.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    findAllSounds();
-  }, [findAllSounds]);
+    if (isError) {
+      notificationsService.error('Failed to load sounds');
+    }
+  }, [errorUpdatedAt, isError, notificationsService]);
+
+  useEffect(() => {
+    onLoadingChangeRef.current?.(isLoading);
+  }, [isLoading]);
+
+  useEffect(() => {
+    onRefreshingChangeRef.current?.(isRefreshing);
+  }, [isRefreshing]);
 
   useEffect(() => {
     if (onRefresh) {
-      return onRefresh(() => findAllSounds(true));
+      return onRefresh(() => refreshSounds());
     }
-  }, [onRefresh, findAllSounds]);
+  }, [onRefresh, refreshSounds]);
 
   const handleToggleActive = async (sound: Sound) => {
-    dispatch({ type: 'ADD_UPDATING_ID', id: sound.id });
+    markUpdating(sound.id, true);
     try {
       const service = await getSoundsService();
       await service.patch(sound.id, { isActive: !sound.isActive });
       notificationsService.success('Sound updated');
-      findAllSounds(true);
+      void refreshSounds();
     } catch (error) {
       logger.error('Failed to update sound', error);
       notificationsService.error('Failed to update sound');
     } finally {
-      dispatch({ type: 'REMOVE_UPDATING_ID', id: sound.id });
+      markUpdating(sound.id, false);
     }
   };
 
   const handleToggleDefault = async (sound: Sound) => {
-    dispatch({ type: 'ADD_UPDATING_ID', id: sound.id });
+    markUpdating(sound.id, true);
     try {
       const service = await getSoundsService();
       await service.patch(sound.id, { isDefault: !sound.isDefault });
       notificationsService.success('Sound updated');
-      findAllSounds(true);
+      void refreshSounds();
     } catch (error) {
       logger.error('Failed to update sound', error);
       notificationsService.error('Failed to update sound');
     } finally {
-      dispatch({ type: 'REMOVE_UPDATING_ID', id: sound.id });
+      markUpdating(sound.id, false);
     }
   };
 
@@ -227,7 +198,7 @@ function SoundsListContent({
       const service = await getSoundsService();
       await service.delete(sound.id);
       notificationsService.success('Sound deleted');
-      findAllSounds(true);
+      void refreshSounds();
     } catch (error) {
       logger.error('Failed to delete sound', error);
       notificationsService.error('Failed to delete sound');
@@ -265,7 +236,9 @@ function SoundsListContent({
 
   const saveSound = useInlineRecordSave<Partial<Sound> & { key?: string }>({
     errorMessage: 'Failed to update sound',
-    onSaved: () => findAllSounds(true),
+    onSaved: () => {
+      void refreshSounds();
+    },
     save: async (id, patch) => (await getSoundsService()).patch(id, patch),
   });
 
@@ -375,7 +348,7 @@ function SoundsListContent({
       <SoundsListModals
         scope={scope}
         onConfirm={() => {
-          findAllSounds(true);
+          void refreshSounds();
         }}
       />
 
@@ -383,11 +356,7 @@ function SoundsListContent({
         <AutoPagination
           showTotal
           totalLabel="sounds"
-          totals={
-            page
-              ? { totalDocs: page.total, totalPages: page.totalPages }
-              : EMPTY_PAGE_TOTALS
-          }
+          totals={soundsQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
         />
       </div>
     </>
