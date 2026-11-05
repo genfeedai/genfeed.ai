@@ -10,6 +10,10 @@ import type {
 } from '@genfeedai/props/ui/lists/thread-list.props';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import { Button } from '@ui/primitives/button';
+import {
+  hoverConcealClassName,
+  hoverRevealClassName,
+} from '@ui/styles/hover-reveal';
 import { ChevronDown, Circle, CircleAlert, CircleCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -91,7 +95,11 @@ export function ThreadListSubtitle({
   parts: readonly ReactNode[];
 }): ReactElement {
   const visible = parts.filter(
-    (part) => part !== null && part !== undefined && part !== '',
+    (part) =>
+      part !== null &&
+      part !== undefined &&
+      typeof part !== 'boolean' &&
+      part !== '',
   );
 
   return (
@@ -134,7 +142,10 @@ export function ThreadListRow({
       data-testid={dataTestId}
     >
       <Link
-        className="flex items-start gap-2.5 rounded-lg px-2.5 py-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className={cn(
+          'flex items-start gap-2.5 rounded-lg px-2.5 py-2 outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          hasActions && 'pr-10',
+        )}
         href={href}
       >
         {leading ?? (
@@ -159,8 +170,7 @@ export function ThreadListRow({
           <span
             className={cn(
               'mt-0.5 shrink-0 whitespace-nowrap text-xs tabular-nums text-muted-foreground',
-              hasActions &&
-                'group-focus-within:opacity-0 group-hover:opacity-0',
+              hasActions && hoverConcealClassName(),
             )}
           >
             {time}
@@ -168,7 +178,12 @@ export function ThreadListRow({
         ) : null}
       </Link>
       {hasActions ? (
-        <div className="absolute right-1.5 top-1.5 opacity-0 transition-opacity focus-within:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100">
+        <div
+          className={cn(
+            'absolute right-1.5 top-1.5 transition-opacity',
+            hoverRevealClassName({ focus: 'group' }),
+          )}
+        >
           <CollectionItemActions
             overflow={actions}
             overflowLabel={actionsLabel}

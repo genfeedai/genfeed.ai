@@ -1,7 +1,5 @@
 import type { ThreadRecencyGroup } from '@genfeedai/props/ui/lists/thread-list.props';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 export interface ThreadRecencyBucket<TItem> {
   group: ThreadRecencyGroup;
   items: TItem[];
@@ -26,6 +24,11 @@ export function groupThreadsByRecency<TItem>(
   now: Date = new Date(),
 ): ThreadRecencyBucket<TItem>[] {
   const todayStart = startOfDay(now);
+  const last7DaysStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - 7,
+  ).getTime();
   const buckets: Record<ThreadRecencyGroup, TItem[]> = {
     earlier: [],
     last7Days: [],
@@ -35,7 +38,7 @@ export function groupThreadsByRecency<TItem>(
   for (const item of items) {
     const raw = getDate(item);
     const time = raw ? new Date(raw).getTime() : Number.NaN;
-    if (Number.isNaN(time) || time < todayStart - 6 * DAY_MS) {
+    if (Number.isNaN(time) || time < last7DaysStart) {
       buckets.earlier.push(item);
     } else if (time >= todayStart) {
       buckets.today.push(item);

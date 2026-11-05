@@ -137,3 +137,15 @@ describe('ThreadListRow', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 });
+
+describe('ThreadListSubtitle', () => {
+  it('joins only the parts that render, with no stray separators', () => {
+    const { container } = render(
+      <p>
+        <ThreadListSubtitle parts={[false, 'Ideas', null, '', '3 items']} />
+      </p>,
+    );
+
+    expect(container.textContent).toBe('Ideas · 3 items');
+  });
+});

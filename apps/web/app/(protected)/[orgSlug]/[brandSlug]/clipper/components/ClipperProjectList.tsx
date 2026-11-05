@@ -119,9 +119,9 @@ export default function ClipperProjectList({
         status={
           project.status === 'failed'
             ? 'attention'
-            : project.isDraft
-              ? 'idle'
-              : 'done'
+            : project.status === 'completed' && !project.isDraft
+              ? 'done'
+              : 'idle'
         }
         subtitle={
           <ThreadListSubtitle
