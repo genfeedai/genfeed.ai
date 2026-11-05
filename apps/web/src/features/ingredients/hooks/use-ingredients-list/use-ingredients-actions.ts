@@ -60,11 +60,8 @@ interface UseIngredientsActionsProps {
   setSelectedFolderId: Dispatch<SetStateAction<string | undefined>>;
   setQuery: (query: IFilters) => void;
   notificationsService: NotificationsService;
-  findAllIngredientsByCategory: (
-    isRefreshing?: boolean,
-    signal?: AbortSignal,
-  ) => Promise<void>;
-  findAllFolders: (signal?: AbortSignal) => Promise<void>;
+  findAllIngredientsByCategory: (isRefreshing?: boolean) => Promise<void>;
+  findAllFolders: () => Promise<void>;
   getBulkIngredientsService: () => Promise<IngredientsService>;
   socketSubscriptionsRef: RefObject<Array<() => void>>;
   onConvertToVideo: (ingredient: IIngredient) => void;

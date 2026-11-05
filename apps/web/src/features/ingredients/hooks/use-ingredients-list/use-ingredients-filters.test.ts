@@ -30,35 +30,10 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   })),
 }));
 
-vi.mock('@genfeedai/client/schemas', () => ({
-  ingredientCategorySchema: {
-    '~standard': {
-      validate: vi.fn((data) => ({ value: data })),
-      vendor: 'test',
-      version: 1,
-    },
-  },
-}));
-
-vi.mock('@hookform/resolvers/standard-schema', () => ({
-  standardSchemaResolver: vi.fn(() => vi.fn()),
-}));
-
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(() => '/manager/ingredients'),
   useRouter: vi.fn(() => ({ push: vi.fn(), replace: vi.fn() })),
   useSearchParams: vi.fn(() => new URLSearchParams()),
-}));
-
-vi.mock('react-hook-form', () => ({
-  useForm: vi.fn(() => ({
-    control: {},
-    getValues: vi.fn(() => ({})),
-    handleSubmit: vi.fn(),
-    register: vi.fn(),
-    reset: vi.fn(),
-    setValue: vi.fn(),
-  })),
 }));
 
 describe('isIngredientFormat', () => {
@@ -90,7 +65,6 @@ describe('useIngredientsFilters', () => {
     expect(result.current).toHaveProperty('clearFilters');
     expect(result.current).toHaveProperty('brandId');
     expect(result.current).toHaveProperty('query');
-    expect(result.current).toHaveProperty('form');
   });
 
   it('singularType normalizes the route plural to an IngredientCategory', () => {

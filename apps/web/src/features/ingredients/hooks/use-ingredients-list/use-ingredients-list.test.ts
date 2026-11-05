@@ -1,3 +1,4 @@
+import { queryClientWrapper } from '@app-tests/query-client.harness';
 import { IngredientCategory, PageScope } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { act, renderHook } from '@testing-library/react';
@@ -150,10 +151,9 @@ vi.mock('@helpers/ui/modal/modal.helper', () => ({
   openModal: vi.fn(),
 }));
 
-vi.mock('react-hook-form', () => ({
-  useForm: vi.fn(() => ({
-    getValues: vi.fn(() => ({})),
-  })),
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -168,8 +168,9 @@ describe('useIngredientsList', () => {
   });
 
   it('returns basic state values', () => {
-    const { result } = renderHook(() =>
-      useIngredientsList({ scope: PageScope.BRAND, type: 'videos' }),
+    const { result } = renderHook(
+      () => useIngredientsList({ scope: PageScope.BRAND, type: 'videos' }),
+      { wrapper: queryClientWrapper() },
     );
 
     expect(result.current.type).toBe('videos');
@@ -179,8 +180,9 @@ describe('useIngredientsList', () => {
   });
 
   it('clears filters via context setter', () => {
-    const { result } = renderHook(() =>
-      useIngredientsList({ scope: PageScope.BRAND, type: 'videos' }),
+    const { result } = renderHook(
+      () => useIngredientsList({ scope: PageScope.BRAND, type: 'videos' }),
+      { wrapper: queryClientWrapper() },
     );
 
     act(() => {
@@ -197,8 +199,9 @@ describe('useIngredientsList', () => {
   });
 
   it('clears selected ingredient ids', () => {
-    const { result } = renderHook(() =>
-      useIngredientsList({ scope: PageScope.BRAND, type: 'videos' }),
+    const { result } = renderHook(
+      () => useIngredientsList({ scope: PageScope.BRAND, type: 'videos' }),
+      { wrapper: queryClientWrapper() },
     );
 
     act(() => {
@@ -213,8 +216,9 @@ describe('useIngredientsList', () => {
   });
 
   it('opens lightbox returns false when ingredient not in media list', () => {
-    const { result } = renderHook(() =>
-      useIngredientsList({ scope: PageScope.BRAND, type: 'videos' }),
+    const { result } = renderHook(
+      () => useIngredientsList({ scope: PageScope.BRAND, type: 'videos' }),
+      { wrapper: queryClientWrapper() },
     );
 
     const ingredient = {
