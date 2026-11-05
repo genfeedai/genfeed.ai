@@ -1,7 +1,9 @@
 'use client';
 
 import { IngredientStatus } from '@genfeedai/contracts';
+import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { formatDuration } from '@genfeedai/helpers/video-duration.helper';
 import { isFailedIngredient } from '@genfeedai/utils/media/ingredient-ledger.util';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import IngredientReviewActions from '@/components/ingredients/IngredientReviewActions';
@@ -9,13 +11,36 @@ import IngredientOriginBadge from '@/components/ingredients/ingredient-origin-ba
 import IngredientTagChips from '@/components/ingredients/ingredient-tag-chips';
 import type { IngredientTileOverlaysProps } from '@/props/content/ingredient.props';
 
-/** Reveal provenance with the card actions on hover or keyboard focus. */
-const ORIGIN_BADGE_CLASS = cn(
-  'pointer-events-none absolute bottom-1.5 left-1.5 z-10 transition-opacity',
+/**
+ * The hover caption: a bottom shadow that fades the media into a title, its
+ * duration and its origin. A gradient, not a box, so the media stays readable.
+ */
+const CAPTION_CLASS = cn(
+  'pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end gap-2 rounded-b-card bg-gradient-to-t from-black/80 via-black/40 to-transparent px-2.5 pb-2 pt-10 text-xs text-white transition-opacity' /* design-system-allow-content-color -- media overlay */,
   hoverRevealClassName({ isInteractive: false }),
 );
 
-/** Tags sit just above the origin label and never intercept a click either. */
+function getCaption(ingredient: IIngredient): {
+  duration: string | null;
+  label: string | null;
+} {
+  const metadata =
+    typeof ingredient.metadata === 'object' && ingredient.metadata
+      ? (ingredient.metadata as IMetadata)
+      : null;
+  const label =
+    metadata?.label?.trim() ||
+    ingredient.metadataLabel?.trim() ||
+    ingredient.promptText?.trim();
+  const duration = metadata?.duration ?? ingredient.metadataDuration;
+
+  return {
+    duration: duration ? formatDuration(duration) : null,
+    label: label || null,
+  };
+}
+
+/** Tags sit just above the caption and never intercept a click either. */
 const TAG_CHIPS_CLASS =
   'pointer-events-none absolute bottom-8 left-1.5 right-1.5 z-10';
 
@@ -40,8 +65,29 @@ export default function IngredientTileOverlays({
   const hasNoAsset =
     isFailed || ingredient.status === IngredientStatus.PROCESSING;
 
+  const caption = hasNoAsset ? null : getCaption(ingredient);
+
   return (
     <>
+      {caption ? (
+        <div
+          className={cn(CAPTION_CLASS, isReviewEnabled && !isFailed && 'pr-24')}
+          data-testid="ingredient-tile-caption"
+        >
+          <IngredientOriginBadge
+            className="shrink-0"
+            origin={ingredient.origin}
+          />
+          <span className="min-w-0 flex-1 truncate font-medium">
+            {caption.label}
+          </span>
+          {caption.duration ? (
+            <span className="shrink-0 font-mono tabular-nums text-white/75">
+              {caption.duration}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       <IngredientTagChips className={TAG_CHIPS_CLASS} tags={ingredient.tags} />
       {isReviewEnabled && !isFailed ? (
         <div className={REVIEW_ACTIONS_CLASS}>
@@ -51,12 +97,6 @@ export default function IngredientTileOverlays({
           />
         </div>
       ) : null}
-      {hasNoAsset ? null : (
-        <IngredientOriginBadge
-          className={ORIGIN_BADGE_CLASS}
-          origin={ingredient.origin}
-        />
-      )}
     </>
   );
 }

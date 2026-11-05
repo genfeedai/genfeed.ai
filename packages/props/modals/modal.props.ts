@@ -116,7 +116,6 @@ export interface ModalGalleryProps {
   title?: string;
   selectedId?: string;
   format?: string;
-  isFormatFilterEnabled?: boolean;
   isNoneAllowed?: boolean;
   maxSelectableItems?: number;
 

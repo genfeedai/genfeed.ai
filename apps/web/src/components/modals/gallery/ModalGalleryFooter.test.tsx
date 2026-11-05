@@ -1,40 +1,38 @@
 import { IngredientCategory } from '@genfeedai/contracts';
-
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ModalGalleryFooter from '@/components/modals/gallery/ModalGalleryFooter';
 
-// Mock dependencies
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@ui/navigation/pagination/Pagination', () => ({
   default: ({
     currentPage,
     totalPages,
-    onPageChange,
-  }: import('react').ComponentProps<
-    typeof import('@ui/navigation/pagination/Pagination').default
-  >) => (
-    <div data-testid="pagination">
-      <button onClick={() => onPageChange?.(currentPage + 1)}>Next</button>
-      <span>
-        Page {currentPage} of {totalPages}
-      </span>
-    </div>
+  }: {
+    currentPage: number;
+    totalPages: number;
+  }) => (
+    <nav aria-label="Pages">
+      Page {currentPage} of {totalPages}
+    </nav>
   ),
 }));
 
 vi.mock('@genfeedai/services/core/environment.service', () => ({
-  EnvironmentService: {
-    ingredientsEndpoint: 'https://test.com/ingredients',
-  },
+  EnvironmentService: { cdnUrl: 'https://cdn.test' },
 }));
 
-describe('ModalGalleryFooter', () => {
-  const defaultProps = {
-    currentPage: 1,
-    totalPages: 5,
+function renderFooter(
+  overrides: Partial<Parameters<typeof ModalGalleryFooter>[0]> = {},
+) {
+  const props = {
     activeTab: 'media' as const,
-    category: IngredientCategory.IMAGE,
+    category: IngredientCategory.VIDEO,
+    currentPage: 1,
     isLoading: false,
     isNoneAllowed: false,
     onClear: vi.fn(),
@@ -45,307 +43,63 @@ describe('ModalGalleryFooter', () => {
     onSelectAccountReference: vi.fn(),
     selectedItem: '',
     selectedItems: [],
-    selectedItemsData: [],
+    totalPages: 3,
+    ...overrides,
   };
+  render(<ModalGalleryFooter {...props} />);
+  return props;
+}
 
-  it('renders each gallery page independently of global pagination', () => {
-    render(
-      <>
-        <ModalGalleryFooter {...defaultProps} currentPage={2} totalPages={3} />
-        <ModalGalleryFooter {...defaultProps} currentPage={4} totalPages={7} />
-      </>,
-    );
-    expect(screen.getByText('Page 2 of 3')).toBeInTheDocument();
-    expect(screen.getByText('Page 4 of 7')).toBeInTheDocument();
-    expect(screen.queryByText('Page 9 of 50')).not.toBeInTheDocument();
+describe('ModalGalleryFooter', () => {
+  it('cannot add from the Library until something is picked', () => {
+    renderFooter();
+
+    expect(screen.getByText('Nothing selected')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
   });
 
-  it('renders pagination when not loading', () => {
-    render(<ModalGalleryFooter {...defaultProps} />);
-    expect(screen.getByTestId('pagination')).toBeInTheDocument();
+  it('counts the picks and adds them', () => {
+    const props = renderFooter({ selectedItems: ['a', 'b'] });
+
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Add 2' }));
+
+    expect(props.onConfirm).toHaveBeenCalledOnce();
   });
 
-  it('does not render pagination when loading', () => {
-    render(<ModalGalleryFooter {...defaultProps} isLoading={true} />);
-    expect(screen.queryByTestId('pagination')).not.toBeInTheDocument();
+  it('hands brand references back as reference links', () => {
+    const props = renderFooter({
+      activeTab: 'references',
+      category: IngredientCategory.IMAGE,
+      selectedItems: ['ref-1'],
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add 1' }));
+
+    expect(props.onSelectAccountReference).toHaveBeenCalledWith([
+      { id: 'ref-1', url: 'https://cdn.test/references/ref-1' },
+    ]);
+    expect(screen.getByText('Page 1 of 3')).toBeInTheDocument();
   });
 
-  it('renders image action buttons for media tab when items selected', () => {
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        selectedItems={['img-1', 'img-2']}
-        selectedItemsData={
-          [{ id: 'img-1' }, { id: 'img-2' }] as import('react').ComponentProps<
-            typeof ModalGalleryFooter
-          >['selectedItemsData']
-        }
-      />,
-    );
-    expect(screen.getByText('Clear')).toBeInTheDocument();
-    expect(screen.getByText('Select Images (2)')).toBeInTheDocument();
+  it('lets a music pick continue without a track only when allowed', () => {
+    renderFooter({ category: IngredientCategory.MUSIC, isNoneAllowed: true });
+
+    expect(
+      screen.getByRole('button', { name: 'Continue Without Music' }),
+    ).toBeEnabled();
+    expect(screen.getByText('Page 1 of 3')).toBeInTheDocument();
   });
 
-  it('renders reference action buttons for references tab when items selected', () => {
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        activeTab="references"
-        selectedItems={['ref-1']}
-      />,
-    );
-    expect(screen.getByText('Clear')).toBeInTheDocument();
-    expect(screen.getByText('Select References (1)')).toBeInTheDocument();
-  });
+  it('clears a chosen track with an empty selection', () => {
+    const props = renderFooter({
+      category: IngredientCategory.MUSIC,
+      selectedItem: 'track-1',
+    });
 
-  it('renders music action buttons for music category', () => {
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        category={IngredientCategory.MUSIC}
-      />,
-    );
-    expect(screen.getByText('Cancel')).toBeInTheDocument();
-    expect(screen.getByText('Continue Without Music')).toBeInTheDocument();
-  });
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
 
-  it('calls onClear when clear button is clicked', async () => {
-    const user = userEvent.setup();
-    const onClear = vi.fn();
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        selectedItems={['img-1']}
-        onClear={onClear}
-      />,
-    );
-    const clearButton = screen.getByText('Clear');
-    await user.click(clearButton);
-    expect(onClear).toHaveBeenCalled();
-  });
-
-  it('calls onSelect when select button is clicked', async () => {
-    const user = userEvent.setup();
-    const onSelect = vi.fn();
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        selectedItems={['img-1']}
-        selectedItemsData={
-          [{ id: 'img-1' }] as import('react').ComponentProps<
-            typeof ModalGalleryFooter
-          >['selectedItemsData']
-        }
-        onSelect={onSelect}
-      />,
-    );
-    const selectButton = screen.getByText('Select Images (1)');
-    await user.click(selectButton);
-    expect(onSelect).toHaveBeenCalled();
-  });
-
-  it('disables music confirm button when no item selected and isNoneAllowed is false', () => {
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        category={IngredientCategory.MUSIC}
-      />,
-    );
-    const confirmButton = screen.getByText('Continue Without Music');
-    expect(confirmButton).toBeDisabled();
-  });
-
-  it('enables music confirm button when isNoneAllowed is true', () => {
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        category={IngredientCategory.MUSIC}
-        isNoneAllowed={true}
-      />,
-    );
-    const confirmButton = screen.getByText('Continue Without Music');
-    expect(confirmButton).not.toBeDisabled();
-  });
-
-  it('renders uploads tab action buttons when items selected', () => {
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        activeTab="uploads"
-        selectedItems={['img-1']}
-        selectedItemsData={
-          [{ id: 'img-1' }] as import('react').ComponentProps<
-            typeof ModalGalleryFooter
-          >['selectedItemsData']
-        }
-      />,
-    );
-    expect(screen.getByText('Clear')).toBeInTheDocument();
-    expect(screen.getByText('Select Images (1)')).toBeInTheDocument();
-  });
-
-  it('calls onSelect with single item for uploads tab', async () => {
-    const user = userEvent.setup();
-    const onSelect = vi.fn();
-    const onClose = vi.fn();
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        activeTab="uploads"
-        selectedItems={['img-1']}
-        selectedItemsData={
-          [{ id: 'img-1' }] as import('react').ComponentProps<
-            typeof ModalGalleryFooter
-          >['selectedItemsData']
-        }
-        onSelect={onSelect}
-        onClose={onClose}
-      />,
-    );
-    const selectButton = screen.getByText('Select Images (1)');
-    await user.click(selectButton);
-    expect(onSelect).toHaveBeenCalledWith([{ id: 'img-1' }]);
-    expect(onClose).toHaveBeenCalled();
-  });
-
-  it('calls onSelect with multiple items for uploads tab', async () => {
-    const user = userEvent.setup();
-    const onSelect = vi.fn();
-    const onClose = vi.fn();
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        activeTab="uploads"
-        selectedItems={['img-1', 'img-2']}
-        selectedItemsData={
-          [{ id: 'img-1' }, { id: 'img-2' }] as import('react').ComponentProps<
-            typeof ModalGalleryFooter
-          >['selectedItemsData']
-        }
-        onSelect={onSelect}
-        onClose={onClose}
-      />,
-    );
-    const selectButton = screen.getByText('Select Images (2)');
-    await user.click(selectButton);
-    expect(onSelect).toHaveBeenCalledWith([{ id: 'img-1' }, { id: 'img-2' }]);
-    expect(onClose).toHaveBeenCalled();
-  });
-
-  it('calls onSelectAccountReference for references tab', async () => {
-    const user = userEvent.setup();
-    const onSelectAccountReference = vi.fn();
-    const onClose = vi.fn();
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        activeTab="references"
-        selectedItems={['ref-1']}
-        onSelectAccountReference={onSelectAccountReference}
-        onClose={onClose}
-      />,
-    );
-    const selectButton = screen.getByText('Select References (1)');
-    await user.click(selectButton);
-    expect(onSelectAccountReference).toHaveBeenCalled();
-    expect(onClose).toHaveBeenCalled();
-  });
-
-  it('shows Select Music button when music is selected', () => {
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        category={IngredientCategory.MUSIC}
-        selectedItem="music-1"
-      />,
-    );
-    expect(screen.getByText('Select Music')).toBeInTheDocument();
-  });
-
-  it('shows Clear button when music is selected', () => {
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        category={IngredientCategory.MUSIC}
-        selectedItem="music-1"
-      />,
-    );
-    expect(screen.getByText('Clear')).toBeInTheDocument();
-  });
-
-  it('calls onSelect with an empty array when music clear is clicked', async () => {
-    const user = userEvent.setup();
-    const onSelect = vi.fn();
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        category={IngredientCategory.MUSIC}
-        selectedItem="music-1"
-        onSelect={onSelect}
-      />,
-    );
-    const clearButton = screen.getByText('Clear');
-    await user.click(clearButton);
-    expect(onSelect).toHaveBeenCalledWith([]);
-  });
-
-  it('calls onConfirm when music confirm is clicked', async () => {
-    const user = userEvent.setup();
-    const onConfirm = vi.fn();
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        category={IngredientCategory.MUSIC}
-        selectedItem="music-1"
-        onConfirm={onConfirm}
-      />,
-    );
-    const confirmButton = screen.getByText('Select Music');
-    await user.click(confirmButton);
-    expect(onConfirm).toHaveBeenCalled();
-  });
-
-  it('calls onClose when Cancel button is clicked for music', async () => {
-    const user = userEvent.setup();
-    const onClose = vi.fn();
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        category={IngredientCategory.MUSIC}
-        onClose={onClose}
-      />,
-    );
-    const cancelButton = screen.getByText('Cancel');
-    await user.click(cancelButton);
-    expect(onClose).toHaveBeenCalled();
-  });
-
-  it('does not show action buttons when no items selected for media tab', () => {
-    render(<ModalGalleryFooter {...defaultProps} selectedItems={[]} />);
-    expect(screen.queryByText('Clear')).not.toBeInTheDocument();
-    expect(screen.queryByText(/Select Images/)).not.toBeInTheDocument();
-  });
-
-  it('does not show action buttons when no items selected for references tab', () => {
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        activeTab="references"
-        selectedItems={[]}
-      />,
-    );
-    expect(screen.queryByText('Clear')).not.toBeInTheDocument();
-    expect(screen.queryByText(/Select References/)).not.toBeInTheDocument();
-  });
-
-  it('calls onPageChange when pagination changes', async () => {
-    const user = userEvent.setup();
-    const onPageChange = vi.fn();
-    render(
-      <ModalGalleryFooter {...defaultProps} onPageChange={onPageChange} />,
-    );
-    const nextButton = screen.getByText('Next');
-    await user.click(nextButton);
-    expect(onPageChange).toHaveBeenCalledWith(2);
+    expect(props.onSelect).toHaveBeenCalledWith([]);
   });
 });

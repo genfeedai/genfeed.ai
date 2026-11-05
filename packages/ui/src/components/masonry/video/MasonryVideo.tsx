@@ -136,7 +136,7 @@ function MasonryVideoTile({
       data-ingredient-id={video.id}
       data-state={isHovered ? 'hovered' : 'idle'}
       className={cn(
-        'relative block w-full cursor-pointer rounded-card bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong',
+        'group/tile relative block w-full cursor-pointer rounded-card bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong',
         isScrollFocused && SCROLL_FOCUS_SURFACE_CLASS,
         isSelected && SELECTED_CARD_CLASS,
         isFleetNsfwLocked && 'cursor-not-allowed',

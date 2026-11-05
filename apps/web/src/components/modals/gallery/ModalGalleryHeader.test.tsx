@@ -1,127 +1,107 @@
-import { IngredientCategory } from '@genfeedai/contracts';
-import { render, screen } from '@testing-library/react';
+import { IngredientCategory, IngredientFormat } from '@genfeedai/contracts';
+import type { IAsset } from '@genfeedai/contracts/interfaces';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ModalGalleryHeader from '@/components/modals/gallery/ModalGalleryHeader';
 
-// Mock dependencies
+const uploads = vi.hoisted(() => ({
+  openUpload: vi.fn(),
+  options: { onComplete: undefined as (() => void) | undefined },
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
-    useUploadModal: () => ({
-      openUpload: vi.fn(),
-    }),
+    useUploadModal: (options: { onComplete?: () => void }) => {
+      uploads.options.onComplete = options.onComplete;
+      return { openUpload: uploads.openUpload };
+    },
   }),
 );
 
-vi.mock('@genfeedai/helpers/data/data/data.helper', () => ({
-  formatVideos: [
-    { id: 'portrait', label: 'Portrait (9:16)' },
-    { id: 'landscape', label: 'Landscape (16:9)' },
-    { id: 'square', label: 'Square (1:1)' },
-  ],
-}));
-
-vi.mock('@ui/primitives/tabs', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@ui/primitives/tabs')>()),
-  Tabs: ({
-    tabs,
-    activeTab,
-    onTabChange,
-  }: import('react').ComponentProps<
-    typeof import('@ui/primitives/tabs').Tabs
-  >) => (
-    <div data-testid="tabs">
-      {(tabs ?? []).map((tab) => (
-        <button
-          key={typeof tab === 'string' ? tab : (tab.id ?? tab.label)}
-          onClick={() =>
-            onTabChange?.(typeof tab === 'string' ? tab : (tab.id ?? tab.label))
-          }
-        >
-          {typeof tab === 'string' ? tab : tab.label}
-        </button>
-      ))}
-    </div>
-  ),
-}));
-
-vi.mock('@ui/primitives/alert', () => ({
-  Alert: ({
-    children,
-  }: import('react').ComponentProps<
-    typeof import('@ui/primitives/alert').Alert
-  >) => <div data-testid="alert">{children}</div>,
-}));
-
-vi.mock('@ui/primitives/badge', () => ({
-  Badge: ({
-    children,
-  }: import('react').ComponentProps<
-    typeof import('@ui/primitives/badge').Badge
-  >) => <span data-testid="badge">{children}</span>,
-}));
-
 vi.mock('next/image', () => ({
-  default: ({ src, alt }: import('react').ComponentProps<'input'>) => (
-    <input type="image" src={src} alt={alt} />
-  ),
+  default: ({ alt }: { alt: string }) => <span role="img" aria-label={alt} />,
 }));
+
+const defaultProps = {
+  accountReference: null,
+  activeTab: 'media' as const,
+  category: IngredientCategory.IMAGE,
+  localFormat: IngredientFormat.PORTRAIT,
+  onTabChange: vi.fn(),
+  onUploaded: vi.fn(),
+  onUseAccountReference: vi.fn(),
+  tabs: [
+    { id: 'media' as const, label: 'Library' },
+    { id: 'references' as const, label: 'Branding' },
+  ],
+};
 
 describe('ModalGalleryHeader', () => {
-  const defaultProps = {
-    accountReference: null,
-    activeTab: 'media' as const,
-    category: IngredientCategory.IMAGE,
-    filterReferenceId: '',
-    localFormat: 'portrait' as const,
-    onClearFilter: vi.fn(),
-    onReloadItems: vi.fn(),
-    onTabChange: vi.fn(),
-    onUseAccountReference: vi.fn(),
-    tabs: [
-      { id: 'media', label: 'Images' },
-      { id: 'references', label: 'Branding' },
-    ],
-  };
-
-  it('renders tabs for image category', () => {
+  it('offers the Library and the brand references for an image', () => {
     render(<ModalGalleryHeader {...defaultProps} />);
-    expect(screen.getByText('Images')).toBeInTheDocument();
-    expect(screen.getByText('Branding')).toBeInTheDocument();
+
+    expect(screen.getByRole('tab', { name: 'Library' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Branding' })).toBeInTheDocument();
   });
 
-  it('renders account reference section when provided', () => {
-    const accountRef = { id: 'ref-1', url: 'http://example.com/ref.jpg' };
+  it('shows no tabs for a video, only the upload', () => {
     render(
-      <ModalGalleryHeader {...defaultProps} accountReference={accountRef} />,
+      <ModalGalleryHeader
+        {...defaultProps}
+        category={IngredientCategory.VIDEO}
+        tabs={[]}
+      />,
     );
-    expect(screen.getByText('Use Account Reference')).toBeInTheDocument();
+
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Upload' })).toBeInTheDocument();
   });
 
-  it('renders format badge for references tab', () => {
-    render(<ModalGalleryHeader {...defaultProps} activeTab="references" />);
-    // Component shows format as a badge, not a selector
-    expect(screen.getByText(/Format:/)).toBeInTheDocument();
-    expect(screen.getByText(/Portrait/)).toBeInTheDocument();
+  it('uploads the picker category and refreshes the grid when done', () => {
+    render(
+      <ModalGalleryHeader
+        {...defaultProps}
+        category={IngredientCategory.VIDEO}
+        tabs={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+    expect(uploads.openUpload).toHaveBeenCalledWith({
+      category: IngredientCategory.VIDEO,
+    });
+    expect(uploads.options.onComplete).toBe(defaultProps.onUploaded);
   });
 
-  it('renders format badge for media tab', () => {
-    render(<ModalGalleryHeader {...defaultProps} activeTab="media" />);
-    expect(screen.getByText(/Format:/)).toBeInTheDocument();
+  it('offers the account reference when the caller passes one', () => {
+    render(
+      <ModalGalleryHeader
+        {...defaultProps}
+        accountReference={{ id: 'ref-1', url: '/ref.png' } as IAsset}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Use account reference' }),
+    ).toBeInTheDocument();
   });
 
-  it('renders upload button', () => {
-    render(<ModalGalleryHeader {...defaultProps} />);
-    expect(screen.getByText('Upload')).toBeInTheDocument();
-  });
+  it('renders nothing above a music list', () => {
+    const { container } = render(
+      <ModalGalleryHeader
+        {...defaultProps}
+        category={IngredientCategory.MUSIC}
+        tabs={[]}
+      />,
+    );
 
-  it('renders format info alert', () => {
-    render(<ModalGalleryHeader {...defaultProps} activeTab="media" />);
-    expect(screen.getByTestId('alert')).toBeInTheDocument();
-  });
-
-  it('renders filter badge when filterReferenceId is provided', () => {
-    render(<ModalGalleryHeader {...defaultProps} filterReferenceId="ref-1" />);
-    expect(screen.getByText('Filtered by references')).toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
   });
 });
