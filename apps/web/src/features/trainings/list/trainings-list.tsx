@@ -15,13 +15,18 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Cpu, Lock } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-import TrainingSidebarActivity from './components/TrainingSidebarActivity';
 import { buildTrainingsTableActions } from './components/TrainingsTableActions';
 import { buildTrainingsTableColumns } from './components/TrainingsTableColumns';
 import { useTrainingsList } from './useTrainingsList';
+
+const TrainingSidebarActivity = dynamic(
+  () => import('./components/TrainingSidebarActivity'),
+  { ssr: false },
+);
 
 const TRAINING_UPGRADE_TIER_LABEL = 'Scale';
 
