@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getPostCategoryForMedia,
   getPostMediaRequirement,
+  getUnmetPostMediaRequirements,
   isPostMediaRequirementMet,
   MAX_POST_MEDIA_ITEMS,
   mergePostMedia,
@@ -79,5 +80,34 @@ describe('getPostCategoryForMedia', () => {
     expect(
       getPostCategoryForMedia(categories.map((c, i) => media(`m-${i}`, c))),
     ).toBe(expected);
+  });
+});
+
+describe('getUnmetPostMediaRequirements', () => {
+  const image = media('image-1', IngredientCategory.IMAGE);
+  const video = media('video-1', IngredientCategory.VIDEO);
+
+  it.each([
+    [
+      'nothing attached',
+      [Platform.YOUTUBE, Platform.INSTAGRAM, Platform.TWITTER],
+      [],
+      [
+        { platform: Platform.YOUTUBE, requirement: 'video' },
+        { platform: Platform.INSTAGRAM, requirement: 'media' },
+      ],
+    ],
+    [
+      'an image attached',
+      [Platform.YOUTUBE, Platform.INSTAGRAM],
+      [image],
+      [{ platform: Platform.YOUTUBE, requirement: 'video' }],
+    ],
+    ['a video attached', [Platform.YOUTUBE, Platform.INSTAGRAM], [video], []],
+    ['text-only destinations', [Platform.TWITTER, Platform.LINKEDIN], [], []],
+  ])('with %s', (_label, platforms, attached, expected) => {
+    expect(getUnmetPostMediaRequirements(platforms, attached)).toEqual(
+      expected,
+    );
   });
 });

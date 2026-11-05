@@ -55,6 +55,7 @@ import ModalPostSimpleHeader from './ModalPostSimpleHeader';
 import {
   getPostCategoryForMedia,
   getPostMediaRequirement,
+  getUnmetPostMediaRequirements,
   isPostMediaRequirementMet,
   mergePostMedia,
 } from './post-media.helper';
@@ -812,13 +813,17 @@ export default function ModalPost({
           : [],
     [isDestinationComposer, selectedCredentials, selectedPlatform],
   );
+  // Only what the attached media does not cover yet, so the hint clears once
+  // a video (or any media) is attached.
   const mediaRequirementHint = useMemo(() => {
+    const unmet = getUnmetPostMediaRequirements(
+      mediaTargetPlatforms,
+      selectedMedia,
+    );
     const namesFor = (requirement: 'media' | 'video') =>
-      mediaTargetPlatforms
-        .filter(
-          (platform) => getPostMediaRequirement([platform]) === requirement,
-        )
-        .map((platform) => formatPlatformLabel(platform))
+      unmet
+        .filter((entry) => entry.requirement === requirement)
+        .map((entry) => formatPlatformLabel(entry.platform))
         .join(', ');
     const videoNames = namesFor('video');
     const mediaNames = namesFor('media');
@@ -834,7 +839,7 @@ export default function ModalPost({
         .filter(Boolean)
         .join(' ') || null
     );
-  }, [composerTranslate, mediaTargetPlatforms]);
+  }, [composerTranslate, mediaTargetPlatforms, selectedMedia]);
 
   // YouTube requires a title
   const isTitleRequired = selectedPlatform === Platform.YOUTUBE;
