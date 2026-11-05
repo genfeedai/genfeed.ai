@@ -8,15 +8,20 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { ReplyBotConfigsService } from '@genfeedai/services/automation/reply-bot-configs.service';
 import { logger } from '@genfeedai/services/core/logger.service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useLocale, useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { RepliesWarmupTargetsProps } from '@/features/messages/props/replies-warmup-targets.props';
+
+const WARMUP_TARGETS_KEY = 'reply-warmup-targets';
+const EMPTY_TARGETS: IReplyTarget[] = [];
 
 /**
  * Suggests X accounts in the brand's niche, adds the chosen ones to the
@@ -35,37 +40,38 @@ export default function RepliesWarmupTargets({
   const [suggestions, setSuggestions] = useState<
     IReplyTargetSuggestion[] | null
   >(null);
-  const abortRef = useRef<AbortController | null>(null);
-  const [targets, setTargets] = useState<IReplyTarget[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [busyUsername, setBusyUsername] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  // Cached per viewer and brand: coming back to Replies lists the monitored
+  // accounts at once, then refreshes them in the background.
+  const targetsKey = [WARMUP_TARGETS_KEY, brandId] as const;
+  const targetsQuery = useAuthedQuery({
+    queryFn: (service, signal) => service.listWarmupTargets(brandId, signal),
+    queryKey: targetsKey,
+    service: (token: string) => ReplyBotConfigsService.getInstance(token),
+  });
+  const targets = targetsQuery.data ?? EMPTY_TARGETS;
+  const loadError = targetsQuery.error;
+  const reportedLoadErrorRef = useRef<Error | null>(null);
 
-  const loadTargets = useCallback(async () => {
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    try {
-      const service = await getReplyBotConfigsService();
-      const nextTargets = await service.listWarmupTargets(brandId);
-      if (controller.signal.aborted) {
-        return;
-      }
-      setTargets(nextTargets);
-    } catch (error: unknown) {
-      if (controller.signal.aborted) {
-        return;
-      }
-      logger.error('Warm-up targets failed to load', error);
-      toast.error(translate('loadFailed'));
-    }
-  }, [brandId, getReplyBotConfigsService, translate]);
-
+  // Each failed read is reported once; a failed background refresh keeps the
+  // accounts already on screen.
   useEffect(() => {
-    void loadTargets();
-    return () => {
-      abortRef.current?.abort();
-    };
-  }, [loadTargets]);
+    if (!loadError || reportedLoadErrorRef.current === loadError) {
+      return;
+    }
+    reportedLoadErrorRef.current = loadError;
+    logger.error('Warm-up targets failed to load', loadError);
+    toast.error(translate('loadFailed'));
+  }, [loadError, translate]);
+
+  function updateTargets(update: (previous: IReplyTarget[]) => IReplyTarget[]) {
+    queryClient.setQueriesData<IReplyTarget[]>(
+      { queryKey: targetsKey },
+      (previous) => (previous ? update(previous) : previous),
+    );
+  }
 
   function isMonitored(username: string): boolean {
     const normalized = username.toLowerCase();
@@ -93,7 +99,7 @@ export default function RepliesWarmupTargets({
     try {
       const service = await getReplyBotConfigsService();
       const result = await service.addWarmupTarget({ brandId, username });
-      setTargets((previous) => [
+      updateTargets((previous) => [
         {
           displayName: suggestion.displayName,
           followersCount: suggestion.followersCount,
@@ -122,7 +128,7 @@ export default function RepliesWarmupTargets({
         brandId,
         monitoredAccountId: target.monitoredAccountId,
       });
-      setTargets((previous) =>
+      updateTargets((previous) =>
         previous.filter(
           (item) => item.monitoredAccountId !== target.monitoredAccountId,
         ),
