@@ -1,4 +1,8 @@
-import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import {
+  ModelCategory,
+  ModelLifecycle,
+  ModelProvider,
+} from '@genfeedai/contracts';
 import {
   type ImageModelCapability,
   MODEL_KEYS,
@@ -6,6 +10,7 @@ import {
   type ModelOutputCapability,
   type VideoModelCapability,
 } from '@genfeedai/contracts/constants';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 
 import {
   calculateAspectRatio,
@@ -292,7 +297,7 @@ describe('convertRatioToOrientation', () => {
   });
 });
 
-function createMockModel(overrides: Partial<ModelLike> = {}): ModelLike {
+function createMockModel(overrides: Partial<IModel> = {}): IModel {
   return {
     category: ModelCategory.IMAGE,
     cost: 10,
@@ -303,6 +308,7 @@ function createMockModel(overrides: Partial<ModelLike> = {}): ModelLike {
     isDeleted: false,
     key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
     label: 'Test Model',
+    lifecycle: ModelLifecycle.AVAILABLE,
     provider: ModelProvider.REPLICATE,
     updatedAt: '2025-01-01T00:00:00.000Z',
     ...overrides,

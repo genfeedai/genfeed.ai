@@ -64,7 +64,10 @@ const testContentData = () => ({
   userId: generateTestId(),
 });
 
-import { getDeserializer } from '@helpers/deserializer.helper';
+import {
+  getDeserializer,
+  isDeserializerRuntime,
+} from '@helpers/deserializer.helper';
 import {
   createEntityAttributes,
   getSerializer,
@@ -505,6 +508,11 @@ describe('Serializer/Deserializer Integration Tests', () => {
 
       const serializer = getSerializer(config);
       const deserializer = getDeserializer({});
+      if (!isDeserializerRuntime(deserializer)) {
+        throw new Error(
+          'An empty document must yield the deserializer runtime',
+        );
+      }
 
       const users = Array.from({ length: 100 }, () => testUserData());
 
@@ -513,7 +521,7 @@ describe('Serializer/Deserializer Integration Tests', () => {
       const serializedUsers = users.map((user) => serializer.serialize(user));
 
       const deserializedUsers = serializedUsers.map((serialized) =>
-        deserializer.deserialize(serialized),
+        deserializer.deserialize<ReturnType<typeof testUserData>>(serialized),
       );
 
       const end = Date.now();

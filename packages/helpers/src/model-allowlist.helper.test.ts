@@ -1,4 +1,8 @@
-import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import {
+  ModelCategory,
+  ModelLifecycle,
+  ModelProvider,
+} from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 
 import {
@@ -19,8 +23,7 @@ function createModel(
     isActive: true,
     isDefault: false,
     isDeleted: false,
-    key: overrides.key,
-    label: overrides.label,
+    lifecycle: ModelLifecycle.AVAILABLE,
     provider: ModelProvider.REPLICATE,
     updatedAt: '2026-01-01',
     ...overrides,

@@ -1,8 +1,14 @@
+import type { Server } from 'node:http';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { drainHttpApplication, registerGracefulDrain } from './graceful-drain';
 
 interface MockHttpServer {
   close: ReturnType<typeof vi.fn>;
+}
+
+/** The drain only calls close(callback); the stub implements just that. */
+function asHttpServer(server: MockHttpServer): Pick<Server, 'close'> {
+  return server as unknown as Pick<Server, 'close'>;
 }
 
 function buildLogger() {
@@ -42,7 +48,7 @@ describe('drainHttpApplication', () => {
 
     await drainHttpApplication({
       app,
-      httpServer,
+      httpServer: asHttpServer(httpServer),
       logger,
       serviceName: 'files',
       signal: 'SIGTERM',
@@ -68,7 +74,7 @@ describe('drainHttpApplication', () => {
 
     const drain = drainHttpApplication({
       app,
-      httpServer,
+      httpServer: asHttpServer(httpServer),
       logger,
       serviceName: 'files',
       signal: 'SIGINT',
@@ -98,7 +104,7 @@ describe('drainHttpApplication', () => {
 
     await drainHttpApplication({
       app,
-      httpServer,
+      httpServer: asHttpServer(httpServer),
       logger,
       serviceName: 'files',
       signal: 'SIGTERM',
@@ -121,7 +127,7 @@ describe('drainHttpApplication', () => {
 
     await drainHttpApplication({
       app,
-      httpServer,
+      httpServer: asHttpServer(httpServer),
       logger,
       serviceName: 'files',
       signal: 'SIGTERM',
@@ -147,7 +153,7 @@ describe('drainHttpApplication', () => {
 
     await drainHttpApplication({
       app,
-      httpServer,
+      httpServer: asHttpServer(httpServer),
       logger,
       serviceName: 'files',
       signal: 'SIGTERM',
@@ -174,7 +180,7 @@ describe('drainHttpApplication', () => {
 
     await drainHttpApplication({
       app,
-      httpServer,
+      httpServer: asHttpServer(httpServer),
       logger,
       serviceName: 'files',
       signal: 'SIGTERM',
@@ -195,7 +201,7 @@ describe('drainHttpApplication', () => {
 
     await drainHttpApplication({
       app,
-      httpServer,
+      httpServer: asHttpServer(httpServer),
       logger,
       serviceName: 'files',
       signal: 'SIGTERM',
@@ -220,7 +226,7 @@ describe('drainHttpApplication', () => {
 
     await drainHttpApplication({
       app,
-      httpServer,
+      httpServer: asHttpServer(httpServer),
       logger,
       serviceName: 'files',
       signal: 'SIGTERM',
@@ -257,7 +263,7 @@ describe('registerGracefulDrain', () => {
 
     registerGracefulDrain({
       app,
-      httpServer,
+      httpServer: asHttpServer(httpServer),
       logger,
       serviceName: 'files',
     });

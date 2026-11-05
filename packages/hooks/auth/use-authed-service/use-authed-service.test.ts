@@ -19,11 +19,8 @@ vi.mock('@helpers/auth/auth.helper', () => ({
 
 describe('useAuthedService', () => {
   const getTokenMock = vi.fn();
-  const mockResolveAuthToken = resolveAuthToken as unknown as ReturnType<
-    typeof vi.fn
-  >;
-  const mockResolveRequiredAuthToken =
-    resolveRequiredAuthToken as unknown as ReturnType<typeof vi.fn>;
+  const mockResolveAuthToken = vi.mocked(resolveAuthToken);
+  const mockResolveRequiredAuthToken = vi.mocked(resolveRequiredAuthToken);
 
   beforeEach(() => {
     vi.clearAllMocks();

@@ -27,6 +27,24 @@ vi.mock('@libs/auth/better-auth-jwks.verifier', async (importOriginal) => {
   };
 });
 
+/** A complete socket.io handshake; tests override what they exercise. */
+function handshake(
+  overrides: Partial<Socket['handshake']>,
+): Socket['handshake'] {
+  return {
+    address: '127.0.0.1',
+    auth: {},
+    headers: {},
+    issued: 0,
+    query: {},
+    secure: false,
+    time: '',
+    url: '/socket.io/',
+    xdomain: false,
+    ...overrides,
+  };
+}
+
 describe('WebSocketGateway', () => {
   let gateway: WebSocketGateway;
 
@@ -62,14 +80,14 @@ describe('WebSocketGateway', () => {
   ): Partial<Socket> => ({
     disconnect: vi.fn(),
     emit: vi.fn(),
-    handshake: {
+    handshake: handshake({
       auth: {},
       headers: {},
       query: {
         organizationId: 'org-123',
         userId: 'user-123',
       },
-    } as Socket['handshake'],
+    }),
     id: 'socket-123',
     join: vi.fn().mockResolvedValue(undefined),
     leave: vi.fn().mockResolvedValue(undefined),
@@ -125,11 +143,11 @@ describe('WebSocketGateway', () => {
 
   it('should disconnect client when userId cannot be resolved', async () => {
     const socket = createMockSocket({
-      handshake: {
+      handshake: handshake({
         auth: {},
         headers: {},
         query: {},
-      } as Socket['handshake'],
+      }),
     });
 
     await gateway.handleConnection(socket as Socket);
@@ -148,11 +166,11 @@ describe('WebSocketGateway', () => {
     'never extracts a token from a malformed Authorization header (%s)',
     async (_label, authorization) => {
       const socket = createMockSocket({
-        handshake: {
+        handshake: handshake({
           auth: {},
           headers: { authorization },
           query: {},
-        } as Socket['handshake'],
+        }),
       });
 
       await gateway.handleConnection(socket as Socket);
@@ -230,11 +248,11 @@ describe('WebSocketGateway', () => {
   it('verifies a well-formed Bearer header and disconnects when verification fails', async () => {
     verifyMock.mockRejectedValue(new Error('invalid signature'));
     const socket = createMockSocket({
-      handshake: {
+      handshake: handshake({
         auth: {},
         headers: { authorization: 'Bearer stale.payload.signature' },
         query: {},
-      } as Socket['handshake'],
+      }),
     });
 
     await gateway.handleConnection(socket as Socket);
@@ -258,11 +276,11 @@ describe('WebSocketGateway', () => {
       sub: 'aaaaaaaa-0000-0000-0000-000000000001',
     });
     const socket = createMockSocket({
-      handshake: {
+      handshake: handshake({
         auth: { token: 'header.payload.signature' },
         headers: {},
         query: {},
-      } as Socket['handshake'],
+      }),
     });
 
     await gateway.handleConnection(socket as Socket);
@@ -290,14 +308,14 @@ describe('WebSocketGateway', () => {
       sub: 'aaaaaaaa-0000-0000-0000-000000000001',
     });
     const socket = createMockSocket({
-      handshake: {
+      handshake: handshake({
         auth: { token: 'header.payload.signature' },
         headers: {},
         query: {
           organizationId: 'org-query',
           userId: 'user-query',
         },
-      } as Socket['handshake'],
+      }),
     });
 
     await gateway.handleConnection(socket as Socket);
@@ -325,14 +343,14 @@ describe('WebSocketGateway', () => {
       sub: 'aaaaaaaa-0000-0000-0000-000000000001',
     });
     const socket = createMockSocket({
-      handshake: {
+      handshake: handshake({
         auth: { token: 'header.payload.signature' },
         headers: {},
         query: {
           organizationId: 'org-query',
           userId: 'user-query',
         },
-      } as Socket['handshake'],
+      }),
     });
 
     await gateway.handleConnection(socket as Socket);
@@ -358,14 +376,14 @@ describe('WebSocketGateway', () => {
     });
     verifyMock.mockRejectedValue(verificationError);
     const socket = createMockSocket({
-      handshake: {
+      handshake: handshake({
         auth: { token: 'bad.token.here' },
         headers: {},
         query: {
           organizationId: 'org-query',
           userId: 'user-query',
         },
-      } as Socket['handshake'],
+      }),
     });
 
     await gateway.handleConnection(socket as Socket);
@@ -404,11 +422,11 @@ describe('WebSocketGateway', () => {
       sub: 'user-a',
     });
     const socket = createMockSocket({
-      handshake: {
+      handshake: handshake({
         auth: { token: 'token-a' },
         headers: {},
         query: {},
-      } as Socket['handshake'],
+      }),
     });
 
     await gateway.handleConnection(socket as Socket);
@@ -463,11 +481,11 @@ describe('WebSocketGateway redis message dispatch', () => {
   const createVerifiedSocket = (id: string): Partial<Socket> => ({
     disconnect: vi.fn(),
     emit: vi.fn(),
-    handshake: {
+    handshake: handshake({
       auth: { token: 'header.payload.signature' },
       headers: {},
       query: {},
-    } as Socket['handshake'],
+    }),
     id,
     join: vi.fn().mockResolvedValue(undefined),
     leave: vi.fn().mockResolvedValue(undefined),

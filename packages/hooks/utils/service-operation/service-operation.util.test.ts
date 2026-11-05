@@ -133,9 +133,8 @@ describe('service-operation utilities', () => {
 
   it('executeWithActionState toggles the specified key', async () => {
     const operation = vi.fn().mockResolvedValue('ok');
-    const setActionStates = vi.fn() as unknown as React.Dispatch<
-      React.SetStateAction<Record<string, boolean>>
-    >;
+    const setActionStates =
+      vi.fn<React.Dispatch<React.SetStateAction<Record<string, boolean>>>>();
 
     await executeWithActionState({
       errorMessage: 'Delete failed',
@@ -146,10 +145,10 @@ describe('service-operation utilities', () => {
       url: 'DELETE /items/1',
     });
 
-    const startUpdater = setActionStates.mock.calls[0][0] as (
+    const startUpdater = setActionStates.mock.calls[0]?.[0] as (
       state: Record<string, boolean>,
     ) => Record<string, boolean>;
-    const endUpdater = setActionStates.mock.calls[1][0] as (
+    const endUpdater = setActionStates.mock.calls[1]?.[0] as (
       state: Record<string, boolean>,
     ) => Record<string, boolean>;
 
@@ -159,9 +158,8 @@ describe('service-operation utilities', () => {
 
   it('executeWithActionState resets the specified key after failure', async () => {
     const operation = vi.fn().mockRejectedValue(new Error('boom'));
-    const setActionStates = vi.fn() as unknown as React.Dispatch<
-      React.SetStateAction<Record<string, boolean>>
-    >;
+    const setActionStates =
+      vi.fn<React.Dispatch<React.SetStateAction<Record<string, boolean>>>>();
 
     const result = await executeWithActionState({
       errorMessage: 'Delete failed',
@@ -172,10 +170,10 @@ describe('service-operation utilities', () => {
       url: 'DELETE /items/1',
     });
 
-    const startUpdater = setActionStates.mock.calls[0][0] as (
+    const startUpdater = setActionStates.mock.calls[0]?.[0] as (
       state: Record<string, boolean>,
     ) => Record<string, boolean>;
-    const endUpdater = setActionStates.mock.calls[1][0] as (
+    const endUpdater = setActionStates.mock.calls[1]?.[0] as (
       state: Record<string, boolean>,
     ) => Record<string, boolean>;
 
@@ -186,9 +184,8 @@ describe('service-operation utilities', () => {
 
   it('executeSilentWithActionState toggles state without success notification', async () => {
     const operation = vi.fn().mockResolvedValue('ok');
-    const setActionStates = vi.fn() as unknown as React.Dispatch<
-      React.SetStateAction<Record<string, boolean>>
-    >;
+    const setActionStates =
+      vi.fn<React.Dispatch<React.SetStateAction<Record<string, boolean>>>>();
 
     const result = await executeSilentWithActionState({
       errorMessage: 'Clone failed',

@@ -8,7 +8,7 @@ const { mockBrandState, mockUseParams } = vi.hoisted(() => ({
       slug: 'fallback-brand',
     } as { organization: { slug: string }; slug: string } | null,
   },
-  mockUseParams: vi.fn(() => ({
+  mockUseParams: vi.fn((): { brandSlug?: string; orgSlug?: string } => ({
     brandSlug: 'my-brand',
     orgSlug: 'genfeed-ai',
   })),

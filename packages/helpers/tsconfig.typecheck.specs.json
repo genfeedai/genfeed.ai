@@ -4,7 +4,8 @@
     "declaration": false,
     "declarationMap": false,
     "noEmit": true,
-    "rootDir": "../.."
+    "rootDir": "../..",
+    "jsx": "react-jsx"
   },
   "exclude": [
     "node_modules",

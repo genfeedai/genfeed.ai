@@ -1,8 +1,9 @@
 export interface IMasonryGridOptions {
+  /** Tablet falls back to mobile, desktop to tablet then mobile. */
   columns?: {
     mobile: number;
-    tablet: number;
-    desktop: number;
+    tablet?: number;
+    desktop?: number;
   };
   gap?: number;
   /** Size columns from the available panel width rather than the viewport. */

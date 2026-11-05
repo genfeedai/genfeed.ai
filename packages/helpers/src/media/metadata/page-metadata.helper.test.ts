@@ -241,7 +241,7 @@ describe('page-metadata.helper', () => {
     for (const { generate, name } of builders) {
       it(`should set openGraph type for ${name}`, async () => {
         const result = await generate({}, createMockParent() as never);
-        expect(result.openGraph?.type).toBe('website');
+        expect(result.openGraph).toMatchObject({ type: 'website' });
       });
 
       it(`should set openGraph siteName for ${name}`, async () => {
@@ -251,7 +251,7 @@ describe('page-metadata.helper', () => {
 
       it(`should set twitter card for ${name}`, async () => {
         const result = await generate({}, createMockParent() as never);
-        expect(result.twitter?.card).toBe('summary_large_image');
+        expect(result.twitter).toMatchObject({ card: 'summary_large_image' });
       });
 
       it(`should always emit an openGraph description for ${name}`, async () => {
@@ -268,9 +268,9 @@ describe('page-metadata.helper', () => {
       );
       const props = { params: Promise.resolve({ slug: 'hello' }) };
       const result = await generate(props, createMockParent() as never);
-      expect(result.openGraph?.type).toBe('website');
+      expect(result.openGraph).toMatchObject({ type: 'website' });
       expect(result.openGraph?.siteName).toBe('Genfeed AI');
-      expect(result.twitter?.card).toBe('summary_large_image');
+      expect(result.twitter).toMatchObject({ card: 'summary_large_image' });
       expect(result.openGraph?.description).toBeTruthy();
     });
 

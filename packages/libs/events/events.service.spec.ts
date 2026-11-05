@@ -2,6 +2,7 @@ import { EventsService } from '@libs/events/events.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 
 describe('EventsService', () => {
   let service: EventsService;

@@ -2,6 +2,7 @@ import { RedisService } from '@libs/redis/redis.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { WebSocketService } from '@libs/websockets/websockets.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { Mocked } from 'vitest';
 
 describe('WebSocketService', () => {
   let service: WebSocketService;
@@ -34,7 +35,7 @@ describe('WebSocketService', () => {
   describe('publishVideoProgress', () => {
     it('should publish video progress with default room', async () => {
       const path = '/path/to/video.mp4';
-      const progress = { frame: 1000, percentage: 50 };
+      const progress = 50;
       const userId = 'user123';
 
       await service.publishVideoProgress(path, progress, userId);
@@ -49,7 +50,7 @@ describe('WebSocketService', () => {
 
     it('should publish video progress with custom room', async () => {
       const path = '/path/to/video.mp4';
-      const progress = { frame: 1500, percentage: 75 };
+      const progress = 75;
       const userId = 'user123';
       const room = 'custom-room';
 

@@ -141,6 +141,7 @@ describe('json-api.helper', () => {
           pagination: {
             limit: 20,
             page: 1,
+            pages: 5,
             total: 100,
           },
         },
