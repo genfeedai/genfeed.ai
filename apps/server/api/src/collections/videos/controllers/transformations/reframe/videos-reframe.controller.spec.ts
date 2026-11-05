@@ -220,7 +220,7 @@ describe('VideosReframeController', () => {
       width: 1080,
     });
     expect(result).toBeDefined();
-    expect(result.id).toEqual(ingredientId);
+    expect(result).toHaveProperty('id', ingredientId);
   });
 
   it('should throw NOT_FOUND when parent video does not exist', async () => {

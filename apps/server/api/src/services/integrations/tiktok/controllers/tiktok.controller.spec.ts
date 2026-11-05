@@ -196,9 +196,11 @@ describe('TiktokController', () => {
     });
 
     it('should include only the opaque server-issued state in the URL', async () => {
-      const result = (await controller.connect(mockRequest, mockUser, dto)) as {
-        url: string;
-      };
+      const result = (await controller.connect(
+        mockRequest,
+        mockUser,
+        dto,
+      )) as unknown as { url: string };
       const url = new URL(result.url);
       const stateParam = url.searchParams.get('state');
       expect(stateParam).toBe('opaque-oauth-state');

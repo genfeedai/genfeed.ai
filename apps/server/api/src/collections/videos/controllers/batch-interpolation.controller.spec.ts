@@ -695,9 +695,9 @@ describe('BatchInterpolationController', () => {
           mockUser,
         );
 
-        expect(first.groupId).toEqual(expect.any(String));
-        expect(second.groupId).toEqual(expect.any(String));
-        expect(first.groupId).not.toBe(second.groupId);
+        expect(first).toHaveProperty('groupId', expect.any(String));
+        expect(second).toHaveProperty('groupId', expect.any(String));
+        expect(first).not.toHaveProperty('groupId', Reflect.get(second, 'groupId'));
       });
 
       it('should start all pair generations without waiting for earlier pairs to finish', async () => {
@@ -1067,7 +1067,7 @@ describe('BatchInterpolationController', () => {
         );
 
         // 2 pairs + 1 loop-back = 3 total
-        expect(result.totalJobs).toBe(3);
+        expect(result).toHaveProperty('totalJobs', 3);
       });
 
       it('skips credit reservations when model has zero cost', async () => {
@@ -1424,7 +1424,7 @@ describe('BatchInterpolationController', () => {
           mockUser,
         );
 
-        expect(result.isMergeEnabled).toBe(true);
+        expect(result).toHaveProperty('isMergeEnabled', true);
       });
     });
   });

@@ -114,7 +114,7 @@ describe('AnnouncementsController', () => {
 
       const dto: BroadcastAnnouncementDto = {
         channels: ['discord'],
-        message: 'New feature released!',
+        body: 'New feature released!',
       };
       const user = makeUser('org_123');
       const req = makeRequest();
@@ -133,7 +133,7 @@ describe('AnnouncementsController', () => {
       mockAdminAnnouncementsService.broadcast.mockResolvedValue(announcement);
 
       const result = await controller.broadcast(
-        { channels: ['discord'], message: 'Hello' } as BroadcastAnnouncementDto,
+        { channels: ['discord'], body: 'Hello' },
         makeUser() as never,
         makeRequest() as never,
       );
@@ -151,8 +151,8 @@ describe('AnnouncementsController', () => {
         controller.broadcast(
           {
             channels: ['discord'],
-            message: 'Hello',
-          } as BroadcastAnnouncementDto,
+            body: 'Hello',
+          },
           makeUser() as never,
           makeRequest() as never,
         ),

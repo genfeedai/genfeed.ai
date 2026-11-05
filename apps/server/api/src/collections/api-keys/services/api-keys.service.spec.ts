@@ -20,12 +20,12 @@ import {
 
 type MockFn = ReturnType<typeof vi.fn>;
 
-type ApiKeysServiceHarness = ApiKeysService & {
+type ApiKeysServiceHarness = Omit<ApiKeysService, 'createWithKey' | 'revoke'> & {
   createWithKey: MockFn;
   revoke: MockFn;
 };
 
-type ApiKeysValidationHarness = ApiKeysService & {
+type ApiKeysValidationHarness = Omit<ApiKeysService, 'create'> & {
   create: MockFn;
 };
 
@@ -120,7 +120,7 @@ describe('ApiKeysService', () => {
           keyFingerprint: 'fingerprint',
           organizationId: 'org-1',
           userId: 'user-1',
-        } as ApiKeyDocument),
+        }),
       ).toBe(ActionOrigin.CLI);
       const mcpProof = createHmac('sha256', 'test-signing-secret')
         .update('mcp:user-1:org-1:fingerprint')
@@ -134,18 +134,26 @@ describe('ApiKeysService', () => {
           keyFingerprint: 'fingerprint',
           organizationId: 'org-1',
           userId: 'user-1',
-        } as ApiKeyDocument),
+        }),
       ).toBe(ActionOrigin.MCP);
       expect(
         service.resolveActionOrigin({
+          keyFingerprint: 'fingerprint',
           metadata: {
             [API_KEY_ACTION_ORIGIN_METADATA_KEY]: ActionOrigin.CLI,
           },
-        } as ApiKeyDocument),
+          organizationId: 'org-1',
+          userId: 'user-1',
+        }),
       ).toBe(ActionOrigin.API);
-      expect(service.resolveActionOrigin({} as ApiKeyDocument)).toBe(
-        ActionOrigin.API,
-      );
+      expect(
+        service.resolveActionOrigin({
+          keyFingerprint: 'fingerprint',
+          metadata: null,
+          organizationId: 'org-1',
+          userId: 'user-1',
+        }),
+      ).toBe(ActionOrigin.API);
     });
   });
 

@@ -240,7 +240,7 @@ describe('VideosUpscaleController', () => {
       dto,
     );
     expect(result).toBeDefined();
-    expect(result.id).toEqual(ingredientId);
+    expect(result).toHaveProperty('id', ingredientId);
     expect(mockServices.promptBuilderService.buildPrompt).toHaveBeenCalledWith(
       MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
       expect.objectContaining({
