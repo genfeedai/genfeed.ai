@@ -50,6 +50,7 @@ describe('integration HTTP client', () => {
       }),
     ).rejects.toMatchObject({
       metadata: {
+        method: 'GET',
         status: 401,
         url: 'https://example.com/resource?access_token=%5BREDACTED%5D',
       },

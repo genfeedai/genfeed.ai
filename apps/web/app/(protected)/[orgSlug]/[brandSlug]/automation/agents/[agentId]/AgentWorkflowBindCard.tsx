@@ -1,4 +1,5 @@
 import { ButtonSize, ButtonVariant, CardGap } from '@genfeedai/contracts';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { AgentStrategy } from '@services/automation/agent-strategies.service';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
@@ -15,7 +16,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type {
   OverrideRow,
@@ -24,6 +25,7 @@ import type {
 } from '@/features/automation/props/agent-workflow-bind-card.props';
 
 const CLEAR_BINDING = '__clear__';
+const EMPTY_OPTIONS: WorkflowOption[] = [];
 
 function newOverrideRow(key = '', value = ''): OverrideRow {
   return {
@@ -55,18 +57,39 @@ export default function AgentWorkflowBindCard({
   const getAgentService = useAuthedService((token: string) =>
     AgentStrategiesService.getInstance(token),
   );
-  const getWorkflowsService = useAuthedService((token: string) =>
-    WorkflowsService.getInstance(token),
-  );
 
-  const [options, setOptions] = useState<WorkflowOption[]>([]);
+  // The brand's workflows read through React Query, so coming back to the
+  // agent paints the cached choices at once.
+  const brandId = strategy.brandId ?? strategy.brand?.id ?? null;
+  const workflowsQuery = useAuthedQuery<WorkflowsService, WorkflowOption[]>({
+    queryFn: async (service, signal) => {
+      const rows = await service.findAll(
+        brandId
+          ? { brandId, isDeleted: false, limit: 50 }
+          : { isDeleted: false, limit: 50 },
+        signal,
+      );
+      return rows.map((workflow) => ({
+        id: workflow.id,
+        label:
+          (typeof workflow.label === 'string' && workflow.label.trim()) ||
+          workflow.id.slice(0, 8),
+      }));
+    },
+    queryKey: ['agent-bind-workflows', brandId],
+    service: (token: string) => WorkflowsService.getInstance(token),
+  });
+  const options = workflowsQuery.data ?? EMPTY_OPTIONS;
+  const isLoading = workflowsQuery.isPending;
+  const { error: loadError } = workflowsQuery;
+  const reportedLoadErrorRef = useRef<Error | null>(null);
+
   const [selectedId, setSelectedId] = useState(
     strategy.preferredWorkflowId ?? '',
   );
   const [overrides, setOverrides] = useState<OverrideRow[]>(() =>
     overridesFromStrategy(strategy),
   );
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -74,45 +97,15 @@ export default function AgentWorkflowBindCard({
     setOverrides(overridesFromStrategy(strategy));
   }, [strategy]);
 
+  // Each failed read is reported once, however often the card re-renders.
   useEffect(() => {
-    let cancelled = false;
-    async function loadWorkflows() {
-      setIsLoading(true);
-      try {
-        const service = await getWorkflowsService();
-        const brandId = strategy.brandId ?? strategy.brand?.id;
-        const rows = await service.findAll(
-          brandId
-            ? { brandId, isDeleted: false, limit: 50 }
-            : { isDeleted: false, limit: 50 },
-        );
-        if (cancelled) {
-          return;
-        }
-        setOptions(
-          rows.map((workflow) => ({
-            id: workflow.id,
-            label:
-              (typeof workflow.label === 'string' && workflow.label.trim()) ||
-              workflow.id.slice(0, 8),
-          })),
-        );
-      } catch (error) {
-        if (!cancelled) {
-          logger.error('Failed to list workflows for agent bind', error);
-          toast.error(translate('errors.load'));
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
+    if (!loadError || reportedLoadErrorRef.current === loadError) {
+      return;
     }
-    void loadWorkflows();
-    return () => {
-      cancelled = true;
-    };
-  }, [getWorkflowsService, strategy.brand?.id, strategy.brandId, translate]);
+    reportedLoadErrorRef.current = loadError;
+    logger.error('Failed to list workflows for agent bind', loadError);
+    toast.error(translate('errors.load'));
+  }, [loadError, translate]);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);

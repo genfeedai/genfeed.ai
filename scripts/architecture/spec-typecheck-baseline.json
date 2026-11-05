@@ -4001,30 +4001,6 @@
       "workspace": "config"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/contracts/src/constants/model-capabilities.constant.test.ts",
-      "fingerprint": "1876fc14dc192314e638",
-      "message": "Argument of type 'string' is not assignable to parameter of type '\"leonardoai\" | \"sdxl\" | \"black-forest-labs/flux-schnell\" | \"google/imagen-3\" | \"google/imagen-3-fast\" | \"google/imagen-4\" | \"google/imagen-4-fast\" | \"google/imagen-4-ultra\" | ... 124 more ... | \"genfeed-ai/z-image-turbo-lora\"'.",
-      "workspace": "contracts"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "packages/contracts/src/constants/self-hosted-models.constant.test.ts",
-      "fingerprint": "34456683a759b2d7ade1",
-      "message": "Property 'pricingType' does not exist on type '{ category: ModelCategory; cost: number; costTier: CostTier; description: string; isDefault: boolean; isHighlighted: boolean; key: \"black-forest-labs/flux-3-image\" | \"black-forest-labs/flux-3-image-edit\"; ... 5 more ...; providerCostUsd: number; } | ... 21 more ... | { ...; }'.   Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
-      "workspace": "contracts"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "packages/contracts/src/constants/self-hosted-models.constant.test.ts",
-      "fingerprint": "997d3dd44ab0fe1e5fc1",
-      "message": "Property 'costPerUnit' does not exist on type '{ category: ModelCategory; cost: number; costTier: CostTier; description: string; isDefault: boolean; isHighlighted: boolean; key: \"black-forest-labs/flux-3-image\" | \"black-forest-labs/flux-3-image-edit\"; ... 5 more ...; providerCostUsd: number; } | ... 21 more ... | { ...; }'.   Property 'costPerUnit' does not exist on type '{ category: ModelCategory; cost: number; costTier: CostTier; description: string; isDefault: boolean; isHighlighted: boolean; key: \"black-forest-labs/flux-3-image\" | \"black-forest-labs/flux-3-image-edit\"; ... 5 more ...; providerCostUsd: number; }'.",
-      "workspace": "contracts"
-    },
-    {
       "code": 2540,
       "count": 6,
       "file": "apps/server/discord/src/config/config.service.spec.ts",
@@ -4305,30 +4281,6 @@
       "workspace": "files"
     },
     {
-      "code": 2339,
-      "count": 1,
-      "file": "packages/integrations/src/base-bot-manager.test.ts",
-      "fingerprint": "adee40c9155d036ed3b0",
-      "message": "Property 'mockRejectedValueOnce' does not exist on type 'never'.",
-      "workspace": "integrations"
-    },
-    {
-      "code": 2674,
-      "count": 1,
-      "file": "packages/integrations/src/base-bot-manager.test.ts",
-      "fingerprint": "6378e86285540e9efef8",
-      "message": "Constructor of class 'BaseBotManager<TBotInstance>' is protected and only accessible within the class declaration.",
-      "workspace": "integrations"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "packages/integrations/src/http/integration-http-client.test.ts",
-      "fingerprint": "098d6cf688b79d3a1c31",
-      "message": "Property 'method' is missing in type '{ status: number; url: string; }' but required in type 'IntegrationHttpErrorMetadata'.",
-      "workspace": "integrations"
-    },
-    {
       "code": 2353,
       "count": 1,
       "file": "packages/models/billing/subscription.model.test.ts",
@@ -4577,54 +4529,6 @@
       "workspace": "models"
     },
     {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/notifications/src/services/discord/discord-bot.service.spec.ts",
-      "fingerprint": "f724cb270f1881193a0e",
-      "message": "Argument of type '(key: string) => string' is not assignable to parameter of type '(key: keyof NotificationsEnvConfig) => string | number | boolean | undefined'.   Types of parameters 'key' and 'key' are incompatible.     Type 'keyof NotificationsEnvConfig' is not assignable to type 'string'.       Type 'number' is not assignable to type 'string'.",
-      "workspace": "notifications"
-    },
-    {
-      "code": 2352,
-      "count": 2,
-      "file": "apps/server/notifications/src/services/discord/discord-bot.service.spec.ts",
-      "fingerprint": "ccf8fc60d06a30b455f2",
-      "message": "Conversion of type 'typeof Client' to type 'Mock' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type 'typeof Client' is missing the following properties from type 'MockInstance<Procedure>': getMockName, mockName, mock, mockClear, and 16 more.",
-      "workspace": "notifications"
-    },
-    {
-      "code": 2540,
-      "count": 3,
-      "file": "apps/server/notifications/src/services/terminal/terminal.service.spec.ts",
-      "fingerprint": "a764030ad03df2f7c50c",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "notifications"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/notifications/src/webhooks/webhooks.controller.spec.ts",
-      "fingerprint": "cc426a780fc5195eebe2",
-      "message": "Type '\"openai\"' is not assignable to type '\"replicate\" | \"heygen\" | \"kling\" | \"leonardoai\" | \"stripe\" | \"better_auth\" | \"vercel\"'.",
-      "workspace": "notifications"
-    },
-    {
-      "code": 2353,
-      "count": 1,
-      "file": "apps/server/notifications/src/webhooks/webhooks.controller.spec.ts",
-      "fingerprint": "98a29538c3590ec0f727",
-      "message": "Object literal may only specify known properties, and 'id' does not exist in type 'WebhookNotification'.",
-      "workspace": "notifications"
-    },
-    {
-      "code": 2540,
-      "count": 1,
-      "file": "apps/server/notifications/test/setup-unit.ts",
-      "fingerprint": "d904021c4b257ebd1510",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "notifications"
-    },
-    {
       "code": 2304,
       "count": 1,
       "file": "packages/contracts/src/interfaces/components/mask-editor.interface.ts",
@@ -4639,22 +4543,6 @@
       "fingerprint": "5b297a951e1e2587906d",
       "message": "Cannot find name 'ImageData'.",
       "workspace": "pricing"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "packages/serializers/src/builders/serializer.builder.contract.test.ts",
-      "fingerprint": "036850e9fa56f23b9971",
-      "message": "Conversion of type 'JsonApiDocument' to type '{ data: { relationships: { user: { data: unknown; }; }; }; included: unknown[]; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'data' are incompatible.     Type 'JsonApiResource | JsonApiResource[] | undefined' is not comparable to type '{ relationships: { user: { data: unknown; }; }; }'.       Property 'relationships' is missing in type 'JsonApiResource[]' but required in type '{ relationships: { user: { data: unknown; }; }; }'.",
-      "workspace": "serializers"
-    },
-    {
-      "code": 2550,
-      "count": 1,
-      "file": "packages/serializers/src/helpers/turbo-run-item-assignee.helper.test.ts",
-      "fingerprint": "fc927e9650d98357b03e",
-      "message": "Property 'toSorted' does not exist on type 'string[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
-      "workspace": "serializers"
     },
     {
       "code": 2322,
@@ -5367,70 +5255,6 @@
       "fingerprint": "b73a4ba974bac1021b02",
       "message": "Conversion of type 'typeof MockBaseService' to type 'new (token: string) => unknown' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of construct signatures are incompatible.     Type 'new (endpoint: string, token: string, ..._rest: unknown[]) => MockBaseService' is not assignable to type 'new (token: string) => unknown'.       Target signature provides too few arguments. Expected 2 or more, but got 1.",
       "workspace": "services"
-    },
-    {
-      "code": 2540,
-      "count": 1,
-      "file": "apps/server/slack/src/config/config.service.spec.ts",
-      "fingerprint": "3b88c5dec0639d21569f",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "slack"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/slack/src/services/__tests__/slack-bot-manager.service.spec.ts",
-      "fingerprint": "c66ce2ff6a42e0dfaf87",
-      "message": "Argument of type '(channel: string, handler?: (message: unknown) => void) => void' is not assignable to parameter of type '(channel: string, handler?: ((message: unknown) => void) | undefined) => Promise<void>'.   Type 'void' is not assignable to type 'Promise<void>'.",
-      "workspace": "slack"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/slack/src/services/__tests__/slack-bot-manager.service.spec.ts",
-      "fingerprint": "f5214f4d5790b263f07b",
-      "message": "Argument of type '{ app: { action: Mock<Procedure>; command: Mock<Procedure>; event: Mock<Procedure>; message: Mock<Procedure>; start: Mock<...>; stop: Mock<...>; use: Mock<...>; }; id: string; integration: OrgIntegration; orgId: string; }' is not assignable to parameter of type 'SlackBotInstance'.   Types of property 'app' are incompatible.     Type '{ action: Mock<Procedure>; command: Mock<Procedure>; event: Mock<Procedure>; message: Mock<Procedure>; start: Mock<...>; stop: Mock<...>; use: Mock<...>; }' is missing the following properties from type 'App<StringIndexed>': client, clientOptions, clients, receiver, and 28 more.",
-      "workspace": "slack"
-    },
-    {
-      "code": 2554,
-      "count": 4,
-      "file": "apps/server/slack/src/services/__tests__/slack-bot-manager.service.spec.ts",
-      "fingerprint": "c883a87ab469494ce737",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "slack"
-    },
-    {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/server/slack/src/services/__tests__/slack-bot-manager.service.spec.ts",
-      "fingerprint": "a40404a2284a3a178faa",
-      "message": "Type 'BotManagerLogger' is missing the following properties from type 'Logger': options, localInstance, verbose, fatal, registerLocalInstanceRef",
-      "workspace": "slack"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/slack/test/integration/slack-flow.integration.spec.ts",
-      "fingerprint": "1475fca3ebb33d3172df",
-      "message": "'deletedCall' is possibly 'undefined'.",
-      "workspace": "slack"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/slack/test/integration/slack-flow.integration.spec.ts",
-      "fingerprint": "a51deebf810aa73747ef",
-      "message": "'createdCall' is possibly 'undefined'.",
-      "workspace": "slack"
-    },
-    {
-      "code": 2540,
-      "count": 1,
-      "file": "apps/server/slack/test/setup-unit.ts",
-      "fingerprint": "c5913c7f368baace05da",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "slack"
     },
     {
       "code": 2307,
@@ -7679,94 +7503,6 @@
       "fingerprint": "aa4a277d6c4e6f19c804",
       "message": "Conversion of type '{ error: Mock<Procedure>; success: Mock<Procedure>; }' to type 'NotificationsService' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ error: Mock<Procedure>; success: Mock<Procedure>; }' is missing the following properties from type 'NotificationsService': buildOptions, info, warning",
       "workspace": "web"
-    },
-    {
-      "code": 2540,
-      "count": 3,
-      "file": "apps/server/workers/src/config/config.service.spec.ts",
-      "fingerprint": "04caf68d6bb0ebf704a2",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2704,
-      "count": 1,
-      "file": "apps/server/workers/src/config/config.service.spec.ts",
-      "fingerprint": "9a883eb5173deb2aeffe",
-      "message": "The operand of a 'delete' operator cannot be a read-only property.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/fal-model-watcher/cron.fal-model-watcher.service.spec.ts",
-      "fingerprint": "af5c2d5bea6ff2bd4f57",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/fal-model-watcher/cron.fal-model-watcher.service.spec.ts",
-      "fingerprint": "f1baa69fccf4f4f26418",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/ingredients/cron.ingredients.service.spec.ts",
-      "fingerprint": "0a8ad451de3709d6346c",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/ingredients/cron.ingredients.service.spec.ts",
-      "fingerprint": "14019070ec9b0385a306",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/ingredients/cron.ingredients.service.spec.ts",
-      "fingerprint": "2801a1323aa950a448ef",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/ingredients/cron.ingredients.service.spec.ts",
-      "fingerprint": "46fe4cd931f929d4a80a",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/ingredients/cron.ingredients.service.spec.ts",
-      "fingerprint": "efee5046cd5c5856c96d",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/ingredients/cron.ingredients.service.spec.ts",
-      "fingerprint": "fc87e817eb9675f21cc1",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2540,
-      "count": 1,
-      "file": "apps/server/workers/test/setup-unit.ts",
-      "fingerprint": "9d4449567c5f19e343e0",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "workers"
     }
   ],
   "version": 2

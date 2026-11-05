@@ -5,7 +5,7 @@ describe('ConfigService (Workers)', () => {
   let configService: ConfigService;
 
   beforeEach(() => {
-    process.env.NODE_ENV = 'test';
+    vi.stubEnv('NODE_ENV', 'test');
     delete process.env.GF_DEV_ENABLE_SCHEDULERS;
     process.env.PORT = '3000';
     process.env.SENTRY_ENVIRONMENT = 'test';
@@ -25,7 +25,7 @@ describe('ConfigService (Workers)', () => {
   afterEach(() => {
     delete process.env.GF_DEV_ENABLE_SCHEDULERS;
     delete process.env.DATABASE_URL;
-    delete process.env.NODE_ENV;
+    vi.unstubAllEnvs();
     delete process.env.PORT;
     delete process.env.GENFEEDAI_CDN_URL;
     delete process.env.GENFEEDAI_APP_URL;
@@ -83,14 +83,14 @@ describe('ConfigService (Workers)', () => {
     });
 
     it('should disable schedulers by default in development', () => {
-      process.env.NODE_ENV = 'development';
+      vi.stubEnv('NODE_ENV', 'development');
       configService = new ConfigService();
 
       expect(configService.isDevSchedulersEnabled).toBe(false);
     });
 
     it('should allow opting into schedulers in development', () => {
-      process.env.NODE_ENV = 'development';
+      vi.stubEnv('NODE_ENV', 'development');
       process.env.GF_DEV_ENABLE_SCHEDULERS = 'true';
       configService = new ConfigService();
 

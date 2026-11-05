@@ -7,7 +7,7 @@
  * unset — specs pass plaintext fixtures, which the cipher passes through.
  */
 
-process.env.NODE_ENV = 'test';
+vi.stubEnv('NODE_ENV', 'test');
 
 // Mock encryption key — same value as the api test setup so encrypted
 // fixtures interop across service suites.
