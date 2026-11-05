@@ -1,12 +1,17 @@
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
   AssetScope,
   CredentialPlatform,
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/contracts';
 import type { ICredential, IIngredient } from '@genfeedai/contracts/interfaces';
-import { render, screen } from '@testing-library/react';
+import { render as renderView, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import ModalPostBatch from '@/components/modals/content/batch/ModalPostBatch';
 
@@ -48,7 +53,35 @@ vi.mock('@/hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
   useModalAutoOpen: vi.fn(),
 }));
 
-const { mockPush } = vi.hoisted(() => ({ mockPush: vi.fn() }));
+const { mockGetSettings, mockPush } = vi.hoisted(() => ({
+  mockGetSettings: vi.fn(async () => ({ timezone: 'Europe/Paris' })),
+  mockPush: vi.fn(),
+}));
+
+vi.mock(
+  '@genfeedai/contexts/user/brand-context/brand-context',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@genfeedai/contexts/user/brand-context/brand-context')
+      >();
+    return {
+      ...actual,
+      useBrand: () => ({ ...actual.useBrand(), organizationId: 'org-1' }),
+    };
+  },
+);
+
+vi.mock('@genfeedai/services/organization/organizations.service', () => ({
+  OrganizationsService: {
+    getInstance: () => ({ getSettings: mockGetSettings }),
+  },
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand-slug', orgSlug: 'acme' }),
@@ -68,8 +101,20 @@ vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
 }));
 
 vi.mock('@/components/modals/content/post/ModalPostSetupTab', () => ({
-  default: () => <p>Shared title, caption and time</p>,
+  default: ({
+    settings,
+  }: import('@genfeedai/props/modals/modal.props').ModalPostSetupTabProps) => (
+    <>
+      <p>Shared title, caption and time</p>
+      <p>{`Organization timezone: ${settings?.timezone ?? 'not loaded'}`}</p>
+    </>
+  ),
 }));
+
+/** Each render gets its own cache unless a spec passes a shared wrapper. */
+function render(ui: ReactElement) {
+  return renderView(ui, { wrapper: queryClientWrapper() });
+}
 
 vi.mock('@/components/modals/content/post/ModalPostPlatformsTab', () => ({
   default: ({
@@ -166,6 +211,49 @@ describe('ModalPostBatch', () => {
 
     expect(screen.getByText('preview panel')).toBeVisible();
   });
+  it('paints the cached organization timezone at once when reopened', async () => {
+    const ingredient = {
+      category: IngredientCategory.IMAGE,
+      id: 'ingredient-3',
+    } as unknown as IIngredient;
+    const credentials = [
+      {
+        accessTokenExpiry: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        externalHandle: 'insta-handle',
+        id: 'credential-3',
+        isConnected: true,
+        platform: CredentialPlatform.INSTAGRAM,
+      } as unknown as ICredential,
+    ];
+    const client = createTestQueryClient();
+    const firstOpen = renderView(
+      <ModalPostBatch
+        {...defaultProps}
+        ingredient={ingredient}
+        credentials={credentials}
+      />,
+      { wrapper: queryClientWrapper(client) },
+    );
+    expect(
+      await screen.findByText('Organization timezone: Europe/Paris'),
+    ).toBeVisible();
+    firstOpen.unmount();
+
+    mockGetSettings.mockImplementationOnce(() => new Promise(() => {}));
+    renderView(
+      <ModalPostBatch
+        {...defaultProps}
+        ingredient={ingredient}
+        credentials={credentials}
+      />,
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(
+      screen.getByText('Organization timezone: Europe/Paris'),
+    ).toBeVisible();
+  });
+
   it('sends the reconnect action to the brand accounts page', async () => {
     const ingredient = {
       category: IngredientCategory.IMAGE,

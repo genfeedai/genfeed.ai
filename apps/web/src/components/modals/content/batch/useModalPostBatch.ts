@@ -22,6 +22,7 @@ import {
   getBrowserTimezone,
 } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedQuery } from '@genfeedai/hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type {
@@ -137,10 +138,6 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     CredentialsService.getInstance(token),
   );
 
-  const getOrganizationsService = useAuthedService((token: string) =>
-    OrganizationsService.getInstance(token),
-  );
-
   const [isRefreshingTokens, setIsRefreshingTokens] = useState(false);
   const hasAttemptedRefreshRef = useRef(false);
 
@@ -180,9 +177,33 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     PlatformSubmissionStatus[]
   >([]);
 
-  const [settings, setSettings] = useState<IOrganizationSetting | undefined>(
-    undefined,
+  const activeIngredients = useMemo(
+    () => ingredients || (ingredient ? [ingredient] : []),
+    [ingredients, ingredient],
   );
+
+  // Read once there is something to post; a reopened modal schedules in the
+  // cached timezone straight away and refreshes it in the background.
+  const settingsQuery = useAuthedQuery<
+    OrganizationsService,
+    IOrganizationSetting
+  >({
+    enabled: Boolean(organizationId) && activeIngredients.length > 0,
+    queryFn: async (service) => {
+      const url = `GET /organizations/${organizationId}/settings`;
+      try {
+        const organizationSettings = await service.getSettings(organizationId);
+        logger.info(`${url} success`, organizationSettings);
+        return organizationSettings;
+      } catch (err) {
+        logger.error(`${url} failed`, err);
+        throw err;
+      }
+    },
+    queryKey: ['organization-settings', organizationId],
+    service: (token: string) => OrganizationsService.getInstance(token),
+  });
+  const settings = settingsQuery.data;
 
   const [globalScheduledDate, setGlobalScheduledDate] = useState<Date | null>(
     null,
@@ -203,39 +224,6 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     hasUserEditedSchedule.current = true;
     setGlobalScheduledDate(date);
   }, []);
-
-  const findOrganizationSettings = useCallback(
-    async (signal?: AbortSignal) => {
-      if (!organizationId) {
-        return;
-      }
-
-      const url = `GET /organizations/${organizationId}/settings`;
-
-      try {
-        const service = await getOrganizationsService();
-        const organizationSettings = await service.getSettings(organizationId);
-
-        if (signal?.aborted) {
-          return;
-        }
-
-        if (organizationSettings) {
-          setSettings(organizationSettings);
-        }
-
-        logger.info(`${url} success`, organizationSettings);
-      } catch (err) {
-        logger.error(`${url} failed`, err);
-      }
-    },
-    [organizationId, getOrganizationsService],
-  );
-
-  const activeIngredients = useMemo(
-    () => ingredients || (ingredient ? [ingredient] : []),
-    [ingredients, ingredient],
-  );
 
   const isCarousel = activeIngredients.length > 1;
 
@@ -523,21 +511,6 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
   }, [form, handleSubmit]);
 
   const { isSubmitting, onSubmit } = useFormSubmitWithState(submitHandler);
-
-  // Fetch org settings when modal has active ingredients
-  useEffect(() => {
-    const abortController = new AbortController();
-
-    if (organizationId && activeIngredients.length > 0) {
-      startTransition(() => {
-        void findOrganizationSettings(abortController.signal);
-      });
-    }
-
-    return () => {
-      abortController.abort();
-    };
-  }, [activeIngredients.length, findOrganizationSettings, organizationId]);
 
   useEffect(() => {
     if (!hasInitializedDate.current || hasUserEditedSchedule.current) {
