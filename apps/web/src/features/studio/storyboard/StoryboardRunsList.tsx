@@ -52,7 +52,7 @@ export default function StoryboardRunsList(): ReactElement {
   const needsAttention = runs.filter(isStoryboardRunNeedingAttention);
   const otherRuns = runs.filter((run) => !isStoryboardRunNeedingAttention(run));
 
-  function row(run: StoryboardListRun): ReactElement {
+  function row(run: StoryboardListRun, now: Date): ReactElement {
     return (
       <ThreadListRow
         data-testid="storyboard-run-row"
@@ -83,7 +83,7 @@ export default function StoryboardRunsList(): ReactElement {
             ]}
           />
         }
-        time={formatThreadTime(run.updatedAt, locale)}
+        time={formatThreadTime(run.updatedAt, locale, now)}
         title={run.title}
       />
     );

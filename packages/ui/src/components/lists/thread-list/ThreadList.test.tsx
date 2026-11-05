@@ -1,7 +1,9 @@
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { formatThreadTime } from './group-by-recency';
 import {
+  ThreadListRecencySections,
   ThreadListRow,
   ThreadListSection,
   ThreadListSubtitle,
@@ -127,6 +129,26 @@ describe('ThreadListRow', () => {
     ).toHaveFocus();
   });
 
+  it('shows a thumbnail beside the named status, not instead of it', () => {
+    render(
+      <ul>
+        <ThreadListRow
+          href="/acme/clipper/p1"
+          leading={<img alt="Source video" src="/thumb.jpg" />}
+          status="done"
+          statusLabel="completed"
+          title="Launch clips"
+        />
+      </ul>,
+    );
+
+    const link = screen.getByRole('link', { name: /Launch clips/ });
+    expect(within(link).getByRole('img', { name: 'completed' })).toBeVisible();
+    expect(
+      within(link).getByRole('img', { name: 'Source video' }),
+    ).toBeVisible();
+  });
+
   it('has no menu when there are no actions', () => {
     render(
       <ul>
@@ -147,5 +169,42 @@ describe('ThreadListSubtitle', () => {
     );
 
     expect(container.textContent).toBe('Ideas · 3 items');
+  });
+});
+
+describe('ThreadListRecencySections', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('regroups and relabels rows at local midnight without a remount', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 10, 5, 23, 58));
+    const updatedAt = new Date(2026, 10, 5, 9, 30);
+    render(
+      <ThreadListRecencySections
+        getDate={() => updatedAt}
+        getKey={(item: { id: string }) => item.id}
+        items={[{ id: 'p1' }]}
+        renderRow={(item, now) => (
+          <li>
+            {item.id} {formatThreadTime(updatedAt, 'en-GB', now)}
+          </li>
+        )}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /Today/ })).toBeVisible();
+    expect(screen.getByText('p1 09:30')).toBeVisible();
+
+    act(() => {
+      vi.advanceTimersByTime(3 * 60 * 1000);
+    });
+
+    expect(screen.queryByRole('button', { name: /Today/ })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: /Previous 7 days/ }),
+    ).toBeVisible();
+    expect(screen.getByText('p1 5 Nov')).toBeVisible();
   });
 });

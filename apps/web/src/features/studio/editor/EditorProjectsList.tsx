@@ -234,7 +234,7 @@ export default function EditorProjectsList() {
     ],
   );
 
-  function renderProjectRow(project: IEditorProject) {
+  function renderProjectRow(project: IEditorProject, now: Date) {
     return (
       <ThreadListRow
         actions={[
@@ -259,7 +259,7 @@ export default function EditorProjectsList() {
             <ThreadListSubtitle parts={[formatEnumLabel(project.status)]} />
           ) : undefined
         }
-        time={formatThreadTime(project.updatedAt, locale)}
+        time={formatThreadTime(project.updatedAt, locale, now)}
         title={project.name}
       />
     );
