@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { queryClientWrapper } from '@app-tests/query-client.harness';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -61,6 +62,11 @@ vi.mock('@helpers/voice/default-voice-ref.helper', () => ({
     settings: { defaultVoiceId?: string },
     voice: { id: string },
   ) => settings.defaultVoiceId === voice.id,
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -263,7 +269,9 @@ describe('OrganizationIdentityDefaultsCard', () => {
   });
 
   it('renders current avatar and voice defaults with library navigation', () => {
-    render(<OrganizationIdentityDefaultsCard />);
+    render(<OrganizationIdentityDefaultsCard />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(
       screen.getByTestId('org-identity-defaults-card'),
@@ -295,14 +303,18 @@ describe('OrganizationIdentityDefaultsCard', () => {
       fetchVoices: vi.fn().mockRejectedValue(credentialsInvalid),
       patchSettings: mocks.patchSettings,
     });
-    render(<OrganizationIdentityDefaultsCard />);
+    render(<OrganizationIdentityDefaultsCard />, {
+      wrapper: queryClientWrapper(),
+    });
 
     const link = await screen.findByRole('link', { name: 'Reconnect HeyGen' });
     expect(link).toHaveAttribute('href', '/org/settings/integrations');
   });
 
   it('falls back to the CDN placeholder when the avatar has no image', () => {
-    render(<OrganizationIdentityDefaultsCard />);
+    render(<OrganizationIdentityDefaultsCard />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(screen.getByRole('img', { name: 'Founder Avatar' })).toHaveAttribute(
       'data-image-url',
@@ -325,7 +337,9 @@ describe('OrganizationIdentityDefaultsCard', () => {
   });
 
   it('saves selected avatar and voice defaults', async () => {
-    render(<OrganizationIdentityDefaultsCard />);
+    render(<OrganizationIdentityDefaultsCard />, {
+      wrapper: queryClientWrapper(),
+    });
 
     const selects = screen.getAllByRole('combobox');
     fireEvent.change(selects[0], { target: { value: 'avatar-2' } });
@@ -352,7 +366,9 @@ describe('OrganizationIdentityDefaultsCard', () => {
 
   it('clears defaults and routes organization-level users to brand selection', async () => {
     mocks.brandSlug = '';
-    render(<OrganizationIdentityDefaultsCard />);
+    render(<OrganizationIdentityDefaultsCard />, {
+      wrapper: queryClientWrapper(),
+    });
 
     const selects = screen.getAllByRole('combobox');
     fireEvent.change(selects[0], { target: { value: 'none' } });
@@ -381,7 +397,9 @@ describe('OrganizationIdentityDefaultsCard', () => {
     mocks.avatars = [];
     mocks.isLoadingCatalog = true;
     mocks.settings = {};
-    const { rerender } = render(<OrganizationIdentityDefaultsCard />);
+    const { rerender } = render(<OrganizationIdentityDefaultsCard />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(
       screen.getByText(/No avatar ingredients are available yet/),
