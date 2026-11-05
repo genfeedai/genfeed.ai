@@ -68,6 +68,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 
+const PROVIDER_SOURCE_KEY_PREFIX = 'provider-inputs/videos';
+
 @AutoSwagger()
 @Controller('videos')
 @OrganizationModule('playground')
@@ -139,15 +141,6 @@ export class VideosUpscaleController {
     if (this.configService.isAuthorizedMediaDeliveryEnabled && !video.s3Key) {
       throw new BadRequestException('The source video has no stored media key');
     }
-    const videoUrl =
-      this.configService.isAuthorizedMediaDeliveryEnabled && video.s3Key
-        ? await this.filesClientService.getPresignedDownloadUrlForObjectKey(
-            video.s3Key,
-          )
-        : await this.filesClientService.getPresignedDownloadUrl(
-            videoId,
-            'videos',
-          );
     // Model selection: user-provided > system default
     const model =
       videoEditDto.model ||
@@ -157,6 +150,10 @@ export class VideosUpscaleController {
     const targetFps = videoEditDto.targetFps ?? 30;
     const targetResolution = videoEditDto.targetResolution ?? '1080p';
     assertSupportedVideoUpscaleOptions(model, targetResolution, targetFps);
+    const videoUrl =
+      model === MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE
+        ? await this.prepareNamedProviderSource(video.s3Key, videoId)
+        : await this.presignSource(video.s3Key, videoId);
     return this.executeUpscale({
       model,
       request,
@@ -168,6 +165,38 @@ export class VideosUpscaleController {
       videoId,
       videoUrl,
     });
+  }
+
+  private async presignSource(
+    s3Key: string | undefined | null,
+    videoId: string,
+  ): Promise<string> {
+    return this.configService.isAuthorizedMediaDeliveryEnabled && s3Key
+      ? this.filesClientService.getPresignedDownloadUrlForObjectKey(s3Key)
+      : this.filesClientService.getPresignedDownloadUrl(videoId, 'videos');
+  }
+
+  /**
+   * Topaz reads the source container from the URL path, and stored videos
+   * live under extensionless keys, so it rejects them with
+   * "`source.container` is required". A Replicate Files-API URL is rejected
+   * too. A private sibling object named `<id>.mp4` keeps the stored content
+   * type and gives the provider a presigned URL it can read. The key is
+   * deterministic, so repeat upscales overwrite one object per video.
+   */
+  private async prepareNamedProviderSource(
+    s3Key: string | undefined | null,
+    videoId: string,
+  ): Promise<string> {
+    const namedKey = `${PROVIDER_SOURCE_KEY_PREFIX}/${videoId}.mp4`;
+    if (this.configService.isAuthorizedMediaDeliveryEnabled && s3Key) {
+      await this.filesClientService.copyInS3(s3Key, namedKey);
+    } else {
+      await this.filesClientService.copyInS3(videoId, namedKey, 'videos');
+    }
+    return this.filesClientService.getPresignedDownloadUrlForObjectKey(
+      namedKey,
+    );
   }
 
   private async executeUpscale(params: {
