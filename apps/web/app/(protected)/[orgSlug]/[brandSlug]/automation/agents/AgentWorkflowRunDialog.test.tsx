@@ -4,13 +4,14 @@ import {
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
 import type { AgentStrategy } from '@services/automation/agent-strategies.service';
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AgentWorkflowRunDialog from './AgentWorkflowRunDialog';
 
 const mocks = vi.hoisted(() => ({
   findAll: vi.fn(),
+  onValueChange: { current: (_value: string) => {} },
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -30,12 +31,27 @@ vi.mock('next-intl', async () => {
 
 // Radix Select does not open in jsdom; every choice renders as an option.
 vi.mock('@ui/primitives/select', () => ({
-  Select: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Select: ({
+    children,
+    onValueChange,
+  }: {
+    children: ReactNode;
+    onValueChange?: (value: string) => void;
+  }) => {
+    mocks.onValueChange.current = onValueChange ?? (() => {});
+    return <div>{children}</div>;
+  },
   SelectContent: ({ children }: { children: ReactNode }) => (
     <div role="listbox">{children}</div>
   ),
-  SelectItem: ({ children }: { children: ReactNode }) => (
-    <span aria-selected={false} role="option" tabIndex={0}>
+  SelectItem: ({ children, value }: { children: ReactNode; value: string }) => (
+    <span
+      aria-selected={false}
+      onClick={() => mocks.onValueChange.current(value)}
+      onKeyDown={() => mocks.onValueChange.current(value)}
+      role="option"
+      tabIndex={0}
+    >
       {children}
     </span>
   ),
@@ -115,5 +131,21 @@ describe('AgentWorkflowRunDialog', () => {
     expect(
       screen.queryByRole('option', { name: 'Hero shot' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('keeps the picked library image when a refresh no longer lists it', async () => {
+    const client = createTestQueryClient();
+    renderDialog(client);
+    fireEvent.click(await screen.findByRole('option', { name: 'Hero shot' }));
+
+    mocks.findAll.mockResolvedValue([]);
+    await act(async () => {
+      await client.refetchQueries();
+      // React Query notifies observers on the next tick.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(mocks.findAll).toHaveBeenCalledTimes(2);
+
+    expect(screen.getByRole('option', { name: 'Hero shot' })).toBeVisible();
   });
 });
