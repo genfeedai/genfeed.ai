@@ -1065,6 +1065,10 @@
     "sort": "Sort",
     "title": "{category, select, VIDEO {Select video} IMAGE {Select image} MUSIC {Select music} other {Select media}}",
     "upload": "Upload",
-    "useAccountReference": "Use account reference"
+    "useAccountReference": "Use account reference",
+    "musicEmpty": {
+      "title": "No music tracks available",
+      "description": "Generate some music first"
+    }
   }
 }

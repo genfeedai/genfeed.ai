@@ -4,6 +4,11 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ModalGalleryContent from '@/components/modals/gallery/ModalGalleryContent';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@/components/modals/gallery/items/ModalGalleryItemMusic', () => ({
   default: ({ music }: { music: IMusic }) => <p>{music.id}</p>,
 }));
