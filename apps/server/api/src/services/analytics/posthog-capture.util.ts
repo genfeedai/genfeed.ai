@@ -24,7 +24,8 @@ export type PostHogCaptureFailureCategory =
 export interface IPostHogCaptureEvent {
   distinctId: string;
   event: string;
-  properties: Record<string, unknown>;
+  /** Any JSON-serialisable properties object; interfaces need no index signature. */
+  properties: object;
 }
 
 export type PostHogCaptureResult =
