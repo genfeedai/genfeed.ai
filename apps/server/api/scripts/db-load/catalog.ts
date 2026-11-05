@@ -32,6 +32,8 @@ import { scopedWhere } from '@api/index';
 import { NotificationInboxService } from '@api/services/notifications/inbox/notification-inbox.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { LoggerService } from '@libs/logger/logger.service';
+import type { PrismaService } from '@libs/prisma/prisma.service';
 import {
   crossOrgUnsafe,
   runWithTenantContext,
@@ -53,8 +55,8 @@ export type Tenant = {
 };
 
 export type QueryEnv = {
-  logger: never;
-  prisma: never;
+  logger: LoggerService;
+  prisma: PrismaService;
   scale: number;
 };
 
@@ -86,18 +88,27 @@ export function tenantFor(index: number, scale: number): Tenant {
   };
 }
 
-const user = (t: Tenant) =>
+type ControllerUser = Parameters<PostsController['buildFindAllQuery']>[0];
+
+/** Collaborators that the measured query path never touches. */
+const stub = <T>(): T => ({}) as T;
+
+const user = (t: Tenant): ControllerUser =>
   ({
     brandId: t.brandId,
     id: t.userId,
     isSuperAdmin: false,
     organizationId: t.orgId,
     userId: t.userId,
-  }) as never;
+  }) as unknown as ControllerUser;
 
 const asService = <T>(value: unknown): T => value as T;
 
-function genericList(model: string, prisma: never, logger: never) {
+function genericList(
+  model: string,
+  prisma: PrismaService,
+  logger: LoggerService,
+) {
   class Svc extends BaseService<Record<string, unknown>> {
     constructor() {
       super(prisma, model, logger);
@@ -190,7 +201,7 @@ export const CATALOG: QuerySpec[] = [
       group: 'list',
       id: `posts.list.${variant}`,
       prepare: ({ prisma, logger, scale }) => {
-        const posts = new PostsService(prisma, logger, {} as never);
+        const posts = new PostsService(prisma, logger, stub());
         const controller = Object.create(PostsController.prototype);
         return tenantScoped((t) => {
           const query = {
@@ -227,7 +238,7 @@ export const CATALOG: QuerySpec[] = [
       group: 'list',
       id: `library.list.${variant}`,
       prepare: ({ prisma, logger, scale }) => {
-        const ingredients = new IngredientsService(prisma, logger, {} as never);
+        const ingredients = new IngredientsService(prisma, logger, stub());
         return tenantScoped((t) => {
           const page =
             variant === 'deep' ? deepPage(FANOUT.ingredients * 0.9, scale) : 1;
@@ -269,7 +280,7 @@ export const CATALOG: QuerySpec[] = [
     group: 'list',
     id: 'library.summary',
     prepare: ({ prisma, logger }) => {
-      const ingredients = new IngredientsService(prisma, logger, {} as never);
+      const ingredients = new IngredientsService(prisma, logger, stub());
       return tenantScoped((t) =>
         ingredients.getLibrarySummary(t.orgId, {
           brandId: t.brandId,
@@ -384,9 +395,9 @@ export const CATALOG: QuerySpec[] = [
       const svc = new WorkflowExecutionsService(
         prisma,
         logger,
-        {} as never,
-        {} as never,
-        {} as never,
+        stub(),
+        stub(),
+        stub(),
       );
       return tenantScoped(async (t) =>
         svc.findAll(
@@ -397,7 +408,7 @@ export const CATALOG: QuerySpec[] = [
               },
             },
             orderBy: { createdAt: 'desc' },
-            where: await svc.buildCustomerListWhere(t.orgId, {} as never),
+            where: await svc.buildCustomerListWhere(t.orgId, stub()),
           },
           options(1),
         ),
@@ -418,7 +429,7 @@ export const CATALOG: QuerySpec[] = [
       group: 'analytics',
       id: `analytics.${variant}`,
       prepare: ({ prisma, logger }) => {
-        const posts = new PostsService(prisma, logger, {} as never);
+        const posts = new PostsService(prisma, logger, stub());
         const analytics = new AnalyticsAggregationService(prisma, posts);
         const start = new Date(Date.now() - 30 * 864e5);
         const end = new Date();
@@ -445,7 +456,7 @@ export const CATALOG: QuerySpec[] = [
     group: 'sweep',
     id: 'analytics.collection-due',
     prepare: ({ prisma, logger }) => {
-      const posts = new PostsService(prisma, logger, {} as never);
+      const posts = new PostsService(prisma, logger, stub());
       return tenantScoped((t) =>
         posts.findAll(
           {
@@ -473,7 +484,7 @@ export const CATALOG: QuerySpec[] = [
     group: 'analytics',
     id: 'analytics.timeseries',
     prepare: ({ prisma, logger }) => {
-      const posts = new PostsService(prisma, logger, {} as never);
+      const posts = new PostsService(prisma, logger, stub());
       const analytics = new AnalyticsAggregationService(prisma, posts);
       const start = new Date(Date.now() - 30 * 864e5);
       const end = new Date();
@@ -532,7 +543,7 @@ export const CATALOG: QuerySpec[] = [
     group: 'sweep',
     id: 'sweep.due-posts',
     prepare: ({ prisma, logger }) => {
-      const posts = new PostsService(prisma, logger, {} as never);
+      const posts = new PostsService(prisma, logger, stub());
       const discovery = new ScheduledPostDiscoveryService(posts);
       return () => crossOrgUnsafe(() => discovery.findDuePosts({ limit: 50 }));
     },

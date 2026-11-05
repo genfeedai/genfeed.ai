@@ -19,6 +19,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
+import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Client } from 'pg';
 import { assertIsolatedDatabaseUrl } from '../assert-isolated-db-url';
@@ -74,7 +75,7 @@ const logger = {
   log() {},
   verbose() {},
   warn() {},
-} as never;
+} as unknown as LoggerService;
 
 function walkPlan(
   node: Record<string, unknown>,
@@ -167,7 +168,7 @@ describe('db load profile', () => {
       {
         get: (k: string) => process.env[k],
         mediaUrlConfig: { cdnUrl: 'https://cdn.loadtest' },
-      } as never,
+      } as unknown as ConstructorParameters<typeof PrismaService>[0],
       {
         onQueryEvent: (event) => {
           statementCount++;
@@ -196,7 +197,7 @@ describe('db load profile', () => {
       if (FILTER && !FILTER.test(spec.id)) continue;
       const run = spec.prepare({
         logger,
-        prisma: prisma as never,
+        prisma,
         scale: SCALE,
       });
       if (spec.scope === 'global') jobs.push({ kind: 'global', run, spec });
