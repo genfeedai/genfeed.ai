@@ -50,7 +50,9 @@ describe('ImagesSplitService', () => {
 
     // Reset sharp mock
     mockSharpInstance = createMockSharpInstance();
-    (sharp as Mock).mockReturnValue(mockSharpInstance);
+    vi.mocked(sharp).mockReturnValue(
+      mockSharpInstance as unknown as ReturnType<typeof sharp>,
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -69,7 +71,9 @@ describe('ImagesSplitService', () => {
     service = module.get<ImagesSplitService>(ImagesSplitService);
 
     vi.clearAllMocks();
-    (sharp as Mock).mockReturnValue(mockSharpInstance);
+    vi.mocked(sharp).mockReturnValue(
+      mockSharpInstance as unknown as ReturnType<typeof sharp>,
+    );
   });
 
   describe('initialization', () => {

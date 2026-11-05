@@ -75,6 +75,10 @@ vi.mock('discord.js', () => {
   };
 });
 
+type DiscordBotInstance = Parameters<
+  DiscordBotManager['destroyBotInstance']
+>[0];
+
 function toApiIntegration(integration: OrgIntegration) {
   const { orgId, ...fields } = integration;
   return { ...fields, organizationId: orgId };
@@ -142,10 +146,10 @@ describe('DiscordBotManager', () => {
     redisService = module.get(RedisService);
 
     // Mock logger to avoid console noise
-    vi.spyOn(service.logger, 'log').mockImplementation();
-    vi.spyOn(service.logger, 'warn').mockImplementation();
-    vi.spyOn(service.logger, 'error').mockImplementation();
-    vi.spyOn(service.logger, 'debug').mockImplementation();
+    vi.spyOn(service['logger'], 'log').mockImplementation(() => undefined);
+    vi.spyOn(service['logger'], 'warn').mockImplementation(() => undefined);
+    vi.spyOn(service['logger'], 'error').mockImplementation(() => undefined);
+    vi.spyOn(service['logger'], 'debug').mockImplementation(() => undefined);
   });
 
   describe('initialize', () => {
@@ -155,7 +159,7 @@ describe('DiscordBotManager', () => {
       );
       await service.initialize();
 
-      expect(service.logger.log).toHaveBeenCalledWith(
+      expect(service['logger'].log).toHaveBeenCalledWith(
         'Discord Bot Manager initialized with 0 bots',
       );
       expect(redisService.subscribe).toHaveBeenCalledWith(
@@ -196,7 +200,7 @@ describe('DiscordBotManager', () => {
     it('should shutdown successfully', async () => {
       await service.shutdown();
 
-      expect(service.logger.log).toHaveBeenCalledWith(
+      expect(service['logger'].log).toHaveBeenCalledWith(
         'Shutting down Discord Bot Manager',
       );
     });
@@ -283,8 +287,8 @@ describe('DiscordBotManager', () => {
 
   describe('destroyBotInstance', () => {
     it('should destroy the Discord client', async () => {
-      const mockInstance = {
-        client: mockClient,
+      const mockInstance: DiscordBotInstance = {
+        client: mockClient as unknown as DiscordBotInstance['client'],
         id: mockIntegration.id,
         integration: mockIntegration,
         orgId: mockIntegration.orgId,
@@ -298,8 +302,8 @@ describe('DiscordBotManager', () => {
     });
 
     it('should handle client destruction failure', async () => {
-      const mockInstance = {
-        client: mockClient,
+      const mockInstance: DiscordBotInstance = {
+        client: mockClient as unknown as DiscordBotInstance['client'],
         id: mockIntegration.id,
         integration: mockIntegration,
         orgId: mockIntegration.orgId,
@@ -310,7 +314,7 @@ describe('DiscordBotManager', () => {
 
       await service.destroyBotInstance(mockInstance);
 
-      expect(service.logger.error).toHaveBeenCalledWith(
+      expect(service['logger'].error).toHaveBeenCalledWith(
         `Error stopping bot ${mockIntegration.id}`,
         expect.objectContaining({ message: error.message }),
       );
@@ -391,7 +395,7 @@ describe('DiscordBotManager', () => {
     it('should handle removal of non-existent integration', async () => {
       await service.removeIntegration('non-existent-discord-id');
 
-      expect(service.logger.warn).toHaveBeenCalledWith(
+      expect(service['logger'].warn).toHaveBeenCalledWith(
         'Integration non-existent-discord-id not found',
       );
     });
@@ -426,7 +430,7 @@ describe('DiscordBotManager', () => {
         of({ data: toApiIntegration(mockIntegration) }),
       );
 
-      await service.fetchAndAddIntegration('discord-integration-1');
+      await service['fetchAndAddIntegration']('discord-integration-1');
 
       expect(httpService.get).toHaveBeenCalledWith(
         expect.stringContaining(
@@ -448,7 +452,7 @@ describe('DiscordBotManager', () => {
         of({ data: toApiIntegration(mockIntegration) }),
       );
 
-      await service.fetchAndUpdateIntegration('discord-integration-1');
+      await service['fetchAndUpdateIntegration']('discord-integration-1');
 
       expect(httpService.get).toHaveBeenCalledWith(
         expect.stringContaining(

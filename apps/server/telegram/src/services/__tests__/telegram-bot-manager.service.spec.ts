@@ -129,10 +129,10 @@ describe('TelegramBotManager', () => {
     redisService = module.get(RedisService);
 
     // Mock logger to avoid console noise
-    vi.spyOn(service.logger, 'log').mockImplementation();
-    vi.spyOn(service.logger, 'warn').mockImplementation();
-    vi.spyOn(service.logger, 'error').mockImplementation();
-    vi.spyOn(service.logger, 'debug').mockImplementation();
+    vi.spyOn(service['logger'], 'log').mockImplementation(() => undefined);
+    vi.spyOn(service['logger'], 'warn').mockImplementation(() => undefined);
+    vi.spyOn(service['logger'], 'error').mockImplementation(() => undefined);
+    vi.spyOn(service['logger'], 'debug').mockImplementation(() => undefined);
   });
 
   afterEach(() => {
@@ -175,7 +175,7 @@ describe('TelegramBotManager', () => {
       );
       expect(mockBot.start).toHaveBeenCalled();
       expect(service.getActiveCount()).toBe(1);
-      expect(service.logger.log).toHaveBeenCalledWith(
+      expect(service['logger'].log).toHaveBeenCalledWith(
         'Telegram Bot Manager initialized with 1 bots',
       );
     });
@@ -186,7 +186,7 @@ describe('TelegramBotManager', () => {
       await service.initialize();
 
       expect(service.getActiveCount()).toBe(0);
-      expect(service.logger.log).toHaveBeenCalledWith(
+      expect(service['logger'].log).toHaveBeenCalledWith(
         'Telegram Bot Manager initialized with 0 bots',
       );
     });
@@ -214,7 +214,7 @@ describe('TelegramBotManager', () => {
       // so initialize completes successfully with 0 bots
       await service.initialize();
 
-      expect(service.logger.error).toHaveBeenCalledWith(
+      expect(service['logger'].error).toHaveBeenCalledWith(
         'Failed to fetch integrations:',
         {
           code: 'ERR_UNAUTHORIZED',
@@ -226,7 +226,7 @@ describe('TelegramBotManager', () => {
       expect(JSON.stringify(loggerService.error.mock.calls)).not.toContain(
         token,
       );
-      expect(service.logger.log).toHaveBeenCalledWith(
+      expect(service['logger'].log).toHaveBeenCalledWith(
         'Telegram Bot Manager initialized with 0 bots',
       );
     });
@@ -251,7 +251,7 @@ describe('TelegramBotManager', () => {
       expect(redisService.unsubscribe).not.toHaveBeenCalled();
       expect(mockBot.stop).toHaveBeenCalled();
       expect(service.getActiveCount()).toBe(0);
-      expect(service.logger.log).toHaveBeenCalledWith(
+      expect(service['logger'].log).toHaveBeenCalledWith(
         'Shutting down Telegram Bot Manager',
       );
     });
@@ -356,7 +356,7 @@ describe('TelegramBotManager', () => {
       // Should not throw, just log warning
       await service.destroyBotInstance(botInstance);
 
-      expect(service.logger.error).toHaveBeenCalledWith(
+      expect(service['logger'].error).toHaveBeenCalledWith(
         'Error stopping bot test-bot',
         expect.objectContaining({ message: error.message }),
       );
@@ -370,7 +370,7 @@ describe('TelegramBotManager', () => {
       await service.addIntegration(mockIntegration);
 
       expect(service.getActiveCount()).toBe(1);
-      expect(service.logger.log).toHaveBeenCalledWith(
+      expect(service['logger'].log).toHaveBeenCalledWith(
         'Adding integration telegram-integration-1 for org org-123',
       );
     });
@@ -387,7 +387,7 @@ describe('TelegramBotManager', () => {
       await service.addIntegration(mockIntegration);
       expect(service.getActiveCount()).toBe(1);
 
-      expect(service.logger.warn).toHaveBeenCalledWith(
+      expect(service['logger'].warn).toHaveBeenCalledWith(
         'Integration telegram-integration-1 already exists, updating instead',
       );
       expect(mockBot.stop).toHaveBeenCalled();
@@ -435,7 +435,7 @@ describe('TelegramBotManager', () => {
     it('should handle removal of non-existent integration', async () => {
       await service.removeIntegration('non-existent-id');
 
-      expect(service.logger.warn).toHaveBeenCalledWith(
+      expect(service['logger'].warn).toHaveBeenCalledWith(
         'Integration non-existent-id not found',
       );
       expect(mockBot.stop).not.toHaveBeenCalled();
@@ -449,7 +449,7 @@ describe('TelegramBotManager', () => {
         of(httpResponse(toApiIntegration(mockIntegration))),
       );
 
-      await service.fetchAndAddIntegration('test-id');
+      await service['fetchAndAddIntegration']('test-id');
 
       expect(httpService.get).toHaveBeenCalledWith(
         expect.stringContaining('/internal/integrations/TELEGRAM/test-id'),
@@ -463,9 +463,9 @@ describe('TelegramBotManager', () => {
         throwError(() => new Error('Fetch failed')),
       );
 
-      await service.fetchAndAddIntegration('test-id');
+      await service['fetchAndAddIntegration']('test-id');
 
-      expect(service.logger.error).toHaveBeenCalledWith(
+      expect(service['logger'].error).toHaveBeenCalledWith(
         'Failed to fetch and add integration test-id:',
         expect.objectContaining({ message: 'Fetch failed' }),
       );
@@ -485,7 +485,7 @@ describe('TelegramBotManager', () => {
         of(httpResponse(toApiIntegration(mockIntegration))),
       );
 
-      await service.fetchAndUpdateIntegration('test-id');
+      await service['fetchAndUpdateIntegration']('test-id');
 
       expect(httpService.get).toHaveBeenCalledWith(
         expect.stringContaining('/internal/integrations/TELEGRAM/test-id'),
@@ -498,9 +498,9 @@ describe('TelegramBotManager', () => {
         throwError(() => new Error('Fetch failed')),
       );
 
-      await service.fetchAndUpdateIntegration('test-id');
+      await service['fetchAndUpdateIntegration']('test-id');
 
-      expect(service.logger.error).toHaveBeenCalledWith(
+      expect(service['logger'].error).toHaveBeenCalledWith(
         'Failed to fetch and update integration test-id:',
         expect.objectContaining({ message: 'Fetch failed' }),
       );
@@ -531,7 +531,7 @@ describe('TelegramBotManager', () => {
 
       const result = await service.fetchActiveIntegrations();
 
-      expect(service.logger.error).toHaveBeenCalledWith(
+      expect(service['logger'].error).toHaveBeenCalledWith(
         'Failed to fetch integrations:',
         expect.objectContaining({ message: error.message }),
       );
@@ -571,7 +571,7 @@ describe('TelegramBotManager', () => {
 
       const result = await service.fetchOrgWorkflows('org-123');
 
-      expect(service.logger.error).toHaveBeenCalledWith(
+      expect(service['logger'].error).toHaveBeenCalledWith(
         'Failed to fetch workflows:',
         expect.objectContaining({ message: error.message }),
       );
@@ -584,7 +584,7 @@ describe('TelegramBotManager', () => {
       const handlers = new Map<string, (message: unknown) => void>();
 
       redisService.subscribe.mockImplementation(
-        (channel: string, handler?: (message: unknown) => void) => {
+        async (channel: string, handler?: (message: unknown) => void) => {
           if (handler) {
             handlers.set(channel, handler);
           }
@@ -632,7 +632,7 @@ describe('TelegramBotManager', () => {
       const handlers = new Map<string, (message: unknown) => void>();
 
       redisService.subscribe.mockImplementation(
-        (channel: string, handler?: (message: unknown) => void) => {
+        async (channel: string, handler?: (message: unknown) => void) => {
           if (handler) {
             handlers.set(channel, handler);
           }
@@ -678,7 +678,7 @@ describe('TelegramBotManager', () => {
       const handlers = new Map<string, (message: unknown) => void>();
 
       redisService.subscribe.mockImplementation(
-        (channel: string, handler?: (message: unknown) => void) => {
+        async (channel: string, handler?: (message: unknown) => void) => {
           if (handler) {
             handlers.set(channel, handler);
           }

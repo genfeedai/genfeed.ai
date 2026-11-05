@@ -173,7 +173,9 @@ describe('UploadService', () => {
       toBuffer: vi.fn().mockResolvedValue(Buffer.from('processed-image')),
       webp: vi.fn().mockReturnThis(),
     };
-    (sharp as Mock).mockReturnValue(mockSharpInstance);
+    vi.mocked(sharp).mockReturnValue(
+      mockSharpInstance as unknown as ReturnType<typeof sharp>,
+    );
 
     // Reset fs mocks
     (fs.existsSync as Mock).mockReturnValue(true);
@@ -203,7 +205,9 @@ describe('UploadService', () => {
     service = module.get<UploadService>(UploadService);
 
     vi.clearAllMocks();
-    (sharp as Mock).mockReturnValue(mockSharpInstance);
+    vi.mocked(sharp).mockReturnValue(
+      mockSharpInstance as unknown as ReturnType<typeof sharp>,
+    );
     (fs.existsSync as Mock).mockReturnValue(true);
     (fs.readFileSync as Mock).mockReturnValue(Buffer.from('file-content'));
     (fs.statSync as Mock).mockReturnValue({ size: 17 });
@@ -507,10 +511,14 @@ describe('UploadService', () => {
     });
 
     it('should handle video without audio stream', async () => {
-      mockFfmpegService.getVideoMetadata.mockResolvedValue({
-        format: { duration: 30 },
-        streams: [{ codec_type: 'video', height: 1080, width: 1920 }],
-      });
+      mockFfmpegService.getVideoMetadata.mockResolvedValue(
+        probeData(
+          [probeStream('video', 'h264', { height: 1080, width: 1920 })],
+          {
+            duration: '30',
+          },
+        ),
+      );
 
       const result = await service.uploadToS3('test-key', 'videos', {
         path: path.join(FILES_TMP_ROOT, 'fixtures', 'video.mp4'),
@@ -915,8 +923,8 @@ describe('UploadService', () => {
     it('should throw error for invalid source type', async () => {
       await expect(
         service.uploadToS3('test-key', 'files', {
-          type: 'invalid' as never,
-        }),
+          type: 'invalid',
+        } as unknown as Parameters<UploadService['uploadToS3']>[2]),
       ).rejects.toThrow('Invalid upload source type');
     });
 

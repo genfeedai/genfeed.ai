@@ -19,14 +19,25 @@ describe('YoutubeQueueService', () => {
   };
 
   const mockJobData: YoutubeJobData = {
-    credentialId: 'cred-def',
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    credential: {
+      accessToken: 'access-token',
+      clientId: 'client-id',
+      clientSecret: 'client-secret',
+      redirectUri: 'https://app.genfeed.ai/oauth/youtube',
+      refreshToken: 'refresh-token',
+    },
     description: 'Test description',
+    id: 'job-data-001',
     ingredientId: 'ingredient-456',
+    isUnlisted: false,
+    metadata: { websocketUrl: '/youtube/ingredient-456' },
     organizationId: 'org-789',
     postId: 'post-123',
     status: 'public',
     tags: ['test', 'video'],
     title: 'Test Video',
+    type: JOB_TYPES.UPLOAD_YOUTUBE,
     userId: 'user-abc',
   };
 
