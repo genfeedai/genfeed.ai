@@ -3,11 +3,13 @@
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
-import { useEffect, useState } from 'react';
+import { useCallback } from 'react';
+
+const EMPTY_VOICES: IIngredient[] = [];
 
 const statuses = [
   IngredientStatus.UPLOADED,
@@ -43,70 +45,56 @@ export function eligibleStoryboardVoices(
   });
 }
 
+/**
+ * The saved voices a storyboard can use. The list is cached per organization,
+ * brand, session and API, so reopening the plan paints the last list at once
+ * and refreshes it in the background; another scope never sees it.
+ */
 export function useStoryboardVoices(brandId: string, organizationId: string) {
-  const { userId, sessionId } = useAuthIdentity();
-  const getService = useAuthedService((token: string) =>
-    IngredientsService.getInstance(token),
-  );
-  const scope = JSON.stringify([
-    EnvironmentService.apiEndpoint,
-    globalThis.__GENFEED_DESKTOP_ENV__?.authEndpoint,
-    userId,
-    sessionId,
-    organizationId,
-    brandId,
-  ]);
-  const [attempt, setAttempt] = useState(0);
-  const [result, setResult] = useState<{
-    scope: string;
-    status: 'loading' | 'loaded' | 'failed';
-    voices: IIngredient[];
-    error?: string;
-  }>();
-  // biome-ignore lint/correctness/useExhaustiveDependencies: attempt is an explicit scoped retry.
-  useEffect(() => {
-    const controller = new AbortController();
-    setResult({ scope, status: 'loading', voices: [] });
-    if (brandId && organizationId)
-      void getService()
-        .then((service) => {
-          if (controller.signal.aborted) return [];
-          return service.findAllPages(
-            {
-              category: IngredientCategory.VOICE,
-              status: statuses,
-              organizationId,
-              isDeleted: false,
-            },
-            controller.signal,
-          );
-        })
-        .then((voices) => {
-          if (!controller.signal.aborted)
-            setResult({
-              scope,
-              status: 'loaded',
-              voices: eligibleStoryboardVoices(voices, organizationId, brandId),
-            });
-        })
-        .catch((error) => {
-          if (!controller.signal.aborted)
-            setResult({
-              scope,
-              status: 'failed',
-              voices: [],
-              error: getJsonApiErrorMessage(
-                error,
-                'Could not load saved voices.',
-              ),
-            });
-        });
-    return () => controller.abort();
-  }, [scope, brandId, organizationId, getService, attempt]);
+  const { sessionId } = useAuthIdentity();
+  const query = useAuthedQuery<IngredientsService, IIngredient[]>({
+    enabled: Boolean(brandId && organizationId),
+    queryFn: async (service, signal) => {
+      // A read superseded while it waited for its token never reaches the API.
+      signal.throwIfAborted();
+      const voices = await service.findAllPages(
+        {
+          category: IngredientCategory.VOICE,
+          status: statuses,
+          organizationId,
+          isDeleted: false,
+        },
+        signal,
+      );
+      return eligibleStoryboardVoices(voices, organizationId, brandId);
+    },
+    queryKey: [
+      'storyboard-voices',
+      organizationId,
+      brandId,
+      sessionId ?? null,
+      EnvironmentService.apiEndpoint,
+      globalThis.__GENFEED_DESKTOP_ENV__?.authEndpoint ?? null,
+    ],
+    service: (token: string) => IngredientsService.getInstance(token),
+  });
+  const { refetch } = query;
+  const retry = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+  const status: 'loading' | 'loaded' | 'failed' = query.isError
+    ? 'failed'
+    : query.data
+      ? 'loaded'
+      : 'loading';
+
   return {
-    voices: result?.scope === scope ? result.voices : [],
-    status: result?.scope === scope ? result.status : ('loading' as const),
-    error: result?.scope === scope ? result.error : undefined,
-    retry: () => setAttempt((value) => value + 1),
+    // A failed read never leaves older voices beside its error.
+    voices: query.isError ? EMPTY_VOICES : (query.data ?? EMPTY_VOICES),
+    status,
+    error: query.error
+      ? getJsonApiErrorMessage(query.error, 'Could not load saved voices.')
+      : undefined,
+    retry,
   };
 }
