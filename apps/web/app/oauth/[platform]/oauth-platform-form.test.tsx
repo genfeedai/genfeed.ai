@@ -187,7 +187,7 @@ describe('OAuthPlatformForm', () => {
     });
     window.sessionStorage.setItem(
       'oauth_return_to',
-      '/demo/acme/settings/connected-accounts',
+      '/demo/acme/settings/accounts',
     );
 
     render(<OAuthPlatformForm platform="twitter" />);
@@ -199,9 +199,7 @@ describe('OAuthPlatformForm', () => {
       });
     });
 
-    expect(mocks.navigate).toHaveBeenCalledWith(
-      '/demo/acme/settings/connected-accounts',
-    );
+    expect(mocks.navigate).toHaveBeenCalledWith('/demo/acme/settings/accounts');
     expect(window.sessionStorage.getItem('oauth_return_to')).toBeNull();
   });
 

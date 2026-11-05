@@ -6,10 +6,11 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import Card from '@ui/card/Card';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
-import { EmptyState } from '@ui/primitives/empty-state';
+import { ChartEmptyState } from '@ui/primitives/chart-empty-state';
 import LoadingOverlay from '@ui/primitives/loading-overlay';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import {
@@ -65,7 +66,9 @@ export function BrandPerformanceChart({
   isLoading = false,
   height = 300,
   className = '',
+  emptyAction,
 }: BrandPerformanceChartProps) {
+  const translate = useTranslations('ui.analyticsCharts.brandPerformance');
   const [activeMetric, setActiveMetric] = useState<BrandMetricKey>(
     String(metric).toLowerCase() as BrandMetricKey,
   );
@@ -89,11 +92,18 @@ export function BrandPerformanceChart({
     data?.some((row) => row.engagement > 0 || row.posts > 0 || row.views > 0),
   );
   const isEmpty = !data || data.length === 0 || !hasSignal;
+  // Posts are counted from published posts, engagement and views from synced
+  // platform metrics. Brands can have posts and no metrics yet, which drew
+  // invisible zero-height bars under the Engagement toggle.
+  const hasMetricSignal = Boolean(data?.some((row) => row[activeMetric] > 0));
+  const hasPostSignal = Boolean(data?.some((row) => row.posts > 0));
+  const isMetricEmpty = !isEmpty && !hasMetricSignal;
 
   // Sort and take top 10 brands by selected metric
-  const sortedData = isEmpty
-    ? []
-    : data.toSorted((a, b) => b[activeMetric] - a[activeMetric]).slice(0, 10);
+  const sortedData =
+    isEmpty || isMetricEmpty
+      ? []
+      : data.toSorted((a, b) => b[activeMetric] - a[activeMetric]).slice(0, 10);
 
   return (
     <WorkspaceSurface density="compact" framed={false} title={title}>
@@ -127,10 +137,31 @@ export function BrandPerformanceChart({
           {isLoading && <LoadingOverlay tone="veil" />}
 
           {isEmpty && !isLoading ? (
-            <EmptyState isFill title="No brand performance yet" />
+            <ChartEmptyState
+              action={emptyAction}
+              description={translate('emptyDescription')}
+              shape="bars"
+              title={translate('emptyTitle')}
+            />
           ) : null}
 
-          {!isEmpty ? (
+          {isMetricEmpty && !isLoading ? (
+            <ChartEmptyState
+              action={
+                hasPostSignal && activeMetric !== 'posts'
+                  ? {
+                      label: translate('showPosts'),
+                      onClick: () => setActiveMetric('posts'),
+                    }
+                  : undefined
+              }
+              description={translate(`metricEmpty.${activeMetric}.description`)}
+              shape="bars"
+              title={translate(`metricEmpty.${activeMetric}.title`)}
+            />
+          ) : null}
+
+          {!isEmpty && !isMetricEmpty ? (
             <ChartContainer
               config={chartConfig}
               className="border-0 bg-transparent p-0 shadow-none"

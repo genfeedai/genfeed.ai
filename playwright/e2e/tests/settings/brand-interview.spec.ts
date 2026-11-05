@@ -16,7 +16,7 @@ import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 // The session's own brand. Brand-scoped routes only resolve brands in the
 // member's brand list (#6512); any other slug renders "brand unavailable".
 const brand = generateMockBrand();
-const interviewUrl = `/${brand.organization.slug}/${brand.slug}/settings/brand-kit/guided-setup`;
+const interviewUrl = `/${brand.organization.slug}/${brand.slug}/settings/brand-kit/setup`;
 
 const toneQuestion = {
   answerType: 'text',

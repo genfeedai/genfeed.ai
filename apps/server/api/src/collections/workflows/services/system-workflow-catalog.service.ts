@@ -216,12 +216,7 @@ export class SystemWorkflowCatalogService {
     // scopedWhere injects isDeleted: false — a soft-deleted install is treated
     // as absent so install creates a fresh usable row (#2259).
     return this.prisma.workflow.findFirst({
-      where: scopedWhere(organizationId, {
-        metadata: {
-          equals: canonicalId,
-          path: ['sourceTemplateId'],
-        },
-      }),
+      where: scopedWhere(organizationId, { sourceTemplateId: canonicalId }),
     });
   }
 

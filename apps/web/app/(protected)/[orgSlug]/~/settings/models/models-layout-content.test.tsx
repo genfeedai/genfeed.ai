@@ -136,7 +136,7 @@ describe('ModelsLayoutContent', () => {
   });
 
   it('hides refresh on the Custom Models tab', () => {
-    mockPathname.value = '/acme/~/settings/models/custom-models';
+    mockPathname.value = '/acme/~/settings/models/custom';
 
     render(
       <ModelsLayoutContent>

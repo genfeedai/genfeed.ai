@@ -56,7 +56,7 @@ describe('AgentPrepareToolHandler.suggestNextSteps', () => {
         label: 'Start',
         payload: { prompt: 'Walk me through connecting my first account.' },
       },
-      { href: '/settings/connected-accounts', label: 'Open connections' },
+      { href: '/settings/accounts', label: 'Open connections' },
     ]);
     expect(result.nextActions?.[0]?.type).toBe('next_steps_card');
   });

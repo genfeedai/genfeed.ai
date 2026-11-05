@@ -1,6 +1,6 @@
 {
   "text": {
-    "digest": "sha256:766c0def1d5c30ee7e8ea1ae55171a778126696a2666cc70d45286c23bfb7cdd",
+    "digest": "sha256:5b22cc35a27470f4236d95f79123343c5987350ebd7f0826123a9ca2162f3e63",
     "files": [
       {
         "digest": "sha256:e3c711a4a276d6975eb473cf40c4644730d84b0eae7ae8665da980c66fd63c64",
@@ -23,7 +23,7 @@
         "path": "apps/server/api/src/services/content-quality/content-quality-scorer.prompts.ts"
       },
       {
-        "digest": "sha256:69ffa55220af7ed7028b2941d8b5d79123610ae5205526c43f491c93e1167cc0",
+        "digest": "sha256:40e1159e095a0524ef86463bddde7379a7ce18dc4cbbdaee311f937b4175de1e",
         "path": "apps/server/api/src/services/content-quality/content-quality-scorer.service.ts"
       },
       {

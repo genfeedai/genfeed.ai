@@ -1,4 +1,5 @@
 import type { RowSidebarTrendProps } from '@genfeedai/props/ui/display/row-sidebar-blocks.props';
+import { ChartGhost } from '@ui/primitives/chart-empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 
 const WIDTH = 100;
@@ -32,7 +33,17 @@ export default function RowSidebarTrend({
   }
 
   if (points.length < 2 || points.every((value) => value <= 0)) {
-    return <p className="text-sm text-muted-foreground">{emptyLabel}</p>;
+    return (
+      <div className="relative h-16 w-full">
+        <ChartGhost
+          className="absolute inset-0 size-full opacity-60"
+          shape="area"
+        />
+        <p className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
+          {emptyLabel}
+        </p>
+      </div>
+    );
   }
 
   const coordinates = toCoordinates(points);

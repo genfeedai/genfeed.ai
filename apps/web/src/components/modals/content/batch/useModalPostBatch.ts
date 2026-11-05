@@ -280,12 +280,12 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     }, 300);
   }, [form]);
 
-  // Account connections live on the brand's connected-accounts settings page.
+  // Account connections live on the brand's accounts settings page.
   // Without an active brand, fall back to the org-level brands list.
   const openCredentials = useCallback(() => {
     push(
       hasActiveBrand
-        ? activeHref('/settings/connected-accounts')
+        ? activeHref('/settings/accounts')
         : orgHref('/settings/brands'),
     );
   }, [activeHref, hasActiveBrand, orgHref, push]);

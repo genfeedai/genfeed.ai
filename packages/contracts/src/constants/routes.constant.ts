@@ -32,7 +32,7 @@ export const APP_ROUTES = {
       REFERRALS: '/admin/administration/referrals',
       ROLES: '/admin/administration/roles',
       SUBSCRIPTIONS: '/admin/administration/subscriptions',
-      SYSTEM_EMAILS: '/admin/administration/system-emails',
+      SYSTEM_EMAILS: '/admin/administration/emails',
     },
     AUTOMATION: {
       AGENTS: '/admin/automation/agents',
@@ -54,7 +54,7 @@ export const APP_ROUTES = {
       ELEMENTS_SCENES: '/admin/configuration/elements/scenes',
       ELEMENTS_SOUNDS: '/admin/configuration/elements/sounds',
       ELEMENTS_STYLES: '/admin/configuration/elements/styles',
-      FONT_FAMILIES: '/admin/configuration/font-families',
+      FONT_FAMILIES: '/admin/configuration/fonts',
       PRESETS: '/admin/configuration/presets',
       TAGS: '/admin/configuration/tags',
     },
@@ -342,7 +342,7 @@ export const APP_ROUTES = {
      * Google Ads, Twitter, etc.). Canonical home for "connect accounts".
      * Brand-only destination; organization BYOK settings use INTEGRATIONS.
      */
-    CONNECTED_ACCOUNTS: '/settings/connected-accounts',
+    CONNECTED_ACCOUNTS: '/settings/accounts',
     /** Brand-enabled agent skills and organization-owned skill variants. */
     SKILLS: '/settings/skills',
     USAGE: '/settings/usage',
@@ -675,9 +675,9 @@ const BRAND_ONLY_SETTINGS_PREFIXES = [
   APP_ROUTES.SETTINGS.SKILLS,
   APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
   APP_ROUTES.SETTINGS.KNOWLEDGE,
-  '/settings/brand-kit/guided-setup',
+  '/settings/brand-kit/setup',
   '/settings/agent/context',
-  '/settings/brand-kit/content-rules',
+  '/settings/brand-kit/rules',
   '/settings/brand-kit',
   '/library/references',
 ] as const;

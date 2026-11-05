@@ -2,7 +2,6 @@
 import {
   ButtonSize,
   ButtonVariant,
-  CardEmptySize,
   CardVariant,
   PageScope,
   Platform,
@@ -13,6 +12,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import { Button } from '@ui/primitives/button';
+import { ChartEmptyState } from '@ui/primitives/chart-empty-state';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { BLOCK_STACK_CLASS } from '@ui/styles/block-spacing';
@@ -192,41 +192,46 @@ export default function AnalyticsOverview({
             />
           </Card>
         ) : (
-          <EmptyState
-            surface="card"
-            size={CardEmptySize.SM}
-            icon={ChartColumn}
-            title={translate('placeholderTitle')}
-            description={translate('placeholderDescription')}
-            actions={
-              <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-                <Button
-                  asChild
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.DEFAULT}
-                >
-                  <Link
-                    href={
-                      scope === PageScope.SUPERADMIN
-                        ? APP_ROUTES.PUBLISHING.OVERVIEW
-                        : href(APP_ROUTES.PUBLISHING.OVERVIEW)
-                    }
-                  >
-                    {translate('createPost')}
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.SECONDARY}
-                >
-                  <Link href={connectAccountsHref}>
-                    {translate('checkConnections')}
-                  </Link>
-                </Button>
-              </div>
-            }
-          />
+          <Card
+            variant={CardVariant.DEFAULT}
+            label={translate('timeseriesTitle')}
+          >
+            <div className="relative h-chart">
+              <ChartEmptyState
+                shape="area"
+                title={translate('placeholderTitle')}
+                description={translate('placeholderDescription')}
+                actions={
+                  <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+                    <Button
+                      asChild
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.DEFAULT}
+                    >
+                      <Link
+                        href={
+                          scope === PageScope.SUPERADMIN
+                            ? APP_ROUTES.PUBLISHING.OVERVIEW
+                            : href(APP_ROUTES.PUBLISHING.OVERVIEW)
+                        }
+                      >
+                        {translate('createPost')}
+                      </Link>
+                    </Button>
+                    <Button
+                      asChild
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.SECONDARY}
+                    >
+                      <Link href={connectAccountsHref}>
+                        {translate('checkConnections')}
+                      </Link>
+                    </Button>
+                  </div>
+                }
+              />
+            </div>
+          </Card>
         )}
 
         <AnalyticsOverviewLeaderboards

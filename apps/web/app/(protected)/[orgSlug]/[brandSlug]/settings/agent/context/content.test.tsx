@@ -177,7 +177,7 @@ describe('BrandSettingsAgentContextPage', () => {
     ).toHaveAttribute('href', '/acme/brand/settings/brand-kit/voice');
     expect(
       within(voice).getByRole('link', { name: 'Run interview' }),
-    ).toHaveAttribute('href', '/acme/brand/settings/brand-kit/guided-setup');
+    ).toHaveAttribute('href', '/acme/brand/settings/brand-kit/setup');
 
     const prompting = screen.getByTestId('agent-context-layer-prompting');
     expect(

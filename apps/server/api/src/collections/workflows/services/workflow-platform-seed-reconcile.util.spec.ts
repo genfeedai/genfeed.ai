@@ -58,7 +58,7 @@ describe('reconcilePlatformSeedMarker', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           isDeleted: false,
-          metadata: { equals: template.id, path: ['sourceTemplateId'] },
+          sourceTemplateId: template.id,
           organizationId: 'org-1',
         }),
       }),

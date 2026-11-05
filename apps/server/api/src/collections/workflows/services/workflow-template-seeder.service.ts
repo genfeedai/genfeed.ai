@@ -252,10 +252,7 @@ export class WorkflowTemplateSeederService {
     userId: string;
   }): Promise<void> {
     const where = scopedWhere(input.organizationId, {
-      metadata: {
-        equals: input.sourceTemplateId,
-        path: ['sourceTemplateId'],
-      },
+      sourceTemplateId: input.sourceTemplateId,
     });
 
     const preCheck = await this.prisma.workflow.findFirst({

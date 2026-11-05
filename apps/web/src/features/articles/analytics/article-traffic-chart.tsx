@@ -1,6 +1,7 @@
 'use client';
 
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
+import { ChartEmptyState } from '@ui/primitives/chart-empty-state';
 import { useTranslations } from 'next-intl';
 import {
   CartesianGrid,
@@ -16,6 +17,18 @@ export default function ArticleTrafficChart({
   days,
 }: ArticleTrafficChartProps) {
   const translate = useTranslations('pages.articles.traffic');
+  const hasTraffic = days.some(
+    (day) => day.views > 0 || day.resourceClicks > 0,
+  );
+
+  if (!hasTraffic) {
+    return (
+      <div className="relative h-60">
+        <ChartEmptyState shape="line" title={translate('noTraffic')} />
+      </div>
+    );
+  }
+
   return (
     <ChartContainer
       config={{

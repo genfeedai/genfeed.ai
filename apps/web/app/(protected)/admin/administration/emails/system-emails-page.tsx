@@ -1,7 +1,7 @@
 'use client';
-import SystemEmailPerformance from '@app/(protected)/admin/administration/system-emails/system-email-performance';
-import SystemEmailRangeFilter from '@app/(protected)/admin/administration/system-emails/system-email-range-filter';
-import { useSystemEmailRange } from '@app/(protected)/admin/administration/system-emails/use-system-email-range';
+import SystemEmailPerformance from '@app/(protected)/admin/administration/emails/system-email-performance';
+import SystemEmailRangeFilter from '@app/(protected)/admin/administration/emails/system-email-range-filter';
+import { useSystemEmailRange } from '@app/(protected)/admin/administration/emails/use-system-email-range';
 import {
   buildLifecycleSystemEmailAction,
   type LifecycleSystemEmailDefinition,

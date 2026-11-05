@@ -2,9 +2,10 @@
 import { formatFullNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import Card from '@ui/card/Card';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
-import { EmptyState } from '@ui/primitives/empty-state';
+import { ChartEmptyState } from '@ui/primitives/chart-empty-state';
 import LoadingOverlay from '@ui/primitives/loading-overlay';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import type { PieLabelRenderProps } from 'recharts';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import {
@@ -44,7 +45,9 @@ export function PlatformBreakdownChart({
   isLoading = false,
   height = 300,
   className = '',
+  emptyAction,
 }: PlatformBreakdownChartProps) {
+  const translate = useTranslations('ui.analyticsCharts.platformDistribution');
   const chartData = data ?? [];
   // Zero-value platforms are noise — empty when nothing has signal.
   const filteredData = chartData.filter((item) => item.value > 0);
@@ -61,7 +64,12 @@ export function PlatformBreakdownChart({
           {isLoading && <LoadingOverlay tone="veil" />}
 
           {isEmpty && !isLoading ? (
-            <EmptyState isFill title="No platform distribution yet" />
+            <ChartEmptyState
+              action={emptyAction}
+              description={translate('emptyDescription')}
+              shape="donut"
+              title={translate('emptyTitle')}
+            />
           ) : null}
 
           {!isEmpty ? (

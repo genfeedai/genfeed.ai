@@ -161,20 +161,9 @@ export class PlatformWorkflowSchedulesService {
             where: {
               organizationId: organization.id,
               OR: [
+                { sourceTemplateId: templateId },
                 {
-                  metadata: { path: ['sourceTemplateId'], equals: templateId },
-                },
-                {
-                  metadata: {
-                    path: ['systemWorkflow', 'canonicalId'],
-                    equals: templateId,
-                  },
-                },
-                {
-                  metadata: {
-                    path: ['systemWorkflow', 'canonicalId'],
-                    equals: canonicalId,
-                  },
+                  systemWorkflowCanonicalId: { in: [templateId, canonicalId] },
                 },
               ],
             },

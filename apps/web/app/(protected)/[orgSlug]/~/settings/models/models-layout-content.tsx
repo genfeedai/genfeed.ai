@@ -26,7 +26,7 @@ import { LazyModalTrainingNew } from '@/components/lazy/modal/LazyModal';
 const MODEL_TYPE_OPTIONS = [
   { value: 'all', label: 'Catalog' },
   { value: 'trainings', label: 'Trainings' },
-  { value: 'custom-models', label: null },
+  { value: 'custom', label: null },
 ] as const;
 
 type ModelTypeValue = (typeof MODEL_TYPE_OPTIONS)[number]['value'];
@@ -61,7 +61,7 @@ export default function ModelsLayoutContent({
       ?.value ?? 'all';
 
   const isTrainingsTab = activeType === 'trainings';
-  const isCustomModelsTab = activeType === 'custom-models';
+  const isCustomModelsTab = activeType === 'custom';
   const isRefreshing = isTrainingsTab
     ? isRefreshingTrainings
     : isRefreshingModels;

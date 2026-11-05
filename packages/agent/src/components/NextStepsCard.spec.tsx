@@ -82,7 +82,7 @@ describe('NextStepsCard', () => {
             {
               ctas: [
                 {
-                  href: '/settings/connected-accounts',
+                  href: '/settings/accounts',
                   label: 'Open connections',
                 },
               ],
@@ -212,7 +212,7 @@ describe('NextStepsCard', () => {
               title: 'Connect social accounts',
               ctas: [
                 {
-                  href: '/acme/~/settings/connected-accounts?platform=x#accounts',
+                  href: '/acme/~/settings/accounts?platform=x#accounts',
                   label: 'Open connections',
                 },
               ],
@@ -225,7 +225,7 @@ describe('NextStepsCard', () => {
       screen.getByRole('link', { name: /Open connections/ }),
     ).toHaveAttribute(
       'href',
-      '/acme/launch/settings/connected-accounts?platform=x#accounts',
+      '/acme/launch/settings/accounts?platform=x#accounts',
     );
   });
 

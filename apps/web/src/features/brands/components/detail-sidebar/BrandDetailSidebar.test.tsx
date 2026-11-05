@@ -106,7 +106,7 @@ describe('BrandDetailSidebar', () => {
     render(
       <BrandDetailSidebar
         {...props}
-        manageSocialHref="/org/brand/settings/connected-accounts"
+        manageSocialHref="/org/brand/settings/accounts"
         socialConnections={[
           {
             credentialId: 'cred-1',

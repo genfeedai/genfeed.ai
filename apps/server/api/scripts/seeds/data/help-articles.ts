@@ -518,7 +518,7 @@ to a brand, so each brand can publish to its own accounts.</p>
 <ol>
   <li>Select your brand, then open its settings and choose
   <strong>Connected accounts</strong>
-  (<code>/{orgSlug}/{brandSlug}/settings/connected-accounts</code>).</li>
+  (<code>/{orgSlug}/{brandSlug}/settings/accounts</code>).</li>
   <li>Choose <strong>Connect account</strong>.</li>
   <li>Search or browse the platform list, grouped as <strong>Social
   networks</strong>, <strong>Video</strong>, <strong>Communities</strong>,

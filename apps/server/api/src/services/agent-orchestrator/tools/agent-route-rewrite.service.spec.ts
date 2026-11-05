@@ -241,7 +241,7 @@ describe('AgentRouteRewriteService', () => {
     ]);
   });
 
-  it.each(['connected-accounts', 'agent', 'publishing', 'skills', 'knowledge'])(
+  it.each(['accounts', 'agent', 'publishing', 'skills', 'knowledge'])(
     'scopes brand-only Settings %s with the resolved brand',
     async (page) => {
       const scoped = await createService().scopeToolResultHrefs(
@@ -264,16 +264,16 @@ describe('AgentRouteRewriteService', () => {
         creditsUsed: 0,
         success: true,
         data: {
-          href: '/genfeed-ai/~/settings/connected-accounts?platform=x#top',
-          ctaHref: '/genfeed-ai/other/settings/connected-accounts',
+          href: '/genfeed-ai/~/settings/accounts?platform=x#top',
+          ctaHref: '/genfeed-ai/other/settings/accounts',
           editorUrl: '/genfeed-ai/launch-brand/settings',
         },
       },
       context,
     );
     expect(scoped.data).toEqual({
-      href: '/genfeed-ai/launch-brand/settings/connected-accounts?platform=x#top',
-      ctaHref: '/genfeed-ai/other/settings/connected-accounts',
+      href: '/genfeed-ai/launch-brand/settings/accounts?platform=x#top',
+      ctaHref: '/genfeed-ai/other/settings/accounts',
       editorUrl: '/genfeed-ai/launch-brand/settings',
     });
   });
@@ -284,7 +284,7 @@ describe('AgentRouteRewriteService', () => {
       {
         creditsUsed: 0,
         success: true,
-        data: { href: '/settings/connected-accounts' },
+        data: { href: '/settings/accounts' },
       },
       context,
     );

@@ -179,7 +179,7 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
 
   it('does not seed a duplicate livestream bot workflow', async () => {
     prisma.workflow.findFirst.mockImplementation(({ where }) => {
-      const sourceTemplateId = where.metadata.equals;
+      const sourceTemplateId = where.sourceTemplateId;
       return Promise.resolve({
         id: `workflow-${sourceTemplateId}`,
         metadata: {

@@ -48,7 +48,7 @@ describe('ModelsCatalogRoute', () => {
     expect(renderedType()).toBe(expected);
   });
 
-  it.each(['trainings', 'custom-models', 'unknown', ''])(
+  it.each(['trainings', 'custom', 'unknown', ''])(
     'falls back to the unfiltered catalog for type=%s instead of switching surfaces',
     (query) => {
       mockSearchParams.current = new URLSearchParams({ type: query });

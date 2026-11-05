@@ -113,8 +113,8 @@ export class AutonomousProducerInstallService {
       const existing = await this.prisma.workflow.findFirst({
         select: { id: true },
         where: {
-          metadata: { equals: canonicalId, path: ['sourceTemplateId'] },
           organizationId,
+          sourceTemplateId: canonicalId,
         },
       });
       if (existing) return 'kept';

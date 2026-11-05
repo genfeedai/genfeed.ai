@@ -7,6 +7,7 @@ import {
   formatFullNumber,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
+import { ChartEmptyState } from '@ui/primitives/chart-empty-state';
 import LoadingOverlay from '@ui/primitives/loading-overlay';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
 import dynamic from 'next/dynamic';
@@ -53,8 +54,10 @@ export function PlatformComparisonChart({
   isLoading = false,
   height = 300,
   className = '',
+  emptyAction,
 }: PlatformComparisonChartProps) {
   const selectionLabels = useTranslations('ui.selectionGroups');
+  const translate = useTranslations('ui.analyticsCharts.platformComparison');
   const [activeMetrics, setActiveMetrics] = useState<
     PlatformComparisonMetricType[]
   >([AnalyticsMetric.VIEWS, AnalyticsMetric.LIKES]);
@@ -111,9 +114,12 @@ export function PlatformComparisonChart({
         {isLoading && <LoadingOverlay tone="veil" />}
 
         {isEmpty && !isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center text-foreground/50">
-            No platform data available
-          </div>
+          <ChartEmptyState
+            action={emptyAction}
+            description={translate('emptyDescription')}
+            shape="bars"
+            title={translate('emptyTitle')}
+          />
         )}
 
         {!isEmpty && (

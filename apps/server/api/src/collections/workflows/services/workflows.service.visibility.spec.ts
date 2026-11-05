@@ -5,15 +5,7 @@ const scope = { organizationId: 'org-1', userId: 'user-1' };
 const visibility = {
   isDeleted: false,
   organizationId: 'org-1',
-  OR: [
-    { userId: 'user-1' },
-    {
-      metadata: {
-        equals: 'organization',
-        path: ['systemWorkflow', 'visibility'],
-      },
-    },
-  ],
+  OR: [{ userId: 'user-1' }, { systemWorkflowVisibility: 'organization' }],
 };
 
 function setup() {

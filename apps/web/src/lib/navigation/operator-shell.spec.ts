@@ -141,19 +141,19 @@ describe('operator-shell helpers', () => {
     expect(resolveOrganizationScopePath('/settings/brand-kit/voice')).toBe(
       '/settings/brands',
     );
-    expect(
-      resolveOrganizationScopePath('/settings/brand-kit/guided-setup'),
-    ).toBe('/settings/brands');
-    expect(
-      resolveOrganizationScopePath('/settings/brand-kit/content-rules'),
-    ).toBe('/settings/brands');
+    expect(resolveOrganizationScopePath('/settings/brand-kit/setup')).toBe(
+      '/settings/brands',
+    );
+    expect(resolveOrganizationScopePath('/settings/brand-kit/rules')).toBe(
+      '/settings/brands',
+    );
     expect(resolveOrganizationScopePath('/settings/agent')).toBe(
       '/settings/brands',
     );
     expect(resolveOrganizationScopePath('/settings/skills')).toBe(
       '/settings/brands',
     );
-    expect(resolveOrganizationScopePath('/settings/connected-accounts')).toBe(
+    expect(resolveOrganizationScopePath('/settings/accounts')).toBe(
       '/settings/brands',
     );
     expect(resolveOrganizationScopePath('/settings/brand-kit')).toBe(
