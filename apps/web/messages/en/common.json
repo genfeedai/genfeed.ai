@@ -1350,6 +1350,7 @@
       "working": "Working"
     },
     "loadFailed": "Failed to load this thread.",
+    "loadMoreResolved": "Load more resolved",
     "loading": "Loading threads",
     "loadingMessages": "Loading messages",
     "noMatches": "No threads match.",

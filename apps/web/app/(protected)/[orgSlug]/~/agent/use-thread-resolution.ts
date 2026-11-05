@@ -3,7 +3,7 @@
 import { type AgentThread, useAgentChatStore } from '@genfeedai/agent';
 import { AgentThreadKind, AgentThreadStatus } from '@genfeedai/contracts';
 import { logger } from '@genfeedai/services/core/logger.service';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   ThreadResolutionApi,
   ThreadResolutionState,
@@ -11,7 +11,8 @@ import type {
 
 const RESOLVED_LIST_LIMIT = 50;
 // The list endpoint reports no total, so a short page marks the end. The cap
-// only stops a misbehaving server from looping the client forever.
+// stops the first load from looping the client forever; past it, the operator
+// pages on with "Load more", one page at a time.
 const RESOLVED_LIST_MAX_PAGES = 100;
 
 /**
@@ -34,6 +35,23 @@ export function useThreadResolution(
     new Set(),
   );
 
+  // The next archived page to ask for, or null once a short page ended the list.
+  const [nextResolvedPage, setNextResolvedPage] = useState<number | null>(null);
+  const [isLoadingMoreResolved, setIsLoadingMoreResolved] = useState(false);
+  const loadMoreControllerRef = useRef<AbortController | null>(null);
+
+  const mergeResolved = useCallback((loaded: readonly AgentThread[]) => {
+    setResolvedById((current) => {
+      const next = new Map(current);
+      for (const thread of loaded) {
+        if (thread.kind !== AgentThreadKind.MASTER) {
+          next.set(thread.id, thread);
+        }
+      }
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     if (!isEnabled || !apiService) {
       return;
@@ -42,40 +60,78 @@ export function useThreadResolution(
     const controller = new AbortController();
     const loadResolvedThreads = async (): Promise<void> => {
       for (let page = 1; page <= RESOLVED_LIST_MAX_PAGES; page += 1) {
-        const loaded = await apiService.getThreads(
-          {
-            limit: RESOLVED_LIST_LIMIT,
-            page,
-            status: AgentThreadStatus.ARCHIVED,
-          },
-          controller.signal,
-        );
+        let loaded: AgentThread[];
+        try {
+          loaded = await apiService.getThreads(
+            {
+              limit: RESOLVED_LIST_LIMIT,
+              page,
+              status: AgentThreadStatus.ARCHIVED,
+            },
+            controller.signal,
+          );
+        } catch (error: unknown) {
+          if (!controller.signal.aborted) {
+            logger.error('Failed to load resolved threads', { error });
+            // "Load more" retries from the page that failed.
+            setNextResolvedPage(page);
+          }
+          return;
+        }
         if (controller.signal.aborted) {
           return;
         }
-        setResolvedById((current) => {
-          const next = new Map(current);
-          for (const thread of loaded) {
-            if (thread.kind !== AgentThreadKind.MASTER) {
-              next.set(thread.id, thread);
-            }
-          }
-          return next;
-        });
+        mergeResolved(loaded);
         if (loaded.length < RESOLVED_LIST_LIMIT) {
           return;
         }
       }
+      setNextResolvedPage(RESOLVED_LIST_MAX_PAGES + 1);
     };
 
-    loadResolvedThreads().catch((error: unknown) => {
-      if (!controller.signal.aborted) {
-        logger.error('Failed to load resolved threads', { error });
-      }
-    });
+    void loadResolvedThreads();
 
     return () => controller.abort();
-  }, [apiService, isEnabled]);
+  }, [apiService, isEnabled, mergeResolved]);
+
+  useEffect(() => () => loadMoreControllerRef.current?.abort(), []);
+
+  const loadMoreResolved = useCallback(async () => {
+    if (!apiService || nextResolvedPage === null || isLoadingMoreResolved) {
+      return;
+    }
+    const controller = new AbortController();
+    loadMoreControllerRef.current = controller;
+    setIsLoadingMoreResolved(true);
+    try {
+      const loaded = await apiService.getThreads(
+        {
+          limit: RESOLVED_LIST_LIMIT,
+          page: nextResolvedPage,
+          status: AgentThreadStatus.ARCHIVED,
+        },
+        controller.signal,
+      );
+      if (controller.signal.aborted) {
+        return;
+      }
+      mergeResolved(loaded);
+      setNextResolvedPage(
+        loaded.length < RESOLVED_LIST_LIMIT ? null : nextResolvedPage + 1,
+      );
+    } catch (error: unknown) {
+      if (!controller.signal.aborted) {
+        logger.error('Failed to load more resolved threads', {
+          error,
+          page: nextResolvedPage,
+        });
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setIsLoadingMoreResolved(false);
+      }
+    }
+  }, [apiService, isLoadingMoreResolved, mergeResolved, nextResolvedPage]);
 
   // The store wins where it knows a thread: reopened elsewhere means active.
   const resolvedThreads = useMemo(() => {
@@ -169,8 +225,11 @@ export function useThreadResolution(
   );
 
   return {
+    hasMoreResolved: nextResolvedPage !== null,
+    isLoadingMoreResolved,
     isPending,
     isResolved,
+    loadMoreResolved,
     pendingThreadIds,
     reopenThread,
     resolveThread,

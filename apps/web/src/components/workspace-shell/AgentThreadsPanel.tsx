@@ -95,7 +95,10 @@ function ThreadStatusIcon({
 export default function AgentThreadsPanel({
   apiService,
   brandId = null,
+  hasMoreResolved = false,
   isLoading = false,
+  isLoadingMoreResolved = false,
+  onLoadMoreResolved,
   onOpenFullThread,
   onOpenThreadChange,
   onReopenThread,
@@ -292,6 +295,22 @@ export default function AgentThreadsPanel({
           <ul className="space-y-0.5" id={listId}>
             {groups[key].map(renderRow)}
           </ul>
+        ) : null}
+        {isOpen &&
+        key === 'resolved' &&
+        hasMoreResolved &&
+        onLoadMoreResolved ? (
+          <Button
+            className="w-full justify-center"
+            isLoading={isLoadingMoreResolved}
+            onClick={() => void onLoadMoreResolved()}
+            size={ButtonSize.SM}
+            textTransform="none"
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          >
+            {translate('loadMoreResolved')}
+          </Button>
         ) : null}
       </section>
     );

@@ -373,6 +373,77 @@ describe('AgentThreadsPanel', () => {
       expect(screen.queryByRole('button', { name: /^Resolve:/ })).toBeNull();
     });
 
+    it('offers Load more at the foot of an open Resolved group', async () => {
+      const onLoadMoreResolved = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <AgentThreadsPanel
+          apiService={apiService}
+          hasMoreResolved
+          onLoadMoreResolved={onLoadMoreResolved}
+          threads={threads}
+        />,
+      );
+      expect(
+        screen.queryByRole('button', { name: 'Load more resolved' }),
+      ).toBeNull();
+
+      await user.click(
+        screen.getByTestId('agent-threads-panel-group-toggle-resolved'),
+      );
+      await user.click(
+        within(
+          screen.getByTestId('agent-threads-panel-group-resolved'),
+        ).getByRole('button', { name: 'Load more resolved' }),
+      );
+
+      expect(onLoadMoreResolved).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      ['every resolved thread is loaded', { hasMoreResolved: false }],
+      ['the surface cannot page', { hasMoreResolved: true }],
+    ])('offers no Load more when %s', async (_label, props) => {
+      const user = userEvent.setup();
+      render(
+        <AgentThreadsPanel
+          apiService={apiService}
+          threads={threads}
+          {...props}
+        />,
+      );
+
+      await user.click(
+        screen.getByTestId('agent-threads-panel-group-toggle-resolved'),
+      );
+
+      expect(screen.getByText('Shipped reel')).toBeVisible();
+      expect(
+        screen.queryByRole('button', { name: 'Load more resolved' }),
+      ).toBeNull();
+    });
+
+    it('holds Load more while the next page is on its way', async () => {
+      const user = userEvent.setup();
+      render(
+        <AgentThreadsPanel
+          apiService={apiService}
+          hasMoreResolved
+          isLoadingMoreResolved
+          onLoadMoreResolved={vi.fn()}
+          threads={threads}
+        />,
+      );
+
+      await user.click(
+        screen.getByTestId('agent-threads-panel-group-toggle-resolved'),
+      );
+
+      expect(
+        screen.getByRole('button', { name: 'Load more resolved' }),
+      ).toBeDisabled();
+    });
+
     it('lets a resolved thread be read but not steered until it is reopened', async () => {
       const onReopenThread = vi.fn();
       const user = userEvent.setup();
