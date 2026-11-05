@@ -155,6 +155,30 @@ describe('PlatformTemplateSeedService', () => {
       },
       'Tone: friendly. Length: short.',
     ],
+    [
+      PromptTemplateKey.TWEET_REPLY,
+      {
+        context: 'Earlier',
+        customInstructions: 'Be brief',
+        length: 'short',
+        tone: 'friendly',
+        tweetAuthor: '@ada',
+        tweetContent: 'Hi',
+      },
+      'Conversation so far:\nEarlier',
+    ],
+    [
+      PromptTemplateKey.TWEET_REPLY,
+      {
+        context: 'Earlier',
+        customInstructions: 'Be brief',
+        length: 'short',
+        tone: 'friendly',
+        tweetAuthor: '@ada',
+        tweetContent: 'Hi',
+      },
+      'Extra instructions: Be brief',
+    ],
   ])(
     'renders the %s brief with its variables: %#',
     (key, variables, expected) => {

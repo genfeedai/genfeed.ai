@@ -95,7 +95,7 @@ Summary: {{{summary}}}
 Article:
 {{{content}}}
 
-Score every number from 0 to 100. The estimates are rough counts for the first week after publishing.
+Score viralityScore and every factor from 0 to 100. The predictions are rough counts for the first week after publishing, so they can be larger than 100.
 
 Respond with JSON only, without markdown fences, in exactly this shape:
 {"viralityScore": 0, "factors": {"emotionalAppeal": 0, "readability": 0, "seoScore": 0, "shareability": 0, "trendAlignment": 0}, "predictions": {"estimatedEngagement": 0, "estimatedReach": 0, "estimatedShares": 0}, "suggestions": ["One specific change that would improve the article"]}`;
