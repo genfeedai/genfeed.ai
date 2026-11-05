@@ -1,4 +1,8 @@
-import type { AdsResearchDetail } from '@genfeedai/contracts/interfaces';
+import {
+  AdsChannel,
+  AdsPlatform,
+  type AdsResearchDetail,
+} from '@genfeedai/contracts/interfaces';
 import {
   act,
   fireEvent,
@@ -8,7 +12,7 @@ import {
   within,
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
 vi.mock(
@@ -75,11 +79,12 @@ const connectedAd = {
   accountName: 'Growth Account',
   adAccountId: 'acct-google-1',
   body: 'Google search ad body',
-  channel: 'search',
+  channel: AdsChannel.SEARCH,
   credentialId: 'cred-google',
   headline: 'Google lead gen headline',
   id: 'connected-1',
   industry: 'Marketing',
+  explanation: 'Search intent with a clear promise converts well.',
   loginCustomerId: 'mcc-111',
   metrics: {
     conversions: 19,
@@ -88,7 +93,7 @@ const connectedAd = {
     roas: 5.5,
     spendEfficiency: 2.1,
   },
-  platform: 'google',
+  platform: AdsPlatform.GOOGLE,
   source: 'my_accounts',
   sourceId: 'source-google-1',
   title: 'Google lead gen winner',
@@ -146,7 +151,15 @@ const adAccountsState = [
   },
 ];
 
-const useQueryStates = [
+/** One `useQuery` result per call, in the order the page client calls it. */
+type QueryState = {
+  data: unknown;
+  error: Error | null;
+  isLoading: boolean;
+  refetch: Mock;
+};
+
+const useQueryStates: QueryState[] = [
   {
     data: resultsState,
     error: null,
@@ -865,12 +878,12 @@ describe('AdsResearchPageClient', () => {
 
   it('clears an unsaved note draft when the selected snapshot changes', () => {
     const firstDetail: AdsResearchDetail = {
-      channel: 'all',
+      channel: AdsChannel.ALL,
       creative: {},
       explanation: 'Saved evidence',
       id: 'source-1',
       metrics: {},
-      platform: 'meta',
+      platform: AdsPlatform.META,
       savedAdId: 'saved-1',
       source: 'public',
       sourceId: 'source-1',
@@ -898,7 +911,7 @@ describe('AdsResearchPageClient', () => {
         detail={firstDetail}
         selectedAd={{
           id: 'source-1',
-          platform: 'meta',
+          platform: AdsPlatform.META,
           savedAdId: 'saved-1',
           source: 'public',
         }}
@@ -922,7 +935,7 @@ describe('AdsResearchPageClient', () => {
         }}
         selectedAd={{
           id: 'source-2',
-          platform: 'meta',
+          platform: AdsPlatform.META,
           savedAdId: 'saved-2',
           source: 'public',
         }}

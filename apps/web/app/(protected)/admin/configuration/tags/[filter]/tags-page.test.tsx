@@ -1,4 +1,5 @@
-import { render } from '@testing-library/react';
+import { PageScope } from '@genfeedai/contracts';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi } from 'vitest';
 import TagsPage from './tags-page';
@@ -30,19 +31,11 @@ vi.mock('@helpers/ui/modal/modal.helper', () => ({
 }));
 
 describe('TagsPage', () => {
-  it('should render without crashing', () => {
-    const { container } = render(<TagsPage filter="all" scope="superadmin" />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
+  it('renders the tag list inside the tags layout', () => {
+    render(<TagsPage filter="all" scope={PageScope.SUPERADMIN} />);
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<TagsPage filter="all" scope="superadmin" />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should apply correct styles and classes', () => {
-    const { container } = render(<TagsPage filter="all" scope="superadmin" />);
-    const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
+    expect(screen.getByTestId('tags-layout')).toContainElement(
+      screen.getByTestId('tags-list'),
+    );
   });
 });

@@ -1,6 +1,8 @@
 import { paginatedResponse } from '@app-tests/paginated-response';
+import { CaptionFormat } from '@genfeedai/contracts';
 import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
-import type { Caption } from '@models/content/caption.model';
+import { createBaseEntity } from '@genfeedai/helpers/testing/entity-fixtures';
+import { Caption } from '@models/content/caption.model';
 
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -94,12 +96,13 @@ describe('CaptionsList', () => {
   it('should render table with correct columns', async () => {
     findAllPageMock.mockResolvedValue(
       paginatedResponse([
-        {
+        new Caption({
+          ...createBaseEntity({ id: 'caption-1' }),
           createdAt: '2026-03-10T00:00:00.000Z',
-          format: 'srt',
-          id: 'caption-1',
-          label: 'Caption 1',
-        } as Caption,
+          format: CaptionFormat.SRT,
+          ingredient: 'ingredient-1',
+          language: 'en',
+        }),
       ]),
     );
 

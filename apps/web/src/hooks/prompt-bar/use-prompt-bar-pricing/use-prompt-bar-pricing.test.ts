@@ -1,4 +1,4 @@
-import { ModelProvider } from '@genfeedai/contracts';
+import { ModelProvider, PricingType } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
@@ -9,7 +9,7 @@ const createMockModel = (overrides: Partial<IModel> = {}): IModel =>
     cost: 10,
     id: 'model-1',
     name: 'Test Model',
-    pricingType: 'flat',
+    pricingType: PricingType.FLAT,
     provider: 'test',
     ...overrides,
   }) as IModel;
@@ -17,7 +17,10 @@ const createMockModel = (overrides: Partial<IModel> = {}): IModel =>
 describe('usePromptBarPricing', () => {
   describe('Flat Pricing', () => {
     it('returns flat cost for single model', () => {
-      const model = createMockModel({ cost: 15, pricingType: 'flat' });
+      const model = createMockModel({
+        cost: 15,
+        pricingType: PricingType.FLAT,
+      });
 
       const { result } = renderHook(() =>
         usePromptBarPricing({
@@ -34,8 +37,12 @@ describe('usePromptBarPricing', () => {
 
     it('sums costs for multiple flat-priced models', () => {
       const models = [
-        createMockModel({ cost: 10, pricingType: 'flat' }),
-        createMockModel({ cost: 20, id: 'model-2', pricingType: 'flat' }),
+        createMockModel({ cost: 10, pricingType: PricingType.FLAT }),
+        createMockModel({
+          cost: 20,
+          id: 'model-2',
+          pricingType: PricingType.FLAT,
+        }),
       ];
 
       const { result } = renderHook(() =>
@@ -52,7 +59,10 @@ describe('usePromptBarPricing', () => {
     });
 
     it('multiplies cost by number of outputs', () => {
-      const model = createMockModel({ cost: 10, pricingType: 'flat' });
+      const model = createMockModel({
+        cost: 10,
+        pricingType: PricingType.FLAT,
+      });
 
       const { result } = renderHook(() =>
         usePromptBarPricing({
@@ -89,7 +99,7 @@ describe('usePromptBarPricing', () => {
       const model = createMockModel({
         cost: 10, // Fallback cost
         costPerUnit: 5, // 5 credits per megapixel
-        pricingType: 'per-megapixel',
+        pricingType: PricingType.PER_MEGAPIXEL,
       });
 
       const { result } = renderHook(() =>
@@ -109,7 +119,7 @@ describe('usePromptBarPricing', () => {
       const model = createMockModel({
         cost: 10,
         costPerUnit: 5,
-        pricingType: 'per-megapixel',
+        pricingType: PricingType.PER_MEGAPIXEL,
       });
 
       const { result } = renderHook(() =>
@@ -132,7 +142,7 @@ describe('usePromptBarPricing', () => {
         cost: 5,
         costPerUnit: 1, // Very low cost
         minCost: 10, // Minimum cost
-        pricingType: 'per-megapixel',
+        pricingType: PricingType.PER_MEGAPIXEL,
       });
 
       const { result } = renderHook(() =>
@@ -152,7 +162,7 @@ describe('usePromptBarPricing', () => {
       const model = createMockModel({
         cost: 15,
         costPerUnit: 5,
-        pricingType: 'per-megapixel',
+        pricingType: PricingType.PER_MEGAPIXEL,
       });
 
       const { result } = renderHook(() =>
@@ -175,7 +185,7 @@ describe('usePromptBarPricing', () => {
       const model = createMockModel({
         cost: 10,
         costPerUnit: 2, // 2 credits per second
-        pricingType: 'per-second',
+        pricingType: PricingType.PER_SECOND,
       });
 
       const { result } = renderHook(() =>
@@ -195,7 +205,7 @@ describe('usePromptBarPricing', () => {
       const model = createMockModel({
         cost: 10,
         costPerUnit: 3,
-        pricingType: 'per-second',
+        pricingType: PricingType.PER_SECOND,
       });
 
       const { result } = renderHook(() =>
@@ -217,7 +227,7 @@ describe('usePromptBarPricing', () => {
         cost: 10,
         costPerUnit: 1,
         minCost: 15,
-        pricingType: 'per-second',
+        pricingType: PricingType.PER_SECOND,
       });
 
       const { result } = renderHook(() =>
@@ -237,7 +247,7 @@ describe('usePromptBarPricing', () => {
       const model = createMockModel({
         cost: 12,
         costPerUnit: 2,
-        pricingType: 'per-second',
+        pricingType: PricingType.PER_SECOND,
       });
 
       const { result } = renderHook(() =>
@@ -271,7 +281,10 @@ describe('usePromptBarPricing', () => {
     });
 
     it('calculateModelCost works for flat pricing', () => {
-      const model = createMockModel({ cost: 25, pricingType: 'flat' });
+      const model = createMockModel({
+        cost: 25,
+        pricingType: PricingType.FLAT,
+      });
 
       const { result } = renderHook(() =>
         usePromptBarPricing({
@@ -291,7 +304,7 @@ describe('usePromptBarPricing', () => {
       const model = createMockModel({
         costPerUnit: 10,
         minCost: 5,
-        pricingType: 'per-megapixel',
+        pricingType: PricingType.PER_MEGAPIXEL,
       });
 
       const { result } = renderHook(() =>
@@ -313,7 +326,7 @@ describe('usePromptBarPricing', () => {
       const model = createMockModel({
         costPerUnit: 5,
         minCost: 10,
-        pricingType: 'per-second',
+        pricingType: PricingType.PER_SECOND,
       });
 
       const { result } = renderHook(() =>
@@ -351,16 +364,20 @@ describe('usePromptBarPricing', () => {
   describe('Mixed Pricing Models', () => {
     it('handles mix of pricing types correctly', () => {
       const models = [
-        createMockModel({ cost: 10, id: 'flat', pricingType: 'flat' }),
+        createMockModel({
+          cost: 10,
+          id: 'flat',
+          pricingType: PricingType.FLAT,
+        }),
         createMockModel({
           costPerUnit: 5,
           id: 'megapixel',
-          pricingType: 'per-megapixel',
+          pricingType: PricingType.PER_MEGAPIXEL,
         }),
         createMockModel({
           costPerUnit: 2,
           id: 'second',
-          pricingType: 'per-second',
+          pricingType: PricingType.PER_SECOND,
         }),
       ];
 

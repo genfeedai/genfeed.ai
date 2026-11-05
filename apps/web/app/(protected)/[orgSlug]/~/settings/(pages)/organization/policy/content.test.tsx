@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import Module from './content.tsx';
+import Module from './content';
 
 describe('settings-organization-policy-page.tsx', () => {
   it('exports a component', () => {

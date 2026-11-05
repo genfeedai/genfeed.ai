@@ -17,9 +17,11 @@ vi.mock('next/image', () => ({
     fill: _fill,
     priority: _priority,
     ...props
-  }: ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean }) => (
-    <input type="image" {...props} alt={alt} />
-  ),
+  }: ImgHTMLAttributes<HTMLImageElement> & {
+    blurDataURL?: string;
+    fill?: boolean;
+    priority?: boolean;
+  }) => <img {...props} alt={alt} />,
 }));
 
 describe('TopPostsSection', () => {
@@ -28,7 +30,7 @@ describe('TopPostsSection', () => {
       disconnect() {}
       observe() {}
       unobserve() {}
-    } as typeof IntersectionObserver;
+    } as unknown as typeof IntersectionObserver;
   });
 
   it('renders the empty state copy when no posts exist', () => {

@@ -1,3 +1,4 @@
+import { Platform } from '@genfeedai/contracts';
 import { PlatformTimeSeriesChart } from '@/features/analytics/components/analytics/charts/platform-time-series/platform-time-series-chart';
 import type {
   PlatformTimeSeriesChartProps,
@@ -5,6 +6,7 @@ import type {
 } from '@/props/analytics/charts.props';
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import type { ComponentType } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', async () => {
@@ -103,10 +105,13 @@ vi.mock('next/dynamic', () => ({
     const exportName = [...propertyAccesses]
       .reverse()
       .find((name) => name in rechartsMocks);
-    const Component =
+    // Each mock declares its own props; the dynamic piece forwards whatever
+    // the chart passes, so read them all as a plain prop bag.
+    const Component = (
       exportName && exportName in rechartsMocks
         ? rechartsMocks[exportName as keyof typeof rechartsMocks]
-        : () => null;
+        : () => null
+    ) as ComponentType<Record<string, unknown>>;
 
     return function DynamicChartPiece(props: Record<string, unknown>) {
       return <Component {...props} />;
@@ -273,7 +278,7 @@ describe('PlatformTimeSeriesChart', () => {
       render(
         <PlatformTimeSeriesChart
           data={mockData}
-          platforms={['facebook', 'linkedin']}
+          platforms={[Platform.FACEBOOK, Platform.LINKEDIN]}
         />,
       );
       expect(screen.getByText('Facebook')).toBeInTheDocument();
@@ -305,7 +310,7 @@ describe('PlatformTimeSeriesChart', () => {
       render(
         <PlatformTimeSeriesChart
           data={mockData}
-          platforms={['instagram', 'tiktok']}
+          platforms={[Platform.INSTAGRAM, Platform.TIKTOK]}
         />,
       );
 
@@ -337,13 +342,16 @@ describe('PlatformTimeSeriesChart', () => {
       const { rerender } = render(
         <PlatformTimeSeriesChart
           data={mockData}
-          platforms={['instagram', 'tiktok']}
+          platforms={[Platform.INSTAGRAM, Platform.TIKTOK]}
         />,
       );
 
       fireEvent.click(getPlatformButton('Instagram'));
       rerender(
-        <PlatformTimeSeriesChart data={mockData} platforms={['facebook']} />,
+        <PlatformTimeSeriesChart
+          data={mockData}
+          platforms={[Platform.FACEBOOK]}
+        />,
       );
 
       expect(screen.getByTestId('area-facebook')).toBeInTheDocument();
@@ -376,7 +384,7 @@ describe('PlatformTimeSeriesChart', () => {
       render(
         <PlatformTimeSeriesChart
           data={mockData}
-          platforms={['instagram', 'youtube']}
+          platforms={[Platform.INSTAGRAM, Platform.YOUTUBE]}
         />,
       );
 
@@ -390,7 +398,10 @@ describe('PlatformTimeSeriesChart', () => {
   describe('Platform Colors', () => {
     it('uses Instagram CSS variable color', () => {
       render(
-        <PlatformTimeSeriesChart data={mockData} platforms={['instagram']} />,
+        <PlatformTimeSeriesChart
+          data={mockData}
+          platforms={[Platform.INSTAGRAM]}
+        />,
       );
       const area = screen.getByTestId('area-instagram');
       expect(area).toHaveAttribute('data-stroke', 'var(--platform-instagram)');
@@ -398,7 +409,10 @@ describe('PlatformTimeSeriesChart', () => {
 
     it('uses TikTok CSS variable color', () => {
       render(
-        <PlatformTimeSeriesChart data={mockData} platforms={['tiktok']} />,
+        <PlatformTimeSeriesChart
+          data={mockData}
+          platforms={[Platform.TIKTOK]}
+        />,
       );
       const area = screen.getByTestId('area-tiktok');
       expect(area).toHaveAttribute('data-stroke', 'var(--platform-tiktok)');
@@ -406,7 +420,10 @@ describe('PlatformTimeSeriesChart', () => {
 
     it('uses YouTube destructive color', () => {
       render(
-        <PlatformTimeSeriesChart data={mockData} platforms={['youtube']} />,
+        <PlatformTimeSeriesChart
+          data={mockData}
+          platforms={[Platform.YOUTUBE]}
+        />,
       );
       const area = screen.getByTestId('area-youtube');
       expect(area).toHaveAttribute('data-stroke', 'hsl(var(--destructive))');
@@ -414,7 +431,10 @@ describe('PlatformTimeSeriesChart', () => {
 
     it('uses Facebook CSS variable color', () => {
       render(
-        <PlatformTimeSeriesChart data={mockData} platforms={['facebook']} />,
+        <PlatformTimeSeriesChart
+          data={mockData}
+          platforms={[Platform.FACEBOOK]}
+        />,
       );
       const area = screen.getByTestId('area-facebook');
       expect(area).toHaveAttribute('data-stroke', 'var(--platform-facebook)');
@@ -422,7 +442,10 @@ describe('PlatformTimeSeriesChart', () => {
 
     it('uses Twitter CSS variable color', () => {
       render(
-        <PlatformTimeSeriesChart data={mockData} platforms={['twitter']} />,
+        <PlatformTimeSeriesChart
+          data={mockData}
+          platforms={[Platform.TWITTER]}
+        />,
       );
       const area = screen.getByTestId('area-twitter');
       expect(area).toHaveAttribute('data-stroke', 'var(--platform-twitter)');
@@ -528,36 +551,48 @@ describe('PlatformTimeSeriesChart', () => {
       {
         color: 'var(--platform-instagram)',
         label: 'Instagram',
-        platform: 'instagram',
+        platform: Platform.INSTAGRAM,
       },
-      { color: 'var(--platform-tiktok)', label: 'TikTok', platform: 'tiktok' },
+      {
+        color: 'var(--platform-tiktok)',
+        label: 'TikTok',
+        platform: Platform.TIKTOK,
+      },
       {
         color: 'hsl(var(--destructive))',
         label: 'YouTube',
-        platform: 'youtube',
+        platform: Platform.YOUTUBE,
       },
       {
         color: 'var(--platform-facebook)',
         label: 'Facebook',
-        platform: 'facebook',
+        platform: Platform.FACEBOOK,
       },
       {
         color: 'var(--platform-twitter)',
         label: 'X',
-        platform: 'twitter',
+        platform: Platform.TWITTER,
       },
       {
         color: 'var(--platform-linkedin)',
         label: 'LinkedIn',
-        platform: 'linkedin',
+        platform: Platform.LINKEDIN,
       },
-      { color: 'var(--platform-reddit)', label: 'Reddit', platform: 'reddit' },
+      {
+        color: 'var(--platform-reddit)',
+        label: 'Reddit',
+        platform: Platform.REDDIT,
+      },
       {
         color: 'var(--platform-pinterest)',
         label: 'Pinterest',
-        platform: 'pinterest',
+        platform: Platform.PINTEREST,
       },
-      { color: 'hsl(var(--foreground))', label: 'Medium', platform: 'medium' },
+      {
+        color: 'hsl(var(--foreground))',
+        label: 'Medium',
+        platform: Platform.MEDIUM,
+      },
     ];
 
     it.each(allPlatforms)(
@@ -614,7 +649,10 @@ describe('PlatformTimeSeriesChart', () => {
 
     it('handles single platform', () => {
       render(
-        <PlatformTimeSeriesChart data={mockData} platforms={['instagram']} />,
+        <PlatformTimeSeriesChart
+          data={mockData}
+          platforms={[Platform.INSTAGRAM]}
+        />,
       );
       expect(screen.getByTestId('area-instagram')).toBeInTheDocument();
       expect(screen.getAllByRole('button').length).toBe(1);

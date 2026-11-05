@@ -1,4 +1,6 @@
+import { IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { createIngredientFixture } from '@genfeedai/helpers/testing/entity-fixtures';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { executeWithLoading } from '@hooks/utils/service-operation/service-operation.util';
@@ -27,11 +29,10 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
 }));
 
 describe('useIngredientSharing', () => {
-  const baseIngredient: IIngredient = {
-    category: 'image',
+  const baseIngredient: IIngredient = createIngredientFixture({
     id: 'ingredient-1',
-    status: 'validated',
-  } as IIngredient;
+    status: IngredientStatus.VALIDATED,
+  });
 
   let mockIngredientsService: {
     patch: ReturnType<typeof vi.fn>;

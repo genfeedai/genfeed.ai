@@ -31,9 +31,7 @@ describe('APP_MENU_ITEMS', () => {
   it('does not surface content drilldowns in the shared sidebar', () => {
     const groups = [
       ...new Set(
-        APP_MENU_ITEMS.flatMap((item) =>
-          item.group.length > 0 ? [item.group] : [],
-        ),
+        APP_MENU_ITEMS.flatMap((item) => (item.group ? [item.group] : [])),
       ),
     ];
     const hrefs = APP_MENU_ITEMS.map((item) => item.href);

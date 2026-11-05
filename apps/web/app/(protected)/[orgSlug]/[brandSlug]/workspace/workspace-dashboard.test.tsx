@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import type { WorkflowExecutionStats } from '@genfeedai/contracts/types';
+import { Task } from '@services/management/tasks.service';
 import { render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -149,19 +150,25 @@ function makeStats(
   };
 }
 
-function makeTask(overrides: Record<string, unknown> = {}) {
-  return {
+function makeTask(overrides: Partial<Task> = {}): Task {
+  return new Task({
     createdAt: '2026-05-20T07:00:00.000Z',
     eventStream: [],
     id: 'task-1',
-    progress: { message: 'Working' },
+    identifier: 'TASK-1',
+    isDeleted: false,
+    linkedEntities: [],
+    organizationId: 'org-1',
+    priority: 'medium',
+    progress: { activeRunCount: 1, message: 'Working', percent: 50 },
     request: 'Create launch content',
     reviewState: 'none',
     status: 'in_progress',
+    taskNumber: 1,
     title: 'Launch content',
     updatedAt: '2026-05-20T07:30:00.000Z',
     ...overrides,
-  };
+  });
 }
 
 describe('workspace dashboard sections', () => {
@@ -186,11 +193,14 @@ describe('workspace dashboard sections', () => {
         typeof age === 'number'
           ? new Date(Date.now() - age).toISOString()
           : age;
-      const task = makeTask({ createdAt: source, updatedAt: source });
+      const task = makeTask({
+        createdAt: source ?? undefined,
+        updatedAt: source ?? undefined,
+      });
       const { container } = render(
         <>
-          <DashboardRecentActivity workspaceTasks={[task] as never} />
-          <DashboardRecentTasks workspaceTasks={[task] as never} />
+          <DashboardRecentActivity workspaceTasks={[task]} />
+          <DashboardRecentTasks workspaceTasks={[task]} />
         </>,
       );
       const translate = translateFromPseudoCatalog('pages.workspaceOverview');
@@ -388,7 +398,9 @@ describe('workspace dashboard sections', () => {
       makeTask({
         eventStream: [
           {
+            id: 'event-1',
             payload: { summary: 'Summary event' },
+            timestamp: '2026-05-20T07:10:00.000Z',
             type: 'task_ready_for_review',
           },
         ],
@@ -399,7 +411,9 @@ describe('workspace dashboard sections', () => {
       makeTask({
         eventStream: [
           {
+            id: 'event-2',
             payload: { message: 'Message event' },
+            timestamp: '2026-05-20T07:20:00.000Z',
             type: 'task_queued',
           },
         ],
@@ -419,8 +433,8 @@ describe('workspace dashboard sections', () => {
 
     render(
       <>
-        <DashboardRecentActivity workspaceTasks={tasks as never} />
-        <DashboardRecentTasks workspaceTasks={tasks as never} />
+        <DashboardRecentActivity workspaceTasks={tasks} />
+        <DashboardRecentTasks workspaceTasks={tasks} />
         <DashboardRecentActivity workspaceTasks={[]} />
         <DashboardRecentTasks workspaceTasks={[]} />
       </>,
@@ -453,7 +467,7 @@ describe('workspace dashboard sections', () => {
           }),
         ]}
         stats={makeStats({ active: 1, completed: 1, total: 2 })}
-        workspaceTasks={[makeTask() as never]}
+        workspaceTasks={[makeTask()]}
       />,
     );
 
@@ -488,7 +502,7 @@ describe('workspace dashboard sections', () => {
         trendsHref="/org/brand/discovery/overview"
         trendItems={[]}
         // One task is enough signal to get past the first-run block below.
-        workspaceTasks={[makeTask() as never]}
+        workspaceTasks={[makeTask()]}
       />,
     );
 

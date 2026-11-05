@@ -1,3 +1,6 @@
+import { AssetCategory, AssetParent } from '@genfeedai/contracts';
+import { createBaseEntity } from '@genfeedai/helpers/testing/entity-fixtures';
+import type { ModalGalleryItemReferenceProps } from '@genfeedai/props/modals/modal-gallery.props';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -17,13 +20,16 @@ vi.mock('@genfeedai/services/core/environment.service', () => ({
 }));
 
 describe('ModalGalleryItemReference', () => {
-  const defaultProps = {
+  const defaultProps: ModalGalleryItemReferenceProps = {
     isSelected: false,
     onSelect: vi.fn(),
     onSelectionLimit: vi.fn(),
     reference: {
-      id: 'ref-1',
+      ...createBaseEntity({ id: 'ref-1' }),
+      category: AssetCategory.REFERENCE,
+      parentType: AssetParent.BRAND,
       url: 'http://example.com/ref.jpg',
+      userId: 'user-1',
     },
     selectedItems: [],
     selectionLimit: Infinity,

@@ -143,21 +143,9 @@ describe('SettingsSubscriptionPage', () => {
       isLoading: false,
       refresh: vi.fn(),
     });
-    useSubscriptionMock.mockReturnValue({
-      changeSubscriptionPlan: vi.fn(),
-      creditsBreakdown: null,
-      error: null,
-      isLoading: false,
-      isSubscriptionActive: true,
-      openBillingPortal: vi.fn(),
-      previewPlanChange: vi.fn(),
-      refreshCreditsBreakdown: vi.fn(),
-      refreshSubscription: vi.fn(),
-      subscription: {
-        category: 'pro',
-        status: 'active',
-      },
-    } as UseSubscriptionReturn);
+    setSubscription(
+      new Subscription({ category: 'pro', status: SubscriptionStatus.ACTIVE }),
+    );
   });
 
   it('renders plan and limits without credit top-up', () => {

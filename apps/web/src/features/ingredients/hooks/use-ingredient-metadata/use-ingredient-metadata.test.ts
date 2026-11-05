@@ -1,4 +1,6 @@
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
+import { createIngredientFixture } from '@genfeedai/helpers/testing/entity-fixtures';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -30,12 +32,12 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
 }));
 
 describe('useIngredientMetadata', () => {
-  const baseIngredient: IIngredient = {
-    category: 'video',
+  const baseIngredient: IIngredient = createIngredientFixture({
+    category: IngredientCategory.VIDEO,
     id: 'ingredient-1',
     metadata: { label: 'Original' } as IMetadata,
-    status: 'validated',
-  } as IIngredient;
+    status: IngredientStatus.VALIDATED,
+  });
 
   let mockIngredientsService: {
     patchMetadata: ReturnType<typeof vi.fn>;

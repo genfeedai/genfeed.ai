@@ -1,50 +1,78 @@
-import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  ModelCategory,
+  Platform,
+} from '@genfeedai/contracts';
+import type {
+  IElementBlacklist,
+  IElementCamera,
+  IElementMood,
+  IElementStyle,
+  IPreset,
+  ISound,
+} from '@genfeedai/contracts/interfaces';
+import {
+  createBaseEntity,
+  createIngredientFixture,
+  createPresetFixture,
+} from '@genfeedai/helpers/testing/entity-fixtures';
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { usePromptBarFilters } from '@/hooks/prompt-bar/use-prompt-bar-filters/use-prompt-bar-filters';
 
-const createMockStyle = (overrides = {}) => ({
-  category: null,
-  id: 'style-1',
+const createMockStyle = (
+  overrides: Partial<IElementStyle> = {},
+): IElementStyle => ({
+  ...createBaseEntity({ id: 'style-1' }),
+  key: 'test-style',
+  label: 'Test Style',
   models: [],
-  name: 'Test Style',
   ...overrides,
 });
 
-const createMockMood = (overrides = {}) => ({
-  category: null,
-  id: 'mood-1',
-  name: 'Test Mood',
+const createMockMood = (
+  overrides: Partial<IElementMood> = {},
+): IElementMood => ({
+  ...createBaseEntity({ id: 'mood-1' }),
+  key: 'test-mood',
+  label: 'Test Mood',
   ...overrides,
 });
 
-const createMockCamera = (overrides = {}) => ({
-  category: null,
-  id: 'camera-1',
-  name: 'Test Camera',
+const createMockCamera = (
+  overrides: Partial<IElementCamera> = {},
+): IElementCamera => ({
+  ...createBaseEntity({ id: 'camera-1' }),
+  key: 'test-camera',
+  label: 'Test Camera',
   ...overrides,
 });
 
-const createMockPreset = (overrides = {}) => ({
-  category: null,
-  id: 'preset-1',
-  name: 'Test Preset',
-  platform: null,
-  ...overrides,
-});
+const createMockPreset = (overrides: Partial<IPreset> = {}): IPreset =>
+  createPresetFixture({
+    description: 'Test preset description',
+    id: 'preset-1',
+    label: 'Test Preset',
+    ...overrides,
+  });
 
-const createMockBlacklist = (overrides = {}) => ({
+const createMockBlacklist = (
+  overrides: Partial<IElementBlacklist> = {},
+): IElementBlacklist => ({
+  ...createBaseEntity({ id: 'blacklist-1' }),
   category: ModelCategory.VIDEO,
-  id: 'blacklist-1',
-  name: 'Test Blacklist',
+  isActive: true,
+  isDefault: false,
+  key: 'test-blacklist',
+  label: 'Test Blacklist',
   ...overrides,
 });
 
-const createMockSound = (overrides = {}) => ({
+const createMockSound = (overrides: Partial<ISound> = {}): ISound => ({
+  ...createIngredientFixture({ id: 'sound-1' }),
   category: IngredientCategory.VIDEO,
-  id: 'sound-1',
   isActive: true,
-  name: 'Test Sound',
+  label: 'Test Sound',
   ...overrides,
 });
 
@@ -100,7 +128,7 @@ describe('usePromptBarFilters', () => {
       const styles = [
         createMockStyle({ category: ModelCategory.VIDEO, id: '1' }),
         createMockStyle({ category: ModelCategory.IMAGE, id: '2' }),
-        createMockStyle({ category: null, id: '3' }),
+        createMockStyle({ category: undefined, id: '3' }),
       ];
 
       const { result } = renderHook(() =>
@@ -138,7 +166,7 @@ describe('usePromptBarFilters', () => {
 
     it('includes styles without category or models when no filters match', () => {
       const styles = [
-        createMockStyle({ category: null, id: '1', models: [] }),
+        createMockStyle({ category: undefined, id: '1', models: [] }),
         createMockStyle({ category: ModelCategory.IMAGE, id: '2', models: [] }),
       ];
 
@@ -160,7 +188,7 @@ describe('usePromptBarFilters', () => {
       const moods = [
         createMockMood({ category: ModelCategory.VIDEO, id: '1' }),
         createMockMood({ category: ModelCategory.IMAGE, id: '2' }),
-        createMockMood({ category: null, id: '3' }),
+        createMockMood({ category: undefined, id: '3' }),
       ];
 
       const { result } = renderHook(() =>
@@ -177,7 +205,7 @@ describe('usePromptBarFilters', () => {
     it('returns all moods when no category filter', () => {
       const moods = [
         createMockMood({ category: ModelCategory.VIDEO, id: '1' }),
-        createMockMood({ category: null, id: '2' }),
+        createMockMood({ category: undefined, id: '2' }),
       ];
 
       const { result } = renderHook(() =>
@@ -214,17 +242,15 @@ describe('usePromptBarFilters', () => {
         createMockPreset({
           category: ModelCategory.IMAGE,
           id: '1',
-          platform: 'instagram',
+          platform: Platform.INSTAGRAM,
         }),
         createMockPreset({
           category: ModelCategory.IMAGE,
           id: '2',
-          platform: null,
         }),
         createMockPreset({
           category: ModelCategory.VIDEO,
           id: '3',
-          platform: null,
         }),
       ];
 
@@ -322,7 +348,11 @@ describe('usePromptBarFilters', () => {
           id: '2',
           isActive: false,
         }),
-        createMockSound({ category: null, id: '3', isActive: true }),
+        createMockSound({
+          category: IngredientCategory.VIDEO,
+          id: '3',
+          isActive: true,
+        }),
       ];
 
       const { result } = renderHook(() =>

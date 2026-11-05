@@ -24,7 +24,7 @@ const {
   resolveAuthTokenMock,
 } = vi.hoisted(() => ({
   assignMock: vi.fn(),
-  getDesktopBridgeMock: vi.fn(() => null),
+  getDesktopBridgeMock: vi.fn((): unknown => null),
   getInstallReadinessMock: vi.fn(),
   getUsersServiceMock: vi.fn(),
   handleStepCompleteMock: vi.fn(),

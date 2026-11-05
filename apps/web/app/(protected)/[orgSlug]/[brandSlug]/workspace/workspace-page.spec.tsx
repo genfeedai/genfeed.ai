@@ -516,7 +516,8 @@ describe('WorkspacePageContent', () => {
   });
 
   it('keeps the inbox content mounted while the first task list loads', async () => {
-    let resolveTasks: (tasks: ReturnType<typeof buildTask>[]) => void;
+    let resolveTasks: (tasks: ReturnType<typeof buildTask>[]) => void = () =>
+      undefined;
     listMock.mockReturnValueOnce(
       new Promise((resolve) => {
         resolveTasks = resolve;
@@ -535,7 +536,7 @@ describe('WorkspacePageContent', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('No inbox items yet.')).not.toBeInTheDocument();
 
-    resolveTasks?.([
+    resolveTasks([
       buildTask({
         id: 'task-first-load',
         reviewState: 'pending_approval',

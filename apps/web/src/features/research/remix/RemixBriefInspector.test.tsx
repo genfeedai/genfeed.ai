@@ -1,5 +1,8 @@
 import { ContentRunStatus } from '@genfeedai/contracts';
-import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
+import {
+  BrandRemixOrganicPlatform,
+  type BrandRemixRunView,
+} from '@genfeedai/contracts/api-types/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -34,7 +37,7 @@ const run: BrandRemixRunView = {
     output: { aspectRatio: '9:16', count: 3, kind: 'video' },
     references: [],
     reviewRequired: true,
-    target: { kind: 'organic', platform: 'tiktok' },
+    target: { kind: 'organic', platform: BrandRemixOrganicPlatform.TIKTOK },
   },
   id: 'run-1',
   phase: 'prefilled',
@@ -59,7 +62,7 @@ const run: BrandRemixRunView = {
       hook: 'Proof before promise',
       pacing: 'Three fast proof beats, then product reveal',
     },
-    platform: 'tiktok',
+    platform: BrandRemixOrganicPlatform.TIKTOK,
     selector: {
       kind: 'trend_reference',
       sourceReferenceId: 'source-reference-1',
@@ -435,7 +438,7 @@ describe('RemixBriefInspector', () => {
           references: [],
           speechVoiceId: '',
           storyboard: [],
-          targetPlatform: 'tiktok',
+          targetPlatform: BrandRemixOrganicPlatform.TIKTOK,
           visualDirection: '',
         },
         {
@@ -487,7 +490,7 @@ describe('RemixBriefInspector', () => {
           ],
           speechVoiceId: '',
           storyboard: [],
-          targetPlatform: 'tiktok',
+          targetPlatform: BrandRemixOrganicPlatform.TIKTOK,
           visualDirection: '',
         },
         run,
@@ -600,7 +603,7 @@ describe('RemixBriefInspector', () => {
           references: [],
           speechVoiceId: 'voice-row-1',
           storyboard: [],
-          targetPlatform: 'tiktok',
+          targetPlatform: BrandRemixOrganicPlatform.TIKTOK,
           visualDirection: '',
         },
         run,

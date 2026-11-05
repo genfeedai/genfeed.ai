@@ -53,6 +53,7 @@ interface CalendarItemShape {
   missingIdentityKeys?: string[];
   release?: { firstTagColor?: string | null };
   status: string;
+  title: string;
 }
 
 const { notifyErrorMock, openConfirmMock, openPostRepurposeModalMock } =
@@ -663,6 +664,7 @@ describe('ContentCalendarPage', () => {
         id: 'article-9',
         itemType: 'article',
         status: 'draft',
+        title: 'Article 9',
       }),
     ).toBeNull();
   });
@@ -808,6 +810,7 @@ describe('ContentCalendarPage', () => {
         id: 'article-9',
         itemType: 'article',
         status: 'draft',
+        title: 'Article 9',
       }),
     ).toEqual([]);
   });

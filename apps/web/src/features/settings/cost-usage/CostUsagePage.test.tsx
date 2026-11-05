@@ -204,10 +204,10 @@ describe('CostUsagePage', () => {
 
   it('paginates the ledger and resets the page when the brand changes', async () => {
     const { rerender } = render(<CostUsagePage lockedBrandId="brand-1" />);
-    fireEvent.mouseDown(
-      screen.getByRole('tab', { name: 'Generations', exact: true }),
-      { button: 0, ctrlKey: false },
-    );
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Generations' }), {
+      button: 0,
+      ctrlKey: false,
+    });
     expect(screen.getByText('flux-schnell')).toBeInTheDocument();
     expect(screen.getByText('Not recorded')).toBeInTheDocument();
     expect(

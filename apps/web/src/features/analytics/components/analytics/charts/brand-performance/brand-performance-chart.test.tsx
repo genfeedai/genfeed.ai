@@ -2,7 +2,7 @@ import { BrandPerformanceChart } from '@/features/analytics/components/analytics
 import '@testing-library/jest-dom/vitest';
 import { AnalyticsMetric } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', async () => {
@@ -80,10 +80,11 @@ vi.mock('next/dynamic', () => ({
     const exportName = [...propertyAccesses]
       .reverse()
       .find((name) => name in rechartsMocks);
-    const Comp =
+    const Comp = (
       exportName && exportName in rechartsMocks
         ? rechartsMocks[exportName as keyof typeof rechartsMocks]
-        : () => null;
+        : () => null
+    ) as ComponentType<Record<string, unknown>>;
     return function DynamicChartPiece(props: Record<string, unknown>) {
       return <Comp {...props} />;
     };

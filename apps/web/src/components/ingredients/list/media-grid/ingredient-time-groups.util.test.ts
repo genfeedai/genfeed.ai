@@ -1,4 +1,5 @@
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { createIngredientFixture } from '@genfeedai/helpers/testing/entity-fixtures';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -9,7 +10,7 @@ import {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function createIngredient(id: string, createdAt: Date): IIngredient {
-  return { createdAt, id } as IIngredient;
+  return createIngredientFixture({ createdAt: createdAt.toISOString(), id });
 }
 
 describe('groupIngredientsByTime', () => {

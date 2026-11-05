@@ -1,21 +1,17 @@
-import { render } from '@testing-library/react';
+import { PageScope } from '@genfeedai/contracts';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import TagsLayout from './tags-layout';
 
 describe('TagsLayout', () => {
-  it('should render without crashing', () => {
-    const { container } = render(<TagsLayout />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
+  it('renders its content under the tag category tabs', () => {
+    render(
+      <TagsLayout scope={PageScope.SUPERADMIN}>
+        <p>Tag list</p>
+      </TagsLayout>,
+    );
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<TagsLayout />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should apply correct styles and classes', () => {
-    const { container } = render(<TagsLayout />);
-    const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
+    expect(screen.getByText('Tag list')).toBeInTheDocument();
+    expect(screen.getByText('Organization')).toBeInTheDocument();
   });
 });

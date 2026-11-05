@@ -3,6 +3,7 @@ import {
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
 import '@testing-library/jest-dom/vitest';
+import type { IBrandAgentConfig } from '@genfeedai/contracts/interfaces';
 import type { CardProps } from '@genfeedai/props/ui/ui.props';
 import {
   act,
@@ -13,8 +14,24 @@ import {
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
 // ReactNode used by Select mock
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import BrandSettingsPublishingPage from './content';
+
+interface BrandDetailStub {
+  brand: {
+    agentConfig: IBrandAgentConfig;
+    credentials?: Array<{
+      externalHandle: string;
+      id: string;
+      isConnected: boolean;
+      platform: string;
+    }>;
+  } | null;
+  brandId: string;
+  handleRefreshBrand: Mock;
+  hasBrandId: boolean;
+  isLoading: boolean;
+}
 
 const mocks = vi.hoisted(() => ({
   brandDetail: {
@@ -32,7 +49,7 @@ const mocks = vi.hoisted(() => ({
     handleRefreshBrand: vi.fn(),
     hasBrandId: true,
     isLoading: false,
-  },
+  } as BrandDetailStub,
   brandsService: {},
   copyToClipboard: vi.fn(),
   createRss: vi.fn(),

@@ -72,17 +72,13 @@ describe('LibraryPickerOverlay', () => {
     mocks.result = pickerResult({
       state: { hasMore: false, items: [], status: 'loading', total: 0 },
     });
-    const view = render(
-      <LibraryPickerOverlay onSelect={vi.fn()} threadId="thread-1" />,
-    );
+    const view = render(<LibraryPickerOverlay onSelect={vi.fn()} />);
     expect(
       screen.getByLabelText('Loading Library sources'),
     ).toBeInTheDocument();
 
     mocks.result = pickerResult();
-    view.rerender(
-      <LibraryPickerOverlay onSelect={vi.fn()} threadId="thread-1" />,
-    );
+    view.rerender(<LibraryPickerOverlay onSelect={vi.fn()} />);
     expect(screen.getByText('No images available')).toBeInTheDocument();
 
     mocks.result = pickerResult({
@@ -93,9 +89,7 @@ describe('LibraryPickerOverlay', () => {
         total: 0,
       },
     });
-    view.rerender(
-      <LibraryPickerOverlay onSelect={vi.fn()} threadId="thread-1" />,
-    );
+    view.rerender(<LibraryPickerOverlay onSelect={vi.fn()} />);
     expect(
       screen.getByText(/unavailable for the effective brand/i),
     ).toBeInTheDocument();
@@ -116,7 +110,7 @@ describe('LibraryPickerOverlay', () => {
       },
     });
 
-    render(<LibraryPickerOverlay onSelect={vi.fn()} threadId="thread-1" />);
+    render(<LibraryPickerOverlay onSelect={vi.fn()} />);
 
     expect(screen.getByTestId('source-preview-image-1')).toBeInTheDocument();
     expect(

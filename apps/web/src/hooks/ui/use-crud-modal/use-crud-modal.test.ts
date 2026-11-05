@@ -1,7 +1,11 @@
 import { ModalEnum } from '@genfeedai/contracts';
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
+import {
+  type CrudModalOptions,
+  useCrudModal,
+} from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
 // Mock dependencies
 const mockCloseModal = vi.fn();
@@ -83,7 +87,10 @@ vi.mock('react-hook-form', () => ({
   })),
 }));
 
-const createMockSchema = () => ({
+type TestEntity = { id: string; name: string };
+type TestSchema = { description?: string; isActive?: boolean; name: string };
+
+const createMockSchema = (): StandardSchemaV1 => ({
   '~standard': {
     validate: vi.fn().mockReturnValue({ value: {} }),
     vendor: 'valibot',
@@ -91,10 +98,10 @@ const createMockSchema = () => ({
   },
 });
 
-const createDefaultOptions = () => ({
+const createDefaultOptions = (): CrudModalOptions<TestEntity, TestSchema> => ({
   defaultValues: { name: '' },
-  entity: null as { id: string; name: string } | null,
-  modalId: ModalEnum.CREATE_BRAND,
+  entity: null,
+  modalId: ModalEnum.BRAND,
   onClose: vi.fn(),
   onConfirm: vi.fn(),
   schema: createMockSchema(),
@@ -113,35 +120,45 @@ describe('useCrudModal', () => {
   describe('Initial State', () => {
     it('returns form instance', () => {
       const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       expect(result.current.form).toBeDefined();
     });
 
     it('returns formRef for focus management', () => {
       const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       expect(result.current.formRef).toBeDefined();
     });
 
     it('returns isSubmitting state', () => {
       const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       expect(result.current.isSubmitting).toBe(false);
     });
 
     it('returns onSubmit handler', () => {
       const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       expect(typeof result.current.onSubmit).toBe('function');
     });
 
     it('returns closeModal function', () => {
       const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       expect(typeof result.current.closeModal).toBe('function');
     });
@@ -150,7 +167,9 @@ describe('useCrudModal', () => {
   describe('handleDelete', () => {
     it('returns undefined handleDelete when no entity', () => {
       const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       expect(result.current.handleDelete).toBeUndefined();
     });
@@ -160,7 +179,9 @@ describe('useCrudModal', () => {
         ...createDefaultOptions(),
         entity: { id: 'entity-123', name: 'Test Entity' },
       };
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       expect(typeof result.current.handleDelete).toBe('function');
     });
@@ -170,14 +191,16 @@ describe('useCrudModal', () => {
         ...createDefaultOptions(),
         entity: { id: 'entity-123', name: 'Test Entity' },
       };
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       await act(async () => {
         await result.current.handleDelete?.();
       });
 
       expect(mockDelete).toHaveBeenCalledWith('entity-123');
-      expect(mockCloseModal).toHaveBeenCalledWith(ModalEnum.CREATE_BRAND);
+      expect(mockCloseModal).toHaveBeenCalledWith(ModalEnum.BRAND);
       expect(options.onConfirm).toHaveBeenCalledWith(true);
     });
 
@@ -188,7 +211,9 @@ describe('useCrudModal', () => {
         ...createDefaultOptions(),
         entity: { id: 'entity-123', name: 'Test Entity' },
       };
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       await act(async () => {
         await result.current.handleDelete?.();
@@ -201,18 +226,22 @@ describe('useCrudModal', () => {
   describe('closeModal', () => {
     it('calls modal helper to close modal', () => {
       const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       act(() => {
         result.current.closeModal();
       });
 
-      expect(mockCloseModal).toHaveBeenCalledWith(ModalEnum.CREATE_BRAND);
+      expect(mockCloseModal).toHaveBeenCalledWith(ModalEnum.BRAND);
     });
 
     it('resets form to default values', () => {
       const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       act(() => {
         result.current.closeModal();
@@ -223,7 +252,9 @@ describe('useCrudModal', () => {
 
     it('calls onConfirm with true when closed with success', () => {
       const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       act(() => {
         result.current.closeModal(true);
@@ -234,7 +265,9 @@ describe('useCrudModal', () => {
 
     it('calls onClose when closed without success', () => {
       const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       act(() => {
         result.current.closeModal(false);
@@ -246,7 +279,9 @@ describe('useCrudModal', () => {
 
     it('calls onClose when closed with no argument', () => {
       const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       act(() => {
         result.current.closeModal();
@@ -259,12 +294,14 @@ describe('useCrudModal', () => {
   describe('Create Mode (no entity)', () => {
     it('calls post service on submit', async () => {
       const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       await act(async () => {
         await result.current.onSubmit({
           preventDefault: vi.fn(),
-        } as React.FormEvent);
+        });
       });
 
       expect(mockPost).toHaveBeenCalledWith({ name: 'Test Name' });
@@ -272,12 +309,14 @@ describe('useCrudModal', () => {
 
     it('closes modal with success after create', async () => {
       const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       await act(async () => {
         await result.current.onSubmit({
           preventDefault: vi.fn(),
-        } as React.FormEvent);
+        });
       });
 
       expect(mockCloseModal).toHaveBeenCalled();
@@ -288,12 +327,14 @@ describe('useCrudModal', () => {
       mockPost.mockRejectedValue(new Error('Create failed'));
 
       const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       await act(async () => {
         await result.current.onSubmit({
           preventDefault: vi.fn(),
-        } as React.FormEvent);
+        });
       });
 
       expect(mockNotificationError).toHaveBeenCalledWith('Failed to create');
@@ -306,12 +347,14 @@ describe('useCrudModal', () => {
         ...createDefaultOptions(),
         entity: { id: 'entity-123', name: 'Test Entity' },
       };
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       await act(async () => {
         await result.current.onSubmit({
           preventDefault: vi.fn(),
-        } as React.FormEvent);
+        });
       });
 
       expect(mockPatch).toHaveBeenCalledWith('entity-123', {
@@ -324,12 +367,14 @@ describe('useCrudModal', () => {
         ...createDefaultOptions(),
         entity: { id: 'entity-123', name: 'Test Entity' },
       };
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       await act(async () => {
         await result.current.onSubmit({
           preventDefault: vi.fn(),
-        } as React.FormEvent);
+        });
       });
 
       expect(mockCloseModal).toHaveBeenCalled();
@@ -343,12 +388,14 @@ describe('useCrudModal', () => {
         ...createDefaultOptions(),
         entity: { id: 'entity-123', name: 'Test Entity' },
       };
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       await act(async () => {
         await result.current.onSubmit({
           preventDefault: vi.fn(),
-        } as React.FormEvent);
+        });
       });
 
       expect(mockNotificationError).toHaveBeenCalledWith('Failed to update');
@@ -366,12 +413,14 @@ describe('useCrudModal', () => {
         ...createDefaultOptions(),
         transformSubmitData,
       };
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       await act(async () => {
         await result.current.onSubmit({
           preventDefault: vi.fn(),
-        } as React.FormEvent);
+        });
       });
 
       expect(transformSubmitData).toHaveBeenCalledWith({ name: 'Test Name' });
@@ -393,12 +442,14 @@ describe('useCrudModal', () => {
         ...createDefaultOptions(),
         customSubmitHandler,
       };
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       await act(async () => {
         await result.current.onSubmit({
           preventDefault: vi.fn(),
-        } as React.FormEvent);
+        });
       });
 
       expect(customSubmitHandler).toHaveBeenCalled();
@@ -415,12 +466,14 @@ describe('useCrudModal', () => {
         customSubmitHandler,
         entity,
       };
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       await act(async () => {
         await result.current.onSubmit({
           preventDefault: vi.fn(),
-        } as React.FormEvent);
+        });
       });
 
       expect(customSubmitHandler).toHaveBeenCalledWith(
@@ -439,7 +492,7 @@ describe('useCrudModal', () => {
         entity,
       };
 
-      renderHook(() => useCrudModal(options));
+      renderHook(() => useCrudModal<TestEntity, TestSchema>(options));
 
       expect(mockSetValue).toHaveBeenCalledWith('name', 'Existing Name', {
         shouldValidate: true,
@@ -447,13 +500,14 @@ describe('useCrudModal', () => {
     });
 
     it('resets form when entity becomes null', () => {
-      const options = {
+      const options: CrudModalOptions<TestEntity, TestSchema> = {
         ...createDefaultOptions(),
         entity: { id: 'entity-123', name: 'Test' },
       };
 
       const { rerender } = renderHook(
-        ({ entity }) => useCrudModal({ ...options, entity }),
+        ({ entity }: { entity: TestEntity | null }) =>
+          useCrudModal<TestEntity, TestSchema>({ ...options, entity }),
         { initialProps: { entity: options.entity } },
       );
 
@@ -469,7 +523,8 @@ describe('useCrudModal', () => {
       };
 
       const { rerender } = renderHook(
-        ({ entity }) => useCrudModal({ ...options, entity }),
+        ({ entity }: { entity: TestEntity | null }) =>
+          useCrudModal<TestEntity, TestSchema>({ ...options, entity }),
         { initialProps: { entity: options.entity } },
       );
 
@@ -488,7 +543,9 @@ describe('useCrudModal', () => {
   describe('All Return Values', () => {
     it('returns all expected properties', () => {
       const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       expect(result.current).toHaveProperty('form');
       expect(result.current).toHaveProperty('formRef');
@@ -500,18 +557,20 @@ describe('useCrudModal', () => {
   });
 
   describe('Different Modal Types', () => {
-    it('works with CREATE_INGREDIENT modal', async () => {
+    it('works with the FOLDER modal', async () => {
       const options = {
         ...createDefaultOptions(),
-        modalId: ModalEnum.CREATE_INGREDIENT,
+        modalId: ModalEnum.FOLDER,
       };
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       act(() => {
         result.current.closeModal();
       });
 
-      expect(mockCloseModal).toHaveBeenCalledWith(ModalEnum.CREATE_INGREDIENT);
+      expect(mockCloseModal).toHaveBeenCalledWith(ModalEnum.FOLDER);
     });
 
     it('works with different default values', async () => {
@@ -519,7 +578,9 @@ describe('useCrudModal', () => {
         ...createDefaultOptions(),
         defaultValues: { description: '', isActive: true, name: '' },
       };
-      const { result } = renderHook(() => useCrudModal(options));
+      const { result } = renderHook(() =>
+        useCrudModal<TestEntity, TestSchema>(options),
+      );
 
       act(() => {
         result.current.closeModal();

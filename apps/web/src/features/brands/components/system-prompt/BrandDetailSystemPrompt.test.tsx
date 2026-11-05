@@ -1,21 +1,18 @@
-import { render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import BrandDetailSystemPrompt from '@/features/brands/components/system-prompt/BrandDetailSystemPrompt';
 
 describe('BrandDetailSystemPrompt', () => {
-  it('should render without crashing', () => {
-    const { container } = render(<BrandDetailSystemPrompt />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
+  it('shows the system prompt and copies its text', () => {
+    const onCopy = vi.fn();
+    render(
+      <BrandDetailSystemPrompt text="Write like a founder." onCopy={onCopy} />,
+    );
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<BrandDetailSystemPrompt />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
+    expect(screen.getByText('Write like a founder.')).toBeInTheDocument();
 
-  it('should apply correct styles and classes', () => {
-    const { container } = render(<BrandDetailSystemPrompt />);
-    const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button'));
+
+    expect(onCopy).toHaveBeenCalledWith('Write like a founder.');
   });
 });

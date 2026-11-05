@@ -25,7 +25,7 @@ const mocks = vi.hoisted(() => ({
   brandId: 'brand-1' as string | undefined,
   pageScope: 'brand' as 'brand' | 'org',
   queryOptions: [] as MockQueryOptions[],
-  queryResults: {} as Record<string, MockQueryResult>,
+  queryResults: {} as Record<string, MockQueryResult | undefined>,
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({

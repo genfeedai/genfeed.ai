@@ -1,8 +1,12 @@
 import { PageScope } from '@genfeedai/contracts';
+import type { AnalyticsScopedReturn } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 import type { AnchorHTMLAttributes, ImgHTMLAttributes, ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server.node';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { UseTimeseriesReturn } from '@/features/analytics/hooks/use-timeseries/use-timeseries';
 import AnalyticsOverview from '@/features/analytics/overview/analytics-overview';
+import type { UseLeaderboardsReturn } from '@/hooks/data/analytics/use-leaderboards/use-leaderboards';
+import type { TopPostData } from '@/hooks/data/analytics/use-top-posts/use-top-posts';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -126,7 +130,16 @@ const mockUserContext = {
   mutateUser: vi.fn(),
 };
 
-const mockAnalyticsReturn = {
+const mockAnalyticsReturn: Pick<
+  AnalyticsScopedReturn,
+  | 'analytics'
+  | 'cachedAt'
+  | 'error'
+  | 'isLoading'
+  | 'isRefreshing'
+  | 'isUsingCache'
+  | 'refresh'
+> = {
   analytics: {
     activePlatforms: [],
     avgEngagementRate: 0,
@@ -156,7 +169,7 @@ const mockHealthChecksReturn = {
   runHealthChecks: vi.fn(),
 };
 
-const mockLeaderboardsReturn = {
+const mockLeaderboardsReturn: UseLeaderboardsReturn = {
   brandsLeaderboard: [],
   fetchLeaderboards: vi.fn(),
   isLeaderboardLoading: false,
@@ -165,7 +178,7 @@ const mockLeaderboardsReturn = {
   orgsLeaderboard: [],
 };
 
-const mockTimeseriesReturn = {
+const mockTimeseriesReturn: UseTimeseriesReturn = {
   fetchTimeseries: vi.fn(),
   isTimeseriesLoading: false,
   isTimeseriesUsingCache: false,
@@ -173,7 +186,12 @@ const mockTimeseriesReturn = {
   timeseriesData: [],
 };
 
-const mockTopPostsReturn = {
+const mockTopPostsReturn: {
+  cachedAt: string | null;
+  isLoading: boolean;
+  isUsingCache: boolean;
+  topPosts: TopPostData[];
+} = {
   cachedAt: null,
   isLoading: false,
   isUsingCache: false,
@@ -325,7 +343,7 @@ describe('AnalyticsOverview', () => {
       disconnect() {}
       observe() {}
       unobserve() {}
-    } as typeof IntersectionObserver;
+    } as unknown as typeof IntersectionObserver;
 
     mockAnalyticsStore.blocks = [];
     mockAnalyticsStore.isAgentModified = false;
@@ -532,9 +550,13 @@ describe('AnalyticsOverview', () => {
       {
         description: 'Top performer',
         platform: 'instagram',
+        engagementRate: 0,
         postId: 'post-1',
         totalComments: 4,
+        totalEngagement: 34,
         totalLikes: 30,
+        totalSaves: 0,
+        totalShares: 0,
         totalViews: 240,
       },
     ];
@@ -542,7 +564,6 @@ describe('AnalyticsOverview', () => {
       {
         activePlatforms: ['instagram'],
         avgEngagementRate: 5.2,
-        createdAt: '2026-03-01',
         growth: 10,
         id: 'brand-1',
         logo: '',

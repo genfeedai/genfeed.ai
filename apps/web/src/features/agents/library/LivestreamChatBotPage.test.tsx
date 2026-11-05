@@ -1,3 +1,4 @@
+import { LivestreamSession } from '@models/automation/livestream-session.model';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LivestreamChatBotPage from '@/features/agents/library/LivestreamChatBotPage';
@@ -111,12 +112,13 @@ describe('LivestreamChatBotPage', () => {
   it('shows the loaded session status and enables session actions', () => {
     mockPage({
       isLoading: false,
-      session: {
+      session: new LivestreamSession({
         context: {},
         deliveryHistory: [],
+        id: 'session-1',
         platformStates: [],
         status: 'active',
-      },
+      }),
     });
 
     render(<LivestreamChatBotPage defaultPlatform="youtube" />);

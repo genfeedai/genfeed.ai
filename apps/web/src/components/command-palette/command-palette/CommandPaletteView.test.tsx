@@ -1,6 +1,6 @@
 import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { render, screen } from '@testing-library/react';
-import type { RefObject } from 'react';
+import { createRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { CommandPaletteView } from '@/components/command-palette/command-palette/CommandPaletteView';
 
@@ -48,7 +48,7 @@ describe('CommandPaletteView', () => {
         maxResults={5}
         placeholder="Search commands"
         noResultsMessage="Nothing"
-        inputRef={{ current: null } as RefObject<HTMLInputElement>}
+        inputRef={createRef<HTMLInputElement>()}
         onClose={() => undefined}
         onQueryChange={() => undefined}
         onSelectCommand={() => undefined}
@@ -71,7 +71,7 @@ describe('CommandPaletteView', () => {
         selectedIndex={0}
         query="query"
         noResultsMessage="No matches"
-        inputRef={{ current: null } as RefObject<HTMLInputElement>}
+        inputRef={createRef<HTMLInputElement>()}
         onClose={() => undefined}
         onQueryChange={() => undefined}
         onSelectCommand={() => undefined}
