@@ -196,20 +196,22 @@ export class AgentContextAssemblyService {
     const brandId = String(brand.id);
     // Logo/banner/references are Asset rows, not Brand columns — reading
     // `brand.logo` type-checks and is always undefined at runtime.
-    const brandKitAssets = await this.cacheService.getOrSet(
-      this.cacheService.generateKey('brand-assets', organizationId, brandId),
-      async () =>
-        this.brandsService.resolveBrandKitAssets(brandId, organizationId),
-      { ttl: CACHE_TTL_BRAND },
-    );
-    const organizationSettings = await this.cacheService.getOrSet(
-      this.cacheService.generateKey('org-settings', organizationId),
-      async () =>
-        this.organizationSettingsService.findOne({
-          organizationId: organizationId,
-        }),
-      { ttl: CACHE_TTL_BRAND },
-    );
+    const [brandKitAssets, organizationSettings] = await Promise.all([
+      this.cacheService.getOrSet(
+        this.cacheService.generateKey('brand-assets', organizationId, brandId),
+        async () =>
+          this.brandsService.resolveBrandKitAssets(brandId, organizationId),
+        { ttl: CACHE_TTL_BRAND },
+      ),
+      this.cacheService.getOrSet(
+        this.cacheService.generateKey('org-settings', organizationId),
+        async () =>
+          this.organizationSettingsService.findOne({
+            organizationId: organizationId,
+          }),
+        { ttl: CACHE_TTL_BRAND },
+      ),
+    ]);
     const effectiveBrandAgentConfig = resolveEffectiveBrandAgentConfig({
       brand,
       organizationSettings,

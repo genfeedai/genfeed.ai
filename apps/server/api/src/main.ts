@@ -28,22 +28,21 @@ import { createReplicateWebhookBodyParser } from '@api/endpoints/webhooks/replic
 import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
 import { DatabaseExceptionFilter } from '@api/helpers/filters/database-exception/database-exception.filter';
 import { HttpExceptionFilter } from '@api/helpers/filters/http-exception/http-exception.filter';
-import {
-  APIMetricsInterceptor,
-  PerformanceInterceptor,
-} from '@api/helpers/interceptors/performance/performance.interceptor';
+import { PerformanceInterceptor } from '@api/helpers/interceptors/performance/performance.interceptor';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import {
   isAdminIpAllowed,
   resolveAdminClientIp,
 } from '@api/helpers/utils/admin-ip-allowlist/admin-ip-allowlist.util';
+import { redactEmailTrackingUrl } from '@api/helpers/utils/email-tracking-url.util';
 import { createInternalRouteEdgeGuard } from '@api/helpers/utils/internal-route-edge/internal-route-edge.util';
 import {
   buildStableOpenApiDocument,
   createOpenApiBuilderOptions,
 } from '@api/helpers/utils/openapi/openapi-document.util';
 import { maybeEmitOpenApiDocument } from '@api/helpers/utils/openapi/openapi-emit.util';
+import { describeApiRequest } from '@api/helpers/wide-event/describe-api-request.util';
 import { TimeoutInterceptor } from '@api/interceptors/timeout.interceptor';
 import { buildApiCorsOptionsDelegate } from '@api/oauth/oauth-cors.util';
 import { buildOAuthAuthorizationServerMetadata } from '@api/oauth/oauth-metadata.util';
@@ -67,6 +66,8 @@ import {
   shouldAllowLocalCorsOrigins,
 } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
+import { createWideEventMiddleware } from '@libs/logger/wide-event/wide-event.http';
+import { resolveServiceIdentity } from '@libs/logger/wide-event/wide-event.trace';
 import {
   buildBullMQConnection,
   parseRedisConnectionForWorkload,
@@ -190,6 +191,18 @@ async function main() {
       }),
     );
     app.enableShutdownHooks();
+
+    // One wide event per request, started before CORS, rate limiting and auth
+    // so rejected requests are recorded too. Handlers enrich it through
+    // enrichWideEvent; it is emitted once when the response finishes.
+    app.use(
+      createWideEventMiddleware({
+        describeRequest: describeApiRequest,
+        identity: resolveServiceIdentity('api'),
+        redactPath: redactEmailTrackingUrl,
+        sink: logger,
+      }),
+    );
 
     const nodeEnv = configService.get('NODE_ENV');
     const version =
@@ -362,15 +375,10 @@ async function main() {
     // Get optional services
     const redisCacheInterceptor = app.get(RedisCacheInterceptor);
     const memoryMonitor = app.get(MemoryMonitorService, { strict: false });
-    const logApiUsage =
-      nodeEnv !== 'production' ||
-      configService.get('API_METRICS_LOGGING') === 'true';
-
     const interceptors = [
       ...(redisCacheInterceptor ? [redisCacheInterceptor] : []),
       new TimeoutInterceptor(app.get(Reflector)),
-      new PerformanceInterceptor(logger, configService, memoryMonitor),
-      new APIMetricsInterceptor(logger, logApiUsage),
+      new PerformanceInterceptor(configService, memoryMonitor),
     ];
 
     app.useGlobalInterceptors(...interceptors);

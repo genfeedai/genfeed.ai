@@ -9,6 +9,7 @@ import {
 } from '@api/oauth/filters/oauth-exception.filter';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { recordWideEventError } from '@libs/logger/wide-event/wide-event.context';
 import {
   ArgumentsHost,
   Catch,
@@ -91,17 +92,13 @@ export class AllExceptionFilter implements ExceptionFilter {
         : (exceptionObj.name as string) || 'Application Error';
     }
 
-    // Log the real error detail internally regardless of production mode — the
-    // redaction only applies to what we send back to the API client.
-    const internalDetail =
-      (exceptionObj.message as string | undefined) ?? detail;
-    this.loggerService.error(
-      `${req.method} ${redactEmailTrackingUrl(req.originalUrl)} ${status} — ${internalDetail}`,
-      {
-        operation: 'catch',
-        service: this.constructorName,
-      },
-    );
+    // The real error rides on the request's wide event regardless of
+    // production mode — the redaction only applies to what we send back to the
+    // API client.
+    recordWideEventError(exception, {
+      message: (exceptionObj.message as string | undefined) ?? detail,
+      status,
+    });
 
     // Only report server-side failures. Exceptions that resolve to a 4xx are
     // expected client/bot traffic (404 probes, bad input) and must not page

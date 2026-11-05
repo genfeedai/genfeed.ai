@@ -549,18 +549,15 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       organizationId,
     );
 
-    const currentResults = await this.fetchGrowthCurrent(
-      startDate,
-      endDate,
-      brandFilter,
-      orgFilter,
-    );
-    const previous = await this.fetchGrowthPrevious(
-      previousStartDate,
-      previousEndDate,
-      brandFilter,
-      orgFilter,
-    );
+    const [currentResults, previous] = await Promise.all([
+      this.fetchGrowthCurrent(startDate, endDate, brandFilter, orgFilter),
+      this.fetchGrowthPrevious(
+        previousStartDate,
+        previousEndDate,
+        brandFilter,
+        orgFilter,
+      ),
+    ]);
 
     return {
       data: analyticsResponseProjection.buildGrowthTrends(
@@ -713,21 +710,23 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     const postSetFilter = this.viralHookPostSetFilter(minOutlierTier, postId);
 
     // Get top performing posts with description data
-    const videos = await this.fetchViralHookVideos(
-      startDate,
-      endDate,
-      brandFilter,
-      orgFilter,
-      postSetFilter,
-    );
-    // Platform aggregation over every platform with data for that post set
-    const topPlatformsRaw = await this.fetchViralHookPlatforms(
-      startDate,
-      endDate,
-      brandFilter,
-      orgFilter,
-      postSetFilter,
-    );
+    // Platform aggregation covers every platform with data for that post set
+    const [videos, topPlatformsRaw] = await Promise.all([
+      this.fetchViralHookVideos(
+        startDate,
+        endDate,
+        brandFilter,
+        orgFilter,
+        postSetFilter,
+      ),
+      this.fetchViralHookPlatforms(
+        startDate,
+        endDate,
+        brandFilter,
+        orgFilter,
+        postSetFilter,
+      ),
+    ]);
 
     return analyticsResponseProjection.buildViralHooks(videos, topPlatformsRaw);
   }

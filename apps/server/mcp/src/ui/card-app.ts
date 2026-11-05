@@ -19,8 +19,7 @@ const LOOPBACK_HOSTS = new Set(['127.0.0.1', '[::1]', 'localhost']);
  * internal-network origin (the files service address behind the API) is
  * mixed content in the host page and is not a valid CSP source for it.
  */
-function isBrowserOrigin(url: string): boolean {
-  const { hostname, protocol } = new URL(url);
+function isBrowserOrigin({ hostname, protocol }: URL): boolean {
   return (
     protocol === 'https:' ||
     (protocol === 'http:' && LOOPBACK_HOSTS.has(hostname))
@@ -34,8 +33,10 @@ export function cardResource(
   const mediaOrigins = [
     ...new Set(
       origins.flatMap((value) => {
-        const url = safeCardUrl(value);
-        return url && isBrowserOrigin(url) ? [new URL(url).origin] : [];
+        const href = safeCardUrl(value);
+        if (!href) return [];
+        const url = new URL(href);
+        return isBrowserOrigin(url) ? [url.origin] : [];
       }),
     ),
   ];

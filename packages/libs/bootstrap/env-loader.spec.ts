@@ -163,6 +163,7 @@ describe('setupServiceShell', () => {
     enableShutdownHooks: ReturnType<typeof vi.fn>;
     getHttpAdapter: ReturnType<typeof vi.fn>;
     set: ReturnType<typeof vi.fn>;
+    use: ReturnType<typeof vi.fn>;
   }
 
   const buildApp = (serverGet: ReturnType<typeof vi.fn>): MockExpressApp => ({
@@ -171,10 +172,30 @@ describe('setupServiceShell', () => {
       getInstance: () => ({ get: serverGet }),
     })),
     set: vi.fn(),
+    use: vi.fn(),
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
+  });
+
+  it('starts a wide event for every request when given a sink', () => {
+    const app = buildApp(vi.fn());
+
+    setupServiceShell(app as unknown as NestExpressApplication, {
+      wideEventSink: { wideEvent: vi.fn() },
+    });
+
+    expect(app.use).toHaveBeenCalledOnce();
+    expect(app.use).toHaveBeenCalledWith(expect.any(Function));
+  });
+
+  it('adds no request middleware without a sink', () => {
+    const app = buildApp(vi.fn());
+
+    setupServiceShell(app as unknown as NestExpressApplication);
+
+    expect(app.use).not.toHaveBeenCalled();
   });
 
   it('configures trust proxy and shutdown hooks without redirects by default', () => {

@@ -263,11 +263,10 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     skipped: number;
   }> {
     const request = readBotRequest(action.input.request);
-    const botConfig = await this.loadBotConfig(request);
-    const credential = await this.loadCredential(
-      request.credentialId,
-      request.organizationId,
-    );
+    const [botConfig, credential] = await Promise.all([
+      this.loadBotConfig(request),
+      this.loadCredential(request.credentialId, request.organizationId),
+    ]);
     const platformInput =
       credential.platform ?? botConfig.platform ?? ReplyBotPlatform.TWITTER;
     const platform = normalizeReplyBotPlatform(platformInput);

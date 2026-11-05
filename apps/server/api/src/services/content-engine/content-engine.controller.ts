@@ -141,14 +141,10 @@ export class ContentEngineController {
     @Param('planId') planId: string,
   ) {
     const organization = resolveTenantReadScope(user).organizationId;
-    const plan = await this.contentPlansService.getByIdOrFail(
-      organization,
-      planId,
-    );
-    const items = await this.contentPlanItemsService.listByPlan(
-      organization,
-      planId,
-    );
+    const [plan, items] = await Promise.all([
+      this.contentPlansService.getByIdOrFail(organization, planId),
+      this.contentPlanItemsService.listByPlan(organization, planId),
+    ]);
     return {
       items: serializeCollection(req, ContentPlanItemSerializer, {
         docs: items,

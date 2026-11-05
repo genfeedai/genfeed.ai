@@ -3,6 +3,7 @@ import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persi
 import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
 import { redactEmailTrackingUrl } from '@api/helpers/utils/email-tracking-url.util';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
+import { recordWideEventError } from '@libs/logger/wide-event/wide-event.context';
 import {
   ArgumentsHost,
   Catch,
@@ -108,31 +109,12 @@ export class HttpExceptionFilter extends AllExceptionFilter {
       detail = response;
     }
 
-    if (status >= 500) {
-      if (this.SENTRY_ENVIRONMENT !== 'development') {
-        Sentry.captureException(exception);
-      } else {
-        this.loggerService.error('HTTP exception occurred', exception, {
-          method: req.method,
-          operation: 'catch',
-          service: 'HttpExceptionFilter',
-          status,
-          url: redactEmailTrackingUrl(req.originalUrl),
-        });
-      }
-    } else {
-      // 4xx are expected client/bot traffic (bad input, 404 probes such as
-      // /favicon.ico). Log at warn without the exception stack and never page
-      // Sentry — mirrors AllExceptionFilter's 4xx handling. Previously every
-      // 4xx hit .error() with the raw exception, emitting a stack trace on
-      // every missing-static-asset request.
-      this.loggerService.warn('HTTP client error occurred', {
-        method: req.method,
-        operation: 'catch',
-        service: 'HttpExceptionFilter',
-        status,
-        url: redactEmailTrackingUrl(req.originalUrl),
-      });
+    // 4xx are expected client/bot traffic (bad input, 404 probes such as
+    // /favicon.ico): they ride on the wide event as a client error and never
+    // page Sentry — mirrors AllExceptionFilter's 4xx handling.
+    recordWideEventError(exception, { code, message: detail, status });
+    if (status >= 500 && this.SENTRY_ENVIRONMENT !== 'development') {
+      Sentry.captureException(exception);
     }
 
     if (fieldErrors.length > 0) {

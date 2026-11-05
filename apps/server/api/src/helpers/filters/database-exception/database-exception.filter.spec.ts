@@ -1,3 +1,5 @@
+import { runWithWideEvent } from '@libs/logger/wide-event/wide-event.context';
+import { startWideEvent } from '@libs/logger/wide-event/wide-event.lifecycle';
 import { type ArgumentsHost, HttpStatus } from '@nestjs/common';
 
 const jsonApiSerializerMock = {
@@ -99,6 +101,32 @@ describe('DatabaseExceptionFilter', () => {
         ]),
       }),
     );
+  });
+
+  it('records the Prisma error code and mapped status on the wide event', () => {
+    const { event } = startWideEvent({
+      identity: { service: 'api' },
+      kind: 'http',
+      requestId: 'req-1',
+      trace: { spanId: 'span-1', traceId: 'trace-1' },
+    });
+
+    runWithWideEvent(event, () =>
+      filter.catch(
+        {
+          code: 'P2002',
+          message: 'Unique constraint failed',
+          name: 'PrismaClientKnownRequestError',
+        },
+        mockArgumentsHost,
+      ),
+    );
+
+    expect(event.error).toMatchObject({
+      code: 'P2002',
+      status: HttpStatus.CONFLICT,
+      type: 'PrismaClientKnownRequestError',
+    });
   });
 
   it('handles Prisma missing record errors', () => {

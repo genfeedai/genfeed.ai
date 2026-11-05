@@ -7,7 +7,9 @@ bootstrap({ app: 'workers' });
 import type { Server } from 'node:http';
 import process from 'node:process';
 import { getAppVersion } from '@libs/health/app-version.util';
+import { installWideEventJobInstrumentation } from '@libs/jobs/wide-event-jobs';
 import { LoggerService } from '@libs/logger/logger.service';
+import { resolveServiceIdentity } from '@libs/logger/wide-event/wide-event.trace';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BullRegistrar } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
@@ -101,6 +103,13 @@ async function main() {
   const port = configService.get('PORT');
 
   try {
+    // Every queue job (and so every cron, which runs as a scheduled job) emits
+    // one wide event. Installed before register() creates the BullMQ workers.
+    installWideEventJobInstrumentation({
+      identity: resolveServiceIdentity(getServiceName()),
+      sink: logger,
+    });
+
     // The context has completed all definition/handler registration and
     // bootstrap validation. Only now may workers consume already queued jobs.
     await app.get(BullRegistrar).register();

@@ -333,15 +333,19 @@ export class ScheduledPostDeliveryGates {
     url: string,
   ): Promise<PreparedPostDelivery | null> {
     try {
-      const credential = (await this.credentialsService.findOne({
-        id: ids.credentialId,
-        isDeleted: false,
-        ...(ids.organizationId ? { organizationId: ids.organizationId } : {}),
-      })) as CredentialDocument | null;
-      const organization = (await this.organizationsService.findOne({
-        id: ids.organizationId,
-        isDeleted: false,
-      })) as OrganizationDocument | null;
+      const [credentialRecord, organizationRecord] = await Promise.all([
+        this.credentialsService.findOne({
+          id: ids.credentialId,
+          isDeleted: false,
+          ...(ids.organizationId ? { organizationId: ids.organizationId } : {}),
+        }),
+        this.organizationsService.findOne({
+          id: ids.organizationId,
+          isDeleted: false,
+        }),
+      ]);
+      const credential = credentialRecord as CredentialDocument | null;
+      const organization = organizationRecord as OrganizationDocument | null;
       if (!credential || !organization) return null;
       return this.buildPreparedDelivery(
         post,

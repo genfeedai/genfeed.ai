@@ -497,8 +497,10 @@ export class VideoStitchService {
       }
     }
 
-    const endCard = await loadVideoStitchEndCard(this.prisma, request);
-    const lut = await loadVideoStitchLut(this.prisma, request);
+    const [endCard, lut] = await Promise.all([
+      loadVideoStitchEndCard(this.prisma, request),
+      loadVideoStitchLut(this.prisma, request),
+    ]);
 
     const byId = new Map(clips.map((clip) => [clip.id, clip]));
     return {

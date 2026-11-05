@@ -329,14 +329,13 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
     setIsHydrating(true);
 
     void (async () => {
-      const data = await clipsService.getProject(
-        projectIdFromRoute,
-        abortController.signal,
-      );
-      const hookApproval = await clipsService.getHookApproval(
-        projectIdFromRoute,
-        abortController.signal,
-      );
+      const [data, hookApproval] = await Promise.all([
+        clipsService.getProject(projectIdFromRoute, abortController.signal),
+        clipsService.getHookApproval(
+          projectIdFromRoute,
+          abortController.signal,
+        ),
+      ]);
       const highlightsResponse =
         data.status === 'analyzed'
           ? await clipsService.getHighlights(

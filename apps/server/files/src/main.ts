@@ -21,7 +21,9 @@ import {
   GENFEED_CORS_ALLOWED_METHODS,
   GENFEED_CORS_PREFLIGHT_MAX_AGE_SECONDS,
 } from '@libs/config/cors.config';
+import { installWideEventJobInstrumentation } from '@libs/jobs/wide-event-jobs';
 import { LoggerService } from '@libs/logger/logger.service';
+import { resolveServiceIdentity } from '@libs/logger/wide-event/wide-event.trace';
 import { HttpStatus } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -39,6 +41,12 @@ async function main() {
   const logger = app.get<LoggerService>(LoggerService);
   const port = configService.get('PORT');
 
+  // Workers start when the app initialises (app.listen), so install first.
+  installWideEventJobInstrumentation({
+    identity: resolveServiceIdentity('files'),
+    sink: logger,
+  });
+
   registerGracefulDrain({
     app,
     httpServer: app.getHttpServer(),
@@ -50,6 +58,7 @@ async function main() {
     setupServiceShell(app, {
       redirectPaths: ['/', '/docs'],
       redirectTarget: '/v1/health',
+      wideEventSink: logger,
     });
 
     // biome-ignore lint/correctness/useHookAtTopLevel: Nest application method, not a React hook
