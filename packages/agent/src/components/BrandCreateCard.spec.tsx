@@ -1,5 +1,5 @@
 import { BrandCreateCard } from '@genfeedai/agent/components/BrandCreateCard';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import {
   act,
   fireEvent,
@@ -9,7 +9,9 @@ import {
 } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
+function makeAction(
+  overrides: Partial<AgentUiActionOf<'brand_create_card'>> = {},
+): AgentUiActionOf<'brand_create_card'> {
   return {
     brandDescription: 'A tasty brand',
     brandName: 'Acme',
@@ -17,7 +19,7 @@ function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
     title: 'Create Brand',
     type: 'brand_create_card',
     ...overrides,
-  } as AgentUiAction;
+  } as AgentUiActionOf<'brand_create_card'>;
 }
 
 describe('BrandCreateCard', () => {

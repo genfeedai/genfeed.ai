@@ -1,6 +1,6 @@
 import type {
-  AgentUiAction,
   AgentUiActionHandler,
+  AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
@@ -10,7 +10,9 @@ import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 interface CampaignCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<
+    'outreach_sequence_create_card' | 'outreach_sequence_control_card'
+  >;
   onUiAction?: AgentUiActionHandler;
 }
 

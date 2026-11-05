@@ -1,12 +1,17 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { ComponentSize } from '@genfeedai/contracts';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { ChartColumn, ExternalLink, Megaphone, Rocket } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
 
-interface AgentCardProps {
-  action: AgentUiAction;
+type AdsCardType =
+  | 'ad_detail_summary_card'
+  | 'ads_search_results_card'
+  | 'campaign_launch_prep_card';
+
+interface AgentCardProps<TType extends AdsCardType = AdsCardType> {
+  action: AgentUiActionOf<TType>;
 }
 
 function CardCtas({ action }: AgentCardProps): ReactElement | null {
@@ -32,7 +37,9 @@ function CardCtas({ action }: AgentCardProps): ReactElement | null {
   );
 }
 
-export function AdsSearchResultsCard({ action }: AgentCardProps): ReactElement {
+export function AdsSearchResultsCard({
+  action,
+}: AgentCardProps<'ads_search_results_card'>): ReactElement {
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
@@ -63,7 +70,9 @@ export function AdsSearchResultsCard({ action }: AgentCardProps): ReactElement {
   );
 }
 
-export function AdDetailSummaryCard({ action }: AgentCardProps): ReactElement {
+export function AdDetailSummaryCard({
+  action,
+}: AgentCardProps<'ad_detail_summary_card'>): ReactElement {
   const data = action.data ?? {};
 
   return (

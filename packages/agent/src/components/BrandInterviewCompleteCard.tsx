@@ -1,10 +1,10 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { CircleCheck } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 interface BrandInterviewCompleteCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'brand_interview_complete_card'>;
 }
 
 export function BrandInterviewCompleteCard({

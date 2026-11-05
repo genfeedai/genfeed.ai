@@ -3,7 +3,7 @@ import { BrandInterviewOfferCard } from '@genfeedai/agent/components/BrandInterv
 import { ContentCalendarCard } from '@genfeedai/agent/components/ContentCalendarCard';
 import { EngagementOpportunityCard } from '@genfeedai/agent/components/EngagementOpportunityCard';
 import { LivestreamBotCard } from '@genfeedai/agent/components/LivestreamBotCard';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import {
   act,
   fireEvent,
@@ -14,7 +14,9 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 
 describe('AiTextActionCard', () => {
-  function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
+  function makeAction(
+    overrides: Partial<AgentUiActionOf<'ai_text_action_card'>> = {},
+  ): AgentUiActionOf<'ai_text_action_card'> {
     return {
       description: 'Improve your copy',
       id: 'text-1',
@@ -22,7 +24,7 @@ describe('AiTextActionCard', () => {
       title: 'Polish text',
       type: 'ai_text_action_card',
       ...overrides,
-    } as AgentUiAction;
+    } as AgentUiActionOf<'ai_text_action_card'>;
   }
 
   it('renders default actions and requires a selection to apply', () => {
@@ -60,7 +62,9 @@ describe('AiTextActionCard', () => {
 });
 
 describe('EngagementOpportunityCard', () => {
-  function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
+  function makeAction(
+    overrides: Partial<AgentUiActionOf<'engagement_opportunity_card'>> = {},
+  ): AgentUiActionOf<'engagement_opportunity_card'> {
     return {
       draftReply: 'Thanks for sharing!',
       id: 'engage-1',
@@ -72,7 +76,7 @@ describe('EngagementOpportunityCard', () => {
       title: 'Reply opportunity',
       type: 'engagement_opportunity_card',
       ...overrides,
-    } as AgentUiAction;
+    } as AgentUiActionOf<'engagement_opportunity_card'>;
   }
 
   it('renders the original post and approves the draft reply', () => {
@@ -126,7 +130,9 @@ describe('EngagementOpportunityCard', () => {
 });
 
 describe('LivestreamBotCard', () => {
-  function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
+  function makeAction(
+    overrides: Partial<AgentUiActionOf<'livestream_bot_status_card'>> = {},
+  ): AgentUiActionOf<'livestream_bot_status_card'> {
     return {
       botName: 'StreamBot',
       ctas: [
@@ -138,9 +144,9 @@ describe('LivestreamBotCard', () => {
       platform: 'youtube',
       sessionStatus: 'connected',
       title: 'Livestream assistant',
-      type: 'livestream_bot_card',
+      type: 'livestream_bot_status_card',
       ...overrides,
-    } as AgentUiAction;
+    } as AgentUiActionOf<'livestream_bot_status_card'>;
   }
 
   it('renders bot metadata, links, and action buttons', () => {
@@ -180,7 +186,9 @@ describe('LivestreamBotCard', () => {
 });
 
 describe('BrandInterviewOfferCard', () => {
-  function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
+  function makeAction(
+    overrides: Partial<AgentUiActionOf<'brand_interview_offer_card'>> = {},
+  ): AgentUiActionOf<'brand_interview_offer_card'> {
     return {
       ctas: [{ action: 'start_interview', label: 'Start interview' }],
       data: {
@@ -192,7 +200,7 @@ describe('BrandInterviewOfferCard', () => {
       title: 'Brand interview',
       type: 'brand_interview_offer_card',
       ...overrides,
-    } as AgentUiAction;
+    } as AgentUiActionOf<'brand_interview_offer_card'>;
   }
 
   it('renders completeness and the first question', () => {
@@ -231,7 +239,9 @@ describe('BrandInterviewOfferCard', () => {
 });
 
 describe('ContentCalendarCard', () => {
-  function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
+  function makeAction(
+    overrides: Partial<AgentUiActionOf<'content_calendar_card'>> = {},
+  ): AgentUiActionOf<'content_calendar_card'> {
     return {
       calendarDays: [
         { date: '2026-04-06', postCount: 2 },
@@ -242,7 +252,7 @@ describe('ContentCalendarCard', () => {
       title: 'Content calendar',
       type: 'content_calendar_card',
       ...overrides,
-    } as AgentUiAction;
+    } as AgentUiActionOf<'content_calendar_card'>;
   }
 
   it('renders filled days with counts and gaps with a fill button', () => {

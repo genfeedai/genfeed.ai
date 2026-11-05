@@ -3,7 +3,8 @@ import {
   ContentPreviewCard,
   OAuthConnectCard,
 } from '@genfeedai/agent/components/AgentChatMessageCards';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
+import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -24,7 +25,7 @@ const action = {
   id: 'connect-twitter',
   platform: 'twitter',
   type: 'oauth_connect_card',
-} as AgentUiAction;
+} as AgentUiActionOf<'oauth_connect_card'>;
 
 describe('OAuthConnectCard', () => {
   it('keeps the dedicated conversation action retryable after OAuth rejects', async () => {
@@ -185,7 +186,7 @@ describe('ContentPreviewCard', () => {
               version: 1,
               versionId: 'version-1',
             },
-          ] as AgentUiAction['knowledgeReceipts'],
+          ] as KnowledgeReceipt[],
           textContent: 'Thursday is ship day.',
           type: 'content_preview_card',
         }}
@@ -411,7 +412,7 @@ describe('ContentPreviewCard', () => {
             id: 'untitled-output',
             images: ['https://cdn.test/untitled.png'],
             type: 'content_preview_card',
-          } as AgentUiAction
+          } as AgentUiActionOf<'content_preview_card'>
         }
       />,
     );

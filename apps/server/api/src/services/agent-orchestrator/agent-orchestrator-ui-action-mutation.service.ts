@@ -15,9 +15,11 @@ import { APPROVAL_PENDING_RESULT_SUMMARY } from '@api/services/agent-orchestrato
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { type CuratedActionName, getToolByName } from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
-import type {
-  AgentToolResult,
-  AgentUiAction,
+import {
+  type AgentToolResult,
+  type AgentUiAction,
+  type AgentUiActionOf,
+  readAgentMutationApprovalData,
 } from '@genfeedai/contracts/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
@@ -563,10 +565,11 @@ export class AgentOrchestratorUiActionMutationService {
     params: ThreadUiActionExecutionParams,
     scope: Awaited<ReturnType<typeof this.lockProposalThread>>,
     approval?: McpApprovalDocument,
-  ): AgentUiAction {
-    const data = record(card.data);
+  ): AgentUiActionOf<'mutation_approval_card'> {
+    const data = readAgentMutationApprovalData(card.data);
     if (
       card.type !== 'mutation_approval_card' ||
+      !data ||
       data.approvalId !== params.payload?.approvalId ||
       data.sourceActionId !== sourceActionId
     ) {
@@ -592,8 +595,8 @@ export class AgentOrchestratorUiActionMutationService {
     }
     if (
       approval?.status === 'PENDING' &&
-      (!Number.isFinite(Date.parse(String(data.expiresAt))) ||
-        Date.parse(String(data.expiresAt)) <= Date.now())
+      (!Number.isFinite(Date.parse(data.expiresAt)) ||
+        Date.parse(data.expiresAt) <= Date.now())
     ) {
       throw new ConflictException(
         'This approval expired. Prepare the action again.',
@@ -607,7 +610,7 @@ export class AgentOrchestratorUiActionMutationService {
       ctas: [],
       requiresConfirmation: false,
       data: {
-        ...record(card.data),
+        ...data,
         status,
         executionStatus:
           status === 'declined'
@@ -616,11 +619,7 @@ export class AgentOrchestratorUiActionMutationService {
               ? result.success
                 ? 'completed'
                 : 'failed'
-              : ['completed', 'failed', 'cancelled'].includes(
-                    String(data.executionStatus),
-                  )
-                ? data.executionStatus
-                : 'running',
+              : (data.executionStatus ?? 'running'),
         ...(result?.success
           ? { error: undefined }
           : result?.error !== undefined

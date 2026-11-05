@@ -1,9 +1,9 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { DollarSign } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 type WorkflowExecuteCardWorkflowInfoProps = {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'workflow_execute_card'>;
   workflowName: string;
 };
 

@@ -1,5 +1,5 @@
 import { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGeneratedTextCard';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -9,7 +9,7 @@ import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useState } from 'react';
 
 interface AiTextActionCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'ai_text_action_card'>;
   onApply?: (payload: { text: string; selectedAction: string }) => void;
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
@@ -9,7 +9,7 @@ import { DollarSign } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 interface CreditsBalanceCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'credits_balance_card'>;
 }
 
 export function CreditsBalanceCard({

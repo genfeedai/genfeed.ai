@@ -1,7 +1,7 @@
 import { ClipperWorkflowRunCard } from '@genfeedai/agent/components/ClipperWorkflowRunCard';
 import { WorkflowExecuteCard } from '@genfeedai/agent/components/WorkflowExecuteCard';
 import { WorkflowTriggerCard } from '@genfeedai/agent/components/WorkflowTriggerCard';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -25,7 +25,7 @@ function createApiServiceMock(): AgentApiService {
 describe('Workflow card route handoffs', () => {
   it('points the empty workflow trigger state to the workflow library', () => {
     const apiService = createApiServiceMock();
-    const action: AgentUiAction = {
+    const action: AgentUiActionOf<'workflow_trigger_card'> = {
       id: 'action-1',
       title: 'Trigger a workflow',
       type: 'workflow_trigger_card',
@@ -43,7 +43,7 @@ describe('Workflow card route handoffs', () => {
     const user = userEvent.setup();
     const apiService = createApiServiceMock();
 
-    const triggerAction: AgentUiAction = {
+    const triggerAction: AgentUiActionOf<'workflow_trigger_card'> = {
       id: 'trigger-action',
       title: 'Run a workflow',
       type: 'workflow_trigger_card',
@@ -63,7 +63,7 @@ describe('Workflow card route handoffs', () => {
 
     unmountTrigger();
 
-    const executeAction: AgentUiAction = {
+    const executeAction: AgentUiActionOf<'workflow_execute_card'> = {
       id: 'execute-action',
       title: 'Execute a workflow',
       type: 'workflow_execute_card',
@@ -83,7 +83,7 @@ describe('Workflow card route handoffs', () => {
 
     unmountExecute();
 
-    const clipAction: AgentUiAction = {
+    const clipAction: AgentUiActionOf<'clipper_workflow_run_card'> = {
       clipperRun: {
         autonomousMode: false,
         requireStepConfirmation: true,
@@ -91,6 +91,7 @@ describe('Workflow card route handoffs', () => {
       id: 'clipper-action',
       title: 'Clip workflow run',
       type: 'clipper_workflow_run_card',
+      workflows: [],
       workflowId: 'wf-3',
     };
 

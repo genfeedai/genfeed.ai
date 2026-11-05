@@ -2278,6 +2278,7 @@ describe('useAgentChatStream', () => {
       },
     ];
     const liveGenerationCard = {
+      generationType: 'image' as const,
       id: 'generation-live',
       title: 'Generate image',
       type: 'generation_action_card' as const,

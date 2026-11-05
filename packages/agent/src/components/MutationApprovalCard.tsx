@@ -4,11 +4,12 @@ import {
 } from '@genfeedai/agent/components/MutationApprovalPostPreviews';
 import { useAgentUiActionRequest } from '@genfeedai/agent/hooks/use-agent-ui-action-request';
 import type {
-  AgentUiAction,
   AgentUiActionHandler,
+  AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import type { AgentMutationApprovalData } from '@genfeedai/contracts/interfaces';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import Card from '@ui/card/Card';
 import {
@@ -23,7 +24,7 @@ import { useTranslations } from 'next-intl';
 import { type ReactElement, useEffect, useId, useRef, useState } from 'react';
 
 interface MutationApprovalCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'mutation_approval_card'>;
   onUiAction?: AgentUiActionHandler;
 }
 
@@ -37,7 +38,7 @@ function isNonemptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-function readApproval(data: AgentUiAction['data']) {
+function readApproval(data: AgentMutationApprovalData | undefined) {
   if (
     !data ||
     !isNonemptyString(data.approvalId) ||

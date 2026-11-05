@@ -1,6 +1,6 @@
 import type {
-  AgentUiAction,
   AgentUiActionHandler,
+  AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { ThreadAsset } from '@genfeedai/agent/utils/extract-thread-assets';
@@ -19,7 +19,7 @@ import { GenerationActionCardStatusPanel } from './GenerationActionCardStatusPan
 import { useGenerationActionCard } from './useGenerationActionCard';
 
 interface GenerationActionCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'generation_action_card'>;
   apiService: AgentApiService;
   defaultCollapsed?: boolean;
   qualityScore?: number;

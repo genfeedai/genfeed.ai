@@ -7,6 +7,7 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-post-preview.util';
 import { agentToolCreditEstimate } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+import { requireUiAction } from '@api-test/helpers/agent-ui-action';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   type CuratedActionName,
@@ -4172,7 +4173,10 @@ describe('AgentToolExecutorService', () => {
       }),
       testId('org'),
     );
-    const card = result.nextActions?.[0];
+    const card = requireUiAction(
+      result.nextActions,
+      'brand_voice_profile_card',
+    );
     expect(card?.description).toContain(
       'Built from own posts: 42 samples (30 replies, 12 original)',
     );
@@ -4232,7 +4236,10 @@ describe('AgentToolExecutorService', () => {
       { organizationId: testId('org'), userId: testId('user') },
     );
 
-    const card = result.nextActions?.[0];
+    const card = requireUiAction(
+      result.nextActions,
+      'brand_voice_profile_card',
+    );
     expect(card?.description).toContain(guidance);
     expect(card?.textContent).toContain(`Heads up: ${guidance}`);
     expect(card?.textContent).toContain(
@@ -4343,8 +4350,13 @@ describe('AgentToolExecutorService', () => {
     expect(result.data?.count).toBe(2);
     expect(result.nextActions).toHaveLength(1);
     expect(result.nextActions?.[0].type).toBe('ingredient_picker_card');
-    expect(result.nextActions?.[0].ingredients).toHaveLength(2);
-    expect(result.nextActions?.[0].ingredients?.[0]).toEqual(
+    expect(
+      requireUiAction(result.nextActions, 'ingredient_picker_card').ingredients,
+    ).toHaveLength(2);
+    expect(
+      requireUiAction(result.nextActions, 'ingredient_picker_card')
+        .ingredients?.[0],
+    ).toEqual(
       expect.objectContaining({
         id: testId('content'),
         title: 'Test Image',
@@ -4352,7 +4364,10 @@ describe('AgentToolExecutorService', () => {
         url: 'https://cdn.genfeed.ai/images/test.jpg',
       }),
     );
-    expect(result.nextActions?.[0].ingredients?.[1]).toEqual(
+    expect(
+      requireUiAction(result.nextActions, 'ingredient_picker_card')
+        .ingredients?.[1],
+    ).toEqual(
       expect.objectContaining({
         id: testId('videoasset'),
         type: 'video',
@@ -4383,7 +4398,10 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(result.nextActions?.[0].ingredients?.[0].type).toBe('image');
+    expect(
+      requireUiAction(result.nextActions, 'ingredient_picker_card')
+        .ingredients?.[0].type,
+    ).toBe('image');
     expect(imagesService.findAllByOrganization).toHaveBeenCalledWith(
       testId('org'),
       expect.objectContaining({
@@ -4688,8 +4706,14 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
     expect(result.nextActions).toHaveLength(1);
     expect(result.nextActions?.[0].type).toBe('clipper_workflow_run_card');
-    expect(result.nextActions?.[0].workflowId).toBe(testId('clipworkflow'));
-    expect(result.nextActions?.[0].clipperRun).toEqual(
+    expect(
+      requireUiAction(result.nextActions, 'clipper_workflow_run_card')
+        .workflowId,
+    ).toBe(testId('clipworkflow'));
+    expect(
+      requireUiAction(result.nextActions, 'clipper_workflow_run_card')
+        .clipperRun,
+    ).toEqual(
       expect.objectContaining({
         durationSeconds: 30,
         format: 'landscape',
@@ -4722,7 +4746,10 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
-    const action = result.nextActions?.[0];
+    const action = requireUiAction(
+      result.nextActions,
+      'clipper_workflow_run_card',
+    );
     expect(action?.clipperRun?.identity).toEqual(
       expect.objectContaining({
         avatarId: 'brand-avatar-1',
@@ -4785,7 +4812,10 @@ describe('AgentToolExecutorService', () => {
       },
     );
 
-    const identity = result.nextActions?.[0].clipperRun?.identity;
+    const identity = requireUiAction(
+      result.nextActions,
+      'clipper_workflow_run_card',
+    ).clipperRun?.identity;
     expect(identity).toEqual(
       expect.objectContaining({
         avatarId: 'brand-avatar-2',
@@ -4813,7 +4843,10 @@ describe('AgentToolExecutorService', () => {
       },
     );
 
-    const action = result.nextActions?.[0];
+    const action = requireUiAction(
+      result.nextActions,
+      'clipper_workflow_run_card',
+    );
     expect(action?.description).toContain(
       'Clip identity defaults are incomplete',
     );
@@ -4956,9 +4989,10 @@ describe('AgentToolExecutorService', () => {
       title: 'Reviews loaded',
       type: 'completion_summary_card',
     });
-    expect(result.nextActions?.[0]?.summaryText).toContain(
-      'ignored an invalid Turbo run id',
-    );
+    expect(
+      requireUiAction(result.nextActions, 'completion_summary_card')
+        .summaryText,
+    ).toContain('ignored an invalid Turbo run id');
   });
 
   it('loads the review inbox when get_review_queue is called without a turboRunId', async () => {
@@ -4987,9 +5021,10 @@ describe('AgentToolExecutorService', () => {
       undefined,
       20,
     );
-    expect(result.nextActions?.[0]?.summaryText).toContain(
-      'Nothing is waiting for review right now.',
-    );
+    expect(
+      requireUiAction(result.nextActions, 'completion_summary_card')
+        .summaryText,
+    ).toContain('Nothing is waiting for review right now.');
   });
 
   it('never treats a model tool call as publish approval', async () => {
@@ -5011,7 +5046,9 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain('cannot grant publish approval');
     expect(turboRunService.approveItems).not.toHaveBeenCalled();
-    expect(result.nextActions?.[0]?.primaryCta).toEqual({
+    expect(
+      requireUiAction(result.nextActions, 'completion_summary_card').primaryCta,
+    ).toEqual({
       href: `/publishing/approvals/${testId('batchmodel')}?filter=ready`,
       label: 'Review exact versions',
     });

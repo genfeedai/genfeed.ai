@@ -1,4 +1,5 @@
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
+import { requireUiAction } from '@api-test/helpers/agent-ui-action';
 import { type AgentUiAction } from '@genfeedai/contracts/interfaces';
 
 describe('AgentCompletionCardBuilderService', () => {
@@ -141,14 +142,6 @@ describe('AgentCompletionCardBuilderService', () => {
       images: [
         'https://cdn.example.com/image-1.png',
         'https://cdn.example.com/image-2.png',
-      ],
-      ingredients: [
-        {
-          id: 'ingredient-1',
-          title: 'Ingredient image',
-          type: 'image',
-          url: 'https://cdn.example.com/ingredient.png',
-        },
       ],
       textContent: 'Long-form caption',
       title: 'Generated drafts',
@@ -315,10 +308,10 @@ describe('AgentCompletionCardBuilderService', () => {
       summaryText: 'Completed this request successfully.',
       type: 'completion_summary_card',
     });
-    expect(result.uiActions[0]?.outcomeBullets).toEqual([
-      '1 tool action completed',
-      'Tool: Create Post',
-    ]);
+    expect(
+      requireUiAction(result.uiActions, 'completion_summary_card')
+        .outcomeBullets,
+    ).toEqual(['1 tool action completed', 'Tool: Create Post']);
   });
 
   it('suppresses suggestions during review and keeps one concrete preview', () => {
@@ -418,7 +411,12 @@ describe('AgentCompletionCardBuilderService', () => {
         reviewRequired: false,
         toolCalls: [{ status: 'completed', toolName: 'get_review_queue' }],
         uiActions: [
-          { id: 'review-gate', title: 'Review', type: 'review_gate_card' },
+          {
+            id: 'review-gate',
+            items: [],
+            title: 'Review',
+            type: 'review_gate_card',
+          },
         ],
       });
       expect(result.suggestedActions).toEqual([]);

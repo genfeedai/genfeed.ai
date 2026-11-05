@@ -2,6 +2,7 @@ import { ExternalVoiceCatalogService } from '@api/collections/voices/services/ex
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { requireUiAction } from '@api-test/helpers/agent-ui-action';
 import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/contracts';
 import { VoiceProvider as DbVoiceProvider } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
@@ -59,7 +60,7 @@ describe('AgentPrepareToolHandler.prepareVoiceClone', () => {
     const handler = createHandler({ catalogFindAll });
 
     const result = await handler.prepareVoiceClone(ctx);
-    const card = result.nextActions?.[0];
+    const card = requireUiAction(result.nextActions, 'voice_clone_card');
 
     expect(catalogFindAll).toHaveBeenCalledWith({ isActive: true });
     expect(result.success).toBe(true);
@@ -94,7 +95,9 @@ describe('AgentPrepareToolHandler.prepareVoiceClone', () => {
     const result = await handler.prepareVoiceClone(ctx);
 
     expect(catalogFindAll).not.toHaveBeenCalled();
-    expect(result.nextActions?.[0]?.existingVoices).toEqual([
+    expect(
+      requireUiAction(result.nextActions, 'voice_clone_card').existingVoices,
+    ).toEqual([
       {
         cloneStatus: VoiceCloneStatus.READY,
         id: 'cloned-1',
@@ -109,7 +112,7 @@ describe('AgentPrepareToolHandler.prepareVoiceClone', () => {
     const handler = createHandler({ catalogFindAll });
 
     const result = await handler.prepareVoiceClone(ctx);
-    const card = result.nextActions?.[0];
+    const card = requireUiAction(result.nextActions, 'voice_clone_card');
 
     expect(catalogFindAll).toHaveBeenCalledWith({ isActive: true });
     expect(result.success).toBe(true);
@@ -142,7 +145,7 @@ describe('AgentPrepareToolHandler.prepareVoiceClone', () => {
     const result = await handler.prepareVoiceClone(ctx, {
       text: 'Welcome to FUD News',
     });
-    const card = result.nextActions?.[0];
+    const card = requireUiAction(result.nextActions, 'voice_clone_card');
 
     expect(result.success).toBe(true);
     expect(card?.canUseExisting).toBe(true);

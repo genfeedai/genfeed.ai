@@ -1,49 +1,8 @@
+import type { PostVisibility } from '../..';
 import type { HeyGenAvatarRef } from '../integrations/heygen.interface';
+import type { KnowledgeReceipt } from '../knowledge-base/knowledge-retrieval.interface';
 import type { IBrandAgentConfig } from '../organization/brand.interface';
 import type { TextReceiptState } from './text-action.interface';
-export type AgentUiActionType =
-  | 'mutation_approval_card'
-  | 'oauth_connect_card'
-  | 'content_preview_card'
-  | 'completion_summary_card'
-  | 'image_transform_card'
-  | 'outreach_sequence_create_card'
-  | 'outreach_sequence_control_card'
-  | 'analytics_snapshot_card'
-  | 'publish_post_card'
-  | 'review_gate_card'
-  | 'generation_action_card'
-  | 'ingredient_picker_card'
-  | 'workflow_trigger_card'
-  | 'clipper_workflow_run_card'
-  | 'clipper_run_card'
-  | 'ingredient_alternatives_card'
-  | 'schedule_post_card'
-  | 'engagement_opportunity_card'
-  | 'onboarding_checklist_card'
-  | 'credits_balance_card'
-  | 'studio_handoff_card'
-  | 'brand_create_card'
-  | 'brand_identity_confirmation_card'
-  | 'workflow_execute_card'
-  | 'trending_topics_card'
-  | 'content_calendar_card'
-  | 'turbo_run_card'
-  | 'turbo_run_result_card'
-  | 'voice_clone_card'
-  | 'brand_voice_profile_card'
-  | 'ai_text_action_card'
-  | 'ads_search_results_card'
-  | 'ad_detail_summary_card'
-  | 'campaign_launch_prep_card'
-  | 'workflow_created_card'
-  | 'bot_created_card'
-  | 'next_steps_card'
-  | 'livestream_bot_status_card'
-  | 'brand_interview_offer_card'
-  | 'brand_interview_complete_card'
-  | 'agent_transfer_card';
-
 export interface AgentMutationApprovalItem {
   label: string;
   value: string;
@@ -55,6 +14,76 @@ export interface AgentMutationApprovalPostPreview {
   credentialId?: string;
   mediaUrls: string[];
   platform: string;
+}
+
+export type AgentMutationExecutionStatus =
+  | 'cancelled'
+  | 'completed'
+  | 'failed'
+  | 'running';
+
+function isApprovalStatus(
+  value: unknown,
+): value is AgentMutationApprovalData['status'] {
+  return value === 'approved' || value === 'declined' || value === 'pending';
+}
+
+function isExecutionStatus(
+  value: unknown,
+): value is AgentMutationExecutionStatus {
+  return (
+    value === 'cancelled' ||
+    value === 'completed' ||
+    value === 'failed' ||
+    value === 'running'
+  );
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isApprovalItem(value: unknown): value is AgentMutationApprovalItem {
+  return (
+    isPlainRecord(value) &&
+    typeof value.label === 'string' &&
+    typeof value.value === 'string'
+  );
+}
+
+/**
+ * A stored approval card's `data`, read back from JSON: the fields every
+ * approval carries are checked, the rest pass through. Null when it is not an
+ * approval.
+ */
+export function readAgentMutationApprovalData(
+  value: unknown,
+): (AgentMutationApprovalData & Record<string, unknown>) | null {
+  if (
+    !isPlainRecord(value) ||
+    typeof value.approvalId !== 'string' ||
+    typeof value.sourceActionId !== 'string' ||
+    typeof value.summary !== 'string' ||
+    typeof value.expiresAt !== 'string' ||
+    !(typeof value.brandId === 'string' || value.brandId === null) ||
+    !Array.isArray(value.items) ||
+    !value.items.every(isApprovalItem) ||
+    !isApprovalStatus(value.status)
+  ) {
+    return null;
+  }
+  const { executionStatus, ...rest } = value;
+  return {
+    ...rest,
+    approvalId: value.approvalId,
+    brandId: value.brandId,
+    expiresAt: value.expiresAt,
+    items: value.items,
+    sourceActionId: value.sourceActionId,
+    status: value.status,
+    summary: value.summary,
+    ...(isExecutionStatus(executionStatus) ? { executionStatus } : {}),
+  };
 }
 
 export interface AgentMutationApprovalData {
@@ -69,17 +98,11 @@ export interface AgentMutationApprovalData {
   estimatedCredits?: number;
   /** Set for `create_post`: the draft per target, so the card can render the platform preview. */
   postPreviews?: AgentMutationApprovalPostPreview[];
-  executionStatus?: 'completed' | 'failed' | 'cancelled';
+  /** `running` once approved and dispatched, until the action settles. */
+  executionStatus?: AgentMutationExecutionStatus;
   error?: string;
-}
-
-export interface AgentUiActionBase {
-  id: string;
-  type: AgentUiActionType;
-  title: string;
-  description?: string;
-  riskLevel?: 'low' | 'medium' | 'high';
-  requiresConfirmation?: boolean;
+  /** Set on a fresh preview that replaces this source card's approval. */
+  replacesSourceActionId?: string;
 }
 
 export interface AgentUiActionCta {
@@ -475,149 +498,511 @@ export interface AgentGenerationActionParams {
   voiceId?: string;
 }
 
-export interface AgentUiAction extends AgentUiActionBase {
-  assetId?: string;
-  assetKind?: 'image' | 'video' | 'voice';
+/** ClipperRunStep — one step in the clip run lifecycle. */
+export interface ClipperRunStep {
+  id: string;
+  label: string;
+  status: 'pending' | 'running' | 'done' | 'failed' | 'skipped';
+  outputUrl?: string;
+  errorMessage?: string;
+  retryable: boolean;
+}
+
+/** Mode toggles the user can change mid-run. */
+export interface ClipperRunModes {
+  enableMerge: boolean;
+  enableReframe: boolean;
+  confirmBeforePublish: boolean;
+  platform: 'twitter' | 'instagram' | 'tiktok';
+  duration: 15 | 30 | 60;
+  aspectRatio: '16:9' | '9:16' | '1:1';
+}
+
+/** The clip-run card state the agent tool emits. */
+export interface ClipperRunCardState {
+  clipperProjectId: string;
+  organizationId: string;
+  brandId: string;
+  currentStep: string;
+  steps: ClipperRunStep[];
+  modes: ClipperRunModes;
+  identity?: AgentClipperRunIdentity;
+  finalOutputUrl?: string;
+  status: 'idle' | 'running' | 'paused' | 'done' | 'failed';
+  confirmationPending?: boolean;
+  confirmationMessage?: string;
+}
+
+/** The run a `clipper_workflow_run_card` starts. */
+export interface AgentClipperRunRequest {
+  autonomousMode?: boolean;
+  durationSeconds?: number;
+  format?: 'landscape' | 'portrait' | 'square';
+  identity?: AgentClipperRunIdentity;
+  inputValues?: Record<string, unknown>;
+  mergeGeneratedVideos?: boolean;
+  model?: string;
+  prompt?: string;
+  requireStepConfirmation?: boolean;
+}
+
+/** One row on a list card (review queue, ad results, turbo-run previews). */
+export interface AgentUiActionItem {
+  id: string;
+  title: string;
+  brandId?: string | null;
+  credentialId?: string;
+  platform?: string;
+  previewUrl?: string;
+  type?: string;
+}
+
+export interface AgentUiActionWorkflowOption {
+  id: string;
+  name: string;
+  description?: string;
+  status?: string;
+}
+
+export interface AgentIngredientAlternative {
+  label: string;
+  prompt: string;
+  generationType: 'image' | 'video';
+}
+
+export interface AgentEngagementOriginalPost {
+  author: string;
+  content: string;
+  platform?: string;
+  url?: string;
+}
+
+export interface AgentOnboardingChecklistItem {
+  id: string;
+  label: string;
+  isCompleted: boolean;
+  rewardCredits?: number;
+  isClaimed?: boolean;
+  isRecommended?: boolean;
+  description?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+}
+
+export interface AgentTrendingTopic {
+  id: string;
+  label: string;
+  score?: number;
+  platform?: string;
+}
+
+export interface AgentCalendarDay {
+  date: string;
+  postCount: number;
+}
+
+export interface AgentExistingVoice {
+  id: string;
+  label: string;
+  provider?: string;
+  cloneStatus?: string;
+}
+
+export type AgentContentFormat =
+  | 'article'
+  | 'generic'
+  | 'newsletter'
+  | 'social_post'
+  | 'thread';
+
+/**
+ * Fields every card carries. `type` is the discriminant: narrow on it (or take
+ * `AgentUiActionOf<'…_card'>`) to reach the fields that card needs.
+ */
+export interface AgentUiActionBase<TType extends string = AgentUiActionType> {
+  id: string;
+  type: TType;
+  title: string;
+  description?: string;
+  riskLevel?: 'low' | 'medium' | 'high';
+  requiresConfirmation?: boolean;
   ctas?: AgentUiActionCta[];
   data?: Record<string, unknown>;
-  contentFormat?:
-    | 'article'
-    | 'generic'
-    | 'newsletter'
-    | 'social_post'
-    | 'thread';
-  platform?: string;
-  subject?: string;
-  preheader?: string;
-  images?: string[];
-  videos?: string[];
-  audio?: string[];
-  voiceoverText?: string;
-  tweets?: string[];
-  metrics?: Record<string, unknown>;
+  /** Lifecycle status the thread sets on any card while its action runs. */
   status?: string;
-  summaryText?: string;
-  outcomeBullets?: string[];
-  items?: Array<{
-    id: string;
-    title: string;
-    type?: string;
-    platform?: string;
-    previewUrl?: string;
-  }>;
-  generationType?: 'image' | 'video';
-  generationParams?: AgentGenerationActionParams;
-  ingredients?: AgentIngredientItem[];
-  workflows?: {
-    id: string;
-    name: string;
-    description?: string;
-    status?: string;
-  }[];
-  outputVariants?: AgentUiActionOutputVariant[];
-  clipperRun?: {
-    autonomousMode?: boolean;
-    durationSeconds?: number;
-    format?: 'landscape' | 'portrait' | 'square';
-    identity?: AgentClipperRunIdentity;
-    inputValues?: Record<string, unknown>;
-    mergeGeneratedVideos?: boolean;
-    model?: string;
-    prompt?: string;
-    requireStepConfirmation?: boolean;
-  };
-  clipperRunState?: Record<string, unknown>;
-  alternatives?: {
-    label: string;
-    prompt: string;
-    generationType: 'image' | 'video';
-  }[];
-  scheduledAt?: string;
+}
+
+export interface AgentMutationApprovalCardAction
+  extends AgentUiActionBase<'mutation_approval_card'> {
+  /** Other keys may be stamped on by the thread (e.g. `sourceGenerationActionId`). */
+  data: AgentMutationApprovalData & Record<string, unknown>;
+}
+
+export interface AgentOAuthConnectCardAction
+  extends AgentUiActionBase<'oauth_connect_card'> {
+  /** A single-platform card. */
+  platform?: string;
+  /** A collapsed card offering several platforms. */
   platforms?: string[];
-  /** Per-channel scheduler destinations for a `publish_post_card`. */
-  targets?: AgentPublishTargetProposal[];
-  visibility?: PostVisibility;
-  creditEstimate?: number;
-  originalPost?: {
-    author: string;
-    content: string;
-    platform?: string;
-    url?: string;
-  };
-  draftReply?: string;
-  checklist?: {
-    id: string;
-    label: string;
-    isCompleted: boolean;
-    rewardCredits?: number;
-    isClaimed?: boolean;
-    isRecommended?: boolean;
-    description?: string;
-    ctaLabel?: string;
-    ctaHref?: string;
-  }[];
-  earnedCredits?: number;
-  totalJourneyCredits?: number;
-  completionPercent?: number;
-  balance?: number;
-  usagePercent?: number;
-  usageLabel?: string;
-  signupGiftCredits?: number;
-  journeyEarnedCredits?: number;
-  journeyRemainingCredits?: number;
-  totalOnboardingCreditsVisible?: number;
-  thumbnailUrl?: string;
-  editorType?: string;
-  studioUrl?: string;
-  brandName?: string;
-  brandDescription?: string;
-  workflowId?: string;
-  workflowName?: string;
-  workflowDescription?: string;
+}
+
+export interface AgentContentPreviewCardAction
+  extends AgentUiActionBase<'content_preview_card'> {
+  assetId?: string;
+  assetKind?: 'image' | 'video' | 'voice';
+  audio?: string[];
+  brandId?: string | null;
+  /** Branded-generation receipt behind this written proposal. */
+  brandedReceipt?: AgentUiBrandedReceipt;
+  contentFormat?: AgentContentFormat;
+  credentialId?: string;
+  images?: string[];
+  /** Exact source versions whose passages grounded this generated output. */
+  knowledgeReceipts?: KnowledgeReceipt[];
+  platform?: string;
+  preheader?: string;
+  subject?: string;
+  textContent?: string;
+  tweets?: string[];
+  videos?: string[];
+}
+
+export interface AgentCompletionSummaryCardAction
+  extends AgentUiActionBase<'completion_summary_card'> {
+  summaryText: string;
+  outcomeBullets?: string[];
+  outputVariants?: AgentUiActionOutputVariant[];
   primaryCta?: AgentUiActionCta;
   secondaryCtas?: AgentUiActionCta[];
   utilityCtas?: AgentUiActionCta[];
+}
+
+export interface AgentImageTransformCardAction
+  extends AgentUiActionBase<'image_transform_card'> {
+  images?: string[];
+}
+
+export type AgentOutreachSequenceCreateCardAction =
+  AgentUiActionBase<'outreach_sequence_create_card'>;
+
+export type AgentOutreachSequenceControlCardAction =
+  AgentUiActionBase<'outreach_sequence_control_card'>;
+
+export interface AgentAnalyticsSnapshotCardAction
+  extends AgentUiActionBase<'analytics_snapshot_card'> {
+  metrics?: Record<string, unknown>;
+}
+
+export interface AgentPublishPostCardAction
+  extends AgentUiActionBase<'publish_post_card'> {
   contentId?: string;
-  scheduleSummary?: string;
-  nextRunAt?: string;
-  botId?: string;
-  botName?: string;
-  sessionStatus?: string;
-  trends?: {
-    id: string;
-    label: string;
-    score?: number;
-    platform?: string;
-  }[];
-  calendarDays?: {
-    date: string;
-    postCount: number;
-  }[];
+  platforms?: string[];
+  scheduledAt?: string;
+  /** Per-channel scheduler destinations. */
+  targets?: AgentPublishTargetProposal[];
+  textContent?: string;
+  visibility?: PostVisibility;
+}
+
+export interface AgentReviewGateCardAction
+  extends AgentUiActionBase<'review_gate_card'> {
+  items: AgentUiActionItem[];
+}
+
+export interface AgentGenerationActionCardAction
+  extends AgentUiActionBase<'generation_action_card'> {
+  generationType: 'image' | 'video';
+  generationParams?: AgentGenerationActionParams;
+}
+
+export interface AgentIngredientPickerCardAction
+  extends AgentUiActionBase<'ingredient_picker_card'> {
+  ingredients: AgentIngredientItem[];
+}
+
+export interface AgentWorkflowTriggerCardAction
+  extends AgentUiActionBase<'workflow_trigger_card'> {
+  workflows: AgentUiActionWorkflowOption[];
+}
+
+export interface AgentClipperWorkflowRunCardAction
+  extends AgentUiActionBase<'clipper_workflow_run_card'> {
+  brandId?: string;
+  clipperRun: AgentClipperRunRequest;
+  clipperRunState?: ClipperRunCardState;
+  workflowDescription?: string;
+  workflowId?: string;
+  workflowName?: string;
+  workflows: AgentUiActionWorkflowOption[];
+}
+
+export interface AgentClipperRunCardAction
+  extends AgentUiActionBase<'clipper_run_card'> {
+  clipperRunState?: ClipperRunCardState;
+}
+
+export interface AgentIngredientAlternativesCardAction
+  extends AgentUiActionBase<'ingredient_alternatives_card'> {
+  alternatives: AgentIngredientAlternative[];
+}
+
+export interface AgentSchedulePostCardAction
+  extends AgentUiActionBase<'schedule_post_card'> {
+  contentId?: string;
+  creditEstimate?: number;
+  platforms?: string[];
+  scheduledAt?: string;
+  targets?: AgentPublishTargetProposal[];
+}
+
+export interface AgentEngagementOpportunityCardAction
+  extends AgentUiActionBase<'engagement_opportunity_card'> {
+  draftReply?: string;
+  originalPost?: AgentEngagementOriginalPost;
+}
+
+export interface AgentOnboardingChecklistCardAction
+  extends AgentUiActionBase<'onboarding_checklist_card'> {
+  checklist: AgentOnboardingChecklistItem[];
+  completionPercent: number;
+  earnedCredits?: number;
+  journeyEarnedCredits?: number;
+  journeyRemainingCredits?: number;
+  signupGiftCredits?: number;
+  totalJourneyCredits?: number;
+  totalOnboardingCreditsVisible?: number;
+}
+
+export interface AgentCreditsBalanceCardAction
+  extends AgentUiActionBase<'credits_balance_card'> {
+  balance?: number;
+  usageLabel?: string;
+  usagePercent?: number;
+}
+
+export interface AgentStudioHandoffCardAction
+  extends AgentUiActionBase<'studio_handoff_card'> {
+  editorType: string;
+  studioUrl: string;
+  thumbnailUrl?: string;
+}
+
+export interface AgentBrandCreateCardAction
+  extends AgentUiActionBase<'brand_create_card'> {
+  brandDescription?: string;
+  brandName?: string;
+}
+
+export type AgentBrandIdentityConfirmationCardAction =
+  AgentUiActionBase<'brand_identity_confirmation_card'>;
+
+export interface AgentWorkflowExecuteCardAction
+  extends AgentUiActionBase<'workflow_execute_card'> {
+  creditEstimate?: number;
+  workflowDescription?: string;
+  workflowId?: string;
+  workflowName?: string;
+}
+
+export interface AgentTrendingTopicsCardAction
+  extends AgentUiActionBase<'trending_topics_card'> {
+  trends?: AgentTrendingTopic[];
+}
+
+export interface AgentContentCalendarCardAction
+  extends AgentUiActionBase<'content_calendar_card'> {
+  calendarDays?: AgentCalendarDay[];
+}
+
+export interface AgentTurboRunCardAction
+  extends AgentUiActionBase<'turbo_run_card'> {
+  creditEstimate?: number;
+  platforms?: string[];
   turboRunCount?: number;
-  completedCount?: number;
-  failedCount?: number;
+}
+
+export interface AgentTurboRunResultCardAction
+  extends AgentUiActionBase<'turbo_run_result_card'> {
+  brandId?: string | null;
+  completedCount: number;
+  credentialId?: string;
   creditsUsed?: number;
+  failedCount?: number;
+  items?: AgentUiActionItem[];
+  platform?: string;
+  platforms: string[];
   /** Completed posts not shown in the max-3 preview strip. */
   remainingCount?: number;
+  turboRunCount?: number;
+}
+
+export interface AgentVoiceCloneCardAction
+  extends AgentUiActionBase<'voice_clone_card'> {
   audioUrl?: string;
+  brandId?: string | null;
+  canUpload: boolean;
+  canUseExisting: boolean;
   cloneProgress?: number;
-  brandId?: string;
+  existingVoices: AgentExistingVoice[];
   recommendedVoiceId?: string;
-  canUpload?: boolean;
-  canUseExisting?: boolean;
-  existingVoices?: Array<{
-    id: string;
-    label: string;
-    provider?: string;
-    cloneStatus?: string;
-  }>;
+  voiceoverText?: string;
+}
+
+export interface AgentBrandVoiceProfileCardAction
+  extends AgentUiActionBase<'brand_voice_profile_card'> {
+  brandId?: string | null;
   textContent?: string;
+}
+
+export interface AgentAiTextActionCardAction
+  extends AgentUiActionBase<'ai_text_action_card'> {
   textActions?: string[];
-  nextSteps?: AgentNextStepOption[];
-  /** Exact source versions whose passages grounded this generated output. */
-  knowledgeReceipts?: KnowledgeReceipt[];
-  /** Branded-generation receipt behind this written proposal. */
-  brandedReceipt?: AgentUiBrandedReceipt;
+  textContent?: string;
+}
+
+export interface AgentAdsSearchResultsCardAction
+  extends AgentUiActionBase<'ads_search_results_card'> {
+  items: AgentUiActionItem[];
+  metrics?: Record<string, unknown>;
+}
+
+export type AgentAdDetailSummaryCardAction =
+  AgentUiActionBase<'ad_detail_summary_card'>;
+
+export type AgentCampaignLaunchPrepCardAction =
+  AgentUiActionBase<'campaign_launch_prep_card'>;
+
+export interface AgentWorkflowCreatedCardAction
+  extends AgentUiActionBase<'workflow_created_card'> {
+  nextRunAt?: string;
+  scheduleSummary?: string;
+  workflowDescription?: string;
+  workflowId?: string;
+  workflowName: string;
+}
+
+/** Shared by `bot_created_card` and `livestream_bot_status_card`. */
+export interface AgentLivestreamBotFields {
+  botId: string;
+  botName: string;
+  brandId?: string | null;
+  platform: string;
+  sessionStatus?: string;
+}
+
+export interface AgentBotCreatedCardAction
+  extends AgentUiActionBase<'bot_created_card'>,
+    AgentLivestreamBotFields {}
+
+export interface AgentLivestreamBotStatusCardAction
+  extends AgentUiActionBase<'livestream_bot_status_card'>,
+    AgentLivestreamBotFields {}
+
+export interface AgentNextStepsCardAction
+  extends AgentUiActionBase<'next_steps_card'> {
+  nextSteps: AgentNextStepOption[];
+}
+
+export type AgentBrandInterviewOfferCardAction =
+  AgentUiActionBase<'brand_interview_offer_card'>;
+
+export type AgentBrandInterviewCompleteCardAction =
+  AgentUiActionBase<'brand_interview_complete_card'>;
+
+export type AgentTransferCardAction = AgentUiActionBase<'agent_transfer_card'>;
+
+/**
+ * A card the agent attaches to a reply, keyed by `type`. Each member carries
+ * only the fields its card renders; narrow on `type` to read them.
+ */
+export type AgentUiAction =
+  | AgentMutationApprovalCardAction
+  | AgentOAuthConnectCardAction
+  | AgentContentPreviewCardAction
+  | AgentCompletionSummaryCardAction
+  | AgentImageTransformCardAction
+  | AgentOutreachSequenceCreateCardAction
+  | AgentOutreachSequenceControlCardAction
+  | AgentAnalyticsSnapshotCardAction
+  | AgentPublishPostCardAction
+  | AgentReviewGateCardAction
+  | AgentGenerationActionCardAction
+  | AgentIngredientPickerCardAction
+  | AgentWorkflowTriggerCardAction
+  | AgentClipperWorkflowRunCardAction
+  | AgentClipperRunCardAction
+  | AgentIngredientAlternativesCardAction
+  | AgentSchedulePostCardAction
+  | AgentEngagementOpportunityCardAction
+  | AgentOnboardingChecklistCardAction
+  | AgentCreditsBalanceCardAction
+  | AgentStudioHandoffCardAction
+  | AgentBrandCreateCardAction
+  | AgentBrandIdentityConfirmationCardAction
+  | AgentWorkflowExecuteCardAction
+  | AgentTrendingTopicsCardAction
+  | AgentContentCalendarCardAction
+  | AgentTurboRunCardAction
+  | AgentTurboRunResultCardAction
+  | AgentVoiceCloneCardAction
+  | AgentBrandVoiceProfileCardAction
+  | AgentAiTextActionCardAction
+  | AgentAdsSearchResultsCardAction
+  | AgentAdDetailSummaryCardAction
+  | AgentCampaignLaunchPrepCardAction
+  | AgentWorkflowCreatedCardAction
+  | AgentBotCreatedCardAction
+  | AgentNextStepsCardAction
+  | AgentLivestreamBotStatusCardAction
+  | AgentBrandInterviewOfferCardAction
+  | AgentBrandInterviewCompleteCardAction
+  | AgentTransferCardAction;
+
+export type AgentUiActionType = AgentUiAction['type'];
+
+/** The card a given `type` names. */
+export type AgentUiActionOf<TType extends AgentUiActionType> = Extract<
+  AgentUiAction,
+  { type: TType }
+>;
+
+/** A guard for one card type, for `find` / `filter` over a turn's cards. */
+export function isAgentUiActionOf<TType extends AgentUiActionType>(
+  type: TType,
+): (action: AgentUiAction) => action is AgentUiActionOf<TType> {
+  return (action): action is AgentUiActionOf<TType> => action.type === type;
+}
+
+/** `action` with `extra` merged into its `data`. */
+export function mergeAgentUiActionData<TAction extends AgentUiAction>(
+  action: TAction,
+  extra: Record<string, unknown>,
+): TAction {
+  return { ...action, data: { ...action.data, ...extra } };
+}
+
+function overlaySameType<TAction extends AgentUiAction>(
+  card: TAction,
+  update: TAction,
+  isDataMerged: boolean,
+): TAction {
+  return isDataMerged
+    ? { ...card, ...update, data: { ...card.data, ...update.data } }
+    : { ...card, ...update };
+}
+
+/**
+ * `update` laid over `card`. Only a card of the same type merges (its `data`
+ * key by key when `isDataMerged`); a card of another type replaces it whole.
+ */
+export function overlayAgentUiAction(
+  card: AgentUiAction,
+  update: AgentUiAction,
+  { isDataMerged = false }: { isDataMerged?: boolean } = {},
+): AgentUiAction {
+  return card.type === update.type
+    ? overlaySameType(card, update, isDataMerged)
+    : update;
 }
 
 /** The receipt a text proposal was written under: its id and whether the brand kit was approved. */
@@ -625,6 +1010,3 @@ export interface AgentUiBrandedReceipt {
   id: string;
   state: TextReceiptState;
 }
-
-import type { PostVisibility } from '../..';
-import type { KnowledgeReceipt } from '../knowledge-base/knowledge-retrieval.interface';

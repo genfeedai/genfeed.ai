@@ -1,4 +1,4 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentClipperRunIdentity } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -13,7 +13,7 @@ import { ClipperWorkflowStepsList } from './ClipperWorkflowStepsList';
 import { useClipperWorkflowRunCard } from './useClipperWorkflowRunCard';
 
 interface ClipperWorkflowRunCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'clipper_workflow_run_card'>;
   apiService: AgentApiService;
 }
 

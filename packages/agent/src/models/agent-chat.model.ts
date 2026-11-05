@@ -1,27 +1,21 @@
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
-import type { ClipperRunCardState } from '@genfeedai/agent/models/clipper-run-card.model';
 import type {
   AgentThreadKind,
   AgentThreadMode,
   AgentThreadStatus,
-  PostVisibility,
   RouterPriority,
 } from '@genfeedai/contracts';
 import type {
   AgentArtifactReference,
-  AgentClipperRunIdentity,
   AgentDashboardOperation,
-  AgentGenerationActionParams,
   AgentKnowledgeCitations,
-  AgentPublishTargetProposal,
   AgentScopeMetadata,
   AgentThreadUiActionRun,
   AgentTransferPresentation,
   AgentUIBlock,
-  AgentUiBrandedReceipt,
+  AgentUiAction,
   AnalyticsQueryReference,
   CreativeAppAgentContext,
-  KnowledgeReceipt,
   KnowledgeSelection,
   ScopedResearchFindingReference,
   SocialInboxReference,
@@ -129,247 +123,22 @@ export interface AgentWorkEvent {
   parameters?: Record<string, unknown>;
 }
 
-export interface AgentUiActionCta {
-  label: string;
-  href?: string;
-  action?: string;
-  payload?: Record<string, unknown>;
-}
-
 export type {
+  AgentIngredientItem,
+  AgentNextStepOption,
   AgentPublishSettingField,
   AgentPublishTargetProposal,
   AgentPublishValidationIssue,
   AgentThreadUiActionRun,
   AgentThreadUiActionState,
+  AgentUiAction,
+  AgentUiActionCta,
   AgentUiActionHandler,
+  AgentUiActionOf,
   AgentUiActionOutcome,
+  AgentUiActionOutputVariant,
+  AgentUiActionType,
 } from '@genfeedai/contracts/interfaces';
-
-/**
- * One choice the agent offers. Every option carries its own CTAs so a
- * suggestion always renders a control — navigation to the owning page or an
- * in-conversation follow-up — never bare prose the user cannot act on.
- */
-export interface AgentNextStepOption {
-  id: string;
-  title: string;
-  description?: string;
-  ctas: AgentUiActionCta[];
-}
-
-export interface AgentIngredientItem {
-  id: string;
-  url: string;
-  thumbnailUrl?: string;
-  type: 'image' | 'video';
-  title?: string;
-}
-
-export interface AgentUiActionOutputVariant {
-  id: string;
-  kind: 'audio' | 'image' | 'text' | 'video';
-  textContent?: string;
-  threadSegments?: string[];
-  thumbnailUrl?: string;
-  title?: string;
-  url?: string;
-}
-
-export interface AgentUiAction {
-  id: string;
-  credentialId?: string;
-  assetId?: string;
-  assetKind?: 'image' | 'video' | 'voice';
-  type:
-    | 'oauth_connect_card'
-    | 'content_preview_card'
-    | 'completion_summary_card'
-    | 'image_transform_card'
-    | 'outreach_sequence_create_card'
-    | 'outreach_sequence_control_card'
-    | 'analytics_snapshot_card'
-    | 'publish_post_card'
-    | 'mutation_approval_card'
-    | 'review_gate_card'
-    | 'generation_action_card'
-    | 'ingredient_picker_card'
-    | 'workflow_trigger_card'
-    | 'clipper_workflow_run_card'
-    | 'clipper_run_card'
-    | 'ingredient_alternatives_card'
-    | 'schedule_post_card'
-    | 'engagement_opportunity_card'
-    | 'onboarding_checklist_card'
-    | 'credits_balance_card'
-    | 'studio_handoff_card'
-    | 'brand_create_card'
-    | 'brand_identity_confirmation_card'
-    | 'workflow_execute_card'
-    | 'trending_topics_card'
-    | 'content_calendar_card'
-    | 'turbo_run_card'
-    | 'turbo_run_result_card'
-    | 'voice_clone_card'
-    | 'brand_voice_profile_card'
-    | 'ai_text_action_card'
-    | 'ads_search_results_card'
-    | 'ad_detail_summary_card'
-    | 'campaign_launch_prep_card'
-    | 'workflow_created_card'
-    | 'bot_created_card'
-    | 'next_steps_card'
-    | 'livestream_bot_status_card'
-    | 'brand_interview_offer_card'
-    | 'brand_interview_complete_card'
-    | 'agent_transfer_card';
-  title: string;
-  description?: string;
-  contentFormat?:
-    | 'article'
-    | 'generic'
-    | 'newsletter'
-    | 'social_post'
-    | 'thread';
-  platform?: string;
-  subject?: string;
-  preheader?: string;
-  tweets?: string[];
-  images?: string[];
-  videos?: string[];
-  audio?: string[];
-  voiceoverText?: string;
-  metrics?: Record<string, unknown>;
-  status?: string;
-  /** Audience visibility a publish card should preselect. */
-  visibility?: PostVisibility;
-  items?: Array<{
-    id: string;
-    credentialId?: string;
-    brandId?: string | null;
-    title: string;
-    type?: string;
-    platform?: string;
-    previewUrl?: string;
-  }>;
-  riskLevel?: 'low' | 'medium' | 'high';
-  requiresConfirmation?: boolean;
-  ctas?: AgentUiActionCta[];
-  primaryCta?: AgentUiActionCta;
-  secondaryCtas?: AgentUiActionCta[];
-  utilityCtas?: AgentUiActionCta[];
-  data?: Record<string, unknown>;
-  summaryText?: string;
-  outcomeBullets?: string[];
-  outputVariants?: AgentUiActionOutputVariant[];
-  generationType?: 'image' | 'video';
-  generationParams?: AgentGenerationActionParams;
-  ingredients?: AgentIngredientItem[];
-  workflows?: {
-    id: string;
-    name: string;
-    description?: string;
-    status?: string;
-  }[];
-  clipperRun?: {
-    autonomousMode?: boolean;
-    durationSeconds?: number;
-    format?: 'landscape' | 'portrait' | 'square';
-    identity?: AgentClipperRunIdentity;
-    inputValues?: Record<string, unknown>;
-    mergeGeneratedVideos?: boolean;
-    model?: string;
-    prompt?: string;
-    requireStepConfirmation?: boolean;
-  };
-  alternatives?: {
-    label: string;
-    prompt: string;
-    generationType: 'image' | 'video';
-  }[];
-  scheduledAt?: string;
-  platforms?: string[];
-  targets?: AgentPublishTargetProposal[];
-  contentId?: string;
-  creditEstimate?: number;
-  originalPost?: {
-    author: string;
-    content: string;
-    platform?: string;
-    url?: string;
-  };
-  draftReply?: string;
-  checklist?: {
-    id: string;
-    label: string;
-    isCompleted: boolean;
-    description?: string;
-    isClaimed?: boolean;
-    isRecommended?: boolean;
-    rewardCredits?: number;
-    ctaLabel?: string;
-    ctaHref?: string;
-  }[];
-  completionPercent?: number;
-  earnedCredits?: number;
-  totalJourneyCredits?: number;
-  signupGiftCredits?: number;
-  journeyEarnedCredits?: number;
-  journeyRemainingCredits?: number;
-  totalOnboardingCreditsVisible?: number;
-  balance?: number;
-  usagePercent?: number;
-  usageLabel?: string;
-  thumbnailUrl?: string;
-  editorType?: string;
-  studioUrl?: string;
-  brandName?: string;
-  brandDescription?: string;
-  workflowId?: string;
-  workflowName?: string;
-  workflowDescription?: string;
-  scheduleSummary?: string;
-  nextRunAt?: string;
-  botId?: string;
-  botName?: string;
-  sessionStatus?: string;
-  trends?: {
-    id: string;
-    label: string;
-    score?: number;
-    platform?: string;
-  }[];
-  calendarDays?: {
-    date: string;
-    postCount: number;
-  }[];
-  turboRunCount?: number;
-  completedCount?: number;
-  failedCount?: number;
-  creditsUsed?: number;
-  /** Completed posts beyond the max-3 preview cards. */
-  remainingCount?: number;
-  audioUrl?: string;
-  cloneProgress?: number;
-  brandId?: string | null;
-  recommendedVoiceId?: string;
-  canUpload?: boolean;
-  canUseExisting?: boolean;
-  existingVoices?: Array<{
-    id: string;
-    label: string;
-    provider?: string;
-    cloneStatus?: string;
-  }>;
-  textContent?: string;
-  textActions?: string[];
-  nextSteps?: AgentNextStepOption[];
-  clipperRunState?: ClipperRunCardState;
-  /** Exact source versions whose passages grounded this generated output. */
-  knowledgeReceipts?: KnowledgeReceipt[];
-  /** Branded-generation receipt behind this written proposal. */
-  brandedReceipt?: AgentUiBrandedReceipt;
-}
 
 export interface AgentToolCall {
   id: string;

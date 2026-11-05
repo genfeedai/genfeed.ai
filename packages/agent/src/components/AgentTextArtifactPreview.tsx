@@ -1,7 +1,8 @@
-'use client';
+import type { AgentContentFormat } from '@genfeedai/contracts/interfaces';
+
+('use client');
 
 import { LazySafeMarkdown } from '@genfeedai/agent/components/LazySafeMarkdown';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { PlatformPreviewAuthor } from '@genfeedai/props/components/platform-preview.props';
@@ -34,7 +35,7 @@ export interface AgentTextArtifactPreviewData {
   content: string;
   credentialId?: string;
   brandId?: string | null;
-  contentFormat?: AgentUiAction['contentFormat'];
+  contentFormat?: AgentContentFormat;
   platform?: string;
   preheader?: string;
   subject?: string;

@@ -82,6 +82,7 @@ describe('TurboRunResultCard', () => {
               type: 'post',
             },
           ],
+          platforms: [],
           title: 'Turbo run complete',
           type: 'turbo_run_result_card',
         }}
@@ -133,6 +134,7 @@ describe('TurboRunResultCard', () => {
               type: 'post',
             },
           ],
+          platforms: [],
           remainingCount: 5,
           title: 'Turbo run complete',
           type: 'turbo_run_result_card',

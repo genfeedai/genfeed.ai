@@ -1,4 +1,4 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
@@ -38,7 +38,7 @@ export const STEP_ORDER: StepKey[] = [
 ];
 
 interface UseClipperWorkflowRunCardParams {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'clipper_workflow_run_card'>;
   apiService: AgentApiService;
   hrefFn: (path: string) => string;
 }
@@ -284,7 +284,6 @@ export function useClipperWorkflowRunCard({
             format: 'video',
             ingredientId: finalVideoId,
             label: action.title || 'Generated clip draft',
-            platform: action.platform,
             prompt,
             sourceActionId: action.id,
             sourceWorkflowId: action.workflowId,
@@ -306,7 +305,6 @@ export function useClipperWorkflowRunCard({
   }, [
     action.brandId,
     action.id,
-    action.platform,
     action.title,
     action.workflowId,
     action.workflowName,

@@ -1,6 +1,6 @@
 import { useAgentUiActionRequest } from '@genfeedai/agent/hooks/use-agent-ui-action-request';
 import type {
-  AgentUiAction,
+  AgentUiActionOf,
   AgentUiActionOutcome,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
@@ -21,7 +21,7 @@ import {
 } from 'react';
 
 interface BrandIdentityConfirmationCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'brand_identity_confirmation_card'>;
   onUiAction?: (
     action: string,
     payload?: Record<string, unknown>,

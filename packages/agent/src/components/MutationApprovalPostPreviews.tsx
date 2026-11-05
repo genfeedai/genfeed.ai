@@ -1,6 +1,9 @@
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { formatPlatformLabel } from '@genfeedai/contracts';
-import type { AgentMutationApprovalPostPreview } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentMutationApprovalData,
+  AgentMutationApprovalPostPreview,
+} from '@genfeedai/contracts/interfaces';
 import PlatformPreview, {
   type PlatformPreviewMedia,
 } from '@ui/posts/platform-preview/PlatformPreview';
@@ -27,7 +30,7 @@ function toPreviewMedia(
 }
 
 export function readPostPreviews(
-  data: Record<string, unknown> | undefined,
+  data: AgentMutationApprovalData | undefined,
 ): AgentMutationApprovalPostPreview[] {
   const entries: unknown[] = Array.isArray(data?.postPreviews)
     ? data.postPreviews

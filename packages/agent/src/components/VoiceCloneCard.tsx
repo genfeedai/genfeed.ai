@@ -1,6 +1,7 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/contracts';
+import type { AgentExistingVoice } from '@genfeedai/contracts/interfaces';
 import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import MediaPlayer from '@ui/media-player/MediaPlayer';
@@ -21,13 +22,13 @@ import { VoiceCloneProgress } from './VoiceCloneProgress';
 const FILE_EXTENSION_PATTERN = /\.[^.]+$/;
 
 interface VoiceCloneCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'voice_clone_card'>;
   apiService: AgentApiService;
 }
 
 type CardStatus = 'idle' | 'uploading' | 'cloning' | 'done' | 'error';
 
-const EMPTY_EXISTING_VOICES: NonNullable<AgentUiAction['existingVoices']> = [];
+const EMPTY_EXISTING_VOICES: AgentExistingVoice[] = [];
 const MAX_VOICE_RECONCILIATION_FAILURES = 10;
 const MAX_VOICE_RECONCILIATION_ATTEMPTS = 360;
 /** Fallback cadence while the websocket is the primary progress channel. */

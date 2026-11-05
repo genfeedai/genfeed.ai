@@ -1,7 +1,7 @@
 import { useAgentUiActionRequest } from '@genfeedai/agent/hooks/use-agent-ui-action-request';
 import type {
-  AgentUiAction,
   AgentUiActionHandler,
+  AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { ButtonVariant } from '@genfeedai/contracts';
@@ -11,7 +11,7 @@ import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useMemo } from 'react';
 
 interface BrandVoiceProfileCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'brand_voice_profile_card'>;
   onUiAction?: AgentUiActionHandler;
 }
 

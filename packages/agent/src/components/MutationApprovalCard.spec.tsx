@@ -1,6 +1,7 @@
 import { MutationApprovalCard } from '@genfeedai/agent/components/MutationApprovalCard';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import type { AgentMutationApprovalData } from '@genfeedai/contracts/interfaces';
 import { getAgentUiActionSourceId } from '@genfeedai/contracts/interfaces';
 import {
   act,
@@ -31,12 +32,15 @@ function acceptingUiAction() {
   });
 }
 
-function approval(status = 'pending'): AgentUiAction {
+function approval(
+  status: AgentMutationApprovalData['status'] = 'pending',
+): AgentUiActionOf<'mutation_approval_card'> {
   return {
     id: 'card-1',
     type: 'mutation_approval_card',
     data: {
       approvalId: 'approval-1',
+      brandId: null,
       sourceActionId: 'source-1',
       summary: 'Delete the Summer launch draft?',
       items: [{ label: 'Draft', value: 'Summer launch' }],
@@ -81,6 +85,7 @@ describe('MutationApprovalCard', () => {
     const card = approval();
     card.data = {
       ...card.data,
+      // @ts-expect-error malformed wire data: the card must skip bad entries
       postPreviews: [null, { caption: '  ', platform: 'twitter' }, 'x'],
     };
 
@@ -171,7 +176,7 @@ describe('MutationApprovalCard', () => {
     expect(screen.getByRole('button', { name: 'Approve' })).toBeEnabled();
   });
 
-  it.each(['approved', 'declined'])(
+  it.each(['approved', 'declined'] as const)(
     'renders persisted %s state without controls',
     (status) => {
       render(
@@ -224,6 +229,7 @@ describe('MutationApprovalCard', () => {
   ])('fails closed for malformed data %j', (data) => {
     render(
       <MutationApprovalCard
+        // @ts-expect-error malformed wire data: the card must fail closed
         action={{ ...approval(), data }}
         onUiAction={vi.fn()}
       />,
@@ -263,6 +269,7 @@ describe('contextual approval recovery', () => {
     'fails closed for deadline %s',
     (expiresAt) => {
       const action = approval();
+      // @ts-expect-error a missing deadline is malformed wire data
       action.data = { ...action.data, expiresAt };
       render(<MutationApprovalCard action={action} onUiAction={vi.fn()} />);
       expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();

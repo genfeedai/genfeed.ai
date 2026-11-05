@@ -1,9 +1,9 @@
 import { OnboardingChecklistCard } from '@genfeedai/agent/components/OnboardingChecklistCard';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-function makeAction(): AgentUiAction {
+function makeAction(): AgentUiActionOf<'onboarding_checklist_card'> {
   return {
     checklist: [
       {
@@ -26,7 +26,7 @@ function makeAction(): AgentUiAction {
     title: 'Getting Started',
     totalJourneyCredits: 100,
     type: 'onboarding_checklist_card',
-  } as AgentUiAction;
+  } as AgentUiActionOf<'onboarding_checklist_card'>;
 }
 
 describe('OnboardingChecklistCard', () => {

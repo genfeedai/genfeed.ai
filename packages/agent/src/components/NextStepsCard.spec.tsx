@@ -50,14 +50,16 @@ vi.mock('@ui/primitives/button', () => ({
   },
 }));
 
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { NextStepsCard } from './NextStepsCard';
 
 function renderCard(ui: ReactElement) {
   return render(ui);
 }
 
-function buildAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
+function buildAction(
+  overrides: Partial<AgentUiActionOf<'next_steps_card'>> = {},
+): AgentUiActionOf<'next_steps_card'> {
   return {
     id: 'next-steps-1',
     nextSteps: [

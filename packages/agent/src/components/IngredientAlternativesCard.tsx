@@ -1,5 +1,5 @@
 import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import {
   buildAgentGenerationRequestBody,
@@ -22,7 +22,7 @@ import { type ReactElement, useCallback, useRef, useState } from 'react';
 import { AgentErrorMessage } from './AgentErrorMessage';
 
 interface IngredientAlternativesCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'ingredient_alternatives_card'>;
   apiService: AgentApiService;
 }
 

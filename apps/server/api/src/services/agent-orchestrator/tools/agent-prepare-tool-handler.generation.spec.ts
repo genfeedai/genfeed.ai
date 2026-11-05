@@ -1,6 +1,7 @@
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { requireUiAction } from '@api-test/helpers/agent-ui-action';
 import { AgentGenerationMode } from '@genfeedai/contracts';
 import { DEFAULT_AGENT_VIDEO_DURATION_SECONDS } from '@genfeedai/contracts/constants';
 import { describe, expect, it, vi } from 'vitest';
@@ -42,7 +43,10 @@ describe('AgentPrepareToolHandler.prepareGeneration', () => {
       },
       ctx,
     );
-    expect(result.nextActions?.[0].generationParams).toMatchObject({
+    expect(
+      requireUiAction(result.nextActions, 'generation_action_card')
+        .generationParams,
+    ).toMatchObject({
       requestedSkillSlugs: ['cinema'],
       harness: false,
     });

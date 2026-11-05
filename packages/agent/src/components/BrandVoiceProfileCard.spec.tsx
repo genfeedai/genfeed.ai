@@ -5,8 +5,8 @@ import {
 } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
 import type {
   AgentChatMessage,
-  AgentUiAction,
   AgentUiActionHandler,
+  AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -72,7 +72,7 @@ function settleRun(status: 'completed' | 'failed', error?: string): void {
   });
 }
 
-const approvableAction: AgentUiAction = {
+const approvableAction: AgentUiActionOf<'brand_voice_profile_card'> = {
   ctas: [
     {
       action: 'confirm_save_brand_voice_profile',
@@ -88,7 +88,7 @@ const approvableAction: AgentUiAction = {
 
 function messageWithAction(
   id: string,
-  action: AgentUiAction,
+  action: AgentUiActionOf<'brand_voice_profile_card'>,
 ): AgentChatMessage {
   return {
     content: 'Brand voice draft',
@@ -100,11 +100,13 @@ function messageWithAction(
   };
 }
 
-function storedAction(messageIndex: number): AgentUiAction {
+function storedAction(
+  messageIndex: number,
+): AgentUiActionOf<'brand_voice_profile_card'> {
   const action =
     useAgentChatStore.getState().messages[messageIndex]?.metadata
       ?.uiActions?.[0];
-  if (!action) {
+  if (action?.type !== 'brand_voice_profile_card') {
     throw new Error(`Missing stored action at message index ${messageIndex}`);
   }
   return action;
@@ -112,7 +114,7 @@ function storedAction(messageIndex: number): AgentUiAction {
 
 describe('BrandVoiceProfileCard', () => {
   it('renders the structured brand voice fields', () => {
-    const action: AgentUiAction = {
+    const action: AgentUiActionOf<'brand_voice_profile_card'> = {
       data: {
         voiceProfile: {
           approvedHooks: ['Say the quiet part out loud'],
@@ -152,7 +154,7 @@ describe('BrandVoiceProfileCard', () => {
 
   it('executes the approval CTA through the UI action handler', async () => {
     const onUiAction = vi.fn().mockResolvedValue(undefined);
-    const action: AgentUiAction = {
+    const action: AgentUiActionOf<'brand_voice_profile_card'> = {
       ctas: [
         {
           action: 'confirm_save_brand_voice_profile',
@@ -194,7 +196,7 @@ describe('BrandVoiceProfileCard', () => {
 
   it('keeps the approval available when the action is rejected', async () => {
     const onUiAction = vi.fn().mockResolvedValue(false);
-    const action: AgentUiAction = {
+    const action: AgentUiActionOf<'brand_voice_profile_card'> = {
       ctas: [
         {
           action: 'confirm_save_brand_voice_profile',
@@ -223,7 +225,7 @@ describe('BrandVoiceProfileCard', () => {
   });
 
   it('renders a completed action as saved after remount', async () => {
-    const action: AgentUiAction = {
+    const action: AgentUiActionOf<'brand_voice_profile_card'> = {
       ctas: [
         {
           action: 'confirm_save_brand_voice_profile',
@@ -263,14 +265,14 @@ describe('BrandVoiceProfileCard', () => {
   });
 
   it('keeps approval available for a later draft of the same brand', () => {
-    const completedAction: AgentUiAction = {
+    const completedAction: AgentUiActionOf<'brand_voice_profile_card'> = {
       data: { brandId: 'brand-1' },
       id: 'brand-voice-brand-1-first-draft',
       status: 'completed',
       title: 'Brand Voice Draft',
       type: 'brand_voice_profile_card',
     };
-    const laterAction: AgentUiAction = {
+    const laterAction: AgentUiActionOf<'brand_voice_profile_card'> = {
       ctas: [
         {
           action: 'confirm_save_brand_voice_profile',

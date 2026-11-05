@@ -1,5 +1,5 @@
 import { MutationApprovalCard } from '@genfeedai/agent/components/MutationApprovalCard';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { NextIntlClientProvider } from 'next-intl';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
@@ -17,11 +17,13 @@ vi.mock('@genfeedai/helpers', async () => {
 });
 
 it('lets a user review the prepared intent and decline in Chromium', async () => {
-  const action: AgentUiAction = {
+  const action: AgentUiActionOf<'mutation_approval_card'> = {
     id: 'card-1',
     type: 'mutation_approval_card',
+    title: 'Review action',
     data: {
       approvalId: 'approval-1',
+      brandId: null,
       sourceActionId: 'source-1',
       summary: 'Delete the Summer launch draft?',
       items: [
@@ -57,12 +59,13 @@ it('lets a user review the prepared intent and decline in Chromium', async () =>
 
 it('shows contextual expiry and sends only a renewal request in Chromium', async () => {
   const onUiAction = vi.fn().mockResolvedValue(false);
-  const action: AgentUiAction = {
+  const action: AgentUiActionOf<'mutation_approval_card'> = {
     id: 'mutation-approval:expired-1',
     type: 'mutation_approval_card',
     title: 'Review action',
     data: {
       approvalId: 'expired-1',
+      brandId: null,
       sourceActionId: 'mutation-approval:expired-1',
       summary: 'Save brand voice',
       items: [{ label: 'Style', value: 'Direct and practical' }],
@@ -97,16 +100,18 @@ it('shows contextual expiry and sends only a renewal request in Chromium', async
 });
 
 it('shows a red failure with collapsed details and review recovery in Chromium', async () => {
-  const action: AgentUiAction = {
+  const action: AgentUiActionOf<'mutation_approval_card'> = {
     id: 'mutation-approval:failed-1',
     type: 'mutation_approval_card',
     title: 'Review action',
     data: {
       approvalId: 'failed-1',
+      brandId: null,
       sourceActionId: 'mutation-approval:failed-1',
       summary: 'Save brand voice',
       items: [{ label: 'Style', value: 'Direct and practical' }],
       status: 'approved',
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
       executionStatus: 'failed',
       error: 'Dispatch failed',
     },

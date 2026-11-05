@@ -6,6 +6,15 @@ import type {
 import { describe, expect, it } from 'vitest';
 
 const card: AgentUiAction = {
+  data: {
+    approvalId: 'approval-1',
+    brandId: null,
+    expiresAt: '2099-01-01T00:00:00.000Z',
+    items: [],
+    sourceActionId: 'card',
+    status: 'pending',
+    summary: 'Generate turbo content',
+  },
   id: 'card',
   title: 'Generate turbo content',
   type: 'mutation_approval_card',
