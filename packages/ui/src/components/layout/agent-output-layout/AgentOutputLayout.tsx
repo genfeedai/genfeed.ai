@@ -10,10 +10,19 @@ import { useState } from 'react';
 
 type MobileView = 'agent' | 'output';
 
+// One fixed height for every pane header: a header that grows with its content
+// would push the divider lines out of line with the pane beside it.
+const HEADER_CLASS_NAME =
+  'flex h-12 shrink-0 items-center gap-2 border-b border-border px-4';
+
 /**
- * The agent on the left and the page output on the right. Both panes stay
- * mounted at every width so a draft or a running stream survives a tab or a
- * mobile switch; below `xl` an Agent / Output switch shows one at a time.
+ * The agent on the left and the page output on the right, half the page each
+ * on every page. Both panes stay mounted at every width so a draft or a
+ * running stream survives a tab or a mobile switch; below `xl` an Agent /
+ * Output switch shows one at a time.
+ *
+ * Whenever any pane has a header, every pane has one at the same fixed height,
+ * so the divider lines between the panes always meet.
  *
  * Pure layout: the conversation, the tabs' content and their labels all come
  * in as props, so any app and any agent can sit in it.
@@ -27,18 +36,18 @@ export default function AgentOutputLayout({
   isOutputExpandable = false,
   isOutputHidden = false,
   labels,
-  mode = 'split',
   preview,
   tabs,
 }: AgentOutputLayoutProps) {
   const [mobileView, setMobileView] = useState<MobileView>('agent');
-  const [isRailExpanded, setIsRailExpanded] = useState(false);
   const [isOutputExpanded, setIsOutputExpanded] = useState(false);
-  const isRail = mode === 'rail' && !isRailExpanded;
   const isAgentHidden = isOutputExpandable && isOutputExpanded;
   const isOutputCollapsed = isOutputHidden && !isAgentHidden;
-  const hasAgentHeader = agentHeader !== undefined || mode === 'rail';
-  const hasOutputHeader = Boolean(headerActions) || isOutputExpandable;
+  const hasHeaders =
+    agentHeader !== undefined ||
+    Boolean(headerActions) ||
+    isOutputExpandable ||
+    preview !== undefined;
 
   return (
     <div
@@ -46,7 +55,6 @@ export default function AgentOutputLayout({
         'flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background',
         className,
       )}
-      data-mode={isRail ? 'rail' : 'split'}
       data-mobile-view={mobileView}
       data-testid="agent-output-layout"
     >
@@ -72,16 +80,13 @@ export default function AgentOutputLayout({
             'xl:grid-cols-[minmax(0,1fr)]',
           !isAgentHidden &&
             !isOutputCollapsed &&
-            (isRail
-              ? 'xl:grid-cols-[22.5rem_minmax(0,1fr)]'
-              : 'xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'),
-          // The preview docks as a third column only where all three fit.
+            'xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]',
+          // The preview docks as a third column only where all three fit; the
+          // agent and the output stay equal beside it.
           preview &&
             (isAgentHidden
               ? '2xl:grid-cols-[minmax(0,1fr)_minmax(22rem,30rem)]'
-              : isRail
-                ? '2xl:grid-cols-[22.5rem_minmax(0,1fr)_minmax(22rem,30rem)]'
-                : '2xl:grid-cols-[minmax(20rem,1fr)_minmax(0,1.25fr)_minmax(22rem,0.9fr)]'),
+              : '2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(22rem,0.9fr)]'),
         )}
       >
         <section
@@ -94,34 +99,11 @@ export default function AgentOutputLayout({
           )}
           data-testid="agent-output-agent-pane"
         >
-          {hasAgentHeader ? (
-            <header className="flex min-h-12 shrink-0 items-center gap-2 border-b border-border px-4 py-2">
+          {hasHeaders ? (
+            <header className={HEADER_CLASS_NAME}>
               <div className="flex min-w-0 flex-1 items-center gap-2">
                 {agentHeader}
               </div>
-              {mode === 'rail' ? (
-                <Button
-                  ariaLabel={
-                    isRailExpanded ? labels.collapseAgent : labels.expandAgent
-                  }
-                  className="max-xl:hidden"
-                  data-testid="agent-output-rail-toggle"
-                  icon={
-                    isRailExpanded ? (
-                      <Minimize2 className="size-4" />
-                    ) : (
-                      <Maximize2 className="size-4" />
-                    )
-                  }
-                  onClick={() => setIsRailExpanded((current) => !current)}
-                  size={ButtonSize.SM}
-                  tooltip={
-                    isRailExpanded ? labels.collapseAgent : labels.expandAgent
-                  }
-                  variant={ButtonVariant.GHOST}
-                  withWrapper={false}
-                />
-              ) : null}
             </header>
           ) : null}
           <div className="flex min-h-0 flex-1 flex-col">{agent}</div>
@@ -137,8 +119,8 @@ export default function AgentOutputLayout({
           data-testid="agent-output-output-pane"
           hidden={isOutputCollapsed}
         >
-          {hasOutputHeader ? (
-            <header className="flex min-h-12 shrink-0 items-center justify-end gap-2 border-b border-border px-4 py-2">
+          {hasHeaders ? (
+            <header className={cn(HEADER_CLASS_NAME, 'justify-end')}>
               {headerActions}
               {isOutputExpandable ? (
                 <Button
@@ -191,7 +173,7 @@ export default function AgentOutputLayout({
             className="flex min-h-0 min-w-0 flex-col border-border max-2xl:hidden 2xl:border-l"
             data-testid="agent-output-preview-pane"
           >
-            <header className="flex min-h-12 shrink-0 items-center gap-2 border-b border-border px-4 py-2">
+            <header className={HEADER_CLASS_NAME}>
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
                 {preview.label}
               </span>

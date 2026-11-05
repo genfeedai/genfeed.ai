@@ -90,7 +90,7 @@ export default function EditorLayout({
       )}
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <AgentOutputShell mode="rail">
+        <AgentOutputShell isOutputExpandable>
           <EditorOutputPane
             project={project}
             previewRef={previewRef}
