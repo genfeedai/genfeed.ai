@@ -2,8 +2,10 @@
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { NativeSecondaryAppId } from '@genfeedai/contracts/constants';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { MembersService } from '@services/organization/members.service';
+import { type QueryKey, useQueryClient } from '@tanstack/react-query';
 import {
   createContext,
   use,
@@ -26,56 +28,57 @@ const InstalledAppsContext = createContext<InstalledAppsContextValue>({
   uninstall: async () => false,
 });
 
+const NO_APP_IDS: readonly NativeSecondaryAppId[] = [];
+
+function createMembersService(token: string): MembersService {
+  return MembersService.getInstance(token);
+}
+
 /**
  * The signed-in member's personal app installations in the current
  * organization (#5502), shared by the rail launcher and Apps. Only
  * server-confirmed lists are shown: a failed write keeps the last confirmed
  * state, and an organization switch discards responses from the previous one.
+ * The list is cached per organization (and viewer), so the rail paints the
+ * installed apps at once on return; a confirmed write goes into that cache.
  */
 export function InstalledAppsProvider({
   children,
 }: InstalledAppsProviderProps) {
   const { organizationId } = useBrand();
-  const getMembers = useAuthedService((token) =>
-    MembersService.getInstance(token),
+  const queryClient = useQueryClient();
+  const getMembers = useAuthedService(createMembersService);
+  const installedAppsKey = useMemo<QueryKey>(
+    () => ['installed-apps', organizationId || null],
+    [organizationId],
   );
-  const [installedAppIds, setInstalledAppIds] = useState<
+  const installedAppsQuery = useAuthedQuery<
+    MembersService,
     readonly NativeSecondaryAppId[]
-  >([]);
-  const [status, setStatus] =
-    useState<InstalledAppsContextValue['status']>('loading');
+  >({
+    enabled: Boolean(organizationId),
+    queryFn: (members, signal) => members.findMyApps(signal),
+    queryKey: installedAppsKey,
+    service: createMembersService,
+  });
+  const installedAppIds = installedAppsQuery.data ?? NO_APP_IDS;
+  const status: InstalledAppsContextValue['status'] =
+    installedAppsQuery.data !== undefined
+      ? 'ready'
+      : installedAppsQuery.isError
+        ? 'error'
+        : 'loading';
   const [pendingAppIds, setPendingAppIds] = useState<
     readonly NativeSecondaryAppId[]
   >([]);
   const scopeRef = useRef(0);
   const writeQueueRef = useRef<Promise<unknown>>(Promise.resolve());
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: an organization switch retires the previous organization's writes.
   useEffect(() => {
-    const controller = new AbortController();
     scopeRef.current += 1;
     writeQueueRef.current = Promise.resolve();
-    setInstalledAppIds([]);
     setPendingAppIds([]);
-    setStatus('loading');
-    if (!organizationId) {
-      return () => controller.abort();
-    }
-
-    void (async () => {
-      try {
-        const members = await getMembers();
-        if (controller.signal.aborted) return;
-        const ids = await members.findMyApps(controller.signal);
-        if (controller.signal.aborted) return;
-        setInstalledAppIds(ids);
-        setStatus('ready');
-      } catch {
-        if (controller.signal.aborted) return;
-        setStatus('error');
-      }
-    })();
-
-    return () => controller.abort();
   }, [getMembers, organizationId]);
 
   const write = useCallback(
@@ -93,8 +96,13 @@ export function InstalledAppsProvider({
             ? await members.installApp(appId)
             : await members.uninstallApp(appId);
           if (scope !== scopeRef.current) return false;
-          setInstalledAppIds(ids);
-          setStatus('ready');
+          // A read still in flight began before this write; drop it so it
+          // cannot put the old list back.
+          await queryClient.cancelQueries({ queryKey: installedAppsKey });
+          queryClient.setQueriesData<readonly NativeSecondaryAppId[]>(
+            { queryKey: installedAppsKey },
+            ids,
+          );
           return true;
         } catch {
           return false;
@@ -109,7 +117,7 @@ export function InstalledAppsProvider({
       writeQueueRef.current = result;
       return result;
     },
-    [getMembers],
+    [getMembers, installedAppsKey, queryClient],
   );
 
   const install = useCallback(
