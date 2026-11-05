@@ -16,16 +16,17 @@ import {
 import type {
   ApiKeyPermissionLevel,
   ApiKeyPermissionLevels,
-  IPaginatedResponse,
 } from '@genfeedai/contracts/interfaces';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { isCancelledRequest } from '@services/core/operation-error';
 import { ApiKeysService } from '@services/management/api-keys.service';
+import { useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
@@ -123,6 +124,21 @@ function formatLastUsed(
   return value ? new Date(value).toLocaleString() : neverLabel;
 }
 
+const EMPTY_API_KEYS: ApiKey[] = [];
+
+function apiKeysQueryKey(
+  organizationId: string,
+  isKeylessSelfHosted: boolean,
+  sessionId: string | null | undefined,
+) {
+  return [
+    'organization-api-keys',
+    organizationId,
+    isKeylessSelfHosted ? 'keyless' : 'organization',
+    sessionId ?? null,
+  ] as const;
+}
+
 function getVisibleKey(apiKey: ApiKey): string | undefined {
   return apiKey.key ?? apiKey.token;
 }
@@ -177,20 +193,16 @@ function AuthorizedApiKeysContent({
   const defaultKeyName = translate('fields.keyNamePlaceholder');
   const loadErrorMessage = translate('errors.load');
 
-  const [productKeysPage, setProductKeysPage] =
-    useState<IPaginatedResponse<ApiKey> | null>(null);
-  const productApiKeys = productKeysPage?.items ?? [];
   const [productForm, setProductForm] = useState<ProductApiKeyForm>(() =>
     createInitialProductApiKeyForm(defaultKeyName),
   );
   const [productPlainKey, setProductPlainKey] =
     useState<ProductPlainKey | null>(null);
-  const [isProductLoading, setIsProductLoading] = useState(true);
-  const [hasProductKeysLoadError, setHasProductKeysLoadError] = useState(false);
   const [isCreatingProductKey, setIsCreatingProductKey] = useState(false);
   const [mutatingProductKeyId, setMutatingProductKeyId] = useState<
     string | null
   >(null);
+  const queryClient = useQueryClient();
   const getApiKeysService = useAuthedService(
     useCallback(
       (token: string) =>
@@ -200,18 +212,14 @@ function AuthorizedApiKeysContent({
       [isKeylessSelfHosted, organizationId],
     ),
   );
-  const productKeysFetchIdRef = useRef(0);
   const lifecycleRef = useRef({ active: true, generation: 0 });
   const scopedServicesRef = useRef(new Set<ApiKeysService>());
-  const pageControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     lifecycleRef.current.active = true;
-    pageControllerRef.current = new AbortController();
     return () => {
       lifecycleRef.current.active = false;
       lifecycleRef.current.generation += 1;
-      pageControllerRef.current?.abort();
       if (!isKeylessSelfHosted) {
         for (const service of scopedServicesRef.current)
           service.cancelPendingRequests();
@@ -246,67 +254,61 @@ function AuthorizedApiKeysContent({
     [productForm.permissionLevels],
   );
 
-  const fetchProductApiKeys = useCallback(
-    async (signal?: AbortSignal) => {
-      const isActive = currentOperation();
-      if (!isActive()) return;
-      const fetchId = productKeysFetchIdRef.current + 1;
-      productKeysFetchIdRef.current = fetchId;
-      const isCurrentFetch = () =>
-        isActive() &&
-        productKeysFetchIdRef.current === fetchId &&
-        !signal?.aborted;
-
-      if (isCurrentFetch()) {
-        setIsProductLoading(true);
-        setHasProductKeysLoadError(false);
-      }
-      try {
-        const service = await acquireService(isCurrentFetch);
-        if (!service || !isCurrentFetch()) return;
-        const apiKeys = await service.findAllPage(
-          { limit: ITEMS_PER_PAGE, page: currentPage },
-          signal ?? pageControllerRef.current?.signal,
-        );
-
-        if (isCurrentFetch()) {
-          setProductKeysPage(apiKeys);
-          setHasProductKeysLoadError(false);
-        }
-      } catch (error) {
-        if (isCancelledRequest(error)) return;
-        if (isCurrentFetch()) {
-          logger.error('Failed to fetch Genfeed API keys', error);
-          NotificationsService.getInstance().error(loadErrorMessage);
-          setProductKeysPage(null);
-          setHasProductKeysLoadError(true);
-        }
-      } finally {
-        if (isCurrentFetch()) {
-          setIsProductLoading(false);
-        }
-      }
-    },
-    [acquireService, currentOperation, currentPage, loadErrorMessage],
+  // The key list (labels, scopes, last use; never a secret) reads through
+  // React Query, so coming back to the page paints the cached list at once and
+  // refreshes it in the background. A key shown once after create or rotate
+  // stays in local state only and is never cached.
+  const { sessionId } = useAuthIdentity();
+  const scopeKey = apiKeysQueryKey(
+    organizationId,
+    isKeylessSelfHosted,
+    sessionId,
   );
+  const productKeysQuery = usePagedAuthedQuery<ApiKeysService, ApiKey>({
+    enabled: isReady,
+    keepPreviousDataWithin: scopeKey,
+    queryFn: async (service, signal) => {
+      // A read superseded while it waited for its token never dispatches.
+      signal.throwIfAborted();
+      return service.findAllPage(
+        { limit: ITEMS_PER_PAGE, page: currentPage },
+        signal,
+      );
+    },
+    queryKey: [...scopeKey, { page: currentPage }],
+    service: (token: string) =>
+      isKeylessSelfHosted
+        ? ApiKeysService.getInstance(token)
+        : ApiKeysService.forOrganization(token, organizationId),
+  });
+  const productKeysPage = productKeysQuery.data;
+  const productApiKeys = productKeysPage?.items ?? EMPTY_API_KEYS;
+  const isProductLoading = productKeysQuery.isPending;
+  const productKeysError = productKeysQuery.error;
+  // A cancelled request is silent control flow, and a failed background
+  // refresh keeps the cached list on screen.
+  const hasProductKeysLoadError =
+    Boolean(productKeysError) &&
+    !isCancelledRequest(productKeysError) &&
+    !productKeysPage;
 
   useEffect(() => {
-    if (!organizationId || !isReady) {
-      setProductKeysPage(null);
-      setProductPlainKey(null);
-      setHasProductKeysLoadError(false);
-      setIsProductLoading(false);
-      return;
-    }
-    const controller = new AbortController();
+    if (!productKeysError || isCancelledRequest(productKeysError)) return;
+    logger.error('Failed to fetch Genfeed API keys', productKeysError);
+    NotificationsService.getInstance().error(loadErrorMessage);
+  }, [loadErrorMessage, productKeysError]);
 
-    setProductKeysPage(null);
-    setProductPlainKey(null);
-    setHasProductKeysLoadError(false);
-    setIsProductLoading(true);
-    fetchProductApiKeys(controller.signal);
-    return () => controller.abort();
-  }, [organizationId, isReady, fetchProductApiKeys]);
+  // A read still in flight (even the first one) is cancelled first, so a list
+  // read before a create or revoke can never land after it.
+  const refreshProductApiKeys = useCallback(async () => {
+    const queryKey = apiKeysQueryKey(
+      organizationId,
+      isKeylessSelfHosted,
+      sessionId,
+    );
+    await queryClient.cancelQueries({ queryKey });
+    await queryClient.invalidateQueries({ queryKey });
+  }, [isKeylessSelfHosted, organizationId, queryClient, sessionId]);
 
   const handleProductFormChange = (
     field: keyof Omit<ProductApiKeyForm, 'permissionLevels'>,
@@ -363,7 +365,7 @@ function AuthorizedApiKeysContent({
       }
 
       setProductForm(createInitialProductApiKeyForm(defaultKeyName));
-      await fetchProductApiKeys();
+      await refreshProductApiKeys();
       if (!isCurrent()) return;
       NotificationsService.getInstance().success(translate('success.created'));
     } catch (error) {
@@ -412,7 +414,7 @@ function AuthorizedApiKeysContent({
         });
       }
 
-      await fetchProductApiKeys();
+      await refreshProductApiKeys();
       if (!isCurrent()) return;
       NotificationsService.getInstance().success(translate('success.rotated'));
     } catch (error) {
@@ -433,7 +435,7 @@ function AuthorizedApiKeysContent({
       if (!service || !isCurrent()) return;
       await service.revokeApiKey(apiKey.id);
       if (!isCurrent()) return;
-      await fetchProductApiKeys();
+      await refreshProductApiKeys();
       if (!isCurrent()) return;
       NotificationsService.getInstance().success(translate('success.revoked'));
     } catch (error) {
@@ -455,8 +457,10 @@ function AuthorizedApiKeysContent({
           headerAction={
             <Button
               variant={SECONDARY_BUTTON_VARIANT}
-              onClick={() => fetchProductApiKeys()}
-              isDisabled={isProductLoading}
+              onClick={() => {
+                void refreshProductApiKeys();
+              }}
+              isDisabled={productKeysQuery.isFetching}
               aria-label={translate('actions.refreshAria')}
             >
               <RefreshCw className="size-4" />
@@ -663,14 +667,7 @@ function AuthorizedApiKeysContent({
                 <AutoPagination
                   showTotal
                   totalLabel="keys"
-                  totals={
-                    productKeysPage
-                      ? {
-                          totalDocs: productKeysPage.total,
-                          totalPages: productKeysPage.totalPages,
-                        }
-                      : EMPTY_PAGE_TOTALS
-                  }
+                  totals={productKeysPage?.totals ?? EMPTY_PAGE_TOTALS}
                 />
               </div>
             )}
