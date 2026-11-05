@@ -1,12 +1,15 @@
-import type { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
+import type {
+  ApiKeyPermissionLevel,
+  ApiKeyPermissionLevels,
+} from '@genfeedai/contracts/interfaces';
 
 export type ProductApiKeyForm = {
   allowedIps: string;
   description: string;
   expiresAt: string;
   label: string;
+  permissionLevels: ApiKeyPermissionLevels;
   rateLimit: string;
-  selectedScopes: string[];
 };
 
 export type ProductPlainKey = {
@@ -14,10 +17,12 @@ export type ProductPlainKey = {
   label: string;
 };
 
-export type ProductApiKeyScope =
-  (typeof API_KEY_SCOPE_PRESETS)[keyof typeof API_KEY_SCOPE_PRESETS][number];
-
 export type AuthorizedApiKeysContentProps = {
   organizationId: string;
   isKeylessSelfHosted: boolean;
+};
+
+export type ApiKeyPermissionEditorProps = {
+  levels: ApiKeyPermissionLevels;
+  onLevelChange: (resourceId: string, level: ApiKeyPermissionLevel) => void;
 };

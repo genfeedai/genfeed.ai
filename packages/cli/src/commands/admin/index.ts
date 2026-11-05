@@ -24,10 +24,12 @@ import {
   findPricingFixTargets,
   fixModelPricing,
   grantOrganizationCredits,
+  mintPartnerApiKey,
   type OrganizationBrandInput,
   type OrganizationBrandSummary,
   type OrganizationBrandUpdate,
   type PriceSyncProvider,
+  parsePartnerKeyLevels,
   prepareWarmupAccount,
   readHarnessActivation,
   readNotificationStatus,
@@ -106,6 +108,16 @@ interface CreditsGrantOptions {
   expiresInDays?: number;
   idempotencyKey?: string;
   reason: string;
+  yes?: boolean;
+}
+
+interface PartnerKeyCreateOptions {
+  brand?: string;
+  description?: string;
+  expiresInDays?: number;
+  label: string;
+  level?: string[];
+  org: string;
   yes?: boolean;
 }
 
@@ -1191,6 +1203,70 @@ function createMemberCommand(): Command {
     );
 }
 
+function createPartnerKeyCommand(): Command {
+  return new Command('partner-key')
+    .description('Mint partner API keys (scopes a user cannot grant to their own key)')
+    .addCommand(
+      new Command('create')
+        .description(
+          'Mint a partner key for an organization (preview unless --yes). Default: images=write, brands=write'
+        )
+        .requiredOption('--org <organizationId>', 'Organization id')
+        .requiredOption('--label <label>', 'Key name shown in the organization settings')
+        .option(
+          '--level <resource=level...>',
+          'Override the levels, e.g. images=write brands=read (none, read or write)'
+        )
+        .option('--brand <brandId>', 'Default brand for generation calls')
+        .option('--description <text>', 'What the key is for')
+        .option('--expires-in-days <days>', 'Expire the key after N days', Number)
+        .option('--yes', 'Mint the key')
+        .option('--json', 'Output as JSON')
+        .action(async (options: PartnerKeyCreateOptions, command: Command) => {
+          try {
+            const levels = options.level ? parsePartnerKeyLevels(options.level) : undefined;
+            if (!options.yes) {
+              print(formatHeader('Partner key (preview)\n'));
+              print(formatLabel('Organization', options.org));
+              print(formatLabel('Label', options.label));
+              print(
+                formatLabel(
+                  'Levels',
+                  levels
+                    ? Object.entries(levels)
+                        .map(([resource, level]) => `${resource}=${level}`)
+                        .join(', ')
+                    : 'images=write, brands=write (partner default)'
+                )
+              );
+              if (options.brand) print(formatLabel('Default brand', options.brand));
+              print(formatWarning('Re-run with --yes to mint the key. It is shown once.'));
+              return;
+            }
+            const minted = await mintPartnerApiKey(options.org, {
+              defaultBrandId: options.brand,
+              description: options.description,
+              expiresInDays: options.expiresInDays,
+              label: options.label,
+              levels,
+            });
+            if (wantsJson(command)) {
+              printJson(minted);
+              return;
+            }
+            print(formatSuccess(`Minted partner key ${minted.apiKeyId}`));
+            print(formatLabel('Scopes', minted.scopes.join(', ')));
+            print(formatLabel('Owner', minted.userId));
+            if (minted.expiresAt) print(formatLabel('Expires', minted.expiresAt));
+            print(formatLabel('Key', minted.key));
+            print(formatWarning('Store this key now. It will not be shown again.'));
+          } catch (error) {
+            handleError(error);
+          }
+        })
+    );
+}
+
 function createWarmupCommand(): Command {
   return new Command('warmup')
     .description('Create and prepare concierge accounts (never sends the invitation email)')
@@ -1445,4 +1521,5 @@ export const adminCommand = new Command('admin')
   .addCommand(createBrandCommand())
   .addCommand(createCreditsCommand())
   .addCommand(createMemberCommand())
+  .addCommand(createPartnerKeyCommand())
   .addCommand(createWarmupCommand());

@@ -27,6 +27,7 @@ describe('getPostMediaRequirement', () => {
     [[Platform.THREADS, Platform.REDDIT, Platform.MASTODON], 'none'],
     [[Platform.TWITTER, Platform.FACEBOOK], 'media'],
     [[Platform.PINTEREST], 'media'],
+    [[Platform.SNAPCHAT], 'media'],
     [[Platform.YOUTUBE], 'video'],
     [[Platform.INSTAGRAM, Platform.TIKTOK], 'video'],
   ])('%j needs %s', (platforms, expected) => {

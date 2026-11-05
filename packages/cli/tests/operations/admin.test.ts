@@ -16,6 +16,8 @@ import {
   findPricingFixTargets,
   fixModelPricing,
   grantOrganizationCredits,
+  mintPartnerApiKey,
+  parsePartnerKeyLevels,
   prepareWarmupAccount,
   readHarnessActivation,
   readNotificationStatus,
@@ -460,6 +462,42 @@ describe('operations/admin', () => {
       });
       expect(grant.balance).toBe(500);
     });
+
+    it('mints a partner key in the given organization and returns the plain key', async () => {
+      adminPost.mockResolvedValue({
+        data: {
+          apiKeyId: 'key-1',
+          defaultBrandId: null,
+          expiresAt: null,
+          key: 'gf_live_partner',
+          label: 'Partner app',
+          organizationId: 'org/1',
+          scopes: ['images:read', 'brands:read'],
+          userId: 'owner-1',
+        },
+      });
+
+      const minted = await mintPartnerApiKey('org/1', { label: 'Partner app' });
+
+      expect(adminPost).toHaveBeenCalledWith('/admin/organizations/org%2F1/api-keys', {
+        label: 'Partner app',
+      });
+      expect(minted.key).toBe('gf_live_partner');
+    });
+
+    it('parses resource=level pairs for a partner key', () => {
+      expect(parsePartnerKeyLevels(['images=write', ' brands = read '])).toEqual({
+        brands: 'read',
+        images: 'write',
+      });
+    });
+
+    it.each(['images', 'images=admin', 'analytics=write', 'posts=read'])(
+      'rejects the partner key level %s',
+      (pair) => {
+        expect(() => parsePartnerKeyLevels([pair])).toThrow(/Invalid --level/);
+      }
+    );
 
     it('adds a member to the given organization without an invitation', async () => {
       adminPost.mockResolvedValue({

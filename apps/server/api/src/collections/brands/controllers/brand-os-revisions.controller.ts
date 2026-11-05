@@ -6,6 +6,7 @@ import {
 } from '@api/collections/brands/dto/brand-os-revision.dto';
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -16,7 +17,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import { BrandOsRevisionSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -69,6 +70,7 @@ export class BrandOsRevisionsController {
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async create(
     @Req() request: Request,
@@ -84,6 +86,7 @@ export class BrandOsRevisionsController {
   }
 
   @Patch(':revisionId')
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async update(
     @Req() request: Request,
@@ -106,6 +109,7 @@ export class BrandOsRevisionsController {
   }
 
   @Post(':revisionId/approve')
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @HttpCode(200)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async approve(

@@ -38,12 +38,13 @@ describe('MasonryFailureNotice', () => {
         />
       </div>,
     );
-    const retry = screen.getByRole('button');
+    const retry = screen.getByRole('button', { name: 'Retry generation' });
 
     fireEvent.click(retry);
     fireEvent.keyDown(retry, { key: 'Enter' });
     fireEvent.keyDown(retry, { key: ' ' });
 
+    expect(screen.getByText('Generation failed.')).toBeInTheDocument();
     expect(onRetry).toHaveBeenCalledTimes(1);
     expect(onTileClick).not.toHaveBeenCalled();
     expect(onTileKeyDown).not.toHaveBeenCalled();

@@ -1,5 +1,6 @@
 import { type AgentThread, useAgentChatStore } from '@genfeedai/agent';
 import { AgentThreadKind, AgentThreadStatus } from '@genfeedai/contracts';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ThreadResolutionApi } from '@/features/agents/props/thread-resolution.props';
@@ -18,6 +19,14 @@ function makeThread(
     updatedAt: '2026-11-01T08:00:00Z',
     ...overrides,
   };
+}
+
+function makeArchivedPage(page: number | undefined): AgentThread[] {
+  return Array.from({ length: 50 }, (_, index) =>
+    makeThread(`page-${page}-${index}`, {
+      status: AgentThreadStatus.ARCHIVED,
+    }),
+  );
 }
 
 function makeApi(archived: AgentThread[] = []) {
@@ -121,6 +130,46 @@ describe('useThreadResolution', () => {
     expect(api.getThreads.mock.calls.map(([params]) => params?.page)).toEqual([
       1, 2,
     ]);
+  });
+
+  it('stops at the 100-page cap when every page comes back full', async () => {
+    const api = makeApi();
+    api.getThreads.mockImplementation(async (params) =>
+      makeArchivedPage(params?.page),
+    );
+
+    const { result } = renderHook(() => useThreadResolution(api, true));
+
+    await waitFor(() =>
+      expect(result.current.resolvedThreads).toHaveLength(5000),
+    );
+    // Give a 101st page every chance to be asked for and land.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+
+    expect(result.current.resolvedThreads).toHaveLength(5000);
+    expect(result.current.isResolved('page-100-49')).toBe(true);
+    expect(api.getThreads).toHaveBeenCalledTimes(100);
+    expect(api.getThreads.mock.calls.at(-1)?.[0]?.page).toBe(100);
+  });
+
+  it('keeps the pages already loaded and logs when a later page fails', async () => {
+    const error = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+    const api = makeApi();
+    api.getThreads
+      .mockResolvedValueOnce(makeArchivedPage(1))
+      .mockRejectedValueOnce(new Error('offline'));
+
+    const { result } = renderHook(() => useThreadResolution(api, true));
+
+    await waitFor(() =>
+      expect(error).toHaveBeenCalledWith('Failed to load resolved threads', {
+        error: new Error('offline'),
+      }),
+    );
+    expect(result.current.resolvedThreads).toHaveLength(50);
+    expect(result.current.isResolved('page-1-0')).toBe(true);
+    expect(api.getThreads).toHaveBeenCalledTimes(2);
+    error.mockRestore();
   });
 
   it('stops after a single request when the first page is not full', async () => {

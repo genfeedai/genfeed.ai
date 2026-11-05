@@ -7,9 +7,11 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import { AddReferenceImagesDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -35,6 +37,7 @@ export class BrandsSetupController {
 
   /** Prefill create-brand form fields from a public website. */
   @Post('website-preview')
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @HttpCode(HttpStatus.OK)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -47,6 +50,7 @@ export class BrandsSetupController {
 
   /** Scrape and populate the canonical guidance for an explicit brand. */
   @Post(':id/scrape')
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @HttpCode(HttpStatus.OK)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -64,6 +68,7 @@ export class BrandsSetupController {
 
   /** Add face, product, style, or logo reference images to a brand. */
   @Post(':id/reference-images')
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @HttpCode(HttpStatus.OK)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({

@@ -9,6 +9,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -670,9 +671,10 @@ describe('SettingsApiKeysPage', () => {
 
     await screen.findByText('MCP Key');
 
-    const mcp = screen.getByRole('radio', { name: 'MCP' });
-    const read = screen.getByRole('radio', { name: 'Read' });
-    const content = screen.getByRole('radio', { name: 'Content' });
+    const presets = within(screen.getByRole('group', { name: 'Scope preset' }));
+    const mcp = presets.getByRole('radio', { name: 'MCP' });
+    const read = presets.getByRole('radio', { name: 'Read' });
+    const content = presets.getByRole('radio', { name: 'Content' });
 
     expect(mcp).toHaveAttribute('aria-checked', 'true');
     expect(read).toHaveAttribute('aria-checked', 'false');
@@ -684,6 +686,77 @@ describe('SettingsApiKeysPage', () => {
     fireEvent.click(content);
     expect(content).toHaveAttribute('aria-checked', 'true');
     expect(read).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('fills the permission editor from the chosen preset', async () => {
+    render(<SettingsApiKeysPage />);
+
+    await screen.findByText('MCP Key');
+    const presets = within(screen.getByRole('group', { name: 'Scope preset' }));
+    fireEvent.click(presets.getByRole('radio', { name: 'Read' }));
+
+    expect(
+      within(screen.getByRole('group', { name: 'Videos' })).getByRole('radio', {
+        name: 'Read',
+      }),
+    ).toHaveAttribute('aria-checked', 'true');
+    expect(
+      within(screen.getByRole('group', { name: 'Post drafts' })).getByRole(
+        'radio',
+        { name: 'None' },
+      ),
+    ).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('offers Brands at None or Read only, never Write', async () => {
+    render(<SettingsApiKeysPage />);
+
+    await screen.findByText('MCP Key');
+    const brands = within(
+      screen.getByRole('group', { name: 'Brands and brand context' }),
+    );
+
+    expect(
+      brands.getAllByRole('radio').map((radio) => radio.textContent),
+    ).toEqual(['None', 'Read']);
+  });
+
+  it('creates a key with the scopes of the chosen levels', async () => {
+    render(<SettingsApiKeysPage />);
+
+    await screen.findByText('MCP Key');
+    const presets = within(screen.getByRole('group', { name: 'Scope preset' }));
+    fireEvent.click(presets.getByRole('radio', { name: 'Read' }));
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Videos' })).getByRole('radio', {
+        name: 'None',
+      }),
+    );
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Images' })).getByRole('radio', {
+        name: 'Write',
+      }),
+    );
+    expect(presets.getByRole('radio', { name: 'Read' })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+
+    await waitFor(() => {
+      expect(mocks.createApiKey).toHaveBeenCalledTimes(1);
+    });
+    expect(mocks.createApiKey.mock.calls[0][0].scopes).toEqual([
+      'images:read',
+      'images:create',
+      'images:update',
+      'images:delete',
+      'prompts:read',
+      'articles:read',
+      'brands:read',
+      'analytics:read',
+      'credits:read',
+    ]);
   });
 
   it('does not let a stale list overwrite a key created during the initial load', async () => {

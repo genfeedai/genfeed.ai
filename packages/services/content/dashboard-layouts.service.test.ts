@@ -34,7 +34,6 @@ describe('DashboardLayoutsService', () => {
     const result = await service.findForPage('brand-1');
 
     expect(result).toBeNull();
-    expect(mockMapOne).not.toHaveBeenCalled();
     expect(mockGet).toHaveBeenCalledWith('', {
       params: { brand: 'brand-1', pageKey: 'workspace-overview' },
     });

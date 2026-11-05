@@ -19,6 +19,7 @@ import { ImagesSplitService } from '@files/services/images/images-split.service'
 import { S3Service } from '@files/services/s3/s3.service';
 import { VideoThumbnailService } from '@files/services/thumbnails/video-thumbnail.service';
 import { UploadService } from '@files/services/upload/upload.service';
+import type { FFprobeData } from '@files/shared/interfaces/ffmpeg.interfaces';
 import { IngredientFormat } from '@genfeedai/contracts';
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/contracts/interfaces';
 import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/contracts/queue';
@@ -56,6 +57,27 @@ const pathMockFactory = vi.hoisted(() => async () => ({
 }));
 vi.mock('path', pathMockFactory);
 vi.mock('node:path', pathMockFactory);
+
+/** What ffprobe reports for a two-minute 1080p H.264 clip. */
+const probedVideo: FFprobeData = {
+  format: {
+    bit_rate: '5000000',
+    duration: '120',
+    filename: '/path/to/video.mp4',
+    size: '75000000',
+  },
+  streams: [
+    {
+      avg_frame_rate: '30/1',
+      codec_long_name: 'H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10',
+      codec_name: 'h264',
+      codec_type: 'video',
+      height: 1080,
+      index: 0,
+      width: 1920,
+    },
+  ],
+};
 
 describe('FilesController', () => {
   type PublicController<T> = Pick<T, keyof T>;
@@ -158,13 +180,7 @@ describe('FilesController', () => {
   };
 
   const mockFFmpegService = {
-    getVideoMetadata: vi.fn().mockResolvedValue({
-      codec: 'h264',
-      duration: 120,
-      fps: 30,
-      height: 1080,
-      width: 1920,
-    }),
+    getVideoMetadata: vi.fn().mockResolvedValue(probedVideo),
   };
 
   const mockS3Service = {
@@ -355,13 +371,7 @@ describe('FilesController', () => {
       totalFiles: 10,
     });
 
-    mockFFmpegService.getVideoMetadata.mockResolvedValue({
-      codec: 'h264',
-      duration: 120,
-      fps: 30,
-      height: 1080,
-      width: 1920,
-    });
+    mockFFmpegService.getVideoMetadata.mockResolvedValue(probedVideo);
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [
@@ -1384,9 +1394,8 @@ describe('FilesController', () => {
         '/path/to/video.mp4',
       );
       expect(mockTempFileCleanupCron.cleanupTempFiles).toHaveBeenCalledOnce();
-      expect(result.duration).toBe(120);
-      expect(result.width).toBe(1920);
-      expect(result.height).toBe(1080);
+      expect(result.format.duration).toBe('120');
+      expect(result.streams[0]).toMatchObject({ height: 1080, width: 1920 });
     });
 
     it('should download and return metadata for URL', async () => {
@@ -1405,7 +1414,7 @@ describe('FilesController', () => {
         { signal: expect.any(AbortSignal) },
         {},
       );
-      expect(result.duration).toBe(120);
+      expect(result.format.duration).toBe('120');
     });
 
     it('should throw error if neither filePath nor url provided', async () => {
@@ -1831,7 +1840,9 @@ describe('FilesController', () => {
         set: vi.fn(),
       } as unknown as Response;
 
-      await controller.downloadFile('video', { path: 'test.mp4' }, mockRes);
+      // A malformed route param: the controller stringifies whatever arrives.
+      const malformedKey = { path: 'test.mp4' } as unknown as string;
+      await controller.downloadFile('video', malformedKey, mockRes);
 
       expect(s3Service.generateS3Key).toHaveBeenCalledWith(
         'video',

@@ -2,7 +2,7 @@ import { ConfigService } from '@files/config/config.service';
 import { ImagesSplitService } from '@files/services/images/images-split.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import type { Mock, Mocked } from 'vitest';
+import type { Mocked } from 'vitest';
 
 // Mock sharp module
 vi.mock('sharp', () => {
@@ -50,7 +50,9 @@ describe('ImagesSplitService', () => {
 
     // Reset sharp mock
     mockSharpInstance = createMockSharpInstance();
-    (sharp as Mock).mockReturnValue(mockSharpInstance);
+    vi.mocked(sharp).mockReturnValue(
+      mockSharpInstance as unknown as ReturnType<typeof sharp>,
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -69,7 +71,9 @@ describe('ImagesSplitService', () => {
     service = module.get<ImagesSplitService>(ImagesSplitService);
 
     vi.clearAllMocks();
-    (sharp as Mock).mockReturnValue(mockSharpInstance);
+    vi.mocked(sharp).mockReturnValue(
+      mockSharpInstance as unknown as ReturnType<typeof sharp>,
+    );
   });
 
   describe('initialization', () => {

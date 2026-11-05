@@ -75,7 +75,7 @@ describe('RemotionRenderJobService', () => {
         ...data,
         params: {
           ...data.params,
-          assetManifest: data.params.assetManifest.map((asset) => ({
+          assetManifest: (data.params.assetManifest ?? []).map((asset) => ({
             ...asset,
           })),
         },
@@ -222,8 +222,11 @@ describe('RemotionRenderJobService', () => {
 
   it('rejects an unapproved asset origin before renderer execution', async () => {
     const job = makeJob(0);
-    job.data.params.assetManifest[0] = {
-      ...job.data.params.assetManifest[0],
+    const manifest = job.data.params.assetManifest;
+    if (!manifest)
+      throw new Error('the render fixture carries an asset manifest');
+    manifest[0] = {
+      ...manifest[0],
       ingredientUrl: 'https://attacker.example/video.mp4',
     };
 

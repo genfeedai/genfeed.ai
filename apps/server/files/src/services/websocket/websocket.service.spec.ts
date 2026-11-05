@@ -2,16 +2,25 @@ import { ConfigService } from '@files/config/config.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
+const { publishMock } = vi.hoisted(() => ({ publishMock: vi.fn() }));
+
 // Mock Redis client
 vi.mock('ioredis', () => ({
-  default: vi.fn(() => ({
-    connect: vi.fn(),
-    disconnect: vi.fn(),
-    on: vi.fn(),
-    publish: vi.fn(),
-    status: 'ready',
-  })),
+  default: vi.fn(function RedisMock() {
+    return {
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      on: vi.fn(),
+      publish: publishMock,
+      status: 'ready',
+    };
+  }),
 }));
+
+function publishedMessage(): { channel: unknown; message: unknown } {
+  const [channel, payload] = publishMock.mock.calls[0] ?? [];
+  return { channel, message: JSON.parse(String(payload)) };
+}
 
 describe('WebSocketService (Files)', () => {
   let service: WebSocketService;
@@ -51,31 +60,33 @@ describe('WebSocketService (Files)', () => {
   });
 
   describe('emitProgress', () => {
-    it('should emit progress to websocket', async () => {
+    it('publishes the progress to the user room', async () => {
       const websocketUrl = '/ws/progress/user-123';
-      const progress = {
-        message: 'Processing',
-        percentage: 50,
-        status: 'in_progress',
-      };
+      const progress = { message: 'Processing', percent: 50 };
 
-      await service.emitProgress(websocketUrl, progress);
+      await service.emitProgress(websocketUrl, progress, 'user-123');
 
-      // Service should attempt to publish to Redis
-      expect(true).toBe(true);
+      expect(publishedMessage()).toEqual({
+        channel: 'video-progress',
+        message: {
+          path: websocketUrl,
+          progress,
+          room: 'user:user-123',
+          userId: 'user-123',
+        },
+      });
     });
 
-    it('should handle missing userId', async () => {
+    it('falls back to the path as user id when no user is given', async () => {
       const websocketUrl = '/ws/progress';
-      const progress = {
-        message: 'Almost done',
-        percentage: 75,
-        status: 'in_progress',
-      };
+      const progress = { message: 'Almost done', percent: 75 };
 
       await service.emitProgress(websocketUrl, progress);
 
-      expect(true).toBe(true);
+      expect(publishedMessage()).toEqual({
+        channel: 'video-progress',
+        message: { path: websocketUrl, progress, userId: websocketUrl },
+      });
     });
   });
 });

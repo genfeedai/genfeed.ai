@@ -102,7 +102,7 @@ export default function TurboProjectsList() {
       setError(getJsonApiErrorMessage(reason, t('saveFailed')));
     }
   }
-  function row(project: ITurboProject) {
+  function row(project: ITurboProject, now: Date) {
     return (
       <ThreadListRow
         actions={[
@@ -125,7 +125,7 @@ export default function TurboProjectsList() {
             ]}
           />
         }
-        time={formatThreadTime(project.updatedAt, locale)}
+        time={formatThreadTime(project.updatedAt, locale, now)}
         title={project.name}
       />
     );
