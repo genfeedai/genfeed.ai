@@ -1,6 +1,6 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ITurboRunItemAssignee } from '@genfeedai/contracts/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import type { Member } from '@models/organization/member.model';
 import { logger } from '@services/core/logger.service';
 import { MembersService } from '@services/organization/members.service';
@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type {
   ReviewAssignmentMemberOption,
   ReviewAssignmentPanelProps,
@@ -45,6 +45,8 @@ function toMemberOption(member: Member): ReviewAssignmentMemberOption | null {
   };
 }
 
+const NO_MEMBERS: ReviewAssignmentMemberOption[] = [];
+
 function formatAssignee(assignee: ITurboRunItemAssignee): string {
   if (assignee.displayName && assignee.handle) {
     return `${assignee.displayName} (@${assignee.handle})`;
@@ -60,10 +62,31 @@ export default function ReviewAssignmentPanel({
   onUnassign,
 }: ReviewAssignmentPanelProps) {
   const translate = useTranslations('pages.publishing.review');
-  const getMembersService = useAuthedService(
-    useCallback((token: string) => MembersService.getInstance(token), []),
-  );
-  const [members, setMembers] = useState<ReviewAssignmentMemberOption[]>([]);
+  // The organization's members are cached (the viewer scopes them to the
+  // organization), so reopening a review item lists them at once.
+  const membersQuery = useAuthedQuery<
+    MembersService,
+    ReviewAssignmentMemberOption[]
+  >({
+    queryFn: async (service, signal) => {
+      try {
+        const rows = await service.findAllPages({}, signal);
+        return rows
+          .map((member) => toMemberOption(member))
+          .filter((option): option is ReviewAssignmentMemberOption =>
+            Boolean(option),
+          );
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('Load review assignees failed', error);
+        }
+        throw error;
+      }
+    },
+    queryKey: ['review-assignee-options'],
+    service: (token: string) => MembersService.getInstance(token),
+  });
+  const members = membersQuery.data ?? NO_MEMBERS;
   const [selectedAssigneeId, setSelectedAssigneeId] = useState(
     item.assigneeId ?? '',
   );
@@ -71,39 +94,6 @@ export default function ReviewAssignmentPanel({
   useEffect(() => {
     setSelectedAssigneeId(item.assigneeId ?? '');
   }, [item.assigneeId]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function loadMembers() {
-      try {
-        const service = await getMembersService();
-        const rows = await service.findAllPages({}, controller.signal);
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        setMembers(
-          rows
-            .map((member) => toMemberOption(member))
-            .filter((option): option is ReviewAssignmentMemberOption =>
-              Boolean(option),
-            ),
-        );
-      } catch (error) {
-        if (controller.signal.aborted) {
-          return;
-        }
-        logger.error('Load review assignees failed', error);
-      }
-    }
-
-    void loadMembers();
-
-    return () => {
-      controller.abort();
-    };
-  }, [getMembersService]);
 
   const currentAssigneeLabel = useMemo(() => {
     if (item.assignee) {
