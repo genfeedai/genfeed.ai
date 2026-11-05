@@ -1,6 +1,7 @@
 'use client';
 
 import ConciergeHandoff from '@app/(protected)/admin/organizations/components/concierge/concierge-handoff';
+import OrganizationSidebarActivity from '@app/(protected)/admin/organizations/components/organization-sidebar-activity';
 import {
   useAnalyticsContext,
   useAnalyticsSearch,
@@ -668,6 +669,7 @@ export default function AnalyticsOrganizationsList({
               openHref={`${APP_ROUTES.ADMIN.ORGANIZATIONS}/${org.id}`}
               openLabel={analyticsT('openOrganization')}
             >
+              <OrganizationSidebarActivity organizationId={org.id} />
               <div className="flex flex-wrap gap-2">
                 {org.owner ? (
                   <Button
