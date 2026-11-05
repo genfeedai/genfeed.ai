@@ -3,7 +3,7 @@ import type {
   CrunVideoDraft,
 } from '@genfeedai/contracts/interfaces';
 import { createCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { CrunVideoControlsLabels } from '@/props/studio/crun-video-controls.props';
@@ -245,6 +245,25 @@ describe('unmounted reviewed video scalar controls', () => {
     expect(guidance).toHaveValue(0);
     fireEvent.change(guidance, { target: { value: '' } });
     expect(guidance).toHaveValue(null);
+  });
+  it('keeps each label, input and error together as one unit', () => {
+    render(<ControlledKling />);
+    const negativePrompt = screen.getByLabelText('Negative prompt');
+    fireEvent.change(negativePrompt, { target: { value: 'x'.repeat(2001) } });
+    const guidance = screen.getByRole('spinbutton');
+    fireEvent.change(guidance, { target: { value: '1.1' } });
+
+    const guidanceGroup = guidance.parentElement as HTMLElement;
+    expect(within(guidanceGroup).getByText('Guidance')).toBeInTheDocument();
+    expect(within(guidanceGroup).getByRole('alert')).toHaveTextContent(
+      'Out of bounds',
+    );
+    const negativeGroup = negativePrompt.parentElement as HTMLElement;
+    expect(
+      within(negativeGroup).getByText('Negative prompt'),
+    ).toBeInTheDocument();
+    expect(within(negativeGroup).getByRole('alert')).toBeInTheDocument();
+    expect(negativeGroup).not.toBe(guidanceGroup);
   });
   it('disables every input and prevents callbacks', () => {
     const onChange = vi.fn();
