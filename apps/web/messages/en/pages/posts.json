@@ -255,7 +255,9 @@
       "notScheduled": "Not scheduled",
       "board": {
         "label": "Posts board",
-        "empty": "No {status} posts"
+        "empty": "No {status} posts",
+        "scrollLeft": "Scroll the board left",
+        "scrollRight": "Scroll the board right"
       },
       "statusTime": {
         "published": "Published {date}",
