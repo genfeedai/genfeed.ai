@@ -11,13 +11,15 @@ import {
   fromDateTimeLocalInput,
   toDateTimeLocalInput,
 } from '@helpers/formatting/timezone/timezone.helper';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { EvergreenSeriesControlsProps } from '@/features/posts/props/evergreen-series-controls.props';
 
 function scheduledDateToISOString(value: string, timezone: string): string {
@@ -43,106 +45,103 @@ function actionErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'The series action failed.';
 }
 
+function evergreenSeriesQueryKey(groupId: string) {
+  return ['evergreen-series', groupId] as const;
+}
+
 export default function EvergreenSeriesControls({
   groupId,
 }: EvergreenSeriesControlsProps): React.JSX.Element {
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
+  const queryClient = useQueryClient();
   const getReleaseGroupsService = useAuthedService((token: string) =>
     ReleaseGroupsService.getInstance(token),
   );
-  const [release, setRelease] = useState<IReleaseGroup | null>(null);
-  const [preview, setPreview] = useState<RecurrencePreviewResult | null>(null);
-  const [scheduledDate, setScheduledDate] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Cached per series: reopening the controls paints the loaded series at
+  // once and refreshes it in the background.
+  const releaseQuery = useAuthedQuery({
+    queryFn: (service, signal) => service.getOne(groupId, signal),
+    queryKey: evergreenSeriesQueryKey(groupId),
+    service: (token: string) => ReleaseGroupsService.getInstance(token),
+  });
+  const release = releaseQuery.data ?? null;
+  const { refetch: refetchRelease } = releaseQuery;
+  const [stateGroupId, setStateGroupId] = useState(groupId);
+  const [scheduledDateDraft, setScheduledDateDraft] = useState<string | null>(
+    null,
+  );
+  const [actionError, setActionError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [isConfirmingCancel, setIsConfirmingCancel] = useState(false);
 
-  const loadRelease = useCallback(
-    async (signal?: AbortSignal) => {
-      setIsLoading(true);
-      setError(null);
-      setRelease(null);
-      setPreview(null);
-      setScheduledDate('');
-      setIsConfirmingCancel(false);
-      setPendingAction(null);
-      try {
-        const service = await getReleaseGroupsService();
-        const nextRelease = await service.getOne(groupId, signal);
-        if (signal?.aborted) {
-          return;
-        }
-        setRelease(nextRelease);
-        setScheduledDate(
-          toDateTimeLocalInput(nextRelease.scheduledAt, nextRelease.timezone),
-        );
-      } catch (loadError) {
-        if (!signal?.aborted) {
-          setError(actionErrorMessage(loadError));
-        }
-      } finally {
-        if (!signal?.aborted) {
-          setIsLoading(false);
-        }
+  // Another series starts with a clean slate: no draft date, confirmation or
+  // action error carried over from the previous one.
+  if (stateGroupId !== groupId) {
+    setStateGroupId(groupId);
+    setScheduledDateDraft(null);
+    setActionError(null);
+    setPendingAction(null);
+    setIsConfirmingCancel(false);
+  }
+
+  const scheduledDate =
+    scheduledDateDraft ??
+    (release
+      ? toDateTimeLocalInput(release.scheduledAt, release.timezone)
+      : '');
+  // A failed background refresh keeps the cached series on screen quietly.
+  const error =
+    actionError ??
+    (!release && releaseQuery.error
+      ? actionErrorMessage(releaseQuery.error)
+      : null);
+  // The skeleton shows only while there is no series to paint: the first
+  // read, or a retry after a failed one.
+  const isLoading =
+    releaseQuery.isPending || (!release && releaseQuery.isFetching);
+
+  const recurrenceRule = release?.recurrence;
+  const previewTimezone = release?.timezone ?? '';
+  const previewQuery = useAuthedQuery<
+    ReleaseGroupsService,
+    RecurrencePreviewResult
+  >({
+    enabled: Boolean(recurrenceRule && scheduledDate),
+    queryFn: async (service, signal) => {
+      if (!recurrenceRule) {
+        throw new Error('The series has no recurrence rule.');
       }
+      return service.preview(
+        {
+          limit: 3,
+          recurrence: recurrenceInput(recurrenceRule),
+          repeatCount: recurrenceRule.repeatCount,
+          startAt: scheduledDateToISOString(scheduledDate, previewTimezone),
+          timezone: previewTimezone,
+        },
+        signal,
+      );
     },
-    [getReleaseGroupsService, groupId],
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadRelease(controller.signal);
-    return () => controller.abort();
-  }, [loadRelease]);
-
-  useEffect(() => {
-    const activeRelease = release;
-    const rule = activeRelease?.recurrence;
-    if (!activeRelease || !rule || !scheduledDate) {
-      setPreview(null);
-      return;
-    }
-
-    const controller = new AbortController();
-    setPreview(null);
-    const loadPreview = async () => {
-      try {
-        const service = await getReleaseGroupsService();
-        const result = await service.preview(
-          {
-            limit: 3,
-            recurrence: recurrenceInput(rule),
-            repeatCount: rule.repeatCount,
-            startAt: scheduledDateToISOString(
-              scheduledDate,
-              activeRelease.timezone,
-            ),
-            timezone: activeRelease.timezone,
-          },
-          controller.signal,
-        );
-        if (!controller.signal.aborted) {
-          setPreview(result);
-        }
-      } catch (previewError) {
-        if (!controller.signal.aborted) {
-          setPreview({
-            issues: [
-              {
-                code: 'invalid_input',
-                message: actionErrorMessage(previewError),
-              },
-            ],
-            success: false,
-          });
-        }
-      }
-    };
-
-    void loadPreview();
-    return () => controller.abort();
-  }, [getReleaseGroupsService, release, scheduledDate]);
+    queryKey: [
+      'evergreen-series-preview',
+      groupId,
+      {
+        recurrence: recurrenceRule ? recurrenceInput(recurrenceRule) : null,
+        repeatCount: recurrenceRule?.repeatCount ?? null,
+        scheduledDate,
+        timezone: previewTimezone,
+      },
+    ],
+    // A rejected preview is an answer about the input, not a flaky read.
+    retry: false,
+    service: (token: string) => ReleaseGroupsService.getInstance(token),
+  });
+  const preview = previewQuery.data ?? null;
+  const previewError = previewQuery.error
+    ? actionErrorMessage(previewQuery.error)
+    : preview && !preview.success
+      ? preview.issues.map((issue) => issue.message).join(' ')
+      : null;
 
   const runAction = useCallback(
     async (
@@ -151,25 +150,26 @@ export default function EvergreenSeriesControls({
       successMessage: string,
     ) => {
       setPendingAction(action);
-      setError(null);
+      setActionError(null);
       try {
         const service = await getReleaseGroupsService();
         const nextRelease = await mutation(service);
-        setRelease(nextRelease);
-        setScheduledDate(
-          toDateTimeLocalInput(nextRelease.scheduledAt, nextRelease.timezone),
+        queryClient.setQueriesData<IReleaseGroup>(
+          { queryKey: evergreenSeriesQueryKey(groupId) },
+          nextRelease,
         );
+        setScheduledDateDraft(null);
         setIsConfirmingCancel(false);
         notifications.success(successMessage);
-      } catch (actionError) {
-        const message = actionErrorMessage(actionError);
-        setError(message);
+      } catch (mutationError) {
+        const message = actionErrorMessage(mutationError);
+        setActionError(message);
         notifications.error(message);
       } finally {
         setPendingAction(null);
       }
     },
-    [getReleaseGroupsService, notifications],
+    [getReleaseGroupsService, groupId, notifications, queryClient],
   );
 
   if (isLoading) {
@@ -194,7 +194,7 @@ export default function EvergreenSeriesControls({
         <Button
           className="mt-3"
           label="Retry"
-          onClick={() => void loadRelease()}
+          onClick={() => void refetchRelease()}
         />
       </aside>
     );
@@ -254,7 +254,7 @@ export default function EvergreenSeriesControls({
               type="datetime-local"
               value={scheduledDate}
               disabled={isBlocked || isPending}
-              onChange={(event) => setScheduledDate(event.target.value)}
+              onChange={(event) => setScheduledDateDraft(event.target.value)}
             />
             <Button
               isDisabled={isBlocked || isPending || !scheduledDate}
@@ -293,9 +293,9 @@ export default function EvergreenSeriesControls({
                 </p>
               )}
             </div>
-          ) : preview ? (
+          ) : previewError ? (
             <p role="alert" className="text-sm text-destructive">
-              {preview.issues.map((issue) => issue.message).join(' ')}
+              {previewError}
             </p>
           ) : null}
 

@@ -1,13 +1,17 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { TargetValidationState } from '@genfeedai/contracts';
 import type { IPostingSet } from '@genfeedai/contracts/interfaces';
 import {
   act,
   fireEvent,
-  render,
+  render as rtlRender,
   screen,
   waitFor,
 } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PostingSetPicker from './posting-set-picker';
 
@@ -35,6 +39,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
       ? mocks.getPostingSetsService
       : mocks.getPostingSignaturesService;
   },
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@services/content/posting-sets.service', () => ({
@@ -129,6 +138,10 @@ vi.mock('@ui/primitives/select', () => ({
 vi.mock('@ui/primitives/badge', () => ({
   Badge: ({ children }: { children?: ReactNode }) => <span>{children}</span>,
 }));
+
+function render(ui: ReactElement, client = createTestQueryClient()) {
+  return rtlRender(ui, { wrapper: queryClientWrapper(client) });
+}
 
 function makeSet(overrides: Partial<IPostingSet> = {}): IPostingSet {
   return {
@@ -417,5 +430,58 @@ describe('PostingSetPicker', () => {
     expect(
       screen.queryByRole('status', { name: 'Loading posting sets…' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('paints the posting sets it already loaded straight away when reopened', async () => {
+    const client = createTestQueryClient();
+    const firstOpen = render(
+      <PostingSetPicker
+        brandId="brand-1"
+        currentTargets={[]}
+        timezone="UTC"
+        onApply={vi.fn()}
+      />,
+      client,
+    );
+    await screen.findByText('Short-form trio');
+    firstOpen.unmount();
+
+    mocks.findAllSets.mockReturnValue(new Promise(() => {}));
+    mocks.findAllSignatures.mockReturnValue(new Promise(() => {}));
+    render(
+      <PostingSetPicker
+        brandId="brand-1"
+        currentTargets={[]}
+        timezone="UTC"
+        onApply={vi.fn()}
+      />,
+      client,
+    );
+
+    expect(screen.getByText('Short-form trio')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'Loading posting sets…' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('lists a newly saved set next to the existing ones', async () => {
+    render(
+      <PostingSetPicker
+        brandId="brand-1"
+        currentTargets={[{ credentialId: 'cred-ig', platform: 'instagram' }]}
+        timezone="UTC"
+        onApply={vi.fn()}
+      />,
+    );
+    await screen.findByText('Short-form trio');
+    fireEvent.change(screen.getByLabelText('Posting set label'), {
+      target: { value: 'Saved set' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save current selection as set' }),
+    );
+
+    expect(await screen.findByText('Saved set')).toBeInTheDocument();
+    expect(screen.getByText('Short-form trio')).toBeInTheDocument();
   });
 });
