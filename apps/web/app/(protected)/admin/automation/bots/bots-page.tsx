@@ -10,31 +10,24 @@ import {
 } from '@genfeedai/contracts/constants';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { Bot } from '@models/automation/bot.model';
+import type { TableColumn } from '@props/ui/display/table.props';
 import { BotsService } from '@services/automation/bots.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Card from '@ui/card/Card';
-
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
-import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
-import { EmptyState } from '@ui/primitives/empty-state';
 import { Bot as BotIcon } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import AdminScopeFilter from '@/components/content/admin-filters/AdminScopeFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
-import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
-
-const BOT_SKELETON_KEYS = [
-  'bot-skeleton-1',
-  'bot-skeleton-2',
-  'bot-skeleton-3',
-  'bot-skeleton-4',
-] as const;
 
 // `bots.status` is the Prisma `BotStatus` enum — SCREAMING_SNAKE on the wire.
 // Every member is mapped explicitly: STOPPED is a deliberate terminal state, so
@@ -56,16 +49,23 @@ function getBotStatusVariant(
 }
 
 const EMPTY_BOTS: Bot[] = [];
+const EMPTY_VALUE = '—';
 
+/**
+ * Every organization's bots, in the shared admin table. Without an
+ * organization filter the API lists the operator's own bots.
+ */
 export default function BotsPage() {
   const notificationsService = NotificationsService.getInstance();
+  const translate = useTranslations('pages.adminBots');
+  const searchT = useTranslations('common.adminSearch');
 
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
-  const searchT = useTranslations('common.adminSearch');
   const { search, setSearch } = useAdminSearchParam();
+  const { brand, organization } = useAdminOrgBrandParams();
 
-  // Cached per page and search: coming back to Bots paints the rows it
+  // Cached per page, search and scope: coming back to Bots paints the rows it
   // already has while it refreshes, and paging keeps the current rows on screen.
   const botsQuery = usePagedAuthedQuery({
     keepPreviousDataWithin: ['admin', 'bots'],
@@ -75,6 +75,8 @@ export default function BotsPage() {
           {
             limit: ITEMS_PER_PAGE,
             page: currentPage,
+            ...(organization ? { organizationId: organization } : {}),
+            ...(brand ? { brandId: brand } : {}),
             ...(search ? { search } : {}),
             sort: 'createdAt: -1',
           },
@@ -89,7 +91,11 @@ export default function BotsPage() {
         throw error;
       }
     },
-    queryKey: ['admin', 'bots', { page: currentPage, search }],
+    queryKey: [
+      'admin',
+      'bots',
+      { brand, organization, page: currentPage, search },
+    ],
     service: (token: string) => BotsService.getInstance(token),
   });
   const bots = botsQuery.data?.items ?? EMPTY_BOTS;
@@ -101,13 +107,87 @@ export default function BotsPage() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
     if (isError) {
-      notificationsService.error('Failed to load bots');
+      notificationsService.error(translate('loadError'));
     }
-  }, [errorUpdatedAt, isError, notificationsService]);
+  }, [errorUpdatedAt, isError, notificationsService, translate]);
+
+  const columns = useMemo<TableColumn<Bot>[]>(
+    () => [
+      {
+        header: translate('columns.bot'),
+        key: 'label',
+        subtext: (bot) => bot.description,
+      },
+      {
+        header: translate('columns.status'),
+        key: 'status',
+        render: (bot) => (
+          <Badge variant={getBotStatusVariant(bot.status)}>
+            {formatEnumLabel(bot.status)}
+          </Badge>
+        ),
+      },
+      {
+        header: translate('columns.category'),
+        key: 'category',
+        render: (bot) => formatEnumLabel(bot.category),
+      },
+      {
+        header: translate('columns.platforms'),
+        key: 'platforms',
+        render: (bot) =>
+          bot.platforms?.length ? (
+            <span className="flex items-center gap-1">
+              {bot.platforms.map((platform) => (
+                <PlatformBadge
+                  key={platform}
+                  platform={platform}
+                  showLabel={false}
+                  size={ComponentSize.SM}
+                />
+              ))}
+            </span>
+          ) : (
+            EMPTY_VALUE
+          ),
+        sortable: false,
+      },
+      {
+        header: translate('columns.targets'),
+        key: 'targets',
+        render: (bot) =>
+          bot.targets
+            ?.map((target) => target.channelLabel || target.channelId)
+            .join(', ') || EMPTY_VALUE,
+        sortable: false,
+      },
+      {
+        header: translate('columns.messages'),
+        key: 'messagesCount',
+        render: (bot) => bot.messagesCount ?? 0,
+      },
+      {
+        header: translate('columns.engagements'),
+        key: 'engagementsCount',
+        render: (bot) => bot.engagementsCount ?? 0,
+      },
+      {
+        header: translate('columns.lastActivity'),
+        key: 'lastActivityAt',
+        render: (bot) =>
+          bot.lastActivityAt ? (
+            <TableDateCell value={bot.lastActivityAt} />
+          ) : (
+            translate('never')
+          ),
+      },
+    ],
+    [translate],
+  );
 
   return (
     <AdminPageShell
-      title="Bots"
+      title={translate('title')}
       icon={BotIcon}
       search={
         <SearchField
@@ -115,97 +195,27 @@ export default function BotsPage() {
           onSearch={setSearch}
           placeholder={searchT('bots')}
           value={search}
-        />
+        >
+          <AdminScopeFilter isAttached />
+        </SearchField>
       }
       onRefresh={() => void refetch()}
       isRefreshing={isRefreshing}
     >
-      <WorkspaceSurface
-        framed={false}
-        tone="muted"
-        data-testid="automation-bots-surface"
-      >
-        <div className="grid gap-4">
-          {isLoading ? (
-            BOT_SKELETON_KEYS.map((key) => (
-              <SkeletonCard key={key} showImage={false} />
-            ))
-          ) : bots.length === 0 ? (
-            <EmptyState
-              title={search ? 'No bots match your search' : 'No bots yet'}
-            />
-          ) : (
-            bots.map((bot: Bot) => (
-              <Card key={bot.id}>
-                <div className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="card-label text-sm font-semibold">
-                          {bot.label}
-                        </h3>
-                        <Badge variant={getBotStatusVariant(bot.status)}>
-                          {formatEnumLabel(bot.status)}
-                        </Badge>
-
-                        <Badge variant="outline">{bot.category}</Badge>
-                      </div>
-
-                      {bot.description && (
-                        <p className="text-foreground/70 mb-3">
-                          {bot.description}
-                        </p>
-                      )}
-
-                      <div className="flex items-center gap-4 text-sm text-foreground/60 mb-3">
-                        {bot.platforms && bot.platforms.length > 0 && (
-                          <span>Platforms: {bot.platforms.join(', ')}</span>
-                        )}
-                        {bot.messagesCount !== undefined && (
-                          <span>{bot.messagesCount} messages</span>
-                        )}
-                        {bot.engagementsCount !== undefined && (
-                          <span>{bot.engagementsCount} engagements</span>
-                        )}
-                      </div>
-
-                      {bot.targets && bot.targets.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          <span className="text-xs text-foreground/60">
-                            Targets:
-                          </span>
-                          {bot.targets.map((target) => (
-                            <span
-                              key={`${target.platform}:${target.channelId}:${target.channelLabel ?? ''}`}
-                              className="inline-flex items-center gap-1 bg-background px-2 py-1 text-xs"
-                            >
-                              <PlatformBadge
-                                platform={target.platform}
-                                showLabel={false}
-                                size={ComponentSize.SM}
-                              />
-                              <code>
-                                {target.channelLabel || target.channelId}
-                              </code>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            ))
-          )}
-        </div>
-        <div className="mt-4">
-          <AutoPagination
-            showTotal
-            totalLabel="bots"
-            totals={botsQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
-          />
-        </div>
-      </WorkspaceSurface>
+      <AppTable<Bot>
+        items={bots}
+        columns={columns}
+        isLoading={isLoading}
+        getRowKey={(bot) => bot.id}
+        emptyLabel={translate('empty')}
+      />
+      <div className="mt-4">
+        <AutoPagination
+          showTotal
+          totalLabel={translate('totalLabel')}
+          totals={botsQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
+        />
+      </div>
     </AdminPageShell>
   );
 }
