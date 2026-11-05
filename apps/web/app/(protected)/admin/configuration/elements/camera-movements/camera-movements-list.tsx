@@ -10,6 +10,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { ElementCameraMovement } from '@models/elements/camera-movement.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
@@ -22,31 +23,11 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
+import { Suspense, useCallback, useEffect, useRef } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { LazyElementCreateModal } from '@/components/lazy/modal/LazyModal';
-import type {
-  CameraMovementsAction,
-  CameraMovementsState,
-} from '@/features/admin/props/camera-movements.props';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
-
-function cameraMovementsReducer(
-  state: CameraMovementsState,
-  action: CameraMovementsAction,
-): CameraMovementsState {
-  switch (action.type) {
-    case 'FETCH_START':
-      return { ...state, isLoading: !action.payload.isRefresh };
-    case 'FETCH_DONE':
-      return { ...state, isLoading: false, page: action.payload };
-    case 'FETCH_ERROR':
-      return { ...state, isLoading: false };
-    default:
-      return state;
-  }
-}
 
 const EMPTY_CAMERA_MOVEMENTS: ElementCameraMovement[] = [];
 
@@ -73,18 +54,6 @@ function CameraMovementsListContent({
       [],
     ),
   );
-
-  const [state, dispatch] = useReducer(
-    cameraMovementsReducer,
-    undefined,
-    () => ({
-      page: null,
-      isLoading: true,
-    }),
-  );
-
-  const { page, isLoading } = state;
-  const cameraMovements = page?.items ?? EMPTY_CAMERA_MOVEMENTS;
 
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
@@ -146,92 +115,92 @@ function CameraMovementsListContent({
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
 
-  // Only the latest request may fill the list, so a slow response for an
-  // earlier sort or search cannot replace the current one.
-  const latestRequestRef = useRef(0);
+  // Cached per scope and page: coming back paints the rows and footer it
+  // already has while they refresh, and another page, search or sort keeps
+  // the current rows on screen while it loads.
+  const scopeKey = [
+    'admin',
+    'camera-movements',
+    { adminBrand, adminOrg, scope },
+  ] as const;
+  const cameraMovementsQuery = usePagedAuthedQuery<
+    CameraMovementsService,
+    ElementCameraMovement
+  >({
+    keepPreviousDataWithin: scopeKey,
+    queryFn: async (service, signal) => {
+      const query: IQueryParams = {
+        limit: ITEMS_PER_PAGE,
+        page: currentPage,
+        search: filters?.search || undefined,
+        ...(sort ? { sort } : {}),
+      };
 
-  const findAllCameraMovements = useCallback(
-    async (isRefresh = false) => {
-      const requestId = ++latestRequestRef.current;
-      const newIsRefreshing = isRefresh;
-      const newIsLoading = !isRefresh;
-
-      dispatch({ type: 'FETCH_START', payload: { isRefresh } });
-
-      // Notify parent of state changes
-      onRefreshingChangeRef.current?.(newIsRefreshing);
-      onLoadingChangeRef.current?.(newIsLoading);
-
-      try {
-        const service = await getCameraMovementsService();
-
-        // Build API query
-        const query: IQueryParams = {
-          limit: ITEMS_PER_PAGE,
-          page: currentPage,
-          search: filters?.search || undefined,
-          ...(sort ? { sort } : {}),
-        };
-
-        if (scope === PageScope.SUPERADMIN) {
-          if (adminOrg) {
-            query.organization = adminOrg;
-          }
-          if (adminBrand) {
-            query.brand = adminBrand;
-          }
+      if (scope === PageScope.SUPERADMIN) {
+        if (adminOrg) {
+          query.organization = adminOrg;
         }
-
-        const data = await service.findAllPage(query);
-        if (requestId !== latestRequestRef.current) {
-          return;
-        }
-        dispatch({ type: 'FETCH_DONE', payload: data });
-
-        logger.info('GET /camera-movements success', data.items);
-      } catch (error) {
-        if (requestId !== latestRequestRef.current) {
-          return;
-        }
-        logger.error('GET /camera-movements failed', error);
-        notificationsService.error('Failed to load camera movements');
-        dispatch({ type: 'FETCH_ERROR' });
-      } finally {
-        if (requestId === latestRequestRef.current) {
-          onLoadingChangeRef.current?.(false);
-          onRefreshingChangeRef.current?.(false);
+        if (adminBrand) {
+          query.brand = adminBrand;
         }
       }
-    },
-    [
-      currentPage,
-      filters?.search,
-      sort,
-      getCameraMovementsService,
-      notificationsService.error,
-      scope,
-      adminOrg,
-      adminBrand,
-    ],
-  );
 
-  // Fetch data on mount and when page changes
+      try {
+        const data = await service.findAllPage(query, signal);
+        logger.info('GET /camera-movements success', data.items);
+        return data;
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('GET /camera-movements failed', error);
+        }
+        throw error;
+      }
+    },
+    queryKey: [
+      ...scopeKey,
+      { page: currentPage, search: filters?.search ?? '', sort: sort ?? null },
+    ],
+    service: (token: string) => CameraMovementsService.getInstance(token),
+  });
+  const cameraMovements =
+    cameraMovementsQuery.data?.items ?? EMPTY_CAMERA_MOVEMENTS;
+  const {
+    errorUpdatedAt,
+    isError,
+    isFetching,
+    isLoading,
+    refetch: refreshCameraMovements,
+  } = cameraMovementsQuery;
+  const isRefreshing = isFetching && !isLoading;
+
+  // One toast per failed read, not one per render.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    findAllCameraMovements();
-  }, [findAllCameraMovements]);
+    if (isError) {
+      notificationsService.error('Failed to load camera movements');
+    }
+  }, [errorUpdatedAt, isError, notificationsService]);
+
+  useEffect(() => {
+    onLoadingChangeRef.current?.(isLoading);
+  }, [isLoading]);
+
+  useEffect(() => {
+    onRefreshingChangeRef.current?.(isRefreshing);
+  }, [isRefreshing]);
 
   useEffect(() => {
     if (onRefresh) {
-      return onRefresh(() => findAllCameraMovements(true));
+      return onRefresh(() => refreshCameraMovements());
     }
-  }, [onRefresh, findAllCameraMovements]);
+  }, [onRefresh, refreshCameraMovements]);
 
   const handleDelete = async (movement: IElementCameraMovement) => {
     try {
       const service = await getCameraMovementsService();
       await service.delete(movement.id);
       notificationsService.success('Camera movement deleted');
-      findAllCameraMovements(true);
+      void refreshCameraMovements();
     } catch (error) {
       logger.error('Failed to delete camera movement', error);
       notificationsService.error('Failed to delete camera movement');
@@ -242,7 +211,9 @@ function CameraMovementsListContent({
     Partial<IElementCameraMovement>
   >({
     errorMessage: 'Failed to update camera movement',
-    onSaved: () => findAllCameraMovements(true),
+    onSaved: () => {
+      void refreshCameraMovements();
+    },
     save: async (id, patch) =>
       (await getCameraMovementsService()).patch(id, patch),
   });
@@ -272,7 +243,7 @@ function CameraMovementsListContent({
       {scope === PageScope.SUPERADMIN && (
         <LazyElementCreateModal
           modalId={ModalEnum.CAMERA_MOVEMENT}
-          onConfirm={() => findAllCameraMovements(true)}
+          onConfirm={() => refreshCameraMovements()}
         />
       )}
 
@@ -280,11 +251,7 @@ function CameraMovementsListContent({
         <AutoPagination
           showTotal
           totalLabel="camera movements"
-          totals={
-            page
-              ? { totalDocs: page.total, totalPages: page.totalPages }
-              : EMPTY_PAGE_TOTALS
-          }
+          totals={cameraMovementsQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
         />
       </div>
     </>
