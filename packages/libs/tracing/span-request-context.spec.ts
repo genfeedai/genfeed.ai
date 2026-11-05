@@ -18,7 +18,6 @@ import {
 import {
   flush,
   init,
-  type StreamedSpanJSON,
   startSpan,
   suppressTracing,
   withIsolationScope,
@@ -36,6 +35,11 @@ import {
 const TRACE_ID = '0af7651916cd43dd8448eb211c80319c';
 const PARENT_SPAN_ID = 'b7ad6b7169203331';
 const TRACEPARENT = `00-${TRACE_ID}-${PARENT_SPAN_ID}-01`;
+
+/** The span shape `beforeSendSpan` receives in streaming mode. */
+type StreamedSpanJSON = Parameters<
+  NonNullable<NonNullable<Parameters<typeof init>[0]>['beforeSendSpan']>
+>[0];
 
 const sentSpans: StreamedSpanJSON[] = [];
 
