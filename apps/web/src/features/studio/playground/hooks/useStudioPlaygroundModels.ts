@@ -7,12 +7,12 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { ModelsService } from '@services/ai/models.service';
 import { EnvironmentService } from '@services/core/environment.service';
-import { useEffect, useRef, useState } from 'react';
 
 const MODEL_PAGE_LIMIT = 100;
+const EMPTY_MODELS: readonly IModel[] = [];
 
 export interface UseStudioPlaygroundModelsReturn {
   isLoadingModels: boolean;
@@ -46,113 +46,58 @@ function filterCategoryRows(
 /**
  * Loads the active model registry rows for one generation category. Types
  * without a router-backed catalog (avatar) pass `null` and get an empty list.
+ *
+ * The catalog is cached per category, organization, session and API, so a
+ * return to Studio paints the last catalog at once and refreshes it in the
+ * background. Another scope never sees it, and a superseded read is cancelled.
  */
 export function useStudioPlaygroundModels(
   category: ModelCategory | null,
   organizationId: string | undefined,
 ): UseStudioPlaygroundModelsReturn {
-  const { orgId, userId, sessionId } = useAuthIdentity();
-  const ownerKey = JSON.stringify([
-    category,
-    organizationId,
-    orgId,
-    userId,
-    sessionId,
-    EnvironmentService.apiEndpoint,
-  ]);
-  const ownerRef = useRef({ key: ownerKey, epoch: 0 });
-  if (ownerRef.current.key !== ownerKey)
-    ownerRef.current = { key: ownerKey, epoch: ownerRef.current.epoch + 1 };
-  const owner = ownerRef.current;
-  const [snapshot, setSnapshot] = useState({
-    owner,
-    models: [] as readonly IModel[],
-    isLoadingModels: Boolean(category && organizationId),
-    isModelCatalogReady: false,
+  const { sessionId } = useAuthIdentity();
+  const query = useAuthedQuery<ModelsService, readonly IModel[]>({
+    enabled: Boolean(category && organizationId),
+    queryFn: async (service, signal) => {
+      // A read superseded while it waited for its token never reaches the API.
+      signal.throwIfAborted();
+      if (!category || !organizationId) {
+        return EMPTY_MODELS;
+      }
+      const rows = await service.findAll(
+        {
+          category,
+          includeRetired: false,
+          isActive: true,
+          limit: MODEL_PAGE_LIMIT,
+          organizationId,
+          sort: 'label: 1',
+        },
+        signal,
+      );
+      return filterCategoryRows(category, rows);
+    },
+    queryKey: [
+      'studio-models',
+      category,
+      organizationId ?? null,
+      sessionId ?? null,
+      EnvironmentService.apiEndpoint,
+    ],
+    service: (token: string) => ModelsService.getInstance(token),
   });
-  const getModelsService = useAuthedService((token: string) =>
-    ModelsService.getInstance(token),
-  );
 
-  useEffect(() => {
-    if (!category || !organizationId) {
-      setSnapshot({
-        owner,
-        models: [],
-        isLoadingModels: false,
-        isModelCatalogReady: false,
-      });
-      return;
-    }
-
-    const controller = new AbortController();
-    let isCancelled = false;
-    const canApply = () =>
-      !isCancelled && !controller.signal.aborted && ownerRef.current === owner;
-    setSnapshot({
-      owner,
-      models: [],
-      isLoadingModels: true,
+  if (!category || !organizationId) {
+    return {
+      isLoadingModels: false,
       isModelCatalogReady: false,
-    });
-
-    void (async () => {
-      try {
-        const service = await getModelsService();
-        if (!canApply()) return;
-        const rows = await service.findAll(
-          {
-            category,
-            includeRetired: false,
-            isActive: true,
-            limit: MODEL_PAGE_LIMIT,
-            organizationId,
-            sort: 'label: 1',
-          },
-          controller.signal,
-        );
-        if (!canApply()) return;
-        setSnapshot({
-          owner,
-          models: filterCategoryRows(category, rows),
-          isLoadingModels: false,
-          isModelCatalogReady: true,
-        });
-      } catch {
-        if (canApply()) {
-          setSnapshot({
-            owner,
-            models: [],
-            isLoadingModels: false,
-            isModelCatalogReady: false,
-          });
-        }
-      } finally {
-        if (canApply()) {
-          setSnapshot((current) =>
-            canApply() && current.owner === owner
-              ? { ...current, isLoadingModels: false }
-              : current,
-          );
-        }
-      }
-    })();
-
-    return () => {
-      isCancelled = true;
-      controller.abort();
+      models: EMPTY_MODELS,
     };
-  }, [category, getModelsService, organizationId, owner]);
+  }
 
-  return snapshot.owner === owner
-    ? {
-        isLoadingModels: snapshot.isLoadingModels,
-        isModelCatalogReady: snapshot.isModelCatalogReady,
-        models: snapshot.models,
-      }
-    : {
-        isLoadingModels: Boolean(category && organizationId),
-        isModelCatalogReady: false,
-        models: [],
-      };
+  return {
+    isLoadingModels: query.isLoading,
+    isModelCatalogReady: query.data !== undefined,
+    models: query.data ?? EMPTY_MODELS,
+  };
 }
