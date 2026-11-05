@@ -8,6 +8,11 @@ export type AgentThreadsPanelApi = Pick<
 
 export interface AgentThreadsPanelProps {
   apiService: AgentThreadsPanelApi;
+  /**
+   * The workspace's current brand (the topbar's). The list shows only that
+   * brand's threads and offers no filter of its own; leave out to list all.
+   */
+  brandId?: string | null;
   isLoading?: boolean;
   /** The thread open in the light view. Leave out to let the panel keep it. */
   openThreadId?: string | null;

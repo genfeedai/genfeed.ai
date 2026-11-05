@@ -62,6 +62,37 @@ export function AgentConversationTurnNavigator({
   const [activeTurnId, setActiveTurnId] = useState<string | null>(
     () => turnIds.at(-1) ?? null,
   );
+  // A minimap for a conversation that fits on screen is a stray dash with
+  // nothing to scrub, so it shows only once the transcript really scrolls.
+  const [isScrollable, setIsScrollable] = useState(false);
+
+  // `timeline` re-runs the effect so transcript rows added later get observed.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: timeline is a trigger, not read
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const measure = () => {
+      setIsScrollable(container.scrollHeight > container.clientHeight + 1);
+    };
+    measure();
+
+    window.addEventListener('resize', measure);
+    if (typeof ResizeObserver === 'undefined') {
+      return () => window.removeEventListener('resize', measure);
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(container);
+    for (const child of container.children) {
+      observer.observe(child);
+    }
+    return () => {
+      window.removeEventListener('resize', measure);
+      observer.disconnect();
+    };
+  }, [scrollContainerRef, timeline]);
 
   const updateActiveTurn = useCallback(() => {
     const container = scrollContainerRef.current;
@@ -127,7 +158,7 @@ export function AgentConversationTurnNavigator({
     element.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
-  if (turns.length < 2) {
+  if (turns.length < 2 || !isScrollable) {
     return null;
   }
 

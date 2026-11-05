@@ -135,6 +135,28 @@ describe('AgentThreadsPanel', () => {
     expect(within(group('recent')).getByText('Old idea')).toBeVisible();
   });
 
+  it('has no brand filter of its own and lists only the topbar brand', () => {
+    render(
+      <AgentThreadsPanel
+        apiService={apiService}
+        brandId="brand-a"
+        threads={threads}
+      />,
+    );
+
+    expect(screen.queryByLabelText('Filter by brand')).toBeNull();
+    expect(screen.getByText('Spring captions')).toBeVisible();
+    expect(screen.queryByText('Old idea')).toBeNull();
+    expect(screen.queryByText('Pick a hook')).toBeNull();
+  });
+
+  it('lists every thread when no brand is selected', () => {
+    render(<AgentThreadsPanel apiService={apiService} threads={threads} />);
+
+    expect(screen.getByText('Spring captions')).toBeVisible();
+    expect(screen.getByText('Old idea')).toBeVisible();
+  });
+
   it('filters by search', async () => {
     const user = userEvent.setup();
     render(<AgentThreadsPanel apiService={apiService} threads={threads} />);
@@ -247,9 +269,44 @@ describe('AgentThreadsPanel', () => {
   });
 
   describe('resolving threads', () => {
-    it('lists an archived thread under Resolved, not with the active ones', () => {
+    it('starts with Resolved collapsed and counts what is inside', () => {
       render(<AgentThreadsPanel apiService={apiService} threads={threads} />);
 
+      const toggle = screen.getByTestId(
+        'agent-threads-panel-group-toggle-resolved',
+      );
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(toggle).toHaveTextContent('Resolved');
+      expect(toggle).toHaveTextContent('1');
+      expect(screen.queryByText('Shipped reel')).toBeNull();
+      expect(screen.getByText('Pick a hook')).toBeVisible();
+    });
+
+    it('opens Resolved on demand and again when a search reaches it', async () => {
+      const user = userEvent.setup();
+      render(<AgentThreadsPanel apiService={apiService} threads={threads} />);
+
+      await user.click(
+        screen.getByTestId('agent-threads-panel-group-toggle-resolved'),
+      );
+      expect(screen.getByText('Shipped reel')).toBeVisible();
+
+      await user.click(
+        screen.getByTestId('agent-threads-panel-group-toggle-resolved'),
+      );
+      expect(screen.queryByText('Shipped reel')).toBeNull();
+
+      await user.type(screen.getByLabelText('Search threads'), 'shipped');
+      expect(screen.getByText('Shipped reel')).toBeVisible();
+    });
+
+    it('lists an archived thread under Resolved, not with the active ones', async () => {
+      const user = userEvent.setup();
+      render(<AgentThreadsPanel apiService={apiService} threads={threads} />);
+
+      await user.click(
+        screen.getByTestId('agent-threads-panel-group-toggle-resolved'),
+      );
       const resolved = screen.getByTestId('agent-threads-panel-group-resolved');
       expect(within(resolved).getByText('Shipped reel')).toBeVisible();
       expect(
@@ -259,7 +316,8 @@ describe('AgentThreadsPanel', () => {
       ).toBeNull();
     });
 
-    it('lists resolved threads the store never loaded', () => {
+    it('lists resolved threads the store never loaded', async () => {
+      const user = userEvent.setup();
       render(
         <AgentThreadsPanel
           apiService={apiService}
@@ -272,6 +330,9 @@ describe('AgentThreadsPanel', () => {
         />,
       );
 
+      await user.click(
+        screen.getByTestId('agent-threads-panel-group-toggle-resolved'),
+      );
       expect(
         within(
           screen.getByTestId('agent-threads-panel-group-resolved'),
@@ -294,6 +355,9 @@ describe('AgentThreadsPanel', () => {
 
       await user.click(
         screen.getByRole('button', { name: 'Resolve: Cut the trailer' }),
+      );
+      await user.click(
+        screen.getByTestId('agent-threads-panel-group-toggle-resolved'),
       );
       await user.click(
         screen.getByRole('button', { name: 'Reopen: Shipped reel' }),

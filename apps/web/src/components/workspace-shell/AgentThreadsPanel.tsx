@@ -10,23 +10,27 @@ import {
   AgentThreadStatus,
   ButtonSize,
   ButtonVariant,
+  ComponentSize,
 } from '@genfeedai/contracts';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import Searchbar from '@ui/primitives/searchbar';
+import Spinner from '@ui/primitives/spinner';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { CheckCheck, Undo2 } from 'lucide-react';
+  hoverConcealClassName,
+  hoverRevealClassName,
+} from '@ui/styles/hover-reveal';
+import {
+  Check,
+  ChevronDown,
+  CircleAlert,
+  CircleCheck,
+  Undo2,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { type ReactElement, useMemo, useState } from 'react';
 import type { AgentThreadsPanelProps } from '@/components/workspace-shell/props/agent-threads-panel.props';
 import AgentThreadLightView from './AgentThreadLightView';
-
-const ALL_BRANDS = '__all_brands__';
 
 type GroupKey =
   | 'needsYou'
@@ -43,13 +47,54 @@ const GROUP_ORDER: readonly GroupKey[] = [
   'resolved',
 ];
 
+/** Finished work stays out of sight until the operator asks for it. */
+const COLLAPSED_BY_DEFAULT: ReadonlySet<GroupKey> = new Set(['resolved']);
+
+function ThreadStatusIcon({
+  isResolved,
+  tone,
+}: {
+  isResolved: boolean;
+  tone: 'failed' | 'running' | 'warning' | null;
+}): ReactElement {
+  if (!isResolved && tone === 'running') {
+    return (
+      <span aria-hidden="true" className="mt-0.5 shrink-0">
+        <Spinner size={ComponentSize.SM} />
+      </span>
+    );
+  }
+  if (!isResolved && tone) {
+    return (
+      <CircleAlert
+        aria-hidden="true"
+        className={cn(
+          'mt-0.5 size-4 shrink-0',
+          tone === 'failed' ? 'text-destructive' : 'text-warning',
+        )}
+      />
+    );
+  }
+  return (
+    <CircleCheck
+      aria-hidden="true"
+      className={cn(
+        'mt-0.5 size-4 shrink-0',
+        isResolved ? 'text-muted-foreground' : 'text-success',
+      )}
+    />
+  );
+}
+
 /**
  * The Threads tab beside the master conversation: every thread the master (or
- * the operator) started, grouped by what needs attention, with a search box and
- * a brand filter. Picking one opens a light view with a steer box.
+ * the operator) started, grouped by what needs attention, with a search box.
+ * The brand is the topbar's, so the list takes it as `brandId` and has no
+ * filter of its own. Picking one opens a light view with a steer box.
  */
 export default function AgentThreadsPanel({
   apiService,
+  brandId = null,
   isLoading = false,
   onOpenFullThread,
   onOpenThreadChange,
@@ -62,7 +107,9 @@ export default function AgentThreadsPanel({
 }: AgentThreadsPanelProps) {
   const translate = useTranslations('common.agentThreads');
   const [searchQuery, setSearchQuery] = useState('');
-  const [brandId, setBrandId] = useState<string>(ALL_BRANDS);
+  const [toggledGroups, setToggledGroups] = useState<
+    Partial<Record<GroupKey, boolean>>
+  >({});
   const [localOpenThreadId, setLocalOpenThreadId] = useState<string | null>(
     null,
   );
@@ -85,20 +132,10 @@ export default function AgentThreadsPanel({
     ];
   }, [resolvedThreads, threads]);
 
-  const brandOptions = useMemo(() => {
-    const labels = new Map<string, string>();
-    for (const thread of allThreads) {
-      if (thread.brandId && !labels.has(thread.brandId)) {
-        labels.set(thread.brandId, thread.brandLabel?.trim() || thread.brandId);
-      }
-    }
-    return [...labels.entries()].map(([id, label]) => ({ id, label }));
-  }, [allThreads]);
-
   const groups = useMemo(
     () =>
       groupChildThreads([...allThreads], {
-        brandId: brandId === ALL_BRANDS ? null : brandId,
+        brandId,
         searchQuery,
       }),
     [allThreads, brandId, searchQuery],
@@ -134,6 +171,7 @@ export default function AgentThreadsPanel({
     (count, key) => count + groups[key].length,
     0,
   );
+  const isSearching = searchQuery.trim().length > 0;
 
   const renderRow = (thread: AgentThread) => {
     const status = getThreadStatusMeta(thread);
@@ -141,41 +179,59 @@ export default function AgentThreadsPanel({
     const isResolved = thread.status === AgentThreadStatus.ARCHIVED;
     const onToggleResolved = isResolved ? onReopenThread : onResolveThread;
     const toggleLabel = translate(isResolved ? 'reopen' : 'resolve');
+    const title = thread.title?.trim() || translate('untitled');
+    const hasStatusLabel = Boolean(status) && !isResolved;
     return (
-      <li className="flex items-start gap-1" key={thread.id}>
+      <li
+        className="group relative rounded-lg transition-colors focus-within:bg-foreground/5 hover:bg-foreground/5"
+        key={thread.id}
+      >
+        {/* ui-guard-allow:unstyled-look -- the row <li> owns the hover and focus look; this is its click target */}
         <Button
-          className="h-auto min-h-10 min-w-0 flex-1 flex-col items-start gap-0.5 py-2 text-left"
+          className="flex w-full min-w-0 items-start gap-2.5 rounded-lg px-2.5 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60"
           data-testid={`agent-threads-panel-thread-${thread.id}`}
           onClick={() => setOpenThreadId(thread.id)}
-          size={ButtonSize.SM}
           textTransform="none"
-          variant={ButtonVariant.GHOST}
+          variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
         >
-          <span className="flex w-full items-center gap-2">
-            <span className="line-clamp-1 flex-1 text-sm font-medium">
-              {thread.title?.trim() || translate('untitled')}
+          <ThreadStatusIcon
+            isResolved={isResolved}
+            tone={status?.tone ?? null}
+          />
+          <span className="min-w-0 flex-1 pr-24">
+            <span className="block truncate text-sm text-foreground">
+              {title}
             </span>
-            {status && !isResolved ? (
-              <span className="shrink-0 text-xs text-muted-foreground">
-                {status.label}
+            {preview ? (
+              <span className="block truncate text-xs text-muted-foreground">
+                {preview}
+              </span>
+            ) : null}
+            {!brandId && thread.brandLabel ? (
+              <span className="block truncate text-xs text-muted-foreground/70">
+                {thread.brandLabel}
               </span>
             ) : null}
           </span>
-          {preview ? (
-            <span className="line-clamp-2 text-xs text-muted-foreground">
-              {preview}
-            </span>
-          ) : null}
-          {thread.brandLabel ? (
-            <span className="text-xs text-muted-foreground">
-              {thread.brandLabel}
-            </span>
-          ) : null}
         </Button>
+        {hasStatusLabel ? (
+          <span
+            className={cn(
+              'pointer-events-none absolute right-2.5 top-2 max-w-[40%] truncate text-xs text-muted-foreground',
+              onToggleResolved ? hoverConcealClassName() : null,
+            )}
+          >
+            {status?.label}
+          </span>
+        ) : null}
         {onToggleResolved ? (
           <Button
-            aria-label={`${toggleLabel}: ${thread.title?.trim() || translate('untitled')}`}
+            aria-label={`${toggleLabel}: ${title}`}
+            className={cn(
+              'absolute right-1.5 top-1.5 size-7 rounded-md text-muted-foreground hover:bg-foreground/10 hover:text-foreground',
+              hoverRevealClassName(),
+            )}
             data-testid={`agent-threads-panel-toggle-resolved-${thread.id}`}
             isDisabled={pendingThreadIds?.has(thread.id) ?? false}
             onClick={() => void onToggleResolved(thread.id)}
@@ -187,11 +243,57 @@ export default function AgentThreadsPanel({
             {isResolved ? (
               <Undo2 className="size-4" />
             ) : (
-              <CheckCheck className="size-4" />
+              <Check className="size-4" />
             )}
           </Button>
         ) : null}
       </li>
+    );
+  };
+
+  const renderGroup = (key: GroupKey) => {
+    const isOpen = isSearching
+      ? true
+      : (toggledGroups[key] ?? !COLLAPSED_BY_DEFAULT.has(key));
+    const label = translate(`groups.${key}`);
+    const listId = `agent-threads-panel-list-${key}`;
+    return (
+      <section
+        aria-label={label}
+        data-testid={`agent-threads-panel-group-${key}`}
+        key={key}
+      >
+        {/* ui-guard-allow:unstyled-look -- a disclosure header, not a standalone button */}
+        <Button
+          aria-controls={listId}
+          aria-expanded={isOpen}
+          className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:text-foreground"
+          data-testid={`agent-threads-panel-group-toggle-${key}`}
+          onClick={() =>
+            setToggledGroups((current) => ({ ...current, [key]: !isOpen }))
+          }
+          textTransform="none"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+        >
+          <ChevronDown
+            aria-hidden="true"
+            className={cn(
+              'size-3 transition-transform',
+              isOpen ? null : '-rotate-90',
+            )}
+          />
+          <span>{label}</span>
+          <span className="tabular-nums text-muted-foreground/70">
+            · {groups[key].length}
+          </span>
+        </Button>
+        {isOpen ? (
+          <ul className="space-y-0.5" id={listId}>
+            {groups[key].map(renderRow)}
+          </ul>
+        ) : null}
+      </section>
     );
   };
 
@@ -200,62 +302,28 @@ export default function AgentThreadsPanel({
       className="flex min-h-0 flex-1 flex-col"
       data-testid="agent-threads-panel"
     >
-      <div className="flex items-center gap-2 border-b border-border p-3">
+      <div className="p-3 pb-1">
         <Searchbar
           ariaLabel={translate('search')}
-          className="min-w-0 flex-1"
+          className="min-w-0"
           onChange={(event) => setSearchQuery(event.target.value)}
           onClear={() => setSearchQuery('')}
           placeholder={translate('search')}
           value={searchQuery}
         />
-        {brandOptions.length > 1 ? (
-          <Select onValueChange={setBrandId} value={brandId}>
-            <SelectTrigger
-              aria-label={translate('brandFilter')}
-              className="w-40 shrink-0"
-              data-testid="agent-threads-panel-brand-filter"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_BRANDS}>
-                {translate('allBrands')}
-              </SelectItem>
-              {brandOptions.map((brand) => (
-                <SelectItem key={brand.id} value={brand.id}>
-                  {brand.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : null}
       </div>
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3">
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2 pb-3 pt-1">
         {isLoading && visibleCount === 0 ? (
-          <p className="text-sm text-muted-foreground" role="status">
+          <p className="px-2 text-sm text-muted-foreground" role="status">
             {translate('loading')}
           </p>
         ) : visibleCount === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {searchQuery || brandId !== ALL_BRANDS
-              ? translate('noMatches')
-              : translate('empty')}
+          <p className="px-2 text-sm text-muted-foreground">
+            {isSearching ? translate('noMatches') : translate('empty')}
           </p>
         ) : (
-          GROUP_ORDER.filter((key) => groups[key].length > 0).map((key) => (
-            <section
-              aria-label={translate(`groups.${key}`)}
-              data-testid={`agent-threads-panel-group-${key}`}
-              key={key}
-            >
-              <h3 className="px-2 pb-1 text-xs font-medium uppercase text-muted-foreground">
-                {translate(`groups.${key}`)}
-              </h3>
-              <ul className="space-y-1">{groups[key].map(renderRow)}</ul>
-            </section>
-          ))
+          GROUP_ORDER.filter((key) => groups[key].length > 0).map(renderGroup)
         )}
       </div>
     </div>

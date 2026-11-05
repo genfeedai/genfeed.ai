@@ -19,6 +19,7 @@ import {
   hasProductResultCard,
   shouldRenderCompletionSummary,
 } from '@genfeedai/agent/utils/should-render-completion-summary';
+import { stripTrailingReplyEnvelope } from '@genfeedai/agent/utils/strip-reply-envelope.util';
 import {
   ButtonVariant,
   CardGap,
@@ -157,8 +158,15 @@ function AgentChatMessageInner({
   const hasUiActions = normalizedUiActions.length > 0;
   const shouldSuppressFallbackMessage =
     !isUser && hasUiActions && isToolOnlyFallbackMessage;
+  const displayContent = useMemo(
+    () =>
+      isUser
+        ? message.content
+        : stripTrailingReplyEnvelope(message.content ?? ''),
+    [isUser, message.content],
+  );
   const shouldRenderMessageContent =
-    Boolean(message.content) &&
+    Boolean(displayContent) &&
     !shouldSuppressFallbackMessage &&
     !metadataTransfer;
   const copyContent =
@@ -271,7 +279,7 @@ function AgentChatMessageInner({
                 )}
               >
                 <LazySafeMarkdown
-                  content={message.content}
+                  content={displayContent}
                   enhanceStructure={!isUser}
                   className={cn(
                     // min-w-0 + anywhere: long tokens / inline code must wrap inside

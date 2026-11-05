@@ -2,12 +2,20 @@
 
 import { useAgentOutputHost } from '@contexts/ui/agent-output-host-context';
 import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import {
+  getBrandEntityId,
+  getBrandOrganizationId,
+} from '@contexts/user/brand-context/brand-context.helpers';
 import {
   AgentThreadOpenProvider,
   AgentThreadResolutionProvider,
   useAgentChatStore,
 } from '@genfeedai/agent';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+} from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AgentOutputTabDefinition } from '@props/ui/agent-output-shell.props';
 import AgentOutputLayout from '@ui/layout/agent-output-layout/AgentOutputLayout';
@@ -40,7 +48,8 @@ export default function AgentMasterWorkspace({
   const translate = useTranslations('common.agentOutput');
   const translateWorkspace = useTranslations('common.agentWorkspace');
   const { push } = useRouter();
-  const { orgHref } = useOrgUrl();
+  const { activeHref, orgSlug } = useOrgUrl();
+  const { brandId, brands, organizationId } = useBrand();
   const { agentApiService, isLoaded } = useAgentWorkspace();
   const host = useAgentOutputHost();
   const contextSidebar = useContextSidebar();
@@ -67,14 +76,41 @@ export default function AgentMasterWorkspace({
     }
   }, [isUserSelectionOpen, onOpenContext, selectionKey]);
 
+  // A thread opens in its own brand: the link carries the owning brand's slug,
+  // so the topbar follows the thread. A thread with no brand (or one the
+  // brand list does not know) stays in the scope the operator is in.
+  const buildThreadHref = useCallback(
+    (threadId: string, options?: { isFull?: boolean }) => {
+      const thread =
+        threads.find((item) => item.id === threadId) ??
+        resolvedThreads.find((item) => item.id === threadId);
+      const ownerBrand = thread?.brandId
+        ? brands.find(
+            (brand) =>
+              getBrandEntityId(brand) === thread.brandId &&
+              getBrandOrganizationId(brand) === organizationId,
+          )
+        : undefined;
+      if (ownerBrand?.slug && orgSlug) {
+        return createBrandAppRoute(
+          orgSlug,
+          ownerBrand.slug,
+          buildAgentThreadHref(threadId, options),
+        );
+      }
+      return activeHref(buildAgentThreadHref(threadId, options));
+    },
+    [activeHref, brands, orgSlug, organizationId, resolvedThreads, threads],
+  );
+
   // A thread chip in the master's transcript, or a row in the list, opens that
   // thread in the panel by moving the URL to it; Back returns to the list.
   const openThreadInPanel = useCallback(
     (threadId: string) => {
       host?.onCloseContext();
-      push(orgHref(buildAgentThreadHref(threadId)));
+      push(buildThreadHref(threadId));
     },
-    [host, orgHref, push],
+    [buildThreadHref, host, push],
   );
 
   const setOpenThreadId = useCallback(
@@ -83,15 +119,14 @@ export default function AgentMasterWorkspace({
         openThreadInPanel(threadId);
         return;
       }
-      push(orgHref(APP_ROUTES.AGENT.THREADS));
+      push(activeHref(APP_ROUTES.AGENT.THREADS));
     },
-    [openThreadInPanel, orgHref, push],
+    [activeHref, openThreadInPanel, push],
   );
 
   const openFullThread = useCallback(
-    (threadId: string) =>
-      push(orgHref(buildAgentThreadHref(threadId, { isFull: true }))),
-    [orgHref, push],
+    (threadId: string) => push(buildThreadHref(threadId, { isFull: true })),
+    [buildThreadHref, push],
   );
 
   const tabs = useMemo<AgentOutputTabDefinition[]>(
@@ -100,6 +135,7 @@ export default function AgentMasterWorkspace({
         content: (
           <AgentThreadsPanel
             apiService={agentApiService}
+            brandId={brandId || null}
             isLoading={isLoading}
             onOpenFullThread={openFullThread}
             onOpenThreadChange={setOpenThreadId}
@@ -122,6 +158,7 @@ export default function AgentMasterWorkspace({
     ],
     [
       agentApiService,
+      brandId,
       host?.contextPanel,
       isLoading,
       openFullThread,
