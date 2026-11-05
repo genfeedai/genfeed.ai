@@ -6,7 +6,7 @@ import {
   MOOD_BOARD_TILE_HEIGHT,
   mergeMoodBoardLayout,
   toMoodBoardLayout,
-} from '@genfeedai/utils/moodboard/mood-board-layout.util';
+} from '@utils/moodboard/mood-board-layout.util';
 import { describe, expect, it } from 'vitest';
 
 function asset(id: string): IIngredient {

@@ -5,7 +5,8 @@
     "declarationMap": false,
     "noEmit": true,
     "rootDir": "../..",
-    "types": ["node", "vitest/globals"]
+    "types": ["node", "vitest/globals"],
+    "lib": ["ES2020", "DOM"]
   },
   "exclude": ["node_modules", "dist"],
   "extends": "./tsconfig.json",

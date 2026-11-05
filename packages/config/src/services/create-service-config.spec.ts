@@ -14,13 +14,13 @@ vi.mock('node:fs', () => ({
   readFileSync: mockReadFileSync,
 }));
 
-interface SampleEnvConfig {
+type SampleEnvConfig = {
   NODE_ENV?: 'development' | 'staging' | 'production' | 'test';
   PORT?: number;
   VERSION?: string;
   SAMPLE_SHARED?: string;
   SAMPLE_INLINE?: string;
-}
+};
 
 const sharedFragment: Record<string, Joi.Schema> = {
   SAMPLE_SHARED: Joi.string().optional().allow(''),
@@ -33,11 +33,12 @@ describe('createServiceConfig', () => {
     mockExistsSync.mockReset().mockReturnValue(false);
     mockReadFileSync.mockReset().mockReturnValue(Buffer.from(''));
     process.env = { ...originalEnv };
-    process.env.NODE_ENV = 'test';
+    vi.stubEnv('NODE_ENV', 'test');
     process.env.PORT = '3999';
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     process.env = { ...originalEnv };
     vi.clearAllMocks();
   });
@@ -111,7 +112,7 @@ describe('createServiceConfig', () => {
     new ServiceConfig();
 
     const checkedPaths = mockExistsSync.mock.calls.map(
-      (call: [string]) => call[0],
+      ([checkedPath]) => checkedPath,
     );
     // apps/server working dir resolves env files relative to ../../ + appName/.
     expect(checkedPaths.some((p) => p.startsWith('../../'))).toBe(true);
@@ -127,7 +128,7 @@ describe('createServiceConfig', () => {
     new ServiceConfig();
 
     const checkedPaths = mockExistsSync.mock.calls.map(
-      (call: [string]) => call[0],
+      ([checkedPath]) => checkedPath,
     );
     expect(checkedPaths.some((p) => p.startsWith('apps/server/sample/'))).toBe(
       true,
