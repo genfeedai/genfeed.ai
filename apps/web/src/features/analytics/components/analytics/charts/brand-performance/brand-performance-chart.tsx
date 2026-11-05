@@ -68,7 +68,7 @@ export function BrandPerformanceChart({
   className = '',
   emptyAction,
 }: BrandPerformanceChartProps) {
-  const translate = useTranslations('pages.analytics.charts.brandPerformance');
+  const translate = useTranslations('ui.analyticsCharts.brandPerformance');
   const [activeMetric, setActiveMetric] = useState<BrandMetricKey>(
     String(metric).toLowerCase() as BrandMetricKey,
   );

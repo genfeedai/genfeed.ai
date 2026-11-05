@@ -180,6 +180,42 @@
     "whyItWorks": "Why it works",
     "notEvaluated": "Not evaluated"
   },
+  "analyticsCharts": {
+    "brandPerformance": {
+      "emptyDescription": "Brands rank here once they publish posts in this date range.",
+      "emptyTitle": "No brand performance yet",
+      "metricEmpty": {
+        "engagement": {
+          "description": "Posts are published, but no platform has reported engagement for this date range yet. It shows up after the next metrics sync.",
+          "title": "No engagement yet"
+        },
+        "posts": {
+          "description": "Engagement and views in this range come from posts published earlier.",
+          "title": "No posts published in this date range"
+        },
+        "views": {
+          "description": "Posts are published, but no platform has reported views for this date range yet. They show up after the next metrics sync.",
+          "title": "No views yet"
+        }
+      },
+      "showPosts": "Show posts"
+    },
+    "platformComparison": {
+      "emptyDescription": "Views and engagement per platform appear here once connected accounts report metrics.",
+      "emptyTitle": "No platform data available"
+    },
+    "platformDistribution": {
+      "emptyDescription": "Views split by platform once a connected account reports them for this date range.",
+      "emptyTitle": "No platform distribution yet"
+    },
+    "platformTrends": {
+      "noPlatformsDescription": "Connect a social account to see how each platform trends over time.",
+      "noPlatformsTitle": "No connected platforms yet",
+      "noTrendsDescription": "Daily views per platform appear here after connected accounts publish and metrics sync back.",
+      "noTrendsTitle": "No performance trends yet"
+    },
+    "connectAccounts": "Connect accounts"
+  },
   "knowledgeReceipts": {
     "title": "Knowledge sources",
     "citationsTitle": "Sources",

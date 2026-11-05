@@ -57,9 +57,7 @@ export function PlatformComparisonChart({
   emptyAction,
 }: PlatformComparisonChartProps) {
   const selectionLabels = useTranslations('ui.selectionGroups');
-  const translate = useTranslations(
-    'pages.analytics.charts.platformComparison',
-  );
+  const translate = useTranslations('ui.analyticsCharts.platformComparison');
   const [activeMetrics, setActiveMetrics] = useState<
     PlatformComparisonMetricType[]
   >([AnalyticsMetric.VIEWS, AnalyticsMetric.LIKES]);

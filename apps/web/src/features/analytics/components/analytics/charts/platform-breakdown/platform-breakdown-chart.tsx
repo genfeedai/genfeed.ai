@@ -47,9 +47,7 @@ export function PlatformBreakdownChart({
   className = '',
   emptyAction,
 }: PlatformBreakdownChartProps) {
-  const translate = useTranslations(
-    'pages.analytics.charts.platformDistribution',
-  );
+  const translate = useTranslations('ui.analyticsCharts.platformDistribution');
   const chartData = data ?? [];
   // Zero-value platforms are noise — empty when nothing has signal.
   const filteredData = chartData.filter((item) => item.value > 0);

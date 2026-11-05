@@ -152,7 +152,7 @@ export default function AnalyticsOrganizationOverview({
 }: AnalyticsOrganizationOverviewProps) {
   const { isSignedIn } = useAuthIdentity();
   const router = useRouter();
-  const translateOverview = useTranslations('pages.analytics.overview');
+  const translateCharts = useTranslations('ui.analyticsCharts');
   const { orgHref } = useOrgUrl();
   const scope = useCollectionScope();
   const organizationId = organizationIdProp ?? scope.organizationId;
@@ -249,7 +249,7 @@ export default function AnalyticsOrganizationOverview({
   const connectAccountsAction: EmptyStateAction | undefined = organizationIdProp
     ? undefined
     : {
-        label: translateOverview('connectAccounts'),
+        label: translateCharts('connectAccounts'),
         onClick: () => router.push(orgHref(APP_ROUTES.SETTINGS.BRANDS)),
       };
 

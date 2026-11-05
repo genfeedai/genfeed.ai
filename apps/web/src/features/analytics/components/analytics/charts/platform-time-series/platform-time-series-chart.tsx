@@ -63,7 +63,7 @@ export function PlatformTimeSeriesChart({
   emptyAction,
 }: PlatformTimeSeriesChartProps) {
   const selectionLabels = useTranslations('ui.selectionGroups');
-  const translate = useTranslations('pages.analytics.charts.platformTrends');
+  const translate = useTranslations('ui.analyticsCharts.platformTrends');
   const [selectionOverride, setSelectionOverride] =
     useState<PlatformSelectionOverride | null>(null);
   const activeSelectionOverride =
