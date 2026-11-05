@@ -3,7 +3,10 @@ import type { LucideIcon } from 'lucide-react';
 
 export type StoryboardPresetFormat = '9:16' | '16:9' | '1:1';
 
-export type StoryboardPresetId = 'productLaunch' | 'founderStory' | 'beforeAfter';
+export type StoryboardPresetId =
+  | 'productLaunch'
+  | 'founderStory'
+  | 'beforeAfter';
 
 /** One ready-to-run storyboard starting point. Titles live in i18n by `id`. */
 export interface StoryboardPreset {

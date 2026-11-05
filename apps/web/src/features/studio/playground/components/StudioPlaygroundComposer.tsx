@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ModelCategory } from '@genfeedai/contracts';
+import { ModelCategory } from '@genfeedai/contracts';
 import {
   FLUX_3_ASPECT_RATIOS,
   FLUX_3_RESOLUTIONS,
@@ -48,7 +48,6 @@ import {
 import type { PromptBarReferenceSource } from '@genfeedai/props/prompt-bars/prompt-bar-reference-source.props';
 import { canSubmitStudioGeneration } from '@genfeedai/services/core/desktop-runtime.service';
 import { usePromptBarContext } from '@providers/promptbar/promptbar.context';
-import { SHELL_ICON_CLASS } from '@ui/constants/shell-chrome.constant';
 import {
   applyGenerationSetupPreset,
   applyGenerationSetupRecommendation,
@@ -60,7 +59,6 @@ import {
 } from '@ui/dropdowns/generation-setup/generation-setup.store';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorites';
-import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';

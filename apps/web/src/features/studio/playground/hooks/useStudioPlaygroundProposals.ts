@@ -72,7 +72,7 @@ export function useStudioPlaygroundProposals(
           isBrandApproved: result.isBrandApproved,
           key,
           proposals:
-            result.surface === 'storyboard'
+            result.surface === 'storyboard' || result.surface === 'turbo'
               ? EMPTY_PROPOSALS
               : result.proposals.slice(0, PLAYGROUND_PROPOSAL_COUNT),
         };

@@ -429,13 +429,11 @@ export default function StoryboardNewPane() {
         {video?.title || translate('chooseOwnedVideo')}
       </p>
     ) : isLongForm || isSlideshow ? (
-      <>
-        <StoryboardPitchCards
-          isDisabled={isCreating}
-          kind={pitchKind}
-          onSelect={applyPitch}
-        />
-      </>
+      <StoryboardPitchCards
+        isDisabled={isCreating}
+        kind={pitchKind}
+        onSelect={applyPitch}
+      />
     ) : (
       <StoryboardStarterCards
         activePresetId={

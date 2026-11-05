@@ -2,7 +2,6 @@
 
 import type { PromptBarCompactSelectProps } from '@genfeedai/props/prompt-bars/prompt-bar-send-button.props';
 import { PROMPT_BAR_CHIP_SELECT_CLASS } from '@ui/constants/shell-chrome.constant';
-import PromptBarChipIcon from '@ui/prompt-bars/components/toolbar/PromptBarChipIcon';
 import {
   Select,
   SelectContent,
@@ -10,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import PromptBarChipIcon from '@ui/prompt-bars/components/toolbar/PromptBarChipIcon';
 import { ChevronDown } from 'lucide-react';
 import type { ReactElement } from 'react';
 
