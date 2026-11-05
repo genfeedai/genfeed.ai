@@ -1,6 +1,6 @@
 import type {
+  InvitationStatus,
   IWarmupAccount,
-  IWarmupInvitationStatus,
 } from '@genfeedai/contracts/interfaces';
 
 /** A concierge account the customer owns or an operator archived takes no more handoff steps. */
@@ -44,7 +44,7 @@ export function canRevokeInvitation(account: IWarmupAccount): boolean {
 
 /** The i18n key (under `pages.warmupAccounts.invitation`) that names an invitation status. */
 export function getInvitationStatusKey(
-  status: IWarmupInvitationStatus,
+  status: InvitationStatus,
 ):
   | 'statusAccepted'
   | 'statusDelivered'
