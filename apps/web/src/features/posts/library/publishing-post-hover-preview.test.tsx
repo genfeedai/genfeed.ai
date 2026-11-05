@@ -2,7 +2,12 @@ import '@testing-library/jest-dom/vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { IPost } from '@genfeedai/contracts/interfaces';
+import type { QueryClient } from '@tanstack/react-query';
 import {
   fireEvent,
   render as rtlRender,
@@ -36,11 +41,20 @@ function IntlWrapper({ children }: PropsWithChildren) {
   );
 }
 
-function render(ui: ReactElement) {
-  return rtlRender(ui, { wrapper: IntlWrapper });
+function render(
+  ui: ReactElement,
+  client: QueryClient = createTestQueryClient(),
+) {
+  return rtlRender(<IntlWrapper>{ui}</IntlWrapper>, {
+    wrapper: queryClientWrapper(client),
+  });
 }
 
 const mocks = vi.hoisted(() => ({ findOne: vi.fn() }));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getService,
 }));
@@ -178,5 +192,32 @@ describe('PublishingPostHoverPreview lazy post details', () => {
     expect(signal.aborted).toBe(false);
     unmount();
     expect(signal.aborted).toBe(true);
+  });
+
+  it('paints the cached post at once when the preview opens again', async () => {
+    const client = createTestQueryClient();
+    const { unmount } = render(
+      <PublishingPostHoverPreview postId="post-1" target={fallback}>
+        <a href="/review">Review post</a>
+      </PublishingPostHoverPreview>,
+      client,
+    );
+    fireEvent.focus(screen.getByRole('link', { name: 'Review post' }));
+    await screen.findByText('Full caption from the actual post');
+    unmount();
+
+    mocks.findOne.mockImplementation(() => new Promise(() => {}));
+    render(
+      <PublishingPostHoverPreview postId="post-1" target={fallback}>
+        <a href="/review">Review post</a>
+      </PublishingPostHoverPreview>,
+      client,
+    );
+    fireEvent.focus(screen.getByRole('link', { name: 'Review post' }));
+
+    expect(
+      await screen.findByText('Full caption from the actual post'),
+    ).toBeVisible();
+    expect(screen.queryByText('Loading post preview…')).not.toBeInTheDocument();
   });
 });
