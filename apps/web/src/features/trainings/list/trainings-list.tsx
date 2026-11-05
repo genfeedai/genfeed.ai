@@ -18,6 +18,7 @@ import { Cpu, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import TrainingSidebarActivity from './components/TrainingSidebarActivity';
 import { buildTrainingsTableActions } from './components/TrainingsTableActions';
 import { buildTrainingsTableColumns } from './components/TrainingsTableColumns';
 import { useTrainingsList } from './useTrainingsList';
@@ -151,16 +152,6 @@ export default function TrainingsList({
           },
           { id: 'steps', label: trainingT('steps'), value: training.steps },
           {
-            id: 'sources',
-            label: trainingT('sources'),
-            value: training.totalSources,
-          },
-          {
-            id: 'generated',
-            label: trainingT('generatedImages'),
-            value: training.totalGeneratedImages,
-          },
-          {
             editor: {
               ariaLabel: fieldsT('active'),
               isChecked: training.isActive !== false,
@@ -177,6 +168,9 @@ export default function TrainingsList({
         getSubtitle: (training) => training.externalId,
         getTitle: (training) => training.label,
         kind: 'model',
+        renderExtra: (training) => (
+          <TrainingSidebarActivity training={training} />
+        ),
       }),
     [brands, saveTraining, scope, fieldsT, trainingT],
   );

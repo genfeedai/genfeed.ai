@@ -23,6 +23,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockFindAllPage = vi.fn();
 const mockPatch = vi.fn();
+const mockGetTrainingImages = vi.fn();
 const searchParamsState = vi.hoisted(() => ({
   current: new URLSearchParams(''),
 }));
@@ -51,7 +52,11 @@ vi.mock('@genfeedai/config/deployment', () => ({
 }));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
-  useAuthIdentity: () => ({ isSignedIn: true }),
+  useAuthIdentity: () => ({
+    isSignedIn: true,
+    orgId: 'org-1',
+    userId: 'user-1',
+  }),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -82,6 +87,7 @@ vi.mock('@services/ai/trainings.service', () => ({
     getInstance: () => ({
       delete: vi.fn(),
       findAllPage: mockFindAllPage,
+      getTrainingImages: mockGetTrainingImages,
       patch: mockPatch,
     }),
   },
@@ -237,6 +243,54 @@ describe('TrainingsList', () => {
       'Brand Style v1',
     );
     expect(rail.queryByRole('button', { name: 'Edit' })).toBeNull();
+  });
+
+  it('shows what a training learned from and made, and its latest images, in the sidebar', async () => {
+    mockFindAllPage.mockResolvedValue(
+      paginatedResponse([
+        buildTraining({
+          model: 'genfeed/brand-style',
+          totalGeneratedImages: 42,
+          totalSources: 12,
+        }),
+      ]),
+    );
+    mockGetTrainingImages.mockResolvedValue(
+      paginatedResponse([
+        {
+          createdAt: '2026-11-01T10:00:00.000Z',
+          generationPrompt: 'brandstyle sneaker on a beach',
+          id: 'image-1',
+        },
+      ]),
+    );
+    renderTrainingsList();
+
+    fireEvent.click(await screen.findByText('Brand Style v1'));
+
+    const rail = within(screen.getByTestId('rail'));
+    expect(
+      await rail.findByText('brandstyle sneaker on a beach'),
+    ).toBeInTheDocument();
+    expect(rail.getByText('Recent generations')).toBeInTheDocument();
+    expect(rail.getByText('42')).toBeInTheDocument();
+    expect(rail.getByText('12')).toBeInTheDocument();
+  });
+
+  it('says so in the sidebar when nothing has been made with a training yet', async () => {
+    mockFindAllPage.mockResolvedValue(
+      paginatedResponse([buildTraining({ model: 'genfeed/brand-style' })]),
+    );
+    mockGetTrainingImages.mockResolvedValue(paginatedResponse([]));
+    renderTrainingsList();
+
+    fireEvent.click(await screen.findByText('Brand Style v1'));
+
+    expect(
+      await within(screen.getByTestId('rail')).findByText(
+        'Nothing made with this model yet',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('saves a label edited in the sidebar and reloads the list', async () => {

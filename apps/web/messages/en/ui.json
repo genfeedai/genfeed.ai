@@ -1036,7 +1036,10 @@
       "generatedImages": "Generated images",
       "sources": "Sources",
       "steps": "Steps",
-      "triggerWord": "Trigger word"
+      "triggerWord": "Trigger word",
+      "recentGenerations": "Recent generations",
+      "noGenerations": "Nothing made with this model yet",
+      "untitledImage": "Untitled image"
     },
     "categories": {
       "video": "Video",
