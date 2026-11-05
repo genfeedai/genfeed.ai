@@ -1,3 +1,4 @@
+import { Status } from '@genfeedai/contracts';
 import type {
   AgentArtifactRecordKind,
   AgentArtifactReference,
@@ -58,6 +59,17 @@ export function mergeAgentArtifactCompletionMetadata(
   };
 }
 
+const GENERATED_MEDIA_KINDS: ReadonlySet<string> = new Set([
+  'image',
+  'music',
+  'video',
+  'voice',
+]);
+
+function isGeneratedMediaKind(value: unknown): boolean {
+  return typeof value === 'string' && GENERATED_MEDIA_KINDS.has(value);
+}
+
 function readStrings(value: unknown): string[] {
   return Array.isArray(value)
     ? value.map(readString).filter((item): item is string => item !== undefined)
@@ -80,9 +92,10 @@ function buildReference(
 }
 
 /**
- * Extracts only explicit, typed record-id fields returned by backend tools.
- * Presentation URLs, message text, action ids, and UI-action payloads are
- * intentionally excluded from the authoritative new-write path.
+ * Extracts only explicit, typed record-id fields returned by backend tools,
+ * plus the ingredient id of a media tool's `{ id, kind }` result. Presentation
+ * URLs, message text, action ids, and UI-action payloads are intentionally
+ * excluded from the authoritative new-write path.
  */
 export function buildAgentArtifactCompletionMetadata(
   data: Record<string, unknown> | undefined,
@@ -104,6 +117,26 @@ export function buildAgentArtifactCompletionMetadata(
       references.push(
         buildReference(
           kind,
+          recordId,
+          context.organizationId,
+          context.brandId ?? context.scope?.brandId,
+        ),
+      );
+    }
+  }
+
+  // Media tools answer `{ id, kind }`, where the id is the Library ingredient
+  // the generation wrote. Without this a thread that makes an image or video
+  // records no output, so the image cannot be handed to the next thread.
+  // A failed generation's placeholder is not an output.
+  if (isGeneratedMediaKind(data.kind) && data.status !== Status.FAILED) {
+    for (const recordId of [
+      ...(readString(data.id) ? [readString(data.id)] : []),
+      ...readStrings(data.outputIds),
+    ].filter((id): id is string => id !== undefined)) {
+      references.push(
+        buildReference(
+          'ingredient',
           recordId,
           context.organizationId,
           context.brandId ?? context.scope?.brandId,

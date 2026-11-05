@@ -39,6 +39,7 @@ import {
   applyAgentReplyStyle,
   buildAgentSystemPrompt,
 } from '@api/services/agent-orchestrator/utils/agent-system-prompt.util';
+import { renderTransferResultForHistory } from '@api/services/agent-orchestrator/utils/agent-transfer-result-history.util';
 import {
   sanitizeAgentUntrustedInput,
   UNTRUSTED_USER_DATA_FRAMING,
@@ -432,6 +433,11 @@ export class AgentOrchestratorContextService {
 
     for (let i = 0; i < messages.length; i++) {
       const msg = messages[i];
+      const transferResult = renderTransferResultForHistory(msg);
+      if (transferResult) {
+        history.push({ content: transferResult, role: 'user' });
+        continue;
+      }
       if (
         msg.role === AgentMessageRole.USER ||
         msg.role === AgentMessageRole.ASSISTANT

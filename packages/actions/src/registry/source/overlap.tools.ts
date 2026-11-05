@@ -161,7 +161,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         imageUrl: {
           description:
-            'Video only. Start-frame image URL for image-to-video; with audioUrl, talking-avatar lip-sync.',
+            'Video only. Start frame for image-to-video: the Library image id (from a generated image, get_assets, or a handed-off ingredient record). With audioUrl, talking-avatar lip-sync.',
           type: 'string',
         },
         audioUrl: {

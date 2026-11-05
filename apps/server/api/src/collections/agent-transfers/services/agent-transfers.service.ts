@@ -84,12 +84,29 @@ export class AgentTransfersService {
     limit = 20,
   ) {
     await this.loadAuthorizedThread(actor, sourceThreadId);
-    return this.prisma.agentThread.findMany({
+    const threads = await this.prisma.agentThread.findMany({
       orderBy: { updatedAt: 'desc' },
       select: {
         brandId: true,
         createdAt: true,
         id: true,
+        // The latest hand-off this thread sent there, so the caller can see
+        // where the work stands and what it produced before it hands on more.
+        inboundTransfers: {
+          orderBy: { createdAt: 'desc' },
+          select: {
+            completedAt: true,
+            completionSummary: true,
+            failureReason: true,
+            outputArtifactReferences: true,
+            status: true,
+          },
+          take: 1,
+          where: scopedWhere(actor.organizationId, {
+            sourceThreadId,
+            userId: actor.userId,
+          }),
+        },
         title: true,
         updatedAt: true,
       },
@@ -108,6 +125,10 @@ export class AgentTransfersService {
           : {}),
       }),
     });
+    return threads.map(({ inboundTransfers, ...thread }) => ({
+      ...thread,
+      latestHandoff: inboundTransfers[0] ?? null,
+    }));
   }
 
   async listForThread(actor: TransferActor, threadId: string) {

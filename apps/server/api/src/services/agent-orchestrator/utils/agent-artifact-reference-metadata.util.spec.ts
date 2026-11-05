@@ -57,6 +57,55 @@ describe('agent artifact reference completion metadata', () => {
     ).toEqual({});
   });
 
+  it('records an image a media tool made as an ingredient output', () => {
+    expect(
+      buildAgentArtifactCompletionMetadata(
+        { id: 'image-1', kind: 'image', status: 'generated' },
+        { brandId: 'brand-1', organizationId: 'org-1' },
+      ),
+    ).toEqual({
+      artifactReferences: [
+        {
+          brandId: 'brand-1',
+          kind: 'ingredient',
+          organizationId: 'org-1',
+          recordId: 'image-1',
+          serializer: 'ingredient',
+        },
+      ],
+    });
+  });
+
+  it.each([
+    [
+      'a queued video',
+      { id: 'video-1', kind: 'video', status: 'processing' },
+      ['video-1'],
+    ],
+    [
+      'an image edit with several outputs',
+      { id: 'image-2', kind: 'image', outputIds: ['image-2', 'image-3'] },
+      ['image-2', 'image-3'],
+    ],
+  ])('records %s as ingredient outputs', (_label, data, recordIds) => {
+    const { artifactReferences } = buildAgentArtifactCompletionMetadata(data, {
+      organizationId: 'org-1',
+    });
+    expect(artifactReferences?.map((reference) => reference.recordId)).toEqual(
+      recordIds,
+    );
+  });
+
+  it.each([
+    ['a failed generation', { id: 'image-1', kind: 'image', status: 'failed' }],
+    ['a result with no media kind', { id: 'thread-1', status: 'generated' }],
+    ['a text result', { id: 'post-copy-1', kind: 'post' }],
+  ])('records no output for %s', (_label, data) => {
+    expect(
+      buildAgentArtifactCompletionMetadata(data, { organizationId: 'org-1' }),
+    ).toEqual({});
+  });
+
   it('deduplicates completion metadata shared by a message and run', () => {
     const reference = {
       kind: 'post' as const,

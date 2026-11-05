@@ -316,6 +316,17 @@ function userMessage(content: string): AgentMessageDocument {
   } as AgentMessageDocument;
 }
 
+function systemMessage(
+  content: string,
+  metadata: AgentMessageDocument['metadata'] = {},
+): AgentMessageDocument {
+  return {
+    content,
+    metadata,
+    role: AgentMessageRole.SYSTEM,
+  } as AgentMessageDocument;
+}
+
 function assistantMessage(content: string): AgentMessageDocument {
   return {
     content,
@@ -765,5 +776,46 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
 
     expect(registry.resolveModelKey).toHaveBeenCalledWith('strategy-model');
     expect(registry.resolveOverrideModelKey).not.toHaveBeenCalled();
+  });
+});
+
+describe('AgentOrchestratorContextService buildMessageHistory hand-off results', () => {
+  it('gives the master the result a finished thread left in its chat', () => {
+    const history = createService().buildMessageHistory([
+      userMessage('Make a hero image, then a video from it.'),
+      assistantMessage('I asked the Hero image thread to make it.'),
+      systemMessage('Hero image finished.', {
+        agentTransferResult: {
+          destinationThreadId: 'thread-image',
+          outputArtifactReferences: [
+            {
+              kind: 'ingredient',
+              organizationId: 'org-1',
+              recordId: 'image-1',
+              serializer: 'ingredient',
+            },
+          ],
+          status: 'COMPLETED',
+        },
+      }),
+    ]);
+
+    expect(history.map((message) => message.role)).toEqual([
+      'system',
+      'user',
+      'assistant',
+      'user',
+    ]);
+    const resultText = readMessageText(history.at(-1));
+    expect(resultText).toContain('"recordId":"image-1"');
+    expect(resultText).toContain(UNTRUSTED_USER_DATA_FRAMING);
+  });
+
+  it('still leaves other system notes out of the model history', () => {
+    const history = createService().buildMessageHistory([
+      systemMessage('Thread renamed.'),
+    ]);
+
+    expect(history.map((message) => message.role)).toEqual(['system']);
   });
 });
