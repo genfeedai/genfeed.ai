@@ -205,7 +205,7 @@ function msUntilNextLocalMidnight(now: Date): number {
  * The current time, moved forward at each local midnight so a list that stays
  * open overnight regroups and relabels its rows without user input.
  */
-function useLocalDayClock(): Date {
+export function useLocalDayClock(): Date {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
