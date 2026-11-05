@@ -482,43 +482,45 @@ export class AgentStrategyAutopilotPerformanceService {
       brandId: getStrategyBrandId(strategy) ?? '',
       parentId: null,
     };
-    const scheduled = await this.postsService.findAll(
-      {
-        where: scopedWhere(getStrategyOrganizationId(strategy), {
-          ...scope,
-          targetExecutionState: {
-            in: [
-              TargetExecutionState.SCHEDULED,
-              TargetExecutionState.PUBLISHING,
-              TargetExecutionState.PUBLISHED,
+    const [scheduled, drafts, open] = await Promise.all([
+      this.postsService.findAll(
+        {
+          where: scopedWhere(getStrategyOrganizationId(strategy), {
+            ...scope,
+            targetExecutionState: {
+              in: [
+                TargetExecutionState.SCHEDULED,
+                TargetExecutionState.PUBLISHING,
+                TargetExecutionState.PUBLISHED,
+              ],
+            },
+            OR: [
+              { publishedAt: { gte: start, lt: end } },
+              { scheduledDate: { gte: start, lt: end } },
+              { targetExecutionState: TargetExecutionState.PUBLISHING },
             ],
-          },
-          OR: [
-            { publishedAt: { gte: start, lt: end } },
-            { scheduledDate: { gte: start, lt: end } },
-            { targetExecutionState: TargetExecutionState.PUBLISHING },
-          ],
-        }),
-      },
-      { page: 1, limit: 1001, pagination: true },
-      false,
-    );
-    const drafts = await this.postsService.findAll(
-      {
-        where: scopedWhere(getStrategyOrganizationId(strategy), {
-          ...scope,
-          targetExecutionState: TargetExecutionState.DRAFT,
-          scheduledDate: null,
-        }),
-      },
-      { page: 1, limit: 201, pagination: true },
-      false,
-    );
-    const open = await this.opportunitiesService.listByStrategy(
-      getStrategyId(strategy),
-      getStrategyOrganizationId(strategy),
-      { statuses: ['generating', 'revising', 'held'] },
-    );
+          }),
+        },
+        { page: 1, limit: 1001, pagination: true },
+        false,
+      ),
+      this.postsService.findAll(
+        {
+          where: scopedWhere(getStrategyOrganizationId(strategy), {
+            ...scope,
+            targetExecutionState: TargetExecutionState.DRAFT,
+            scheduledDate: null,
+          }),
+        },
+        { page: 1, limit: 201, pagination: true },
+        false,
+      ),
+      this.opportunitiesService.listByStrategy(
+        getStrategyId(strategy),
+        getStrategyOrganizationId(strategy),
+        { statuses: ['generating', 'revising', 'held'] },
+      ),
+    ]);
     const groups = new Set(
       scheduled.docs
         .filter((post) => {

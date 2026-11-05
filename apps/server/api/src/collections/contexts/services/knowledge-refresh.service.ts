@@ -267,8 +267,10 @@ export class KnowledgeRefreshService {
     sourceId: string,
     runId: string,
   ): Promise<KnowledgeRefreshResult> {
-    const source = await this.records.getSource(actor, sourceId);
-    const current = await this.records.getCurrentVersion(actor, sourceId);
+    const [source, current] = await Promise.all([
+      this.records.getSource(actor, sourceId),
+      this.records.getCurrentVersion(actor, sourceId),
+    ]);
     const origin =
       source.referenceUrl ??
       this.readPayloadUrl(current.payload) ??

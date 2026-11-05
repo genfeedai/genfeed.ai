@@ -340,8 +340,10 @@ export class HarnessGenerationService {
         knowledgeDiagnostics,
         ['knowledge_unavailable'],
       );
-    const profile = await this.resolveSnapshotProfile(parsed);
-    const packs = await this.resolveSnapshotPacks(parsed, identity);
+    const [profile, packs] = await Promise.all([
+      this.resolveSnapshotProfile(parsed),
+      this.resolveSnapshotPacks(parsed, identity),
+    ]);
     return captureSnapshotBriefResolution(
       parsed,
       identity,
@@ -784,12 +786,13 @@ export class HarnessGenerationService {
             params.brandId,
           );
 
-      const profile = await harnessProfilesService.resolveContributionForBrand(
-        params.organizationId,
-        params.brandId,
-      );
-
-      const knowledgeFilters = await this.resolveKnowledgeFilters(params);
+      const [profile, knowledgeFilters] = await Promise.all([
+        harnessProfilesService.resolveContributionForBrand(
+          params.organizationId,
+          params.brandId,
+        ),
+        this.resolveKnowledgeFilters(params),
+      ]);
       const includeMemory =
         params.includeContentMemory ??
         (Boolean(knowledgeFilters) || Boolean(params.topic?.trim()));

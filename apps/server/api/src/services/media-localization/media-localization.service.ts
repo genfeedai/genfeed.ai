@@ -265,20 +265,19 @@ export class MediaLocalizationService {
       },
     };
     try {
-      const replicateKey = await this.byok.resolveApiKey(
-        request.organizationId,
-        ByokProvider.REPLICATE,
-      );
-      // Translation completes through the text provider, not Replicate: an
-      // org's Replicate key must never reach OpenRouter.
-      const translationKey = await this.byok.resolveApiKey(
-        request.organizationId,
-        resolveTextDispatchByokProvider(DEFAULT_TEXT_MODEL),
-      );
-      const voiceKey = await this.byok.resolveApiKey(
-        request.organizationId,
-        ByokProvider.ELEVENLABS,
-      );
+      const [replicateKey, translationKey, voiceKey] = await Promise.all([
+        this.byok.resolveApiKey(request.organizationId, ByokProvider.REPLICATE),
+        // Translation completes through the text provider, not Replicate: an
+        // org's Replicate key must never reach OpenRouter.
+        this.byok.resolveApiKey(
+          request.organizationId,
+          resolveTextDispatchByokProvider(DEFAULT_TEXT_MODEL),
+        ),
+        this.byok.resolveApiKey(
+          request.organizationId,
+          ByokProvider.ELEVENLABS,
+        ),
+      ]);
       const { transcript, sourceSegments, segments, overridden } =
         await this.buildLocalizationTranscript(
           request,

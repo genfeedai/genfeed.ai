@@ -37,17 +37,19 @@ export class VisualProjectBillingService {
     private readonly renderer: VisualProjectRendererClientService,
   ) {}
   async resolveModel(organizationId: string, explicit?: string) {
-    const rows = await this.registry.listSelectable();
-    const organization = await this.prisma.organization.findFirst({
-      where: { id: organizationId, isDeleted: false },
-      select: { id: true },
-    });
+    const [rows, organization, settings] = await Promise.all([
+      this.registry.listSelectable(),
+      this.prisma.organization.findFirst({
+        where: { id: organizationId, isDeleted: false },
+        select: { id: true },
+      }),
+      this.prisma.organizationSetting.findFirst({
+        where: { organizationId },
+        select: { defaultModel: true },
+      }),
+    ]);
     if (!organization)
       throw new ForbiddenException('visual_organization_unavailable');
-    const settings = await this.prisma.organizationSetting.findFirst({
-      where: { organizationId },
-      select: { defaultModel: true },
-    });
     const models = await this.prisma.model.findMany({
       where: {
         isDeleted: false,

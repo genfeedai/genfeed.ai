@@ -49,14 +49,15 @@ export class MemberCreditsGuard implements CanActivate {
         ? routeOrganizationId[0]
         : routeOrganizationId) || user.organizationId;
 
-    const settings = await this.organizationSettingsService.findOne({
-      organizationId: organizationId,
-    });
-
-    const activeMembersCount = await this.membersService.count({
-      isDeleted: false,
-      organizationId: organizationId,
-    });
+    const [settings, activeMembersCount] = await Promise.all([
+      this.organizationSettingsService.findOne({
+        organizationId: organizationId,
+      }),
+      this.membersService.count({
+        isDeleted: false,
+        organizationId: organizationId,
+      }),
+    ]);
 
     const tier =
       settings?.subscriptionTier ?? getSubscriptionTier(user, request);
