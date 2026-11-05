@@ -428,7 +428,10 @@ export default function PostDetail({
           onTikTokReadinessChange={setIsTikTokPublishingReady}
         />
         {!isStandalonePage && targetPreview ? (
-          <TargetPreview {...targetPreview} />
+          <TargetPreview
+            {...targetPreview}
+            presentation={presentation === 'sidebar' ? 'compact' : 'full'}
+          />
         ) : null}
         {!isStandalonePage && !isPublished ? (
           <EngagementPreview post={post} />
@@ -452,6 +455,7 @@ export default function PostDetail({
     isScoringSeo,
     isStandalonePage,
     post,
+    presentation,
     refreshPost,
     reviewSummary,
     scheduleDraft,

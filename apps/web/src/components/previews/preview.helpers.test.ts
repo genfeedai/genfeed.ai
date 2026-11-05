@@ -179,20 +179,30 @@ describe('resolveFirstComment', () => {
 });
 
 describe('author resolution', () => {
-  it('prefers the external name, then label, then a default', () => {
-    expect(getAuthorName(makeCredential({ externalName: 'Real Name' }))).toBe(
-      'Real Name',
-    );
-    expect(
-      getAuthorName(
-        makeCredential({ externalName: undefined, label: 'Fallback Label' }),
-      ),
-    ).toBe('Fallback Label');
-    expect(
-      getAuthorName(
-        makeCredential({ externalName: undefined, label: undefined }),
-      ),
-    ).toBe('Your Account');
+  it.each([
+    { expected: 'Real Name', overrides: { externalName: 'Real Name' } },
+    {
+      expected: 'Fallback Label',
+      overrides: { externalName: undefined, label: 'Fallback Label' },
+    },
+    {
+      expected: 'genfeed',
+      overrides: {
+        externalHandle: '@genfeed',
+        externalName: undefined,
+        label: undefined,
+      },
+    },
+    {
+      expected: 'Your Account',
+      overrides: {
+        externalHandle: undefined,
+        externalName: undefined,
+        label: undefined,
+      },
+    },
+  ])('names the author $expected', ({ expected, overrides }) => {
+    expect(getAuthorName(makeCredential(overrides))).toBe(expected);
   });
 
   it('normalizes the handle to always be @-prefixed', () => {

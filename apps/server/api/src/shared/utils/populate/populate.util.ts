@@ -48,10 +48,14 @@ export const PopulatePatterns = {
   credentialFull: PopulateBuilder.create('credential'),
 
   // Credential patterns
+  // The account's display fields, so a post's preview names its real author.
   credentialMinimal: PopulateBuilder.withFields('credential', [
     'id',
     'platform',
     'externalHandle',
+    'externalName',
+    'externalAvatar',
+    'label',
     'isConnected',
   ]),
 

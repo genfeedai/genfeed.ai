@@ -11,6 +11,8 @@ import type {
   TargetPreviewRelease,
 } from '@/props/ui/previews.props';
 
+const LEADING_AT_PATTERN = /^@/;
+
 /**
  * A target's `settings.caption` is the per-platform text override; falling
  * back to the release's shared `baseContent` when no override is set.
@@ -112,6 +114,7 @@ export function getAuthorName(credential: TargetPreviewCredential): string {
   return (
     credential.externalName?.trim() ||
     credential.label?.trim() ||
+    credential.externalHandle?.trim().replace(LEADING_AT_PATTERN, '') ||
     'Your Account'
   );
 }
