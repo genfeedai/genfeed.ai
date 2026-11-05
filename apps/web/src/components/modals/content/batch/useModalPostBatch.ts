@@ -13,7 +13,6 @@ import type { CreatePostRequest } from '@genfeedai/contracts/api-types';
 import type {
   ICredential,
   IIngredient,
-  IMetadata,
   IOrganizationSetting,
   IPostPlatformConfig,
 } from '@genfeedai/contracts/interfaces';
@@ -25,7 +24,10 @@ import {
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
-import type { ModalPostBatchProps } from '@genfeedai/props/modals/modal.props';
+import type {
+  ModalPostBatchProps,
+  ModalPostBatchView,
+} from '@genfeedai/props/modals/modal.props';
 import { PostsService } from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
@@ -51,24 +53,20 @@ import {
   resolvePublishingTimezone,
   syncPlatformConfigs,
 } from './batch-platform-sync';
-import { getAvailablePlatforms } from './batch-post.utils';
-
-export interface AspectRatioInfo {
-  height: number;
-  isPortrait: boolean;
-  width: number;
-}
+import {
+  getAvailablePlatforms,
+  resolveChannelDescription,
+  resolveChannelLabel,
+} from './batch-post.utils';
 
 export interface UseModalPostBatchReturn {
   // form
   form: ReturnType<typeof useForm<MultiPostSchema>>;
   formRef: React.RefObject<HTMLFormElement>;
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (e: { preventDefault: () => void }) => void;
   isSubmitting: boolean;
-  // tab
-  activeTab: 'setup' | 'platforms' | 'results';
-  handleNextStep: () => void;
-  handlePreviousStep: () => void;
+  /** The form, or the per-channel results once Schedule was pressed. */
+  view: ModalPostBatchView;
   platformConfigs: IPostPlatformConfig[];
   applyEnabledCredentialIds: (credentialIds: string[]) => void;
   togglePlatform: (credentialId: string) => void;
@@ -86,14 +84,10 @@ export interface UseModalPostBatchReturn {
   // derived / flags
   activeIngredients: IIngredient[];
   isCarousel: boolean;
-  hasYoutube: boolean;
   hasAvailableCredentials: boolean;
   hasInvalidCredentials: boolean;
   invalidCredentialConfigs: IPostPlatformConfig[];
-  invalidCredentialSummary: string;
-  isStep1Complete: boolean;
   isFormValid: boolean;
-  aspectRatioInfo: AspectRatioInfo;
   // watched fields
   globalDescription: string;
   globalLabel: string;
@@ -171,9 +165,7 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     [],
   );
 
-  const [activeTab, setActiveTab] = useState<'setup' | 'platforms' | 'results'>(
-    'setup',
-  );
+  const [view, setView] = useState<ModalPostBatchView>('compose');
   const [platformConfigs, setPlatformConfigs] = useState<IPostPlatformConfig[]>(
     [],
   );
@@ -279,7 +271,7 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
 
       setPlatformConfigs([]);
       setGlobalScheduledDate(null);
-      setActiveTab('setup');
+      setView('compose');
       setError(null);
       setPlatformStatuses([]);
 
@@ -299,7 +291,7 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
   }, [activeHref, hasActiveBrand, orgHref, push]);
 
   const handleSubmit = useCallback(async () => {
-    if (activeTab !== 'platforms' || isPublishingRef.current) {
+    if (view !== 'compose' || isPublishingRef.current) {
       return;
     }
 
@@ -371,6 +363,10 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
       (config) => config.platform === CredentialPlatform.INSTAGRAM,
     );
 
+    // A channel without its own title or caption carries the shared ones.
+    const globalTitle = form.getValues('globalLabel') ?? '';
+    const globalDesc = form.getValues('globalDescription') ?? '';
+
     if (shouldConfirmInstagram) {
       const shouldContinue = window.confirm(
         'This will schedule posts for Instagram. Continue?',
@@ -391,7 +387,7 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     );
 
     setPlatformStatuses(initialStatuses);
-    setActiveTab('results');
+    setView('results');
     isPublishingRef.current = true;
 
     const url = 'POST /publishing';
@@ -430,11 +426,11 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
           const body = {
             category: config.category,
             credentialId: config.credentialId,
-            description: config.description,
+            description: resolveChannelDescription(config, globalDesc),
             ingredients: activeIngredients.map((ing: IIngredient) => ing.id),
             isRepeat: false,
             isShareToFeedSelected: config.isShareToFeedSelected,
-            label: config.label,
+            label: resolveChannelLabel(config, globalTitle),
             scheduledDate,
             targetExecutionState: config.targetExecutionState,
             timezone: scheduleTimezone,
@@ -510,14 +506,15 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     }
   }, [
     activeIngredients,
-    activeTab,
     credentials,
+    form,
     getPostsService,
     globalScheduledDate,
     isCredentialValid,
     notificationsService,
     platformConfigs,
     scheduleTimezone,
+    view,
   ]);
 
   const formRef = useFocusFirstInput<HTMLFormElement>();
@@ -674,32 +671,6 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     refreshBrands,
   ]);
 
-  const handleNextStep = () => {
-    const globalLabel = form.getValues('globalLabel');
-    const globalDesc = form.getValues('globalDescription');
-
-    if (!globalScheduledDate) {
-      return setError('Please select a scheduled date');
-    }
-
-    setPlatformConfigs((prev) =>
-      prev.map((config) => ({
-        ...config,
-        description: config.description || globalDesc || '',
-        label:
-          config.platform === CredentialPlatform.TWITTER
-            ? ''
-            : config.label || globalLabel || '',
-      })),
-    );
-
-    setActiveTab('platforms');
-  };
-
-  const handlePreviousStep = () => {
-    setActiveTab('setup');
-  };
-
   const togglePlatform = (credentialId: string) => {
     hasUserEditedPlatforms.current = true;
     setPlatformConfigs((prev) =>
@@ -751,25 +722,6 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     [platformConfigs],
   );
 
-  const invalidCredentialSummary = useMemo(() => {
-    if (invalidCredentialConfigs.length === 0) {
-      return '';
-    }
-
-    return invalidCredentialConfigs
-      .map((config) => {
-        if (config.handle) {
-          return `${config.platform} (@${config.handle})`;
-        }
-        return config.platform;
-      })
-      .join(', ');
-  }, [invalidCredentialConfigs]);
-
-  const hasYoutube = platformConfigs.some(
-    (config) => config.platform === CredentialPlatform.YOUTUBE,
-  );
-
   const hasValidCredentials = platformConfigs.some(
     (config) =>
       config.credentialId &&
@@ -789,11 +741,6 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     name: 'globalLabel',
   });
 
-  const isStep1Complete =
-    !!globalScheduledDate &&
-    !!globalDescription?.trim() &&
-    (!hasYoutube || !!globalLabel?.trim());
-
   const areAllPlatformsValid = useMemo(() => {
     const enabledPlatforms = platformConfigs.filter(
       (config) =>
@@ -809,45 +756,28 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
 
     return enabledPlatforms.every((config) => {
       const isTwitter = config.platform === CredentialPlatform.TWITTER;
-      const hasTitle = isTwitter || !!config.label?.trim();
-      const hasDescription = !!config.description?.trim();
+      const hasTitle =
+        isTwitter || !!resolveChannelLabel(config, globalLabel).trim();
+      const hasDescription = !!resolveChannelDescription(
+        config,
+        globalDescription,
+      ).trim();
       const hasSchedule =
         !config.overrideSchedule ||
         (config.overrideSchedule && !!config.customScheduledDate);
 
       return hasTitle && hasDescription && hasSchedule;
     });
-  }, [platformConfigs]);
+  }, [globalDescription, globalLabel, platformConfigs]);
 
-  const isFormValid = isStep1Complete && areAllPlatformsValid;
-
-  const getAspectRatioInfo = (): AspectRatioInfo => {
-    if (!ingredient) {
-      return { height: 1920, isPortrait: false, width: 1920 };
-    }
-
-    const metadata =
-      typeof ingredient.metadata === 'object' && ingredient.metadata
-        ? (ingredient.metadata as IMetadata)
-        : null;
-
-    const width = metadata?.width || ingredient.metadataWidth || 1920;
-    const height = metadata?.height || ingredient.metadataHeight || 1920;
-    const isPortrait = height > width;
-
-    return { height, isPortrait, width };
-  };
-
-  const aspectRatioInfo = getAspectRatioInfo();
+  const isFormValid = !!globalScheduledDate && areAllPlatformsValid;
 
   return {
     form,
     formRef,
     onSubmit,
     isSubmitting,
-    activeTab,
-    handleNextStep,
-    handlePreviousStep,
+    view,
     platformConfigs,
     applyEnabledCredentialIds,
     togglePlatform,
@@ -859,14 +789,10 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     settings,
     activeIngredients,
     isCarousel,
-    hasYoutube,
     hasAvailableCredentials,
     hasInvalidCredentials,
     invalidCredentialConfigs,
-    invalidCredentialSummary,
-    isStep1Complete,
     isFormValid,
-    aspectRatioInfo,
     globalDescription: globalDescription ?? '',
     globalLabel: globalLabel ?? '',
     error,

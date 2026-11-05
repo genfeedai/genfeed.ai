@@ -6793,30 +6793,6 @@
       "workspace": "web"
     },
     {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/web/src/components/modals/content/post/ModalPostContent.test.tsx",
-      "fingerprint": "87eba9717513ae4d718d",
-      "message": "Conversion of type '{ control: {}; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' to type 'UseFormReturn<{ platforms: { credentialId: string; description: string; enabled: boolean; handle: string; label: string; overrideSchedule: boolean; platform: string; targetExecutionState: TargetExecutionState; visibility: PostVisibility; customScheduledDate?: string | undefined; }[]; ... 4 more ...; visibility?: Pos...' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ control: {}; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ platforms: { credentialId: string; description: string; enabled: boolean; handle: string; label: string; overrideSchedule: boolean; platform: string; targetExecutionState: TargetExecutionState; visibility: PostVisibility; customScheduledDate?: string | undefined; }[]; ... 4 more ...; visibility?: Pos...': getValues, getErrors, getFieldState, setError, and 12 more.",
-      "workspace": "web"
-    },
-    {
-      "code": 2740,
-      "count": 3,
-      "file": "apps/web/src/components/modals/content/post/ModalPostFooter.test.tsx",
-      "fingerprint": "02ad3b6c396468dbcbe1",
-      "message": "Type '{}' is missing the following properties from type 'Omit<ModalPostFooterProps, \"onSubmit\">': activeTab, onClose, globalDescription, globalLabel, and 6 more.",
-      "workspace": "web"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/web/src/components/modals/content/post/ModalPostSetupTab.test.tsx",
-      "fingerprint": "e83529b797ebe82f3e5e",
-      "message": "Conversion of type '{ control: {}; setValue: Mock<Procedure>; }' to type 'UseFormReturn<{ platforms: { credentialId: string; description: string; enabled: boolean; handle: string; label: string; overrideSchedule: boolean; platform: string; targetExecutionState: TargetExecutionState; visibility: PostVisibility; customScheduledDate?: string | undefined; }[]; ... 4 more ...; visibility?: Pos...' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ control: {}; setValue: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ platforms: { credentialId: string; description: string; enabled: boolean; handle: string; label: string; overrideSchedule: boolean; platform: string; targetExecutionState: TargetExecutionState; visibility: PostVisibility; customScheduledDate?: string | undefined; }[]; ... 4 more ...; visibility?: Pos...': watch, getValues, getErrors, getFieldState, and 13 more.",
-      "workspace": "web"
-    },
-    {
       "code": 2322,
       "count": 2,
       "file": "apps/web/src/components/modals/gallery/ModalGalleryHeader.test.tsx",

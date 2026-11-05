@@ -92,6 +92,7 @@ describe('ModalPostPlatformsTab', () => {
 
     render(
       <ModalPostPlatformsTab
+        panel="channels"
         form={createFormStub()}
         ingredients={[]}
         platformConfigs={[platformConfig({ enabled: false })]}
@@ -113,6 +114,7 @@ describe('ModalPostPlatformsTab', () => {
   it('previews every selected channel and switches between their overrides', () => {
     render(
       <ModalPostPlatformsTab
+        panel="preview"
         form={createFormStub()}
         ingredients={[]}
         platformConfigs={[
@@ -133,7 +135,6 @@ describe('ModalPostPlatformsTab', () => {
       />,
     );
 
-    expect(screen.getByText('Live preview')).toBeVisible();
     expect(
       screen.getByRole('article', { name: 'Instagram platform preview' }),
     ).toBeVisible();
@@ -146,27 +147,6 @@ describe('ModalPostPlatformsTab', () => {
       screen.getByRole('article', { name: 'X (Twitter) platform preview' }),
     ).toBeVisible();
     expect(within(preview).getByText('X-specific launch copy')).toBeVisible();
-  });
-
-  it('hides and restores the selected-channel preview', () => {
-    render(
-      <ModalPostPlatformsTab
-        form={createFormStub()}
-        ingredients={[]}
-        platformConfigs={[platformConfig()]}
-        isLoading={false}
-        togglePlatform={vi.fn()}
-        updatePlatformConfig={vi.fn()}
-        getMinDateTime={() => TEST_MIN_DATE}
-        scheduleTimezone="UTC"
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /hide preview/i }));
-    expect(screen.queryByLabelText('Platform preview')).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /show preview/i }));
-    expect(screen.getByLabelText('Platform preview')).toBeInTheDocument();
   });
 
   it('omits disabled, disconnected, and invalid channel selections', () => {
@@ -256,9 +236,10 @@ describe('ModalPostPlatformsTab', () => {
     });
   });
 
-  it('hides the preview section when no connected channel is selected', () => {
+  it('says so when the preview has no channel to show', () => {
     render(
       <ModalPostPlatformsTab
+        panel="preview"
         form={createFormStub()}
         ingredients={[]}
         platformConfigs={[platformConfig({ enabled: false })]}
@@ -270,7 +251,28 @@ describe('ModalPostPlatformsTab', () => {
       />,
     );
 
-    expect(screen.queryByText('Live preview')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Platform preview')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Turn on a channel to see how it will look.'),
+    ).toBeVisible();
+  });
+
+  it('lists channels without a preview on the Channels panel', () => {
+    render(
+      <ModalPostPlatformsTab
+        panel="channels"
+        form={createFormStub()}
+        ingredients={[]}
+        platformConfigs={[platformConfig()]}
+        isLoading={false}
+        togglePlatform={vi.fn()}
+        updatePlatformConfig={vi.fn()}
+        getMinDateTime={() => TEST_MIN_DATE}
+        scheduleTimezone="UTC"
+      />,
+    );
+
+    expect(screen.getByRole('list', { name: 'Channels' })).toBeVisible();
     expect(screen.queryByLabelText('Platform preview')).not.toBeInTheDocument();
   });
 });
