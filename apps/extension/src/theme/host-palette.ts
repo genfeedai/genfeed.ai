@@ -1,3 +1,5 @@
+import { parseRgba, type Rgba, relativeLuminance } from '~theme/color';
+
 /**
  * The colours of the page the extension is injected into. X has three themes
  * (Default, Dim and Lights out) that are chosen in X, not by the operating
@@ -16,29 +18,6 @@ const MIN_OPAQUE_ALPHA = 0.5;
 const DARK_LUMINANCE_CEILING = 0.5;
 const FALLBACK_LIGHT_TEXT = 'rgb(231, 233, 234)';
 const FALLBACK_DARK_TEXT = 'rgb(15, 20, 25)';
-
-type Rgba = [number, number, number, number];
-
-function parseRgba(value: string): Rgba | null {
-  const match = value.match(/rgba?\(([^)]+)\)/);
-  if (!match) {
-    return null;
-  }
-  const [red, green, blue, alpha = 1] = match[1]
-    .split(/[\s,/]+/)
-    .filter(Boolean)
-    .map(Number);
-  const channels: Rgba = [red, green, blue, alpha];
-  return channels.every(Number.isFinite) ? channels : null;
-}
-
-function relativeLuminance([red, green, blue]: Rgba): number {
-  const [r, g, b] = [red, green, blue].map((channel) => {
-    const unit = channel / 255;
-    return unit <= 0.03928 ? unit / 12.92 : ((unit + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
 
 function toRgb([red, green, blue]: Rgba): string {
   return `rgb(${red}, ${green}, ${blue})`;

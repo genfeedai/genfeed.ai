@@ -1,5 +1,6 @@
 import type { PlatformConfig } from '~platforms/config';
 import { createGenfeedGroup, GROUP_ATTRIBUTE } from '~platforms/ui/menu';
+import { parseRgba, relativeLuminance } from '~theme/color';
 import { readHostPalette } from '~theme/host-palette';
 import type { ButtonSkin, MenuGroupSpec } from '~types/genfeed-menu';
 
@@ -42,29 +43,6 @@ const SOLID_ALPHA = 0.5;
 const LIGHT_FOREGROUND = '#ffffff';
 const DARK_FOREGROUND = '#0f1419';
 
-function parseRgb(value: string): [number, number, number, number] | null {
-  const match = value.match(/rgba?\(([^)]+)\)/);
-  if (!match) {
-    return null;
-  }
-  const parts = match[1]
-    .split(/[\s,/]+/)
-    .filter(Boolean)
-    .map(Number);
-  const [red, green, blue, alpha = 1] = parts;
-  return [red, green, blue, alpha].every(Number.isFinite)
-    ? [red, green, blue, alpha]
-    : null;
-}
-
-function luminance([red, green, blue]: number[]): number {
-  const [r, g, b] = [red, green, blue].map((channel) => {
-    const unit = channel / 255;
-    return unit <= 0.03928 ? unit / 12.92 : ((unit + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
 /**
  * The host button's fill, and whichever of white or near-black reads on it.
  * Empty when the button has no solid fill to copy.
@@ -72,14 +50,14 @@ function luminance([red, green, blue]: number[]): number {
 function measureColors(
   submit: Element,
 ): Pick<ButtonSkin, 'background' | 'color'> {
-  const rgb = parseRgb(getComputedStyle(submit).backgroundColor);
+  const rgb = parseRgba(getComputedStyle(submit).backgroundColor);
   if (!rgb || rgb[3] < SOLID_ALPHA) {
     return {};
   }
   const [red, green, blue] = rgb;
   return {
     background: `rgb(${red}, ${green}, ${blue})`,
-    color: luminance(rgb) > 0.4 ? DARK_FOREGROUND : LIGHT_FOREGROUND,
+    color: relativeLuminance(rgb) > 0.4 ? DARK_FOREGROUND : LIGHT_FOREGROUND,
   };
 }
 

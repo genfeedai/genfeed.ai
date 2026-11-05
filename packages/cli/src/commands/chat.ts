@@ -7,16 +7,7 @@ import { createAssistantStreamRenderer } from '@/shell/assistant-stream-renderer
 import { formatHeader, print, printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
 import { parsePositiveInteger } from '@/utils/options';
-
-async function readPromptFromStdin(): Promise<string> {
-  const chunks: Buffer[] = [];
-
-  for await (const chunk of process.stdin) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-
-  return Buffer.concat(chunks).toString('utf8').trim();
-}
+import { readStdin } from '@/utils/stdin';
 
 function collectAttachment(value: string, previous: string[] = []): string[] {
   previous.push(value);
@@ -64,7 +55,7 @@ chatCommand.addCommand(
     .option('--timeout <ms>', 'Wait timeout in milliseconds', parsePositiveInteger, 120000)
     .action(async (prompt, options) => {
       try {
-        const stdinPrompt = options.stdin ? await readPromptFromStdin() : '';
+        const stdinPrompt = options.stdin ? await readStdin() : '';
         const content = (prompt ?? stdinPrompt).trim();
 
         if (!content) {

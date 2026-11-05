@@ -15,23 +15,12 @@ import {
 import { formatHeader, formatLabel, formatSuccess, print, printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
 import { parsePositiveInteger } from '@/utils/options';
+import { readStdin } from '@/utils/stdin';
 
 export const templateCommand = new Command('template').description('Manage content templates');
 
 async function readPipedStdin(): Promise<string> {
-  if (process.stdin.isTTY) {
-    return '';
-  }
-
-  return await new Promise<string>((resolve, reject) => {
-    let data = '';
-    process.stdin.setEncoding('utf8');
-    process.stdin.on('data', (chunk) => {
-      data += chunk;
-    });
-    process.stdin.on('end', () => resolve(data.trim()));
-    process.stdin.on('error', reject);
-  });
+  return process.stdin.isTTY ? '' : await readStdin();
 }
 
 templateCommand
