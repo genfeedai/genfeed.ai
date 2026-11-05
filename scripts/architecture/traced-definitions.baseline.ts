@@ -268,7 +268,6 @@ export const TRACED_DEFINITIONS_BASELINE: Readonly<Record<string, number>> = {
   'apps/server/api/src/services/integrations/llm/structured-output.util.ts': 1,
   'apps/server/api/src/services/integrations/meta-ads/utils/meta-ad-image.util.ts': 1,
   'apps/server/api/src/services/integrations/publishers/publisher-verification.util.ts': 2,
-  'apps/server/api/src/services/integrations/replicate/helpers/replicate-video-input.util.ts': 1,
   'apps/server/api/src/services/integrations/stripe/services/stripe-checkout-promotion.util.ts': 1,
   'apps/server/api/src/services/integrations/stripe/services/stripe-upcoming-invoice-lines.util.ts': 1,
   'apps/server/api/src/services/integrations/threads/services/threads-account-reader.util.ts': 2,
