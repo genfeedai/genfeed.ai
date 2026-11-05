@@ -6,6 +6,7 @@ import {
 } from '@api/services/integrations/replicate/services/replicate-contract';
 import { ModelCategory, PricingType } from '@genfeedai/contracts';
 import type {
+  ModelProviderContractMappingStatus,
   ReviewedProviderRate,
   ReviewedVariantRule,
 } from '@genfeedai/contracts/interfaces';
@@ -39,7 +40,7 @@ export interface ReplicateCandidateContract {
   billingUnit: string | null;
   currency: string | null;
   inputSchema: Record<string, unknown>;
-  mappingStatus: 'quarantined' | 'supported';
+  mappingStatus: ModelProviderContractMappingStatus;
   observed: ObservedRates | null;
   openapi: Record<string, unknown>;
   openapiVersion: string | null;

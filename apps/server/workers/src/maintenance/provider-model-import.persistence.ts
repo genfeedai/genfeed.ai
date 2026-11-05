@@ -1,4 +1,5 @@
 import { getProviderModelKey } from '@api/collections/models/utils/model-key.util';
+import { initialContractReviewStatus } from '@api/collections/models/utils/model-provider-contract-status.util';
 import type { Prisma, PrismaClient } from '@genfeedai/prisma';
 import {
   type ProviderModelImportObservation,
@@ -84,8 +85,7 @@ export async function persistProviderModel(
           pricing: contract.pricing as Prisma.InputJsonValue,
           pricingType: contract.pricingType,
           provider,
-          reviewStatus:
-            contract.mappingStatus === 'supported' ? 'pending' : 'quarantined',
+          reviewStatus: initialContractReviewStatus(contract.mappingStatus),
           schemaFamily: contract.schemaFamily,
           unitPrice: contract.unitPrice,
           unitPriceMicros: contract.unitPriceMicros,

@@ -13,6 +13,16 @@ import type { IBaseEntity } from '../index';
 /** Whether an operator approved a model for the catalog (`Model.reviewStatus`). */
 export type ModelReviewStatus = 'approved' | 'legacy' | 'pending' | 'rejected';
 
+/** Whether an imported provider contract maps onto a supported schema (`ModelProviderContract.mappingStatus`). */
+export type ModelProviderContractMappingStatus = 'quarantined' | 'supported';
+
+/** Operator review of an imported provider contract (`ModelProviderContract.reviewStatus`). */
+export type ModelProviderContractReviewStatus =
+  | 'approved'
+  | 'pending'
+  | 'quarantined'
+  | 'rejected';
+
 /** Freshness of a model's provider contract sync (`Model.providerSyncStatus`). */
 export type ModelProviderSyncStatus =
   | 'failed'
