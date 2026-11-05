@@ -5,21 +5,10 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { WorkflowLifecycle } from '@genfeedai/workflows/contracts';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
+import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@ui/primitives/dropdown-menu';
-import {
-  Archive,
-  ArrowLeft,
-  CalendarClock,
-  Ellipsis,
-  Play,
-} from 'lucide-react';
+import { Archive, ArrowLeft, CalendarClock, Play } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
@@ -74,6 +63,22 @@ export function WorkflowEditorSectionTopbar({
       className="shrink-0"
       title={title}
       titleVisibility="sr-only"
+      overflow={
+        canArchive ? (
+          <SubbarOverflowMenu
+            actions={[
+              {
+                icon: <Archive className="size-4" aria-hidden="true" />,
+                id: 'archive',
+                isDestructive: true,
+                label: translate('archive'),
+                onSelect: onArchive,
+              },
+            ]}
+            label={translate('menu')}
+          />
+        ) : undefined
+      }
       leading={
         <nav
           aria-label="Workflow editor navigation"
@@ -187,31 +192,6 @@ export function WorkflowEditorSectionTopbar({
             >
               {publishUnavailableMessage}
             </span>
-          ) : null}
-
-          {canArchive ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  ariaLabel={translate('menu')}
-                  className="shrink-0"
-                  icon={<Ellipsis className="size-4" />}
-                  size={ButtonSize.ICON}
-                  tooltip={translate('menu')}
-                  variant={ButtonVariant.GHOST}
-                  withWrapper={false}
-                />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onSelect={onArchive}
-                >
-                  <Archive className="size-4" aria-hidden="true" />
-                  {translate('archive')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           ) : null}
         </div>
       }

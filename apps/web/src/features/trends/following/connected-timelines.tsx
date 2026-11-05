@@ -21,6 +21,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
+import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -241,37 +242,41 @@ export default function ConnectedTimelines() {
   });
   return (
     <>
-      <SectionTopbar title={translate('following')} icon={AtSign} />
+      <SectionTopbar
+        title={translate('following')}
+        icon={AtSign}
+        actions={
+          <SubbarControls
+            secondaryActions={
+              <Button
+                asChild
+                variant={ButtonVariant.SECONDARY}
+                size={ButtonSize.SM}
+              >
+                <Link href={href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}>
+                  {translate('connectedAccounts')}
+                </Link>
+              </Button>
+            }
+            primaryAction={
+              <Button
+                icon={<RefreshCw className="size-4" />}
+                size={ButtonSize.SM}
+                isLoading={refresh.isPending}
+                isDisabled={
+                  !query.data?.accounts.some(
+                    (account) => account.kind !== 'unsupported',
+                  )
+                }
+                onClick={() => refresh.mutate(undefined)}
+              >
+                {translate('refreshFeeds')}
+              </Button>
+            }
+          />
+        }
+      />
       <Container bodyClassName="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">
-            {translate('refreshDescription')}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              asChild
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.SM}
-            >
-              <Link href={href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}>
-                {translate('connectedAccounts')}
-              </Link>
-            </Button>
-            <Button
-              icon={<RefreshCw className="size-4" />}
-              size={ButtonSize.SM}
-              isLoading={refresh.isPending}
-              isDisabled={
-                !query.data?.accounts.some(
-                  (account) => account.kind !== 'unsupported',
-                )
-              }
-              onClick={() => refresh.mutate(undefined)}
-            >
-              {translate('refreshFeeds')}
-            </Button>
-          </div>
-        </div>
         {query.isLoading ? (
           <p role="status">{translate('loadingFeeds')}</p>
         ) : null}

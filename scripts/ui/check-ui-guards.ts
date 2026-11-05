@@ -52,6 +52,13 @@ const checks = [
     required: true,
   },
   {
+    // One sub bar per page: a SectionTopbar inside a Container or
+    // AdminPageShell body stacks a second bar; use their slots instead.
+    command: ['bun', 'run', 'scripts/ui/hand-built/nested-topbar.ts'],
+    name: 'Stacked sub bars (SectionTopbar inside a page body)',
+    required: true,
+  },
+  {
     command: ['bun', 'run', 'scripts/check-no-story-files.ts'],
     name: 'No Storybook story files (Storybook is not installed)',
     required: true,

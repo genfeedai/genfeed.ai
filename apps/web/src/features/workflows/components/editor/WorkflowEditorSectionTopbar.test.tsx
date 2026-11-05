@@ -101,6 +101,11 @@ describe('WorkflowEditorSectionTopbar', () => {
   it('keeps dense actions on one row and moves Archive into overflow', () => {
     const props = renderTopbar();
 
+    // The "..." menu sits in the bar's overflow slot, first in the right cluster.
+    expect(screen.getByTestId('section-topbar-icon-actions')).toContainElement(
+      screen.getByRole('button', { name: 'Workflow actions' }),
+    );
+
     expect(screen.getByTestId('workflow-editor-section-actions')).toHaveClass(
       'flex-nowrap',
     );
