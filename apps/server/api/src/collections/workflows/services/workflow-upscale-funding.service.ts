@@ -3,6 +3,7 @@ import { ModelCreditQuoteService } from '@api/collections/models/services/model-
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { resolveAssetProcessingUrl } from '@api/services/media-urls/processing-media-url.util';
+import { presignNamedProviderVideoSource } from '@api/services/media-urls/provider-video-source.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivitySource, IngredientCategory } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
@@ -93,10 +94,9 @@ export class WorkflowUpscaleFundingService {
     if (!Number.isFinite(snapshot.credits) || !(snapshot.credits > 0))
       throw new BadRequestException(`Pricing is unavailable for ${model}.`);
     // Issued for the stored object that was priced, before any credits are held.
-    const sourceUrl = await this.processingMediaUrl(
-      input.organizationId,
-      input.source,
-    );
+    const sourceUrl = isVideo
+      ? await this.namedVideoSourceUrl(input.source)
+      : await this.processingMediaUrl(input.organizationId, input.source);
 
     const credits = snapshot.credits;
     const request = await this.generationBilling.holdForService({
@@ -197,6 +197,15 @@ export class WorkflowUpscaleFundingService {
       );
     }
     return { duration, height, width };
+  }
+
+  /** Topaz needs a URL whose path names the container; see the helper. */
+  private namedVideoSourceUrl(
+    asset: WorkflowUpscaleSourceAsset,
+  ): Promise<string> {
+    if (!this.filesClientService)
+      throw new Error('File storage service is unavailable');
+    return presignNamedProviderVideoSource(this.filesClientService, asset);
   }
 
   private processingMediaUrl(

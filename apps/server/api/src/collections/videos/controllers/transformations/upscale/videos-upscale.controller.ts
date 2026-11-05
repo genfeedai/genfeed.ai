@@ -31,6 +31,7 @@ import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { presignNamedProviderVideoSource } from '@api/services/media-urls/provider-video-source.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
@@ -67,8 +68,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-
-const PROVIDER_SOURCE_KEY_PREFIX = 'provider-inputs/videos';
 
 @AutoSwagger()
 @Controller('videos')
@@ -176,27 +175,18 @@ export class VideosUpscaleController {
       : this.filesClientService.getPresignedDownloadUrl(videoId, 'videos');
   }
 
-  /**
-   * Topaz reads the source container from the URL path, and stored videos
-   * live under extensionless keys, so it rejects them with
-   * "`source.container` is required". A Replicate Files-API URL is rejected
-   * too. A private sibling object named `<id>.mp4` keeps the stored content
-   * type and gives the provider a presigned URL it can read. The key is
-   * deterministic, so repeat upscales overwrite one object per video.
-   */
-  private async prepareNamedProviderSource(
+  private prepareNamedProviderSource(
     s3Key: string | undefined | null,
     videoId: string,
   ): Promise<string> {
-    const namedKey = `${PROVIDER_SOURCE_KEY_PREFIX}/${videoId}.mp4`;
-    if (this.configService.isAuthorizedMediaDeliveryEnabled && s3Key) {
-      await this.filesClientService.copyInS3(s3Key, namedKey);
-    } else {
-      await this.filesClientService.copyInS3(videoId, namedKey, 'videos');
-    }
-    return this.filesClientService.getPresignedDownloadUrlForObjectKey(
-      namedKey,
-    );
+    return presignNamedProviderVideoSource(this.filesClientService, {
+      id: videoId,
+      objectKey: this.configService.isAuthorizedMediaDeliveryEnabled
+        ? s3Key
+        : null,
+      storageKey: videoId,
+      storageType: 'videos',
+    });
   }
 
   private async executeUpscale(params: {
