@@ -12,6 +12,7 @@ import {
   resolvePostingTimezone,
 } from '@genfeedai/contracts/api-types/contracts/credential-posting-times.contract';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const OCCUPYING_POST_STATUSES: string[] = [
@@ -30,6 +31,7 @@ type CredentialRow = {
   postingTimes: Prisma.JsonValue;
 };
 
+@Traced()
 @Injectable()
 export class CredentialPostingTimesService {
   constructor(private readonly prisma: PrismaService) {}

@@ -44,8 +44,10 @@ import {
   isAdsChannel,
   isAdsPlatform,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class BrandRemixSourceResolverService {
   constructor(

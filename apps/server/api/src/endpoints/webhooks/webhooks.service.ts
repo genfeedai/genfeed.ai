@@ -33,6 +33,7 @@ import {
 import type { IFileMetadata } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
@@ -41,6 +42,7 @@ export interface StoredMediaFinalizationObserver {
   beforeFinalize(uploadMetadata: IFileMetadata): Promise<void>;
 }
 
+@Traced()
 @Injectable()
 export class WebhooksService {
   private readonly constructorName: string = String(this.constructor.name);

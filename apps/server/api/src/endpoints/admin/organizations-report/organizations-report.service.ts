@@ -4,8 +4,10 @@ import {
 } from '@api/helpers/dto/pagination-query.dto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { IOrganizationsReport } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class OrganizationsReportService {
   constructor(private readonly prisma: PrismaService) {}

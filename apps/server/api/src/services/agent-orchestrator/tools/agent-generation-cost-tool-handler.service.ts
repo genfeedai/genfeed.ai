@@ -14,6 +14,7 @@ import {
   buildStudioGenerationQuoteRequest,
   isAutoStudioModelKey,
 } from '@genfeedai/pricing';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 function readOptionalString(
@@ -42,6 +43,7 @@ function readFiniteBalance(value: number): number | null {
  * Prices nothing itself: the estimate is the server quote admission charges
  * (`AgentGenerationEstimateService`) and the balance is the wallet.
  */
+@Traced()
 @Injectable()
 export class AgentGenerationCostToolHandler {
   constructor(

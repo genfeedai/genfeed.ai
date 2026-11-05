@@ -1,5 +1,6 @@
 import type { AccountGenerationJobData } from '@api/collections/posts/services/post-account-generation-job.types';
 import { ACCOUNT_GENERATION_QUEUE } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   ConflictException,
@@ -31,6 +32,7 @@ redis.call('DEL', KEYS[1])
 redis.call('ZREM', KEYS[2], KEYS[1])
 return 1`;
 
+@Traced()
 @Injectable()
 export class PostAccountGenerationQueueService {
   constructor(

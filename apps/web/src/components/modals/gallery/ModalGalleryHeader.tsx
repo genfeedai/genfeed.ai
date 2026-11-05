@@ -8,114 +8,92 @@ import {
 } from '@genfeedai/contracts';
 import { formatVideos } from '@genfeedai/helpers/data/data/data.helper';
 import type { ModalGalleryHeaderProps } from '@genfeedai/props/modals/modal-gallery.props';
-import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Tabs } from '@ui/primitives/tabs';
 import { Upload } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
+/**
+ * One row above the picker's content: the Library / Branding switch for image
+ * pickers, the brand's account reference when the caller offers one, and an
+ * Upload that drops the new file straight into the grid.
+ */
 export default function ModalGalleryHeader({
   category,
   activeTab,
   localFormat,
-  filterReferenceId,
   tabs,
   accountReference,
   onTabChange,
-  onClearFilter,
   onUseAccountReference,
+  onUploaded,
 }: ModalGalleryHeaderProps) {
-  const { openUpload } = useUploadModal({
-    onComplete: () => {
-      window.location.reload();
-    },
-  });
+  const translate = useTranslations('ui.galleryModal');
+  const { openUpload } = useUploadModal({ onComplete: onUploaded });
+  const isMusic = category === IngredientCategory.MUSIC;
+  const hasTabs = tabs.length > 1;
 
-  const handleUploadClick = () => {
-    openUpload({
-      category: IngredientCategory.IMAGE,
-    });
-  };
+  if (isMusic && !hasTabs) {
+    return null;
+  }
 
   return (
-    <>
-      {category === IngredientCategory.IMAGE && accountReference && (
-        <div className="mb-4 flex items-center gap-3 p-3 bg-background">
-          <div className="relative size-10 flex-shrink-0 overflow-hidden">
-            <Image
-              src={accountReference.url}
-              alt="Account reference"
-              fill
-              sizes="40px"
-              className="object-cover outline-media"
-            />
-          </div>
+    <div className="flex shrink-0 flex-wrap items-center gap-3">
+      {hasTabs ? (
+        <Tabs
+          activeTab={activeTab}
+          onTabChange={(tab) =>
+            onTabChange(tab === 'references' ? tab : 'media')
+          }
+          tabs={tabs.map((tab) => ({
+            id: tab.id,
+            label:
+              tab.id === 'references'
+                ? translate('branding')
+                : translate('library'),
+          }))}
+        />
+      ) : null}
 
+      {activeTab === 'references' ? (
+        <Badge variant="outline">
+          {formatVideos.find((f) => f.id === localFormat)?.label || localFormat}
+        </Badge>
+      ) : null}
+
+      <div className="ml-auto flex items-center gap-2">
+        {category === IngredientCategory.IMAGE && accountReference ? (
           <Button
-            label="Use Account Reference"
-            variant={ButtonVariant.DEFAULT}
+            icon={
+              <span className="relative size-5 overflow-hidden rounded-sm">
+                <Image
+                  src={accountReference.url}
+                  alt=""
+                  fill
+                  sizes="20px"
+                  className="object-cover"
+                />
+              </span>
+            }
+            label={translate('useAccountReference')}
+            variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
             onClick={onUseAccountReference}
           />
-        </div>
-      )}
+        ) : null}
 
-      {category === IngredientCategory.IMAGE && (
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3 flex-1">
-              <Tabs
-                activeTab={activeTab}
-                onTabChange={(tab) =>
-                  onTabChange(tab as 'media' | 'references' | 'uploads')
-                }
-                tabs={tabs}
-              />
-
-              <Button
-                label="Upload"
-                icon={<Upload className="size-4" />}
-                variant={ButtonVariant.DEFAULT}
-                size={ButtonSize.SM}
-                onClick={handleUploadClick}
-              />
-            </div>
-
-            {/* Format display - read-only, comes from promptbar */}
-            {(activeTab === 'media' || activeTab === 'references') && (
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">
-                  Format:{' '}
-                  {formatVideos.find((f) => f.id === localFormat)?.label ||
-                    localFormat}
-                </Badge>
-              </div>
-            )}
-          </div>
-
-          {/* Format description - explain it comes from promptbar */}
-          {(activeTab === 'media' || activeTab === 'references') && (
-            <Alert className="mb-3" size="sm" variant="info">
-              <strong>Note:</strong> References must match the format selected
-              in the promptbar.
-            </Alert>
-          )}
-
-          {activeTab === 'media' && filterReferenceId && (
-            <div className="mt-3 flex items-center gap-2 text-sm">
-              <Badge variant="outline">Filtered by references</Badge>
-
-              <Button
-                label="Clear"
-                variant={ButtonVariant.GHOST}
-                size={ButtonSize.XS}
-                onClick={onClearFilter}
-              />
-            </div>
-          )}
-        </div>
-      )}
-    </>
+        {isMusic ? null : (
+          <Button
+            label={translate('upload')}
+            icon={<Upload className="size-4" />}
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.SM}
+            onClick={() => openUpload({ category })}
+          />
+        )}
+      </div>
+    </div>
   );
 }

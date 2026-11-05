@@ -5,15 +5,21 @@ import {
   IngredientStatus,
 } from '@genfeedai/contracts';
 import type { ICredential, IIngredient } from '@genfeedai/contracts/interfaces';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import ModalPostBatch from '@/components/modals/content/batch/ModalPostBatch';
 
 // Mock dependencies
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
-  return { useTranslations: translateFromCatalog };
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return {
+    useFormatter: () => ({
+      dateTime: (value: Date, options?: Intl.DateTimeFormatOptions) =>
+        new Intl.DateTimeFormat('en-GB', options).format(value),
+    }),
+    useTranslations: translateFromCatalog,
+  };
 });
 
 vi.mock('@ui/modals/modal/Modal', () => ({
@@ -57,16 +63,20 @@ vi.mock('@genfeedai/auth-client/react', () => ({
   }),
 }));
 
-vi.mock('@/components/modals/content/post/ModalPostStepHeader', () => ({
-  default: () => <div data-testid="modal-post-header" />,
+vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
+  useAuthorizedMediaPreview: () => null,
 }));
 
-vi.mock('@/components/modals/content/post/ModalPostContent', () => ({
-  default: () => <div data-testid="modal-post-content" />,
+vi.mock('@/components/modals/content/post/ModalPostSetupTab', () => ({
+  default: () => <p>Shared title, caption and time</p>,
 }));
 
-vi.mock('@/components/modals/content/post/ModalPostFooter', () => ({
-  default: () => <div data-testid="modal-post-footer" />,
+vi.mock('@/components/modals/content/post/ModalPostPlatformsTab', () => ({
+  default: ({
+    panel,
+  }: import('@genfeedai/props/modals/modal.props').ModalPostPlatformsTabProps) => (
+    <p>{`${panel} panel`}</p>
+  ),
 }));
 
 describe('ModalPostBatch', () => {
@@ -114,11 +124,47 @@ describe('ModalPostBatch', () => {
       />,
     );
 
-    await waitFor(() => {
-      expect(screen.getByTestId('modal-post-content')).toBeInTheDocument();
-    });
-
+    expect(
+      await screen.findByText('Shared title, caption and time'),
+    ).toBeVisible();
     expect(screen.queryByText('Reconnect Accounts')).not.toBeInTheDocument();
+  });
+
+  it('shows the asset, its details and its channels on one screen', async () => {
+    const ingredient = {
+      category: IngredientCategory.VIDEO,
+      id: 'ingredient-2',
+      metadataLabel: 'Launch walkthrough',
+    } as unknown as IIngredient;
+    const credentials = [
+      {
+        accessTokenExpiry: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        externalHandle: 'genfeed',
+        id: 'credential-2',
+        isConnected: true,
+        platform: CredentialPlatform.TIKTOK,
+      } as unknown as ICredential,
+    ];
+
+    render(
+      <ModalPostBatch
+        {...defaultProps}
+        ingredient={ingredient}
+        credentials={credentials}
+      />,
+    );
+
+    expect(await screen.findByText('Launch walkthrough')).toBeVisible();
+    expect(screen.getByText('Shared title, caption and time')).toBeVisible();
+    expect(screen.getByText('channels panel')).toBeVisible();
+    expect(screen.getByRole('button', { name: /^Schedule/ })).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: /^Next/ }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: /Preview/ }));
+
+    expect(screen.getByText('preview panel')).toBeVisible();
   });
   it('sends the reconnect action to the brand connected-accounts page', async () => {
     const ingredient = {

@@ -29,6 +29,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -58,6 +59,7 @@ export type BreakoutGenerationPlanResult =
     };
 
 /** Actual catalog/quality quote → live accounting → immutable output reservation. Never calls a provider. */
+@Traced()
 @Injectable()
 export class BreakoutGenerationPlanService {
   constructor(

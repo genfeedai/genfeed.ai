@@ -6,6 +6,7 @@ import type {
   VideoContinuityVerdict,
 } from '@genfeedai/contracts/interfaces';
 import { createNotAssessedContinuityDimension } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const LEADING_JSON_FENCE_PATTERN = /^```(?:json)?\s*/i;
@@ -35,6 +36,7 @@ type ContinuityInput = {
   videoUrl: string;
 };
 
+@Traced()
 @Injectable()
 export class VideoQaContinuityResolverService {
   constructor(

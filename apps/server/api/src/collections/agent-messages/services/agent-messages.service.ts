@@ -20,6 +20,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface AddMessageDto {
@@ -77,6 +78,7 @@ function dedupeArtifactReferences(
   return [...unique.values()];
 }
 
+@Traced()
 @Injectable()
 export class AgentMessagesService extends BaseService<
   AgentMessageDocument,

@@ -20,6 +20,7 @@ import {
   getChannelThreadChildCapability,
 } from '@genfeedai/contracts/api-types/contracts';
 import { measurePlatformText } from '@genfeedai/helpers/content/platform-text-length.helper';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 
 type PublisherConfig = {
@@ -375,6 +376,7 @@ export abstract class BasePublisherService implements IPublisher {
     }));
   }
 
+  @Traced()
   protected async publishChildrenAsComments({
     children,
     context,

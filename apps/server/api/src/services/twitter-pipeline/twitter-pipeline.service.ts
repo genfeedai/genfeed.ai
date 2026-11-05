@@ -26,6 +26,7 @@ import type {
   ITwitterVoiceConfig,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Injectable,
@@ -59,6 +60,7 @@ type TwitterPublishRequest = {
   type: 'original' | 'quote' | 'reply' | 'repost';
 };
 
+@Traced()
 @Injectable()
 export class TwitterPipelineService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);

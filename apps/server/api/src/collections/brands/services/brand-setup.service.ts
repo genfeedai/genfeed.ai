@@ -25,6 +25,7 @@ import type {
   IScrapedBrandData,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
@@ -56,6 +57,7 @@ interface ScrapeBrandDataResult {
  * the OnboardingModule ↔ BrandsModule/UsersModule import cycle: brand writes no
  * longer round-trip back through OnboardingService.
  */
+@Traced()
 @Injectable()
 export class BrandSetupService {
   private readonly constructorName: string = String(this.constructor.name);

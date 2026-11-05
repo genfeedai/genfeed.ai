@@ -7,6 +7,7 @@ import type {
   CreditsConfig,
   ModelBillableQuoteSnapshot,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -18,6 +19,7 @@ type VoiceCreditsRequest = Request & {
   };
 };
 
+@Traced()
 @Injectable()
 export class VoiceCreditsService {
   constructor(

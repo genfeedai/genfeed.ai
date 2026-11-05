@@ -8,6 +8,7 @@ import {
   countSpeechCharacters,
   MODEL_KEYS,
 } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 export interface AnimaticVoice {
@@ -28,6 +29,7 @@ export interface AnimaticSpeechPrice {
  * cheapest speech model, so the creator hears the pacing for cents before the
  * paid avatar render. The voice pipeline holds and settles its own credits.
  */
+@Traced()
 @Injectable()
 export class StoryboardAnimaticVoiceService {
   constructor(

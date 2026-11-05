@@ -2,8 +2,10 @@ import { CreativePatternsService } from '@api/collections/creative-patterns/crea
 import type { CreativePatternDocument } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
 import { CacheService } from '@api/services/cache/cache.service';
 import type { PatternType } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class PatternMatcherService {
   constructor(

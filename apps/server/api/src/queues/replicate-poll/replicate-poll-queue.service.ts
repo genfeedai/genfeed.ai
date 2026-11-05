@@ -4,10 +4,12 @@ import {
   type ReplicatePollJobData,
 } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Optional } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 
+@Traced()
 @Injectable()
 export class ReplicatePollQueueService {
   private readonly logContext = ReplicatePollQueueService.name;

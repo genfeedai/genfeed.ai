@@ -6,6 +6,7 @@ import type {
   AgentToolResult,
   AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -26,6 +27,7 @@ const BRAND_INTERVIEW_TOOLS = [
 
 type BrandInterviewToolName = (typeof BRAND_INTERVIEW_TOOLS)[number];
 
+@Traced()
 @Injectable()
 export class AgentBrandInterviewToolHandler {
   constructor(

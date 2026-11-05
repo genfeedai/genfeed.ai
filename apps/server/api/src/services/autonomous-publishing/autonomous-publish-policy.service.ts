@@ -28,6 +28,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
 import type { BrandPublishRequiredCheck } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 export interface ResolveAutonomousPostPolicyInput {
@@ -109,6 +110,7 @@ function boundedInteger(value: unknown, fallback: number, max: number): number {
     ? value
     : fallback;
 }
+@Traced()
 @Injectable()
 export class AutonomousPublishPolicyService {
   /** Without the module's judge, a Policy that needs one holds its drafts. */

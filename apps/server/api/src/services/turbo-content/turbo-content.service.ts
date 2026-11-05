@@ -20,6 +20,7 @@ import {
 import { TURBO_RUN_COUNT_MAXIMUM } from '@genfeedai/contracts/constants';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   ForbiddenException,
   Injectable,
@@ -34,6 +35,7 @@ type ForEachResult = {
   results: Array<{ index: number; result: GeneratedContent }>;
 };
 
+@Traced()
 @Injectable()
 export class TurboContentService implements OnModuleInit {
   private readonly context = 'TurboContentService';

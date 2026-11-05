@@ -9,6 +9,7 @@ import {
   captureOnboardingCompletedBestEffort,
   ServerFunnelCaptureService,
 } from '@api/services/analytics/server-funnel-capture.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional, UnauthorizedException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -26,6 +27,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
  * wizard tabs race, or the agent-first path completes first and this
  * endpoint later finds the user already onboarded.
  */
+@Traced()
 @Injectable()
 export class UserOnboardingCompletionService {
   constructor(

@@ -13,6 +13,7 @@ import { GENFEED_AGENT_IDENTITY_WITH_BRAND_QUESTIONS } from '@api/services/agent
 import { WorkspaceTaskWorkflowQueueService } from '@api/services/task-orchestration/workspace-task-workflow-queue.service';
 import { AgentThreadMode } from '@genfeedai/contracts';
 import { serializeWorkspaceTaskDate } from '@genfeedai/serializers';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Inject,
@@ -40,6 +41,7 @@ type FollowUpPlanStep = {
  * `TasksService` (which keeps thin delegating methods so the HTTP contract is
  * unchanged). Persistence/CRUD is delegated back to `TasksService`.
  */
+@Traced()
 @Injectable()
 export class TaskPlanningService {
   constructor(

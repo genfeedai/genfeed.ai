@@ -22,6 +22,7 @@ import {
   type Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 export function parseLearningPolicy(
   value: unknown,
@@ -60,6 +61,7 @@ export function parseLearningPolicy(
   }
   return result;
 }
+@Traced()
 @Injectable()
 export class LearningPolicyService {
   constructor(

@@ -13,6 +13,7 @@ import type {
   HookClipApprovalAction,
   HookClipApprovalStatus,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -36,6 +37,7 @@ type HookWorkflowState = {
   workflowId: string;
 };
 
+@Traced()
 @Injectable()
 export class HookClipApprovalService {
   constructor(

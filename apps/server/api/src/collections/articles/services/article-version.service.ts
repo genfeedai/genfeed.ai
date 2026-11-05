@@ -2,6 +2,7 @@ import type { ArticleDocument } from '@api/collections/articles/schemas/article.
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 type ArticleFinder = (
@@ -17,6 +18,7 @@ type ArticlePatcher = (
   },
 ) => Promise<unknown>;
 
+@Traced()
 @Injectable()
 export class ArticleVersionService {
   private readonly constructorName = this.constructor.name;

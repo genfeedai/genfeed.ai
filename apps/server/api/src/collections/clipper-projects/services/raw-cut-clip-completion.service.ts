@@ -22,6 +22,7 @@ import {
   isClipperCaptionStyle,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface RawCutVideoCompletionEvent {
@@ -38,6 +39,7 @@ const RAW_CUT_STALE_MS = 2 * 60 * 60 * 1000;
 
 class RawCutCompletionContractError extends Error {}
 
+@Traced()
 @Injectable()
 export class RawCutClipCompletionService {
   private readonly logContext = 'RawCutClipCompletionService';

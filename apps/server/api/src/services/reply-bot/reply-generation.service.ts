@@ -27,6 +27,7 @@ import {
   SystemPromptKey,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Injectable,
@@ -70,6 +71,7 @@ export interface DmGenerationOptions {
   userId: string;
 }
 
+@Traced()
 @Injectable()
 export class ReplyGenerationService {
   private readonly constructorName: string = String(this.constructor.name);

@@ -6,6 +6,7 @@ import {
 import { CAMPAIGN_DISPATCH_ACTION_IDS } from '@api/services/campaign/campaign-dispatch-workflow-definition';
 import { isCampaignOutreachPairExecutable } from '@api/services/campaign/outreach-capability.util';
 import { CampaignType } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 const MAX_ACTIVE_CAMPAIGNS_PER_DISPATCH = 20;
@@ -40,6 +41,7 @@ export interface OutreachCampaignDispatchWorkflowResult {
   status: 'completed' | 'failed' | 'skipped';
 }
 
+@Traced()
 @Injectable()
 export class OutreachCampaignDispatchWorkflowService implements OnModuleInit {
   constructor(

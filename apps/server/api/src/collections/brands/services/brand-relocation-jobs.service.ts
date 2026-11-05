@@ -20,6 +20,7 @@ import {
   crossOrgUnsafe,
   runWithTenantContext,
 } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,
@@ -35,6 +36,7 @@ interface RelocationPayload {
   updates: Partial<UpdateBrandDto> & { organizationId: string };
 }
 
+@Traced()
 @Injectable()
 export class BrandRelocationJobsService {
   constructor(

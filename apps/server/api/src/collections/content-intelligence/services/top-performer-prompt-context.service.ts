@@ -4,6 +4,7 @@ import {
 } from '@api/collections/content-performance/services/performance-summary.service';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { rankByQueryOverlap } from '@api/services/agent-context-assembly/text-overlap.util';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface TopPerformerPromptContextParams {
@@ -14,6 +15,7 @@ export interface TopPerformerPromptContextParams {
   limit?: number;
 }
 
+@Traced()
 @Injectable()
 export class TopPerformerPromptContextService {
   constructor(

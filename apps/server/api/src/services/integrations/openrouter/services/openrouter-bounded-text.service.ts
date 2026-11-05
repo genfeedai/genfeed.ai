@@ -13,6 +13,7 @@ import {
   type ObservedOpenRouterTextResult,
   observePreparedOpenRouterText,
 } from '@api/services/integrations/openrouter/services/openrouter-bounded-text.util';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export {
@@ -22,6 +23,7 @@ export {
 } from '@api/services/integrations/openrouter/services/openrouter-bounded-text.util';
 
 /** Transport adapter only. The caller must persist its funded submission intent before invoking it. */
+@Traced()
 @Injectable()
 export class OpenRouterBoundedTextService {
   constructor(private readonly transport: OpenRouterService) {}

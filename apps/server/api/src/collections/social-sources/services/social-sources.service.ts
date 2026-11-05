@@ -33,6 +33,7 @@ import {
 } from '@genfeedai/contracts';
 import type { SocialSourceValidationResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   HttpStatus,
@@ -59,6 +60,7 @@ export interface SocialSourcesFeedResult {
   };
 }
 
+@Traced()
 @Injectable()
 export class SocialSourcesService {
   constructor(

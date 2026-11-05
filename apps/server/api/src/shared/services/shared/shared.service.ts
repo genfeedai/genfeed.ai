@@ -15,6 +15,7 @@ import {
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -222,6 +223,7 @@ const buildIngredientCreateDto = (
     : {}),
 });
 
+@Traced()
 @Injectable()
 export class SharedService {
   constructor(private readonly moduleRef: ModuleRef) {}

@@ -7,6 +7,7 @@ import {
   CreditReservationStatus,
 } from '@genfeedai/contracts';
 import type { ITurboProjectItemDispatch } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 /** Media settlement can take days; keep the hold one day past the retries. */
@@ -24,6 +25,7 @@ export type TurboIdeaSettlement =
  * generation fails. Lines paid with the organization's own key never touch
  * platform credits.
  */
+@Traced()
 @Injectable()
 export class TurboProjectCreditsService {
   constructor(private readonly credits: CreditsUtilsService) {}

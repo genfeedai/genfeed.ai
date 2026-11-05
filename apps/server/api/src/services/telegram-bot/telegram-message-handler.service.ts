@@ -20,6 +20,7 @@ import {
 } from '@api/services/telegram-bot/telegram-media-download.util';
 import { FileInputType } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import type { Context } from 'grammy';
 
 type TelegramMediaInputType = Extract<
@@ -52,6 +53,7 @@ export class TelegramMessageHandlerService {
   }
 
   /** Handle an incoming photo for the active workflow input. */
+  @Traced()
   async handlePhoto(ctx: Context): Promise<void> {
     const chatId = ctx.chat?.id;
     if (!chatId || !ctx.message?.photo) {
@@ -106,6 +108,7 @@ export class TelegramMessageHandlerService {
   }
 
   /** Handle incoming Telegram audio or voice messages for audio inputs. */
+  @Traced()
   async handleAudio(ctx: Context): Promise<void> {
     const payload = this.getAudioPayload(ctx);
     if (!payload) {
@@ -116,6 +119,7 @@ export class TelegramMessageHandlerService {
   }
 
   /** Handle incoming Telegram video messages for video inputs. */
+  @Traced()
   async handleVideo(ctx: Context): Promise<void> {
     const payload = this.getVideoPayload(ctx);
     if (!payload) {
@@ -126,6 +130,7 @@ export class TelegramMessageHandlerService {
   }
 
   /** Handle document uploads when they are used as audio/video workflow input. */
+  @Traced()
   async handleDocument(ctx: Context): Promise<void> {
     const chatId = ctx.chat?.id;
     const document = ctx.message?.document;
@@ -168,6 +173,7 @@ export class TelegramMessageHandlerService {
   }
 
   /** Handle an incoming text message for the active workflow input. */
+  @Traced()
   async handleText(ctx: Context): Promise<void> {
     const chatId = ctx.chat?.id;
     if (!chatId || !ctx.message?.text) {
@@ -267,6 +273,7 @@ export class TelegramMessageHandlerService {
     );
   }
 
+  @Traced()
   private async handleMedia(
     ctx: Context,
     mediaType: TelegramMediaInputType,
@@ -294,6 +301,7 @@ export class TelegramMessageHandlerService {
     await this.collectMediaInput(ctx, chatId, state, currentInput, payload);
   }
 
+  @Traced()
   private async collectMediaInput(
     ctx: Context,
     chatId: number,
@@ -363,6 +371,7 @@ export class TelegramMessageHandlerService {
    * token (`bot<token>`), so it must never be persisted in conversation state,
    * forwarded to Replicate, or logged — it stays inside the download helper.
    */
+  @Traced()
   private async downloadPhotoFromTelegram(
     ctx: Context,
     fileId: string,
@@ -395,6 +404,7 @@ export class TelegramMessageHandlerService {
     return { imageUrl: metadata.publicUrl };
   }
 
+  @Traced()
   private async downloadMediaFromTelegram(
     ctx: Context,
     payload: TelegramMediaPayload,

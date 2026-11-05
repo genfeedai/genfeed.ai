@@ -27,6 +27,7 @@ import { isCloudDeployment } from '@genfeedai/config';
 import { MemberRole } from '@genfeedai/contracts';
 import type { IAnalytics, IBrand } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 
@@ -67,6 +68,7 @@ type BootstrapMemberWithRole = Prisma.MemberGetPayload<{
 const OVERVIEW_BOOTSTRAP_CACHE_TTL_MS = 10_000;
 const OVERVIEW_BOOTSTRAP_CACHE_MAX_ENTRIES = 100;
 
+@Traced()
 @Injectable()
 export class AuthBootstrapService {
   private readonly overviewBootstrapCache = new Map<

@@ -12,9 +12,11 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, Optional } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class PostProcessingOrchestratorService {
   private readonly logContext = 'PostProcessingOrchestratorService';

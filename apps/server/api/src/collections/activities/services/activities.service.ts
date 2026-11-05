@@ -18,6 +18,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -25,6 +26,7 @@ import { Injectable } from '@nestjs/common';
  * or a key transition) goes through `ActivityRecorderService` (#5197), which
  * also raises the alert the policy map assigns to the key.
  */
+@Traced()
 @Injectable()
 export class ActivitiesService extends BaseService<
   ActivityDocument,

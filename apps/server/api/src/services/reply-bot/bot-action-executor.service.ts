@@ -15,6 +15,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -22,6 +23,7 @@ import { TwitterApi } from 'twitter-api-v2';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
 
+@Traced()
 @Injectable()
 export class BotActionExecutorService {
   private readonly constructorName: string = String(this.constructor.name);

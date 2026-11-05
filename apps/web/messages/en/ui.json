@@ -318,6 +318,10 @@
     "outputs": "{count} of {total} ready"
   },
   "postBatch": {
+    "asset": {
+      "thumbnail": "{name} thumbnail",
+      "untitled": "Untitled"
+    },
     "channels": {
       "activeCount": "{active} of {total} active",
       "addChannels": "Add channels",
@@ -339,40 +343,36 @@
       "turnAllOnShort": "On"
     },
     "footer": {
-      "back": "Back",
       "cancel": "Cancel",
-      "next": "Next, select channels",
-      "schedule": "Schedule"
+      "schedule": "{count, plural, =0 {Schedule} other {Schedule #}}",
+      "summary": "{count, plural, =0 {No channels yet} one {# channel} other {# channels}} · {date} {timezone}",
+      "summaryNoDate": "{count, plural, =0 {No channels yet} one {# channel} other {# channels}} · Pick a time"
+    },
+    "panel": {
+      "channels": "Channels",
+      "label": "Channels and preview",
+      "preview": "Preview"
     },
     "setup": {
       "aiShort": "AI",
-      "descriptionHelp": "This will be the default description for all channels. You can edit it per channel in the next step.",
-      "descriptionHelpFromPrompt": "Generate description from ingredient prompt or enter manually",
-      "descriptionLabel": "Description",
+      "charactersUsed": "Characters per channel",
+      "descriptionHelp": "Every channel carries this caption unless you change it in its Edit.",
+      "descriptionLabel": "Caption",
       "descriptionPlaceholder": "Enter a description for your post",
       "generateFromPrompt": "Generate from Prompt",
       "generateTitle": "Generate title with AI",
-      "scheduleChannelsHelp": "Applies to every channel unless you change it in a channel's Edit.",
-      "scheduleHelp": "Minimum 15 minutes from now. You can change it per channel in the next step.",
-      "scheduleLabel": "Schedule Date & Time",
+      "scheduleHelp": "At least 15 minutes from now. A channel can go out at its own time from its Edit.",
+      "scheduleLabel": "When",
       "titleHelpImage": "Will be used for Instagram. Not applicable for Twitter.",
       "titleHelpVideo": "Will be used for YouTube, TikTok, and Instagram. Not applicable for Twitter.",
       "titleLabel": "Title",
       "titlePlaceholder": "Enter title for your post"
     },
-    "stepHeader": {
-      "back": "Back to details",
-      "channelsDescription": "Choose destinations and customize each channel.",
-      "channelsTitle": "Choose channels",
-      "detailsDescription": "Add the post details and set the time.",
-      "detailsTitle": "Schedule post"
-    }
+    "title": "Schedule post"
   },
   "postPlatforms": {
-    "charactersUsed": "Characters used per channel",
     "empty": "Turn on at least one channel to publish.",
-    "livePreview": "Live preview",
-    "livePreviewDescription": "Platform-tuned preview of each enabled channel, updated as you type."
+    "previewEmpty": "Turn on a channel to see how it will look."
   },
   "organizationCreateModal": {
     "title": "Create Organization",
@@ -1045,5 +1045,30 @@
     "sound": "Create Sound",
     "style": "Create Style",
     "role": "Create Role"
+  },
+  "galleryModal": {
+    "add": "{count, plural, =0 {Add} other {Add #}}",
+    "branding": "Branding",
+    "cancel": "Cancel",
+    "clear": "Clear",
+    "clearFilters": "Clear filters",
+    "empty": "{category, select, VIDEO {No videos match} IMAGE {No images match} other {Nothing matches}}",
+    "filters": "Filters",
+    "library": "Library",
+    "origin": "Origin",
+    "searchLabel": "{category, select, VIDEO {Search videos} IMAGE {Search images} other {Search the Library}}",
+    "searchPlaceholder": "{category, select, VIDEO {Search videos} IMAGE {Search images} other {Search the Library}}",
+    "selectedCount": "{count, plural, =0 {Nothing selected} one {# selected} other {# selected}}",
+    "show": "Show",
+    "showAll": "All assets",
+    "showStarred": "Starred",
+    "sort": "Sort",
+    "title": "{category, select, VIDEO {Select video} IMAGE {Select image} MUSIC {Select music} other {Select media}}",
+    "upload": "Upload",
+    "useAccountReference": "Use account reference",
+    "musicEmpty": {
+      "title": "No music tracks available",
+      "description": "Generate some music first"
+    }
   }
 }

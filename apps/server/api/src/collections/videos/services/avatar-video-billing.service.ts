@@ -37,6 +37,7 @@ import {
   VOICE_SPEECH_MODELS,
 } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   HttpException,
@@ -56,6 +57,7 @@ const DEFAULT_PLATFORM_SPEECH_MODEL_KEY = MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2;
 const PLATFORM_SPEECH_PROVIDER = 'elevenlabs';
 
 /** Owns admission, output funding and attachment recovery for an avatar render. */
+@Traced()
 @Injectable()
 export class AvatarVideoBillingService {
   constructor(

@@ -12,6 +12,7 @@ import {
 } from '@genfeedai/contracts';
 import type { ISubscriptionOssReadModel } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const SUBSCRIPTION_INITIAL_CREDIT_REFERENCE_TYPE =
@@ -88,6 +89,7 @@ type DuplicateLogDetails = {
  * Converges subscription.created and invoice.paid onto one durable initial
  * credit grant while preserving invoice-keyed grants for later billing cycles.
  */
+@Traced()
 @Injectable()
 export class StripeSubscriptionCreditReconcilerService {
   constructor(

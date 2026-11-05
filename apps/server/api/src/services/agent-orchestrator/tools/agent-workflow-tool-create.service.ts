@@ -23,6 +23,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 
 import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 
 const MISSING_BRAND_ERROR =
@@ -35,6 +36,7 @@ function asWorkflowDtoArray<T>(value: unknown): T[] | undefined {
 /**
  * Create-workflow tools: graph payload, NL generation, and recurring scaffold.
  */
+@Traced()
 @Injectable()
 export class AgentWorkflowToolCreateService {
   constructor(

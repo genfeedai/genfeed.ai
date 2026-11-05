@@ -30,11 +30,13 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { normalizeCrunInput } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export type CrunPreparedImageInput = CrunPreparedInput<CrunImageQuoteIntent>;
 export type CrunPreparedImageResult = CrunPreparedResult<CrunImageQuoteIntent>;
 
+@Traced()
 @Injectable()
 export class CrunImageInputService {
   constructor(

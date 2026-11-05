@@ -4,12 +4,14 @@ import {
 } from '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
 import type { ManagedInferenceResponse } from '@api/endpoints/v1/managed-inference/interfaces/managed-inference.interfaces';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 const TRAILING_SLASHES_PATTERN = /\/+$/;
 
+@Traced()
 @Injectable()
 export class ManagedInferenceClientService {
   constructor(

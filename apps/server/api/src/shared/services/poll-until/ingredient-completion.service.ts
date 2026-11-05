@@ -3,6 +3,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { IngredientStatus } from '@genfeedai/contracts';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 /** Statuses that end an ingredient's generation, success or failure. */
@@ -27,6 +28,7 @@ function isTerminalStatus(status: unknown): boolean {
  * that want to surface the ingredient's current state re-read it in their own
  * catch block (see the image/video/music operation handlers).
  */
+@Traced()
 @Injectable()
 export class IngredientCompletionService {
   constructor(

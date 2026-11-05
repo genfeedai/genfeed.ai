@@ -14,6 +14,7 @@ import {
   type BrandedGenerationFeedbackSummaryV1,
 } from '@genfeedai/contracts/api-types/contracts/branded-generation-feedback.contract';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -39,6 +40,7 @@ interface ReceiptOutput {
  * reviewed) are read from the saved post when asked for, not recorded, so they
  * cannot drift from the post.
  */
+@Traced()
 @Injectable()
 export class BrandedGenerationFeedbackService {
   constructor(

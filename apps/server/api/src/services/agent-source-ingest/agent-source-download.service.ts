@@ -21,6 +21,7 @@ import {
   resolveSafeDestination,
   safeFetch,
 } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
@@ -178,6 +179,7 @@ async function* boundedBody(
   }
 }
 
+@Traced()
 @Injectable()
 export class AgentSourceDownloadService {
   constructor(

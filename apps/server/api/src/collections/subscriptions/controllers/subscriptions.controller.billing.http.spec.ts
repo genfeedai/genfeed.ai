@@ -20,7 +20,8 @@ import type { NextFunction, Request, Response } from 'express';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@sentry/nestjs', () => ({
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
   captureException: vi.fn(),
 }));
 

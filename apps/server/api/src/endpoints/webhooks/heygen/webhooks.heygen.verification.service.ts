@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { CacheService } from '@api/services/cache/cache.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 
@@ -22,6 +23,7 @@ const REPLAY_CACHE_NAMESPACE = 'webhook:heygen:delivery';
  * same environment variable now holds *their* signing secret and the URL we
  * register carries nothing sensitive.
  */
+@Traced()
 @Injectable()
 export class HeygenWebhookVerificationService {
   private readonly constructorName: string = String(this.constructor.name);

@@ -13,6 +13,7 @@ import type {
   TrackPostLinkInput,
 } from '@genfeedai/contracts/interfaces/content/extension-publication.interface';
 import { CredentialPlatform } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -23,6 +24,7 @@ const LINKEDIN_POST_URN_PATTERN = /urn:li:(?:share|ugcPost):\d+/;
 const LINKEDIN_ACTIVITY_ID_PATTERN = /(?:activity-|urn:li:activity:)(\d+)/;
 const LINKEDIN_POSTS_SLUG_PATTERN = /\/posts\/([^/_]+)_/;
 
+@Traced()
 @Injectable()
 export class PostLinkTrackingService {
   constructor(

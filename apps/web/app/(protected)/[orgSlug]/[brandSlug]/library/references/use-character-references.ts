@@ -98,7 +98,6 @@ export function useCharacterReferences({
     }
     openGallery({
       category: IngredientCategory.IMAGE,
-      isFormatFilterEnabled: false,
       maxSelectableItems: remaining,
       onSelect: (items) => {
         const selected = items

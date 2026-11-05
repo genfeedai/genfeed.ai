@@ -42,6 +42,7 @@ import type {
   IEconomicsRevenueSourceRow,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const REPORTING_CURRENCY = 'usd';
@@ -167,6 +168,7 @@ function toIso(value: Date | null): string | null {
  * `isDeleted = false`, and aggregation runs in Postgres over the period
  * indexes added with the revenue ledger.
  */
+@Traced()
 @Injectable()
 export class EconomicsService {
   constructor(private readonly prisma: PrismaService) {}

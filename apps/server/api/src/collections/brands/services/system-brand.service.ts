@@ -3,6 +3,7 @@ import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { IBrandOsRevision } from '@genfeedai/contracts/interfaces';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 export const SYSTEM_BRAND_ID = 'genfeed-system-brand';
@@ -38,6 +39,7 @@ export interface SystemBrandHandle {
  * provisional until the owner edits and approves the kit once. Nothing here
  * approves it.
  */
+@Traced()
 @Injectable()
 export class SystemBrandService {
   constructor(

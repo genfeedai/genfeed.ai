@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { isInProcessRedis } from '@libs/redis/redis-driver';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Job, JobsOptions, Queue } from 'bullmq';
@@ -17,6 +18,7 @@ export interface QueueJob<T = Record<string, unknown>> {
   options?: JobsOptions;
 }
 
+@Traced()
 @Injectable()
 export class QueueService {
   constructor(

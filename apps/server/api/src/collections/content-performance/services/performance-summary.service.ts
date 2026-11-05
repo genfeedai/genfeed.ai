@@ -4,6 +4,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import { SocialSourceType } from '@genfeedai/contracts';
 import type { SourcePostMetrics } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
 const HOOK_END_PATTERN = /[.\n]/;
@@ -158,6 +159,7 @@ type PostingTimeAnalysisRow = {
   post_count: bigint | number | string;
 };
 
+@Traced()
 @Injectable()
 export class PerformanceSummaryService {
   constructor(

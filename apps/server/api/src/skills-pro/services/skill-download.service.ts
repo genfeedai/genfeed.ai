@@ -11,6 +11,7 @@ import { parseSkillsProPack } from '@api/skills-pro/utils/skill-pack-archive.uti
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   ConflictException,
   ForbiddenException,
@@ -46,6 +47,7 @@ export interface SkillsProInstallationResult {
   version: string;
 }
 
+@Traced()
 @Injectable()
 export class SkillDownloadService {
   private readonly constructorName: string = String(this.constructor.name);

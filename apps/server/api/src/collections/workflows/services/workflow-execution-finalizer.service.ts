@@ -15,6 +15,7 @@ import {
 } from '@genfeedai/contracts';
 import type { ExecutionRunResult } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 
 type CompletedExecution = Awaited<
   ReturnType<WorkflowExecutionsService['completeExecution']>
@@ -41,6 +42,7 @@ export class WorkflowExecutionFinalizerService {
         : WorkflowExecutionStatus.FAILED;
   }
 
+  @Traced()
   async finalizeExecution(input: {
     executionId: string;
     organizationId: string;
@@ -124,6 +126,7 @@ export class WorkflowExecutionFinalizerService {
     return completedExecution;
   }
 
+  @Traced()
   async settleClipChainReservationForWorkflow(input: {
     actorUserId: string;
     organizationId: string;
@@ -158,6 +161,7 @@ export class WorkflowExecutionFinalizerService {
     }
   }
 
+  @Traced()
   private async notifyScheduledFailure(
     input: {
       executionId: string;

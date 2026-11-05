@@ -1,4 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import {
+  continueTrace,
+  init,
+  startSpan,
+  startSpanManual,
+} from '@sentry/nestjs';
+import { beforeAll, describe, expect, it } from 'vitest';
 import {
   resolveRequestId,
   resolveServiceIdentity,
@@ -31,6 +37,70 @@ describe('resolveTraceContext', () => {
     expect(context.traceId).toMatch(/^[\da-f]{32}$/);
     expect(context.traceId).not.toBe(TRACE_ID);
     expect(context.parentSpanId).toBeUndefined();
+  });
+});
+
+describe('resolveTraceContext inside a Sentry span', () => {
+  beforeAll(() => {
+    init({
+      dsn: 'https://public@o0.ingest.sentry.io/0',
+      tracesSampleRate: 1,
+      transport: () => ({
+        flush: async () => true,
+        send: async () => ({}),
+      }),
+    });
+  });
+
+  it('takes the ids of the active request span', () => {
+    const [context, spanContext] = startSpanManual(
+      { name: 'GET /v1/brands' },
+      (span) => {
+        const result = [
+          resolveTraceContext(undefined),
+          span.spanContext(),
+        ] as const;
+        span.end();
+        return result;
+      },
+    );
+
+    expect(context).toEqual({
+      spanId: spanContext.spanId,
+      traceId: spanContext.traceId,
+    });
+  });
+
+  it('keeps the upstream parent when the span continues an incoming trace', () => {
+    const traceparent = `00-${TRACE_ID}-${PARENT_SPAN_ID}-01`;
+
+    const [context, spanId] = continueTrace(
+      { baggage: undefined, sentryTrace: `${TRACE_ID}-${PARENT_SPAN_ID}-1` },
+      () =>
+        startSpan({ name: 'GET /v1/posts' }, (span) => [
+          resolveTraceContext({ traceparent }),
+          span.spanContext().spanId,
+        ]),
+    );
+
+    expect(context).toEqual({
+      parentSpanId: PARENT_SPAN_ID,
+      spanId,
+      traceId: TRACE_ID,
+    });
+  });
+
+  it('falls back to the incoming traceparent outside any span', () => {
+    expect(
+      resolveTraceContext({
+        traceparent: `00-${TRACE_ID}-${PARENT_SPAN_ID}-01`,
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        parentSpanId: PARENT_SPAN_ID,
+        traceId: TRACE_ID,
+      }),
+    );
   });
 });
 

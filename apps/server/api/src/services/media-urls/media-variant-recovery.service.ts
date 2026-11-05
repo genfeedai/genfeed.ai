@@ -9,6 +9,7 @@ import {
 import type { MediaVariantPurpose } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
@@ -52,6 +53,7 @@ function recoverablePurpose(purpose: string): MediaVariantPurpose | null {
  * fixed number of attempts. The prepare job id dedupes while a job still
  * exists, so overlapping sweeps are safe.
  */
+@Traced()
 @Injectable()
 export class MediaVariantRecoveryService {
   private readonly context = 'MediaVariantRecoveryService';

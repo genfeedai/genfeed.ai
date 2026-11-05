@@ -25,6 +25,7 @@ import type {
 } from '@api/services/agent-campaign/trigger-evaluator.service';
 import { TriggerEvaluatorService } from '@api/services/agent-campaign/trigger-evaluator.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 const MAX_CAMPAIGNS_PER_SWEEP = 20;
@@ -36,6 +37,7 @@ export type AgentCampaignWorkflowRequest = {
   userId: string;
 };
 
+@Traced()
 @Injectable()
 export class AgentCampaignWorkflowService implements OnModuleInit {
   constructor(

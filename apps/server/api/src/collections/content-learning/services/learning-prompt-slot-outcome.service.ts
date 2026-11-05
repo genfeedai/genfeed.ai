@@ -12,6 +12,7 @@ import {
   type SlotOutcomeObservation,
 } from '@genfeedai/harness';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Newest posts read per report; the report says when this cut it short. */
@@ -152,6 +153,7 @@ export function buildLearningPromptSlotOutcomeReport(
  * measured outcomes on published media posts. It enrolls nobody and changes no
  * generation; the verdicts are correlational leads, not causes.
  */
+@Traced()
 @Injectable()
 export class LearningPromptSlotOutcomeService {
   constructor(private readonly prisma: PrismaService) {}

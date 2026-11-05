@@ -2,6 +2,7 @@ import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-asse
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import type { ContentKind } from '@genfeedai/harness';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import type { SkillExecutionContext } from './interfaces/skill-executor.interfaces';
 
@@ -20,6 +21,7 @@ interface SkillBriefRequest {
  * none of them writes without it: a missing, empty or over-budget brief
  * fails the run with a retryable 503 instead of a generic prompt.
  */
+@Traced()
 @Injectable()
 export class SkillBrandBriefService {
   constructor(

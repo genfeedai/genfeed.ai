@@ -5,6 +5,7 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Scope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export type PlatformTemplateSeedResult = {
@@ -19,6 +20,7 @@ export type PlatformTemplateSeedResult = {
  * Insert-if-missing only: a row an operator edited, deactivated or deleted is
  * never rewritten, so the seed is safe to run on every deploy and by hand.
  */
+@Traced()
 @Injectable()
 export class PlatformTemplateSeedService {
   constructor(

@@ -27,6 +27,7 @@ import {
   escapeSystemEmailHtml,
 } from '@helpers/email/system-email.helper';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { FreeTrialEmailsService } from './free-trial-emails.service';
 import {
@@ -56,6 +57,7 @@ const DAY_MS = 86_400_000;
  */
 const CREDIT_ALERT_COOLDOWN_MS = 7 * DAY_MS;
 const CREDIT_ALERT_TEMPLATE_KEYS = ['credit-low', 'credit-exhausted'] as const;
+@Traced()
 @Injectable()
 export class LifecycleEmailMaintenanceService implements OnModuleInit {
   constructor(

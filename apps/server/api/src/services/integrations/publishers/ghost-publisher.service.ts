@@ -9,10 +9,12 @@ import { verifyHtmlPublish } from '@api/services/integrations/publishers/publish
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class GhostPublisherService extends BasePublisherService {
   readonly platform = CredentialPlatform.GHOST;

@@ -11,6 +11,7 @@ import {
 import { billingAccountScopedWhere } from '@api/tenancy/scoped-where';
 import { hasOrganizationBilling } from '@genfeedai/config';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const PAID_GRANT_CACHE_TTL_MS = 30_000;
@@ -49,6 +50,7 @@ const SUBSCRIPTION_SELECT = {
  * picker) ask {@link isSubscriptionGated} so deployments without
  * organization billing (community self-host, desktop) are never gated.
  */
+@Traced()
 @Injectable()
 export class OrganizationPaidAccessService {
   private readonly context = { service: OrganizationPaidAccessService.name };

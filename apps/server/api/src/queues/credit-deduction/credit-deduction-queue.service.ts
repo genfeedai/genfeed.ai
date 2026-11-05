@@ -4,6 +4,7 @@ import {
   type QueuedCreditChargeData,
 } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
@@ -20,6 +21,7 @@ function assertIdempotencyKey(data: QueuedCreditChargeData): void {
   }
 }
 
+@Traced()
 @Injectable()
 export class CreditDeductionQueueService {
   private readonly constructorName = 'CreditDeductionQueueService';

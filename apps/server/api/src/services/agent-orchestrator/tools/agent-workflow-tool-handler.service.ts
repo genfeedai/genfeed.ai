@@ -4,6 +4,7 @@ import { AgentWorkflowToolCreateService } from '@api/services/agent-orchestrator
 import { AgentWorkflowToolExecuteService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-execute.service';
 import { AgentWorkflowToolInstallService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -20,6 +21,7 @@ import { Injectable } from '@nestjs/common';
  * strategy turn (no live request) runs with the strategy's live-refreshed actor,
  * so the schedule it saves is bound instead of paused by Cloud.
  */
+@Traced()
 @Injectable()
 export class AgentWorkflowToolHandler {
   constructor(

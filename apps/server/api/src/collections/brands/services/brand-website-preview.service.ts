@@ -1,5 +1,6 @@
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type { IScrapedBrandData } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
@@ -20,6 +21,7 @@ export interface BrandWebsitePreviewResponse {
   data: BrandWebsitePreviewData;
 }
 
+@Traced()
 @Injectable()
 export class BrandWebsitePreviewService {
   constructor(private readonly brandScraperService: BrandScraperService) {}

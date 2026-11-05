@@ -3,6 +3,7 @@ import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-asse
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import type { ITurboProjectScope } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 export const TURBO_IDEAS_BRAND_CONTEXT_UNAVAILABLE =
@@ -13,6 +14,7 @@ export const TURBO_IDEAS_BRAND_CONTEXT_UNAVAILABLE =
  * speaks, so they are written against the composed harness brief like other
  * copy. Without it the request fails instead of letting generic ideas through.
  */
+@Traced()
 @Injectable()
 export class TurboIdeasBriefService {
   private readonly context = TurboIdeasBriefService.name;

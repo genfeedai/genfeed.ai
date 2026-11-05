@@ -20,8 +20,10 @@ import type {
   UpdateContentRunInput,
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ContentRunsService {
   constructor(private readonly prisma: PrismaService) {}

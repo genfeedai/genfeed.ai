@@ -34,6 +34,7 @@ import { AgentFailureReason, ByokProvider } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
@@ -63,6 +64,7 @@ interface HiggsFieldPollOptions {
  *
  * @see https://docs.higgsfield.ai/docs
  */
+@Traced()
 @Injectable()
 export class HiggsFieldService {
   private readonly constructorName: string = String(this.constructor.name);

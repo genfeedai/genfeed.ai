@@ -6,6 +6,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { AnalyticsMetric, KnowledgeMemoryScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 interface TopContentEntry {
@@ -36,6 +37,7 @@ export interface CampaignWinnerExtractionResult {
   summary: string;
 }
 
+@Traced()
 @Injectable()
 export class CampaignWinnerExtractionService {
   private readonly logContext = this.constructor.name;

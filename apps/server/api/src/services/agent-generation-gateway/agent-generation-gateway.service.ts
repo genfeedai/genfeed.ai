@@ -54,6 +54,7 @@ import {
   IngredientSerializer,
   VoiceSerializer,
 } from '@genfeedai/serializers';
+import { Traced } from '@libs/tracing/traced';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   ForbiddenException,
@@ -77,6 +78,7 @@ const GENERATION_ROLES: (string | MemberRole)[] = [
  * one-for-one; {@link AgentEndpointInvoker} owns the enforcement sequence. When
  * a controller's decorators change, change the matching descriptor here.
  */
+@Traced()
 @Injectable()
 export class AgentGenerationGatewayService implements IAgentGenerationGateway {
   private static readonly ARTICLE_TEXT_MAX_OVERDRAFT_CREDITS = 5;

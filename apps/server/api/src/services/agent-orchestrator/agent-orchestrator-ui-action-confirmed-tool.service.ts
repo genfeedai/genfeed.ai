@@ -23,6 +23,7 @@ import {
   type AgentToolResult,
   type AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 type ConfirmedToolAction =
@@ -44,6 +45,7 @@ type ToolExecutionOverrides = {
   confirmationOrigin?: 'thread-ui-action';
 };
 
+@Traced()
 @Injectable()
 export class AgentOrchestratorUiActionConfirmedToolService {
   constructor(

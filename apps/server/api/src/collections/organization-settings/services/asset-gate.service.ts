@@ -1,6 +1,7 @@
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { scopedWhere } from '@api/index';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { OrganizationSettingsService } from './organization-settings.service';
 
@@ -17,6 +18,7 @@ import { OrganizationSettingsService } from './organization-settings.service';
  * -write or race the read-then-patch, and so the access cache is invalidated
  * exactly once (only on the transition).
  */
+@Traced()
 @Injectable()
 export class AssetGateService {
   private readonly context = { service: AssetGateService.name };

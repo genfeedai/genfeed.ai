@@ -309,6 +309,7 @@ export class UserStripeController {
 
       return returnInternalServerError(
         `Failed to get subscription: ${(error as Error)?.message}`,
+        error,
       );
     }
   }

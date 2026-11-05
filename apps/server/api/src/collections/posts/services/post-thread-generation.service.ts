@@ -30,6 +30,7 @@ import {
 } from '@genfeedai/contracts';
 import type { AccountPublishingConstraints } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 const HTML_TAGS_PATTERN = /<[^>]+>/g;
@@ -52,6 +53,7 @@ const TWITTER_THREAD_CONSTRAINTS: AccountPublishingConstraints = {
 };
 
 /** Owns the X/Twitter thread-expansion state machine and terminal cleanup. */
+@Traced()
 @Injectable()
 export class PostThreadGenerationService {
   constructor(

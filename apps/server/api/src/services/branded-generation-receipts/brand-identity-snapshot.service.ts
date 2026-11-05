@@ -13,12 +13,14 @@ import { brandIdentitySnapshotV1Schema } from '@genfeedai/contracts/api-types/co
 import { learningContractIdSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
 import type { BrandIdentitySnapshotV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { AssetParent, BrandOsRevisionStatus, Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
 } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class BrandIdentitySnapshotService {
   constructor(

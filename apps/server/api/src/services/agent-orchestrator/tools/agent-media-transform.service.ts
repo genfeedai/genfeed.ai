@@ -21,6 +21,7 @@ import {
 import { IngredientCategory, Status } from '@genfeedai/contracts';
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
 const MERGE_OPTIONAL_PARAMETERS = [
@@ -55,6 +56,7 @@ function isVideoIdList(value: unknown): value is string[] {
  * generation gateway to the same orchestration the REST endpoint uses, so the
  * organization, user and brand scope and the DTO validation are shared.
  */
+@Traced()
 @Injectable()
 export class AgentMediaTransformService {
   constructor(

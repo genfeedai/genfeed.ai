@@ -1,91 +1,53 @@
 'use client';
 
-import { formatEnumLabel, IngredientCategory } from '@genfeedai/contracts';
-import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import VideoPlayer from '@ui/display/video-player/VideoPlayer';
-import { Badge } from '@ui/primitives/badge';
-import Image from 'next/image';
-
-type AspectRatioInfo = {
-  width: number;
-  height: number;
-  isPortrait: boolean;
-};
-
-type ModalPostBatchIngredientPreviewProps = {
-  ingredient: IIngredient;
-  aspectRatioInfo: AspectRatioInfo;
-};
-
-const PREVIEW_MAX_HEIGHT = '12rem';
+import {
+  CardGap,
+  CardPadding,
+  CardVariant,
+  formatEnumLabel,
+} from '@genfeedai/contracts';
+import type { ModalPostBatchIngredientPreviewProps } from '@genfeedai/props/modals/modal.props';
+import Card from '@ui/card/Card';
+import { useTranslations } from 'next-intl';
+import IngredientThumbnail from '@/components/ingredients/ingredient-thumbnail/IngredientThumbnail';
 
 /**
- * The asset being published, shown compactly at the top of the details step:
- * its media at the right proportions, then its name and type.
+ * The asset being scheduled, as one compact row at the top of the form: its
+ * thumbnail, its name, and its type and format.
  */
 export default function ModalPostBatchIngredientPreview({
   ingredient,
-  aspectRatioInfo,
 }: ModalPostBatchIngredientPreviewProps) {
+  const translate = useTranslations('ui.postBatch.asset');
+  const name = ingredient.metadataLabel?.trim() || translate('untitled');
+  const details = [
+    formatEnumLabel(ingredient.category),
+    ingredient.ingredientFormat
+      ? formatEnumLabel(ingredient.ingredientFormat)
+      : null,
+  ].filter(Boolean);
+
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div
-        className="relative flex w-fit items-center justify-center overflow-hidden rounded-md shadow-border"
-        style={{
-          aspectRatio: `${aspectRatioInfo.width} / ${aspectRatioInfo.height}`,
-          maxHeight: PREVIEW_MAX_HEIGHT,
-        }}
-      >
-        {ingredient.category === IngredientCategory.VIDEO ? (
-          ingredient.ingredientUrl ? (
-            <VideoPlayer
-              src={ingredient.ingredientUrl}
-              thumbnail={ingredient?.thumbnailUrl ?? undefined}
-              config={{
-                autoPlay: false,
-                controls: true,
-                loop: false,
-                muted: true,
-                playsInline: true,
-                preload: 'metadata',
-              }}
-            />
-          ) : (
-            <div className="flex aspect-video w-full items-center justify-center bg-background/70 text-foreground/60">
-              Video preview unavailable.
-            </div>
-          )
-        ) : (
-          <Image
-            src={
-              ingredient.ingredientUrl ||
-              `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`
-            }
-            alt={ingredient.metadataLabel || 'Ingredient'}
-            width={aspectRatioInfo.width}
-            height={aspectRatioInfo.height}
-            className="h-auto object-contain outline-media"
-            sizes="(max-width: 768px) 100vw, 320px"
-            style={{
-              aspectRatio: `${aspectRatioInfo.width} / ${aspectRatioInfo.height}`,
-              maxHeight: PREVIEW_MAX_HEIGHT,
-              width: 'auto',
-            }}
-          />
-        )}
+    <Card
+      bodyClassName="flex-row items-center"
+      gap={CardGap.MD}
+      padding={CardPadding.SM}
+      variant={CardVariant.BORDERED}
+    >
+      <div className="relative size-14 shrink-0 overflow-hidden rounded-md">
+        <IngredientThumbnail
+          alt={translate('thumbnail', { name })}
+          className="object-cover"
+          ingredient={ingredient}
+          sizes="56px"
+        />
       </div>
-      <div className="flex max-w-full flex-col items-center gap-2">
-        <h4 className="max-w-full truncate text-sm font-semibold">
-          {ingredient.metadataLabel || 'Untitled'}
-        </h4>
-        <div className="flex flex-wrap justify-center gap-2">
-          <Badge>{formatEnumLabel(ingredient.category)}</Badge>
-          {ingredient.ingredientFormat && (
-            <Badge>{ingredient.ingredientFormat}</Badge>
-          )}
-        </div>
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="truncate text-sm font-medium">{name}</span>
+        <span className="truncate text-xs text-foreground/60">
+          {details.join(' · ')}
+        </span>
       </div>
-    </div>
+    </Card>
   );
 }

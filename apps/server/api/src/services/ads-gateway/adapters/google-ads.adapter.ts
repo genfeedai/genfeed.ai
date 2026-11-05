@@ -29,10 +29,12 @@ import {
   type UpdateCampaignInput,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const MICROS_DIVISOR = 1_000_000;
 
+@Traced()
 @Injectable()
 export class GoogleAdsAdapter implements IAdsAdapter {
   readonly platform = AdsPlatform.GOOGLE;

@@ -9,6 +9,7 @@ import type {
 } from '@genfeedai/integrations/ads';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 const X_ADS_REPOSITORY_DOCUMENTATION_URL =
@@ -29,6 +30,7 @@ const X_ADS_REPOSITORY_DOCUMENTATION_URL =
  * once it is reachable, its creatives are `disclosure_only` and never remix
  * input (`resolvePaidCreativeUsagePolicy`).
  */
+@Traced()
 @Injectable()
 export class XAdsRepositoryProvider implements PaidCreativeProviderAdapter {
   readonly provider: PaidCreativeProvider = 'x_ads_repository';

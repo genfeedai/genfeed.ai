@@ -59,6 +59,7 @@ import type {
   BrandedGenerationResolutionV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -88,6 +89,7 @@ import {
   withDiagnostic,
 } from './branded-generation-projection.util';
 
+@Traced()
 @Injectable()
 export class BrandedGenerationReceiptsService {
   constructor(

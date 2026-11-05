@@ -9,6 +9,7 @@ import {
   validLearningDependencyRef,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
 export const DATASET_BATCH_SIZE = 1000;
@@ -134,6 +135,7 @@ export class LearningDatasetGraph {
           decision.payloadHash,
         );
   }
+  @Traced()
   async pins(
     kind: LearningDependencyKindV1,
     ids: string[],
@@ -177,6 +179,7 @@ export class LearningDatasetGraph {
         return new Map();
     }
   }
+  @Traced()
   private async globalPins(
     kind: LearningDependencyKindV1,
     ids: string[],
@@ -240,6 +243,7 @@ export class LearningDatasetGraph {
     }
     return result;
   }
+  @Traced()
   private async identityPins(
     kind: LearningDependencyKindV1,
     ids: string[],
@@ -263,6 +267,7 @@ export class LearningDatasetGraph {
     }
     return result;
   }
+  @Traced()
   private async observationPins(
     kind: LearningDependencyKindV1,
     ids: string[],
@@ -334,6 +339,7 @@ export class LearningDatasetGraph {
     }
     return result;
   }
+  @Traced()
   private async experimentPins(
     kind: LearningDependencyKindV1,
     ids: string[],
@@ -390,6 +396,7 @@ export class LearningDatasetGraph {
     }
     return result;
   }
+  @Traced()
   private async provenancePins(
     kind: LearningDependencyKindV1,
     ids: string[],
@@ -438,6 +445,7 @@ export class LearningDatasetGraph {
     }
     return result;
   }
+  @Traced()
   private async consentPins(
     kind: LearningDependencyKindV1,
     ids: string[],
@@ -475,6 +483,7 @@ export class LearningDatasetGraph {
     }
     return result;
   }
+  @Traced()
   private async bulkObservationPins(
     kind: 'checkpoint' | 'baseline' | 'decision' | 'reward',
     ids: string[],
@@ -536,6 +545,7 @@ export class LearningDatasetGraph {
     }
     return result;
   }
+  @Traced()
   private async loadBatch(part: DatasetNode[], take: number) {
     const { kind, organizationId } = part[0];
     const ids = part.map((node) => node.id);
@@ -568,6 +578,7 @@ export class LearningDatasetGraph {
       sourceOrganizationId: edge.sourceOrganizationId,
     };
   }
+  @Traced()
   async load(roots: DatasetNode[]) {
     let frontier = new Map<string, DatasetNode>();
     for (const node of roots) frontier.set(nodeKey(node), node);

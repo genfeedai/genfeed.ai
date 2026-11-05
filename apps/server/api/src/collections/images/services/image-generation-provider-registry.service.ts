@@ -16,6 +16,7 @@ import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import type { ModelProvider } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import {
   HttpException,
   HttpStatus,
@@ -23,6 +24,7 @@ import {
   Optional,
 } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ImageGenerationProviderRegistryService {
   private readonly adapters: readonly ImageGenerationProviderAdapter[];

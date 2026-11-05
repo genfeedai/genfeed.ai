@@ -19,6 +19,7 @@ import type {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const TRAILING_SLASH_PATTERN = /\/$/;
@@ -26,6 +27,7 @@ const TRAILING_SLASH_PATTERN = /\/$/;
 const DEFAULT_POSTHOG_HOST = 'https://eu.i.posthog.com';
 const POSTHOG_CAPTURE_TIMEOUT_MS = 800;
 
+@Traced()
 @Injectable()
 export class LlmCompletionTelemetryService {
   private readonly constructorName = String(this.constructor.name);

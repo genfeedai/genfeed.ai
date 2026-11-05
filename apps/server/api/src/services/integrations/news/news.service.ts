@@ -1,9 +1,11 @@
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+@Traced()
 @Injectable()
 export class NewsService {
   private readonly constructorName: string = String(this.constructor.name);

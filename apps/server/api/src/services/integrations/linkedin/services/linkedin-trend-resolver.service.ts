@@ -11,6 +11,7 @@ import {
   resolveLinkedInTrendSourceUrls,
 } from '@api/services/integrations/linkedin/utils/linkedin-trend.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 function toServerTrends(
@@ -22,6 +23,7 @@ function toServerTrends(
   }));
 }
 
+@Traced()
 @Injectable()
 export class LinkedInTrendResolverService
   implements ServerLinkedInTrendResolver

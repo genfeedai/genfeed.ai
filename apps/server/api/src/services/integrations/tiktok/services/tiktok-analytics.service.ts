@@ -5,6 +5,7 @@ import {
   type LearningMetrics,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -34,6 +35,7 @@ export class TiktokAnalyticsService {
     private readonly handleAuthorizationError: HandleTikTokAuthError,
   ) {}
 
+  @Traced()
   async getMediaAnalytics(
     organizationId: string,
     brandId: string,

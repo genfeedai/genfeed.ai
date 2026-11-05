@@ -48,6 +48,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -105,6 +106,7 @@ export type PendingOAuthCredential = CredentialDocument & {
   userId: string;
 };
 
+@Traced()
 @Injectable()
 export class CredentialsService
   extends BaseService<

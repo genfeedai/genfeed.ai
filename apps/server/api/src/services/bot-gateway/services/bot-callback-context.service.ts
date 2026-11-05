@@ -1,6 +1,7 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type { IBotCallbackContext } from '@genfeedai/contracts/interfaces';
 import { RedisService } from '@libs/redis/redis.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 const CALLBACK_CONTEXT_TTL_SECONDS = 24 * 60 * 60;
@@ -35,6 +36,7 @@ export type ClaimedBotCallbackContext = {
  * once the media finishes. Redis-only so the webhook media path can reach it
  * without pulling in the generation dispatcher behind the bot gateway.
  */
+@Traced()
 @Injectable()
 export class BotCallbackContextService {
   constructor(private readonly redisService: RedisService) {}

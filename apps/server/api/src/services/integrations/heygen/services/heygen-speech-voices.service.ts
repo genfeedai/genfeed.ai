@@ -6,6 +6,7 @@ import type {
   HeyGenSpeechVoice,
   HeyGenSpeechVoiceCatalog,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -22,6 +23,7 @@ const speechVoiceSchema = z.object({
  * This is a different surface from the stock `/v3/voices` catalog that avatar
  * video speaks with.
  */
+@Traced()
 @Injectable()
 export class HeyGenSpeechVoicesService {
   constructor(

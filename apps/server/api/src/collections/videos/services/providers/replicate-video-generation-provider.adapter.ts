@@ -12,9 +12,11 @@ import {
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ModelProvider } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
+@Traced()
 @Injectable()
 export class ReplicateVideoGenerationProviderAdapter
   implements VideoGenerationProviderAdapter

@@ -1,11 +1,13 @@
 import type { GoogleSearchConsoleOAuthTokens } from '@api/services/integrations/google-search-console/interfaces/google-search-console.interface';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+@Traced()
 @Injectable()
 export class GoogleSearchConsoleOAuthService {
   private readonly GOOGLE_AUTH_URL =

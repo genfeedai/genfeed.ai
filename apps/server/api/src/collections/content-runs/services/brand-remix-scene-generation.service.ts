@@ -33,6 +33,7 @@ import {
   resolveAgentGenerationDimensions,
 } from '@genfeedai/contracts/constants';
 import { readIngredientMediaUrl } from '@libs/media/media-url.util';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 type SceneStageName = 'image' | 'video';
@@ -41,6 +42,7 @@ type SavedRemixScene = BrandRemixScenePipeline['scenes'][string];
 type SceneQuoteLine = BrandRemixSceneQuote['items'][number];
 type PlaceholderCreated = (assetId: string) => Promise<void>;
 
+@Traced()
 @Injectable()
 export class BrandRemixSceneGenerationService {
   constructor(

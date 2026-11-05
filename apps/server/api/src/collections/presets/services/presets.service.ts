@@ -10,6 +10,7 @@ import { b2bPlaybookSchema } from '@genfeedai/contracts/api-types/contracts/b2b-
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { platformTenantProof } from '@libs/prisma/platform-scope';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -82,6 +83,7 @@ function withoutClearedFields(
   );
 }
 
+@Traced()
 @Injectable()
 export class PresetsService extends BaseService<
   PresetDocument,

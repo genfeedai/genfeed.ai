@@ -29,6 +29,7 @@ import type {
   IPublicYoutubeClipperToolSession,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   GoneException,
@@ -88,6 +89,7 @@ type PublicYoutubeClipperPreviewEnvelope = {
   reserved: StoredPublicYoutubeClipperSession;
 };
 
+@Traced()
 @Injectable()
 export class PublicYoutubeClipperService implements OnModuleInit {
   constructor(

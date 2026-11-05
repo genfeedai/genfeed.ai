@@ -43,6 +43,7 @@ import type { MediaModerationJobData } from '@genfeedai/contracts/queue';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -131,6 +132,7 @@ function toJson(value: unknown): Prisma.InputJsonValue {
  * asset re-evaluates the stored scores under the current thresholds, mode and
  * minors evidence.
  */
+@Traced()
 @Injectable()
 export class MediaModerationService {
   private readonly constructorName = String(this.constructor.name);

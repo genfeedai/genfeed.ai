@@ -41,6 +41,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/twitter-authorized-signals.contract';
 import { readRawString, readRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -177,6 +178,7 @@ type TwitterSignalsProviderFetch =
       userInfoResult: TwitterSettledResult<Record<string, unknown>>;
     };
 
+@Traced()
 @Injectable()
 export class TwitterAuthorizedSignalsService {
   private readonly endpoint = 'https://api.twitter.com/2';

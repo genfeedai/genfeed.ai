@@ -14,6 +14,7 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isXPlatform, scoreXPublicMetricsPer1k } from '@genfeedai/harness';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional, type Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -57,6 +58,7 @@ export type PromotedWinner = {
  * base. Entries are embedded on write (Postgres pgvector) so generation can
  * retrieve them by topic for brand-native content context.
  */
+@Traced()
 @Injectable()
 export class HarnessWinnerPromotionService {
   constructor(

@@ -10,6 +10,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
 /**
@@ -24,6 +25,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
  * has lost access yields no principal, so the schedule is saved unbound and Cloud
  * pauses it. The actor is never inferred from the strategy's owner.
  */
+@Traced()
 @Injectable()
 export class AgentStrategyScheduleAuthorityService {
   constructor(

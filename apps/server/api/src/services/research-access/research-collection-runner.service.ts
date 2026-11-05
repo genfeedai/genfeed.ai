@@ -14,6 +14,7 @@ import {
   ResearchCollectionJobService,
 } from '@api/services/research-access/research-collection-job.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
@@ -69,6 +70,7 @@ const RUN_LIST_MAX_PAGES = 5;
  * Hosted research collection. A retry uses the recorded Apify run before
  * any new start, and settles that run's cost at most once.
  */
+@Traced()
 @Injectable()
 export class ResearchCollectionRunner {
   constructor(

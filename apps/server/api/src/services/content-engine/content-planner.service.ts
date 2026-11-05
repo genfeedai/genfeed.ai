@@ -21,6 +21,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const PLATFORM_FORMAT_GUIDANCE: Record<string, string> = {
@@ -34,6 +35,7 @@ const PLATFORM_FORMAT_GUIDANCE: Record<string, string> = {
   youtube: 'long-form 16:9 video',
 };
 
+@Traced()
 @Injectable()
 export class ContentPlannerService {
   private readonly constructorName = String(this.constructor.name);

@@ -5,6 +5,7 @@ import {
 import { appendWebhookToken } from '@api/webhooks/webhook-token.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Inject, Injectable } from '@nestjs/common';
 import axios from 'axios';
@@ -23,6 +24,7 @@ interface ManagedInferenceRuntime {
  * monorepo. This adapter preserves the Community, BYOK, and provider=genfeedai
  * request paths without owning GPU infrastructure.
  */
+@Traced()
 @Injectable()
 export class ManagedInferenceRuntimeService {
   private readonly constructorName: string = String(this.constructor.name);

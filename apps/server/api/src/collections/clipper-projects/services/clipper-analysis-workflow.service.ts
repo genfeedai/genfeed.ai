@@ -58,6 +58,7 @@ import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { filesServiceAuthHeaders } from '@libs/auth/files-service-key';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
@@ -150,6 +151,7 @@ type ReferencedClipperAnalysis = HighlightedClipperAnalysis & {
   referenceFrames: ClipperReferenceFrameSet;
 };
 
+@Traced()
 @Injectable()
 export class ClipperAnalysisWorkflowService implements OnModuleInit {
   private readonly logContext = 'ClipperAnalysisWorkflowService';

@@ -29,6 +29,7 @@ import type { GenerationBriefReference } from '@genfeedai/contracts/api-types/co
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 
@@ -58,6 +59,7 @@ interface ReplicatePredictionOutput {
   status?: string;
 }
 
+@Traced()
 @Injectable()
 export class StepExecutorService {
   constructor(

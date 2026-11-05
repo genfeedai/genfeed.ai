@@ -43,6 +43,7 @@ import {
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 
 interface AgentBrandsServiceLike {
@@ -52,6 +53,7 @@ interface AgentBrandsServiceLike {
   ) => Promise<Record<string, unknown> | null>;
 }
 
+@Traced()
 @Injectable()
 export class AgentMediaAssetGenerationService {
   constructor(

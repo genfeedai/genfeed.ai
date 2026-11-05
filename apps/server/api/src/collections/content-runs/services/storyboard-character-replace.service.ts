@@ -32,6 +32,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/storyboard-character-replace.contract';
 import type { Prisma } from '@genfeedai/prisma';
 import { readIngredientMediaUrl } from '@libs/media/media-url.util';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -39,6 +40,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class StoryboardCharacterReplaceService {
   constructor(

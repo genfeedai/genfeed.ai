@@ -6,6 +6,7 @@ import {
   ActivityKey,
   ActivitySource,
 } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
 
@@ -21,6 +22,7 @@ interface AvatarProcessingAnnouncement {
  * generation. Keeping it out of the generation service leaves that service with
  * the provider work and one collaborator instead of two lifecycle clients.
  */
+@Traced()
 @Injectable()
 export class AvatarVideoLifecycleService {
   constructor(

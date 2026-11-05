@@ -4,6 +4,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { QuotaService } from '@api/services/quota/quota.service';
 import type { CredentialPlatform } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 export interface CredentialMentionItem {
@@ -14,6 +15,7 @@ export interface CredentialMentionItem {
   platform: CredentialPlatform;
 }
 
+@Traced()
 @Injectable()
 export class CredentialPublishingOperationsService {
   constructor(

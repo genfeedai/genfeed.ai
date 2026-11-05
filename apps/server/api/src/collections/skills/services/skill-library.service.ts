@@ -57,6 +57,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/ai/skill-version-read.interface';
 import type { Prisma, Skill } from '@genfeedai/prisma';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   ConflictException,
@@ -78,6 +79,7 @@ export { isVerifiedOrdinaryUploadVersionReadV1 } from '@api/collections/skills/s
 const PROMPT_SNAPSHOT_TOKEN_PATTERN =
   /^[0-9a-fA-F]{32}:[0-9a-fA-F]+:[0-9a-fA-F]{32}$/;
 
+@Traced()
 @Injectable()
 export class SkillLibraryService {
   private readonly versionReader: SkillVersionReader;

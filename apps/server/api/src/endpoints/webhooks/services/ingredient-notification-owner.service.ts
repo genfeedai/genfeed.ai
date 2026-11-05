@@ -2,6 +2,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import type { IIngredientNotificationOwner } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 
@@ -20,6 +21,7 @@ function readText(value: unknown): string | undefined {
  * what their wallet holds now. Best effort: a failed balance read must never
  * hold back the notification.
  */
+@Traced()
 @Injectable()
 export class IngredientNotificationOwnerService {
   private readonly constructorName = IngredientNotificationOwnerService.name;

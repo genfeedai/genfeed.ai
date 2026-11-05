@@ -24,6 +24,7 @@ import {
   type WebhookJobData,
 } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
@@ -55,6 +56,7 @@ export interface WebhookDispatchOptions {
  * endpoint/secret guard, the organization event filter, the SSRF check, the
  * deterministic dedupe job id, and the recorded delivery status.
  */
+@Traced()
 @Injectable()
 export class WebhookDispatchService {
   private readonly constructorName = 'WebhookDispatchService';

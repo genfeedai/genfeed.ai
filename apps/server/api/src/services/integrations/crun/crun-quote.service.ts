@@ -10,6 +10,7 @@ import {
   crunCreditsToUsd,
   quoteModelBillablePricing,
 } from '@genfeedai/pricing';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -33,6 +34,7 @@ export type CrunQuoteResult =
   | { isAvailable: false; reasonCode: CrunQuoteReasonCode };
 
 /** Core pricing only: callers provide already authorized reviewed model and billing inputs. */
+@Traced()
 @Injectable()
 export class CrunQuoteService {
   constructor(private readonly client: CrunClient) {}

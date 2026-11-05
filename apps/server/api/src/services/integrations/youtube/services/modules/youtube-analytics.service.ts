@@ -13,6 +13,7 @@ import {
   type LearningMetrics,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import type { OAuth2Client } from 'google-auth-library';
@@ -20,6 +21,7 @@ import { google, type youtube_v3 } from 'googleapis';
 
 const ISO8601_DURATION_PATTERN = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
 
+@Traced()
 @Injectable()
 export class YoutubeAnalyticsService {
   private readonly constructorName = this.constructor.name;

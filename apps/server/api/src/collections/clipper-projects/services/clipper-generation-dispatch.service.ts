@@ -18,6 +18,7 @@ import {
   serializeClipperGenerationResult,
 } from '@genfeedai/serializers';
 import { readNonEmptyStringOrNull } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 function toDispatchedStatus(
@@ -34,6 +35,7 @@ function toDispatchedStatus(
   return result.queuedClipCount > 0 ? 'generating' : 'failed';
 }
 
+@Traced()
 @Injectable()
 export class ClipperGenerationDispatchService {
   constructor(

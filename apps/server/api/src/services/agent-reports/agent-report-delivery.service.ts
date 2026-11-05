@@ -12,6 +12,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { TurboRunItemStatus } from '@genfeedai/contracts';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
@@ -26,6 +27,7 @@ export interface AgentReportDeliveryInput {
 export type AgentReportDeliveryResult =
   | { status: 'delivered'; providerMessageId: string }
   | { status: 'skipped'; reason: string };
+@Traced()
 @Injectable()
 export class AgentReportDeliveryService {
   constructor(

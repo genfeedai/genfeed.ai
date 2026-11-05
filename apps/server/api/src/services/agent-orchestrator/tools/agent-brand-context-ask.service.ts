@@ -13,6 +13,7 @@ import type {
   IBrandContextAskRequest,
   OnboardingAnswerFieldId,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -47,6 +48,7 @@ function isSameCard(
  *
  * Every read and write is scoped to the organization and skips deleted rows.
  */
+@Traced()
 @Injectable()
 export class AgentBrandContextAskService {
   constructor(

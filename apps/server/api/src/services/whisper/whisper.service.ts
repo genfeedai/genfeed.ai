@@ -13,6 +13,7 @@ import {
   resolveIngredientMediaUrl,
 } from '@libs/media/media-url.util';
 import { downloadBounded } from '@libs/security/bounded-download';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -30,6 +31,7 @@ type AudioConversionResult = {
 
 const MEDIA_DOWNLOAD_TIMEOUT_MS = 60_000;
 
+@Traced()
 @Injectable()
 export class WhisperService {
   private readonly constructorName: string = String(this.constructor.name);

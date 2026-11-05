@@ -20,6 +20,7 @@ import {
   quoteModelBillablePricing,
 } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   ForbiddenException,
   Injectable,
@@ -39,6 +40,7 @@ const CREATIVE_PROMPT_PATTERN = /artistic|creative|abstract/;
 const WHITESPACE_RUN_PATTERN = /\s+/;
 
 /** Registry-backed model selection and recommendation policy. */
+@Traced()
 @Injectable()
 export class RouterService {
   /**

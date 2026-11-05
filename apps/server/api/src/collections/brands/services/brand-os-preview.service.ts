@@ -18,6 +18,7 @@ import {
 } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   GoneException,
@@ -49,6 +50,7 @@ interface StoredBrandOsPreview {
   draft: IBrandKitDraft;
 }
 
+@Traced()
 @Injectable()
 export class BrandOsPreviewService {
   constructor(

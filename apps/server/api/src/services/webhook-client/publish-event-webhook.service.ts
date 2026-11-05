@@ -27,6 +27,7 @@ import {
 import type { IWebhookDeliveryStatus } from '@genfeedai/contracts/interfaces';
 import { readNonBlankStringOrNull } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 
@@ -74,6 +75,7 @@ type TerminalTargetResolution =
       reason: 'non-terminal';
     };
 
+@Traced()
 @Injectable()
 export class PublishEventWebhookService {
   private readonly constructorName = 'PublishEventWebhookService';

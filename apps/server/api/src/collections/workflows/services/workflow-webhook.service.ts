@@ -14,6 +14,7 @@ import {
 } from '@genfeedai/contracts';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 /**
@@ -22,6 +23,7 @@ import { Injectable, Optional } from '@nestjs/common';
  * `WorkflowsService` (#754) — webhook crypto and trigger accounting are a
  * cohesive concern that does not belong in the core workflow service.
  */
+@Traced()
 @Injectable()
 export class WorkflowWebhookService {
   constructor(

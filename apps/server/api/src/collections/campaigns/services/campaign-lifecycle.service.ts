@@ -23,6 +23,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { Campaign, Post } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -33,6 +34,7 @@ const TERMINAL_UNCHANGED_STATES = new Set<string>([
   TargetExecutionState.SKIPPED,
 ]);
 
+@Traced()
 @Injectable()
 export class CampaignLifecycleService {
   constructor(

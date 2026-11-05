@@ -25,6 +25,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import { escapeSystemEmailHtml } from '@helpers/email/system-email.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -51,6 +52,7 @@ const WEBHOOK_FIELDS = {
   'email.complained': 'complainedAt',
 } as const;
 
+@Traced()
 @Injectable()
 export class EmailPerformanceService {
   constructor(

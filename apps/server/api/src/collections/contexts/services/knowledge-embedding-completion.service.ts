@@ -22,6 +22,7 @@ import {
   Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { stableStringify } from '@libs/utils/canonical-hash.util';
 import {
   BadRequestException,
@@ -36,6 +37,7 @@ function record(value: unknown): Record<string, unknown> {
     : {};
 }
 
+@Traced()
 @Injectable()
 export class KnowledgeEmbeddingCompletionService {
   constructor(

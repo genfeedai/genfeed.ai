@@ -40,8 +40,10 @@ import {
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class WorkflowMediaGenerationExecutorRegistrarService {
   constructor(

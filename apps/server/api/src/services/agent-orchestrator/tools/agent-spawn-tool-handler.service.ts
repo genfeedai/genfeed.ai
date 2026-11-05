@@ -3,12 +3,14 @@ import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service
 import { AgentType } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 /**
  * Sub-agent spawn and asset request tools.
  * Extracted from AgentToolExecutorService per #519.
  */
+@Traced()
 @Injectable()
 export class AgentSpawnToolHandler {
   private readonly constructorName = String(this.constructor.name);

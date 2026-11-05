@@ -25,6 +25,7 @@ import {
   DEFAULT_CLIP_REFERENCE_POLICY,
   DEFAULT_CLIP_RESULT_MODE,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface PrepareClipperGenerationParams {
@@ -50,6 +51,7 @@ export interface PreparedClipperGeneration {
  *
  * Kept out of the controller so the HTTP layer stays a thin adapter.
  */
+@Traced()
 @Injectable()
 export class ClipperGenerationRequestService {
   constructor(

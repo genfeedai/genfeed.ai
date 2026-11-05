@@ -15,6 +15,7 @@ import {
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { readTrimmedStringOrNull } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Inject,
@@ -155,6 +156,7 @@ export function readPreparedCampaignTransition(
  * `complete_outreach_sequence`, `get_outreach_sequence_analytics`).
  * Extracted from AgentToolExecutorService per #519.
  */
+@Traced()
 @Injectable()
 export class AgentCampaignToolHandler {
   private readonly cacheService?: CacheService;

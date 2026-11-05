@@ -20,12 +20,14 @@ import type {
   ResolvedRuntimeSkill,
 } from '@genfeedai/contracts/interfaces/ai';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 /** Legacy truncation limit for optional skill instructions. */
 export const MAX_INSTRUCTIONS_PER_SKILL = 24_000;
 export const MAX_TOTAL_SKILL_INSTRUCTIONS = 48_000;
 
+@Traced()
 @Injectable()
 export class SkillRuntimeService {
   constructor(

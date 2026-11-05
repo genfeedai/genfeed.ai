@@ -5,6 +5,7 @@ import {
   createPrismaPgConfig,
   POSTGRES_CA_FILE_ENV_KEYS,
 } from '@libs/prisma/prisma-pg-config';
+import { Traced } from '@libs/tracing/traced';
 import {
   ConflictException,
   Injectable,
@@ -15,6 +16,7 @@ import { Pool } from 'pg';
 type ReviewLockContext = { keys: ReadonlySet<string>; active: boolean };
 
 /** A dedicated lock transaction outlives nested publishing transactions. */
+@Traced()
 @Injectable()
 export class TurboRunReviewLockService implements OnModuleDestroy {
   private readonly pool: Pool;

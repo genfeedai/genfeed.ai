@@ -22,6 +22,7 @@ import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts/c
 import { sourcePostVariationCredits } from '@genfeedai/contracts/constants';
 import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadGatewayException,
   BadRequestException,
@@ -37,6 +38,7 @@ export interface PostVariationResult {
   posts: PostDocument[];
 }
 
+@Traced()
 @Injectable()
 export class PostVariationService {
   constructor(

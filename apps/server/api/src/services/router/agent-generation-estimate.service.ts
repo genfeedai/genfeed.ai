@@ -40,6 +40,7 @@ import type { Model } from '@genfeedai/prisma';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -121,6 +122,7 @@ function isPricingUnresolved(error: unknown): boolean {
  * renders as unavailable and prevents generation until a current quote exists.
  * Quoting never debits credits and never contacts a generation provider.
  */
+@Traced()
 @Injectable()
 export class AgentGenerationEstimateService {
   constructor(

@@ -5,6 +5,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import type { IBetterAuthResolvedIdentity } from '../better-auth.types';
 import { isPlatformSuperAdmin } from '../better-auth-access.util';
@@ -38,6 +39,7 @@ function getMemberOrganizationId(member: MemberDocument): string {
  * resolved here: `RequestContextMiddleware` derives those from the DB by
  * organization id.
  */
+@Traced()
 @Injectable()
 export class BetterAuthIdentityResolverService {
   constructor(

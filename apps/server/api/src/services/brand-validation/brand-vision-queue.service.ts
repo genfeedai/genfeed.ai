@@ -2,6 +2,7 @@ import {
   BRAND_VISION_QUEUE,
   type BrandVisionJobData,
 } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
@@ -24,6 +25,7 @@ export function brandVisionJobId(receiptId: string): string {
  * revalidates the receipt. A job runs once: a failure leaves the checks unknown
  * rather than paying a second reading.
  */
+@Traced()
 @Injectable()
 export class BrandVisionQueueService {
   constructor(

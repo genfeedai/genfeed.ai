@@ -1,5 +1,6 @@
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface PreflightResult {
@@ -42,6 +43,7 @@ const ENV_CHECKS: Record<string, PreflightEnvKey[]> = {
   storage: ['AWS_S3_BUCKET', 'AWS_ACCESS_KEY_ID'],
 };
 
+@Traced()
 @Injectable()
 export class PreflightService {
   private readonly constructorName = this.constructor.name;

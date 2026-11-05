@@ -79,4 +79,39 @@ describe('IngredientTileOverlays', () => {
 
     expect(screen.queryByText('Uploaded')).not.toBeInTheDocument();
   });
+
+  it('captions a finished tile with its title and duration', () => {
+    render(
+      <IngredientTileOverlays
+        ingredient={
+          {
+            ...makeIngredient(IngredientStatus.GENERATED),
+            metadata: { duration: 24, label: 'Founder intro' },
+          } as IIngredient
+        }
+        isReviewEnabled={false}
+        onReviewUpdated={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Founder intro')).toBeInTheDocument();
+    expect(screen.getByText('0:24')).toBeInTheDocument();
+  });
+
+  it('leaves a still-generating tile uncaptioned', () => {
+    render(
+      <IngredientTileOverlays
+        ingredient={
+          {
+            ...makeIngredient(IngredientStatus.PROCESSING),
+            metadata: { label: 'Founder intro' },
+          } as IIngredient
+        }
+        isReviewEnabled={false}
+        onReviewUpdated={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText('Founder intro')).not.toBeInTheDocument();
+  });
 });

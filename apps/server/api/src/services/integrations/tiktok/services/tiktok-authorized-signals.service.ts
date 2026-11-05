@@ -35,6 +35,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/tiktok-authorized-signals.contract';
 import { readRawString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -117,6 +118,7 @@ type PlatformEvidenceKey = Exclude<
   'genfeed-publish-activity'
 >;
 
+@Traced()
 @Injectable()
 export class TiktokAuthorizedSignalsService {
   private readonly endpoint = 'https://open.tiktokapis.com/v2';

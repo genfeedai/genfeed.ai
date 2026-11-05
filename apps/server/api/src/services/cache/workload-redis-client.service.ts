@@ -5,6 +5,7 @@ import {
   parseRedisConnectionForWorkload,
   type RedisWorkload,
 } from '@libs/redis/redis-connection.utils';
+import { Traced } from '@libs/tracing/traced';
 import type { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import Redis from 'ioredis';
 
@@ -180,6 +181,7 @@ export abstract class WorkloadRedisClientService
     }
   }
 
+  @Traced()
   private async forceCloseClient(): Promise<void> {
     try {
       await this.withTimeout(
@@ -195,6 +197,7 @@ export abstract class WorkloadRedisClientService
     }
   }
 
+  @Traced()
   private async withTimeout<T>(
     operation: Promise<T>,
     timeoutMs: number,

@@ -7,6 +7,7 @@ import type {
   IListeningTopicOutcome,
   ListeningOutcomeState,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type OutcomeAnalyticsRecord = {
@@ -47,6 +48,7 @@ type ListeningAttributionDatabase = {
   };
 };
 
+@Traced()
 @Injectable()
 export class ListeningTopicAttributionService {
   constructor(private readonly prisma: PrismaService) {}

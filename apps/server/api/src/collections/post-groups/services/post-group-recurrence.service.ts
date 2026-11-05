@@ -15,6 +15,7 @@ import {
   updateRecurrenceSeriesSchema,
 } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -34,6 +35,7 @@ type StoredSeriesRow = Pick<
 
 type SeriesRow = StoredSeriesRow & { status: ReleaseStatus };
 
+@Traced()
 @Injectable()
 export class PostGroupRecurrenceService {
   constructor(

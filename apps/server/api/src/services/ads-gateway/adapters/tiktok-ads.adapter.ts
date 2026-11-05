@@ -27,8 +27,10 @@ import {
   type UpdateCampaignInput,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class TikTokAdsAdapter implements IAdsAdapter {
   readonly platform = AdsPlatform.TIKTOK;

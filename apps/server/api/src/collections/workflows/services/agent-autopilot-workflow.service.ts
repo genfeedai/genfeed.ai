@@ -44,6 +44,7 @@ import {
 } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
 type AgentAutopilotWorkflowAction =
@@ -134,6 +135,7 @@ const FAILURES_BEFORE_PAUSE = 3;
 const FAILURE_RETRY_MINUTES = 30;
 const PROACTIVE_LOCK_TTL_SECONDS = 900;
 
+@Traced()
 @Injectable()
 export class AgentAutopilotWorkflowService {
   private readonly logContext = 'AgentAutopilotWorkflowService';

@@ -8,6 +8,7 @@ import {
   ActivityKey,
   ActivitySource,
 } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
 
@@ -19,6 +20,7 @@ import { Injectable } from '@nestjs/common';
  * `musicsService`, and `websocketService` were four separate injections there
  * for logic that only ever runs together.
  */
+@Traced()
 @Injectable()
 export class MusicGenerationNotificationsService {
   constructor(

@@ -26,6 +26,7 @@ import {
   type TurboRewriteJobData,
   type TurboRewriteJobResult,
 } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
@@ -41,6 +42,7 @@ import type { Queue } from 'bullmq';
  * rewrites (`TurboRunRewriteRunnerService`) and reports progress over
  * the user's websocket room.
  */
+@Traced()
 @Injectable()
 export class TurboRunRewriteService {
   constructor(

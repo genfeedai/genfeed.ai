@@ -44,6 +44,7 @@ import type { IBrandEffectiveSkillSelection } from '@genfeedai/contracts/interfa
 import { isSkillOnSurface } from '@genfeedai/helpers';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface ListSkillsOptions {
@@ -115,6 +116,7 @@ export interface InstallManagedSkillPackageInput {
   workflowStage: CreateSkillDto['workflowStage'];
 }
 
+@Traced()
 @Injectable()
 export class SkillsService {
   constructor(
@@ -797,10 +799,8 @@ export class SkillsService {
     return resolvedSkills.sort((left, right) => left.priority - right.priority);
   }
 
-  /**
-   * Normalize a raw Prisma Skill row into a SkillDocument-compatible shape.
-   * Spreads config fields to the top level for the API document contract.
-   */
+  // Normalize a Prisma Skill row to the API SkillDocument shape.
+  // The API exposes config fields at the top level.
   private normalizeSkill(row: Record<string, unknown>): SkillDocument {
     const config = this.getConfig(row);
     return {

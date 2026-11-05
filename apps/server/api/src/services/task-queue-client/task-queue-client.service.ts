@@ -5,6 +5,7 @@ import {
 } from '@api/services/files-microservice/client/files-request-retry.util';
 import { filesServiceAuthHeaders } from '@libs/auth/files-service-key';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 
@@ -31,6 +32,7 @@ type TaskQueueJobType = 'caption' | 'clip' | 'resize' | 'transform' | 'upscale';
  * in the files microservice. This allows tasks and workflows to queue jobs
  * for media transformation, upscaling, captioning, resizing, and clipping.
  */
+@Traced()
 @Injectable()
 export class TaskQueueClientService {
   private readonly logger = new Logger(TaskQueueClientService.name);

@@ -19,6 +19,7 @@ import {
   IngredientStatus,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const SOURCE_MEDIA_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$/;
@@ -53,6 +54,7 @@ export interface RemixSourceMediaIngestInput {
  * Copies remake source pixels through the same uploaded-ingredient path
  * Library file upload uses. Listing ads does not call this.
  */
+@Traced()
 @Injectable()
 export class BrandRemixSourceMediaService {
   constructor(

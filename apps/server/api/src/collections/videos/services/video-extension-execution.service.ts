@@ -28,12 +28,14 @@ import { hasNativeExtend } from '@genfeedai/contracts/constants';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { ConfigService } from '@libs/config/config.service';
 import { platformOrTenantScope } from '@libs/prisma/platform-scope';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
 const SEEDANCE_2_5_REFERENCE_TO_VIDEO_PATTERN =
   /^bytedance\/seedance-2\.5\/(?:us\/)?reference-to-video$/;
 
 /** Source preparation is internal file work; provider funding belongs only to the queued execution. */
+@Traced()
 @Injectable()
 export class VideoExtensionExecutionService {
   constructor(

@@ -11,6 +11,7 @@ import {
   type MediaGenerationType,
 } from '@genfeedai/actions';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -31,6 +32,7 @@ function withMediaKind(
  * Stable media-tool facade. Each tool family has one bounded runtime owner so
  * provider payloads, text resources, and batch accounting evolve separately.
  */
+@Traced()
 @Injectable()
 export class AgentMediaGenerationToolHandler {
   constructor(

@@ -7,12 +7,14 @@ import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { withPlatformTenantArm } from '@libs/prisma/platform-scope';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const NON_WORD_CHARS_PATTERN = /[^\w\s]/g;
 const WHITESPACE_RUN_PATTERN = /\s+/;
 const AI_WORD_PATTERN = /\bai\b/;
 
+@Traced()
 @Injectable()
 export class TrendFilteringService {
   constructor(

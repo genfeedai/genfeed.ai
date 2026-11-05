@@ -62,6 +62,7 @@ import {
   type Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -110,6 +111,7 @@ function baselineOnlyDistributions() {
     ),
   };
 }
+@Traced()
 @Injectable()
 export class LearningDecisionService {
   constructor(

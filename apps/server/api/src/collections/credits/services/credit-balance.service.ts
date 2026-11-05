@@ -11,6 +11,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/billing';
 import { Prisma, type PrismaClient } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type WalletLookupFilter = { billingAccountId?: string; id?: string };
@@ -57,6 +58,7 @@ function creditBalanceLookup(filter: WalletLookupFilter): {
   };
 }
 
+@Traced()
 @Injectable()
 export class CreditBalanceService {
   private readonly constructorName: string = String(this.constructor.name);

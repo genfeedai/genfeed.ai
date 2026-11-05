@@ -4,11 +4,13 @@ import { IngredientCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
 import { assertSafeObjectKey } from '@libs/security';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const TRAILING_SLASHES_PATTERN = /\/+$/;
 
 /** Client references must resolve to a live video in this workspace. */
+@Traced()
 @Injectable()
 export class ClipperProjectClientSourceService {
   constructor(

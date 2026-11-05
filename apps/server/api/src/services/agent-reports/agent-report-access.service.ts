@@ -1,8 +1,10 @@
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { MemberRole } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class AgentReportAccessService {
   constructor(private readonly prisma: PrismaService) {}

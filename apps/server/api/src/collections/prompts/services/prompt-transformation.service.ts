@@ -38,6 +38,7 @@ import {
 } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import type { Request } from 'express';
@@ -48,6 +49,7 @@ type RequestWithCredits = Request & {
   creditsConfig?: { amount?: number; byokApiKeyOverride?: string };
 };
 
+@Traced()
 @Injectable()
 export class PromptTransformationService {
   constructor(

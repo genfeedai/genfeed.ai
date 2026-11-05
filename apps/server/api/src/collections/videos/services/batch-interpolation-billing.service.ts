@@ -18,6 +18,7 @@ import {
   getVideoGenerationResolutionCreditMultiplier,
 } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 type InterpolationDispatch = {
@@ -31,6 +32,7 @@ type InterpolationDispatch = {
   user: AuthenticatedUser;
 };
 
+@Traced()
 @Injectable()
 export class BatchInterpolationBillingService {
   constructor(

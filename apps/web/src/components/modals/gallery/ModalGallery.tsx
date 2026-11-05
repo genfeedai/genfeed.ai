@@ -5,41 +5,27 @@ import {
   IngredientFormat,
   ModalEnum,
 } from '@genfeedai/contracts';
-import type { IImage } from '@genfeedai/contracts/interfaces';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { ModalGalleryProps } from '@genfeedai/props/modals/modal.props';
 import type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.props';
 import Modal from '@ui/modals/modal/Modal';
+import { useTranslations } from 'next-intl';
+import { useGalleryLibrary } from '@/components/modals/gallery/hooks/useGalleryLibrary';
 import { useModalGallery } from '@/components/modals/gallery/hooks/useModalGallery';
 import ModalGalleryContent from '@/components/modals/gallery/ModalGalleryContent';
 import ModalGalleryFooter from '@/components/modals/gallery/ModalGalleryFooter';
 import ModalGalleryHeader from '@/components/modals/gallery/ModalGalleryHeader';
+import ModalGalleryLibrary from '@/components/modals/gallery/ModalGalleryLibrary';
 import { useModalAutoOpen } from '@/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 
 const EMPTY_ARRAY: never[] = [];
 
-function getImageFormat(image: IImage): IngredientFormat | null {
-  if (!image.width || !image.height) {
-    return null;
-  }
-  const aspectRatio = image.width / image.height;
-
-  if (Math.abs(aspectRatio - 16 / 9) < 0.1) {
-    return IngredientFormat.LANDSCAPE;
-  }
-
-  if (Math.abs(aspectRatio - 9 / 16) < 0.1) {
-    return IngredientFormat.PORTRAIT;
-  }
-
-  if (Math.abs(aspectRatio - 1) < 0.1) {
-    return IngredientFormat.SQUARE;
-  }
-
-  return aspectRatio > 1
-    ? IngredientFormat.LANDSCAPE
-    : IngredientFormat.PORTRAIT;
-}
-
+/**
+ * The media picker. Images and videos are picked from the Library (its search,
+ * filters and masonry grid); music from the track list; brand references from
+ * the Branding tab. One fixed-height dialog with a single scroll region: the
+ * header and the footer with the selection never move.
+ */
 export default function ModalGallery({
   isOpen,
   onClose,
@@ -48,13 +34,13 @@ export default function ModalGallery({
   title,
   selectedId,
   format = IngredientFormat.PORTRAIT,
-  isFormatFilterEnabled = true,
   isNoneAllowed = false,
   maxSelectableItems,
   accountReference = null,
   onSelectAccountReference,
   selectedReferences: initialSelectedReferences = EMPTY_ARRAY,
 }: ModalGalleryProps) {
+  const translate = useTranslations('ui.galleryModal');
   const {
     items,
     isLoading,
@@ -63,16 +49,11 @@ export default function ModalGallery({
     selectedItemsData,
     activeTab,
     localFormat,
-    filterReferenceId,
-    uploads,
     references,
-    creations,
     isLoadingReferences,
-    isLoadingCreations,
     setSelectedItems,
     setSelectedItemsData,
     setActiveTab,
-    setFilterReferenceId,
     loadPage,
     currentPage,
     totalPages,
@@ -83,11 +64,17 @@ export default function ModalGallery({
   } = useModalGallery({
     category,
     format: format as IngredientFormat,
-    isFormatFilterEnabled,
     isOpen,
     maxSelectableItems,
     selectedId,
     selectedReferences: initialSelectedReferences,
+  });
+
+  const isLibraryPicker = category !== IngredientCategory.MUSIC;
+  const isLibraryTab = isLibraryPicker && activeTab === 'media';
+  const library = useGalleryLibrary({
+    category,
+    isOpen: isOpen && isLibraryPicker,
   });
 
   useModalAutoOpen(ModalEnum.GALLERY, { isOpen });
@@ -96,41 +83,33 @@ export default function ModalGallery({
     onClose();
   };
 
-  const getFormatLabel = (formatValue?: IngredientFormat) => {
-    const fmt = formatValue || localFormat;
-    switch (fmt) {
-      case IngredientFormat.LANDSCAPE:
-        return '16:9';
-      case IngredientFormat.SQUARE:
-        return '1:1';
-      case IngredientFormat.PORTRAIT:
-        return '9:16';
-      default:
-        return '9:16';
-    }
-  };
+  // A single-slot picker with nothing chosen yet picks on click; a multi-pick,
+  // or a change to an existing choice, confirms with Add.
+  const isPickedOnClick =
+    selectionLimit === 1 &&
+    initialSelectedReferences.length === 0 &&
+    !selectedId;
 
-  const handleReferenceSelect = (selectedIds: string[]) => {
-    setSelectedItems(selectedIds);
-  };
+  const handleToggleLibraryItem = (ingredient: IIngredient) => {
+    const item = ingredient as GallerySelectItem;
 
-  const handleItemSelectWithVideo = (item: GallerySelectItem) => {
-    if (category === IngredientCategory.VIDEO) {
+    if (isPickedOnClick) {
       onSelect([item]);
       handleClose();
-    } else if (
-      category === IngredientCategory.IMAGE &&
-      maxSelectableItems === 1 &&
-      initialSelectedReferences.length === 0
-    ) {
-      // Immediate selection only for new single image selection (e.g., banner selection)
-      // If there are pre-selected references, let user confirm their change
-      onSelect([item]);
-      handleClose();
-    } else {
-      handleItemSelect(item);
+      return;
     }
+
+    handleItemSelect(item);
   };
+
+  // Preselected assets arrive as ids; their records come from the loaded grid.
+  const resolveSelectedMedia = (): GallerySelectItem[] =>
+    selectedItems.flatMap((id) => {
+      const item =
+        selectedItemsData.find((candidate) => candidate.id === id) ??
+        library.items.find((candidate) => candidate.id === id);
+      return item ? [item as GallerySelectItem] : [];
+    });
 
   const handleConfirm = () => {
     if (category === IngredientCategory.MUSIC) {
@@ -140,14 +119,16 @@ export default function ModalGallery({
 
       onSelect(item ? [item] : []);
       handleClose();
+      return;
     }
+
+    onSelect(resolveSelectedMedia());
+    handleClose();
   };
 
   const handleClear = () => {
     setSelectedItems([]);
-    if (category === IngredientCategory.IMAGE && activeTab === 'media') {
-      setSelectedItemsData([]);
-    }
+    setSelectedItemsData([]);
   };
 
   const handleUseAccountReference = () => {
@@ -157,81 +138,58 @@ export default function ModalGallery({
     handleClose();
   };
 
-  // Format is locked - comes from promptbar, cannot be changed
-
-  const handleClearFilter = () => {
-    setFilterReferenceId('');
-  };
-
-  function getDefaultTitle(): string {
-    switch (category) {
-      case IngredientCategory.VIDEO:
-        return 'Select Video';
-      case IngredientCategory.MUSIC:
-        return 'Select Music';
-      default:
-        return 'Select Image';
-    }
-  }
-
-  const modalTitle = title || getDefaultTitle();
-
   return (
     <Modal
       id={ModalEnum.GALLERY}
-      title={modalTitle}
-      isFullScreen={true}
+      title={title || translate('title', { category })}
+      size="2xl"
+      isBodyScrollable={false}
+      modalBoxClassName="h-[85dvh]"
       onClose={handleClose}
     >
-      <div className="flex flex-col h-full">
-        {/* Sub-header with format info - only for videos */}
-        {category === IngredientCategory.VIDEO && (
-          <div className="text-sm text-foreground/60 -mt-4 mb-4">
-            Showing {localFormat} videos ({getFormatLabel()})
-          </div>
-        )}
-
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
         <ModalGalleryHeader
           category={category}
           activeTab={activeTab}
           localFormat={localFormat}
-          filterReferenceId={filterReferenceId}
           tabs={tabs}
           accountReference={accountReference}
           onTabChange={setActiveTab}
-          onClearFilter={handleClearFilter}
           onUseAccountReference={handleUseAccountReference}
+          onUploaded={library.onRefresh}
         />
 
-        <div className="flex-1 overflow-y-auto p-4">
-          <ModalGalleryContent
+        {isLibraryTab ? (
+          <ModalGalleryLibrary
             category={category}
-            activeTab={activeTab}
-            isLoading={isLoading}
-            isLoadingReferences={isLoadingReferences}
-            isLoadingCreations={isLoadingCreations}
-            items={items}
-            uploads={uploads}
-            references={references}
-            creations={creations}
-            selectedItems={selectedItems}
-            selectedItem={selectedItem}
-            localFormat={localFormat}
-            onSelectItem={handleItemSelectWithVideo}
-            onSelectReference={handleReferenceSelect}
-            onSelectionLimit={notifySelectionLimit}
-            selectionLimit={selectionLimit}
-            getFormatLabel={getFormatLabel}
-            getImageFormat={getImageFormat}
+            library={library}
+            selectedIds={selectedItems}
+            onToggleItem={handleToggleLibraryItem}
           />
-        </div>
+        ) : (
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <ModalGalleryContent
+              category={category}
+              activeTab={activeTab}
+              isLoading={isLoading}
+              isLoadingReferences={isLoadingReferences}
+              items={items}
+              references={references}
+              selectedItems={selectedItems}
+              selectedItem={selectedItem}
+              onSelectItem={handleItemSelect}
+              onSelectReference={setSelectedItems}
+              onSelectionLimit={notifySelectionLimit}
+              selectionLimit={selectionLimit}
+            />
+          </div>
+        )}
 
         <ModalGalleryFooter
           category={category}
           activeTab={activeTab}
           isLoading={isLoading}
           selectedItems={selectedItems}
-          selectedItemsData={selectedItemsData}
           selectedItem={selectedItem}
           isNoneAllowed={isNoneAllowed}
           onClear={handleClear}

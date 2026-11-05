@@ -10,9 +10,11 @@ import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
 import { HeygenWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class HeygenWebhookService {
   private readonly constructorName: string = String(this.constructor.name);

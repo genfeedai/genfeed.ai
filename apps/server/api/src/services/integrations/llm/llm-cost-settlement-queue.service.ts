@@ -2,9 +2,11 @@ import {
   LLM_COST_SETTLEMENT_QUEUE,
   type LlmCostSettlementJobData,
 } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
+@Traced()
 @Injectable()
 export class LlmCostSettlementQueueService {
   constructor(

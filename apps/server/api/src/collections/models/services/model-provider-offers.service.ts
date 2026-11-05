@@ -10,8 +10,10 @@ import type {
 import { getRuntimeMarginMultiplier } from '@genfeedai/pricing';
 import { Prisma } from '@genfeedai/prisma';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ModelProviderOffersService {
   constructor(private readonly prisma: PrismaService) {}

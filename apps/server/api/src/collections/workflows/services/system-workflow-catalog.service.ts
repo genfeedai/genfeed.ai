@@ -22,6 +22,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowStatus } from '@genfeedai/contracts';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 export type SystemWorkflowCatalogListItem = SystemWorkflowCatalogEntry & {
@@ -36,6 +37,7 @@ export type SystemWorkflowCatalogListItem = SystemWorkflowCatalogEntry & {
  * - Install: creates a tenant-owned editable workflow from the catalog.
  * - Org creation no longer clones the full system set.
  */
+@Traced()
 @Injectable()
 export class SystemWorkflowCatalogService {
   constructor(

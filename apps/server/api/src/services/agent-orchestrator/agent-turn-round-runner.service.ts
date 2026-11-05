@@ -26,12 +26,12 @@ import {
   isIdentityGenerationToolName,
   normalizeRequestedAgentToolName,
 } from '@api/services/agent-orchestrator/utils/agent-generation-prepare-redirect.util';
-import { readLatestOperatorMessage } from '@api/services/agent-orchestrator/utils/agent-operator-message.util';
 import {
   annotateKnowledgeSearchData,
   readBrandId,
   type TurnKnowledgePassages,
 } from '@api/services/agent-orchestrator/utils/agent-knowledge-citation.util';
+import { readLatestOperatorMessage } from '@api/services/agent-orchestrator/utils/agent-operator-message.util';
 import { normalizeResponseModel } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import {
   APPROVAL_PENDING_RESULT_SUMMARY,
@@ -58,6 +58,7 @@ import {
   type AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 // Every agent tool is itself a nested workflow run. Without a ceiling, one
@@ -213,6 +214,7 @@ export function assertAgentCreditBudget(
   }
 }
 
+@Traced()
 @Injectable()
 export class AgentTurnRoundRunnerService {
   private readonly constructorName = String(this.constructor.name);

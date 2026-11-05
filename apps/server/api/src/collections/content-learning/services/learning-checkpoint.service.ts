@@ -44,6 +44,7 @@ import {
   type Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -167,6 +168,7 @@ export function learningCheckpointCollection(
     ? { version: 1, outcome: 'observed', reasonCode: null }
     : null;
 }
+@Traced()
 @Injectable()
 export class LearningCheckpointService {
   constructor(

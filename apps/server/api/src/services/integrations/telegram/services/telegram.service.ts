@@ -4,6 +4,7 @@ import { TelegramAuthUtil } from '@api/shared/utils/telegram-auth/telegram-auth.
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
@@ -17,6 +18,7 @@ export interface TelegramAuthData {
   hash: string;
 }
 
+@Traced()
 @Injectable()
 export class TelegramService {
   private readonly constructorName: string = String(this.constructor.name);

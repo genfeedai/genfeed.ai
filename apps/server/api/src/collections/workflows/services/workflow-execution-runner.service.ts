@@ -41,6 +41,7 @@ import {
   type WorkflowEtaPlan,
 } from '@helpers/generation-eta.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 
 type PreparedWorkflowExecution = {
   etaPlan: WorkflowEtaPlan;
@@ -75,6 +76,7 @@ export class WorkflowExecutionRunnerService {
     this.actorMembership = new WorkflowActorMembershipVerifier(this.prisma);
   }
 
+  @Traced()
   async resumeAfterDelay(
     jobData: DelayResumeJobData,
   ): Promise<WorkflowExecutionResult> {
@@ -204,6 +206,7 @@ export class WorkflowExecutionRunnerService {
     }
   }
 
+  @Traced()
   async executeWorkflowDocument(
     workflowDoc: WorkflowDocument,
     event: TriggerEvent,
@@ -251,6 +254,7 @@ export class WorkflowExecutionRunnerService {
     }
   }
 
+  @Traced()
   private async prepareExecution(input: {
     event: TriggerEvent;
     existingExecutionId?: string;
@@ -384,6 +388,7 @@ export class WorkflowExecutionRunnerService {
     };
   }
 
+  @Traced()
   private async startExecution(
     prepared: PreparedWorkflowExecution,
     event: TriggerEvent,
@@ -426,6 +431,7 @@ export class WorkflowExecutionRunnerService {
     }
   }
 
+  @Traced()
   private async finalizeRun(
     prepared: PreparedWorkflowExecution,
     event: TriggerEvent,
@@ -519,6 +525,7 @@ export class WorkflowExecutionRunnerService {
     } as WorkflowExecutionResult;
   }
 
+  @Traced()
   private async failRun(
     prepared: PreparedWorkflowExecution,
     event: TriggerEvent,
@@ -579,6 +586,7 @@ export class WorkflowExecutionRunnerService {
     });
   }
 
+  @Traced()
   private async loadDelayedWorkflow(
     jobData: DelayResumeJobData,
     delayedExecution: Awaited<ReturnType<WorkflowExecutionsService['findOne']>>,
@@ -607,6 +615,7 @@ export class WorkflowExecutionRunnerService {
     }
   }
 
+  @Traced()
   private async assertResumedAgentScope(
     metadata: Record<string, unknown> | undefined,
     userId: string,
@@ -637,6 +646,7 @@ export class WorkflowExecutionRunnerService {
     );
   }
 
+  @Traced()
   private async finalizeResumedExecution(input: {
     executionId: string;
     finalStatus: WorkflowExecutionStatus;
@@ -705,6 +715,7 @@ export class WorkflowExecutionRunnerService {
    * uncaught throw here is exactly what stranded the execution `running`
    * forever (#4307).
    */
+  @Traced()
   private async failResumedExecution(input: {
     emitSharedEvents?: boolean;
     error: unknown;
@@ -813,6 +824,7 @@ export class WorkflowExecutionRunnerService {
     };
   }
 
+  @Traced()
   async failUnavailablePinnedExecution(input: {
     errorMessage: string;
     executionId: string;
@@ -857,6 +869,7 @@ export class WorkflowExecutionRunnerService {
     };
   }
 
+  @Traced()
   private async settleClipChainHoldSafely(input: {
     actorUserId: string;
     executionId: string;

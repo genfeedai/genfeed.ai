@@ -12,6 +12,7 @@ import type {
   IOnboardingFunnelReport,
 } from '@genfeedai/contracts/interfaces';
 import { CredentialPlatform } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Advertising and search connections cannot publish a post. */
@@ -24,6 +25,7 @@ const NON_PUBLISHING_PLATFORMS = [
 const DAY_MS = 86_400_000;
 const DEFAULT_WINDOW_DAYS = 30;
 
+@Traced()
 @Injectable()
 export class OnboardingFunnelService {
   constructor(private readonly prisma: PrismaService) {}

@@ -13,6 +13,7 @@ import {
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export type BreakoutResponseExecutionOutput = {
@@ -27,6 +28,7 @@ export type BreakoutResponseExecutionOutput = {
  * persisted pinned execution (see the admission util); it is re-read live before every step
  * through the `reauthorize` the execution service already calls.
  */
+@Traced()
 @Injectable()
 export class BreakoutResponseExecutionWorkflowService implements OnModuleInit {
   constructor(

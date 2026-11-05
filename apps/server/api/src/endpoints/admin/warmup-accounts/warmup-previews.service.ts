@@ -20,6 +20,7 @@ import type { IContentPreview } from '@genfeedai/contracts/interfaces';
 import type { WarmupAccount } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const TRAILING_SLASH_PATTERN = /\/$/;
@@ -32,6 +33,7 @@ const DEFAULT_APP_URL = 'https://app.genfeed.ai';
  * IpWhitelistGuard + SuperAdminGuard on WarmupAccountsController authorize the
  * caller; every preview is tied to the warm-up workspace's own organization.
  */
+@Traced()
 @Injectable()
 export class WarmupPreviewsService {
   constructor(

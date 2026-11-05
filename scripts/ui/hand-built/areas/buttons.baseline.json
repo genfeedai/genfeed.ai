@@ -276,9 +276,6 @@
     "apps/web/src/components/modals/content/repurpose/ModalPostRepurpose.tsx": {
       "button-restyle": 2
     },
-    "apps/web/src/components/modals/gallery/ModalGalleryUploadsTab.tsx": {
-      "unstyled-look": 1
-    },
     "apps/web/src/components/modals/ingredients/avatar/ModalAvatar.tsx": {
       "button-restyle": 1
     },

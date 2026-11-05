@@ -53,6 +53,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -75,6 +76,7 @@ function publishingCapabilityForReleaseStatus(
   return 'schedule';
 }
 
+@Traced()
 @Injectable()
 export class PostGroupsService {
   constructor(

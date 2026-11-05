@@ -23,6 +23,7 @@ import {
   IngredientCategory,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
@@ -33,6 +34,7 @@ import {
 const INGREDIENT_PATH_PATTERN = /ingredients\/([^/]+)\/(.+)$/;
 const INGREDIENT_PATH_PREFIX_PATTERN = /^ingredients\/[^/]+\//;
 
+@Traced()
 @Injectable()
 export class AssetIngestionService {
   private readonly constructorName = String(this.constructor.name);

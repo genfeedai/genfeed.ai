@@ -33,6 +33,7 @@ import { type AgentType, KnowledgeMemoryScope } from '@genfeedai/contracts';
 import type { IAgentCampaignContentRotation } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 
 interface AnalyticsOverview {
@@ -130,6 +131,7 @@ export interface ContentEngineCycleResult {
   summary: string;
 }
 
+@Traced()
 @Injectable()
 export class ContentEngineService {
   private readonly logContext = 'CampaignContentEngineService';
@@ -691,9 +693,7 @@ export class ContentEngineService {
     const overview = await this.analyticsService.getOverview(
       sevenDaysAgo.toISOString(),
       now.toISOString(),
-      // Scalar FKs: the relation aliases are `undefined` on an unpopulated read
-      // and stringify to "[object Object]" on a populated one — either way the
-      // overview gets scoped to a brand/organization that does not exist.
+      // Scalar IDs keep the overview scoped even when relations are unpopulated.
       campaign.brandId ?? undefined,
       requireRelationId(
         campaign.organizationId,

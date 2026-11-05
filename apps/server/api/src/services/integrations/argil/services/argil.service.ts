@@ -4,6 +4,7 @@ import { isProviderWebhookReachable } from '@genfeedai/config';
 import { ByokProvider } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
@@ -42,6 +43,7 @@ export interface GenerateArgilVideoInput {
   voiceId: string;
 }
 
+@Traced()
 @Injectable()
 export class ArgilService {
   private readonly endpoint = 'https://api.argil.ai/v1';

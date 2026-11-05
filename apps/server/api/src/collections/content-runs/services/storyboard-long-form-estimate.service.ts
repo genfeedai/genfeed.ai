@@ -8,6 +8,7 @@ import {
   type StoryboardLongFormStageEstimate,
   storyboardLongFormEstimateSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -31,6 +32,7 @@ interface PricedStage {
  * is still quoted and bound to its quote before it runs, so none can charge
  * more than that quote.
  */
+@Traced()
 @Injectable()
 export class StoryboardLongFormEstimateService {
   constructor(

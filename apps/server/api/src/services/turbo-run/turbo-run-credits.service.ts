@@ -14,6 +14,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   Injectable,
   InternalServerErrorException,
@@ -50,6 +51,7 @@ export type TurboRunCreditsSettlement = {
  * Replaying settlement still moves nothing, and only that stored marker may
  * retry the missing amount.
  */
+@Traced()
 @Injectable()
 export class TurboRunCreditsService {
   constructor(

@@ -52,6 +52,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const enrollmentInclude = {
@@ -86,6 +87,7 @@ interface SyncYoutubeAuthorizedSnapshotParams {
   snapshot: YoutubeAuthorizedSignalsSnapshot;
 }
 
+@Traced()
 @Injectable()
 export class SocialWarmupEnrollmentsService {
   constructor(

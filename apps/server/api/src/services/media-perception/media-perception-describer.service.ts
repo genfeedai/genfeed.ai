@@ -6,6 +6,7 @@ import {
   mediaSceneDescriptionSchema,
 } from '@genfeedai/contracts/api-types/contracts';
 import type { IMediaSceneDescriptionInput } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Transcript text sent to the vision model; the rest adds cost, not signal. */
@@ -31,6 +32,7 @@ Describe only what is observable. Do not guess identities of real people.
  * reply is a failure, never persisted. Spend is recorded by the dispatcher in
  * the LLM vendor-cost ledger under the asset's organization and brand.
  */
+@Traced()
 @Injectable()
 export class MediaPerceptionDescriberService {
   constructor(private readonly llmDispatcherService: LlmDispatcherService) {}

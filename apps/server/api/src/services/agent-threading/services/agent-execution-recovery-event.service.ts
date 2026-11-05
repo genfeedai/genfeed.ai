@@ -2,6 +2,7 @@ import { AgentThreadsService } from '@api/collections/agent-threads/services/age
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export type AgentExecutionRecoveryOutcome =
@@ -21,6 +22,7 @@ export type AgentExecutionRecoveryOutcome =
  * published. The command ids match the orchestrator's own terminal events, so
  * a run that already recorded its failure is not recorded twice.
  */
+@Traced()
 @Injectable()
 export class AgentExecutionRecoveryEventService {
   private readonly constructorName = String(this.constructor.name);

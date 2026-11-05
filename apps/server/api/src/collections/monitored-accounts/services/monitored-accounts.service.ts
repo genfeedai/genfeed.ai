@@ -9,6 +9,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const MONITORED_ACCOUNT_CREATE_SCALAR_FIELDS = [
@@ -56,6 +57,7 @@ type MonitoredAccountOwnershipInput = {
 type MonitoredAccountCreateInput = CreateMonitoredAccountDto &
   MonitoredAccountOwnershipInput;
 
+@Traced()
 @Injectable()
 export class MonitoredAccountsService extends BaseService<
   MonitoredAccountDocument,

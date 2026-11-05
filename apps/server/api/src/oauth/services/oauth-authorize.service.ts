@@ -24,6 +24,7 @@ import {
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -91,6 +92,7 @@ function suppliedState(state: string | undefined): string | undefined {
   return state ? state : undefined;
 }
 
+@Traced()
 @Injectable()
 export class OAuthAuthorizeService {
   constructor(

@@ -7,8 +7,10 @@ import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class TrendAnalysisService {
   constructor(

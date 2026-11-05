@@ -12,6 +12,7 @@ import type {
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { ByokProvider, ImageTaskModel } from '@genfeedai/contracts';
 import type { ByokResolutionResult } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const PROVIDER_CAPACITY_ERROR_PATTERN =
@@ -33,6 +34,7 @@ function isProviderCapacityError(error: unknown): boolean {
   return false;
 }
 
+@Traced()
 @Injectable()
 export class ImageGenerationHandler implements SkillHandler {
   constructor(

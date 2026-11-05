@@ -24,6 +24,7 @@ import type {
 import type { TurboProject, TurboProjectItem } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -40,6 +41,7 @@ import {
  *
  * Callers hold the project lock (`TurboProjectReconcileService.runExclusive`).
  */
+@Traced()
 @Injectable()
 export class TurboProjectIdeaGenerationService {
   private readonly context = TurboProjectIdeaGenerationService.name;

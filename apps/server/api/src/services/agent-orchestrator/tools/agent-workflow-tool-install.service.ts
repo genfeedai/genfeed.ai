@@ -30,6 +30,7 @@ import { type AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Inject,
@@ -38,9 +39,8 @@ import {
   Optional,
 } from '@nestjs/common';
 
-/**
- * Catalog + official-workflow install tools.
- */
+/** Catalog + official-workflow install tools. */
+@Traced()
 @Injectable()
 export class AgentWorkflowToolInstallService {
   constructor(

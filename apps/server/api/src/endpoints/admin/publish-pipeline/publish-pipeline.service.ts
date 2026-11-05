@@ -9,6 +9,7 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PersistedReviewDecision } from '@genfeedai/contracts';
 import type { IPublishPipelineReport } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const DAY_MS = 86_400_000;
@@ -23,6 +24,7 @@ export interface PublishPipelineReportOptions {
   isAnyDecision?: boolean;
 }
 
+@Traced()
 @Injectable()
 export class PublishPipelineService {
   constructor(private readonly prisma: PrismaService) {}

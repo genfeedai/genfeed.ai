@@ -4,9 +4,11 @@ import type {
   NormalizedPaidCreativeRecord,
   PaidCreativeProvider,
 } from '@genfeedai/integrations/ads';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** TikTok public ads library: EEA, UK and Switzerland coverage. */
+@Traced()
 @Injectable()
 export class TikTokCreativeCenterProvider extends ApifyArchiveProvider {
   readonly documentationUrl = 'https://library.tiktok.com/ads';

@@ -16,6 +16,7 @@ import { scopedWhere } from '@api/index';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { IngredientCategory } from '@genfeedai/contracts';
 import { TenantIsolationError } from '@libs/prisma/tenant-guard';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   HttpException,
@@ -24,6 +25,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
+@Traced()
 @Injectable()
 export class VoiceLibraryService {
   constructor(

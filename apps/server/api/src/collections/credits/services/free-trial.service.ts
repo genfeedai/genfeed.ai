@@ -29,6 +29,7 @@ import type { IFreeTrialState } from '@genfeedai/contracts/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const TRIAL_REFERENCE_TYPE = 'free-trial';
@@ -54,6 +55,7 @@ type TrialExpiryOutcome = {
  * a grant's `expiresAt` is metadata only — so expiry debits the pool through
  * the normal ledger path with an `EXPIRE` entry.
  */
+@Traced()
 @Injectable()
 export class FreeTrialService {
   private readonly context = { service: FreeTrialService.name };

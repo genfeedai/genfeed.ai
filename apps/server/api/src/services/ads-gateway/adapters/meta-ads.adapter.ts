@@ -25,8 +25,10 @@ import {
   type UnifiedInsights,
   type UpdateCampaignInput,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class MetaAdsAdapter implements IAdsAdapter {
   readonly platform = AdsPlatform.META;

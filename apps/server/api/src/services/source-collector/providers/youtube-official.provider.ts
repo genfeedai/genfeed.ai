@@ -9,6 +9,7 @@ import type {
 import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { CredentialPlatform, SocialSourcePlatform } from '@genfeedai/contracts';
 import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -101,6 +102,7 @@ function pickThumbnail(
  * the authenticated channel's, so a `credentialId` is required and public
  * channels are not served here.
  */
+@Traced()
 @Injectable()
 export class YoutubeOfficialProvider implements SourceTimelineProvider {
   readonly name = 'brand-oauth' as const;

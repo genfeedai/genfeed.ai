@@ -3,6 +3,7 @@ import {
   MEDIA_MODERATION_QUEUE,
   type MediaModerationJobData,
 } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
@@ -15,6 +16,7 @@ const FAILED_JOB_RETENTION_SECONDS = 30 * 60;
  * moderation service itself skips an asset whose perception is not ready, so
  * enqueueing early is harmless and the sweep re-offers it later.
  */
+@Traced()
 @Injectable()
 export class MediaModerationQueueService {
   constructor(

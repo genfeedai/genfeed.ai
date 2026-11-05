@@ -34,6 +34,7 @@ import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { InsightGenerationWorkflowInput } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -81,6 +82,7 @@ type ForecastData = {
   data?: unknown;
 };
 
+@Traced()
 @Injectable()
 export class InsightsService implements OnModuleInit {
   constructor(

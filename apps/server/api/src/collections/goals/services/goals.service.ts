@@ -4,10 +4,12 @@ import type { GoalDocument } from '@api/collections/goals/schemas/goal.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type GoalCreateInput = CreateGoalDto & { organizationId: string };
 
+@Traced()
 @Injectable()
 export class GoalsService extends BaseService<
   GoalDocument,

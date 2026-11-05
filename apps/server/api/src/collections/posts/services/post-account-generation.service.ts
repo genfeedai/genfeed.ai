@@ -67,6 +67,7 @@ import type { BrandedGenerationReceiptV1 } from '@genfeedai/contracts/interfaces
 import type { ContentHarnessContribution } from '@genfeedai/harness';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -107,6 +108,7 @@ type DispatchResult =
  * for an explicit retry under a new request key: nothing is retried or charged
  * automatically.
  */
+@Traced()
 @Injectable()
 export class PostAccountGenerationService {
   private readonly logContext = 'PostAccountGenerationService';

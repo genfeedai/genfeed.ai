@@ -24,6 +24,7 @@ import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { GenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { VideoSerializer } from '@genfeedai/serializers';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const VIDEO_POPULATE = [
@@ -39,6 +40,7 @@ const PROVIDER_DISPATCH_GRACE_MS = 5 * 60 * 1000;
  * deferred credits, persistence/provider execution, and completion each remain
  * independently testable behind a bounded service.
  */
+@Traced()
 @Injectable()
 export class VideoGenerationService {
   constructor(

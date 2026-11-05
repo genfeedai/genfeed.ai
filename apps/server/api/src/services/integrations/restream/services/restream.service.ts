@@ -1,5 +1,6 @@
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -32,6 +33,7 @@ export const RESTREAM_OAUTH_SCOPE = 'profile.read chat.read';
  * @see https://developers.restream.io/authentication/authorize-dialog
  * @see https://developers.restream.io/chat/getting-started
  */
+@Traced()
 @Injectable()
 export class RestreamService {
   private readonly constructorName = String(this.constructor.name);

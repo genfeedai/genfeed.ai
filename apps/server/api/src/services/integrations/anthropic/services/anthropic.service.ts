@@ -16,11 +16,13 @@ import type {
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Registry keys for native Anthropic models carry this provider prefix. */
 const ANTHROPIC_MODEL_PREFIX = 'anthropic/';
 
+@Traced()
 @Injectable()
 export class AnthropicService {
   private readonly constructorName: string = String(this.constructor.name);

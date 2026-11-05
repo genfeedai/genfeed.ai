@@ -37,12 +37,14 @@ import {
 } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
 
 const RESUME_LEASE_MS = 5 * 60 * 1000;
 
+@Traced()
 @Injectable()
 export class WorkflowNodeContinuationService {
   private readonly logContext = 'WorkflowNodeContinuationService';

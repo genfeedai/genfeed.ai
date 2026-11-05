@@ -22,6 +22,7 @@ import {
   Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -39,6 +40,7 @@ type LineReservationEvidence = Pick<
 > & { expiresAt: Date | string; metadata: unknown };
 
 /** Stable real-ledger admission only; owner-store attachment and submission must be composed by the caller. */
+@Traced()
 @Injectable()
 export class GenerationLineReservationService {
   constructor(

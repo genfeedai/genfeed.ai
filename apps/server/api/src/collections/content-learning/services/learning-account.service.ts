@@ -47,6 +47,7 @@ import {
   toPrismaJson,
 } from '@genfeedai/prisma';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -55,6 +56,7 @@ import {
 
 const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
 
+@Traced()
 @Injectable()
 export class LearningAccountService {
   constructor(

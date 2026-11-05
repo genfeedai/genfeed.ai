@@ -7,6 +7,7 @@ import { LowCreditThresholdService } from '@api/services/low-credit-threshold/lo
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditTransactionCategory } from '@genfeedai/contracts';
 import { IngredientStatus } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { FreeTrialEmailsService } from './free-trial-emails.service';
 import { completedEmailPeriod } from './lifecycle-email-period.util';
@@ -38,6 +39,7 @@ function readOrganizationId(metadata: unknown): string | null {
  * organization. Inactive users are not filtered out: a due win-back, trial
  * notice or credit reminder is exactly the email an idle organization needs.
  */
+@Traced()
 @Injectable()
 export class LifecycleEmailWorkService {
   constructor(

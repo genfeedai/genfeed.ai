@@ -116,7 +116,6 @@ export interface ModalGalleryProps {
   title?: string;
   selectedId?: string;
   format?: string;
-  isFormatFilterEnabled?: boolean;
   isNoneAllowed?: boolean;
   maxSelectableItems?: number;
 
@@ -158,7 +157,7 @@ export interface ModalProps {
   error?: string | null;
   onClose?: () => void;
   modalBoxClassName?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   /**
    * Off when the children own their scroll region (a fixed header and footer
    * around one scrolling body). Leaving it on there nests two scrollbars.
@@ -222,35 +221,19 @@ export interface ModalPostProps extends ModalVisibilityProps {
 /** The batch publish modal always renders as `ModalEnum.POST_BATCH`. */
 export type ModalPostBatchProps = Omit<ModalPostProps, 'modalId'>;
 
-export interface ModalPostStepHeaderProps {
-  activeTab: 'setup' | 'platforms';
-  /** Goes back from the channels step to the details step. */
-  onBack: () => void;
-}
+/** The schedule form, or the per-channel results once Schedule was pressed. */
+export type ModalPostBatchView = 'compose' | 'results';
 
-export interface ModalPostContentProps {
-  activeTab: 'setup' | 'platforms';
-  applyEnabledCredentialIds?: (credentialIds: string[]) => void;
-  form: UseFormReturn<MultiPostSchema>;
-  platformConfigs: IPostPlatformConfig[];
-  globalScheduledDate: Date | null;
-  setGlobalScheduledDate: (date: Date | null) => void;
-  settings?: IOrganizationSetting;
-  ingredient?: IIngredient | null;
-  ingredients?: IIngredient[];
-  isLoading: boolean;
-  togglePlatform: (credentialId: string) => void;
-  updatePlatformConfig: (
-    credentialId: string,
-    updates: Partial<IPostPlatformConfig>,
-  ) => void;
-  getMinDateTime: () => Date;
-  scheduleTimezone: string;
-  /** Opens the connections page to connect or reconnect a channel. */
-  onAddChannels?: () => void;
+/** The schedule modal's right column: who it goes to, or how it will look. */
+export type ModalPostBatchPanel = 'channels' | 'preview';
+
+export interface ModalPostBatchIngredientPreviewProps {
+  ingredient: IIngredient;
 }
 
 export interface ModalPostPlatformsTabProps {
+  /** Channels lists the destinations; Preview shows each one's post. */
+  panel: ModalPostBatchPanel;
   applyEnabledCredentialIds?: (credentialIds: string[]) => void;
   form: UseFormReturn<MultiPostSchema>;
   ingredients?: IIngredient[];
@@ -286,6 +269,8 @@ export interface ModalPostChannelListProps {
 
 export interface ModalPostSetupTabProps {
   form: UseFormReturn<MultiPostSchema>;
+  /** The channels the shared caption is counted against. */
+  platformConfigs: IPostPlatformConfig[];
   globalScheduledDate: Date | null;
   setGlobalScheduledDate: (date: Date | null) => void;
   settings?: IOrganizationSetting;
@@ -295,15 +280,12 @@ export interface ModalPostSetupTabProps {
 }
 
 export interface ModalPostFooterProps {
-  activeTab: 'setup' | 'platforms';
   isLoading: boolean;
-  globalScheduledDate: Date | null;
-  globalDescription: string;
-  hasYoutube: boolean;
-  globalLabel: string;
-  onNextStep: () => void;
-  onPreviousStep: () => void;
-  onSubmit: () => void;
+  /** Channels that will receive the post. */
+  channelCount: number;
+  scheduledDate: Date | null;
+  scheduleTimezone: string;
+  onSchedule: () => void;
   onClose: () => void;
   isFormValid?: boolean;
 }

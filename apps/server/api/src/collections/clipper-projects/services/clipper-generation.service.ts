@@ -21,6 +21,7 @@ import type {
   SupportedAvatarVideoProviderName,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { generateClipSrt, type TranscriptSegment } from './clip-srt.util';
@@ -141,6 +142,7 @@ interface GenerationLoopConfig {
   }) => Promise<ClipDispatchOutcome>;
 }
 
+@Traced()
 @Injectable()
 export class ClipperGenerationService implements OnModuleInit {
   private readonly logContext = 'ClipperGenerationService';

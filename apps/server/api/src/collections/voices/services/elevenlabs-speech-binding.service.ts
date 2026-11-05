@@ -8,6 +8,7 @@ import {
 import { IngredientStatus } from '@genfeedai/contracts';
 import type { ElevenLabsSpeechReceipt } from '@genfeedai/contracts/interfaces';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -26,6 +27,7 @@ export type SpeechSubmissionClaim = 'claimed' | 'in-flight';
  * Binds ElevenLabs speech to the voice and the account that owns it, and
  * guards the paid provider call so it is sent at most once per asset.
  */
+@Traced()
 @Injectable()
 export class ElevenLabsSpeechBindingService {
   constructor(

@@ -35,6 +35,7 @@ import {
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { platformOrTenantScope } from '@libs/prisma/platform-scope';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -475,6 +476,7 @@ function configuredMargin(
     : null;
 }
 
+@Traced()
 @Injectable()
 export class AdminModelPricingService {
   constructor(private readonly prisma: PrismaService) {}

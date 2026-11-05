@@ -18,12 +18,14 @@ import {
 import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
 
+@Traced()
 @Injectable()
 export class MastodonPublisherService extends BasePublisherService {
   readonly platform = CredentialPlatform.MASTODON;

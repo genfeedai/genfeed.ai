@@ -49,6 +49,7 @@ import type {
 import { isGenerationEnhancementFailed } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const UNDERSCORES_PATTERN = /_/g;
@@ -96,6 +97,7 @@ const MAX_DERIVATION_DEPTH = 8;
  * path. With classifier gates off, only readiness errors and enhancement
  * failures can add reasons.
  */
+@Traced()
 @Injectable()
 export class MediaAssessmentService implements IMediaPublishGate {
   constructor(

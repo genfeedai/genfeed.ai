@@ -23,6 +23,7 @@ import {
   readString,
 } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
@@ -58,6 +59,7 @@ function normalizeCredentialPlatform(value: unknown): CredentialPlatform {
   return platform;
 }
 
+@Traced()
 @Injectable()
 export class AccountPublishingContextService {
   constructor(

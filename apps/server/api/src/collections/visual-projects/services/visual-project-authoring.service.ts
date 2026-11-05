@@ -16,6 +16,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IVisualSandboxMedia } from '@genfeedai/contracts/interfaces';
 import type { VisualRevision } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import sharp from 'sharp';
 import { z } from 'zod';
@@ -36,6 +37,7 @@ function bounded(value: unknown, limit: number): string {
     throw new UnprocessableEntityException('visual_model_input_bound_exceeded');
   return text;
 }
+@Traced()
 @Injectable()
 export class VisualProjectAuthoringService {
   constructor(

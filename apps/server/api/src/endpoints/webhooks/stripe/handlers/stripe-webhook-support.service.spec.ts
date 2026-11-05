@@ -26,7 +26,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@sentry/nestjs', () => ({ captureException: vi.fn() }));
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
+  captureException: vi.fn(),
+}));
 
 describe('StripeWebhookSupportService', () => {
   let service: StripeWebhookSupportService;

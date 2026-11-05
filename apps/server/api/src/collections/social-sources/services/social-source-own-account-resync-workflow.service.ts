@@ -15,6 +15,7 @@ import {
 } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';
@@ -47,6 +48,7 @@ interface SocialSourceOwnAccountResyncRunResult {
  * the API and worker processes alike, mirroring
  * `SocialSourceHistoryImportWorkflowService`.
  */
+@Traced()
 @Injectable()
 export class SocialSourceOwnAccountResyncWorkflowService
   implements OnModuleInit

@@ -43,6 +43,7 @@ import {
   runWithTenantContext,
   withBillingAccountScopeRollback,
 } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   ConflictException,
   ForbiddenException,
@@ -52,6 +53,7 @@ import {
 const MUTATING_ROLE = BillingAccountMemberRole.ADMINISTRATOR;
 const OWNER_ROLE = BillingAccountMemberRole.OWNER;
 
+@Traced()
 @Injectable()
 export class BillingAccountsService {
   constructor(
@@ -390,10 +392,8 @@ export class BillingAccountsService {
       where: { id: input.organizationId },
     });
 
-    // The update above is what makes this organization-scoped proof
-    // (#5217) succeed: resolveBillingAccountAccess re-reads the
-    // organization it just wrote and follows its now-current
-    // billingAccountId, inside the same transaction.
+    // Re-read the organization's updated billingAccountId in this transaction
+    // to prove billing account access (#5217).
     const scope = await resolveBillingAccountAccess(input.organizationId, tx);
 
     await this.reconcileCreditBalanceForLink(

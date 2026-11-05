@@ -13,6 +13,7 @@ import { MCP_CLAUDE_SCOPE_CEILING } from '@genfeedai/contracts/constants';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import type { McpOAuthRefreshToken } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { OAuthRevokeTokenDto } from '../dto/revoke-token.dto';
 import type { OAuthRefreshTokenGrant } from '../dto/token-exchange.dto';
@@ -88,6 +89,7 @@ export function buildTokenResponse(
  * settings invalidates the refresh token because the key must still be active
  * at refresh time.
  */
+@Traced()
 @Injectable()
 export class OAuthRefreshTokenService {
   constructor(

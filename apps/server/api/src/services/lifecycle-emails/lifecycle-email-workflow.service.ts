@@ -10,6 +10,7 @@ import {
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import type { LifecycleEmailWorkflowInput } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export const LIFECYCLE_EMAIL_ACTION_IDS = {
@@ -115,6 +116,7 @@ export function buildLifecycleEmailWorkflowDefinition(): SystemWorkflowGraphDefi
 export const LIFECYCLE_EMAIL_WORKFLOW_DEFINITION =
   buildLifecycleEmailWorkflowDefinition();
 
+@Traced()
 @Injectable()
 export class LifecycleEmailWorkflowService implements OnModuleInit {
   constructor(

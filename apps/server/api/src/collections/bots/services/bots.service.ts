@@ -9,6 +9,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const BOT_CREATE_SCALAR_FIELDS = [
@@ -50,6 +51,7 @@ type BotOwnershipInput = {
 type BotCreateInput = CreateBotDto & BotOwnershipInput;
 type BotUpdateInput = Partial<UpdateBotDto>;
 
+@Traced()
 @Injectable()
 export class BotsService extends BaseService<
   BotDocument,

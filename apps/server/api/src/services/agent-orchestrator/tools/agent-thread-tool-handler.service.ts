@@ -38,6 +38,7 @@ import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/
 import { GENERATE_CONTENT_TEXT_CREDITS } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const HTML_TAGS_PATTERN = /<[^>]+>/g;
@@ -72,6 +73,7 @@ const INSUFFICIENT_CREDITS_RESULT: AgentToolResult = {
  * drafts under a post the caller's organization owns, mirroring the post
  * composer (`handleAddThreadPosts`).
  */
+@Traced()
 @Injectable()
 export class AgentThreadToolHandler {
   private readonly constructorName = String(this.constructor.name);

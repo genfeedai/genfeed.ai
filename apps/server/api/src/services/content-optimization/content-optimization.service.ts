@@ -44,6 +44,7 @@ import {
 import { OpenAiLlmService } from '@api/services/integrations/openai-llm/services/openai-llm.service';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
@@ -157,6 +158,7 @@ export interface RequeueWinnerResult {
 
 const MAX_WINNER_KEYWORDS = 8;
 
+@Traced()
 @Injectable()
 export class ContentOptimizationService implements OnModuleInit {
   private readonly logContext = 'ContentOptimizationService';

@@ -35,6 +35,7 @@ import {
 import { describePlatformTextLimit } from '@genfeedai/helpers/content/platform-text-length.helper';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import type { ZodType } from 'zod';
 
@@ -43,6 +44,7 @@ const HASHTAGS_PATTERN = /#\w+/g;
 const EMOJI_PATTERN =
   /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
 
+@Traced()
 @Injectable()
 export class OptimizersService {
   constructor(

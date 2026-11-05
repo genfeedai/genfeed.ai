@@ -14,6 +14,7 @@ import type {
   ApifyYouTubeVideo,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const FALLBACK_SUFFIX_PATTERN = /-fallback-[1-9]\d*$/;
@@ -27,6 +28,7 @@ const LEADING_HASH_PATTERN = /^#/;
  * per-platform fetchers are collapsed behind a single dispatch table in
  * {@link fetchTrendSourceItems}.
  */
+@Traced()
 @Injectable()
 export class TrendSourceItemsService {
   /**

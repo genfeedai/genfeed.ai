@@ -5,6 +5,7 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { IMcpEnterpriseAuthSettings } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
@@ -36,6 +37,7 @@ export function parseTrustedIssuer(value: string): string {
   return issuer;
 }
 
+@Traced()
 @Injectable()
 export class McpEnterpriseAuthConfigService {
   constructor(

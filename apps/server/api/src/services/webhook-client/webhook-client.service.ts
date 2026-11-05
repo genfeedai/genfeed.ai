@@ -7,11 +7,13 @@ import {
 } from '@genfeedai/contracts/queue';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { assertSafeWebhookEndpoint } from './webhook-endpoint.validator';
 
+@Traced()
 @Injectable()
 export class WebhookClientService {
   private readonly constructorName = 'WebhookClientService';

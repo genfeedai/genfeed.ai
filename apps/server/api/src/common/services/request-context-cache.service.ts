@@ -8,8 +8,10 @@ import {
 } from '@api/common/services/redis-cache-snapshot.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class RequestContextCacheService {
   private readonly context = { service: RequestContextCacheService.name };

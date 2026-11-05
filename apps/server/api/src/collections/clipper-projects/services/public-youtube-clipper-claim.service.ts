@@ -8,6 +8,7 @@ import { PublicClipperToolStoreService } from '@api/services/public-clipper-tool
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CLIPPER_SOURCE_SCHEMA_VERSION } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, GoneException, Injectable } from '@nestjs/common';
 
 interface ClaimPublicYoutubeClipperInput {
@@ -16,6 +17,7 @@ interface ClaimPublicYoutubeClipperInput {
   readonly user: AuthenticatedUser;
 }
 
+@Traced()
 @Injectable()
 export class PublicYoutubeClipperClaimService {
   constructor(

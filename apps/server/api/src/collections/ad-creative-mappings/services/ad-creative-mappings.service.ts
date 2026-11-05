@@ -6,6 +6,7 @@ import {
 } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -28,6 +29,7 @@ export interface UpdateAdCreativeMappingInput {
   metadata?: Record<string, unknown>;
 }
 
+@Traced()
 @Injectable()
 export class AdCreativeMappingsService {
   private readonly constructorName = this.constructor.name;

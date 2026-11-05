@@ -2,8 +2,10 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class VisualProjectAuthorizationService {
   constructor(private readonly prisma: PrismaService) {}

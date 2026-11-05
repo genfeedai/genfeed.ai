@@ -33,6 +33,7 @@ import {
 } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -65,6 +66,7 @@ const INTENT_FIELDS = [
   'knowledge',
 ] as const;
 
+@Traced()
 @Injectable()
 export class CrunImageGenerationProviderAdapter
   implements ImageGenerationProviderAdapter

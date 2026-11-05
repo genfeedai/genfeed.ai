@@ -5,6 +5,7 @@ import {
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import { PrismaService } from '@libs/prisma/prisma.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export function extractProfileCounts(value: unknown): {
@@ -48,6 +49,7 @@ interface UpsertDailySnapshotInput {
   subscribers?: number | null;
 }
 
+@Traced()
 @Injectable()
 export class AccountAnalyticsSnapshotService {
   constructor(private readonly prisma: PrismaService) {}

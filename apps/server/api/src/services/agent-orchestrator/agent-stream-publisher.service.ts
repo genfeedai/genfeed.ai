@@ -18,6 +18,7 @@ import type { StructuredProgressDebugPayload } from '@genfeedai/utils/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const CHANNEL = 'agent-chat';
@@ -64,6 +65,7 @@ interface PendingTokenBuffer {
   userId: string;
 }
 
+@Traced()
 @Injectable()
 export class AgentStreamPublisherService {
   private readonly constructorName = String(this.constructor.name);

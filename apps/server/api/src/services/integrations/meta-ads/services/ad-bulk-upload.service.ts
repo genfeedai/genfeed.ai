@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { CreativeSource } from '@api/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
 import { AdBulkUploadWorkflowService } from '@api/collections/workflows/services/ad-bulk-upload-workflow.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface CreateBulkUploadInput {
@@ -20,6 +21,7 @@ export interface CreateBulkUploadInput {
   userId?: string;
 }
 
+@Traced()
 @Injectable()
 export class AdBulkUploadService {
   constructor(private readonly workflow: AdBulkUploadWorkflowService) {}

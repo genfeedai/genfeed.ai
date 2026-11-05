@@ -15,6 +15,7 @@ import { BrandIdentitySnapshotService } from '@api/services/branded-generation-r
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -57,6 +58,7 @@ export type BreakoutMediaOutputGenerationResult = {
 export type BreakoutMediaBrandPreflight = 'supported' | 'blocked';
 
 /** Uses the normal media endpoints, prices, provider identities and completion recovery. Never publishes. */
+@Traced()
 @Injectable()
 export class BreakoutMediaOutputGenerationService {
   constructor(

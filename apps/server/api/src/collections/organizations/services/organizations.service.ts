@@ -31,6 +31,7 @@ import type { IBrandAgentAutoPublish } from '@genfeedai/contracts/interfaces';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -80,6 +81,7 @@ function normalizeOrganizationCategoryFields<T extends Record<string, unknown>>(
   return normalized as T;
 }
 
+@Traced()
 @Injectable()
 export class OrganizationsService extends BaseService<
   OrganizationDocument,

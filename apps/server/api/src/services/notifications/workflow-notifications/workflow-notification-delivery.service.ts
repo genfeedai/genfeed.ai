@@ -33,6 +33,7 @@ import {
 } from '@helpers/email/system-email.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 type ClaimedDelivery = Prisma.NotificationDeliveryGetPayload<{
@@ -52,6 +53,7 @@ const LOCK_LEASE_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 const MAX_RECOVERY_BATCH = 100;
 
+@Traced()
 @Injectable()
 export class WorkflowNotificationDeliveryService {
   private readonly context = {

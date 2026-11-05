@@ -13,12 +13,14 @@ import type {
   BreakoutExposureMetric,
 } from '@genfeedai/contracts/interfaces';
 import type { LearningFormat } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
  * Official X API provider. Tries brand OAuth2 user token first, then app bearer.
  * Implemented as two logical providers via {@link mode}.
  */
+@Traced()
 @Injectable()
 export class TwitterBrandOAuthProvider implements SourceTimelineProvider {
   readonly name = 'brand-oauth' as const;
@@ -106,6 +108,7 @@ export class TwitterBrandOAuthProvider implements SourceTimelineProvider {
   }
 }
 
+@Traced()
 @Injectable()
 export class TwitterAppBearerProvider implements SourceTimelineProvider {
   readonly name = 'app-bearer' as const;

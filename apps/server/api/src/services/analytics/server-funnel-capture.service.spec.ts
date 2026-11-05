@@ -7,7 +7,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@libs/security/destination-guard', () => ({
   safeFetch: vi.fn().mockResolvedValue({ ok: true, status: 200 }),
 }));
-vi.mock('@sentry/nestjs', () => ({ captureException: vi.fn() }));
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
+  captureException: vi.fn(),
+}));
 
 const SECRET_PROJECT_KEY = 'phc_test_key';
 const SECRET_MARKER = 'super-secret-rollout-plan';

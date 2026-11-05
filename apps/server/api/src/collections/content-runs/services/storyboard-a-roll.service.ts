@@ -35,6 +35,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -86,6 +87,7 @@ export function isLiveARollChunk(chunk: StoryboardARollChunk): boolean {
  * The animatic (#8232) runs the same chunks through speech only, before or
  * after approval, so the creator hears the edit before paying for avatars.
  */
+@Traced()
 @Injectable()
 export class StoryboardARollService {
   constructor(

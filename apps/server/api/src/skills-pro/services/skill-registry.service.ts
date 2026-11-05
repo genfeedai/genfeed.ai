@@ -7,6 +7,7 @@ import type {
 } from '@api/skills-pro/contracts/skill-registry.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface SkillRegistryEntry {
@@ -43,6 +44,7 @@ const EMPTY_REGISTRY: SkillRegistry = {
   updatedAt: new Date(0).toISOString(),
 };
 
+@Traced()
 @Injectable()
 export class SkillRegistryService {
   private readonly constructorName: string = String(this.constructor.name);

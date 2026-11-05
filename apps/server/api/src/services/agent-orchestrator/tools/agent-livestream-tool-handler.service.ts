@@ -11,7 +11,7 @@ import {
   parsePlatform,
 } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
-
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 
 type LivestreamBotPlatform = Platform.YOUTUBE | Platform.TWITCH;
@@ -89,6 +89,7 @@ interface AgentBotsLivestreamServiceLike {
  * Livestream chat bot tools (`create_livestream_bot`, `manage_livestream_bot`).
  * Extracted from AgentToolExecutorService per #519.
  */
+@Traced()
 @Injectable()
 export class AgentLivestreamToolHandler {
   constructor(

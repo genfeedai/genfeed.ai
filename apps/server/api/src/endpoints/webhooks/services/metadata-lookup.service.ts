@@ -9,6 +9,7 @@ import {
   IngredientStatus,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
 
@@ -17,6 +18,7 @@ export interface MetadataLookupResult {
   ingredient: IngredientDocument;
 }
 
+@Traced()
 @Injectable()
 export class MetadataLookupService {
   private readonly logContext = 'MetadataLookupService';

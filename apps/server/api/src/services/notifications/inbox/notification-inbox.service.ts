@@ -21,6 +21,7 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { McpApprovalStatus, type Prisma } from '@genfeedai/prisma';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -484,6 +485,7 @@ function socialReplyInboxItem<
   };
 }
 
+@Traced()
 @Injectable()
 export class NotificationInboxService {
   constructor(private readonly prisma: PrismaService) {}

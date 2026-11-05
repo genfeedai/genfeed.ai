@@ -52,6 +52,7 @@ import type {
 import type { TurboProject, TurboProjectItem } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -80,6 +81,7 @@ const REVIEWABLE_STATUSES = new Set<string>([
  * `TurboProjectReconcileService`), outputs reach publishing through the
  * shared review inbox, and scheduling uses the shared post scheduling path.
  */
+@Traced()
 @Injectable()
 export class TurboProjectsService {
   private readonly context = TurboProjectsService.name;
@@ -256,10 +258,7 @@ export class TurboProjectsService {
     return this.loadProject(id, scope);
   }
 
-  /**
-   * Deletion takes the project lock start and retry take, so a project can
-   * never be deleted between their generating check and their claim.
-   */
+  /** Uses the start and retry lock to prevent deletion while a run is claimed. */
   remove(id: string, scope: ITurboProjectScope): Promise<void> {
     return this.reconcileService.runExclusive(id, () =>
       this.removeLocked(id, scope),

@@ -12,8 +12,8 @@ import {
 } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
-
 import type {
   IBetterAuthMagicLinkParams,
   IBetterAuthResetPasswordParams,
@@ -112,6 +112,7 @@ export function buildAuthLinkCorrelationId(token: string): string {
  * Delivers Better Auth transactional emails through the notifications service
  * and waits for Resend acceptance before Better Auth reports success.
  */
+@Traced()
 @Injectable()
 export class BetterAuthMailerService {
   private readonly context = { service: BetterAuthMailerService.name };

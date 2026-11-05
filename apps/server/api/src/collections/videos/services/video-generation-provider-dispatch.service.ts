@@ -12,8 +12,10 @@ import type {
   VideoGenerationProviderAdapter,
   VideoGenerationProviderResult,
 } from '@api/collections/videos/services/video-generation.types';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class VideoGenerationProviderDispatchService {
   private readonly adapters: readonly VideoGenerationProviderAdapter[];

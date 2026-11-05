@@ -5,6 +5,7 @@ import type {
   TrendOptions,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -13,6 +14,7 @@ import { Injectable } from '@nestjs/common';
  * Handles all Reddit-related Apify scraping operations:
  * trends, videos, comments, subreddit posts, user posts, and search.
  */
+@Traced()
 @Injectable()
 export class ApifyRedditService {
   private readonly constructorName: string = String(this.constructor.name);

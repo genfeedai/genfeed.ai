@@ -11,6 +11,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { Traced } from '@libs/tracing/traced';
 import { countAgentThreadStatus } from '@libs/websockets/agent-thread-status.metrics';
 import { Injectable } from '@nestjs/common';
 
@@ -58,6 +59,7 @@ function isSameRunState(a: AgentThreadRunState, b: AgentThreadRunState) {
  * when that derived state moved. Never per token: only events that change the
  * status inputs reach the lookup below.
  */
+@Traced()
 @Injectable()
 export class AgentThreadStatusPublisherService {
   private readonly constructorName = String(this.constructor.name);

@@ -31,6 +31,7 @@ import type {
   OrgAndPersonalContentMemoryRetrievalParams,
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export const SELECTED_KNOWLEDGE_PASSAGE_BUDGET = 8;
@@ -43,6 +44,7 @@ export const SELECTED_KNOWLEDGE_PASSAGE_BUDGET = 8;
  * its own service purely to keep `contexts.service.ts` under the
  * runtime-complexity file-size guard; behavior is unchanged (#5144).
  */
+@Traced()
 @Injectable()
 export class KnowledgeContentRetrievalService {
   constructor(

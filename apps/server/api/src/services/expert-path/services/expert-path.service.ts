@@ -14,6 +14,7 @@ import type {
   IBrandAgentAutoPublish,
   IExpertPathStatus,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 function readAutoPublish(agentConfig: unknown): IBrandAgentAutoPublish {
@@ -35,6 +36,7 @@ function readAutoPublish(agentConfig: unknown): IBrandAgentAutoPublish {
  * Aggregated Expert Path state for a brand. Onboarding, the skipped-step
  * workspace tasks, and Settings all read this one view.
  */
+@Traced()
 @Injectable()
 export class ExpertPathService {
   constructor(

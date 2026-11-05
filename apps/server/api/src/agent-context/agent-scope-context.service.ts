@@ -10,6 +10,7 @@ import type {
   ValidatedAgentScope,
 } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -92,6 +93,7 @@ export class AgentScopeContextService {
     private readonly brandAccessService: BrandAccessService,
   ) {}
 
+  @Traced()
   async prepareForTurn(
     params: PrepareAgentScopeParams,
   ): Promise<PreparedAgentScope> {
@@ -212,6 +214,7 @@ export class AgentScopeContextService {
     };
   }
 
+  @Traced()
   async resolveCreatedThreadScope(params: {
     brandId?: string;
     organizationId: string;
@@ -247,6 +250,7 @@ export class AgentScopeContextService {
     );
   }
 
+  @Traced()
   async mutateBrandScope(
     params: MutateAgentScopeParams,
   ): Promise<Record<string, unknown>> {
@@ -348,6 +352,7 @@ export class AgentScopeContextService {
     return updated as unknown as Record<string, unknown>;
   }
 
+  @Traced()
   async assertConsequentialBoundary(
     scope: ValidatedAgentScope,
     boundary: 'publish' | 'tool' | 'workflow',
@@ -430,6 +435,7 @@ export class AgentScopeContextService {
     }
   }
 
+  @Traced()
   async assertBrandAuthorized(
     brandId: string,
     actor: BrandAccessActor,
@@ -437,6 +443,7 @@ export class AgentScopeContextService {
     await this.brandAccessService.assert(actor, brandId);
   }
 
+  @Traced()
   private async findThread(
     threadId: string,
     organizationId: string,
@@ -460,6 +467,7 @@ export class AgentScopeContextService {
     })) as AgentThreadScopeRow | null;
   }
 
+  @Traced()
   private async resolveLegacyFallbackBrand(
     thread: AgentThreadScopeRow,
     policyBrandId: string | undefined,
@@ -497,6 +505,7 @@ export class AgentScopeContextService {
     return { source: 'legacy_organization_only' };
   }
 
+  @Traced()
   private async recordLegacyFallback(
     thread: AgentThreadScopeRow,
     brandId: string | undefined,

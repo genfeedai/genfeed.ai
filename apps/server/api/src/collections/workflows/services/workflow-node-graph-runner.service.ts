@@ -35,6 +35,7 @@ import {
   getExecutableNodeOperationId,
   planPartialExecution,
 } from '@genfeedai/workflows/engine';
+import { Traced } from '@libs/tracing/traced';
 
 type GraphRunOptions = {
   baselineEstimatedDurationMs?: number;
@@ -108,6 +109,7 @@ export class WorkflowNodeGraphRunnerService {
     );
   }
 
+  @Traced()
   async executeNodeGraph(
     workflow: ExecutableWorkflow,
     triggerEvent: TriggerEvent,
@@ -128,6 +130,7 @@ export class WorkflowNodeGraphRunnerService {
     }
   }
 
+  @Traced()
   private async executeNodeGraphInternal(
     workflow: ExecutableWorkflow,
     triggerEvent: TriggerEvent,
@@ -154,6 +157,7 @@ export class WorkflowNodeGraphRunnerService {
     return this.finalizeGraphExecution(state);
   }
 
+  @Traced()
   private async initializeGraphExecution(input: {
     executionId: string;
     options: GraphRunOptions;
@@ -288,6 +292,7 @@ export class WorkflowNodeGraphRunnerService {
     }
   }
 
+  @Traced()
   private async executeGraphNode(
     state: GraphExecutionState,
     nodeId: string,
@@ -387,6 +392,7 @@ export class WorkflowNodeGraphRunnerService {
       );
   }
 
+  @Traced()
   private async claimGraphNode(
     state: GraphExecutionState,
     node: ExecutableNode,
@@ -412,6 +418,7 @@ export class WorkflowNodeGraphRunnerService {
     return { claim, durableLease: durable.lease };
   }
 
+  @Traced()
   private async claimDurableNode(
     state: GraphExecutionState,
     node: ExecutableNode,
@@ -506,6 +513,7 @@ export class WorkflowNodeGraphRunnerService {
     });
   }
 
+  @Traced()
   private async runClaimedNode(
     state: GraphExecutionState,
     node: ExecutableNode,
@@ -578,6 +586,7 @@ export class WorkflowNodeGraphRunnerService {
     }
   }
 
+  @Traced()
   private async settleNodeContinuation(
     state: GraphExecutionState,
     node: ExecutableNode,
@@ -654,6 +663,7 @@ export class WorkflowNodeGraphRunnerService {
     };
   }
 
+  @Traced()
   private async completeGraphNodeClaims(
     state: GraphExecutionState,
     nodeId: string,
@@ -686,6 +696,7 @@ export class WorkflowNodeGraphRunnerService {
     }
   }
 
+  @Traced()
   private async applyCompletedNode(
     state: GraphExecutionState,
     node: ExecutableNode,
@@ -744,6 +755,7 @@ export class WorkflowNodeGraphRunnerService {
     return { kind: 'continue' };
   }
 
+  @Traced()
   private async applyFailedNode(
     state: GraphExecutionState,
     node: ExecutableNode,
@@ -772,6 +784,7 @@ export class WorkflowNodeGraphRunnerService {
     return { kind: 'continue' };
   }
 
+  @Traced()
   private async failClaimedNode(
     state: GraphExecutionState,
     node: ExecutableNode,

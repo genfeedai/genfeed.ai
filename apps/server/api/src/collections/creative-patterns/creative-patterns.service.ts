@@ -10,6 +10,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PatternType } from '@genfeedai/contracts/interfaces';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -41,6 +42,7 @@ export interface CreativePatternPageWindow {
   page: number;
 }
 
+@Traced()
 @Injectable()
 export class CreativePatternsService {
   constructor(private readonly prisma: PrismaService) {}

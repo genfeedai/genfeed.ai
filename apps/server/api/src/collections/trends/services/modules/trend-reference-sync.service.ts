@@ -9,6 +9,7 @@ import { normalizeTrendSourceUrl } from '@api/collections/trends/utils/trend-sou
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface TrendReferenceSyncResult {
@@ -25,6 +26,7 @@ interface SyncedSourceResult {
 /**
  * Owns persistence for reference records, daily snapshots, and trend links.
  */
+@Traced()
 @Injectable()
 export class TrendReferenceSyncService {
   constructor(

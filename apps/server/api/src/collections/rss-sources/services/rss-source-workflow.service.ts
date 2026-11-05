@@ -15,11 +15,13 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';
 const RSS_SWEEP_INTERVAL_MS = 15 * 60 * 1000;
 
+@Traced()
 @Injectable()
 export class RssSourceWorkflowService implements OnModuleInit {
   constructor(

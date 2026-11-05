@@ -1,5 +1,6 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import {
   createLocalJWKSet,
@@ -100,6 +101,7 @@ function isHttpsUrl(value: string): boolean {
  * assertion itself are never used. Every fetch goes through the outbound
  * destination guard because the issuer URL is customer-supplied.
  */
+@Traced()
 @Injectable()
 export class EnterpriseIssuerKeysService {
   private readonly cache = new Map<string, CachedKeys>();

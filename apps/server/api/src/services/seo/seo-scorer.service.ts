@@ -12,6 +12,7 @@ import {
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import {
   type ScoreContentOptions,
@@ -49,6 +50,7 @@ const MAX_LLM_CONTENT_CHARS = 12000;
  * computed in code (reproducible: same input → same number); the LLM only
  * refines the qualitative dimensions. Results are persisted on the entity.
  */
+@Traced()
 @Injectable()
 export class SeoScorerService {
   private readonly constructorName = String(this.constructor.name);

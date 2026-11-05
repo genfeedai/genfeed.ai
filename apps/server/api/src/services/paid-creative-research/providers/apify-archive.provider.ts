@@ -10,6 +10,7 @@ import type {
   PaidCreativeProvider,
 } from '@genfeedai/integrations/ads';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -20,6 +21,7 @@ import { Injectable } from '@nestjs/common';
  * the truth is "we never asked" is the failure mode this class exists to
  * prevent.
  */
+@Traced()
 @Injectable()
 export abstract class ApifyArchiveProvider
   implements PaidCreativeProviderAdapter

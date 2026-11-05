@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const MICRO_USD_COLUMN_MAX = 2_147_483_647;
@@ -106,6 +107,7 @@ function readJob(
   };
 }
 
+@Traced()
 @Injectable()
 export class ResearchCollectionJobService {
   constructor(private readonly prisma: PrismaService) {}

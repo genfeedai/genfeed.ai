@@ -107,6 +107,7 @@ import {
 } from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   Inject,
   Injectable,
@@ -302,6 +303,7 @@ function isBrandRequiredTool(
 /**
  * Thin agent tool router. Tool families live in dedicated handlers (#519).
  */
+@Traced()
 @Injectable()
 export class AgentToolExecutorService implements OnModuleInit {
   private readonly constructorName = String(this.constructor.name);

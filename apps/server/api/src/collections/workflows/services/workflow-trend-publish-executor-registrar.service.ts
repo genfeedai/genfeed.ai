@@ -62,12 +62,14 @@ import {
 } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
 const EDGE_HYPHEN_PATTERN = /^-|-$/g;
 const LEADING_HASH_PATTERN = /^#/;
 
+@Traced()
 @Injectable()
 export class WorkflowTrendPublishExecutorRegistrarService {
   private readonly logContext = 'WorkflowEngineAdapterService';

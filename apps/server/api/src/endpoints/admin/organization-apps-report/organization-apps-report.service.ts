@@ -16,8 +16,10 @@ import type {
   IOrganizationAppsReport,
   IOrganizationAppsReportApp,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class OrganizationAppsReportService {
   constructor(

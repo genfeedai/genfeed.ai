@@ -19,6 +19,7 @@ import type {
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -138,6 +139,7 @@ function dedupeReferences(
  * Every read and write re-checks referenced ingredients against the draft's
  * organization and brand, so a deleted or foreign asset never comes back.
  */
+@Traced()
 @Injectable()
 export class StudioGenerateDraftsService {
   constructor(

@@ -1,7 +1,9 @@
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type LaneTask<T> = () => Promise<T>;
 
+@Traced()
 @Injectable()
 export class AgentExecutionLaneService {
   private readonly lanes = new Map<string, Promise<unknown>>();

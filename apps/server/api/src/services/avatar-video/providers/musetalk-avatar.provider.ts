@@ -4,6 +4,7 @@ import type {
   AvatarVideoProvider,
 } from '@api/services/avatar-video/avatar-video-provider.interface';
 import type { AvatarVideoProviderName } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, NotImplementedException } from '@nestjs/common';
 
 /**
@@ -12,6 +13,7 @@ import { Injectable, NotImplementedException } from '@nestjs/common';
  * When Fleet ComfyUI endpoint is available this will route to it.
  * For now: stub.
  */
+@Traced()
 @Injectable()
 export class MusetalkAvatarProvider implements AvatarVideoProvider {
   readonly providerName: AvatarVideoProviderName = 'musetalk';

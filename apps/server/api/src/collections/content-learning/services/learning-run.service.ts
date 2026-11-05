@@ -40,6 +40,7 @@ import {
   Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -79,6 +80,7 @@ export function learningRunOperationStatus(status: string): string | null {
       : status
     : null;
 }
+@Traced()
 @Injectable()
 export class LearningRunService {
   constructor(
@@ -108,15 +110,13 @@ export class LearningRunService {
     tx: Prisma.TransactionClient,
     input: LearningRunDispatchInput,
   ) {
-    const operationWhere = {
+    const where = {
       id: input.operationId,
       organizationId: input.organizationId,
       isDeleted: false,
       type: { in: ['dataset-train', 'dataset-evaluate'] },
     };
-    const operation = await tx.contentLearningOperation.findFirst({
-      where: operationWhere,
-    });
+    const operation = await tx.contentLearningOperation.findFirst({ where });
     if (!operation)
       throw new NotFoundException('Scoped run dispatch not found');
     const raw = operation.resultReferences;
@@ -132,9 +132,7 @@ export class LearningRunService {
     const run = await tx.contentLearningRun.findFirst({
       where: { id: input.runId, isDeleted: false },
     });
-    const current = await tx.contentLearningOperation.findFirst({
-      where: operationWhere,
-    });
+    const current = await tx.contentLearningOperation.findFirst({ where });
     if (!run || !current) throw new NotFoundException('Run dispatch not found');
     return { run, operation: current, now: await this.clock(tx) };
   }

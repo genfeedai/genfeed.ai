@@ -19,6 +19,7 @@ import { BotPlatform, LivestreamTranscriptSource } from '@genfeedai/contracts';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 import {
   mergeLivestreamSessionContext,
@@ -66,6 +67,7 @@ function isLivestreamPlatform(
   return platform === BotPlatform.TWITCH || platform === BotPlatform.YOUTUBE;
 }
 
+@Traced()
 @Injectable()
 export class BotsLivestreamService {
   constructor(

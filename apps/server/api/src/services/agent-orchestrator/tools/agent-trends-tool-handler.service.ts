@@ -3,6 +3,7 @@ import { TrendsService } from '@api/collections/trends/services/trends.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { formatPlatformLabel } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const MAX_TRENDS = 20;
@@ -50,6 +51,7 @@ function interleaveByPlatform<T extends { platform: string; score?: number }>(
  * Trends listing tool + summary card builder.
  * Extracted from AgentToolExecutorService per #519.
  */
+@Traced()
 @Injectable()
 export class AgentTrendsToolHandler {
   constructor(private readonly trendsService: TrendsService) {}

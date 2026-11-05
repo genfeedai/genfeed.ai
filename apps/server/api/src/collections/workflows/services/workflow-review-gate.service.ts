@@ -27,6 +27,7 @@ import type {
   ExecutionRunResult,
   NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
 /** Actor recorded on automatic (timeout sweep) approvals/rejections. */
@@ -82,6 +83,7 @@ export class WorkflowReviewGateService {
     private readonly continueWorkflowGraph?: ContinueWorkflowGraph,
   ) {}
 
+  @Traced()
   async submitReviewGateApproval(
     workflowId: string,
     executionId: string,
@@ -235,6 +237,7 @@ export class WorkflowReviewGateService {
    * `autoApproveIfNoResponse`, otherwise auto-rejects. Returns `null` when the
    * gate was already resolved (raced by a human) so the sweep can skip it.
    */
+  @Traced()
   async resolveTimedOutReviewGate(
     workflowId: string,
     executionId: string,
@@ -289,6 +292,7 @@ export class WorkflowReviewGateService {
     }
   }
 
+  @Traced()
   async pauseForReviewGate(input: {
     executionId: string;
     workflow: ExecutableWorkflow;
@@ -428,6 +432,7 @@ export class WorkflowReviewGateService {
     };
   }
 
+  @Traced()
   private async rejectReviewGate(input: {
     workflowId: string;
     executionId: string;
@@ -510,6 +515,7 @@ export class WorkflowReviewGateService {
     };
   }
 
+  @Traced()
   private async approveReviewGate(
     input: ApproveReviewGateInput,
   ): Promise<ReviewGateApprovalResult> {
@@ -738,6 +744,7 @@ export class WorkflowReviewGateService {
     };
   }
 
+  @Traced()
   private async publishTerminalReviewOutcome(input: {
     completedExecution: Awaited<
       ReturnType<WorkflowExecutionFinalizerService['finalizeExecution']>

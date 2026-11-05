@@ -11,6 +11,7 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   ConflictException,
   GoneException,
@@ -171,6 +172,7 @@ export interface CreatedPublicYoutubeSession {
   readonly session: StoredPublicYoutubeClipperSession;
 }
 
+@Traced()
 @Injectable()
 export class PublicClipperToolStoreService {
   constructor(

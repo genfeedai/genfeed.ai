@@ -1,4 +1,5 @@
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -10,6 +11,7 @@ import { Injectable } from '@nestjs/common';
  * an approval. Read fresh on every decision, so turning a switch back on takes effect at
  * once.
  */
+@Traced()
 @Injectable()
 export class McpApprovalPolicyService {
   constructor(private readonly prisma: PrismaService) {}

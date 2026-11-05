@@ -5,6 +5,7 @@
 import { buildXActivityCrcResponseBody } from '@api/services/reply-bot/x-activity-crc.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const TRAILING_SLASH_PATTERN = /\/$/;
@@ -16,6 +17,7 @@ export type XActivitySubscribeResult = {
   subscriptionOk?: boolean;
 };
 
+@Traced()
 @Injectable()
 export class XActivitySubscriptionService {
   private readonly constructorName = String(this.constructor.name);

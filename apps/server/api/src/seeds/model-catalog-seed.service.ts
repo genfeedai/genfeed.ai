@@ -10,6 +10,7 @@ import {
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export type ModelCatalogSeedResult = {
@@ -119,6 +120,7 @@ const EXISTING_MODEL_SELECT = {
   usesOrientation: true,
 } as const;
 
+@Traced()
 @Injectable()
 export class ModelCatalogSeedService {
   private readonly context = 'ModelCatalogSeedService';

@@ -33,6 +33,7 @@ import type { ICreditReservation } from '@genfeedai/contracts/interfaces/billing
 import { toPrismaJson } from '@genfeedai/prisma';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
@@ -144,6 +145,7 @@ function mediaFilename(mimeType: string): string {
   return 'knowledge-media.mp4';
 }
 
+@Traced()
 @Injectable()
 export class KnowledgeTranscriptIngestService {
   constructor(

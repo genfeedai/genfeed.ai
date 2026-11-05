@@ -73,6 +73,7 @@ import { ORGANIZATION_MODULES } from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
 import { buildActionExecutionInput } from '@genfeedai/workflows/engine';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   Injectable,
   type OnApplicationBootstrap,
@@ -91,6 +92,7 @@ export type {
   SystemWorkflowGraphMetadata,
 } from '@api/collections/workflows/system-workflow-definition';
 
+@Traced()
 @Injectable()
 export class SystemWorkflowRunnerService
   implements OnApplicationBootstrap, OnModuleInit
@@ -982,9 +984,7 @@ export class SystemWorkflowRunnerService
     organizationId: string,
     userId?: string,
   ): Promise<string> {
-    if (userId) {
-      return userId;
-    }
+    if (userId) return userId;
     const organization = await this.prisma.organization.findUnique({
       select: { userId: true },
       where: { id: organizationId },

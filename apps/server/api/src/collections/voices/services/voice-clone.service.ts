@@ -27,10 +27,12 @@ import {
   VoiceProvider,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 
+@Traced()
 @Injectable()
 export class VoiceCloneService {
   private readonly constructorName = String(this.constructor.name);

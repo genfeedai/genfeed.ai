@@ -6,6 +6,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { IngredientCategory } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface VideoUpscaleQuoteRequest {
@@ -19,6 +20,7 @@ export interface VideoUpscaleQuoteRequest {
  * Topaz bills per second of the stored source video at the target resolution
  * and frame rate, so the picker can show the real amount before any spend.
  */
+@Traced()
 @Injectable()
 export class VideoUpscaleQuoteService {
   constructor(

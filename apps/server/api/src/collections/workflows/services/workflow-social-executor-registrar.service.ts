@@ -29,11 +29,13 @@ import {
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
 const RATE_LIMIT_ERROR_PATTERN = /rate[\s_-]?limit/i;
 
+@Traced()
 @Injectable()
 export class WorkflowSocialExecutorRegistrarService {
   private readonly logContext = 'WorkflowEngineAdapterService';

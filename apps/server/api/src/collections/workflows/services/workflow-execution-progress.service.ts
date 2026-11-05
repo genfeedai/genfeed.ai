@@ -12,6 +12,7 @@ import {
   type WorkflowEtaPlan,
 } from '@helpers/generation-eta.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { mapEngineNodeStatus } from './workflow-execution-status.util';
 
 const ETA_WRITE_MIN_INTERVAL_MS = 1_000;
@@ -74,6 +75,7 @@ export class WorkflowExecutionProgressService {
     return plan;
   }
 
+  @Traced()
   async trackNodeResult(
     executionId: string,
     nodeId: string,
@@ -197,6 +199,7 @@ export class WorkflowExecutionProgressService {
    * is due for a write it rides along in the node-result statement, so a
    * transition costs one database round trip rather than two.
    */
+  @Traced()
   async trackNodeProgress(
     executionId: string,
     workflow: ExecutableWorkflow,
@@ -236,6 +239,7 @@ export class WorkflowExecutionProgressService {
     await this.publishEta(executionId, eta, { ...options, progress });
   }
 
+  @Traced()
   async updateExecutionEta(
     executionId: string,
     workflow: ExecutableWorkflow,
@@ -381,6 +385,7 @@ export class WorkflowExecutionProgressService {
     };
   }
 
+  @Traced()
   async publishWorkflowTaskUpdate(input: {
     executionId: string;
     workflowId: string;
@@ -424,6 +429,7 @@ export class WorkflowExecutionProgressService {
     });
   }
 
+  @Traced()
   async publishWorkflowStatus(
     workflowId: string,
     status: 'completed' | 'failed',
@@ -442,6 +448,7 @@ export class WorkflowExecutionProgressService {
     );
   }
 
+  @Traced()
   async emitEvent(
     workflowId: string,
     event: string,

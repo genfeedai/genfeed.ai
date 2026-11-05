@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto';
+import { getActiveSpan, spanToJSON } from '@sentry/nestjs';
 import type {
   WideEventServiceIdentity,
   WideEventTraceContext,
@@ -19,32 +20,72 @@ export function readHeader(
   return Array.isArray(value) ? value[0] : value;
 }
 
-/**
- * Continues an incoming `traceparent` so a wide event shares its trace id with
- * the calling service, or starts a new trace. This is the single place trace
- * identity is decided: when OpenTelemetry tracing is installed, resolve from the
- * active span here so wide events and spans carry the same ids.
- */
-export function resolveTraceContext(
+const HEX_TRACE_ID = /^[\da-f]{32}$/;
+const HEX_SPAN_ID = /^[\da-f]{16}$/;
+
+function readTraceparent(
   headers: Record<string, string | string[] | undefined> | undefined,
-): WideEventTraceContext {
-  const spanId = randomBytes(8).toString('hex');
+):
+  | Required<Pick<WideEventTraceContext, 'parentSpanId' | 'traceId'>>
+  | undefined {
   const [, traceId, parentSpanId] =
     TRACEPARENT_PATTERN.exec(
       readHeader(headers, 'traceparent')?.trim() ?? '',
     ) ?? [];
 
   if (
-    traceId &&
-    parentSpanId &&
-    traceId !== ALL_ZERO_TRACE_ID &&
-    parentSpanId !== ALL_ZERO_SPAN_ID
+    !traceId ||
+    !parentSpanId ||
+    traceId === ALL_ZERO_TRACE_ID ||
+    parentSpanId === ALL_ZERO_SPAN_ID
   ) {
+    return undefined;
+  }
+
+  return {
+    parentSpanId: parentSpanId.toLowerCase(),
+    traceId: traceId.toLowerCase(),
+  };
+}
+
+/**
+ * The single place trace identity is decided. Inside a Sentry span (the
+ * request or job span) the wide event takes that span's ids, so it joins the
+ * trace in Sentry and matches what outgoing requests propagate. Without one
+ * (Sentry off: dev, CI, self-hosted) it continues an incoming `traceparent`,
+ * or starts a new trace.
+ */
+export function resolveTraceContext(
+  headers: Record<string, string | string[] | undefined> | undefined,
+): WideEventTraceContext {
+  const incoming = readTraceparent(headers);
+  const activeSpan = getActiveSpan();
+  const active = activeSpan?.spanContext();
+
+  if (
+    activeSpan &&
+    active &&
+    HEX_TRACE_ID.test(active.traceId) &&
+    active.traceId !== ALL_ZERO_TRACE_ID &&
+    HEX_SPAN_ID.test(active.spanId)
+  ) {
+    const parentSpanId =
+      spanToJSON(activeSpan).parent_span_id ??
+      (incoming?.traceId === active.traceId
+        ? incoming.parentSpanId
+        : undefined);
+
     return {
-      parentSpanId: parentSpanId.toLowerCase(),
-      spanId,
-      traceId: traceId.toLowerCase(),
+      ...(parentSpanId ? { parentSpanId } : {}),
+      spanId: active.spanId,
+      traceId: active.traceId,
     };
+  }
+
+  const spanId = randomBytes(8).toString('hex');
+
+  if (incoming) {
+    return { ...incoming, spanId };
   }
 
   return { spanId, traceId: randomBytes(16).toString('hex') };

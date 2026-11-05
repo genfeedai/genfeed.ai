@@ -45,6 +45,7 @@ import {
   withPlatformTenantArm,
 } from '@libs/prisma/platform-scope';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
@@ -105,6 +106,7 @@ const SUCCESSOR_REQUIRED_LIFECYCLES = new Set<ModelLifecycle>([
   ModelLifecycle.RETIRED,
 ]);
 
+@Traced()
 @Injectable()
 export class ModelsService extends BaseService<
   ModelDocument,

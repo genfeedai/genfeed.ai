@@ -18,6 +18,7 @@ import {
   type AgentGenerationQuote,
   AgentGenerationQuoteUnavailableReason,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const QUOTE_UNAVAILABLE =
@@ -45,6 +46,7 @@ function describeUnavailable(quote: PreparedAgentGenerationQuote | null) {
 }
 
 /** Approval prices are read-only quotes of the concrete Agent request. */
+@Traced()
 @Injectable()
 export class McpApprovalPricingService {
   constructor(

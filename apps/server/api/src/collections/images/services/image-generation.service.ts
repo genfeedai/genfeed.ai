@@ -76,6 +76,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 /** Populate patterns for every image read on the wait/serialize path. */
@@ -97,6 +98,7 @@ const IMAGE_POPULATE = [
  * previously copy-pasted failure-handler, poll-and-serialize, and timeout
  * recovery blocks to a single call site each.
  */
+@Traced()
 @Injectable()
 export class ImageGenerationService {
   private readonly constructorName: string = String(this.constructor.name);

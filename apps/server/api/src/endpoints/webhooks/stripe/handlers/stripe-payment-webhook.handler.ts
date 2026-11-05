@@ -7,6 +7,7 @@ import type {
 import { StripePaymentRevenueReferenceService } from '@api/services/integrations/stripe/services/stripe-payment-revenue-reference.service';
 import { BillingRevenueSource } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 function resourceId(value: unknown): string | null {
@@ -24,6 +25,7 @@ function resourceId(value: unknown): string | null {
   return null;
 }
 
+@Traced()
 @Injectable()
 export class StripePaymentWebhookHandler {
   constructor(

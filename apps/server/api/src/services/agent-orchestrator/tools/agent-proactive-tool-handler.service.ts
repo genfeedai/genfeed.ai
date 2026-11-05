@@ -31,6 +31,7 @@ import {
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { serializeAgentPost } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -47,6 +48,7 @@ const STALLED_SCAN_LIMIT = 500;
  * the drafted reply directly in the human review queue via
  * TurboRunService.createManualReviewTurboRun — no HTTP loopback.
  */
+@Traced()
 @Injectable()
 export class AgentProactiveToolHandler {
   private readonly constructorName = String(this.constructor.name);
