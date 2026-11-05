@@ -1,12 +1,14 @@
 import {
   TASK_LINKED_ENTITY_MODELS,
   TASK_OUTPUT_TYPES,
-  TASK_PRIORITIES,
-  TASK_STATUSES,
 } from '@api/collections/tasks/schemas/task.schema';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { DefaultAvatarRefDto } from '@api/shared/default-avatar-ref/default-avatar-ref.dto';
 import { DefaultVoiceRefDto } from '@api/shared/default-voice-ref/default-voice-ref.dto';
+import {
+  TASK_PRIORITIES,
+  TASK_STATUSES,
+} from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

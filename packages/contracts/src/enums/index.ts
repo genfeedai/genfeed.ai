@@ -136,7 +136,6 @@ export * from './status.enum';
 export * from './stripe.enum';
 export * from './subscription.enum';
 export * from './tag.enum';
-export * from './task.enum';
 export * from './task-model.enum';
 export * from './template.enum';
 export * from './tiktok-publish.enum';

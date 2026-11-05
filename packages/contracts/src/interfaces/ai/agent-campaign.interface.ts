@@ -1,3 +1,12 @@
+export const AGENT_CAMPAIGN_STATUSES = [
+  'draft',
+  'active',
+  'paused',
+  'completed',
+] as const;
+
+export type AgentCampaignStatus = (typeof AGENT_CAMPAIGN_STATUSES)[number];
+
 export interface IAgentCampaignRotationTarget {
   key: string;
   label?: string;
@@ -23,7 +32,7 @@ export interface IAgentCampaign {
   agents: string[];
   startDate: string;
   endDate?: string;
-  status: 'draft' | 'active' | 'paused' | 'completed';
+  status: AgentCampaignStatus;
   contentRotation?: IAgentCampaignContentRotation;
   contentQuota?: { posts?: number; images?: number; videos?: number };
   creditsAllocated: number;
@@ -39,7 +48,7 @@ export interface ICreateAgentCampaignDto {
   agentStrategyIds?: string[];
   startDate: string;
   endDate?: string;
-  status?: 'draft' | 'active' | 'paused' | 'completed';
+  status?: AgentCampaignStatus;
   contentRotation?: IAgentCampaignContentRotation;
   contentQuota?: { posts?: number; images?: number; videos?: number };
   creditsAllocated?: number;

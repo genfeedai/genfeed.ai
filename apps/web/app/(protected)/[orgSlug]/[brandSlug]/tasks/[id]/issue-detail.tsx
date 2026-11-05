@@ -4,6 +4,7 @@ import {
   useTaskStatusLabels,
 } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-status.constants';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { TaskPriority, TaskStatus } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
@@ -11,8 +12,6 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { TaskCommentsService } from '@services/management/task-comments.service';
 import {
   type TaskLinkedEntityModel,
-  type TaskPriority,
-  type TaskStatus,
   TasksService,
 } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';

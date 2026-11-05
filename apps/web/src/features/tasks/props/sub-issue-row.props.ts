@@ -1,4 +1,5 @@
-import type { Task, TaskStatus } from '@services/management/tasks.service';
+import type { TaskStatus } from '@genfeedai/contracts/interfaces';
+import type { Task } from '@services/management/tasks.service';
 
 export type SubIssueRowProps = {
   issue: Task;

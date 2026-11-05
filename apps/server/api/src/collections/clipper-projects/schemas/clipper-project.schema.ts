@@ -90,7 +90,7 @@ export interface ClipperProjectDocument extends ClipperProjectRecord {
   source?: ClipperSourceContract;
   sourceVideoS3Key?: string;
   sourceVideoUrl?: string;
-  status: SharedClipperProjectStatus | string;
+  status: SharedClipperProjectStatus;
   terminalAt?: Date | null;
   transcriptText?: string;
   workflowExecutionId?: string | null;

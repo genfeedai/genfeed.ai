@@ -1,17 +1,8 @@
+import {
+  TASK_PRIORITIES,
+  TASK_STATUSES,
+} from '@genfeedai/contracts/interfaces';
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
-
-const TASK_STATUSES = [
-  'backlog',
-  'todo',
-  'in_progress',
-  'blocked',
-  'in_review',
-  'done',
-  'failed',
-  'cancelled',
-] as const;
-
-const TASK_PRIORITIES = ['critical', 'high', 'medium', 'low'] as const;
 
 /**
  * Workspace app MCP surface: tasks, the review inbox, and recent activity.

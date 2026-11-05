@@ -1,4 +1,8 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  TASK_PRIORITIES,
+  TASK_STATUSES,
+} from '@genfeedai/contracts/interfaces';
 import { getPublicAppUrl } from '@mcp/mcp/setup-page';
 import type { ClientService } from '@mcp/services/client.service';
 import { formatToolData } from '@mcp/shared/utils/tool-result-text.util';
@@ -11,17 +15,6 @@ export const WORKSPACE_APP_TOOL_NAMES = new Set([
   'get_tasks',
 ]);
 
-const TASK_STATUSES = [
-  'backlog',
-  'todo',
-  'in_progress',
-  'blocked',
-  'in_review',
-  'done',
-  'failed',
-  'cancelled',
-] as const;
-const TASK_PRIORITIES = ['critical', 'high', 'medium', 'low'] as const;
 const MAX_LIMIT = 100;
 
 /**
