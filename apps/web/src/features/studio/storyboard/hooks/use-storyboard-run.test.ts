@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { ContentRunStatus } from '@genfeedai/contracts';
 import {
   type BrandRemixDraftEdits,
@@ -8,6 +12,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  brandId: 'brand-1',
   createBrandRemixRun: vi.fn(),
   findBrandRemixRun: vi.fn(),
   prepareBrandRemixPausedDraft: vi.fn(),
@@ -24,7 +29,12 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrandId: () => 'brand-1',
+  useBrandId: () => mocks.brandId,
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -137,6 +147,7 @@ const run: BrandRemixRunView = {
 describe('useStoryboardRun', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.brandId = 'brand-1';
     mocks.findBrandRemixRun.mockResolvedValue(run);
     mocks.reviseBrandRemixRun.mockResolvedValue({ ...run, revision: 2 });
     mocks.startBrandRemixRun.mockResolvedValue(run);
@@ -161,13 +172,17 @@ describe('useStoryboardRun', () => {
       ...run,
       brandId: 'another-brand',
     });
-    const { result } = renderHook(() => useStoryboardRun('run-1'));
+    const { result } = renderHook(() => useStoryboardRun('run-1'), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.status).toBe('error'));
     expect(result.current.run).toBeNull();
   });
 
   it('restores the durable run and resubscribes its in-flight assets', async () => {
-    const { result } = renderHook(() => useStoryboardRun('run-1'));
+    const { result } = renderHook(() => useStoryboardRun('run-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(result.current.run?.id).toBe('run-1'));
 
@@ -184,7 +199,7 @@ describe('useStoryboardRun', () => {
   it('reloads when the routed run changes', async () => {
     const { result, rerender } = renderHook(
       ({ runId }) => useStoryboardRun(runId),
-      { initialProps: { runId: 'run-1' } },
+      { initialProps: { runId: 'run-1' }, wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(result.current.run?.id).toBe('run-1'));
     mocks.findBrandRemixRun.mockResolvedValueOnce({ ...run, id: 'run-2' });
@@ -207,7 +222,9 @@ describe('useStoryboardRun', () => {
         },
       ],
     });
-    const { result } = renderHook(() => useStoryboardRun('run-1'));
+    const { result } = renderHook(() => useStoryboardRun('run-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(result.current.status).toBe('error'));
     expect(result.current.error).toBe(
@@ -216,7 +233,9 @@ describe('useStoryboardRun', () => {
   });
 
   it('persists Storyboard edits before starting the returned revision', async () => {
-    const { result } = renderHook(() => useStoryboardRun('run-1'));
+    const { result } = renderHook(() => useStoryboardRun('run-1'), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.run?.id).toBe('run-1'));
     const edits: BrandRemixDraftEdits = {
       intent: { objective: 'Sharpen the benefit reveal.' },
@@ -237,7 +256,9 @@ describe('useStoryboardRun', () => {
   });
 
   it('creates a durable sibling recipe when varying a completed run', async () => {
-    const { result } = renderHook(() => useStoryboardRun('run-1'));
+    const { result } = renderHook(() => useStoryboardRun('run-1'), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.run?.id).toBe('run-1'));
 
     await act(async () => {
@@ -257,7 +278,9 @@ describe('useStoryboardRun', () => {
   });
 
   it('submits ready variants to the shared Review queue', async () => {
-    const { result } = renderHook(() => useStoryboardRun('run-1'));
+    const { result } = renderHook(() => useStoryboardRun('run-1'), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.run?.id).toBe('run-1'));
 
     await act(async () => {
@@ -267,5 +290,74 @@ describe('useStoryboardRun', () => {
     expect(mocks.submitBrandRemixRunForReview).toHaveBeenCalledWith('run-1', {
       variantIds: ['variant-1'],
     });
+  });
+  it('paints the cached run at once when it is opened again', async () => {
+    const client = createTestQueryClient();
+    mocks.findBrandRemixRun.mockResolvedValue({ ...run, phase: 'prefilled' });
+    const firstVisit = renderHook(() => useStoryboardRun('run-1'), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() => expect(firstVisit.result.current.status).toBe('ready'));
+    firstVisit.unmount();
+
+    mocks.findBrandRemixRun.mockImplementation(() => new Promise(() => {}));
+    const { result } = renderHook(() => useStoryboardRun('run-1'), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(result.current.run?.id).toBe('run-1');
+    expect(result.current.status).toBe('ready');
+    expect(result.current.error).toBeNull();
+  });
+
+  it('never paints one brand run under another brand', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderHook(() => useStoryboardRun('run-1'), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() =>
+      expect(firstVisit.result.current.run?.id).toBe('run-1'),
+    );
+    firstVisit.unmount();
+
+    mocks.brandId = 'brand-2';
+    mocks.findBrandRemixRun.mockImplementation(() => new Promise(() => {}));
+    const { result } = renderHook(() => useStoryboardRun('run-1'), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(result.current.run).toBeNull();
+    expect(result.current.status).toBe('loading');
+  });
+
+  it('keeps the run on screen when a background read fails', async () => {
+    const client = createTestQueryClient();
+    mocks.findBrandRemixRun.mockResolvedValue({ ...run, phase: 'prefilled' });
+    const { result } = renderHook(() => useStoryboardRun('run-1'), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    mocks.findBrandRemixRun.mockRejectedValue(new Error('offline'));
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.run?.id).toBe('run-1');
+  });
+
+  it('shows the run an action returns', async () => {
+    const { result } = renderHook(() => useStoryboardRun('run-1'), {
+      wrapper: queryClientWrapper(),
+    });
+    await waitFor(() => expect(result.current.run?.id).toBe('run-1'));
+
+    await act(async () => {
+      await result.current.submitForReview(['variant-1']);
+    });
+
+    await waitFor(() => expect(result.current.run?.phase).toBe('in_review'));
+    expect(result.current.status).toBe('ready');
   });
 });
