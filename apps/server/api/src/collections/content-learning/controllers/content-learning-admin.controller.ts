@@ -234,6 +234,7 @@ export class ContentLearningAdminController {
   ) {
     const parent = await this.prisma.contentLearningRun.findFirst({
       where: { id, type: 'train', status: 'completed', isDeleted: false },
+      select: { datasetId: true, resultArtifactId: true },
     });
     if (!parent)
       throw new BadRequestException('Completed parent training required');

@@ -127,7 +127,10 @@ export class BotActivitiesService extends BaseService<
     where: Record<string, unknown>,
     patch: Record<string, unknown>,
   ): Promise<BotActivityDocument | null> {
-    const existing = await this.prisma.botActivity.findFirst({ where });
+    const existing = await this.prisma.botActivity.findFirst({
+      where,
+      select: { data: true, id: true, organizationId: true },
+    });
 
     if (!existing) {
       return null;

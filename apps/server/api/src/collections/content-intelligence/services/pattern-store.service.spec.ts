@@ -115,6 +115,7 @@ describe('PatternStoreService organization scoping', () => {
 
       expect(mocks.prisma.contentPattern.findFirst).toHaveBeenCalledWith({
         where: { id: patternId, isDeleted: false, organizationId },
+        select: { data: true },
       });
       expect(mocks.prisma.contentPattern.update).toHaveBeenCalledWith({
         data: { data: { usageCount: 3 } },

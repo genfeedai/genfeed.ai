@@ -525,7 +525,10 @@ export class OrganizationsService extends BaseService<
       }
       if (
         !isReservedAppRootSegment(candidate) &&
-        !(await this.prisma.organization.findFirst({ where: filter }))
+        !(await this.prisma.organization.findFirst({
+          where: filter,
+          select: { id: true },
+        }))
       ) {
         break;
       }

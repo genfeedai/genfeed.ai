@@ -110,6 +110,7 @@ export class DailyPublishingService implements OnModuleInit {
     };
     const brand = await this.prisma.brand.findFirst({
       where: { ...scope, id: request.brandId },
+      select: { id: true },
     });
     if (!brand) throw new Error('Brand is unavailable in this organization');
     if (request.agentStrategyId) {
@@ -119,6 +120,7 @@ export class DailyPublishingService implements OnModuleInit {
           id: request.agentStrategyId,
           brandId: request.brandId,
         },
+        select: { id: true },
       });
       if (!strategy)
         throw new Error('Strategy must belong to the selected brand');
@@ -138,6 +140,13 @@ export class DailyPublishingService implements OnModuleInit {
           : {}),
       }),
       orderBy: { id: 'asc' },
+      select: {
+        externalHandle: true,
+        externalName: true,
+        id: true,
+        platform: true,
+        username: true,
+      },
     });
     if (
       !credentials.length ||
@@ -231,6 +240,7 @@ export class DailyPublishingService implements OnModuleInit {
           brandId: state.request.brandId,
           isDeleted: false,
         },
+        select: { id: true },
       });
       if (!strategy)
         throw new Error('Strategy must belong to the selected brand');
@@ -247,6 +257,7 @@ export class DailyPublishingService implements OnModuleInit {
             ? PrismaCredentialPlatform.TWITTER
             : PrismaCredentialPlatform.LINKEDIN,
       },
+      select: { id: true },
     });
     if (!account || !['twitter', 'linkedin'].includes(state.platform))
       throw new Error('Daily account is unavailable');
@@ -527,6 +538,12 @@ export class DailyPublishingService implements OnModuleInit {
         credentialId: state.credentialId,
         isDeleted: false,
       },
+      select: {
+        id: true,
+        targetError: true,
+        targetIdempotencyKey: true,
+        workflowExecutionId: true,
+      },
     });
     if (state.outcome === 'slot-deleted') return state;
     if (!post || post.targetIdempotencyKey !== state.slotKey)
@@ -572,6 +589,7 @@ export class DailyPublishingService implements OnModuleInit {
         organizationId: action.context.organizationId,
         isDeleted: false,
       },
+      select: { description: true },
     });
     if (post.description.trim()) return state;
     if (!state.source) throw new Error('Daily content source is missing');
@@ -666,6 +684,7 @@ export class DailyPublishingService implements OnModuleInit {
         organizationId: action.context.organizationId,
         isDeleted: false,
       },
+      select: { description: true },
     });
     const quality = await this.moduleRef
       .get(ContentQualityScorerService, { strict: false })
@@ -754,6 +773,12 @@ export class DailyPublishingService implements OnModuleInit {
         id: state.postId,
         organizationId: action.context.organizationId,
         isDeleted: false,
+      },
+      select: {
+        description: true,
+        id: true,
+        reviewFeedback: true,
+        targetExecutionState: true,
       },
     });
     let decision: Record<string, unknown>;

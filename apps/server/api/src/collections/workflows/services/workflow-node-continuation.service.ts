@@ -290,6 +290,12 @@ export class WorkflowNodeContinuationService {
           provider: 'fal',
           status: WorkflowNodeContinuationStatus.WAITING_PROVIDER,
         },
+        select: {
+          id: true,
+          providerResult: true,
+          status: true,
+          updatedAt: true,
+        },
       });
       if (!row)
         throw new Error(

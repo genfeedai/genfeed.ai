@@ -136,6 +136,7 @@ export class ContentPlanItemsService {
   ): Promise<ContentPlanItemDocument> {
     const existing = await this.prisma.contentPlanItem.findFirst({
       where: scopedWhere(organizationId, { id: itemId }),
+      select: { data: true },
     });
 
     if (!existing) {
@@ -171,6 +172,7 @@ export class ContentPlanItemsService {
   ): Promise<ContentPlanItemDocument> {
     const existing = await this.prisma.contentPlanItem.findFirst({
       where: scopedWhere(organizationId, { id: itemId }),
+      select: { data: true },
     });
 
     if (!existing) {

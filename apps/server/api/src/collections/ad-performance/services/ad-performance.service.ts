@@ -918,6 +918,7 @@ export class AdPerformanceService {
     // sql-risk-audit: documented unbounded-read -- Privacy revocation intentionally rewrites every ad performance row for one organization.
     const records = await this.prisma.adPerformance.findMany({
       where: { organizationId },
+      select: { data: true, id: true },
     });
 
     await Promise.all(

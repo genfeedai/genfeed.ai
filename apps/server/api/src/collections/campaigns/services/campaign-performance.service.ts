@@ -56,6 +56,7 @@ export class CampaignPerformanceService {
   ): Promise<ICampaignPerformance> {
     const campaign = await this.prisma.campaign.findFirst({
       where: scopedWhere(organizationId, { id }),
+      select: { brandId: true, id: true },
     });
     if (!campaign) {
       throw new NotFoundException('Campaign', id);

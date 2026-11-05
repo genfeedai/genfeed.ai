@@ -660,6 +660,7 @@ export class CampaignTargetsService extends BaseService<
         campaign: this.parentWhere(organizationId, false),
         id,
       }),
+      select: { data: true },
     });
 
     if (!existing) {
@@ -863,6 +864,7 @@ export class CampaignTargetsService extends BaseService<
           id,
           status: expectedStatus,
         }),
+        select: { data: true },
       });
 
       if (!existing) {

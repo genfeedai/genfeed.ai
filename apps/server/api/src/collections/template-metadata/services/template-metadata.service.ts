@@ -114,6 +114,7 @@ export class TemplateMetadataService {
         key,
         purpose: 'prompt',
       },
+      select: { id: true },
     });
 
     if (!template) {

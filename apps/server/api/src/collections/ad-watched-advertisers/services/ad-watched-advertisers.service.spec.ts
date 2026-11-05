@@ -310,6 +310,7 @@ describe('AdWatchedAdvertisersService persistence boundary', () => {
           organizationId: 'org-1',
           platform: 'TIKTOK',
         },
+        select: { brandId: true },
       });
       expect(delegate.create).not.toHaveBeenCalled();
     });
@@ -346,6 +347,7 @@ describe('AdWatchedAdvertisersService persistence boundary', () => {
           organizationId: 'org-1',
           platform: 'GOOGLE_ADS',
         },
+        select: { brandId: true },
       });
     });
   });

@@ -1088,6 +1088,7 @@ describe('Manual version predecessor admission', () => {
         candidateVersionId: 'historical',
         tickKey: 'manual-version:historical',
       }),
+      select: { expectedCurrentVersionId: true, id: true, status: true },
     });
     expect(tx.knowledgeSourceRefreshRun.updateMany).not.toHaveBeenCalled();
   });

@@ -182,6 +182,7 @@ export class ReferralsService {
         ownerUserId: actor.userId,
         rewardBillingAccountId: account.id,
       },
+      select: { id: true },
     });
     if (!code) {
       return [];
@@ -212,6 +213,11 @@ export class ReferralsService {
     );
     const referralCode = await this.prisma.referralCode.findFirst({
       where: { code, isActive: true, isDeleted: false },
+      select: {
+        id: true,
+        rewardBillingAccountId: true,
+        rewardOrganizationId: true,
+      },
     });
     if (!referralCode) {
       return { isAccepted: false, status: ReferralClaimStatus.INVALID };
@@ -221,6 +227,7 @@ export class ReferralsService {
         isDeleted: false,
         referredBillingAccountId: targetAccount.id,
       },
+      select: { id: true },
     });
     if (existing) {
       return {
@@ -375,6 +382,7 @@ export class ReferralsService {
         rewardEndsAt: { gt: now },
         status: ReferralStatus.ACTIVE,
       },
+      select: { codeId: true, id: true },
     });
     const netAmountCents = Math.max(0, Math.floor(input.netAmountCents));
     const rewardCredits = Math.floor(netAmountCents * AFFILIATE_REWARD_RATE);
@@ -619,6 +627,7 @@ export class ReferralsService {
           idempotencyKey,
           isDeleted: false,
         },
+        select: { id: true, organizationId: true },
       });
       if (!transaction) {
         throw new Error('Referral reward ledger transaction was not persisted');

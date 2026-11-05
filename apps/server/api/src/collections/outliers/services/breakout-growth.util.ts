@@ -135,6 +135,13 @@ export async function readBreakoutGrowth(
       organizationId: source.organizationId,
       isDeleted: false,
     },
+    select: {
+      breakoutThreshold: true,
+      maturityHoursByPlatform: true,
+      minimumSampleSize: true,
+      outlierThreshold: true,
+      windowSize: true,
+    },
   });
   const configuration = outlierConfigurationSchema.parse(
     configRow

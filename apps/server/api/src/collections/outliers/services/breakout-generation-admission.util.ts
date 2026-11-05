@@ -132,6 +132,17 @@ export async function admitBreakoutGenerationContinuation(
       platform: scope.platform,
       isDeleted: false,
     },
+    select: {
+      contentDigest: true,
+      externalId: true,
+      id: true,
+      logicalPostId: true,
+      nativeSourcePostId: true,
+      publicationFingerprint: true,
+      sourcePostId: true,
+      state: true,
+      triggerReceiptId: true,
+    },
   });
   await admission.reauthorize(tx);
   if (response?.state !== 'planned') deny('response_unavailable');
@@ -143,6 +154,14 @@ export async function admitBreakoutGenerationContinuation(
       brandId: scope.brandId,
       credentialId: admission.credentialId,
       isDeleted: false,
+    },
+    select: {
+      format: true,
+      generationKey: true,
+      kind: true,
+      ordinal: true,
+      state: true,
+      workflowExecutionId: true,
     },
   });
   await admission.reauthorize(tx);

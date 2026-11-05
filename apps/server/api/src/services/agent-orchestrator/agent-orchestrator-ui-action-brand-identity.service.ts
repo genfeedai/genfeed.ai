@@ -585,6 +585,7 @@ export class AgentOrchestratorUiActionBrandIdentityService {
           isDeleted: false,
           status: 'active',
         },
+        select: { brandId: true, contextVersion: true },
       });
       if (
         !thread ||

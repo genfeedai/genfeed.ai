@@ -457,6 +457,7 @@ export class AutonomousPublishPolicyService {
         id: strategyId,
         brandId: post.brandId,
       }),
+      select: { config: true, isActive: true, policies: true },
     });
     if (!strategy) return null;
     const policies = policyObject(strategy.policies);
@@ -492,6 +493,7 @@ export class AutonomousPublishPolicyService {
     const threshold = boundedInteger(policy.autoPublishAfterApprovals, 5, 100);
     const brand = await transaction.brand.findFirst({
       where: scopedWhere(input.organizationId, { id: post.brandId }),
+      select: { agentConfig: true },
     });
     const brandConfig = policyObject(brand?.agentConfig);
     const autoPublishEnabled =

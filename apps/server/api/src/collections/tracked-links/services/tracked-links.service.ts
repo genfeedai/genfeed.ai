@@ -503,6 +503,7 @@ export class TrackedLinksService {
   ): Promise<void> {
     const link = await this.prisma.trackedLink.findFirst({
       where: { id: dto.linkId, isActive: true, isDeleted: false },
+      select: { organizationId: true },
     });
 
     if (!link) {
@@ -526,6 +527,7 @@ export class TrackedLinksService {
         isUnique = dto.sessionId
           ? !(await tx.linkClick.findFirst({
               where: { linkId: dto.linkId, sessionId },
+              select: { id: true },
             }))
           : false;
 

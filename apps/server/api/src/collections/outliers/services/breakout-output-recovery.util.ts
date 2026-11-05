@@ -108,6 +108,16 @@ async function bindPostArtifact(
       platform,
       isDeleted: false,
     },
+    select: {
+      contentDigest: true,
+      externalId: true,
+      logicalPostId: true,
+      nativeSourcePostId: true,
+      outputPlanFingerprint: true,
+      publicationFingerprint: true,
+      sourcePostId: true,
+      state: true,
+    },
   });
   const output = await tx.breakoutResponseOutput.findFirst({
     where: {
@@ -117,6 +127,13 @@ async function bindPostArtifact(
       brandId,
       credentialId,
       isDeleted: false,
+    },
+    select: {
+      format: true,
+      generationKey: true,
+      kind: true,
+      ordinal: true,
+      state: true,
     },
   });
   if (!response || !output || response.outputPlanFingerprint === null)
@@ -190,6 +207,14 @@ async function bindPostArtifact(
       requestKey: output.generationKey,
       candidateIndex: 0,
       isDeleted: false,
+    },
+    select: {
+      id: true,
+      mode: true,
+      projection: true,
+      providerAttemptRef: true,
+      revision: true,
+      state: true,
     },
   });
   const parsed = brandedGenerationReceiptV1Schema.safeParse(row?.projection);

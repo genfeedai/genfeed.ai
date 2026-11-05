@@ -130,6 +130,7 @@ export class TrendReferenceCorpusService {
       where: scopedWhere(payload.organizationId, {
         postId: payload.postId,
       }) as Prisma.TrendRemixLineageWhereInput,
+      select: { id: true },
     });
 
     const dataPayload = {
@@ -204,6 +205,7 @@ export class TrendReferenceCorpusService {
         canonicalUrl: { in: canonicalUrls },
         isDeleted: false,
       },
+      select: { canonicalUrl: true, data: true, id: true },
     });
 
     if (matchedRefs.length === 0) {

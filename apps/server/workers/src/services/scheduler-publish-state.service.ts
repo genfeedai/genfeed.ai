@@ -275,6 +275,7 @@ export class SchedulerPublishStateService {
             postId: input.postId,
           },
         },
+        select: { id: true },
       });
       if (
         !existing &&

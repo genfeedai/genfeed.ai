@@ -362,6 +362,7 @@ export class PerformanceSummaryService {
       }),
       orderBy: { engagementRate: 'desc' },
       take: 50,
+      select: { engagementRate: true, postId: true, totalViews: true },
     });
 
     // Group by first 100 chars of description/label

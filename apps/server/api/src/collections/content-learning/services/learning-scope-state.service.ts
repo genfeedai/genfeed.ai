@@ -73,6 +73,7 @@ export class LearningScopeStateService {
         brandId: scope.brandId,
         isDeleted: false,
       },
+      select: { platform: true },
     });
     if (
       !credential ||
@@ -86,6 +87,7 @@ export class LearningScopeStateService {
         brandId: scope.brandId,
         isDeleted: false,
       },
+      select: { epoch: true },
     });
     if (!account || account.epoch !== epoch)
       throw new ConflictException('Account epoch changed');
@@ -161,6 +163,13 @@ export class LearningScopeStateService {
         organizationId: input.organizationId,
         credentialId: input.credentialId,
         isDeleted: false,
+      },
+      select: {
+        epoch: true,
+        evidenceRevision: true,
+        failureReason: true,
+        mode: true,
+        revision: true,
       },
     });
     const scope = await this.read(
@@ -280,6 +289,13 @@ export class LearningScopeStateService {
         synthetic: false,
         state: { in: ['active', 'shadow', 'retired'] },
       },
+      select: {
+        brandId: true,
+        cellDescriptor: true,
+        descriptorHash: true,
+        id: true,
+        scopeKey: true,
+      },
     });
     if (
       !policy ||
@@ -337,6 +353,7 @@ export class LearningScopeStateService {
         pinnedPolicyId: { not: null },
       },
       orderBy: { id: 'asc' },
+      select: { id: true, pinnedPolicyId: true, revision: true },
     });
     for (const row of rows) {
       await tx.$queryRaw`SELECT id FROM content_learning_scope_states WHERE id = ${row.id} AND "organizationId" = ${organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;

@@ -290,6 +290,7 @@ export class VisualProjectWorkflowService implements OnModuleInit {
         status: 'running',
         leaseExpiresAt: { gt: new Date() },
       },
+      select: { leaseOwnerId: true },
     });
     if (!lease?.leaseOwnerId || context.abortSignal?.aborted)
       throw new WorkflowNodeClaimLeaseLostError({ executionId, nodeId });
@@ -344,6 +345,7 @@ export class VisualProjectWorkflowService implements OnModuleInit {
         userId: job.userId,
         isDeleted: false,
       },
+      select: { brandId: true, id: true, organizationId: true },
     });
     const execution = await this.prisma.workflowExecution.findFirstOrThrow({
       where: {
@@ -388,6 +390,7 @@ export class VisualProjectWorkflowService implements OnModuleInit {
         status: 'running',
         leaseExpiresAt: { gt: new Date() },
       },
+      select: { leaseOwnerId: true },
     });
     if (!lease?.leaseOwnerId || context.abortSignal?.aborted)
       throw new WorkflowNodeClaimLeaseLostError({ executionId, nodeId });

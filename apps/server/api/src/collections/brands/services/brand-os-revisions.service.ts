@@ -244,6 +244,7 @@ export class BrandOsRevisionsService {
       await this.lockBrand(tx, organizationId, brandId);
       const row = await tx.brandOsRevision.findFirst({
         where: { brandId, id, isDeleted: false, organizationId },
+        select: { content: true, status: true, updatedAt: true },
       });
       if (!row) throw new NotFoundException('Brand OS revision');
       if (row.updatedAt.toISOString() !== updatedAt)
@@ -489,6 +490,7 @@ export class BrandOsRevisionsService {
         organizationId,
         status: BrandOsRevisionStatus.APPROVED,
       },
+      select: { content: true },
     });
     const policy = parseBrandPublishPolicy(
       (approved?.content as unknown as IBrandKitDraft | undefined)?.policy,

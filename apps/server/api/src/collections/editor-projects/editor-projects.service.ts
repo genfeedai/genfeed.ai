@@ -99,6 +99,7 @@ export class EditorProjectsService extends BaseService<
       );
       const current = await tx.editorProject.findFirst({
         where: scopedWhere(organizationId, { id }),
+        select: { config: true },
       });
 
       if (!current) {

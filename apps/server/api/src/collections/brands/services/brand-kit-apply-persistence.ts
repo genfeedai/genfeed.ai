@@ -157,6 +157,7 @@ export async function saveAppliedBrandKitSocialLinks(
       const existing = await tx.link.findFirst({
         orderBy: { createdAt: 'asc' },
         where: { brandId, category, isDeleted: false },
+        select: { id: true },
       });
       if (existing) {
         await tx.link.update({

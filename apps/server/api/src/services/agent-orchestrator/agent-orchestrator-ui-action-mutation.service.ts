@@ -434,6 +434,7 @@ export class AgentOrchestratorUiActionMutationService {
         isDeleted: false,
         status: admission ? 'active' : undefined,
       },
+      select: { brandId: true, contextVersion: true },
     });
     if (
       !thread ||

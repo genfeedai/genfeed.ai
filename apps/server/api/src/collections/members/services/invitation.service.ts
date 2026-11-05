@@ -597,6 +597,7 @@ export class InvitationService {
   ): Promise<User> {
     const existing = await tx.user.findFirst({
       where: { email: invitation.email, isDeleted: false },
+      select: { id: true },
     });
 
     if (existing) {

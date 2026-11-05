@@ -225,6 +225,7 @@ export class PostAnalyticsService extends BaseService<
           credentialId: context.credentialId,
           isDeleted: false,
         },
+        select: { epoch: true, evidenceRevision: true, mode: true },
       });
       if (
         !account ||

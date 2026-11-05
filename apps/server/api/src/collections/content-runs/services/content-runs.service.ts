@@ -229,6 +229,7 @@ export class ContentRunsService {
   ): Promise<Record<string, unknown>> {
     const existing = await this.prisma.contentRun.findFirst({
       where: scopedWhere(organizationId, { id: runId }),
+      select: { config: true },
     });
 
     if (!existing) {

@@ -599,6 +599,7 @@ export class OrganizationSettingsService extends BaseService<
   ): Promise<void> {
     const setting = await this.prisma.organizationSetting.findFirst({
       where: { organizationId },
+      select: { enabledModelIds: true, id: true },
     });
     if (!setting) return;
     const existing = setting.enabledModelIds;

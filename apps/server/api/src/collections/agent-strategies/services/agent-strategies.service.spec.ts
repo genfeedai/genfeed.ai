@@ -369,6 +369,12 @@ describe('AgentStrategiesService budget and atomic run persistence', () => {
 
     expect(prisma.agentStrategy.findFirst).toHaveBeenCalledWith({
       where: { id: 'strategy', isDeleted: false, organizationId: 'org' },
+      select: {
+        config: true,
+        isActive: true,
+        organizationId: true,
+        policies: true,
+      },
     });
     expectCloudGuardPasses(
       'AgentStrategy',

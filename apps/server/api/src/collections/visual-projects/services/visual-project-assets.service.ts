@@ -343,6 +343,7 @@ export class VisualProjectAssetsService {
             brandId: revision.brandId,
             isDeleted: false,
           },
+          select: { cancelRequestedAt: true },
         });
         if (current.cancelRequestedAt)
           throw new ConflictException('visual_cancelled');
@@ -374,6 +375,7 @@ export class VisualProjectAssetsService {
             brandId: revision.brandId,
             isDeleted: false,
           },
+          select: { cancelRequestedAt: true },
         });
         if (current.cancelRequestedAt)
           throw new ConflictException('visual_cancelled');

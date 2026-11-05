@@ -151,6 +151,7 @@ export async function selectLearningBaseline(
         validity: 'valid',
         isDeleted: false,
       },
+      select: { id: true },
     });
     if (
       !current ||
