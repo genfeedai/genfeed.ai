@@ -189,11 +189,10 @@ Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`,
 
 - **Runner:** Vitest (NOT Jest). `vitest.config.e2e.ts` loads `unplugin-swc` for NestJS decorator metadata,
   disables OXC. Pool `threads`, `maxWorkers: 1` (serial, avoids DB contention), 60s timeout, setup `test/setup.ts`.
-- **Core tier** (`test:e2e:core`) preserves the five release-critical files in
+- **Core tier** (`test:e2e:core`) preserves the four release-critical files in
   `scripts/api-e2e-tiers.manifest.ts`:
   - `test/e2e/integrations.e2e-spec.ts` — org integrations CRUD over HTTP (the only full HTTP suite in CI).
   - `test/integration/generation-credit-decrement.integration.spec.ts` — real Postgres credit decrement behavior.
-  - `test/integration/payment-processing.integration.spec.ts` — Stripe flow (mocked).
   - `test/integration/health.e2e-spec.spec.ts` — unit-level `HealthController` (no HTTP/DB).
   - `test/integration/stripe-webhook-credit-grant.integration.spec.ts` — signed Stripe webhook credit grants.
 - **Full tier** (`test:e2e:full`) recursively discovers every `*spec.ts` file under

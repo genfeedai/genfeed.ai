@@ -17,7 +17,9 @@ const assertSafeWebhookEndpoint = vi.fn().mockResolvedValue({
   hostname: 'example.com',
   url: new URL('https://example.com/hook'),
 });
-const createPinnedWebhookAgent = vi.fn(() => pinnedWebhookAgent);
+const createPinnedWebhookAgent = vi.fn(
+  (_endpoint: unknown) => pinnedWebhookAgent,
+);
 vi.mock('@api/services/webhook-client/webhook-endpoint.validator', () => ({
   assertSafeWebhookEndpoint: (url: string) => assertSafeWebhookEndpoint(url),
   createPinnedWebhookAgent: (endpoint: unknown) =>

@@ -2,6 +2,7 @@ import {
   type TaskJobRequest,
   TaskQueueClientService,
 } from '@api/services/task-queue-client/task-queue-client.service';
+import { axiosResponse } from '@api-test/helpers/axios-response';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';
@@ -83,7 +84,7 @@ describe('TaskQueueClientService', () => {
         },
       };
 
-      httpService.post.mockReturnValue(of(mockResponse));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse.data)));
 
       const result = await service.queueTransformJob(mockTaskJobRequest);
 
@@ -118,7 +119,7 @@ describe('TaskQueueClientService', () => {
         },
       };
 
-      httpService.post.mockReturnValue(of(mockResponse));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse.data)));
 
       const result = await service.queueUpscaleJob(mockTaskJobRequest);
 
@@ -150,7 +151,7 @@ describe('TaskQueueClientService', () => {
         },
       };
 
-      httpService.post.mockReturnValue(of(mockResponse));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse.data)));
 
       const result = await service.queueCaptionJob(mockTaskJobRequest);
 
@@ -182,7 +183,7 @@ describe('TaskQueueClientService', () => {
         },
       };
 
-      httpService.post.mockReturnValue(of(mockResponse));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse.data)));
 
       const result = await service.queueResizeJob(mockTaskJobRequest);
 
@@ -214,7 +215,7 @@ describe('TaskQueueClientService', () => {
         },
       };
 
-      httpService.post.mockReturnValue(of(mockResponse));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse.data)));
 
       const result = await service.queueClipJob(mockTaskJobRequest);
 
@@ -255,7 +256,7 @@ describe('TaskQueueClientService', () => {
         },
       };
 
-      httpService.get.mockReturnValue(of(mockResponse));
+      httpService.get.mockReturnValue(of(axiosResponse(mockResponse.data)));
 
       const result = await service.getJobStatus(jobId);
 
@@ -321,7 +322,7 @@ describe('TaskQueueClientService', () => {
         data: { jobId: 'job-min', status: 'queued' },
       };
 
-      httpService.post.mockReturnValue(of(mockResponse));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse.data)));
 
       const result = await service.queueTransformJob(minimalRequest);
 
@@ -343,7 +344,7 @@ describe('TaskQueueClientService', () => {
         data: { jobId: 'job-priority', status: 'queued' },
       };
 
-      httpService.post.mockReturnValue(of(mockResponse));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse.data)));
 
       const result = await service.queueTransformJob(priorityRequest);
 
@@ -364,7 +365,7 @@ describe('TaskQueueClientService', () => {
         data: { jobId: 'job-metadata', status: 'queued' },
       };
 
-      httpService.post.mockReturnValue(of(mockResponse));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse.data)));
 
       const result = await service.queueTransformJob(metadataRequest);
 

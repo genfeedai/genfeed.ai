@@ -1,10 +1,12 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PresetsController } from '@api/collections/presets/controllers/presets.controller';
 import { CreatePresetDto } from '@api/collections/presets/dto/create-preset.dto';
-import type { PresetsQueryDto } from '@api/collections/presets/dto/presets-query.dto';
+import { PresetsQueryDto } from '@api/collections/presets/dto/presets-query.dto';
 import { UpdatePresetDto } from '@api/collections/presets/dto/update-preset.dto';
 import { PresetsService } from '@api/collections/presets/services/presets.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { ModelCategory } from '@genfeedai/contracts';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -77,7 +79,9 @@ describe('PresetsController', () => {
 
   describe('buildFindAllQuery', () => {
     it('should build query with organization filter', () => {
-      const inputQuery = { category: 'video' };
+      const inputQuery = tenantReadQuery(PresetsQueryDto, {
+        category: ModelCategory.VIDEO,
+      });
       const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
       expect(query).toBeDefined();
@@ -85,7 +89,10 @@ describe('PresetsController', () => {
     });
 
     it('should default orderBy to { createdAt: -1 } when no sort provided', () => {
-      const query = controller.buildFindAllQuery(mockUser, {});
+      const query = controller.buildFindAllQuery(
+        mockUser,
+        tenantReadQuery(PresetsQueryDto),
+      );
 
       expect(query.orderBy).toEqual({ createdAt: -1 });
     });
@@ -105,14 +112,16 @@ describe('PresetsController', () => {
     });
 
     it('should filter by category', () => {
-      const inputQuery = { category: 'image' };
+      const inputQuery = tenantReadQuery(PresetsQueryDto, {
+        category: ModelCategory.IMAGE,
+      });
       const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
       expect(query).toBeDefined();
     });
 
     it('should filter by active status', () => {
-      const inputQuery = { isActive: true };
+      const inputQuery = tenantReadQuery(PresetsQueryDto, { isActive: true });
       const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
       expect(query).toBeDefined();
@@ -122,7 +131,7 @@ describe('PresetsController', () => {
   describe('enrichCreateDto', () => {
     it('should enrich create DTO for superadmin', () => {
       const createDto: CreatePresetDto = {
-        category: 'video',
+        category: ModelCategory.VIDEO,
         key: 'new',
         label: 'New Preset',
       };
@@ -140,7 +149,7 @@ describe('PresetsController', () => {
       } as unknown as User;
 
       const createDto: CreatePresetDto = {
-        category: 'video',
+        category: ModelCategory.VIDEO,
         key: 'new',
         label: 'New Preset',
       };
@@ -191,7 +200,7 @@ describe('PresetsController', () => {
   describe('create', () => {
     it('should create a preset', async () => {
       const createDto: CreatePresetDto = {
-        category: 'video',
+        category: ModelCategory.VIDEO,
         key: 'new',
         label: 'New Preset',
       };

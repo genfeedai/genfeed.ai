@@ -10,12 +10,12 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { TestIdFactory } from '@test/factories/base.factory';
+import { TestIdFactory } from '@api-test/factories/base.factory';
 import {
   mockCacheService,
   mockConfigService,
   mockLoggerService,
-} from '@test/mocks/service.mocks';
+} from '@api-test/mocks/service.mocks';
 
 // Mock AWS Service interface (service doesn't exist in codebase)
 interface AWSService {

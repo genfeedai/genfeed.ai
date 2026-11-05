@@ -14,6 +14,8 @@ import type { RequestWithContext } from '@api/common/middleware/request-context.
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
+import { createPaginatedFixture } from '@api-test/fixtures/ingredient-document.fixture';
+import { createModelDocumentFixture } from '@api-test/fixtures/model-document.fixture';
 import {
   ModelCategory,
   ModelLifecycle,
@@ -192,10 +194,6 @@ describe('ModelsController', () => {
     controller = module.get<ModelsController>(ModelsController);
     modelsService = module.get(ModelsService);
     _loggerService = module.get(LoggerService);
-
-    vi.spyOn(ModelSerializer, 'serialize').mockImplementation((data) => ({
-      data,
-    }));
   });
 
   afterEach(() => {
@@ -264,7 +262,7 @@ describe('ModelsController', () => {
 
   describe('buildFindAllQuery', () => {
     it('should build query with default sort', () => {
-      const query: ModelsQueryDto = {};
+      const query = tenantReadQuery(ModelsQueryDto);
 
       const result = controller.buildFindAllQuery(mockRegularUser, query);
 
@@ -318,10 +316,10 @@ describe('ModelsController', () => {
     });
 
     it('should build query with custom sort', () => {
-      const query: ModelsQueryDto = {
+      const query = tenantReadQuery(ModelsQueryDto, {
         isDeleted: true,
         sort: '-label,key',
-      };
+      });
 
       const result = controller.buildFindAllQuery(mockRegularUser, query);
 
@@ -334,9 +332,9 @@ describe('ModelsController', () => {
     });
 
     it('should build query with provider registry status filters', () => {
-      const query: ModelsQueryDto = {
+      const query = tenantReadQuery(ModelsQueryDto, {
         registryStatus: 'pending',
-      };
+      });
 
       const result = controller.buildFindAllQuery(mockRegularUser, query);
 
@@ -413,29 +411,23 @@ describe('ModelsController', () => {
 
   describe('findAll', () => {
     it('should return paginated models', async () => {
-      const mockModels = {
-        docs: [
-          { id: '1', key: 'model-1', label: 'Model 1', type: 'text' },
-          { id: '2', key: 'model-2', label: 'Model 2', type: 'image' },
-        ],
-        hasNextPage: false,
-        hasPrevPage: false,
-        limit: 10,
-        nextPage: null,
-        page: 1,
-        pagingCounter: 1,
-        prevPage: null,
-        totalDocs: 2,
-        totalPages: 1,
-      };
+      const mockModels = createPaginatedFixture([
+        createModelDocumentFixture({
+          category: ModelCategory.TEXT,
+          id: '1',
+          key: 'model-1',
+          label: 'Model 1',
+        }),
+        createModelDocumentFixture({ id: '2', key: 'model-2', label: 'Model 2' }),
+      ]);
 
       modelsService.findAll.mockResolvedValue(mockModels);
 
-      const query: ModelsQueryDto = {
+      const query = tenantReadQuery(ModelsQueryDto, {
         isDeleted: false,
         limit: 10,
         page: 1,
-      };
+      });
 
       const result = await controller.findAll(
         mockRequest,
@@ -504,7 +496,7 @@ describe('ModelsController', () => {
 
       modelsService.findAll.mockResolvedValue(mockModels);
 
-      const query: ModelsQueryDto = {};
+      const query = tenantReadQuery(ModelsQueryDto);
 
       await controller.findAll(mockRequest, mockRegularUser, query);
 
@@ -533,7 +525,7 @@ describe('ModelsController', () => {
 
       modelsService.findAll.mockResolvedValue(mockModels);
 
-      const query: ModelsQueryDto = {};
+      const query = tenantReadQuery(ModelsQueryDto);
 
       await controller.findAll(mockRequestNoContext, mockRegularUser, query);
 
@@ -730,10 +722,10 @@ describe('ModelsController', () => {
         provider: ModelProvider.OPENROUTER,
       };
 
-      const mockCreatedModel = {
+      const mockCreatedModel = createModelDocumentFixture({
         id: testId('model'),
         ...createDto,
-      };
+      });
 
       modelsService.create.mockResolvedValue(mockCreatedModel);
 
@@ -755,14 +747,14 @@ describe('ModelsController', () => {
         label: 'Updated Model',
       };
 
-      const mockUpdatedModel = {
+      const mockUpdatedModel = createModelDocumentFixture({
         id,
         isDefault: false,
         key: 'model-1',
         label: 'Updated Model',
         category: ModelCategory.TEXT,
         provider: ModelProvider.OPENROUTER,
-      };
+      });
 
       modelsService.findOne.mockResolvedValue(mockUpdatedModel);
       modelsService.patch.mockResolvedValue(mockUpdatedModel);
@@ -828,12 +820,12 @@ describe('ModelsController', () => {
 
     it('should approve a discovered model for superadmins', async () => {
       const id = testId('model');
-      const approvedModel = {
+      const approvedModel = createModelDocumentFixture({
         id,
         isActive: true,
         key: 'google/imagen-4',
         reviewStatus: 'approved',
-      };
+      });
       modelsService.approveRegistryModel.mockResolvedValue(approvedModel);
 
       const result = await controller.patch(
@@ -853,12 +845,12 @@ describe('ModelsController', () => {
 
     it('should reject a discovered model without deleting it', async () => {
       const id = testId('model');
-      const rejectedModel = {
+      const rejectedModel = createModelDocumentFixture({
         id,
         isActive: false,
         key: 'irrelevant/model',
         reviewStatus: 'rejected',
-      };
+      });
       modelsService.rejectRegistryModel.mockResolvedValue(rejectedModel);
       modelsService.findOne.mockResolvedValue({
         id,
@@ -916,14 +908,14 @@ describe('ModelsController', () => {
   describe('remove', () => {
     it('should allow superadmin to remove a model', async () => {
       const id = testId('model');
-      const mockModel = {
+      const mockModel = createModelDocumentFixture({
         id,
         isDefault: false,
         key: 'model-1',
         label: 'Model 1',
         category: ModelCategory.TEXT,
         provider: ModelProvider.OPENROUTER,
-      };
+      });
 
       modelsService.findOne.mockResolvedValue(mockModel);
       modelsService.remove.mockResolvedValue(mockModel);

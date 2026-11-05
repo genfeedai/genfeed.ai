@@ -1,5 +1,6 @@
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
+import type { SchedulerTx } from '@api/collections/post-groups/services/post-group.types';
 import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
@@ -55,7 +56,8 @@ describe('PostGroupReadinessService', () => {
   const now = new Date('2026-07-08T22:25:13.000Z');
   let env: Record<string, string>;
   let service: PostGroupReadinessService;
-  let tx: { credential: { findMany: ReturnType<typeof vi.fn> } };
+  let findCredentials: ReturnType<typeof vi.fn>;
+  let tx: Pick<SchedulerTx, 'credential'>;
 
   function build(): PostGroupReadinessService {
     return new PostGroupReadinessService(
@@ -75,7 +77,11 @@ describe('PostGroupReadinessService', () => {
     vi.stubEnv('GENFEED_CLOUD', '');
     env = { ...HEALTHY_ENV };
     service = build();
-    tx = { credential: { findMany: vi.fn().mockResolvedValue([makeRow()]) } };
+    findCredentials = vi.fn().mockResolvedValue([makeRow()]);
+    tx = { credential: { findMany: findCredentials } } as unknown as Pick<
+      SchedulerTx,
+      'credential'
+    >;
   });
 
   afterEach(() => {
@@ -92,7 +98,7 @@ describe('PostGroupReadinessService', () => {
 
     // The write path must read through `tx`, never a fresh connection, so the
     // verdict and the rows it gates come from one snapshot.
-    expect(tx.credential.findMany).toHaveBeenCalledWith(
+    expect(findCredentials).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           id: { in: ['cred-x'] },
@@ -112,7 +118,7 @@ describe('PostGroupReadinessService', () => {
     await expect(
       service.resolveForCredentials(tx, 'org-1', []),
     ).resolves.toEqual(new Map());
-    expect(tx.credential.findMany).not.toHaveBeenCalled();
+    expect(findCredentials).not.toHaveBeenCalled();
   });
 
   it('leaves an info-severity setup FYI out of the target required action', async () => {
@@ -180,7 +186,7 @@ describe('PostGroupReadinessService', () => {
     });
 
     it('lets a degraded channel schedule rather than failing the mutation', async () => {
-      tx.credential.findMany.mockResolvedValue([
+      findCredentials.mockResolvedValue([
         makeRow({
           accessTokenExpiry: new Date('2026-07-01T00:00:00.000Z'),
           refreshToken: 'refresh-token-value',
@@ -198,7 +204,7 @@ describe('PostGroupReadinessService', () => {
     });
 
     it('throws an actionable error for a blocked channel', async () => {
-      tx.credential.findMany.mockResolvedValue([
+      findCredentials.mockResolvedValue([
         makeRow({ accessToken: null }),
       ]);
       const readiness = await service.resolveForCredentials(tx, 'org-1', [
@@ -236,7 +242,7 @@ describe('PostGroupReadinessService', () => {
      * blocked channel read as `'Bad Request Exception'` with no reason attached.
      */
     it('carries a readable reason on the exception itself, not just in the payload', async () => {
-      tx.credential.findMany.mockResolvedValue([
+      findCredentials.mockResolvedValue([
         makeRow({ accessToken: null }),
       ]);
       const readiness = await service.resolveForCredentials(tx, 'org-1', [

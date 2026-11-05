@@ -32,6 +32,8 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import { echoSerialize } from '@api-test/helpers/json-api-resource';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import type { IBrandOsDraftHandoff } from '@genfeedai/contracts/interfaces';
 import {
   BrandKitApplySerializer,
@@ -258,9 +260,7 @@ describe('BrandsController', () => {
     credentialsService = module.get(CredentialsService);
     _loggerService = module.get(LoggerService);
 
-    vi.spyOn(BrandSerializer, 'serialize').mockImplementation((data) => ({
-      data,
-    }));
+    vi.spyOn(BrandSerializer, 'serialize').mockImplementation(echoSerialize);
   });
 
   afterEach(() => {
@@ -568,14 +568,14 @@ describe('BrandsController', () => {
       };
 
       brandsService.findAll.mockResolvedValue(
-        mockResult as unknown as AggregatePaginateResult<unknown>,
+        mockResult as unknown as AggregatePaginateResult<BrandDocument>,
       );
 
-      const query: BaseQueryDto = {
+      const query = tenantReadQuery(BaseQueryDto, {
         isDeleted: false,
         limit: 10,
         page: 1,
-      };
+      });
 
       const result = await controller.findAll(mockRequest, mockUser, query);
 

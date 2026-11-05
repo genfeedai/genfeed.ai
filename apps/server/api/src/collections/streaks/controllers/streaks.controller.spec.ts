@@ -1,5 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { StreaksService } from '@api/collections/streaks/services/streaks.service';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import { tenantReadRequest } from '@api-test/helpers/tenant-read.fixture';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { StreaksController } from './streaks.controller';
@@ -13,13 +15,11 @@ const mockUser = {
   organizationId: ORG_ID,
   userId: USER_ID,
 } as User;
-const mockRequest = {} as const;
-const mockRequestWithContext = {
-  context: {
-    organizationId: ORG_ID,
-    userId: USER_ID,
-  },
-} as const;
+const mockRequest = {} as RequestWithContext;
+const mockRequestWithContext = tenantReadRequest({
+  ...mockUser,
+  isSuperAdmin: false,
+});
 const LEGACY_ORG_ID = 'legacy-org-000';
 
 describe('StreaksController', () => {

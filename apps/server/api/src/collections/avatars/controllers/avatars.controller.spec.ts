@@ -130,7 +130,7 @@ describe('AvatarsController', () => {
       vi.mocked(mockHedraService.getVoices).mockResolvedValue([] as never);
 
       const result = await controller.getHedraVoices(makeUser());
-      expect(result.data.attributes.provider).toBe('hedra');
+      expect(result.data?.attributes?.provider).toBe('hedra');
     });
 
     it('should throw on failure', async () => {
@@ -152,7 +152,7 @@ describe('AvatarsController', () => {
       vi.mocked(mockElevenlabsService.getVoices).mockResolvedValue([] as never);
 
       const result = await controller.getElevenlabsVoices(makeUser());
-      expect(result.data.attributes.provider).toBe('elevenlabs');
+      expect(result.data?.attributes?.provider).toBe('elevenlabs');
     });
 
     it('should throw on failure', async () => {
@@ -172,7 +172,7 @@ describe('AvatarsController', () => {
       vi.mocked(mockHedraService.getAvatars).mockResolvedValue([] as never);
 
       const result = await controller.getHedraAvatars(makeUser());
-      expect(result.data.attributes.provider).toBe('hedra');
+      expect(result.data?.attributes?.provider).toBe('hedra');
     });
 
     it('should throw on failure', async () => {

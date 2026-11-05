@@ -27,7 +27,7 @@ vi.mock('@prisma/adapter-pg', () => ({
   PrismaPg: vi.fn().mockImplementation(() => ({})),
 }));
 
-process.env.NODE_ENV = 'test';
+Object.assign(process.env, { NODE_ENV: 'test' });
 
 vi.mock('axios', () => ({
   create: vi.fn(() => ({

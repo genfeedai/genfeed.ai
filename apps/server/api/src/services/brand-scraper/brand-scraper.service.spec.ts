@@ -985,12 +985,12 @@ describe('BrandScraperService', () => {
       fetchMock.mockResolvedValue(makeResponse(makeHtml({ body })));
 
       const result = await service.scrapeWebsite('https://acme.com');
-      expect(result.socialLinks.twitter).toContain('twitter.com');
-      expect(result.socialLinks.linkedin).toContain('linkedin.com');
-      expect(result.socialLinks.facebook).toContain('facebook.com');
-      expect(result.socialLinks.instagram).toContain('instagram.com');
-      expect(result.socialLinks.youtube).toContain('youtube.com');
-      expect(result.socialLinks.tiktok).toContain('tiktok.com');
+      expect(result.socialLinks?.twitter).toContain('twitter.com');
+      expect(result.socialLinks?.linkedin).toContain('linkedin.com');
+      expect(result.socialLinks?.facebook).toContain('facebook.com');
+      expect(result.socialLinks?.instagram).toContain('instagram.com');
+      expect(result.socialLinks?.youtube).toContain('youtube.com');
+      expect(result.socialLinks?.tiktok).toContain('tiktok.com');
     });
 
     it('extracts colors from CSS hex values in style tags', async () => {
@@ -1171,7 +1171,7 @@ describe('BrandScraperService', () => {
       fetchMock.mockResolvedValue(makeResponse(makeHtml({ body })));
 
       const result = await service.scrapeWebsite('https://acme.com');
-      expect(result.valuePropositions.length).toBeGreaterThanOrEqual(0);
+      expect(result.valuePropositions?.length).toBeGreaterThanOrEqual(0);
     });
 
     it('throws original error when both full scrape and fallback fail', async () => {

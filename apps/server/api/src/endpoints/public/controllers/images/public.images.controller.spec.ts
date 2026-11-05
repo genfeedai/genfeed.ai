@@ -3,10 +3,12 @@ import { PublicImagesController } from '@api/endpoints/public/controllers/images
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { echoSerialize } from '@api-test/helpers/json-api-resource';
 import {
   createIngredientDocumentFixture,
   createPaginatedFixture,
 } from '@api-test/fixtures/ingredient-document.fixture';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import {
   AssetScope,
   IngredientCategory,
@@ -103,9 +105,7 @@ describe('PublicImagesController', () => {
     imagesService = module.get(ImagesService);
     loggerService = module.get(LoggerService);
 
-    vi.spyOn(IngredientSerializer, 'serialize').mockImplementation((data) => ({
-      data,
-    }));
+    vi.spyOn(IngredientSerializer, 'serialize').mockImplementation(echoSerialize);
   });
 
   afterEach(() => {
@@ -140,10 +140,10 @@ describe('PublicImagesController', () => {
 
       imagesService.findAll.mockResolvedValue(mockImages);
 
-      const query: BaseQueryDto = {
+      const query = tenantReadQuery(BaseQueryDto, {
         limit: 10,
         page: 1,
-      };
+      });
 
       const result = await controller.findPublicImages(mockRequest, query);
 
@@ -175,10 +175,10 @@ describe('PublicImagesController', () => {
 
       imagesService.findAll.mockResolvedValue(mockImages);
 
-      const query: BaseQueryDto = {
+      const query = tenantReadQuery(BaseQueryDto, {
         limit: 10,
         page: 1,
-      };
+      });
 
       await controller.findPublicImages(mockRequest, query, undefined, brandId);
 
@@ -198,10 +198,10 @@ describe('PublicImagesController', () => {
 
       imagesService.findAll.mockResolvedValue(mockImages);
 
-      const query: BaseQueryDto = {
+      const query = tenantReadQuery(BaseQueryDto, {
         limit: 10,
         page: 1,
-      };
+      });
 
       await controller.findPublicImages(mockRequest, query, tag);
 
@@ -222,10 +222,10 @@ describe('PublicImagesController', () => {
 
       imagesService.findAll.mockResolvedValue(mockImages);
 
-      const query: BaseQueryDto = {
+      const query = tenantReadQuery(BaseQueryDto, {
         limit: 10,
         page: 1,
-      };
+      });
 
       const result = await controller.findPublicImages(mockRequest, query);
 

@@ -29,8 +29,10 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import { MemberRole } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -242,7 +244,7 @@ describe('OrganizationsMembersController', () => {
       const result = await controller.findAllMembers(
         request,
         organizationId,
-        {},
+        tenantReadQuery(BaseQueryDto),
         mockUser,
       );
 
@@ -255,7 +257,7 @@ describe('OrganizationsMembersController', () => {
         controller.findAllMembers(
           {} as Request,
           'another-organization',
-          {},
+          tenantReadQuery(BaseQueryDto),
           mockUser,
         ),
       ).rejects.toThrow('Organization not found');

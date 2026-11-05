@@ -10,8 +10,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { createMockExecutionContext } from '@test/mocks/controller.mocks';
-import { mockRequest as buildMockRequest } from '@test/mocks/service.mocks';
+import { createMockExecutionContext } from '@api-test/mocks/controller.mocks';
+import { mockRequest as buildMockRequest } from '@api-test/mocks/service.mocks';
 
 describe('ApiKeyAuthGuard', () => {
   let guard: ApiKeyAuthGuard;

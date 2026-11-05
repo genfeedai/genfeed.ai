@@ -158,7 +158,7 @@ describe('TwitterController', () => {
       );
 
       expect(result.data).toHaveProperty('url');
-      expect(result.data.url).toContain('twitter.com');
+      expect(result.data?.url).toContain('twitter.com');
       expect(mockCredentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
         brand,
         'test-object-id',

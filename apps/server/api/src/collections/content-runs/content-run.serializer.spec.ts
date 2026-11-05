@@ -1,5 +1,6 @@
 import { ContentRunSource, ContentRunStatus } from '@genfeedai/contracts';
 import { ContentRunSerializer } from '@genfeedai/serializers';
+import { singleResourceAttributes } from '@api-test/helpers/json-api-resource';
 
 describe('ContentRunSerializer', () => {
   it('serializes lifecycle attributes for the expanded content run contract', () => {
@@ -57,25 +58,27 @@ describe('ContentRunSerializer', () => {
       ],
     });
 
-    expect(result.data.attributes).toHaveProperty('brief');
-    expect(result.data.attributes).toHaveProperty('variants');
-    expect(result.data.attributes).toHaveProperty('publish');
-    expect(result.data.attributes).toHaveProperty('analyticsSummary');
-    expect(result.data.attributes).toHaveProperty('recommendations');
-    expect(result.data.attributes).toMatchObject({
+    const attributes = singleResourceAttributes(result);
+
+    expect(attributes).toHaveProperty('brief');
+    expect(attributes).toHaveProperty('variants');
+    expect(attributes).toHaveProperty('publish');
+    expect(attributes).toHaveProperty('analyticsSummary');
+    expect(attributes).toHaveProperty('recommendations');
+    expect(attributes).toMatchObject({
       brandId: 'brand-1',
       organizationId: 'org-1',
     });
-    expect(result.data.attributes.brief).toMatchObject({
+    expect(attributes.brief).toMatchObject({
       audience: 'founders',
       hypothesis: 'Specific operator pain beats generic AI framing',
     });
-    expect(result.data.attributes.publish).toMatchObject({
+    expect(attributes.publish).toMatchObject({
       experimentId: 'exp-1',
       platform: 'twitter',
       variantId: 'variant-a',
     });
-    expect(result.data.attributes.analyticsSummary).toMatchObject({
+    expect(attributes.analyticsSummary).toMatchObject({
       summary: 'Founder-led angle won',
       winningVariantId: 'variant-a',
     });

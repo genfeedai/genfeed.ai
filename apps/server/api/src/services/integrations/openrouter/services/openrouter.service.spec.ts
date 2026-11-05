@@ -4,22 +4,14 @@ import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import { axiosResponse } from '@api-test/helpers/axios-response';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { AxiosResponse } from 'axios';
 import { of, throwError } from 'rxjs';
 import type { Mocked } from 'vitest';
 import { OpenRouterService } from './openrouter.service';
-
-const makeAxiosResponse = <T>(data: T): AxiosResponse<T> => ({
-  config: {} as AxiosResponse<T>['config'],
-  data,
-  headers: {},
-  status: 200,
-  statusText: 'OK',
-});
 
 describe('OpenRouterService', () => {
   let service: OpenRouterService;
@@ -61,7 +53,7 @@ describe('OpenRouterService', () => {
       get: vi
         .fn()
         .mockReturnValue(
-          of(makeAxiosResponse({ data: { model: mockResponse.model } })),
+          of(axiosResponse({ data: { model: mockResponse.model } })),
         ),
       post: vi.fn(),
     } as unknown as Mocked<HttpService>;
@@ -88,7 +80,7 @@ describe('OpenRouterService', () => {
 
   describe('chatCompletion', () => {
     it('returns response data from the API', async () => {
-      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse)));
 
       const result = await service.chatCompletion(defaultParams);
 
@@ -96,10 +88,10 @@ describe('OpenRouterService', () => {
     });
 
     it('falls back to generation metadata for exact cost and actual model', async () => {
-      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse)));
       httpService.get.mockReturnValue(
         of(
-          makeAxiosResponse({
+          axiosResponse({
             data: {
               is_byok: false,
               model: 'openai/gpt-5.6-terra',
@@ -125,7 +117,7 @@ describe('OpenRouterService', () => {
     });
 
     it('uses OPENROUTER_API_KEY from config by default', async () => {
-      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse)));
 
       await service.chatCompletion(defaultParams);
 
@@ -133,7 +125,7 @@ describe('OpenRouterService', () => {
     });
 
     it('uses apiKeyOverride instead of config key when provided', async () => {
-      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse)));
 
       await service.chatCompletion(defaultParams, 'override-key');
 
@@ -141,7 +133,7 @@ describe('OpenRouterService', () => {
     });
 
     it('posts with stream: false forced on', async () => {
-      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse)));
 
       await service.chatCompletion(defaultParams);
 
@@ -169,7 +161,7 @@ describe('OpenRouterService', () => {
       it('retries once at minimal effort instead of failing', async () => {
         httpService.post
           .mockReturnValueOnce(throwError(() => reasoningMandatoryError))
-          .mockReturnValueOnce(of(makeAxiosResponse(mockResponse)));
+          .mockReturnValueOnce(of(axiosResponse(mockResponse)));
 
         const result = await service.chatCompletion({
           ...defaultParams,
@@ -216,7 +208,7 @@ describe('OpenRouterService', () => {
     });
 
     it('posts OpenRouter zdr and deny data_collection on first-party requests', async () => {
-      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse)));
 
       await service.chatCompletion(defaultParams);
 
@@ -228,7 +220,7 @@ describe('OpenRouterService', () => {
     });
 
     it('keeps zdr and deny data_collection when a BYOK key is supplied', async () => {
-      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse)));
 
       await service.chatCompletion(defaultParams, 'override-key');
 
@@ -240,7 +232,7 @@ describe('OpenRouterService', () => {
     });
 
     it('overwrites weaker caller provider prefs with the first-party policy', async () => {
-      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse)));
       const params: OpenRouterChatCompletionParams = {
         ...defaultParams,
         provider: { data_collection: 'allow', zdr: false },
@@ -256,7 +248,7 @@ describe('OpenRouterService', () => {
     });
 
     it('includes correct Authorization header', async () => {
-      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse)));
 
       await service.chatCompletion(defaultParams);
 
@@ -348,7 +340,7 @@ describe('OpenRouterService', () => {
     });
 
     it('spreads original params into request body', async () => {
-      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse)));
       const params: OpenRouterChatCompletionParams = {
         ...defaultParams,
         max_tokens: 200,
@@ -363,7 +355,7 @@ describe('OpenRouterService', () => {
     });
 
     it('passes plugins through unchanged', async () => {
-      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+      httpService.post.mockReturnValue(of(axiosResponse(mockResponse)));
       const params: OpenRouterChatCompletionParams = {
         ...defaultParams,
         plugins: [{ id: 'web' }],
@@ -385,7 +377,7 @@ describe('OpenRouterService', () => {
 
     it('posts to the OpenRouter embeddings endpoint and returns the raw response', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse(embeddingResponse)),
+        of(axiosResponse(embeddingResponse)),
       );
 
       const result = await service.embeddings({
@@ -411,7 +403,7 @@ describe('OpenRouterService', () => {
 
     it('sends the first-party ZDR/no-retention policy on every request', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse(embeddingResponse)),
+        of(axiosResponse(embeddingResponse)),
       );
 
       await service.embeddings({
@@ -425,7 +417,7 @@ describe('OpenRouterService', () => {
 
     it('uses apiKeyOverride instead of config key when provided', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse(embeddingResponse)),
+        of(axiosResponse(embeddingResponse)),
       );
 
       await service.embeddings(
@@ -457,7 +449,7 @@ describe('OpenRouterService', () => {
         'data: {"id":"gen-1","choices":[{"delta":{"content":" world"}}]}\n\n',
         'data: [DONE]\n\n',
       ]);
-      httpService.post.mockReturnValue(of(makeAxiosResponse(fakeStream)));
+      httpService.post.mockReturnValue(of(axiosResponse(fakeStream)));
 
       const result = await service.streamChatCompletion(defaultParams);
       const reader = result.getReader();
@@ -475,7 +467,7 @@ describe('OpenRouterService', () => {
     });
 
     it('posts with stream: true forced on', async () => {
-      httpService.post.mockReturnValue(of(makeAxiosResponse({})));
+      httpService.post.mockReturnValue(of(axiosResponse({})));
 
       await service.streamChatCompletion(defaultParams);
 
@@ -484,7 +476,7 @@ describe('OpenRouterService', () => {
     });
 
     it('posts OpenRouter zdr and deny data_collection on stream requests', async () => {
-      httpService.post.mockReturnValue(of(makeAxiosResponse({})));
+      httpService.post.mockReturnValue(of(axiosResponse({})));
 
       await service.streamChatCompletion(defaultParams);
 
@@ -496,7 +488,7 @@ describe('OpenRouterService', () => {
     });
 
     it('keeps zdr and deny data_collection on BYOK stream requests', async () => {
-      httpService.post.mockReturnValue(of(makeAxiosResponse({})));
+      httpService.post.mockReturnValue(of(axiosResponse({})));
 
       await service.streamChatCompletion(defaultParams, 'stream-key');
 
@@ -508,7 +500,7 @@ describe('OpenRouterService', () => {
     });
 
     it('uses responseType: stream in request config', async () => {
-      httpService.post.mockReturnValue(of(makeAxiosResponse({})));
+      httpService.post.mockReturnValue(of(axiosResponse({})));
 
       await service.streamChatCompletion(defaultParams);
 
@@ -520,7 +512,7 @@ describe('OpenRouterService', () => {
     });
 
     it('uses apiKeyOverride when provided for streaming', async () => {
-      httpService.post.mockReturnValue(of(makeAxiosResponse({})));
+      httpService.post.mockReturnValue(of(axiosResponse({})));
 
       await service.streamChatCompletion(defaultParams, 'stream-key');
 
@@ -560,7 +552,7 @@ describe('OpenRouterService', () => {
         'data: {"choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":3,"completion_tokens":2,"total_tokens":5}}\n\n',
         'data: [DONE]\n\n',
       ]);
-      httpService.post.mockReturnValue(of(makeAxiosResponse(fakeStream)));
+      httpService.post.mockReturnValue(of(axiosResponse(fakeStream)));
 
       const tokens: string[] = [];
       const result = await service.streamChatCompletionAggregated(
@@ -580,7 +572,7 @@ describe('OpenRouterService', () => {
 
     it('requests usage inclusion and forces stream: true', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse(Readable.from(['data: [DONE]\n\n']))),
+        of(axiosResponse(Readable.from(['data: [DONE]\n\n']))),
       );
 
       await service.streamChatCompletionAggregated(defaultParams);
@@ -592,7 +584,7 @@ describe('OpenRouterService', () => {
 
     it('posts OpenRouter zdr and deny data_collection on aggregated stream requests', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse(Readable.from(['data: [DONE]\n\n']))),
+        of(axiosResponse(Readable.from(['data: [DONE]\n\n']))),
       );
 
       await service.streamChatCompletionAggregated(defaultParams);
@@ -606,7 +598,7 @@ describe('OpenRouterService', () => {
 
     it('keeps zdr and deny data_collection on BYOK aggregated stream requests', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse(Readable.from(['data: [DONE]\n\n']))),
+        of(axiosResponse(Readable.from(['data: [DONE]\n\n']))),
       );
 
       await service.streamChatCompletionAggregated(
@@ -628,7 +620,7 @@ describe('OpenRouterService', () => {
         'data: {"id":"gen-1","choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"ather\\"}"}}]},"finish_reason":"tool_calls"}]}\n\n',
         'data: [DONE]\n\n',
       ]);
-      httpService.post.mockReturnValue(of(makeAxiosResponse(fakeStream)));
+      httpService.post.mockReturnValue(of(axiosResponse(fakeStream)));
 
       const result =
         await service.streamChatCompletionAggregated(defaultParams);
@@ -662,7 +654,7 @@ describe('OpenRouterService', () => {
         'data: {"id":"gen-partial","choices":[{"delta":{"content":"Partial"},"finish_reason":null}]}\n\n',
         'data: {"error":{"code":429,"message":"Provider rate limited"}}\n\n',
       ]);
-      httpService.post.mockReturnValue(of(makeAxiosResponse(partialStream)));
+      httpService.post.mockReturnValue(of(axiosResponse(partialStream)));
       const tokens: string[] = [];
 
       await expect(

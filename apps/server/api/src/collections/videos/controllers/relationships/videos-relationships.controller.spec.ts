@@ -17,6 +17,7 @@ import { VideosRelationshipsController } from '@api/collections/videos/controlle
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -91,7 +92,7 @@ describe('VideosRelationshipsController', () => {
 
   describe('findChildren', () => {
     it('should return child videos', async () => {
-      const query: VideosQueryDto = {};
+      const query = tenantReadQuery(VideosQueryDto);
 
       const mockData = {
         docs: [mockVideo],
@@ -121,7 +122,7 @@ describe('VideosRelationshipsController', () => {
 
   describe('findAllPosts', () => {
     it('should return posts for video', async () => {
-      const query: VideosQueryDto = {};
+      const query = tenantReadQuery(VideosQueryDto);
 
       const mockData = {
         docs: [

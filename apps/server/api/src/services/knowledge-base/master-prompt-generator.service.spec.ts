@@ -114,12 +114,12 @@ describe('MasterPromptGeneratorService', () => {
 
     const result = await service.analyzeBrandVoice(makeBrandData());
 
-    expect(result.tone).toBe('Professional');
-    expect(result.voice).toBe('Expert and approachable');
-    expect(result.audience).toBe('Developers');
-    expect(result.values).toEqual(['innovation', 'quality']);
-    expect(result.hashtags).toEqual(['tech', 'ai']);
-    expect(result.taglines).toEqual(['Build faster']);
+    expect(result?.tone).toBe('Professional');
+    expect(result?.voice).toBe('Expert and approachable');
+    expect(result?.audience).toBe('Developers');
+    expect(result?.values).toEqual(['innovation', 'quality']);
+    expect(result?.hashtags).toEqual(['tech', 'ai']);
+    expect(result?.taglines).toEqual(['Build faster']);
   });
 
   it('should extract JSON from markdown code blocks', async () => {
@@ -133,7 +133,7 @@ describe('MasterPromptGeneratorService', () => {
     );
 
     const result = await service.analyzeBrandVoice(makeBrandData());
-    expect(result.tone).toBe('Casual');
+    expect(result?.tone).toBe('Casual');
   });
 
   it('should return defaults when AI returns null', async () => {
@@ -141,9 +141,9 @@ describe('MasterPromptGeneratorService', () => {
 
     const result = await service.analyzeBrandVoice(makeBrandData());
 
-    expect(result.tone).toBe('Professional');
-    expect(result.voice).toBe('Friendly and informative');
-    expect(result.audience).toBe('General audience');
+    expect(result?.tone).toBe('Professional');
+    expect(result?.voice).toBe('Friendly and informative');
+    expect(result?.audience).toBe('General audience');
   });
 
   it('should return defaults when AI returns invalid JSON', async () => {
@@ -153,7 +153,7 @@ describe('MasterPromptGeneratorService', () => {
 
     const result = await service.analyzeBrandVoice(makeBrandData());
 
-    expect(result.tone).toBe('Professional');
+    expect(result?.tone).toBe('Professional');
     expect(mockLogger.error).toHaveBeenCalled();
   });
 
@@ -163,7 +163,7 @@ describe('MasterPromptGeneratorService', () => {
     );
 
     const result = await service.analyzeBrandVoice(makeBrandData());
-    expect(result.tone).toBe('Professional');
+    expect(result?.tone).toBe('Professional');
   });
 
   it.each([false, true])(

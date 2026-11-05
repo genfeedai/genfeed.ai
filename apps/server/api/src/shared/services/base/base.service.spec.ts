@@ -10,7 +10,7 @@ const { getModelMetaMock } = vi.hoisted(() => {
     relationIdFields: {},
   };
   return {
-    getModelMetaMock: vi.fn<[string], ModelFieldMeta | undefined>(
+    getModelMetaMock: vi.fn<(model: string) => ModelFieldMeta | undefined>(
       () => BASE_META,
     ),
   };

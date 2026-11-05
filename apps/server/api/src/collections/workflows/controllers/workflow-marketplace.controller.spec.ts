@@ -260,7 +260,10 @@ describe('WorkflowMarketplaceController', () => {
         totalDocs: 0,
       });
 
-      await controller.getMarketplace(mockRequest, {});
+      await controller.getMarketplace(
+        mockRequest,
+        tenantReadQuery(BaseQueryDto),
+      );
 
       expect(mockWorkflowsService.findAll).toHaveBeenCalled();
       const [aggregateArg] =

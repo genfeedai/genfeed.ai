@@ -41,7 +41,7 @@ describe('MemoryMonitorService', () => {
   beforeEach(async () => {
     vi.resetModules();
     process.env = { ...originalEnv };
-    process.env.NODE_ENV = 'test'; // Prevent auto-start in tests
+    Object.assign(process.env, { NODE_ENV: 'test' }); // Prevent auto-start in tests
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
