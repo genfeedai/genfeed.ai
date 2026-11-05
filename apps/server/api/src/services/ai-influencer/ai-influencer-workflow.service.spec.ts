@@ -18,14 +18,17 @@ describe('AiInfluencerWorkflowService', () => {
 
     service.onModuleInit();
 
-    expect(runner.registerAction.mock.calls.map(([id]) => id)).toEqual(
-      expect.arrayContaining(Object.values(AI_INFLUENCER_ACTION_IDS)),
+    const registeredActionIds = runner.registerAction.mock.calls.map(
+      ([id]) => id,
     );
-    expect(runner.registerAction).toHaveBeenCalledTimes(
+    expect(registeredActionIds).toHaveLength(
       Object.values(AI_INFLUENCER_ACTION_IDS).length,
     );
-    expect(runner.registerWorkflow).toHaveBeenCalledTimes(
-      AI_INFLUENCER_WORKFLOW_DEFINITIONS.length,
+    expect(new Set(registeredActionIds)).toEqual(
+      new Set(Object.values(AI_INFLUENCER_ACTION_IDS)),
+    );
+    expect(runner.registerWorkflow.mock.calls.map(([graph]) => graph)).toEqual(
+      AI_INFLUENCER_WORKFLOW_DEFINITIONS,
     );
   });
 

@@ -31,9 +31,18 @@ describe('getExecutionProviderHeaders', () => {
       'X-Fal-Key': 'fal_test',
       'X-Replicate-Key': 'r8_test',
     });
-    expect(getProviderHeader).toHaveBeenCalledWith('replicate');
-    expect(getProviderHeader).toHaveBeenCalledWith('fal');
-    expect(getProviderHeader).toHaveBeenCalledWith('openrouter');
+  });
+
+  it.each([
+    ['replicate', { 'X-Replicate-Key': 'r8_only' }],
+    ['fal', { 'X-Fal-Key': 'fal_only' }],
+    ['openrouter', { 'X-OpenRouter-Key': 'or_only' }],
+  ])('carries the %s key when it is the only one set', (provider, header) => {
+    getProviderHeader.mockImplementation((requested: string) =>
+      requested === provider ? header : {},
+    );
+
+    expect(getExecutionProviderHeaders()).toEqual(header);
   });
 
   it('returns an empty record when no local keys are set', () => {

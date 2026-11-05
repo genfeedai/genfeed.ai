@@ -54,10 +54,16 @@ describe('FontFamilySeedService', () => {
     const { create, logger, service } = fixture();
     create.mockRejectedValue(new Error('write failed'));
 
-    await expect(service.reconcileCatalog()).rejects.toThrow(
+    const reconcile = service.reconcileCatalog();
+
+    await expect(reconcile).rejects.toThrow(
       'Font family reconcile failed for:',
     );
-    expect(create).toHaveBeenCalledTimes(entries.length);
+    // The first failure does not stop the run: the last entry is reported too.
+    await expect(reconcile).rejects.toThrow(`font_families:${entries[0]?.key}`);
+    await expect(reconcile).rejects.toThrow(
+      `font_families:${entries.at(-1)?.key}`,
+    );
     expect(logger.error).toHaveBeenCalled();
   });
 });
