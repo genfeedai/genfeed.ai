@@ -1030,8 +1030,13 @@
       "customerId": "Customer ID",
       "openOrganization": "Open organization",
       "owner": "Owner",
+      "noSources": "No credits used in the last 30 days",
+      "noUsage": "No credits used in the last 30 days",
       "periodEnd": "Period end",
-      "usage": "Credits used"
+      "sourcesTitle": "Where credits went",
+      "usage": "Credits used",
+      "usagePerDay": "Credits used per day",
+      "usageTitle": "Credits used, last 30 days"
     },
     "training": {
       "baseModel": "Base model",

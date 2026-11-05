@@ -24,6 +24,7 @@ interface MockRowSidebar {
 
 const mocks = vi.hoisted(() => ({
   getAdminBilling: vi.fn(),
+  getUsage: vi.fn(),
   queryString: 'page=2',
   tableProps: {
     current: undefined as
@@ -54,6 +55,14 @@ vi.mock('@services/billing/subscriptions.service', () => ({
   SubscriptionsService: {
     getInstance: () => ({
       getAdminBilling: mocks.getAdminBilling,
+    }),
+  },
+}));
+
+vi.mock('@services/admin/organization-credits.service', () => ({
+  AdminOrganizationCreditsService: {
+    getInstance: () => ({
+      getUsage: mocks.getUsage,
     }),
   },
 }));
@@ -184,6 +193,8 @@ function getTableProps(): {
 describe('SubscriptionsList', () => {
   beforeEach(() => {
     mocks.getAdminBilling.mockReset();
+    mocks.getUsage.mockReset();
+    mocks.getUsage.mockReturnValue(new Promise(() => {}));
     mocks.queryString = 'page=2';
   });
 
@@ -258,10 +269,50 @@ describe('SubscriptionsList', () => {
     expect(rowSidebar?.kind).toBe('record');
     expect(rowSidebar?.getTitle(billing)).toBe('Acme');
 
-    render(<div>{rowSidebar?.render(billing)}</div>);
+    render(<div>{rowSidebar?.render(billing)}</div>, {
+      wrapper: queryClientWrapper(),
+    });
     const summary = screen.getByTestId('table-row-summary');
     expect(summary).toHaveTextContent('owner@example.com');
     expect(summary).toHaveTextContent('cus_123');
+  });
+
+  it("charts the organization's last 30 days of usage and where it went in the sidebar", async () => {
+    const billing = makeBilling();
+    mockRows([billing]);
+    // Answers only for the row's own organization.
+    mocks.getUsage.mockImplementation(async (organizationId: string) =>
+      organizationId === 'org-1'
+        ? {
+            breakdown: [
+              { amount: 9, count: 3, source: 'agent-chat' },
+              { amount: 3, count: 1, source: 'image-generation' },
+            ],
+            currentBalance: 88,
+            dailySeries: [
+              { amount: 5, date: '2026-11-04' },
+              { amount: 7, date: '2026-11-05' },
+            ],
+            trendPercentage: 0,
+            usage30Days: 12,
+            usage7Days: 12,
+          }
+        : Promise.reject(new Error('another organization')),
+    );
+
+    renderList();
+
+    await screen.findByTestId('organizationName-org-1');
+    const { rowSidebar } = getTableProps();
+    render(<div>{rowSidebar?.render(billing)}</div>, {
+      wrapper: queryClientWrapper(),
+    });
+
+    expect(
+      await screen.findByRole('img', { name: 'usagePerDay' }),
+    ).toBeVisible();
+    expect(screen.getByText('agent-chat')).toBeVisible();
+    expect(screen.getByText('image-generation')).toBeVisible();
   });
 
   it('requests the page named in the URL', async () => {

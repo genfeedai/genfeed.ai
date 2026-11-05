@@ -2,9 +2,15 @@ import { CreditTransactionsService } from '@api/collections/credits/services/cre
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
-import { serializeCollection } from '@api/helpers/utils/response/response.util';
+import {
+  serializeCollection,
+  serializeSingle,
+} from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { AdminCreditLedgerEntrySerializer } from '@genfeedai/serializers';
+import {
+  AdminCreditLedgerEntrySerializer,
+  CreditUsageSerializer,
+} from '@genfeedai/serializers';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
@@ -103,6 +109,27 @@ export class AdminOrganizationCreditsController {
       return serializeCollection(request, AdminCreditLedgerEntrySerializer, {
         docs,
       });
+    });
+  }
+
+  /**
+   * One organization's credit usage for an operator: the last 30 days per day
+   * and per source, the same figures the organization sees on its own usage
+   * page.
+   */
+  @Get('usage')
+  @RateLimit({ limit: 60, scope: 'user', windowMs: 60_000 })
+  async usage(
+    @Req() request: Request,
+    @Param('organizationId') organizationId: string,
+  ) {
+    if (!identifier.safeParse(organizationId).success) {
+      throw new BadRequestException('Invalid identifier');
+    }
+
+    return runWithTenantContext({ organizationId }, async () => {
+      const metrics = await this.transactions.getUsageMetrics(organizationId);
+      return serializeSingle(request, CreditUsageSerializer, metrics);
     });
   }
 

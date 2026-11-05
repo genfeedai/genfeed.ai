@@ -21,6 +21,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Badge } from '@ui/primitives/badge';
 import { Progress } from '@ui/primitives/progress';
 import { Copy, CreditCard, ShieldAlert } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -28,6 +29,11 @@ import { useAdminSearchParam } from '@/components/content/admin-filters/useAdmin
 import SearchField from '@/components/content/search-field/SearchField';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import CreditHoldsPanel from './credit-holds-panel';
+
+const SubscriptionSidebarActivity = dynamic(
+  () => import('./subscription-sidebar-activity'),
+  { ssr: false },
+);
 
 const EMPTY_CELL = '-';
 const EMPTY_BILLING: IOrganizationBilling[] = [];
@@ -272,6 +278,9 @@ export default function SubscriptionsList() {
     getTitle: (row) => row.organizationName || rowSidebarT('notAvailable'),
     kind: 'record',
     openLabel: subscriptionT('openOrganization'),
+    renderExtra: (row) => (
+      <SubscriptionSidebarActivity organizationId={row.organizationId} />
+    ),
   });
 
   return (
