@@ -116,7 +116,6 @@ export interface ModalGalleryProps {
   title?: string;
   selectedId?: string;
   format?: string;
-  isFormatFilterEnabled?: boolean;
   isNoneAllowed?: boolean;
   maxSelectableItems?: number;
 
@@ -158,7 +157,7 @@ export interface ModalProps {
   error?: string | null;
   onClose?: () => void;
   modalBoxClassName?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   /**
    * Off when the children own their scroll region (a fixed header and footer
    * around one scrolling body). Leaving it on there nests two scrollbars.

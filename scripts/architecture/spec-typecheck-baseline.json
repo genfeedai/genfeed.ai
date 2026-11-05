@@ -6794,62 +6794,6 @@
     },
     {
       "code": 2322,
-      "count": 2,
-      "file": "apps/web/src/components/modals/gallery/ModalGalleryHeader.test.tsx",
-      "fingerprint": "44485597bc08c2356df8",
-      "message": "Type '{ accountReference: null; activeTab: \"media\"; category: IngredientCategory; filterReferenceId: string; localFormat: \"portrait\"; onClearFilter: Mock<Procedure>; onReloadItems: Mock<...>; onTabChange: Mock<...>; onUseAccountReference: Mock<...>; tabs: { ...; }[]; }' is not assignable to type 'ModalGalleryHeaderProps'.   Types of property 'localFormat' are incompatible.     Type '\"portrait\"' is not assignable to type 'IngredientFormat'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/src/components/modals/gallery/ModalGalleryHeader.test.tsx",
-      "fingerprint": "6c7383e1d4eff12d5bc8",
-      "message": "Type '{ filterReferenceId: string; accountReference: null; activeTab: \"media\"; category: IngredientCategory; localFormat: \"portrait\"; onClearFilter: Mock<Procedure>; onReloadItems: Mock<...>; onTabChange: Mock<...>; onUseAccountReference: Mock<...>; tabs: { ...; }[]; }' is not assignable to type 'ModalGalleryHeaderProps'.   Types of property 'localFormat' are incompatible.     Type '\"portrait\"' is not assignable to type 'IngredientFormat'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 3,
-      "file": "apps/web/src/components/modals/gallery/ModalGalleryHeader.test.tsx",
-      "fingerprint": "c9aff6fb92525e8f4441",
-      "message": "Type '{ activeTab: \"references\"; accountReference: null; category: IngredientCategory; filterReferenceId: string; localFormat: \"portrait\"; onClearFilter: Mock<Procedure>; onReloadItems: Mock<...>; onTabChange: Mock<...>; onUseAccountReference: Mock<...>; tabs: { ...; }[]; }' is not assignable to type 'ModalGalleryHeaderProps'.   Types of property 'localFormat' are incompatible.     Type '\"portrait\"' is not assignable to type 'IngredientFormat'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2740,
-      "count": 1,
-      "file": "apps/web/src/components/modals/gallery/ModalGalleryHeader.test.tsx",
-      "fingerprint": "afd7dc921af3e83e4c04",
-      "message": "Type '{ id: string; url: string; }' is missing the following properties from type 'IAsset': userId, parentType, category, isDeleted, and 2 more.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/src/components/modals/gallery/items/ModalGalleryItemImage.test.tsx",
-      "fingerprint": "0ac463e3d9380ecce588",
-      "message": "Type '{ isSelected: true; getFormatLabel: Mock<(format: any) => any>; getImageFormat: Mock<() => \"portrait\">; image: { height: number; id: string; width: number; }; localFormat: \"portrait\"; onSelect: Mock<...>; }' is not assignable to type 'ModalGalleryItemImageProps'.   Types of property 'image' are incompatible.     Type '{ height: number; id: string; width: number; }' is missing the following properties from type 'IImage': category, status, user, organization, and 11 more.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "apps/web/src/components/modals/gallery/items/ModalGalleryItemImage.test.tsx",
-      "fingerprint": "4bc3763eb5757176a4a2",
-      "message": "Type '{ getFormatLabel: Mock<(format: any) => any>; getImageFormat: Mock<() => \"portrait\">; image: { height: number; id: string; width: number; }; isSelected: boolean; localFormat: \"portrait\"; onSelect: Mock<...>; }' is not assignable to type 'ModalGalleryItemImageProps'.   Types of property 'image' are incompatible.     Type '{ height: number; id: string; width: number; }' is missing the following properties from type 'IImage': category, status, user, organization, and 11 more.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/src/components/modals/gallery/items/ModalGalleryItemImage.test.tsx",
-      "fingerprint": "891f8b7eecdf83f6236f",
-      "message": "Type '{ onSelect: Mock<Procedure>; getFormatLabel: Mock<(format: any) => any>; getImageFormat: Mock<() => \"portrait\">; image: { height: number; id: string; width: number; }; isSelected: boolean; localFormat: \"portrait\"; }' is not assignable to type 'ModalGalleryItemImageProps'.   Types of property 'image' are incompatible.     Type '{ height: number; id: string; width: number; }' is missing the following properties from type 'IImage': category, status, user, organization, and 11 more.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
       "count": 1,
       "file": "apps/web/src/components/modals/gallery/items/ModalGalleryItemReference.test.tsx",
       "fingerprint": "5bbfde6180d4d4434079",
@@ -6878,22 +6822,6 @@
       "file": "apps/web/src/components/modals/gallery/items/ModalGalleryItemReference.test.tsx",
       "fingerprint": "df57d2d3df8350625b01",
       "message": "Type '{ isSelected: boolean; onSelect: Mock<Procedure>; onSelectionLimit: Mock<Procedure>; reference: { id: string; url: string; }; selectedItems: never[]; selectionLimit: number; }' is not assignable to type 'ModalGalleryItemReferenceProps'.   Types of property 'reference' are incompatible.     Type '{ id: string; url: string; }' is missing the following properties from type 'IAsset': userId, parentType, category, isDeleted, and 2 more.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/src/components/modals/gallery/items/ModalGalleryItemVideo.test.tsx",
-      "fingerprint": "3f1a57e333a2ec0ba527",
-      "message": "Type '{ onSelect: Mock<Procedure>; video: { id: string; }; }' is not assignable to type 'ModalGalleryItemVideoProps'.   Types of property 'video' are incompatible.     Type '{ id: string; }' is missing the following properties from type 'IVideo': category, status, user, organization, and 11 more.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/src/components/modals/gallery/items/ModalGalleryItemVideo.test.tsx",
-      "fingerprint": "bc2d35aa95ddd30c2e28",
-      "message": "Type '{ onSelect: Mock<Procedure>; video: { id: string; }; }' is not assignable to type 'ModalGalleryItemVideoProps'.   Types of property 'video' are incompatible.     Type '{ id: string; }' is missing the following properties from type 'IVideo': category, status, user, organization, and 11 more.",
       "workspace": "web"
     },
     {

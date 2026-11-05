@@ -730,7 +730,6 @@ export default function ModalPost({
           kind === 'video'
             ? IngredientCategory.VIDEO
             : IngredientCategory.IMAGE,
-        isFormatFilterEnabled: false,
         onSelect: (items) => addMedia(items as IIngredient[]),
         title:
           kind === 'video'

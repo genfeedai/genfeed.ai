@@ -5,6 +5,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import MasonryFailureNotice from '@ui/masonry/shared/MasonryFailureNotice';
+import { MASONRY_MEDIA_HOVER_CLASS } from '@ui/masonry/shared/masonry-hover-motion';
 import Image from 'next/image';
 import type { DragEvent, RefObject } from 'react';
 
@@ -143,23 +144,29 @@ export default function MasonryVideoMediaArea({
         </div>
       ) : (
         <div {...sharedWrapperProps}>
-          <VideoPlayer
-            mediaProps={{ onError: onMediaError }}
-            src={ingredientUrl}
-            thumbnail={thumbnailImageUrl}
-            videoRef={videoRef}
-            className="pointer-events-none select-none"
-            config={{
-              autoPlay: false,
-              controls: false,
-              loop: true,
-              muted: true,
-              playsInline: true,
-              // With a real poster, a grid of videos must not each open a
-              // network request and decoder on mount; hover playback loads it.
-              preload: hasPosterThumbnail ? 'none' : 'metadata',
-            }}
-          />
+          {/* The player zooms inside the clipped frame, like an image tile. */}
+          <div
+            className={cn('size-full', MASONRY_MEDIA_HOVER_CLASS)}
+            data-motion="allow"
+          >
+            <VideoPlayer
+              mediaProps={{ onError: onMediaError }}
+              src={ingredientUrl}
+              thumbnail={thumbnailImageUrl}
+              videoRef={videoRef}
+              className="pointer-events-none select-none"
+              config={{
+                autoPlay: false,
+                controls: false,
+                loop: true,
+                muted: true,
+                playsInline: true,
+                // With a real poster, a grid of videos must not each open a
+                // network request and decoder on mount; hover playback loads it.
+                preload: hasPosterThumbnail ? 'none' : 'metadata',
+              }}
+            />
+          </div>
         </div>
       )}
 

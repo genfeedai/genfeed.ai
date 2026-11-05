@@ -9,7 +9,14 @@ import type { ModalGalleryFooterProps } from '@genfeedai/props/modals/modal-gall
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
+import { useTranslations } from 'next-intl';
 
+/**
+ * The picker's fixed footer: what is selected and how to confirm it. Images
+ * and videos confirm with Add; brand references with their own select; music
+ * keeps its "continue without music" choice. Only the paged lists (music and
+ * references) show page numbers; the Library grid loads more as it scrolls.
+ */
 export default function ModalGalleryFooter({
   category,
   currentPage,
@@ -17,7 +24,6 @@ export default function ModalGalleryFooter({
   activeTab,
   isLoading,
   selectedItems,
-  selectedItemsData,
   selectedItem,
   isNoneAllowed,
   onClear,
@@ -27,129 +33,93 @@ export default function ModalGalleryFooter({
   onConfirm,
   onPageChange,
 }: ModalGalleryFooterProps) {
+  const translate = useTranslations('ui.galleryModal');
+  const isMusic = category === IngredientCategory.MUSIC;
+  const isReferences = activeTab === 'references';
+  const isPaged = isMusic || isReferences;
+  const count = selectedItems.length;
+
+  const handleSelectReferences = () => {
+    const referencesData = selectedItems.map((id) => ({
+      id,
+      url: `${EnvironmentService.cdnUrl}/references/${id}`,
+    }));
+
+    if (onSelectAccountReference && referencesData.length > 0) {
+      onSelectAccountReference(referencesData);
+    }
+    onClose();
+  };
+
   return (
-    <div className="border-t border-border p-4 mt-4">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center">
-          {!isLoading && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={onPageChange}
-            />
-          )}
-        </div>
+    <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-border pt-4">
+      {isPaged && !isLoading ? (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+        />
+      ) : null}
 
-        <div className="flex items-center gap-2">
-          {category === IngredientCategory.IMAGE &&
-            activeTab === 'references' &&
-            selectedItems.length > 0 && (
-              <>
-                <Button
-                  variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.SM}
-                  label="Clear"
-                  onClick={onClear}
-                />
+      {isMusic ? null : (
+        <span
+          aria-live="polite"
+          className="text-sm text-muted-foreground tabular-nums"
+        >
+          {translate('selectedCount', { count })}
+        </span>
+      )}
 
-                <Button
-                  label={`Select References (${selectedItems.length})`}
-                  variant={ButtonVariant.DEFAULT}
-                  size={ButtonSize.SM}
-                  onClick={() => {
-                    const referencesData = selectedItems.map((id) => ({
-                      id,
-                      url: `${EnvironmentService.cdnUrl}/references/${id}`,
-                    }));
-
-                    if (onSelectAccountReference && referencesData.length > 0) {
-                      onSelectAccountReference(referencesData);
-                    }
-                    onClose();
-                  }}
-                />
-              </>
-            )}
-
-          {/* Image action buttons - media tab */}
-          {category === IngredientCategory.IMAGE &&
-            activeTab === 'media' &&
-            selectedItems.length > 0 && (
-              <>
-                <Button
-                  label="Clear"
-                  variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.SM}
-                  onClick={onClear}
-                />
-
-                <Button
-                  label={`Select Images (${selectedItems.length})`}
-                  variant={ButtonVariant.DEFAULT}
-                  size={ButtonSize.SM}
-                  onClick={() => {
-                    if (selectedItemsData.length > 0) {
-                      onSelect(selectedItemsData);
-                    }
-                    onClose();
-                  }}
-                />
-              </>
-            )}
-
-          {/* Image action buttons - uploads tab */}
-          {category === IngredientCategory.IMAGE &&
-            activeTab === 'uploads' &&
-            selectedItems.length > 0 && (
-              <>
-                <Button
-                  label="Clear"
-                  variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.SM}
-                  onClick={onClear}
-                />
-
-                <Button
-                  label={`Select Images (${selectedItems.length})`}
-                  variant={ButtonVariant.DEFAULT}
-                  size={ButtonSize.SM}
-                  onClick={() => {
-                    if (selectedItemsData.length > 0) {
-                      onSelect(selectedItemsData);
-                    }
-                    onClose();
-                  }}
-                />
-              </>
-            )}
-
-          {/* Music action buttons */}
-          {category === IngredientCategory.MUSIC && (
-            <div className="flex gap-2">
-              {selectedItem && (
-                <Button
-                  label="Clear"
-                  onClick={() => onSelect([])}
-                  variant={ButtonVariant.DESTRUCTIVE}
-                  size={ButtonSize.SM}
-                />
-              )}
-
+      <div className="ml-auto flex items-center gap-2">
+        {isMusic ? (
+          <>
+            {selectedItem ? (
               <Button
-                label="Cancel"
-                onClick={onClose}
+                label={translate('clear')}
+                onClick={() => onSelect([])}
                 variant={ButtonVariant.GHOST}
+                size={ButtonSize.SM}
               />
-
+            ) : null}
+            <Button
+              label={translate('cancel')}
+              onClick={onClose}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
+            />
+            <Button
+              label={selectedItem ? 'Select Music' : 'Continue Without Music'}
+              onClick={onConfirm}
+              variant={ButtonVariant.DEFAULT}
+              size={ButtonSize.SM}
+              isDisabled={!isNoneAllowed && !selectedItem}
+            />
+          </>
+        ) : (
+          <>
+            {count > 0 ? (
               <Button
-                label={selectedItem ? 'Select Music' : 'Continue Without Music'}
-                onClick={onConfirm}
-                variant={ButtonVariant.DEFAULT}
-                isDisabled={!isNoneAllowed && !selectedItem}
+                label={translate('clear')}
+                onClick={onClear}
+                variant={ButtonVariant.GHOST}
+                size={ButtonSize.SM}
               />
-            </div>
-          )}
-        </div>
+            ) : null}
+            <Button
+              label={translate('cancel')}
+              onClick={onClose}
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+            />
+            <Button
+              label={translate('add', { count })}
+              onClick={isReferences ? handleSelectReferences : onConfirm}
+              variant={ButtonVariant.DEFAULT}
+              size={ButtonSize.SM}
+              isDisabled={count === 0}
+            />
+          </>
+        )}
       </div>
     </div>
   );

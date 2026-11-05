@@ -1,16 +1,17 @@
 import type {
   IngredientCategory,
   IngredientFormat,
+  IngredientOrigin,
 } from '@genfeedai/contracts';
 import type {
   IAsset,
   IImage,
+  IIngredient,
   IMusic,
   IPaginatedResponse,
   IVideo,
 } from '@genfeedai/contracts/interfaces';
 import type { AccountMediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
-import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { Dispatch, SetStateAction } from 'react';
 
 /**
@@ -22,53 +23,52 @@ import type { Dispatch, SetStateAction } from 'react';
  */
 export type GallerySelectItem = IImage | IMusic | IVideo;
 
+/**
+ * `media` is the Library for images and videos (and the track list for music);
+ * `references` is the brand's reference assets, offered to image pickers.
+ */
+export type GalleryTab = 'media' | 'references';
+
+/** A paged list the gallery loads itself: music tracks or brand references. */
 export type GalleryLoadedPage =
   | { tab: 'media'; data: IPaginatedResponse<GallerySelectItem> }
-  | { tab: 'references'; data: IPaginatedResponse<IAsset> }
-  | { tab: 'uploads' | 'creations'; data: IPaginatedResponse<IImage> };
+  | { tab: 'references'; data: IPaginatedResponse<IAsset> };
 
 export interface ModalGalleryHeaderProps {
   category: IngredientCategory;
-  activeTab: 'media' | 'references' | 'uploads' | 'creations';
+  activeTab: GalleryTab;
   localFormat: IngredientFormat;
-  filterReferenceId: string;
-  tabs: Array<{ id: string; label: string }>;
+  tabs: Array<{ id: GalleryTab; label: string }>;
   accountReference: IAsset | null;
-  onTabChange: (tab: 'media' | 'references' | 'uploads' | 'creations') => void;
-  onClearFilter: () => void;
+  onTabChange: (tab: GalleryTab) => void;
   onUseAccountReference: () => void;
-  onReloadItems?: () => void;
+  /** Called once an upload from the picker finishes. */
+  onUploaded: () => void;
 }
 
+/** Music tracks and brand references; images and videos use the Library. */
 export interface ModalGalleryContentProps {
   category: IngredientCategory;
-  activeTab: 'media' | 'references' | 'uploads' | 'creations';
+  activeTab: GalleryTab;
   isLoading: boolean;
   isLoadingReferences?: boolean;
-  isLoadingCreations?: boolean;
   items: (IVideo | IMusic | IImage)[];
   selectedItems: string[];
   selectedItem: string;
-  localFormat: IngredientFormat;
   references?: IAsset[];
-  uploads?: IImage[];
-  creations?: IImage[];
   onSelectItem: (item: IVideo | IMusic | IImage) => void;
   onSelectReference: (selectedIds: string[]) => void;
   onSelectionLimit: () => void;
   selectionLimit: number;
-  getFormatLabel: (formatValue?: IngredientFormat) => string;
-  getImageFormat: (image: IImage) => IngredientFormat | null;
 }
 
 export interface ModalGalleryFooterProps {
   currentPage: number;
   totalPages: number;
   category: IngredientCategory;
-  activeTab: 'media' | 'references' | 'uploads' | 'creations';
+  activeTab: GalleryTab;
   isLoading: boolean;
   selectedItems: string[];
-  selectedItemsData: (IVideo | IMusic | IImage)[];
   selectedItem: string;
   isNoneAllowed: boolean;
   onClear: () => void;
@@ -79,18 +79,39 @@ export interface ModalGalleryFooterProps {
   onPageChange: (page: number) => void;
 }
 
-export interface ModalGalleryItemVideoProps {
-  video: IVideo;
-  onSelect: (video: IVideo) => void;
+/**
+ * The image and video picker: the Library's search, filters and masonry grid,
+ * with a tile click toggling the asset in the picker's selection.
+ */
+export interface ModalGalleryLibraryProps {
+  category: IngredientCategory;
+  library: UseGalleryLibraryReturn;
+  selectedIds: string[];
+  onToggleItem: (item: IIngredient) => void;
 }
 
-export interface ModalGalleryItemImageProps {
-  image: IImage;
-  isSelected: boolean;
-  localFormat: IngredientFormat;
-  onSelect: (image: IImage) => void;
-  getFormatLabel: (formatValue?: IngredientFormat) => string;
-  getImageFormat: (image: IImage) => IngredientFormat | null;
+export interface UseGalleryLibraryProps {
+  category: IngredientCategory;
+  isOpen: boolean;
+}
+
+export interface UseGalleryLibraryReturn {
+  items: IIngredient[];
+  isLoading: boolean;
+  isLoadingMore: boolean;
+  hasMore: boolean;
+  loadMore: () => Promise<void>;
+  search: string;
+  origins: IngredientOrigin[];
+  isStarredOnly: boolean;
+  sort: string;
+  onSearchChange: (value: string) => void;
+  onOriginsChange: (origins: IngredientOrigin[]) => void;
+  onStarredOnlyChange: (isStarredOnly: boolean) => void;
+  onSortChange: (sort: string) => void;
+  onClearFilters: () => void;
+  /** Reload the first page, e.g. after an upload. */
+  onRefresh: () => void;
 }
 
 export interface ModalGalleryItemMusicProps {
@@ -108,27 +129,6 @@ export interface ModalGalleryItemReferenceProps {
   selectedItems: string[];
 }
 
-export interface ModalGalleryUploadsTabProps {
-  uploads: IImage[];
-  isLoading: boolean;
-  localFormat: IngredientFormat;
-  selectedItems: string[];
-  onSelectItem: (item: IImage) => void;
-  getFormatLabel: (formatValue?: IngredientFormat) => string;
-  getImageFormat: (image: IImage) => IngredientFormat | null;
-  onUploadClick: () => void;
-}
-
-export interface ModalGalleryCreationsTabProps {
-  creations: IImage[];
-  isLoadingCreations: boolean;
-  localFormat: IngredientFormat;
-  selectedItems: string[];
-  onSelectItem: (item: IImage) => void;
-  getFormatLabel: (formatValue?: IngredientFormat) => string;
-  getImageFormat: (image: IImage) => IngredientFormat | null;
-}
-
 export interface ModalGalleryReferencesTabProps {
   references: IAsset[];
   isLoadingReferences: boolean;
@@ -138,22 +138,13 @@ export interface ModalGalleryReferencesTabProps {
   selectionLimit: number;
 }
 
-export interface ModalGalleryEmptyStateProps {
-  emptyIcon: IconComponent;
-  emptyMessage: string;
-  category: IngredientCategory;
-}
-
 export interface UseModalGalleryProps {
   category: IngredientCategory;
   isOpen: boolean;
   format: IngredientFormat;
-  /** False lists every aspect ratio instead of only `format`. */
-  isFormatFilterEnabled?: boolean;
   selectedId?: string;
   maxSelectableItems?: number;
   selectedReferences?: string[];
-  filterReferenceId?: string;
 }
 
 export interface UseModalGalleryReturn {
@@ -164,25 +155,19 @@ export interface UseModalGalleryReturn {
   selectedItem: string;
   selectedItems: string[];
   selectedItemsData: (IVideo | IMusic | IImage)[];
-  activeTab: 'media' | 'references' | 'uploads' | 'creations';
+  activeTab: GalleryTab;
   localFormat: IngredientFormat;
-  filterReferenceId: string;
-  uploads: IImage[];
   references: IAsset[];
-  creations: IImage[];
   isLoadingReferences: boolean;
-  isLoadingCreations: boolean;
 
   setSelectedItem: (id: string) => void;
   setSelectedItems: Dispatch<SetStateAction<string[]>>;
   setSelectedItemsData: Dispatch<SetStateAction<(IVideo | IMusic | IImage)[]>>;
-  setActiveTab: (tab: 'media' | 'references' | 'uploads' | 'creations') => void;
-  setLocalFormat: (format: IngredientFormat) => void;
-  setFilterReferenceId: Dispatch<SetStateAction<string>>;
+  setActiveTab: (tab: GalleryTab) => void;
   loadPage: (page?: number) => Promise<void>;
   handleItemSelect: (item: IVideo | IMusic | IImage | IAsset) => void;
   notifySelectionLimit: () => void;
 
   selectionLimit: number;
-  tabs: Array<{ id: string; label: string }>;
+  tabs: Array<{ id: GalleryTab; label: string }>;
 }

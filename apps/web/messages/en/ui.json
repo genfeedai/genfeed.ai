@@ -1045,5 +1045,30 @@
     "sound": "Create Sound",
     "style": "Create Style",
     "role": "Create Role"
+  },
+  "galleryModal": {
+    "add": "{count, plural, =0 {Add} other {Add #}}",
+    "branding": "Branding",
+    "cancel": "Cancel",
+    "clear": "Clear",
+    "clearFilters": "Clear filters",
+    "empty": "{category, select, VIDEO {No videos match} IMAGE {No images match} other {Nothing matches}}",
+    "filters": "Filters",
+    "library": "Library",
+    "origin": "Origin",
+    "searchLabel": "{category, select, VIDEO {Search videos} IMAGE {Search images} other {Search the Library}}",
+    "searchPlaceholder": "{category, select, VIDEO {Search videos} IMAGE {Search images} other {Search the Library}}",
+    "selectedCount": "{count, plural, =0 {Nothing selected} one {# selected} other {# selected}}",
+    "show": "Show",
+    "showAll": "All assets",
+    "showStarred": "Starred",
+    "sort": "Sort",
+    "title": "{category, select, VIDEO {Select video} IMAGE {Select image} MUSIC {Select music} other {Select media}}",
+    "upload": "Upload",
+    "useAccountReference": "Use account reference",
+    "musicEmpty": {
+      "title": "No music tracks available",
+      "description": "Generate some music first"
+    }
   }
 }
