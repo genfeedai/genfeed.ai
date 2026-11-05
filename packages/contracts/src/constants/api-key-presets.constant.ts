@@ -69,6 +69,42 @@ export const MCP_OAUTH_SESSION_KIND = 'mcp-oauth-session';
 /** API-key `metadata.kind` of a partner key minted by a platform admin. */
 export const PARTNER_API_KEY_KIND = 'partner';
 
+/**
+ * API-key metadata: the only brands this key may reach (#9130). Absent means
+ * every brand in the key's organization, new brands included. Written only
+ * from a validated `allowedBrandIds` field, never from caller metadata.
+ */
+export const API_KEY_ALLOWED_BRANDS_METADATA_KEY = 'allowedBrandIds';
+
+/** Most brands one key can be narrowed to. */
+export const API_KEY_ALLOWED_BRANDS_MAX = 50;
+
+/**
+ * The brand allowlist stored on a key's metadata, or `undefined` for a key
+ * that reaches every brand. A malformed value reads as an empty list, so a
+ * corrupted restriction fails closed instead of widening the key.
+ */
+export function readApiKeyAllowedBrandIds(
+  metadata: unknown,
+): string[] | undefined {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return undefined;
+  }
+  const value = (metadata as Record<string, unknown>)[
+    API_KEY_ALLOWED_BRANDS_METADATA_KEY
+  ];
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter(
+    (brandId): brandId is string =>
+      typeof brandId === 'string' && brandId.length > 0,
+  );
+}
+
 export const MCP_ACCESS_MODE_METADATA_KEY = 'mcpAccessMode';
 /** Session-key metadata: the user allowed organization switching at consent. */
 export const MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY =

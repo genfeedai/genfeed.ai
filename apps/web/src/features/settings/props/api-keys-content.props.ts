@@ -5,6 +5,8 @@ import type {
 
 export type ProductApiKeyForm = {
   allowedIps: string;
+  /** Empty for every brand; otherwise the one brand the key is limited to. */
+  brandId: string;
   description: string;
   expiresAt: string;
   label: string;

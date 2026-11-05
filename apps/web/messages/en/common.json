@@ -632,19 +632,23 @@
         "rotate": "Failed to rotate API key"
       },
       "fields": {
+        "allBrands": "All brands",
         "allowedIps": "Allowed IPs",
         "allowedIpsPlaceholder": "203.0.113.10, 203.0.113.11",
+        "brandAccess": "Brand access",
         "description": "Description",
         "descriptionPlaceholder": "Used by local MCP server",
         "expires": "Expires",
         "keyName": "Key name",
         "keyNamePlaceholder": "MCP Server",
+        "onlyBrand": "Only {brand}",
         "rateLimit": "Rate limit",
         "rateLimitPlaceholder": "60",
         "scopePreset": "Scope preset"
       },
       "list": {
         "lastUsed": "Last used: {value}",
+        "limitedTo": "Limited to: {brands}",
         "loading": "Loading keys...",
         "never": "Never",
         "noScopes": "No scopes",

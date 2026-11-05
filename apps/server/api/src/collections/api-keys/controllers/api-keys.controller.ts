@@ -27,9 +27,14 @@ import {
   API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY,
   ApiKeyCategory,
 } from '@genfeedai/contracts';
-import { CONNECT_GENFEED_VERIFICATION_METADATA_KEY } from '@genfeedai/contracts/constants';
+import {
+  API_KEY_ALLOWED_BRANDS_METADATA_KEY,
+  CONNECT_GENFEED_VERIFICATION_METADATA_KEY,
+  readApiKeyAllowedBrandIds,
+} from '@genfeedai/contracts/constants';
 import { ApiKeyFullSerializer, ApiKeySerializer } from '@genfeedai/serializers';
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -99,6 +104,7 @@ export class ApiKeysController {
     const {
       [API_KEY_ACTION_ORIGIN_METADATA_KEY]: _actionOrigin,
       [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: _actionOriginProof,
+      [API_KEY_ALLOWED_BRANDS_METADATA_KEY]: _allowedBrandIds,
       [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: _connectGenfeedVerification,
       kind: _kind,
       mcpAccessMode: _mcpAccessMode,
@@ -125,6 +131,16 @@ export class ApiKeysController {
       typeof verification === 'object' &&
       !Array.isArray(verification)
       ? { [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: verification }
+      : {};
+  }
+
+  /** A key's brand allowlist survives a metadata update (#9130). */
+  private existingAllowedBrandsMetadata(
+    apiKey: Parameters<ApiKeysService['resolveActionOrigin']>[0],
+  ): Record<string, unknown> {
+    const allowedBrandIds = readApiKeyAllowedBrandIds(apiKey.metadata);
+    return allowedBrandIds
+      ? { [API_KEY_ALLOWED_BRANDS_METADATA_KEY]: allowedBrandIds }
       : {};
   }
 
@@ -328,6 +344,16 @@ export class ApiKeysController {
         user.organizationId,
         updateApiKeyDto.defaultBrandId,
       );
+      const allowedBrandIds = readApiKeyAllowedBrandIds(existingKey.metadata);
+      if (
+        allowedBrandIds &&
+        updateApiKeyDto.defaultBrandId &&
+        !allowedBrandIds.includes(updateApiKeyDto.defaultBrandId)
+      ) {
+        throw new BadRequestException(
+          'defaultBrandId must be one of the allowedBrandIds.',
+        );
+      }
     }
 
     const updatedKey = await this.apiKeysService.patch(apiKeyId, {
@@ -339,6 +365,7 @@ export class ApiKeysController {
               ...this.existingConnectGenfeedMetadata(existingKey),
               ...this.trustedExistingOriginMetadata(existingKey),
               ...this.existingMcpOAuthMetadata(existingKey),
+              ...this.existingAllowedBrandsMetadata(existingKey),
             },
           }
         : {}),
@@ -390,9 +417,35 @@ export class ApiKeysController {
         ? existingOrigin
         : undefined;
 
+    // The replacement reaches what the old key still reaches: its live
+    // allowed brands and its default brand, when those still exist.
+    const existingAllowedBrandIds = readApiKeyAllowedBrandIds(
+      existingKey.metadata,
+    );
+    const allowedBrandIds = existingAllowedBrandIds
+      ? await this.apiKeysService.resolveLiveAllowedBrandIds(
+          user.organizationId,
+          existingAllowedBrandIds,
+        )
+      : undefined;
+    if (allowedBrandIds?.length === 0) {
+      throw new BadRequestException(
+        'Every brand this API key was limited to has been deleted. Create a new key instead.',
+      );
+    }
+    const defaultBrandId = await this.apiKeysService.resolveValidDefaultBrandId(
+      user.organizationId,
+      existingKey.defaultBrandId,
+    );
     const replacementInput = {
+      allowedBrandIds,
       allowedIps: existingKey.allowedIps,
       category: this.toApiKeyCategory(existingKey.category),
+      defaultBrandId:
+        defaultBrandId &&
+        (!allowedBrandIds || allowedBrandIds.includes(defaultBrandId))
+          ? defaultBrandId
+          : undefined,
       description: existingKey.description ?? undefined,
       expiresAt: existingKey.expiresAt?.toISOString(),
       label: existingKey.label,

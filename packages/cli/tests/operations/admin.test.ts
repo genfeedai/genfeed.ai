@@ -466,6 +466,7 @@ describe('operations/admin', () => {
     it('mints a partner key in the given organization and returns the plain key', async () => {
       adminPost.mockResolvedValue({
         data: {
+          allowedBrandIds: null,
           apiKeyId: 'key-1',
           defaultBrandId: null,
           expiresAt: null,

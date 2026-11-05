@@ -3,6 +3,8 @@ import {
   type ResolveGenerationBrandServiceLike,
   resolveGenerationBrand,
 } from '@api/collections/brands/utils/resolve-generation-brand.util';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { readApiKeyAllowedBrandIds } from '@genfeedai/contracts/constants';
 import { BadRequestException } from '@nestjs/common';
 
 /**
@@ -26,12 +28,16 @@ import { BadRequestException } from '@nestjs/common';
  *
  * There is no "any brand in this org" tail at any step. A caller for whom
  * none of these resolve gets a clear 400 — never an implicit pick.
+ *
+ * A key limited to some brands (#9130) gets a 404 for an explicit brand
+ * outside its list, falls back to its first allowed brand when its default is
+ * missing, and never resolves to a brand outside the list.
  */
 
 export interface ResolveGenerationBrandApiKeysServiceLike {
   findOne(
     query: Record<string, unknown>,
-  ): Promise<{ defaultBrandId?: unknown } | null>;
+  ): Promise<{ defaultBrandId?: unknown; metadata?: unknown } | null>;
 }
 
 export interface ResolveGenerationBrandForCallerServices {
@@ -64,8 +70,25 @@ export async function resolveGenerationBrandIdForCaller(
 ): Promise<string> {
   const { services, user, explicitBrandId } = params;
 
+  const apiKey = user.isApiKey
+    ? await findCallerApiKey(services.apiKeysService, user.apiKeyId)
+    : null;
+  const allowedBrandIds = readApiKeyAllowedBrandIds(apiKey?.metadata);
+  if (
+    allowedBrandIds &&
+    explicitBrandId &&
+    !allowedBrandIds.includes(explicitBrandId)
+  ) {
+    throw new NotFoundException('Brand');
+  }
+
+  const keyDefaultBrandId =
+    typeof apiKey?.defaultBrandId === 'string' ? apiKey.defaultBrandId : null;
   const contextBrandId = user.isApiKey
-    ? await resolveApiKeyDefaultBrandId(services.apiKeysService, user.apiKeyId)
+    ? allowedBrandIds &&
+      !(keyDefaultBrandId && allowedBrandIds.includes(keyDefaultBrandId))
+      ? (allowedBrandIds[0] ?? null)
+      : keyDefaultBrandId
     : user.brandId;
 
   const resolved = await resolveGenerationBrand({
@@ -77,7 +100,10 @@ export async function resolveGenerationBrandIdForCaller(
     userId: user.userId ?? user.id,
   });
 
-  if (!resolved?.id) {
+  if (
+    !resolved?.id ||
+    (allowedBrandIds && !allowedBrandIds.includes(String(resolved.id)))
+  ) {
     throw new BadRequestException(
       user.isApiKey
         ? params.noApiKeyDefaultBrandMessage
@@ -88,16 +114,11 @@ export async function resolveGenerationBrandIdForCaller(
   return String(resolved.id);
 }
 
-async function resolveApiKeyDefaultBrandId(
+function findCallerApiKey(
   apiKeysService: ResolveGenerationBrandApiKeysServiceLike,
   apiKeyId: string | null | undefined,
-): Promise<string | null> {
-  if (!apiKeyId) {
-    return null;
-  }
-
-  const apiKey = await apiKeysService.findOne({ id: apiKeyId });
-  return typeof apiKey?.defaultBrandId === 'string'
-    ? apiKey.defaultBrandId
-    : null;
+): Promise<{ defaultBrandId?: unknown; metadata?: unknown } | null> {
+  return apiKeyId
+    ? apiKeysService.findOne({ id: apiKeyId })
+    : Promise.resolve(null);
 }
