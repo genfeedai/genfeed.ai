@@ -49,8 +49,8 @@ It does not forbid query filters.
 `/admin/overview` (with `/activities`, `/analytics/all`, `/analytics/business`),
 `/admin/economics` (`/overview`, `/costs`, `/organizations`, `/revenue`),
 `/admin/administration` (`/announcements`, `/learning`,
-`/referrals`, `/roles`, `/subscriptions`, `/system-emails`),
+`/referrals`, `/roles`, `/subscriptions`, `/emails`),
 `/admin/automation` (`/agents`, `/bots`, `/failures`, `/workflows`),
-`/admin/configuration` (`/elements/*`, `/font-families`, `/presets`),
+`/admin/configuration` (`/elements/*`, `/fonts`, `/presets`),
 `/admin/content/generations`, `/admin/content/voices`, `/admin/folders`,
 `/admin/flags` and `/admin/settings/*`.

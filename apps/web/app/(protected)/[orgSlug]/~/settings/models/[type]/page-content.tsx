@@ -15,7 +15,7 @@ export default function ModelsTypePageClientContent({
   const { setRefreshModels } = useModelsContext();
   const { setRefreshTrainings } = useTrainingsContext();
 
-  if (type === 'custom-models') {
+  if (type === 'custom') {
     return <OrganizationCustomModelsCard />;
   }
 

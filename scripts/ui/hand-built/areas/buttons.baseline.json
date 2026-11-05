@@ -146,7 +146,7 @@
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewRewriteProgress.tsx": {
       "button-restyle": 1
     },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/brand-kit/guided-setup/content.tsx": {
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/brand-kit/setup/content.tsx": {
       "button-restyle": 8,
       "unstyled-look": 1
     },

@@ -216,7 +216,7 @@ vi.mock('@ui/primitives/button', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/admin/configuration/font-families',
+  usePathname: () => '/admin/configuration/fonts',
   useRouter: () => ({
     replace: mocks.replace,
   }),
