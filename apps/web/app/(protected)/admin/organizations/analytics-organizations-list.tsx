@@ -20,7 +20,7 @@ import {
   formatCompactNumberIntl,
   formatPercentageSimple,
 } from '@helpers/formatting/format/format.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import {
   AnalyticsService,
@@ -28,6 +28,7 @@ import {
   type IPaginatedOrgsResponse,
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
+import { useQueryClient } from '@tanstack/react-query';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import TableUserCell from '@ui/display/table/TableUserCell';
@@ -46,6 +47,7 @@ import type { AnalyticsOrganizationsListProps } from '@/features/admin/props/ana
 import { useDebounce } from '@/hooks/utils/use-debounce/use-debounce';
 
 const SEARCH_DEBOUNCE_MS = 300;
+const ANALYTICS_ORGANIZATIONS_KEY = ['admin', 'analytics-organizations'];
 const ALL_TYPES = 'all';
 
 const GENERATIONS_SORT = 'generations';
@@ -86,11 +88,7 @@ export default function AnalyticsOrganizationsList({
   const { dateRange, filters, refreshTrigger, setFilter } =
     useAnalyticsContext();
 
-  const getAnalyticsService = useAuthedService((token: string) =>
-    AnalyticsService.getInstance(token),
-  );
-
-  const [data, setData] = useState<IPaginatedOrgsResponse | null>(null);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<OrganizationSortMetric>(
     AnalyticsMetric.ENGAGEMENT,
@@ -102,31 +100,34 @@ export default function AnalyticsOrganizationsList({
   const [status, setStatus] = useState<string>(ALL_STATUSES);
   const [source, setSource] = useState<string>(ALL_SOURCES);
 
-  const isLoading = data === null;
   const searchTerm = filters.query ?? '';
   // The API searches, so a keystroke must not cost a request.
   const debouncedSearchTerm = useDebounce(searchTerm, SEARCH_DEBOUNCE_MS);
 
-  // `refreshTrigger` is the refresh button's nonce: pressing it refetches.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
-  useEffect(() => {
-    if (!dateRange.startDate || !dateRange.endDate) {
-      return;
-    }
-
-    const controller = new AbortController();
-    const fetchData = async () => {
+  const startDate = dateRange.startDate
+    ? format(dateRange.startDate, 'yyyy-MM-dd')
+    : null;
+  const endDate = dateRange.endDate
+    ? format(dateRange.endDate, 'yyyy-MM-dd')
+    : null;
+  // Cached per period, filters and page: coming back paints the table at once
+  // while it refreshes, and another page, sort or filter keeps the current
+  // rows until it loads. `refreshTrigger` (the Refresh button) re-reads in the
+  // background.
+  const organizationsQuery = useAuthedQuery({
+    enabled: Boolean(startDate && endDate),
+    keepPreviousDataWithin: ANALYTICS_ORGANIZATIONS_KEY,
+    queryFn: async (service, signal): Promise<IPaginatedOrgsResponse> => {
       try {
-        const service = await getAnalyticsService();
-        const response = await service.getOrganizationsWithStats(
+        return await service.getOrganizationsWithStats(
           {
-            endDate: format(dateRange.endDate as Date, 'yyyy-MM-dd'),
+            endDate: endDate ?? '',
             limit: ITEMS_PER_PAGE,
             page,
             order: sortDirection,
             ...(debouncedSearchTerm ? { search: debouncedSearchTerm } : {}),
             sort,
-            startDate: format(dateRange.startDate as Date, 'yyyy-MM-dd'),
+            startDate: startDate ?? '',
             ...(type !== ALL_TYPES
               ? { type: type as OrganizationCategory }
               : {}),
@@ -143,34 +144,36 @@ export default function AnalyticsOrganizationsList({
               ? { source: source as OrganizationSourceFilter }
               : {}),
           },
-          controller.signal,
+          signal,
         );
-        if (!controller.signal.aborted) {
-          setData(response);
-        }
       } catch (error) {
-        if (!controller.signal.aborted) {
+        if (!signal.aborted) {
           logger.error('Failed to fetch organizations', error);
         }
+        throw error;
       }
-    };
-
-    void fetchData();
-    return () => controller.abort();
-  }, [
-    getAnalyticsService,
-    dateRange,
-    page,
-    sort,
-    sortDirection,
-    type,
-    emailClass,
-    usage,
-    status,
-    source,
-    debouncedSearchTerm,
-    refreshTrigger,
-  ]);
+    },
+    queryKey: [
+      ...ANALYTICS_ORGANIZATIONS_KEY,
+      {
+        emailClass,
+        endDate,
+        page,
+        search: debouncedSearchTerm,
+        sort,
+        sortDirection,
+        source,
+        startDate,
+        status,
+        type,
+        usage,
+      },
+    ],
+    refreshKey: refreshTrigger,
+    service: (token: string) => AnalyticsService.getInstance(token),
+  });
+  const data = organizationsQuery.data ?? null;
+  const isLoading = data === null;
 
   // A new search can leave the page past the last page of the new result set.
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset on search only
@@ -220,20 +223,22 @@ export default function AnalyticsOrganizationsList({
   // The stage follows the sidebar: sending an invitation moves the badge in the row.
   const handleConciergeChange = useCallback(
     (organizationId: string, stage: IWarmupAccount['status']) => {
-      setData((current) =>
-        current
-          ? {
-              ...current,
-              data: current.data.map((org) =>
-                org.id === organizationId && org.concierge
-                  ? { ...org, concierge: { ...org.concierge, status: stage } }
-                  : org,
-              ),
-            }
-          : current,
+      queryClient.setQueriesData<IPaginatedOrgsResponse>(
+        { queryKey: ANALYTICS_ORGANIZATIONS_KEY },
+        (current) =>
+          current
+            ? {
+                ...current,
+                data: current.data.map((org) =>
+                  org.id === organizationId && org.concierge
+                    ? { ...org, concierge: { ...org.concierge, status: stage } }
+                    : org,
+                ),
+              }
+            : current,
       );
     },
-    [],
+    [queryClient],
   );
 
   const search = useMemo(
