@@ -994,9 +994,8 @@ describe('DiscordService', () => {
 
       await service.sendLowCreditsAlert({ balance: 5, organizationId: 'o-1' });
 
-      const payload = lastSendPayload();
-      expect(payload.components).toBeUndefined();
-      expect((payload.embeds?.[0] as IDiscordEmbed).url).toBeUndefined();
+      expect(lastSendPayload().components).toBeUndefined();
+      expect(lastCard().url).toBeUndefined();
     });
 
     it('should send a critical alert when balance is zero', async () => {
