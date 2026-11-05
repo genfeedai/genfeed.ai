@@ -3,10 +3,9 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { LIFECYCLE_SYSTEM_EMAILS } from '@genfeedai/contracts/constants';
 import type {
   IEmailPerformanceQuery,
-  IEmailPerformanceReport,
   IEmailPerformanceRow,
 } from '@genfeedai/contracts/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AdminSystemEmailsService } from '@services/admin/system-emails.service';
 import { logger } from '@services/core/logger.service';
@@ -16,13 +15,7 @@ import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { useTranslations } from 'next-intl';
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import type { ReactNode } from 'react';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 
 const TEMPLATE_NAMES = new Map(
@@ -30,6 +23,8 @@ const TEMPLATE_NAMES = new Map(
 );
 
 const NUMERIC_CELL = 'text-right tabular-nums';
+
+const SYSTEM_EMAIL_PERFORMANCE_KEY = ['admin', 'system-emails', 'performance'];
 
 function formatCount(value: number): string {
   return value.toLocaleString('en-US');
@@ -68,37 +63,32 @@ export default function SystemEmailPerformance({
   query: IEmailPerformanceQuery;
 }) {
   const translate = useTranslations('pages.systemEmailPerformance');
-  const [report, setReport] = useState<IEmailPerformanceReport | null>(null);
-  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
-  const getService = useAuthedService((token: string) =>
-    AdminSystemEmailsService.getInstance(token),
-  );
-  const controllerRef = useRef<AbortController | null>(null);
-
-  const loadReport = useCallback(async () => {
-    controllerRef.current?.abort();
-    const controller = new AbortController();
-    controllerRef.current = controller;
-    setState('loading');
-    try {
-      const service = await getService();
-      controller.signal.throwIfAborted();
-      const data = await service.getPerformance(query, controller.signal);
-      if (!controller.signal.aborted) {
-        setReport(data);
-        setState('ready');
+  // Cached per cohort: coming back paints the report at once while it
+  // refreshes, and a new date range keeps the current rows until it loads.
+  const reportQuery = useAuthedQuery({
+    keepPreviousDataWithin: SYSTEM_EMAIL_PERFORMANCE_KEY,
+    queryFn: async (service, signal) => {
+      try {
+        return await service.getPerformance(query, signal);
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('Failed to load system email performance', error);
+        }
+        throw error;
       }
-    } catch (error) {
-      if (controller.signal.aborted) return;
-      logger.error('Failed to load system email performance', error);
-      setState('error');
-    }
-  }, [getService, query]);
-
-  useEffect(() => {
-    void loadReport();
-    return () => controllerRef.current?.abort();
-  }, [loadReport]);
+    },
+    queryKey: [...SYSTEM_EMAIL_PERFORMANCE_KEY, query],
+    service: (token: string) => AdminSystemEmailsService.getInstance(token),
+  });
+  const report = reportQuery.data ?? null;
+  // A failed refresh keeps the report on screen; the error state is only for
+  // a cohort that has no report yet.
+  const state: 'loading' | 'ready' | 'error' = report
+    ? 'ready'
+    : reportQuery.isError
+      ? 'error'
+      : 'loading';
+  const loadReport = () => reportQuery.refetch();
 
   const rateHeader = (label: string) => (
     <>
