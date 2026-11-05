@@ -13,7 +13,7 @@ const getTokenMock = vi.fn().mockResolvedValue('mock-token');
 const resolveAuthTokenMock = vi.fn().mockResolvedValue('mock-token');
 const useAuthIdentityMock = vi.fn();
 const socketManagerClearInstanceMock = vi.fn();
-const socketManagerGetInstanceMock = vi.fn(() => ({
+const socketManagerGetInstanceMock = vi.fn((..._args: unknown[]) => ({
   cleanup: vi.fn(),
   connect: vi.fn(),
   getConnectionState: vi.fn(() => 'connected'),

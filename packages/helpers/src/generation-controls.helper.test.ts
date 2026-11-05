@@ -1,4 +1,8 @@
-import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import {
+  ModelCategory,
+  ModelLifecycle,
+  ModelProvider,
+} from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 
@@ -22,6 +26,7 @@ function createMockModel(overrides: Partial<IModel> = {}): IModel {
     isDeleted: false,
     key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
     label: 'Test Model',
+    lifecycle: ModelLifecycle.AVAILABLE,
     maxOutputs: 4,
     provider: ModelProvider.REPLICATE,
     updatedAt: '2025-01-01T00:00:00.000Z',

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   isUserIssuedApiKeyMaterial,
   MCP_URL_API_KEY_JSONRPC,
+  type McpUrlCredentialResponse,
   rejectMcpRequestIfApiKeyInUrl,
   requestPresentsApiKeyInUrl,
   URL_API_CREDENTIAL_REJECTION,
@@ -88,14 +89,12 @@ describe('url-credentials', () => {
   });
 
   describe('rejectMcpRequestIfApiKeyInUrl', () => {
-    function createResponse(): {
-      json: ReturnType<typeof vi.fn>;
-      setHeader: ReturnType<typeof vi.fn>;
-      status: ReturnType<typeof vi.fn>;
-    } {
-      const json = vi.fn();
-      const setHeader = vi.fn();
-      const status = vi.fn().mockReturnValue({ json });
+    function createResponse() {
+      const json = vi.fn<McpUrlCredentialResponse['json']>();
+      const setHeader = vi.fn<McpUrlCredentialResponse['setHeader']>();
+      const status = vi
+        .fn<McpUrlCredentialResponse['status']>()
+        .mockReturnValue({ json });
       return { json, setHeader, status };
     }
 

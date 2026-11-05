@@ -1,10 +1,18 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { Mock } from 'vitest';
 import type { Logger as winstonLogger } from 'winston';
+
+/** Exposes the protected message formatter the log methods share. */
+class MessageFormatter extends LoggerService {
+  format(message: string, context?: Record<string, unknown>): string {
+    return this.formatMessage(message, context);
+  }
+}
 
 describe('LoggerService', () => {
   let service: LoggerService;
-  let mockWinston: Mocked<winstonLogger>;
+  let mockWinston: Record<'debug' | 'error' | 'info' | 'warn', Mock>;
 
   beforeEach(async () => {
     mockWinston = {
@@ -353,11 +361,14 @@ describe('LoggerService', () => {
   });
 
   describe('formatMessage', () => {
+    // formatMessage never writes, so no winston transport is needed.
+    const formatter = new MessageFormatter({} as winstonLogger);
+
     it('should format message with service and operation', () => {
       const message = 'Test message';
       const context = { operation: 'test-op', service: 'test' };
 
-      const result = service.formatMessage(message, context);
+      const result = formatter.format(message, context);
 
       expect(result).toBe('[test.test-op] Test message');
     });
@@ -366,7 +377,7 @@ describe('LoggerService', () => {
       const message = 'Test message';
       const context = { service: 'test' };
 
-      const result = service.formatMessage(message, context);
+      const result = formatter.format(message, context);
 
       expect(result).toBe('[test] Test message');
     });
@@ -375,7 +386,7 @@ describe('LoggerService', () => {
       const message = 'Test message';
       const context = { operation: 'test-op' };
 
-      const result = service.formatMessage(message, context);
+      const result = formatter.format(message, context);
 
       expect(result).toBe('[test-op] Test message');
     });
@@ -384,7 +395,7 @@ describe('LoggerService', () => {
       const message = 'Test message';
       const context = { other: 'data' };
 
-      const result = service.formatMessage(message, context);
+      const result = formatter.format(message, context);
 
       expect(result).toBe('Test message');
     });
@@ -392,7 +403,7 @@ describe('LoggerService', () => {
     it('should return original message when no context', () => {
       const message = 'Test message';
 
-      const result = service.formatMessage(message);
+      const result = formatter.format(message);
 
       expect(result).toBe('Test message');
     });

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const createRemoteJWKSetMock = vi.hoisted(() => vi.fn(() => 'jwks'));
+const createRemoteJWKSetMock = vi.hoisted(() => vi.fn((_url: URL) => 'jwks'));
 const jwtVerifyMock = vi.hoisted(() => vi.fn());
 
 vi.mock('jose', () => ({
@@ -81,7 +81,7 @@ describe('BetterAuthJwksVerifier', () => {
     });
 
     expect(createRemoteJWKSetMock).toHaveBeenCalledOnce();
-    expect(createRemoteJWKSetMock.mock.calls[0][0].toString()).toBe(
+    expect(String(createRemoteJWKSetMock.mock.calls[0]?.[0])).toBe(
       'https://api.genfeed.ai/v1/auth/jwks',
     );
     expect(jwtVerifyMock).toHaveBeenCalledWith('jwt-token', 'jwks', {

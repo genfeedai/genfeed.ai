@@ -18,17 +18,18 @@ describe('shouldDropLoggerInfo', () => {
   });
 
   it('keeps Better Auth failures and Nest request unauthorized lines', () => {
+    // A Nest request line carries more fields than the filter reads.
+    const unauthorizedRequest = {
+      message: 'Request unauthorized',
+      statusCode: 401,
+    };
+
     expect(
       shouldDropLoggerInfo({
         message: 'Better Auth request failed',
         service: 'LoggerService',
       }),
     ).toBe(false);
-    expect(
-      shouldDropLoggerInfo({
-        message: 'Request unauthorized',
-        statusCode: 401,
-      }),
-    ).toBe(false);
+    expect(shouldDropLoggerInfo(unauthorizedRequest)).toBe(false);
   });
 });

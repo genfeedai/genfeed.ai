@@ -143,7 +143,11 @@ describe('useDominantColor', () => {
   it('clears the colour when the url is removed', async () => {
     const { result, rerender } = renderHook(
       ({ url }: { url: string | null }) => useDominantColor(url),
-      { initialProps: { url: 'https://cdn.example.com/red.png' } },
+      {
+        initialProps: {
+          url: 'https://cdn.example.com/red.png' as string | null,
+        },
+      },
     );
 
     await waitFor(() => {

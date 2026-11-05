@@ -169,7 +169,10 @@ describe('useMasonryGrid', () => {
 
   describe('Layout Signature', () => {
     it('handles items without id property', () => {
-      const itemsWithoutId = [{ name: 'Item 1' }, { name: 'Item 2' }];
+      const itemsWithoutId: Array<{ id?: string; name: string }> = [
+        { name: 'Item 1' },
+        { name: 'Item 2' },
+      ];
 
       const { result } = renderHook(() => useMasonryGrid(itemsWithoutId));
       expect(result.current).toBeDefined();

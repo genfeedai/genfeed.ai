@@ -27,7 +27,12 @@ const { mockCopyToClipboard, mockOpenModal, mockSubscribe } = vi.hoisted(
   () => ({
     mockCopyToClipboard: vi.fn(),
     mockOpenModal: vi.fn(),
-    mockSubscribe: vi.fn(() => vi.fn()),
+    mockSubscribe: vi.fn(
+      (
+        _event: string,
+        _handler: (data: { assetId?: string; status?: string }) => void,
+      ) => vi.fn(),
+    ),
   }),
 );
 
@@ -118,7 +123,8 @@ vi.mock('@genfeedai/utils/media/ingredient-type.util', () => ({
     (ingredient) => ingredient.category === IngredientCategory.IMAGE,
   ),
   isVideoIngredient: vi.fn(
-    (ingredient) => ingredient.category === IngredientCategory.VIDEO,
+    (ingredient: IIngredient) =>
+      ingredient.category === IngredientCategory.VIDEO,
   ),
 }));
 
@@ -128,7 +134,7 @@ vi.mock('@hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale', () => ({
       clearUpscaleConfirm: vi.fn(),
       executeUpscale: vi.fn(),
       handleEnhance: vi.fn(),
-      handleUpscale: async (ingredient) => {
+      handleUpscale: async (ingredient: IIngredient) => {
         try {
           if (ingredient.category === IngredientCategory.VIDEO) {
             const service = await getVideosService();

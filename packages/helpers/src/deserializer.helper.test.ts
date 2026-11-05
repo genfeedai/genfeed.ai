@@ -350,9 +350,9 @@ describe('Deserializer Helper', () => {
       expect(result).toHaveProperty('title', 'Test Publication');
       expect(result).toHaveProperty('content', 'Test content');
       expect(result).toHaveProperty('author');
-      expect(result.author).toHaveProperty('id', 'user-123');
-      expect(result.author).toHaveProperty('name', 'John Doe');
-      expect(result.author).toHaveProperty('email', 'john@example.com');
+      expect(result).toHaveProperty('author.id', 'user-123');
+      expect(result).toHaveProperty('author.name', 'John Doe');
+      expect(result).toHaveProperty('author.email', 'john@example.com');
     });
 
     test('should handle data without relationships', () => {
@@ -403,9 +403,9 @@ describe('Deserializer Helper', () => {
       const result = getDeserializer(data);
 
       expect(result).toHaveProperty('author');
-      expect(result.author).toHaveProperty('id', 'user-123');
+      expect(result).toHaveProperty('author.id', 'user-123');
       expect(result).toHaveProperty('organization');
-      expect(result.organization).toHaveProperty('id', 'org-123');
+      expect(result).toHaveProperty('organization.id', 'org-123');
     });
 
     test('should handle null relationships', () => {
@@ -452,10 +452,10 @@ describe('Deserializer Helper', () => {
       const result = getDeserializer(data);
 
       expect(result).toHaveProperty('members');
-      expect(Array.isArray(result.members)).toBe(true);
-      expect(result.members).toHaveLength(2);
-      expect(result.members[0]).toHaveProperty('id', 'user-1');
-      expect(result.members[1]).toHaveProperty('id', 'user-2');
+      expect(result).toHaveProperty('members', expect.any(Array));
+      expect(result).toHaveProperty('members.length', 2);
+      expect(result).toHaveProperty('members.0.id', 'user-1');
+      expect(result).toHaveProperty('members.1.id', 'user-2');
     });
 
     test('should return deserializer runtime when no data provided', () => {
@@ -561,12 +561,12 @@ describe('Deserializer Helper', () => {
       const result = getDeserializer(data);
 
       expect(result).toHaveProperty('author');
-      expect(result.author).toHaveProperty('id', 'user-123');
+      expect(result).toHaveProperty('author.id', 'user-123');
       expect(result).toHaveProperty('ingredients');
-      expect(Array.isArray(result.ingredients)).toBe(true);
-      expect(result.ingredients).toHaveLength(2);
-      expect(result.ingredients[0]).toHaveProperty('id', 'ing-1');
-      expect(result.ingredients[1]).toHaveProperty('id', 'ing-2');
+      expect(result).toHaveProperty('ingredients', expect.any(Array));
+      expect(result).toHaveProperty('ingredients.length', 2);
+      expect(result).toHaveProperty('ingredients.0.id', 'ing-1');
+      expect(result).toHaveProperty('ingredients.1.id', 'ing-2');
     });
   });
 });
