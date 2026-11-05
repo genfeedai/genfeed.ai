@@ -153,26 +153,25 @@ describe('semantic theme surface contracts', () => {
     expect(source).toContain('hsl(var(--background) / 0.8)');
   });
 
-  // Turbo projects list through `ListRow`s inside a `CollectionList`: each row
-  // draws its own theme-token divider and drops it on the last child, so a row
-  // must be a direct list child (a wrapper would make every row "last").
-  it('uses the theme border token for Turbo project dividers', () => {
+  // Turbo projects list as flat `ThreadList` rows: no border or fill at rest,
+  // and the hover/focus fill comes from the theme `bg-hover` token, never a
+  // hard-coded white.
+  it('uses theme tokens for the flat Turbo project rows', () => {
     const page = readSource(
       'src/features/workflows/pages/turbo/TurboProjectsList.tsx',
     );
-    const listRow = readSource(
-      '../../packages/ui/src/components/lists/list-row/ListRow.tsx',
+    const threadList = readSource(
+      '../../packages/ui/src/components/lists/thread-list/ThreadList.tsx',
     );
 
     expect(page).not.toMatch(/\b(?:divide|border)-white\b/u);
-    expect(page).toContain('<CollectionList>');
-    expect(page).toContain('<ListRow');
-    expect(page).toContain(
-      '<CollectionList>{projects.map(row)}</CollectionList>',
+    expect(page).toContain('<ThreadListRecencySections');
+    expect(page).toContain('<ThreadListRow');
+    expect(threadList).toContain('hover:bg-hover');
+    expect(threadList).toContain('focus-within:bg-hover');
+    expect(threadList).not.toMatch(
+      /\b(?:bg-black|bg-white|text-white|(?:divide|border)-white)(?:\/(?:\d+|\[[^\]]+\]))?\b/u,
     );
-    expect(listRow).toContain('border-b border-border');
-    expect(listRow).toContain('last:border-b-0');
-    expect(listRow).not.toMatch(/\b(?:divide|border)-white\b/u);
   });
 
   it.each(LIGHT_THEME_CRITICAL_SOURCES)(

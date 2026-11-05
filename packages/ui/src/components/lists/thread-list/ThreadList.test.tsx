@@ -44,7 +44,9 @@ describe('ThreadListSection', () => {
       'aria-expanded',
       'false',
     );
-    expect(screen.getByText('Old thread', { selector: 'li' })).not.toBeVisible();
+    expect(
+      screen.getByText('Old thread', { selector: 'li' }),
+    ).not.toBeVisible();
 
     rerender(
       <ThreadListSection itemCount={0} title="Resolved">
@@ -101,6 +103,28 @@ describe('ThreadListRow', () => {
     await user.click(await screen.findByRole('menuitem', { name: 'Delete' }));
 
     expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it('reaches the actions menu by keyboard after the link', async () => {
+    const user = userEvent.setup();
+    render(
+      <ul>
+        <ThreadListRow
+          actions={[{ id: 'delete', label: 'Delete', onSelect: vi.fn() }]}
+          actionsLabel="Actions for Spring launch"
+          href="/acme/turbo/p1"
+          title="Spring launch"
+        />
+      </ul>,
+    );
+
+    await user.tab();
+    expect(screen.getByRole('link')).toHaveFocus();
+
+    await user.tab();
+    expect(
+      screen.getByRole('button', { name: 'Actions for Spring launch' }),
+    ).toHaveFocus();
   });
 
   it('has no menu when there are no actions', () => {

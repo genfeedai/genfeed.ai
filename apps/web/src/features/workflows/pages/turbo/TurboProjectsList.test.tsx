@@ -77,7 +77,8 @@ describe('TurboProjectsList load recovery', () => {
       await screen.findByRole('link', { name: /Spring launch/ }),
     ).toHaveAttribute('href', '/acme/moonrise/turbo/project-1');
     expect(screen.getByText('3 items')).toBeInTheDocument();
-    expect(screen.getByText('Draft')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Draft' })).toBeInTheDocument();
+    expect(screen.getByText('Oct 1')).toBeInTheDocument();
   });
 
   it('tells the creator to describe a project on the left when there are none', async () => {

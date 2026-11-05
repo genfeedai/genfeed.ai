@@ -13,7 +13,13 @@ import { Button } from '@ui/primitives/button';
 import { ChevronDown, Circle, CircleAlert, CircleCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Fragment, type ReactElement, type ReactNode, useId, useState } from 'react';
+import {
+  Fragment,
+  type ReactElement,
+  type ReactNode,
+  useId,
+  useState,
+} from 'react';
 import { groupThreadsByRecency } from './group-by-recency';
 
 const STATUS_ICONS: Record<ThreadListStatus, ReactElement> = {
@@ -64,7 +70,11 @@ export function ThreadListSection({
           />
         </Button>
       </h3>
-      <ul className={cn('flex flex-col', !isOpen && 'hidden')} id={listId}>
+      <ul
+        className={cn('flex flex-col', !isOpen && 'hidden')}
+        hidden={!isOpen}
+        id={listId}
+      >
         {children}
       </ul>
     </section>

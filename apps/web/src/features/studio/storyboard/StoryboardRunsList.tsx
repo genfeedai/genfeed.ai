@@ -61,7 +61,9 @@ export default function StoryboardRunsList(): ReactElement {
         )}
         status={isStoryboardRunNeedingAttention(run) ? 'attention' : 'idle'}
         statusLabel={
-          isStoryboardRunNeedingAttention(run) ? translate('needsYou') : undefined
+          isStoryboardRunNeedingAttention(run)
+            ? translate('needsYou')
+            : undefined
         }
         subtitle={
           <ThreadListSubtitle

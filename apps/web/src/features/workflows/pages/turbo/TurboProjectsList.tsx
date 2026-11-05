@@ -13,9 +13,7 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { useCreativeProjectsPresence } from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
 import CreativeProjectsEmptyState from '@ui/layout/creative-app-workspace/CreativeProjectsEmptyState';
-import {
-  formatThreadTime,
-} from '@ui/lists/thread-list/group-by-recency';
+import { formatThreadTime } from '@ui/lists/thread-list/group-by-recency';
 import {
   ThreadListRecencySections,
   ThreadListRow,
@@ -27,8 +25,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import SearchField from '@/components/content/search-field/SearchField';
 import SubscriptionRequiredState from '@/features/workflows/components/guards/subscription/SubscriptionRequiredState';
-import { createTurboProjectsApi } from './turbo-projects-api';
 import { turboProjectListStatus } from './turbo-project-list-status';
+import { createTurboProjectsApi } from './turbo-projects-api';
 
 /**
  * The right side of the Turbo workspace while no project is open: one list of

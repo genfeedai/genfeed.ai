@@ -26,7 +26,7 @@ export interface ThreadListRowProps {
   leading?: ReactNode;
   status?: ThreadListStatus;
   /** Spoken name of the status icon, so the state is not colour alone. */
-  statusLabel?: string;
+  statusLabel?: string | null;
   subtitle?: ReactNode;
   /** The right-hand date. Swapped for the ⋯ menu on hover or focus. */
   time?: ReactNode;
