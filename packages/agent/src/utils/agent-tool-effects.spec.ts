@@ -2,74 +2,78 @@ import {
   LIBRARY_ASSETS_REFRESH_EVENT,
   PUBLISHING_CONTENT_REFRESH_EVENT,
 } from '@genfeedai/contracts/constants';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { dispatchAgentToolEffects } from './agent-tool-effects';
 
+const LIBRARY = LIBRARY_ASSETS_REFRESH_EVENT;
+const PUBLISHING = PUBLISHING_CONTENT_REFRESH_EVENT;
+
 describe('dispatchAgentToolEffects', () => {
-  const onPublishingRefresh = vi.fn();
-  const onLibraryRefresh = vi.fn();
+  /** The refresh events the open page receives, in order. */
+  let received: string[];
+  const record = (event: Event) => received.push(event.type);
 
   beforeEach(() => {
-    window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, onLibraryRefresh);
-    window.addEventListener(
-      PUBLISHING_CONTENT_REFRESH_EVENT,
-      onPublishingRefresh,
-    );
+    received = [];
+    window.addEventListener(LIBRARY, record);
+    window.addEventListener(PUBLISHING, record);
   });
 
   afterEach(() => {
-    window.removeEventListener(
-      PUBLISHING_CONTENT_REFRESH_EVENT,
-      onPublishingRefresh,
-    );
-    onPublishingRefresh.mockReset();
-    window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, onLibraryRefresh);
-    onLibraryRefresh.mockReset();
+    window.removeEventListener(LIBRARY, record);
+    window.removeEventListener(PUBLISHING, record);
   });
 
-  it('reloads Publishing once when a run completed a post tool', () => {
-    dispatchAgentToolEffects([
-      { status: 'completed', toolName: 'get_posts' },
-      { status: 'completed', toolName: 'create_post' },
-      { status: 'completed', toolName: 'schedule_post' },
-    ]);
+  it.each([
+    [
+      'one Publishing reload for a run of post tools',
+      [
+        { status: 'completed', toolName: 'get_posts' },
+        { status: 'completed', toolName: 'create_post' },
+        { status: 'completed', toolName: 'schedule_post' },
+      ],
+      [PUBLISHING],
+    ],
+    [
+      'one Library reload for repeated stars',
+      [
+        { status: 'completed', toolName: 'get_assets' },
+        { status: 'completed', toolName: 'star_asset' },
+        { status: 'completed', toolName: 'star_asset' },
+      ],
+      [LIBRARY],
+    ],
+    [
+      'both reloads when a run changed posts and assets',
+      [
+        { status: 'completed', toolName: 'transform_media' },
+        { status: 'completed', toolName: 'draft_thread' },
+      ],
+      [PUBLISHING, LIBRARY],
+    ],
+    [
+      'nothing for a star that failed',
+      [{ status: 'failed', toolName: 'star_asset' }],
+      [],
+    ],
+    [
+      'nothing for a post tool that failed',
+      [{ status: 'failed', toolName: 'schedule_post' }],
+      [],
+    ],
+    [
+      'nothing for read-only tools',
+      [
+        { status: 'completed', toolName: 'get_posts' },
+        { status: 'completed', toolName: 'get_assets' },
+      ],
+      [],
+    ],
+    ['nothing for an empty run', [], []],
+    ['nothing for a run without tool calls', undefined, []],
+  ])('sends %s', (_label, toolCalls, expected) => {
+    dispatchAgentToolEffects(toolCalls);
 
-    expect(onPublishingRefresh).toHaveBeenCalledTimes(1);
-    expect(onLibraryRefresh).not.toHaveBeenCalled();
-  });
-
-  it('reloads the Library once when a run starred an asset', () => {
-    dispatchAgentToolEffects([
-      { status: 'completed', toolName: 'get_assets' },
-      { status: 'completed', toolName: 'star_asset' },
-      { status: 'completed', toolName: 'star_asset' },
-    ]);
-
-    expect(onLibraryRefresh).toHaveBeenCalledTimes(1);
-    expect(onPublishingRefresh).not.toHaveBeenCalled();
-  });
-
-  it('ignores a star that failed', () => {
-    dispatchAgentToolEffects([{ status: 'failed', toolName: 'star_asset' }]);
-
-    expect(onLibraryRefresh).not.toHaveBeenCalled();
-  });
-
-  it('ignores a post tool that failed', () => {
-    dispatchAgentToolEffects([{ status: 'failed', toolName: 'schedule_post' }]);
-
-    expect(onPublishingRefresh).not.toHaveBeenCalled();
-  });
-
-  it('ignores tools that do not change Publishing content', () => {
-    dispatchAgentToolEffects([
-      { status: 'completed', toolName: 'get_posts' },
-      { status: 'completed', toolName: 'get_assets' },
-    ]);
-    dispatchAgentToolEffects(undefined);
-    dispatchAgentToolEffects([]);
-
-    expect(onPublishingRefresh).not.toHaveBeenCalled();
-    expect(onLibraryRefresh).not.toHaveBeenCalled();
+    expect(received).toEqual(expected);
   });
 });
