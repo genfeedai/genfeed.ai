@@ -9,6 +9,7 @@ import {
   type ServerPrisma,
 } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { IngredientStatus } from '@genfeedai/contracts';
 import type {
   AgentArtifactRecordKind,
   AgentArtifactReference,
@@ -130,6 +131,28 @@ function artifactNotFound(label: string, id: string): HttpException {
       title: 'Resource Not Found',
     },
     HttpStatus.NOT_FOUND,
+  );
+}
+
+/**
+ * A generated output whose render failed is not a produced or reusable
+ * artifact, even when a reference to it was stored while it was still queued.
+ */
+function artifactOutputFailed(id: string): HttpException {
+  return new HttpException(
+    {
+      code: 'agent_artifact_output_failed',
+      detail: `Ingredient '${id}' failed to render and is not a usable output.`,
+      source: { parameter: id },
+      title: 'Generated output failed',
+    },
+    HttpStatus.GONE,
+  );
+}
+
+function isArtifactOutputFailed(error: unknown): boolean {
+  return (
+    error instanceof HttpException && error.getStatus() === HttpStatus.GONE
   );
 }
 
@@ -344,10 +367,20 @@ export class AgentArtifactReferenceService {
         }),
       });
       this.recordReferenceTelemetry('canonical', params);
-      return Promise.all(
+      // A render that failed after its reference was stored drops out of
+      // the message's outputs; the message's other outputs still resolve.
+      const resolved = await Promise.all(
         typedReferences.map((reference) =>
-          this.resolveReference(reference, params.readContext),
+          this.resolveReference(reference, params.readContext).catch(
+            (error: unknown) => {
+              if (isArtifactOutputFailed(error)) return undefined;
+              throw error;
+            },
+          ),
         ),
+      );
+      return resolved.filter(
+        (item): item is ResolvedAgentArtifactReference => item !== undefined,
       );
     }
 
@@ -533,6 +566,9 @@ export class AgentArtifactReferenceService {
     });
     if (!result) {
       throw artifactNotFound('Ingredient', recordId);
+    }
+    if (result.status === IngredientStatus.FAILED) {
+      throw artifactOutputFailed(recordId);
     }
 
     const record = readArtifactRecord(result);
