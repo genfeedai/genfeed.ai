@@ -73,7 +73,7 @@ export default function RepliesWarmupTargets({
     await queryClient.cancelQueries({ queryKey: targetsKey });
     queryClient.setQueriesData<IReplyTarget[]>(
       { queryKey: targetsKey },
-      (previous) => (previous ? update(previous) : previous),
+      (previous) => update(previous ?? []),
     );
   }
 

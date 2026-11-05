@@ -37,7 +37,8 @@ export default function AssetDeepLink() {
   // The organization Library spans every brand, so only a brand page pins the
   // linked asset to one.
   const isBrandScoped = usePageScope() !== 'org';
-  const { openIngredientSidebar } = useIngredientSidebar();
+  const { closeIngredientSidebar, openIngredientSidebar } =
+    useIngredientSidebar();
   const isSafeId = assetId !== null && SAFE_IDENTIFIER_PATTERN.test(assetId);
   // Scope still settling: wait for it rather than reporting the asset gone.
   const isScopeReady =
@@ -81,6 +82,14 @@ export default function AssetDeepLink() {
     openIngredientSidebar(ingredient);
     setOpenedKey(openKey);
   }, [ingredient, isInScope, openIngredientSidebar, openKey, openedKey]);
+
+  // A background refresh can find the opened asset deleted or moved out of
+  // scope: close it and report it unavailable instead of keeping it open.
+  useEffect(() => {
+    if (!ingredient || isInScope || openedKey !== openKey) return;
+    closeIngredientSidebar();
+    setOpenedKey(null);
+  }, [closeIngredientSidebar, ingredient, isInScope, openKey, openedKey]);
 
   const lookupError = isLookupEnabled ? assetQuery.error : null;
   useEffect(() => {

@@ -158,7 +158,11 @@ export function useNewsletterEditor(
   const getService = useAuthedService(createNewslettersService);
 
   const writeNewsletter = useCallback(
-    (next: Newsletter) => {
+    async (next: Newsletter) => {
+      // A read still in flight would land the older issue after this write.
+      await queryClient.cancelQueries({
+        queryKey: newsletterQueryKey(next.id),
+      });
       queryClient.setQueriesData<Newsletter>(
         { queryKey: newsletterQueryKey(next.id) },
         next,
@@ -170,8 +174,8 @@ export function useNewsletterEditor(
   /** A newsletter the user's action returned replaces the editor's fields. */
   const applyNewsletter = useCallback(
     (next: Newsletter) => {
-      writeNewsletter(next);
       setEditorState(createEditorState(next));
+      void writeNewsletter(next);
     },
     [writeNewsletter],
   );
@@ -356,7 +360,7 @@ export function useNewsletterEditor(
         const service = await getService();
         // Only the live link changes; unsaved editor fields stay as typed.
         const updated = await service.patch(newsletter.id, { externalUrl });
-        writeNewsletter(updated);
+        await writeNewsletter(updated);
         notificationsService.success(
           externalUrl ? 'Live link saved' : 'Live link removed',
         );

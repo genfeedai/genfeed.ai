@@ -544,6 +544,8 @@ export default function ContentRunDetailPage({
     try {
       const service = await getContentRunsService();
       const updated = await service.createRemixPack(runId);
+      // A read still in flight would land the older run after this write.
+      await queryClient.cancelQueries({ queryKey: runKey });
       queryClient.setQueriesData<ContentRunRecord>(
         { queryKey: runKey },
         updated,

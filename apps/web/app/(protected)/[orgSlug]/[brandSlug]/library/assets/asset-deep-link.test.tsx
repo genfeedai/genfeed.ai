@@ -2,7 +2,7 @@ import {
   createTestQueryClient,
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AssetDeepLink from './asset-deep-link';
 import '@testing-library/jest-dom/vitest';
@@ -16,6 +16,7 @@ vi.mock('next-intl', async () => {
 const mocks = vi.hoisted(() => ({
   assetId: 'asset-1' as string | null,
   brand: { brandId: 'brand-1', organizationId: 'org-1', isReady: true },
+  close: vi.fn(),
   findOne: vi.fn(),
   getService: vi.fn(),
   open: vi.fn(),
@@ -33,7 +34,7 @@ vi.mock(
   '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar',
   () => ({
     useIngredientSidebar: () => ({
-      closeIngredientSidebar: vi.fn(),
+      closeIngredientSidebar: mocks.close,
       openIngredientSidebar: mocks.open,
     }),
   }),
@@ -75,6 +76,24 @@ describe('AssetDeepLink', () => {
     renderLink();
     await waitFor(() => expect(mocks.open).toHaveBeenCalledWith(ingredient));
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('closes the asset and reports it unavailable once a refresh finds it deleted', async () => {
+    const client = createTestQueryClient();
+    renderLink(client);
+    await waitFor(() => expect(mocks.open).toHaveBeenCalledWith(ingredient));
+
+    mocks.findOne.mockResolvedValue({ ...ingredient, isDeleted: true });
+    await act(async () => {
+      await client.refetchQueries();
+      // React Query notifies observers on the next tick.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This asset is unavailable',
+    );
+    expect(mocks.close).toHaveBeenCalledTimes(1);
   });
 
   it('aborts a lookup still in flight on unmount', async () => {

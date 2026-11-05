@@ -122,7 +122,7 @@ export function useReplyCampaigns() {
       await queryClient.cancelQueries({ queryKey });
       queryClient.setQueriesData<SocialReplyCampaignModel[]>(
         { queryKey },
-        (current) => (current ? update(current) : current),
+        (current) => update(current ?? EMPTY_CAMPAIGNS),
       );
     },
     [queryClient],
