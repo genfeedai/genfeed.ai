@@ -1,11 +1,11 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+import type { PublishingContentBoardProps } from '@/features/posts/props/publishing-content-entry.props';
 import {
   useHorizontalWheelScroll,
   VERTICAL_SCROLL_REGION_ATTRIBUTE,
-} from '@hooks/ui/use-horizontal-wheel-scroll/use-horizontal-wheel-scroll';
-import { useTranslations } from 'next-intl';
-import type { PublishingContentBoardProps } from '@/features/posts/props/publishing-content-entry.props';
+} from '@/hooks/ui/use-horizontal-wheel-scroll/use-horizontal-wheel-scroll';
 
 const VERTICAL_SCROLL_REGION = { [VERTICAL_SCROLL_REGION_ATTRIBUTE]: '' };
 
