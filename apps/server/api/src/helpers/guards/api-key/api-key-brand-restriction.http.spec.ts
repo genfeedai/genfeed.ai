@@ -16,6 +16,7 @@ import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { CombinedAuthGuard } from '@api/helpers/guards/combined-auth/combined-auth.guard';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -36,9 +37,9 @@ vi.mock('@genfeedai/auth-client/server', () => ({
   isBetterAuthEnabled: () => false,
 }));
 
-const OWN_BRAND = 'cm0ownbrand000000000000001';
-const SIBLING_BRAND = 'cm0siblingbrand0000000001';
-const DELETED_BRAND = 'cm0deletedbrand0000000001';
+const OWN_BRAND = testId('ownbrand');
+const SIBLING_BRAND = testId('siblingbrand');
+const DELETED_BRAND = testId('deletedbrand');
 const LIVE_BRANDS: ReadonlySet<string> = new Set([OWN_BRAND, SIBLING_BRAND]);
 
 const KEY_METADATA: Record<string, Record<string, unknown> | null> = {

@@ -26,6 +26,7 @@ import {
   MCP_ACTIVE_ORGANIZATION_METADATA_KEY,
   MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY,
   MCP_OAUTH_SESSION_KIND,
+  readApiKeyAllowedBrandIds,
 } from '@genfeedai/contracts/constants';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { getApiRateLimitForTier } from '@genfeedai/pricing';
@@ -126,6 +127,7 @@ export class ApiKeysService extends BaseService<
   async assertValidDefaultBrandId(
     organizationId: string,
     defaultBrandId: string | null | undefined,
+    allowedBrandIds?: readonly string[],
   ): Promise<void> {
     if (!defaultBrandId) {
       return;
@@ -137,6 +139,11 @@ export class ApiKeysService extends BaseService<
     if (!resolved) {
       throw new BadRequestException(
         "defaultBrandId must reference a brand in this API key's organization.",
+      );
+    }
+    if (allowedBrandIds && !allowedBrandIds.includes(defaultBrandId)) {
+      throw new BadRequestException(
+        'defaultBrandId must be one of the allowedBrandIds.',
       );
     }
   }
@@ -194,6 +201,42 @@ export class ApiKeysService extends BaseService<
     });
     const live = new Set(brands.map((brand) => brand.id));
     return allowedBrandIds.filter((brandId) => live.has(brandId));
+  }
+
+  /**
+   * The brands a rotated key keeps (#9130): the old key's allowed brands that
+   * still exist, and its default brand when that still exists and stays in
+   * the list. A key whose every allowed brand was deleted cannot be rotated.
+   */
+  async resolveRotationBrandReach(
+    organizationId: string,
+    existingKey: { defaultBrandId?: string | null; metadata?: unknown },
+  ): Promise<{ allowedBrandIds?: string[]; defaultBrandId?: string }> {
+    const existingAllowedBrandIds = readApiKeyAllowedBrandIds(
+      existingKey.metadata,
+    );
+    const allowedBrandIds = existingAllowedBrandIds
+      ? await this.resolveLiveAllowedBrandIds(
+          organizationId,
+          existingAllowedBrandIds,
+        )
+      : undefined;
+    if (allowedBrandIds?.length === 0) {
+      throw new BadRequestException(
+        'Every brand this API key was limited to has been deleted. Create a new key instead.',
+      );
+    }
+    const defaultBrandId = await this.resolveValidDefaultBrandId(
+      organizationId,
+      existingKey.defaultBrandId,
+    );
+    const isDefaultAllowed =
+      defaultBrandId !== undefined &&
+      (!allowedBrandIds || allowedBrandIds.includes(defaultBrandId));
+    return {
+      allowedBrandIds,
+      defaultBrandId: isDefaultAllowed ? defaultBrandId : undefined,
+    };
   }
 
   /**

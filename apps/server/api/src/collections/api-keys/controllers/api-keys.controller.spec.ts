@@ -75,6 +75,8 @@ describe('ApiKeysController', () => {
       _organizationId: string,
       brandId: string | null | undefined,
     ) => brandId ?? undefined,
+    resolveRotationBrandReach:
+      ApiKeysService.prototype.resolveRotationBrandReach,
     remove: vi.fn(),
     revoke: vi.fn(),
     rotateWithKey: vi.fn(),

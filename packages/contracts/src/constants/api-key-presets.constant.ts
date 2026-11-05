@@ -105,6 +105,19 @@ export function readApiKeyAllowedBrandIds(
   );
 }
 
+/**
+ * The brand limit as metadata to carry onto an updated key (#9130); empty for
+ * a key without one.
+ */
+export function apiKeyAllowedBrandsMetadata(
+  metadata: unknown,
+): Record<string, string[]> {
+  const allowedBrandIds = readApiKeyAllowedBrandIds(metadata);
+  return allowedBrandIds
+    ? { [API_KEY_ALLOWED_BRANDS_METADATA_KEY]: allowedBrandIds }
+    : {};
+}
+
 export const MCP_ACCESS_MODE_METADATA_KEY = 'mcpAccessMode';
 /** Session-key metadata: the user allowed organization switching at consent. */
 export const MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY =
