@@ -231,7 +231,8 @@
       "openTarget": "Open {platform} post",
       "variations": "Remix {platform} post",
       "setStatus": "Set status to {status}",
-      "statusFailed": "Could not update the post status."
+      "statusFailed": "Could not update the post status.",
+      "textOnlyMark": "Aa"
     },
     "admin": {
       "columnPost": "Post",

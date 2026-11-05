@@ -3,6 +3,7 @@
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { Play } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import IngredientThumbnail from '@/components/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import type { PublishingContentThumbnailProps } from '@/features/posts/props/publishing-content-entry.props';
 
@@ -13,6 +14,8 @@ import type { PublishingContentThumbnailProps } from '@/features/posts/props/pub
 export default function PublishingContentThumbnail({
   media,
 }: PublishingContentThumbnailProps) {
+  const translate = useTranslations('pages.posts.list.collection');
+
   return (
     <div className="relative size-12 shrink-0 overflow-hidden rounded-md bg-tertiary">
       {media === null ? (
@@ -20,7 +23,7 @@ export default function PublishingContentThumbnail({
           aria-hidden="true"
           className="flex size-full items-center justify-center text-xs font-medium text-muted-foreground"
         >
-          Aa
+          {translate('textOnlyMark')}
         </span>
       ) : 'ingredient' in media ? (
         <IngredientThumbnail
