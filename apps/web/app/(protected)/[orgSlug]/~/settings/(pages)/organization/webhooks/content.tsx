@@ -11,10 +11,12 @@ import type {
   IOrganizationSetting,
   IWebhookDeliveryStatus,
 } from '@genfeedai/contracts/interfaces';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
+import { useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Badge } from '@ui/primitives/badge';
@@ -62,6 +64,19 @@ function toForm(settings: IOrganizationSetting | null): WebhookFormState {
   };
 }
 
+function isSameForm(a: WebhookFormState, b: WebhookFormState): boolean {
+  return (
+    a.isWebhookEnabled === b.isWebhookEnabled &&
+    a.webhookEndpoint === b.webhookEndpoint &&
+    a.webhookSecret === b.webhookSecret &&
+    a.webhookEventTypes.join('\n') === b.webhookEventTypes.join('\n')
+  );
+}
+
+function webhookSettingsQueryKey(organizationId: string) {
+  return ['organization-webhooks', organizationId] as const;
+}
+
 function formatDate(value?: string | Date | null): string {
   if (!value) {
     return 'Never';
@@ -101,9 +116,40 @@ function statusVariant(
 
 export default function SettingsWebhooksPage() {
   const { organizationId, isReady } = useBrand();
-  const [settings, setSettings] = useState<IOrganizationSetting | null>(null);
-  const [form, setForm] = useState<WebhookFormState>(initialForm);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+  // The settings read through React Query, so coming back to the page paints
+  // the cached endpoint at once and refreshes it in the background.
+  const settingsQuery = useAuthedQuery<
+    OrganizationsService,
+    IOrganizationSetting
+  >({
+    enabled: Boolean(organizationId) && isReady,
+    queryFn: (service) => service.getSettings(organizationId),
+    queryKey: webhookSettingsQueryKey(organizationId),
+    service: (token: string) => OrganizationsService.getInstance(token),
+  });
+  const settings = settingsQuery.data ?? null;
+  const isLoading = settingsQuery.isPending;
+  const { error: loadError } = settingsQuery;
+
+  const [form, setForm] = useState<WebhookFormState>(() => toForm(settings));
+  // The settings the form was last seeded from. Fresh settings re-seed the
+  // form while it is untouched, so a background refresh never wipes what the
+  // user is typing; another organization always re-seeds it.
+  const [formSource, setFormSource] = useState({ organizationId, settings });
+  if (
+    formSource.settings !== settings ||
+    formSource.organizationId !== organizationId
+  ) {
+    setFormSource({ organizationId, settings });
+    if (
+      formSource.organizationId !== organizationId ||
+      isSameForm(form, toForm(formSource.settings))
+    ) {
+      setForm(toForm(settings));
+    }
+  }
+
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const getOrganizationsService = useAuthedService(
@@ -122,44 +168,13 @@ export default function SettingsWebhooksPage() {
     [form.webhookEventTypes],
   );
 
-  const loadSettings = useCallback(
-    async (signal?: AbortSignal) => {
-      if (!organizationId || !isReady) {
-        return;
-      }
-
-      setIsLoading(true);
-
-      try {
-        const service =
-          (await getOrganizationsService()) as OrganizationsService;
-        const nextSettings = await service.getSettings(organizationId);
-        if (signal?.aborted) {
-          return;
-        }
-        setSettings(nextSettings);
-        setForm(toForm(nextSettings));
-      } catch (error) {
-        if (!signal?.aborted) {
-          logger.error('Failed to load webhook settings', error);
-          NotificationsService.getInstance().error(
-            'Failed to load webhook settings',
-          );
-        }
-      } finally {
-        if (!signal?.aborted) {
-          setIsLoading(false);
-        }
-      }
-    },
-    [getOrganizationsService, isReady, organizationId],
-  );
-
   useEffect(() => {
-    const controller = new AbortController();
-    void loadSettings(controller.signal);
-    return () => controller.abort();
-  }, [loadSettings]);
+    if (!loadError) {
+      return;
+    }
+    logger.error('Failed to load webhook settings', loadError);
+    NotificationsService.getInstance().error('Failed to load webhook settings');
+  }, [loadError]);
 
   const toggleEvent = useCallback((event: OrganizationWebhookEventType) => {
     setForm((current) => {
@@ -211,7 +226,11 @@ export default function SettingsWebhooksPage() {
       }
 
       const nextSettings = await service.patchSettings(organizationId, payload);
-      setSettings(nextSettings);
+      queryClient.setQueriesData<IOrganizationSetting>(
+        { queryKey: webhookSettingsQueryKey(organizationId) },
+        nextSettings,
+      );
+      // The saved settings become the form, which also clears the secret.
       setForm(toForm(nextSettings));
       NotificationsService.getInstance().success('Webhook settings saved');
     } catch (error) {
@@ -222,7 +241,7 @@ export default function SettingsWebhooksPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [form, getOrganizationsService, organizationId]);
+  }, [form, getOrganizationsService, organizationId, queryClient]);
 
   const testDelivery = useCallback(async () => {
     if (!organizationId) {
@@ -236,13 +255,15 @@ export default function SettingsWebhooksPage() {
       const status = await service.testWebhookDelivery(organizationId, {
         event: form.webhookEventTypes[0],
       });
-      setSettings((current) =>
-        current
-          ? {
-              ...current,
-              webhookDeliveryStatus: status,
-            }
-          : current,
+      queryClient.setQueriesData<IOrganizationSetting>(
+        { queryKey: webhookSettingsQueryKey(organizationId) },
+        (current) =>
+          current
+            ? {
+                ...current,
+                webhookDeliveryStatus: status,
+              }
+            : current,
       );
       NotificationsService.getInstance().success('Webhook test queued');
     } catch (error) {
@@ -268,7 +289,12 @@ export default function SettingsWebhooksPage() {
     } finally {
       setIsTesting(false);
     }
-  }, [form.webhookEventTypes, getOrganizationsService, organizationId]);
+  }, [
+    form.webhookEventTypes,
+    getOrganizationsService,
+    organizationId,
+    queryClient,
+  ]);
 
   return (
     <div className="grid gap-4">
