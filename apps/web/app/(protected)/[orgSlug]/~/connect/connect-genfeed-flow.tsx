@@ -19,11 +19,13 @@ import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { hasApiAccess } from '@genfeedai/pricing';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ApiKeysService } from '@services/management/api-keys.service';
+import { useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import ConnectionSuccess from '@ui/feedback/connection-success/ConnectionSuccess';
 import {
@@ -83,6 +85,11 @@ const DRAFT_POST_AGENT_HREF = buildAgentPromptHref(
   'Draft a social post for my brand and hold it for review — do not publish it.',
 );
 
+/** The org's keys as the manual-key step lists them (not the paged settings list). */
+const CONNECT_GENFEED_API_KEYS_KEY = 'connect-genfeed-api-keys';
+
+const EMPTY_API_KEYS: ApiKey[] = [];
+
 function hasRequiredMcpScopes(apiKey: ApiKey): boolean {
   return API_KEY_SCOPE_PRESETS.mcp.every((scope) =>
     apiKey.scopes.includes(scope),
@@ -106,13 +113,11 @@ export default function ConnectGenfeedFlow() {
   const [client, setClient] = useState<ConnectGenfeedClient>('codex');
   const [authMethod, setAuthMethod] =
     useState<ConnectGenfeedAuthMethod>('oauth');
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
-  const [selectedKeyId, setSelectedKeyId] = useState('');
+  const [chosenKeyId, setChosenKeyId] = useState('');
   const [createdPlainKey, setCreatedPlainKey] = useState('');
   const [verificationSecret, setVerificationSecret] = useState('');
   const [verification, setVerification] =
     useState<ConnectGenfeedVerificationResult | null>(null);
-  const [isLoadingKeys, setIsLoadingKeys] = useState(true);
   const [isCreatingKey, setIsCreatingKey] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [copiedItem, setCopiedItem] = useState('');
@@ -138,11 +143,31 @@ export default function ConnectGenfeedFlow() {
     endpoint,
     authMethod,
   );
-  const selectedKey = apiKeys.find((apiKey) => apiKey.id === selectedKeyId);
   const firstBrandSlug = getBrandSlug(brands[0]);
+  const queryClient = useQueryClient();
   const getApiKeysService = useAuthedService(
     useCallback((token: string) => ApiKeysService.getInstance(token), []),
   );
+
+  // Cached: switching back to the manual-key step lists the org's keys at once
+  // while they refresh. Copy-once secrets never enter this cache.
+  const apiKeysQuery = useAuthedQuery({
+    enabled: Boolean(organizationId) && isReady && authMethod === 'manual-key',
+    queryFn: (service, signal) => service.findAll({ limit: 100 }, signal),
+    queryKey: [CONNECT_GENFEED_API_KEYS_KEY, organizationId],
+    service: (token: string) => ApiKeysService.getInstance(token),
+  });
+  const apiKeys = apiKeysQuery.data ?? EMPTY_API_KEYS;
+  const isLoadingKeys = apiKeysQuery.isPending;
+  const hasKeysData = apiKeysQuery.data !== undefined;
+  const keysError = apiKeysQuery.error;
+  // The key the user picked while it is still listed, else the first key that
+  // already carries the MCP scopes.
+  const selectedKeyId =
+    chosenKeyId && apiKeys.some((key) => key.id === chosenKeyId)
+      ? chosenKeyId
+      : (apiKeys.find(hasRequiredMcpScopes)?.id ?? '');
+  const selectedKey = apiKeys.find((apiKey) => apiKey.id === selectedKeyId);
 
   const trackStep = useCallback(
     (step: ConnectGenfeedStep, outcome?: 'failure' | 'success') => {
@@ -156,46 +181,14 @@ export default function ConnectGenfeedFlow() {
     [client, deployment],
   );
 
-  const fetchApiKeys = useCallback(
-    async (signal?: AbortSignal) => {
-      try {
-        const service = await getApiKeysService();
-        const keys = await service.findAll({ limit: 100 });
-
-        if (!signal?.aborted) {
-          setApiKeys(keys);
-          setSelectedKeyId((current) => {
-            if (current && keys.some((key) => key.id === current)) {
-              return current;
-            }
-
-            return keys.find(hasRequiredMcpScopes)?.id ?? '';
-          });
-        }
-      } catch (error) {
-        if (!signal?.aborted) {
-          logger.error('Failed to load API keys for Connect Genfeed', error);
-          NotificationsService.getInstance().error('Failed to load API keys');
-        }
-      } finally {
-        if (!signal?.aborted) {
-          setIsLoadingKeys(false);
-        }
-      }
-    },
-    [getApiKeysService],
-  );
-
+  // A failed background refresh keeps the cached keys on screen silently.
   useEffect(() => {
-    if (!organizationId || !isReady || authMethod !== 'manual-key') {
+    if (!keysError || hasKeysData) {
       return;
     }
-
-    const controller = new AbortController();
-    void fetchApiKeys(controller.signal);
-
-    return () => controller.abort();
-  }, [authMethod, fetchApiKeys, isReady, organizationId]);
+    logger.error('Failed to load API keys for Connect Genfeed', keysError);
+    NotificationsService.getInstance().error('Failed to load API keys');
+  }, [hasKeysData, keysError]);
 
   // Agents authorize outside this page, so success is the first OAuth session
   // that was not already connected when the page loaded and has since reached
@@ -262,7 +255,7 @@ export default function ConnectGenfeedFlow() {
   };
 
   const handleSelectKey = (apiKey: ApiKey) => {
-    setSelectedKeyId(apiKey.id);
+    setChosenKeyId(apiKey.id);
     setCreatedPlainKey('');
     setVerificationSecret('');
     setVerification(null);
@@ -301,11 +294,14 @@ export default function ConnectGenfeedFlow() {
       });
       setCreatedPlainKey(plainKey);
       setVerificationSecret(plainKey);
-      setSelectedKeyId(apiKey.id);
-      setApiKeys((current) => [
-        listItem,
-        ...current.filter((item) => item.id !== listItem.id),
-      ]);
+      setChosenKeyId(apiKey.id);
+      queryClient.setQueriesData<ApiKey[]>(
+        { queryKey: [CONNECT_GENFEED_API_KEYS_KEY, organizationId] },
+        (current = []) => [
+          listItem,
+          ...current.filter((item) => item.id !== listItem.id),
+        ],
+      );
       trackStep('key_created', 'success');
       NotificationsService.getInstance().success('Scoped MCP key created');
     } catch (error) {

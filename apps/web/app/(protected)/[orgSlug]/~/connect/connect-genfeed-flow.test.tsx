@@ -1,6 +1,15 @@
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
-import { fireEvent, render, screen } from '@testing-library/react';
+import type { QueryClient } from '@tanstack/react-query';
+import {
+  fireEvent,
+  render as renderWithoutClient,
+  screen,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -38,6 +47,7 @@ const mocks = vi.hoisted(() => ({
   createApiKey: vi.fn(),
   findAll: vi.fn(),
   mcpEndpoint: 'https://mcp.genfeed.ai/mcp',
+  organizationId: 'org-1',
   statusOptions: vi.fn(),
   verifyMcpConnection: vi.fn(),
 }));
@@ -99,7 +109,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brands: [{ slug: 'main' }],
     isReady: true,
-    organizationId: 'org-1',
+    organizationId: mocks.organizationId,
     settings: { subscriptionTier: 'scale' },
   }),
 }));
@@ -107,6 +117,11 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 vi.mock('@genfeedai/config/deployment', () => ({
   getDeployment: () => 'cloud',
   isSelfHostedDeployment: () => false,
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -238,6 +253,16 @@ vi.mock('@ui/primitives/badge', () => ({
   Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
 
+function render(ui: React.ReactElement, client?: QueryClient) {
+  return renderWithoutClient(ui, { wrapper: queryClientWrapper(client) });
+}
+
+async function openManualKeyStep() {
+  await userEvent.click(
+    screen.getByRole('tab', { name: 'Advanced: manual API key' }),
+  );
+}
+
 function activeKey() {
   return {
     id: 'key-1',
@@ -250,6 +275,7 @@ describe('ConnectGenfeedFlow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.mcpEndpoint = 'https://mcp.genfeed.ai/mcp';
+    mocks.organizationId = 'org-1';
     mocks.connectionStatus = connectionStatus([]);
     mocks.findAll.mockResolvedValue([activeKey()]);
     mocks.createApiKey.mockResolvedValue({
@@ -608,5 +634,58 @@ describe('ConnectGenfeedFlow', () => {
     expect(
       screen.getByText(/enter the complete copy-once Genfeed key/i),
     ).toBeInTheDocument();
+  });
+
+  it('lists the cached keys at once when the manual-key step is reopened', async () => {
+    const client = createTestQueryClient();
+    const first = render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+    expect(await screen.findByText('MCP key')).toBeInTheDocument();
+    first.unmount();
+
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+
+    expect(screen.getByText('MCP key')).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Verify MCP connection' }),
+    ).toBeInTheDocument();
+  });
+
+  it("never paints one organization's cached keys for another", async () => {
+    const client = createTestQueryClient();
+    const first = render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+    expect(await screen.findByText('MCP key')).toBeInTheDocument();
+    first.unmount();
+
+    mocks.organizationId = 'org-2';
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading API keys...');
+    expect(screen.queryByText('MCP key')).not.toBeInTheDocument();
+  });
+
+  it('keeps a key created here listed, without its copy-once value, when the step reopens', async () => {
+    mocks.findAll.mockResolvedValue([]);
+    const client = createTestQueryClient();
+    const first = render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+    fireEvent.click(
+      await screen.findByRole('button', { name: /create scoped mcp key/i }),
+    );
+    expect(await screen.findByText(CREATED_TEST_KEY)).toBeInTheDocument();
+    first.unmount();
+
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+
+    expect(screen.getByRole('radio', { name: /MCP key/ })).toBeInTheDocument();
+    expect(screen.queryByText(CREATED_TEST_KEY)).not.toBeInTheDocument();
   });
 });
