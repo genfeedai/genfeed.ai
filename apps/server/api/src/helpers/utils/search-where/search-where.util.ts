@@ -1,3 +1,5 @@
+import { escapeLikeWildcards } from '@api/helpers/utils/like-pattern/like-pattern.util';
+
 /** Where the admin list search looks: real columns and keys inside a JSON column. */
 export interface SearchWhereFields {
   /** Text columns matched with a case-insensitive `contains`. */
@@ -10,7 +12,9 @@ export interface SearchWhereFields {
 
 /**
  * The `where` fragment for a list search: a case-insensitive match on any of
- * the given columns, JSON keys or columns of a to-one relation. A blank term adds no constraint, so callers
+ * the given columns, JSON keys or columns of a to-one relation. The term
+ * matches literally: `%`, `_` and `\` are escaped, since Prisma hands them to
+ * `ILIKE` as wildcards. A blank term adds no constraint, so callers
  * can spread the result unconditionally. The fragment is one `AND` entry, so it
  * never replaces the `OR` a tenant or scope filter already uses.
  */
@@ -18,10 +22,11 @@ export function buildSearchWhere<TWhere = Record<string, unknown>>(
   search: string | undefined,
   fields: SearchWhereFields,
 ): { AND?: TWhere[] } {
-  const term = search?.trim();
-  if (!term) {
+  const trimmed = search?.trim();
+  if (!trimmed) {
     return {};
   }
+  const term = escapeLikeWildcards(trimmed);
 
   const columnMatches = (fields.columns ?? []).map((column) => ({
     [column]: { contains: term, mode: 'insensitive' },

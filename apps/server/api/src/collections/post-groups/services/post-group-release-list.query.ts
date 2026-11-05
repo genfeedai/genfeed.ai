@@ -2,14 +2,13 @@ import type {
   ReleaseGroupListQuery,
   ReleaseGroupListSort,
 } from '@api/collections/post-groups/services/post-group.types';
+import { toContainsPattern } from '@api/helpers/utils/like-pattern/like-pattern.util';
 import {
   ReleaseStatus,
   ReleaseTargetSource,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
-
-const LIKE_WILDCARD_CHARS_PATTERN = /[\\%_]/g;
 
 /**
  * SQL for the release list (Calendar, Publish list, home, publishing overview).
@@ -58,11 +57,6 @@ function allOf(conditions: readonly Prisma.Sql[]): Prisma.Sql {
   return conditions.length > 0
     ? Prisma.join(conditions, ' AND ')
     : Prisma.sql`TRUE`;
-}
-
-/** Escapes LIKE metacharacters so a search term always matches literally. */
-export function toContainsPattern(search: string): string {
-  return `%${search.replace(LIKE_WILDCARD_CHARS_PATTERN, '\\$&')}%`;
 }
 
 export function resolveReleaseListSort(

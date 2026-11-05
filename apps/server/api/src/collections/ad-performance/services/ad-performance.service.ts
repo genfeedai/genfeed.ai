@@ -17,6 +17,7 @@ import {
   readAdPerformanceDate,
   resolveAdPerformanceIdentityFields,
 } from '@api/collections/ad-performance/utils/ad-performance-identity.util';
+import { escapeLikeWildcards } from '@api/helpers/utils/like-pattern/like-pattern.util';
 import { SERVER_TOKENS, type ServerPrisma } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { AdsDiscoveryQuery } from '@genfeedai/contracts/interfaces/integrations/ads-discovery.interface';
@@ -29,7 +30,6 @@ import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
-const LIKE_WILDCARD_CHARS_PATTERN = /[\\%_]/g;
 const META_AD_LIBRARY_ID_PATTERN = /^AR\d+$/i;
 
 const DEFAULT_PAGE_SIZE = 50;
@@ -553,9 +553,7 @@ export class AdPerformanceService {
   ): Promise<AdPerformanceDocument[]> {
     if (!params.organizationId || !params.brandId) return [];
     const provider = resolvePaidCreativeProvider(params.platform);
-    const escapeLike = (value: string) =>
-      value.replace(LIKE_WILDCARD_CHARS_PATTERN, '\\$&');
-    const keyword = escapeLike(params.keyword);
+    const keyword = escapeLikeWildcards(params.keyword);
     const isGoogle =
       params.platform === 'google' || params.platform === 'youtube';
     const isAdvertiserId = META_AD_LIBRARY_ID_PATTERN.test(params.keyword);
