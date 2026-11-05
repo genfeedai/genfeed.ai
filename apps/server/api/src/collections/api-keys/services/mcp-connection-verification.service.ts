@@ -104,15 +104,15 @@ export class McpConnectionVerificationService {
     }
 
     const verifiedAt = new Date().toISOString();
-    const [connectedAccountCount, latestApiKey] = await Promise.all([
-      this.credentialsService.countConnected(input.organizationId),
-      this.apiKeysService.findOne({
-        id: input.apiKeyId,
-        isRevoked: false,
-        organizationId: input.organizationId,
-        userId: input.userId,
-      }),
-    ]);
+    const connectedAccountCount = await this.credentialsService.countConnected(
+      input.organizationId,
+    );
+    const latestApiKey = await this.apiKeysService.findOne({
+      id: input.apiKeyId,
+      isRevoked: false,
+      organizationId: input.organizationId,
+      userId: input.userId,
+    });
     const metadata = this.readMetadata(
       latestApiKey?.metadata ?? apiKey.metadata,
     );

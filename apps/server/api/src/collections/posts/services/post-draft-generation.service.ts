@@ -150,8 +150,18 @@ export class PostDraftGenerationService {
   ): Promise<PostDraftGenerationResult> {
     if (!dto.requestKey)
       throw new BadRequestException('branded_request_key_required');
-    const [brandMode, model, referencePost, recentPosts] = await Promise.all([
-      this.brandedModeResolver.resolve(identity, dto.brandId),
+    // Brand access is checked before the reference lookup, which can spend the
+    // brand's X token or a paid scraper run.
+    const brandMode = await this.brandedModeResolver.resolve(
+      identity,
+      dto.brandId,
+    );
+    const learningReceipt = await this.resolveAccountlessLearningReceipt(
+      dto,
+      identity,
+      context.brand.id,
+    );
+    const [model, referencePost, recentPosts] = await Promise.all([
       this.agentChatModelRegistry.resolveModelKey(
         undefined,
         DEFAULT_MINI_TEXT_MODEL,
@@ -159,11 +169,6 @@ export class PostDraftGenerationService {
       this.resolveReferencePost(dto, identity),
       this.resolveRecentPosts(dto, identity, context.brand.id),
     ]);
-    const learningReceipt = await this.resolveAccountlessLearningReceipt(
-      dto,
-      identity,
-      context.brand.id,
-    );
     let paidCalls = 0;
     const attempt = async (
       requestKey: string,

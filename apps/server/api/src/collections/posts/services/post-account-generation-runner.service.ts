@@ -56,21 +56,17 @@ export class PostAccountGenerationRunnerService {
         },
       };
       const page: PostDocument[] = [];
-      const posts = await Promise.all(
-        data.postIds.map((id) =>
-          this.posts.findOne(
-            {
-              id,
-              groupId: run.runId,
-              brandId: run.identity.brandId,
-              organizationId: run.scope.organizationId,
-              isDeleted: false,
-            },
-            'none',
-          ),
-        ),
-      );
-      for (const post of posts) {
+      for (const id of data.postIds) {
+        const post = await this.posts.findOne(
+          {
+            id,
+            groupId: run.runId,
+            brandId: run.identity.brandId,
+            organizationId: run.scope.organizationId,
+            isDeleted: false,
+          },
+          'none',
+        );
         if (!post)
           throw new ConflictException(
             'account_generation_placeholder_unavailable',

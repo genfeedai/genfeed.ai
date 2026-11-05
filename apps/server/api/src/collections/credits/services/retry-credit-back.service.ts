@@ -99,27 +99,24 @@ export class RetryCreditBackService {
     const since = new Date(
       retry.createdAt.getTime() - RETRY_CREDIT_BACK_WINDOW_MS,
     );
-    const [trial, hasPriorAttempt, earnedInWindowCredits] = await Promise.all([
-      this.freeTrial.getState(organizationId),
-      this.hasPriorAttempt({
-        brandId: retry.brandId,
-        createdAt: retry.createdAt,
-        ingredientId,
-        modelUsed: retry.modelUsed,
-        organizationId,
-        prompts: briefTexts,
-        since,
-        userId,
-      }),
-      this.earnedSince(
+    const trial = await this.freeTrial.getState(organizationId);
+    const hasPriorAttempt = await this.hasPriorAttempt({
+      brandId: retry.brandId,
+      createdAt: retry.createdAt,
+      ingredientId,
+      modelUsed: retry.modelUsed,
+      organizationId,
+      prompts: briefTexts,
+      since,
+      userId,
+    });
+    const credits = decideRetryCreditBack({
+      chargedCredits: input.chargedCredits,
+      earnedInWindowCredits: await this.earnedSince(
         organizationId,
         userId,
         new Date(Date.now() - RETRY_CREDIT_BACK_WINDOW_MS),
       ),
-    ]);
-    const credits = decideRetryCreditBack({
-      chargedCredits: input.chargedCredits,
-      earnedInWindowCredits,
       hasPriorAttempt,
       isDraft: false,
       isTrialSubject: trial.trialEndsAt !== null,
@@ -174,26 +171,23 @@ export class RetryCreditBackService {
       return 0;
     }
     const now = new Date();
-    const [trial, hasPriorAttempt, earnedInWindowCredits] = await Promise.all([
-      this.freeTrial.getState(input.organizationId),
-      this.hasPriorAttempt({
-        brandId: input.brandId,
-        createdAt: now,
-        modelUsed: input.modelKey,
-        organizationId: input.organizationId,
-        prompts: [input.prompt],
-        since: new Date(now.getTime() - RETRY_CREDIT_BACK_WINDOW_MS),
-        userId: input.userId,
-      }),
-      this.earnedSince(
+    const trial = await this.freeTrial.getState(input.organizationId);
+    const hasPriorAttempt = await this.hasPriorAttempt({
+      brandId: input.brandId,
+      createdAt: now,
+      modelUsed: input.modelKey,
+      organizationId: input.organizationId,
+      prompts: [input.prompt],
+      since: new Date(now.getTime() - RETRY_CREDIT_BACK_WINDOW_MS),
+      userId: input.userId,
+    });
+    return decideRetryCreditBack({
+      chargedCredits: input.chargedCredits,
+      earnedInWindowCredits: await this.earnedSince(
         input.organizationId,
         input.userId,
         new Date(now.getTime() - RETRY_CREDIT_BACK_WINDOW_MS),
       ),
-    ]);
-    return decideRetryCreditBack({
-      chargedCredits: input.chargedCredits,
-      earnedInWindowCredits,
       hasPriorAttempt,
       isDraft: false,
       isTrialSubject: trial.trialEndsAt !== null,

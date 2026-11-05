@@ -115,17 +115,11 @@ export class PostsOperationsController {
       null;
     const resolvedIds: string[] = [];
 
-    const requestedIds = ingredientIds ?? [];
-    const ingredients = await Promise.all(
-      requestedIds.map((ingredientId) =>
-        this.ingredientsService.findOne({
-          id: ingredientId,
-          organizationId,
-        }),
-      ),
-    );
-    for (const [index, ingredientId] of requestedIds.entries()) {
-      const ingredient = ingredients[index];
+    for (const ingredientId of ingredientIds ?? []) {
+      const ingredient = await this.ingredientsService.findOne({
+        id: ingredientId,
+        organizationId,
+      });
       if (!ingredient) {
         throw new HttpException(
           {

@@ -279,17 +279,12 @@ export class VideosClipChainController {
         organizationId,
         path: 'video-clip-chain',
       });
-    const assets = await Promise.all(
-      [...ids].map((id) =>
-        this.ingredientsService.findOne({
-          id,
-          organizationId,
-          isDeleted: false,
-        }),
-      ),
-    );
-    for (const [index, id] of [...ids].entries()) {
-      const asset = assets[index];
+    for (const id of ids) {
+      const asset = await this.ingredientsService.findOne({
+        id,
+        organizationId,
+        isDeleted: false,
+      });
       if (
         !asset ||
         !IDENTITY_STILL_CATEGORIES.includes(
