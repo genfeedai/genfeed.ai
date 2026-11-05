@@ -21,7 +21,10 @@ import type {
   PrismaUpdate,
 } from '@api/shared/services/base/base-query-normalization.adapter';
 import { hasOrganizationBilling, isCloudDeployment } from '@genfeedai/config';
-import { BillingRevenueSource } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  CreditTransactionCategory,
+} from '@genfeedai/contracts';
 import {
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
   LOWEST_COST_IMAGE_MODEL_KEY,
@@ -43,6 +46,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+
+/** Ledger reference namespace of every Stripe checkout credit-pack grant. */
+const CREDIT_PACK_REFERENCE_PREFIX = 'stripe-checkout-session:';
 
 @Injectable()
 export class OrganizationSettingsService extends BaseService<
@@ -125,21 +131,28 @@ export class OrganizationSettingsService extends BaseService<
   }
 
   /**
-   * True once the organization has paid for a credit pack. Credit buyers get
-   * every quality tier (#8482); a 100%-off checkout records no payment and
-   * does not count.
+   * True once the organization has bought a credit pack. Credit buyers get
+   * every quality tier (#8482). Reads the credit ledger, which holds every
+   * pack grant since credits launched: a checkout grant carries a
+   * `stripe-checkout-session:*` reference, and older PAYG packs carry the
+   * PAYG source. Subscription grants (`stripe-invoice:*`, `RESET`) do not
+   * count.
    */
   private async resolveHasPurchasedCredits(
     organizationId: string,
   ): Promise<boolean | null> {
     try {
-      const purchase = await this.prisma.billingRevenueEvent.findFirst({
+      const purchase = await this.prisma.creditTransaction.findFirst({
         select: { id: true },
         where: {
-          amountMinor: { gt: 0 },
+          amount: { gt: 0 },
+          category: CreditTransactionCategory.ADD,
           isDeleted: false,
           organizationId,
-          source: BillingRevenueSource.CREDIT_PURCHASE,
+          OR: [
+            { referenceType: { startsWith: CREDIT_PACK_REFERENCE_PREFIX } },
+            { source: ActivitySource.PAY_AS_YOU_GO },
+          ],
         },
       });
       return purchase !== null;
