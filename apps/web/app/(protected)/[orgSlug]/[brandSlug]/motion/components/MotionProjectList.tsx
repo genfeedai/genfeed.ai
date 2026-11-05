@@ -95,7 +95,7 @@ export default function MotionProjectList(): ReactElement {
             getDate={(item) => item.updatedAt}
             getKey={(item) => item.id}
             items={visible}
-            renderRow={(item) => {
+            renderRow={(item, now) => {
               const status = item.revisions?.[0]?.status;
               return (
                 <ThreadListRow
@@ -110,7 +110,7 @@ export default function MotionProjectList(): ReactElement {
                       ]}
                     />
                   }
-                  time={formatThreadTime(item.updatedAt, locale)}
+                  time={formatThreadTime(item.updatedAt, locale, now)}
                   title={item.label}
                 />
               );

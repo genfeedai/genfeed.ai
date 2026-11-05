@@ -22,7 +22,7 @@ export interface ThreadListRowProps {
   /** Everything the ⋯ menu offers; the menu is left out when empty. */
   actions?: CollectionOverflowAction[];
   href: string;
-  /** Replaces the status icon, for a thumbnail or an avatar. */
+  /** Shown after the status icon, for a thumbnail or an avatar. */
   leading?: ReactNode;
   status?: ThreadListStatus;
   /** Spoken name of the status icon, so the state is not colour alone. */
@@ -38,5 +38,6 @@ export interface ThreadListRecencySectionsProps<TItem> {
   getDate: (item: TItem) => string | Date | null | undefined;
   getKey: (item: TItem) => string;
   items: readonly TItem[];
-  renderRow: (item: TItem) => ReactNode;
+  /** `now` is the list's clock; pass it to `formatThreadTime`. */
+  renderRow: (item: TItem, now: Date) => ReactNode;
 }
