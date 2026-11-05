@@ -12,6 +12,7 @@ import {
   ThreadListRow,
   ThreadListSection,
   ThreadListSubtitle,
+  useLocalDayClock,
 } from '@ui/lists/thread-list/ThreadList';
 import { Button } from '@ui/primitives/button';
 import { Clapperboard } from 'lucide-react';
@@ -49,10 +50,11 @@ export default function StoryboardRunsList(): ReactElement {
     [error, isLoading, runs],
   );
   useCreativeAppAgentContext(creativeApp);
+  const now = useLocalDayClock();
   const needsAttention = runs.filter(isStoryboardRunNeedingAttention);
   const otherRuns = runs.filter((run) => !isStoryboardRunNeedingAttention(run));
 
-  function row(run: StoryboardListRun): ReactElement {
+  function row(run: StoryboardListRun, now: Date): ReactElement {
     return (
       <ThreadListRow
         data-testid="storyboard-run-row"
@@ -83,7 +85,7 @@ export default function StoryboardRunsList(): ReactElement {
             ]}
           />
         }
-        time={formatThreadTime(run.updatedAt, locale)}
+        time={formatThreadTime(run.updatedAt, locale, now)}
         title={run.title}
       />
     );
@@ -133,7 +135,7 @@ export default function StoryboardRunsList(): ReactElement {
           title={translate('needsYou')}
         >
           {needsAttention.map((run) => (
-            <Fragment key={run.id}>{row(run)}</Fragment>
+            <Fragment key={run.id}>{row(run, now)}</Fragment>
           ))}
         </ThreadListSection>
         <ThreadListRecencySections

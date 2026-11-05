@@ -105,7 +105,7 @@ describe('YtDlpService', () => {
     loggerMock = {
       log: vi.fn(),
       warn: vi.fn(),
-    };
+    } as unknown as Mocked<LoggerService>;
 
     spawnMock = spawn as MockedFunction<typeof spawn>;
     fsMock = fs as Mocked<typeof fs>;

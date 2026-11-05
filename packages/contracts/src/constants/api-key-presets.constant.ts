@@ -66,6 +66,9 @@ export const CONNECT_GENFEED_VERIFICATION_METADATA_KEY = 'connectGenfeed';
 /** API-key `metadata.kind` of the session key minted by the MCP OAuth token exchange. */
 export const MCP_OAUTH_SESSION_KIND = 'mcp-oauth-session';
 
+/** API-key `metadata.kind` of a partner key minted by a platform admin. */
+export const PARTNER_API_KEY_KIND = 'partner';
+
 export const MCP_ACCESS_MODE_METADATA_KEY = 'mcpAccessMode';
 /** Session-key metadata: the user allowed organization switching at consent. */
 export const MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY =

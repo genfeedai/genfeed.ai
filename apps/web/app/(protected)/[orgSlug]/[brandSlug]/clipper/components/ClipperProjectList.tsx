@@ -71,7 +71,7 @@ export default function ClipperProjectList({
     }
   }
 
-  function row(project: ClipperProjectSummary) {
+  function row(project: ClipperProjectSummary, now: Date) {
     const thumbnail = youtubeThumbnailUrl(project.sourceVideoUrl);
     return (
       <ThreadListRow
@@ -123,6 +123,11 @@ export default function ClipperProjectList({
               ? 'done'
               : 'idle'
         }
+        statusLabel={
+          project.isDraft
+            ? t('draftBadge')
+            : project.status.replaceAll('_', ' ')
+        }
         subtitle={
           <ThreadListSubtitle
             parts={[
@@ -133,7 +138,11 @@ export default function ClipperProjectList({
             ]}
           />
         }
-        time={formatThreadTime(project.updatedAt ?? project.createdAt, locale)}
+        time={formatThreadTime(
+          project.updatedAt ?? project.createdAt,
+          locale,
+          now,
+        )}
         title={project.name}
       />
     );

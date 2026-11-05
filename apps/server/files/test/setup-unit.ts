@@ -6,7 +6,7 @@
  */
 import { vi } from 'vitest';
 
-process.env.NODE_ENV = 'test';
+vi.stubEnv('NODE_ENV', 'test');
 process.env.PORT = '3012';
 
 // Genfeed URLs required by the files ConfigService schema

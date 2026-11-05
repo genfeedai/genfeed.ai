@@ -10,6 +10,8 @@ interface StoredVoice {
   externalProvider: VoiceProvider;
   id: string;
   isActive: boolean;
+  isDefaultSelectable: boolean;
+  isFeatured: boolean;
   name: string;
   providerData: Record<string, unknown>;
   sampleAudioUrl: string | null;
@@ -48,6 +50,8 @@ function createCatalogTable(seed: StoredVoice[] = []) {
         );
       },
     ),
+    // Like a Prisma query, an update writes nothing until it is awaited (here,
+    // by the transaction that runs it).
     update: vi.fn(
       ({
         data,
@@ -55,11 +59,13 @@ function createCatalogTable(seed: StoredVoice[] = []) {
       }: {
         data: Partial<StoredVoice>;
         where: { id: string };
-      }) => {
-        const row = rows.find((candidate) => candidate.id === where.id);
-        Object.assign(row ?? {}, data, { updatedAt: new Date(1) });
-        return row;
-      },
+      }) => ({
+        run: () => {
+          const row = rows.find((candidate) => candidate.id === where.id);
+          Object.assign(row ?? {}, data, { updatedAt: new Date(1) });
+          return row;
+        },
+      }),
     ),
     updateMany: vi.fn(
       async ({
@@ -88,9 +94,12 @@ function createCatalogTable(seed: StoredVoice[] = []) {
   };
   return {
     prisma: {
-      $transaction: vi.fn(async (operations: unknown[]) => {
+      // The batch commits a macrotask later, so a sync that does not await
+      // the transaction returns before any of its writes land.
+      $transaction: vi.fn(async (operations: { run: () => unknown }[]) => {
         roundTrips++;
-        return operations;
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        return operations.map((operation) => operation.run());
       }),
       externalVoice,
     },
@@ -105,6 +114,8 @@ function storedVoice(overrides: Partial<StoredVoice>): StoredVoice {
     externalProvider: VoiceProvider.HEYGEN,
     id: 'row-v1',
     isActive: true,
+    isDefaultSelectable: true,
+    isFeatured: false,
     name: 'Ava',
     providerData: { gender: 'female', index: 0 },
     sampleAudioUrl: null,
@@ -247,6 +258,35 @@ describe('ExternalVoiceCatalogService.syncFromProviders', () => {
     expect(second).toEqual({ created: 0, total: 3000, updated: 0 });
     expect(firstRoundTrips).toBe(8);
     expect(table.roundTrips() - firstRoundTrips).toBe(2);
+  });
+
+  it('keeps the flags an administrator set when a voice is refreshed', async () => {
+    const service = createService([
+      storedVoice({
+        externalId: 'el1',
+        externalProvider: VoiceProvider.ELEVENLABS,
+        id: 'row-el1',
+        isActive: false,
+        isDefaultSelectable: false,
+        isFeatured: true,
+        name: 'Rachel',
+        sampleAudioUrl: 'old.mp3',
+      }),
+    ]);
+    elevenLabs.getVoices.mockResolvedValue([
+      { name: 'Rachel (v2)', preview: 'new.mp3', voiceId: 'el1' },
+    ]);
+
+    const result = await service.syncFromProviders([VoiceProvider.ELEVENLABS]);
+
+    expect(result).toEqual({ created: 0, total: 1, updated: 1 });
+    expect(table.rows[0]).toMatchObject({
+      isActive: false,
+      isDefaultSelectable: false,
+      isFeatured: true,
+      name: 'Rachel (v2)',
+      sampleAudioUrl: 'new.mp3',
+    });
   });
 
   it('deactivates HeyGen voices missing from the fetched catalog', async () => {

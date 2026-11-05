@@ -14,6 +14,7 @@ describe('ConfigService (Files)', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     process.env = originalEnv;
     vi.clearAllMocks();
   });
@@ -40,14 +41,14 @@ describe('ConfigService (Files)', () => {
   });
 
   it('should get environment variable', () => {
-    process.env.NODE_ENV = 'development';
+    vi.stubEnv('NODE_ENV', 'development');
     const service = new ConfigService();
 
     expect(service.get('NODE_ENV')).toBe('development');
   });
 
   it('should detect development environment', () => {
-    process.env.NODE_ENV = 'development';
+    vi.stubEnv('NODE_ENV', 'development');
     const service = new ConfigService();
 
     expect(service.isDevelopment).toBe(true);
@@ -56,7 +57,7 @@ describe('ConfigService (Files)', () => {
   });
 
   it('should detect production environment', () => {
-    process.env.NODE_ENV = 'production';
+    vi.stubEnv('NODE_ENV', 'production');
     const service = new ConfigService();
 
     expect(service.isProduction).toBe(true);
@@ -65,7 +66,7 @@ describe('ConfigService (Files)', () => {
   });
 
   it('should detect staging environment', () => {
-    process.env.NODE_ENV = 'staging';
+    vi.stubEnv('NODE_ENV', 'staging');
     const service = new ConfigService();
 
     expect(service.isStaging).toBe(true);

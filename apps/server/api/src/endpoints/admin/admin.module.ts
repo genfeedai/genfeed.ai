@@ -5,6 +5,7 @@ import { AdminFeaturedWorkflowsModule } from '@api/endpoints/admin/featured-work
 import { AdminHarnessActivationModule } from '@api/endpoints/admin/harness/harness-activation.module';
 import { AdminModelPricingModule } from '@api/endpoints/admin/model-pricing/model-pricing.module';
 import { AdminOnboardingFunnelModule } from '@api/endpoints/admin/onboarding-funnel/onboarding-funnel.module';
+import { AdminOrganizationApiKeysModule } from '@api/endpoints/admin/organization-api-keys/organization-api-keys.module';
 import { AdminOrganizationAppsReportModule } from '@api/endpoints/admin/organization-apps-report/organization-apps-report.module';
 import { AdminOrganizationBrandsModule } from '@api/endpoints/admin/organization-brands/organization-brands.module';
 import { AdminOrganizationCreditsModule } from '@api/endpoints/admin/organization-credits/organization-credits.module';
@@ -35,6 +36,7 @@ import { Module } from '@nestjs/common';
     AdminSystemEmailsModule,
     AdminSeedsModule,
     AdminSystemBrandModule,
+    AdminOrganizationApiKeysModule,
     AdminOrganizationAppsReportModule,
     AdminOrganizationBrandsModule,
     AdminOrganizationCreditsModule,

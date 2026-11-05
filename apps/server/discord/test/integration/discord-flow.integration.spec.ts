@@ -225,7 +225,7 @@ describe('Discord Bot Manager Integration Flow', () => {
         (call: unknown[]) => call[0] === REDIS_EVENTS.INTEGRATION_CREATED,
       );
       expect(createdCall).toBeDefined();
-      const callback = createdCall[1] as (data: unknown) => void;
+      const callback = createdCall?.[1] as (data: unknown) => void;
 
       // Mock the HTTP fetch for the new integration
       const newIntegration: OrgIntegration = {
@@ -261,7 +261,7 @@ describe('Discord Bot Manager Integration Flow', () => {
         (call: unknown[]) => call[0] === REDIS_EVENTS.INTEGRATION_DELETED,
       );
       expect(deletedCall).toBeDefined();
-      const callback = deletedCall[1] as (data: unknown) => void;
+      const callback = deletedCall?.[1] as (data: unknown) => void;
 
       // Callback receives IntegrationEvent shape
       callback({

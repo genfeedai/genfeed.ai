@@ -13,10 +13,11 @@ describe('ConfigService (Discord)', () => {
     const fs = require('node:fs');
     fs.existsSync = vi.fn().mockReturnValue(false);
 
-    process.env.NODE_ENV = 'test';
+    process.env = { ...process.env, NODE_ENV: 'test' };
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     process.env = originalEnv;
     vi.clearAllMocks();
   });
@@ -51,7 +52,7 @@ describe('ConfigService (Discord)', () => {
   });
 
   it('should detect development environment', () => {
-    process.env.NODE_ENV = 'development';
+    process.env = { ...process.env, NODE_ENV: 'development' };
     const service = new ConfigService();
     expect(service.isDevelopment).toBe(true);
     expect(service.isProduction).toBe(false);
@@ -59,7 +60,7 @@ describe('ConfigService (Discord)', () => {
   });
 
   it('should detect production environment', () => {
-    process.env.NODE_ENV = 'production';
+    process.env = { ...process.env, NODE_ENV: 'production' };
     const service = new ConfigService();
     expect(service.isProduction).toBe(true);
     expect(service.isDevelopment).toBe(false);
@@ -67,7 +68,7 @@ describe('ConfigService (Discord)', () => {
   });
 
   it('should detect staging environment', () => {
-    process.env.NODE_ENV = 'staging';
+    vi.stubEnv('NODE_ENV', 'staging');
     const service = new ConfigService();
     expect(service.isStaging).toBe(true);
     expect(service.isDevelopment).toBe(false);
@@ -75,13 +76,13 @@ describe('ConfigService (Discord)', () => {
   });
 
   it('should detect test environment', () => {
-    process.env.NODE_ENV = 'test';
+    process.env = { ...process.env, NODE_ENV: 'test' };
     const service = new ConfigService();
     expect(service.isTest).toBe(true);
   });
 
   it('should get NODE_ENV via get()', () => {
-    process.env.NODE_ENV = 'development';
+    process.env = { ...process.env, NODE_ENV: 'development' };
     const service = new ConfigService();
     expect(service.get('NODE_ENV')).toBe('development');
   });

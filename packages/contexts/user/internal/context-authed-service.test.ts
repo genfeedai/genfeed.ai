@@ -32,17 +32,12 @@ describe('useContextAuthedService', () => {
   });
 
   it('builds the service with the resolved token', async () => {
-    const factory = vi.fn(
-      (token: string): FakeService => ({
-        token,
-      }),
-    );
+    const factory = (token: string): FakeService => ({ token });
     const { result } = renderHook(() => useContextAuthedService(factory));
 
     const service = await result.current();
 
     expect(service).toEqual({ token: 'token-123' });
-    expect(factory).toHaveBeenCalledWith('token-123');
     expect(getTokenMock).toHaveBeenCalledTimes(1);
   });
 

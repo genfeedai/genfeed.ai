@@ -10,7 +10,15 @@ vi.hoisted(() => {
 });
 
 import { AppModule } from '@api/app.module';
-import { NestFactory } from '@nestjs/core';
+import { CombinedAuthGuard } from '@api/helpers/guards/combined-auth/combined-auth.guard';
+import { MODULE_METADATA } from '@nestjs/common/constants';
+import { APP_GUARD, NestFactory } from '@nestjs/core';
+
+interface ProviderRegistration {
+  provide?: unknown;
+  useClass?: unknown;
+  useExisting?: unknown;
+}
 
 describe('AppModule (API)', () => {
   // Nest's preview mode resolves every provider's constructor dependencies and
@@ -30,4 +38,17 @@ describe('AppModule (API)', () => {
       await app.close();
     }
   }, 60_000);
+
+  // HTTP specs register CombinedAuthGuard as APP_GUARD in their own testing
+  // module; this pins that production does too, ahead of every other global
+  // guard, so scope checks on gf_ keys run on every route (#9129).
+  it('registers CombinedAuthGuard as the first global guard', () => {
+    const providers: ProviderRegistration[] =
+      Reflect.getMetadata(MODULE_METADATA.PROVIDERS, AppModule) ?? [];
+    const globalGuards = providers.filter(
+      (provider) => provider.provide === APP_GUARD,
+    );
+
+    expect(globalGuards[0]?.useClass).toBe(CombinedAuthGuard);
+  });
 });

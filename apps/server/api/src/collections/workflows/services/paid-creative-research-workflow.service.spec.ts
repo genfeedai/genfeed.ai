@@ -50,7 +50,13 @@ describe('PaidCreativeResearchWorkflowService atomic actions', () => {
     });
     expect(discovery.items).toEqual([advertiser]);
 
-    await service.ingestPaidCreativeAdvertiser('org-1', { item: advertiser });
+    await expect(
+      service.ingestPaidCreativeAdvertiser('org-1', { item: advertiser }),
+    ).resolves.toEqual({
+      advertiserId: 'watch-1',
+      recordCount: 2,
+      status: 'success',
+    });
     expect(ingestion.ingestOne).toHaveBeenCalledWith('org-1', advertiser, {});
   });
 });

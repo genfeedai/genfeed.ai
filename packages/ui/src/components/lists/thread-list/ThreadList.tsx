@@ -21,6 +21,7 @@ import {
   Fragment,
   type ReactElement,
   type ReactNode,
+  useEffect,
   useId,
   useState,
 } from 'react';
@@ -117,7 +118,7 @@ export function ThreadListSubtitle({
 }
 
 /**
- * One thread: status icon, title, a single quiet subtitle and the date on the
+ * One thread: status icon (then any thumbnail), title, a single quiet subtitle and the date on the
  * right. No border or fill until hover. On hover or keyboard focus the date
  * gives way to the ⋯ menu. The menu sits beside the link, not inside it, so
  * the row stays valid markup and a click on the menu never opens the thread.
@@ -148,16 +149,15 @@ export function ThreadListRow({
         )}
         href={href}
       >
-        {leading ?? (
-          <span
-            className="mt-0.5 shrink-0"
-            {...(statusLabel
-              ? { 'aria-label': statusLabel, role: 'img' }
-              : { 'aria-hidden': true })}
-          >
-            {STATUS_ICONS[status]}
-          </span>
-        )}
+        <span
+          className="mt-0.5 shrink-0"
+          {...(statusLabel
+            ? { 'aria-label': statusLabel, role: 'img' }
+            : { 'aria-hidden': true })}
+        >
+          {STATUS_ICONS[status]}
+        </span>
+        {leading}
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-sm text-foreground">{title}</span>
           {subtitle ? (
@@ -194,9 +194,35 @@ export function ThreadListRow({
   );
 }
 
+function msUntilNextLocalMidnight(now: Date): number {
+  return (
+    new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() -
+    now.getTime()
+  );
+}
+
+/**
+ * The current time, moved forward at each local midnight so a list that stays
+ * open overnight regroups and relabels its rows without user input.
+ */
+export function useLocalDayClock(): Date {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setTimeout(
+      () => setNow(new Date()),
+      msUntilNextLocalMidnight(now),
+    );
+    return () => clearTimeout(timer);
+  }, [now]);
+
+  return now;
+}
+
 /**
  * Rows grouped under Today, Previous 7 days and Earlier, newest group first.
- * The caller passes items already sorted; the groups only split them.
+ * The caller passes items already sorted; the groups only split them. Rows get
+ * the same clock, so their dates roll over at midnight with the groups.
  */
 export function ThreadListRecencySections<TItem>({
   getDate,
@@ -205,17 +231,18 @@ export function ThreadListRecencySections<TItem>({
   renderRow,
 }: ThreadListRecencySectionsProps<TItem>): ReactElement {
   const translate = useTranslations('ui.threadList');
+  const now = useLocalDayClock();
 
   return (
     <>
-      {groupThreadsByRecency(items, getDate).map((bucket) => (
+      {groupThreadsByRecency(items, getDate, now).map((bucket) => (
         <ThreadListSection
           itemCount={bucket.items.length}
           key={bucket.group}
           title={translate(bucket.group)}
         >
           {bucket.items.map((item) => (
-            <Fragment key={getKey(item)}>{renderRow(item)}</Fragment>
+            <Fragment key={getKey(item)}>{renderRow(item, now)}</Fragment>
           ))}
         </ThreadListSection>
       ))}

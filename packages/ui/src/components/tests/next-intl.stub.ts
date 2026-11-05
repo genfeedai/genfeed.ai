@@ -423,6 +423,11 @@ const UI_TEST_MESSAGES = {
     viewMenu: {
       label: 'View',
     },
+    threadList: {
+      earlier: 'Earlier',
+      last7Days: 'Previous 7 days',
+      today: 'Today',
+    },
     promptBarBlacklist: {
       avoid: 'Avoid',
       chooseWhatToAvoid: 'Choose what to avoid',

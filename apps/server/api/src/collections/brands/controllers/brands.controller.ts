@@ -60,6 +60,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   HttpException,
@@ -115,11 +116,8 @@ export class BrandsController extends BaseCRUDController<
   }
 
   /**
-   * Brand PATCHes never persist the generic CRUD controller's session relation
-   * aliases. Prisma treats `brand`, `organization`, and `user` as nested
-   * relation inputs, so scalar session ids under those keys are invalid update
-   * data. Authorization has already consumed the request context before this
-   * hook runs; only explicit brand fields belong in the persistence payload.
+   * Drop the CRUD session aliases (`brand`, `organization`, `user`): Prisma
+   * reads them as nested relation inputs, and authorization already used them.
    */
   public override enrichUpdateDto(
     updateDto: Partial<UpdateBrandDto>,
@@ -452,12 +450,8 @@ export class BrandsController extends BaseCRUDController<
   }
 
   /**
-   * Resolve the brand's logo, banner and reference assets onto the response.
-   *
-   * The serializer declares them as asset relations, but the Brand table has no
-   * such columns — they are `Asset` rows keyed by `parentBrandId`. Without this
-   * the relations serialize as absent, and the brand setup checklist reports a
-   * missing logo for a brand that has one.
+   * Resolve logo, banner and reference assets (`Asset` rows keyed by
+   * `parentBrandId`); without it the setup checklist reports a missing logo.
    */
   public override async decorateForResponse(
     brand: BrandDocument,
@@ -471,13 +465,8 @@ export class BrandsController extends BaseCRUDController<
   }
 
   /**
-   * Override findOne WITHOUT caching
-   *
-   * IMPORTANT: Caching disabled because brand has virtual populated fields
-   * (links, credentials, references, logo, banner) resolved from related data.
-   * Caching those relation-heavy payloads causes stale data when related
-   * collections update.
-   * This matches the org.settings solution where we bypass population for fresh data.
+   * findOne WITHOUT caching: links, credentials, references, logo and banner
+   * are resolved from related rows and a cached payload would go stale.
    */
   @TenantReadPolicy('selected')
   @Get(':brandId')
@@ -495,5 +484,16 @@ export class BrandsController extends BaseCRUDController<
     );
 
     return super.findOne(request, user, brandId);
+  }
+
+  /** Re-declared only to require `brands:write`; the base handler logs. */
+  @Delete(':id')
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
+  async remove(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<JsonApiSingleResponse> {
+    return super.remove(request, user, id);
   }
 }
