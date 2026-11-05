@@ -370,6 +370,35 @@ describe.skipIf(!connectionString)('retry credit back (PostgreSQL)', () => {
     expect(await creditBack(retry.id, 400)).toBe(5);
   });
 
+  it('keeps concurrent grants for one user under the per-user daily cap', async () => {
+    await seedOrganization(true);
+    await database().creditTransaction.create({
+      data: {
+        actorUserId: userId,
+        amount: RETRY_CREDIT_BACK_DAILY_CAP_CREDITS - 60,
+        category: CreditTransactionCategory.ADD,
+        organizationId,
+        source: RETRY_CREDIT_BACK_SOURCE,
+      },
+    });
+    await attempt({ createdAt: new Date(Date.now() - 2 * HOUR_MS) });
+    const first = await attempt({ createdAt: new Date(Date.now() - HOUR_MS) });
+    const second = await attempt();
+
+    // Each retry is worth 100 on its own and fits the 60 left when read alone.
+    const granted = await Promise.all([
+      creditBack(first.id, 400),
+      creditBack(second.id, 400),
+    ]);
+
+    expect(granted.reduce((total, credits) => total + credits, 0)).toBe(60);
+    const earned = (await grants()).reduce(
+      (total, grant) => total + grant.amount,
+      0,
+    );
+    expect(earned).toBe(RETRY_CREDIT_BACK_DAILY_CAP_CREDITS);
+  });
+
   it("does not read another organization's attempts", async () => {
     await seedOrganization(true);
     const retry = await attempt();
