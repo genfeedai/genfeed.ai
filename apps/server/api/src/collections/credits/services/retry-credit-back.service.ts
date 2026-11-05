@@ -112,37 +112,43 @@ export class RetryCreditBackService {
       since,
       userId,
     });
-    const credits = decideRetryCreditBack({
-      chargedCredits: input.chargedCredits,
-      earnedInWindowCredits: await this.earnedSince(
-        organizationId,
-        userId,
-        new Date(Date.now() - RETRY_CREDIT_BACK_WINDOW_MS),
-      ),
-      hasPriorAttempt,
-      isDraft: false,
-      isTrialSubject: trial.trialEndsAt !== null,
-    });
-    if (credits <= 0) return 0;
-    await this.credits.addOrganizationCreditsWithExpiration(
-      organizationId,
-      credits,
-      RETRY_CREDIT_BACK_SOURCE,
-      'Retry credit back',
-      new Date(Date.now() + RETRY_CREDIT_BACK_EXPIRY_MS),
-      {
-        actorUserId: userId,
-        brandId: retry.brandId,
-        idempotencyKey,
-        metadata: {
-          chargedCredits: input.chargedCredits,
-          ingredientId,
-          kind: 'promotional',
+    const decide = async (db: Pick<PrismaService, 'creditTransaction'>) =>
+      decideRetryCreditBack({
+        chargedCredits: input.chargedCredits,
+        earnedInWindowCredits: await this.earnedSince(
+          organizationId,
+          userId,
+          new Date(Date.now() - RETRY_CREDIT_BACK_WINDOW_MS),
+          db,
+        ),
+        hasPriorAttempt,
+        isDraft: false,
+        isTrialSubject: trial.trialEndsAt !== null,
+      });
+    // Cheap early exit only. The amount is decided again inside the ledger
+    // transaction, so concurrent grants cannot both spend the same cap.
+    if ((await decide(this.prisma)) <= 0) return 0;
+    const credits =
+      await this.credits.addOrganizationCreditsDecidedInTransaction({
+        decideCredits: (tx) => decide(tx),
+        description: 'Retry credit back',
+        expiresAt: new Date(Date.now() + RETRY_CREDIT_BACK_EXPIRY_MS),
+        options: {
+          actorUserId: userId,
+          brandId: retry.brandId,
+          idempotencyKey,
+          metadata: {
+            chargedCredits: input.chargedCredits,
+            ingredientId,
+            kind: 'promotional',
+          },
+          referenceId: ingredientId,
+          referenceType: RETRY_CREDIT_BACK_SOURCE,
         },
-        referenceId: ingredientId,
-        referenceType: RETRY_CREDIT_BACK_SOURCE,
-      },
-    );
+        organizationId,
+        source: RETRY_CREDIT_BACK_SOURCE,
+      });
+    if (credits <= 0) return 0;
     this.logger.log(`${this.constructorName} granted retry credit back`, {
       credits,
       ingredientId,
@@ -253,8 +259,9 @@ export class RetryCreditBackService {
     organizationId: string,
     userId: string,
     since: Date,
+    db: Pick<PrismaService, 'creditTransaction'> = this.prisma,
   ): Promise<number> {
-    const earned = await this.prisma.creditTransaction.aggregate({
+    const earned = await db.creditTransaction.aggregate({
       _sum: { amount: true },
       where: {
         actorUserId: userId,

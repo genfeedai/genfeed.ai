@@ -567,6 +567,57 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     }
   }
 
+  /**
+   * Grants credits whose amount depends on ledger state, such as a per-user
+   * cap. `decideCredits` runs inside the same Serializable transaction that
+   * writes the grant, and again on every conflict retry, so two concurrent
+   * grants cannot both spend the same headroom. Returns the credits written:
+   * 0 when nothing was decided or the grant had already been applied.
+   */
+  async addOrganizationCreditsDecidedInTransaction(input: {
+    decideCredits: (tx: PrismaTransactionClient) => Promise<number>;
+    description: string;
+    expiresAt: Date;
+    options?: IAddCreditsOptions;
+    organizationId: string;
+    source: string;
+  }): Promise<number> {
+    const { decideCredits, options, ...grant } = input;
+    const organization = await this.prisma.organization.findFirst({
+      select: { id: true },
+      where: { id: grant.organizationId, isDeleted: false },
+    });
+    if (!organization) {
+      throw new BusinessLogicException('Organization not found');
+    }
+
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        const { credits, result } = await this.transactionUtil.runInTransaction(
+          async (tx) => {
+            const decided = await decideCredits(tx);
+            if (!(decided > 0)) {
+              return { credits: 0, result: null };
+            }
+            return {
+              credits: decided,
+              result: await this.addCreditsCore(
+                { ...grant, creditsToAdd: decided, options },
+                tx,
+              ),
+            };
+          },
+          BALANCE_TX_OPTIONS,
+        );
+        if (!result?.wasApplied) return 0;
+        await this.publishCreditAddition(grant.organizationId, credits, result);
+        return credits;
+      } catch (error: unknown) {
+        if (!isCreditTransactionConflict(error) || attempt >= 3) throw error;
+      }
+    }
+  }
+
   async addPromotionalCreditsInTransaction(
     input: AddCreditsCoreInput,
     tx: PrismaTransactionClient,
