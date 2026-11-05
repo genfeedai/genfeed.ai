@@ -8,12 +8,14 @@ import type {
   PostingSetReferenceState,
 } from '@genfeedai/contracts/interfaces';
 import { isRecord, readString } from '@genfeedai/utils/data/extract.util';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { PostingSetsService } from '@services/content/posting-sets.service';
 import { PostingSignaturesService } from '@services/content/posting-signatures.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { isCancelledRequest } from '@services/core/operation-error';
+import { useQueryClient } from '@tanstack/react-query';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Badge } from '@ui/primitives/badge';
 import {
@@ -31,6 +33,8 @@ import type {
 } from '@/features/scheduler/props/posting-set-picker.props';
 
 const NONE_SIGNATURE_VALUE = 'none';
+const EMPTY_POSTING_SETS: IPostingSet[] = [];
+const EMPTY_SIGNATURES: IPostingSignature[] = [];
 const UNHEALTHY_STATES = new Set<PostingSetReferenceState>([
   'deleted',
   'disabled',
@@ -130,6 +134,25 @@ function toCreateTargets(
   });
 }
 
+/**
+ * Nested under the shared `posting-sets` / `posting-signatures` roots, so a set
+ * created elsewhere (publishing settings) refreshes the picker too.
+ */
+function brandPostingSetsQueryKey(brandId: string) {
+  return ['posting-sets', 'by-brand', brandId] as const;
+}
+
+function brandPostingSignaturesQueryKey(brandId: string) {
+  return ['posting-signatures', 'by-brand', brandId] as const;
+}
+
+function isCancelledLoad(error: unknown): boolean {
+  return (
+    isCancelledRequest(error) ||
+    (error instanceof Error && error.name === 'AbortError')
+  );
+}
+
 function unhealthyBadgeVariant(
   state: PostingSetReferenceState | undefined,
 ): 'destructive' | 'warning' {
@@ -150,12 +173,31 @@ export default function PostingSetPicker({
   const getPostingSetsService = useAuthedService((token: string) =>
     PostingSetsService.getInstance(token),
   );
-  const getPostingSignaturesService = useAuthedService((token: string) =>
-    PostingSignaturesService.getInstance(token),
-  );
 
-  const [postingSets, setPostingSets] = useState<IPostingSet[]>([]);
-  const [signatures, setSignatures] = useState<IPostingSignature[]>([]);
+  const queryClient = useQueryClient();
+  const hasBrand = Boolean(brandId);
+  // Cached per brand: reopening the scheduler paints the brand's posting sets
+  // and signatures at once, then refreshes them in the background.
+  const postingSetsQuery = useAuthedQuery<PostingSetsService, IPostingSet[]>({
+    enabled: hasBrand,
+    queryFn: (service, signal) => service.findAll({ brandId }, signal),
+    queryKey: brandPostingSetsQueryKey(brandId),
+    service: (token: string) => PostingSetsService.getInstance(token),
+  });
+  const signaturesQuery = useAuthedQuery<
+    PostingSignaturesService,
+    IPostingSignature[]
+  >({
+    enabled: hasBrand,
+    queryFn: (service, signal) => service.findAll({ brandId }, signal),
+    queryKey: brandPostingSignaturesQueryKey(brandId),
+    service: (token: string) => PostingSignaturesService.getInstance(token),
+  });
+  const postingSets = postingSetsQuery.data ?? EMPTY_POSTING_SETS;
+  const signatures = signaturesQuery.data ?? EMPTY_SIGNATURES;
+  // A brand's first paint is loading, never the "no posting sets" message.
+  const isLoading = hasBrand && postingSetsQuery.isPending;
+  const loadError = postingSetsQuery.error ?? signaturesQuery.error;
   const [selectedSetId, setSelectedSetId] = useState<string>('');
   const [expandedTargets, setExpandedTargets] = useState<
     PostingSetPickerTarget[]
@@ -163,9 +205,6 @@ export default function PostingSetPicker({
   const [newSetLabel, setNewSetLabel] = useState('');
   const [selectedSignatureId, setSelectedSignatureId] =
     useState(NONE_SIGNATURE_VALUE);
-  // The lists load on mount for a brand, so that first paint is loading,
-  // never the "no posting sets" message.
-  const [isLoading, setIsLoading] = useState(Boolean(brandId));
   const [isExpanding, setIsExpanding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -174,57 +213,15 @@ export default function PostingSetPicker({
     [postingSets, selectedSetId],
   );
 
-  const loadLists = useCallback(
-    async (signal: AbortSignal) => {
-      if (!brandId) {
-        return;
-      }
-      setIsLoading(true);
-      try {
-        const [setsService, signaturesService] = await Promise.all([
-          getPostingSetsService(),
-          getPostingSignaturesService(),
-        ]);
-        const [sets, signatureRows] = await Promise.all([
-          setsService.findAll({ brandId }, signal),
-          signaturesService.findAll({ brandId }, signal),
-        ]);
-        if (signal.aborted) {
-          return;
-        }
-        setPostingSets(sets);
-        setSignatures(signatureRows);
-      } catch (error) {
-        if (
-          signal.aborted ||
-          isCancelledRequest(error) ||
-          (error instanceof Error && error.name === 'AbortError')
-        ) {
-          return;
-        }
-        logger.error('Failed to load posting sets', error);
-        if (!signal.aborted) {
-          notifications.error('Failed to load posting sets');
-        }
-      } finally {
-        if (!signal.aborted) {
-          setIsLoading(false);
-        }
-      }
-    },
-    [
-      brandId,
-      getPostingSetsService,
-      getPostingSignaturesService,
-      notifications,
-    ],
-  );
-
+  // A read that navigation cancelled stays silent; a real failure is reported
+  // once, after React Query's retry.
   useEffect(() => {
-    const controller = new AbortController();
-    void loadLists(controller.signal);
-    return () => controller.abort();
-  }, [loadLists]);
+    if (!loadError || isCancelledLoad(loadError)) {
+      return;
+    }
+    logger.error('Failed to load posting sets', loadError);
+    notifications.error('Failed to load posting sets');
+  }, [loadError, notifications]);
 
   const handleSelectSet = useCallback(
     async (postingSetId: string) => {
@@ -265,7 +262,10 @@ export default function PostingSetPicker({
           label,
           targets: toCreateTargets(currentTargets, signatureId),
         });
-        setPostingSets((previous) => [created, ...previous]);
+        queryClient.setQueriesData<IPostingSet[]>(
+          { queryKey: brandPostingSetsQueryKey(brandId) },
+          (previous) => [created, ...(previous ?? [])],
+        );
         setNewSetLabel('');
         notifications.success?.('Posting set saved');
       } catch (error) {
@@ -280,6 +280,7 @@ export default function PostingSetPicker({
       currentTargets,
       getPostingSetsService,
       notifications,
+      queryClient,
       selectedSignatureId,
     ],
   );

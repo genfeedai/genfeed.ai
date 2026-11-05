@@ -7,8 +7,10 @@ import {
   ComponentSize,
 } from '@genfeedai/contracts';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
+import { useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -33,11 +35,12 @@ import Spinner from '@ui/primitives/spinner';
 import { Switch } from '@ui/primitives/switch';
 import { CalendarClock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import {
   type CloudWorkflowData,
   createWorkflowApiService,
+  type WorkflowApiService,
 } from '@/features/workflows/services/workflow-api';
 import {
   CUSTOM_CADENCE_VALUE,
@@ -57,6 +60,41 @@ interface WorkflowScheduleDialogProps {
   readonly workflowId: string;
 }
 
+/** What the dialog edits; seeded from the stored schedule. */
+interface ScheduleFormState {
+  cronExpression: string;
+  isCustomCadence: boolean;
+  isEnabled: boolean;
+  timezone: string;
+}
+
+function workflowScheduleQueryKey(workflowId: string) {
+  return ['workflow-schedule', workflowId] as const;
+}
+
+function toScheduleForm(workflow: CloudWorkflowData | null): ScheduleFormState {
+  const storedCron = workflow?.schedule?.trim() ?? '';
+  return {
+    cronExpression: storedCron,
+    isCustomCadence:
+      resolveCadencePresetValue(storedCron) === CUSTOM_CADENCE_VALUE,
+    isEnabled: storedCron ? (workflow?.isScheduleEnabled ?? false) : true,
+    timezone: workflow?.timezone?.trim() || 'UTC',
+  };
+}
+
+function isSameScheduleForm(
+  a: ScheduleFormState,
+  b: ScheduleFormState,
+): boolean {
+  return (
+    a.cronExpression === b.cronExpression &&
+    a.isCustomCadence === b.isCustomCadence &&
+    a.isEnabled === b.isEnabled &&
+    a.timezone === b.timezone
+  );
+}
+
 /**
  * Set, edit, enable, disable, or remove the recurring schedule of a
  * user-owned workflow. Presets translate to canonical cron without exposing
@@ -71,69 +109,77 @@ export function WorkflowScheduleDialog({
 }: WorkflowScheduleDialogProps) {
   const translate = useTranslations('common.automation.workflows.schedule');
   const getService = useAuthedService(createWorkflowApiService);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [workflowLabel, setWorkflowLabel] = useState<string | null>(null);
-  const [hasStoredSchedule, setHasStoredSchedule] = useState(false);
-  const [nextRunAt, setNextRunAt] = useState<string | null>(null);
-  const [cronExpression, setCronExpression] = useState('');
-  const [timezone, setTimezone] = useState('UTC');
-  const [isEnabled, setIsEnabled] = useState(true);
-  const [isCustomCadence, setIsCustomCadence] = useState(false);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const controller = new AbortController();
-
-    const load = async (): Promise<void> => {
-      setIsLoading(true);
-      setError(null);
-
+  const queryClient = useQueryClient();
+  // The stored schedule reads through React Query, so reopening the dialog
+  // paints the cached schedule at once and refreshes it in the background.
+  const workflowQuery = useAuthedQuery<WorkflowApiService, CloudWorkflowData>({
+    enabled: isOpen,
+    queryFn: async (service) => {
       try {
-        const service = await getService();
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        const workflow = await service.get(workflowId);
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        const storedCron = workflow.schedule?.trim() ?? '';
-        setWorkflowLabel(workflow.label);
-        setHasStoredSchedule(Boolean(storedCron));
-        setNextRunAt(workflow.nextRunAt ?? null);
-        setCronExpression(storedCron);
-        setTimezone(workflow.timezone?.trim() || 'UTC');
-        setIsEnabled(storedCron ? (workflow.isScheduleEnabled ?? false) : true);
-        setIsCustomCadence(
-          resolveCadencePresetValue(storedCron) === CUSTOM_CADENCE_VALUE,
-        );
+        return await service.get(workflowId);
       } catch (cause) {
-        if (!controller.signal.aborted) {
-          logger.error('Failed to load workflow schedule', {
-            cause,
-            workflowId,
-          });
-          setError(
-            extractScheduleErrorMessage(cause, translate('errors.load')),
-          );
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
+        logger.error('Failed to load workflow schedule', {
+          cause,
+          workflowId,
+        });
+        throw cause;
       }
-    };
+    },
+    queryKey: workflowScheduleQueryKey(workflowId),
+    // The schedule can change outside this dialog (the library's pause
+    // toggle), so every open re-reads it behind the cached paint.
+    refetchOnMount: 'always',
+    service: createWorkflowApiService,
+  });
+  const workflow = workflowQuery.data ?? null;
+  const isLoading = isOpen && workflowQuery.isPending;
+  // A save sends the whole schedule, so it waits for the fresh read rather
+  // than writing back a cached one.
+  const isRefreshing = workflowQuery.isFetching;
+  const hasStoredSchedule = Boolean(workflow?.schedule?.trim());
+  const workflowLabel = workflow?.label ?? null;
+  const nextRunAt = workflow?.nextRunAt ?? null;
 
-    void load();
-    return () => controller.abort();
-  }, [getService, isOpen, translate, workflowId]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const error =
+    saveError ??
+    (workflowQuery.error
+      ? extractScheduleErrorMessage(
+          workflowQuery.error,
+          translate('errors.load'),
+        )
+      : null);
+
+  const [form, setForm] = useState<ScheduleFormState>(() =>
+    toScheduleForm(workflow),
+  );
+  // The workflow the form was last seeded from. A fresh read re-seeds the
+  // form only while it is untouched, so a background refresh never wipes a
+  // cadence the user is choosing.
+  const [formSource, setFormSource] = useState(workflow);
+  if (formSource !== workflow) {
+    setFormSource(workflow);
+    if (isSameScheduleForm(form, toScheduleForm(formSource))) {
+      setForm(toScheduleForm(workflow));
+    }
+  }
+  const { cronExpression, isCustomCadence, isEnabled, timezone } = form;
+  const updateForm = useCallback((update: Partial<ScheduleFormState>) => {
+    setForm((current) => ({ ...current, ...update }));
+  }, []);
+
+  const applySavedWorkflow = useCallback(
+    (updated: CloudWorkflowData) => {
+      queryClient.setQueriesData<CloudWorkflowData>(
+        { queryKey: workflowScheduleQueryKey(workflowId) },
+        updated,
+      );
+      onSaved?.(updated);
+      onOpenChange(false);
+    },
+    [onOpenChange, onSaved, queryClient, workflowId],
+  );
 
   const cadenceSelectValue = isCustomCadence
     ? CUSTOM_CADENCE_VALUE
@@ -149,12 +195,12 @@ export function WorkflowScheduleDialog({
   const handleSave = useCallback(async () => {
     const trimmedCron = cronExpression.trim();
     if (!trimmedCron) {
-      setError(translate('errors.cadenceRequired'));
+      setSaveError(translate('errors.cadenceRequired'));
       return;
     }
 
     setIsSaving(true);
-    setError(null);
+    setSaveError(null);
     try {
       const service = await getService();
       const updated = await service.updateSchedule(workflowId, {
@@ -162,20 +208,20 @@ export function WorkflowScheduleDialog({
         schedule: trimmedCron,
         timezone: timezone.trim() || 'UTC',
       });
-      onSaved?.(updated);
-      onOpenChange(false);
+      applySavedWorkflow(updated);
     } catch (cause) {
       logger.error('Failed to save workflow schedule', { cause, workflowId });
-      setError(extractScheduleErrorMessage(cause, translate('errors.save')));
+      setSaveError(
+        extractScheduleErrorMessage(cause, translate('errors.save')),
+      );
     } finally {
       setIsSaving(false);
     }
   }, [
+    applySavedWorkflow,
     cronExpression,
     getService,
     isEnabled,
-    onOpenChange,
-    onSaved,
     timezone,
     translate,
     workflowId,
@@ -183,25 +229,26 @@ export function WorkflowScheduleDialog({
 
   const handleRemove = useCallback(async () => {
     setIsSaving(true);
-    setError(null);
+    setSaveError(null);
     try {
       const service = await getService();
       const updated = await service.updateSchedule(workflowId, {
         isScheduleEnabled: false,
         schedule: null,
       });
-      onSaved?.(updated);
-      onOpenChange(false);
+      applySavedWorkflow(updated);
     } catch (cause) {
       logger.error('Failed to remove workflow schedule', {
         cause,
         workflowId,
       });
-      setError(extractScheduleErrorMessage(cause, translate('errors.remove')));
+      setSaveError(
+        extractScheduleErrorMessage(cause, translate('errors.remove')),
+      );
     } finally {
       setIsSaving(false);
     }
-  }, [getService, onOpenChange, onSaved, translate, workflowId]);
+  }, [applySavedWorkflow, getService, translate, workflowId]);
 
   const cadenceSummary = describeCadence(cronExpression);
   const nextRunLabel = formatNextRunAt(nextRunAt, timezone);
@@ -251,7 +298,9 @@ export function WorkflowScheduleDialog({
                 aria-label={translate('recurring.title')}
                 className="mt-0.5 shrink-0"
                 checked={isEnabled}
-                onCheckedChange={setIsEnabled}
+                onCheckedChange={(checked) =>
+                  updateForm({ isEnabled: checked })
+                }
               />
             </Card>
 
@@ -268,14 +317,20 @@ export function WorkflowScheduleDialog({
                   value={cadenceSelectValue}
                   onValueChange={(value) => {
                     if (value === CUSTOM_CADENCE_VALUE) {
-                      setIsCustomCadence(true);
-                      if (!cronExpression.trim()) {
-                        setCronExpression(DEFAULT_CUSTOM_CRON);
-                      }
+                      updateForm(
+                        cronExpression.trim()
+                          ? { isCustomCadence: true }
+                          : {
+                              cronExpression: DEFAULT_CUSTOM_CRON,
+                              isCustomCadence: true,
+                            },
+                      );
                       return;
                     }
-                    setIsCustomCadence(false);
-                    setCronExpression(value);
+                    updateForm({
+                      cronExpression: value,
+                      isCustomCadence: false,
+                    });
                   }}
                 >
                   <SelectTrigger
@@ -312,7 +367,7 @@ export function WorkflowScheduleDialog({
                       placeholder={translate('custom.placeholder')}
                       value={cronExpression}
                       onChange={(event) =>
-                        setCronExpression(event.target.value)
+                        updateForm({ cronExpression: event.target.value })
                       }
                     />
                     <p className="text-xs leading-5 text-muted-foreground">
@@ -332,7 +387,7 @@ export function WorkflowScheduleDialog({
                 <Select
                   disabled={isSaving}
                   value={timezone || 'UTC'}
-                  onValueChange={setTimezone}
+                  onValueChange={(value) => updateForm({ timezone: value })}
                 >
                   <SelectTrigger
                     aria-label={translate('timezone.label')}
@@ -368,7 +423,7 @@ export function WorkflowScheduleDialog({
         <DialogFooter className="sm:justify-between">
           {hasStoredSchedule ? (
             <Button
-              isDisabled={isSaving || isLoading}
+              isDisabled={isSaving || isLoading || isRefreshing}
               variant={ButtonVariant.DESTRUCTIVE}
               withWrapper={false}
               onClick={() => void handleRemove()}
@@ -388,7 +443,7 @@ export function WorkflowScheduleDialog({
               {translate('actions.cancel')}
             </Button>
             <Button
-              isDisabled={isSaving || isLoading}
+              isDisabled={isSaving || isLoading || isRefreshing}
               withWrapper={false}
               onClick={() => void handleSave()}
             >
