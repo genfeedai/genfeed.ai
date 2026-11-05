@@ -557,7 +557,7 @@ export default function BrandGuidedSetupPage() {
     if (brandId) {
       clearBrandDrafts(brandId);
     }
-    void handleRefreshBrand(true);
+    void handleRefreshBrand();
   }, [brandId, clearBrandDrafts, handleRefreshBrand]);
 
   useEffect(() => {

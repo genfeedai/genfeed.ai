@@ -35,22 +35,17 @@ import { BrandsService } from '@genfeedai/services/social/brands.service';
 import { ErrorHandler } from '@genfeedai/utils/error/error-handler.util';
 import { buildLatestBrandArticlesQuery } from '@helpers/content/latest-brand-articles-query.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useRouteParams } from '@hooks/navigation/use-route-params';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   buildSocialConnections,
   getAccountConnectionStatus,
 } from '@ui/modals/brands/brand/ModalBrand.types';
 import { usePathname, useRouter } from 'next/navigation';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSaveQueue } from '@/hooks/utils/use-save-queue/use-save-queue';
 
 const BRAND_SETTINGS_PATH_PATTERN = /\/~\/settings\/brands\/[^/]+(\/.*)?$/;
@@ -58,54 +53,27 @@ const SETTINGS_PATH_PATTERN = /\/settings(\/.*)?$/;
 const BRAND_ID_PATH_PATTERN = /\/brands\/([^/]+)/;
 const BRAND_PATH_SEGMENT_PATTERN = /\/brands\/[^/]+/;
 
-interface BrandMediaState {
-  brand: IBrand | null;
-  videos: IVideo[];
-  images: IImage[];
-  articles: IArticle[];
+/** The brand as the settings pages show it: the record plus its links. */
+interface BrandDetailData {
+  brand: IBrand;
   links: ILink[];
-  selectedLink: ILink | null;
 }
 
-type BrandMediaAction =
-  | { type: 'SET_BRAND'; brand: IBrand; links: ILink[] }
-  | {
-      type: 'SET_MEDIA';
-      videos: IVideo[];
-      images: IImage[];
-      articles: IArticle[];
-    }
-  | { type: 'SELECT_LINK'; link: ILink | null }
-  | { type: 'RESET' };
+interface BrandLatestMedia {
+  articles: IArticle[];
+  images: IImage[];
+  videos: IVideo[];
+}
 
-const initialBrandMediaState: BrandMediaState = {
+const EMPTY_LINKS: ILink[] = [];
+const EMPTY_LATEST_MEDIA: BrandLatestMedia = {
   articles: [],
-  brand: null,
   images: [],
-  links: [],
-  selectedLink: null,
   videos: [],
 };
 
-function brandMediaReducer(
-  state: BrandMediaState,
-  action: BrandMediaAction,
-): BrandMediaState {
-  switch (action.type) {
-    case 'SET_BRAND':
-      return { ...state, brand: action.brand, links: action.links };
-    case 'SET_MEDIA':
-      return {
-        ...state,
-        articles: action.articles,
-        images: action.images,
-        videos: action.videos,
-      };
-    case 'SELECT_LINK':
-      return { ...state, selectedLink: action.link };
-    case 'RESET':
-      return initialBrandMediaState;
-  }
+function brandDetailQueryKey(brandSlug: string) {
+  return ['brand-detail', brandSlug] as const;
 }
 
 export function useBrandDetail(): UseBrandDetailReturn {
@@ -144,12 +112,32 @@ export function useBrandDetail(): UseBrandDetailReturn {
   const brandSlug = matchedRouteBrand?.slug ?? routeBrandParam;
   const hasBrandId = Boolean(brandSlug);
 
-  const [state, dispatch] = useReducer(
-    brandMediaReducer,
-    initialBrandMediaState,
-  );
-
-  const brandId = state.brand?.id ?? '';
+  const queryClient = useQueryClient();
+  const brandQuery = useAuthedQuery<BrandsService, BrandDetailData>({
+    enabled: hasBrandId,
+    // An identity that settles after an OAuth redirect re-keys the read; the
+    // loaded brand stays on screen while it does.
+    keepPreviousDataWithin: brandDetailQueryKey(brandSlug),
+    queryFn: async (service) => {
+      const url = `GET /brands/slug?slug=${brandSlug}`;
+      try {
+        const brandResponse = await service.findOneBySlug(brandSlug);
+        logger.info(`${url} success`, brandResponse);
+        return { brand: brandResponse, links: brandResponse.links || [] };
+      } catch (error) {
+        logger.error(`${url} failed`, error);
+        throw error;
+      }
+    },
+    queryKey: brandDetailQueryKey(brandSlug),
+    service: (token: string) => BrandsService.getInstance(token),
+  });
+  const { refetch: refetchBrand } = brandQuery;
+  const brandData = brandQuery.data ?? null;
+  const brand = brandData?.brand ?? null;
+  const links = brandData?.links ?? EMPTY_LINKS;
+  const brandId = brand?.id ?? '';
+  const [selectedLink, setSelectedLink] = useState<ILink | null>(null);
 
   // Queued saves run after the render that enqueued them, so they read the
   // brand from this ref rather than from a stale closure.
@@ -157,18 +145,26 @@ export function useBrandDetail(): UseBrandDetailReturn {
     brand: null,
     links: [],
   });
+  if (brandData && brandStateRef.current.brand !== brandData.brand) {
+    brandStateRef.current = brandData;
+  }
 
-  // Orders overlapping brand fetches: only the latest request may write state.
-  const latestBrandRequestRef = useRef(0);
-
-  const applyBrand = useCallback((brand: IBrand, links: ILink[]) => {
-    brandStateRef.current = { brand, links };
-    dispatch({ brand, links, type: 'SET_BRAND' });
-  }, []);
+  const applyBrand = useCallback(
+    (nextBrand: IBrand, nextLinks: ILink[]) => {
+      brandStateRef.current = { brand: nextBrand, links: nextLinks };
+      queryClient.setQueriesData<BrandDetailData>(
+        { queryKey: brandDetailQueryKey(brandSlug) },
+        () => ({ brand: nextBrand, links: nextLinks }),
+      );
+    },
+    [brandSlug, queryClient],
+  );
 
   const { enqueueSave, isSaving: isUpdating } = useSaveQueue();
 
-  const [isLoading, setIsLoading] = useState(true);
+  // Only a brand with nothing cached yet shows the skeleton; a return visit
+  // paints the cached brand and refreshes it in the background.
+  const isLoading = !hasBrandId || brandQuery.isPending;
   const [isGeneratingBanner, setIsGeneratingBanner] = useState(false);
   const [isGeneratingLogo, setIsGeneratingLogo] = useState(false);
   const [deletingRefId, setDeletingRefId] = useState<string | null>(null);
@@ -198,19 +194,16 @@ export function useBrandDetail(): UseBrandDetailReturn {
     }
   }, [matchedRouteBrand, params?.orgSlug, pathname, routeBrandParam, router]);
 
-  const findLatestMedia = useCallback(async () => {
-    if (!state.brand?.id) {
-      return;
-    }
+  const latestMediaQuery = useQuery<BrandLatestMedia>({
+    enabled: Boolean(brandId),
+    queryFn: async () => {
+      const mediaQuery = {
+        brand: brandId,
+        limit: 3,
+        sort: 'createdAt: -1',
+      };
+      const articleQuery = buildLatestBrandArticlesQuery(brandId);
 
-    const mediaQuery = {
-      brand: state.brand.id,
-      limit: 3,
-      sort: 'createdAt: -1',
-    };
-    const articleQuery = buildLatestBrandArticlesQuery(state.brand.id);
-
-    try {
       const [videosResult, imagesResult, articlesResult] =
         await Promise.allSettled([
           publicService.findPublicVideos({
@@ -226,100 +219,61 @@ export function useBrandDetail(): UseBrandDetailReturn {
           publicService.findPublicArticles(articleQuery),
         ]);
 
-      let newVideos: IVideo[] = [];
-      let newImages: IImage[] = [];
-      let newArticles: IArticle[] = [];
+      let videos: IVideo[] = [];
+      let images: IImage[] = [];
+      let articles: IArticle[] = [];
 
       if (videosResult.status === 'fulfilled') {
         logger.info(`GET /public/videos success`, videosResult.value);
-        newVideos = videosResult.value;
+        videos = videosResult.value;
       } else {
         logger.error(`GET /public/videos failed`, videosResult.reason);
       }
 
       if (imagesResult.status === 'fulfilled') {
         logger.info(`GET /public/images success`, imagesResult.value);
-        newImages = imagesResult.value;
+        images = imagesResult.value;
       } else {
         logger.error(`GET /public/images failed`, imagesResult.reason);
       }
 
       if (articlesResult.status === 'fulfilled') {
         logger.info(`GET /public/articles success`, articlesResult.value);
-        newArticles = articlesResult.value;
+        articles = articlesResult.value;
       } else {
         logger.error(`GET /public/articles failed`, articlesResult.reason);
       }
 
-      dispatch({
-        articles: newArticles,
-        images: newImages,
-        type: 'SET_MEDIA',
-        videos: newVideos,
-      });
-    } catch (error) {
-      logger.error(`GET /public/media failed`, error);
-      dispatch({ articles: [], images: [], type: 'SET_MEDIA', videos: [] });
-    }
-  }, [state.brand?.id, publicService]);
-
-  const findOneBrand = useCallback(
-    async (isRefreshing = false) => {
-      if (!brandSlug) {
-        return;
-      }
-
-      // The page only drops to its loading state while it has nothing of this
-      // brand to show. A refetch that starts because the auth identity settled
-      // (first session read after an OAuth redirect) or the user asked to
-      // refresh must keep the loaded brand on screen, never blank it again.
-      const loadedBrand = brandStateRef.current.brand;
-      const isShowingRouteBrand =
-        loadedBrand?.slug === brandSlug || loadedBrand?.id === brandSlug;
-      setIsLoading(!isRefreshing && !isShowingRouteBrand);
-
-      const requestId = ++latestBrandRequestRef.current;
-      const url = `GET /brands/slug?slug=${brandSlug}`;
-
-      try {
-        const service = await getBrandsService();
-        const brandResponse = await service.findOneBySlug(brandSlug);
-
-        // A newer request owns the state; this answer is stale.
-        if (requestId !== latestBrandRequestRef.current) {
-          return;
-        }
-
-        logger.info(`${url} success`, brandResponse);
-
-        applyBrand(brandResponse, brandResponse.links || []);
-        setIsLoading(false);
-      } catch (error) {
-        logger.error(`${url} failed`, error);
-        if (requestId === latestBrandRequestRef.current) {
-          setIsLoading(false);
-        }
-      }
+      return { articles, images, videos };
     },
-    [applyBrand, brandSlug, getBrandsService],
-  );
+    queryKey: ['brand-detail-media', brandId],
+  });
+  const latestMedia = latestMediaQuery.data ?? EMPTY_LATEST_MEDIA;
+
+  // A refresh keeps the loaded brand on screen; overlapping refreshes are
+  // ordered by React Query, so only the latest answer is kept.
+  const findOneBrand = useCallback(async () => {
+    if (hasBrandId) {
+      await refetchBrand();
+    }
+  }, [hasBrandId, refetchBrand]);
 
   const handleOpenUploadModal = useCallback(
     (category: AssetCategory) => {
-      if (!state.brand?.id) {
+      if (!brand?.id) {
         return;
       }
 
       openUpload({
         category,
         onComplete: () => {
-          findOneBrand(true);
+          findOneBrand();
         },
-        parentId: state.brand.id,
+        parentId: brand.id,
         parentModel: 'Brand',
       });
     },
-    [state.brand?.id, findOneBrand, openUpload],
+    [brand?.id, findOneBrand, openUpload],
   );
 
   const handleRequestDeleteReference = useCallback(
@@ -337,7 +291,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
           try {
             const service = await getAssetsService();
             await service.delete(assetId);
-            await findOneBrand(true);
+            await findOneBrand();
           } catch (error) {
             logger.error(`${url} failed`, error);
             notificationsService.error('Failed to delete branding reference');
@@ -358,13 +312,13 @@ export function useBrandDetail(): UseBrandDetailReturn {
   };
 
   const handleLinkConfirm = useCallback(() => {
-    dispatch({ link: null, type: 'SELECT_LINK' });
-    findOneBrand(true);
+    setSelectedLink(null);
+    findOneBrand();
   }, [findOneBrand]);
 
   const handleUpdateAccount = useCallback(
     (field: string, value: boolean | string): Promise<void> => {
-      if (!state.brand) {
+      if (!brand) {
         return Promise.resolve();
       }
 
@@ -424,13 +378,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
         }
       });
     },
-    [
-      state.brand,
-      applyBrand,
-      enqueueSave,
-      getBrandsService,
-      notificationsService,
-    ],
+    [brand, applyBrand, enqueueSave, getBrandsService, notificationsService],
   );
 
   // The handle is the `[brandSlug]` route segment, so a saved rename moves the
@@ -438,7 +386,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
   const handleUpdateHandle = useCallback(
     async (value: string): Promise<void> => {
       const handle = normalizeBrandHandle(value);
-      if (!state.brand || handle === state.brand.slug) {
+      if (!brand || handle === brand.slug) {
         return;
       }
 
@@ -468,41 +416,29 @@ export function useBrandDetail(): UseBrandDetailReturn {
       refreshBrands,
       routeBrandParam,
       router,
-      state.brand,
+      brand,
     ],
   );
 
   const handleGenerateBanner = useCallback(() => {
-    if (!state.brand) {
+    if (!brand) {
       return;
     }
     setGenerateModalType('banner');
     openModal(ModalEnum.BRAND_GENERATE);
-  }, [state.brand]);
+  }, [brand]);
 
   const handleGenerateLogo = useCallback(() => {
-    if (!state.brand) {
+    if (!brand) {
       return;
     }
     setGenerateModalType('logo');
     openModal(ModalEnum.BRAND_GENERATE);
-  }, [state.brand]);
+  }, [brand]);
 
   const selectLink = useCallback((link: ILink | null) => {
-    dispatch({ link, type: 'SELECT_LINK' });
+    setSelectedLink(link);
   }, []);
-
-  useEffect(() => {
-    if (hasBrandId) {
-      findOneBrand();
-    }
-  }, [findOneBrand, hasBrandId]);
-
-  useEffect(() => {
-    if (state.brand?.id) {
-      findLatestMedia();
-    }
-  }, [state.brand?.id, findLatestMedia]);
 
   useEffect(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -549,7 +485,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
           notificationsService.success(
             `${isBanner ? 'Banner' : 'Logo'} generated successfully`,
           );
-          findOneBrand(true);
+          findOneBrand();
         } else if (status === 'failed') {
           notificationsService.error(
             `${isBanner ? 'Banner' : 'Logo'} generation failed. Your current ${
@@ -572,10 +508,10 @@ export function useBrandDetail(): UseBrandDetailReturn {
   // credentials array specifically (not the whole brand object) so this
   // doesn't get a new identity on every brand refresh that leaves
   // credentials untouched.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: buildSocialConnections only reads state.brand.credentials — depending on the whole brand object would give this a new identity on every refresh that leaves credentials untouched.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: buildSocialConnections only reads brand.credentials — depending on the whole brand object would give this a new identity on every refresh that leaves credentials untouched.
   const socialConnections = useMemo(
-    () => buildSocialConnections(state.brand),
-    [state.brand?.credentials],
+    () => buildSocialConnections(brand),
+    [brand?.credentials],
   );
 
   // Counts rows that are actually connected — not a raw `isConnected`
@@ -590,8 +526,8 @@ export function useBrandDetail(): UseBrandDetailReturn {
   );
 
   return {
-    articles: state.articles,
-    brand: state.brand,
+    articles: latestMedia.articles,
+    brand,
     brandId,
     connectedPlatformsCount,
     deletingRefId,
@@ -606,16 +542,16 @@ export function useBrandDetail(): UseBrandDetailReturn {
     handleUpdateAccount,
     handleUpdateHandle,
     hasBrandId,
-    images: state.images,
+    images: latestMedia.images,
     isGeneratingBanner,
     isGeneratingLogo,
     isLoading,
     isUpdating,
-    links: state.links,
-    selectedLink: state.selectedLink,
+    links,
+    selectedLink,
     selectLink,
     setGenerateModalType,
     socialConnections,
-    videos: state.videos,
+    videos: latestMedia.videos,
   };
 }

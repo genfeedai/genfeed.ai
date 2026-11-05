@@ -1,4 +1,8 @@
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
   IngredientFormat,
   PageScope,
   Platform,
@@ -23,6 +27,11 @@ const { mockFindOne, mockGetPostsService, mockLogger } = vi.hoisted(() => ({
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: mockLogger,
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -109,8 +118,10 @@ describe('usePostDetailState', () => {
   it('treats a 404 as a missing post without reporting an error', async () => {
     mockFindOne.mockRejectedValue(serviceOperationError(404, 'Post not found'));
 
-    const { result } = renderHook(() =>
-      usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+    const { result } = renderHook(
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -124,8 +135,10 @@ describe('usePostDetailState', () => {
       serviceOperationError(500, 'Internal server error'),
     );
 
-    const { result } = renderHook(() =>
-      usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+    const { result } = renderHook(
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() =>
@@ -153,8 +166,10 @@ describe('usePostDetailState', () => {
       totalViews: 2100,
     });
 
-    const hook = renderHook(() =>
-      usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+    const hook = renderHook(
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => {
@@ -193,9 +208,57 @@ describe('usePostDetailState', () => {
     ).toBe(true);
   });
 
+  it('paints the cached post at once when the post is opened again', async () => {
+    const client = createTestQueryClient();
+    mockFindOne.mockResolvedValueOnce({ id: 'post-1', label: 'Launch teaser' });
+    const firstVisit = renderHook(
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+      { wrapper: queryClientWrapper(client) },
+    );
+    await waitFor(() =>
+      expect(firstVisit.result.current.post?.label).toBe('Launch teaser'),
+    );
+    firstVisit.unmount();
+
+    mockFindOne.mockImplementationOnce(() => new Promise(() => {}));
+    const secondVisit = renderHook(
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(secondVisit.result.current.isLoading).toBe(false);
+    expect(secondVisit.result.current.post?.label).toBe('Launch teaser');
+  });
+
+  it('never paints another post from the cache', async () => {
+    const client = createTestQueryClient();
+    mockFindOne.mockResolvedValueOnce({ id: 'post-1', label: 'Launch teaser' });
+    const firstVisit = renderHook(
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+      { wrapper: queryClientWrapper(client) },
+    );
+    await waitFor(() => expect(firstVisit.result.current.post).not.toBeNull());
+    firstVisit.unmount();
+
+    mockFindOne.mockImplementationOnce(() => new Promise(() => {}));
+    const otherPost = renderHook(
+      () =>
+        usePostDetailState({ postId: 'post-2', scope: PageScope.PUBLISHING }),
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(otherPost.result.current.isLoading).toBe(true);
+    expect(otherPost.result.current.post).toBeNull();
+  });
+
   it('returns required state fields', () => {
-    const { result } = renderHook(() =>
-      usePostDetailState({ postId: 'post-1' }),
+    const { result } = renderHook(
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+      { wrapper: queryClientWrapper() },
     );
     expect(result.current).toHaveProperty('post');
     expect(result.current).toHaveProperty('isLoading');
@@ -208,15 +271,19 @@ describe('usePostDetailState', () => {
   });
 
   it('initializes post as null', () => {
-    const { result } = renderHook(() =>
-      usePostDetailState({ postId: 'post-1' }),
+    const { result } = renderHook(
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+      { wrapper: queryClientWrapper() },
     );
     expect(result.current.post).toBeNull();
   });
 
   it('initializes isLoading as true', () => {
-    const { result } = renderHook(() =>
-      usePostDetailState({ postId: 'post-1' }),
+    const { result } = renderHook(
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+      { wrapper: queryClientWrapper() },
     );
     expect(result.current.isLoading).toBe(true);
   });

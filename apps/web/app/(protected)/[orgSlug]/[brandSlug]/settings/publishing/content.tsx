@@ -382,7 +382,7 @@ export default function BrandSettingsPublishingPage() {
           timezone: timezone.trim() || 'UTC',
         },
       });
-      await handleRefreshBrand(true);
+      await handleRefreshBrand();
       notifications.success('Brand publishing defaults saved');
     } catch (error) {
       logger.error('Failed to save brand publishing defaults', error);

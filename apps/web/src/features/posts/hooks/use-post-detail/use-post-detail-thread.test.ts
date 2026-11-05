@@ -418,7 +418,7 @@ describe('usePostDetailThread', () => {
         new Set(['child-a', 'child-b']),
       );
       expect(hasInitiatedExpansionRef.current).toBe(true);
-      expect(mockFetchPost).toHaveBeenCalledWith(true);
+      expect(mockFetchPost).toHaveBeenCalledWith();
       expect(notificationsService.success).toHaveBeenCalledWith(
         'Expanding post to 3-tweet thread...',
       );

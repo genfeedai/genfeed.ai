@@ -316,7 +316,7 @@ export default function PostDetail({
     try {
       const service = await getPostsService();
       await service.scoreSeo(post.id);
-      await refreshPost(true);
+      await refreshPost();
       notificationsService.success('SEO score updated');
     } catch {
       notificationsService.error('Failed to score SEO');
@@ -424,7 +424,7 @@ export default function PostDetail({
           onPublishNow={publishNow}
           onPublishViaTikTokApp={publishViaTikTokApp}
           onScoreSeo={handleScoreSeo}
-          onSettingsSaved={() => refreshPost(true)}
+          onSettingsSaved={() => refreshPost()}
           onTikTokReadinessChange={setIsTikTokPublishingReady}
         />
         {!isStandalonePage && targetPreview ? (

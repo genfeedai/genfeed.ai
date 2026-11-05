@@ -1,5 +1,6 @@
 import type { BreakoutPostArtifactBindingInput } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { traced } from '@libs/tracing/traced';
 
 /**
  * The opening of every breakout artifact binder: lock the draft post and the
@@ -8,45 +9,48 @@ import { Prisma } from '@genfeedai/prisma';
  * tenant-, brand-, credential- and platform-scoped, so a draft or response
  * from another scope is never locked or read.
  */
-export async function lockBreakoutArtifactBinding(
-  tx: Prisma.TransactionClient,
-  {
-    organizationId,
-    brandId,
-    credentialId,
-    platform,
-    responseId,
-    postId,
-  }: Readonly<BreakoutPostArtifactBindingInput>,
-) {
-  await tx.$queryRaw(Prisma.sql`
-    SELECT "id" FROM "posts" WHERE "id" = ${postId} AND "organizationId" = ${organizationId}
-      AND "brandId" = ${brandId} AND "credentialId" = ${credentialId}
-      AND "platform" = ${platform} AND "isDeleted" = false FOR UPDATE
-  `);
-  await tx.$queryRaw(Prisma.sql`
-    SELECT "id" FROM "breakout_responses" WHERE "id" = ${responseId} AND "organizationId" = ${organizationId}
-      AND "brandId" = ${brandId} AND "credentialId" = ${credentialId}
-      AND "platform" = ${platform} AND "isDeleted" = false FOR UPDATE
-  `);
-  return tx.breakoutResponse.findFirst({
-    where: {
-      id: responseId,
+export const lockBreakoutArtifactBinding = traced(
+  'lockBreakoutArtifactBinding',
+  async (
+    tx: Prisma.TransactionClient,
+    {
       organizationId,
       brandId,
       credentialId,
       platform,
-      isDeleted: false,
-    },
-    select: {
-      contentDigest: true,
-      externalId: true,
-      logicalPostId: true,
-      nativeSourcePostId: true,
-      outputPlanFingerprint: true,
-      publicationFingerprint: true,
-      sourcePostId: true,
-      state: true,
-    },
-  });
-}
+      responseId,
+      postId,
+    }: Readonly<BreakoutPostArtifactBindingInput>,
+  ) => {
+    await tx.$queryRaw(Prisma.sql`
+    SELECT "id" FROM "posts" WHERE "id" = ${postId} AND "organizationId" = ${organizationId}
+      AND "brandId" = ${brandId} AND "credentialId" = ${credentialId}
+      AND "platform" = ${platform} AND "isDeleted" = false FOR UPDATE
+  `);
+    await tx.$queryRaw(Prisma.sql`
+    SELECT "id" FROM "breakout_responses" WHERE "id" = ${responseId} AND "organizationId" = ${organizationId}
+      AND "brandId" = ${brandId} AND "credentialId" = ${credentialId}
+      AND "platform" = ${platform} AND "isDeleted" = false FOR UPDATE
+  `);
+    return tx.breakoutResponse.findFirst({
+      where: {
+        id: responseId,
+        organizationId,
+        brandId,
+        credentialId,
+        platform,
+        isDeleted: false,
+      },
+      select: {
+        contentDigest: true,
+        externalId: true,
+        logicalPostId: true,
+        nativeSourcePostId: true,
+        outputPlanFingerprint: true,
+        publicationFingerprint: true,
+        sourcePostId: true,
+        state: true,
+      },
+    });
+  },
+);

@@ -72,7 +72,7 @@ export default function BrandConnectedAccountsPage() {
         connectedPlatformsCount={connectedPlatformsCount}
         isConnectAccountModalOpen={isConnectAccountModalOpen}
         onConnectAccountModalOpenChange={setIsConnectAccountModalOpen}
-        onRefresh={() => handleRefreshBrand(true)}
+        onRefresh={() => handleRefreshBrand()}
         variant="page"
       />
     </Container>

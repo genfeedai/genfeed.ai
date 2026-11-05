@@ -199,7 +199,7 @@ describe('usePostDetailActions', () => {
         '2025-06-01T10:00',
       );
       expect(mockUpdateActivePost).not.toHaveBeenCalled();
-      expect(mockFetchPost).toHaveBeenCalledWith(true);
+      expect(mockFetchPost).toHaveBeenCalledWith();
       expect(mockNotificationsService.success).toHaveBeenCalledWith(
         'Schedule date updated',
       );
@@ -234,7 +234,7 @@ describe('usePostDetailActions', () => {
 
       expect(mockServiceRetry).toHaveBeenCalledWith('post-1');
       expect(mockPublishNow).not.toHaveBeenCalled();
-      expect(mockFetchPost).toHaveBeenCalledWith(true);
+      expect(mockFetchPost).toHaveBeenCalledWith();
       expect(mockNotificationsService.success).toHaveBeenCalledWith(
         'Retrying publish',
       );

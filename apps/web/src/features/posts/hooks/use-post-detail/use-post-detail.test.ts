@@ -1,3 +1,4 @@
+import { queryClientWrapper } from '@app-tests/query-client.harness';
 import {
   CredentialPlatform,
   PageScope,
@@ -11,6 +12,11 @@ import { usePostDetail } from '@/features/posts/hooks/use-post-detail/use-post-d
 
 const mockFindOne = vi.fn();
 const mockGetPostsService = vi.fn();
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(),
@@ -89,8 +95,9 @@ describe('usePostDetail', () => {
   });
 
   it('loads post data on mount', async () => {
-    const { result } = renderHook(() =>
-      usePostDetail({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+    const { result } = renderHook(
+      () => usePostDetail({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => {
@@ -103,8 +110,9 @@ describe('usePostDetail', () => {
   });
 
   it('refreshes post data when requested', async () => {
-    const { result } = renderHook(() =>
-      usePostDetail({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+    const { result } = renderHook(
+      () => usePostDetail({ postId: 'post-1', scope: PageScope.PUBLISHING }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => {
@@ -112,7 +120,7 @@ describe('usePostDetail', () => {
     });
 
     await act(async () => {
-      await result.current.refreshPost(true);
+      await result.current.refreshPost();
     });
 
     expect(mockFindOne).toHaveBeenCalledTimes(2);

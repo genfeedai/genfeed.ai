@@ -28,7 +28,7 @@ export interface UsePostDetailThreadOptions {
   firstCommentPost: IPost | null;
   getPostsService: () => Promise<PostsService>;
   notificationsService: NotificationsService;
-  fetchPost: (isRefresh?: boolean) => Promise<void>;
+  fetchPost: () => Promise<void>;
   updateDescriptionRefs: (refPostId: string, description: string) => void;
   updateLabelRefs: (refPostId: string, label: string) => void;
   setChildDescription: (childId: string, value: string) => void;
@@ -248,7 +248,7 @@ export function usePostDetailThread({
         setGeneratingChildPostIds(new Set(childPostIds));
         hasInitiatedExpansionRef.current = true;
 
-        await fetchPost(true);
+        await fetchPost();
 
         notificationsService.success(
           `Expanding post to ${count}-tweet thread...`,

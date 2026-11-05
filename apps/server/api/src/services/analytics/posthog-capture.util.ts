@@ -1,5 +1,6 @@
 import type { ConfigService } from '@libs/config/config.service';
 import { safeFetch } from '@libs/security/destination-guard';
+import { traced } from '@libs/tracing/traced';
 
 const DEFAULT_POSTHOG_HOST = 'https://eu.i.posthog.com';
 
@@ -78,60 +79,63 @@ function isTimeout(error: unknown): boolean {
  * without sending; never follows a redirect, because a same-origin 3xx could
  * turn the POST into a bodyless GET that reports success.
  */
-export async function sendPostHogCapture(
-  configService: Pick<ConfigService, 'get'>,
-  { distinctId, event, properties }: IPostHogCaptureEvent,
-): Promise<PostHogCaptureResult> {
-  const projectKey = String(
-    configService.get('POSTHOG_PROJECT_API_KEY') || '',
-  ).trim();
-  if (!projectKey || !distinctId) {
-    return { status: 'skipped' };
-  }
+export const sendPostHogCapture = traced(
+  'sendPostHogCapture',
+  async (
+    configService: Pick<ConfigService, 'get'>,
+    { distinctId, event, properties }: IPostHogCaptureEvent,
+  ): Promise<PostHogCaptureResult> => {
+    const projectKey = String(
+      configService.get('POSTHOG_PROJECT_API_KEY') || '',
+    ).trim();
+    if (!projectKey || !distinctId) {
+      return { status: 'skipped' };
+    }
 
-  let host: string;
-  let origin: string;
-  try {
-    const configuredHost = readHost(configService);
-    origin = readHttpsOrigin(configuredHost);
-    host = configuredHost.endsWith('/')
-      ? configuredHost.slice(0, -1)
-      : configuredHost;
-  } catch {
-    return { category: 'invalid_destination', status: 'failed' };
-  }
+    let host: string;
+    let origin: string;
+    try {
+      const configuredHost = readHost(configService);
+      origin = readHttpsOrigin(configuredHost);
+      host = configuredHost.endsWith('/')
+        ? configuredHost.slice(0, -1)
+        : configuredHost;
+    } catch {
+      return { category: 'invalid_destination', status: 'failed' };
+    }
 
-  try {
-    const response = await safeFetch(
-      `${host}/i/v0/e/`,
-      {
-        body: JSON.stringify({
-          api_key: projectKey,
-          distinct_id: distinctId,
-          event,
-          properties,
-        }),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
-        redirect: 'manual',
-        signal: AbortSignal.timeout(POSTHOG_CAPTURE_TIMEOUT_MS),
-      },
-      // Defense-in-depth: also rejects a redirect hop to a plaintext origin.
-      { allowedOrigins: [origin], allowedSchemes: ['https:'] },
-    );
+    try {
+      const response = await safeFetch(
+        `${host}/i/v0/e/`,
+        {
+          body: JSON.stringify({
+            api_key: projectKey,
+            distinct_id: distinctId,
+            event,
+            properties,
+          }),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          redirect: 'manual',
+          signal: AbortSignal.timeout(POSTHOG_CAPTURE_TIMEOUT_MS),
+        },
+        // Defense-in-depth: also rejects a redirect hop to a plaintext origin.
+        { allowedOrigins: [origin], allowedSchemes: ['https:'] },
+      );
 
-    if (!response.ok) {
+      if (!response.ok) {
+        return {
+          category: 'non_2xx_response',
+          httpStatus: response.status,
+          status: 'failed',
+        };
+      }
+      return { status: 'sent' };
+    } catch (error) {
       return {
-        category: 'non_2xx_response',
-        httpStatus: response.status,
+        category: isTimeout(error) ? 'timeout' : 'request_failed',
         status: 'failed',
       };
     }
-    return { status: 'sent' };
-  } catch (error) {
-    return {
-      category: isTimeout(error) ? 'timeout' : 'request_failed',
-      status: 'failed',
-    };
-  }
-}
+  },
+);

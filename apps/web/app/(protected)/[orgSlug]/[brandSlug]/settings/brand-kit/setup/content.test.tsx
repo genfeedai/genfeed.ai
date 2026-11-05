@@ -611,7 +611,7 @@ describe('BrandSettingsInterviewPage', () => {
     render(<BrandSettingsInterviewPage />);
 
     await waitFor(() => {
-      expect(mocks.brandDetail.handleRefreshBrand).toHaveBeenCalledWith(true);
+      expect(mocks.brandDetail.handleRefreshBrand).toHaveBeenCalled();
       expect(mocks.draftClearBrand).toHaveBeenCalledWith('brand-1');
     });
   });

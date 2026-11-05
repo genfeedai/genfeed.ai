@@ -30,7 +30,7 @@ export interface UsePostDetailActionsOptions {
   getReleaseGroupsService: () => Promise<ReleaseGroupsService>;
   notificationsService: NotificationsService;
   router: AppRouterInstance;
-  fetchPost: (isRefresh?: boolean) => Promise<void>;
+  fetchPost: () => Promise<void>;
   updateActivePost: (
     updates: PostUpdateInput,
     successMessage?: string,
@@ -172,7 +172,7 @@ export function usePostDetailActions({
           requirePostId(post),
           scheduledAt,
         );
-        await fetchPost(true);
+        await fetchPost();
         notificationsService.success(successMessage);
       } catch (err) {
         logger.error('Failed to update schedule', err);
@@ -207,7 +207,7 @@ export function usePostDetailActions({
           'Schedule updated',
           true,
         );
-        await fetchPost(true);
+        await fetchPost();
         notificationsService.success('Schedule date cleared');
       } catch (err) {
         logger.error('Failed to update schedule', err);
@@ -242,7 +242,7 @@ export function usePostDetailActions({
       const releases = await getReleaseGroupsService();
       const groupId = await resolveReleaseGroupId();
       await releases.publishTargetNow(groupId, requirePostId(post));
-      await fetchPost(true);
+      await fetchPost();
       notificationsService.success('Publishing now');
     } catch (err) {
       logger.error('Failed to publish now', err);
@@ -271,7 +271,7 @@ export function usePostDetailActions({
     try {
       const service = await getPostsService();
       await service.retry(requirePostId(post));
-      await fetchPost(true);
+      await fetchPost();
       notificationsService.success('Retrying publish');
     } catch (err) {
       logger.error('Failed to retry publish', err);
@@ -297,7 +297,7 @@ export function usePostDetailActions({
       const releases = await getReleaseGroupsService();
       const groupId = await resolveReleaseGroupId();
       await releases.publishTargetViaTikTokApp(groupId, requirePostId(post));
-      await fetchPost(true);
+      await fetchPost();
       notificationsService.success(
         'Sent to TikTok. Open your TikTok Inbox to add music or final edits, then publish.',
       );

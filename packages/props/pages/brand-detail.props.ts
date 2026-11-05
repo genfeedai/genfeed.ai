@@ -377,7 +377,7 @@ export interface UseBrandDetailReturn {
   handleRequestDeleteReference: (assetId: string) => void;
   handleCopy: (text?: string) => void;
   handleLinkConfirm: () => void;
-  handleRefreshBrand: (isRefreshing?: boolean) => Promise<void>;
+  handleRefreshBrand: () => Promise<void>;
   selectLink: (link: ILink | null) => void;
   generateModalType: 'banner' | 'logo' | null;
   setGenerateModalType: (type: 'banner' | 'logo' | null) => void;

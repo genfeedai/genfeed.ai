@@ -313,7 +313,7 @@ describe('usePostDetailMedia', () => {
       ingredient('ing-2'),
       ingredient('ing-1'),
     ]);
-    expect(mockFetchPost).toHaveBeenCalledWith(true);
+    expect(mockFetchPost).toHaveBeenCalledWith();
   });
 
   it('keeps a child post reorder on the child', async () => {
@@ -424,7 +424,7 @@ describe('usePostDetailMedia', () => {
     expect(mockNotificationsService.success).toHaveBeenCalledWith(
       'Illustration generated and attached!',
     );
-    expect(mockFetchPost).toHaveBeenCalledWith(true);
+    expect(mockFetchPost).toHaveBeenCalledWith();
   });
 
   it('notifies when attaching the illustration fails', async () => {
