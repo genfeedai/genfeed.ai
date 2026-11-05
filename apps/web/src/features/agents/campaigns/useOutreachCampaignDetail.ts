@@ -6,16 +6,17 @@ import {
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   type CampaignTarget,
-  type CampaignTargetsPage,
   type OutreachCampaign,
   OutreachCampaignsService,
 } from '@services/automation/outreach-campaigns.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -33,15 +34,7 @@ export function useOutreachCampaignDetail() {
 
   const notificationsService = NotificationsService.getInstance();
 
-  const [campaign, setCampaign] = useState<OutreachCampaign | null>(null);
-  const [targetPage, setTargetPage] = useState<CampaignTargetsPage | null>(
-    null,
-  );
-  const targets = targetPage?.targets ?? EMPTY_TARGETS;
-  const statusCounts = targetPage?.statusCounts ?? EMPTY_STATUS_COUNTS;
   const currentPage = Number(useSearchParams().get('page')) || 1;
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [isAddingUrls, setIsAddingUrls] = useState(false);
   const [isStartingCampaign, setIsStartingCampaign] = useState(false);
@@ -55,55 +48,92 @@ export function useOutreachCampaignDetail() {
     OutreachCampaignsService.getInstance(token),
   );
 
-  const loadCampaign = useCallback(
-    async (refresh = false) => {
-      if (!organizationId || !campaignId) {
-        return;
-      }
-
-      if (!refresh) {
-        setIsLoading(true);
-      }
-      setIsRefreshing(refresh);
-
-      try {
-        const service = await getService();
-        const [fetchedCampaign, targetsPage] = await Promise.all([
-          service.findOne(campaignId),
-          service.getTargets(campaignId, {
-            limit: ITEMS_PER_PAGE,
-            page: currentPage,
-          }),
-        ]);
-        setCampaign(fetchedCampaign);
-        setTargetPage(targetsPage);
-        logger.info('Loaded campaign details', {
-          campaignId,
-          targetCount: targetsPage.total,
-        });
-      } catch (error) {
-        logger.error('Failed to load campaign', error);
-        notificationsService.error(translate('notifications.loadFailed'));
-      } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
-      }
+  // The campaign and its current page of targets are cached per viewer,
+  // organization and campaign (and page), so coming back paints them at once
+  // and refreshes in the background; paging keeps the KPIs on screen.
+  const queryClient = useQueryClient();
+  const isFetchReady = Boolean(organizationId && campaignId);
+  const campaignKey = useMemo(
+    () => ['outreach-campaign', organizationId ?? null, campaignId ?? null],
+    [campaignId, organizationId],
+  );
+  const targetsScopeKey = [
+    'outreach-campaign-targets',
+    organizationId ?? null,
+    campaignId ?? null,
+  ] as const;
+  const campaignQuery = useAuthedQuery({
+    enabled: isFetchReady,
+    queryFn: (service, signal) => service.findOne(campaignId, {}, signal),
+    queryKey: campaignKey,
+    service: (token: string) => OutreachCampaignsService.getInstance(token),
+  });
+  const targetsQuery = useAuthedQuery({
+    enabled: isFetchReady,
+    keepPreviousDataWithin: targetsScopeKey,
+    queryFn: async (service, signal) => {
+      const targetsPage = await service.getTargets(
+        campaignId,
+        { limit: ITEMS_PER_PAGE, page: currentPage },
+        signal,
+      );
+      logger.info('Loaded campaign details', {
+        campaignId,
+        targetCount: targetsPage.total,
+      });
+      return targetsPage;
     },
-    [
-      organizationId,
-      campaignId,
-      currentPage,
-      getService,
-      notificationsService,
-      translate,
-    ],
+    queryKey: [...targetsScopeKey, { page: currentPage }],
+    service: (token: string) => OutreachCampaignsService.getInstance(token),
+  });
+
+  const campaign = campaignQuery.data ?? null;
+  const targetPage = targetsQuery.data ?? null;
+  const targets = targetPage?.targets ?? EMPTY_TARGETS;
+  const statusCounts = targetPage?.statusCounts ?? EMPTY_STATUS_COUNTS;
+  const isLoading = campaignQuery.isPending || targetsQuery.isPending;
+  const isRefreshing =
+    (campaignQuery.isFetching && !campaignQuery.isPending) ||
+    (targetsQuery.isFetching && !targetsQuery.isPending);
+  const loadError = campaignQuery.error ?? targetsQuery.error;
+  const loadErrorUpdatedAt = Math.max(
+    campaignQuery.errorUpdatedAt,
+    targetsQuery.errorUpdatedAt,
   );
 
+  // One toast per failed read; a failed background refresh keeps what is on
+  // screen.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loadErrorUpdatedAt marks each new failed read.
   useEffect(() => {
-    if (organizationId && campaignId) {
-      loadCampaign();
+    if (!loadError) {
+      return;
     }
-  }, [organizationId, campaignId, loadCampaign]);
+    logger.error('Failed to load campaign', loadError);
+    notificationsService.error(translate('notifications.loadFailed'));
+  }, [loadError, loadErrorUpdatedAt, notificationsService, translate]);
+
+  const { refetch: refetchCampaign } = campaignQuery;
+  const { refetch: refetchTargets } = targetsQuery;
+  // Every load after the first is a background refresh that keeps the
+  // campaign on screen.
+  const loadCampaign = useCallback(async () => {
+    if (!isFetchReady) {
+      return;
+    }
+    await Promise.all([refetchCampaign(), refetchTargets()]);
+  }, [isFetchReady, refetchCampaign, refetchTargets]);
+
+  const setCampaign = useCallback(
+    (updated: OutreachCampaign) => {
+      queryClient.setQueriesData<OutreachCampaign>(
+        { queryKey: campaignKey },
+        updated,
+      );
+      // The campaigns list shows the status too.
+      void queryClient.invalidateQueries({ queryKey: ['outreach-campaigns'] });
+    },
+    [campaignKey, queryClient],
+  );
 
   const handleAddUrls = useCallback(async () => {
     if (!urlInput.trim() || !campaignId) {
@@ -125,7 +155,7 @@ export function useOutreachCampaignDetail() {
         `Added ${result.added} targets (${result.skipped} skipped)`,
       );
       setUrlInput('');
-      loadCampaign(true);
+      void loadCampaign();
     } catch (error) {
       logger.error('Failed to add URLs', error);
       notificationsService.error('Failed to add URLs');
@@ -153,7 +183,7 @@ export function useOutreachCampaignDetail() {
       isStartingCampaignRef.current = false;
       setIsStartingCampaign(false);
     }
-  }, [campaignId, getService, notificationsService, translate]);
+  }, [campaignId, getService, notificationsService, setCampaign, translate]);
 
   const handlePauseCampaign = useCallback(async () => {
     if (!campaignId) {
@@ -169,7 +199,7 @@ export function useOutreachCampaignDetail() {
       logger.error('Failed to pause campaign', error);
       notificationsService.error(translate('notifications.pauseFailed'));
     }
-  }, [campaignId, getService, notificationsService, translate]);
+  }, [campaignId, getService, notificationsService, setCampaign, translate]);
 
   const handleCompleteCampaign = useCallback(async () => {
     if (!campaignId) {
@@ -185,7 +215,7 @@ export function useOutreachCampaignDetail() {
       logger.error('Failed to complete campaign', error);
       notificationsService.error(translate('notifications.completeFailed'));
     }
-  }, [campaignId, getService, notificationsService, translate]);
+  }, [campaignId, getService, notificationsService, setCampaign, translate]);
 
   const handleAddDmRecipients = useCallback(async () => {
     if (!urlInput.trim() || !campaignId) {
@@ -207,7 +237,7 @@ export function useOutreachCampaignDetail() {
         `Added ${result.added} recipients (${result.skipped} skipped)`,
       );
       setUrlInput('');
-      loadCampaign(true);
+      void loadCampaign();
     } catch (error) {
       logger.error('Failed to add recipients', error);
       notificationsService.error('Failed to add recipients');
