@@ -23,9 +23,9 @@ describe('model-capabilities.constant', () => {
   });
 
   it('model keys are valid ModelKey values', () => {
-    const enumValues = new Set(Object.values(MODEL_KEYS));
+    const enumValues = new Set<string>(Object.values(MODEL_KEYS));
     for (const key of Object.keys(MODEL_OUTPUT_CAPABILITIES)) {
-      expect(enumValues.has(key as string)).toBe(true);
+      expect(enumValues.has(key)).toBe(true);
     }
   });
 

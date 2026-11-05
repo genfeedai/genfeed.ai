@@ -21,8 +21,13 @@ describe('SELF_HOSTED_MODELS', () => {
       expect(model.providerCostUsd).toBeGreaterThan(0);
       expect(model.cost).toBeGreaterThan(0);
 
-      if (model.pricingType === PricingType.PER_SECOND) {
-        expect(model.costPerUnit).toBeGreaterThan(0);
+      if (
+        'pricingType' in model &&
+        model.pricingType === PricingType.PER_SECOND
+      ) {
+        expect('costPerUnit' in model ? model.costPerUnit : 0).toBeGreaterThan(
+          0,
+        );
       }
 
       if (model.isDefault) {
