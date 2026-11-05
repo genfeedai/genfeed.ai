@@ -12,6 +12,7 @@ import {
   Platform,
   PostCategory,
   PostFormat,
+  PostProviderPublishReceiptStatus,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -168,7 +169,7 @@ describe('Provider publish receipts (real Postgres)', () => {
         claimProviderPublishAttempt(
           receipts,
           post,
-          { ...first, status: 'uncertain' },
+          { ...first, status: PostProviderPublishReceiptStatus.UNCERTAIN },
           `execution-retry-${index}`,
         ),
       ),
@@ -199,7 +200,7 @@ describe('Provider publish receipts (real Postgres)', () => {
       claimProviderPublishAttempt(
         receipts,
         post,
-        { ...holder, status: 'attempting' },
+        { ...holder, status: PostProviderPublishReceiptStatus.ATTEMPTING },
         'execution-takeover',
       ),
     ).resolves.toBeNull();
@@ -211,7 +212,7 @@ describe('Provider publish receipts (real Postgres)', () => {
     const takeover = await claimProviderPublishAttempt(
       receipts,
       post,
-      { ...holder, status: 'attempting' },
+      { ...holder, status: PostProviderPublishReceiptStatus.ATTEMPTING },
       'execution-takeover',
     );
     expect(takeover).not.toBeNull();
@@ -237,7 +238,7 @@ describe('Provider publish receipts (real Postgres)', () => {
       claimProviderPublishAttempt(
         receipts,
         post,
-        { ...first, status: 'attempting' },
+        { ...first, status: PostProviderPublishReceiptStatus.ATTEMPTING },
         'execution-stale',
       ),
     ).resolves.toBeNull();
