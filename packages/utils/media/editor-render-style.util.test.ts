@@ -5,7 +5,7 @@ import {
   buildEditorRenderStyle,
   EDITOR_STILL_PUSH_IN,
   editorStillScale,
-} from '@genfeedai/utils/media/editor-render-style.util';
+} from '@utils/media/editor-render-style.util';
 
 function makeClip(overrides: Partial<IEditorClip> = {}): IEditorClip {
   return {

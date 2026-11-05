@@ -24,11 +24,11 @@ const testSchema = Joi.object({
   SOME_OPTIONAL_VAR: Joi.string().optional().allow(''),
 }).unknown(true);
 
-interface TestEnvConfig {
+type TestEnvConfig = {
   NODE_ENV?: 'development' | 'staging' | 'production' | 'test';
   PORT?: number;
   SOME_OPTIONAL_VAR?: string;
-}
+};
 
 // Concrete implementation for testing
 class ConcreteConfigService extends BaseConfigService<TestEnvConfig> {
@@ -52,10 +52,11 @@ describe('BaseConfigService', () => {
     mockExistsSync.mockReset().mockReturnValue(false);
     mockReadFileSync.mockReset().mockReturnValue(Buffer.from(''));
     process.env = { ...originalEnv };
-    process.env.NODE_ENV = 'test';
+    vi.stubEnv('NODE_ENV', 'test');
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     process.env = { ...originalEnv };
     vi.clearAllMocks();
   });
@@ -80,7 +81,7 @@ describe('BaseConfigService', () => {
     });
 
     it('should throw on config validation error for invalid NODE_ENV', () => {
-      process.env.NODE_ENV = 'invalid-env';
+      vi.stubEnv('NODE_ENV', 'invalid-env');
       expect(() => new ConcreteConfigService()).toThrow(
         'Config validation error',
       );
@@ -89,7 +90,7 @@ describe('BaseConfigService', () => {
 
   describe('get()', () => {
     it('should return the value for a known key', () => {
-      process.env.NODE_ENV = 'development';
+      vi.stubEnv('NODE_ENV', 'development');
       const service = new ConcreteConfigService();
       expect(service.get('NODE_ENV' as never)).toBe('development');
     });
@@ -103,7 +104,7 @@ describe('BaseConfigService', () => {
 
   describe('environment detection', () => {
     it('should detect development environment', () => {
-      process.env.NODE_ENV = 'development';
+      vi.stubEnv('NODE_ENV', 'development');
       const service = new ConcreteConfigService();
       expect(service.isDevelopment).toBe(true);
       expect(service.isProduction).toBe(false);
@@ -112,7 +113,7 @@ describe('BaseConfigService', () => {
     });
 
     it('should detect production environment', () => {
-      process.env.NODE_ENV = 'production';
+      vi.stubEnv('NODE_ENV', 'production');
       const service = new ConcreteConfigService();
       expect(service.isProduction).toBe(true);
       expect(service.isDevelopment).toBe(false);
@@ -121,7 +122,7 @@ describe('BaseConfigService', () => {
     });
 
     it('should detect staging environment', () => {
-      process.env.NODE_ENV = 'staging';
+      vi.stubEnv('NODE_ENV', 'staging');
       const service = new ConcreteConfigService();
       expect(service.isStaging).toBe(true);
       expect(service.isDevelopment).toBe(false);
@@ -130,7 +131,7 @@ describe('BaseConfigService', () => {
     });
 
     it('should detect test environment', () => {
-      process.env.NODE_ENV = 'test';
+      vi.stubEnv('NODE_ENV', 'test');
       const service = new ConcreteConfigService();
       expect(service.isTest).toBe(true);
       expect(service.isDevelopment).toBe(false);
@@ -206,25 +207,25 @@ describe('BaseConfigService', () => {
     ])(
       'preserves exact $environment file precedence from $workingDir',
       ({ environment, paths, workingDir }) => {
-        process.env.NODE_ENV = environment;
+        vi.stubEnv('NODE_ENV', environment);
         mockExistsSync.mockReturnValue(false);
 
         new ConcreteConfigService({ workingDir });
 
         expect(
-          mockExistsSync.mock.calls.map((call: [string]) => call[0]),
+          mockExistsSync.mock.calls.map(([checkedPath]) => checkedPath),
         ).toEqual(paths);
       },
     );
 
     it('should use production env files in production mode', () => {
-      process.env.NODE_ENV = 'production';
+      vi.stubEnv('NODE_ENV', 'production');
       mockExistsSync.mockReturnValue(false);
 
       new ConcreteConfigService();
 
       const checkedPaths = mockExistsSync.mock.calls.map(
-        (call: [string]) => call[0],
+        ([checkedPath]) => checkedPath,
       );
       expect(checkedPaths.some((p) => p.includes('.env.production'))).toBe(
         true,
@@ -235,13 +236,13 @@ describe('BaseConfigService', () => {
     });
 
     it('should use staging env files in staging mode', () => {
-      process.env.NODE_ENV = 'staging';
+      vi.stubEnv('NODE_ENV', 'staging');
       mockExistsSync.mockReturnValue(false);
 
       new ConcreteConfigService();
 
       const checkedPaths = mockExistsSync.mock.calls.map(
-        (call: [string]) => call[0],
+        ([checkedPath]) => checkedPath,
       );
       expect(checkedPaths.some((p) => p.includes('.env.staging'))).toBe(true);
       expect(
@@ -250,13 +251,13 @@ describe('BaseConfigService', () => {
     });
 
     it('should use test env files in test mode', () => {
-      process.env.NODE_ENV = 'test';
+      vi.stubEnv('NODE_ENV', 'test');
       mockExistsSync.mockReturnValue(false);
 
       new ConcreteConfigService();
 
       const checkedPaths = mockExistsSync.mock.calls.map(
-        (call: [string]) => call[0],
+        ([checkedPath]) => checkedPath,
       );
       expect(checkedPaths.some((p) => p.includes('.env.test'))).toBe(true);
     });
