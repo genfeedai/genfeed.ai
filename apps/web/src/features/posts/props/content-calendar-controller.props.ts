@@ -7,6 +7,8 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { Newsletter } from '@models/content/newsletter.model';
 import type { GlobalModalsContextValue } from '@props/modals/global-modals.props';
+import type { ArticlesService } from '@services/content/articles.service';
+import type { NewslettersService } from '@services/content/newsletters.service';
 import type { PostingCadencesService } from '@services/content/posting-cadences.service';
 import type { PostsService } from '@services/content/posts.service';
 import type { ReleaseGroupsService } from '@services/content/release-groups.service';
@@ -44,6 +46,14 @@ export interface ContentCalendarLoadOptions {
   notificationsService: Pick<NotificationsService, 'error'>;
 }
 /** One cached read of the calendar: everything it draws for a window. */
+/** The services the content calendar read uses, built from one token. */
+export interface ContentCalendarServices {
+  articles: ArticlesService;
+  cadences: PostingCadencesService;
+  newsletters: NewslettersService;
+  releaseGroups: ReleaseGroupsService;
+}
+
 export interface ContentCalendarData {
   articles: IArticle[];
   cadences: IPostingCadence[];

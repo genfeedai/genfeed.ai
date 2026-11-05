@@ -16,7 +16,10 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
-import type { AgentContextPageState } from '@/features/settings/props/context.props';
+import type {
+  AgentContextMemories,
+  AgentContextPageState,
+} from '@/features/settings/props/context.props';
 
 const INSIGHTS_LIMIT = 20;
 const EMPTY_MEMORIES: IAgentMemoryEntry[] = [];
@@ -24,11 +27,6 @@ const EMPTY_INSIGHTS: IBrandMemoryInsight[] = [];
 
 /** The base key of the agent-memories read; personal memories span brands. */
 const AGENT_MEMORIES_KEY = 'agent-context-memories';
-
-interface AgentContextMemories {
-  brand: IAgentMemoryEntry[];
-  personal: IAgentMemoryEntry[];
-}
 
 function createMemoriesService(token: string): AgentMemoriesService {
   return AgentMemoriesService.getInstance(token);

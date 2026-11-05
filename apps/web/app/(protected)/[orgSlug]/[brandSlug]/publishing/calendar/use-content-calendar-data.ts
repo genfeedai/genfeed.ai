@@ -19,6 +19,7 @@ import { type SetStateAction, useCallback, useEffect, useMemo } from 'react';
 import type {
   ContentCalendarData,
   ContentCalendarLoadOptions,
+  ContentCalendarServices,
 } from '@/features/posts/props/content-calendar-controller.props';
 
 const LOAD_ERROR = 'Failed to load calendar content';
@@ -27,13 +28,6 @@ const EMPTY_NEWSLETTERS: Newsletter[] = [];
 const EMPTY_RELEASES: IReleaseGroup[] = [];
 const EMPTY_SLOTS: ICalendarSlot[] = [];
 const EMPTY_CADENCES: IPostingCadence[] = [];
-
-interface ContentCalendarServices {
-  articles: ArticlesService;
-  cadences: PostingCadencesService;
-  newsletters: NewslettersService;
-  releaseGroups: ReleaseGroupsService;
-}
 
 function createContentCalendarServices(token: string): ContentCalendarServices {
   return {
