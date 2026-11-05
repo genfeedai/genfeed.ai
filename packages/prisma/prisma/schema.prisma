@@ -3035,6 +3035,7 @@ learningCheckpoints ContentLearningCheckpoint[]
   targetValidationState          String             @default("pending")
   targetValidationIssues         String[]           @default([])
   targetReadiness                Json?
+  /// TargetExecutionState; the posts_targetExecutionState_check CHECK pins it.
   targetExecutionState           String             @default("draft")
   targetError                    Json?
   targetIdempotencyKey           String?
@@ -3188,7 +3189,7 @@ model PostProviderPublishReceipt {
   post                Post         @relation(fields: [postId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   /// Digest of the post id, active approval, approved version pin, schedule and content.
   occurrenceKey       String
-  /// attempting | accepted | uncertain | released
+  /// PostProviderPublishReceiptStatus; the post_provider_publish_receipts_status_check CHECK pins it.
   status              String
   workflowExecutionId String
   /// Fresh per reservation; every takeover and settlement compares it.
@@ -3331,6 +3332,7 @@ model PostGroup {
   baseContent        String
   media              Json                @default("[]")
   timezone           String              @default("UTC")
+  /// ReleaseStatus; the post_groups_status_check CHECK pins it.
   status             String              @default("draft")
   scheduledAt        DateTime?
   publishedAt        DateTime?
@@ -3734,6 +3736,7 @@ model NotificationDelivery {
   destination       String?
   /// Rendered channel message `{ type, action, payload }` for a channel delivery.
   message           Json?
+  /// NotificationDeliveryStatus; the notification_deliveries_status_check CHECK pins it.
   status            String            @default("pending")
   attemptCount      Int               @default(0)
   nextAttemptAt     DateTime          @default(now())

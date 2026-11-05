@@ -16,6 +16,7 @@ import { CONTENT_LEARNING_ACTION_IDS } from '@api/collections/workflows/template
 import { PostLifecycleService } from '@api/index';
 import {
   fromPrismaCredentialPlatform,
+  PostProviderPublishReceiptStatus,
   PostVisibility,
   ReleaseStatus,
   TargetExecutionState,
@@ -354,7 +355,7 @@ export class SchedulerPublishStateService {
         },
         organizationId: input.organizationId,
         postId: input.postId,
-        status: 'attempting',
+        status: PostProviderPublishReceiptStatus.ATTEMPTING,
       },
       data: { leaseRenewedAt: now },
     });

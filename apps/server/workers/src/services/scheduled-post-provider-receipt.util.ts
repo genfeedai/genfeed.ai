@@ -1,7 +1,10 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PublishResult } from '@api/index';
-import { TargetExecutionState } from '@genfeedai/contracts';
+import {
+  PostProviderPublishReceiptStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import type { PrismaService } from '@libs/prisma/prisma.service';
 import { readPostString } from '@workers/services/scheduled-post.utils';
@@ -9,7 +12,6 @@ import { readScheduledDeliveryResult } from '@workers/services/scheduled-post-de
 
 type ReceiptClient = Pick<PrismaService, 'postProviderPublishReceipt'>;
 
-type ReceiptStatus = 'attempting' | 'accepted' | 'uncertain' | 'released';
 export type ProviderPublishAttemptRef = {
   receiptId: string;
   attemptToken: string;
@@ -37,7 +39,7 @@ export type ProviderPublishAttemptState =
   | ({ kind: 'replay'; result: PublishResult } & AttemptRef)
   | ({
       kind: 'unconfirmed';
-      status: ReceiptStatus;
+      status: PostProviderPublishReceiptStatus;
       attemptStartedAt: Date;
     } & AttemptRef)
   | ({ kind: 'in_flight' } & AttemptRef);
@@ -200,12 +202,17 @@ export async function inspectProviderPublishAttempt(
   });
   if (!row) return { kind: 'none' };
   const ref = { receiptId: row.id, attemptToken: row.attemptToken };
-  const status = row.status as ReceiptStatus;
-  if (status === 'released') return { kind: 'released', ...ref };
-  const result = status === 'accepted' ? readReceiptResult(row.result) : null;
+  // post_provider_publish_receipts_status_check pins the column to this set.
+  const status = row.status as PostProviderPublishReceiptStatus;
+  if (status === PostProviderPublishReceiptStatus.RELEASED)
+    return { kind: 'released', ...ref };
+  const result =
+    status === PostProviderPublishReceiptStatus.ACCEPTED
+      ? readReceiptResult(row.result)
+      : null;
   if (result) return { kind: 'replay', result, ...ref };
   if (
-    status === 'attempting' &&
+    status === PostProviderPublishReceiptStatus.ATTEMPTING &&
     now.getTime() - row.leaseRenewedAt.getTime() <
       PROVIDER_PUBLISH_ATTEMPT_LEASE_MS
   )
@@ -227,7 +234,7 @@ export async function inspectProviderPublishAttempt(
 export async function claimProviderPublishAttempt(
   prisma: ReceiptClient,
   post: PostEntity,
-  observed: AttemptRef & { status: ReceiptStatus },
+  observed: AttemptRef & { status: PostProviderPublishReceiptStatus },
   workflowExecutionId: string,
   now: Date = new Date(),
 ): Promise<AttemptRef | null> {
@@ -242,7 +249,7 @@ export async function claimProviderPublishAttempt(
       // An attempt accepted meanwhile keeps its token; the status check stops
       // a stale takeover from erasing its result.
       status: observed.status,
-      ...(observed.status === 'attempting'
+      ...(observed.status === PostProviderPublishReceiptStatus.ATTEMPTING
         ? {
             leaseRenewedAt: {
               lt: new Date(now.getTime() - PROVIDER_PUBLISH_ATTEMPT_LEASE_MS),
@@ -258,7 +265,7 @@ export async function claimProviderPublishAttempt(
       externalId: null,
       persistedAt: null,
       result: Prisma.DbNull,
-      status: 'attempting',
+      status: PostProviderPublishReceiptStatus.ATTEMPTING,
       workflowExecutionId,
     },
   });
@@ -289,7 +296,7 @@ export async function reserveProviderPublishAttempt(
             attemptStartedAt: now,
             attemptToken,
             leaseRenewedAt: now,
-            status: 'attempting',
+            status: PostProviderPublishReceiptStatus.ATTEMPTING,
             workflowExecutionId,
           },
           select: { id: true },
@@ -304,7 +311,7 @@ export async function reserveProviderPublishAttempt(
       const claimed = await claimProviderPublishAttempt(
         prisma,
         post,
-        { ...state, status: 'released' },
+        { ...state, status: PostProviderPublishReceiptStatus.RELEASED },
         workflowExecutionId,
         now,
       );
@@ -356,7 +363,7 @@ export async function renewProviderPublishAttempt(
       organizationId,
       postId,
       attemptToken: attempt.attemptToken,
-      status: 'attempting',
+      status: PostProviderPublishReceiptStatus.ATTEMPTING,
       isDeleted: false,
     },
     data: isProviderCallStart
@@ -373,7 +380,7 @@ export function acceptProviderPublishAttempt(
   result: PublishResult,
 ): Promise<void> {
   return updateAttempt(prisma, post, attempt, {
-    status: 'accepted',
+    status: PostProviderPublishReceiptStatus.ACCEPTED,
     externalId: result.externalId,
     result: { ...result } as Prisma.InputJsonObject,
   });
@@ -385,7 +392,9 @@ export function markProviderPublishAttemptUncertain(
   post: PostEntity,
   attempt: AttemptRef,
 ): Promise<void> {
-  return updateAttempt(prisma, post, attempt, { status: 'uncertain' });
+  return updateAttempt(prisma, post, attempt, {
+    status: PostProviderPublishReceiptStatus.UNCERTAIN,
+  });
 }
 
 /** The provider definitively did not publish; a retry may publish again. */
@@ -394,7 +403,9 @@ export function releaseProviderPublishAttempt(
   post: PostEntity,
   attempt: AttemptRef,
 ): Promise<void> {
-  return updateAttempt(prisma, post, attempt, { status: 'released' });
+  return updateAttempt(prisma, post, attempt, {
+    status: PostProviderPublishReceiptStatus.RELEASED,
+  });
 }
 
 /**
@@ -408,7 +419,7 @@ export function markProviderReceiptPersisted(
   result: PublishResult,
 ): Promise<void> {
   return updateAttempt(prisma, post, attempt, {
-    status: 'accepted',
+    status: PostProviderPublishReceiptStatus.ACCEPTED,
     externalId: result.externalId,
     result: { ...result } as Prisma.InputJsonObject,
     persistedAt: new Date(),

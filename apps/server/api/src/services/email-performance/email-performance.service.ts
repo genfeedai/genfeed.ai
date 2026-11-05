@@ -20,6 +20,7 @@ import { NotificationPreferenceService } from '@api/services/notifications/workf
 import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { NotificationDeliveryStatus } from '@genfeedai/contracts';
 import type { NotificationTopic } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { escapeSystemEmailHtml } from '@helpers/email/system-email.helper';
@@ -144,7 +145,11 @@ export class EmailPerformanceService {
   async deliverClaimed(deliveryId: string): Promise<void> {
     // tenant-scope-ignore: system worker resolves an already-claimed opaque outbox ID.
     const row = await this.prisma.notificationDelivery.findFirst({
-      where: { id: deliveryId, isDeleted: false, status: 'processing' },
+      where: {
+        id: deliveryId,
+        isDeleted: false,
+        status: NotificationDeliveryStatus.PROCESSING,
+      },
       include: {
         event: true,
         emailMessage: true,
@@ -160,7 +165,7 @@ export class EmailPerformanceService {
         data: {
           lastError: 'System email has no recipient',
           lockedAt: null,
-          status: 'failed',
+          status: NotificationDeliveryStatus.FAILED,
         },
       });
       return;
@@ -337,7 +342,7 @@ export class EmailPerformanceService {
       await tx.notificationDelivery.updateMany({
         where: scopedWhere(organizationId, { id: deliveryId }),
         data: {
-          status: 'skipped',
+          status: NotificationDeliveryStatus.SKIPPED,
           skippedAt: new Date(),
           lockedAt: null,
           lastError: 'recipient_preference_or_eligibility',
@@ -369,7 +374,7 @@ export class EmailPerformanceService {
       await tx.notificationDelivery.updateMany({
         where: scopedWhere(input.organizationId, { id: input.deliveryId }),
         data: {
-          status: 'delivered',
+          status: NotificationDeliveryStatus.DELIVERED,
           deliveredAt: now,
           lockedAt: null,
           lastError: null,
@@ -410,10 +415,12 @@ export class EmailPerformanceService {
       await tx.notificationDelivery.updateMany({
         where: scopedWhere(input.organizationId, {
           id: input.deliveryId,
-          status: 'processing',
+          status: NotificationDeliveryStatus.PROCESSING,
         }),
         data: {
-          status: input.terminal ? 'failed' : 'retry_pending',
+          status: input.terminal
+            ? NotificationDeliveryStatus.FAILED
+            : NotificationDeliveryStatus.RETRY_PENDING,
           lockedAt: null,
           lastError: input.terminal
             ? 'email_delivery_failed'

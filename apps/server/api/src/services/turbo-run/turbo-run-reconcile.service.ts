@@ -21,7 +21,11 @@ import {
 import { TurboRunReviewService } from '@api/services/turbo-run/turbo-run-review.service';
 import { toPrismaTurboRunStatus } from '@api/services/turbo-run/turbo-run-status-prisma.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { TurboRunItemStatus, TurboRunStatus } from '@genfeedai/contracts';
+import {
+  TargetExecutionState,
+  TurboRunItemStatus,
+  TurboRunStatus,
+} from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -161,7 +165,7 @@ export class TurboRunReconcileService {
     const candidates = await this.prisma.post.findMany({
       where: {
         isDeleted: false,
-        targetExecutionState: 'draft',
+        targetExecutionState: TargetExecutionState.DRAFT,
         reviewDecision: null,
         reviewTurboRunId: { not: null },
         OR: [{ agentStrategyId: { not: null } }, { personaId: { not: null } }],

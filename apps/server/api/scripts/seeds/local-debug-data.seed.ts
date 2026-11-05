@@ -14,7 +14,15 @@
 import { resolve } from 'node:path';
 import process from 'node:process';
 import { assertFixtureSeedAllowed } from '@api-scripts/seeds/fixture-seed-guard';
-import { CampaignStatus, CampaignTargetStatus } from '@genfeedai/contracts';
+import {
+  CampaignStatus,
+  CampaignTargetStatus,
+  PostStatus,
+  PostVisibility,
+  ReleaseStatus,
+  TargetAnalyticsCollectionState,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import {
   CredentialPlatform,
   PostCategory,
@@ -44,9 +52,28 @@ type SeedBrand = {
 type PostFixture = {
   category: PostCategory;
   description: string;
+  executionState: SeededExecutionState;
   label: string;
   platform: string;
-  status: string;
+  status: PostStatus;
+};
+
+type SeededExecutionState = Exclude<
+  TargetExecutionState,
+  TargetExecutionState.SKIPPED
+>;
+
+const RELEASE_STATUS_BY_EXECUTION_STATE: Record<
+  SeededExecutionState,
+  ReleaseStatus
+> = {
+  [TargetExecutionState.CANCELLED]: ReleaseStatus.CANCELLED,
+  [TargetExecutionState.DRAFT]: ReleaseStatus.DRAFT,
+  [TargetExecutionState.FAILED]: ReleaseStatus.FAILED,
+  [TargetExecutionState.PAUSED]: ReleaseStatus.PAUSED,
+  [TargetExecutionState.PUBLISHED]: ReleaseStatus.PUBLISHED,
+  [TargetExecutionState.PUBLISHING]: ReleaseStatus.PUBLISHING,
+  [TargetExecutionState.SCHEDULED]: ReleaseStatus.SCHEDULED,
 };
 
 const POST_FIXTURES: PostFixture[] = [
@@ -54,49 +81,55 @@ const POST_FIXTURES: PostFixture[] = [
     category: PostCategory.IMAGE,
     description:
       'A practical launch checklist for teams building a repeatable content system.',
+    executionState: TargetExecutionState.PUBLISHED,
     label: 'Launch checklist carousel',
     platform: 'instagram',
-    status: 'public',
+    status: PostStatus.PUBLIC,
   },
   {
     category: PostCategory.VIDEO,
     description:
       'A short product walkthrough showing how one brief becomes a campaign.',
+    executionState: TargetExecutionState.PUBLISHED,
     label: 'Product workflow walkthrough',
     platform: 'youtube',
-    status: 'public',
+    status: PostStatus.PUBLIC,
   },
   {
     category: PostCategory.TEXT,
     description:
       'Three lessons learned while turning brand context into durable infrastructure.',
+    executionState: TargetExecutionState.DRAFT,
     label: 'Founder lessons thread',
     platform: 'twitter',
-    status: 'draft',
+    status: PostStatus.DRAFT,
   },
   {
     category: PostCategory.REEL,
     description:
       'A scheduled behind-the-scenes look at the weekly content planning ritual.',
+    executionState: TargetExecutionState.SCHEDULED,
     label: 'Planning ritual reel',
     platform: 'instagram',
-    status: 'scheduled',
+    status: PostStatus.SCHEDULED,
   },
   {
     category: PostCategory.POST,
     description:
       'A processing post used to verify loading, progress, and action states.',
+    executionState: TargetExecutionState.PUBLISHING,
     label: 'Processing campaign update',
     platform: 'twitter',
-    status: 'processing',
+    status: PostStatus.PROCESSING,
   },
   {
     category: PostCategory.VIDEO,
     description:
       'A failed video publish used to verify recovery actions and error copy.',
+    executionState: TargetExecutionState.FAILED,
     label: 'Failed customer story video',
     platform: 'tiktok',
-    status: 'failed',
+    status: PostStatus.FAILED,
   },
 ];
 
@@ -234,20 +267,21 @@ async function seedPublishing(
       }
       const fixturePlatform = credential.platform.toLowerCase();
       const fixtureKey =
-        fixture.status === 'public' && fixtureIndex > 0
+        fixture.status === PostStatus.PUBLIC && fixtureIndex > 0
           ? `${fixture.status}-${fixtureIndex}`
           : fixture.status;
       const key = `qa-debug-${brand.id}-${fixtureKey}`;
       const scheduledAt =
-        fixture.status === 'scheduled' ? dateFromNow(3, fixtureIndex) : null;
+        fixture.status === PostStatus.SCHEDULED
+          ? dateFromNow(3, fixtureIndex)
+          : null;
       const publishedAt =
-        fixture.status === 'public' ? dateFromNow(-fixtureIndex - 1) : null;
-      const targetExecutionState =
-        fixture.status === 'public'
-          ? 'published'
-          : fixture.status === 'failed'
-            ? 'failed'
-            : fixture.status;
+        fixture.status === PostStatus.PUBLIC
+          ? dateFromNow(-fixtureIndex - 1)
+          : null;
+      const targetExecutionState = fixture.executionState;
+      const releaseStatus =
+        RELEASE_STATUS_BY_EXECUTION_STATE[targetExecutionState];
 
       const group = await prisma.postGroup.upsert({
         create: {
@@ -259,10 +293,14 @@ async function seedPublishing(
           ownerId: userId,
           publishedAt,
           scheduledAt,
-          status: fixture.status,
+          status: releaseStatus,
           statusTransitions: [
-            { at: dateFromNow(-7), from: null, to: 'draft' },
-            { at: dateFromNow(-1), from: 'draft', to: fixture.status },
+            { at: dateFromNow(-7), from: null, to: ReleaseStatus.DRAFT },
+            {
+              at: dateFromNow(-1),
+              from: ReleaseStatus.DRAFT,
+              to: releaseStatus,
+            },
           ],
           title: `${QA_PREFIX} ${fixture.label}`,
         },
@@ -272,7 +310,7 @@ async function seedPublishing(
           isDeleted: false,
           publishedAt,
           scheduledAt,
-          status: fixture.status,
+          status: releaseStatus,
           title: `${QA_PREFIX} ${fixture.label}`,
         },
         where: {
@@ -287,14 +325,16 @@ async function seedPublishing(
         create: {
           analyticsCollectedAt: publishedAt,
           analyticsCollectionState:
-            fixture.status === 'public' ? 'available' : 'unavailable',
+            fixture.status === PostStatus.PUBLIC
+              ? TargetAnalyticsCollectionState.READY
+              : TargetAnalyticsCollectionState.UNAVAILABLE,
           brandId: brand.id,
           campaignId: campaign.id,
           category: fixture.category,
           credentialId: credential.id,
           description: fixture.description,
           externalId:
-            fixture.status === 'public'
+            fixture.status === PostStatus.PUBLIC
               ? `qa-${brandIndex}-${fixtureIndex}`
               : null,
           groupId: group.id,
@@ -307,7 +347,7 @@ async function seedPublishing(
           source: 'qa-debug-seed',
           status: fixture.status,
           targetError:
-            fixture.status === 'failed'
+            fixture.status === PostStatus.FAILED
               ? {
                   code: 'QA_PROVIDER_REJECTED',
                   message: 'Synthetic QA failure',
@@ -317,12 +357,15 @@ async function seedPublishing(
           targetIdempotencyKey: key,
           targetValidationState: 'valid',
           userId,
-          visibility: fixture.status === 'public' ? 'public' : null,
+          visibility:
+            fixture.status === PostStatus.PUBLIC ? PostVisibility.PUBLIC : null,
         },
         update: {
           analyticsCollectedAt: publishedAt,
           analyticsCollectionState:
-            fixture.status === 'public' ? 'available' : 'unavailable',
+            fixture.status === PostStatus.PUBLIC
+              ? TargetAnalyticsCollectionState.READY
+              : TargetAnalyticsCollectionState.UNAVAILABLE,
           campaignId: campaign.id,
           credentialId: credential.id,
           description: fixture.description,
@@ -335,7 +378,8 @@ async function seedPublishing(
           scheduledDate: scheduledAt,
           status: fixture.status,
           targetExecutionState,
-          visibility: fixture.status === 'public' ? 'public' : null,
+          visibility:
+            fixture.status === PostStatus.PUBLIC ? PostVisibility.PUBLIC : null,
         },
         where: {
           organizationId_targetIdempotencyKey: {
@@ -345,7 +389,7 @@ async function seedPublishing(
         },
       });
 
-      if (fixture.status !== 'public') {
+      if (fixture.status !== PostStatus.PUBLIC) {
         continue;
       }
 

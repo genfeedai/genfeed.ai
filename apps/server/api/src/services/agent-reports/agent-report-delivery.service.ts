@@ -10,7 +10,7 @@ import {
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { TurboRunItemStatus } from '@genfeedai/contracts';
+import { TargetExecutionState, TurboRunItemStatus } from '@genfeedai/contracts';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
@@ -98,7 +98,7 @@ export class AgentReportDeliveryService {
               brandId: strategy.brandId,
               workflowExecutionId: payload.executionId,
               reviewDecision: null,
-              targetExecutionState: 'draft',
+              targetExecutionState: TargetExecutionState.DRAFT,
             }),
             orderBy: { createdAt: 'asc' },
             take: 5,
