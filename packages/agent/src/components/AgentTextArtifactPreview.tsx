@@ -1,10 +1,9 @@
-import type { AgentContentFormat } from '@genfeedai/contracts/interfaces';
-
-('use client');
+'use client';
 
 import { LazySafeMarkdown } from '@genfeedai/agent/components/LazySafeMarkdown';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { AgentContentFormat } from '@genfeedai/contracts/interfaces';
 import type { PlatformPreviewAuthor } from '@genfeedai/props/components/platform-preview.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
