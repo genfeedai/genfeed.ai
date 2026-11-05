@@ -1,4 +1,5 @@
-import { ReleaseAttachmentKind } from '@genfeedai/contracts';
+import { Platform, ReleaseAttachmentKind } from '@genfeedai/contracts';
+import { createBaseEntity } from '@genfeedai/helpers/testing/entity-fixtures';
 import { describe, expect, it } from 'vitest';
 import {
   buildSignatureAttachments,
@@ -14,13 +15,13 @@ describe('schedule-post-card helpers', () => {
         selectedIds: ['sig-1'],
         signatures: [
           {
+            ...createBaseEntity({ id: 'sig-1' }),
             body: '— Genfeed',
-            id: 'sig-1',
             isEnabled: true,
             label: 'Closer',
             organizationId: 'org-1',
             placement: 'append',
-            platforms: ['twitter'],
+            platforms: [Platform.TWITTER],
             userId: 'user-1',
           },
         ],

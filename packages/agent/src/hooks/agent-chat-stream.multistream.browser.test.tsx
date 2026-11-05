@@ -8,7 +8,11 @@ import { useComposerFollowUpQueue } from '@genfeedai/agent/hooks/use-composer-fo
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
-import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
+import {
+  AgentGenerationMode,
+  AgentThreadMode,
+  AgentThreadStatus,
+} from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -89,7 +93,7 @@ function Fixture() {
       <p data-testid="thread">{threadId}</p>
       <AgentChatInputToolbar
         agentMode={AgentThreadMode.MANUAL}
-        generationMode="auto"
+        generationMode={AgentGenerationMode.AUTO}
         promptText=""
         hasEditor
         canSendMessage

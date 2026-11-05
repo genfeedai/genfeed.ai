@@ -1,4 +1,5 @@
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import type { AgentPageContextState } from '@genfeedai/agent/utils/agent-page-context.util';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -7,8 +8,12 @@ import {
   useAgentDraftContext,
 } from './use-agent-draft-context';
 
-function getPageContext() {
-  return useAgentChatStore.getState().pageContext as Record<string, unknown>;
+function getPageContext(): AgentPageContextState {
+  const context = useAgentChatStore.getState().pageContext;
+  if (!context) {
+    throw new Error('The draft context was not published');
+  }
+  return context;
 }
 
 describe('useAgentDraftContext', () => {
@@ -57,8 +62,8 @@ describe('useAgentDraftContext', () => {
 
     const context = getPageContext();
     expect(context.draftTitle).toBeUndefined();
-    expect((context.draftBody as string).length).toBe(4003);
-    expect((context.draftBody as string).endsWith('...')).toBe(true);
+    expect(context.draftBody).toHaveLength(4003);
+    expect(context.draftBody).toMatch(/\.\.\.$/);
   });
 
   it('captures document text selection into the context', () => {

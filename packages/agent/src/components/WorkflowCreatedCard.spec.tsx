@@ -61,7 +61,7 @@ describe('WorkflowCreatedCard', () => {
   });
 
   it('shows installing state while an action CTA is running', () => {
-    let resolveAction: (() => void) | null = null;
+    let resolveAction: () => void = () => {};
     const onUiAction = vi.fn().mockImplementation(
       () =>
         new Promise<void>((resolve) => {
@@ -89,6 +89,6 @@ describe('WorkflowCreatedCard', () => {
       screen.getByRole('button', { name: 'Installing...' }),
     ).toBeDisabled();
 
-    resolveAction?.();
+    resolveAction();
   });
 });

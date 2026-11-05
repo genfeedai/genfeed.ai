@@ -20,6 +20,7 @@ import {
   selectActiveRun,
 } from '@genfeedai/agent/stores/agent-chat.store.run';
 import {
+  AgentGenerationMode,
   AgentThreadStatus,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
@@ -1327,7 +1328,7 @@ describe('useAgentChatStream', () => {
       findAgentStreamEntry('thread-b')?.activeStreamThreadRef.current,
     ).toBe('thread-b');
     const liveSubscriptionCount =
-      findAgentStreamEntry('thread-b')?.unsubscribersRef.current.length;
+      findAgentStreamEntry('thread-b')?.unsubscribersRef.current.length ?? 0;
 
     act(() => {
       if (handoff) {
@@ -1772,7 +1773,7 @@ describe('useAgentChatStream', () => {
 
     await act(async () => {
       await result.current.sendMessage('Create a portrait campaign visual', {
-        generationMode: 'image',
+        generationMode: AgentGenerationMode.IMAGE,
         generationSettings: {
           aspectRatio: '4:5',
           model: 'replicate/image-model',

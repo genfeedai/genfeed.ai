@@ -1,7 +1,7 @@
 import type { AgentChatInputToolbarProps } from '@genfeedai/agent/components/AgentChatInputToolbar';
 import { AgentChatInputToolbar } from '@genfeedai/agent/components/AgentChatInputToolbar';
 import { ConversationComposerShellProvider } from '@genfeedai/agent/components/ConversationComposerShellContext';
-import { AgentThreadMode } from '@genfeedai/contracts';
+import { AgentGenerationMode, AgentThreadMode } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -14,7 +14,7 @@ function buildDefaultProps(
     canSendMessage: true,
     canUseVoiceInput: false,
     disabled: false,
-    generationMode: 'auto',
+    generationMode: AgentGenerationMode.AUTO,
     hasEditor: true,
     isEmptyComposer: true,
     isListening: false,

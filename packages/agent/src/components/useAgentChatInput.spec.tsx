@@ -10,7 +10,11 @@ import {
   writeConversationComposerDocument,
   writeDismissedSurfaceReferenceKeys,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
-import { AgentThreadMode } from '@genfeedai/contracts';
+import {
+  AgentGenerationMode,
+  AgentThreadMode,
+  UploadStatus,
+} from '@genfeedai/contracts';
 import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import {
   act,
@@ -21,6 +25,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Slice } from '@tiptap/pm/model';
 import { TextSelection } from '@tiptap/pm/state';
 import { EditorContent } from '@tiptap/react';
 import type { ReactNode } from 'react';
@@ -269,7 +274,7 @@ describe('useAgentChatInput generation mode', () => {
     const { result } = renderHook(
       () =>
         useAgentChatInput({
-          generationMode: 'video',
+          generationMode: AgentGenerationMode.VIDEO,
           generationSettings: {
             aspectRatio: '9:16',
             duration: 5,
@@ -310,7 +315,7 @@ describe('useAgentChatInput generation mode', () => {
     const { result } = renderHook(
       () =>
         useAgentChatInput({
-          generationMode: 'auto',
+          generationMode: AgentGenerationMode.AUTO,
           generationSettings: {
             aspectRatio: '1:1',
             outputs: 1,
@@ -526,7 +531,7 @@ describe('useAgentChatInput draft restore selection', () => {
             },
             preventDefault,
           } as unknown as ClipboardEvent,
-          null,
+          Slice.empty,
         ),
       );
     });
@@ -590,7 +595,7 @@ describe('useAgentChatInput draft restore selection', () => {
             },
             preventDefault: vi.fn(),
           } as unknown as ClipboardEvent,
-          null,
+          Slice.empty,
         ),
       );
     };
@@ -645,7 +650,7 @@ describe('useAgentChatInput media paste', () => {
           clipboardData,
           preventDefault,
         } as unknown as ClipboardEvent,
-        null,
+        Slice.empty,
       ),
     );
 
@@ -751,7 +756,7 @@ describe('useAgentChatInput follow-up queue submit', () => {
               kind: 'image',
               name: 'shot.png',
               previewUrl: '',
-              status: 'uploading',
+              status: UploadStatus.UPLOADING,
             },
           ],
           isUploading: true,

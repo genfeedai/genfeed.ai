@@ -567,7 +567,7 @@ describe('AgentChatMessage', () => {
             generatedContent: tweet,
             uiActions: [
               {
-                contentFormat: 'post',
+                contentFormat: 'social_post',
                 id: 'content-preview-post',
                 platform: 'twitter',
                 title: 'X post',

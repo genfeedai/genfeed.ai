@@ -209,7 +209,7 @@ describe('useAgentPageContext', () => {
   it('caps role-filtered fallback actions at three', () => {
     const { result } = renderAt(
       `/acme/main${APP_ROUTES.ANALYTICS.ROOT}`,
-      MemberRole.MEMBER,
+      MemberRole.USER,
     );
 
     expect(result.current.suggestedActions.length).toBeLessThanOrEqual(3);

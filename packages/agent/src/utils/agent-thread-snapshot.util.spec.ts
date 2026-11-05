@@ -129,7 +129,6 @@ describe('mapSnapshotWorkEvents', () => {
   it('maps tool start entries without explicit status as running only while the run is live', () => {
     const [liveEvent] = mapSnapshotWorkEvents({
       activeRun: {
-        completedAt: null,
         runId: 'run-1',
         startedAt: '2026-03-24T10:00:00.000Z',
         status: 'running',

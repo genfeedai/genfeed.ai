@@ -68,15 +68,16 @@ describe('agent-api.workflows', () => {
       'wf-1',
       { topic: 'launch' },
       undefined,
-      { brandId: 'brand-1' },
+      { expectedContextVersion: 3, threadId: 'thread-1' },
     );
 
     expect(result).toEqual({ id: 'exec-1', status: 'queued' });
     const call = mockFetch.mock.calls.at(-1);
     expect(call?.[0]).toBe('http://api.test/workflow-executions');
     expect(JSON.parse((call?.[1]?.body as string) ?? '{}')).toMatchObject({
-      brandId: 'brand-1',
+      expectedContextVersion: 3,
       inputValues: { topic: 'launch' },
+      threadId: 'thread-1',
       workflowId: 'wf-1',
     });
   });
