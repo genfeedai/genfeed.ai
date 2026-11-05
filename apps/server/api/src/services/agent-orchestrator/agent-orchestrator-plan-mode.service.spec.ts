@@ -309,6 +309,32 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
     expect(llmDispatcher.chatCompletion).toHaveBeenCalledTimes(2);
   });
 
+  it('answers when the first draw spent its whole output cap reasoning', async () => {
+    agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
+    // This model blanks at the first request's cap and answers once the cap
+    // is raised, so only a retry with more room gets a plan out of it.
+    llmDispatcher.chatCompletion.mockImplementation(
+      async (params: OpenRouterChatCompletionParams) => ({
+        choices: [
+          params.max_tokens !== undefined && params.max_tokens > 2048
+            ? { finish_reason: 'stop', message: { content: 'Which post?' } }
+            : {
+                finish_reason: 'length',
+                message: { content: '', reasoning_content: 'Thinking' },
+              },
+        ],
+        model: 'test-model',
+      }),
+    );
+
+    const result = await service.tryHandlePlanModeTurn(
+      baseParams as never,
+      host,
+    );
+
+    expect(result?.message.content).toBe('Which post?');
+  });
+
   it('posts a prose answer as a normal reply instead of a plan awaiting approval', async () => {
     agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
     const answer =
