@@ -445,10 +445,14 @@ export class VideoGenerationExecutionService {
         const input =
           target.executionModelKey === context.model
             ? nativeInput
-            : mapProviderOfferInput(registration.providerInputSchema, {
-                ...quote.quantities,
-                providerInput: nativeInput,
-              });
+            : mapProviderOfferInput(
+                registration.providerInputSchema,
+                {
+                  ...quote.quantities,
+                  providerInput: nativeInput,
+                },
+                { endpoint: target.endpoint },
+              );
         if (!input)
           throw new HttpException(
             'Provider input is incompatible with this quote.',

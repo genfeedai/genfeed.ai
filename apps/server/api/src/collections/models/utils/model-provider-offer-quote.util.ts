@@ -94,7 +94,9 @@ export async function findModelProviderOfferQuote(
     const prepared =
       source.id === model.id
         ? input.providerInput
-        : mapProviderOfferInput(source.providerInputSchema, input);
+        : mapProviderOfferInput(source.providerInputSchema, input, {
+            endpoint: source.endpoint,
+          });
     if (prepared === null) continue;
     const request = {
       ...input,

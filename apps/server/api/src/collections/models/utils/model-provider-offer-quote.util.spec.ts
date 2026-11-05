@@ -1,7 +1,11 @@
 import { findModelProviderOfferQuote } from '@api/collections/models/utils/model-provider-offer-quote.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { setRuntimeMarginMultiplier } from '@genfeedai/pricing';
+import {
+  findReviewedRateSheetEntry,
+  setRuntimeMarginMultiplier,
+} from '@genfeedai/pricing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import falKlingSchemas from './fixtures/fal-kling-v3-input-schemas.json';
 
 function registration(id: string, provider: string, price: number) {
   const endpoint = `${provider}/video`;
@@ -128,5 +132,124 @@ describe('logical model provider routing', () => {
     const f = fixture();
     f.cheaper.providerContracts = [];
     expect((await f.quote())?.provider).toBe('replicate');
+  });
+});
+
+describe('Kling v3 routing to fal', () => {
+  const PRO_TEXT = 'fal-ai/kling-video/v3/pro/text-to-video';
+  const PRO_IMAGE = 'fal-ai/kling-video/v3/pro/image-to-video';
+
+  const REPLICATE_KLING = 'kwaivgi/kling-v3-video';
+
+  /** A registration priced from its real rate-sheet entry. */
+  function reviewed(id: string, provider: string, endpoint: string) {
+    const offer = registration(id, provider, 0);
+    const entry = findReviewedRateSheetEntry(provider, endpoint);
+    if (!entry) throw new Error(`missing ${provider} rate for ${endpoint}`);
+    offer.key = endpoint;
+    offer.endpoint = endpoint;
+    offer.providerContracts[0] = {
+      ...offer.providerContracts[0],
+      endpoint,
+      pricing: {
+        ...offer.providerContracts[0].pricing,
+        rates:
+          entry.rates as (typeof offer.providerContracts)[0]['pricing']['rates'],
+        ...(entry.variantRules ? { variantRules: entry.variantRules } : {}),
+      },
+    };
+    return offer;
+  }
+
+  function falKling(id: string, endpoint: keyof typeof falKlingSchemas) {
+    const offer = reviewed(id, 'fal', endpoint);
+    offer.providerInputSchema = falKlingSchemas[
+      endpoint
+    ] as typeof offer.providerInputSchema;
+    return offer;
+  }
+
+  function klingFixture() {
+    const replicate = reviewed('replicate-kling', 'replicate', REPLICATE_KLING);
+    replicate.providerInputSchema = {
+      type: 'object',
+      properties: {
+        aspect_ratio: { type: 'string' },
+        duration: { type: 'number' },
+        mode: { type: 'string' },
+        prompt: { type: 'string' },
+        start_image: { type: 'string' },
+      },
+      required: ['prompt', 'duration'],
+      additionalProperties: false,
+    } as typeof replicate.providerInputSchema;
+    const offers = [
+      replicate,
+      falKling('fal-pro-text', PRO_TEXT),
+      falKling('fal-pro-image', PRO_IMAGE),
+    ].map((executionModel, priority) => ({
+      id: executionModel.id,
+      executionModel,
+      isActive: true,
+      priority,
+    }));
+    const prisma = {
+      model: {
+        findFirst: vi.fn().mockResolvedValue({
+          ...replicate,
+          pinnedProvider: null,
+          providerOffers: offers,
+        }),
+      },
+      providerRoutingSetting: { findMany: vi.fn().mockResolvedValue([]) },
+    } as unknown as PrismaService;
+    return (providerInput: Record<string, unknown>) =>
+      findModelProviderOfferQuote(prisma, replicate.key, 'org-1', {
+        duration: 5,
+        providerInput,
+      });
+  }
+
+  it.each([
+    [
+      'a text request',
+      { aspect_ratio: '16:9', duration: 5, mode: 'pro', prompt: 'Sunrise' },
+      PRO_TEXT,
+    ],
+    [
+      'an image request',
+      {
+        aspect_ratio: '16:9',
+        duration: 5,
+        mode: 'pro',
+        prompt: 'Sunrise',
+        start_image: 'https://example.com/start.png',
+      },
+      PRO_IMAGE,
+    ],
+  ])(
+    'sends %s to the matching fal endpoint with Replicate as the fallback',
+    async (_case, providerInput, endpoint) => {
+      const quote = klingFixture();
+
+      expect((await quote(providerInput))?.routedDispatch).toMatchObject({
+        endpoint,
+        // Replicate's Pro rate without audio: 5 s at $0.224.
+        fallback: {
+          endpoint: REPLICATE_KLING,
+          provider: 'replicate',
+          providerCostUsd: 1.12,
+        },
+        provider: 'fal',
+      });
+    },
+  );
+
+  it('keeps a 4K request on Replicate', async () => {
+    const quote = klingFixture();
+
+    expect(
+      (await quote({ duration: 5, mode: '4k', prompt: 'Sunrise' }))?.provider,
+    ).toBe('replicate');
   });
 });
