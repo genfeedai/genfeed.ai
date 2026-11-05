@@ -37,6 +37,7 @@ import type {
   BrandLearningApplicationV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import type { ContentHarnessContribution } from '@genfeedai/harness';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -71,6 +72,7 @@ const RECOVERABLE_SNAPSHOT_FAILURES = new Set([
  * receipt, never retried automatically; lifecycle outcomes are returned, not
  * thrown, so the caller can map them to its own transport.
  */
+@Traced()
 @Injectable()
 export class BrandedTextGenerationService {
   private readonly logger = new Logger(BrandedTextGenerationService.name);

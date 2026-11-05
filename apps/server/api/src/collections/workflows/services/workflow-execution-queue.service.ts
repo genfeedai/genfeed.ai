@@ -34,6 +34,7 @@ import {
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import { HttpException, Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
@@ -224,6 +225,7 @@ function requireQueueJobId(
  * 3. `scheduled-fire` — Execute one persisted scheduled workflow
  * 4. `system-run` — Resolve and execute one registered code-owned graph
  */
+@Traced()
 @Injectable()
 export class WorkflowExecutionQueueService {
   private readonly logContext = 'WorkflowExecutionQueueService';

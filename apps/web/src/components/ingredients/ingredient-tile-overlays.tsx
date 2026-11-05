@@ -1,6 +1,6 @@
 'use client';
 
-import { IngredientStatus } from '@genfeedai/contracts';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { formatDuration } from '@genfeedai/helpers/video-duration.helper';
@@ -40,6 +40,25 @@ function getCaption(ingredient: IIngredient): {
   };
 }
 
+const CAPTIONED_CATEGORIES = new Set<string>([
+  IngredientCategory.AVATAR,
+  IngredientCategory.GIF,
+  IngredientCategory.IMAGE,
+  IngredientCategory.IMAGE_EDIT,
+  IngredientCategory.VIDEO,
+  IngredientCategory.VIDEO_EDIT,
+]);
+
+function isCaptionedCategory(category?: string): boolean {
+  return category ? CAPTIONED_CATEGORIES.has(category) : true;
+}
+
+/** Tiles without a caption (text, audio) reveal their origin on its own. */
+const ORIGIN_BADGE_CLASS = cn(
+  'pointer-events-none absolute bottom-1.5 left-1.5 z-10 transition-opacity',
+  hoverRevealClassName({ isInteractive: false }),
+);
+
 /** Tags sit just above the caption and never intercept a click either. */
 const TAG_CHIPS_CLASS =
   'pointer-events-none absolute bottom-8 left-1.5 right-1.5 z-10';
@@ -65,7 +84,11 @@ export default function IngredientTileOverlays({
   const hasNoAsset =
     isFailed || ingredient.status === IngredientStatus.PROCESSING;
 
-  const caption = hasNoAsset ? null : getCaption(ingredient);
+  // Text and audio tiles draw their own title; the caption is for media.
+  const caption =
+    hasNoAsset || !isCaptionedCategory(ingredient.category)
+      ? null
+      : getCaption(ingredient);
 
   return (
     <>
@@ -82,7 +105,11 @@ export default function IngredientTileOverlays({
             {caption.label}
           </span>
           {caption.duration ? (
-            <span className="shrink-0 font-mono tabular-nums text-white/75">
+            <span
+              className={
+                'shrink-0 font-mono tabular-nums text-white/70' /* design-system-allow-content-color -- caption over media */
+              }
+            >
               {caption.duration}
             </span>
           ) : null}
@@ -96,6 +123,12 @@ export default function IngredientTileOverlays({
             onUpdated={onReviewUpdated}
           />
         </div>
+      ) : null}
+      {!caption && !hasNoAsset ? (
+        <IngredientOriginBadge
+          className={ORIGIN_BADGE_CLASS}
+          origin={ingredient.origin}
+        />
       ) : null}
     </>
   );

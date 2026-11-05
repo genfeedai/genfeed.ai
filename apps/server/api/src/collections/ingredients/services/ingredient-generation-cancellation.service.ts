@@ -11,7 +11,10 @@ import { FailedGenerationService } from '@api/shared/services/failed-generation/
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
+
+const PREDICTION_INDEX_SUFFIX_PATTERN = /_\d+$/;
 
 export interface CancelProcessingIngredientInput {
   id: string;
@@ -24,6 +27,7 @@ export interface CancelProcessingIngredientInput {
  * mark the placeholder FAILED so waitForCompletion unblocks and webhooks
  * no-op on a later completion.
  */
+@Traced()
 @Injectable()
 export class IngredientGenerationCancellationService {
   constructor(
@@ -168,7 +172,7 @@ export class IngredientGenerationCancellationService {
    * The cancel API takes the raw prediction id.
    */
   private replicatePredictionId(externalId: string): string {
-    return externalId.replace(/_\d+$/, '');
+    return externalId.replace(PREDICTION_INDEX_SUFFIX_PATTERN, '');
   }
 
   private websocketPathFor(ingredient: IngredientDocument): string {

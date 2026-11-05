@@ -6,7 +6,10 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { ListingType, PromptCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
+
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
 interface InstallResult {
   resourceId: string;
@@ -23,6 +26,7 @@ const PROMPT_CATEGORY_MAP: Record<string, PromptCategory> = {
   'video-generation': PromptCategory.PRESET_DESCRIPTION_VIDEO,
 };
 
+@Traced()
 @Injectable()
 export class MarketplaceInstallService {
   constructor(
@@ -164,7 +168,8 @@ export class MarketplaceInstallService {
     );
 
     const slug =
-      (downloadData.slug as string) || title.toLowerCase().replace(/\s+/g, '-');
+      (downloadData.slug as string) ||
+      title.toLowerCase().replace(WHITESPACE_RUNS_PATTERN, '-');
 
     const skill = await this.skillsService.createSkill(organizationId, {
       description: downloadData.description as string | undefined,

@@ -14,6 +14,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { withPlatformTenantArm } from '@libs/prisma/platform-scope';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 interface TrendsAccessControlResult {
@@ -29,6 +30,7 @@ interface TrendsAccessControlResult {
  * Extracted from TrendsService (issue #752). Live fetch + normalization is
  * delegated to {@link TrendSourceItemsService}.
  */
+@Traced()
 @Injectable()
 export class TrendSourcePreviewService {
   private readonly CONTENT_CACHE_TTL_SECONDS = 600;
@@ -432,6 +434,7 @@ export class TrendSourcePreviewService {
     // tenant-scope-ignore: write-scope equality is proven above; where is either explicit global scope or scopedWhere tenant scope and always includes isDeleted
     const existingDoc = await this.prisma.trend.findFirst({
       where,
+      select: { data: true },
     });
     if (existingDoc) {
       const existingData =

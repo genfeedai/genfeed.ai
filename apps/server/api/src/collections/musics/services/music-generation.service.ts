@@ -42,6 +42,7 @@ import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { buildMediaPromptFromHarness } from '@genfeedai/harness';
 import { MusicSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   HttpException,
@@ -78,6 +79,7 @@ type MusicDispatchParams = {
  * `MusicsOperationsController.create` while the controller retains the stable
  * HTTP transport contract.
  */
+@Traced()
 @Injectable()
 export class MusicGenerationService {
   private readonly orchestrationSource = 'MusicsOperationsController';

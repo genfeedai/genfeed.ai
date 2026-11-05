@@ -24,6 +24,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
 import { type Post, Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   ConflictException,
   HttpException,
@@ -131,6 +132,7 @@ class PostLifecycleTargetNotFoundException extends HttpException {
   }
 }
 
+@Traced()
 @Injectable()
 export class PostLifecycleService {
   constructor(

@@ -6,6 +6,7 @@ import type {
   VideoGenerationCreditMetadata,
 } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export const VIDEO_GENERATION_LINEAGE_REFERENCE_TYPE =
@@ -86,6 +87,7 @@ export function sumVideoGenerationLineageSpend(
   }, 0);
 }
 
+@Traced()
 @Injectable()
 export class VideoGenerationLineageService {
   private readonly constructorName = String(this.constructor.name);
@@ -116,6 +118,7 @@ export class VideoGenerationLineageService {
           path: ['lineageId'],
         } satisfies Prisma.JsonFilter,
       }),
+      select: { amount: true, metadata: true },
     });
 
     return rows.map((row) => ({

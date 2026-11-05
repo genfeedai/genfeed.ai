@@ -17,8 +17,10 @@ import {
   LOWEST_COST_VIDEO_MODEL_KEY,
 } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class SelfHostedSeedService implements OnApplicationBootstrap {
   private readonly context = 'SelfHostedSeedService';

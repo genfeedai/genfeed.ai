@@ -27,6 +27,7 @@ import {
 import { assertLearningFeatures, LEARNING_ARMS } from '@genfeedai/harness';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -212,6 +213,7 @@ type DatasetManifest = {
   synthetic: boolean;
   manifestHash: string;
 };
+@Traced()
 @Injectable()
 export class LearningDatasetService {
   constructor(
@@ -248,6 +250,7 @@ export class LearningDatasetService {
                 requestId: input.requestId,
                 isDeleted: false,
               },
+              select: { payloadHash: true, resultReferences: true },
             });
             if (previous) {
               if (previous.payloadHash !== payloadHash)

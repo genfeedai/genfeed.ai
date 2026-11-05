@@ -15,9 +15,11 @@ import {
   type AdOptimizationConfig as PrismaAdOptimizationConfig,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Inject, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class AdOptimizationConfigsService {
   private readonly constructorName = this.constructor.name;
@@ -48,6 +50,7 @@ export class AdOptimizationConfigsService {
     try {
       const existing = await this.prisma.adOptimizationConfig.findFirst({
         where: scopedWhere(organizationId),
+        select: { config: true, id: true },
       });
 
       const config = this.buildConfigPayload(data, existing?.config);

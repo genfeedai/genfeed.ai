@@ -22,6 +22,7 @@ import {
   PromptStatus,
   SystemPromptKey,
 } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const DEFAULT_TEXT_SYSTEM_PROMPT =
@@ -67,6 +68,7 @@ export class PromptEnhancementResponseError extends Error {
   }
 }
 
+@Traced()
 @Injectable()
 export class PromptEnhancementService {
   constructor(

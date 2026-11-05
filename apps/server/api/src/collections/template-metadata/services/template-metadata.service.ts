@@ -3,8 +3,10 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { Prisma } from '@genfeedai/prisma';
 import { platformOrTenantScope } from '@libs/prisma/platform-scope';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class TemplateMetadataService {
   constructor(private readonly prisma: PrismaService) {}
@@ -114,6 +116,7 @@ export class TemplateMetadataService {
         key,
         purpose: 'prompt',
       },
+      select: { id: true },
     });
 
     if (!template) {

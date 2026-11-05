@@ -6,6 +6,8 @@ import type {
   AgentMembersServiceLike,
 } from '@api/services/agent-orchestrator/tools/agent-workflow-tool.types';
 
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+
 // #5219: explicit param, then thread/route context, then the acting member's
 // currentBrandId. No "first brand in the org" guess — generation always has
 // an explicit brand.
@@ -52,7 +54,7 @@ export function tokenizeWorkflowBootstrapText(
     .flatMap((value) =>
       String(value || '')
         .toLowerCase()
-        .split(/[^a-z0-9]+/g),
+        .split(NON_ALPHANUMERIC_RUNS_PATTERN),
     )
     .map((token) => token.trim())
     .filter((token) => token.length >= 3);

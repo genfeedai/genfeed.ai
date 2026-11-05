@@ -14,7 +14,10 @@ import {
   VoiceCloneStatus,
   VoiceProvider,
 } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
+
+const UNSAFE_QUEUE_KEY_CHARS_PATTERN = /[^A-Za-z0-9_-]/g;
 
 export interface FleetVoiceCloneWebhookPayload {
   assetId?: string;
@@ -54,6 +57,7 @@ type FleetWebhookOutcome = {
 
 const FLEET_VOICE_CLONE_REFERENCE_TYPE = 'fleet:voice-clone';
 
+@Traced()
 @Injectable()
 export class FleetWebhookService {
   constructor(
@@ -419,7 +423,7 @@ export class FleetWebhookService {
   }
 
   private toQueueKey(value: string): string {
-    return value.replace(/[^A-Za-z0-9_-]/g, '_');
+    return value.replace(UNSAFE_QUEUE_KEY_CHARS_PATTERN, '_');
   }
 
   private voiceId(voice: IngredientDocument): string {

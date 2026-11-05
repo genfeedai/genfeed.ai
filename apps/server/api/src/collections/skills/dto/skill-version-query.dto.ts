@@ -1,6 +1,8 @@
 import type { SkillVersionListQueryV1 } from '@genfeedai/contracts/interfaces/ai/skill-version-read.interface';
 import { BadRequestException } from '@nestjs/common';
 
+const POSITIVE_INTEGER_PATTERN = /^[1-9][0-9]*$/;
+
 function strictQuery(
   value: unknown,
   allowed: readonly string[],
@@ -17,7 +19,7 @@ function strictQuery(
 function positiveInteger(value: unknown, maximum: number): number {
   if (
     typeof value !== 'number' &&
-    (typeof value !== 'string' || !/^[1-9][0-9]*$/.test(value))
+    (typeof value !== 'string' || !POSITIVE_INTEGER_PATTERN.test(value))
   ) {
     throw new BadRequestException('Expected a positive integer');
   }

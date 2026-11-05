@@ -15,6 +15,7 @@ import type {
   XAdsTweet,
 } from '@api/services/integrations/x-ads/interfaces/x-ads.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadGatewayException,
@@ -23,6 +24,9 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { XAdsOAuthService } from './x-ads-oauth.service';
+
+const LEADING_SLASHES_PATTERN = /^\/+/;
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 type XAdsReportingEntity = 'CAMPAIGN' | 'LINE_ITEM' | 'PROMOTED_TWEET';
 const X_ADS_STATS_MAX_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
@@ -43,6 +47,7 @@ function safeXAdsErrorMetadata(error: unknown): {
  * token and secret. OAuth 2.0 bearer and refresh semantics are intentionally
  * absent from this surface.
  */
+@Traced()
 @Injectable()
 export class XAdsService {
   private static readonly RATE_LIMIT_DELAY_MS = 250;
@@ -625,7 +630,7 @@ export class XAdsService {
   }
 
   private normalizePath(path: string): string {
-    return path.replace(/^\/+/, '');
+    return path.replace(LEADING_SLASHES_PATTERN, '');
   }
 
   private toQueryParams(
@@ -740,9 +745,7 @@ function isConversionMetric(
 }
 
 function normalizeReportingBoundary(value: string, field: string): string {
-  const candidate = /^\d{4}-\d{2}-\d{2}$/.test(value)
-    ? `${value}T00:00:00Z`
-    : value;
+  const candidate = ISO_DATE_PATTERN.test(value) ? `${value}T00:00:00Z` : value;
   const parsed = new Date(candidate);
 
   if (

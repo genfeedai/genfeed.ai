@@ -5,6 +5,12 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { deriveClaudeMcpResourceIdentifier } from './mcp-resource.helper';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+const CLAUDE_MCP_PATH_SUFFIX_PATTERN = /\/mcp\/claude\/*$/i;
+const CLAUDE_MCP_PATH_END_PATTERN = /\/mcp\/claude$/i;
+const SAFE_URL_CHARS_PATTERN = /^[A-Za-z0-9:/._-]+$/;
+const SINGLE_QUOTES_PATTERN = /'/g;
+
 const ENVIRONMENT_VARIABLE = 'GENFEED_API_KEY';
 /** Codex needs generation tools, so its install URL selects the studio profile. */
 export const GENFEED_CODEX_MCP_PROFILE = 'studio';
@@ -65,12 +71,12 @@ export function buildGenfeedAgentSetupPrompt(
   const standardUrl = new URL(normalizeEndpoint(endpoint));
   if (
     standardUrl.pathname
-      .replace(/\/+$/, '')
+      .replace(TRAILING_SLASHES_PATTERN, '')
       .toLowerCase()
       .endsWith('/mcp/claude')
   ) {
     standardUrl.pathname = standardUrl.pathname.replace(
-      /\/mcp\/claude\/*$/i,
+      CLAUDE_MCP_PATH_SUFFIX_PATTERN,
       '/mcp',
     );
     standardUrl.search = '';
@@ -118,7 +124,7 @@ export function buildConnectGenfeedInstructions(
   authMethod: ConnectGenfeedAuthMethod = 'oauth',
 ): ConnectGenfeedInstructions {
   const url = new URL(normalizeEndpoint(endpoint));
-  const normalizedPath = url.pathname.replace(/\/+$/, '');
+  const normalizedPath = url.pathname.replace(TRAILING_SLASHES_PATTERN, '');
   const isClaude =
     client === 'claude-code' ||
     normalizedPath.toLowerCase().endsWith('/mcp/claude');
@@ -126,7 +132,7 @@ export function buildConnectGenfeedInstructions(
     url.search = '';
     url.hash = '';
     url.pathname = normalizedPath.toLowerCase().endsWith('/mcp/claude')
-      ? normalizedPath.replace(/\/mcp\/claude$/i, '/mcp/claude')
+      ? normalizedPath.replace(CLAUDE_MCP_PATH_END_PATTERN, '/mcp/claude')
       : new URL(deriveClaudeMcpResourceIdentifier(url.toString())).pathname;
     authMethod = 'oauth';
   }
@@ -135,9 +141,9 @@ export function buildConnectGenfeedInstructions(
     : client === 'codex'
       ? withCodexProfile(normalizeEndpoint(endpoint))
       : normalizeEndpoint(endpoint);
-  const shellEndpoint = /^[A-Za-z0-9:/._-]+$/.test(mcpEndpoint)
+  const shellEndpoint = SAFE_URL_CHARS_PATTERN.test(mcpEndpoint)
     ? mcpEndpoint
-    : `'${mcpEndpoint.replace(/'/g, `'"'"'`)}'`;
+    : `'${mcpEndpoint.replace(SINGLE_QUOTES_PATTERN, `'"'"'`)}'`;
 
   if (authMethod === 'oauth') {
     const authorizationInstruction =

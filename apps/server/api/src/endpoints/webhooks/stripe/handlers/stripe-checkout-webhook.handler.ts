@@ -47,6 +47,7 @@ import {
   buildSystemEmailParagraph,
 } from '@helpers/email/system-email.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { nanoid } from 'nanoid';
@@ -69,6 +70,7 @@ type SkillReceiptDocument = {
 };
 
 /** Handles checkout.session.completed Stripe webhook events (all sub-types). */
+@Traced()
 @Injectable()
 export class StripeCheckoutWebhookHandler {
   constructor(

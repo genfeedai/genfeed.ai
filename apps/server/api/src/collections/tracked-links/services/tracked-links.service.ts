@@ -11,6 +11,7 @@ import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util'
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   HttpException,
@@ -19,6 +20,13 @@ import {
   Logger,
 } from '@nestjs/common';
 import { nanoid } from 'nanoid';
+
+const EDGE_BRACKETS_PATTERN = /^\[|\]$/g;
+const IPV4_SUFFIX_PATTERN = /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/;
+const TABLET_USER_AGENT_PATTERN =
+  /(tablet|ipad|playbook|silk)|(android(?!.*mobile))/i;
+const MOBILE_USER_AGENT_PATTERN =
+  /mobile|iphone|ipod|android|blackberry|opera mini|iemobile/i;
 
 /** Fields a caller is allowed to mutate on an existing tracked link. */
 type TrackedLinkUpdatePayload = {
@@ -50,6 +58,7 @@ const CONTENT_STATS_LINK_LIMIT = 500;
 const CLICK_RATE_LIMIT = 120;
 const CLICK_RATE_WINDOW_MS = 60_000;
 
+@Traced()
 @Injectable()
 export class TrackedLinksService {
   private readonly clickRateLimiter = new Map<string, ClickRateEntry>();
@@ -285,7 +294,7 @@ export class TrackedLinksService {
     // Strip IPv6 brackets and any zone id before classifying the host.
     const host = hostname
       .toLowerCase()
-      .replace(/^\[|\]$/g, '')
+      .replace(EDGE_BRACKETS_PATTERN, '')
       .split('%')[0];
 
     if (
@@ -303,7 +312,7 @@ export class TrackedLinksService {
     if (isIP(host) === 6) {
       // IPv4-mapped IPv6 in dotted form (e.g. ::ffff:127.0.0.1) — re-check the
       // embedded IPv4 so loopback/private targets cannot slip through.
-      const dottedV4 = host.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+      const dottedV4 = host.match(IPV4_SUFFIX_PATTERN);
       if (dottedV4?.[1]) {
         return this.isBlockedIPv4(dottedV4[1]);
       }
@@ -496,6 +505,7 @@ export class TrackedLinksService {
   ): Promise<void> {
     const link = await this.prisma.trackedLink.findFirst({
       where: { id: dto.linkId, isActive: true, isDeleted: false },
+      select: { organizationId: true },
     });
 
     if (!link) {
@@ -519,6 +529,7 @@ export class TrackedLinksService {
         isUnique = dto.sessionId
           ? !(await tx.linkClick.findFirst({
               where: { linkId: dto.linkId, sessionId },
+              select: { id: true },
             }))
           : false;
 
@@ -887,10 +898,10 @@ export class TrackedLinksService {
     }
 
     const ua = userAgent.toLowerCase();
-    if (/(tablet|ipad|playbook|silk)|(android(?!.*mobile))/i.test(ua)) {
+    if (TABLET_USER_AGENT_PATTERN.test(ua)) {
       return 'tablet';
     }
-    if (/mobile|iphone|ipod|android|blackberry|opera mini|iemobile/i.test(ua)) {
+    if (MOBILE_USER_AGENT_PATTERN.test(ua)) {
       return 'mobile';
     }
     return 'desktop';

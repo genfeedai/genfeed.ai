@@ -341,6 +341,7 @@ describe('OrganizationsService', () => {
       expect(slug).toBe('genfeed-ai-2');
       expect(organizationDelegate.findFirst).toHaveBeenNthCalledWith(1, {
         where: { slug: 'genfeed-ai' },
+        select: { id: true },
       });
     });
 
@@ -367,6 +368,7 @@ describe('OrganizationsService', () => {
       expect(organizationDelegate.findFirst).toHaveBeenCalledTimes(1);
       expect(organizationDelegate.findFirst).toHaveBeenCalledWith({
         where: { slug: `${name}-2` },
+        select: { id: true },
       });
     });
   });

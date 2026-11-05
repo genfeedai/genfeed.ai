@@ -4,6 +4,7 @@ import {
   replacePostUrls,
 } from '@api/collections/tracked-links/utils/post-link-text.util';
 import { getShortLinkBaseUrl } from '@api/collections/tracked-links/utils/short-link-base-url.util';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Logger } from '@nestjs/common';
 
 /** A post shortens at most this many distinct URLs; further ones stay as written. */
@@ -20,6 +21,7 @@ export type PostLinkShorteningInput = {
  * Shortens the URLs in a post caption so every click on them is counted for
  * that post.
  */
+@Traced()
 @Injectable()
 export class PostLinkShortenerService {
   private readonly logger = new Logger(PostLinkShortenerService.name);

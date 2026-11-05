@@ -6,6 +6,7 @@ import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-o
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -47,6 +48,7 @@ export type AutonomousProducerInstallOutcome =
  * Only a principal allowed to install catalog workflows directly (owner,
  * admin or creator) installs them; anyone else's opt-in saves without one.
  */
+@Traced()
 @Injectable()
 export class AutonomousProducerInstallService {
   private readonly logContext = 'AutonomousProducerInstallService';

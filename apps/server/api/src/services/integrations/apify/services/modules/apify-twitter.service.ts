@@ -9,7 +9,10 @@ import { ApifyBaseService } from '@api/services/integrations/apify/services/modu
 import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
 import type { SocialSourceResearchContext } from '@api/services/source-collector/source-collector.types';
 import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
+
+const LEADING_HASH_PATTERN = /^#/;
 
 /**
  * ApifyTwitterService
@@ -17,6 +20,7 @@ import { Injectable } from '@nestjs/common';
  * Handles all Twitter/X-related Apify scraping operations:
  * trends, mentions, timeline, replies, and search.
  */
+@Traced()
 @Injectable()
 export class ApifyTwitterService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -286,7 +290,9 @@ export class ApifyTwitterService {
           mentions: trend.tweetVolume || 0,
           metadata: {
             countryCode: trend.countryCode,
-            hashtags: isHashtag ? [trend.name.replace(/^#/, '')] : [],
+            hashtags: isHashtag
+              ? [trend.name.replace(LEADING_HASH_PATTERN, '')]
+              : [],
             rank: trend.rank || index + 1,
             source: 'apify' as const,
             trendType: isHashtag ? ('hashtag' as const) : ('topic' as const),

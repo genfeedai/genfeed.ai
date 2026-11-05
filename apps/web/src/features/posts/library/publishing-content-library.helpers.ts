@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/contracts';
 import type {
   ICredential,
+  IIngredient,
   IPost,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
@@ -15,8 +16,12 @@ import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
 import type {
   PublishingContentAccount,
+  PublishingContentBoardColumn,
   PublishingContentFormat,
+  PublishingContentMedia,
 } from '@/features/posts/props/publishing-content-entry.props';
+
+const SEPARATORS_PATTERN = /[_-]/g;
 
 export const PUBLISHING_CONTENT_TYPES = [
   'post',
@@ -31,6 +36,8 @@ export interface PublishingContentLibraryItem {
   accounts?: PublishingContentAccount[];
   channels?: string[];
   format?: PublishingContentFormat;
+  /** First media item of a social post; `null` when the post is text only. */
+  media?: PublishingContentMedia | null;
   release?: IReleaseGroup;
   publishedAt?: string | null;
   scheduledAt?: string | null;
@@ -113,6 +120,32 @@ function resolvePostFormat(post: IPost): PublishingContentFormat | undefined {
   return undefined;
 }
 
+const VIDEO_CATEGORIES = new Set<string>([
+  IngredientCategory.VIDEO,
+  IngredientCategory.VIDEO_EDIT,
+]);
+
+function toPostMedia(
+  ingredient: IIngredient | undefined,
+): PublishingContentMedia | null {
+  return ingredient
+    ? { ingredient, isVideo: VIDEO_CATEGORIES.has(ingredient.category) }
+    : null;
+}
+
+function toReleaseMedia(
+  media: IReleaseGroup['media'] | undefined,
+): PublishingContentMedia | null {
+  const first = [...(Array.isArray(media) ? media : [])].sort(
+    (left, right) => (left.order ?? 0) - (right.order ?? 0),
+  )[0];
+  if (!first) {
+    return null;
+  }
+  // A release without a hydrated URL still has media: say so with the mark.
+  return first.url ? { isVideo: first.kind === 'video', url: first.url } : null;
+}
+
 export function createPublishingContentAccounts(
   credentials: (ICredential | undefined)[],
 ): PublishingContentAccount[] {
@@ -143,7 +176,7 @@ function toAccounts(
 
 export function formatPublishingContentStatus(status: string): string {
   return status
-    .split(/[_-]/g)
+    .split(SEPARATORS_PATTERN)
     .filter(Boolean)
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(' ');
@@ -199,6 +232,7 @@ export function createPublishingContentLibraryItems({
       ),
       createdAt: release.createdAt,
       id: release.id,
+      media: toReleaseMedia(release.media),
       publishedAt: release.publishedAt ?? null,
       release,
       scheduledAt: release.scheduledAt,
@@ -223,6 +257,7 @@ export function createPublishingContentLibraryItems({
       createdAt: post.createdAt,
       format: resolvePostFormat(post),
       id: post.id,
+      media: toPostMedia(post.ingredients?.[0]),
       publishedAt: post.publishedAt
         ? new Date(post.publishedAt).toISOString()
         : null,
@@ -337,4 +372,51 @@ export function parsePublishingContentType(
     PUBLISHING_CONTENT_TYPES.includes(value as PublishingContentType)
     ? (value as PublishingContentType)
     : 'all';
+}
+
+/** Board columns that always show, so an empty one still reads as a lane. */
+const BOARD_LANES = ['draft', 'scheduled', 'publishing', 'published', 'failed'];
+/** Where every known status sits, left to right, from first draft to outcome. */
+const BOARD_ORDER = [
+  'draft',
+  'pending',
+  'review',
+  'paused',
+  'scheduled',
+  'processing',
+  'publishing',
+  'published',
+  'partially-published',
+  'private',
+  'unlisted',
+  'failed',
+  'cancelled',
+];
+
+function boardRank(status: string): number {
+  const index = BOARD_ORDER.indexOf(status.replace(SEPARATORS_PATTERN, '-'));
+  return index === -1 ? BOARD_ORDER.length : index;
+}
+
+/**
+ * The Posts board's columns, in lifecycle order. The five main lanes always
+ * show; any other status gets a column only when a post has it. With a status
+ * filter on, only the statuses that still have posts show.
+ */
+export function createPublishingBoardColumns(
+  items: PublishingContentLibraryItem[],
+  isStatusFiltered: boolean,
+): PublishingContentBoardColumn[] {
+  const present = new Set(items.map((item) => item.status));
+  const statuses = isStatusFiltered
+    ? [...present]
+    : [...new Set([...BOARD_LANES, ...present])];
+
+  return statuses
+    .sort((left, right) => boardRank(left) - boardRank(right))
+    .map((status) => ({
+      items: items.filter((item) => item.status === status),
+      label: formatPublishingContentStatus(status),
+      status,
+    }));
 }

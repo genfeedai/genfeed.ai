@@ -10,6 +10,12 @@ import type {
 
 import { resolveVariantSelectors, variantRuleFields } from '@genfeedai/pricing';
 
+const DECIMAL_NUMBER_PATTERN = /^\d+(?:\.\d+)?$/;
+const SEEDANCE_FAL_MODEL_URL_PATTERN =
+  /^https:\/\/fal\.ai\/models\/(?:bytedance\/seedance-2\.[05](?:\/(?:fast|mini|us))?|fal-ai\/bytedance\/seedance\/v1(?:\.5)?\/pro(?:\/fast)?)\/(?:text-to-video|image-to-video|reference-to-video)$/;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 // fal's published Seedance output sizes. Unknown/automatic shapes must not be
 // priced using the caller's canvas dimensions.
 const SEEDANCE_DIMENSIONS: Readonly<
@@ -107,7 +113,7 @@ export function normalizeModelProviderQuoteRequest(
         providerInput[key] ??
         (key === 'duration' ? providerInput.seconds : undefined);
       const number =
-        typeof value === 'string' && /^\d+(?:\.\d+)?$/.test(value)
+        typeof value === 'string' && DECIMAL_NUMBER_PATTERN.test(value)
           ? Number(value)
           : value;
       if (typeof number === 'number' && Number.isFinite(number) && number > 0)
@@ -133,12 +139,7 @@ export function normalizeModelProviderQuoteRequest(
     delete quantities.duration;
     delete quantities.framesPerSecond;
     const source = profile.reviewedPricing?.sourceUrl ?? '';
-    if (
-      /^https:\/\/fal\.ai\/models\/(?:bytedance\/seedance-2\.[05](?:\/(?:fast|mini|us))?|fal-ai\/bytedance\/seedance\/v1(?:\.5)?\/pro(?:\/fast)?)\/(?:text-to-video|image-to-video|reference-to-video)$/.test(
-        source,
-      ) &&
-      providerInput
-    ) {
+    if (SEEDANCE_FAL_MODEL_URL_PATTERN.test(source) && providerInput) {
       const resolution = providerInput.resolution;
       const aspect = providerInput.aspect_ratio;
       const dimensions =
@@ -157,7 +158,7 @@ export function normalizeModelProviderQuoteRequest(
       }
       const seconds =
         typeof providerInput.duration === 'string' &&
-        /^\d+$/.test(providerInput.duration)
+        DIGITS_ONLY_PATTERN.test(providerInput.duration)
           ? Number(providerInput.duration)
           : providerInput.duration;
       if (
@@ -180,7 +181,7 @@ export function normalizeModelProviderQuoteRequest(
         !Array.isArray(videos) ||
         !Number.isFinite(quantities.inputDuration) ||
         (quantities.inputDuration ?? 0) <= 0 ||
-        !/^[a-f0-9]{64}$/.test(quantities.referenceEvidenceHash ?? '')
+        !SHA256_HEX_PATTERN.test(quantities.referenceEvidenceHash ?? '')
       ) {
         delete quantities.inputDuration;
         delete quantities.referenceEvidenceHash;

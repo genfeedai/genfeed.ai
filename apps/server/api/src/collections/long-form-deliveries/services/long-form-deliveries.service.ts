@@ -26,6 +26,7 @@ import type {
   IReleaseGroup,
   PostGroupCreateProvenance,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export type LongFormDeliveryContext = {
@@ -65,6 +66,7 @@ const NEWSLETTER_PUBLISHED_STATUS = 'published';
  * verification and URL capture are the scheduler's own. The release target
  * links back to its source through `entityArticleId` / `entityNewsletterId`.
  */
+@Traced()
 @Injectable()
 export class LongFormDeliveriesService {
   constructor(

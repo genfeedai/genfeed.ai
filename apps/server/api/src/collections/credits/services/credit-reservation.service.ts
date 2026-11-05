@@ -45,6 +45,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/billing';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const DEFAULT_RESERVATION_TTL_MS = 2 * 60 * 60 * 1000;
@@ -60,6 +61,7 @@ export type CreditReservationAdmission = (
   tx: PrismaTransactionClient,
 ) => Promise<void>;
 
+@Traced()
 @Injectable()
 export class CreditReservationService {
   constructor(

@@ -28,12 +28,14 @@ import {
 import type { PostingTimeRecommendation } from '@genfeedai/contracts/interfaces';
 import { computePostingWindows } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type Schedule = ScheduleDocument;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+@Traced()
 @Injectable()
 export class SchedulesService {
   constructor(

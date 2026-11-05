@@ -18,6 +18,7 @@ import {
   assertSafeSegment,
   createStorageProvider,
 } from '@genfeedai/storage';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -26,6 +27,8 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
+
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
 
 const MAX_FONT_LIST_SCANS = 5;
 type ValidatedBrandFontUpload = ReturnType<typeof validateBrandFontUpload>;
@@ -52,6 +55,7 @@ export interface BrandFontAssetListResult {
   hasMore: boolean;
   nextCursor: string | null;
 }
+@Traced()
 @Injectable()
 export class BrandFontAssetsService {
   private readonly storage = createStorageProvider();
@@ -154,7 +158,7 @@ export class BrandFontAssetsService {
     const valid =
       asset.mimeType === 'font/woff2' &&
       typeof asset.sha256 === 'string' &&
-      /^[a-f0-9]{64}$/.test(asset.sha256) &&
+      SHA256_HEX_PATTERN.test(asset.sha256) &&
       typeof asset.sizeBytes === 'number' &&
       Number.isInteger(asset.sizeBytes) &&
       asset.sizeBytes >= 48 &&
@@ -370,6 +374,7 @@ export class BrandFontAssetsService {
     );
     const existing = await this.prisma.asset.findFirst({
       where: { id, parentOrgId: actor.organizationId },
+      select: { id: true },
     });
     if (existing)
       return this.prisma.$transaction(

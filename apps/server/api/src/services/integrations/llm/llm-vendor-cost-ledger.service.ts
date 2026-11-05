@@ -7,8 +7,10 @@ import type {
   ILlmVendorCostRecordInput,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class LlmVendorCostLedgerService {
   private readonly constructorName = String(this.constructor.name);

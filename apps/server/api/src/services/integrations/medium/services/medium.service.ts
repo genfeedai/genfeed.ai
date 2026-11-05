@@ -2,6 +2,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -29,6 +30,7 @@ interface MediumPost {
   licenseUrl: string;
 }
 
+@Traced()
 @Injectable()
 export class MediumService {
   private readonly constructorName: string = String(this.constructor.name);

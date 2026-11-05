@@ -12,6 +12,7 @@ import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-resu
 import { BotActivitySkipReason, BotActivityStatus } from '@genfeedai/contracts';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const DEFAULT_BOT_ACTIVITIES_PAGE_SIZE = 20;
@@ -59,6 +60,7 @@ const BOT_ACTIVITY_IDENTITY_KEYS = new Set([
   'userId',
 ]);
 
+@Traced()
 @Injectable()
 export class BotActivitiesService extends BaseService<
   BotActivityDocument,
@@ -127,7 +129,10 @@ export class BotActivitiesService extends BaseService<
     where: Record<string, unknown>,
     patch: Record<string, unknown>,
   ): Promise<BotActivityDocument | null> {
-    const existing = await this.prisma.botActivity.findFirst({ where });
+    const existing = await this.prisma.botActivity.findFirst({
+      where,
+      select: { data: true, id: true, organizationId: true },
+    });
 
     if (!existing) {
       return null;

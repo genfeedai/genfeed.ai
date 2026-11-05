@@ -22,6 +22,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IReplyIntentClassification } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type InboundPreparation = {
@@ -30,6 +31,7 @@ type InboundPreparation = {
   outcome?: ReplyInboundWorkflowResult;
 };
 
+@Traced()
 @Injectable()
 export class ReplyInboundProcessorService implements OnModuleInit {
   constructor(

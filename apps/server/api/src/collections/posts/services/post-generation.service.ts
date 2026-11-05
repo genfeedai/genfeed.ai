@@ -41,12 +41,17 @@ import {
   measurePlatformText,
 } from '@genfeedai/helpers/content/platform-text-length.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
   ServiceUnavailableException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+
+const JSON_ARRAY_PATTERN = /\[[\s\S]*\]/;
+const LIST_NUMBER_PREFIX_PATTERN = /^\d+[.)]\s*/;
+const EDGE_QUOTES_PATTERN = /^["']|["']$/g;
 
 /**
  * Identity fields threaded through the generation pipeline. Derived from
@@ -65,6 +70,7 @@ type GenerationMetadata = Pick<
  * `PostsOperationsController` so the controller stays a thin HTTP boundary
  * (issue #691), mirroring the existing posts analytics service split.
  */
+@Traced()
 @Injectable()
 export class PostGenerationService {
   constructor(
@@ -394,7 +400,7 @@ Requirements:
     let hooks: string[] = [];
     try {
       // Try to parse JSON from the response
-      const jsonMatch = result.match(/\[[\s\S]*\]/);
+      const jsonMatch = result.match(JSON_ARRAY_PATTERN);
       if (jsonMatch) {
         hooks = JSON.parse(jsonMatch[0]);
       }
@@ -404,8 +410,8 @@ Requirements:
         .split('\n')
         .map((line: string) =>
           line
-            .replace(/^\d+[.)]\s*/, '')
-            .replace(/^["']|["']$/g, '')
+            .replace(LIST_NUMBER_PREFIX_PATTERN, '')
+            .replace(EDGE_QUOTES_PATTERN, '')
             .trim(),
         )
         .filter((line: string) => line.length > 10)

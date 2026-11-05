@@ -40,12 +40,16 @@ import type { Model } from '@genfeedai/prisma';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
+
+const SEEDANCE_MODEL_PATTERN =
+  /^(?:bytedance\/seedance-|fal-ai\/bytedance\/seedance\/)/;
 
 export type PreparedAgentGenerationQuote = AgentGenerationQuote & {
   snapshot?: ModelBillableQuoteSnapshot;
@@ -118,6 +122,7 @@ function isPricingUnresolved(error: unknown): boolean {
  * renders as unavailable and prevents generation until a current quote exists.
  * Quoting never debits credits and never contacts a generation provider.
  */
+@Traced()
 @Injectable()
 export class AgentGenerationEstimateService {
   constructor(
@@ -464,9 +469,7 @@ export class AgentGenerationEstimateService {
       const endpoint = getFalEndpointFromModelKey(model.endpoint ?? modelKey);
       if (
         provider === 'fal' &&
-        /^(?:bytedance\/seedance-|fal-ai\/bytedance\/seedance\/)/.test(
-          endpoint,
-        ) &&
+        SEEDANCE_MODEL_PATTERN.test(endpoint) &&
         model.providerSchemaFamily &&
         isRecord(model.providerInputSchema)
       ) {

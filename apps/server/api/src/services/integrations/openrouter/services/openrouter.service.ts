@@ -13,9 +13,12 @@ import {
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
+
+const REASONING_MANDATORY_ERROR_PATTERN = /reasoning is mandatory/i;
 
 interface OpenRouterErrorDetails {
   message: string;
@@ -58,6 +61,7 @@ function parseRawProviderError(value: unknown): UnknownRecord | undefined {
   }
 }
 
+@Traced()
 @Injectable()
 export class OpenRouterService {
   private readonly apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
@@ -171,7 +175,7 @@ export class OpenRouterService {
       const isReasoningMandatory =
         params.reasoning?.enabled === false &&
         details.status === 400 &&
-        /reasoning is mandatory/i.test(details.providerMessage ?? '');
+        REASONING_MANDATORY_ERROR_PATTERN.test(details.providerMessage ?? '');
       if (!isReasoningMandatory) {
         throw error;
       }

@@ -52,6 +52,7 @@ import type {
   PublishExecutionClaim,
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 
 export type {
@@ -103,6 +104,7 @@ export class PublishApprovalsService {
     return this.contractCodec.toInterface(row as PublishApprovalRow);
   }
 
+  @Traced()
   async assertPostMutable(
     organizationId: string,
     postId: string,
@@ -131,6 +133,7 @@ export class PublishApprovalsService {
     }
   }
 
+  @Traced()
   async createForCurrentPost(
     params: CreateCurrentPostPublishApprovalParams<Prisma.TransactionClient>,
   ): Promise<IPublishApproval> {
@@ -168,6 +171,7 @@ export class PublishApprovalsService {
     });
   }
 
+  @Traced()
   async createForPost(
     params: CreatePostPublishApprovalParams<Prisma.TransactionClient>,
   ): Promise<IPublishApproval> {
@@ -219,13 +223,17 @@ export class PublishApprovalsService {
       scheduleIntent: input.scheduleIntent,
     };
     const scopeDigest = digestPublishApprovalValue(scope);
-    const existing = (await client.publishApproval.findFirst({
-      where: {
-        organizationId: post.organizationId,
-        postId: post.id,
-        scopeDigest,
-      },
-    })) as PublishApprovalRow | null;
+    const findApprovalForScope = () =>
+      client.publishApproval.findFirst({
+        where: {
+          organizationId: post.organizationId,
+          postId: post.id,
+          scopeDigest,
+        },
+      });
+
+    const existing =
+      (await findApprovalForScope()) as PublishApprovalRow | null;
     if (existing) {
       await this.activatePostApproval(post, existing, client);
       this.recordApprovalTelemetry(
@@ -346,13 +354,8 @@ export class PublishApprovalsService {
       ) {
         throw error;
       }
-      const concurrentWinner = (await client.publishApproval.findFirst({
-        where: {
-          organizationId: post.organizationId,
-          postId: post.id,
-          scopeDigest,
-        },
-      })) as PublishApprovalRow | null;
+      const concurrentWinner =
+        (await findApprovalForScope()) as PublishApprovalRow | null;
       if (!concurrentWinner) {
         throw error;
       }
@@ -375,10 +378,8 @@ export class PublishApprovalsService {
     return this.contractCodec.toInterface(approval);
   }
 
-  /**
-   * The post must be an eligible target and not held by its brand receipt or,
-   * for a workflow or MCP publish, by the brand Policy.
-   */
+  // Checks target eligibility, brand receipt holds, and brand policy holds for workflows and MCP.
+  @Traced()
   private async assertCreatable(
     post: ApprovalPost,
     transaction?: Prisma.TransactionClient,
@@ -395,6 +396,7 @@ export class PublishApprovalsService {
   }
 
   /** A claim for a held post only goes through if a member minted the approval. */
+  @Traced()
   private async assertClaimNotHeld(
     approval: PublishApprovalRow,
   ): Promise<void> {
@@ -407,6 +409,7 @@ export class PublishApprovalsService {
     });
   }
 
+  @Traced()
   async markQueued(
     approvalId: string,
     organizationId: string,
@@ -420,6 +423,7 @@ export class PublishApprovalsService {
     );
   }
 
+  @Traced()
   async markEnqueueFailed(
     approvalId: string,
     organizationId: string,
@@ -434,6 +438,7 @@ export class PublishApprovalsService {
     );
   }
 
+  @Traced()
   async claimForExecution(
     params: ClaimPublishExecutionParams,
   ): Promise<PublishExecutionClaim> {
@@ -558,6 +563,7 @@ export class PublishApprovalsService {
     }
   }
 
+  @Traced()
   async completeExecution(
     params: CompletePublishExecutionParams,
   ): Promise<IPublishApproval> {
@@ -571,6 +577,7 @@ export class PublishApprovalsService {
     return approval;
   }
 
+  @Traced()
   async invalidatePost(
     organizationId: string,
     postId: string,
@@ -581,9 +588,7 @@ export class PublishApprovalsService {
   ): Promise<void> {
     const now = new Date();
     const invalidate = async (tx: Prisma.TransactionClient) => {
-      // Read the active approvals inside the transaction so a concurrent
-      // claim-to-EXECUTING cannot slip between the eligibility check and the
-      // invalidating writes.
+      // Read within the transaction so an execution claim cannot race invalidation.
       const approvals = (await tx.publishApproval.findMany({
         where: {
           organizationId,
@@ -638,8 +643,9 @@ export class PublishApprovalsService {
         },
       });
     };
-    if (transaction) await invalidate(transaction);
-    else await this.prisma.$transaction(invalidate);
+    await (transaction
+      ? invalidate(transaction)
+      : this.prisma.$transaction(invalidate));
     const emit = () =>
       this.recordApprovalTelemetry(
         'revoke',
@@ -651,6 +657,7 @@ export class PublishApprovalsService {
     else emit();
   }
 
+  @Traced()
   private async completeClaimedExecution(
     params: CompletePublishExecutionParams,
   ): Promise<IPublishApproval> {
@@ -759,6 +766,7 @@ export class PublishApprovalsService {
     });
   }
 
+  @Traced()
   private async transitionStatus(
     approvalId: string,
     organizationId: string,
@@ -768,17 +776,13 @@ export class PublishApprovalsService {
   ): Promise<IPublishApproval> {
     const current = await this.getApprovalOrThrow(organizationId, approvalId);
     const from = this.contractCodec.parseStatus(current.status);
-    if (from === next) {
-      return this.contractCodec.toInterface(current);
-    }
+    if (from === next) return this.contractCodec.toInterface(current);
     if (!canTransitionPublishApprovalStatus(from, next)) {
       throw new ConflictException(
         `Publish approval cannot transition from ${from} to ${next}.`,
       );
     }
-    // Guard the write with the status that authorized it so a concurrent
-    // transition on the same row fails loudly instead of being silently
-    // overwritten (mirrors the QUEUED-predicate claim guard above).
+    // Guard the write with the prior status to reject concurrent transitions.
     const transitioned = await this.prisma.publishApproval.updateMany({
       data: {
         ...(next === PublishApprovalStatus.PUBLISHED
@@ -802,6 +806,7 @@ export class PublishApprovalsService {
     return this.contractCodec.toInterface(updated);
   }
 
+  @Traced()
   private async assertApprovalScope(
     approval: PublishApprovalRow,
     post: ApprovalPost,
@@ -852,18 +857,14 @@ export class PublishApprovalsService {
       );
     }
 
-    // Destination platform may arrive as domain lowercase or Prisma SCREAMING;
-    // credentials.platform is always the Prisma enum — map before the lookup.
+    // Normalize the destination platform to the Prisma enum before lookup.
     const approvedPlatform =
       destinations[0]?.platform != null
         ? String(destinations[0].platform)
         : undefined;
     const credentialPlatform = toPrismaCredentialPlatform(approvedPlatform);
 
-    // Fail closed on an unmappable platform. Spreading the predicate only when
-    // the mapper succeeds silently drops it otherwise, so the lookup degrades
-    // to "any connected credential on this post" and approves a destination
-    // the approval never covered.
+    // Reject unknown platforms so the lookup cannot authorize another credential.
     if (approvedPlatform && !credentialPlatform) {
       await this.invalidatePost(
         approval.organizationId,
@@ -896,6 +897,7 @@ export class PublishApprovalsService {
     }
   }
 
+  @Traced()
   private async assertCurrentAuthorization(
     approval: PublishApprovalRow,
   ): Promise<void> {
@@ -924,6 +926,7 @@ export class PublishApprovalsService {
     }
   }
 
+  @Traced()
   private async activatePostApproval(
     post: ApprovalPost,
     approval: PublishApprovalRow,
@@ -953,6 +956,7 @@ export class PublishApprovalsService {
     }
   }
 
+  @Traced()
   private async getPostOrThrow(
     organizationId: string,
     postId: string,
@@ -976,9 +980,7 @@ export class PublishApprovalsService {
       },
       where: scopedWhere(organizationId, { id: postId }),
     });
-    if (!row) {
-      throw new PublishApprovalNotFoundException('Post', postId);
-    }
+    if (!row) throw new PublishApprovalNotFoundException('Post', postId);
     return flattenPostIngredients(row) as unknown as ApprovalPost;
   }
 

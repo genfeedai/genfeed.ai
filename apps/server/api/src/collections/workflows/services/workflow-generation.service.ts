@@ -13,6 +13,7 @@ import {
   WORKFLOW_GENERATION_SCHEMA_NAME,
   workflowGenerationSchema,
 } from '@genfeedai/workflows/generation';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 interface GenerateWorkflowParams {
@@ -20,6 +21,7 @@ interface GenerateWorkflowParams {
   targetPlatforms?: string[];
 }
 
+@Traced()
 @Injectable()
 export class WorkflowGenerationService {
   constructor(

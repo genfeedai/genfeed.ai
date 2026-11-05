@@ -1,5 +1,6 @@
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -18,6 +19,7 @@ const taskResponse = z.object({
 });
 const outputsSchema = z.object({ resultUrls: z.array(z.url()).min(1) });
 
+@Traced()
 @Injectable()
 export class KieService {
   constructor(

@@ -8,6 +8,7 @@ import { ApiKeyCategory, PlatformRole } from '@genfeedai/contracts';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import { hasApiAccess, PLAN_LABELS } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -22,6 +23,8 @@ import type {
   RegisterAgentAuthDto,
   RevokeAgentAuthCredentialDto,
 } from '../dto/agent-auth.dto';
+
+const TRAILING_SLASHES_PATTERN = /\/+$/;
 
 const AGENT_AUTH_REGISTRATION_TTL_MS = 10 * 60 * 1000;
 const AGENT_AUTH_CREDENTIAL_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -67,6 +70,7 @@ function readApiKeyMetadata(
     : undefined;
 }
 
+@Traced()
 @Injectable()
 export class AgentAuthService {
   constructor(
@@ -422,7 +426,7 @@ export class AgentAuthService {
   private resolveAppUrl(): string {
     const configured = this.configService.get('GENFEEDAI_APP_URL');
     return typeof configured === 'string' && configured.length > 0
-      ? configured.replace(/\/+$/, '')
+      ? configured.replace(TRAILING_SLASHES_PATTERN, '')
       : 'http://localhost:3000';
   }
 }

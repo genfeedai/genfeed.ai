@@ -1184,6 +1184,7 @@ describe('capture account-before-publication locking', () => {
         publishedAt: input.publishedAt,
         isDeleted: false,
       },
+      select: { id: true },
     });
     expect(f.prisma.credential.findFirst).toHaveBeenCalledWith({
       where: {
@@ -1192,6 +1193,7 @@ describe('capture account-before-publication locking', () => {
         brandId: 'brand',
         isDeleted: false,
       },
+      select: { id: true },
     });
     expect(
       f.prisma.contentLearningAccount.updateMany,

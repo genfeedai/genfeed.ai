@@ -10,6 +10,7 @@ import type {
 } from '@api/services/brand-validation/brand-visual-analysis.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 
@@ -21,6 +22,7 @@ import { Injectable } from '@nestjs/common';
  * While either is off nothing is called or paid and the caller leaves its checks unknown.
  * Any failure after that is `unavailable`, never a result.
  */
+@Traced()
 @Injectable()
 export class BrandVisualAnalysisService implements BrandVisualAnalysis {
   private readonly constructorName = String(this.constructor.name);

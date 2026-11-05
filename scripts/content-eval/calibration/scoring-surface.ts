@@ -19,6 +19,8 @@ import {
 } from './contracts';
 import type { ScoringSurfaceInput, SurfaceFileContent } from './types';
 
+const CRLF_PATTERN = /\r\n/g;
+
 // Every file here can change what a text judge scores. The calibration bridge
 // (live-evaluations.ts) drives EvaluationsOperationsService directly, so
 // evaluations.service.ts (credit billing, persistence, caching, websockets) is
@@ -41,7 +43,7 @@ export const VISION_SURFACE_FILES: readonly string[] = [
 ];
 
 export function fileDigest(content: string): string {
-  return sha256Digest(content.replace(/\r\n/g, '\n'));
+  return sha256Digest(content.replace(CRLF_PATTERN, '\n'));
 }
 
 export function readTextSurfaceValues(): TextSurfaceValues {

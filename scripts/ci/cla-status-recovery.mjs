@@ -1,5 +1,7 @@
 import { setTimeout as delay } from 'node:timers/promises';
 
+const SAFE_NAME_PATTERN = /^[\w.-]+$/;
+
 const CLA_CONTEXT = 'license/cla';
 
 export async function recoverClaStatuses(
@@ -16,8 +18,8 @@ export async function recoverClaStatuses(
   },
 ) {
   if (
-    !/^[\w.-]+$/.test(owner) ||
-    !/^[\w.-]+$/.test(repo) ||
+    !SAFE_NAME_PATTERN.test(owner) ||
+    !SAFE_NAME_PATTERN.test(repo) ||
     !Array.isArray(numbers) ||
     numbers.some((number) => !Number.isSafeInteger(number) || number < 1)
   ) {

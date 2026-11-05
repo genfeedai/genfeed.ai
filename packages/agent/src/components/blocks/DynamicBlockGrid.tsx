@@ -39,6 +39,8 @@ import Image from 'next/image';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 
+const ANIMATED_METRIC_VALUE_PATTERN = /^(-?\d+(?:\.\d+)?)([KMBT%])?$/i;
+
 interface DynamicBlockGridProps {
   blocks: AgentUIBlock[];
 }
@@ -88,7 +90,7 @@ function parseAnimatedValue(value: MetricCardBlock['value']): {
     return { canAnimate: false, numericValue: 0, template: '' };
   }
 
-  const match = value.trim().match(/^(-?\d+(?:\.\d+)?)([KMBT%])?$/i);
+  const match = value.trim().match(ANIMATED_METRIC_VALUE_PATTERN);
   if (!match) {
     return { canAnimate: false, numericValue: 0, template: value };
   }

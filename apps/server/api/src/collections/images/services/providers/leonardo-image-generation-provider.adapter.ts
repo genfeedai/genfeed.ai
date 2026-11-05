@@ -4,8 +4,10 @@ import type {
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
 import { LeonardoAIService } from '@api/services/integrations/leonardoai/services/leonardoai.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class LeonardoImageGenerationProviderAdapter
   implements ImageGenerationProviderAdapter

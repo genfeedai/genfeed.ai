@@ -1,5 +1,10 @@
 import { PricingType } from '@genfeedai/contracts';
 
+const DECIMAL_NUMBER_PATTERN = /^\d+(?:\.\d+)?$/;
+const DECIMAL_USD_PATTERN = /^(\d+)(?:\.(\d+))?$/;
+const HYPHEN_OR_SPACE_RUNS_PATTERN = /[-\s]+/g;
+const NON_ZERO_DIGIT_PATTERN = /[1-9]/;
+
 export interface NormalizedFalPrice {
   conditionalDimensions: Record<string, unknown>;
   currency: string;
@@ -32,7 +37,7 @@ function requiredString(value: unknown, field: string): string {
 }
 
 function exactDecimal(value: unknown): string {
-  if (typeof value === 'string' && /^\d+(?:\.\d+)?$/.test(value)) {
+  if (typeof value === 'string' && DECIMAL_NUMBER_PATTERN.test(value)) {
     return value;
   }
   if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
@@ -71,7 +76,7 @@ export function normalizeFalPrice(
 }
 
 export function decimalUsdToMicros(value: string): bigint {
-  const match = /^(\d+)(?:\.(\d+))?$/.exec(value);
+  const match = DECIMAL_USD_PATTERN.exec(value);
   if (!match) {
     throw new Error(`Invalid non-negative decimal USD value: ${value}`);
   }
@@ -89,7 +94,7 @@ function canonicalUnit(unit: string): string {
   const canonical = unit
     .trim()
     .toLowerCase()
-    .replaceAll(/[-\s]+/g, '_');
+    .replaceAll(HYPHEN_OR_SPACE_RUNS_PATTERN, '_');
   const singular = canonical.endsWith('s') ? canonical.slice(0, -1) : canonical;
   return SINGULAR_UNITS.has(singular) ? singular : canonical;
 }
@@ -121,7 +126,7 @@ export function mapFalPricing(price: NormalizedFalPrice): FalPricingMapping {
   }
 
   const unitPriceMicros = decimalUsdToMicros(price.unitPrice);
-  if (unitPriceMicros === 0n && /[1-9]/.test(price.unitPrice)) {
+  if (unitPriceMicros === 0n && NON_ZERO_DIGIT_PATTERN.test(price.unitPrice)) {
     return {
       reason: 'unit_price_below_minimum_precision',
       supported: false,

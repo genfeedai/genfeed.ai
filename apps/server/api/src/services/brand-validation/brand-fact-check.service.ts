@@ -38,6 +38,7 @@ import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dt
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { BrandContentMemoryHit } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { HttpException, Injectable } from '@nestjs/common';
 import type { ZodType } from 'zod';
@@ -80,6 +81,7 @@ function reasonOf(error: unknown): BrandFactCheckUnavailableReason {
  * provider, the budget, the evidence) is reported as unavailable, never as a
  * result.
  */
+@Traced()
 @Injectable()
 export class BrandFactCheckService {
   private readonly constructorName = String(this.constructor.name);

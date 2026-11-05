@@ -20,12 +20,16 @@ import {
   type ValidatedAgentScope,
 } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
+
+const BRAND_IDENTITY_ACTION_ID_PATTERN =
+  /^brand-identity-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const MESSAGE_PAGE_SIZE = 100;
 const MESSAGE_MAX_PAGES = 50;
@@ -44,6 +48,7 @@ type BrandIdentityMessage = {
   role?: unknown;
 };
 
+@Traced()
 @Injectable()
 export class AgentOrchestratorUiActionBrandIdentityService {
   constructor(
@@ -62,11 +67,7 @@ export class AgentOrchestratorUiActionBrandIdentityService {
       typeof payload?.sourceActionId === 'string'
         ? payload.sourceActionId.trim()
         : '';
-    if (
-      !/^brand-identity-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        sourceActionId,
-      )
-    ) {
+    if (!BRAND_IDENTITY_ACTION_ID_PATTERN.test(sourceActionId)) {
       throw new BadRequestException(
         'Brand identity confirmation requires a valid source action.',
       );
@@ -586,6 +587,7 @@ export class AgentOrchestratorUiActionBrandIdentityService {
           isDeleted: false,
           status: 'active',
         },
+        select: { brandId: true, contextVersion: true },
       });
       if (
         !thread ||

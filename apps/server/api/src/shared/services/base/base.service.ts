@@ -29,6 +29,7 @@ import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 export type {
@@ -115,6 +116,7 @@ function isPrismaRecordNotFound(error: unknown): boolean {
   );
 }
 
+@Traced()
 @Injectable()
 export abstract class BaseService<
   T,

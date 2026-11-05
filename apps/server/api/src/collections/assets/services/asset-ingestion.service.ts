@@ -23,6 +23,7 @@ import {
   IngredientCategory,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
@@ -30,6 +31,10 @@ import {
   Injectable,
 } from '@nestjs/common';
 
+const INGREDIENT_PATH_PATTERN = /ingredients\/([^/]+)\/(.+)$/;
+const INGREDIENT_PATH_PREFIX_PATTERN = /^ingredients\/[^/]+\//;
+
+@Traced()
 @Injectable()
 export class AssetIngestionService {
   private readonly constructorName = String(this.constructor.name);
@@ -304,11 +309,11 @@ export class AssetIngestionService {
     const destinationKey = `ingredients/${categoryToPlural(validatedCategory)}/${assetData.id}`;
 
     try {
-      const sourceMatch = sourceKey.match(/ingredients\/([^/]+)\/(.+)$/);
+      const sourceMatch = sourceKey.match(INGREDIENT_PATH_PATTERN);
       const sourceType = sourceMatch ? sourceMatch[1] : undefined;
       const sourceKeyOnly = sourceMatch
         ? sourceMatch[2]
-        : sourceKey.replace(/^ingredients\/[^/]+\//, '');
+        : sourceKey.replace(INGREDIENT_PATH_PREFIX_PATTERN, '');
 
       await this.filesClientService.copyInS3(
         sourceKeyOnly,

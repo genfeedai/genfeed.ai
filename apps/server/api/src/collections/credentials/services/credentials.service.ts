@@ -48,10 +48,13 @@ import type { Prisma } from '@genfeedai/prisma';
 import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 export type { ResolveBrandAccountOptions } from '@api/collections/credentials/credential.types';
+
+const LEADING_AT_SIGN_PATTERN = /^@/;
 
 /** Reconnect intent lives on warmupSignals, never in the OAuth state nonce. */
 const OAUTH_CONNECT_INTENT_STORAGE_KEY = 'oauthConnectIntent';
@@ -103,6 +106,7 @@ export type PendingOAuthCredential = CredentialDocument & {
   userId: string;
 };
 
+@Traced()
 @Injectable()
 export class CredentialsService
   extends BaseService<
@@ -342,7 +346,7 @@ export class CredentialsService
     handle: string,
     organizationId: string,
   ): Promise<CredentialDocument | null> {
-    const normalizedHandle = handle.replace(/^@/, '');
+    const normalizedHandle = handle.replace(LEADING_AT_SIGN_PATTERN, '');
 
     return this.findOne(
       scopedWhere(organizationId, {

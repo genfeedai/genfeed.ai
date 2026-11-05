@@ -8,6 +8,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TagBulkAction } from '@genfeedai/contracts';
 import type { IBulkTagResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface BulkSetTagParams {
@@ -19,6 +20,7 @@ export interface BulkSetTagParams {
 }
 
 /** Library tagging (#6011): one tag on many assets, brand safe and reported. */
+@Traced()
 @Injectable()
 export class IngredientTagsService {
   private readonly constructorName = this.constructor.name;

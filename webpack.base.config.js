@@ -4,6 +4,29 @@ const nodeExternals = require('webpack-node-externals');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const { ProgressPlugin } = require('webpack');
 
+const GENFEED_PACKAGE_REQUEST_PATTERN = /^@genfeedai\//;
+const API_TYPES_ALIAS_PATTERN = /^@api-types\//;
+const CLOUD_ALIAS_PATTERN = /^@cloud\//;
+const API_ALIAS_PATTERN = /^@api\//;
+const HELPERS_ALIAS_PATTERN = /^@helpers\//;
+const LIBS_ALIAS_PATTERN = /^@libs\//;
+const SERIALIZERS_ALIAS_PATTERN = /^@serializers\//;
+const FILES_ALIAS_PATTERN = /^@files\//;
+const WORKERS_ALIAS_PATTERN = /^@workers\//;
+const NOTIFICATIONS_ALIAS_PATTERN = /^@notifications\//;
+const MCP_ALIAS_PATTERN = /^@mcp\//;
+const DISCORD_ALIAS_PATTERN = /^@discord\//;
+const TELEGRAM_ALIAS_PATTERN = /^@telegram\//;
+const CLOUD_TYPES_ALIAS_PATTERN = /^@cloud-types\//;
+const OPENTELEMETRY_INSTRUMENTATION_PATTERN = /@opentelemetry\/instrumentation/;
+const REQUIRE_IN_THE_MIDDLE_PATTERN = /require-in-the-middle/;
+const PRISMA_INSTRUMENTATION_PATTERN = /@prisma\/instrumentation/;
+const NODE_MODULES_PATTERN = /node_modules/;
+const JS_SOURCE_MAP_PATTERN = /\.js\.map$/;
+const DECLARATION_FILE_PATTERN = /\.d\.ts$/;
+const THIRD_PARTY_NODE_MODULES_PATTERN = /node_modules\/(?!@genfeedai\/)/;
+const TS_FILE_PATTERN = /\.ts$/;
+
 /**
  * Discover all workspace packages with a `src/` directory and produce
  * webpack aliases that resolve `@genfeedai/<name>` directly to source.
@@ -129,20 +152,20 @@ module.exports = function createWebpackConfig({
       nodeExternals({
         // Allow workspace packages to be bundled
         allowlist: [
-          /^@genfeedai\//,
-          /^@api-types\//,
-          /^@cloud\//,
-          /^@api\//,
-          /^@helpers\//,
-          /^@libs\//,
-          /^@serializers\//,
-          /^@files\//,
-          /^@workers\//,
-          /^@notifications\//,
-          /^@mcp\//,
-          /^@discord\//,
-          /^@telegram\//,
-          /^@cloud-types\//,
+          GENFEED_PACKAGE_REQUEST_PATTERN,
+          API_TYPES_ALIAS_PATTERN,
+          CLOUD_ALIAS_PATTERN,
+          API_ALIAS_PATTERN,
+          HELPERS_ALIAS_PATTERN,
+          LIBS_ALIAS_PATTERN,
+          SERIALIZERS_ALIAS_PATTERN,
+          FILES_ALIAS_PATTERN,
+          WORKERS_ALIAS_PATTERN,
+          NOTIFICATIONS_ALIAS_PATTERN,
+          MCP_ALIAS_PATTERN,
+          DISCORD_ALIAS_PATTERN,
+          TELEGRAM_ALIAS_PATTERN,
+          CLOUD_TYPES_ALIAS_PATTERN,
         ],
         modulesDir: nodeModulesDir,
       }),
@@ -177,11 +200,11 @@ module.exports = function createWebpackConfig({
     // Suppress noisy OpenTelemetry/Sentry instrumentation warnings
     ignoreWarnings: [
       // OpenTelemetry dynamic requires
-      { module: /@opentelemetry\/instrumentation/ },
+      { module: OPENTELEMETRY_INSTRUMENTATION_PATTERN },
       // require-in-the-middle dynamic requires
-      { module: /require-in-the-middle/ },
+      { module: REQUIRE_IN_THE_MIDDLE_PATTERN },
       // Prisma instrumentation
-      { module: /@prisma\/instrumentation/ },
+      { module: PRISMA_INSTRUMENTATION_PATTERN },
     ],
     mode: isProduction ? 'production' : 'development',
 
@@ -189,13 +212,13 @@ module.exports = function createWebpackConfig({
       rules: [
         // Ignore source map files from node_modules
         {
-          include: /node_modules/,
-          test: /\.js\.map$/,
+          include: NODE_MODULES_PATTERN,
+          test: JS_SOURCE_MAP_PATTERN,
           type: 'asset/source',
         },
         // Handle .d.ts files - ignore them (type definitions only, no runtime code)
         {
-          test: /\.d\.ts$/,
+          test: DECLARATION_FILE_PATTERN,
           type: 'asset/source',
         },
         // Handle .ts files (but not .d.ts)
@@ -203,8 +226,8 @@ module.exports = function createWebpackConfig({
         // Pass decorator options explicitly so shared Nest-bearing files outside
         // each service directory, such as packages/libs, compile the same way.
         {
-          exclude: [/node_modules\/(?!@genfeedai\/)/, /\.d\.ts$/],
-          test: /\.ts$/,
+          exclude: [THIRD_PARTY_NODE_MODULES_PATTERN, DECLARATION_FILE_PATTERN],
+          test: TS_FILE_PATTERN,
           use: {
             loader: 'swc-loader',
             options: {

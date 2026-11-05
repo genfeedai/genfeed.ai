@@ -25,7 +25,10 @@ import { ApifyTwitterService } from '@api/services/integrations/apify/services/m
 import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
 import type { SocialSourceResearchContext } from '@api/services/source-collector/source-collector.types';
 import { Platform } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
+
+const LEADING_HASH_PATTERN = /^#/;
 
 /**
  * ApifyService
@@ -43,6 +46,7 @@ import { Injectable } from '@nestjs/common';
  * - ApifyPinterestService: Pinterest trends
  * - ApifyLinkedInService: LinkedIn public profile posts
  */
+@Traced()
 @Injectable()
 export class ApifyService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -328,7 +332,7 @@ export class ApifyService {
         .filter((t) => t.metadata.trendType === 'hashtag')
         .map((t) => ({
           growthRate: t.growthRate,
-          hashtag: t.topic.replace(/^#/, ''),
+          hashtag: t.topic.replace(LEADING_HASH_PATTERN, ''),
           platform: t.platform,
           postCount: t.mentions,
           postCountScope: t.platform === 'instagram' ? 'observed' : 'platform',

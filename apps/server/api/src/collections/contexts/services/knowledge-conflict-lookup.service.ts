@@ -6,6 +6,7 @@ import {
   KnowledgeRetentionState,
   KnowledgeRetrievalState,
 } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Open conflicts returned for one lookup; a long list is not a useful answer. */
@@ -32,6 +33,7 @@ export interface OpenKnowledgeConflict {
  * active and retained ones, so correcting, hiding or replacing either source
  * makes the conflict disappear without any bookkeeping.
  */
+@Traced()
 @Injectable()
 export class KnowledgeConflictLookupService {
   constructor(private readonly prisma: PrismaService) {}

@@ -6,9 +6,11 @@ import type { HeyGenAvatarCandidate } from '@api/services/integrations/heygen/he
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import type { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
 import { VoiceProvider } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 /** Save and execution use the same server-observed identity admission. */
+@Traced()
 @Injectable()
 export class HeyGenIdentityService {
   constructor(private readonly heygenService: HeyGenService) {}

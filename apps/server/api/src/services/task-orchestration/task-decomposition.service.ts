@@ -11,8 +11,10 @@ import {
   TASK_DECOMPOSITION_SCHEMA_NAME,
   taskDecompositionSchema,
 } from '@genfeedai/contracts/api-types/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class TaskDecompositionService {
   constructor(private readonly llmDispatcher: LlmDispatcherService) {}

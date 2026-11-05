@@ -1,6 +1,8 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+const EXACT_SEMVER_PATTERN = /^\d+\.\d+\.\d+$/;
+
 const REMOTION_MANIFESTS = [
   'apps/server/files/package.json',
   'apps/web/package.json',
@@ -24,7 +26,7 @@ export function syncRemotionVersion(rootDirectory = process.cwd()): string {
     relativePath,
   }));
   const version = manifests[0]?.manifest.dependencies?.remotion;
-  if (!version || !/^\d+\.\d+\.\d+$/.test(version)) {
+  if (!version || !EXACT_SEMVER_PATTERN.test(version)) {
     throw new Error(
       'The files renderer must declare an exact Remotion version.',
     );

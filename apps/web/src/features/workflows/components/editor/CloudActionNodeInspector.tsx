@@ -29,6 +29,8 @@ import {
 } from '@/features/workflows/hooks/useWorkflowActionDefaults';
 import { getWorkflowActionModelCategories } from '@/features/workflows/utils/workflow-model-categories';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 const SCOPED_FIELDS = new Set([
   'agentStrategyId',
   'brandId',
@@ -255,7 +257,7 @@ export function CloudActionNodeInspector() {
                 }
                 options={scope.credentials.map((credential) => ({
                   icon: getPlatformIcon(credential.platform, 'h-3.5 w-3.5'),
-                  label: `@${credential.label.replace(/^@/, '')}`,
+                  label: `@${credential.label.replace(LEADING_AT_SIGN_PATTERN, '')}`,
                   value: credential.id,
                 }))}
                 placeholder={translate('selectAccounts')}

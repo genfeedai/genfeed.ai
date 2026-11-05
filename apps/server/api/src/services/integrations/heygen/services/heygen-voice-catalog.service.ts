@@ -5,6 +5,7 @@ import type {
   HeyGenCatalogVoice,
   HeyGenGender,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 function readStoredGender(providerData: unknown): HeyGenGender | null {
@@ -18,6 +19,7 @@ function readStoredGender(providerData: unknown): HeyGenGender | null {
  * paged requests, so the playground reads the copy the voice-catalog cron
  * already stores; only a workspace's own voices are read live.
  */
+@Traced()
 @Injectable()
 export class HeyGenVoiceCatalogService {
   constructor(
@@ -50,6 +52,12 @@ export class HeyGenVoiceCatalogService {
         externalProvider: VoiceProvider.HEYGEN,
         isActive: true,
         isDefaultSelectable: true,
+      },
+      select: {
+        externalId: true,
+        name: true,
+        providerData: true,
+        sampleAudioUrl: true,
       },
     });
     return rows.map(

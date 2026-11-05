@@ -30,12 +30,14 @@ import {
   fromPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit, type Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
 /**
  * Factory service to get the appropriate publisher for a platform
  */
+@Traced()
 @Injectable()
 export class PublisherFactoryService
   implements ServerPublisherFactory, OnModuleInit

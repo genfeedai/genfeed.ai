@@ -230,6 +230,14 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
           postId: post.id.toString(),
         },
       },
+      select: {
+        activityCompletedAt: true,
+        completedAt: true,
+        id: true,
+        recurrenceCompletedAt: true,
+        result: true,
+        source: true,
+      },
     });
     if (!finalization || finalization.completedAt) {
       return false;

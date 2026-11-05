@@ -28,11 +28,13 @@ import {
 } from '@genfeedai/contracts/api-types/contracts';
 import type { Prisma, Profile as ProfileRow } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import type { ZodType } from 'zod';
 
 type Profile = ProfileDocument;
 
+@Traced()
 @Injectable()
 export class ProfilesService {
   constructor(
@@ -96,6 +98,7 @@ export class ProfilesService {
         data: { equals: true, path: ['isDefault'] },
         ...(excludeId ? { id: { not: excludeId } } : {}),
       }),
+      select: { data: true, id: true },
     });
 
     await Promise.all(

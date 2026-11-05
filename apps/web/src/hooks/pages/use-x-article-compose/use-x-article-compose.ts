@@ -12,6 +12,13 @@ import { downloadUrl } from '@helpers/media/download/download.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCallback, useState } from 'react';
 
+const AMPERSANDS_PATTERN = /&/g;
+const LESS_THAN_SIGNS_PATTERN = /</g;
+const GREATER_THAN_SIGNS_PATTERN = />/g;
+const DOUBLE_QUOTES_PATTERN = /"/g;
+const SINGLE_QUOTES_PATTERN = /'/g;
+const HTML_TAGS_PATTERN = /<[^>]*>/g;
+
 export type XArticlePhase = 'idle' | 'generating' | 'generated' | 'error';
 
 export interface UseXArticleComposeReturn {
@@ -29,11 +36,11 @@ export interface UseXArticleComposeReturn {
 
 function escapeHtml(text: string): string {
   return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(AMPERSANDS_PATTERN, '&amp;')
+    .replace(LESS_THAN_SIGNS_PATTERN, '&lt;')
+    .replace(GREATER_THAN_SIGNS_PATTERN, '&gt;')
+    .replace(DOUBLE_QUOTES_PATTERN, '&quot;')
+    .replace(SINGLE_QUOTES_PATTERN, '&#039;');
 }
 
 function buildXArticleClipboardPayload(
@@ -114,7 +121,7 @@ export function useXArticleCompose(
   );
 
   const stripHtmlTags = useCallback((html: string): string => {
-    return html.replace(/<[^>]*>/g, '').trim();
+    return html.replace(HTML_TAGS_PATTERN, '').trim();
   }, []);
 
   const handleCopySection = useCallback(

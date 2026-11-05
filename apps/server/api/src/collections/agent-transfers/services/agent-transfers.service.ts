@@ -19,6 +19,7 @@ import {
 } from '@genfeedai/contracts';
 import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { sha256Hex, stableStringify } from '@libs/utils/canonical-hash.util';
 import {
   BadRequestException,
@@ -67,6 +68,7 @@ function assertSendAndRunConfirmed(input: CreateAgentTransferDto): void {
   }
 }
 
+@Traced()
 @Injectable()
 export class AgentTransfersService {
   constructor(

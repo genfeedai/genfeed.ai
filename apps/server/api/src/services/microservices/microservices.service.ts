@@ -16,6 +16,7 @@ import {
   parseRedisConnection,
 } from '@libs/redis/redis-connection.utils';
 import { isInProcessRedis } from '@libs/redis/redis-driver';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import {
@@ -26,6 +27,8 @@ import {
 } from '@nestjs/common';
 import Redis from 'ioredis';
 import { firstValueFrom } from 'rxjs';
+
+const TRAILING_SLASHES_PATTERN = /\/+$/;
 
 export interface ServiceHealth {
   name: string;
@@ -40,6 +43,7 @@ type MicroserviceUrlKey =
   | 'GENFEEDAI_MICROSERVICES_MCP_URL'
   | 'GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL';
 
+@Traced()
 @Injectable()
 export class MicroservicesService implements OnModuleInit, HealthContributor {
   private readonly constructorName: string = String(this.constructor.name);
@@ -108,7 +112,7 @@ export class MicroservicesService implements OnModuleInit, HealthContributor {
       throw new Error(`${key} must be configured`);
     }
 
-    return value.trim().replace(/\/+$/, '');
+    return value.trim().replace(TRAILING_SLASHES_PATTERN, '');
   }
 
   private getRedisLogTarget(redisUrl: string): string {

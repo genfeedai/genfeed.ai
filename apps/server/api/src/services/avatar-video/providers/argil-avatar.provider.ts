@@ -7,8 +7,10 @@ import { ArgilService } from '@api/services/integrations/argil/services/argil.se
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { AvatarVideoProviderName } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ArgilAvatarProvider implements AvatarVideoProvider {
   readonly providerName: AvatarVideoProviderName = 'argil';

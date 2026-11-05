@@ -9,10 +9,14 @@ import type {
 import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { CredentialPlatform, SocialSourcePlatform } from '@genfeedai/contracts';
 import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
+
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const ISO8601_DURATION_PATTERN = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/;
 
 const YOUTUBE_DATA_API = 'https://www.googleapis.com/youtube/v3';
 /** Data API caps playlistItems and videos at 50 per page. */
@@ -60,7 +64,7 @@ function readCount(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
     return Math.floor(value);
   }
-  if (typeof value === 'string' && /^\d+$/.test(value)) {
+  if (typeof value === 'string' && DIGITS_ONLY_PATTERN.test(value)) {
     return Number(value);
   }
   return undefined;
@@ -68,9 +72,7 @@ function readCount(value: unknown): number | undefined {
 
 function parseIsoDurationSeconds(value: unknown): number | undefined {
   const text = readNonEmptyString(value);
-  const match = text
-    ? /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(text)
-    : null;
+  const match = text ? ISO8601_DURATION_PATTERN.exec(text) : null;
   if (!match) {
     return undefined;
   }
@@ -100,6 +102,7 @@ function pickThumbnail(
  * the authenticated channel's, so a `credentialId` is required and public
  * channels are not served here.
  */
+@Traced()
 @Injectable()
 export class YoutubeOfficialProvider implements SourceTimelineProvider {
   readonly name = 'brand-oauth' as const;

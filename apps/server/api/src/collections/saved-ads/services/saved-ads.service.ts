@@ -19,6 +19,7 @@ import type {
   UpdateSavedAdNoteInput,
 } from '@genfeedai/contracts/interfaces';
 import { type Prisma, type SavedAd, toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const MAX_SAVE_CONCURRENCY = 4;
@@ -40,6 +41,7 @@ function optionalDate(value?: string): Date | undefined {
   return Number.isNaN(parsed.valueOf()) ? undefined : parsed;
 }
 
+@Traced()
 @Injectable()
 export class SavedAdsService {
   constructor(

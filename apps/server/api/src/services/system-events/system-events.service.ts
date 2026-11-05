@@ -16,6 +16,7 @@ import { SystemNotificationDestinationsService } from '@api/services/system-even
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SYSTEM_EVENT_TYPES } from '@libs/interfaces/system-event.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type Stripe from 'stripe';
 
@@ -28,6 +29,7 @@ export const RECOVER_BATCH_SIZE = 20;
  */
 export const MAX_EVENT_ATTEMPTS = 32;
 
+@Traced()
 @Injectable()
 export class SystemEventsService {
   constructor(
@@ -63,6 +65,7 @@ export class SystemEventsService {
     // tenant-scope-ignore: deployment-wide operator settings
     const row = await this.prisma.systemNotificationSettings.findUnique({
       where: { id: 'default' },
+      select: { enabled: true, eventTypes: true },
     });
     return {
       enabled: row?.enabled ?? true,
@@ -188,6 +191,7 @@ export class SystemEventsService {
     // tenant-scope-ignore: super-admin retries a single non-deleted event
     const row = await this.prisma.systemEventWebhook.findFirst({
       where: { id, isDeleted: false },
+      select: { deliveredAt: true, failedAt: true, skippedAt: true },
     });
     if (!row) throw new NotFoundException('Notification not found');
     if (row.deliveredAt || row.skippedAt) return;

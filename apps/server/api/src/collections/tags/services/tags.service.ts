@@ -6,6 +6,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { resolveTagScope, type TagCategory } from '@genfeedai/contracts';
 import { pickTagColor } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Most tags the Library picker lists in one response. */
@@ -29,6 +30,7 @@ export interface CreateScopedTagInput {
   userId: string;
 }
 
+@Traced()
 @Injectable()
 export class TagsService extends BaseService<
   TagDocument,

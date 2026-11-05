@@ -6,10 +6,12 @@ import {
 } from '@api/collections/clipper-results/clipper-results.service';
 import type { ArgilWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 type JsonRecord = Record<string, unknown>;
 
+@Traced()
 @Injectable()
 export class ArgilWebhookService {
   constructor(

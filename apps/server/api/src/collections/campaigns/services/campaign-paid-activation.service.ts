@@ -15,6 +15,7 @@ import {
 } from '@genfeedai/contracts';
 import type { ICampaignPaidActivation } from '@genfeedai/contracts/interfaces';
 import type { CampaignPaidActivation } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -40,6 +41,7 @@ export function toCampaignPaidActivation(
   };
 }
 
+@Traced()
 @Injectable()
 export class CampaignPaidActivationService {
   constructor(

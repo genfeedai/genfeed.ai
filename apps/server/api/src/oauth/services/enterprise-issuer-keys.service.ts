@@ -1,5 +1,6 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import {
   createLocalJWKSet,
@@ -7,6 +8,11 @@ import {
   type JWTVerifyGetKey,
 } from 'jose';
 import { z } from 'zod';
+
+const NO_STORE_CACHE_CONTROL_PATTERN =
+  /(?:^|,)\s*(?:no-store|no-cache)(?:\s|,|$)/i;
+const MAX_AGE_CACHE_CONTROL_PATTERN = /(?:^|,)\s*max-age=(\d+)/i;
+const TRAILING_SLASHES_PATTERN = /\/+$/;
 
 const METADATA_MAX_BYTES = 64 * 1024;
 const FETCH_TIMEOUT_MS = 5_000;
@@ -36,10 +42,10 @@ export class IssuerKeysError extends Error {}
 
 function cacheTtlMs(response: Response): number {
   const cacheControl = response.headers.get('cache-control') ?? '';
-  if (/(?:^|,)\s*(?:no-store|no-cache)(?:\s|,|$)/i.test(cacheControl)) {
+  if (NO_STORE_CACHE_CONTROL_PATTERN.test(cacheControl)) {
     return MIN_CACHE_MS;
   }
-  const maxAge = /(?:^|,)\s*max-age=(\d+)/i.exec(cacheControl)?.[1];
+  const maxAge = MAX_AGE_CACHE_CONTROL_PATTERN.exec(cacheControl)?.[1];
   const ttl = maxAge === undefined ? DEFAULT_CACHE_MS : Number(maxAge) * 1000;
   return Math.min(Math.max(ttl, MIN_CACHE_MS), MAX_CACHE_MS);
 }
@@ -95,6 +101,7 @@ function isHttpsUrl(value: string): boolean {
  * assertion itself are never used. Every fetch goes through the outbound
  * destination guard because the issuer URL is customer-supplied.
  */
+@Traced()
 @Injectable()
 export class EnterpriseIssuerKeysService {
   private readonly cache = new Map<string, CachedKeys>();
@@ -156,7 +163,7 @@ export class EnterpriseIssuerKeysService {
     if (!isHttpsUrl(issuer)) {
       throw new IssuerKeysError('Issuer must be an https URL');
     }
-    const discoveryUrl = `${issuer.replace(/\/+$/, '')}/.well-known/openid-configuration`;
+    const discoveryUrl = `${issuer.replace(TRAILING_SLASHES_PATTERN, '')}/.well-known/openid-configuration`;
     const discovery = discoverySchema.parse(
       (await this.fetchJson(discoveryUrl)).body,
     );

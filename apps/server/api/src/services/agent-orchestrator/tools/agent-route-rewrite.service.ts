@@ -11,7 +11,11 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable, Optional } from '@nestjs/common';
+
+const CONTENT_DETAIL_PATH_PATTERN = /^\/content\/(?:posts|articles)\/(.+)$/;
+const QUERY_OR_HASH_PATTERN = /[?#]/;
 
 interface AgentBrandsServiceLike {
   findOne: (
@@ -61,6 +65,7 @@ const LEGACY_INTERNAL_PATH_REWRITES: Readonly<Record<string, string>> = {
   '/review': APP_ROUTES.PUBLISHING.APPROVALS,
 };
 
+@Traced()
 @Injectable()
 export class AgentRouteRewriteService {
   constructor(
@@ -187,9 +192,7 @@ export class AgentRouteRewriteService {
     const appPath = isAlreadyScoped
       ? `/${rawPath.split('/').filter(Boolean).slice(2).join('/')}`
       : rawPath;
-    const contentDetail = appPath.match(
-      /^\/content\/(?:posts|articles)\/(.+)$/,
-    );
+    const contentDetail = appPath.match(CONTENT_DETAIL_PATH_PATTERN);
     const rewrite =
       LEGACY_INTERNAL_PATH_REWRITES[appPath] ??
       (contentDetail
@@ -245,7 +248,7 @@ export class AgentRouteRewriteService {
   }
 
   private splitHrefSuffix(href: string): { path: string; suffix: string } {
-    const suffixStart = href.search(/[?#]/);
+    const suffixStart = href.search(QUERY_OR_HASH_PATTERN);
 
     if (suffixStart === -1) {
       return { path: href, suffix: '' };

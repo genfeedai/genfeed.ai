@@ -5,6 +5,7 @@ import type {
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { TwitterApi } from 'twitter-api-v2';
@@ -20,6 +21,7 @@ interface XAdsOAuthConfig {
  * `twitter-api-v2` client. The Ads application API key/secret are deliberately
  * separate from organic X's OAuth 2.0 client credentials.
  */
+@Traced()
 @Injectable()
 export class XAdsOAuthService {
   private readonly constructorName: string = String(this.constructor.name);

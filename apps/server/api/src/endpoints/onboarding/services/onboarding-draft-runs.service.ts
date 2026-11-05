@@ -17,6 +17,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { ContentRun, IngredientStatus } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -63,6 +64,7 @@ const configSchema = z.object({
   result: resultSchema.nullable(),
 });
 
+@Traced()
 @Injectable()
 export class OnboardingDraftRunsService {
   constructor(
@@ -554,7 +556,10 @@ export class OnboardingDraftRunsService {
       skipDuplicates: true,
     });
     if (!created.count) {
-      const existing = await this.prisma.contentRun.findFirst({ where });
+      const existing = await this.prisma.contentRun.findFirst({
+        where,
+        select: { config: true, status: true },
+      });
       const config = configSchema.safeParse(existing?.config);
       if (
         (existing?.status === ContentRunStatus.COMPLETED ||

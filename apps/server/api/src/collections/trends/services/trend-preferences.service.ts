@@ -3,8 +3,10 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class TrendPreferencesService {
   constructor(
@@ -53,6 +55,7 @@ export class TrendPreferencesService {
       const brandId = preferences.brandId ?? null;
       const existing = await this.prisma.trendPreferences.findFirst({
         where: scopedWhere(organizationId, { brandId }),
+        select: { config: true, id: true },
       });
       const storedConfig = this.readObjectRecord(existing?.config);
       const normalizedPreferences: Record<string, unknown> = {

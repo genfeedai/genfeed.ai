@@ -21,6 +21,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ResolveAgentInputRequestParams } from '@genfeedai/contracts/interfaces/ai/agent-input-request.interface';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -180,6 +181,7 @@ function findInputRequestInSnapshot(
   } as unknown as AgentInputRequestDocument;
 }
 
+@Traced()
 @Injectable()
 export class AgentThreadEngineService {
   constructor(
@@ -570,6 +572,7 @@ export class AgentThreadEngineService {
 
     const existing = await this.prisma.agentThreadSnapshot.findFirst({
       where: scopedWhere(organizationId, { threadId }),
+      select: { data: true, id: true },
     });
 
     const profileData = profileSnapshot as Record<string, unknown>;
@@ -718,6 +721,7 @@ export class AgentThreadEngineService {
       // Store the input request inside snapshot.data.inputRequests[]
       const snapshotRow = await this.prisma.agentThreadSnapshot.findFirst({
         where: scopedWhere(organizationId, { threadId }),
+        select: { data: true, id: true },
       });
 
       if (snapshotRow) {

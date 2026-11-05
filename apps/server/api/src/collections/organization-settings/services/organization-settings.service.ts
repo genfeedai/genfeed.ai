@@ -44,12 +44,16 @@ import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+
+const MODEL_VERSION_PATTERN = /-(\d+)(?:\.(\d+))?(?:-|$)/;
 
 /** Ledger reference namespace of every Stripe checkout credit-pack grant. */
 const CREDIT_PACK_REFERENCE_PREFIX = 'stripe-checkout-session:';
 
+@Traced()
 @Injectable()
 export class OrganizationSettingsService extends BaseService<
   OrganizationSettingDocument,
@@ -563,7 +567,7 @@ export class OrganizationSettingsService extends BaseService<
     minor: number;
   } {
     // Match version number after a hyphen (e.g., "-3", "-3.1", "-4-fast")
-    const versionMatch = key.match(/-(\d+)(?:\.(\d+))?(?:-|$)/);
+    const versionMatch = key.match(MODEL_VERSION_PATTERN);
 
     if (!versionMatch) {
       // No version found
@@ -597,6 +601,7 @@ export class OrganizationSettingsService extends BaseService<
   ): Promise<void> {
     const setting = await this.prisma.organizationSetting.findFirst({
       where: { organizationId },
+      select: { enabledModelIds: true, id: true },
     });
     if (!setting) return;
     const existing = setting.enabledModelIds;

@@ -21,9 +21,11 @@ import type {
   BrandIdentitySnapshotV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { ConflictException, Injectable, Optional } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class BrandValidationReceiptService {
   constructor(

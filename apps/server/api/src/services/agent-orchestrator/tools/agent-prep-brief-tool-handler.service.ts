@@ -17,6 +17,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const KNOWLEDGE_FACT_LIMIT = 4;
@@ -86,6 +87,7 @@ function readCoverageFamilies(data: unknown): PrepBriefCoverageFamily[] {
  * carries its citation), and lists the evidence it did not find. Read only:
  * its follow-ups point at existing destinations and change nothing.
  */
+@Traced()
 @Injectable()
 export class AgentPrepBriefToolHandler {
   constructor(

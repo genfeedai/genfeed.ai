@@ -65,6 +65,7 @@ async function recordGenerationCreditsOnActivity(
       isDeleted: false,
       organizationId: transaction.organizationId,
     },
+    select: { data: true, id: true },
   });
   const data =
     activity?.data !== null &&

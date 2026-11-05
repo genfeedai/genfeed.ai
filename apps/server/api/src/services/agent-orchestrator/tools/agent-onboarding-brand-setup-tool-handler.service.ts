@@ -21,6 +21,7 @@ import {
 } from '@genfeedai/contracts/types';
 import { computeBrandCompleteness } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -90,6 +91,7 @@ function readAnswers(
   });
 }
 
+@Traced()
 @Injectable()
 export class AgentOnboardingBrandSetupToolHandler {
   constructor(

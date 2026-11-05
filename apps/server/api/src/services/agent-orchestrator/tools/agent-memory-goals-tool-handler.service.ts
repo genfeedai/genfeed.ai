@@ -16,8 +16,10 @@ import {
 } from '@api/services/agent-orchestrator/utils/agent-initiating-principal.util';
 import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class AgentMemoryGoalsToolHandler {
   constructor(

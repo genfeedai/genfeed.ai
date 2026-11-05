@@ -35,6 +35,7 @@ import {
 } from '@genfeedai/integrations';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -45,6 +46,8 @@ import {
   type InstagramMediaAnalytics,
 } from './instagram-analytics.service';
 import { InstagramPublishingService } from './instagram-publishing.service';
+
+const HASHTAGS_PATTERN = /#\w+/g;
 
 function requireString(
   value: string | null | undefined,
@@ -174,6 +177,7 @@ function toInstagramCredentialResponse(
   };
 }
 
+@Traced()
 @Injectable()
 export class InstagramService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -550,7 +554,7 @@ export class InstagramService {
                 }>
               ).forEach((post) => {
                 const caption = post.caption || '';
-                const hashtags = caption.match(/#\w+/g) || [];
+                const hashtags = caption.match(HASHTAGS_PATTERN) || [];
                 hashtags.forEach((tag: string) => {
                   const count =
                     (post.like_count || 0) + (post.comments_count || 0);

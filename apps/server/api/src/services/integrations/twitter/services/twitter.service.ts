@@ -29,6 +29,7 @@ import {
 } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Inject, Injectable } from '@nestjs/common';
@@ -61,6 +62,8 @@ export type {
 } from './twitter-inbox.service';
 export { resolveTwitterReplySettings } from './twitter-publishing.service';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 /**
  * Catalog reply-policy values translated to Twitter's `reply_settings`
  * vocabulary. `everyone` is absent on purpose: the API expresses it by omitting
@@ -79,6 +82,7 @@ function requireString(
   return value;
 }
 
+@Traced()
 @Injectable()
 export class TwitterService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -461,7 +465,7 @@ export class TwitterService {
     } = {},
   ): Promise<TwitterTimelinePost[]> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const cleanUsername = username.replace(/^@/, '');
+    const cleanUsername = username.replace(LEADING_AT_SIGN_PATTERN, '');
     const maxResults = Math.min(Math.max(options.maxResults ?? 25, 5), 100);
     const client = options.accessToken
       ? new TwitterApi(options.accessToken)

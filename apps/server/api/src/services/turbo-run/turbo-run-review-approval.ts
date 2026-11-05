@@ -72,6 +72,7 @@ export async function pinApprovedDrafts(input: {
         id: postId,
         targetExecutionState: TargetExecutionState.DRAFT,
       }),
+      select: { credentialId: true, id: true, updatedAt: true },
     });
     if (!post)
       throw new BadRequestException('Only a current draft can be approved');

@@ -1,6 +1,7 @@
 'use client';
 
 import { CredentialPlatform, IngredientCategory } from '@genfeedai/contracts';
+import type { IPostPlatformConfig } from '@genfeedai/contracts/interfaces';
 import {
   InstagramIcon,
   TiktokIcon,
@@ -67,4 +68,25 @@ export function getCredentialErrorMessage(
     default:
       return 'No credentials available for this content. Please connect a compatible platform.';
   }
+}
+
+/** The caption a channel publishes: its own when set, the shared one otherwise. */
+export function resolveChannelDescription(
+  config: Pick<IPostPlatformConfig, 'description'>,
+  globalDescription: string | undefined,
+): string {
+  return config.description?.trim()
+    ? config.description
+    : (globalDescription ?? '');
+}
+
+/** The title a channel publishes. X posts carry no title. */
+export function resolveChannelLabel(
+  config: Pick<IPostPlatformConfig, 'label' | 'platform'>,
+  globalLabel: string | undefined,
+): string {
+  if (config.platform === CredentialPlatform.TWITTER) {
+    return '';
+  }
+  return config.label?.trim() ? config.label : (globalLabel ?? '');
 }

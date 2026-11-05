@@ -26,6 +26,9 @@ import { resolveDefaultTargetExecutionState } from '@genfeedai/contracts/api-typ
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
+const HTML_TAGS_PATTERN = /<[^>]+>/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 type PostCreateDependencies = {
   accountHealthService: AccountHealthService;
   activityRecorder: ActivityRecorderService;
@@ -48,8 +51,8 @@ function extractLabelFromText(text: string, maxLength: number = 50): string {
   }
 
   const trimmed = text
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(HTML_TAGS_PATTERN, ' ')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
   if (!trimmed) {
     return '';

@@ -28,6 +28,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { readIngredientMediaUrlWithFallback } from '@libs/media/media-url.util';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -45,6 +46,7 @@ function requiredString(value: unknown, label: string): string {
   return value.trim();
 }
 
+@Traced()
 @Injectable()
 export class AgentWorkObjectService {
   constructor(
@@ -90,6 +92,7 @@ export class AgentWorkObjectService {
               brandId: scope.brandId ?? null,
             }),
           },
+          select: { config: true, id: true },
         });
         if (!thread) throw new NotFoundException('Thread not found.');
         const config = record(thread.config);
@@ -212,6 +215,7 @@ export class AgentWorkObjectService {
         }),
         sourceActionId: `work:${scope.threadId}:${sourceActionId}`,
       },
+      select: { id: true },
     });
     if (existing) {
       await this.attach(scope, existing.id);
@@ -547,6 +551,7 @@ export class AgentWorkObjectService {
         userId: scope.userId,
         isDeleted: false,
       },
+      select: { status: true },
     });
     if (
       !execution ||
@@ -687,6 +692,7 @@ export class AgentWorkObjectService {
         userId: scope.userId,
         isDeleted: false,
       },
+      select: { id: true },
     });
     if (execution) {
       await this.executions.cancelExecution(execution.id, scope.organizationId);
@@ -824,6 +830,7 @@ export class AgentWorkObjectService {
         threadId: scope.threadId,
         isDeleted: false,
       },
+      select: { data: true },
     });
     const pending = record(snapshot?.data).pendingInputRequests;
     if (Array.isArray(pending) && pending.length)

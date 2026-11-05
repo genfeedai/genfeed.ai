@@ -29,6 +29,7 @@ import {
 import { isEntityId } from '@genfeedai/contracts/api-types/helpers/entity-id';
 import type { Prisma } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -36,6 +37,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ImportedSourcesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -164,6 +166,7 @@ export class ImportedSourcesService {
               isDeleted: true,
             },
             orderBy: [{ version: 'desc' }, { id: 'desc' }],
+            select: { id: true },
           });
           if (deleted)
             throw importedSourceStateError('IMPORTED_SOURCE_DELETED', {

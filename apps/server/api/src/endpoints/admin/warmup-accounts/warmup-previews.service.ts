@@ -20,7 +20,10 @@ import type { IContentPreview } from '@genfeedai/contracts/interfaces';
 import type { WarmupAccount } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
+
+const TRAILING_SLASH_PATTERN = /\/$/;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_APP_URL = 'https://app.genfeed.ai';
@@ -30,6 +33,7 @@ const DEFAULT_APP_URL = 'https://app.genfeed.ai';
  * IpWhitelistGuard + SuperAdminGuard on WarmupAccountsController authorize the
  * caller; every preview is tied to the warm-up workspace's own organization.
  */
+@Traced()
 @Injectable()
 export class WarmupPreviewsService {
   constructor(
@@ -152,6 +156,7 @@ export class WarmupPreviewsService {
       await lockWarmup(tx, account.id);
       const current = await tx.warmupAccount.findFirstOrThrow({
         where: scopedWhere(organizationId, { id: account.id }),
+        select: { auditEvents: true },
       });
       await tx.warmupAccount.update({
         data: {
@@ -169,7 +174,7 @@ export class WarmupPreviewsService {
     const configured = this.config.get('GENFEEDAI_APP_URL');
     const base =
       typeof configured === 'string' && configured.length > 0
-        ? configured.replace(/\/$/, '')
+        ? configured.replace(TRAILING_SLASH_PATTERN, '')
         : DEFAULT_APP_URL;
     return `${base}/preview/${token}`;
   }

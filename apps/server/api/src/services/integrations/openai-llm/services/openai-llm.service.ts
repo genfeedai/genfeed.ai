@@ -7,6 +7,7 @@ import type {
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import OpenAI from 'openai';
 import type {
@@ -14,6 +15,9 @@ import type {
   ChatCompletionTool,
 } from 'openai/resources/chat/completions';
 
+const OPENAI_OR_LOCAL_MODEL_PREFIX_PATTERN = /^(?:openai|local)\//;
+
+@Traced()
 @Injectable()
 export class OpenAiLlmService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -128,7 +132,10 @@ export class OpenAiLlmService {
 
     try {
       // Strip provider prefixes (openai/, local/) from model name
-      const model = params.model.replace(/^(?:openai|local)\//, '');
+      const model = params.model.replace(
+        OPENAI_OR_LOCAL_MODEL_PREFIX_PATTERN,
+        '',
+      );
       const messages = this.convertMessages(params.messages);
       const tools = this.convertTools(params.tools);
 
@@ -246,7 +253,10 @@ export class OpenAiLlmService {
     const client = this.createClient(apiKey, baseURL);
 
     try {
-      const model = params.model.replace(/^(?:openai|local)\//, '');
+      const model = params.model.replace(
+        OPENAI_OR_LOCAL_MODEL_PREFIX_PATTERN,
+        '',
+      );
       const messages = this.convertMessages(params.messages);
       const tools = this.convertTools(params.tools);
 
@@ -315,7 +325,10 @@ export class OpenAiLlmService {
     const client = this.createClient(apiKey, baseURL);
 
     try {
-      const model = params.model.replace(/^(?:openai|local)\//, '');
+      const model = params.model.replace(
+        OPENAI_OR_LOCAL_MODEL_PREFIX_PATTERN,
+        '',
+      );
       const messages = this.convertMessages(params.messages);
       const tools = this.convertTools(params.tools);
 

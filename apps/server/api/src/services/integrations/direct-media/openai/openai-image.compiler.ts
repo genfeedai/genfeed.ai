@@ -5,6 +5,10 @@ import {
   type PreparedDirectMediaRequest,
 } from '@api/services/integrations/direct-media/direct-media.types';
 
+const WHITESPACE_CHAR_PATTERN = /\s/;
+const IMAGE_MIME_PATTERN = /^image\/[a-z0-9.+-]+$/i;
+const ASPECT_RATIO_PATTERN = /^[1-9]\d*:[1-9]\d*$/;
+
 export const OPENAI_IMAGE_CONTRACT: Readonly<DirectMediaModelContract> =
   Object.freeze({
     provider: 'openai',
@@ -84,7 +88,7 @@ function referenceUrls(value: unknown): string[] {
     if (
       typeof url !== 'string' ||
       !url.startsWith('https://') ||
-      /\s/.test(url)
+      WHITESPACE_CHAR_PATTERN.test(url)
     )
       invalid();
     let parsed: URL;
@@ -104,7 +108,7 @@ function referenceUrls(value: unknown): string[] {
     if (
       reference.mimeType !== undefined &&
       (typeof reference.mimeType !== 'string' ||
-        !/^image\/[a-z0-9.+-]+$/i.test(reference.mimeType))
+        !IMAGE_MIME_PATTERN.test(reference.mimeType))
     )
       invalid();
     urls.push(url);
@@ -137,7 +141,7 @@ function size(input: Record<string, unknown>): string {
   if (aspectRatio !== undefined) {
     if (
       typeof aspectRatio !== 'string' ||
-      !/^[1-9]\d*:[1-9]\d*$/.test(aspectRatio)
+      !ASPECT_RATIO_PATTERN.test(aspectRatio)
     )
       invalid();
     const [horizontal, vertical] = aspectRatio.split(':').map(Number);

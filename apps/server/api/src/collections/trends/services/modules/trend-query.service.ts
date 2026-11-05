@@ -6,6 +6,7 @@ import {
   withPlatformTenantArm,
 } from '@libs/prisma/platform-scope';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -14,6 +15,7 @@ import { Injectable } from '@nestjs/common';
  * Prelaunch/bootstrap fake corpus is hard-cut: discovery returns real rows only
  * (tenant-scoped or genuine global ingestion), never synthetic seed content.
  */
+@Traced()
 @Injectable()
 export class TrendQueryService {
   constructor(private readonly prisma: PrismaService) {}

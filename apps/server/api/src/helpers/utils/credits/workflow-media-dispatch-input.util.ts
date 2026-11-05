@@ -5,6 +5,12 @@ import type {
   ProviderQuoteDimensions,
 } from '@genfeedai/contracts/interfaces';
 
+const NON_NEGATIVE_INTEGER_PATTERN = /^(0|[1-9]\d*)$/;
+const DECIMAL_NUMBER_PATTERN = /^\d+(?:\.\d+)?$/;
+const SEEDANCE_FAL_MODEL_URL_PREFIX_PATTERN =
+  /^https:\/\/fal\.ai\/models\/bytedance\/seedance-2\.[05]\//;
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 export interface WorkflowMediaInputProjection {
   inputKeys: string[];
   inputFingerprint: string;
@@ -52,7 +58,7 @@ function assertJson(value: unknown, active = new Set<object>()): void {
       unavailable('Workflow provider input contains an unsupported property');
     if (
       Array.isArray(value) &&
-      (!/^(0|[1-9]\d*)$/.test(key) || Number(key) >= value.length)
+      (!NON_NEGATIVE_INTEGER_PATTERN.test(key) || Number(key) >= value.length)
     )
       unavailable('Workflow provider input has non-JSON array properties');
     assertJson(descriptor.value, active);
@@ -71,7 +77,7 @@ export function assertWorkflowCanonicalJson(value: unknown): void {
 
 function dimension(value: unknown, key: string, integer = false): number {
   const number =
-    typeof value === 'string' && /^\d+(?:\.\d+)?$/.test(value)
+    typeof value === 'string' && DECIMAL_NUMBER_PATTERN.test(value)
       ? Number(value)
       : value;
   if (
@@ -159,7 +165,7 @@ export function assertWorkflowMediaPricingUnits(
   ) {
     if (
       profile.provider !== 'fal' ||
-      !/^https:\/\/fal\.ai\/models\/bytedance\/seedance-2\.[05]\//.test(
+      !SEEDANCE_FAL_MODEL_URL_PREFIX_PATTERN.test(
         profile.reviewedPricing?.sourceUrl ?? '',
       ) ||
       ![
@@ -180,7 +186,7 @@ export function assertWorkflowMediaPricingUnits(
       (quantities.inputDuration === undefined ||
         quantities.inputDuration < 0 ||
         (quantities.inputDuration > 0 &&
-          !/^[a-f0-9]{64}$/.test(quantities.referenceEvidenceHash ?? '')))
+          !SHA256_HEX_PATTERN.test(quantities.referenceEvidenceHash ?? '')))
     )
       unavailable(
         'Workflow native input pricing requires measured source evidence',

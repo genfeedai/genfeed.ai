@@ -13,6 +13,7 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { CredentialPlatform, PublishStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import type {
@@ -21,6 +22,12 @@ import type {
   PlatformStats,
   ProcessedExportData,
 } from './analytics.types';
+
+const UPPERCASE_LETTER_GROUPS_PATTERN = /([A-Z])/g;
+const FIRST_CHAR_PATTERN = /^./;
+const FORMULA_PREFIX_PATTERN = /^[=+\-@]/;
+const CSV_SPECIAL_CHARS_PATTERN = /[",\n]/;
+const DOUBLE_QUOTES_PATTERN = /"/g;
 
 export const MAX_ANALYTICS_EXPORT_ROWS = 5_000;
 const MAX_ANALYTICS_EXPORT_RANGE_DAYS = 366;
@@ -59,6 +66,7 @@ export interface AnalyticsExportScope {
   readonly startDate?: string;
 }
 
+@Traced()
 @Injectable()
 export class AnalyticsExportService {
   constructor(
@@ -372,8 +380,8 @@ export class AnalyticsExportService {
 
   private formatFieldName(field: string): string {
     return field
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, (str) => str.toUpperCase())
+      .replace(UPPERCASE_LETTER_GROUPS_PATTERN, ' $1')
+      .replace(FIRST_CHAR_PATTERN, (str) => str.toUpperCase())
       .trim();
   }
 
@@ -381,9 +389,9 @@ export class AnalyticsExportService {
     // Neutralize CSV/spreadsheet formula injection: prefix a single quote when
     // a user-controlled value begins with =, +, -, or @ so Excel/Sheets treats
     // it as text rather than a formula.
-    const safeValue = /^[=+\-@]/.test(value) ? `'${value}` : value;
-    if (/[",\n]/.test(safeValue)) {
-      return `"${safeValue.replace(/"/g, '""')}"`;
+    const safeValue = FORMULA_PREFIX_PATTERN.test(value) ? `'${value}` : value;
+    if (CSV_SPECIAL_CHARS_PATTERN.test(safeValue)) {
+      return `"${safeValue.replace(DOUBLE_QUOTES_PATTERN, '""')}"`;
     }
     return safeValue;
   }

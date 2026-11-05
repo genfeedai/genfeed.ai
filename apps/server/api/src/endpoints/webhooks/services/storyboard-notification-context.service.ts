@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IStoryboardNotificationContext } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 
@@ -23,6 +24,7 @@ interface StoryboardMediaIds {
  * the key shape). The title and layout link are best effort: a lookup failure
  * leaves the generation on the ordinary channel path.
  */
+@Traced()
 @Injectable()
 export class StoryboardNotificationContextService {
   private readonly constructorName = StoryboardNotificationContextService.name;

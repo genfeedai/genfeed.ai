@@ -25,6 +25,7 @@ import type {
   IGeneratedBrandProfile,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   ForbiddenException,
   Inject,
@@ -32,6 +33,11 @@ import {
   Optional,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+
+const NEWLINE_OR_COMMA_PATTERN = /\n|,/;
+const BLANK_LINE_PATTERN = /\n\s*\n/;
+const NEWLINES_PATTERN = /\n/g;
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
 
 interface AgentBrandsServiceLike {
   findOne: (
@@ -90,6 +96,7 @@ interface BrandVoiceProfileDraft {
  * Monthly content calendar + brand voice draft/save tools.
  * Extracted from AgentToolExecutorService per #519.
  */
+@Traced()
 @Injectable()
 export class AgentBrandContentToolHandler {
   constructor(
@@ -192,7 +199,7 @@ export class AgentBrandContentToolHandler {
 
     if (typeof value === 'string') {
       return value
-        .split(/\n|,/)
+        .split(NEWLINE_OR_COMMA_PATTERN)
         .map((item) => item.trim())
         .filter(Boolean);
     }
@@ -231,7 +238,7 @@ export class AgentBrandContentToolHandler {
     const items = Array.isArray(value)
       ? value
       : typeof value === 'string'
-        ? value.split(/\n\s*\n/)
+        ? value.split(BLANK_LINE_PATTERN)
         : [];
     return items
       .filter((item): item is string => typeof item === 'string')
@@ -258,7 +265,7 @@ export class AgentBrandContentToolHandler {
       `Hashtags: ${profile.hashtags?.join(', ') || 'Not set'}`,
       `Conversation starters: ${profile.prompting?.conversationStarters.map((starter) => starter.label).join(', ') || 'Not set'}`,
       `Writing rules:\n${profile.writingRules?.map((rule) => `- ${rule}`).join('\n') || 'Not set'}`,
-      `Real posts that capture the voice (verbatim):\n${profile.exemplarTexts?.map((text) => `> ${text.replace(/\n/g, '\n> ')}`).join('\n\n') || 'None found'}`,
+      `Real posts that capture the voice (verbatim):\n${profile.exemplarTexts?.map((text) => `> ${text.replace(NEWLINES_PATTERN, '\n> ')}`).join('\n\n') || 'None found'}`,
       `Sample output:\n${profile.sampleOutput || 'Not set'}`,
     ];
 
@@ -330,7 +337,7 @@ export class AgentBrandContentToolHandler {
                 id:
                   typeof starter.id === 'string' && starter.id.trim()
                     ? starter.id.trim()
-                    : `brand-${intent}-${topic.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+                    : `brand-${intent}-${topic.toLowerCase().replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')}`,
                 intent,
                 label: label.slice(0, 32),
                 prompt: prompt.slice(0, 220),

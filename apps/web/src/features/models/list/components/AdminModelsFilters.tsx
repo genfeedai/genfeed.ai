@@ -12,6 +12,8 @@ import {
   resolveAdminModelFilters,
 } from '@/features/models/props/models.props';
 
+const WORD_INITIALS_PATTERN = /\b\w/g;
+
 export default function AdminModelsFilters({
   category,
   isAttached,
@@ -52,7 +54,7 @@ export default function AdminModelsFilters({
       options: Object.values(ModelCategory).map((value) => ({
         label: value
           .replaceAll('-', ' ')
-          .replace(/\b\w/g, (letter) => letter.toUpperCase()),
+          .replace(WORD_INITIALS_PATTERN, (letter) => letter.toUpperCase()),
         value,
       })),
       selection: 'multiple',

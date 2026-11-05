@@ -8,6 +8,8 @@ import {
 } from '@helpers/auth/auth.helper';
 import { useMemo } from 'react';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 export type AuthPublicMetadata = Partial<IAuthPublicData>;
 
 export interface AuthPrimaryEmailAddress {
@@ -39,7 +41,10 @@ function splitName(name: string | null | undefined): {
   firstName: string | null;
   lastName: string | null;
 } {
-  const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
+  const parts = (name ?? '')
+    .trim()
+    .split(WHITESPACE_RUN_PATTERN)
+    .filter(Boolean);
 
   return {
     firstName: parts[0] ?? null,

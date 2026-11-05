@@ -15,6 +15,7 @@ import {
   Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 export interface LearningRunControlInput {
   id: string;
@@ -25,6 +26,7 @@ export interface LearningRunControlInput {
 interface LearningRunClock {
   now: Date;
 }
+@Traced()
 @Injectable()
 export class LearningRunControlService {
   constructor(
@@ -88,6 +90,7 @@ export class LearningRunControlService {
           requestId: input.requestId,
           isDeleted: false,
         },
+        select: { payloadHash: true },
       });
       if (prior) {
         if (prior.payloadHash !== payloadHash)

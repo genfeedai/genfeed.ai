@@ -17,6 +17,7 @@ import {
 import { LOWEST_COST_IMAGE_MODEL_KEY } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 const LOGO_SIZE_PX = 1024;
@@ -38,6 +39,7 @@ const PENDING_GENERATION_TTL_MS = 10 * 60 * 1000;
  * `OrganizationLogoService`, so the current logo stays in place (and stays if
  * generation fails).
  */
+@Traced()
 @Injectable()
 export class OrganizationLogoGenerationService {
   constructor(

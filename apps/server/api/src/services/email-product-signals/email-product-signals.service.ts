@@ -19,6 +19,7 @@ import {
   buildSystemEmailParagraph,
 } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import {
   isLongGeneration,
@@ -31,8 +32,11 @@ import {
   EMAIL_SIGNAL_STREAMS,
 } from './email-product-signals.workflow';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 const PAGE_SIZE = 100;
 const DAY_MS = 86_400_000;
+@Traced()
 @Injectable()
 export class EmailProductSignalsService implements OnModuleInit {
   constructor(
@@ -421,6 +425,6 @@ export class EmailProductSignalsService implements OnModuleInit {
   private appUrl(): string {
     return (
       this.config.get('GENFEEDAI_APP_URL') ?? 'https://app.genfeed.ai'
-    ).replace(/\/$/, '');
+    ).replace(TRAILING_SLASH_PATTERN, '');
   }
 }

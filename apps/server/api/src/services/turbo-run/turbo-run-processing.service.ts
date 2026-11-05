@@ -46,7 +46,13 @@ import {
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+
+const HYPHENS_PATTERN = /-/g;
+const MISSING_FIELD_ERROR_PATTERN =
+  /Null constraint violation|Argument `.+` is missing|Invalid.*credentialId/i;
+const BACKTICKED_FIELD_PATTERN = /`([A-Za-z]+)`/;
 
 type TurboRunProcessingCounts = {
   cancelled: boolean;
@@ -69,7 +75,7 @@ type TurboRunClaimOutcome = 'busy' | 'claimed' | 'resumed';
  * separators and casing so an unmapped value is at least stored consistently.
  */
 function toPostPlatform(platform: string): string {
-  return platform.trim().toLowerCase().replace(/-/g, '_');
+  return platform.trim().toLowerCase().replace(HYPHENS_PATTERN, '_');
 }
 
 function toTurboRunItemFailureMessage(error: unknown): string {
@@ -78,12 +84,8 @@ function toTurboRunItemFailureMessage(error: unknown): string {
   }
 
   const message = error.message;
-  if (
-    /Null constraint violation|Argument `.+` is missing|Invalid.*credentialId/i.test(
-      message,
-    )
-  ) {
-    const fieldMatch = message.match(/`([A-Za-z]+)`/);
+  if (MISSING_FIELD_ERROR_PATTERN.test(message)) {
+    const fieldMatch = message.match(BACKTICKED_FIELD_PATTERN);
     const field = fieldMatch?.[1];
     return field
       ? `Draft post create failed: missing or invalid "${field}". Connect a brand social account for this platform, or leave the draft untargeted.`
@@ -97,6 +99,7 @@ function toTurboRunItemFailureMessage(error: unknown): string {
   return firstLine ?? message;
 }
 
+@Traced()
 @Injectable()
 export class TurboRunProcessingService {
   constructor(
@@ -122,6 +125,7 @@ export class TurboRunProcessingService {
       // Either the run doesn't exist for this org, or it's already being processed.
       const existing = await this.prisma.turboRun.findFirst({
         where: scopedWhere(orgId, { id: turboRunId }),
+        select: { status: true },
       });
       if (!existing) {
         throw new NotFoundException('Turbo run', turboRunId);

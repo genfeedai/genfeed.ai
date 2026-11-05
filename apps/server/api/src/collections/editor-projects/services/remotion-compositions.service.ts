@@ -20,6 +20,7 @@ import {
   type IRemotionCompositionJob,
 } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -34,6 +35,7 @@ import { validate } from 'class-validator';
 const hash = (value: unknown): string =>
   createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
+@Traced()
 @Injectable()
 export class RemotionCompositionsService implements OnModuleInit {
   constructor(
@@ -236,6 +238,7 @@ export class RemotionCompositionsService implements OnModuleInit {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${id}, 0))::text`;
       const existing = await tx.editorProject.findFirst({
         where: { id, organizationId: user.organizationId, isDeleted: false },
+        select: { config: true },
       });
       if (existing) {
         const config = this.projects.readProjectConfig(existing.config);

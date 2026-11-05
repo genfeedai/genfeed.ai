@@ -5,10 +5,12 @@ import type { AvatarDurationQuote } from '@api/collections/videos/services/avata
 import { UnsettleableReservationException } from '@api/exceptions/business-logic.exception';
 import { CreditReservationStatus } from '@genfeedai/contracts';
 import type { BrandRemixSceneQuote } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 const SCENE_WORKLOAD_TYPE = 'brand-remix-scene';
 
+@Traced()
 @Injectable()
 export class BrandRemixSceneBillingService {
   constructor(

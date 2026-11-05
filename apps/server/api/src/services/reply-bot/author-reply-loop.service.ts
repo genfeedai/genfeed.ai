@@ -66,6 +66,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   BadRequestException,
@@ -119,6 +120,7 @@ type AuthorReplyWorkflowState = {
   };
 };
 
+@Traced()
 @Injectable()
 export class AuthorReplyLoopService implements OnModuleInit {
   private readonly constructorName = String(this.constructor.name);
@@ -747,6 +749,7 @@ export class AuthorReplyLoopService implements OnModuleInit {
           externalPostId: params.parentPostId,
           ...(params.brandId ? { brandId: params.brandId } : {}),
         }),
+        select: { data: true, id: true },
       });
 
       if (!target) {

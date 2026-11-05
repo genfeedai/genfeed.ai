@@ -18,6 +18,7 @@ import type {
   AgentToolResult,
   AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -28,6 +29,7 @@ import {
 /**
  * Analytics tools extracted from AgentToolExecutorService per #519.
  */
+@Traced()
 @Injectable()
 export class AgentAnalyticsToolHandler {
   constructor(

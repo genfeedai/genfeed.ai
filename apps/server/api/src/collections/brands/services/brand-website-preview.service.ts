@@ -1,6 +1,10 @@
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type { IScrapedBrandData } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
+
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const EDGE_HYPHENS_PATTERN = /^-+|-+$/g;
 
 export interface BrandWebsitePreviewData {
   description?: string;
@@ -17,6 +21,7 @@ export interface BrandWebsitePreviewResponse {
   data: BrandWebsitePreviewData;
 }
 
+@Traced()
 @Injectable()
 export class BrandWebsitePreviewService {
   constructor(private readonly brandScraperService: BrandScraperService) {}
@@ -82,8 +87,8 @@ export class BrandWebsitePreviewService {
     return value
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+      .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
+      .replace(EDGE_HYPHENS_PATTERN, '');
   }
 
   private readErrorMessage(error: unknown): string | undefined {

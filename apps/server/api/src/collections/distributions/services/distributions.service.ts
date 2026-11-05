@@ -9,9 +9,11 @@ import { DistributionPlatform, PublishStatus } from '@genfeedai/contracts';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class DistributionsService extends BaseService<
   DistributionDocument,
@@ -150,7 +152,10 @@ export class DistributionsService extends BaseService<
   ): Promise<DistributionDocument> {
     const where = this.transitionWhere(id, organizationId);
     // tenant-scope-ignore: transitionWhere pins the request tenant / explicit organization; worker callers address the row by its opaque id
-    const existing = await this.prisma.distribution.findFirst({ where });
+    const existing = await this.prisma.distribution.findFirst({
+      where,
+      select: { config: true },
+    });
     const existingConfig = (existing?.config as Record<string, unknown>) ?? {};
 
     // tenant-scope-ignore: same transitionWhere scope as the read above
@@ -176,7 +181,10 @@ export class DistributionsService extends BaseService<
   ): Promise<DistributionDocument> {
     const where = this.transitionWhere(id, organizationId);
     // tenant-scope-ignore: transitionWhere pins the request tenant / explicit organization; worker callers address the row by its opaque id
-    const existing = await this.prisma.distribution.findFirst({ where });
+    const existing = await this.prisma.distribution.findFirst({
+      where,
+      select: { config: true },
+    });
     const existingConfig = (existing?.config as Record<string, unknown>) ?? {};
 
     // tenant-scope-ignore: same transitionWhere scope as the read above

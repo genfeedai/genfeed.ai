@@ -2,9 +2,12 @@ import { asYoutubeRequestAuth } from '@api/services/integrations/youtube/service
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { google, type youtube_v3 } from 'googleapis';
+
+const ISO8601_DURATION_PATTERN = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
 
 export interface YoutubeVideoMetadata {
   id: string;
@@ -19,6 +22,7 @@ export interface YoutubeVideoMetadata {
   tags?: string[];
 }
 
+@Traced()
 @Injectable()
 export class YoutubeMetadataService {
   private readonly constructorName = this.constructor.name;
@@ -140,7 +144,7 @@ export class YoutubeMetadataService {
   }
 
   private parseDuration(duration: string): number {
-    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    const match = duration.match(ISO8601_DURATION_PATTERN);
     if (!match) {
       return 0;
     }

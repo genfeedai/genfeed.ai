@@ -33,11 +33,14 @@ import {
   GENERATION_POOL_WORKLOAD_TYPE,
   MEDIA_GENERATION_HOLD_TTL_MS,
 } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+
+const PARAGRAPH_BREAKS_PATTERN = /\n{2,}/u;
 
 /** Prepared internally from a pinned execution; never a controller DTO or serialized authority. */
 export type BreakoutTextOutputGenerationRequest = {
@@ -57,13 +60,14 @@ export type BreakoutTextOutputGenerationRequest = {
 function segments(text: string, thread: boolean): string[] {
   return thread
     ? text
-        .split(/\n{2,}/u)
+        .split(PARAGRAPH_BREAKS_PATTERN)
         .map((part) => part.trim())
         .filter(Boolean)
     : [text];
 }
 
 /** Actual text provider, wallet hold, canonical draft and response-lineage consumer. */
+@Traced()
 @Injectable()
 export class BreakoutTextOutputGenerationService {
   constructor(

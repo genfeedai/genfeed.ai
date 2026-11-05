@@ -1,10 +1,12 @@
+import type { ConnectionAccount } from '@genfeedai/props/ui/feedback/connection-success.props';
+
 export interface OAuthPlatformFormProps {
   platform: string;
 }
 
 export type VerifyResult =
   | { status: 'loading' }
-  | { status: 'success' }
+  | { status: 'success'; account?: ConnectionAccount | null }
   /**
    * The provider token exchange succeeded, but the connected account is
    * ambiguous (Instagram: several eligible professional accounts and no

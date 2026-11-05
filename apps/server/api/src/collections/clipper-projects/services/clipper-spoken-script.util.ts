@@ -1,5 +1,14 @@
 import type { TranscriptSegment } from './clip-srt.util';
 
+const EDGE_NON_WORD_PATTERN = /^[^a-z0-9']+|[^a-z0-9']+$/g;
+const NON_ALPHANUMERIC_CHARS_PATTERN = /[^a-z0-9\s]/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const SPACE_BEFORE_PUNCTUATION_PATTERN = /\s+([,.!?;:])/g;
+const LEADING_PUNCTUATION_PATTERN = /^[,;:\s]+/;
+const DANGLING_PUNCTUATION_PATTERN = /([,;:])(?=\s*[.!?]|$)/g;
+const LOWERCASE_START_PATTERN = /^[a-z]/;
+
 /**
  * The words the speaker said inside a highlight window, tightened for an
  * avatar to say them. Nothing is written or paraphrased: the cut only drops
@@ -29,20 +38,20 @@ const STUTTER_WORDS = new Set([
 ]);
 
 function bareWord(token: string): string {
-  return token.toLowerCase().replace(/^[^a-z0-9']+|[^a-z0-9']+$/g, '');
+  return token.toLowerCase().replace(EDGE_NON_WORD_PATTERN, '');
 }
 
 function normalizeSentence(text: string): string {
   return text
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .replace(/\s+/g, ' ')
+    .replace(NON_ALPHANUMERIC_CHARS_PATTERN, '')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
 }
 
 function tightenSentence(text: string): string {
   const kept: string[] = [];
-  for (const token of text.split(/\s+/)) {
+  for (const token of text.split(WHITESPACE_RUN_PATTERN)) {
     const word = bareWord(token);
     if (!word) {
       if (token) kept.push(token);
@@ -55,11 +64,11 @@ function tightenSentence(text: string): string {
   }
   return kept
     .join(' ')
-    .replace(/\s+([,.!?;:])/g, '$1')
-    .replace(/^[,;:\s]+/, '')
-    .replace(/([,;:])(?=\s*[.!?]|$)/g, '')
+    .replace(SPACE_BEFORE_PUNCTUATION_PATTERN, '$1')
+    .replace(LEADING_PUNCTUATION_PATTERN, '')
+    .replace(DANGLING_PUNCTUATION_PATTERN, '')
     .trim()
-    .replace(/^[a-z]/, (letter) => letter.toUpperCase());
+    .replace(LOWERCASE_START_PATTERN, (letter) => letter.toUpperCase());
 }
 
 function textInsideWindow(
@@ -103,5 +112,5 @@ export function buildSpokenScript(
     previousKey = key;
     sentences.push(sentence);
   }
-  return sentences.join(' ').replace(/\s+/g, ' ').trim();
+  return sentences.join(' ').replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
 }

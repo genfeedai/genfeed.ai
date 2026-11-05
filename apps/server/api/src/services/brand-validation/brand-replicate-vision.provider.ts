@@ -16,9 +16,17 @@ import { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/me
 import type { BrandVisionModelKind } from '@genfeedai/contracts/constants';
 import type { IBrandVisionModelOption } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 import type { Prediction } from 'replicate';
+
+const PYTHON_STRING_ESCAPES_PATTERN =
+  /\\(x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|[0-7]{1,3}|[\s\S])/g;
+const HEX_OR_UNICODE_ESCAPE_PATTERN = /^[xuU]/;
+const OCTAL_ESCAPE_PATTERN = /^[0-7]/;
+const OCR_RESULT_DICT_PATTERN =
+  /^\s*\{\s*(['"])<OCR>\1\s*:\s*(['"])([\s\S]*)\2\s*,?\s*\}\s*$/;
 
 const POLL_INTERVAL_MS = 2_000;
 /**
@@ -59,14 +67,14 @@ const PYTHON_SIMPLE_ESCAPES: Record<string, string> = {
  */
 function decodePythonStringLiteral(literal: string): string {
   return literal.replace(
-    /\\(x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|[0-7]{1,3}|[\s\S])/g,
+    PYTHON_STRING_ESCAPES_PATTERN,
     (match, sequence: string) => {
       if (sequence === '\n') return '';
       const simple = PYTHON_SIMPLE_ESCAPES[sequence];
       if (simple !== undefined) return simple;
-      const codePoint = /^[xuU]/.test(sequence)
+      const codePoint = HEX_OR_UNICODE_ESCAPE_PATTERN.test(sequence)
         ? Number.parseInt(sequence.slice(1), 16)
-        : /^[0-7]/.test(sequence)
+        : OCTAL_ESCAPE_PATTERN.test(sequence)
           ? Number.parseInt(sequence, 8)
           : null;
       if (codePoint === null || codePoint > 0x10ffff) return match;
@@ -82,10 +90,7 @@ function decodePythonStringLiteral(literal: string): string {
  */
 export function readBrandOcrText(output: unknown): string | null {
   if (typeof output === 'string') {
-    const wrapped =
-      /^\s*\{\s*(['"])<OCR>\1\s*:\s*(['"])([\s\S]*)\2\s*,?\s*\}\s*$/.exec(
-        output,
-      );
+    const wrapped = OCR_RESULT_DICT_PATTERN.exec(output);
     return wrapped ? decodePythonStringLiteral(wrapped[3]) : output;
   }
   if (output && typeof output === 'object' && !Array.isArray(output)) {
@@ -213,6 +218,7 @@ function modelSlug(identifier: string): string {
  * or unpriced fails closed. Frames already read in this process are not paid
  * for again.
  */
+@Traced()
 @Injectable()
 export class BrandReplicateVisionProvider implements BrandVisionProvider {
   private readonly constructorName = String(this.constructor.name);

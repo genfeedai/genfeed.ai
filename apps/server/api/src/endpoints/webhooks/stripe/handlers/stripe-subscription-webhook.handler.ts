@@ -21,6 +21,7 @@ import {
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
 /**
@@ -36,6 +37,7 @@ function resolveNegotiatedTier(
 }
 
 /** Handles customer.subscription.* Stripe webhook events. */
+@Traced()
 @Injectable()
 export class StripeSubscriptionWebhookHandler {
   constructor(

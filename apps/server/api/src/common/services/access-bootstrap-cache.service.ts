@@ -13,6 +13,7 @@ import type {
 import type { IStreakSummary } from '@genfeedai/contracts/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface AccessBootstrapStatePayload {
@@ -76,6 +77,7 @@ function buildAccessBootstrapKeysSetKey(userId: string) {
   return `${ACCESS_BOOTSTRAP_PREFIX}:keys:${userId}`;
 }
 
+@Traced()
 @Injectable()
 export class AccessBootstrapCacheService {
   private readonly context = { service: AccessBootstrapCacheService.name };

@@ -4,8 +4,10 @@ import type {
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
 import { KlingAIService } from '@api/services/integrations/klingai/services/klingai.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class KlingAiImageGenerationProviderAdapter
   implements ImageGenerationProviderAdapter

@@ -2,10 +2,12 @@ import {
   CONTEXT_EMBEDDING_QUEUE,
   type ContextEmbeddingJobData,
 } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 
+@Traced()
 @Injectable()
 export class ContextEmbeddingQueueService {
   constructor(

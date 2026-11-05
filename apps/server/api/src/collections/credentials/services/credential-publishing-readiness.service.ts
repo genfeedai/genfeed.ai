@@ -19,6 +19,7 @@ import type {
 import { resolvePermissionScopeReadiness } from '@genfeedai/helpers';
 import { buildCredentialTokenPublishingReadiness } from '@genfeedai/integrations/connections';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -104,6 +105,7 @@ function requireDomainCredentialPlatform(
  * the platform's required publish scopes. Credentials connected before capture
  * shipped, and platforms that never return a scope field, stay `unknown`.
  */
+@Traced()
 @Injectable()
 export class CredentialPublishingReadinessService {
   private quotaService?: QuotaService;

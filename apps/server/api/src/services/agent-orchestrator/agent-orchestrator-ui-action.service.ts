@@ -41,6 +41,7 @@ import {
   getAgentUiActionSourceId,
   type ValidatedAgentScope,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -50,6 +51,7 @@ import {
 
 export type { AgentOrchestratorUiActionHost } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 
+@Traced()
 @Injectable()
 export class AgentOrchestratorUiActionService {
   constructor(

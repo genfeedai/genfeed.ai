@@ -14,6 +14,7 @@ import {
   type IReviewInboxDecisionResult,
   parseReviewInboxItemId,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -28,6 +29,7 @@ import {
  * PENDING claim), so a second decision on the same item fails instead of
  * recording twice.
  */
+@Traced()
 @Injectable()
 export class ReviewInboxDecisionService {
   private readonly logger = new Logger(ReviewInboxDecisionService.name);

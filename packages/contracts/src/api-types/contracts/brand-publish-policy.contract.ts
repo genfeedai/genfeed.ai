@@ -5,6 +5,8 @@ import type {
   IBrandPublishPolicy,
 } from '../../interfaces/organization/brand-publish-policy.interface';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 /**
  * Brand OS Policy (#7339): the shape of the Policy section and the
  * deterministic rules the single publish gate checks. The gate itself is
@@ -178,7 +180,10 @@ export function needsBrandPolicyJudge(policy: IBrandPublishPolicy): boolean {
 }
 
 function normalizeForMatch(value: string): string {
-  return value.normalize('NFC').toLocaleLowerCase('en-US').replace(/\s+/g, ' ');
+  return value
+    .normalize('NFC')
+    .toLocaleLowerCase('en-US')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ');
 }
 
 const WORD = /[\p{L}\p{N}]/u;

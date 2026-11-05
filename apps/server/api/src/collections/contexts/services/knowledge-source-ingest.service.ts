@@ -40,7 +40,10 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { KnowledgeWorkflowInitiatingActor } from '@genfeedai/contracts/interfaces/automation/content-delivery-workflow.interface';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
+
+const LINE_BREAK_PATTERN = /\r?\n/;
 
 export type KnowledgeSourceIngestStatus =
   | 'queued'
@@ -129,7 +132,8 @@ export function isIngestibleKnowledgeSourceKind(
 export function toSafeFailureReason(error: unknown): string {
   const message =
     error instanceof Error ? error.message : String(error ?? 'Unknown error');
-  const firstLine = message.split(/\r?\n/, 1)[0]?.trim() || 'Unknown error';
+  const firstLine =
+    message.split(LINE_BREAK_PATTERN, 1)[0]?.trim() || 'Unknown error';
   return firstLine.slice(0, KNOWLEDGE_MAX_FAILURE_REASON_LENGTH);
 }
 
@@ -156,6 +160,7 @@ function readPayload(value: unknown): KnowledgeSourceCapturePayload {
   };
 }
 
+@Traced()
 @Injectable()
 export class KnowledgeSourceIngestService {
   constructor(
@@ -551,6 +556,7 @@ export class KnowledgeSourceIngestService {
           isDeleted: false,
         },
         orderBy: { generation: 'desc' },
+        select: { expectedChunkCount: true },
       });
       if (staged) {
         const status = await this.embeddingCompletion.complete(
@@ -627,6 +633,14 @@ export class KnowledgeSourceIngestService {
   ): Promise<void> {
     const source = await tx.knowledgeSource.findFirst({
       where: scopedWhere(state.organizationId, { id: state.sourceId }),
+      select: {
+        consecutiveFailures: true,
+        firstFailureAt: true,
+        gracePeriodMinutes: true,
+        kind: true,
+        refreshIntervalMinutes: true,
+        staleAt: true,
+      },
     });
     const consecutiveFailures = (source?.consecutiveFailures ?? 0) + 1;
     const firstFailureAt = source?.firstFailureAt ?? now;

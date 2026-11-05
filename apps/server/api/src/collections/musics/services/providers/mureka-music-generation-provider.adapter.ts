@@ -10,6 +10,7 @@ import {
 } from '@api/services/integrations/mureka/services/mureka.service';
 import { ModelProvider } from '@genfeedai/contracts';
 import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -22,6 +23,7 @@ import {
  * `outputUrl` back to the caller for immediate finalization rather than
  * waiting on a webhook.
  */
+@Traced()
 @Injectable()
 export class MurekaMusicGenerationProviderAdapter
   implements MusicGenerationProviderAdapter

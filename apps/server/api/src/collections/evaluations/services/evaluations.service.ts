@@ -54,6 +54,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   HttpException,
@@ -64,6 +65,7 @@ import {
 
 const evaluationResultProjection = new EvaluationResultProjection();
 
+@Traced()
 @Injectable()
 export class EvaluationsService extends BaseService<EvaluationDocument> {
   private readonly constructorName = this.constructor.name;
@@ -724,6 +726,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     const evaluation = await this.prisma.evaluation.findFirst({
       where: scopedWhere(organizationId, { id: evaluationId }),
+      select: { data: true },
     });
 
     if (!evaluation) {
@@ -813,6 +816,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     const evaluation = await this.prisma.evaluation.findFirst({
       where: scopedWhere(organizationId, { id: evaluationId }),
+      select: { data: true },
     });
 
     if (!evaluation) {

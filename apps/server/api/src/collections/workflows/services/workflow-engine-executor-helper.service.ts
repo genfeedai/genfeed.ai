@@ -20,13 +20,25 @@ import type {
   NodeExecutor,
 } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
+
+const INGREDIENT_PATH_PATTERN = /^ingredients\/([^/]+)\/(.+)$/;
+const INGREDIENT_URL_ID_PATTERN =
+  /\/(?:images|videos|musics|audios|avatars|voices)\/([^/?#]+)(?:[/?#]|$)/i;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const LEADING_HASH_PATTERN = /^#/;
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const EDGE_HYPHENS_PATTERN = /^-+|-+$/g;
+const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
 
 export interface PendingWorkflowOutput {
   ingredientId: string;
   metadataId: string;
 }
 
+@Traced()
 @Injectable()
 export class WorkflowEngineExecutorHelperService {
   constructor(
@@ -455,7 +467,7 @@ export class WorkflowEngineExecutorHelperService {
     }
     const stored =
       typeof asset.s3Key === 'string'
-        ? asset.s3Key.match(/^ingredients\/([^/]+)\/(.+)$/)
+        ? asset.s3Key.match(INGREDIENT_PATH_PATTERN)
         : null;
     if (this.configService.isAuthorizedMediaDeliveryEnabled && !stored) {
       throw new Error('Media asset has no trusted stored object key');
@@ -525,9 +537,7 @@ export class WorkflowEngineExecutorHelperService {
 
   extractIngredientId(value: unknown): string | undefined {
     if (typeof value === 'string') {
-      const match = value.match(
-        /\/(?:images|videos|musics|audios|avatars|voices)\/([^/?#]+)(?:[/?#]|$)/i,
-      );
+      const match = value.match(INGREDIENT_URL_ID_PATTERN);
       return match?.[1];
     }
 
@@ -693,7 +703,7 @@ export class WorkflowEngineExecutorHelperService {
   }
 
   buildPostLabel(description: string): string {
-    const normalized = description.replace(/\s+/g, ' ').trim();
+    const normalized = description.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
     if (normalized.length <= 60) {
       return normalized;
     }
@@ -704,10 +714,10 @@ export class WorkflowEngineExecutorHelperService {
   buildHashtag(value: string): string {
     const normalized = value
       .trim()
-      .replace(/^#/, '')
+      .replace(LEADING_HASH_PATTERN, '')
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+      .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
+      .replace(EDGE_HYPHENS_PATTERN, '');
 
     return normalized ? `#${normalized}` : '#trend';
   }
@@ -745,10 +755,10 @@ export class WorkflowEngineExecutorHelperService {
   }
 
   private isEntityId(value: string): boolean {
-    return /^[a-f\d]{24}$/i.test(value);
+    return OBJECT_ID_PATTERN.test(value);
   }
 
   private isPublishIngredientReference(value: string): boolean {
-    return this.isEntityId(value) || /^https?:\/\//i.test(value);
+    return this.isEntityId(value) || HTTP_PROTOCOL_PREFIX_PATTERN.test(value);
   }
 }

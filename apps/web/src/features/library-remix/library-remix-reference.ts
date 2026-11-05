@@ -7,6 +7,9 @@ import {
   encodeContextualRemixSource,
 } from '@genfeedai/utils/url/contextual-remix-url.util';
 
+const SAFE_IDENTIFIER_PATTERN = /^[A-Za-z0-9_-]+$/;
+const SAFE_REFERENCE_SEGMENT_PATTERN = /^[A-Za-z0-9._-]+$/;
+
 export type LibraryArtifactReference = Extract<
   AgentArtifactReference,
   { kind: 'asset' | 'ingredient' }
@@ -19,7 +22,7 @@ function isSafeOpaqueId(value: string): boolean {
     value.length > 0 &&
     value !== 'undefined' &&
     value !== 'null' &&
-    /^[A-Za-z0-9_-]+$/.test(value)
+    SAFE_IDENTIFIER_PATTERN.test(value)
   );
 }
 
@@ -34,7 +37,7 @@ export function buildLibraryArtifactReference(params: {
   if (!brandId.trim() || !organizationId.trim() || !isSafeOpaqueId(recordId)) {
     return null;
   }
-  if (recordVersion && !/^[A-Za-z0-9._-]+$/.test(recordVersion)) {
+  if (recordVersion && !SAFE_REFERENCE_SEGMENT_PATTERN.test(recordVersion)) {
     return null;
   }
 

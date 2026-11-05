@@ -4,6 +4,8 @@ import {
 } from '@genfeedai/contracts/constants';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 /**
  * The scopes an MCP grant for `resource` may carry. Claude connector
  * resources stay under a narrower ceiling than the standard resource.
@@ -25,7 +27,7 @@ export function clampMcpScopes(
 ): string[] {
   const ceiling = resolveMcpScopeCeiling(resource);
   const requested = scope
-    ? Array.from(new Set(scope.split(/\s+/).filter(Boolean)))
+    ? Array.from(new Set(scope.split(WHITESPACE_RUN_PATTERN).filter(Boolean)))
     : [...ceiling];
   return requested.filter((candidate) => ceiling.includes(candidate));
 }

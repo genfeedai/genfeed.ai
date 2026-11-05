@@ -17,9 +17,11 @@ import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import type { Props } from '@/features/settings/props/byok-provider-card.props';
 
+const WWW_PREFIX_PATTERN = /^www\./;
+
 function providerFaviconDomain(docsUrl: string): string | null {
   try {
-    return new URL(docsUrl).hostname.replace(/^www\./, '');
+    return new URL(docsUrl).hostname.replace(WWW_PREFIX_PATTERN, '');
   } catch {
     return null;
   }

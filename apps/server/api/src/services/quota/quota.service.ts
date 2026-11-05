@@ -11,6 +11,7 @@ import {
 } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -37,6 +38,7 @@ const PLATFORM_QUOTA_FIELDS: Partial<
   [CredentialPlatform.INSTAGRAM]: 'quotaInstagram',
 };
 
+@Traced()
 @Injectable()
 export class QuotaService {
   private readonly constructorName = this.constructor.name;

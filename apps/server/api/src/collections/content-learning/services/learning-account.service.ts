@@ -47,11 +47,16 @@ import {
   toPrismaJson,
 } from '@genfeedai/prisma';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
+@Traced()
 @Injectable()
 export class LearningAccountService {
   constructor(
@@ -76,6 +81,7 @@ export class LearningAccountService {
     if (!credential?.brandId) throw new NotFoundException('Account not found');
     const brand = await tx.brand.findFirst({
       where: { id: credential.brandId, organizationId, isDeleted: false },
+      select: { id: true },
     });
     if (!brand) throw new NotFoundException('Account not found');
     return { ...credential, brandId: credential.brandId };
@@ -161,7 +167,7 @@ export class LearningAccountService {
     const descriptor = scope.cellDescriptor;
     if (
       !validLearningDescriptor(descriptor) ||
-      !/^[a-f0-9]{64}$/.test(scope.descriptorHash) ||
+      !SHA256_HEX_PATTERN.test(scope.descriptorHash) ||
       learningHash(learningDescriptorTuple(descriptor)) !==
         scope.descriptorHash ||
       descriptor.platform !== platform ||
@@ -346,6 +352,7 @@ export class LearningAccountService {
           brandId: credential.brandId,
           credentialId,
         }),
+        select: { id: true },
       });
       if (!initial)
         return {
@@ -449,10 +456,12 @@ export class LearningAccountService {
       await learningOrgFence(tx, actor.organizationId, 'shared');
       const brand = await tx.brand.findFirst({
         where: scopedWhere(actor.organizationId, { id: brandId }),
+        select: { id: true },
       });
       if (!brand) throw new NotFoundException('Brand not found');
       const row = await tx.contentLearningBrandPreference.findFirst({
         where: scopedWhere(actor.organizationId, { brandId }),
+        select: { pinnedReleaseId: true, preference: true, revision: true },
       });
       const preference = row
         ? (['automatic', 'disabled', 'pinned'] as const).find(
@@ -544,6 +553,7 @@ export class LearningAccountService {
               state: { in: ['active', 'retired'] },
               synthetic: false,
             },
+            select: { id: true },
           });
           if (
             !policy ||
@@ -696,6 +706,7 @@ export class LearningAccountService {
           stage: { in: ['canary', 'limited', 'stable'] },
           isDeleted: false,
         },
+        select: { id: true },
       });
       if (
         !release ||
@@ -747,6 +758,7 @@ export class LearningAccountService {
         organizationId: actor.organizationId,
         isDeleted: false,
       },
+      select: { brandId: true, credentialId: true },
     });
     if (!post?.credentialId)
       throw new NotFoundException('Owned destination post not found');
@@ -780,6 +792,7 @@ export class LearningAccountService {
             isDeleted: false,
           },
           orderBy: { revision: 'desc' },
+          select: { organicProvenance: true, receivedAt: true },
         });
         const provenance = latest?.organicProvenance;
         if (
@@ -831,6 +844,7 @@ export class LearningAccountService {
           organizationId: actor.organizationId,
           isDeleted: false,
         },
+        select: { id: true },
       });
       if (!brand) throw new NotFoundException('Brand not found');
       if (body.preference === 'pinned') {
@@ -843,6 +857,7 @@ export class LearningAccountService {
             stage: { in: ['canary', 'limited', 'stable'] },
             isDeleted: false,
           },
+          select: { id: true },
         });
         if (
           !release ||
@@ -891,6 +906,7 @@ export class LearningAccountService {
           brandId,
           isDeleted: false,
         },
+        select: { id: true, revision: true },
       });
       if (!preference || preference.revision !== body.expectedRevision)
         throw new ConflictException({
@@ -949,6 +965,7 @@ export class LearningAccountService {
     // tenant-scope-ignore: platform emergency pause locates the account then mutates through its organization
     const account = await this.prisma.contentLearningAccount.findFirst({
       where: { id: accountId, isDeleted: false },
+      select: { credentialId: true, organizationId: true },
     });
     if (!account) throw new NotFoundException('Account unavailable');
     return this.operations.mutate(

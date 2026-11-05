@@ -6,6 +6,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { ContentFormat } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 export const BREAKOUT_REVIEW_WORKFLOW_NAME = 'Breakout response';
@@ -35,6 +36,7 @@ export function breakoutReviewItemFormat(
  * nothing: a member with publish rights approves and schedules the draft there, and the
  * publication gate still admits it at schedule time and at dispatch.
  */
+@Traced()
 @Injectable()
 export class BreakoutReviewHandoffService {
   constructor(

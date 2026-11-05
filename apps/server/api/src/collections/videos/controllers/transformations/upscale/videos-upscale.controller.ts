@@ -31,6 +31,7 @@ import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { presignNamedProviderVideoSource } from '@api/services/media-urls/provider-video-source.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
@@ -139,15 +140,6 @@ export class VideosUpscaleController {
     if (this.configService.isAuthorizedMediaDeliveryEnabled && !video.s3Key) {
       throw new BadRequestException('The source video has no stored media key');
     }
-    const videoUrl =
-      this.configService.isAuthorizedMediaDeliveryEnabled && video.s3Key
-        ? await this.filesClientService.getPresignedDownloadUrlForObjectKey(
-            video.s3Key,
-          )
-        : await this.filesClientService.getPresignedDownloadUrl(
-            videoId,
-            'videos',
-          );
     // Model selection: user-provided > system default
     const model =
       videoEditDto.model ||
@@ -157,6 +149,10 @@ export class VideosUpscaleController {
     const targetFps = videoEditDto.targetFps ?? 30;
     const targetResolution = videoEditDto.targetResolution ?? '1080p';
     assertSupportedVideoUpscaleOptions(model, targetResolution, targetFps);
+    const videoUrl =
+      model === MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE
+        ? await this.prepareNamedProviderSource(video.s3Key, videoId)
+        : await this.presignSource(video.s3Key, videoId);
     return this.executeUpscale({
       model,
       request,
@@ -167,6 +163,29 @@ export class VideosUpscaleController {
       video,
       videoId,
       videoUrl,
+    });
+  }
+
+  private async presignSource(
+    s3Key: string | undefined | null,
+    videoId: string,
+  ): Promise<string> {
+    return this.configService.isAuthorizedMediaDeliveryEnabled && s3Key
+      ? this.filesClientService.getPresignedDownloadUrlForObjectKey(s3Key)
+      : this.filesClientService.getPresignedDownloadUrl(videoId, 'videos');
+  }
+
+  private prepareNamedProviderSource(
+    s3Key: string | undefined | null,
+    videoId: string,
+  ): Promise<string> {
+    return presignNamedProviderVideoSource(this.filesClientService, {
+      id: videoId,
+      objectKey: this.configService.isAuthorizedMediaDeliveryEnabled
+        ? s3Key
+        : null,
+      storageKey: videoId,
+      storageType: 'videos',
     });
   }
 

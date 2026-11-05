@@ -11,6 +11,7 @@ import {
 } from '@genfeedai/contracts';
 import { isStoryboardSlideshow } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { controlStoryboardRunSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -30,6 +31,7 @@ export interface StoryboardSlideshowPostResult {
  * the post text, and nothing is scheduled or published. Asking again for the
  * same revision returns the same draft.
  */
+@Traced()
 @Injectable()
 export class StoryboardSlideshowPostService {
   constructor(

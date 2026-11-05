@@ -42,6 +42,7 @@ import {
 import { readRawString } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -131,6 +132,7 @@ type PlatformEvidenceKey = Exclude<
   'genfeed-publish-outcomes-observed'
 >;
 
+@Traced()
 @Injectable()
 export class InstagramAuthorizedSignalsService {
   private readonly graphUrl = META_GRAPH_URL;

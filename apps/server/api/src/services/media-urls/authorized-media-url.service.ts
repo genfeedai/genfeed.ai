@@ -27,6 +27,7 @@ import { AssetCategory, AssetParent } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   ForbiddenException,
   Injectable,
@@ -35,7 +36,10 @@ import {
 } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+
 /** Only record identities cross this boundary; raw URLs/keys are never inputs. */
+@Traced()
 @Injectable()
 export class AuthorizedMediaUrlService implements OnModuleInit {
   private hasReportedMisconfiguration = false;
@@ -220,6 +224,7 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
         sourceIdentity: mediaSourceIdentity(source),
         state: 'READY',
       },
+      select: { storageKey: true },
     });
     if (
       !variant?.storageKey?.startsWith(
@@ -829,7 +834,7 @@ const BRAND_IDENTITY_CATEGORIES = Object.keys(
 function trustedAssetKey(key: string | null): string | null {
   if (
     !key ||
-    /^https?:\/\//i.test(key) ||
+    HTTP_PROTOCOL_PREFIX_PATTERN.test(key) ||
     key.startsWith('/') ||
     key.includes('\\') ||
     key

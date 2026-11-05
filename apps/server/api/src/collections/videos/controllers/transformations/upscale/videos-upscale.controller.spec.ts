@@ -126,6 +126,7 @@ describe('VideosUpscaleController', () => {
     creditsUtilsService: { deductCreditsFromOrganization: vi.fn() },
     failedGenerationService: { handleFailedVideoGeneration: vi.fn() },
     filesClientService: {
+      copyInS3: vi.fn().mockResolvedValue(undefined),
       getPresignedDownloadUrlForObjectKey: vi
         .fn()
         .mockResolvedValue('https://s3.example.com/opaque?sig=fresh'),
@@ -350,32 +351,70 @@ describe('VideosUpscaleController', () => {
     expect(mockServices.replicateService.runModel).toHaveBeenCalled();
   });
 
-  it('reads the canonical random key for an activated upscale instead of deriving it from the video ID', async () => {
+  it('hands Topaz a presigned URL for an .mp4-named copy of the stored video', async () => {
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+
+    await controller.upscaleVideo(mockReq, mockUser, videoId, {});
+
+    expect(mockServices.filesClientService.copyInS3).toHaveBeenCalledWith(
+      videoId,
+      `provider-inputs/videos/${videoId}.mp4`,
+      'videos',
+    );
+    expect(
+      mockServices.filesClientService.getPresignedDownloadUrlForObjectKey,
+    ).toHaveBeenCalledWith(`provider-inputs/videos/${videoId}.mp4`);
+    expect(mockServices.promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+      MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+      expect.objectContaining({
+        video: 'https://s3.example.com/opaque?sig=fresh',
+      }),
+    );
+  });
+
+  it('copies the canonical random key for an activated Topaz upscale instead of deriving it from the video ID', async () => {
     mockServices.configService.isAuthorizedMediaDeliveryEnabled = true;
     mockServices.videosService.findOne.mockResolvedValue({
       ...mockVideo,
       s3Key: 'ingredients/videos/opaque%2F?#token.mp4',
     });
     await controller.upscaleVideo(mockReq, mockUser, videoId, {});
-    expect(
-      mockServices.filesClientService.getPresignedDownloadUrlForObjectKey,
-    ).toHaveBeenCalledWith('ingredients/videos/opaque%2F?#token.mp4');
+    expect(mockServices.filesClientService.copyInS3).toHaveBeenCalledWith(
+      'ingredients/videos/opaque%2F?#token.mp4',
+      `provider-inputs/videos/${videoId}.mp4`,
+    );
     expect(
       mockServices.filesClientService.getPresignedDownloadUrl,
     ).not.toHaveBeenCalled();
   });
 
-  it('should hand the model a presigned URL, not the public stream route', async () => {
+  it('does not submit a paid prediction when the .mp4-named copy fails', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    const dto: VideoEditDto = {};
+    mockServices.filesClientService.copyInS3.mockRejectedValueOnce(
+      new Error('copy unavailable'),
+    );
 
-    await controller.upscaleVideo(mockReq, mockUser, videoId, dto);
+    await expect(
+      controller.upscaleVideo(mockReq, mockUser, videoId, {}),
+    ).rejects.toThrow('copy unavailable');
+    expect(mockServices.replicateService.runModel).not.toHaveBeenCalled();
+  });
+
+  it('hands other upscale models the presigned stored URL without copying', async () => {
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+
+    await controller.upscaleVideo(mockReq, mockUser, videoId, {
+      model: MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER,
+      targetFps: 60,
+      targetResolution: '2k',
+    });
 
     expect(
       mockServices.filesClientService.getPresignedDownloadUrl,
     ).toHaveBeenCalledWith(videoId, 'videos');
+    expect(mockServices.filesClientService.copyInS3).not.toHaveBeenCalled();
     expect(mockServices.promptBuilderService.buildPrompt).toHaveBeenCalledWith(
-      expect.anything(),
+      MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER,
       expect.objectContaining({
         video: 'https://s3.example.com/videos/signed?sig=abc',
       }),

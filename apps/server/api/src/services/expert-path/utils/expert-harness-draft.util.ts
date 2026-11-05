@@ -5,6 +5,11 @@ import type {
   IHarnessProfileThesis,
 } from '@genfeedai/contracts/interfaces';
 
+const NEWLINE_RUN_PATTERN = /\n+/;
+const LIST_MARKER_PREFIX_PATTERN = /^[-*•\d.)\s]+/;
+const CLAUSE_BOUNDARY_PATTERN = /(?<=[.!?;])\s+/;
+const LONG_WORDS_PATTERN = /[a-z][a-z'-]{5,}/g;
+
 export const EXPERT_HARNESS_DRAFT_SOURCE = 'expert-positioning';
 
 /**
@@ -88,15 +93,15 @@ export function splitAnswerItems(value: string | undefined): string[] {
   }
 
   const lines = value
-    .split(/\n+/)
-    .map((line) => line.replace(/^[-*•\d.)\s]+/, '').trim())
+    .split(NEWLINE_RUN_PATTERN)
+    .map((line) => line.replace(LIST_MARKER_PREFIX_PATTERN, '').trim())
     .filter(Boolean);
 
   const items =
     lines.length > 1
       ? lines
       : value
-          .split(/(?<=[.!?;])\s+/)
+          .split(CLAUSE_BOUNDARY_PATTERN)
           .map((sentence) => sentence.trim())
           .filter(Boolean);
 
@@ -129,7 +134,7 @@ export function extractExpertVocabulary(
     .filter((value): value is string => typeof value === 'string')
     .join(' ')
     .toLowerCase()
-    .match(/[a-z][a-z'-]{5,}/g);
+    .match(LONG_WORDS_PATTERN);
 
   (words ?? []).forEach((word, index) => {
     if (VOCABULARY_STOPWORDS.has(word)) {

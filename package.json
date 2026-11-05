@@ -100,6 +100,7 @@
     "check:spec-typecheck": "bun run scripts/architecture/check-spec-typecheck.ts",
     "ci:cloud-tenant-guard-sweep": "bun scripts/ci/cloud-tenant-guard-sweep/run.mjs",
     "check:tenant-scope": "bun run scripts/architecture/check-tenant-scope.ts",
+    "check:traced-definitions": "bun run scripts/architecture/check-traced-definitions.ts",
     "check:test-collection": "node scripts/architecture/check-test-collection.mjs",
     "check:test-id-literals": "bun run scripts/architecture/check-test-id-literals.ts",
     "check:id-derived-media-urls": "bun run scripts/architecture/check-id-derived-media-urls.ts",

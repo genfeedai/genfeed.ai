@@ -55,8 +55,13 @@ export const returnConflict = (resource: string, identifier: string): never => {
   );
 };
 
+/**
+ * Pass the caught error as `cause` so monitoring sees the real failure. The
+ * HTTP body stays generic, and the wrapper alone reports as "Http Exception".
+ */
 export const returnInternalServerError = (
   message: string = 'An internal server error occurred',
+  cause?: unknown,
 ): never => {
   throw new HttpException(
     {
@@ -64,6 +69,7 @@ export const returnInternalServerError = (
       title: 'Internal Server Error',
     },
     HttpStatus.INTERNAL_SERVER_ERROR,
+    cause === undefined ? undefined : { cause },
   );
 };
 

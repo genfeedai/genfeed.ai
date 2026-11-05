@@ -10,8 +10,10 @@ import {
 import type { IngredientOrigin } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { withExternalMediaFallback } from '@libs/media/media-url.util';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class MusicsService extends BaseService<
   MusicDocument,

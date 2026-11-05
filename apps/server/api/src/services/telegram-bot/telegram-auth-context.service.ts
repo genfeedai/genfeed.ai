@@ -7,7 +7,10 @@ import type { ApiKeysService } from '@api/collections/api-keys/services/api-keys
 import type { ChatAuthContext } from '@api/services/telegram-bot/telegram-bot.types';
 import { extractCommandArgs } from '@api/services/telegram-bot/telegram-command-args.util';
 import { ParseMode } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import type { Context } from 'grammy';
+
+const WHITESPACE_RUN_PATTERN = /\s+/;
 
 export class TelegramAuthContextService {
   private readonly chatAuthContexts = new Map<number, ChatAuthContext>();
@@ -35,6 +38,7 @@ export class TelegramAuthContextService {
    * Re-check a cached API-key chat identity against `findActiveById` so a
    * revoked or expired key cannot keep running workflows until `/connect`.
    */
+  @Traced()
   async resolveLiveAuthContext(
     chatId: number,
   ): Promise<ChatAuthContext | null> {
@@ -83,6 +87,7 @@ export class TelegramAuthContextService {
   }
 
   /** Attach a verified API-key identity to a private Telegram chat. */
+  @Traced()
   async handleConnect(ctx: Context): Promise<void> {
     const chatId = ctx.chat?.id;
     if (!chatId) {
@@ -132,7 +137,7 @@ export class TelegramAuthContextService {
       // Best-effort: the bot may not have permission to delete the message.
     }
 
-    const apiKeyRaw = args.split(/\s+/)[0];
+    const apiKeyRaw = args.split(WHITESPACE_RUN_PATTERN)[0];
     if (!apiKeyRaw.startsWith('gf_')) {
       await ctx.reply('❌ Invalid key format. Keys must start with `gf_`.');
       return;

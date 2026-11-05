@@ -6,6 +6,7 @@ import {
   translateStoryboardRunSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { STORYBOARD_LONG_BRIEF_MAX_CHARACTERS } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -19,6 +20,7 @@ import {
  * those renders is quoted and approved on the new storyboard first. A dub of
  * the finished audio would leave the avatar's lips out of sync.
  */
+@Traced()
 @Injectable()
 export class StoryboardLongFormTranslationService {
   constructor(

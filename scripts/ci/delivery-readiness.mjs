@@ -1,8 +1,15 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
+const STRICT_SEMVER_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+const CHROME_EXTENSION_ID_PATTERN = /^[a-p]{32}$/;
+const LOCALHOST_WORD_PATTERN = /\blocalhost\b/;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const NIL_UUID_PATTERN = /^0{8}-0{4}-0{4}-0{4}-0{12}$/;
+
 function validateVersion(version, ref, prefix) {
-  if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version ?? '')) {
+  if (!STRICT_SEMVER_PATTERN.test(version ?? '')) {
     throw new Error(
       'Delivery package version must be a stable major.minor.patch version.',
     );
@@ -40,7 +47,7 @@ export function validateBrowserRelease({ version, ref, submit, keys }) {
       (key) =>
         typeof config.chrome?.[key] !== 'string' || !config.chrome[key].trim(),
     ) ||
-    !/^[a-p]{32}$/.test(config.chrome.extId)
+    !CHROME_EXTENSION_ID_PATTERN.test(config.chrome.extId)
   ) {
     throw new Error(
       'EXTENSION_SUBMIT_KEYS requires a Chrome clientId, clientSecret, refreshToken and 32-letter extId.',
@@ -55,7 +62,7 @@ export function prepareBrowserStoreManifest(manifest) {
   delete result.key;
   if (Array.isArray(result.host_permissions)) {
     result.host_permissions = result.host_permissions.filter(
-      (host) => !/\blocalhost\b/.test(host),
+      (host) => !LOCALHOST_WORD_PATTERN.test(host),
     );
   }
   return result;
@@ -75,12 +82,7 @@ export function prepareMobileConfig({
   if (!build) return structuredClone(config);
   if (!token?.trim())
     throw new Error('EXPO_TOKEN is required for a remote EAS build.');
-  if (
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      projectId ?? '',
-    ) ||
-    /^0{8}-0{4}-0{4}-0{4}-0{12}$/.test(projectId)
-  ) {
+  if (!UUID_PATTERN.test(projectId ?? '') || NIL_UUID_PATTERN.test(projectId)) {
     throw new Error(
       'EXPO_PROJECT_ID must identify the linked Expo project (UUID).',
     );

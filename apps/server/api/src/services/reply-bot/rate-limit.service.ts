@@ -1,6 +1,7 @@
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -33,6 +34,7 @@ interface ReplyBotConfigData {
   };
 }
 
+@Traced()
 @Injectable()
 export class RateLimitService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -58,6 +60,7 @@ export class RateLimitService {
     try {
       const record = await this.prisma.replyBotConfig.findFirst({
         where: scopedWhere(organizationId, { id: botConfigId }),
+        select: { config: true, isActive: true },
       });
 
       if (!record) {
@@ -175,6 +178,7 @@ export class RateLimitService {
     try {
       const record = await this.prisma.replyBotConfig.findFirst({
         where: scopedWhere(organizationId, { id: botConfigId }),
+        select: { config: true },
       });
 
       if (!record) {
@@ -276,6 +280,7 @@ export class RateLimitService {
   ): Promise<{ allowed: boolean; remainingSeconds?: number }> {
     const record = await this.prisma.replyBotConfig.findFirst({
       where: scopedWhere(organizationId, { id: botConfigId }),
+      select: { config: true },
     });
 
     if (!record) {

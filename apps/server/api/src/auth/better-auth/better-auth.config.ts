@@ -4,6 +4,8 @@ import type {
   IBetterAuthSocialProviderConfig,
 } from './better-auth.types';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 /** Boot error when Better Auth is enabled but the signing secret is absent. */
 export const BETTER_AUTH_SECRET_REQUIRED_MESSAGE =
   'BETTER_AUTH_SECRET is required when BETTER_AUTH_ENABLED=true';
@@ -31,7 +33,7 @@ export function resolveBetterAuthBaseUrl(
 ): string {
   const trimmed = betterAuthUrl?.trim();
   if (trimmed) {
-    return trimmed.replace(/\/+$/, '');
+    return trimmed.replace(TRAILING_SLASHES_PATTERN, '');
   }
   return `http://localhost:${port ?? 3010}`;
 }

@@ -6,6 +6,7 @@ import CollectionGrid from '@ui/collection/CollectionGrid';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Music } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import ModalGalleryItemMusic from '@/components/modals/gallery/items/ModalGalleryItemMusic';
 import ModalGalleryReferencesTab from '@/components/modals/gallery/ModalGalleryReferencesTab';
 
@@ -29,6 +30,7 @@ export default function ModalGalleryContent({
   onSelectionLimit,
   selectionLimit,
 }: ModalGalleryContentProps) {
+  const translate = useTranslations('ui.galleryModal');
   if (activeTab === 'references' && category === IngredientCategory.IMAGE) {
     return (
       <ModalGalleryReferencesTab
@@ -50,8 +52,8 @@ export default function ModalGalleryContent({
     return (
       <EmptyState
         icon={Music}
-        title="No music tracks available"
-        description="Generate some music first"
+        title={translate('musicEmpty.title')}
+        description={translate('musicEmpty.description')}
       />
     );
   }

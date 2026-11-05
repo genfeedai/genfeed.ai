@@ -7,8 +7,11 @@ import {
 import { CacheClientService } from '@api/services/cache/cache-client.service';
 import { CacheTagsService } from '@api/services/cache/cache-tags.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import type Redis from 'ioredis';
+
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
 
 export type ServiceCacheOptions = {
   tags?: string[];
@@ -158,6 +161,7 @@ return 1
 `;
 
 export type ResearchReservationNote = 'duplicate' | 'noted' | 'unavailable';
+@Traced()
 @Injectable()
 export class CacheService {
   private readonly defaultTtl = 300; // 5 minutes default
@@ -764,7 +768,7 @@ export class CacheService {
   async claimCrunRequestSlot(
     fingerprint: string,
   ): Promise<{ isAdmitted: boolean; retryAfterMs: number } | null> {
-    if (!this.isAvailable || !/^[a-f0-9]{64}$/.test(fingerprint)) return null;
+    if (!this.isAvailable || !SHA256_HEX_PATTERN.test(fingerprint)) return null;
     try {
       const result = await this.client.eval(
         CLAIM_CRUN_REQUEST_SLOT_SCRIPT,

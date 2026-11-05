@@ -29,15 +29,24 @@ import ArticleDetailHeader from './article-detail-header';
 import ArticleEditForm from './article-edit-form';
 import ArticleSidebar from './article-sidebar';
 
+const AMPERSANDS_PATTERN = /&/g;
+const LESS_THAN_SIGNS_PATTERN = /</g;
+const GREATER_THAN_SIGNS_PATTERN = />/g;
+const DOUBLE_QUOTES_PATTERN = /"/g;
+const SINGLE_QUOTES_PATTERN = /'/g;
+const PARAGRAPH_BREAKS_PATTERN = /\n{2,}/g;
+const NEWLINES_PATTERN = /\n/g;
+const HTML_TAGS_PATTERN = /<[^>]*>/g;
+
 type TeaserFormat = 'post' | 'thread';
 
 function escapeHtml(value: string): string {
   return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(AMPERSANDS_PATTERN, '&amp;')
+    .replace(LESS_THAN_SIGNS_PATTERN, '&lt;')
+    .replace(GREATER_THAN_SIGNS_PATTERN, '&gt;')
+    .replace(DOUBLE_QUOTES_PATTERN, '&quot;')
+    .replace(SINGLE_QUOTES_PATTERN, '&#39;');
 }
 
 export function applyDraftSuggestionToHtml(
@@ -52,8 +61,8 @@ export function applyDraftSuggestionToHtml(
   }
 
   const paragraph = `<p>${escapeHtml(suggestion)
-    .replace(/\n{2,}/g, '</p><p>')
-    .replace(/\n/g, '<br>')}</p>`;
+    .replace(PARAGRAPH_BREAKS_PATTERN, '</p><p>')
+    .replace(NEWLINES_PATTERN, '<br>')}</p>`;
 
   if (!currentContent.trim()) {
     return paragraph;
@@ -142,7 +151,7 @@ export default function ArticleDetail({
   const canPublish =
     !!article && !isXArticle && !isPublished && form.label.trim().length > 0;
   const canArchive = !!article && isPublished;
-  const plainTextContent = form.content.replace(/<[^>]*>/g, '').trim();
+  const plainTextContent = form.content.replace(HTML_TAGS_PATTERN, '').trim();
   const canGenerateTeaser = !!article && hasXArticleSections && !!credentialId;
   // UX hint only: the API decides what genfeed.ai serves.
   const isHostedOnWebsite =

@@ -10,6 +10,8 @@ import { templates } from 'autoevals';
 import type { EvalRubricSpec, RubricRecord } from '../contracts';
 import { canonicalJson, sha256Digest } from '../provenance';
 
+const TEMPLATE_VARIABLES_PATTERN = /\{\{\s*([^}\s]+)\s*\}\}/g;
+
 export const AUTOEVALS_VERSION = '0.3.0';
 
 export const CONTENT_QUALITY_RUBRIC: EvalRubricSpec = {
@@ -172,7 +174,7 @@ export function renderTemplate(
   variables: Record<string, unknown>,
 ): string {
   return template.replace(
-    /\{\{\s*([^}\s]+)\s*\}\}/g,
+    TEMPLATE_VARIABLES_PATTERN,
     (_match, name: string) => {
       if (
         name.startsWith('#') ||

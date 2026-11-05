@@ -115,18 +115,19 @@ describe('IngredientsMediaGrid', () => {
     );
 
     const uploaded = screen.getByText('Uploaded');
-    expect(uploaded.parentElement).toContainElement(
+    const caption = uploaded.closest('[data-testid="ingredient-tile-caption"]');
+    expect(caption?.parentElement).toContainElement(
       screen.getByTestId('image-tile-image-1'),
     );
     expect(screen.queryByText('Generated')).not.toBeInTheDocument();
-    expect(uploaded).toHaveClass(
+    expect(caption).toHaveClass(
       'pointer-events-none',
       'opacity-100',
       '[@media(hover:hover)]:opacity-0',
       '[@media(hover:hover)]:group-hover:opacity-100',
       '[@media(hover:hover)]:group-focus-within:opacity-100',
     );
-    expect(uploaded).not.toHaveClass('opacity-0');
+    expect(caption).not.toHaveClass('opacity-0');
   });
 
   it('shows each card’s tags above its origin, never intercepting a click', () => {

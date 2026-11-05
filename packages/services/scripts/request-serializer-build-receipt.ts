@@ -13,6 +13,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 
+const SERIALIZER_BUDGET_KEYS_PATTERN =
+  /\b(?:requestCost|maxChunkCountPerGroup|maxMergeChunkSize)\b/;
+
 type PinnedAppRuntime = {
   nextVersion: string;
   pinnedNextVersion: string;
@@ -48,9 +51,7 @@ export function createRequestSerializerBuildReceipt(
   runtime: PinnedAppRuntime,
 ) {
   const source = Buffer.from(config).toString('utf8');
-  if (
-    /\b(?:requestCost|maxChunkCountPerGroup|maxMergeChunkSize)\b/.test(source)
-  )
+  if (SERIALIZER_BUDGET_KEYS_PATTERN.test(source))
     throw new Error(
       'Cannot label explicit chunking override as the production default',
     );

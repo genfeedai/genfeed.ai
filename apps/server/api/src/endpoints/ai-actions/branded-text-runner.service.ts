@@ -26,6 +26,7 @@ import {
   joinReplyVariants,
   splitReplyVariants,
 } from '@genfeedai/helpers/content/text-action/reply-variants.helper';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const FAILURE_MESSAGES: Readonly<Record<string, string>> = {
@@ -50,6 +51,7 @@ function completedReceiptState(state: string): TextReceiptState {
  * the receipt without a new call. A stopped seam never falls back to an
  * unreceipted call.
  */
+@Traced()
 @Injectable()
 export class BrandedTextRunnerService {
   constructor(

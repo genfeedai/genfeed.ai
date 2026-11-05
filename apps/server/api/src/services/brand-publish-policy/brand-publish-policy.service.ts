@@ -29,6 +29,7 @@ import {
   IngredientCategory,
   type Prisma,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   Injectable,
   Optional,
@@ -167,6 +168,7 @@ export function resolveBrandPolicyDraftFormat(
  * "avoid sounding like" go to the judge. Deterministic rules run first; the
  * judge runs only when they all pass and the caller says it can matter.
  */
+@Traced()
 @Injectable()
 export class BrandPublishPolicyService {
   constructor(

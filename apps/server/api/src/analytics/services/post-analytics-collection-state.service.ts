@@ -9,6 +9,7 @@ import type {
   ServerAnalyticsCollectionState,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   computeAnalyticsNextCollectAt,
@@ -21,6 +22,7 @@ export interface MarkAnalyticsCollectionPendingInput {
   targets: AnalyticsCollectionTargetRef[];
 }
 
+@Traced()
 @Injectable()
 export class PostAnalyticsCollectionStateService
   implements ServerAnalyticsCollectionState

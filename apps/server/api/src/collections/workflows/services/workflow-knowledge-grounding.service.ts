@@ -9,6 +9,7 @@ import {
   type KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
 import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const SEARCH_MAX_PASSAGES = 12;
@@ -35,6 +36,7 @@ export interface KnowledgeGroundingInput {
   query?: string;
 }
 
+@Traced()
 @Injectable()
 export class WorkflowKnowledgeGroundingService {
   constructor(private readonly prisma: PrismaService) {}
@@ -119,6 +121,7 @@ export class WorkflowKnowledgeGroundingService {
         sourceId,
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       }),
+      select: { id: true, provenance: true, version: true },
     });
     const source = version
       ? await this.prisma.knowledgeSource.findFirst({

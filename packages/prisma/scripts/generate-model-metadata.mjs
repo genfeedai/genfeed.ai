@@ -28,6 +28,11 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const PRISMA_ENUM_BLOCKS_PATTERN = /^enum\s+(\w+)\s*\{/gm;
+const PRISMA_MODEL_BLOCKS_PATTERN = /^model\s+(\w+)\s*\{([\s\S]*?)^\}/gm;
+const PRISMA_FIELD_LINE_PATTERN = /^(\w+)\s+([A-Za-z0-9_]+)\s*(\[\]|\?)?/;
+const PRISMA_RELATION_FIELDS_PATTERN = /@relation\([^)]*fields:\s*\[([^\]]+)\]/;
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SCHEMA = resolve(HERE, '../prisma/schema.prisma');
 const OUT = resolve(HERE, '../src/enum-field-map.ts');
@@ -92,11 +97,11 @@ function build() {
   const schema = readFileSync(SCHEMA, 'utf8');
 
   const enumNames = new Set(
-    [...schema.matchAll(/^enum\s+(\w+)\s*\{/gm)].map((m) => m[1]),
+    [...schema.matchAll(PRISMA_ENUM_BLOCKS_PATTERN)].map((m) => m[1]),
   );
 
   const models = {};
-  for (const m of schema.matchAll(/^model\s+(\w+)\s*\{([\s\S]*?)^\}/gm)) {
+  for (const m of schema.matchAll(PRISMA_MODEL_BLOCKS_PATTERN)) {
     const [, name, body] = m;
     const allFields = new Set();
     const listFields = new Set();
@@ -113,7 +118,7 @@ function build() {
       ) {
         continue;
       }
-      const fm = line.match(/^(\w+)\s+([A-Za-z0-9_]+)\s*(\[\]|\?)?/);
+      const fm = line.match(PRISMA_FIELD_LINE_PATTERN);
       if (!fm) continue;
       const [, fname, baseType, suffix] = fm;
       if (suffix === '[]') {
@@ -125,9 +130,7 @@ function build() {
         enumFields[fname] = { enumType: baseType, isRequired: suffix !== '?' };
       }
 
-      const relationFields = line.match(
-        /@relation\([^)]*fields:\s*\[([^\]]+)\]/,
-      );
+      const relationFields = line.match(PRISMA_RELATION_FIELDS_PATTERN);
       if (relationFields) {
         const scalarFields = relationFields[1]
           .split(',')

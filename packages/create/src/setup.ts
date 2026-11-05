@@ -1,5 +1,11 @@
 import { pathToFileURL } from 'node:url';
 
+const UNSAFE_ENV_VALUE_CHAR_PATTERN = /['"`$\\\r\n]/;
+const OPENROUTER_API_KEY_PATTERN = /^sk-or-[A-Za-z0-9_-]{8,}$/;
+const PLACEHOLDER_VALUE_PATTERN =
+  /placeholder|your[_-]|change[_-]?me|example|dummy/i;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+
 type SetupInput = Record<string, string | undefined>;
 
 function origin(value: string, variable: string, allowPath = false): string {
@@ -9,7 +15,7 @@ function origin(value: string, variable: string, allowPath = false): string {
       !['http:', 'https:'].includes(parsed.protocol) ||
       parsed.username ||
       parsed.password ||
-      /['"`$\\\r\n]/.test(value) ||
+      UNSAFE_ENV_VALUE_CHAR_PATTERN.test(value) ||
       (parsed.pathname !== '/' && !allowPath) ||
       parsed.search ||
       parsed.hash
@@ -32,8 +38,8 @@ export function resolveSetupEnvironment(
 ): Record<string, string> {
   const key = input.OPENROUTER_API_KEY ?? '';
   if (
-    !/^sk-or-[A-Za-z0-9_-]{8,}$/.test(key) ||
-    /placeholder|your[_-]|change[_-]?me|example|dummy/i.test(key)
+    !OPENROUTER_API_KEY_PATTERN.test(key) ||
+    PLACEHOLDER_VALUE_PATTERN.test(key)
   ) {
     throw new Error(
       'OPENROUTER_API_KEY is required and must contain a non-placeholder OpenRouter key. Set it before starting.',
@@ -48,7 +54,9 @@ export function resolveSetupEnvironment(
     const value = input[name];
     if (
       value &&
-      (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 65535)
+      (!DIGITS_ONLY_PATTERN.test(value) ||
+        Number(value) < 1 ||
+        Number(value) > 65535)
     )
       throw new Error(`${name} must be a port from 1 to 65535.`);
   }

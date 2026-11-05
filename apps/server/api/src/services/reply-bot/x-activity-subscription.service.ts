@@ -5,7 +5,10 @@
 import { buildXActivityCrcResponseBody } from '@api/services/reply-bot/x-activity-crc.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
+
+const TRAILING_SLASH_PATTERN = /\/$/;
 
 export type XActivitySubscribeResult = {
   mode: 'live' | 'skipped';
@@ -14,6 +17,7 @@ export type XActivitySubscribeResult = {
   subscriptionOk?: boolean;
 };
 
+@Traced()
 @Injectable()
 export class XActivitySubscriptionService {
   private readonly constructorName = String(this.constructor.name);
@@ -35,7 +39,7 @@ export class XActivitySubscriptionService {
   getWebhookUrl(): string | undefined {
     const explicit = this.readConfigString('X_ACTIVITY_WEBHOOK_URL');
     if (explicit) {
-      return explicit.replace(/\/$/, '');
+      return explicit.replace(TRAILING_SLASH_PATTERN, '');
     }
     const apiBase =
       this.readConfigString('API_PUBLIC_URL') ||
@@ -44,7 +48,7 @@ export class XActivitySubscriptionService {
     if (!apiBase) {
       return undefined;
     }
-    const base = apiBase.replace(/\/$/, '');
+    const base = apiBase.replace(TRAILING_SLASH_PATTERN, '');
     if (base.includes('/v1/webhooks/x-activity')) {
       return base;
     }

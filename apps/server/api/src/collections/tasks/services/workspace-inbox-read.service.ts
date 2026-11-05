@@ -3,8 +3,10 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { IWorkspaceInboxReadState } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class WorkspaceInboxReadService {
   constructor(private readonly prisma: PrismaService) {}

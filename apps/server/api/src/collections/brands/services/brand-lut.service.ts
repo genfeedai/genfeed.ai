@@ -6,6 +6,7 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { assertSafeObjectKey, createStorageProvider } from '@genfeedai/storage';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -18,6 +19,7 @@ import {
  * object key stays on the brand row; only the files worker and the stitch plan
  * read it, so no request can point a brand at a key of its own choosing.
  */
+@Traced()
 @Injectable()
 export class BrandLutService {
   private readonly storage = createStorageProvider();

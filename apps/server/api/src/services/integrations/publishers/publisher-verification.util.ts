@@ -7,6 +7,9 @@ import type { PublishContext } from '@api/services/integrations/publishers/inter
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import { PostCategory } from '@genfeedai/contracts';
 
+const LINK_LIKE_TEXT_PATTERN =
+  /(?:https?:\/\/|www\.|\b[a-z0-9][a-z0-9.-]+\.[a-z]{2,}(?:\/|\s|$))/i;
+
 export const PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS = 10_000;
 export const PROVIDER_VERIFICATION_PAGE_SIZE = 100;
 const MAX_PAGES = 5;
@@ -71,10 +74,7 @@ export async function verifyProviderPublish(
     context.post.quoteTweetId ||
     (context.isDraft && !match.isNativeHtml) ||
     !text ||
-    (!match.isNativeHtml &&
-      /(?:https?:\/\/|www\.|\b[a-z0-9][a-z0-9.-]+\.[a-z]{2,}(?:\/|\s|$))/i.test(
-        text,
-      ))
+    (!match.isNativeHtml && LINK_LIKE_TEXT_PATTERN.test(text))
   ) {
     throw new Error(
       'Provider verification lacks exact text/media/thread proof',

@@ -2,6 +2,8 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
+const RESOURCE_METADATA_PARAM_PATTERN = /resource_metadata=/;
+
 const MODERN_VERSION = '2026-07-28';
 const LEGACY_VERSION = '2025-11-25';
 const ORIGIN = 'https://claude.ai';
@@ -154,7 +156,7 @@ export async function smokeMcp({ mcpUrl, authUrl, fetchImpl = boundedFetch }) {
   await initialize.text();
   expect(
     initialize.status === 401 &&
-      /resource_metadata=/.test(
+      RESOURCE_METADATA_PARAM_PATTERN.test(
         initialize.headers.get('www-authenticate') ?? '',
       ),
     'legacy initialize without a token must answer 401 with resource_metadata',

@@ -14,6 +14,10 @@
 import { DesktopOs } from '@genfeedai/contracts';
 import { logger } from '@services/core/logger.service';
 
+const ANGLE_BRACKETED_URL_PATTERN = /^<([^>]+)>$/;
+const LINK_REL_PATTERN = /^rel=(?:"([^"]+)"|([^\s]+))$/i;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 const RELEASE_OWNER = 'genfeedai';
 const RELEASE_REPO = `${RELEASE_OWNER}/genfeed.ai`;
 const RELEASE_TAG_PREFIX = 'desktop-v';
@@ -205,15 +209,16 @@ function nextPageUrl(linkHeader: string | null): string | null {
 
   for (const link of linkHeader.split(',')) {
     const [targetPart, ...parameterParts] = link.split(';');
-    const targetMatch = targetPart?.trim().match(/^<([^>]+)>$/);
+    const targetMatch = targetPart?.trim().match(ANGLE_BRACKETED_URL_PATTERN);
     const relation = parameterParts
-      .map((parameter) =>
-        parameter.trim().match(/^rel=(?:"([^"]+)"|([^\s]+))$/i),
-      )
+      .map((parameter) => parameter.trim().match(LINK_REL_PATTERN))
       .find((match) => match !== null);
     const relationValue = relation?.[1] ?? relation?.[2];
 
-    if (!targetMatch || !relationValue?.split(/\s+/).includes('next')) {
+    if (
+      !targetMatch ||
+      !relationValue?.split(WHITESPACE_RUN_PATTERN).includes('next')
+    ) {
       continue;
     }
 

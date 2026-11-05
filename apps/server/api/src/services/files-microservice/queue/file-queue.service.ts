@@ -23,6 +23,7 @@ import type {
 import { filesServiceAuthHeaders } from '@libs/auth/files-service-key';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { ConflictException, Injectable, Optional } from '@nestjs/common';
@@ -39,6 +40,7 @@ type UpstreamHttpError = {
 
 export type { FileProcessingJob, JobResponse };
 
+@Traced()
 @Injectable()
 export class FileQueueService {
   private readonly filesServiceUrl: string;

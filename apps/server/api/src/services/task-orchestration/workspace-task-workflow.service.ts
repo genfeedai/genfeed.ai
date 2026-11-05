@@ -22,6 +22,7 @@ import {
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, Injectable, type OnModuleInit } from '@nestjs/common';
 
 const AGENT_TURN_WORKFLOW_ID = 'agent.turn.execute';
@@ -55,6 +56,7 @@ type ForEachResult = {
   results: Array<{ index: number; result: unknown }>;
 };
 
+@Traced()
 @Injectable()
 export class WorkspaceTaskWorkflowService implements OnModuleInit {
   private readonly logContext = 'WorkspaceTaskWorkflowService';

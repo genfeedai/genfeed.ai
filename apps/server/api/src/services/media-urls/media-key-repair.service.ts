@@ -3,9 +3,12 @@ import { MEDIA_RECOVERY_BATCH_SIZE } from '@api/services/media-urls/media-recove
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
+
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
 
 const REPAIRABLE_CATEGORIES = [
   IngredientCategory.IMAGE,
@@ -54,6 +57,7 @@ export type MediaKeyRepairTotals = {
  * canonical key is derived from the id, and it is written only after the files
  * service confirms the object exists, so a key is never invented.
  */
+@Traced()
 @Injectable()
 export class MediaKeyRepairService {
   private readonly context = 'MediaKeyRepairService';
@@ -81,7 +85,7 @@ export class MediaKeyRepairService {
 
   /** True when the stored key is absent or a URL instead of an object key. */
   static isBrokenKey(s3Key: string | null): boolean {
-    return !s3Key || /^https?:\/\//i.test(s3Key);
+    return !s3Key || HTTP_PROTOCOL_PREFIX_PATTERN.test(s3Key);
   }
 
   /** Verifies the canonical object exists; persists only when `isApply`. */

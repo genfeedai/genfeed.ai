@@ -22,6 +22,7 @@ import {
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { DateTime } from 'luxon';
 
@@ -37,6 +38,7 @@ interface OpportunityPlanningContext {
   topics: string[];
 }
 
+@Traced()
 @Injectable()
 export class AgentStrategyAutopilotPlanningService {
   constructor(

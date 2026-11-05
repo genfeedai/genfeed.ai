@@ -9,8 +9,20 @@ export default defineConfig({
   oxc: false, // Disable OXC transformer — SWC required for NestJS decorator metadata
   plugins: [
     swc.vite({
+      exclude: [/\/tracing\//u],
       jsc: {
         parser: { decorators: true, syntax: 'typescript' },
+        transform: { decoratorMetadata: true, legacyDecorator: true },
+      },
+      module: { type: 'es6' },
+    }),
+    // `@Traced()` wraps native async methods only. Compile its specs at the
+    // API build target (es2022) so they see the same methods as production.
+    swc.vite({
+      include: [/\/tracing\/.*\.ts$/u],
+      jsc: {
+        parser: { decorators: true, syntax: 'typescript' },
+        target: 'es2022',
         transform: { decoratorMetadata: true, legacyDecorator: true },
       },
       module: { type: 'es6' },

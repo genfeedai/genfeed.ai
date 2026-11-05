@@ -3,6 +3,7 @@ import {
   PROVIDER_PRICE_SYNC_TASKS,
   type ProviderPriceSyncProvider,
 } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
@@ -17,6 +18,7 @@ export interface QueuedProviderPriceSync {
  * the weekly platform schedule fires. The workers own the import; this only
  * hands them the job, so no deploy is needed to refresh prices.
  */
+@Traced()
 @Injectable()
 export class ProviderPriceSyncService {
   constructor(

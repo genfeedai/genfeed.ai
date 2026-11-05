@@ -90,6 +90,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/content/publication-insights.interface';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
@@ -133,6 +134,7 @@ export type PostUpdateInput = Partial<UpdatePostDto> &
     userId?: string;
   };
 
+@Traced()
 @Injectable()
 export class PostsService extends BaseService<
   PostDocument,
@@ -637,9 +639,7 @@ export class PostsService extends BaseService<
     });
   }
 
-  /**
-   * Create a thread (batch of posts with parent-child relationships)
-   */
+  /** Creates a thread of posts linked by parent and child relationships. */
   @HandleErrors('create thread', 'posts')
   async createThread(
     threadPosts: PostCreateInput[],

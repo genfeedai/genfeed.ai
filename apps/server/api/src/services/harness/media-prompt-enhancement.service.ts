@@ -26,11 +26,15 @@ import {
 } from '@genfeedai/harness';
 import { resolveMediaSubjectLock } from '@genfeedai/helpers/brand/brand-offering.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
+
+const ERROR_CODE_PATTERN = /^[A-Z0-9_]{1,40}$/;
+const ERROR_NAME_PATTERN = /^\w{1,64}$/;
 
 export interface MediaPromptEnhancementInput {
   actorUserId: string;
@@ -114,10 +118,10 @@ function describeEnhancementError(error: unknown): {
       value <= 599,
   );
   return {
-    ...(typeof code === 'string' && /^[A-Z0-9_]{1,40}$/.test(code)
+    ...(typeof code === 'string' && ERROR_CODE_PATTERN.test(code)
       ? { errorCode: code }
       : {}),
-    errorName: /^\w{1,64}$/.test(error.constructor.name)
+    errorName: ERROR_NAME_PATTERN.test(error.constructor.name)
       ? error.constructor.name
       : 'Error',
     ...(httpStatus === undefined ? {} : { errorStatus: httpStatus }),
@@ -134,6 +138,7 @@ function hasKnowledgeSelection(
   );
 }
 
+@Traced()
 @Injectable()
 export class MediaPromptEnhancementService {
   constructor(

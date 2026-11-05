@@ -21,8 +21,11 @@ import {
   escapeSystemEmailHtml,
   sanitizeSystemEmailUrl,
 } from '@helpers/email/system-email.helper';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 import { SystemEmailEligibilityService } from './system-email-eligibility.service';
+
+const TRAILING_SLASHES_PATTERN = /\/+$/;
 
 const DELIVERY_STATUS = {
   CANCELED: 'canceled',
@@ -106,6 +109,7 @@ export type LifecycleEmailDeliveryState = {
   template?: EmailTemplate;
 };
 
+@Traced()
 @Injectable()
 export class LifecycleEmailDeliveryService {
   constructor(
@@ -303,6 +307,7 @@ export class LifecycleEmailDeliveryService {
 
     const preference = await this.prisma.lifecycleEmailPreference.findUnique({
       where: { unsubscribeToken: normalized },
+      select: { id: true, marketingUnsubscribedAt: true },
     });
 
     if (!preference) {
@@ -483,7 +488,7 @@ export class LifecycleEmailDeliveryService {
   }
 
   private stripTrailingSlash(value: string): string {
-    return value.replace(/\/+$/, '');
+    return value.replace(TRAILING_SLASHES_PATTERN, '');
   }
 
   private parseMetadata(value: unknown): LifecycleEmailMetadata {

@@ -19,6 +19,9 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 import { catalogSkillDirectories } from '../apps/server/api/src/collections/skills/catalog/skill-catalog-artifact';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const TRIGGER_PHRASE_PATTERN = /\b(use when|trigger|invoke|say|ask)\b/i;
+
 // helpers
 
 const KEBAB_RE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
@@ -68,7 +71,7 @@ function parseFrontmatter(content: string): Record<string, string> | null {
 }
 
 function wordCount(text: string): number {
-  return text.split(/\s+/).filter(Boolean).length;
+  return text.split(WHITESPACE_RUN_PATTERN).filter(Boolean).length;
 }
 
 // audit a single skill folder
@@ -165,9 +168,7 @@ function auditSkill(skillDir: string): SkillReport {
       });
     }
     // Check for trigger phrases (heuristic: should mention when to use / user says)
-    const hasTrigger = /\b(use when|trigger|invoke|say|ask)\b/i.test(
-      fm.description,
-    );
+    const hasTrigger = TRIGGER_PHRASE_PATTERN.test(fm.description);
     if (!hasTrigger) {
       report.issues.push({
         message:

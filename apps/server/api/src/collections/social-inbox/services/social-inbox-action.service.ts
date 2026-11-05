@@ -47,6 +47,7 @@ import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util'
 import { Platform, WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadGatewayException,
   BadRequestException,
@@ -57,6 +58,7 @@ import {
 
 export type { SocialInboxOutboundWorkflowState } from '@api/collections/social-inbox/services/social-inbox-action-state.util';
 
+@Traced()
 @Injectable()
 export class SocialInboxActionService implements OnModuleInit {
   constructor(

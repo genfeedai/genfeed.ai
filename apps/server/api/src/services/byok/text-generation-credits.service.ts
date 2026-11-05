@@ -11,9 +11,11 @@ import {
   textDispatchApiKey,
 } from '@api/services/byok/text-dispatch-byok.util';
 import { ByokProvider } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 
+@Traced()
 @Injectable()
 export class TextGenerationCreditsService {
   constructor(private readonly byokService: ByokService) {}

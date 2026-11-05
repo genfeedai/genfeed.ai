@@ -16,7 +16,10 @@ import {
   readTrimmedStringOrNull,
 } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
+
+const LEADING_AT_SIGN_PATTERN = /^@/;
 
 /**
  * Rows read per origin before selection. Covers a full history import (300
@@ -28,7 +31,10 @@ const PUBLISHED_POST_FETCH_LIMIT = 300;
 const RETWEET_PREFIX_PATTERN = /^RT @/u;
 
 function normalizeHandle(value: string | null | undefined): string {
-  return (value ?? '').trim().replace(/^@/, '').toLowerCase();
+  return (value ?? '')
+    .trim()
+    .replace(LEADING_AT_SIGN_PATTERN, '')
+    .toLowerCase();
 }
 
 /**
@@ -113,6 +119,7 @@ export function classifyOwnAccountPost(
  * plus anything the user pasted as their own. Every read is scoped to the
  * organization and brand.
  */
+@Traced()
 @Injectable()
 export class BrandVoiceCorpusService {
   private readonly constructorName = this.constructor.name;

@@ -46,6 +46,7 @@ import type { PinnedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
@@ -96,6 +97,7 @@ type SpeechBillingReceipt = {
 
 const SPEECH_BILLING_KEY = 'speechBilling';
 
+@Traced()
 @Injectable()
 export class VoiceGenerationService implements OnModuleInit {
   private readonly constructorName = String(this.constructor.name);

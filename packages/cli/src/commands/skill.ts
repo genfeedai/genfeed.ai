@@ -11,6 +11,9 @@ import { printJson } from '@/ui/theme';
 import { GenfeedError, handleError } from '@/utils/errors';
 import { readSkillPackageInput, type SkillPackageInputOptions } from '@/utils/skill-package-input';
 
+const SKILL_VERSION_HASH_PATTERN = /^sha256:skill-v1:[a-f0-9]{64}$/;
+const POSITIVE_INTEGER_PATTERN = /^[1-9][0-9]*$/;
+
 async function run(action: () => Promise<unknown>): Promise<void> {
   try {
     await requireAuth();
@@ -79,7 +82,7 @@ function versionMetadata(input: unknown, skillId: string, detail: boolean): Skil
     row.id !== `sv1_${skillId}_${versionNumber}` ||
     typeof attributes.contentHash !== 'string' ||
     attributes.contentHash.length !== 80 ||
-    !/^sha256:skill-v1:[a-f0-9]{64}$/.test(attributes.contentHash) ||
+    !SKILL_VERSION_HASH_PATTERN.test(attributes.contentHash) ||
     typeof attributes.createdAt !== 'string'
   )
     return versionReadInvalid();
@@ -150,7 +153,7 @@ function parseSkillVersionReadV1(
 
 function versionFlag(input: string, maximum: number, flag: string): number {
   if (
-    !/^[1-9][0-9]*$/.test(input) ||
+    !POSITIVE_INTEGER_PATTERN.test(input) ||
     input.length > 10 ||
     String(Number(input)) !== input ||
     Number(input) > maximum
@@ -163,7 +166,11 @@ function versionRequestedId(skillId: string, versionId: string): void {
   versionSkillIdentity(skillId);
   const prefix = `sv1_${skillId}_`;
   const suffix = versionId.slice(prefix.length);
-  if (!versionId.startsWith(prefix) || !/^[1-9][0-9]*$/.test(suffix) || suffix.length > 10) {
+  if (
+    !versionId.startsWith(prefix) ||
+    !POSITIVE_INTEGER_PATTERN.test(suffix) ||
+    suffix.length > 10
+  ) {
     throw new GenfeedError(
       'Invalid version ID',
       'Use the complete sv1 ID returned by skill versions'

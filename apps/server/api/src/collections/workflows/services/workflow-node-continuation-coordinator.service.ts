@@ -8,8 +8,10 @@ import {
 } from '@api/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class WorkflowNodeContinuationCoordinatorService {
   private readonly logContext = 'WorkflowNodeContinuationCoordinatorService';

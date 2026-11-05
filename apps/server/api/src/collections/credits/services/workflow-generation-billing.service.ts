@@ -46,6 +46,7 @@ import {
   toPrismaJson,
 } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -54,6 +55,7 @@ const TERMINAL_CLOSE_GRACE_MS = 10 * 60 * 1000;
 const TERMINAL_CLOSE_PAGE_SIZE = 100;
 const TERMINAL_CLOSE_MAX_PAGES = 10;
 
+@Traced()
 @Injectable()
 export class WorkflowGenerationBillingService {
   constructor(
@@ -478,6 +480,7 @@ export class WorkflowGenerationBillingService {
         workloadId: executionId,
         workloadType: WORKFLOW_GENERATION_WORKLOAD_TYPE,
       },
+      select: { actorUserId: true, id: true, metadata: true },
     });
     const plan = hold
       ? fundingSchema.parse(
@@ -641,6 +644,7 @@ export class WorkflowGenerationBillingService {
         isDeleted: false,
         workloadType: WORKFLOW_GENERATION_WORKLOAD_TYPE,
       },
+      select: { metadata: true },
     });
     if (!observed) return;
     const observedMetadata = z
@@ -664,6 +668,14 @@ export class WorkflowGenerationBillingService {
           isDeleted: false,
           workloadType: WORKFLOW_GENERATION_WORKLOAD_TYPE,
           workloadId: executionId,
+        },
+        select: {
+          actorUserId: true,
+          amount: true,
+          id: true,
+          idempotencyKey: true,
+          metadata: true,
+          status: true,
         },
       });
       if (!hold || hold.status !== CreditReservationStatus.RESERVED) return;
@@ -756,6 +768,14 @@ export class WorkflowGenerationBillingService {
         workloadId: executionId,
         workloadType: WORKFLOW_GENERATION_WORKLOAD_TYPE,
       },
+      select: {
+        actorUserId: true,
+        amount: true,
+        id: true,
+        idempotencyKey: true,
+        metadata: true,
+        status: true,
+      },
     });
     if (!hold) return;
     const metadata = z.record(z.string(), z.unknown()).parse(hold.metadata);
@@ -817,6 +837,13 @@ export class WorkflowGenerationBillingService {
           isDeleted: false,
           workloadId: executionId,
           workloadType: WORKFLOW_GENERATION_WORKLOAD_TYPE,
+        },
+        select: {
+          actorUserId: true,
+          amount: true,
+          id: true,
+          metadata: true,
+          status: true,
         },
       });
       if (

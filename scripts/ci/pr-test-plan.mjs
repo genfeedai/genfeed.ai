@@ -11,6 +11,12 @@ import {
   buildPackageTestMatrix,
 } from './workspace-test-matrix.mjs';
 
+const WEB_APP_PATH_PATTERN = /^apps\/web(?:\/|$)/;
+const PACKAGES_PATH_PATTERN = /^packages\//;
+const API_APP_PATH_PATTERN = /^apps\/server\/api(?:\/|$)/;
+const MCP_AUTH_RUNTIME_PATH_PATTERN =
+  /^(?:apps\/server\/|packages\/|apps\/web\/.*(?:oauth|consent)|scripts\/ci\/|\.github\/(?:workflows\/ci\.yml|actions\/setup-bun-env\/)|(?:package\.json|bun\.lock|turbo\.json|tsconfig[^/]*\.json|Dockerfile[^/]*|patches\/|apps\/server\/Dockerfile))/;
+
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const ZERO_SHA = '0000000000000000000000000000000000000000';
 const COMMAND_MAX_BUFFER = 50 * 1024 * 1024;
@@ -59,10 +65,13 @@ export function classifyChangedFiles(changedFiles) {
     return { api: true, app: true, forceFull: true };
   }
 
-  const app = matchesAny(changedFiles, [/^apps\/web(?:\/|$)/, /^packages\//]);
+  const app = matchesAny(changedFiles, [
+    WEB_APP_PATH_PATTERN,
+    PACKAGES_PATH_PATTERN,
+  ]);
   const api = matchesAny(changedFiles, [
-    /^apps\/server\/api(?:\/|$)/,
-    /^packages\//,
+    API_APP_PATH_PATTERN,
+    PACKAGES_PATH_PATTERN,
   ]);
 
   return { api, app, forceFull: false };
@@ -77,11 +86,7 @@ export function appliesMcpAuthRuntime(
     forceAllSurfaces ||
     runHeavy ||
     !Array.isArray(changedFiles) ||
-    changedFiles.some((file) =>
-      /^(?:apps\/server\/|packages\/|apps\/web\/.*(?:oauth|consent)|scripts\/ci\/|\.github\/(?:workflows\/ci\.yml|actions\/setup-bun-env\/)|(?:package\.json|bun\.lock|turbo\.json|tsconfig[^/]*\.json|Dockerfile[^/]*|patches\/|apps\/server\/Dockerfile))/.test(
-        file,
-      ),
-    )
+    changedFiles.some((file) => MCP_AUTH_RUNTIME_PATH_PATTERN.test(file))
   );
 }
 

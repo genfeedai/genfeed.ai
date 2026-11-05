@@ -1,13 +1,23 @@
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { outlierConfigurationSchema } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class OutlierConfigurationService {
   constructor(private readonly prisma: PrismaService) {}
   async resolve(organizationId: string) {
     const row = await this.prisma.outlierConfiguration.findFirst({
       where: { organizationId, isDeleted: false },
+      select: {
+        breakoutThreshold: true,
+        id: true,
+        maturityHoursByPlatform: true,
+        minimumSampleSize: true,
+        outlierThreshold: true,
+        windowSize: true,
+      },
     });
     const values = outlierConfigurationSchema.parse(
       row

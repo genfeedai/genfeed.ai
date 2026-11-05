@@ -7,6 +7,7 @@ import { SocialReplyNotificationService } from '@api/services/notifications/soci
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 
@@ -16,6 +17,7 @@ const MAX_READ_RECEIPT_ATTEMPTS = 3;
  * Read receipts for the social inbox. Keeps a conversation's unread counter
  * and the organization's `social.reply` bell items in step.
  */
+@Traced()
 @Injectable()
 export class SocialInboxReadStateService {
   constructor(

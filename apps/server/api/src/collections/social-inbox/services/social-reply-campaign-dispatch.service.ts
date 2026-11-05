@@ -37,6 +37,7 @@ import {
 } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 /**
@@ -88,6 +89,7 @@ type SocialReplyCampaignDispatchState = {
   workflowRunId?: string;
 };
 
+@Traced()
 @Injectable()
 export class SocialReplyCampaignDispatchService implements OnModuleInit {
   private readonly logContext = 'SocialReplyCampaignDispatchService';
@@ -148,6 +150,7 @@ export class SocialReplyCampaignDispatchService implements OnModuleInit {
     const request = this.readDispatchRequest(action.input);
     const campaign = await this.prisma.socialReplyCampaign.findFirst({
       where: scopedWhere(request.organizationId, { id: request.campaignId }),
+      select: { dispatchCursor: true, status: true },
     });
     if (
       !campaign ||
@@ -249,6 +252,7 @@ export class SocialReplyCampaignDispatchService implements OnModuleInit {
         id: recipientId,
         status: SocialReplyCampaignRecipientStatus.DISPATCHING,
       }),
+      select: { conversationId: true, idempotencyKey: true },
     });
     if (!recipient) {
       return {
@@ -261,6 +265,7 @@ export class SocialReplyCampaignDispatchService implements OnModuleInit {
       where: scopedWhere(campaign.organizationId, {
         id: recipient.conversationId,
       }),
+      select: { participantHandle: true, participantName: true },
     });
     if (!conversation) {
       await this.markSkipped(
@@ -338,6 +343,7 @@ export class SocialReplyCampaignDispatchService implements OnModuleInit {
     }
     const recipient = await this.prisma.socialReplyCampaignRecipient.findFirst({
       where: scopedWhere(campaign.organizationId, { id: recipientId }),
+      select: { attemptCount: true },
     });
     if (
       recipient &&

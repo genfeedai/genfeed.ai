@@ -2,7 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
+
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const EDGE_HYPHENS_PATTERN = /^-+|-+$/g;
 
 export type AdminMemberRoleKey = 'admin' | 'member';
 
@@ -25,8 +29,8 @@ export interface AdminAddMemberResult {
 function createHandle(email: string): string {
   const seed = (email.split('@')[0] ?? 'member')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
+    .replace(EDGE_HYPHENS_PATTERN, '')
     .slice(0, 24);
   return `${seed || 'member'}-${randomUUID().slice(0, 8)}`;
 }
@@ -37,6 +41,7 @@ function createHandle(email: string): string {
  * memberships, and the only other way in is an invitation, which emails the
  * person. This path writes the membership directly and sends nothing.
  */
+@Traced()
 @Injectable()
 export class AdminOrganizationMembersService {
   constructor(private readonly prisma: PrismaService) {}

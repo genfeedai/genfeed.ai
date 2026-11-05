@@ -21,8 +21,10 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { EngagementRuleState } from '@genfeedai/contracts';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class EngagementRulesService {
   constructor(private readonly prisma: PrismaService) {}

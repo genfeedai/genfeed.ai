@@ -17,6 +17,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { OAuthJwtBearerGrant } from '../dto/token-exchange.dto';
 import {
@@ -62,6 +63,7 @@ function isUniqueViolation(error: unknown): boolean {
  * No refresh token is issued. Claude sends a fresh assertion when the access
  * token expires, so the session lifetime is the revocation bound.
  */
+@Traced()
 @Injectable()
 export class OAuthEnterpriseAuthService {
   private lastReplayPruneAt = 0;

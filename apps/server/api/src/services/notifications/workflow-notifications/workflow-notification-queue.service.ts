@@ -3,10 +3,12 @@ import {
   type NotificationDeliveryJobData,
 } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 
+@Traced()
 @Injectable()
 export class WorkflowNotificationQueueService {
   private readonly context = { service: WorkflowNotificationQueueService.name };

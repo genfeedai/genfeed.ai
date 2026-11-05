@@ -14,12 +14,17 @@ import type {
   AgentUiAction,
   IReviewInboxItem,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
+
+const TURBO_RUN_ID_LABEL_PATTERN = /^turboRun\s*id\s*/i;
+const LEADING_ID_PUNCTUATION_PATTERN = /^[:#\s-]+/;
 
 /**
  * Review-queue tools (`get_review_queue`, `review_turbo_items`).
  * Extracted from AgentToolExecutorService per #519.
  */
+@Traced()
 @Injectable()
 export class AgentReviewToolHandler {
   constructor(
@@ -394,8 +399,8 @@ export class AgentReviewToolHandler {
 
     const normalized = value
       .trim()
-      .replace(/^turboRun\s*id\s*/i, '')
-      .replace(/^[:#\s-]+/, '')
+      .replace(TURBO_RUN_ID_LABEL_PATTERN, '')
+      .replace(LEADING_ID_PUNCTUATION_PATTERN, '')
       .trim();
 
     if (!normalized) {

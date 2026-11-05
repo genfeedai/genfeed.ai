@@ -30,8 +30,10 @@ import {
 import type { ImageGenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import { sourcePostVariationCredits } from '@genfeedai/contracts/constants';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class BrandRemixRunProviderDispatchService {
   constructor(

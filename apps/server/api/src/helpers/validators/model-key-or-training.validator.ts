@@ -1,6 +1,9 @@
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { registerDecorator, type ValidationOptions } from 'class-validator';
 
+const REPLICATE_DESTINATION_PATTERN = /^(?:[\w-]+\/[\w.-]+(?::[\w-]+)?)$/;
+const REPLICATE_VERSION_ID_PATTERN = /^[a-f0-9]{25,}$/i;
+
 export function IsModelKeyOrTraining(validationOptions?: ValidationOptions) {
   return (object: object, propertyName: string) => {
     registerDecorator({
@@ -25,9 +28,10 @@ export function IsModelKeyOrTraining(validationOptions?: ValidationOptions) {
           // Accept Replicate destinations like "owner/model[:version]". Model
           // names may contain periods (e.g. "google/veo-3.1").
           const looksLikeReplicateDestination =
-            /^(?:[\w-]+\/[\w.-]+(?::[\w-]+)?)$/.test(value);
+            REPLICATE_DESTINATION_PATTERN.test(value);
           // Accept Replicate version ids (typically long hex strings)
-          const looksLikeReplicateVersionId = /^[a-f0-9]{25,}$/i.test(value);
+          const looksLikeReplicateVersionId =
+            REPLICATE_VERSION_ID_PATTERN.test(value);
 
           return (
             known ||

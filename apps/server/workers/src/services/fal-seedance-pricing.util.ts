@@ -5,6 +5,8 @@ import type {
 import { multiplyDecimalPricing } from '@genfeedai/pricing/decimal-pricing';
 import type { NormalizedFalPrice } from '@workers/crons/fal-model-watcher/fal-pricing';
 
+const SEPARATOR_RUNS_PATTERN = /[-\s]+/g;
+
 export interface FalSeedancePricingSnapshot {
   currency: 'USD';
   invariantSelectors: string[];
@@ -103,7 +105,7 @@ export function observeFalSeedancePricing(
     price.endpoint !== endpoint ||
     Object.keys(price.conditionalDimensions).length ||
     Number(price.unitPrice) !== terms.base ||
-    price.unit.toLowerCase().replaceAll(/[-\s]+/g, '_') !==
+    price.unit.toLowerCase().replaceAll(SEPARATOR_RUNS_PATTERN, '_') !==
       (terms.denominator === 1000 ? '1000_tokens' : '1m_tokens')
   )
     return null;

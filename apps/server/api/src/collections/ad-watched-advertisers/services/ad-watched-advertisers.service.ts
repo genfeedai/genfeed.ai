@@ -16,7 +16,10 @@ import {
   normalizeAdvertiserHandle,
 } from '@genfeedai/integrations/ads';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
+
+const ERROR_CODE_PATTERN = /^[a-z0-9_]{1,120}$/;
 
 const CREATE_SCALAR_FIELDS = [
   'advertiserHandle',
@@ -85,6 +88,7 @@ const CREDENTIAL_PLATFORM_BY_PLATFORM: Record<
  * scalar fields directly instead of merging a config blob (contrast
  * `WatchlistsService`).
  */
+@Traced()
 @Injectable()
 export class AdWatchedAdvertisersService extends BaseService<
   AdWatchedAdvertiserDocument,
@@ -272,6 +276,7 @@ export class AdWatchedAdvertisersService extends BaseService<
 
     const brand = await this.prisma.brand.findFirst({
       where: scopedWhere(organizationId, { id: brandId }),
+      select: { id: true },
     });
     if (!brand) {
       throw new BadRequestException(
@@ -296,6 +301,7 @@ export class AdWatchedAdvertisersService extends BaseService<
         id: credentialId,
         platform: toPrismaCredentialPlatform(credentialPlatform),
       }),
+      select: { brandId: true },
     });
     if (
       !credential ||
@@ -355,7 +361,7 @@ export class AdWatchedAdvertisersService extends BaseService<
       return null;
     }
 
-    return /^[a-z0-9_]{1,120}$/.test(errorCode)
+    return ERROR_CODE_PATTERN.test(errorCode)
       ? errorCode
       : 'paid_creative_source_unavailable';
   }

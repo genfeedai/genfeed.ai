@@ -6,7 +6,12 @@ import type {
   VideoContinuityVerdict,
 } from '@genfeedai/contracts/interfaces';
 import { createNotAssessedContinuityDimension } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
+
+const LEADING_JSON_FENCE_PATTERN = /^```(?:json)?\s*/i;
+const TRAILING_CODE_FENCE_PATTERN = /\s*```$/i;
+const VISION_CAPABILITY_PATTERN = /\b(multimodal|vision)\b/i;
 
 const VISION_FEATURES = new Set([
   'image-input',
@@ -31,6 +36,7 @@ type ContinuityInput = {
   videoUrl: string;
 };
 
+@Traced()
 @Injectable()
 export class VideoQaContinuityResolverService {
   constructor(
@@ -154,7 +160,9 @@ export class VideoQaContinuityResolverService {
     let parsed: Record<string, unknown>;
     try {
       parsed = JSON.parse(
-        (raw ?? '').replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, ''),
+        (raw ?? '')
+          .replace(LEADING_JSON_FENCE_PATTERN, '')
+          .replace(TRAILING_CODE_FENCE_PATTERN, ''),
       ) as Record<string, unknown>;
     } catch {
       const message = 'Vision model returned an invalid structured response.';
@@ -222,7 +230,7 @@ export class VideoQaContinuityResolverService {
     ].map((feature) => feature.toLowerCase());
     return (
       features.some((feature) => VISION_FEATURES.has(feature)) ||
-      /\b(multimodal|vision)\b/i.test(model.description ?? '') ||
+      VISION_CAPABILITY_PATTERN.test(model.description ?? '') ||
       KNOWN_VISION_MODEL_PREFIXES.some((prefix) => model.key.startsWith(prefix))
     );
   }

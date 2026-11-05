@@ -4,6 +4,7 @@ import { BILLING_ACCOUNT_METADATA } from '@api/services/integrations/stripe/serv
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BillingAccountOrganizationStatus } from '@genfeedai/contracts';
 import type { Prisma, Subscription } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, Injectable } from '@nestjs/common';
 
 type BillingIdentityInput = {
@@ -55,6 +56,7 @@ export function stripeWebhookPeriod(value: unknown): Date | undefined {
   return date;
 }
 
+@Traced()
 @Injectable()
 export class StripeWebhookBillingService {
   constructor(
@@ -141,6 +143,13 @@ export class StripeWebhookBillingService {
         id: subscription.customerId as string,
         organizationId: subscription.organizationId,
         isDeleted: false,
+      },
+      select: {
+        billingAccountId: true,
+        id: true,
+        isDeleted: true,
+        organizationId: true,
+        stripeCustomerId: true,
       },
     });
     if (!customer || customer.isDeleted)

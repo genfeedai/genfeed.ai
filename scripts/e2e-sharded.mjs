@@ -2,6 +2,8 @@
 import { spawnSync } from 'node:child_process';
 import { getPlaywrightCorePaths } from './playwright-e2e-tiers.mjs';
 
+const SHARD_PATTERN = /^(\d+)\/(\d+)$/;
+
 const DEFAULT_CONFIG = 'playwright/configs/playwright.config.ts';
 const DEFAULT_PROJECT = 'app-core';
 
@@ -26,7 +28,7 @@ Defaults:
 }
 
 function parseShard(value) {
-  const match = /^(\d+)\/(\d+)$/.exec(value ?? '');
+  const match = SHARD_PATTERN.exec(value ?? '');
   if (!match) {
     return null;
   }

@@ -47,6 +47,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -84,6 +85,7 @@ type CreditAdditionResult = CreditDeductionResult & {
  * `implements ICreditsUtilsService` declaration locks the callable surface so
  * consumers depend on the contract rather than the concrete class.
  */
+@Traced()
 @Injectable()
 export class CreditsUtilsService implements ICreditsUtilsService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -147,6 +149,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       // Get organization to verify it exists
       const organization = await this.prisma.organization.findFirst({
         where: { id: organizationId, isDeleted: false },
+        select: { id: true },
       });
 
       if (!organization) {
@@ -522,6 +525,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       // Get organization to verify it exists
       const organization = await this.prisma.organization.findFirst({
         where: { id: organizationId, isDeleted: false },
+        select: { id: true },
       });
 
       if (!organization) {
@@ -878,6 +882,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       // Get organization to verify it exists
       const organization = await this.prisma.organization.findFirst({
         where: { id: organizationId, isDeleted: false },
+        select: { id: true },
       });
 
       if (!organization) {

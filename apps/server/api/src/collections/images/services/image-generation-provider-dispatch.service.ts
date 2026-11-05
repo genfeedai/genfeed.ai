@@ -68,6 +68,7 @@ import {
   MetadataExtension,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
@@ -82,6 +83,7 @@ type OutputDocument = Pick<
  * Provider request construction and response normalization live in the typed
  * adapters behind {@link ImageGenerationProviderRegistryService}.
  */
+@Traced()
 @Injectable()
 export class ImageGenerationProviderDispatchService {
   private readonly acceptedOutputs = new WeakMap<

@@ -2,6 +2,7 @@ import { CredentialPublishingReadinessService } from '@api/collections/credentia
 import type { SchedulerTx } from '@api/collections/post-groups/services/post-group.types';
 import { formatPlatformLabel } from '@genfeedai/contracts';
 import type { IPublishingProviderReadiness } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export type SchedulerReadinessTarget = {
@@ -9,6 +10,7 @@ export type SchedulerReadinessTarget = {
   platform: string;
 };
 
+@Traced()
 @Injectable()
 export class PostGroupReadinessService {
   constructor(

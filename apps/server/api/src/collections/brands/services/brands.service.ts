@@ -47,6 +47,7 @@ import {
 } from '@api/collections/brands/utils/brand-config-merge.util';
 import { normalizeBrandIdentityDefaults } from '@api/collections/brands/utils/brand-identity-defaults.util';
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
+import { toBrandSlugBase } from '@api/collections/brands/utils/brand-slug.util';
 import { resolveCreateAgentConfig } from '@api/collections/brands/utils/expert-brand-defaults.util';
 import { withPersistedFontFamily } from '@api/collections/brands/utils/persisted-font-family';
 import {
@@ -88,6 +89,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -108,6 +110,7 @@ type BrandCreateInput = CreateBrandDto & {
   userId?: string;
 };
 
+@Traced()
 @Injectable()
 export class BrandsService extends BaseService<
   BrandDocument,
@@ -588,11 +591,7 @@ export class BrandsService extends BaseService<
     label: string,
     excludeBrandId?: string,
   ): Promise<string> {
-    const base = label
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/-{2,}/g, '-')
-      .replace(/^-|-$/g, '');
+    const base = toBrandSlugBase(label);
 
     if (base.length < 2) {
       throw new BadRequestException('Label too short to generate a valid slug');
@@ -621,10 +620,7 @@ export class BrandsService extends BaseService<
     return candidate;
   }
 
-  /**
-   * Whether `slug` is free for `brandId`; global like the database constraint.
-   * Top-level app route names (`turbo`, `clipper`, ...) are never free.
-   */
+  /** Checks global slug availability for the brand, including reserved app routes. */
   async isSlugAvailable(slug: string, brandId: string): Promise<boolean> {
     if (isReservedAppRootSegment(slug)) {
       return false;

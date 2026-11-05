@@ -20,8 +20,10 @@ import type {
   UpdateContentRunInput,
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ContentRunsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -229,6 +231,7 @@ export class ContentRunsService {
   ): Promise<Record<string, unknown>> {
     const existing = await this.prisma.contentRun.findFirst({
       where: scopedWhere(organizationId, { id: runId }),
+      select: { config: true },
     });
 
     if (!existing) {

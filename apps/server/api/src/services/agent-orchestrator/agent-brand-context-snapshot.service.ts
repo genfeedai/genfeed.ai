@@ -18,6 +18,7 @@ import type {
   IAgentBrandContextModel,
   IAgentBrandContextSnapshot,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface AgentBrandContextSnapshotParams {
@@ -36,6 +37,7 @@ const MAX_PREVIEW_QUERY_LENGTH = 500;
  * for a threadless turn in the requested brand, then renders the result for
  * inspection. Nothing here persists: no thread, message, or credit is written.
  */
+@Traced()
 @Injectable()
 export class AgentBrandContextSnapshotService {
   constructor(

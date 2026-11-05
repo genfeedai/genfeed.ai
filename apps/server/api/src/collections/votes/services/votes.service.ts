@@ -6,6 +6,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import type { VoteEntityModel } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { platformOrTenantScope } from '@libs/prisma/platform-scope';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 const ADD_VOTE_MAX_ATTEMPTS = 3;
@@ -18,6 +19,7 @@ function isUniqueConstraintViolation(error: unknown): boolean {
   );
 }
 
+@Traced()
 @Injectable()
 export class VotesService extends BaseService<
   VoteDocument,
@@ -75,6 +77,7 @@ export class VotesService extends BaseService<
           userId,
           ...platformOrTenantScope(organizationId),
         },
+        select: { id: true },
       });
 
       try {

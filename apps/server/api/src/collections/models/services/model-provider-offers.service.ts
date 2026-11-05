@@ -10,8 +10,10 @@ import type {
 import { getRuntimeMarginMultiplier } from '@genfeedai/pricing';
 import { Prisma } from '@genfeedai/prisma';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ModelProviderOffersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -183,6 +185,7 @@ export class ModelProviderOffersService {
                 executionModelId: source.id,
                 modelId: { notIn: [id, source.id] },
               },
+              select: { id: true },
             });
             if (existingOwner)
               throw new BadRequestException(
@@ -233,6 +236,7 @@ export class ModelProviderOffersService {
                   isDeleted: false,
                 },
               },
+              select: { id: true },
             }))
           ) {
             if (model.provider !== patch.pinnedProvider)

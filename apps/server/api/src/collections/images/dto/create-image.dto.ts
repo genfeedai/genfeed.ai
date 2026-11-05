@@ -19,6 +19,8 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+const PRINTABLE_ASCII_ID_PATTERN = /^[\x21-\x7e]{1,256}$/;
+
 export class CreateImageDto extends CreateMediaGenerationDto {
   @ValidateIf((_object, value: unknown) => value !== undefined)
   @ValidateNested()
@@ -28,7 +30,7 @@ export class CreateImageDto extends CreateMediaGenerationDto {
   @ValidateIf((_object, value: unknown) => value !== undefined)
   @IsString()
   @MaxLength(256)
-  @Matches(/^[\x21-\x7e]{1,256}$/)
+  @Matches(PRINTABLE_ASCII_ID_PATTERN)
   readonly crunQuoteId?: string;
 
   @IsString()

@@ -16,6 +16,7 @@ import {
   type VideoTaskModel,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface ExecutionResult {
@@ -25,6 +26,7 @@ export interface ExecutionResult {
   error?: string;
 }
 
+@Traced()
 @Injectable()
 export class ContentExecutionService {
   private readonly constructorName = String(this.constructor.name);

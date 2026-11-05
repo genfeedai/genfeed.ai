@@ -27,6 +27,7 @@ import type {
 import type { BrandRenderEvidenceManifestV1 } from '@genfeedai/contracts/interfaces/content/brand-render-evidence.interface';
 import { toPrismaJson, type VisualRevision } from '@genfeedai/prisma';
 import { createStorageProvider } from '@genfeedai/storage';
+import { Traced } from '@libs/tracing/traced';
 import {
   ConflictException,
   Injectable,
@@ -69,6 +70,7 @@ export function visualOutputId(
     .digest('hex')
     .slice(0, 24)}`;
 }
+@Traced()
 @Injectable()
 export class VisualProjectAssetsService {
   constructor(
@@ -343,6 +345,7 @@ export class VisualProjectAssetsService {
             brandId: revision.brandId,
             isDeleted: false,
           },
+          select: { cancelRequestedAt: true },
         });
         if (current.cancelRequestedAt)
           throw new ConflictException('visual_cancelled');
@@ -374,6 +377,7 @@ export class VisualProjectAssetsService {
             brandId: revision.brandId,
             isDeleted: false,
           },
+          select: { cancelRequestedAt: true },
         });
         if (current.cancelRequestedAt)
           throw new ConflictException('visual_cancelled');

@@ -24,6 +24,8 @@ import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useState } from 'react';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 /**
  * Ghost authenticates with a site URL and an Admin API key, not an OAuth
  * redirect. The server verifies the pair against the site before storing it.
@@ -67,7 +69,7 @@ export default function GhostConnectDialog({
         brandId,
         // The site URL is the account's identity: drop trailing slashes so
         // a reconnect typed with one still matches the stored account.
-        ghostUrl: ghostUrl.trim().replace(/\/+$/, ''),
+        ghostUrl: ghostUrl.trim().replace(TRAILING_SLASHES_PATTERN, ''),
       });
       NotificationsService.getInstance().success(
         translate('ghostConnect.connected'),

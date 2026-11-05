@@ -2,9 +2,11 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
 import { OpusProWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class OpusProWebhookService {
   private readonly constructorName: string = String(this.constructor.name);

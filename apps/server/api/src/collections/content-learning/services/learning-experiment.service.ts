@@ -24,6 +24,7 @@ import {
   type ContentLearningOpportunity,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -225,6 +226,7 @@ export function learningOpportunityObservation(
     evidenceIds: current.map((event) => event.id),
   };
 }
+@Traced()
 @Injectable()
 export class LearningExperimentService {
   constructor(

@@ -4,6 +4,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { IUserSubscriptionsService } from '@genfeedai/contracts/interfaces/billing';
 import { type Prisma, SubscriptionStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import type StripeConstructor from 'stripe';
 
@@ -12,6 +13,7 @@ type CheckoutSession = Awaited<
   ReturnType<StripeClient['checkout']['sessions']['create']>
 >;
 
+@Traced()
 @Injectable()
 export class UserSubscriptionsService implements IUserSubscriptionsService {
   private readonly constructorName: string = String(this.constructor.name);

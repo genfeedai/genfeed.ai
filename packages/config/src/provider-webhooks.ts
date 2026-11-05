@@ -1,3 +1,7 @@
+const PRIVATE_10_NETWORK_PATTERN = /^10\./;
+const PRIVATE_192_168_NETWORK_PATTERN = /^192\.168\./;
+const PRIVATE_172_NETWORK_PATTERN = /^172\.(1[6-9]|2\d|3[0-1])\./;
+
 /**
  * Whether external AI providers can POST webhooks back to this deployment.
  *
@@ -39,9 +43,9 @@ export function isProviderWebhookReachable(
 
   // RFC1918 private IPv4
   if (
-    /^10\./.test(host) ||
-    /^192\.168\./.test(host) ||
-    /^172\.(1[6-9]|2\d|3[0-1])\./.test(host)
+    PRIVATE_10_NETWORK_PATTERN.test(host) ||
+    PRIVATE_192_168_NETWORK_PATTERN.test(host) ||
+    PRIVATE_172_NETWORK_PATTERN.test(host)
   ) {
     return false;
   }

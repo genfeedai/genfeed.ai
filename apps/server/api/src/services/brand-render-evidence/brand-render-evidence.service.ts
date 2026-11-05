@@ -12,6 +12,7 @@ import type {
   BrandRenderEvidenceVerificationV1,
 } from '@genfeedai/contracts/interfaces/content/brand-render-evidence.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, HttpException, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -57,6 +58,7 @@ function recordOf(value: unknown): Record<string, unknown> {
     : {};
 }
 
+@Traced()
 @Injectable()
 export class BrandRenderEvidenceService {
   constructor(

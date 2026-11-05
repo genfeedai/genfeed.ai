@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { platformOrTenantScope } from '@libs/prisma/platform-scope';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -28,6 +29,7 @@ function isCallableGenerationModelType(
   return (CALLABLE_GENERATION_MODEL_TYPES as readonly string[]).includes(value);
 }
 
+@Traced()
 @Injectable()
 export class ModelRegistrationService {
   constructor(
@@ -257,6 +259,7 @@ export class ModelRegistrationService {
     for (const training of allTrainings) {
       const model = await this.prisma.model.findFirst({
         where: { trainingId: training.id },
+        select: { id: true },
       });
       if (!model) {
         orphanedTrainings.push(training);

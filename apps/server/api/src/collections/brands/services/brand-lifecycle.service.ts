@@ -26,6 +26,7 @@ import { isCloudDeployment } from '@genfeedai/config';
 import { PersonaAvailabilityMode } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 /**
@@ -37,6 +38,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
  * rest of the brand CRUD surface. `BrandsService.remove` /
  * `.selectBrandForUser` delegate here.
  */
+@Traced()
 @Injectable()
 export class BrandLifecycleService {
   private readonly constructorName = this.constructor.name;

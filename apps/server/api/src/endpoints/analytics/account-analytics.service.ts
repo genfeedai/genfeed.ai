@@ -30,6 +30,7 @@ import type {
   ITopContent,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 type PeriodRow = {
@@ -93,6 +94,7 @@ function toFiniteNumber(value: unknown): number | null {
   return null;
 }
 
+@Traced()
 @Injectable()
 export class AccountAnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -214,6 +216,7 @@ export class AccountAnalyticsService {
 
     const existing = await this.prisma.organizationSetting.findFirst({
       where: { organizationId },
+      select: { fleetEvaluationPolicy: true, id: true },
     });
     const current = this.readPolicy(existing?.fleetEvaluationPolicy) ?? {
       ...policy,

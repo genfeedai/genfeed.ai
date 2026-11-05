@@ -3,6 +3,7 @@ import { AgentThreadsService } from '@api/collections/agent-threads/services/age
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AgentThreadKind, AgentThreadStatus } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Title of the auto-created master thread. */
@@ -13,6 +14,7 @@ const MASTER_THREAD_TITLE = 'Master';
  * created on first open. It is org-scoped (brand null) so it can start threads
  * in any brand.
  */
+@Traced()
 @Injectable()
 export class AgentMasterThreadService {
   constructor(

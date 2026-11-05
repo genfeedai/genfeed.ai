@@ -5,6 +5,7 @@ import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/tra
 import { CreditTransactionCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Free-credit grants one IP address may collect in a rolling day. */
@@ -59,6 +60,7 @@ export type SignupGrantEligibility =
  * Runs inside the grant transaction so the read and the grant are serialised
  * together. Deployments without the hosted free trial are always eligible.
  */
+@Traced()
 @Injectable()
 export class SignupGrantEligibilityService {
   private readonly context = { service: SignupGrantEligibilityService.name };

@@ -15,6 +15,7 @@ import {
 } from '@genfeedai/integrations';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import type { AxiosResponse } from 'axios';
@@ -43,6 +44,7 @@ const INSTAGRAM_PAGES_SCOPE = 'pages_show_list';
  * (a `Controller`/`Service` line-count ratchet) so the HTTP layer stays a thin
  * request/response shell around this orchestration.
  */
+@Traced()
 @Injectable()
 export class InstagramConnectionResolverService {
   private readonly redirectUri: string;

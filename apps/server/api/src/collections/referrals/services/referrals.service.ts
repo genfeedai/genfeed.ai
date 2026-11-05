@@ -34,8 +34,11 @@ import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
+
+const TRAILING_SLASH_PATTERN = /\/$/;
 
 const generateReferralCode = customAlphabet(
   '23456789abcdefghjkmnpqrstuvwxyz',
@@ -89,6 +92,7 @@ function addDays(value: Date, days: number): Date {
   return new Date(value.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
+@Traced()
 @Injectable()
 export class ReferralsService {
   constructor(
@@ -148,7 +152,7 @@ export class ReferralsService {
     );
     const configuredBaseUrl = String(
       this.configService.get('GENFEEDAI_APP_URL') ?? '',
-    ).replace(/\/$/, '');
+    ).replace(TRAILING_SLASH_PATTERN, '');
 
     return {
       code: referralCode.code,
@@ -180,6 +184,7 @@ export class ReferralsService {
         ownerUserId: actor.userId,
         rewardBillingAccountId: account.id,
       },
+      select: { id: true },
     });
     if (!code) {
       return [];
@@ -210,6 +215,11 @@ export class ReferralsService {
     );
     const referralCode = await this.prisma.referralCode.findFirst({
       where: { code, isActive: true, isDeleted: false },
+      select: {
+        id: true,
+        rewardBillingAccountId: true,
+        rewardOrganizationId: true,
+      },
     });
     if (!referralCode) {
       return { isAccepted: false, status: ReferralClaimStatus.INVALID };
@@ -219,6 +229,7 @@ export class ReferralsService {
         isDeleted: false,
         referredBillingAccountId: targetAccount.id,
       },
+      select: { id: true },
     });
     if (existing) {
       return {
@@ -373,6 +384,7 @@ export class ReferralsService {
         rewardEndsAt: { gt: now },
         status: ReferralStatus.ACTIVE,
       },
+      select: { codeId: true, id: true },
     });
     const netAmountCents = Math.max(0, Math.floor(input.netAmountCents));
     const rewardCredits = Math.floor(netAmountCents * AFFILIATE_REWARD_RATE);
@@ -617,6 +629,7 @@ export class ReferralsService {
           idempotencyKey,
           isDeleted: false,
         },
+        select: { id: true, organizationId: true },
       });
       if (!transaction) {
         throw new Error('Referral reward ledger transaction was not persisted');

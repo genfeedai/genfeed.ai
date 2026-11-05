@@ -17,6 +17,7 @@ import type {
   BrandIdentitySnapshotV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import {
   ConflictException,
@@ -85,6 +86,7 @@ function isTransientStorageFailure(error: unknown): boolean {
  * The identity is not applied to the generation prompt, so the identity layer is recorded as
  * `not_applicable`; the receipt claims only the output check.
  */
+@Traced()
 @Injectable()
 export class BreakoutVisualBrandReceiptService {
   private readonly constructorName = String(this.constructor.name);

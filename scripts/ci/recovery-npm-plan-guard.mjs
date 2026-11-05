@@ -3,6 +3,8 @@ import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+const POSITIVE_INTEGER_PATTERN = /^[1-9][0-9]*$/;
+
 function fail(message) {
   throw new Error(message);
 }
@@ -15,7 +17,7 @@ export function validateRecoveryNpmPlan({
   if (validatedHistoricalRecovery !== 'true') {
     fail('The npm no-op guard requires a validated historical recovery.');
   }
-  if (!/^[1-9][0-9]*$/.test(recoveryRunId ?? '')) {
+  if (!POSITIVE_INTEGER_PATTERN.test(recoveryRunId ?? '')) {
     fail('Historical npm recovery requires a positive recovery run ID.');
   }
   if (hasPackages !== 'true' && hasPackages !== 'false') {

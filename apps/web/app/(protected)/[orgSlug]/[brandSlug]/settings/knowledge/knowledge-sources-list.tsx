@@ -51,6 +51,8 @@ import {
 import KnowledgeStateBadge from './knowledge-state-badge';
 import { useKnowledgeFilters } from './use-knowledge-filters';
 
+const UNSAFE_ID_CHAR_PATTERN = /[^A-Za-z0-9_-]/;
+
 const ALL = 'all';
 
 const PURPOSE_KEY: Record<string, string> = {
@@ -90,7 +92,7 @@ export default function KnowledgeSourcesList({
     (sourceIds.length !== 1 ||
       !sourceIds[0] ||
       sourceIds[0].length > 128 ||
-      /[^A-Za-z0-9_-]/.test(sourceIds[0]));
+      UNSAFE_ID_CHAR_PATTERN.test(sourceIds[0]));
   const routeSourceId = isInvalidSelection ? null : (sourceIds[0] ?? null);
   const [localSelectedSourceId, setSelectedSourceId] = useState<string | null>(
     routeSourceId,

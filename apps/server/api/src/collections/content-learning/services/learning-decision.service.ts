@@ -62,6 +62,7 @@ import {
   type Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -110,6 +111,7 @@ function baselineOnlyDistributions() {
     ),
   };
 }
+@Traced()
 @Injectable()
 export class LearningDecisionService {
   constructor(
@@ -188,6 +190,7 @@ export class LearningDecisionService {
         credentialId,
         isDeleted: false,
       },
+      select: { epoch: true, failureReason: true, mode: true, revision: true },
     });
     const mode = account
       ? Object.values(ContentLearningMode).find(
@@ -292,6 +295,7 @@ export class LearningDecisionService {
         brandId: input.brandId,
         isDeleted: false,
       },
+      select: { platform: true },
     });
     const brand = await tx.brand.findFirst({
       where: {
@@ -299,6 +303,7 @@ export class LearningDecisionService {
         organizationId: input.organizationId,
         isDeleted: false,
       },
+      select: { id: true },
     });
     if (
       !credential ||
@@ -802,6 +807,7 @@ export class LearningDecisionService {
         isDeleted: false,
       },
       orderBy: { date: 'desc' },
+      select: { followers: true, subscribers: true },
     });
     return learningFeatures({
       followers: followers?.followers ?? followers?.subscribers,

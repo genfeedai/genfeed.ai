@@ -23,12 +23,16 @@ import {
   Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
 } from '@nestjs/common';
 
+const SHA256_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
+
+@Traced()
 @Injectable()
 export class BrandOsRevisionsService {
   constructor(
@@ -242,6 +246,7 @@ export class BrandOsRevisionsService {
       await this.lockBrand(tx, organizationId, brandId);
       const row = await tx.brandOsRevision.findFirst({
         where: { brandId, id, isDeleted: false, organizationId },
+        select: { content: true, status: true, updatedAt: true },
       });
       if (!row) throw new NotFoundException('Brand OS revision');
       if (row.updatedAt.toISOString() !== updatedAt)
@@ -332,7 +337,7 @@ export class BrandOsRevisionsService {
         reviewedGenerationRulesHash !== undefined &&
         (typeof reviewedGenerationRulesHash !== 'string' ||
           reviewedGenerationRulesHash.length !== 71 ||
-          !/^sha256:[0-9a-f]{64}$/.test(reviewedGenerationRulesHash))
+          !SHA256_DIGEST_PATTERN.test(reviewedGenerationRulesHash))
       )
         throw new BadRequestException('Invalid generation rules review hash');
       let generationRulesReviewHash: string | null = null;
@@ -487,6 +492,7 @@ export class BrandOsRevisionsService {
         organizationId,
         status: BrandOsRevisionStatus.APPROVED,
       },
+      select: { content: true },
     });
     const policy = parseBrandPublishPolicy(
       (approved?.content as unknown as IBrandKitDraft | undefined)?.policy,

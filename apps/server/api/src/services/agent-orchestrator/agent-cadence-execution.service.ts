@@ -40,8 +40,10 @@ import {
 } from '@genfeedai/contracts';
 import { GENERATE_CONTENT_TEXT_CREDITS } from '@genfeedai/contracts/constants';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class AgentCadenceExecutionService {
   constructor(

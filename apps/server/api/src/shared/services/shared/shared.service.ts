@@ -15,8 +15,11 @@ import {
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
 interface MediaDocumentOwnership {
   brandId?: string;
@@ -72,7 +75,7 @@ const resolveMetadataLabel = (input: MediaDocumentsInput): string => {
   }
 
   const normalizedPrompt = (input.generationPrompt ?? '')
-    .replace(/\s+/g, ' ')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
 
   if (!normalizedPrompt) {
@@ -220,6 +223,7 @@ const buildIngredientCreateDto = (
     : {}),
 });
 
+@Traced()
 @Injectable()
 export class SharedService {
   constructor(private readonly moduleRef: ModuleRef) {}

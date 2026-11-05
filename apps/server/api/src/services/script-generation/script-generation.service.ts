@@ -5,6 +5,7 @@ import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatc
 import type { ScriptGenerationRequest } from '@api/services/script-generation/script-generation.interface';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 export const SCRIPT_BRAND_CONTEXT_UNAVAILABLE =
@@ -19,6 +20,7 @@ const SCRIPT_SYSTEM_PROMPT =
  * is never written without it: an unresolved brief fails the request instead of
  * letting a generic script through.
  */
+@Traced()
 @Injectable()
 export class ScriptGenerationService {
   constructor(

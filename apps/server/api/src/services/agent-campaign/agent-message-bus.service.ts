@@ -1,11 +1,13 @@
 import type { IAgentCampaignMessage } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const MAX_MESSAGES_PER_CAMPAIGN = 50;
 const MESSAGE_TTL_SECONDS = 86400; // 24 hours
 
+@Traced()
 @Injectable()
 export class AgentMessageBusService {
   private readonly constructorName = String(this.constructor.name);

@@ -53,8 +53,10 @@ import type { KnowledgeRetrievalCitation } from '@genfeedai/contracts/interfaces
 import type { ContextEmbeddingBackfillInput } from '@genfeedai/contracts/interfaces/knowledge-base/context-embedding.interface';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ContextsService {
   constructor(
@@ -580,6 +582,13 @@ export class ContextsService {
               }
             : {}),
         }),
+        select: {
+          description: true,
+          id: true,
+          label: true,
+          publicationDate: true,
+          scheduledDate: true,
+        },
       });
 
       const contextBaseId = String(contextBase.id);

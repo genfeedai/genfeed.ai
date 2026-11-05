@@ -143,6 +143,7 @@ describe('ContentIntelligenceService Prisma boundary', () => {
 
       expect(findFirst).toHaveBeenCalledWith({
         where: { id: 'creator-1', isDeleted: false, organizationId },
+        select: { data: true },
       });
       expect(update).toHaveBeenCalledWith({
         data: {

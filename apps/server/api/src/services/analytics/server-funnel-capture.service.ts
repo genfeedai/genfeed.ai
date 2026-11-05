@@ -8,6 +8,7 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 
@@ -68,6 +69,7 @@ type CaptureFailureCategory =
  * and neither is the distinct id (a user/organization identifier), the
  * project key, or event properties.
  */
+@Traced()
 @Injectable()
 export class ServerFunnelCaptureService {
   private readonly constructorName = String(this.constructor.name);

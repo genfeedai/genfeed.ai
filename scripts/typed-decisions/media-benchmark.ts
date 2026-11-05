@@ -69,6 +69,8 @@ import {
   renderConfusionMatrix,
 } from './report';
 
+const NON_EMPTY_LINE_STARTS_PATTERN = /^(?=.)/gm;
+
 const FIXTURE_DIR = 'apps/server/api/test/fixtures/media-gates';
 const DEFAULT_MODERATION_FIXTURE = `${FIXTURE_DIR}/moderation-transcripts.jsonl`;
 const DEFAULT_TEXT_FIXTURES = [
@@ -87,7 +89,7 @@ export interface MediaBenchmarkOptions {
 
 /** Indent every non-empty line; a trailing newline gains no stray indent. */
 function indent(text: string): string {
-  return text.replace(/^(?=.)/gm, '    ');
+  return text.replace(NON_EMPTY_LINE_STARTS_PATTERN, '    ');
 }
 
 function readLines(path: string): string[] {

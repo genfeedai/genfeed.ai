@@ -8,6 +8,9 @@ import {
 } from './contracts';
 import { resolveMediaModelFamily } from './families';
 
+const NON_SLUG_CHAR_RUNS_PATTERN = /[^a-z0-9.]+/g;
+const EDGE_HYPHENS_PATTERN = /^-+|-+$/g;
+
 /**
  * Contestants come from the model registry. Every active model is a raw route;
  * a model with a registered generation-brief compiler also enters as a
@@ -41,8 +44,8 @@ export interface BuildContestantsOptions {
 function slugify(key: string): string {
   return key
     .toLowerCase()
-    .replace(/[^a-z0-9.]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(NON_SLUG_CHAR_RUNS_PATTERN, '-')
+    .replace(EDGE_HYPHENS_PATTERN, '');
 }
 
 function resolveSupport(medium: Medium, key: string) {

@@ -8,6 +8,7 @@ import {
   getExecutableNodeOperationId,
   type NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
+import { Traced } from '@libs/tracing/traced';
 
 type ProgressTrackingOptions = {
   baselineEstimatedDurationMs?: number;
@@ -29,6 +30,7 @@ export class WorkflowNodeProgressTrackerService {
     private readonly progressService: WorkflowExecutionProgressService,
   ) {}
 
+  @Traced()
   async injectTriggerNode(
     input: ProgressTrackingContext & {
       nodeCache: Map<string, unknown>;
@@ -81,6 +83,7 @@ export class WorkflowNodeProgressTrackerService {
     );
   }
 
+  @Traced()
   async trackNodeStarted(
     input: ProgressTrackingContext & {
       node: ExecutableNode;
@@ -118,6 +121,7 @@ export class WorkflowNodeProgressTrackerService {
     }
   }
 
+  @Traced()
   async trackNodeCompleted(
     input: ProgressTrackingContext & {
       node: ExecutableNode;
@@ -165,6 +169,7 @@ export class WorkflowNodeProgressTrackerService {
     }
   }
 
+  @Traced()
   async trackNodeFailed(
     input: ProgressTrackingContext & {
       node: ExecutableNode;

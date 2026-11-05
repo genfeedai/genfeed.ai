@@ -9,7 +9,15 @@ import type {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
+
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const TRAILING_SLASH_PATTERN = /\/$/;
+const POSITIVE_INTEGER_PATTERN = /^[1-9]\d*$/;
+const HOSTNAME_CHARS_PATTERN = /^[a-z0-9.-]+$/;
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
 
 const DAY_MS = 86_400_000;
 const QUERY_ORIGINS = new Set([
@@ -17,6 +25,7 @@ const QUERY_ORIGINS = new Set([
   'https://us.posthog.com',
 ]);
 
+@Traced()
 @Injectable()
 export class ArticleTrafficService {
   constructor(
@@ -82,7 +91,7 @@ export class ArticleTrafficService {
       !Number.isFinite(publishedAt.getTime()) ||
       publishedAt > now ||
       typeof slug !== 'string' ||
-      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
+      !SLUG_PATTERN.test(slug)
     ) {
       return unavailable('not_published');
     }
@@ -100,10 +109,10 @@ export class ArticleTrafficService {
     );
     const queryHost = String(
       this.configService.get('POSTHOG_QUERY_HOST') || 'https://eu.posthog.com',
-    ).replace(/\/$/, '');
+    ).replace(TRAILING_SLASH_PATTERN, '');
     if (
       !apiKey ||
-      !/^[1-9]\d*$/.test(projectId) ||
+      !POSITIVE_INTEGER_PATTERN.test(projectId) ||
       !QUERY_ORIGINS.has(queryHost)
     )
       return unavailable('not_configured');
@@ -117,7 +126,10 @@ export class ArticleTrafficService {
         ),
       );
       hostname = publicUrl.hostname;
-      if (publicUrl.protocol !== 'https:' || !/^[a-z0-9.-]+$/.test(hostname))
+      if (
+        publicUrl.protocol !== 'https:' ||
+        !HOSTNAME_CHARS_PATTERN.test(hostname)
+      )
         return unavailable('not_configured');
     } catch {
       return unavailable('not_configured');
@@ -180,7 +192,7 @@ export class ArticleTrafficService {
         !Array.isArray(row) ||
         row.length !== 3 ||
         typeof row[0] !== 'string' ||
-        !/^\d{4}-\d{2}-\d{2}$/.test(row[0])
+        !ISO_DATE_PATTERN.test(row[0])
       )
         throw new Error('Invalid traffic row');
       if (
@@ -189,7 +201,7 @@ export class ArticleTrafficService {
           .some(
             (value) =>
               typeof value !== 'number' &&
-              (typeof value !== 'string' || !/^\d+$/.test(value)),
+              (typeof value !== 'string' || !DIGITS_ONLY_PATTERN.test(value)),
           )
       )
         throw new Error('Invalid traffic counts');

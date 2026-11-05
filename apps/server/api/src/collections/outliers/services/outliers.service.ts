@@ -14,12 +14,14 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { computeOutlierBaseline } from '@genfeedai/helpers';
 import type { OutlierBaselineSnapshot, Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 function hash(value: unknown): string {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }
 
+@Traced()
 @Injectable()
 export class OutliersService {
   constructor(

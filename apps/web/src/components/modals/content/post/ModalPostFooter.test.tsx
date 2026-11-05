@@ -3,73 +3,71 @@ import { describe, expect, it, vi } from 'vitest';
 import ModalPostFooter from '@/components/modals/content/post/ModalPostFooter';
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
-  return { useTranslations: translateFromCatalog };
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return {
+    useFormatter: () => ({
+      dateTime: (value: Date, options?: Intl.DateTimeFormatOptions) =>
+        new Intl.DateTimeFormat('en-GB', options).format(value),
+    }),
+    useTranslations: translateFromCatalog,
+  };
 });
 
+const baseProps = {
+  channelCount: 3,
+  isFormValid: true,
+  isLoading: false,
+  onClose: () => undefined,
+  onSchedule: () => undefined,
+  scheduledDate: new Date('2026-11-05T17:30:00.000Z'),
+  scheduleTimezone: 'Europe/Paris',
+};
+
 describe('ModalPostFooter', () => {
-  it('should render without crashing', () => {
-    const { container } = render(<ModalPostFooter />);
-    expect(container.firstChild).toBeInTheDocument();
+  it('says how many channels get the post, and when', () => {
+    render(<ModalPostFooter {...baseProps} />);
+
+    expect(
+      screen.getByText(/^3 channels · .*18:30.* Europe\/Paris$/),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Schedule 3' })).toBeEnabled();
   });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<ModalPostFooter />);
-    expect(container.firstChild).toBeInTheDocument();
+  it('asks for a time before it can schedule', () => {
+    render(
+      <ModalPostFooter
+        {...baseProps}
+        channelCount={1}
+        isFormValid={false}
+        scheduledDate={null}
+      />,
+    );
+
+    expect(screen.getByText('1 channel · Pick a time')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Schedule 1' })).toBeDisabled();
   });
 
-  it('should apply correct styles and classes', () => {
-    const { container } = render(<ModalPostFooter />);
-    const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
-  });
+  it('schedules only from its button, never by submitting the form', () => {
+    const outcome = { scheduled: 0, submitted: 0 };
 
-  it('keeps setup navigation from submitting the publishing form', () => {
-    const onSubmit = vi.fn((event: { preventDefault: () => void }) => {
-      event.preventDefault();
-    });
-    const onNextStep = vi.fn();
-    const onClose = vi.fn();
-    const onPreviousStep = vi.fn();
-
-    const footerProps = {
-      activeTab: 'setup' as const,
-      globalDescription: 'A caption',
-      globalLabel: 'A title',
-      globalScheduledDate: new Date('2026-10-16T21:00:00.000Z'),
-      hasYoutube: true,
-      isLoading: false,
-      onClose,
-      onNextStep,
-      onPreviousStep,
-    };
-
-    const { rerender } = render(
-      <form onSubmit={onSubmit}>
-        <ModalPostFooter {...footerProps} />
+    render(
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          outcome.submitted += 1;
+        }}
+      >
+        <ModalPostFooter
+          {...baseProps}
+          onSchedule={() => {
+            outcome.scheduled += 1;
+          }}
+        />
       </form>,
     );
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Next, select channels' }),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Schedule 3' }));
 
-    expect(onNextStep).toHaveBeenCalledOnce();
-    expect(onClose).toHaveBeenCalledOnce();
-    expect(onSubmit).not.toHaveBeenCalled();
-
-    rerender(
-      <form onSubmit={onSubmit}>
-        <ModalPostFooter {...footerProps} activeTab="platforms" isFormValid />
-      </form>,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect(onPreviousStep).toHaveBeenCalledOnce();
-    expect(onSubmit).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Schedule' }));
-    expect(onSubmit).toHaveBeenCalledOnce();
+    expect(outcome).toEqual({ scheduled: 1, submitted: 0 });
   });
 });

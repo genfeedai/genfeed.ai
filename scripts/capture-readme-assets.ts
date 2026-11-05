@@ -14,6 +14,8 @@ import { readdir, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
 
+const PNG_EXTENSION_PATTERN = /\.png$/;
+
 const repoRoot = path.resolve(import.meta.dir, '..');
 
 const child = spawn(
@@ -55,7 +57,7 @@ async function convertWebsiteCapturesToWebp(): Promise<void> {
     const source = path.join(directory, file);
     await sharp(source)
       .webp({ quality: 86 })
-      .toFile(source.replace(/\.png$/, '.webp'));
+      .toFile(source.replace(PNG_EXTENSION_PATTERN, '.webp'));
     await unlink(source);
   }
 }

@@ -33,7 +33,10 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { REPLY_INTENT_VALUES } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
+
+const LEADING_AT_SIGN_PATTERN = /^@/;
 
 /** Bounded so a link dump cannot blow up the decision payload. */
 const MAX_COMMENT_CHARS = 1_000;
@@ -95,6 +98,7 @@ function truncate(value: string, max: number): string {
   return normalized.length > max ? normalized.slice(0, max) : normalized;
 }
 
+@Traced()
 @Injectable()
 export class ReplyIntentClassifierService {
   private readonly constructorName = String(this.constructor.name);
@@ -210,7 +214,7 @@ export class ReplyIntentClassifierService {
   ): Record<string, unknown> {
     return {
       authorHandle: truncate(
-        (params.authorHandle ?? '').replace(/^@/, ''),
+        (params.authorHandle ?? '').replace(LEADING_AT_SIGN_PATTERN, ''),
         MAX_HANDLE_CHARS,
       ),
       comment: truncate(params.commentText, MAX_COMMENT_CHARS),

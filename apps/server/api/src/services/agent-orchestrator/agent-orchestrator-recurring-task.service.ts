@@ -35,7 +35,51 @@ import {
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentMessageRole } from '@genfeedai/contracts';
 import { type ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
+
+const RECURRING_CADENCE_PATTERN =
+  /\b(?:every|each)\s+(?:day|week|month|weekday|morning|afternoon|evening|night)\b/;
+const CONTENT_TYPE_WORD_PATTERN = /(image|video|post|newsletter)/;
+const PLATFORM_WORD_PATTERN =
+  /\b(instagram|tiktok|linkedin|x|twitter|facebook)\b/;
+const CREATE_WORD_PATTERN = /\bcreate\b/gi;
+const MAKE_WORD_PATTERN = /\bmake\b/gi;
+const GENERATE_WORD_PATTERN = /\bgenerate\b/gi;
+const SET_UP_PHRASE_PATTERN = /\bset up\b/gi;
+const RECURRING_WORD_PATTERN = /\brecurring\b/gi;
+const FOR_INSTAGRAM_PHRASE_PATTERN = /\bfor instagram\b/gi;
+const ON_INSTAGRAM_PHRASE_PATTERN = /\bon instagram\b/gi;
+const INSTAGRAM_WORD_PATTERN = /\binstagram\b/gi;
+const FOR_TIKTOK_PHRASE_PATTERN = /\bfor tiktok\b/gi;
+const ON_TIKTOK_PHRASE_PATTERN = /\bon tiktok\b/gi;
+const TIKTOK_WORD_PATTERN = /\btiktok\b/gi;
+const FOR_LINKEDIN_PHRASE_PATTERN = /\bfor linkedin\b/gi;
+const ON_LINKEDIN_PHRASE_PATTERN = /\bon linkedin\b/gi;
+const LINKEDIN_WORD_PATTERN = /\blinkedin\b/gi;
+const FOR_FACEBOOK_PHRASE_PATTERN = /\bfor facebook\b/gi;
+const ON_FACEBOOK_PHRASE_PATTERN = /\bon facebook\b/gi;
+const FACEBOOK_WORD_PATTERN = /\bfacebook\b/gi;
+const FOR_TWITTER_PHRASE_PATTERN = /\bfor twitter\b/gi;
+const ON_TWITTER_PHRASE_PATTERN = /\bon twitter\b/gi;
+const TWITTER_WORD_PATTERN = /\btwitter\b/gi;
+const FOR_X_PHRASE_PATTERN = /\bfor x\b/gi;
+const ON_X_PHRASE_PATTERN = /\bon x\b/gi;
+const X_WORD_PATTERN = /\bx\b/gi;
+const CONTENT_COUNT_PHRASE_PATTERN =
+  /\b\d{1,2}\s+(images?|videos?|posts?|newsletters?)\b/gi;
+const IMAGES_WORD_PATTERN = /\bimages?\b/gi;
+const VIDEOS_WORD_PATTERN = /\bvideos?\b/gi;
+const POSTS_WORD_PATTERN = /\bposts?\b/gi;
+const NEWSLETTERS_WORD_PATTERN = /\bnewsletters?\b/gi;
+const CADENCE_PHRASE_PATTERN =
+  /\b(?:(?:every|each)\s+(?:day|weekday|week|month|morning|afternoon|evening|night)|daily|weekly|monthly|weekdays)(?:.*)$/i;
+const IN_STYLE_PHRASE_PATTERN = /\bin\s+an?\s+.+?\s+style\b/gi;
+const WITH_STYLE_PHRASE_PATTERN = /\bwith\s+an?\s+.+?\s+style\b/gi;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const LEADING_PREPOSITION_PATTERN = /^(for|about|around)\s+/i;
+const VARIETY_ANSWER_PATTERN = /distinct|different|varied|variety|novel|vary/i;
+const CONSISTENCY_ANSWER_PATTERN = /consistent|same campaign|tight/i;
 
 type RecurringTaskContentType = 'image' | 'video' | 'post' | 'newsletter';
 type RecurringTaskInputField = 'prompt' | 'schedule' | 'variationBrief';
@@ -62,6 +106,7 @@ interface RecurringTaskResumeCursor extends Record<string, unknown> {
   updatedAt: string;
 }
 
+@Traced()
 @Injectable()
 export class AgentOrchestratorRecurringTaskService {
   constructor(
@@ -565,15 +610,13 @@ export class AgentOrchestratorRecurringTaskService {
   private isRecurringTaskIntent(content: string): boolean {
     const normalized = content.toLowerCase();
     const hasRecurringSignal =
-      /\b(?:every|each)\s+(?:day|week|month|weekday|morning|afternoon|evening|night)\b/.test(
-        normalized,
-      ) ||
+      RECURRING_CADENCE_PATTERN.test(normalized) ||
       normalized.includes('daily') ||
       normalized.includes('weekly') ||
       normalized.includes('monthly') ||
       normalized.includes('weekdays') ||
       normalized.includes('recurring');
-    const hasAssetSignal = /(image|video|post|newsletter)/.test(normalized);
+    const hasAssetSignal = CONTENT_TYPE_WORD_PATTERN.test(normalized);
 
     return hasRecurringSignal && hasAssetSignal;
   }
@@ -591,9 +634,7 @@ export class AgentOrchestratorRecurringTaskService {
         : normalized.includes('post')
           ? 'post'
           : 'image';
-    const platformMatch = normalized.match(
-      /\b(instagram|tiktok|linkedin|x|twitter|facebook)\b/,
-    );
+    const platformMatch = normalized.match(PLATFORM_WORD_PATTERN);
     const parsedSchedule = this.extractCronScheduleFromMessage(normalized);
 
     return {
@@ -616,43 +657,40 @@ export class AgentOrchestratorRecurringTaskService {
     content: string,
   ): string | undefined {
     const cleaned = content
-      .replace(/\bcreate\b/gi, '')
-      .replace(/\bmake\b/gi, '')
-      .replace(/\bgenerate\b/gi, '')
-      .replace(/\bset up\b/gi, '')
-      .replace(/\brecurring\b/gi, '')
-      .replace(/\bfor instagram\b/gi, '')
-      .replace(/\bon instagram\b/gi, '')
-      .replace(/\binstagram\b/gi, '')
-      .replace(/\bfor tiktok\b/gi, '')
-      .replace(/\bon tiktok\b/gi, '')
-      .replace(/\btiktok\b/gi, '')
-      .replace(/\bfor linkedin\b/gi, '')
-      .replace(/\bon linkedin\b/gi, '')
-      .replace(/\blinkedin\b/gi, '')
-      .replace(/\bfor facebook\b/gi, '')
-      .replace(/\bon facebook\b/gi, '')
-      .replace(/\bfacebook\b/gi, '')
-      .replace(/\bfor twitter\b/gi, '')
-      .replace(/\bon twitter\b/gi, '')
-      .replace(/\btwitter\b/gi, '')
-      .replace(/\bfor x\b/gi, '')
-      .replace(/\bon x\b/gi, '')
-      .replace(/\bx\b/gi, '')
-      .replace(/\b\d{1,2}\s+(images?|videos?|posts?|newsletters?)\b/gi, '')
-      .replace(/\bimages?\b/gi, '')
-      .replace(/\bvideos?\b/gi, '')
-      .replace(/\bposts?\b/gi, '')
-      .replace(/\bnewsletters?\b/gi, '')
-      .replace(
-        /\b(?:(?:every|each)\s+(?:day|weekday|week|month|morning|afternoon|evening|night)|daily|weekly|monthly|weekdays)(?:.*)$/i,
-        '',
-      )
-      .replace(/\bin\s+an?\s+.+?\s+style\b/gi, '')
-      .replace(/\bwith\s+an?\s+.+?\s+style\b/gi, '')
-      .replace(/\s+/g, ' ')
+      .replace(CREATE_WORD_PATTERN, '')
+      .replace(MAKE_WORD_PATTERN, '')
+      .replace(GENERATE_WORD_PATTERN, '')
+      .replace(SET_UP_PHRASE_PATTERN, '')
+      .replace(RECURRING_WORD_PATTERN, '')
+      .replace(FOR_INSTAGRAM_PHRASE_PATTERN, '')
+      .replace(ON_INSTAGRAM_PHRASE_PATTERN, '')
+      .replace(INSTAGRAM_WORD_PATTERN, '')
+      .replace(FOR_TIKTOK_PHRASE_PATTERN, '')
+      .replace(ON_TIKTOK_PHRASE_PATTERN, '')
+      .replace(TIKTOK_WORD_PATTERN, '')
+      .replace(FOR_LINKEDIN_PHRASE_PATTERN, '')
+      .replace(ON_LINKEDIN_PHRASE_PATTERN, '')
+      .replace(LINKEDIN_WORD_PATTERN, '')
+      .replace(FOR_FACEBOOK_PHRASE_PATTERN, '')
+      .replace(ON_FACEBOOK_PHRASE_PATTERN, '')
+      .replace(FACEBOOK_WORD_PATTERN, '')
+      .replace(FOR_TWITTER_PHRASE_PATTERN, '')
+      .replace(ON_TWITTER_PHRASE_PATTERN, '')
+      .replace(TWITTER_WORD_PATTERN, '')
+      .replace(FOR_X_PHRASE_PATTERN, '')
+      .replace(ON_X_PHRASE_PATTERN, '')
+      .replace(X_WORD_PATTERN, '')
+      .replace(CONTENT_COUNT_PHRASE_PATTERN, '')
+      .replace(IMAGES_WORD_PATTERN, '')
+      .replace(VIDEOS_WORD_PATTERN, '')
+      .replace(POSTS_WORD_PATTERN, '')
+      .replace(NEWSLETTERS_WORD_PATTERN, '')
+      .replace(CADENCE_PHRASE_PATTERN, '')
+      .replace(IN_STYLE_PHRASE_PATTERN, '')
+      .replace(WITH_STYLE_PHRASE_PATTERN, '')
+      .replace(WHITESPACE_RUNS_PATTERN, ' ')
       .trim()
-      .replace(/^(for|about|around)\s+/i, '');
+      .replace(LEADING_PREPOSITION_PATTERN, '');
 
     return cleaned.length >= 8 ? cleaned : undefined;
   }
@@ -708,9 +746,9 @@ export class AgentOrchestratorRecurringTaskService {
     }
 
     draft.styleNotes = normalized;
-    if (/distinct|different|varied|variety|novel|vary/i.test(normalized)) {
+    if (VARIETY_ANSWER_PATTERN.test(normalized)) {
       draft.diversityMode = 'high';
-    } else if (/consistent|same campaign|tight/i.test(normalized)) {
+    } else if (CONSISTENCY_ANSWER_PATTERN.test(normalized)) {
       draft.diversityMode = 'low';
     } else {
       draft.diversityMode = draft.diversityMode ?? 'medium';

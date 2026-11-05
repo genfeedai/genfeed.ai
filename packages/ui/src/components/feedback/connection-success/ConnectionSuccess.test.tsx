@@ -38,6 +38,76 @@ describe('ConnectionSuccess', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows the connected account picture with the platform logo on it', () => {
+    const { container } = render(
+      <ConnectionSuccess
+        account={{
+          avatarUrl: 'https://cdn.example/shayla.jpg',
+          name: 'Shayla',
+        }}
+        brand={resolvePlatformConnectionBrand('instagram')}
+        title="Instagram Connected"
+      />,
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent('Instagram Connected');
+    expect(screen.getByRole('status')).toHaveTextContent('Shayla');
+    expect(
+      container.querySelector('[data-connection-account]'),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-connection-platform="Instagram"] svg'),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('.connection-success-avatar-check'),
+    ).toBeInTheDocument();
+    // The logo-only trace is for connections without an account picture.
+    expect(
+      container.querySelector('.connection-success-trace'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('falls back to the account initials when there is no picture', () => {
+    render(
+      <ConnectionSuccess
+        account={{ avatarUrl: null, name: 'Shayla Fit' }}
+        brand={resolvePlatformConnectionBrand('instagram')}
+        title="Instagram Connected"
+      />,
+    );
+
+    expect(document.body).toHaveTextContent('SF');
+  });
+
+  it('announces only the success when the account has a picture but no name', () => {
+    render(
+      <ConnectionSuccess
+        account={{ avatarUrl: 'https://cdn.example/x.jpg', name: '  ' }}
+        brand={resolvePlatformConnectionBrand('instagram')}
+        title="Instagram Connected"
+      />,
+    );
+
+    expect(screen.getByRole('status').textContent).toBe('Instagram Connected');
+  });
+
+  it('keeps the logo-only state when the account has neither picture nor name', () => {
+    const { container } = render(
+      <ConnectionSuccess
+        account={{ avatarUrl: null, name: null }}
+        brand={resolvePlatformConnectionBrand('instagram')}
+        title="Instagram Connected"
+      />,
+    );
+
+    expect(
+      container.querySelector('[data-connection-account]'),
+    ).not.toBeInTheDocument();
+    expect(
+      container.querySelector('.connection-success-trace'),
+    ).toBeInTheDocument();
+  });
+
   it('keeps a static success state for reduced motion', () => {
     render(
       <ConnectionSuccess

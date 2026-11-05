@@ -11,10 +11,14 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
+
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const LEADING_SLASH_PATTERN = /^\//;
 
 interface TelegramUpdate {
   edited_message?: TelegramUpdateMessage;
@@ -32,6 +36,7 @@ interface TelegramUpdateMessage {
   text?: string;
 }
 
+@Traced()
 @Injectable()
 export class TelegramBotAdapter implements IBotPlatformAdapter {
   private readonly constructorName: string = String(this.constructor.name);
@@ -87,9 +92,11 @@ export class TelegramBotAdapter implements IBotPlatformAdapter {
       return null;
     }
 
-    const [rawCommandToken, ...args] = message.text.trim().split(/\s+/);
+    const [rawCommandToken, ...args] = message.text
+      .trim()
+      .split(WHITESPACE_RUN_PATTERN);
     const commandToken = rawCommandToken
-      .replace(/^\//, '')
+      .replace(LEADING_SLASH_PATTERN, '')
       .split('@')[0]
       .toLowerCase();
 

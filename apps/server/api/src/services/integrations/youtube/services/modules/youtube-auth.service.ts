@@ -11,10 +11,12 @@ import {
 } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
 
+@Traced()
 @Injectable()
 export class YoutubeAuthService {
   constructor(

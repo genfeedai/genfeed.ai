@@ -19,12 +19,14 @@ export type {
   WorkspaceShellState,
 } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 
+const SAFE_IDENTIFIER_PATTERN = /^[A-Za-z0-9_-]+$/;
+
 function isSafeOpaqueId(value: string | null): value is string {
   return Boolean(
     value &&
       value !== 'undefined' &&
       value !== 'null' &&
-      /^[A-Za-z0-9_-]+$/.test(value),
+      SAFE_IDENTIFIER_PATTERN.test(value),
   );
 }
 

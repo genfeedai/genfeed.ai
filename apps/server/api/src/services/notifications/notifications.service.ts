@@ -22,6 +22,7 @@ import type {
 } from '@libs/interfaces/system-event.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export class EmailDeliveryError extends Error {
@@ -131,6 +132,7 @@ function isRetryableEmailDeliveryStatus(
  * the durable delivery worker calls these methods to hand a claimed delivery
  * to its provider and waits for the acknowledgement.
  */
+@Traced()
 @Injectable()
 export class NotificationsService {
   private readonly constructorName = this.constructor.name;

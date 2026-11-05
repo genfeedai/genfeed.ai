@@ -36,12 +36,15 @@ import {
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   forwardRef,
   Inject,
   Injectable,
 } from '@nestjs/common';
+
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
 const STATUS_TRANSITIONS: Record<TaskStatus, readonly TaskStatus[]> = {
   backlog: ['todo', 'in_progress', 'cancelled'],
@@ -91,6 +94,7 @@ type TaskWriteInput = CreateTaskDto & {
  * thin delegators so the HTTP contract (the controller still calls them here) is
  * preserved.
  */
+@Traced()
 @Injectable()
 export class TasksService extends BaseService<
   TaskDocument,
@@ -371,6 +375,7 @@ export class TasksService extends BaseService<
         id: taskId,
         OR: [{ checkoutAgentId: null }, { checkoutAgentId: agentId }],
       }),
+      select: { id: true },
     });
 
     if (!existing) return null;
@@ -772,7 +777,7 @@ export class TasksService extends BaseService<
     }
     const input = createDto as TaskWriteInput;
     const request = input.request ?? '';
-    const compactRequest = request.replace(/\s+/g, ' ').trim();
+    const compactRequest = request.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
     if (!compactRequest) return 'Untitled task';
     if (compactRequest.length <= 72) return compactRequest;
     return `${compactRequest.slice(0, 69).trimEnd()}...`;

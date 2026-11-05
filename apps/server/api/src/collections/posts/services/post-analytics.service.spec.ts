@@ -684,6 +684,7 @@ describe('C4 daily upsert, committed physical capture and awaited refresh', () =
         credentialId: 'credential_1',
         isDeleted: false,
       },
+      select: { epoch: true, evidenceRevision: true, mode: true },
     });
     expect(h.queue).toHaveBeenCalledExactlyOnceWith(
       {

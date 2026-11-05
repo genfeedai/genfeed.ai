@@ -4,6 +4,7 @@ import type {
   AgentStudioHandoffPayload,
   AgentStudioHandoffScope,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const CACHE_NAMESPACE = 'agent-studio-handoff';
@@ -23,6 +24,7 @@ type StoredAgentStudioHandoff = AgentStudioHandoffScope &
  * first time it is read, whether or not the scope matched, so a foreign
  * probe can never be retried into a hit.
  */
+@Traced()
 @Injectable()
 export class AgentStudioHandoffService {
   constructor(private readonly cacheService: CacheService) {}

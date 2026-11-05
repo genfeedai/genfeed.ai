@@ -17,6 +17,7 @@ import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ActivitySource } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -31,6 +32,7 @@ const MANAGED_INFERENCE_REFUND_DAYS = 30;
 const MANAGED_VIDEO_POLL_INTERVAL_MS = 10_000;
 const MANAGED_VIDEO_TIMEOUT_MS = 600_000;
 
+@Traced()
 @Injectable()
 export class ManagedInferenceService {
   private readonly constructorName = this.constructor.name;

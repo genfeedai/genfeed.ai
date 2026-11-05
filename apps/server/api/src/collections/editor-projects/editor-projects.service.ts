@@ -19,8 +19,10 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { type EditorProject, Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class EditorProjectsService extends BaseService<
   EditorProjectDocument,
@@ -99,6 +101,7 @@ export class EditorProjectsService extends BaseService<
       );
       const current = await tx.editorProject.findFirst({
         where: scopedWhere(organizationId, { id }),
+        select: { config: true },
       });
 
       if (!current) {

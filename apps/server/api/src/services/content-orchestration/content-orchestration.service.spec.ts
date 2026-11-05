@@ -24,7 +24,8 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
-vi.mock('@sentry/nestjs', () => ({
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
   SentryTraced:
     () => (_target: unknown, _key: string, descriptor: PropertyDescriptor) =>
       descriptor,

@@ -160,6 +160,7 @@ describe('ArticleAnalyticsService tenant scope (CLOUD tenant guard)', () => {
 
     expect(article.findFirst).toHaveBeenCalledWith({
       where: { id: 'article-1', isDeleted: false, organizationId: 'org-1' },
+      select: { brandId: true, organizationId: true, userId: true },
     });
   });
 

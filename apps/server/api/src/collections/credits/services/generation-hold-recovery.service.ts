@@ -38,6 +38,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { CreditReservation } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { z } from 'zod';
@@ -55,6 +56,7 @@ interface RecoveredCharge {
   source: ActivitySource;
 }
 
+@Traced()
 @Injectable()
 export class GenerationHoldRecoveryService {
   constructor(
@@ -328,6 +330,7 @@ export class GenerationHoldRecoveryService {
           organizationId: input.organizationId,
           isDeleted: false,
         },
+        select: { status: true },
       });
       const recorded = await this.activities.recordInTransaction(tx, {
         key:

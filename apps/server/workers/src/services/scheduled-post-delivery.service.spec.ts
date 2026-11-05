@@ -37,7 +37,8 @@ import { ScheduledPostFailureService } from '@workers/services/scheduled-post-fa
 import { PROVIDER_PUBLISH_LEASE_RENEWAL_MS } from '@workers/services/scheduled-post-provider-receipt.util';
 import { of } from 'rxjs';
 
-vi.mock('@sentry/nestjs', () => ({
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
   captureException: vi.fn(),
   captureMessage: vi.fn(),
 }));

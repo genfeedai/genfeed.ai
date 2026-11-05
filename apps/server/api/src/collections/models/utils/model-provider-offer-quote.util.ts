@@ -41,6 +41,7 @@ export async function findModelProviderOfferQuote(
     (
       await prisma.providerRoutingSetting.findMany({
         where: { isActive: false },
+        select: { provider: true },
       })
     ).map((setting) => setting.provider),
   );

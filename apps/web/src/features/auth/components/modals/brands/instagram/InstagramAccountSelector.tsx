@@ -132,7 +132,10 @@ export default function InstagramAccountSelector({
       await service.postSelectAccount(credentialId, selectedAccount.id);
 
       logger.info(`${url} success`);
-      onConnected();
+      onConnected({
+        avatarUrl: selectedAccount.image,
+        name: selectedAccount.label || selectedAccount.username,
+      });
     } catch (confirmError) {
       logger.error(`${url} failed`, confirmError);
       const message = translate('confirmError');

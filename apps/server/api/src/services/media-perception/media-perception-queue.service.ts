@@ -4,6 +4,7 @@ import {
   type MediaPerceptionJobData,
   type MediaPerceptionJobReason,
 } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
@@ -22,6 +23,7 @@ const FAILED_JOB_RETENTION_SECONDS = 30 * 60;
  * fails keeps its id for half an hour so a broken asset is not
  * re-fingerprinted on every two-minute sweep.
  */
+@Traced()
 @Injectable()
 export class MediaPerceptionQueueService {
   constructor(

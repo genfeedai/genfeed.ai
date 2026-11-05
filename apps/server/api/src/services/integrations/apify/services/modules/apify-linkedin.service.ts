@@ -2,6 +2,7 @@ import type { ApifyLinkedInPost } from '@api/services/integrations/apify/interfa
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
 import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
 import type { SocialSourceResearchContext } from '@api/services/source-collector/source-collector.types';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -11,6 +12,7 @@ import { Injectable } from '@nestjs/common';
  * (used to collect a competitor's LinkedIn timeline for Following/social
  * sources, since LinkedIn's own API only serves the authenticated member).
  */
+@Traced()
 @Injectable()
 export class ApifyLinkedInService {
   private readonly constructorName: string = String(this.constructor.name);

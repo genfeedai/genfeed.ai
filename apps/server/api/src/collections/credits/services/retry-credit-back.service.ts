@@ -13,6 +13,7 @@ import {
   RETRY_CREDIT_BACK_WINDOW_MS,
 } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Attempts of one brief the matcher compares against, newest first. */
@@ -49,6 +50,7 @@ function briefTextsOf(attempt: {
  * attempt, a free-trial organization earns nothing, and a per-user cap bounds
  * the total. Best effort: a failed grant must never fail the charge.
  */
+@Traced()
 @Injectable()
 export class RetryCreditBackService {
   private readonly constructorName = 'RetryCreditBackService';

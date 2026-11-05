@@ -5,8 +5,10 @@ import type {
 } from '@api/collections/videos/services/video-generation.types';
 import { KlingAIService } from '@api/services/integrations/klingai/services/klingai.service';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class KlingAiVideoGenerationProviderAdapter
   implements VideoGenerationProviderAdapter

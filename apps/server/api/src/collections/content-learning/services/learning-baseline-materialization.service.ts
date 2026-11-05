@@ -34,6 +34,7 @@ import {
   Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 type Request = {
@@ -100,6 +101,7 @@ function fingerprintCollision(error: unknown): boolean {
     target === 'content_learning_baselines_fingerprint_key'
   );
 }
+@Traced()
 @Injectable()
 export class LearningBaselineMaterializationService {
   constructor(
@@ -202,6 +204,7 @@ export class LearningBaselineMaterializationService {
     const { organizationId, brandId, credentialId } = request.scope;
     const organization = await tx.organization.findFirst({
       where: { id: organizationId, isDeleted: false },
+      select: { id: true, isDeleted: true },
     });
     if (
       !organization ||
@@ -211,6 +214,12 @@ export class LearningBaselineMaterializationService {
       return false;
     const brand = await tx.brand.findFirst({
       where: { id: brandId, organizationId, isDeleted: false, isActive: true },
+      select: {
+        id: true,
+        isActive: true,
+        isDeleted: true,
+        organizationId: true,
+      },
     });
     if (
       !brand ||
@@ -227,6 +236,14 @@ export class LearningBaselineMaterializationService {
         brandId,
         isDeleted: false,
         isConnected: true,
+      },
+      select: {
+        brandId: true,
+        id: true,
+        isConnected: true,
+        isDeleted: true,
+        organizationId: true,
+        platform: true,
       },
     });
     return (
@@ -250,6 +267,7 @@ export class LearningBaselineMaterializationService {
         organizationId: request.scope.organizationId,
         isDeleted: false,
       },
+      select: { id: true },
     });
     if (!initial) return null;
     const { organizationId, brandId, credentialId } = request.scope;
@@ -278,6 +296,7 @@ export class LearningBaselineMaterializationService {
         organizationId: request.scope.organizationId,
         isDeleted: false,
       },
+      select: { id: true },
     });
     if (!state) return null;
     const scopeKey = learningScopeKey(request.scope),
@@ -512,6 +531,17 @@ export class LearningBaselineMaterializationService {
       },
       orderBy: { id: 'asc' },
       take: 52,
+      select: {
+        derivedId: true,
+        derivedKind: true,
+        derivedOrganizationId: true,
+        isDeleted: true,
+        sourceId: true,
+        sourceKind: true,
+        sourceOrganizationId: true,
+        sourceVersion: true,
+        valid: true,
+      },
     });
     const refs = this.baselineRefs(row, request);
     if (edges.length !== refs.length) conflict();

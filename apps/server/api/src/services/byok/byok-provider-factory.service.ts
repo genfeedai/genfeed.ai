@@ -2,8 +2,12 @@ import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProvider } from '@genfeedai/contracts';
 import type { ByokResolutionResult } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
+@Traced()
 @Injectable()
 export class ByokProviderFactoryService {
   constructor(
@@ -64,6 +68,6 @@ export class ByokProviderFactoryService {
       return undefined;
     }
 
-    return `${apiUrl.replace(/\/+$/, '')}/v1/managed-inference`;
+    return `${apiUrl.replace(TRAILING_SLASHES_PATTERN, '')}/v1/managed-inference`;
   }
 }

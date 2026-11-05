@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+const TRAILING_ZEROS_PATTERN = /0+$/;
+const LEADING_ZEROS_PATTERN = /^0+(?=\d)/;
+
 const opaqueTaskId = z.string().regex(/^[\x21-\x7e]{1,256}$/);
 const credits = z.number().finite().nonnegative();
 const integer = z.number().finite().int().nonnegative();
@@ -62,8 +65,8 @@ export function normalizeCrunCreditNumber(value: number): string {
         ? `${digits}${'0'.repeat(point - digits.length)}`
         : `${digits.slice(0, point)}.${digits.slice(point)}`;
   const [integerPart, decimalPart = ''] = decimal.split('.');
-  const normalizedFraction = decimalPart.replace(/0+$/, '');
-  return `${integerPart.replace(/^0+(?=\d)/, '')}${normalizedFraction ? `.${normalizedFraction}` : ''}`;
+  const normalizedFraction = decimalPart.replace(TRAILING_ZEROS_PATTERN, '');
+  return `${integerPart.replace(LEADING_ZEROS_PATTERN, '')}${normalizedFraction ? `.${normalizedFraction}` : ''}`;
 }
 
 export function parseCrunCreateTask(

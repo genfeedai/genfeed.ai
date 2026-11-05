@@ -20,6 +20,7 @@ import {
   crossOrgUnsafe,
   runWithTenantContext,
 } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,
@@ -35,6 +36,7 @@ interface RelocationPayload {
   updates: Partial<UpdateBrandDto> & { organizationId: string };
 }
 
+@Traced()
 @Injectable()
 export class BrandRelocationJobsService {
   constructor(
@@ -241,6 +243,7 @@ export class BrandRelocationJobsService {
             },
             isDeleted: false,
           },
+          select: { organizationId: true, userId: true },
         });
         if (brand?.organizationId === operation.destinationOrganizationId) {
           await this.relocation.assertCanRelocate(
@@ -285,6 +288,7 @@ export class BrandRelocationJobsService {
             organizationId: operation.organizationId,
             isDeleted: false,
           },
+          select: { status: true },
         });
         if (committed?.status === BrandRelocationStatus.DONE) {
           this.logger.warn('Brand move committed before a post-commit error', {

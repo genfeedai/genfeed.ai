@@ -20,6 +20,7 @@ import {
 } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { setSpanRequestContext } from '@libs/tracing/span-request-context';
 import { Inject, Injectable, type NestMiddleware } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 
@@ -68,6 +69,9 @@ export class RequestContextMiddleware implements NestMiddleware {
   async hydrate(req: RequestWithContext): Promise<void> {
     await this.hydrateContext(req);
     this.bindSuperAdminToAdminIp(req);
+    if (req.context) {
+      setSpanRequestContext(req.context);
+    }
   }
 
   /**

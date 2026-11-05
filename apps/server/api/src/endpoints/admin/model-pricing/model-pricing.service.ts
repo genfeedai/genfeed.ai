@@ -35,11 +35,14 @@ import {
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { platformOrTenantScope } from '@libs/prisma/platform-scope';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+
+const HYPHENS_OR_SPACES_PATTERN = /[- ]/g;
 
 const pricingContractSelect = {
   provider: true,
@@ -171,7 +174,7 @@ function evidence(
 }
 
 function priceTypeForUnit(unit: string | null): string | null {
-  switch (unit?.toLowerCase().replaceAll(/[- ]/g, '_')) {
+  switch (unit?.toLowerCase().replaceAll(HYPHENS_OR_SPACES_PATTERN, '_')) {
     case 'image':
       return 'flat';
     case 'request':
@@ -473,6 +476,7 @@ function configuredMargin(
     : null;
 }
 
+@Traced()
 @Injectable()
 export class AdminModelPricingService {
   constructor(private readonly prisma: PrismaService) {}

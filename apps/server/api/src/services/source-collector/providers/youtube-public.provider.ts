@@ -6,9 +6,16 @@ import type {
 } from '@api/services/source-collector/source-collector.types';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
+
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const ISO_TIMESTAMP_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
+const YOUTUBE_HANDLE_PATTERN = /^@?[\p{L}\p{N}_.-]{3,30}$/u;
+const LEADING_AT_SIGN_PATTERN = /^@/;
 
 const API_URL = 'https://www.googleapis.com/youtube/v3';
 const CHANNEL_ID = /^UC[a-zA-Z0-9_-]{22}$/;
@@ -65,7 +72,7 @@ function text(value: unknown): string | undefined {
 function count(value: unknown): number | undefined {
   if (
     typeof value !== 'number' &&
-    !(typeof value === 'string' && /^\d+$/.test(value))
+    !(typeof value === 'string' && DIGITS_ONLY_PATTERN.test(value))
   ) {
     return undefined;
   }
@@ -74,10 +81,7 @@ function count(value: unknown): number | undefined {
 }
 
 function date(value: unknown): Date | undefined {
-  if (
-    typeof value !== 'string' ||
-    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(value)
-  ) {
+  if (typeof value !== 'string' || !ISO_TIMESTAMP_PATTERN.test(value)) {
     return undefined;
   }
   const parsed = new Date(value);
@@ -87,6 +91,7 @@ function date(value: unknown): Date | undefined {
     : undefined;
 }
 
+@Traced()
 @Injectable()
 export class YoutubePublicProvider implements SourceTimelineProvider {
   readonly name = 'app-api-key' as const;
@@ -118,7 +123,7 @@ export class YoutubePublicProvider implements SourceTimelineProvider {
     }
     const input = handle.trim();
     const isChannelId = CHANNEL_ID.test(input);
-    if (!isChannelId && !/^@?[\p{L}\p{N}_.-]{3,30}$/u.test(input)) {
+    if (!isChannelId && !YOUTUBE_HANDLE_PATTERN.test(input)) {
       throw new Error(
         'YouTube public provider requires a channel ID or handle',
       );
@@ -130,7 +135,7 @@ export class YoutubePublicProvider implements SourceTimelineProvider {
       const channels = await this.request('channels', key, {
         ...(isChannelId
           ? { id: input }
-          : { forHandle: input.replace(/^@/, '') }),
+          : { forHandle: input.replace(LEADING_AT_SIGN_PATTERN, '') }),
         maxResults: 1,
         part: 'snippet,contentDetails',
       });

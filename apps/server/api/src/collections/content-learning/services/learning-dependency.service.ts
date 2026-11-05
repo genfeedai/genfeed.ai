@@ -15,6 +15,7 @@ import {
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { type Prisma } from '@genfeedai/prisma';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 
@@ -360,6 +361,7 @@ function learningWalkHasCycle(
   }
   return false;
 }
+@Traced()
 @Injectable()
 export class LearningDependencyService {
   constructor(private readonly prisma: PrismaService) {}
@@ -418,6 +420,7 @@ export class LearningDependencyService {
     if (!organizationId) return null;
     const organization = await tx.organization.findFirst({
       where: { id: organizationId, isDeleted: false },
+      select: { id: true, isDeleted: true },
     });
     if (
       !organization ||
@@ -557,6 +560,7 @@ export class LearningDependencyService {
           organizationId: row.organizationId,
           isDeleted: false,
         },
+        select: { sharingConsentVersion: true },
       });
       return account?.sharingConsentVersion === row.version
         ? String(row.version)

@@ -13,6 +13,9 @@
 
 import { logger } from '~utils/logger.util';
 
+const MEDIA_INPUT_HINT_PATTERN = /image|video|gif/;
+const SUBMIT_BUTTON_HINT_PATTERN = /post|tweet|reply/;
+
 export interface SelectorConfig {
   primary: string;
   fallbacks: string[];
@@ -260,7 +263,7 @@ function findFileInputSemantic(): HTMLInputElement | null {
     const element = input as HTMLInputElement;
     const accept = element.getAttribute('accept') || '';
 
-    const acceptsMedia = /image|video|gif/.test(accept);
+    const acceptsMedia = MEDIA_INPUT_HINT_PATTERN.test(accept);
 
     const isInComposeContext =
       element.closest('[data-testid*="tweet"]') !== null ||
@@ -290,7 +293,8 @@ function findSubmitButtonSemantic(): HTMLElement | null {
 
     // Check for post/tweet/reply labels
     const isPostButton =
-      /post|tweet|reply/.test(ariaLabel) || /post|tweet|reply/.test(innerText);
+      SUBMIT_BUTTON_HINT_PATTERN.test(ariaLabel) ||
+      SUBMIT_BUTTON_HINT_PATTERN.test(innerText);
 
     const isInComposeContext =
       element.closest('[data-testid*="tweetTextarea"]') !== null ||

@@ -6,6 +6,7 @@ import {
   parseAgentUntrustedContentOrigin,
   parseAgentUntrustedContentSource,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type StoredAgentUntrustedContentAuditRow = {
@@ -37,6 +38,7 @@ type StoredAgentUntrustedContentAuditRow = {
  * how the false-positive rate on real tool traffic is sized before anything
  * is ever withheld, so they carry the tool and the source, never the content.
  */
+@Traced()
 @Injectable()
 export class AgentUntrustedContentAuditsService {
   constructor(private readonly prisma: PrismaService) {}

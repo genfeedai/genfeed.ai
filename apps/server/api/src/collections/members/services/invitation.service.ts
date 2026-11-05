@@ -14,12 +14,17 @@ import {
 import type { Invitation, Member, Prisma, User } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
   GoneException,
   Injectable,
 } from '@nestjs/common';
+
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const EDGE_HYPHENS_PATTERN = /^-+|-+$/g;
+const TRAILING_SLASH_PATTERN = /\/$/;
 
 const INVITATION_TOKEN_BYTES = 32;
 const INVITATION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
@@ -107,8 +112,8 @@ function generateHandle(email: string): string {
     email
       .split('@')[0]
       ?.toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
+      .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
+      .replace(EDGE_HYPHENS_PATTERN, '')
       .slice(0, 24) || 'user';
 
   return `${base}-${randomUUID().slice(0, 8)}`;
@@ -159,6 +164,7 @@ function toInvitationView(invitation: Invitation): InvitationView {
   };
 }
 
+@Traced()
 @Injectable()
 export class InvitationService {
   private readonly context = { service: InvitationService.name };
@@ -593,6 +599,7 @@ export class InvitationService {
   ): Promise<User> {
     const existing = await tx.user.findFirst({
       where: { email: invitation.email, isDeleted: false },
+      select: { id: true },
     });
 
     if (existing) {
@@ -826,7 +833,7 @@ export class InvitationService {
     const configured = this.configService.get('GENFEEDAI_APP_URL');
 
     if (typeof configured === 'string' && configured.length > 0) {
-      return configured.replace(/\/$/, '');
+      return configured.replace(TRAILING_SLASH_PATTERN, '');
     }
 
     return DEFAULT_APP_URL;

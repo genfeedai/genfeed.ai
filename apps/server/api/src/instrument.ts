@@ -1,5 +1,9 @@
 import { isClientAbortedRequest } from '@api/helpers/utils/client-aborted-request/client-aborted-request.util';
 import { getSentryConfig } from '@libs/config/sentry.config';
+import {
+  continueIncomingTraceparent,
+  registerSpanRequestContext,
+} from '@libs/tracing/span-request-context';
 import { init } from '@sentry/nestjs';
 
 const BOT_PROBE_PATTERNS = [
@@ -47,4 +51,6 @@ if (config) {
     },
     integrations: [],
   });
+  registerSpanRequestContext();
+  continueIncomingTraceparent();
 }

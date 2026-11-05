@@ -12,6 +12,9 @@ import { z } from 'zod';
 import { CredentialPlatform, formatPlatformLabel, parsePlatform } from '../..';
 import { getCurrentSocialWarmupBlueprint } from './social-warmup-blueprint.contract';
 
+const NO_AUTOMATED_ENGAGEMENT_PATTERN = /no automated engagement/i;
+const PUBLISHING_HOLD_PATTERN = /publishing hold|productized scheduler/i;
+
 export const SOCIAL_WARMUP_CAPABILITY_REVIEWED_ON = '2026-08-14';
 
 export const socialWarmupSupportClassValues = [
@@ -747,15 +750,13 @@ export function evaluateSocialWarmupExpansionGate(
   }
   if (
     !capability ||
-    !/no automated engagement/i.test(capability.policyConstraints)
+    !NO_AUTOMATED_ENGAGEMENT_PATTERN.test(capability.policyConstraints)
   ) {
     missing.push('no_automated_engagement');
   }
   if (
     !capability ||
-    !/publishing hold|productized scheduler/i.test(
-      capability.publishingCapabilities,
-    )
+    !PUBLISHING_HOLD_PATTERN.test(capability.publishingCapabilities)
   ) {
     missing.push('publishing_gate_consumes_enrollment_signals');
   }

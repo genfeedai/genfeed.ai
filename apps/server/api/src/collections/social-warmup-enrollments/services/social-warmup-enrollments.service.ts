@@ -52,6 +52,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const enrollmentInclude = {
@@ -86,6 +87,7 @@ interface SyncYoutubeAuthorizedSnapshotParams {
   snapshot: YoutubeAuthorizedSignalsSnapshot;
 }
 
+@Traced()
 @Injectable()
 export class SocialWarmupEnrollmentsService {
   constructor(
@@ -294,6 +296,15 @@ export class SocialWarmupEnrollmentsService {
         brandId: params.brandId,
         credentialId: params.credentialId,
       }),
+      select: {
+        blueprintId: true,
+        blueprintVersion: true,
+        brandId: true,
+        credentialId: true,
+        enrolledByUserId: true,
+        id: true,
+        organizationId: true,
+      },
     });
     if (!enrollment) {
       return;
@@ -755,6 +766,7 @@ export class SocialWarmupEnrollmentsService {
         enrollmentId: params.enrollmentId,
         key: params.key,
       }),
+      select: { id: true },
     });
 
     if (existing) {

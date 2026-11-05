@@ -19,6 +19,7 @@ import {
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 
@@ -59,6 +60,7 @@ function assertSyncDiagnosable(
   return result;
 }
 
+@Traced()
 @Injectable()
 export class SocialInboxSyncWorkflowService implements OnModuleInit {
   constructor(

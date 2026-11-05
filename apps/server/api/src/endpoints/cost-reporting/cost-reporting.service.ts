@@ -20,6 +20,7 @@ import type {
   ICostReportTotals,
 } from '@genfeedai/contracts/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const DEFAULT_ENTRY_LIMIT = 50;
@@ -62,6 +63,7 @@ interface CostEntryRow {
   totalCount: NumericSqlValue;
 }
 
+@Traced()
 @Injectable()
 export class CostReportingService {
   constructor(private readonly prisma: PrismaService) {}

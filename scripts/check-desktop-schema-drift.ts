@@ -25,6 +25,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+const PRISMA_MODEL_LINE_PATTERN = /^model\s+(\w+)\s+\{$/;
+const PRISMA_FIELD_LINE_PATTERN = /^(\w+)\s+(\S+)/;
+const PRISMA_TYPE_MODIFIERS_PATTERN = /(\[\]|\?)+$/;
+
 const ROOT_DIR = path.resolve(__dirname, '..');
 const SERVER_SCHEMA_PATH = path.join(
   ROOT_DIR,
@@ -172,14 +176,13 @@ function parseSchema(schemaPath: string): ParsedSchema {
   const models = new Map<string, Set<string>>();
   const modelNames = new Set<string>();
 
-  const modelBlockPattern = /^model\s+(\w+)\s+\{$/;
   let currentModel: string | null = null;
   const rawFields = new Map<string, Map<string, string>>();
 
   for (const line of source.split('\n')) {
     const trimmed = line.trim();
     if (currentModel === null) {
-      const match = modelBlockPattern.exec(trimmed);
+      const match = PRISMA_MODEL_LINE_PATTERN.exec(trimmed);
       if (match) {
         currentModel = match[1];
         modelNames.add(currentModel);
@@ -198,7 +201,7 @@ function parseSchema(schemaPath: string): ParsedSchema {
     ) {
       continue;
     }
-    const fieldMatch = /^(\w+)\s+(\S+)/.exec(trimmed);
+    const fieldMatch = PRISMA_FIELD_LINE_PATTERN.exec(trimmed);
     if (fieldMatch) {
       rawFields.get(currentModel)?.set(fieldMatch[1], fieldMatch[2]);
     }
@@ -207,7 +210,7 @@ function parseSchema(schemaPath: string): ParsedSchema {
   for (const [model, fields] of rawFields) {
     const scalarFields = new Set<string>();
     for (const [fieldName, fieldType] of fields) {
-      const baseType = fieldType.replace(/(\[\]|\?)+$/, '');
+      const baseType = fieldType.replace(PRISMA_TYPE_MODIFIERS_PATTERN, '');
       // Relation fields point at another model in the same schema; the
       // contract tracks scalar columns only.
       if (modelNames.has(baseType)) {

@@ -46,6 +46,23 @@ export async function registerBreakoutResponse(
       format: input.format,
       isDeleted: false,
     },
+    select: {
+      brandId: true,
+      contentDigest: true,
+      credentialId: true,
+      externalId: true,
+      format: true,
+      id: true,
+      isDeleted: true,
+      isResponse: true,
+      logicalPostId: true,
+      nativeSourcePostId: true,
+      organizationId: true,
+      platform: true,
+      postId: true,
+      publicationFingerprint: true,
+      receivedAt: true,
+    },
   });
   if (!target) return { status: 'missing_target' };
   if (
@@ -151,7 +168,10 @@ export async function reserveBreakoutOutputPlan(
     platform: input.platform,
     isDeleted: false,
   };
-  const response = await tx.breakoutResponse.findFirst({ where });
+  const response = await tx.breakoutResponse.findFirst({
+    where,
+    select: { outputPlanFingerprint: true, state: true },
+  });
   if (!response) return { status: 'missing_response' };
   const planFingerprint = hash(['breakout-output-plan-v1', where, slots]);
   if (

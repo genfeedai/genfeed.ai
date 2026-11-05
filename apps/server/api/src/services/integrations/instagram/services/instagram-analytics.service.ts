@@ -5,6 +5,7 @@ import {
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { InstagramCredentialResponse } from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -38,6 +39,7 @@ export class InstagramAnalyticsService {
     private readonly resolveCredential: ResolveInstagramCredential,
   ) {}
 
+  @Traced()
   async getMediaAnalytics(
     organizationId: string,
     brandId: string,

@@ -3,6 +3,7 @@ import {
   StripeService,
 } from '@api/services/integrations/stripe/services/stripe.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -10,6 +11,7 @@ import { Injectable } from '@nestjs/common';
  * Saves a card without charging it so the free-trial credits can be released
  * against that card.
  */
+@Traced()
 @Injectable()
 export class TrialCardSetupService {
   constructor(

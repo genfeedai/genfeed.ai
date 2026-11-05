@@ -1,15 +1,21 @@
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { KlingAIWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
+
+const IMAGE_URL_HINT_PATTERN = /image|thumbnail|cover/;
+const VIDEO_URL_EXTENSION_PATTERN = /\.(mp4|mov|webm|mkv|avi)(\?|$)/;
+const IMAGE_URL_EXTENSION_PATTERN = /\.(png|jpg|jpeg|webp|gif)(\?|$)/;
 
 type MediaUrls = {
   videoUrls: string[];
   imageUrls: string[];
 };
 
+@Traced()
 @Injectable()
 export class KlingWebhookService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -165,15 +171,15 @@ export class KlingWebhookService {
     if (lowerKey.includes('video')) {
       return 'video';
     }
-    if (/image|thumbnail|cover/.test(lowerKey)) {
+    if (IMAGE_URL_HINT_PATTERN.test(lowerKey)) {
       return 'image';
     }
 
     // Fall back to file extension
-    if (/\.(mp4|mov|webm|mkv|avi)(\?|$)/.test(lowerUrl)) {
+    if (VIDEO_URL_EXTENSION_PATTERN.test(lowerUrl)) {
       return 'video';
     }
-    if (/\.(png|jpg|jpeg|webp|gif)(\?|$)/.test(lowerUrl)) {
+    if (IMAGE_URL_EXTENSION_PATTERN.test(lowerUrl)) {
       return 'image';
     }
 

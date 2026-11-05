@@ -16,8 +16,10 @@ import { normalizeUiBlocks } from '@api/services/agent-orchestrator/utils/agent-
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { AgentMessageRole } from '@genfeedai/contracts';
 import { type AgentDashboardOperation } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class AgentOrchestratorUiActionFinalizerService {
   constructor(

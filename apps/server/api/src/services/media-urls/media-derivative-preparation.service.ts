@@ -19,6 +19,7 @@ import type {
 import { MEDIA_DELIVERY_QUEUE } from '@genfeedai/contracts/queue';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { InjectQueue } from '@nestjs/bullmq';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
@@ -46,6 +47,7 @@ function describeFilesFailure(error: unknown): Record<string, unknown> {
 }
 
 /** Producer plus durable variant state. Rendering is owned by the worker. */
+@Traced()
 @Injectable()
 export class MediaDerivativePreparationService {
   constructor(
@@ -86,6 +88,7 @@ export class MediaDerivativePreparationService {
           policyVersion: MEDIA_DELIVERY_POLICY_VERSION,
           purpose,
         },
+        select: { state: true },
       });
       // A failed render needs explicit authenticated recovery, not perpetual public polling.
       if (!existing || existing.state === 'PENDING')
@@ -235,7 +238,10 @@ export class MediaDerivativePreparationService {
       purpose: data.purpose,
       sourceIdentity: data.sourceIdentity,
     };
-    const variant = await this.prisma.mediaDeliveryVariant.findFirst({ where });
+    const variant = await this.prisma.mediaDeliveryVariant.findFirst({
+      where,
+      select: { state: true },
+    });
     if (
       !variant ||
       variant.state === 'READY' ||

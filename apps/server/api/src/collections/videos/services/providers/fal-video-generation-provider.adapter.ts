@@ -15,7 +15,13 @@ import {
   FalSchemaFamily,
 } from '@api/services/integrations/fal/services/fal-contract';
 import type { ModelProvider } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
+
+const SEEDANCE_MODEL_PATTERN =
+  /^(?:bytedance\/seedance-|fal-ai\/bytedance\/seedance\/)/;
+const SEEDANCE_2_5_REFERENCE_TO_VIDEO_PATTERN =
+  /^bytedance\/seedance-2\.5\/(?:us\/)?reference-to-video$/;
 
 const GEMINI_OMNI_FLASH_ENDPOINT = 'google/gemini-omni-flash';
 const MINIMAX_H3_MAX_TEXT_ENDPOINT = 'minimax/h3-max/text-to-video';
@@ -50,7 +56,7 @@ export function prepareFalVideoDispatch(
     params.modelEndpoint ?? params.model,
   );
   if (
-    /^(?:bytedance\/seedance-|fal-ai\/bytedance\/seedance\/)/.test(endpoint) &&
+    SEEDANCE_MODEL_PATTERN.test(endpoint) &&
     params.modelSchemaFamily &&
     params.modelInputSchema
   ) {
@@ -82,9 +88,7 @@ export function prepareFalVideoDispatch(
         promptParams,
       },
     );
-    if (
-      /^bytedance\/seedance-2\.5\/(?:us\/)?reference-to-video$/.test(endpoint)
-    ) {
+    if (SEEDANCE_2_5_REFERENCE_TO_VIDEO_PATTERN.test(endpoint)) {
       if (input.task === 'editing') input.duration = 'auto';
       if (input.task === 'editing' || input.task === 'extension')
         input.aspect_ratio = 'auto';
@@ -202,6 +206,7 @@ export function prepareFalVideoDispatch(
   };
 }
 
+@Traced()
 @Injectable()
 export class FalVideoGenerationProviderAdapter
   implements VideoGenerationProviderAdapter

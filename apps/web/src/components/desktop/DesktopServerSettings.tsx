@@ -15,6 +15,9 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
 
+const IPC_ERROR_PREFIX_PATTERN =
+  /^Error invoking remote method '[^']+': (?:[A-Za-z]*Error: )?/;
+
 const EMPTY_SELF_HOSTED: IDesktopSelfHostedServerConfig = {
   apiEndpoint: '',
   appEndpoint: '',
@@ -24,10 +27,7 @@ const EMPTY_SELF_HOSTED: IDesktopSelfHostedServerConfig = {
 
 function readErrorMessage(error: unknown, fallback: string): string {
   const message = error instanceof Error ? error.message : fallback;
-  return message.replace(
-    /^Error invoking remote method '[^']+': (?:[A-Za-z]*Error: )?/,
-    '',
-  );
+  return message.replace(IPC_ERROR_PREFIX_PATTERN, '');
 }
 
 function toPayload(

@@ -13,6 +13,9 @@ import {
 } from '../tokens/status-colors';
 import type { BadgeVariant } from './badge.variants';
 
+const UNDERSCORES_PATTERN = /_/g;
+const WORD_INITIALS_PATTERN = /\b\w/g;
+
 export interface BadgeStatus {
   /** Extra tint classes for a canonical status; layered over the variant. */
   className?: string;
@@ -23,8 +26,8 @@ export interface BadgeStatus {
 
 function toLabel(status: string): string {
   return status
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (character) => character.toUpperCase());
+    .replace(UNDERSCORES_PATTERN, ' ')
+    .replace(WORD_INITIALS_PATTERN, (character) => character.toUpperCase());
 }
 
 function fromCanonical(

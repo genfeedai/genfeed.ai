@@ -25,7 +25,10 @@ import {
 import type { ILlmCompletionCallContext } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
+
+const TRAILING_SLASH_PATTERN = /\/$/;
 
 type LlmProvider = 'anthropic' | 'openai' | 'openrouter' | 'local';
 
@@ -36,6 +39,7 @@ type LlmProvider = 'anthropic' | 'openai' | 'openrouter' | 'local';
  */
 const SELF_HOSTED_FALLBACK_MODEL = LLM_DEFAULTS.selfHostedFallback;
 
+@Traced()
 @Injectable()
 export class LlmDispatcherService {
   private readonly constructorName = String(this.constructor.name);
@@ -243,7 +247,7 @@ export class LlmDispatcherService {
           return this.openAiLlmService.chatCompletion(
             params,
             undefined,
-            `${endpoint?.replace(/\/$/, '')}/v1`,
+            `${endpoint?.replace(TRAILING_SLASH_PATTERN, '')}/v1`,
           );
         default:
           return this.openRouterService.chatCompletion(params, apiKeyOverride);

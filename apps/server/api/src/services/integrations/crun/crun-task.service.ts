@@ -29,15 +29,20 @@ import { crunCreditsEqual } from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
 import { type CrunGenerationTask, toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
 
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+const CRUN_TASK_NOT_FOUND_CODE_PATTERN = /^CRUN_TASK_NOT_FOUND_(\d+)$/;
+
 /** Prepared rows live seconds; anything older was abandoned mid-dispatch. */
 const STALE_PREPARED_AGE_MS = 15 * 60 * 1000;
 
+@Traced()
 @Injectable()
 export class CrunTaskService {
   constructor(
@@ -168,7 +173,7 @@ export class CrunTaskService {
           referenceCount < 0 ||
           referenceCount > 14 ||
           typeof input.inputMetadata.intentHash !== 'string' ||
-          !/^[a-f0-9]{64}$/.test(input.inputMetadata.intentHash)
+          !SHA256_HEX_PATTERN.test(input.inputMetadata.intentHash)
         )
           throw new BadRequestException({ code: 'CRUN_TASK_METADATA_INVALID' });
         rows.push(
@@ -180,7 +185,7 @@ export class CrunTaskService {
               inputMetadata: {
                 referenceCount,
                 ...(typeof input.inputMetadata.intentHash === 'string' &&
-                /^[a-f0-9]{64}$/.test(input.inputMetadata.intentHash)
+                SHA256_HEX_PATTERN.test(input.inputMetadata.intentHash)
                   ? { intentHash: input.inputMetadata.intentHash }
                   : {}),
               },
@@ -658,7 +663,7 @@ export class CrunTaskService {
     const consecutive404 =
       result.reasonCode === 'CRUN_TASK_NOT_FOUND'
         ? Number(
-            task.failureCode?.match(/^CRUN_TASK_NOT_FOUND_(\d+)$/)?.[1] ?? 0,
+            task.failureCode?.match(CRUN_TASK_NOT_FOUND_CODE_PATTERN)?.[1] ?? 0,
           ) + 1
         : 0;
     if (result.disposition === 'recovery' || consecutive404 >= 3)

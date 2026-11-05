@@ -15,6 +15,7 @@ import {
   storyboardRunSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 export function storyboardJson(
@@ -39,6 +40,7 @@ export function projectStoryboardRun(
   });
 }
 
+@Traced()
 @Injectable()
 export class StoryboardRunStoreService {
   private readonly snapshots = new WeakMap<

@@ -11,7 +11,10 @@ import { ContextEmbeddingWriteService } from '@api/collections/contexts/services
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
+
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
 interface CaptureAgentMemoryPayload {
   campaignId?: string;
@@ -33,6 +36,7 @@ interface CaptureAgentMemoryPayload {
   saveToContextMemory?: boolean;
 }
 
+@Traced()
 @Injectable()
 export class AgentMemoryCaptureService {
   constructor(
@@ -192,7 +196,7 @@ export class AgentMemoryCaptureService {
   }
 
   private summarize(content: string): string {
-    const trimmed = content.trim().replace(/\s+/g, ' ');
+    const trimmed = content.trim().replace(WHITESPACE_RUNS_PATTERN, ' ');
     if (trimmed.length <= 220) {
       return trimmed;
     }

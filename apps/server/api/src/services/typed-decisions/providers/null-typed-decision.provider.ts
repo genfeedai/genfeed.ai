@@ -6,6 +6,7 @@ import type {
   TypedDecisionProvider,
   TypedDecisionScoreParams,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -14,6 +15,7 @@ import { Injectable } from '@nestjs/common';
  * sub-threshold confidence — so a self-host install keeps its deterministic
  * behaviour on every migrated decision point.
  */
+@Traced()
 @Injectable()
 export class NullTypedDecisionProvider implements TypedDecisionProvider {
   readonly name = NULL_TYPED_DECISION_PROVIDER_NAME;

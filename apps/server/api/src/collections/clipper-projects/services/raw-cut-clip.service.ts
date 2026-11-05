@@ -1,6 +1,7 @@
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { RAW_CUT_JOB_PREFIX } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 /** Provider name recorded on deterministic clipper-results. */
@@ -51,6 +52,7 @@ export interface RawCutDispatchResult {
  * chaining the caption burn and persisting the produced URL is the orchestrator's
  * responsibility.
  */
+@Traced()
 @Injectable()
 export class RawCutClipService {
   private readonly logContext = 'RawCutClipService';

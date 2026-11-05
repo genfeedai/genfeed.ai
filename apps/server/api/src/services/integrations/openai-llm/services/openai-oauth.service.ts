@@ -3,6 +3,7 @@ import { ByokProvider } from '@genfeedai/contracts';
 import type { IByokKeyEntry } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -31,6 +32,7 @@ interface OAuthTokenResponse {
   token_type: string;
 }
 
+@Traced()
 @Injectable()
 export class OpenAiOAuthService {
   private readonly constructorName = String(this.constructor.name);

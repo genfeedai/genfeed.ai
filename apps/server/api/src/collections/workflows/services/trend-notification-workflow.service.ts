@@ -23,6 +23,7 @@ import {
 import type { Setting } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type TrendNotificationAction =
@@ -61,6 +62,7 @@ export interface TrendNotificationWorkflowResult {
   trends: number;
 }
 
+@Traced()
 @Injectable()
 export class TrendNotificationWorkflowService {
   private readonly logContext = 'TrendNotificationWorkflowService';

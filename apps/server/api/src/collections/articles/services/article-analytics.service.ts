@@ -13,8 +13,10 @@ import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util'
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ArticleAnalyticsService extends BaseService<
   ArticleAnalyticsDocument,
@@ -106,6 +108,7 @@ export class ArticleAnalyticsService extends BaseService<
     // Fetch article to get required fields for upsert
     const article = await this.prisma.article.findFirst({
       where: scopedWhere(organizationId, { id: articleId }),
+      select: { brandId: true, organizationId: true, userId: true },
     });
     if (!article) {
       this.logger.error(`Article ${articleId} not found for analytics update`);

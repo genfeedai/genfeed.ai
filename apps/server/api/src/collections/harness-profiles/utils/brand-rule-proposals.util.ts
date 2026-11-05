@@ -1,3 +1,10 @@
+const WHITESPACE_RUN_PATTERN = /\s+/u;
+const EDGE_NON_WORD_PATTERN = /^[^\p{L}\p{N}@#]+|[^\p{L}\p{N}]+$/gu;
+const STYLE_SPAN_CHAR_PATTERN = /[\p{N}@#]/u;
+const WHITESPACE_RUNS_PATTERN = /\s+/gu;
+const ENDS_WITH_SENTENCE_PUNCTUATION_PATTERN = /[.!?]$/u;
+const NON_WORD_CHARS_PATTERN = /[^\p{L}\p{N}\s]/gu;
+
 /** Longest span, in words, that still reads as a style choice and not a rewrite. */
 const MAX_SPAN_WORDS = 6;
 /** Posts longer than this many words are not diffed; the cost grows with both texts. */
@@ -47,8 +54,8 @@ export interface BrandRuleProposalInput {
 }
 
 function tokenize(text: string): WordToken[] {
-  return text.split(/\s+/u).flatMap((word) => {
-    const stripped = word.replace(/^[^\p{L}\p{N}@#]+|[^\p{L}\p{N}]+$/gu, '');
+  return text.split(WHITESPACE_RUN_PATTERN).flatMap((word) => {
+    const stripped = word.replace(EDGE_NON_WORD_PATTERN, '');
     return stripped ? [{ key: stripped.toLowerCase(), text: stripped }] : [];
   });
 }
@@ -151,7 +158,7 @@ function toHunks(segments: readonly DiffSegment[]): DiffHunk[] {
 function isStyleSpan(words: readonly WordToken[]): boolean {
   if (words.length === 0 || words.length > MAX_SPAN_WORDS) return false;
   if (words.every((word) => FILLER_WORDS.has(word.key))) return false;
-  return words.every((word) => !/[\p{N}@#]/u.test(word.text));
+  return words.every((word) => !STYLE_SPAN_CHAR_PATTERN.test(word.text));
 }
 
 function quote(words: readonly WordToken[]): string {
@@ -167,9 +174,11 @@ function toRule(hunk: DiffHunk): string | null {
 
 /** The reason a user gave for rejecting a draft, as a rule when it is short enough to be one. */
 function ruleFromReason(reason: string | undefined): string | null {
-  const trimmed = reason?.trim().replace(/\s+/gu, ' ') ?? '';
+  const trimmed = reason?.trim().replace(WHITESPACE_RUNS_PATTERN, ' ') ?? '';
   if (trimmed.length < 3 || trimmed.length > MAX_BRAND_RULE_LENGTH) return null;
-  return /[.!?]$/u.test(trimmed) ? trimmed : `${trimmed}.`;
+  return ENDS_WITH_SENTENCE_PUNCTUATION_PATTERN.test(trimmed)
+    ? trimmed
+    : `${trimmed}.`;
 }
 
 /**
@@ -206,7 +215,7 @@ export function deriveBrandRuleProposals(
 export function normalizeBrandRule(rule: string): string {
   return rule
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, '')
-    .replace(/\s+/gu, ' ')
+    .replace(NON_WORD_CHARS_PATTERN, '')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
 }

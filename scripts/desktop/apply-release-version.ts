@@ -27,6 +27,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const VERSION_FIELD_PATTERN = /("version"\s*:\s*)"[^"]*"/;
+
 export const DESKTOP_TAG_PREFIX = 'desktop-v';
 
 /**
@@ -89,7 +91,7 @@ export function applyDesktopReleaseVersion(options: {
   // JSON.stringify would reorder nothing but would drop the file's exact
   // formatting, and this manifest is hand-maintained and Biome-formatted.
   const updated = source.replace(
-    /("version"\s*:\s*)"[^"]*"/,
+    VERSION_FIELD_PATTERN,
     `$1${JSON.stringify(version)}`,
   );
 

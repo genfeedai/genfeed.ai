@@ -12,6 +12,7 @@ import type {
   TopPostsBlock,
 } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const DEFAULT_PAGE_KEY = 'workspace-overview';
@@ -43,6 +44,7 @@ function resolvePageKey(params: Record<string, unknown>): string {
  * Dashboard layout persistence + live render/hydration tools.
  * Extracted/extended from AgentToolExecutorService per #519/#520.
  */
+@Traced()
 @Injectable()
 export class AgentDashboardToolHandler {
   constructor(

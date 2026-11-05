@@ -51,11 +51,13 @@ import {
 import { resolveDirectMessageCapability } from '@genfeedai/helpers';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
 const X_DM_MAX_PAGES = 5;
 
+@Traced()
 @Injectable()
 export class SocialInboxIngestionService {
   constructor(
@@ -640,6 +642,14 @@ export class SocialInboxIngestionService {
           scope.organizationId,
           ownedPublicInboxPostFilter(Platform.LINKEDIN, credential.id, brandId),
         ),
+        select: {
+          brandId: true,
+          description: true,
+          externalId: true,
+          id: true,
+          label: true,
+          url: true,
+        },
       });
 
       for (const post of posts) {

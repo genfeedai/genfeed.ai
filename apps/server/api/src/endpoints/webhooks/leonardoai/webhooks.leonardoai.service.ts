@@ -1,9 +1,11 @@
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { LeonardoAIWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class LeonardoaiWebhookService {
   private readonly constructorName: string = String(this.constructor.name);

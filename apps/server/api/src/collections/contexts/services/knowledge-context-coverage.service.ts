@@ -24,6 +24,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export const CONTEXT_COVERAGE_SOURCE_LIMIT = 200;
@@ -41,6 +42,7 @@ export interface ContextCoverageRequest {
  * is complete. Scope always comes from the authenticated actor: callers cannot
  * widen it, and a family the actor may not read is absent rather than empty.
  */
+@Traced()
 @Injectable()
 export class KnowledgeContextCoverageService {
   constructor(

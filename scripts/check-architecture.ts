@@ -98,6 +98,10 @@ const checks = [
     name: 'Local type-guard helpers',
   },
   {
+    command: ['bun', 'run', 'scripts/architecture/check-traced-definitions.ts'],
+    name: 'Traced definitions',
+  },
+  {
     command: [
       'bun',
       'run',

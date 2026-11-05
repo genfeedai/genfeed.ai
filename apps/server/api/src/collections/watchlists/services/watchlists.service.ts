@@ -14,6 +14,7 @@ import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const WATCHLIST_CREATE_SCALAR_FIELDS = [
@@ -47,6 +48,7 @@ type WatchlistOwnershipInput = {
 
 type WatchlistCreateInput = CreateWatchlistDto & WatchlistOwnershipInput;
 
+@Traced()
 @Injectable()
 export class WatchlistsService extends BaseService<
   WatchlistDocument,

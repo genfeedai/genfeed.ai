@@ -42,6 +42,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/linkedin-authorized-signals.contract';
 import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -71,6 +72,8 @@ export {
   LINKEDIN_ORG_READ_SCOPE,
   LINKEDIN_PROFILE_SCOPE,
 } from './linkedin-authorized-signals-evidence.mapper';
+
+const LINKEDIN_ORGANIZATION_URN_PATTERN = /urn:li:organization:(\d+)/;
 
 const LINKEDIN_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS = 5 * 60;
 const LINKEDIN_STALE_SIGNALS_CACHE_TTL_SECONDS = 60;
@@ -151,10 +154,11 @@ function organizationIdFromUrn(urn: string | undefined): string | undefined {
   if (!urn) {
     return undefined;
   }
-  const match = urn.match(/urn:li:organization:(\d+)/);
+  const match = urn.match(LINKEDIN_ORGANIZATION_URN_PATTERN);
   return match?.[1];
 }
 
+@Traced()
 @Injectable()
 export class LinkedInAuthorizedSignalsService {
   private readonly constructorName = this.constructor.name;

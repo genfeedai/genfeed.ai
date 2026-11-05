@@ -12,12 +12,14 @@ import {
   SocialMessageDirection,
 } from '@genfeedai/contracts';
 import type { SocialSuggestedReply } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class SocialInboxSuggestedReplyService {
   constructor(
@@ -34,6 +36,14 @@ export class SocialInboxSuggestedReplyService {
     const { organizationId } = scope;
     const conversation = await this.prisma.socialConversation.findFirst({
       where: { id: conversationId, organizationId, isDeleted: false },
+      select: {
+        brandId: true,
+        conversationType: true,
+        participantHandle: true,
+        participantName: true,
+        platform: true,
+        sourceContentTitle: true,
+      },
     });
     if (!conversation)
       throw new NotFoundException('Conversation', conversationId);

@@ -27,7 +27,10 @@ import {
   escapeSystemEmailHtml,
 } from '@helpers/email/system-email.helper';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+
+const TRAILING_SLASH_PATTERN = /\/$/;
 
 export interface EmailDigestResult {
   sent: number;
@@ -94,6 +97,7 @@ export interface EmailDigestRendered {
   deliveries: EmailDigestDelivery[];
 }
 
+@Traced()
 @Injectable()
 export class EmailDigestService {
   constructor(
@@ -158,7 +162,7 @@ export class EmailDigestService {
       );
     const appUrl = (
       this.config.get('GENFEEDAI_APP_URL') ?? 'https://app.genfeed.ai'
-    ).replace(/\/$/, '');
+    ).replace(TRAILING_SLASH_PATTERN, '');
     const destinationUrl = `${appUrl}${createBrandAppRoute(encodeURIComponent(organization.slug), encodeURIComponent(brand.slug), APP_ROUTES.LIBRARY.ASSETS)}`;
     const corpusUrl = `${appUrl}${createBrandAppRoute(encodeURIComponent(organization.slug), encodeURIComponent(brand.slug), APP_ROUTES.SETTINGS.KNOWLEDGE)}`;
     const summary = await this.performanceSummaryService.getWeeklySummary(

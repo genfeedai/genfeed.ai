@@ -12,6 +12,7 @@ import {
 } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 
@@ -50,6 +51,7 @@ function reviewOnly(reason: string): BreakoutAutoPublishResult {
  * Auto-publication is best effort. The response is already paid for and its draft is valid, so
  * any hold, policy refusal or failure leaves the draft for review instead of failing the run.
  */
+@Traced()
 @Injectable()
 export class BreakoutAutoPublishService {
   constructor(

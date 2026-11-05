@@ -13,6 +13,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 // The canonical implementation lives in contracts so packages that cannot
 // depend on libs (e.g. @genfeedai/actions) share it; libs re-exports it.
 const SHARED_HELPER_FILES = new Set([
@@ -127,7 +129,7 @@ function collectOccurrences(
       [...source.matchAll(pattern)].map((match) => ({
         file,
         line: lineForOffset(source, match.index),
-        match: match[0].replace(/\s+/g, ' ').slice(0, 80),
+        match: match[0].replace(WHITESPACE_RUNS_PATTERN, ' ').slice(0, 80),
       })),
     )
     .sort((left, right) => left.line - right.line);

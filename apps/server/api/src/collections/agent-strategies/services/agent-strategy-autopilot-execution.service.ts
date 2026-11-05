@@ -67,8 +67,10 @@ import {
 import { getPlatformTextLimit } from '@genfeedai/helpers/content/platform-text-length.helper';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class AgentStrategyAutopilotExecutionService {
   constructor(

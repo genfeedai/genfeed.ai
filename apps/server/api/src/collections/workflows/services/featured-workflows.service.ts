@@ -14,6 +14,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IFeaturedWorkflowSummary } from '@genfeedai/contracts/interfaces';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -45,6 +46,7 @@ function toSummary(
  * thumbnail and the graph with source-organization bindings blanked. Config,
  * schedule, locks, run history, owner and brand never leave the source row.
  */
+@Traced()
 @Injectable()
 export class FeaturedWorkflowsService {
   constructor(

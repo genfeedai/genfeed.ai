@@ -16,6 +16,9 @@ import {
 } from '@api/services/integrations/direct-media/direct-media-transport';
 import { compileRunwayDirectRequest } from '@api/services/integrations/direct-media/runway/runway-direct.contract';
 
+const PERCENT_ENCODED_BYTES_PATTERN = /%[0-9a-f]{2}/gi;
+const LINE_BREAK_CHAR_PATTERN = /[\r\n]/;
+
 const ORIGIN = 'https://api.dev.runwayml.com';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function invalid(isSubmissionUncertain = false): never {
@@ -35,8 +38,10 @@ function hasCredentialReflection(value: string, apiKey: string): boolean {
   let decoded = value;
   for (let pass = 0; pass < 3; pass++) {
     if (decoded.includes(apiKey)) return true;
-    const next = decoded.replace(/%[0-9a-f]{2}/gi, (encoded: string) =>
-      String.fromCharCode(Number.parseInt(encoded.slice(1), 16)),
+    const next = decoded.replace(
+      PERCENT_ENCODED_BYTES_PATTERN,
+      (encoded: string) =>
+        String.fromCharCode(Number.parseInt(encoded.slice(1), 16)),
     );
     if (next === decoded) return false;
     decoded = next;
@@ -69,7 +74,7 @@ function taskUrl(task: DirectMediaTask, apiKey: string): string {
   return url;
 }
 function headers(context: DirectMediaRequestContext): Record<string, string> {
-  if (!context.apiKey || /[\r\n]/.test(context.apiKey))
+  if (!context.apiKey || LINE_BREAK_CHAR_PATTERN.test(context.apiKey))
     throw new DirectMediaProviderError(
       'PROVIDER_ACCESS_DENIED',
       'A valid Runway credential is required.',

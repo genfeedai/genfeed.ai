@@ -29,6 +29,7 @@ import {
 import { CreditTransactionCategory } from '@genfeedai/contracts';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type CreateTransactionEntryOptions = {
@@ -42,6 +43,7 @@ type CreateTransactionEntryOptions = {
   referenceType?: string;
 };
 
+@Traced()
 @Injectable()
 export class CreditTransactionsService extends BaseService<
   CreditTransactionsDocument,

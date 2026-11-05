@@ -32,6 +32,7 @@ import {
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const REWARD_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
@@ -42,6 +43,7 @@ const ANSWER_CAMPAIGN = 'onboarding-answer';
 const trialIdempotencyKey = (userId: string): string =>
   `onboarding:trial:${userId}`;
 
+@Traced()
 @Injectable()
 export class OnboardingCreditGrantsService {
   constructor(
@@ -96,6 +98,7 @@ export class OnboardingCreditGrantsService {
           isProactiveOnboarding: false,
           warmupAccounts: { none: { isDeleted: false } },
         },
+        select: { billingAccountId: true },
       });
       if (!organization) return null;
       const idempotencyKey = `onboarding:welcome:${userId}`;
@@ -186,6 +189,7 @@ export class OnboardingCreditGrantsService {
           isProactiveOnboarding: false,
           warmupAccounts: { none: { isDeleted: false } },
         },
+        select: { id: true },
       });
       if (!organization) return 'unavailable';
       return (await this.findTrialGrant(tx, userId)) ? 'claimed' : 'claimable';
@@ -223,6 +227,7 @@ export class OnboardingCreditGrantsService {
           isProactiveOnboarding: false,
           warmupAccounts: { none: { isDeleted: false } },
         },
+        select: { billingAccountId: true },
       });
       if (!organization) return null;
       const idempotencyKey = trialIdempotencyKey(userId);
@@ -304,6 +309,11 @@ export class OnboardingCreditGrantsService {
     const outcome = await this.runSerializable(async (tx) => {
       const settings = await tx.organizationSetting.findFirst({
         where: { organizationId },
+        select: {
+          id: true,
+          onboardingJourneyCompletedAt: true,
+          onboardingJourneyMissions: true,
+        },
       });
       if (!settings) return { missions: [], additions: [] };
       const missions = this.organizationSettingsService.normalizeJourneyState(

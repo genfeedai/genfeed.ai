@@ -16,6 +16,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export const WORKFLOW_ARTIFACT_ACTION_IDS = {
@@ -56,6 +57,7 @@ type CleanupScope = {
   userId: string;
 };
 
+@Traced()
 @Injectable()
 export class WorkflowArtifactLifecycleService implements OnModuleInit {
   private readonly context = 'WorkflowArtifactLifecycleService';
@@ -171,6 +173,13 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
   }> {
     const existing = await this.prisma.workflowArtifact.findFirst({
       where: scopedWhere(input.organizationId, { id: input.artifactId }),
+      select: {
+        expiresAt: true,
+        id: true,
+        promotionTargetId: true,
+        promotionTargetType: true,
+        state: true,
+      },
     });
     if (!existing) {
       throw new Error(`Workflow artifact ${input.artifactId} was not found`);
@@ -276,6 +285,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
           { cleanupClaimedAt: { lte: staleClaim }, state: 'DELETING' },
         ],
       } satisfies Prisma.WorkflowArtifactWhereInput),
+      select: { id: true, storageKey: true, storageProvider: true },
     });
 
     let deleted = 0;

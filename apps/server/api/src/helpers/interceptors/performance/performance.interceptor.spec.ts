@@ -11,7 +11,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
 import { firstValueFrom, Observable, of, throwError } from 'rxjs';
 
-vi.mock('@sentry/nestjs', () => ({
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
   getActiveSpan: vi.fn(),
   metrics: {
     count: vi.fn(),

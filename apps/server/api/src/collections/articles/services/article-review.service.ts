@@ -12,8 +12,10 @@ import type { TextByokDispatch } from '@api/services/byok/text-dispatch-byok.uti
 import { appendHarnessBriefToPrompt } from '@api/services/harness/harness-brief.util';
 import { ArticleCategory } from '@genfeedai/contracts';
 import type { ContentHarnessBrief } from '@genfeedai/harness';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ArticleReviewService {
   private readonly defaultArticleLabel = 'Untitled Article';

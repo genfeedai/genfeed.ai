@@ -1,10 +1,12 @@
 import type { PlatformConfig } from '~platforms/config';
 
+const DATA_URL_MIME_PATTERN = /:(.*?);/;
+
 export type MediaAttachOutcome = 'attached' | 'failed' | 'unsupported';
 
 export function dataUrlToFile(dataUrl: string, filename: string): File {
   const [header, payload = ''] = dataUrl.split(',');
-  const mime = header.match(/:(.*?);/)?.[1] ?? 'image/png';
+  const mime = header.match(DATA_URL_MIME_PATTERN)?.[1] ?? 'image/png';
   const bytes = atob(payload);
   const buffer = new Uint8Array(bytes.length);
   for (let index = 0; index < bytes.length; index += 1) {

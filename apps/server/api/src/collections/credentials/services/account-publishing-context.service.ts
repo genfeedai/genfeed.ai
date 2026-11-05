@@ -23,7 +23,10 @@ import {
   readString,
 } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
+
+const LEADING_AT_SIGN_PATTERN = /^@/;
 
 export interface ResolveAccountPublishingContextParams {
   brandId: string;
@@ -56,6 +59,7 @@ function normalizeCredentialPlatform(value: unknown): CredentialPlatform {
   return platform;
 }
 
+@Traced()
 @Injectable()
 export class AccountPublishingContextService {
   constructor(
@@ -213,7 +217,9 @@ export class AccountPublishingContextService {
       return explicitLabel;
     }
 
-    return handle ? `${platform} @${handle.replace(/^@/, '')}` : platform;
+    return handle
+      ? `${platform} @${handle.replace(LEADING_AT_SIGN_PATTERN, '')}`
+      : platform;
   }
 
   private getConstraints(
@@ -288,7 +294,9 @@ export class AccountPublishingContextService {
     ];
 
     if (context.account.handle) {
-      hints.push(`Handle: @${context.account.handle.replace(/^@/, '')}`);
+      hints.push(
+        `Handle: @${context.account.handle.replace(LEADING_AT_SIGN_PATTERN, '')}`,
+      );
     }
 
     if (context.brand.label) {

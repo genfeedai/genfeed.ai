@@ -2,6 +2,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AgentUiAction } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -15,6 +16,7 @@ function record(value: unknown): Record<string, unknown> {
     : {};
 }
 
+@Traced()
 @Injectable()
 export class AgentGenerationDecisionService {
   constructor(private readonly prisma: PrismaService) {}
@@ -55,6 +57,7 @@ export class AgentGenerationDecisionService {
           isDeleted: false,
           status: 'active',
         },
+        select: { brandId: true, contextVersion: true },
       });
       if (!thread)
         throw new NotFoundException(

@@ -11,6 +11,9 @@ import {
   utilityOf,
 } from './restyle';
 
+const CLASS_NAME_PROP_PATTERN = /^(className|\w+ClassName)$/;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 export type JsxTag = ts.JsxOpeningElement | ts.JsxSelfClosingElement;
 
 /** Files that define the shared components are not callers. */
@@ -26,9 +29,7 @@ export function classUtilities(
   for (const attribute of tag.attributes.properties) {
     if (
       ts.isJsxAttribute(attribute) &&
-      /^(className|\w+ClassName)$/.test(
-        attribute.name.getText(source.sourceFile),
-      ) &&
+      CLASS_NAME_PROP_PATTERN.test(attribute.name.getText(source.sourceFile)) &&
       attribute.initializer
     ) {
       collectStrings(attribute.initializer, constants, strings);
@@ -37,7 +38,7 @@ export function classUtilities(
   return new Set(
     strings
       .join(' ')
-      .split(/\s+/)
+      .split(WHITESPACE_RUN_PATTERN)
       .filter((token) => token.length > 0)
       .map(utilityOf),
   );

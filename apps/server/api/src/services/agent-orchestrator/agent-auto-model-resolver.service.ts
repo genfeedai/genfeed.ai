@@ -6,6 +6,7 @@ import { RouterPriority } from '@genfeedai/contracts';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { AgentAutoRoutingResolution } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -20,6 +21,7 @@ import { Injectable } from '@nestjs/common';
  */
 export const AGENT_AUTO_ROUTING_DECISION_POINT = 'agent.auto_routing_candidate';
 
+@Traced()
 @Injectable()
 export class AgentAutoModelResolverService {
   private readonly constructorName = String(this.constructor.name);

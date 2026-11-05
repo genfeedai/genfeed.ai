@@ -18,6 +18,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { GENFEED_ACTION_NODE_TYPE } from '@genfeedai/actions';
 import { WorkflowStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -89,6 +90,7 @@ const DEFAULT_RECURRING_TYPES: DefaultRecurringContentType[] = [
   'image',
 ];
 
+@Traced()
 @Injectable()
 export class DefaultRecurringContentService {
   private readonly logContext = 'DefaultRecurringContentService';

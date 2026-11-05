@@ -3,6 +3,8 @@ import type {
   ExtensionPublicationPlatform,
 } from '@genfeedai/contracts/interfaces/content/extension-publication.interface';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 export function publicationInsightLookupKind(
   platform: ExtensionPublicationPlatform,
   pageUrl: string,
@@ -19,7 +21,7 @@ export function publicationInsightLookupKind(
     return 'reply';
   if (platform === 'reddit') {
     const segments = url.pathname
-      .replace(/\/$/, '')
+      .replace(TRAILING_SLASH_PATTERN, '')
       .slice(1)
       .split('/')
       .map((segment) => decodeURIComponent(segment));

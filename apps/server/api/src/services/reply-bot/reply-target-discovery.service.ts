@@ -25,7 +25,10 @@ import type {
   IReplyTargetSuggestion,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
+
+const LEADING_AT_SIGN_PATTERN = /^@/;
 
 const SEARCH_RESULT_LIMIT = 50;
 /** Authors looked up for follower counts; one user lookup each. */
@@ -59,6 +62,7 @@ interface AuthorTally {
  * warm-up monitor. It only reads: nothing is replied to from here, and the
  * monitor's replies are drafts for a person to post.
  */
+@Traced()
 @Injectable()
 export class ReplyTargetDiscoveryService {
   constructor(
@@ -150,7 +154,9 @@ export class ReplyTargetDiscoveryService {
     userId: string;
     username: string;
   }): Promise<IReplyTargetAddResult> {
-    const username = params.username.trim().replace(/^@/, '');
+    const username = params.username
+      .trim()
+      .replace(LEADING_AT_SIGN_PATTERN, '');
     if (!username) {
       throw new BadRequestException('Choose an account to monitor.');
     }
@@ -343,7 +349,9 @@ export class ReplyTargetDiscoveryService {
       select: { externalHandle: true },
       where: scopedWhere(organizationId, { brandId, platform }),
     });
-    return (credential?.externalHandle ?? '').replace(/^@/, '').toLowerCase();
+    return (credential?.externalHandle ?? '')
+      .replace(LEADING_AT_SIGN_PATTERN, '')
+      .toLowerCase();
   }
 
   private async findBrandCredentialId(

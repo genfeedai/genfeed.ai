@@ -45,7 +45,12 @@ import {
   withPlatformTenantArm,
 } from '@libs/prisma/platform-scope';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
+
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const REPEATED_HYPHENS_PATTERN = /-{2,}/g;
+const EDGE_HYPHEN_PATTERN = /^-|-$/g;
 
 const PAGINATION_OPTION_KEYS = new Set([
   'allowDiskUse',
@@ -101,6 +106,7 @@ const SUCCESSOR_REQUIRED_LIFECYCLES = new Set<ModelLifecycle>([
   ModelLifecycle.RETIRED,
 ]);
 
+@Traced()
 @Injectable()
 export class ModelsService extends BaseService<
   ModelDocument,
@@ -141,9 +147,9 @@ export class ModelsService extends BaseService<
   private slugify(value: string): string {
     return value
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/-{2,}/g, '-')
-      .replace(/^-|-$/g, '');
+      .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
+      .replace(REPEATED_HYPHENS_PATTERN, '-')
+      .replace(EDGE_HYPHEN_PATTERN, '');
   }
 
   private async resolveOrganizationSlug(

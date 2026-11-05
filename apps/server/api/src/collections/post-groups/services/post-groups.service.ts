@@ -53,6 +53,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -75,6 +76,7 @@ function publishingCapabilityForReleaseStatus(
   return 'schedule';
 }
 
+@Traced()
 @Injectable()
 export class PostGroupsService {
   constructor(
@@ -316,6 +318,7 @@ export class PostGroupsService {
     if (post.groupId) {
       const existing = await this.prisma.postGroup.findFirst({
         where: scopedWhere(organizationId, { id: post.groupId }),
+        select: { id: true },
       });
       if (existing) {
         return this.persistenceService.hydrateWithDerivedStatus(

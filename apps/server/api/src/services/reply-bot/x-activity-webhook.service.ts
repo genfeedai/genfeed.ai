@@ -14,6 +14,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { toPrismaCredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -27,6 +28,7 @@ export type XActivityIntakeResult = {
   mode: 'live' | 'disabled' | 'missing-secret';
 };
 
+@Traced()
 @Injectable()
 export class XActivityWebhookService {
   private readonly constructorName = String(this.constructor.name);

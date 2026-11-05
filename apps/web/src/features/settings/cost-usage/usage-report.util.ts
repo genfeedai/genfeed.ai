@@ -1,5 +1,7 @@
 import type { ICostReportDailyTotals } from '@genfeedai/contracts/interfaces/billing';
 
+const FORMULA_PREFIX_PATTERN = /^\s*[=+@-]/;
+
 export function usageModelLabel(model: string | null): string {
   return model?.split('/').filter(Boolean).at(-1) || '—';
 }
@@ -11,7 +13,7 @@ export function buildUsageRowsCsv(rows: (string | number)[][]): string {
         .map((value) => {
           const text = String(value);
           const safe =
-            typeof value === 'string' && /^\s*[=+@-]/.test(text)
+            typeof value === 'string' && FORMULA_PREFIX_PATTERN.test(text)
               ? `'${text}`
               : text;
           return `"${safe.replaceAll('"', '""')}"`;

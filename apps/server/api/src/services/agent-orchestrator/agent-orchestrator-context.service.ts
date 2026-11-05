@@ -53,7 +53,10 @@ import {
 } from '@genfeedai/contracts';
 import type { ResolvedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
+
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
 function buildGenerationModePrompt(
   mode: AgentChatRequest['generationMode'],
@@ -79,6 +82,7 @@ function isInFlowBrandQuestionTurn(request: AgentChatRequest): boolean {
   );
 }
 
+@Traced()
 @Injectable()
 export class AgentOrchestratorContextService {
   private readonly constructorName = String(this.constructor.name);
@@ -662,7 +666,9 @@ export class AgentOrchestratorContextService {
 
   private formatMemoryLine(memory: AgentMemoryDocument): string {
     const base = sanitizeAgentUntrustedInput(
-      (memory.summary || memory.content || '').trim().replace(/\s+/g, ' '),
+      (memory.summary || memory.content || '')
+        .trim()
+        .replace(WHITESPACE_RUNS_PATTERN, ' '),
     );
 
     if (!base) {

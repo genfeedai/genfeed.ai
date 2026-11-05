@@ -9,6 +9,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditTransactionCategory } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type CreditFlow =
@@ -111,6 +112,7 @@ interface BusinessAnalyticsResponse {
   };
 }
 
+@Traced()
 @Injectable()
 export class BusinessAnalyticsService {
   constructor(

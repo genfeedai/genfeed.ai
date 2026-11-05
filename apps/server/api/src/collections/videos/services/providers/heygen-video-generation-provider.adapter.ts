@@ -5,6 +5,7 @@ import type {
 } from '@api/collections/videos/services/video-generation.types';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 function httpsUrls(value: unknown): string[] {
@@ -30,6 +31,7 @@ function optionalInteger(value: unknown): number | undefined {
  * `AvatarVideoGenerationService` and are not claimed here.
  * The poll returns a signed URL as `remote-output`.
  */
+@Traced()
 @Injectable()
 export class HeyGenVideoGenerationProviderAdapter
   implements VideoGenerationProviderAdapter

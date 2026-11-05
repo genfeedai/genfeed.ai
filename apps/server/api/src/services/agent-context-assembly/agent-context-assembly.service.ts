@@ -33,6 +33,7 @@ import { KnowledgeSourcePurpose } from '@genfeedai/contracts';
 import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
 import { computeBrandKitReadiness } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable, Optional } from '@nestjs/common';
 import {
   BRAND_CONTEXT_CHARACTER_BUDGET,
@@ -48,6 +49,8 @@ import {
   toBrandKitSourceBrand,
 } from './brand-context-fields.util';
 import { rankByQueryOverlap } from './text-overlap.util';
+
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
 const DEFAULT_LAYERS: Required<ContextLayers> = {
   brandGuidance: true,
@@ -82,6 +85,7 @@ type EffectiveBrandAgentConfig = ReturnType<
   typeof resolveEffectiveBrandAgentConfig
 >;
 
+@Traced()
 @Injectable()
 export class AgentContextAssemblyService {
   private readonly constructorName = String(this.constructor.name);
@@ -666,7 +670,7 @@ export class AgentContextAssemblyService {
    * section (a `## ...` or `HEADER:` line) and shift budget priorities.
    */
   private toPromptLine(value: string, maxLength?: number): string {
-    const line = value.replace(/\s+/g, ' ').trim();
+    const line = value.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
     if (maxLength === undefined || line.length <= maxLength) {
       return line;
     }

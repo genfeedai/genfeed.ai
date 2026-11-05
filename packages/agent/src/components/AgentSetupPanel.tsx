@@ -19,6 +19,8 @@ import { LayoutGrid } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { useMemo } from 'react';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 interface AgentSetupPanelProps {
   brand: Brand | undefined | null;
   className?: string;
@@ -70,7 +72,7 @@ function ConnectedAccountChip({
         </span>
         {connection.handle ? (
           <span className="block truncate text-2xs text-muted-foreground">
-            @{connection.handle.replace(/^@/, '')}
+            @{connection.handle.replace(LEADING_AT_SIGN_PATTERN, '')}
           </span>
         ) : null}
       </span>

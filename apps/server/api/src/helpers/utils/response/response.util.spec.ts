@@ -1,4 +1,5 @@
 import {
+  returnInternalServerError,
   returnNotFound,
   setTopLinks,
 } from '@api/helpers/utils/response/response.util';
@@ -18,6 +19,38 @@ describe('response.utils', () => {
           title: 'User not found',
         });
       }
+    });
+  });
+
+  describe('returnInternalServerError', () => {
+    it('keeps the original error as the cause without changing the response body', () => {
+      const original = new Error('Stripe lookup failed');
+      let thrown: unknown;
+      try {
+        returnInternalServerError('Failed to get subscription', original);
+      } catch (e: unknown) {
+        thrown = e;
+      }
+
+      expect(thrown).toBeInstanceOf(HttpException);
+      const ex = thrown as HttpException;
+      expect(ex.getStatus()).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+      expect(ex.getResponse()).toEqual({
+        detail: 'Failed to get subscription',
+        title: 'Internal Server Error',
+      });
+      expect(ex.cause).toBe(original);
+    });
+
+    it('has no cause when none is given', () => {
+      let thrown: unknown;
+      try {
+        returnInternalServerError();
+      } catch (e: unknown) {
+        thrown = e;
+      }
+
+      expect((thrown as HttpException).cause).toBeUndefined();
     });
   });
 

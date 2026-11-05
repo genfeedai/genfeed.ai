@@ -24,6 +24,19 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const REGEX_SPECIAL_CHARS_PATTERN = /[|\\{}()[\]^$+?.]/g;
+const QUOTED_STRINGS_PATTERN = /['"]([^'"]+)['"]/g;
+const VITEST_INCLUDE_PATTERN = /\binclude\s*:\s*\[([\s\S]*?)\]/;
+const VITEST_EXCLUDE_PATTERN = /\bexclude\s*:\s*\[([\s\S]*?)\]/;
+const TRAILING_SLASH_PATTERN = /\/$/;
+const VITEST_PROJECTS_PATTERN = /\bprojects\s*:\s*\[([\s\S]*?)\]/;
+const VITEST_PROJECTS_KEY_PATTERN = /\bprojects\s*:/;
+const YAML_EXTENSION_PATTERN = /\.ya?ml$/;
+const COMMAND_SEPARATOR_PATTERN = /\n|&&|;/;
+const CD_COMMAND_PATTERN = /^\s*cd\s+(\S+)/;
+const VITEST_WORD_PATTERN = /\bvitest\b/;
+const CONFIG_FLAG_PATTERN = /--config\b/;
+
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
 const TEST_FILE_PATTERN = /\.(?:test|spec|e2e-spec|e2e\.test)\.[cm]?[jt]sx?$/;
@@ -166,7 +179,7 @@ export function globToRegExp(pattern) {
  * @returns {string}
  */
 function escapeRegExp(value) {
-  return value.replace(/[|\\{}()[\]^$+?.]/g, '\\$&');
+  return value.replace(REGEX_SPECIAL_CHARS_PATTERN, '\\$&');
 }
 
 /**
@@ -232,7 +245,7 @@ export function stripNamedObjectBlock(source, name) {
  * @returns {string[]}
  */
 export function readQuotedStrings(source) {
-  return [...source.matchAll(/['"]([^'"]+)['"]/g)].map((match) => match[1]);
+  return [...source.matchAll(QUOTED_STRINGS_PATTERN)].map((match) => match[1]);
 }
 
 /**
@@ -252,12 +265,8 @@ export function extractVitestTestGlobs(source) {
   while (match) {
     const block = readBalancedBlock(source, match.index + match[0].length - 1);
     const withoutCoverage = stripNamedObjectBlock(block, 'coverage');
-    const includeMatch = withoutCoverage.match(
-      /\binclude\s*:\s*\[([\s\S]*?)\]/,
-    );
-    const excludeMatch = withoutCoverage.match(
-      /\bexclude\s*:\s*\[([\s\S]*?)\]/,
-    );
+    const includeMatch = withoutCoverage.match(VITEST_INCLUDE_PATTERN);
+    const excludeMatch = withoutCoverage.match(VITEST_EXCLUDE_PATTERN);
 
     if (includeMatch) {
       includes.push(...readQuotedStrings(includeMatch[1]));
@@ -362,7 +371,9 @@ export function listVitestConfigFiles(rootDir) {
  */
 export function relativizeToRoot(file, root) {
   const normalizedFile = file.replaceAll('\\', '/');
-  const normalizedRoot = root.replaceAll('\\', '/').replace(/\/$/, '');
+  const normalizedRoot = root
+    .replaceAll('\\', '/')
+    .replace(TRAILING_SLASH_PATTERN, '');
   if (normalizedRoot === '.' || normalizedRoot === '') return normalizedFile;
   if (normalizedFile === normalizedRoot) return '';
   const prefix = `${normalizedRoot}/`;
@@ -396,12 +407,12 @@ const VITEST_PROJECT_PATH_PATTERN =
   /vitest(?:\.[a-z0-9*-]+)?\.config(?:\.[a-z0-9-]+)?\.[cm]?[jt]s$/;
 
 export function extractVitestProjectGlobs(source) {
-  const inline = source.match(/\bprojects\s*:\s*\[([\s\S]*?)\]/);
+  const inline = source.match(VITEST_PROJECTS_PATTERN);
   if (inline) {
     return readQuotedStrings(inline[1]);
   }
 
-  if (!/\bprojects\s*:/.test(source)) {
+  if (!VITEST_PROJECTS_KEY_PATTERN.test(source)) {
     return [];
   }
 
@@ -479,7 +490,7 @@ export function listExecutableRunnerCommands(rootDir) {
   }
 
   for (const file of listFilesByName(rootDir, '.github/workflows', (name) =>
-    /\.ya?ml$/.test(name),
+    YAML_EXTENSION_PATTERN.test(name),
   )) {
     records.push({
       cwd: '',
@@ -498,8 +509,8 @@ export function resolveCommandConfigPaths(record) {
   const paths = new Set();
   let cwd = record.cwd;
 
-  for (const segment of record.text.split(/\n|&&|;/)) {
-    const cdMatch = segment.match(/^\s*cd\s+(\S+)/);
+  for (const segment of record.text.split(COMMAND_SEPARATOR_PATTERN)) {
+    const cdMatch = segment.match(CD_COMMAND_PATTERN);
     if (cdMatch) {
       cwd = path.posix.normalize(
         path.posix.join(record.cwd || '.', cdMatch[1]),
@@ -537,7 +548,10 @@ export function listReferencedVitestConfigFiles(rootDir, configFiles) {
       }
     }
 
-    if (/\bvitest\b/.test(record.text) && !/--config\b/.test(record.text)) {
+    if (
+      VITEST_WORD_PATTERN.test(record.text) &&
+      !CONFIG_FLAG_PATTERN.test(record.text)
+    ) {
       for (const configFile of configFiles) {
         const directory = path.posix.dirname(configFile);
         const basename = path.posix.basename(configFile);

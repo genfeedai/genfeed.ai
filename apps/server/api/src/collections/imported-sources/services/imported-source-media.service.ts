@@ -10,7 +10,9 @@ import {
   importedSourceMediaRetrySchema,
   importedSourceMediaStartSchema,
 } from '@genfeedai/contracts/api-types/contracts/imported-source-media.contract';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
+@Traced()
 @Injectable()
 export class ImportedSourceMediaService {
   constructor(

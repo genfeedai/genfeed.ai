@@ -25,6 +25,7 @@ import {
   STORAGE_READ_MAX_BYTES,
   StorageReadError,
 } from '@genfeedai/storage';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -32,6 +33,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class BrandedGenerationArtifactMaterialService {
   private readonly storage = createStorageProvider();
@@ -263,6 +265,7 @@ export class BrandedGenerationArtifactMaterialService {
           brandId: actor.brandId,
           isDeleted: false,
         },
+        select: { s3Key: true },
       });
       if (!ingredient)
         throw new NotFoundException({ message: 'receipt_artifact_not_found' });

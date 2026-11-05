@@ -18,6 +18,7 @@ import type { ByokResolutionResult } from '@genfeedai/contracts/interfaces';
 import { extractHashtags } from '@genfeedai/utils/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import {
   Injectable,
@@ -25,6 +26,9 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
+
+const ACTOR_PATH_PATTERN = /^[^/~]+\/[^/~]+$/;
+const ISO8601_DURATION_PATTERN = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
 
 type ApifyActorRegistration = {
   capability: string;
@@ -125,6 +129,7 @@ const APIFY_ACTOR_REGISTRY: Readonly<Record<string, ApifyActorRegistration>> = {
  * Shared utilities for all Apify platform sub-services.
  * Provides actor execution, polling, API token management, and metrics helpers.
  */
+@Traced()
 @Injectable()
 export class ApifyBaseService {
   /**
@@ -145,7 +150,7 @@ export class ApifyBaseService {
 
   private readonly apiUrl = 'https://api.apify.com/v2';
   private readonly constructorName: string = String(this.constructor.name);
-  private readonly actorPathPattern = /^[^/~]+\/[^/~]+$/;
+  private readonly actorPathPattern = ACTOR_PATH_PATTERN;
 
   /**
    * Usage-limit suspensions keyed by token scope, so one organization's
@@ -701,7 +706,7 @@ export class ApifyBaseService {
     }
 
     // Handle ISO 8601 duration format (PT1H2M3S)
-    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    const match = duration.match(ISO8601_DURATION_PATTERN);
     if (match) {
       const hours = parseInt(match[1] || '0', 10);
       const minutes = parseInt(match[2] || '0', 10);

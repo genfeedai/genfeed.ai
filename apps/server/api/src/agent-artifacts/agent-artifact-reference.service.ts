@@ -26,6 +26,7 @@ import {
   NewsletterSerializer,
   PostSerializer,
 } from '@genfeedai/serializers';
+import { Traced } from '@libs/tracing/traced';
 import {
   ConflictException,
   ForbiddenException,
@@ -137,6 +138,7 @@ function artifactNotFound(label: string, id: string): HttpException {
  * ContentVersionPin is the only persistence introduced here; it stores identity
  * and a digest, never a copied content payload or parallel lifecycle state.
  */
+@Traced()
 @Injectable()
 export class AgentArtifactReferenceService {
   constructor(
@@ -319,6 +321,13 @@ export class AgentArtifactReferenceService {
       where: scopedWhere(params.readContext.organizationId, {
         id: params.messageId,
       }),
+      select: {
+        artifactReferences: true,
+        id: true,
+        isLegacyArtifactReferenceEligible: true,
+        legacyArtifactReferenceReadCount: true,
+        metadata: true,
+      },
     });
     if (!message) {
       throw artifactNotFound('Agent message', params.messageId);

@@ -3,8 +3,10 @@ import { KnowledgeEmbeddingCompletionService } from '@api/collections/contexts/s
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ContextEmbeddingJobData } from '@genfeedai/contracts/queue';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ContextEmbeddingSweepService {
   constructor(

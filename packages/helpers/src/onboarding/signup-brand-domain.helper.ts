@@ -3,6 +3,13 @@ import {
   PERSONAL_ORGANIZATION_LABEL,
 } from '@genfeedai/contracts/constants';
 
+const WWW_PREFIX_PATTERN = /^www\./i;
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+const TOP_LEVEL_DOMAIN_PATTERN = /\.[a-z]{2,}$/i;
+const DOMAIN_SEPARATOR_RUN_PATTERN = /[.\-_]+/;
+const LABEL_SEPARATOR_RUN_PATTERN = /[._\-\s]+/;
+const NON_ALPHANUMERIC_CHARS_PATTERN = /[^a-z0-9]/g;
+
 export interface ResolveSignupBrandDomainInput {
   email?: string | null;
   requestedDomain?: string | null;
@@ -33,12 +40,12 @@ export function extractBrandDomain(value?: string | null): string | null {
         ? normalizedValue
         : `https://${normalizedValue}`,
     );
-    return parsed.hostname.replace(/^www\./i, '').toLowerCase();
+    return parsed.hostname.replace(WWW_PREFIX_PATTERN, '').toLowerCase();
   } catch {
     const fallback = normalizedValue
-      .replace(/^https?:\/\//i, '')
+      .replace(HTTP_PROTOCOL_PREFIX_PATTERN, '')
       .split('/')[0]
-      ?.replace(/^www\./i, '')
+      ?.replace(WWW_PREFIX_PATTERN, '')
       .toLowerCase();
 
     return fallback || null;
@@ -91,8 +98,8 @@ export function isPersonalEmailDomain(
  */
 export function deriveBrandNameFromDomain(domain: string): string {
   return domain
-    .replace(/\.[a-z]{2,}$/i, '')
-    .split(/[.\-_]+/)
+    .replace(TOP_LEVEL_DOMAIN_PATTERN, '')
+    .split(DOMAIN_SEPARATOR_RUN_PATTERN)
     .reduce<string[]>((segments, segment) => {
       if (segment) {
         segments.push(segment.charAt(0).toUpperCase() + segment.slice(1));
@@ -151,7 +158,7 @@ export interface ResolveSignupWorkspaceLabelInput {
 
 function titleCaseWorkspaceLabel(value: string): string {
   return value
-    .split(/[._\-\s]+/)
+    .split(LABEL_SEPARATOR_RUN_PATTERN)
     .reduce<string[]>((segments, segment) => {
       if (segment) {
         segments.push(
@@ -221,7 +228,7 @@ export function resolveSignupOrganizationLabel(
 export function buildPersonalOrganizationSlugSeed(userId: string): string {
   const tail = userId
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
+    .replace(NON_ALPHANUMERIC_CHARS_PATTERN, '')
     .slice(-8);
 
   return tail ? `personal-${tail}` : 'personal';

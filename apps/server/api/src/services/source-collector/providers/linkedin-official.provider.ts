@@ -9,6 +9,7 @@ import type {
 import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { CredentialPlatform, SocialSourcePlatform } from '@genfeedai/contracts';
 import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -73,6 +74,7 @@ function toContentType(category: string | undefined): string {
  * `since` window is hit. Own-account only: `ugcPosts?q=authors` accepts only
  * URNs the token owns, so a `credentialId` is required.
  */
+@Traced()
 @Injectable()
 export class LinkedinOfficialProvider implements SourceTimelineProvider {
   readonly name = 'brand-oauth' as const;

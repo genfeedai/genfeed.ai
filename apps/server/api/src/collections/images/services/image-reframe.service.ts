@@ -35,6 +35,7 @@ import {
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   HttpException,
@@ -45,6 +46,7 @@ import {
 
 const LEGACY_CONTROLLER_NAME = 'ImagesTransformationsController';
 
+@Traced()
 @Injectable()
 export class ImageReframeService {
   constructor(

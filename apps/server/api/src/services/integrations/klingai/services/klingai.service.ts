@@ -4,6 +4,7 @@ import { createConcurrencyLimit } from '@api/shared/utils/create-concurrency-lim
 import { appendWebhookToken } from '@api/webhooks/webhook-token.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -11,6 +12,7 @@ import { firstValueFrom } from 'rxjs';
 
 // https://app.klingai.com/global/dev/document-api/apiReference/model/skillsMap.
 
+@Traced()
 @Injectable()
 export class KlingAIService {
   private readonly constructorName: string = String(this.constructor.name);

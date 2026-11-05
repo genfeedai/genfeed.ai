@@ -21,6 +21,9 @@ import {
   samePublicationCaptureScope as same,
   publicationCaptureUuid as uuid,
 } from '~services/publication-capture-validation';
+
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+
 export const PUBLICATION_REPLY_INTENTS_KEY =
   'genfeed-publication-reply-intents-v1';
 function parseInput(
@@ -73,7 +76,7 @@ export async function readPublicationReplyIntents(): Promise<
       !v ||
       !keys(v, ['id', 'binding', 'input']) ||
       !uuid(v.id) ||
-      !/^\d+$/.test(key) ||
+      !DIGITS_ONLY_PATTERN.test(key) ||
       !binding ||
       binding.tabId !== Number(key) ||
       !input

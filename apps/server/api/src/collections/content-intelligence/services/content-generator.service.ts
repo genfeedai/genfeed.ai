@@ -34,6 +34,7 @@ import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
 import { describePlatformTextLimit } from '@genfeedai/helpers/content/platform-text-length.helper';
 import { extractHashtags } from '@genfeedai/utils/server';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import type { ZodType } from 'zod';
@@ -287,6 +288,7 @@ function withKnowledgeReceipts(
     : generated;
 }
 
+@Traced()
 @Injectable()
 export class ContentGeneratorService implements OnModuleInit {
   private readonly constructorName = this.constructor.name;

@@ -38,7 +38,10 @@ import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/
 import { GENERATE_CONTENT_TEXT_CREDITS } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+
+const HTML_TAGS_PATTERN = /<[^>]+>/g;
 
 /** Flat charge for one proposal, the price of every agent text tool. */
 const DRAFT_THREAD_CREDITS = GENERATE_CONTENT_TEXT_CREDITS;
@@ -46,7 +49,7 @@ const DRAFT_THREAD_CREDITS = GENERATE_CONTENT_TEXT_CREDITS;
 type SavedThreadPost = { description: string; id: string; order: number };
 
 function stripMarkup(description: string | undefined): string {
-  return description?.replace(/<[^>]+>/g, ' ').trim() ?? '';
+  return description?.replace(HTML_TAGS_PATTERN, ' ').trim() ?? '';
 }
 
 function failure(
@@ -70,6 +73,7 @@ const INSUFFICIENT_CREDITS_RESULT: AgentToolResult = {
  * drafts under a post the caller's organization owns, mirroring the post
  * composer (`handleAddThreadPosts`).
  */
+@Traced()
 @Injectable()
 export class AgentThreadToolHandler {
   private readonly constructorName = String(this.constructor.name);

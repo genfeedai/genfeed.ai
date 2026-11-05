@@ -5,6 +5,18 @@ import type {
   IBrandOsDesignExportInput,
 } from '@genfeedai/contracts/interfaces';
 
+const CR_LINE_ENDINGS_PATTERN = /\r\n?/g;
+const HTTP_URLS_PATTERN = /https?:\/\/[^\s<>]+/gi;
+const MARKDOWN_SPECIAL_CHARS_PATTERN = /[\\`*_{}[\]<>()#!|]/g;
+const NEWLINES_PATTERN = /\n/g;
+const IPV4_PATTERN = /^(?:\d+\.){3}\d+$/;
+const RESERVED_HOST_SUFFIX_PATTERN =
+  /(?:^|\.)(?:localhost|local|internal|test|invalid|example|onion)$/;
+const SENSITIVE_URL_TEXT_PATTERN =
+  /(?:token|secret|signature|credential|private|auth|invite|reset|session|download)/i;
+const URL_BREAKOUT_CHARS_PATTERN = /[()<>]/g;
+const EXPORT_ID_PATTERN = /^[a-zA-Z0-9_-]{1,128}$/;
+
 const SCHEMA_VERSION = '1';
 const MAX_STRING = 8_000;
 const MAX_ITEMS = 50;
@@ -71,10 +83,10 @@ function text(value: unknown): string {
     return invalid();
   return value
     .normalize('NFC')
-    .replace(/\r\n?/g, '\n')
-    .replace(/https?:\/\/[^\s<>]+/gi, '[source URL omitted]')
-    .replace(/[\\`*_{}[\]<>()#!|]/g, '\\$&')
-    .replace(/\n/g, '\n  ');
+    .replace(CR_LINE_ENDINGS_PATTERN, '\n')
+    .replace(HTTP_URLS_PATTERN, '[source URL omitted]')
+    .replace(MARKDOWN_SPECIAL_CHARS_PATTERN, '\\$&')
+    .replace(NEWLINES_PATTERN, '\n  ');
 }
 
 /** Only explicitly public website evidence is eligible; unknown visibility defaults to omission. */
@@ -99,17 +111,13 @@ export function safeBrandOsSourceUrl(
       url.hash ||
       (url.port && url.port !== '443') ||
       !host.includes('.') ||
-      /^(?:\d+\.){3}\d+$/.test(host) ||
+      IPV4_PATTERN.test(host) ||
       host.includes(':') ||
-      /(?:^|\.)(?:localhost|local|internal|test|invalid|example|onion)$/.test(
-        host,
-      ) ||
-      /(?:token|secret|signature|credential|private|auth|invite|reset|session|download)/i.test(
-        url.pathname,
-      )
+      RESERVED_HOST_SUFFIX_PATTERN.test(host) ||
+      SENSITIVE_URL_TEXT_PATTERN.test(url.pathname)
     )
       return undefined;
-    return url.href.replace(/[()<>]/g, (character) =>
+    return url.href.replace(URL_BREAKOUT_CHARS_PATTERN, (character) =>
       encodeURIComponent(character),
     );
   } catch {
@@ -186,8 +194,8 @@ export function buildBrandOsDesignExport(
   if (
     !fields ||
     !Number.isFinite(approvedAt.getTime()) ||
-    !/^[a-zA-Z0-9_-]{1,128}$/.test(input.brandId) ||
-    !/^[a-zA-Z0-9_-]{1,128}$/.test(input.revisionId)
+    !EXPORT_ID_PATTERN.test(input.brandId) ||
+    !EXPORT_ID_PATTERN.test(input.revisionId)
   )
     return invalid();
   const name = record(fields.label)?.currentValue;

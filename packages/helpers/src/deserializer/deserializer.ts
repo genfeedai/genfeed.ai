@@ -1,5 +1,8 @@
 import { isPlainObject } from '../data/json-api/relationship.helper';
 
+const SEPARATOR_WITH_NEXT_CHAR_PATTERN = /[-_\s]+(.)?/g;
+const LEADING_UPPERCASE_PATTERN = /^[A-Z]/;
+
 export interface JsonApiResource {
   id?: string;
   type: string;
@@ -68,8 +71,10 @@ interface JsonApiDeserializerRuntime {
 
 function toCamelCase(str: string): string {
   return str
-    .replace(/[-_\s]+(.)?/g, (_, c) => (c ? c.toUpperCase() : ''))
-    .replace(/^[A-Z]/, (c) => c.toLowerCase());
+    .replace(SEPARATOR_WITH_NEXT_CHAR_PATTERN, (_, c) =>
+      c ? c.toUpperCase() : '',
+    )
+    .replace(LEADING_UPPERCASE_PATTERN, (c) => c.toLowerCase());
 }
 
 function convertKey(

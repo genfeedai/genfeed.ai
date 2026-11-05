@@ -595,6 +595,7 @@ describe('daily account publishing', () => {
         brandId: 'brand',
         isDeleted: false,
       },
+      select: { id: true },
     });
     expect(prisma.post.findFirst).not.toHaveBeenCalled();
   });

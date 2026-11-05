@@ -6,6 +6,7 @@ import {
   type BrandRemixTarget,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { CredentialPlatform, PersonaStatus } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 interface BrandRemixPersonaResolutionInput {
@@ -30,6 +31,7 @@ const organicCredentialPlatforms = {
   [BrandRemixOrganicPlatform.YOUTUBE]: CredentialPlatform.YOUTUBE,
 } satisfies Record<BrandRemixOrganicPlatform, CredentialPlatform>;
 
+@Traced()
 @Injectable()
 export class BrandRemixPersonaResolutionService {
   constructor(private readonly prisma: PrismaService) {}

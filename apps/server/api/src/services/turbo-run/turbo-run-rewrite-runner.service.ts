@@ -31,6 +31,7 @@ import {
   type TurboRewriteJobResult,
 } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { InjectQueue } from '@nestjs/bullmq';
 import { ConflictException, Injectable } from '@nestjs/common';
@@ -48,6 +49,7 @@ const REWRITE_PROMPT =
  * bills only the captions it actually rewrote. Progress is persisted on the
  * job, which lets a retried or stalled job resume without redoing items.
  */
+@Traced()
 @Injectable()
 export class TurboRunRewriteRunnerService {
   private readonly context = {

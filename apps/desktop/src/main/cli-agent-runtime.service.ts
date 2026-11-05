@@ -48,6 +48,10 @@ import {
 } from './cli-agent-stream-parser';
 import { buildDesktopToolPath } from './local-tools.util';
 
+const GENFEED_KEY_PATTERN = /\bgf_[A-Za-z0-9._-]+/g;
+const BEARER_TOKEN_PATTERN = /\bBearer\s+[A-Za-z0-9._~+/=-]+/gi;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 const TURN_ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 const ENTITY_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 const STDERR_TAIL_BYTES = 4_096;
@@ -220,8 +224,8 @@ export function killDesktopCliProcessTree(child: ChildProcess): void {
 
 function redactSecrets(value: string): string {
   return value
-    .replace(/\bgf_[A-Za-z0-9._-]+/g, '[redacted]')
-    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [redacted]');
+    .replace(GENFEED_KEY_PATTERN, '[redacted]')
+    .replace(BEARER_TOKEN_PATTERN, 'Bearer [redacted]');
 }
 
 function toPersistedToolCall(
@@ -316,7 +320,9 @@ export class DesktopCliAgentRuntimeService {
             brandId: request.brandId ?? null,
             runtimeKey: request.runtimeKey,
             source: AGENT_EXTERNAL_RUNTIME_THREAD_SOURCE,
-            title: request.prompt.replace(/\s+/g, ' ').slice(0, 60),
+            title: request.prompt
+              .replace(WHITESPACE_RUNS_PATTERN, ' ')
+              .slice(0, 60),
           });
     } finally {
       this.pendingTurns.delete(request.turnId);

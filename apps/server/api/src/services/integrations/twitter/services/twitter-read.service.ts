@@ -4,6 +4,7 @@ import {
 } from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import type { ITwitterSearchResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { TwitterApi } from 'twitter-api-v2';
 import {
@@ -14,6 +15,8 @@ import {
   type TwitterUserResponse,
   type TwitterUsersResponse,
 } from './twitter-response.mapper';
+
+const LEADING_AT_SIGN_PATTERN = /^@/;
 
 interface TwitterApiErrorShape {
   code?: number;
@@ -35,6 +38,7 @@ export class TwitterReadService {
     private readonly resolveClient: () => TwitterApi,
   ) {}
 
+  @Traced()
   async searchRecentTweets(
     query: string,
     options: {
@@ -70,6 +74,7 @@ export class TwitterReadService {
     }
   }
 
+  @Traced()
   async getUserByUsername(
     username: string,
   ): Promise<TwitterResolvedUser | null> {
@@ -77,7 +82,7 @@ export class TwitterReadService {
 
     try {
       const result = (await this.resolveClient().v2.get(
-        `users/by/username/${encodeURIComponent(username.replace(/^@/, ''))}`,
+        `users/by/username/${encodeURIComponent(username.replace(LEADING_AT_SIGN_PATTERN, ''))}`,
         { 'user.fields': 'public_metrics' },
       )) as TwitterUserResponse;
       return this.responseMapper.mapUser(result);
@@ -87,6 +92,7 @@ export class TwitterReadService {
     }
   }
 
+  @Traced()
   async getUsers(
     path: string,
     maxResults = 10,
@@ -105,6 +111,7 @@ export class TwitterReadService {
     }
   }
 
+  @Traced()
   async getTrends(
     organizationId?: string,
     brandId?: string,

@@ -3,6 +3,22 @@ import { KnowledgeBaseCategory } from '@genfeedai/contracts';
 import { safeFetch } from '@libs/security/destination-guard';
 import * as cheerio from 'cheerio';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const WHITESPACE_BEFORE_NEWLINE_PATTERN = /\s+\n/g;
+const ESCAPED_NEWLINES_PATTERN = /\\n/g;
+const ESCAPED_CARRIAGE_RETURNS_PATTERN = /\\r/g;
+const ESCAPED_TABS_PATTERN = /\\t/g;
+const ESCAPED_OPEN_PARENS_PATTERN = /\\\(/g;
+const ESCAPED_CLOSE_PARENS_PATTERN = /\\\)/g;
+const ESCAPED_BACKSLASHES_PATTERN = /\\\\/g;
+const ESCAPED_OCTALS_PATTERN = /\\(\d{1,3})/g;
+const PDF_TJ_OPERATORS_PATTERN = /\((?:\\.|[^\\)])*\)\s*Tj/g;
+const LEADING_OPEN_PAREN_PATTERN = /^[(]/;
+const TRAILING_TJ_OPERATOR_PATTERN = /\)\s*Tj$/;
+const PDF_TJ_ARRAYS_PATTERN = /\[([\s\S]*?)\]\s*TJ/g;
+const PDF_STRING_LITERALS_PATTERN = /\((?:\\.|[^\\)])*\)/g;
+const PDF_STREAMS_PATTERN = /stream\r?\n([\s\S]*?)endstream/g;
+
 export const KNOWLEDGE_SOURCE_MAX_BYTES = 2_000_000;
 
 /**
@@ -91,9 +107,13 @@ export function extractHtmlText(html: string): string {
     $('body').text() ||
     $.root().text()
   )
-    .replace(/\s+/g, ' ')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
-  return [title, article].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  return [title, article]
+    .filter(Boolean)
+    .join(' ')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
+    .trim();
 }
 
 export function extractRssText(xml: string): string {
@@ -119,14 +139,14 @@ export function extractRssText(xml: string): string {
     const summary = (
       node.find('description, summary, content').first().text() || ''
     )
-      .replace(/\s+/g, ' ')
+      .replace(WHITESPACE_RUNS_PATTERN, ' ')
       .trim();
     return [identity, title, summary].filter(Boolean).join(' ');
   });
   const snapshot = [feedTitle, ...entries]
     .filter(Boolean)
     .join('\n')
-    .replace(/\s+\n/g, '\n')
+    .replace(WHITESPACE_BEFORE_NEWLINE_PATTERN, '\n')
     .trim();
   if (!snapshot && items.length === 0) {
     return feedTitle || 'empty-feed';
@@ -136,29 +156,31 @@ export function extractRssText(xml: string): string {
 
 function decodePdfLiteral(literal: string): string {
   return literal
-    .replace(/\\n/g, '\n')
-    .replace(/\\r/g, '\r')
-    .replace(/\\t/g, '\t')
-    .replace(/\\\(/g, '(')
-    .replace(/\\\)/g, ')')
-    .replace(/\\\\/g, '\\')
-    .replace(/\\(\d{1,3})/g, (_match, octal: string) =>
+    .replace(ESCAPED_NEWLINES_PATTERN, '\n')
+    .replace(ESCAPED_CARRIAGE_RETURNS_PATTERN, '\r')
+    .replace(ESCAPED_TABS_PATTERN, '\t')
+    .replace(ESCAPED_OPEN_PARENS_PATTERN, '(')
+    .replace(ESCAPED_CLOSE_PARENS_PATTERN, ')')
+    .replace(ESCAPED_BACKSLASHES_PATTERN, '\\')
+    .replace(ESCAPED_OCTALS_PATTERN, (_match, octal: string) =>
       String.fromCharCode(Number.parseInt(octal, 8)),
     );
 }
 
 function collectPdfLiterals(payload: string, parts: string[]): void {
-  for (const match of payload.matchAll(/\((?:\\.|[^\\)])*\)\s*Tj/g)) {
-    const literal = match[0].replace(/^[(]/, '').replace(/\)\s*Tj$/, '');
+  for (const match of payload.matchAll(PDF_TJ_OPERATORS_PATTERN)) {
+    const literal = match[0]
+      .replace(LEADING_OPEN_PAREN_PATTERN, '')
+      .replace(TRAILING_TJ_OPERATOR_PATTERN, '');
     const decoded = decodePdfLiteral(literal).trim();
     if (decoded) {
       parts.push(decoded);
     }
   }
 
-  for (const match of payload.matchAll(/\[([\s\S]*?)\]\s*TJ/g)) {
+  for (const match of payload.matchAll(PDF_TJ_ARRAYS_PATTERN)) {
     const block = match[1] ?? '';
-    for (const inner of block.matchAll(/\((?:\\.|[^\\)])*\)/g)) {
+    for (const inner of block.matchAll(PDF_STRING_LITERALS_PATTERN)) {
       const literal = inner[0].slice(1, -1);
       const decoded = decodePdfLiteral(literal).trim();
       if (decoded) {
@@ -226,7 +248,7 @@ export function extractPdfText(buffer: Buffer): string {
   countNewParts();
 
   let inflatedBytes = 0;
-  for (const match of raw.matchAll(/stream\r?\n([\s\S]*?)endstream/g)) {
+  for (const match of raw.matchAll(PDF_STREAMS_PATTERN)) {
     if (inflatedBytes >= PDF_MAX_DOCUMENT_INFLATED_BYTES) {
       break;
     }
@@ -250,7 +272,7 @@ export function extractPdfText(buffer: Buffer): string {
   const text = parts
     .join(' ')
     .slice(0, PDF_MAX_EXTRACTED_CHARS)
-    .replace(/\s+/g, ' ')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
   if (!text) {
     throw new Error('No extractable text in PDF');
@@ -321,7 +343,7 @@ function extractByMimeType(
     mimeType === 'text/csv' ||
     mimeType === 'application/json'
   ) {
-    return decodeTextBytes(bytes).replace(/\s+/g, ' ').trim();
+    return decodeTextBytes(bytes).replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
   }
 
   const preview = decodeTextBytes(bytes.subarray(0, 256)).trim();

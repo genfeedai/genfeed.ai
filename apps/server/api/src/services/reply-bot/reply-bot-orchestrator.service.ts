@@ -68,6 +68,7 @@ import type { IReplyBotCredentialData } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export interface ProcessingResult {
@@ -80,6 +81,7 @@ export interface ProcessingResult {
   errors: number;
 }
 
+@Traced()
 @Injectable()
 export class ReplyBotOrchestratorService implements OnModuleInit {
   constructor(
@@ -993,10 +995,8 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     });
   }
 
-  /**
-   * The platform a reply goes out on is the credential's (the executor routes
-   * on it), so the draft-only rule reads it from there.
-   */
+  // The executor routes replies by the credential's platform.
+  // Use that same platform to check whether replies must stay drafts.
   private async isManualReply(
     state: ReplyBotContentState,
     botConfig: ReplyBotConfigDocument,

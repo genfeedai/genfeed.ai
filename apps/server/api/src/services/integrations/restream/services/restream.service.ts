@@ -1,9 +1,12 @@
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
+
+const TRAILING_SLASH_PATTERN = /\/$/;
 
 export interface RestreamTokenResponse {
   access_token: string;
@@ -30,6 +33,7 @@ export const RESTREAM_OAUTH_SCOPE = 'profile.read chat.read';
  * @see https://developers.restream.io/authentication/authorize-dialog
  * @see https://developers.restream.io/chat/getting-started
  */
+@Traced()
 @Injectable()
 export class RestreamService {
   private readonly constructorName = String(this.constructor.name);
@@ -53,7 +57,9 @@ export class RestreamService {
     const appUrl = this.readConfigString('GENFEEDAI_APP_URL');
     this.redirectUri =
       explicitRedirect ||
-      (appUrl ? `${appUrl.replace(/\/$/, '')}/oauth/restream` : undefined);
+      (appUrl
+        ? `${appUrl.replace(TRAILING_SLASH_PATTERN, '')}/oauth/restream`
+        : undefined);
   }
 
   isConfigured(): boolean {

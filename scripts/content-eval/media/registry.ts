@@ -1,6 +1,8 @@
 import type { RegistryMediaModel } from './contestants';
 import type { Medium } from './contracts';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 /**
  * Reads the model registry (`ModelsService`, categories image/video) through
  * the product API with the eval organization's key, so the ladder ranks what
@@ -48,7 +50,7 @@ export async function fetchRegistryMediaModels(input: {
   fetchImpl?: typeof fetch;
 }): Promise<RegistryMediaModel[]> {
   const fetchImpl = input.fetchImpl ?? fetch;
-  const base = input.apiUrl.replace(/\/+$/, '');
+  const base = input.apiUrl.replace(TRAILING_SLASHES_PATTERN, '');
   const models: RegistryMediaModel[] = [];
   for (let page = 1; page <= MAX_PAGES; page += 1) {
     const url = `${base}/models?category=${input.medium}&isActive=true&limit=${PAGE_SIZE}&page=${page}`;

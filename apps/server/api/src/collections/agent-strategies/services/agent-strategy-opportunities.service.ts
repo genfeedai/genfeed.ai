@@ -13,6 +13,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type CreateOpportunityInput = {
@@ -42,6 +43,7 @@ const OPEN_OPPORTUNITY_STATUSES: AgentStrategyOpportunityStatus[] = [
   'revising',
 ];
 
+@Traced()
 @Injectable()
 export class AgentStrategyOpportunitiesService {
   constructor(
@@ -246,6 +248,7 @@ export class AgentStrategyOpportunitiesService {
   ): Promise<AgentStrategyOpportunityDocument | null> {
     const existing = await this.prisma.agentStrategyOpportunity.findFirst({
       where: scopedWhere(organizationId, { id }),
+      select: { data: true },
     });
     if (
       !existing ||
@@ -332,6 +335,7 @@ export class AgentStrategyOpportunitiesService {
   ): Promise<boolean> {
     const existing = await this.prisma.agentStrategyOpportunity.findFirst({
       where: scopedWhere(organizationId, { id }),
+      select: { data: true },
     });
     if (
       !existing ||
@@ -359,6 +363,7 @@ export class AgentStrategyOpportunitiesService {
   ): Promise<AgentStrategyOpportunityDocument | null> {
     const existing = await this.prisma.agentStrategyOpportunity.findFirst({
       where: scopedWhere(organizationId, { id }),
+      select: { data: true },
     });
 
     if (!existing) {

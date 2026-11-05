@@ -11,10 +11,12 @@ import type {
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { AgentAutonomyMode, RouterPriority } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 type PlanAction = 'approve_plan' | 'revise_plan';
 
+@Traced()
 @Injectable()
 export class AgentOrchestratorUiActionPlanService {
   constructor(

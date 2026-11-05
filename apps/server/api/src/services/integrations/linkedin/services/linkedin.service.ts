@@ -40,6 +40,7 @@ import {
 } from '@genfeedai/integrations';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -50,6 +51,8 @@ import {
   LinkedInAnalyticsService,
   type LinkedInMediaAnalytics,
 } from './linkedin-analytics.service';
+
+const LINKEDIN_PERSON_URN_PATTERN = /^urn:li:person:[A-Za-z0-9_-]+$/;
 
 interface LinkedInCredential {
   id: string;
@@ -123,6 +126,7 @@ export function resolveLinkedInVisibility(
   return visibility === 'CONNECTIONS' ? 'CONNECTIONS' : 'PUBLIC';
 }
 
+@Traced()
 @Injectable()
 export class LinkedInService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -530,7 +534,7 @@ export class LinkedInService {
     const author = credential.externalId.startsWith('urn:li:person:')
       ? credential.externalId
       : `urn:li:person:${credential.externalId}`;
-    if (!/^urn:li:person:[A-Za-z0-9_-]+$/.test(author))
+    if (!LINKEDIN_PERSON_URN_PATTERN.test(author))
       throw new Error('LinkedIn verification member identity unavailable');
     const response = await firstValueFrom(
       this.httpService.get<unknown>(this.getApiUrl('ugcPosts'), {

@@ -35,6 +35,7 @@ import {
 } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
@@ -109,6 +110,7 @@ type LongFormDocument = ResolvedYoutubeSource & {
 
 const SUBMIT_LONG_FORM_TOOL = 'submit_long_form_document';
 
+@Traced()
 @Injectable()
 export class YoutubeLongFormWorkflowService implements OnModuleInit {
   constructor(
@@ -563,6 +565,7 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
     const source = this.readSourceArtifactMetadata(artifact.metadata);
     const existing = await this.prisma.ingredient.findFirst({
       where: scopedWhere(request.context.organizationId, { id: ingredientId }),
+      select: { id: true },
     });
     if (existing) {
       return { artifactId, ingredientId, status: 'linked' };
@@ -574,6 +577,7 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
           where: scopedWhere(request.context.organizationId, {
             id: ingredientId,
           }),
+          select: { id: true },
         });
         if (winner) {
           return;

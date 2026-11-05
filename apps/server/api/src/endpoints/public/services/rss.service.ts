@@ -1,6 +1,7 @@
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { ArticleScope } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import RSS from 'rss';
 
@@ -23,6 +24,7 @@ const RSS_FEED_ORDER = [
   { id: -1 },
 ] as const;
 
+@Traced()
 @Injectable()
 export class RssService {
   private readonly apiUrl: string;

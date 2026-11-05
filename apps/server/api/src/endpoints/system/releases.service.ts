@@ -1,6 +1,8 @@
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { serializeLatestRelease } from '@serializers/server/system/release.serializer';
 
+@Traced()
 @Injectable()
 export class ReleasesService {
   private cached: {

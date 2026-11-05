@@ -1,3 +1,5 @@
+const DECIMAL_FRACTION_PATTERN = /\.\d/;
+
 const METRIC_SUFFIX_CHARACTERS = new Set([
   '%',
   'K',
@@ -26,7 +28,7 @@ export function extractMetricSuffix(template: string): string {
 
 export function formatAnimatedValue(value: number, template: string): string {
   const suffix = extractMetricSuffix(template);
-  const hasDecimals = /\.\d/.test(template);
+  const hasDecimals = DECIMAL_FRACTION_PATTERN.test(template);
   const precision = hasDecimals ? 1 : 0;
   return `${value.toFixed(precision)}${suffix}`;
 }

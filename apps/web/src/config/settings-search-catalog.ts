@@ -12,6 +12,8 @@ import type {
 import { PERSONAL_SETTINGS_ANCHOR } from './personal-settings-anchor';
 import { buildSettingsMenuItems } from './settings-menu-items.config';
 
+const WHITESPACE_RUN_PATTERN = /\s+/u;
+
 const BRAND_SECTION_ITEMS: SettingsSearchItem[] = [
   {
     id: 'brand:writing-voice',
@@ -131,7 +133,7 @@ function uniqueKeywords(values: Array<string | undefined>): string[] {
   return [
     ...new Set(
       values
-        .flatMap((value) => (value ? value.split(/\s+/u) : []))
+        .flatMap((value) => (value ? value.split(WHITESPACE_RUN_PATTERN) : []))
         .map((value) => value.trim().toLowerCase())
         .filter((value) => value.length > 0),
     ),
@@ -190,7 +192,7 @@ export function filterSettingsSearchCatalog(
   const tokens = query
     .trim()
     .toLowerCase()
-    .split(/\s+/u)
+    .split(WHITESPACE_RUN_PATTERN)
     .filter((token) => token.length > 0);
 
   if (tokens.length === 0) {

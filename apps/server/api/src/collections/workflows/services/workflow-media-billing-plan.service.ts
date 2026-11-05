@@ -33,6 +33,7 @@ import type {
   ExecutionContext,
 } from '@genfeedai/workflows/engine';
 import { getExecutableNodeOperationId } from '@genfeedai/workflows/engine';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface WorkflowMediaAllocationInput {
@@ -105,6 +106,7 @@ function preparationContract(
 }
 
 /** Server-owned single-operation compiler. It cannot create holds, outputs, continuations or provider jobs. */
+@Traced()
 @Injectable()
 export class WorkflowMediaBillingPlanService {
   constructor(

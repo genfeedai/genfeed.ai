@@ -31,8 +31,13 @@ import {
   platformOrTenantScope,
   withPlatformTenantArm,
 } from '@libs/prisma/platform-scope';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import Handlebars from 'handlebars';
+
+const EXCESS_BLANK_LINES_PATTERN = /\n{3,}/g;
+const UNDERSCORES_PATTERN = /_/g;
+const WORD_INITIALS_PATTERN = /\b\w/g;
 
 type Template = TemplateDocument;
 
@@ -84,6 +89,7 @@ function toTemplateDocument(
   } as TemplateDocument;
 }
 
+@Traced()
 @Injectable()
 export class TemplatesService {
   constructor(
@@ -148,6 +154,7 @@ export class TemplatesService {
           key: dto.key,
           purpose: 'prompt',
         },
+        select: { id: true },
       });
       if (existing) {
         throw new Error(`Template with key "${dto.key}" already exists`);
@@ -590,7 +597,7 @@ export class TemplatesService {
       let rendered = compiledTemplate(variables);
 
       // Clean up multiple consecutive newlines (3+ newlines -> 2 newlines)
-      rendered = rendered.replace(/\n{3,}/g, '\n\n');
+      rendered = rendered.replace(EXCESS_BLANK_LINES_PATTERN, '\n\n');
 
       // Trim any leading/trailing whitespace
       rendered = rendered.trim();
@@ -676,7 +683,9 @@ export class TemplatesService {
    * Private: Format variable name to label
    */
   private formatLabel(name: string): string {
-    return name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    return name
+      .replace(UNDERSCORES_PATTERN, ' ')
+      .replace(WORD_INITIALS_PATTERN, (l) => l.toUpperCase());
   }
 
   /**

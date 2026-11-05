@@ -16,6 +16,7 @@ import {
   toPrismaJson,
 } from '@genfeedai/prisma';
 import { RedisService } from '@libs/redis/redis.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -25,6 +26,7 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
+@Traced()
 @Injectable()
 export class IntegrationsService {
   private readonly logger = new Logger(IntegrationsService.name);
@@ -89,6 +91,7 @@ export class IntegrationsService {
     // Check if integration for this platform already exists
     const existing = await this.prisma.orgIntegration.findFirst({
       where: scopedWhere(orgId, { platform }),
+      select: { id: true },
     });
 
     if (existing) {

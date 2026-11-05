@@ -16,6 +16,7 @@ import type {
   ReserveAgentSourceInput,
   ReuseAgentSourceCommand,
 } from '@api/collections/agent-strategies/sources/agent-source-reservation.types';
+import { Traced } from '@libs/tracing/traced';
 import { z } from 'zod';
 
 const bindingSchema = agentSourceScopeSchema
@@ -113,6 +114,7 @@ export class AgentSourceReservationService {
     private readonly clock: () => string,
   ) {}
 
+  @Traced()
   async reserve(
     input: ReserveAgentSourceInput,
   ): Promise<AgentSourceReserveResult> {
@@ -218,6 +220,7 @@ export class AgentSourceReservationService {
     return Object.freeze({ ...outcome });
   }
 
+  @Traced()
   async consume(
     input: ConsumeAgentSourceCommand,
   ): Promise<AgentSourceTransitionResult> {
@@ -234,6 +237,7 @@ export class AgentSourceReservationService {
       freeze({ token: token.data, receipt: receipt.data }),
     );
   }
+  @Traced()
   async releaseFailure(
     input: ReleaseAgentSourceFailureCommand,
   ): Promise<AgentSourceTransitionResult> {
@@ -250,6 +254,7 @@ export class AgentSourceReservationService {
       freeze({ token: token.data, receipt: receipt.data }),
     );
   }
+  @Traced()
   async releaseConsumedForReuse(
     input: ReuseAgentSourceCommand,
   ): Promise<AgentSourceTransitionResult> {

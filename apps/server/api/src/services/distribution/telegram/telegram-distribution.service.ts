@@ -17,6 +17,7 @@ import type { TelegramDistributionWorkflowInput } from '@genfeedai/contracts/int
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -64,6 +65,7 @@ interface TelegramDeliveryContext {
   text?: string;
 }
 
+@Traced()
 @Injectable()
 export class TelegramDistributionService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);

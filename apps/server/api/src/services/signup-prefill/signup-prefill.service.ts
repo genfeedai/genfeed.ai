@@ -34,6 +34,7 @@ import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { resolveSafeDestination } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -41,6 +42,9 @@ import {
   RequestTimeoutException,
 } from '@nestjs/common';
 import { toPlainJson } from '@serializers/helpers/plain-json.helper';
+
+const LEADING_AT_SIGN_PATTERN = /^@/;
+const WWW_PREFIX_PATTERN = /^www\./;
 
 export type SignupPrefillStatus =
   | 'completed'
@@ -111,6 +115,7 @@ const PREFILL_MARKER_KEY = 'signupPrefill';
  * Every stage is best-effort. A prefill failure must never leave the account
  * unusable, so the marker records what happened and the brand stays valid.
  */
+@Traced()
 @Injectable()
 export class SignupPrefillService {
   private readonly inFlightScans = new Set<string>();
@@ -265,7 +270,9 @@ export class SignupPrefillService {
       )
     )
       return '';
-    return decodeURIComponent(segment).replace(/^@/, '').trim();
+    return decodeURIComponent(segment)
+      .replace(LEADING_AT_SIGN_PATTERN, '')
+      .trim();
   }
 
   private scrapedCompanyLabel(
@@ -274,7 +281,7 @@ export class SignupPrefillService {
   ): string | undefined {
     const name = companyName?.trim();
     if (this.profileLabel(websiteUrl) === undefined) return name;
-    const host = new URL(websiteUrl).hostname.replace(/^www\./, '');
+    const host = new URL(websiteUrl).hostname.replace(WWW_PREFIX_PATTERN, '');
     const platformNames = new Set([
       host.split('.')[0],
       host,

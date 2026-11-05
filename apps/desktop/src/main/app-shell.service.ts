@@ -20,6 +20,8 @@ import {
 } from './app-shell-proxy';
 import { resolveDesktopAuthLandingUrl } from './auth-continuation.util';
 
+const API_VERSION_SUFFIX_PATTERN = /\/v1\/?$/;
+
 const mainDir = path.dirname(fileURLToPath(import.meta.url));
 
 type DesktopAppShellLogWriter = (
@@ -38,7 +40,7 @@ export function writeDesktopAppShellError(
 }
 
 function stripApiVersionSuffix(value: string): string {
-  return value.replace(/\/v1\/?$/, '');
+  return value.replace(API_VERSION_SUFFIX_PATTERN, '');
 }
 
 async function waitForServer(url: string, timeoutMs = 60_000): Promise<void> {

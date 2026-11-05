@@ -8,6 +8,7 @@ import { CacheService } from '@api/services/cache/cache.service';
 import type { CuratedActionName } from '@genfeedai/actions';
 import { type AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 
 export type PreparedAgentToolCall = {
   confirmationContext?: {
@@ -42,6 +43,7 @@ export class AgentToolConfirmationService {
     private readonly cacheService: CacheService,
   ) {}
 
+  @Traced()
   async prepareToolCall(
     input: PrepareAgentToolCallInput,
   ): Promise<PreparedAgentToolCall> {
@@ -126,6 +128,7 @@ export class AgentToolConfirmationService {
     return null;
   }
 
+  @Traced()
   private async resolveConfirmedCampaignIntent(
     transition: CampaignTransition,
     currentOperatorMessage: string | null,

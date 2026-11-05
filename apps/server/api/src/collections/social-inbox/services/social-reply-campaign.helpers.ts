@@ -1,3 +1,6 @@
+const HANDLE_PLACEHOLDER_PATTERN = /\{\{\s*handle\s*\}\}/gu;
+const NAME_PLACEHOLDER_PATTERN = /\{\{\s*name\s*\}\}/gu;
+
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
@@ -97,6 +100,6 @@ export function renderCampaignBody(
   values: { handle?: string | null; name?: string | null },
 ): string {
   return template
-    .replace(/\{\{\s*handle\s*\}\}/gu, values.handle ?? '')
-    .replace(/\{\{\s*name\s*\}\}/gu, values.name ?? '');
+    .replace(HANDLE_PLACEHOLDER_PATTERN, values.handle ?? '')
+    .replace(NAME_PLACEHOLDER_PATTERN, values.name ?? '');
 }

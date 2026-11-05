@@ -20,11 +20,12 @@ import {
 import type { IResizeBodyParams } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const LEGACY_CONTROLLER_NAME = 'ImagesTransformationsController';
 
+@Traced()
 @Injectable()
 export class ImageResizeService {
   constructor(
@@ -59,7 +60,7 @@ export class ImageResizeService {
     user: User,
     body: IResizeBodyParams,
   ): Promise<IngredientDocument> {
-    const url = `${LEGACY_CONTROLLER_NAME} ${CallerUtil.getCallerName()}`;
+    const url = `${LEGACY_CONTROLLER_NAME} resizeImage`;
     const image = await this.imagesService.findOne({
       id: imageId,
       organizationId: user.organizationId,

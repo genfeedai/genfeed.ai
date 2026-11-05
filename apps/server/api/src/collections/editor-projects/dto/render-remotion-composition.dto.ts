@@ -10,6 +10,8 @@ import {
   Matches,
 } from 'class-validator';
 
+const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+
 export class RenderRemotionCompositionDto implements IRemotionCompositionInput {
   @IsIn(['product-story'])
   compositionId!: string;
@@ -51,7 +53,7 @@ export class RenderRemotionCompositionDto implements IRemotionCompositionInput {
   @IsIn(['portrait', 'landscape', 'square'])
   format!: 'portrait' | 'landscape' | 'square';
 
-  @Matches(/^#[0-9a-fA-F]{6}$/)
+  @Matches(HEX_COLOR_PATTERN)
   accentColor!: string;
 
   @IsOptional()

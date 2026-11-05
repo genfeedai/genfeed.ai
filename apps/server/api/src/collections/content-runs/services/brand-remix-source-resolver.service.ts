@@ -44,8 +44,10 @@ import {
   isAdsChannel,
   isAdsPlatform,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class BrandRemixSourceResolverService {
   constructor(
@@ -472,6 +474,25 @@ export class BrandRemixSourceResolverService {
         brandId,
         id: selector.savedAdId,
       }),
+      select: {
+        body: true,
+        channel: true,
+        cta: true,
+        explanation: true,
+        headline: true,
+        id: true,
+        imageUrls: true,
+        landingPageUrl: true,
+        metrics: true,
+        patternSummary: true,
+        platform: true,
+        previewUrl: true,
+        source: true,
+        sourceAdId: true,
+        title: true,
+        usagePolicy: true,
+        videoUrls: true,
+      },
     });
     if (!saved) throw new NotFoundException('Saved ad', selector.savedAdId);
 

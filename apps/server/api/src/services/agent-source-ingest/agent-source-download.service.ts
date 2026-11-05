@@ -21,12 +21,16 @@ import {
   resolveSafeDestination,
   safeFetch,
 } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
+
+const YOUTUBE_SHORTS_OR_EMBED_PATH_PATTERN = /^\/(?:shorts|embed)\/([^/]+)$/;
+const YOUTUBE_VIDEO_ID_PATTERN = /^[a-zA-Z0-9_-]{11}$/;
 
 export class AgentSourceImportPendingError extends ServiceUnavailableException {}
 export class AgentSourceExtractionFailedError extends ServiceUnavailableException {}
@@ -175,6 +179,7 @@ async function* boundedBody(
   }
 }
 
+@Traced()
 @Injectable()
 export class AgentSourceDownloadService {
   constructor(
@@ -203,11 +208,11 @@ export class AgentSourceDownloadService {
           ? url.pathname.slice(1)
           : url.pathname === '/watch'
             ? url.searchParams.get('v')
-            : url.pathname.match(/^\/(?:shorts|embed)\/([^/]+)$/)?.[1];
+            : url.pathname.match(YOUTUBE_SHORTS_OR_EMBED_PATH_PATTERN)?.[1];
       if (
         url.protocol !== 'https:' ||
         !videoId ||
-        !/^[a-zA-Z0-9_-]{11}$/.test(videoId)
+        !YOUTUBE_VIDEO_ID_PATTERN.test(videoId)
       )
         throw new BadRequestException('Use a valid HTTPS YouTube video URL.');
       return `https://www.youtube.com/watch?v=${videoId}`;

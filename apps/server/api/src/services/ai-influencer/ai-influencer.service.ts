@@ -18,8 +18,11 @@ import {
 } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+
+const AI_INFLUENCER_PREFIX_PATTERN = /^ai-influencer/;
 
 /** Supported social platforms for AI influencer posts */
 export type AiInfluencerPlatform = 'instagram' | 'twitter';
@@ -64,6 +67,7 @@ const IMAGE_MODEL = 'fal-ai/flux-lora';
 const MAX_CAPTION_LENGTH = 2200; // Instagram caption limit
 const CAPTION_TEMPERATURE = 0.8;
 
+@Traced()
 @Injectable()
 export class AiInfluencerService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -179,7 +183,7 @@ export class AiInfluencerService {
     this.loggerService.log(caller, { filters });
 
     const matchStage: Record<string, unknown> = {
-      generationSource: { contains: /^ai-influencer/ },
+      generationSource: { contains: AI_INFLUENCER_PREFIX_PATTERN },
       isDeleted: false,
     };
 

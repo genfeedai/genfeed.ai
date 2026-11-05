@@ -35,8 +35,10 @@ import {
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class TurboRunCreationService {
   constructor(
@@ -196,6 +198,7 @@ export class TurboRunCreationService {
           id: dto.agentStrategyId,
           brandId: dto.brandId,
         }),
+        select: { id: true },
       });
       if (!strategy)
         throw new BadRequestException(

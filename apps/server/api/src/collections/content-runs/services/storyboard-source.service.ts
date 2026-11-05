@@ -9,8 +9,10 @@ import type {
   StoryboardSourceSelector,
   StoryboardSourceSnapshot,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class StoryboardSourceService {
   constructor(

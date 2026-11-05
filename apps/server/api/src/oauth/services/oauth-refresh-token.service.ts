@@ -13,10 +13,13 @@ import { MCP_CLAUDE_SCOPE_CEILING } from '@genfeedai/contracts/constants';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import type { McpOAuthRefreshToken } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { OAuthRevokeTokenDto } from '../dto/revoke-token.dto';
 import type { OAuthRefreshTokenGrant } from '../dto/token-exchange.dto';
 import { OAuthClientService } from './oauth-client.service';
+
+const WHITESPACE_RUN_PATTERN = /\s+/;
 
 /** Lifetime of the API key that backs an MCP OAuth access token. */
 export const MCP_OAUTH_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -86,6 +89,7 @@ export function buildTokenResponse(
  * settings invalidates the refresh token because the key must still be active
  * at refresh time.
  */
+@Traced()
 @Injectable()
 export class OAuthRefreshTokenService {
   constructor(
@@ -243,6 +247,7 @@ export class OAuthRefreshTokenService {
         organizationId: record.organizationId,
         userId: record.userId,
       },
+      select: { compromisedAt: true, revokedAt: true },
     });
     if (settled?.compromisedAt || settled?.revokedAt) {
       await this.revokeRefreshTokenById(
@@ -401,6 +406,7 @@ export class OAuthRefreshTokenService {
         organizationId: record.organizationId,
         userId: record.userId,
       },
+      select: { replacedById: true },
     });
     let nextId = current?.replacedById ?? record.replacedById;
     for (let depth = 0; nextId && depth < MAX_REFRESH_CHAIN_DEPTH; depth += 1) {
@@ -423,7 +429,9 @@ export class OAuthRefreshTokenService {
     if (requested === undefined) {
       return [...granted];
     }
-    const scopes = Array.from(new Set(requested.split(/\s+/).filter(Boolean)));
+    const scopes = Array.from(
+      new Set(requested.split(WHITESPACE_RUN_PATTERN).filter(Boolean)),
+    );
     if (
       scopes.length === 0 ||
       scopes.some((scope) => !granted.includes(scope))

@@ -34,6 +34,7 @@ import type {
   IPostingCadence,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type {
   CadenceDelegate,
@@ -57,6 +58,7 @@ import {
 import { PostingCadenceCopyService } from './posting-cadence-copy.service';
 import { PostingCadenceValidationService } from './posting-cadence-validation.service';
 
+@Traced()
 @Injectable()
 export class PostingCadencesService {
   constructor(
@@ -979,12 +981,10 @@ export class PostingCadencesService {
         targetId: existing.generatedItemId,
       };
     }
-
     const generatedItemId = existing.generatedItemId;
     if (!generatedItemId) {
       throw new BadRequestException('This slot has no generated item.');
     }
-
     const release = await this.postGroupsService.getOne(
       organizationId,
       generatedItemId,

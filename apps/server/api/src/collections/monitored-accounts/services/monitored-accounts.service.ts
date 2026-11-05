@@ -9,6 +9,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const MONITORED_ACCOUNT_CREATE_SCALAR_FIELDS = [
@@ -56,6 +57,7 @@ type MonitoredAccountOwnershipInput = {
 type MonitoredAccountCreateInput = CreateMonitoredAccountDto &
   MonitoredAccountOwnershipInput;
 
+@Traced()
 @Injectable()
 export class MonitoredAccountsService extends BaseService<
   MonitoredAccountDocument,
@@ -131,6 +133,7 @@ export class MonitoredAccountsService extends BaseService<
         where: tenantOrganizationId
           ? scopedWhere(tenantOrganizationId, { id })
           : { id },
+        select: { config: true },
       });
       if (!existing) {
         throw new NotFoundException('MonitoredAccount', id);
@@ -178,6 +181,7 @@ export class MonitoredAccountsService extends BaseService<
   ): Promise<MonitoredAccountDocument> {
     const existing = await this.prisma.monitoredAccount.findFirst({
       where: scopedWhere(organizationId, { id }),
+      select: { config: true },
     });
     const config = (existing?.config as AccountConfig) ?? {};
 
@@ -277,6 +281,7 @@ export class MonitoredAccountsService extends BaseService<
   ): Promise<MonitoredAccountDocument | null> {
     const existing = await this.prisma.monitoredAccount.findFirst({
       where: scopedWhere(organizationId, { id }),
+      select: { config: true },
     });
 
     if (!existing) return null;

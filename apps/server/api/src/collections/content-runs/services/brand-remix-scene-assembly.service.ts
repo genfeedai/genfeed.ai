@@ -30,6 +30,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import { videoStitchJobId } from '@genfeedai/contracts/interfaces';
 import { assertSafeObjectKey } from '@libs/security';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -68,6 +69,7 @@ export function toStoryboardRunStitchRequest(
   };
 }
 
+@Traced()
 @Injectable()
 export class BrandRemixSceneAssemblyService {
   constructor(
@@ -299,6 +301,7 @@ export class BrandRemixSceneAssemblyService {
         groupIndex: 1,
         category: 'VIDEO' as const,
       }),
+      select: { id: true },
     });
     const assetId = found
       ? found.id
@@ -561,6 +564,7 @@ export class BrandRemixSceneAssemblyService {
         brandId,
         category: 'VIDEO' as const,
       }),
+      select: { metadataId: true },
     });
     if (!asset?.metadataId)
       throw new ConflictException('Composition metadata is unavailable.');

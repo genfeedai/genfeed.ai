@@ -8,7 +8,11 @@ import {
   TIKTOK_AD_LIBRARY_COUNTRIES,
 } from '@genfeedai/integrations/ads';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const GOOGLE_ADS_ADVERTISER_ID_PATTERN = /^AR\d+$/;
 
 export interface PaidCreativeFetchParams {
   countries?: string[];
@@ -21,6 +25,7 @@ export interface PaidCreativeFetchParams {
   query: string;
 }
 
+@Traced()
 @Injectable()
 export class ApifyAdsService {
   readonly ADS_ACTORS = {
@@ -46,7 +51,7 @@ export class ApifyAdsService {
       if (params.mediaType === 'image' || params.mediaType === 'video')
         search.set('media_type', params.mediaType);
       const pageId = params.externalAdvertiserId ?? params.query;
-      if (params.mode === 'advertiser' && /^\d+$/.test(pageId)) {
+      if (params.mode === 'advertiser' && DIGITS_ONLY_PATTERN.test(pageId)) {
         search.set('search_type', 'page');
         search.set('view_all_page_id', pageId);
       } else {
@@ -121,7 +126,7 @@ export class ApifyAdsService {
       );
     return this.fetchCountries(params, async (country, limit) => {
       const url = new URL(
-        /^AR\d+$/.test(query)
+        GOOGLE_ADS_ADVERTISER_ID_PATTERN.test(query)
           ? `https://adstransparency.google.com/advertiser/${query}`
           : 'https://adstransparency.google.com/',
       );

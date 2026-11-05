@@ -27,6 +27,7 @@ import {
 import type { IFileMetadata } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
@@ -35,6 +36,7 @@ export interface PresignedUploadOptions {
   maxBytes?: number;
 }
 
+@Traced()
 @Injectable()
 export class PresignedUploadService {
   private readonly constructorName: string = String(this.constructor.name);

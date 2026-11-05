@@ -2,6 +2,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditReservationStatus } from '@genfeedai/contracts';
 import { MEDIA_GENERATION_WORKLOAD_TYPE } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export type IngredientGenerationCostStatus = 'reserved' | 'settled';
@@ -19,6 +20,7 @@ export interface IngredientGenerationCost {
  * an asset whose hold was released or expired, that ran on the organization's
  * own provider key, or that was never generated here has no cost to show.
  */
+@Traced()
 @Injectable()
 export class IngredientGenerationCostService {
   constructor(private readonly prisma: PrismaService) {}

@@ -1,6 +1,7 @@
 import { BrandAssetAutofillService } from '@api/collections/brands/services/brand-asset-autofill.service';
 import { CREDENTIAL_PROFILE_SYNCED_EVENT } from '@api/collections/credentials/constants/credential-events.constants';
 import type { CredentialProfileSyncedEvent } from '@api/collections/credentials/credential.types';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 
@@ -8,6 +9,7 @@ import { OnEvent } from '@nestjs/event-emitter';
  * Fills a brand's empty logo/banner from a social account as soon as the
  * account is connected or reconnected. The service never throws.
  */
+@Traced()
 @Injectable()
 export class BrandAssetAutofillListener {
   constructor(private readonly autofillService: BrandAssetAutofillService) {}

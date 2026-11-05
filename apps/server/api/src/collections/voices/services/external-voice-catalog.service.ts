@@ -3,6 +3,7 @@ import { HeyGenService } from '@api/services/integrations/heygen/services/heygen
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ExternalVoice, type Prisma, VoiceProvider } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -56,6 +57,7 @@ type SyncableProvider =
  * Catalog entries are reference data synced from ElevenLabs/HeyGen — they are
  * NOT user-owned assets and carry no brand/org/isDeleted scope.
  */
+@Traced()
 @Injectable()
 export class ExternalVoiceCatalogService {
   private readonly constructorName: string = String(this.constructor.name);

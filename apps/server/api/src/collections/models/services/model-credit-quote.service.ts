@@ -7,9 +7,11 @@ import {
   getRuntimeMarginMultiplier,
   quoteModelBillablePricing,
 } from '@genfeedai/pricing';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 /** Authoritative admission quote from the exact raw model/provider tariff. */
+@Traced()
 @Injectable()
 export class ModelCreditQuoteService {
   constructor(private readonly modelsService: ModelsService) {}

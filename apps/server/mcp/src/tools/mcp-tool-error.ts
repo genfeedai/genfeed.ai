@@ -9,6 +9,9 @@ import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interf
 import { HttpException } from '@nestjs/common';
 import { ZodError } from 'zod';
 
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const VALIDATION_FAILED_ERROR_PATTERN = /validation failed/i;
+
 /**
  * One contract for MCP gating failures. Transport rejections (auth and the
  * RateLimitService window) put the same object on JSON-RPC `error.data`.
@@ -290,7 +293,7 @@ function headerValue(headers: unknown, name: string): string | undefined {
 
 function readRetryAfterSeconds(headers: unknown): number | undefined {
   const raw = headerValue(headers, 'retry-after');
-  if (!raw || !/^\d+$/.test(raw)) return undefined;
+  if (!raw || !DIGITS_ONLY_PATTERN.test(raw)) return undefined;
   const seconds = Number(raw);
   return seconds > 0 ? seconds : undefined;
 }
@@ -416,7 +419,7 @@ export function classifyMcpToolFailure(
   if (
     validationErrors.length > 0 ||
     domainCode === 'VALIDATION_FAILED' ||
-    (status === 400 && /validation failed/i.test(text))
+    (status === 400 && VALIDATION_FAILED_ERROR_PATTERN.test(text))
   ) {
     return compactToolError({
       code: 'validation_failed',

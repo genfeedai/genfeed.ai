@@ -35,6 +35,7 @@ import {
   type UpdateCampaignInput,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const X_ADS_ENTITY_STATUSES: readonly XAdsEntityStatus[] = [
@@ -97,6 +98,7 @@ function resolveXAdsInsightsRanges(dateRange: AdsInsightsDateRange): {
  * intent — this adapter is the paused-campaign-draft entry point for the
  * approved-paid-remix flow (#3394), not a live-spend path.
  */
+@Traced()
 @Injectable()
 export class XAdsAdapter implements IAdsAdapter {
   readonly platform = AdsPlatform.X;

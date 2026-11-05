@@ -20,6 +20,7 @@ import {
   resolveAgentGenerationDimensions,
 } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
 export type CadenceMediaKind = 'image' | 'video';
@@ -60,6 +61,7 @@ const MAX_MEDIA_PROMPT_LENGTH = 1500;
  * endpoint refuses dispatch when the actual price or quantities differ, so a
  * cadence run never spends more than the quote it budgeted.
  */
+@Traced()
 @Injectable()
 export class AgentCadenceMediaGenerationService {
   constructor(

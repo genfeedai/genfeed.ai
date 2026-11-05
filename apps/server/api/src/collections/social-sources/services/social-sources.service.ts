@@ -33,12 +33,16 @@ import {
 } from '@genfeedai/contracts';
 import type { SocialSourceValidationResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   HttpStatus,
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
+
+const UNAVAILABLE_POST_ERROR_PATTERN = /not found|deleted|private|incomplete/i;
+const LEADING_AT_SIGN_PATTERN = /^@/;
 
 /** How far back a scheduled own-account resync reaches. */
 export const SOCIAL_OWN_ACCOUNT_RESYNC_WINDOW_DAYS = 90;
@@ -56,6 +60,7 @@ export interface SocialSourcesFeedResult {
   };
 }
 
+@Traced()
 @Injectable()
 export class SocialSourcesService {
   constructor(
@@ -423,7 +428,7 @@ export class SocialSourcesService {
       ) {
         throw error;
       }
-      if (/not found|deleted|private|incomplete/i.test(message)) {
+      if (UNAVAILABLE_POST_ERROR_PATTERN.test(message)) {
         throw new NotFoundException({
           message:
             'Post could not be resolved — it may be deleted, private, or the link is wrong',
@@ -500,7 +505,7 @@ export class SocialSourcesService {
       reference.authorHandle ||
       'unknown'
     )
-      .replace(/^@/, '')
+      .replace(LEADING_AT_SIGN_PATTERN, '')
       .toLowerCase();
 
     const existingContainer = await this.prisma.socialSource.findFirst({
@@ -696,6 +701,7 @@ export class SocialSourcesService {
   ): Promise<void> {
     const brand = await this.prisma.brand.findFirst({
       where: scopedWhere(organizationId, { id: brandId }),
+      select: { id: true },
     });
     if (!brand) {
       throw new BadRequestException(
@@ -726,6 +732,7 @@ export class SocialSourcesService {
         id: credentialId,
         platform: credentialPlatform,
       }),
+      select: { id: true },
     });
     if (!credential) {
       throw new BadRequestException(

@@ -1,4 +1,11 @@
 import type { MultiPostSchema } from '@genfeedai/client/schemas';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
+import type { IPostPlatformConfig } from '@genfeedai/contracts/interfaces';
 import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import { render, screen } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
@@ -7,7 +14,7 @@ import { describe, expect, it, vi } from 'vitest';
 import ModalPostSetupTab from '@/components/modals/content/post/ModalPostSetupTab';
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
 
@@ -55,11 +62,27 @@ vi.mock('@ui/primitives/date-time-picker', () => ({
   default: () => <div data-testid="form-date-time-picker" />,
 }));
 
+const xChannel: IPostPlatformConfig = {
+  category: PostCategory.TEXT,
+  credentialId: 'cred-x',
+  customScheduledDate: '',
+  description: '',
+  enabled: true,
+  handle: 'genfeed',
+  isShareToFeedSelected: false,
+  label: '',
+  overrideSchedule: false,
+  platform: CredentialPlatform.TWITTER,
+  targetExecutionState: TargetExecutionState.SCHEDULED,
+  visibility: PostVisibility.PUBLIC,
+};
+
 describe('ModalPostSetupTab', () => {
   const form = {
     control: {},
-    setValue: vi.fn(),
-  } as UseFormReturn<MultiPostSchema>;
+    setValue: () => undefined,
+    watch: () => 'Hello',
+  } as unknown as UseFormReturn<MultiPostSchema>;
 
   const baseProps = {
     form,
@@ -67,21 +90,35 @@ describe('ModalPostSetupTab', () => {
     globalScheduledDate: null,
     ingredient: null,
     isLoading: false,
-    setGlobalScheduledDate: vi.fn(),
+    platformConfigs: [xChannel],
+    setGlobalScheduledDate: () => undefined,
   };
 
-  it('should render without crashing', () => {
+  it('holds the shared title, caption and time', () => {
     render(<ModalPostSetupTab {...baseProps} />);
-    expect(screen.getAllByTestId('form-control').length).toBeGreaterThan(0);
-  });
 
-  it('should handle user interactions correctly', () => {
-    render(<ModalPostSetupTab {...baseProps} />);
     expect(screen.getByTestId('form-input')).toBeInTheDocument();
+    expect(screen.getByTestId('form-textarea')).toBeInTheDocument();
+    expect(screen.getByTestId('form-date-time-picker')).toBeInTheDocument();
   });
 
-  it('should apply correct styles and classes', () => {
+  it('counts the shared caption against each channel that is on', () => {
     render(<ModalPostSetupTab {...baseProps} />);
-    expect(screen.getByTestId('form-date-time-picker')).toBeInTheDocument();
+
+    expect(screen.getByText('Characters per channel')).toBeVisible();
+    expect(screen.getByText('5/280')).toBeVisible();
+  });
+
+  it('counts nothing while every channel is off', () => {
+    render(
+      <ModalPostSetupTab
+        {...baseProps}
+        platformConfigs={[{ ...xChannel, enabled: false }]}
+      />,
+    );
+
+    expect(
+      screen.queryByText('Characters per channel'),
+    ).not.toBeInTheDocument();
   });
 });

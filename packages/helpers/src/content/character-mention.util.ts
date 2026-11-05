@@ -1,3 +1,5 @@
+const TRAILING_HANDLE_PUNCTUATION_PATTERN = /[.-]+$/u;
+
 export const CHARACTERS_CHANGED_EVENT = 'genfeed:characters:changed';
 
 export interface CharacterMentionToken {
@@ -97,7 +99,7 @@ const TYPED_MENTION_PATTERN = /@([\p{L}\p{N}_.-]+)/gu;
 
 /** `@vincent.` ends a sentence; the handle is `vincent`. */
 function trimTypedHandle(raw: string): string {
-  return raw.replace(/[.-]+$/u, '');
+  return raw.replace(TRAILING_HANDLE_PUNCTUATION_PATTERN, '');
 }
 
 /**

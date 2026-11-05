@@ -2,8 +2,6 @@
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
-  ButtonSize,
-  ButtonVariant,
   CredentialPlatform,
   PostCategory,
   PostVisibility,
@@ -32,18 +30,12 @@ import {
   type PreviewAuthorScope,
   resolvePreviewAuthor,
 } from '@ui/posts/platform-preview/preview-author';
-import { Button } from '@ui/primitives/button';
 import PostingSetPicker from '@ui/publisher/PostingSetPicker';
 import PostingSignaturePicker from '@ui/publisher/PostingSignaturePicker';
 import { resolvePlatformCharLimit } from '@ui-constants/platform-char-limit.constant';
-import { Eye, EyeOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import PostCharacterUsage from '@/components/posts/character-usage/PostCharacterUsage';
-import {
-  buildPostCharacterUsageItems,
-  countCaptionCharacters,
-} from '@/components/posts/character-usage/post-character-usage.util';
+import { countCaptionCharacters } from '@/components/posts/character-usage/post-character-usage.util';
 import ModalPostChannelList from './ModalPostChannelList';
 import ModalPostPlatformCard from './ModalPostPlatformCard';
 import {
@@ -52,7 +44,13 @@ import {
   PLATFORM_TO_TITLE_CATEGORY,
 } from './platform-map.constants';
 
+/**
+ * Right column of the schedule modal. Channels: saved posting sets and one row
+ * per destination, each with its own Edit. Preview: how the post will look on
+ * every channel that is on.
+ */
 export default function ModalPostPlatformsTab({
+  panel,
   applyEnabledCredentialIds,
   form,
   ingredients,
@@ -75,7 +73,6 @@ export default function ModalPostPlatformsTab({
   const [generatingDescFor, setGeneratingDescFor] = useState<string | null>(
     null,
   );
-  const [isPreviewVisible, setIsPreviewVisible] = useState(true);
   const [expandedPlatform, setExpandedPlatform] = useState<string | null>(null);
   const [selectedSetId, setSelectedSetId] = useState<string | undefined>();
   const {
@@ -108,16 +105,6 @@ export default function ModalPostPlatformsTab({
       ingredients,
       platformConfigs,
     ],
-  );
-
-  const characterUsageItems = useMemo(
-    () =>
-      buildPostCharacterUsageItems(
-        platformConfigs,
-        globalDescription,
-        credentials,
-      ),
-    [credentials, globalDescription, platformConfigs],
   );
 
   const getPromptsService = useAuthedService((token) =>
@@ -346,8 +333,16 @@ export default function ModalPostPlatformsTab({
     );
   };
 
+  if (panel === 'preview') {
+    return previewTargets.length > 0 ? (
+      <PlatformPreview targets={previewTargets} />
+    ) : (
+      <p className="text-sm text-foreground/70">{translate('previewEmpty')}</p>
+    );
+  }
+
   return (
-    <>
+    <div className="flex flex-col gap-4">
       <PostingSetPicker
         canSave={platformConfigs.some((config) => config.enabled)}
         expandError={expandError ?? undefined}
@@ -378,42 +373,7 @@ export default function ModalPostPlatformsTab({
       {platformConfigs.every((config) => !config.enabled) ? (
         <p className="text-sm text-foreground/70">{translate('empty')}</p>
       ) : null}
-
-      <PostCharacterUsage
-        items={characterUsageItems}
-        title={translate('charactersUsed')}
-      />
-
-      {previewTargets.length > 0 ? (
-        <div className="border-t pt-4 space-y-4">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <h4 className="font-medium">{translate('livePreview')}</h4>
-              <p className="text-sm text-foreground/70">
-                {translate('livePreviewDescription')}
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.XS}
-              onClick={() => setIsPreviewVisible((isVisible) => !isVisible)}
-              icon={
-                isPreviewVisible ? (
-                  <EyeOff className="size-3.5" />
-                ) : (
-                  <Eye className="size-3.5" />
-                )
-              }
-              label={isPreviewVisible ? 'Hide preview' : 'Show preview'}
-            />
-          </div>
-          {isPreviewVisible ? (
-            <PlatformPreview targets={previewTargets} />
-          ) : null}
-        </div>
-      ) : null}
-    </>
+    </div>
   );
 }
 

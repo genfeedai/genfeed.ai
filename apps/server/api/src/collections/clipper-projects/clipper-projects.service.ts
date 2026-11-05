@@ -30,6 +30,7 @@ import {
 import type { Prisma } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -88,6 +89,7 @@ const PROJECT_SCALAR_KEYS = new Set([
   'workflowExecutionId',
 ]);
 
+@Traced()
 @Injectable()
 export class ClipperProjectsService extends BaseService<
   ClipperProjectDocument,

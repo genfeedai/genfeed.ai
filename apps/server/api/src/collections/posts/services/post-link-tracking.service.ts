@@ -13,12 +13,18 @@ import type {
   TrackPostLinkInput,
 } from '@genfeedai/contracts/interfaces/content/extension-publication.interface';
 import { CredentialPlatform } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 
+const LINKEDIN_POST_URN_PATTERN = /urn:li:(?:share|ugcPost):\d+/;
+const LINKEDIN_ACTIVITY_ID_PATTERN = /(?:activity-|urn:li:activity:)(\d+)/;
+const LINKEDIN_POSTS_SLUG_PATTERN = /\/posts\/([^/_]+)_/;
+
+@Traced()
 @Injectable()
 export class PostLinkTrackingService {
   constructor(
@@ -124,9 +130,9 @@ export class PostLinkTrackingService {
     } else {
       const url = new URL(parsed.url);
       const token = decodeURIComponent(url.pathname);
-      const urn = /urn:li:(?:share|ugcPost):\d+/.exec(token)?.[0];
-      const activityId = /(?:activity-|urn:li:activity:)(\d+)/.exec(token)?.[1];
-      const handle = /\/posts\/([^/_]+)_/.exec(token)?.[1];
+      const urn = LINKEDIN_POST_URN_PATTERN.exec(token)?.[0];
+      const activityId = LINKEDIN_ACTIVITY_ID_PATTERN.exec(token)?.[1];
+      const handle = LINKEDIN_POSTS_SLUG_PATTERN.exec(token)?.[1];
       capture.description = parsed.title ?? '';
       capture.publicationDate =
         linkedInActivityDate(activityId)?.toISOString() ??

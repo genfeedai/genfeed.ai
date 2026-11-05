@@ -4,6 +4,7 @@ import { resolveLowCreditThreshold } from '@api/collections/credits/services/low
 import { DefaultGenerationAffordabilityService } from '@api/services/router/default-generation-affordability.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ILowCreditStanding } from '@genfeedai/contracts/interfaces/billing';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -14,6 +15,7 @@ import { Injectable } from '@nestjs/common';
  * (never below one default image) for a paying one, and no alert for an
  * expired trial (admission already refuses it) or when nothing is known.
  */
+@Traced()
 @Injectable()
 export class LowCreditThresholdService {
   constructor(

@@ -8,6 +8,7 @@ import {
   SystemBrandService,
 } from '@api/collections/brands/services/system-brand.service';
 import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-workflow.contract';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export type BrandedModeResolution =
@@ -26,6 +27,7 @@ export type SystemBrandedGenerationTarget = BrandedModeResolution & {
  * the Genfeed default style kit first when the brand has no revision at all.
  * The mode is never client-supplied and the choice is pinned by the receipt.
  */
+@Traced()
 @Injectable()
 export class BrandedModeResolverService {
   constructor(

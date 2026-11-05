@@ -4,9 +4,12 @@ import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
+
+const TRAILING_SLASHES_PATTERN = /\/+$/;
 
 export interface MurekaGenerateSongInput {
   instrumental?: boolean;
@@ -68,6 +71,7 @@ const MUREKA_POLL_TIMEOUT_MS = 180_000;
  * Each returns a task `id`, polled on /v1/song/query/{id} or
  * /v1/instrumental/query/{id} respectively. Neither accepts a duration.
  */
+@Traced()
 @Injectable()
 export class MurekaService {
   private readonly logContext = 'MurekaService';
@@ -105,7 +109,7 @@ export class MurekaService {
         url.hash
       )
         throw new Error();
-      return url.toString().replace(/\/+$/, '');
+      return url.toString().replace(TRAILING_SLASHES_PATTERN, '');
     } catch {
       throw new Error(
         'Mureka base URL must be an absolute HTTPS URL without credentials, query or fragment.',

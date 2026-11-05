@@ -12,6 +12,7 @@ import {
   calculateCreditEstimate,
   DEFAULT_CREDIT_COSTS,
 } from '@genfeedai/workflows/engine';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 /**
@@ -19,6 +20,7 @@ import { BadRequestException, Injectable, Optional } from '@nestjs/common';
  * nodes) runs, resume-from-failed, credit validation, and execution log
  * retrieval. Split out of `WorkflowsService` (#754).
  */
+@Traced()
 @Injectable()
 export class WorkflowRunControlService {
   constructor(

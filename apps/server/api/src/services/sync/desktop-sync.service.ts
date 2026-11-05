@@ -7,6 +7,7 @@ import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util'
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/contracts';
 import { AssetCategory, AssetParent } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -31,6 +32,10 @@ import type { PushDesktopSyncOpsDto } from './dto/push-desktop-sync-ops.dto';
 import type { PushDesktopThreadsDto } from './dto/push-desktop-threads.dto';
 import type { RequestDesktopAssetUploadDto } from './dto/request-desktop-asset-upload.dto';
 import type { UploadDesktopAssetDto } from './dto/upload-desktop-asset.dto';
+
+const UNSAFE_OBJECT_KEY_CHARS_PATTERN = /[^a-zA-Z0-9._-]/g;
+const HYPHEN_RUNS_PATTERN = /-+/g;
+const DESKTOP_ASSET_KEY_PREFIX_PATTERN = /^ingredients\/desktop-assets\//;
 
 type DesktopAssetPushResult = {
   cloudAssetId?: string;
@@ -81,6 +86,7 @@ const ALLOWED_DESKTOP_MIME_TYPES = new Set([
   'application/pdf',
 ]);
 
+@Traced()
 @Injectable()
 export class DesktopSyncService {
   constructor(
@@ -159,8 +165,8 @@ export class DesktopSyncService {
     asset: Pick<DesktopAssetDto, 'displayName' | 'originalFileName' | 'sha256'>,
   ): string {
     const safeName = (asset.originalFileName ?? asset.displayName)
-      .replace(/[^a-zA-Z0-9._-]/g, '-')
-      .replace(/-+/g, '-');
+      .replace(UNSAFE_OBJECT_KEY_CHARS_PATTERN, '-')
+      .replace(HYPHEN_RUNS_PATTERN, '-');
 
     return `${organizationId}/${asset.sha256}/${safeName}`;
   }
@@ -709,7 +715,7 @@ export class DesktopSyncService {
           asset.originalFileName ?? dto.originalFileName ?? asset.id,
         sha256: asset.sha256 ?? asset.id,
       })
-    ).replace(/^ingredients\/desktop-assets\//, '');
+    ).replace(DESKTOP_ASSET_KEY_PREFIX_PATTERN, '');
 
     const { publicUrl, s3Key, uploadUrl } =
       await this.filesClientService.getPresignedUploadUrl(
@@ -817,7 +823,7 @@ export class DesktopSyncService {
           asset.originalFileName ?? dto.originalFileName ?? asset.id,
         sha256: asset.sha256 ?? asset.id,
       })
-    ).replace(/^ingredients\/desktop-assets\//, '');
+    ).replace(DESKTOP_ASSET_KEY_PREFIX_PATTERN, '');
 
     await this.filesClientService.uploadToS3(
       logicalObjectKey,

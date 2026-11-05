@@ -11,6 +11,7 @@ import type {
 import { FalService } from '@api/services/integrations/fal/services/fal.service';
 import { ModelProvider } from '@genfeedai/contracts';
 import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 interface FalMusicResponseData extends Record<string, unknown> {
@@ -27,6 +28,7 @@ interface FalMusicResponseData extends Record<string, unknown> {
  * finalize the ingredient later, so this adapter reports `outputUrl` back
  * to the caller for immediate finalization.
  */
+@Traced()
 @Injectable()
 export class FalMusicGenerationProviderAdapter
   implements MusicGenerationProviderAdapter

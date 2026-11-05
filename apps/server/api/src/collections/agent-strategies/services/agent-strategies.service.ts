@@ -22,6 +22,7 @@ import type { IAgentStrategyPerformanceSnapshot } from '@genfeedai/contracts/int
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type AgentStrategyWriteDto = Partial<
@@ -122,6 +123,7 @@ const POLICIES_BACKED_KEYS = [
   'reportingPolicy',
 ] as const;
 
+@Traced()
 @Injectable()
 export class AgentStrategiesService extends BaseService<
   AgentStrategyDocument,
@@ -270,6 +272,12 @@ export class AgentStrategiesService extends BaseService<
       // tenant-scope-ignore: strategyLookupWhere pins to the request tenant; worker callers have no context and the write below is scoped to the resolved organization
       const existing = await transaction.agentStrategy.findFirst({
         where: this.strategyLookupWhere(id),
+        select: {
+          config: true,
+          isActive: true,
+          organizationId: true,
+          policies: true,
+        },
       });
       if (!existing) throw new NotFoundException('Agent strategy', id);
       const existingConfig = this.readRecord(existing.config) ?? {};
@@ -401,6 +409,7 @@ export class AgentStrategiesService extends BaseService<
       await lockAgentStrategy(transaction, id);
       const current = await transaction.agentStrategy.findFirst({
         where: { id, organizationId, isDeleted: false },
+        select: { config: true },
       });
       if (!current) return;
       const config = this.readRecord(current.config) ?? {};
@@ -555,6 +564,7 @@ export class AgentStrategiesService extends BaseService<
       // tenant-scope-ignore: strategyLookupWhere pins to the request tenant; worker callers have no context and the write below is scoped to the resolved organization
       const current = await transaction.agentStrategy.findFirst({
         where: this.strategyLookupWhere(id),
+        select: { config: true, organizationId: true },
       });
       if (!current) return null;
       const data = mutate(this.readRecord(current.config) ?? {});

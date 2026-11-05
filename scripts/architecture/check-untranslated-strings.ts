@@ -31,6 +31,8 @@ import { globSync } from 'glob';
 import * as ts from 'typescript';
 import { parseSourceFile, scriptKindFor } from './parse-source-file';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 export const UNTRANSLATED_STRING_FIX_HELP =
   'Fix: add the copy to apps/web/messages/en/<namespace>.json and resolve it with ' +
   "useTranslations('<namespace>') or getTranslations from next-intl. Shared packages " +
@@ -106,7 +108,10 @@ function toPosix(filePath: string): string {
 }
 
 function normalizeVisibleText(text: string): string {
-  return text.replace(JSX_ENTITY_PATTERN, ' ').replaceAll(/\s+/g, ' ').trim();
+  return text
+    .replace(JSX_ENTITY_PATTERN, ' ')
+    .replaceAll(WHITESPACE_RUNS_PATTERN, ' ')
+    .trim();
 }
 
 function isUserVisibleText(text: string): boolean {

@@ -18,6 +18,8 @@ import {
 } from '@/lib/onboarding/onboarding-access.util';
 import type { AuthCallbackURLOptions } from '@/props/auth/auth-callback-url.props';
 
+const OAUTH_ERROR_CODE_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+
 const ROOT_CALLBACK_URL = '/';
 const LOGIN_PATH = '/login';
 const POST_SIGNUP_CALLBACK_URL = '/onboarding/post-signup';
@@ -61,7 +63,7 @@ export function resolveOAuthLoginErrorMessage(
   if (code === 'access_denied') {
     return OAUTH_CANCELLED_MESSAGE;
   }
-  if (/^[A-Za-z0-9_-]{1,64}$/.test(code)) {
+  if (OAUTH_ERROR_CODE_PATTERN.test(code)) {
     return OAUTH_FAILED_MESSAGE;
   }
   return null;

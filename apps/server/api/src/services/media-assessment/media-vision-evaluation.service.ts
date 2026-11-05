@@ -18,6 +18,7 @@ import type {
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 
@@ -62,6 +63,7 @@ export function pickEvenly<T>(items: readonly T[], max: number): T[] {
  * The vision gate mode (an operator platform setting) `off` skips entirely; `shadow` and `live` both
  * evaluate — only the assessment decides whether flags gate a publish.
  */
+@Traced()
 @Injectable()
 export class MediaVisionEvaluationService {
   private readonly constructorName = String(this.constructor.name);

@@ -21,6 +21,7 @@ import { REDIS_EVENTS } from '@genfeedai/integrations';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { RedisService } from '@libs/redis/redis.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -30,6 +31,8 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import { TwitterApi } from 'twitter-api-v2';
+
+const LEADING_AT_SIGN_PATTERN = /^@/;
 
 type AnnouncementBroadcastRequest = {
   authorId: string;
@@ -48,6 +51,7 @@ type AnnouncementDeliveryResult = {
   tweetUrl?: string;
 };
 
+@Traced()
 @Injectable()
 export class AdminAnnouncementsService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
@@ -333,7 +337,7 @@ export class AdminAnnouncementsService implements OnModuleInit {
     }
 
     const handle = credential.externalHandle ?? 'i';
-    const cleanHandle = handle.replace(/^@/, '');
+    const cleanHandle = handle.replace(LEADING_AT_SIGN_PATTERN, '');
     const tweetUrl = `https://x.com/${cleanHandle}/status/${tweetId}`;
 
     return { tweetId, tweetUrl };

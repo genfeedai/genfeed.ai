@@ -6,7 +6,10 @@ import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 import { SOCIAL_REPLY_NOTIFICATION_TOPIC } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
+
+const LEADING_AT_SIGN_PATTERN = /^@/;
 
 export const SOCIAL_REPLY_SOURCE_TYPE = 'social_credential';
 export const SOCIAL_REPLY_ENTITY_MODEL = 'Credential';
@@ -69,7 +72,9 @@ export function formatSocialReplySummary(
   accountHandle: string | null,
 ): string {
   const noun = replyCount === 1 ? 'reply' : 'replies';
-  const handle = accountHandle ? ` on @${accountHandle.replace(/^@/, '')}` : '';
+  const handle = accountHandle
+    ? ` on @${accountHandle.replace(LEADING_AT_SIGN_PATTERN, '')}`
+    : '';
   return `${replyCount} new ${noun}${handle}`;
 }
 
@@ -79,6 +84,7 @@ export function formatSocialReplySummary(
  * credential, keyed by the newest new reply id so a re-run of the same batch
  * returns the first activity and writes nothing new.
  */
+@Traced()
 @Injectable()
 export class SocialReplyNotificationService {
   private readonly context = {
@@ -144,7 +150,8 @@ export class SocialReplyNotificationService {
     }
 
     const newestReplyId = newestReply.externalMessageId;
-    const accountHandle = input.accountHandle?.replace(/^@/, '') || null;
+    const accountHandle =
+      input.accountHandle?.replace(LEADING_AT_SIGN_PATTERN, '') || null;
     const occurredAt = input.occurredAt ?? new Date();
     const deduplicationKey = `${ActivityKey.SOCIAL_REPLIES_RECEIVED}/${input.organizationId}/${input.credentialId}/${newestReplyId}`;
     const payload: SocialReplyNotificationPayload = {

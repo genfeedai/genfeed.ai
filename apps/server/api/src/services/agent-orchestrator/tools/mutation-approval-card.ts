@@ -15,6 +15,9 @@ import {
   readRecord,
 } from '@genfeedai/utils/data/extract.util';
 
+const CAMEL_CASE_BOUNDARY_PATTERN = /([a-z])([A-Z])/g;
+const UNDERSCORES_PATTERN = /_/g;
+
 const PRIVATE_FIELD =
   /secret|password|token|authorization|credential|api.?key/i;
 
@@ -97,7 +100,9 @@ function buildPostPreviews(
 }
 
 export function humanize(value: string): string {
-  const text = value.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ');
+  const text = value
+    .replace(CAMEL_CASE_BOUNDARY_PATTERN, '$1 $2')
+    .replace(UNDERSCORES_PATTERN, ' ');
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 

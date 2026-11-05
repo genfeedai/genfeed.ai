@@ -26,6 +26,8 @@ import SearchField from '@/components/content/search-field/SearchField';
 import type { TemplateView } from '@/features/admin/props/templates.props';
 import { toTemplateView } from './template-view';
 
+const HYPHENS_PATTERN = /-/g;
+
 const EMPTY_TEMPLATES: IContentTemplate[] = [];
 
 function TemplatesPageContent() {
@@ -112,7 +114,10 @@ function TemplatesPageContent() {
         </Badge>
       )}
       <span className="capitalize">
-        {(template.category ?? t('uncategorized')).replace(/-/g, ' ')}
+        {(template.category ?? t('uncategorized')).replace(
+          HYPHENS_PATTERN,
+          ' ',
+        )}
       </span>
       {template.key && <span className="font-mono">{template.key}</span>}
       {template.variableNames.length > 0 && (

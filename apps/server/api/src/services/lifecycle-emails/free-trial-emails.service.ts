@@ -23,7 +23,10 @@ import {
   escapeSystemEmailHtml,
 } from '@helpers/email/system-email.helper';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
+
+const TRAILING_SLASHES_PATTERN = /\/+$/;
 
 /**
  * Trial notices go through the product-email path: the "billing.credits" or
@@ -38,6 +41,7 @@ const TRIAL_EMAIL_TOPICS: Record<FreeTrialEmailTemplateKey, string> = {
   'trial-ending': 'lifecycle.onboarding',
 };
 
+@Traced()
 @Injectable()
 export class FreeTrialEmailsService {
   constructor(
@@ -224,6 +228,6 @@ export class FreeTrialEmailsService {
   private appUrl(): string {
     return (
       this.config.get('GENFEEDAI_APP_URL') ?? 'https://app.genfeed.ai'
-    ).replace(/\/+$/, '');
+    ).replace(TRAILING_SLASHES_PATTERN, '');
   }
 }

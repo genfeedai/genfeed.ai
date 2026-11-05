@@ -18,6 +18,9 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
 
+const MISSING_AT_REF_ERROR_PATTERN =
+  /exists on disk, but not in|does not exist in/;
+
 export type RatchetSource = {
   /** Key for every baseline entry. Equal keys are the same exception. */
   entryKeys: (content: string) => string[];
@@ -192,7 +195,7 @@ export function readFileAtRef(
   } catch (error) {
     const stderr = String((error as { stderr?: unknown }).stderr ?? '');
 
-    if (/exists on disk, but not in|does not exist in/.test(stderr)) {
+    if (MISSING_AT_REF_ERROR_PATTERN.test(stderr)) {
       return null;
     }
 

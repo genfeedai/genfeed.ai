@@ -34,6 +34,9 @@ import {
   discoverSpecWorkspacesAcrossRoots,
 } from '../architecture/check-spec-typecheck';
 
+const GENFEED_SCOPE_PREFIX_PATTERN = /^@genfeedai\//;
+const WHITESPACE_RUN_PATTERN = /\s+/u;
+
 const APP_WORKSPACE_ROOTS = new Set<string>(['apps/server', 'apps']);
 
 /**
@@ -123,7 +126,7 @@ export function resolveSpecTypecheckScope(
 function parseTurboAffectedNames(dryRunJson: string): string[] {
   const parsed = JSON.parse(dryRunJson) as { packages?: string[] };
   return (parsed.packages ?? []).map((name) =>
-    name.replace(/^@genfeedai\//, ''),
+    name.replace(GENFEED_SCOPE_PREFIX_PATTERN, ''),
   );
 }
 
@@ -274,7 +277,7 @@ function main(): void {
   }
 
   const appsAffectedFromFiles = (process.env.APPS_AFFECTED ?? '')
-    .split(/\s+/u)
+    .split(WHITESPACE_RUN_PATTERN)
     .filter((value) => value.length > 0);
 
   const { allWorkspaces, appWorkspaces } = discoverWorkspaceInventory(rootDir);

@@ -14,6 +14,10 @@ import {
   sanitizeSystemEmailUrl,
 } from '../email/system-email.helper';
 
+const TRAILING_ZERO_DECIMAL_PATTERN = /\.0$/;
+const TRAILING_SLASH_PATTERN = /\/$/;
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+
 export type TrendDigestItemType = 'video' | 'hashtag' | 'sound' | 'topic';
 
 /** A post the reader can make from a trend. */
@@ -68,10 +72,10 @@ const DEFAULT_HEADER_TITLE = 'Your Trend Summary';
 /** Human-readable compact number (1.2K / 3.4M). */
 export function formatTrendCount(num: number): string {
   if (num >= 1_000_000) {
-    return `${(num / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+    return `${(num / 1_000_000).toFixed(1).replace(TRAILING_ZERO_DECIMAL_PATTERN, '')}M`;
   }
   if (num >= 1_000) {
-    return `${(num / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
+    return `${(num / 1_000).toFixed(1).replace(TRAILING_ZERO_DECIMAL_PATTERN, '')}K`;
   }
   return num.toString();
 }
@@ -200,7 +204,7 @@ function platformBadgeHtml(
   const base = safeUrl(appUrl);
   const logo =
     file && base
-      ? `<img src="${escapeTrendHtml(`${base.replace(/\/$/, '')}/assets/email/platforms/${file}.png`)}" alt="" width="${size}" height="${size}" style="border:0;border-radius:${Math.round(size / 4)}px;display:inline-block;height:${size}px;margin-right:8px;vertical-align:middle;width:${size}px;">`
+      ? `<img src="${escapeTrendHtml(`${base.replace(TRAILING_SLASH_PATTERN, '')}/assets/email/platforms/${file}.png`)}" alt="" width="${size}" height="${size}" style="border:0;border-radius:${Math.round(size / 4)}px;display:inline-block;height:${size}px;margin-right:8px;vertical-align:middle;width:${size}px;">`
       : '';
   return `${logo}<span style="vertical-align:middle;">${escapeTrendHtml(platformLabel(platform))}</span>`;
 }
@@ -225,7 +229,7 @@ function sanitizeTrendSourceUrl(value: string): string | null {
   if (!safe) {
     return null;
   }
-  return /^https?:\/\//i.test(safe) ? safe : null;
+  return HTTP_PROTOCOL_PREFIX_PATTERN.test(safe) ? safe : null;
 }
 
 function safeUrl(value: string | undefined): string | null {

@@ -19,6 +19,7 @@ import { BotPlatform, LivestreamTranscriptSource } from '@genfeedai/contracts';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 import {
   mergeLivestreamSessionContext,
@@ -34,6 +35,9 @@ import {
   type ResolvedLivestreamContext,
 } from './bots-livestream-runtime.service';
 import { BotsRestreamChatService } from './bots-restream-chat.service';
+
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const SENTENCE_PUNCTUATION_PATTERN = /[.!?]/;
 
 type LivestreamMessageType = BotLivestreamMessageType;
 
@@ -63,6 +67,7 @@ function isLivestreamPlatform(
   return platform === BotPlatform.TWITCH || platform === BotPlatform.YOUTUBE;
 }
 
+@Traced()
 @Injectable()
 export class BotsLivestreamService {
   constructor(
@@ -756,12 +761,12 @@ export class BotsLivestreamService {
     const transcriptSummary = relevantChunks
       .map((chunk) => chunk.text.trim())
       .join(' ')
-      .replace(/\s+/g, ' ')
+      .replace(WHITESPACE_RUNS_PATTERN, ' ')
       .trim()
       .slice(0, 500);
 
     const currentTopic = transcriptSummary
-      .split(/[.!?]/)[0]
+      .split(SENTENCE_PUNCTUATION_PATTERN)[0]
       ?.trim()
       .slice(0, 140);
     const transcriptConfidence =

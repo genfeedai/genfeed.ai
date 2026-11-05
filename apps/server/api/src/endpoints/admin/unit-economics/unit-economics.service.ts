@@ -22,6 +22,7 @@ import type {
   IUnitEconomicsTopModel,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type NumericSqlValue = bigint | number | string | null;
@@ -112,6 +113,7 @@ function toAggregate(
  * drill-down additionally pins one `organizationId`. Aggregation runs in
  * Postgres over the period indexes added with the revenue ledger.
  */
+@Traced()
 @Injectable()
 export class UnitEconomicsService {
   constructor(private readonly prisma: PrismaService) {}

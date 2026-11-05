@@ -63,9 +63,12 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { assertSafeObjectKey } from '@libs/security';
 import { assertStoredObjectKey } from '@libs/security/stored-object-key';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, Optional } from '@nestjs/common';
+
+const MUSIC_INGREDIENT_KEY_PATTERN = /^ingredients\/(musics|audio|audios)\/.+/;
 
 const STITCH_JOB_TIMEOUT_MS = 300_000;
 /**
@@ -105,6 +108,7 @@ const OUTPUT_SELECT = {
  * Completion and failure are conditional on the output still processing, so
  * two of them racing settle it once.
  */
+@Traced()
 @Injectable()
 export class VideoStitchService {
   private readonly logContext = 'VideoStitchService';
@@ -482,10 +486,7 @@ export class VideoStitchService {
         throw stitchRequestError('music', 'Music asset is not available');
       }
       if (this.configService?.isAuthorizedMediaDeliveryEnabled) {
-        if (
-          !music.s3Key ||
-          !/^ingredients\/(musics|audio|audios)\/.+/.test(music.s3Key)
-        ) {
+        if (!music.s3Key || !MUSIC_INGREDIENT_KEY_PATTERN.test(music.s3Key)) {
           throw stitchRequestError(
             'music',
             'Music asset has no valid stored media key',

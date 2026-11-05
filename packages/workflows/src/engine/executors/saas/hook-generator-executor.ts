@@ -7,6 +7,9 @@ import {
 } from '../base-executor';
 import { toNonEmptyString } from './trend-inspiration-shared';
 
+const NON_ALPHANUMERIC_CHARS_PATTERN = /[^a-zA-Z0-9]/g;
+const HASHTAGS_PATTERN = /#[a-zA-Z0-9_]+/g;
+
 export type HookFormula =
   | 'person_conflict_resolution'
   | 'curiosity_gap'
@@ -102,7 +105,9 @@ function stringifyContext(value: unknown): string | null {
 // lowercased and stripped of underscores (e.g. `Build_In_Public` -> `#buildinpublic`),
 // so this stays local rather than importing `buildOptionalHashtag`.
 function buildHashtag(value: string): string | null {
-  const normalized = value.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  const normalized = value
+    .replace(NON_ALPHANUMERIC_CHARS_PATTERN, '')
+    .toLowerCase();
   return normalized.length > 0 ? `#${normalized}` : null;
 }
 
@@ -124,7 +129,7 @@ function collectHashtags(
 
   const trendText = stringifyContext(trendInput);
   if (trendText) {
-    const matches = trendText.match(/#[a-zA-Z0-9_]+/g) ?? [];
+    const matches = trendText.match(HASHTAGS_PATTERN) ?? [];
     tags.push(...matches);
   }
 

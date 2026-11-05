@@ -28,6 +28,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
 import type { BrandPublishRequiredCheck } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 export interface ResolveAutonomousPostPolicyInput {
@@ -109,6 +110,7 @@ function boundedInteger(value: unknown, fallback: number, max: number): number {
     ? value
     : fallback;
 }
+@Traced()
 @Injectable()
 export class AutonomousPublishPolicyService {
   /** Without the module's judge, a Policy that needs one holds its drafts. */
@@ -457,6 +459,7 @@ export class AutonomousPublishPolicyService {
         id: strategyId,
         brandId: post.brandId,
       }),
+      select: { config: true, isActive: true, policies: true },
     });
     if (!strategy) return null;
     const policies = policyObject(strategy.policies);
@@ -492,6 +495,7 @@ export class AutonomousPublishPolicyService {
     const threshold = boundedInteger(policy.autoPublishAfterApprovals, 5, 100);
     const brand = await transaction.brand.findFirst({
       where: scopedWhere(input.organizationId, { id: post.brandId }),
+      select: { agentConfig: true },
     });
     const brandConfig = policyObject(brand?.agentConfig);
     const autoPublishEnabled =

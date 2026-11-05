@@ -9,6 +9,9 @@ import {
   summarizeExplainJson,
 } from './post-analytics-explain';
 
+const START_OF_STRING_PATTERN = /^/;
+const END_OF_STRING_PATTERN = /$/;
+
 interface PgClient {
   connect(): Promise<void>;
   end(): Promise<void>;
@@ -340,8 +343,8 @@ export function formatTrendReferenceCorpusExplainRun(
       ]
         .map(escapeMarkdownCell)
         .join(' | ')
-        .replace(/^/, '| ')
-        .replace(/$/, ' |'),
+        .replace(START_OF_STRING_PATTERN, '| ')
+        .replace(END_OF_STRING_PATTERN, ' |'),
     );
   }
 

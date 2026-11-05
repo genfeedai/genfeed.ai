@@ -2,9 +2,15 @@ import { randomBytes } from 'node:crypto';
 import { JWT_BEARER_GRANT_TYPE } from '@api/oauth/enterprise-managed-auth.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { safeFetch } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import type { RegisterOAuthClientDto } from '../dto/register-client.dto';
+
+const REDIRECT_URI_SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*$/;
+const MAX_AGE_CACHE_CONTROL_PATTERN = /(?:^|,)\s*max-age=(\d+)/i;
+const NO_STORE_CACHE_CONTROL_PATTERN =
+  /(?:^|,)\s*(?:no-store|no-cache)(?:\s|,|$)/i;
 
 export type OAuthClientRecord = {
   clientId: string;
@@ -166,7 +172,7 @@ function validateRedirectUri(value: string): string {
 
   const scheme = url.protocol.slice(0, -1);
   if (
-    /^[a-z][a-z0-9+.-]*$/.test(scheme) &&
+    REDIRECT_URI_SCHEME_PATTERN.test(scheme) &&
     !FORBIDDEN_REDIRECT_SCHEMES.has(scheme)
   ) {
     return url.toString();
@@ -178,6 +184,7 @@ function validateRedirectUri(value: string): string {
   );
 }
 
+@Traced()
 @Injectable()
 export class OAuthClientService {
   private readonly documentClients = new Map<
@@ -315,10 +322,8 @@ export class OAuthClientService {
         tokenEndpointAuthMethod: metadata.token_endpoint_auth_method,
       };
       const cacheControl = response.headers.get('cache-control') ?? '';
-      const maxAge = /(?:^|,)\s*max-age=(\d+)/i.exec(cacheControl)?.[1];
-      const ttl = /(?:^|,)\s*(?:no-store|no-cache)(?:\s|,|$)/i.test(
-        cacheControl,
-      )
+      const maxAge = MAX_AGE_CACHE_CONTROL_PATTERN.exec(cacheControl)?.[1];
+      const ttl = NO_STORE_CACHE_CONTROL_PATTERN.test(cacheControl)
         ? 0
         : Math.min(Number(maxAge ?? 60), 300) * 1000;
       if (ttl > 0) {

@@ -59,6 +59,7 @@ import type {
   BrandedGenerationResolutionV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -88,6 +89,7 @@ import {
   withDiagnostic,
 } from './branded-generation-projection.util';
 
+@Traced()
 @Injectable()
 export class BrandedGenerationReceiptsService {
   constructor(
@@ -866,7 +868,10 @@ export class BrandedGenerationReceiptsService {
           isDeleted: false,
         };
         if (artifact.kind === 'post') {
-          const post = await tx.post.findFirst({ where });
+          const post = await tx.post.findFirst({
+            where,
+            select: { description: true },
+          });
           if (!post)
             throw new NotFoundException({
               message: 'receipt_artifact_not_found',

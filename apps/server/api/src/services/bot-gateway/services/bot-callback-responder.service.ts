@@ -8,6 +8,7 @@ import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import type { IBotPlatformAdapter } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -21,6 +22,7 @@ type ClaimedDelivery = {
  * webhook media path, so it depends only on the platform adapters and the
  * Redis-backed callback store — never on the generation dispatcher.
  */
+@Traced()
 @Injectable()
 export class BotCallbackResponderService {
   private readonly constructorName: string = String(this.constructor.name);

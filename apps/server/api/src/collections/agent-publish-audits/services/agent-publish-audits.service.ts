@@ -7,6 +7,7 @@ import type {
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { parseAgentPublishDecision } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 type StoredAgentPublishAuditRow = {
@@ -28,6 +29,7 @@ type StoredAgentPublishAuditRow = {
   userId: string;
 };
 
+@Traced()
 @Injectable()
 export class AgentPublishAuditsService {
   constructor(private readonly prisma: PrismaService) {}

@@ -17,7 +17,10 @@ import {
   type ListeningSignalType,
   type SourcePostMetrics,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
+
+const NON_WORD_RUNS_PATTERN = /[^\p{L}\p{N}]+/gu;
 
 const MAX_WINDOW_MILLISECONDS = 31 * 24 * 60 * 60 * 1000;
 const SIGNAL_TYPES: ListeningSignalType[] = [
@@ -108,6 +111,7 @@ type SignalCalculation = {
   value: number | null;
 };
 
+@Traced()
 @Injectable()
 export class ListeningTopicAnalysisService {
   constructor(private readonly prisma: PrismaService) {}
@@ -784,7 +788,7 @@ function normalizeText(value: string): string {
   return value
     .normalize('NFKC')
     .toLocaleLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(NON_WORD_RUNS_PATTERN, ' ')
     .trim();
 }
 

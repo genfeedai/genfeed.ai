@@ -17,8 +17,13 @@ import { StudioElementSeedService } from '@api/seeds/studio-element-seed.service
 import { StudioPresetSeedService } from '@api/seeds/studio-preset-seed.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+const FAILED_ENTRIES_MESSAGE_PATTERN =
+  /failed for(?: all \d+ entries)?: (.+)$/u;
+
+@Traced()
 @Injectable()
 export class ReferenceDataSyncService {
   private readonly context = 'ReferenceDataSyncService';
@@ -163,9 +168,7 @@ export class ReferenceDataSyncService {
 
   private failedKeys(error: unknown): string[] {
     if (!(error instanceof Error)) return ['unknown'];
-    const named = error.message.match(
-      /failed for(?: all \d+ entries)?: (.+)$/u,
-    );
+    const named = error.message.match(FAILED_ENTRIES_MESSAGE_PATTERN);
     if (named?.[1]) {
       return named[1].split(', ').filter(Boolean);
     }

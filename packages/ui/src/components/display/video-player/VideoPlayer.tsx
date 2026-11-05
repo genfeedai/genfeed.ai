@@ -10,6 +10,8 @@ import Spinner from '@genfeedai/ui/primitives/spinner';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+const SAFARI_USER_AGENT_PATTERN = /^((?!chrome|android).)*safari/i;
+
 interface VideoOverlayContentProps {
   hasError: boolean;
   thumbnail: string;
@@ -186,9 +188,7 @@ export default function VideoPlayer({
   const handleError = useCallback(
     (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
       // Safari-specific error handling
-      const isSafari = /^((?!chrome|android).)*safari/i.test(
-        navigator.userAgent,
-      );
+      const isSafari = SAFARI_USER_AGENT_PATTERN.test(navigator.userAgent);
 
       if (isSafari) {
         // Safari video error - silently handle without logging

@@ -70,6 +70,7 @@ import type {
   AgentUIBlocksEvent,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 // During live token streaming, cancellation cannot be checked per token
@@ -93,6 +94,7 @@ class StreamCancelledError extends Error {
   }
 }
 
+@Traced()
 @Injectable()
 export class AgentOrchestratorStreamLoopService {
   private readonly constructorName = String(this.constructor.name);

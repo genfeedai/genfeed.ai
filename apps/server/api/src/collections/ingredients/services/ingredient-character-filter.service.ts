@@ -1,5 +1,6 @@
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -10,6 +11,7 @@ import { Injectable } from '@nestjs/common';
  * active brand cannot use is dropped here and never reveals itself: it simply
  * matches nothing.
  */
+@Traced()
 @Injectable()
 export class IngredientCharacterFilterService {
   constructor(private readonly personasService: PersonasService) {}

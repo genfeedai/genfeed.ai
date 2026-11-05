@@ -10,6 +10,8 @@
 
 import { PostCategory } from '../..';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 export const MAX_SCHEDULED_CAMPAIGN_ITEMS = 8;
 export const MAX_SCHEDULED_ITEM_CHARS = 280;
 
@@ -121,7 +123,8 @@ export function buildCadenceSlotGeneratePrompt(
     userLines.push(
       'Already scheduled in this campaign:',
       ...scheduledItems.map(
-        (item) => `- ${item.instant}: ${item.content.replace(/\s+/g, ' ')}`,
+        (item) =>
+          `- ${item.instant}: ${item.content.replace(WHITESPACE_RUNS_PATTERN, ' ')}`,
       ),
     );
   } else {

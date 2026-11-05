@@ -11,8 +11,10 @@ import { readRecordOrEmpty } from '@api/shared/utils/object/read-record-or-empty
 import { CreatorAnalysisStatus } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ContentIntelligenceService extends BaseService<
   CreatorAnalysisDocument,
@@ -141,7 +143,10 @@ export class ContentIntelligenceService extends BaseService<
     update: Record<string, unknown>,
   ): Promise<CreatorAnalysisDocument> {
     const where = scopedWhere(organizationId, { id });
-    const existing = await this.delegate.findFirst({ where });
+    const existing = await this.delegate.findFirst({
+      where,
+      select: { data: true },
+    });
     if (!existing) {
       throw new NotFoundException('Creator analysis');
     }

@@ -1,12 +1,14 @@
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
 import type { NextFunction, Response } from 'express';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 export function mcpAccessModeMiddleware(
   req: McpRequest,
   res: Response,
   next: NextFunction,
 ): void {
-  const route = req.path.replace(/\/+$/, '').toLowerCase();
+  const route = req.path.replace(TRAILING_SLASHES_PATTERN, '').toLowerCase();
   req.routeAccessMode = route === '/mcp/claude' ? 'claude' : 'standard';
   if (
     req.routeAccessMode === 'claude' &&

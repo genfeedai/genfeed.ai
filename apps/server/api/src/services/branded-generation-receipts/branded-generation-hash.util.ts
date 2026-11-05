@@ -17,6 +17,10 @@ import type {
   BrandGenerationRulesV1,
   BrandIdentitySnapshotV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const SHA256_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
+
 export type BrandedGenerationJsonV1 =
   | null
   | boolean
@@ -109,7 +113,7 @@ function serialize(
         keys.length !== value.length ||
         keys.some(
           (key) =>
-            !/^\d+$/.test(key) ||
+            !DIGITS_ONLY_PATTERN.test(key) ||
             String(Number(key)) !== key ||
             Number(key) >= value.length,
         )
@@ -298,7 +302,7 @@ export function hashBrandedGenerationArtifactManifestV1(
   if (
     input.textHash !== null &&
     (typeof input.textHash !== 'string' ||
-      !/^sha256:[0-9a-f]{64}$/.test(input.textHash))
+      !SHA256_DIGEST_PATTERN.test(input.textHash))
   )
     invalid();
   if (mediaKind === 'text' && input.textHash === null) invalid();

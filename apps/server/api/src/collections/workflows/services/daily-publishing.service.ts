@@ -35,8 +35,13 @@ import {
   CredentialPlatform as PrismaCredentialPlatform,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+
+const ISO_DATE_SUFFIX_PATTERN = /\d{4}-\d{2}-\d{2}$/;
+const LESS_THAN_SIGNS_PATTERN = /</g;
+const GREATER_THAN_SIGNS_PATTERN = />/g;
 
 /** The scheduled actor was denied mid-run: the account is held and does no further work. */
 const ACTOR_HELD_OUTCOME = 'actor-held';
@@ -63,6 +68,7 @@ interface DailyState extends DailyAccount {
   outcome?: string;
 }
 
+@Traced()
 @Injectable()
 export class DailyPublishingService implements OnModuleInit {
   constructor(
@@ -106,6 +112,7 @@ export class DailyPublishingService implements OnModuleInit {
     };
     const brand = await this.prisma.brand.findFirst({
       where: { ...scope, id: request.brandId },
+      select: { id: true },
     });
     if (!brand) throw new Error('Brand is unavailable in this organization');
     if (request.agentStrategyId) {
@@ -115,6 +122,7 @@ export class DailyPublishingService implements OnModuleInit {
           id: request.agentStrategyId,
           brandId: request.brandId,
         },
+        select: { id: true },
       });
       if (!strategy)
         throw new Error('Strategy must belong to the selected brand');
@@ -134,6 +142,13 @@ export class DailyPublishingService implements OnModuleInit {
           : {}),
       }),
       orderBy: { id: 'asc' },
+      select: {
+        externalHandle: true,
+        externalName: true,
+        id: true,
+        platform: true,
+        username: true,
+      },
     });
     if (
       !credentials.length ||
@@ -227,6 +242,7 @@ export class DailyPublishingService implements OnModuleInit {
           brandId: state.request.brandId,
           isDeleted: false,
         },
+        select: { id: true },
       });
       if (!strategy)
         throw new Error('Strategy must belong to the selected brand');
@@ -243,6 +259,7 @@ export class DailyPublishingService implements OnModuleInit {
             ? PrismaCredentialPlatform.TWITTER
             : PrismaCredentialPlatform.LINKEDIN,
       },
+      select: { id: true },
     });
     if (!account || !['twitter', 'linkedin'].includes(state.platform))
       throw new Error('Daily account is unavailable');
@@ -380,7 +397,7 @@ export class DailyPublishingService implements OnModuleInit {
       !state.slotKey.startsWith(
         `daily-publishing:${state.request.brandId}:${state.credentialId}:`,
       ) ||
-      !/\d{4}-\d{2}-\d{2}$/.test(state.slotKey)
+      !ISO_DATE_SUFFIX_PATTERN.test(state.slotKey)
     )
       throw new Error('Invalid daily account slot');
     // tenant-scope-ignore: organizationId is pinned by the compound idempotency key; isDeleted is intentionally omitted so a soft-deleted slot is still detected below
@@ -523,6 +540,12 @@ export class DailyPublishingService implements OnModuleInit {
         credentialId: state.credentialId,
         isDeleted: false,
       },
+      select: {
+        id: true,
+        targetError: true,
+        targetIdempotencyKey: true,
+        workflowExecutionId: true,
+      },
     });
     if (state.outcome === 'slot-deleted') return state;
     if (!post || post.targetIdempotencyKey !== state.slotKey)
@@ -568,6 +591,7 @@ export class DailyPublishingService implements OnModuleInit {
         organizationId: action.context.organizationId,
         isDeleted: false,
       },
+      select: { description: true },
     });
     if (post.description.trim()) return state;
     if (!state.source) throw new Error('Daily content source is missing');
@@ -662,6 +686,7 @@ export class DailyPublishingService implements OnModuleInit {
         organizationId: action.context.organizationId,
         isDeleted: false,
       },
+      select: { description: true },
     });
     const quality = await this.moduleRef
       .get(ContentQualityScorerService, { strict: false })
@@ -675,8 +700,8 @@ export class DailyPublishingService implements OnModuleInit {
             platform: state.platform,
             source: (state.source?.text ?? '').slice(0, 3000),
           })
-            .replace(/</g, '\\u003c')
-            .replace(/>/g, '\\u003e') +
+            .replace(LESS_THAN_SIGNS_PATTERN, '\\u003c')
+            .replace(GREATER_THAN_SIGNS_PATTERN, '\\u003e') +
           '\n</untrusted-reference-data>',
         action.context.organizationId,
       );
@@ -750,6 +775,12 @@ export class DailyPublishingService implements OnModuleInit {
         id: state.postId,
         organizationId: action.context.organizationId,
         isDeleted: false,
+      },
+      select: {
+        description: true,
+        id: true,
+        reviewFeedback: true,
+        targetExecutionState: true,
       },
     });
     let decision: Record<string, unknown>;

@@ -4,6 +4,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientLineageDirection } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { withExternalMediaFallback } from '@libs/media/media-url.util';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface IngredientLineageViewer {
@@ -47,6 +48,7 @@ interface LineageRow {
  * active brand. An asset outside that scope is counted in `hiddenCount` and is
  * never loaded into the response, so it cannot be named or described.
  */
+@Traced()
 @Injectable()
 export class IngredientLineageService {
   constructor(private readonly prisma: PrismaService) {}

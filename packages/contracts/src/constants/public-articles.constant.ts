@@ -1,3 +1,7 @@
+const COMBINING_DIACRITICS_PATTERN = /[̀-ͯ]/g;
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const EDGE_HYPHENS_PATTERN = /^-+|-+$/g;
+
 /**
  * genfeed.ai serves articles (`/articles`, `/articles/:slug`, RSS, sitemap,
  * brand profiles) for exactly one organization: Genfeed's own. Customer
@@ -21,9 +25,9 @@ export const ARTICLE_SLUG_MAX_LENGTH = 160;
 export function normalizeArticleSlug(value: string): string {
   return value
     .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(COMBINING_DIACRITICS_PATTERN, '')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
+    .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
     .slice(0, ARTICLE_SLUG_MAX_LENGTH)
-    .replace(/^-+|-+$/g, '');
+    .replace(EDGE_HYPHENS_PATTERN, '');
 }

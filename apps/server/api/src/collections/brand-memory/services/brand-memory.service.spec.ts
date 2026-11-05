@@ -55,6 +55,7 @@ describe('BrandMemoryService typed entries', () => {
         organizationId: 'org-1',
         type: 'positioning.originStory',
       },
+      select: { id: true },
     });
     expect(brandMemory.create).toHaveBeenCalledWith({
       data: expect.objectContaining({

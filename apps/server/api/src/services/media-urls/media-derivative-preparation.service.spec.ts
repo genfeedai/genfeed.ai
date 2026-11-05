@@ -18,7 +18,8 @@ import {
 
 vi.mock('axios', async (original) => original());
 
-vi.mock('@sentry/nestjs', () => ({
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
   captureException: vi.fn(),
 }));
 

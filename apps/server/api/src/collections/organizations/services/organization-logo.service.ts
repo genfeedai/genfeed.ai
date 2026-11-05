@@ -5,6 +5,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AssetParent } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 
@@ -17,6 +18,7 @@ import * as Sentry from '@sentry/nestjs';
  * never receives a bare link. A logo that cannot be resolved yields no URL, so
  * the switcher falls back to its initial-letter avatar.
  */
+@Traced()
 @Injectable()
 export class OrganizationLogoService {
   private readonly reportedOrganizationIds = new Set<string>();

@@ -21,6 +21,7 @@ import type {
   BrandRemixRunConfig,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { CredentialPlatform } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   BadRequestException,
@@ -28,6 +29,8 @@ import {
   Injectable,
   type OnModuleInit,
 } from '@nestjs/common';
+
+const META_AD_ACCOUNT_PREFIX_PATTERN = /^act_/;
 
 const PAUSED_DRAFT_DAILY_BUDGET = 5;
 
@@ -85,6 +88,7 @@ type MetaDraftState = {
   workflowLabel?: string;
 };
 
+@Traced()
 @Injectable()
 export class PausedMetaCampaignDraftService implements OnModuleInit {
   constructor(
@@ -229,7 +233,8 @@ export class PausedMetaCampaignDraftService implements OnModuleInit {
       (account) =>
         account.id === state.input.adAccountId ||
         `act_${account.id}` === state.input.adAccountId ||
-        account.id === state.input.adAccountId.replace(/^act_/, ''),
+        account.id ===
+          state.input.adAccountId.replace(META_AD_ACCOUNT_PREFIX_PATTERN, ''),
     );
     if (!selected) {
       throw new BadRequestException(

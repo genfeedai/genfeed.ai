@@ -74,6 +74,7 @@ import {
   type ScheduleCanonicalPostInput,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   Inject,
   Injectable,
@@ -89,6 +90,7 @@ type CredentialsServiceLike = Pick<CredentialsService, 'find'>;
  * Agent publishing tools: confirmed content publish, schedule, create_post, schedule_post.
  * Extracted/extended from AgentToolExecutorService per #519/#520.
  */
+@Traced()
 @Injectable()
 export class AgentPublishToolHandler {
   private readonly constructorName = String(this.constructor.name);
@@ -526,12 +528,10 @@ export class AgentPublishToolHandler {
       typeof params.scheduledAt === 'string' && params.scheduledAt.trim()
         ? params.scheduledAt.trim()
         : undefined;
-
     return { caption, platforms, requestedScheduledAt, requestedTargets };
   }
 
-  // Only a resumed publish card needs its sourceActionId verified against a
-  // persisted confirmation; an auto-publish-permitted call never showed one.
+  /** Verifies persisted confirmation only for resumed publish cards. */
   private async rejectUnverifiedPublishCard(
     sourceActionId: string,
     ctx: ToolExecutionContext,

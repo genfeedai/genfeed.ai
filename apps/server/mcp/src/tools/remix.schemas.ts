@@ -6,6 +6,8 @@ import {
 import { attachBrandRemixAnalysisSourceSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import { z } from 'zod';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+
 const opaqueId = sourcePostRemixSourceSelectorSchema.shape.sourcePostId;
 const run = { runId: opaqueId };
 export const remixToolSchemas = {
@@ -16,7 +18,10 @@ export const remixToolSchemas = {
         .string()
         .url()
         .max(512)
-        .refine((url) => /^https?:\/\//i.test(url), 'Use an HTTP(S) post URL'),
+        .refine(
+          (url) => HTTP_PROTOCOL_PREFIX_PATTERN.test(url),
+          'Use an HTTP(S) post URL',
+        ),
     })
     .strict(),
   create_remix_concept: z

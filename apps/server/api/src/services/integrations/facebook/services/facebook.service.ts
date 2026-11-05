@@ -24,6 +24,7 @@ import {
 } from '@genfeedai/integrations';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -39,6 +40,7 @@ interface FacebookPermission {
   status?: unknown;
 }
 
+@Traced()
 @Injectable()
 export class FacebookService {
   private readonly constructorName: string = String(this.constructor.name);

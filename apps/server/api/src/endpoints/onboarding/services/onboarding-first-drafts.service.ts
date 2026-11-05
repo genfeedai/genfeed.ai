@@ -51,6 +51,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -110,6 +111,7 @@ const TONE_DIRECTION: Record<
  * DRAFT post bound to a branded-generation receipt; nothing is published and no
  * account needs to be connected.
  */
+@Traced()
 @Injectable()
 export class OnboardingFirstDraftsService {
   constructor(

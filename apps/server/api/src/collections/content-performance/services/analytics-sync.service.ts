@@ -8,7 +8,10 @@ import {
 } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
+
+const LINE_BREAK_PATTERN = /\r?\n/;
 
 export interface AnalyticsSyncOptions {
   organizationId: string;
@@ -53,6 +56,7 @@ export interface PersistedAnalyticsSyncItem {
 
 const MAX_DISCOVERY_ITEMS = 500;
 
+@Traced()
 @Injectable()
 export class AnalyticsSyncService {
   constructor(
@@ -76,6 +80,20 @@ export class AnalyticsSyncService {
       orderBy: [{ date: 'asc' }, { id: 'asc' }],
       take: MAX_DISCOVERY_ITEMS + 1,
       where: scopedWhere(options.organizationId, where),
+      select: {
+        brandId: true,
+        clicks: true,
+        date: true,
+        id: true,
+        platform: true,
+        postId: true,
+        totalComments: true,
+        totalLikes: true,
+        totalSaves: true,
+        totalShares: true,
+        totalViews: true,
+        userId: true,
+      },
     });
     if (analytics.length > MAX_DISCOVERY_ITEMS) {
       throw new Error(
@@ -107,7 +125,7 @@ export class AnalyticsSyncService {
         const contentType = mapPostCategoryToContentType(post.category);
         const description = post.description?.trim();
         const hookUsed = description
-          ?.split(/\r?\n/)
+          ?.split(LINE_BREAK_PATTERN)
           .find((line) => line.trim())
           ?.trim();
         const promptUsed = post.promptUsed?.trim() || description;

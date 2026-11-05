@@ -63,6 +63,7 @@ import {
   storyboardRunSummarySchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -126,6 +127,7 @@ function resolveStoryboardPlanSettings(
     : settings;
 }
 
+@Traced()
 @Injectable()
 export class StoryboardRunsService {
   constructor(

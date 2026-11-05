@@ -12,6 +12,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { normalizeCrunInput } from '@genfeedai/helpers';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 function record(value: unknown): Record<string, unknown> {
@@ -282,6 +283,7 @@ export function buildCrunContract(
   return contract;
 }
 
+@Traced()
 @Injectable()
 export class CrunContractImportService {
   constructor(private readonly prisma: PrismaService) {}

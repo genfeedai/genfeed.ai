@@ -32,6 +32,26 @@ import {
   validateDesignEvalScenario,
 } from './design-eval/contract';
 
+const UPPERCASE_LETTERS_PATTERN = /[A-Z]/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const LEADING_TOKEN_PUNCTUATION_PATTERN = /^[,;()]+/u;
+const TRAILING_TOKEN_PUNCTUATION_PATTERN = /[,;()]+$/u;
+const LEADING_BANG_PATTERN = /^!/u;
+const RAW_CHROME_COLOR_CLASS_PATTERN =
+  /^(?:bg-white|text-black|text-white|bg-black)(?:\/(?:\d+|\[[^\]]+\]))?$/u;
+const TOKEN_SEPARATOR_PATTERN = /[\s"'`{}]+/u;
+const LEADING_TOKEN_MODIFIERS_PATTERN = /^[,;()!]+/u;
+const WHITESPACE_RUN_PATTERN = /\s+/u;
+const ARBITRARY_TEXT_SIZE_PATTERN =
+  /^text-\[(\d*\.?\d+)(px|rem)\](?:\/[^\s]+)?$/u;
+const LEADING_WHITESPACE_PATTERN = /^\s/u;
+const TRAILING_WHITESPACE_PATTERN = /\s$/u;
+const ARBITRARY_TRACKING_PATTERN = /^tracking-\[(-\d*\.?\d+)em\]$/u;
+const CONTROL_SCALE_NAME_PATTERN = /(?:height|size|variant)/iu;
+const CONTROL_SCALE_KEY_PATTERN = /^(?:height|size|variants)$/iu;
+const HARDCODED_COLOR_PATTERN =
+  /#[0-9a-fA-F]{3,8}\b|rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+/u;
+
 const rootDir = process.cwd();
 const DESIGN_SYSTEM_BASELINE_VERSION = 1;
 const DESIGN_SYSTEM_BASELINE_PATH = path.join(
@@ -77,7 +97,10 @@ function readRepoFile(filePath: string): string {
 }
 
 function cssName(tokenName: string): string {
-  return tokenName.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+  return tokenName.replace(
+    UPPERCASE_LETTERS_PATTERN,
+    (match) => `-${match.toLowerCase()}`,
+  );
 }
 
 function assertContains(
@@ -86,8 +109,12 @@ function assertContains(
   failures: string[],
   label: string,
 ): void {
-  const normalizedContent = content.replace(/\s+/g, ' ').replaceAll('"', "'");
-  const normalizedExpected = expected.replace(/\s+/g, ' ').replaceAll('"', "'");
+  const normalizedContent = content
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
+    .replaceAll('"', "'");
+  const normalizedExpected = expected
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
+    .replaceAll('"', "'");
 
   if (
     !content.includes(expected) &&
@@ -182,14 +209,12 @@ function isExcludedSourceFile(relativePath: string): boolean {
 
 function isRawChromeColorToken(token: string): boolean {
   const normalizedToken = token
-    .replace(/^[,;()]+/u, '')
-    .replace(/[,;()]+$/u, '')
-    .replace(/^!/u, '');
+    .replace(LEADING_TOKEN_PUNCTUATION_PATTERN, '')
+    .replace(TRAILING_TOKEN_PUNCTUATION_PATTERN, '')
+    .replace(LEADING_BANG_PATTERN, '');
   const baseToken = normalizedToken.split(':').at(-1) ?? normalizedToken;
 
-  return /^(?:bg-white|text-black|text-white|bg-black)(?:\/(?:\d+|\[[^\]]+\]))?$/u.test(
-    baseToken,
-  );
+  return RAW_CHROME_COLOR_CLASS_PATTERN.test(baseToken);
 }
 
 export function findRawChromeColorTokens(line: string): string[] {
@@ -197,7 +222,7 @@ export function findRawChromeColorTokens(line: string): string[] {
     return [];
   }
 
-  return line.split(/[\s"'`{}]+/u).filter(isRawChromeColorToken);
+  return line.split(TOKEN_SEPARATOR_PATTERN).filter(isRawChromeColorToken);
 }
 
 function findAppChromeRawColorFindings(): DesignSystemFinding[] {
@@ -270,8 +295,10 @@ export function findDarkOnlyPaletteTextTokens(line: string): string[] {
     return [];
   }
 
-  return line.split(/[\s"'`{}]+/u).filter((rawToken) => {
-    const token = rawToken.replace(/^[,;()!]+/u, '').replace(/[,;()]+$/u, '');
+  return line.split(TOKEN_SEPARATOR_PATTERN).filter((rawToken) => {
+    const token = rawToken
+      .replace(LEADING_TOKEN_MODIFIERS_PATTERN, '')
+      .replace(TRAILING_TOKEN_PUNCTUATION_PATTERN, '');
     const variants = token.split(':');
     const baseToken = variants.pop() ?? token;
     return (
@@ -338,18 +365,19 @@ const DESIGN_SYSTEM_FINDING_KINDS: readonly DesignSystemFindingKind[] = [
 ];
 
 function baseClassToken(token: string): string {
-  const normalized = token.replace(/^!/u, '');
-  return normalized.split(':').at(-1)?.replace(/^!/u, '') ?? normalized;
+  const normalized = token.replace(LEADING_BANG_PATTERN, '');
+  return (
+    normalized.split(':').at(-1)?.replace(LEADING_BANG_PATTERN, '') ??
+    normalized
+  );
 }
 
 function classTokens(value: string): string[] {
-  return value.split(/\s+/u).filter(Boolean);
+  return value.split(WHITESPACE_RUN_PATTERN).filter(Boolean);
 }
 
 function isSubElevenArbitraryTextToken(token: string): boolean {
-  const match = /^text-\[(\d*\.?\d+)(px|rem)\](?:\/[^\s]+)?$/u.exec(
-    baseClassToken(token),
-  );
+  const match = ARBITRARY_TEXT_SIZE_PATTERN.exec(baseClassToken(token));
   if (!match) {
     return false;
   }
@@ -397,7 +425,7 @@ function stripVariants(token: string): string {
       start = index + 1;
     }
   }
-  return token.slice(start).replace(/^!/u, '');
+  return token.slice(start).replace(LEADING_BANG_PATTERN, '');
 }
 
 export function isOffLadderOpacityToken(token: string): boolean {
@@ -423,10 +451,13 @@ type TemplatePartNode = ts.TemplateHead | ts.TemplateMiddle | ts.TemplateTail;
 
 function completeTemplateTokens(part: TemplatePartNode): string[] {
   const tokens = classTokens(part.text);
-  if (!ts.isTemplateHead(part) && !/^\s/u.test(part.text)) {
+  if (!ts.isTemplateHead(part) && !LEADING_WHITESPACE_PATTERN.test(part.text)) {
     tokens.shift();
   }
-  if (!ts.isTemplateTail(part) && !/\s$/u.test(part.text)) {
+  if (
+    !ts.isTemplateTail(part) &&
+    !TRAILING_WHITESPACE_PATTERN.test(part.text)
+  ) {
     tokens.pop();
   }
   return tokens;
@@ -439,7 +470,7 @@ function isTightTrackingToken(token: string): boolean {
   if (base === 'tracking-tighter') {
     return true;
   }
-  const match = /^tracking-\[(-\d*\.?\d+)em\]$/u.exec(base);
+  const match = ARBITRARY_TRACKING_PATTERN.exec(base);
   if (!match) {
     return false;
   }
@@ -500,13 +531,13 @@ function isControlScaleLiteral(
   while (current && !ts.isSourceFile(current)) {
     if (
       ts.isVariableDeclaration(current) &&
-      /(?:height|size|variant)/iu.test(current.name.getText())
+      CONTROL_SCALE_NAME_PATTERN.test(current.name.getText())
     ) {
       return true;
     }
     if (
       ts.isPropertyAssignment(current) &&
-      /^(?:height|size|variants)$/iu.test(current.name.getText())
+      CONTROL_SCALE_KEY_PATTERN.test(current.name.getText())
     ) {
       return true;
     }
@@ -1003,8 +1034,7 @@ export function checkPlatformCoverage(failures: string[]): void {
 function checkMobileHardcodedColors(failures: string[]): void {
   const mobileRoot = path.join(rootDir, 'apps/mobile');
   const files = collectFiles(mobileRoot, new Set(['.ts', '.tsx']));
-  const colorLiteralPattern =
-    /#[0-9a-fA-F]{3,8}\b|rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+/u;
+
   const findings: string[] = [];
 
   for (const filePath of files) {
@@ -1021,7 +1051,7 @@ function checkMobileHardcodedColors(failures: string[]): void {
     const lines = content.split('\n');
 
     lines.forEach((line, index) => {
-      if (colorLiteralPattern.test(line)) {
+      if (HARDCODED_COLOR_PATTERN.test(line)) {
         findings.push(`${relativePath}:${index + 1}: ${line.trim()}`);
       }
     });

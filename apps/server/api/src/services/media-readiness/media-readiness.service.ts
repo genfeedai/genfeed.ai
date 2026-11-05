@@ -18,6 +18,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 
@@ -56,6 +57,7 @@ const EMPTY_REPORT: Omit<MediaReadinessReport, 'checkedAt'> = {
   isBlocked: false,
 };
 
+@Traced()
 @Injectable()
 export class MediaReadinessService implements IMediaReadinessGate {
   private readonly constructorName = String(this.constructor.name);

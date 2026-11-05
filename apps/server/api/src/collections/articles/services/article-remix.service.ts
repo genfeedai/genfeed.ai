@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/contracts';
 import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -21,6 +22,7 @@ type ArticleCreator = (
   brandId: string,
 ) => Promise<ArticleDocument>;
 
+@Traced()
 @Injectable()
 export class ArticleRemixService {
   constructor(private readonly logger: LoggerService) {}

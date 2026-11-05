@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { learningFence } from '@api/collections/content-learning/services/learning-dependency.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { sha256Hex, stableStringify } from '@libs/utils/canonical-hash.util';
 import {
   ConflictException,
@@ -37,6 +38,7 @@ export function learningScopeKey(scope: {
     scope.rewardProfileId,
   ]);
 }
+@Traced()
 @Injectable()
 export class LearningOperationService {
   constructor(private readonly prisma: PrismaService) {}

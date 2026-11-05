@@ -46,6 +46,7 @@ import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { readIngredientMediaUrlWithFallback } from '@libs/media/media-url.util';
 import { PrismaService } from '@libs/prisma/prisma.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 
@@ -114,6 +115,7 @@ function withDiagnostic(
  * Runs from the workers queue only. Publish paths call {@link getForAssets},
  * which reads what exists and reports `isPerceptionPending` rather than waiting.
  */
+@Traced()
 @Injectable()
 export class MediaPerceptionService {
   private readonly constructorName = String(this.constructor.name);

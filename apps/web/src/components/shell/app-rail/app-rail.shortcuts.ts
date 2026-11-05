@@ -1,3 +1,5 @@
+const DIGIT_KEY_CODE_PATTERN = /^(?:Digit|Numpad)([1-9])$/;
+
 /** One handler per active rail surface; state dies with its listener. */
 export function createAppRailShortcutHandler(
   isDesktop: boolean,
@@ -27,7 +29,7 @@ export function createAppRailShortcutHandler(
       reset();
       return;
     }
-    const digitMatch = /^(?:Digit|Numpad)([1-9])$/.exec(event.code);
+    const digitMatch = DIGIT_KEY_CODE_PATTERN.exec(event.code);
     if (isDesktop) {
       reset();
       if (

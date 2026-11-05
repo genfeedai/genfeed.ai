@@ -10,6 +10,7 @@ import type {
 import { readVideoMergeSettings } from '@api/services/video-stitch/video-stitch.util';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
@@ -45,6 +46,7 @@ export function toAutoMergeStitchRequest(
   };
 }
 
+@Traced()
 @Injectable()
 export class AutoMergeService {
   private readonly logContext = 'AutoMergeService';

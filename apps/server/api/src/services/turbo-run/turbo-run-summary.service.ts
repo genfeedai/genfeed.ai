@@ -14,6 +14,7 @@ import type {
   ITurboRunSummary,
 } from '@genfeedai/contracts/interfaces';
 import { serializeTurboRunItemAssignee } from '@genfeedai/serializers';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type PostAnalyticsSummary = {
@@ -49,6 +50,7 @@ interface ReviewerMemberRecord {
   };
 }
 
+@Traced()
 @Injectable()
 export class TurboRunSummaryService {
   constructor(

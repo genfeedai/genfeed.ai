@@ -51,6 +51,7 @@ import {
 import type { ICreditReservation } from '@genfeedai/contracts/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -96,6 +97,7 @@ const TERMINAL_FAILURE_STATUSES: readonly string[] = [
  * and poll retries collapse into one CreditTransaction. Settle/release also
  * settles the output's generation receipt, detached from the billing outcome.
  */
+@Traced()
 @Injectable()
 export class GenerationBillingService {
   private readonly byok: GenerationByokUsage;
@@ -168,10 +170,7 @@ export class GenerationBillingService {
     );
   }
 
-  /**
-   * Binds an output to its own hold before provider dispatch, so a fast
-   * completion callback always finds immutable funding for that output.
-   */
+  /** Binds immutable funding to an output before dispatch so callbacks can settle it. */
   async bindOutput(
     request: GenerationBillingRequest,
     output: {

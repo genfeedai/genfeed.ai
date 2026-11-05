@@ -85,6 +85,7 @@ import {
 import { resolveGenerationDimensions } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 export {
@@ -92,6 +93,7 @@ export {
   MAX_SEEDANCE_REFERENCE_VIDEO_SECONDS,
 } from '@api/collections/videos/services/seedance-reference-evidence.util';
 
+@Traced()
 @Injectable()
 export class VideoGenerationPreparationService {
   constructor(

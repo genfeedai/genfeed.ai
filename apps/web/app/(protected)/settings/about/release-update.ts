@@ -1,3 +1,5 @@
+const SEMVER_PATTERN = /^v?(\d+)\.(\d+)\.(\d+)(?:-([\w.-]+))?(?:\+[\w.-]+)?$/;
+
 export function parseLatestRelease(value: unknown) {
   if (
     typeof value !== 'object' ||
@@ -18,9 +20,7 @@ export function parseLatestRelease(value: unknown) {
 
 export function isNewerRelease(latest: string, current: string): boolean {
   const parse = (version: string) => {
-    const match = /^v?(\d+)\.(\d+)\.(\d+)(?:-([\w.-]+))?(?:\+[\w.-]+)?$/.exec(
-      version,
-    );
+    const match = SEMVER_PATTERN.exec(version);
     if (!match) throw new Error('Invalid version');
     return {
       parts: [BigInt(match[1]), BigInt(match[2]), BigInt(match[3])],

@@ -57,6 +57,8 @@ import SocialWarmupProgram from '@/features/brands/components/sidebar/social-war
 import { rememberOAuthConnectContext } from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
 import { OAUTH_RETURN_TO_STORAGE_KEY } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 type SocialConnection = BrandDetailSocialMediaCardProps['connections'][number];
 
 /**
@@ -99,7 +101,7 @@ function ConnectedAccount({
         </span>
         {connection.handle ? (
           <span className="block truncate text-xs text-muted-foreground">
-            @{connection.handle.replace(/^@/, '')}
+            @{connection.handle.replace(LEADING_AT_SIGN_PATTERN, '')}
           </span>
         ) : null}
       </span>

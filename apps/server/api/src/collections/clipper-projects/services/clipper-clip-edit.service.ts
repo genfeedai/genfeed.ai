@@ -18,6 +18,7 @@ import type {
   IClipperProjectClips,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 function readTranscriptSegments(value: unknown): TranscriptSegment[] {
@@ -30,6 +31,7 @@ function readTranscriptSegments(value: unknown): TranscriptSegment[] {
  * the same project and goes through the same cut, reframe, caption and
  * validation steps as any raw-cut clip, with captions rebuilt for the window.
  */
+@Traced()
 @Injectable()
 export class ClipperClipEditService {
   private readonly logContext = 'ClipperClipEditService';

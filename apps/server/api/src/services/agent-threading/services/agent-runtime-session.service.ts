@@ -4,6 +4,7 @@ import { AgentSessionBindingStatus } from '@api/services/agent-threading/types/a
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface UpsertRuntimeSessionBindingParams {
@@ -44,6 +45,7 @@ function toSessionBindingDocument(
   } as unknown as AgentSessionBindingDocument;
 }
 
+@Traced()
 @Injectable()
 export class AgentRuntimeSessionService {
   constructor(
@@ -85,6 +87,7 @@ export class AgentRuntimeSessionService {
       where: scopedWhere(params.organizationId, {
         threadId: params.threadId,
       }),
+      select: { data: true, id: true },
     });
 
     let snapshot: Record<string, unknown> | null = null;

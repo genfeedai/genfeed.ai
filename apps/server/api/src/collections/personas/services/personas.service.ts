@@ -56,6 +56,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
 type ApiKeyRoleContext = Pick<AuthenticatedUser, 'isApiKey' | 'scopes'>;
@@ -69,6 +70,7 @@ export type PersonaClient = Pick<
   | 'personaGrantAudit'
 >;
 
+@Traced()
 @Injectable()
 export class PersonasService extends BaseService<
   PersonaDocument,
@@ -907,6 +909,12 @@ export class PersonasService extends BaseService<
       // Re-read under the lock so a concurrent change cannot slip past.
       const locked = await tx.persona.findFirst({
         where: scopedWhere(params.organizationId, { id: persona.id }),
+        select: {
+          availabilityMode: true,
+          availableBrandIds: true,
+          brandId: true,
+          handle: true,
+        },
       });
       if (!locked) {
         throw new NotFoundException('Persona', params.personaId);

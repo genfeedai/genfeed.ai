@@ -5,6 +5,7 @@ import {
   ID_JAG_JWT_TYPE,
 } from '@api/oauth/enterprise-managed-auth.constants';
 import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { decodeJwt, decodeProtectedHeader, jwtVerify } from 'jose';
 import { EnterpriseIssuerKeysService } from './enterprise-issuer-keys.service';
@@ -51,6 +52,7 @@ function readResources(value: unknown): string[] {
  * payload only to know which issuer to hold the assertion to; nothing from it
  * is believed until the signature and every claim check pass.
  */
+@Traced()
 @Injectable()
 export class EnterpriseAssertionVerifier {
   constructor(private readonly issuerKeys: EnterpriseIssuerKeysService) {}

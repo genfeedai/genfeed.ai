@@ -3,6 +3,7 @@ import type { TrendingVideoDocument } from '@api/collections/trends/schemas/tren
 import { TrendSourcePreviewService } from '@api/collections/trends/services/modules/trend-source-preview.service';
 import { matchedNicheTerms } from '@api/collections/trends/utils/brand-niche.util';
 import type { TrendDigestSourcePost } from '@genfeedai/helpers';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface BrandDigestTopic {
@@ -33,6 +34,7 @@ const DIGEST_TOPIC_POOL = 20;
  * which niche terms each one matched, and the stored source posts (X,
  * LinkedIn...) shown as cards. Reads stored previews only, never a live fetch.
  */
+@Traced()
 @Injectable()
 export class TrendBrandDigestService {
   constructor(

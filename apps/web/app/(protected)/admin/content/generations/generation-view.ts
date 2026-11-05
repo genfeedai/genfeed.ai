@@ -4,6 +4,9 @@ import type {
   GenerationView,
 } from '@/features/admin/props/generations.props';
 
+const FORMULA_PREFIX_PATTERN = /^[=+\-@\t\r]/;
+const CSV_SPECIAL_CHARS_PATTERN = /[",\n\r]/;
+
 type SourceRecord = Record<string, unknown>;
 
 const PLACEHOLDER_ASPECT_RATIO = 1;
@@ -190,8 +193,10 @@ const CSV_HEADERS = [
 function escapeCsv(value: string | number | null): string {
   const text = value === null ? '' : String(value);
   // A leading formula character is neutralized so a prompt cannot run in a spreadsheet.
-  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
-  return /[",\n\r]/.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe;
+  const safe = FORMULA_PREFIX_PATTERN.test(text) ? `'${text}` : text;
+  return CSV_SPECIAL_CHARS_PATTERN.test(safe)
+    ? `"${safe.replaceAll('"', '""')}"`
+    : safe;
 }
 
 /** The displayed rows as CSV, for the subbar download. */

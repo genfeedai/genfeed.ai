@@ -12,6 +12,7 @@ import {
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import {
   type ScoreContentOptions,
@@ -27,6 +28,9 @@ import {
   fleschReadingEase,
   stripHtmlToText,
 } from './seo-text.util';
+
+const HTML_TAGS_PATTERN = /<[^>]+>/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
 /** Qualitative checks the LLM layer is allowed to refine, keyed by check id. */
 const QUALITATIVE_LLM_FIELDS: Record<string, keyof SeoQualitativeScoring> = {
@@ -46,6 +50,7 @@ const MAX_LLM_CONTENT_CHARS = 12000;
  * computed in code (reproducible: same input → same number); the LLM only
  * refines the qualitative dimensions. Results are persisted on the entity.
  */
+@Traced()
 @Injectable()
 export class SeoScorerService {
   private readonly constructorName = String(this.constructor.name);
@@ -238,8 +243,8 @@ export class SeoScorerService {
       return null;
     }
     const plainText = (input.content ?? '')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s+/g, ' ')
+      .replace(HTML_TAGS_PATTERN, ' ')
+      .replace(WHITESPACE_RUNS_PATTERN, ' ')
       .trim()
       .slice(0, MAX_LLM_CONTENT_CHARS);
 

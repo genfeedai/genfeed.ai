@@ -10,6 +10,7 @@ import {
 } from '@api/services/signup-prefill/signup-prefill-workflow-definition';
 import type { SignupPrefillWorkflowInput } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 /**
@@ -27,6 +28,7 @@ export function signupPrefillJobId(brandId: string): string {
   return `signup-prefill-${brandId}`;
 }
 
+@Traced()
 @Injectable()
 export class SignupPrefillWorkflowService implements OnModuleInit {
   constructor(

@@ -9,6 +9,7 @@ import { TurboRunReviewService } from '@api/services/turbo-run/turbo-run-review.
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface ResolveAgentReportReviewInput {
@@ -18,6 +19,7 @@ export interface ResolveAgentReportReviewInput {
   token: string;
   decision: 'approve' | 'reject';
 }
+@Traced()
 @Injectable()
 export class AgentReportReviewService {
   constructor(
@@ -49,6 +51,7 @@ export class AgentReportReviewService {
             : IntegrationPlatform.DISCORD,
         status: IntegrationStatus.ACTIVE,
       }),
+      select: { config: true },
     });
     const stillBound = agentReportBindings(integration?.config).some(
       (binding) =>

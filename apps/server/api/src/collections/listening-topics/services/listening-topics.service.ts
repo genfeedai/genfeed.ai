@@ -24,6 +24,7 @@ import {
   type INormalizedListeningTopicContract,
   LISTENING_CONTRACT_VERSION,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -39,6 +40,7 @@ const topicInclude = {
 
 const FINGERPRINT_UNIQUE_CONSTRAINT = 'listening_topics_scope_fingerprint_key';
 
+@Traced()
 @Injectable()
 export class ListeningTopicsService {
   constructor(

@@ -15,6 +15,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { StoryboardCharacterReplaceProps } from '@/features/studio/props/storyboard.props';
 import { useStoryboardCharacterReplacements } from '@/features/studio/storyboard/hooks/use-storyboard-character-replacements';
 
+const CHARACTER_REPLACEMENT_CODE_PATTERN = /^CHARACTER_REPLACEMENT_[A-Z0-9_]+$/;
+
 export default function StoryboardCharacterReplace({
   brandId,
   runId,
@@ -218,7 +220,7 @@ function renderReceipt(
       </p>
       {errorCode ? (
         <p>
-          {/^CHARACTER_REPLACEMENT_[A-Z0-9_]+$/.test(errorCode) &&
+          {CHARACTER_REPLACEMENT_CODE_PATTERN.test(errorCode) &&
           errorCode.length <= 100
             ? errorCode
             : translate('replaceCharacterStatusAttention')}

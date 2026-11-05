@@ -14,6 +14,8 @@
 import { Platform } from './platform.enum';
 import { parsePlatform } from './platform.util';
 
+const HYPHENS_PATTERN = /-/g;
+
 /**
  * Postgres / Prisma `CredentialPlatform` labels.
  * Kept as string literals so `@genfeedai/contracts` does not depend on `@genfeedai/prisma`.
@@ -100,7 +102,10 @@ export function toPrismaCredentialPlatform(
 
   // Domain aliases first (x → twitter, meta → facebook).
   const parsed = parsePlatform(trimmed);
-  const base = (parsed ?? trimmed).trim().toLowerCase().replace(/-/g, '_');
+  const base = (parsed ?? trimmed)
+    .trim()
+    .toLowerCase()
+    .replace(HYPHENS_PATTERN, '_');
 
   if (!base || DOMAIN_ONLY_PLATFORMS.has(base)) {
     return undefined;

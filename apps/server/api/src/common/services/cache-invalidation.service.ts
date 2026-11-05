@@ -1,9 +1,11 @@
 import { CacheClientService } from '@api/services/cache/cache-client.service';
 import { CacheTagsService } from '@api/services/cache/cache-tags.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import type Redis from 'ioredis';
 
+@Traced()
 @Injectable()
 export class CacheInvalidationService {
   private readonly constructorName = this.constructor.name;

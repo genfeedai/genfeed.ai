@@ -1,5 +1,10 @@
 import { Parser } from 'htmlparser2';
 
+const CR_LINE_ENDINGS_PATTERN = /\r\n?/g;
+const HORIZONTAL_WHITESPACE_RUNS_PATTERN = /[^\S\n]+/g;
+const EXCESS_BLANK_LINES_PATTERN = /\n{3,}/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 // Kept apart from `sanitize-html.helper` so callers that only need plain text
 // do not bundle `sanitize-html` and its PostCSS dependency.
 
@@ -85,9 +90,9 @@ export function stripHtmlToPlainText(value?: string | null): string {
 
   return parts
     .join('')
-    .replace(/\r\n?/g, '\n')
-    .replace(/[^\S\n]+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
+    .replace(CR_LINE_ENDINGS_PATTERN, '\n')
+    .replace(HORIZONTAL_WHITESPACE_RUNS_PATTERN, ' ')
+    .replace(EXCESS_BLANK_LINES_PATTERN, '\n\n')
     .split('\n')
     .map((line) => line.trim())
     .join('\n')
@@ -96,5 +101,5 @@ export function stripHtmlToPlainText(value?: string | null): string {
 
 /** `stripHtmlToPlainText` flattened onto a single line, for titles and previews. */
 export function stripHtmlToSingleLine(value?: string | null): string {
-  return stripHtmlToPlainText(value).replace(/\s+/g, ' ');
+  return stripHtmlToPlainText(value).replace(WHITESPACE_RUNS_PATTERN, ' ');
 }

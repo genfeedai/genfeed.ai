@@ -14,6 +14,7 @@ import { withSkillWriteSession } from '@api/collections/skills/services/skill-wr
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 export type SkillCatalogSeedResult = {
@@ -22,6 +23,7 @@ export type SkillCatalogSeedResult = {
   updated: number;
 };
 
+@Traced()
 @Injectable()
 export class SkillCatalogSeedService {
   private readonly context = 'SkillCatalogSeedService';

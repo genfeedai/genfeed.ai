@@ -1,3 +1,6 @@
+const LEADING_HASH_PATTERN = /^#/;
+const NON_HASHTAG_CHARS_PATTERN = /[^a-zA-Z0-9_]/g;
+
 //
 // Extracted from the trend inspiration trio (trendVideoInspiration,
 // trendHashtagInspiration) which previously duplicated these helpers verbatim.
@@ -31,7 +34,9 @@ export function toNonEmptyString(value: unknown): string | null {
 
 /** Strips a leading `#` and any non-`[a-zA-Z0-9_]` characters. */
 function stripHashtag(value: string): string {
-  return value.replace(/^#/, '').replace(/[^a-zA-Z0-9_]/g, '');
+  return value
+    .replace(LEADING_HASH_PATTERN, '')
+    .replace(NON_HASHTAG_CHARS_PATTERN, '');
 }
 
 /**

@@ -22,12 +22,20 @@ import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { resolvePublishingTimezone } from '@/components/modals/content/batch/batch-platform-sync';
+import PostCharacterUsage from '@/components/posts/character-usage/PostCharacterUsage';
+import { buildPostCharacterUsageItems } from '@/components/posts/character-usage/post-character-usage.util';
 import { useWebsocketPrompt } from '@/hooks/utils/use-websocket-prompt/use-websocket-prompt';
 
+/**
+ * Left column of the schedule modal: the shared title and caption every
+ * channel carries, how long that caption runs on each channel, and when it all
+ * goes out.
+ */
 export default function ModalPostSetupTab({
   form,
+  platformConfigs,
   globalScheduledDate,
   setGlobalScheduledDate,
   settings,
@@ -41,7 +49,17 @@ export default function ModalPostSetupTab({
     settings?.timezone,
     getBrowserTimezone(),
   );
-  const { brandId } = useBrand();
+  const { brandId, credentials } = useBrand();
+  const globalDescription = form.watch('globalDescription');
+  const characterUsageItems = useMemo(
+    () =>
+      buildPostCharacterUsageItems(
+        platformConfigs,
+        globalDescription,
+        credentials,
+      ),
+    [credentials, globalDescription, platformConfigs],
+  );
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const notificationsService = NotificationsService.getInstance();
@@ -171,7 +189,12 @@ export default function ModalPostSetupTab({
 
   return (
     <>
-      <FormControl label={translate('titleLabel')}>
+      <FormControl
+        label={translate('titleLabel')}
+        helpText={
+          isImage ? translate('titleHelpImage') : translate('titleHelpVideo')
+        }
+      >
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
             <Input
@@ -195,16 +218,11 @@ export default function ModalPostSetupTab({
             variant={ButtonVariant.SECONDARY}
           />
         </div>
-        <p className="text-xs text-foreground/70 mt-1">
-          {isImage ? translate('titleHelpImage') : translate('titleHelpVideo')}
-        </p>
       </FormControl>
 
       <FormControl
         label={translate('descriptionLabel')}
-        helpText={
-          hasPromptText ? translate('descriptionHelpFromPrompt') : undefined
-        }
+        helpText={translate('descriptionHelp')}
       >
         <div className="space-y-2">
           {hasPromptText && (
@@ -228,10 +246,12 @@ export default function ModalPostSetupTab({
             isDisabled={isLoading || isGenerating}
           />
         </div>
-        <p className="text-xs text-foreground/70 mt-1">
-          {translate('descriptionHelp')}
-        </p>
       </FormControl>
+
+      <PostCharacterUsage
+        items={characterUsageItems}
+        title={translate('charactersUsed')}
+      />
 
       <FormDateTimePicker
         label={translate('scheduleLabel')}

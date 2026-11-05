@@ -9,6 +9,7 @@ import {
   adsPlatformValues,
   isAdsPlatform,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   BadRequestException,
@@ -27,6 +28,7 @@ interface AdsCredentialAuth {
   accessTokenSecret?: string;
 }
 
+@Traced()
 @Injectable()
 export class AdsGatewayRequestContextService {
   constructor(private readonly credentialsService: CredentialsService) {}

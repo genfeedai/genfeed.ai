@@ -29,6 +29,7 @@ import type { ModelBillableCompletionInput } from '@genfeedai/contracts/interfac
 import { quoteModelBillableCompletion } from '@genfeedai/pricing';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -42,6 +43,7 @@ export interface FalGenerationCompletionInput {
 }
 
 /** One frozen quote/hold for a generation group. Output positions never determine charges. */
+@Traced()
 @Injectable()
 export class GenerationQuoteGroupService {
   constructor(
@@ -77,6 +79,7 @@ export class GenerationQuoteGroupService {
           isDeleted: false,
           workloadType: MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
         },
+        select: { id: true, metadata: true, status: true },
       });
       if (!hold || hold.status !== CreditReservationStatus.RESERVED) return;
       const expectedMetadata = z
@@ -180,6 +183,7 @@ export class GenerationQuoteGroupService {
         isDeleted: false,
         workloadType: MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
       },
+      select: { expiresAt: true, metadata: true, status: true },
     });
     if (!hold || hold.status !== CreditReservationStatus.RESERVED)
       throw new BusinessLogicException('Generation quote hold has ended');

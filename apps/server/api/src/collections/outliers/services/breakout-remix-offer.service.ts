@@ -5,7 +5,10 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
+
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
 export const BREAKOUT_REMIX_OFFER_ENTITY_MODEL = 'BreakoutResponse';
 export const BREAKOUT_REMIX_OFFER_SOURCE_TYPE = 'breakout_response';
@@ -45,7 +48,7 @@ function platformLabel(platform: string): string {
 }
 
 function snippet(text: string | null | undefined): string | null {
-  const flat = (text ?? '').replace(/\s+/g, ' ').trim();
+  const flat = (text ?? '').replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
   if (!flat) return null;
   return flat.length > SNIPPET_LENGTH
     ? `${flat.slice(0, SNIPPET_LENGTH - 1)}…`
@@ -59,6 +62,7 @@ function snippet(text: string | null | undefined): string | null {
  * detected response: a repeat collection of the same post returns the first
  * activity and writes nothing.
  */
+@Traced()
 @Injectable()
 export class BreakoutRemixOfferService {
   private readonly context = { service: BreakoutRemixOfferService.name };

@@ -33,6 +33,9 @@ import {
 import { Observable } from 'rxjs';
 import { finalize, tap } from 'rxjs/operators';
 
+const WORKFLOW_EXECUTION_PATH_PATTERN =
+  /^(?:\/v1)?\/workflow-executions\/[^/]+\/?$/;
+
 /**
  * Adds request performance to the request's wide event (database work, memory
  * pressure on slow requests, the caught error) and reports the same metrics to
@@ -187,7 +190,7 @@ export class PerformanceInterceptor implements NestInterceptor {
       error !== undefined &&
       method === 'GET' &&
       statusCode === 404 &&
-      /^(?:\/v1)?\/workflow-executions\/[^/]+\/?$/.test(url.split('?')[0]);
+      WORKFLOW_EXECUTION_PATH_PATTERN.test(url.split('?')[0]);
     const severity = this.readPerformanceSeverity(
       isSlow,
       isVerySlow,

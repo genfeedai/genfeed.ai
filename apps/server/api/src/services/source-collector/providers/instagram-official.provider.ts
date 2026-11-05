@@ -8,10 +8,13 @@ import type {
 import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
+
+const INSIGHTS_ERROR_PATTERN = /insight|permission|metric/i;
 
 const PAGE_SIZE = 50;
 const DEFAULT_LIMIT = 100;
@@ -122,6 +125,7 @@ function mapMediaNode(
  * limit or the `since` window is reached; insights are dropped (not the whole
  * page) when the account lacks the insights scope.
  */
+@Traced()
 @Injectable()
 export class InstagramOfficialProvider implements SourceTimelineProvider {
   readonly name = 'brand-oauth' as const;
@@ -297,5 +301,5 @@ function isInsightsError(error: unknown): boolean {
   )?.response?.data?.error;
   const message =
     typeof graphError?.message === 'string' ? graphError.message : '';
-  return /insight|permission|metric/i.test(message);
+  return INSIGHTS_ERROR_PATTERN.test(message);
 }
