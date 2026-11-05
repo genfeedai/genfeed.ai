@@ -6,18 +6,22 @@ import type {
   KnowledgeSpace,
 } from '@genfeedai/client/models';
 import { KnowledgeProcessingState } from '@genfeedai/contracts';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import type { KnowledgeSourceRow } from '@props/content/knowledge-library.props';
 import { KnowledgeSourcesService } from '@services/content/knowledge-sources.service';
 import { KnowledgeSpacesService } from '@services/content/knowledge-spaces.service';
 import { logger } from '@services/core/logger.service';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 
 const UNSAFE_ID_CHAR_PATTERN = /[^A-Za-z0-9_-]/;
 
 export const KNOWLEDGE_LIBRARY_PAGE_SIZE = 25;
 /** How often the list re-reads while a capture is still being processed. */
 export const KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS = 4_000;
+
+const LOAD_ERROR = 'Knowledge could not be loaded.';
+const EMPTY_ROWS: KnowledgeSourceRow[] = [];
+const EMPTY_SPACES: KnowledgeSpace[] = [];
 
 const PENDING_PROCESSING_STATES = new Set<KnowledgeProcessingState>([
   KnowledgeProcessingState.QUEUED,
@@ -30,264 +34,291 @@ interface UseKnowledgeLibraryOptions {
   selectedSourceId?: string;
 }
 
-function isAbortError(error: unknown): boolean {
-  return error instanceof Error && error.name === 'CanceledError';
+interface KnowledgeServices {
+  sources: KnowledgeSourcesService;
+  spaces: KnowledgeSpacesService;
+}
+
+interface KnowledgeLibraryPage {
+  rows: KnowledgeSourceRow[];
+  spaces: KnowledgeSpace[];
+  /** Space ids per source id, for a selected source that is not on the page. */
+  spaceIdsBySource: Record<string, string[]>;
+  /** Sources whose current version could not be read. */
+  unavailableVersionIds: string[];
+}
+
+interface KnowledgeSelectedSource {
+  source: KnowledgeSource;
+  version?: KnowledgeSourceVersion;
+}
+
+function createKnowledgeServices(token: string): KnowledgeServices {
+  return {
+    sources: KnowledgeSourcesService.getInstance(token),
+    spaces: KnowledgeSpacesService.getInstance(token),
+  };
 }
 
 /**
- * Loads one brand's Knowledge sources, their current versions and spaces.
- * Every request is aborted when the brand changes so a slow response for the
- * previous brand can never land in the next brand's view. While any current
- * version is queued or processing, the list re-reads in the background until
- * it settles, so ingestion outcomes appear without a manual reload.
+ * A superseded read (another brand, viewer or selection, or an unmount) is
+ * cancelled while it still waits for its token: it never reaches the API.
+ */
+function throwIfSuperseded(signal: AbortSignal): void {
+  if (signal.aborted) {
+    throw new DOMException('Superseded Knowledge read', 'AbortError');
+  }
+}
+
+function pickCurrentVersion(
+  versions: KnowledgeSourceVersion[],
+): KnowledgeSourceVersion | undefined {
+  return versions.find((version) => version.isCurrent) ?? versions[0];
+}
+
+function isPending(version: KnowledgeSourceVersion | undefined): boolean {
+  return (
+    version !== undefined &&
+    PENDING_PROCESSING_STATES.has(version.processingState)
+  );
+}
+
+function isValidSourceId(id: string | undefined): id is string {
+  return (
+    typeof id === 'string' &&
+    id.length > 0 &&
+    id.length <= 128 &&
+    !UNSAFE_ID_CHAR_PATTERN.test(id)
+  );
+}
+
+/**
+ * Loads one brand's Knowledge sources, their current versions and spaces,
+ * plus the selected source when it is not on the current page.
+ *
+ * Both reads are cached per viewer, brand, page and selection, so coming back
+ * to the Library paints the last list at once and refreshes it in the
+ * background. Data is only ever shown under the key it was read for: another
+ * brand, viewer or selection never sees it, and a superseded read is
+ * cancelled. While any current version is queued or processing, the read
+ * repeats in the background until it settles.
  */
 export function useKnowledgeLibrary({
   brandId,
   page = 1,
   selectedSourceId,
 }: UseKnowledgeLibraryOptions) {
-  const getSourcesService = useAuthedService((token: string) =>
-    KnowledgeSourcesService.getInstance(token),
-  );
-  const getSpacesService = useAuthedService((token: string) =>
-    KnowledgeSpacesService.getInstance(token),
-  );
-  // useAuthedService changes identity when actor/session/organization changes.
-  const scope = useMemo(
-    () => ({
-      brandId,
-      getSourcesService,
-      getSpacesService,
-      page,
-      selectedSourceId,
-    }),
-    [brandId, getSourcesService, getSpacesService, page, selectedSourceId],
-  );
-  const scopeRef = useRef(scope);
-  scopeRef.current = scope;
-  const loadedScopeRef = useRef<typeof scope | null>(null);
-  const [rows, setRows] = useState<KnowledgeSourceRow[]>([]);
-  const [spaces, setSpaces] = useState<KnowledgeSpace[]>([]);
-  const [selectedRow, setSelectedRow] = useState<KnowledgeSourceRow | null>(
-    null,
-  );
-  const [selectionError, setSelectionError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const controllerRef = useRef<AbortController | null>(null);
   const hasSelection = selectedSourceId !== undefined;
-  const isValidSelection =
-    typeof selectedSourceId === 'string' &&
-    selectedSourceId.length > 0 &&
-    selectedSourceId.length <= 128 &&
-    !UNSAFE_ID_CHAR_PATTERN.test(selectedSourceId);
+  const isValidSelection = isValidSourceId(selectedSourceId);
 
-  const load = useCallback(
-    async (isBackground = false) => {
-      // An old action's retained refresh callback cannot cancel a new scope.
-      if (scopeRef.current !== scope) return;
-      controllerRef.current?.abort();
-      const controller = new AbortController();
-      controllerRef.current = controller;
-      const isCurrent = () =>
-        !controller.signal.aborted &&
-        controllerRef.current === controller &&
-        scopeRef.current === scope;
-      if (!isBackground) {
-        setIsLoading(true);
-        setError(null);
-        setSelectedRow(null);
-        setSelectionError(null);
-      }
+  const listQuery = useAuthedQuery<KnowledgeServices, KnowledgeLibraryPage>({
+    enabled: Boolean(brandId),
+    queryFn: async (
+      { sources: sourcesService, spaces: spacesService },
+      signal,
+    ) => {
+      throwIfSuperseded(signal);
       if (!brandId) {
-        loadedScopeRef.current = scope;
-        setRows([]);
-        setSpaces([]);
-        setSelectedRow(null);
-        setIsLoading(false);
-        return;
+        throw new Error('knowledge_brand_required');
       }
-      try {
-        const [sourcesService, spacesService] = await Promise.all([
-          getSourcesService(),
-          getSpacesService(),
-        ]);
-        if (!isCurrent()) return;
-        const [sources, nextSpaces] = await Promise.all([
-          sourcesService.findForBrand(
-            { brandId, limit: KNOWLEDGE_LIBRARY_PAGE_SIZE, page },
-            controller.signal,
-          ),
-          spacesService.findForBrand(brandId, controller.signal),
-        ]);
-        if (!isCurrent()) return;
-        let isSelectedVersionUnavailable = false;
-        const versions = await Promise.all(
-          sources.map((source: KnowledgeSource) =>
-            sourcesService
-              .findVersions(source.id, brandId, controller.signal)
-              .then(
-                (list: KnowledgeSourceVersion[]) =>
-                  list.find((version) => version.isCurrent) ?? list[0],
-              )
-              .catch((versionError: unknown) => {
-                if (source.id !== selectedSourceId) throw versionError;
-                isSelectedVersionUnavailable = true;
-                return undefined;
-              }),
-          ),
-        );
-        if (!isCurrent()) return;
-        const memberships = await Promise.all(
-          nextSpaces.map((space: KnowledgeSpace) =>
-            spacesService
-              .findMemberships(space.id, brandId, controller.signal)
-              .then((list) => ({ list, spaceId: space.id })),
-          ),
-        );
-        if (!isCurrent()) return;
-        const spaceIdsBySource = new Map<string, string[]>();
-        for (const { list, spaceId } of memberships) {
-          for (const membership of list) {
-            const ids = spaceIdsBySource.get(membership.sourceId) ?? [];
-            ids.push(spaceId);
-            spaceIdsBySource.set(membership.sourceId, ids);
-          }
+      const scopedBrandId = brandId;
+      const [sources, spaces] = await Promise.all([
+        sourcesService.findForBrand(
+          { brandId: scopedBrandId, limit: KNOWLEDGE_LIBRARY_PAGE_SIZE, page },
+          signal,
+        ),
+        spacesService.findForBrand(scopedBrandId, signal),
+      ]);
+      const unavailableVersionIds: string[] = [];
+      const versions = await Promise.all(
+        sources.map((source: KnowledgeSource) =>
+          sourcesService
+            .findVersions(source.id, scopedBrandId, signal)
+            .then(pickCurrentVersion)
+            .catch(() => {
+              unavailableVersionIds.push(source.id);
+              return undefined;
+            }),
+        ),
+      );
+      const memberships = await Promise.all(
+        spaces.map((space: KnowledgeSpace) =>
+          spacesService
+            .findMemberships(space.id, scopedBrandId, signal)
+            .then((list) => ({ list, spaceId: space.id })),
+        ),
+      );
+      const spaceIdsBySource: Record<string, string[]> = {};
+      for (const { list, spaceId } of memberships) {
+        for (const membership of list) {
+          spaceIdsBySource[membership.sourceId] = [
+            ...(spaceIdsBySource[membership.sourceId] ?? []),
+            spaceId,
+          ];
         }
-        const nextRows = sources.map(
-          (source: KnowledgeSource, index: number) => ({
-            source,
-            spaceIds: spaceIdsBySource.get(source.id) ?? [],
-            version: versions[index],
-          }),
-        );
-        let nextSelected: KnowledgeSourceRow | null = null;
-        let nextSelectionError: string | null =
-          (hasSelection && !isValidSelection) || isSelectedVersionUnavailable
-            ? 'Knowledge could not be loaded.'
-            : null;
-        if (
-          isValidSelection &&
-          selectedSourceId &&
-          !isSelectedVersionUnavailable
-        ) {
-          nextSelected =
-            nextRows.find((row) => row.source.id === selectedSourceId) ?? null;
-          if (!nextSelected) {
-            try {
-              const source = await sourcesService.findOne(
-                selectedSourceId,
-                { brandId },
-                controller.signal,
-              );
-              if (!isCurrent()) return;
-              if (source.id !== selectedSourceId) {
-                throw new Error('knowledge_selection_unavailable');
-              }
-              const list = await sourcesService.findVersions(
-                source.id,
-                brandId,
-                controller.signal,
-              );
-              if (!isCurrent()) return;
-              nextSelected = {
-                source,
-                spaceIds: spaceIdsBySource.get(source.id) ?? [],
-                version: list.find((version) => version.isCurrent) ?? list[0],
-              };
-            } catch {
-              if (!isCurrent()) return;
-              // All denied/missing responses are indistinguishable in the UI.
-              nextSelectionError = 'Knowledge could not be loaded.';
-            }
-          }
-        }
-        if (!isCurrent()) return;
-        loadedScopeRef.current = scope;
-        setRows(nextRows);
-        setSpaces(nextSpaces);
-        setSelectedRow(nextSelected);
-        setSelectionError(nextSelectionError);
-        setError(null);
-      } catch (loadError) {
-        if (!isCurrent() || isAbortError(loadError)) return;
-        // Failed scope/membership reads cannot leave actionable selected data.
-        setSelectedRow(null);
-        setSelectionError(
-          hasSelection ? 'Knowledge could not be loaded.' : null,
-        );
-        if (isBackground) return;
-        logger.error('Failed to load Knowledge library', loadError);
-        loadedScopeRef.current = scope;
-        setRows([]);
-        setSpaces([]);
-        setError('Knowledge could not be loaded.');
-      } finally {
-        if (isCurrent()) setIsLoading(false);
       }
+      return {
+        rows: sources.map((source: KnowledgeSource, index: number) => ({
+          source,
+          spaceIds: spaceIdsBySource[source.id] ?? [],
+          version: versions[index],
+        })),
+        spaceIdsBySource,
+        spaces,
+        unavailableVersionIds,
+      };
     },
-    [
-      brandId,
-      getSourcesService,
-      getSpacesService,
-      hasSelection,
-      isValidSelection,
-      page,
-      scope,
-      selectedSourceId,
+    queryKey: ['knowledge-library', brandId ?? null, page],
+    refetchInterval: (query) =>
+      query.state.data?.rows.some((row) => isPending(row.version))
+        ? KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS
+        : false,
+    service: createKnowledgeServices,
+  });
+
+  const listData = listQuery.data;
+  const onPageSelection =
+    isValidSelection && listData
+      ? listData.rows.find((row) => row.source.id === selectedSourceId)
+      : undefined;
+  const needsOffPageRead =
+    Boolean(brandId) &&
+    isValidSelection &&
+    listData !== undefined &&
+    onPageSelection === undefined;
+
+  const selectionQuery = useAuthedQuery<
+    KnowledgeServices,
+    KnowledgeSelectedSource
+  >({
+    enabled: needsOffPageRead,
+    queryFn: async ({ sources: sourcesService }, signal) => {
+      throwIfSuperseded(signal);
+      if (!brandId || !isValidSourceId(selectedSourceId)) {
+        throw new Error('knowledge_selection_unavailable');
+      }
+      const scopedBrandId = brandId;
+      const sourceId = selectedSourceId;
+      const source = await sourcesService.findOne(
+        sourceId,
+        { brandId: scopedBrandId },
+        signal,
+      );
+      if (source.id !== sourceId) {
+        throw new Error('knowledge_selection_unavailable');
+      }
+      const versions = await sourcesService.findVersions(
+        source.id,
+        scopedBrandId,
+        signal,
+      );
+      return { source, version: pickCurrentVersion(versions) };
+    },
+    queryKey: [
+      'knowledge-library-selection',
+      brandId ?? null,
+      selectedSourceId ?? null,
     ],
-  );
+    refetchInterval: (query) =>
+      isPending(query.state.data?.version)
+        ? KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS
+        : false,
+    service: createKnowledgeServices,
+  });
 
-  useEffect(() => {
-    load().catch((loadError) => {
-      logger.error('Failed to initialize Knowledge library', loadError);
-    });
-    return () => {
-      controllerRef.current?.abort();
-    };
-  }, [load]);
+  const { refetch: refetchList } = listQuery;
+  const { refetch: refetchSelection } = selectionQuery;
+  const refresh = useCallback(async () => {
+    if (!brandId) return;
+    await Promise.all([
+      refetchList(),
+      needsOffPageRead ? refetchSelection() : undefined,
+    ]);
+  }, [brandId, needsOffPageRead, refetchList, refetchSelection]);
 
-  const hasPendingVersion = [
-    ...rows,
-    ...(selectedRow ? [selectedRow] : []),
-  ].some(
-    (row) =>
-      row.version !== undefined &&
-      PENDING_PROCESSING_STATES.has(row.version.processingState),
-  );
+  const listError = listQuery.error;
+  const selectionReadError = selectionQuery.error;
+  const hasListData = listData !== undefined;
   useEffect(() => {
-    if (!hasPendingVersion) {
-      return;
+    if (listError && !hasListData) {
+      logger.error('Failed to load Knowledge library', listError);
     }
-    const interval = setInterval(() => {
-      load(true).catch((pollError) => {
-        logger.error('Failed to refresh Knowledge library', pollError);
-      });
-    }, KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, [hasPendingVersion, load]);
+  }, [hasListData, listError]);
 
-  const refresh = useCallback(() => load(), [load]);
+  if (!brandId) {
+    return {
+      error: null,
+      isLoading: false,
+      refresh,
+      rows: EMPTY_ROWS,
+      selectedRow: null,
+      selectionError: null,
+      spaces: EMPTY_SPACES,
+    };
+  }
 
-  // Hide data synchronously during a scope change, before effect cleanup runs.
-  // Picking another source changes only the selection: the list, its spaces
-  // and the page stay valid, so they stay on screen while the new selection
-  // loads. Selected details are always hidden until their own scope loads.
-  const loadedScope = loadedScopeRef.current;
-  const isLoadedScope = loadedScope === scope;
-  const isSameList =
-    loadedScope !== null &&
-    loadedScope.brandId === scope.brandId &&
-    loadedScope.page === scope.page &&
-    loadedScope.getSourcesService === scope.getSourcesService &&
-    loadedScope.getSpacesService === scope.getSpacesService;
+  if (!listData) {
+    return {
+      error: listError ? LOAD_ERROR : null,
+      isLoading: !listError,
+      refresh,
+      rows: EMPTY_ROWS,
+      selectedRow: null,
+      selectionError: listError && hasSelection ? LOAD_ERROR : null,
+      spaces: EMPTY_SPACES,
+    };
+  }
+
+  // A version that could not be read fails the whole page, unless it belongs
+  // to the selected source: then only the selected panel says so.
+  const isPageUnavailable = listData.unavailableVersionIds.some(
+    (id) => id !== selectedSourceId,
+  );
+  if (isPageUnavailable) {
+    return {
+      error: LOAD_ERROR,
+      isLoading: false,
+      refresh,
+      rows: EMPTY_ROWS,
+      selectedRow: null,
+      selectionError: hasSelection ? LOAD_ERROR : null,
+      spaces: EMPTY_SPACES,
+    };
+  }
+
+  // A failed background read keeps the list, but never leaves actionable
+  // selected details from before the failure on screen.
+  let selectedRow: KnowledgeSourceRow | null = null;
+  let selectionError: string | null = null;
+  if (hasSelection && (!isValidSelection || listError)) {
+    selectionError = LOAD_ERROR;
+  } else if (onPageSelection) {
+    if (listData.unavailableVersionIds.includes(onPageSelection.source.id)) {
+      selectionError = LOAD_ERROR;
+    } else {
+      selectedRow = onPageSelection;
+    }
+  } else if (needsOffPageRead) {
+    if (selectionReadError) {
+      // Denied and missing sources are indistinguishable in the UI.
+      selectionError = LOAD_ERROR;
+    } else if (selectionQuery.data) {
+      selectedRow = {
+        source: selectionQuery.data.source,
+        spaceIds:
+          listData.spaceIdsBySource[selectionQuery.data.source.id] ?? [],
+        version: selectionQuery.data.version,
+      };
+    }
+  }
+
   return {
-    error: isLoadedScope ? error : null,
-    isLoading: !isLoadedScope || isLoading,
+    error: null,
+    isLoading: needsOffPageRead && selectionQuery.isPending,
     refresh,
-    rows: isSameList ? rows : [],
-    selectedRow: isLoadedScope ? selectedRow : null,
-    selectionError: isLoadedScope ? selectionError : null,
-    spaces: isSameList ? spaces : [],
+    rows: listData.rows,
+    selectedRow,
+    selectionError,
+    spaces: listData.spaces,
   };
 }
