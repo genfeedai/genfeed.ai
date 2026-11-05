@@ -2,12 +2,13 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandOsScanDto } from '@api/collections/brands/dto/brand-os-scan.dto';
 import { BrandOsScanService } from '@api/collections/brands/services/brand-os-scan.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import { BrandOnboardingScanSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -28,6 +29,7 @@ import type { Request } from 'express';
 export class BrandOsScanController {
   constructor(private readonly scans: BrandOsScanService) {}
   @Post()
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @HttpCode(200)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async start(

@@ -7,6 +7,7 @@ import {
 } from '@api/collections/brands/services/brand-font-assets.service';
 import { FONT_UPLOAD_MAX_BYTES } from '@api/collections/brands/utils/brand-font-upload.util';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -17,7 +18,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import { BrandFontAssetSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -68,6 +69,7 @@ export class BrandFontAssetsController {
     return serializeCollection(req, BrandFontAssetSerializer, { ...result });
   }
   @Post()
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -119,6 +121,7 @@ export class BrandFontAssetsController {
     }
   }
   @Delete(':assetId')
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @HttpCode(204)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async remove(

@@ -16,6 +16,7 @@ import { toWorkflowSchedulePrincipal } from '@api/collections/workflows/utils/wo
 import { BrandOsPreviewClaimDto } from '@api/endpoints/public/controllers/brand-os/brand-os-preview-claim.dto';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -25,7 +26,7 @@ import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenan
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { ActivitySource } from '@genfeedai/contracts';
+import { ActivitySource, ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import {
   BrandKitApplySerializer,
@@ -64,6 +65,7 @@ export class BrandsAgentConfigController {
   ) {}
 
   @Patch(':id/agent-config')
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateAgentConfig(
     @Req() request: Request,
@@ -118,6 +120,7 @@ export class BrandsAgentConfigController {
   }
 
   @Post(':id/brand-kit/crawl')
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @HttpCode(200)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async crawlBrandKitWebsite(
@@ -138,6 +141,7 @@ export class BrandsAgentConfigController {
   }
 
   @Post(':id/brand-kit/apply')
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @HttpCode(200)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async applyBrandKitDraft(
@@ -159,6 +163,7 @@ export class BrandsAgentConfigController {
   }
 
   @Post(':id/brand-kit/manual')
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @HttpCode(200)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async createManualBrandKitDraft(
@@ -179,6 +184,7 @@ export class BrandsAgentConfigController {
   }
 
   @Post(':id/brand-kit/brand-os/claim')
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
   @Header('Pragma', 'no-cache')
@@ -229,6 +235,7 @@ export class BrandsAgentConfigController {
   }
 
   @Post(':id/brand-kit/assets/import')
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @HttpCode(200)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async importBrandKitAssets(
@@ -263,6 +270,7 @@ export class BrandsAgentConfigController {
   }
 
   @Post(':id/agent-config/generate-voice')
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @Credits({
     amount: BRAND_PROFILE_GENERATION_CREDIT_COST,
     description: 'AI brand profile generation',
@@ -297,6 +305,7 @@ export class BrandsAgentConfigController {
   }
 
   @Patch(':id/agent-config/enabled-skills')
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateEnabledSkills(
     @Req() request: Request,

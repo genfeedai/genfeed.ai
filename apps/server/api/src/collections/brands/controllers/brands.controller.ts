@@ -60,6 +60,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   HttpException,
@@ -495,5 +496,17 @@ export class BrandsController extends BaseCRUDController<
     );
 
     return super.findOne(request, user, brandId);
+  }
+
+  /** Soft-delete a brand. Re-declared only to require `brands:write`. */
+  @Delete(':id')
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async remove(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<JsonApiSingleResponse> {
+    return super.remove(request, user, id);
   }
 }
