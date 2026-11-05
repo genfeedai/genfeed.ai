@@ -650,6 +650,32 @@
         "noScopes": "No scopes",
         "untitled": "Untitled key"
       },
+      "permissions": {
+        "groups": {
+          "brands": "Brands",
+          "content": "Content",
+          "insights": "Insights",
+          "publishing": "Publishing"
+        },
+        "levels": {
+          "none": "None",
+          "read": "Read",
+          "write": "Write"
+        },
+        "resources": {
+          "analytics": "Analytics",
+          "articles": "Articles",
+          "brands": "Brands and brand context",
+          "credits": "Credits",
+          "direct-publishing": "Direct publishing",
+          "images": "Images",
+          "post-drafts": "Post drafts",
+          "post-scheduling": "Post scheduling",
+          "prompts": "Prompts",
+          "publish-approvals": "Publish approvals",
+          "videos": "Videos"
+        }
+      },
       "plainKey": {
         "notice": "Store this key now. It will not be shown again.",
         "rotated": "Rotated key"

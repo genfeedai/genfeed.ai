@@ -4,14 +4,20 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
-import { ButtonVariant, CardPadding, CardVariant } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import {
-  API_KEY_SCOPE_OPTIONS,
+  API_KEY_PERMISSION_GROUPS,
   API_KEY_SCOPE_PRESETS,
   EMPTY_PAGE_TOTALS,
   ITEMS_PER_PAGE,
+  resolveApiKeyPermissionLevels,
+  resolveApiKeyPermissionScopes,
 } from '@genfeedai/contracts/constants';
-import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
+import type {
+  ApiKeyPermissionLevel,
+  ApiKeyPermissionLevels,
+  IPaginatedResponse,
+} from '@genfeedai/contracts/interfaces';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
@@ -24,7 +30,6 @@ import Card from '@ui/card/Card';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
 import Spinner from '@ui/primitives/spinner';
@@ -41,28 +46,41 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   AuthorizedApiKeysContentProps,
   ProductApiKeyForm,
-  ProductApiKeyScope,
   ProductPlainKey,
 } from '@/features/settings/props/api-keys-content.props';
 import { isApiKeyLimitReached } from './api-key-create-error';
+import ApiKeyPermissionEditor from './api-key-permission-editor';
 
+// Presets fill the editor: each resource takes the level that covers the
+// preset's scopes, and the key gets the scopes of those levels.
 const PRODUCT_API_KEY_PRESETS = [
-  { labelKey: 'presets.mcp', scopes: API_KEY_SCOPE_PRESETS.mcp },
-  { labelKey: 'presets.read', scopes: API_KEY_SCOPE_PRESETS.read },
-  { labelKey: 'presets.content', scopes: API_KEY_SCOPE_PRESETS.content },
+  {
+    labelKey: 'presets.mcp',
+    levels: resolveApiKeyPermissionLevels(API_KEY_SCOPE_PRESETS.mcp),
+  },
+  {
+    labelKey: 'presets.read',
+    levels: resolveApiKeyPermissionLevels(API_KEY_SCOPE_PRESETS.read),
+  },
+  {
+    labelKey: 'presets.content',
+    levels: resolveApiKeyPermissionLevels(API_KEY_SCOPE_PRESETS.content),
+  },
 ] as const;
+
+const PERMISSION_RESOURCE_IDS = API_KEY_PERMISSION_GROUPS.flatMap((group) =>
+  group.resources.map((resource) => resource.id),
+);
 
 const SECONDARY_BUTTON_VARIANT = ButtonVariant.SECONDARY;
 
-function scopesExactlyMatch(
-  selected: readonly string[],
-  preset: readonly string[],
+function levelsMatch(
+  selected: ApiKeyPermissionLevels,
+  preset: ApiKeyPermissionLevels,
 ): boolean {
-  if (selected.length !== preset.length) {
-    return false;
-  }
-  const selectedSet = new Set(selected);
-  return preset.every((scope) => selectedSet.has(scope));
+  return PERMISSION_RESOURCE_IDS.every(
+    (id) => (selected[id] ?? 'none') === (preset[id] ?? 'none'),
+  );
 }
 
 function createInitialProductApiKeyForm(label: string): ProductApiKeyForm {
@@ -71,8 +89,8 @@ function createInitialProductApiKeyForm(label: string): ProductApiKeyForm {
     description: '',
     expiresAt: '',
     label,
+    permissionLevels: PRODUCT_API_KEY_PRESETS[0].levels,
     rateLimit: '',
-    selectedScopes: [...API_KEY_SCOPE_PRESETS.mcp],
   };
 }
 
@@ -223,9 +241,9 @@ function AuthorizedApiKeysContent({
     [getApiKeysService, isKeylessSelfHosted],
   );
 
-  const selectedScopeSet = useMemo(
-    () => new Set(productForm.selectedScopes),
-    [productForm.selectedScopes],
+  const selectedScopes = useMemo(
+    () => resolveApiKeyPermissionScopes(productForm.permissionLevels),
+    [productForm.permissionLevels],
   );
 
   const fetchProductApiKeys = useCallback(
@@ -291,51 +309,35 @@ function AuthorizedApiKeysContent({
   }, [organizationId, isReady, fetchProductApiKeys]);
 
   const handleProductFormChange = (
-    field: keyof Omit<ProductApiKeyForm, 'selectedScopes'>,
+    field: keyof Omit<ProductApiKeyForm, 'permissionLevels'>,
     value: string,
   ) => {
     setProductForm((current) => ({ ...current, [field]: value }));
   };
 
-  const handleScopeToggle = (scopes: readonly ProductApiKeyScope[]) => {
-    setProductForm((current) => {
-      const nextScopes = new Set(current.selectedScopes);
-      const allSelected = scopes.every((scope) => nextScopes.has(scope));
-
-      for (const scope of scopes) {
-        if (allSelected) {
-          nextScopes.delete(scope);
-        } else {
-          nextScopes.add(scope);
-        }
-      }
-
-      return {
-        ...current,
-        // Always allocate a new array so React always sees a state change.
-        selectedScopes: Array.from(nextScopes),
-      };
-    });
+  const handleLevelChange = (
+    resourceId: string,
+    level: ApiKeyPermissionLevel,
+  ) => {
+    setProductForm((current) => ({
+      ...current,
+      permissionLevels: { ...current.permissionLevels, [resourceId]: level },
+    }));
   };
 
-  const handlePresetSelect = (scopes: readonly ProductApiKeyScope[]) => {
-    setProductForm((current) => {
-      // Clicking the active preset again is a no-op (keep selection).
-      if (scopesExactlyMatch(current.selectedScopes, scopes)) {
-        return current;
-      }
-      return {
-        ...current,
-        selectedScopes: [...scopes],
-      };
-    });
+  const handlePresetSelect = (levels: ApiKeyPermissionLevels) => {
+    setProductForm((current) =>
+      levelsMatch(current.permissionLevels, levels)
+        ? current
+        : { ...current, permissionLevels: levels },
+    );
   };
 
   const handleCreateProductKey = async () => {
     const isCurrent = currentOperation();
     if (!isCurrent()) return;
     const label = productForm.label.trim() || defaultKeyName;
-    if (productForm.selectedScopes.length === 0) {
+    if (selectedScopes.length === 0) {
       return;
     }
 
@@ -351,7 +353,7 @@ function AuthorizedApiKeysContent({
         rateLimit: productForm.rateLimit
           ? Number.parseInt(productForm.rateLimit, 10)
           : undefined,
-        scopes: productForm.selectedScopes,
+        scopes: selectedScopes,
       });
       if (!isCurrent()) return;
       const key = getVisibleKey(apiKey);
@@ -562,7 +564,7 @@ function AuthorizedApiKeysContent({
                     (entry) => entry.labelKey === labelKey,
                   );
                   if (preset) {
-                    handlePresetSelect(preset.scopes);
+                    handlePresetSelect(preset.levels);
                   }
                 }}
                 options={PRODUCT_API_KEY_PRESETS.map((preset) => ({
@@ -572,57 +574,21 @@ function AuthorizedApiKeysContent({
                 size="sm"
                 value={
                   PRODUCT_API_KEY_PRESETS.find((preset) =>
-                    scopesExactlyMatch(
-                      productForm.selectedScopes,
-                      preset.scopes,
-                    ),
+                    levelsMatch(productForm.permissionLevels, preset.levels),
                   )?.labelKey
                 }
               />
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              {API_KEY_SCOPE_OPTIONS.map((option) => {
-                const selectedCount = option.scopes.filter((scope) =>
-                  selectedScopeSet.has(scope),
-                ).length;
-                const isFullySelected = selectedCount === option.scopes.length;
-                const isPartiallySelected =
-                  selectedCount > 0 && !isFullySelected;
-
-                return (
-                  <Card
-                    key={option.label}
-                    variant={
-                      isPartiallySelected
-                        ? CardVariant.INSET
-                        : CardVariant.BORDERED
-                    }
-                    isSelected={isFullySelected}
-                    padding={CardPadding.SM}
-                  >
-                    <Checkbox
-                      checked={
-                        isFullySelected
-                          ? true
-                          : isPartiallySelected
-                            ? 'indeterminate'
-                            : false
-                      }
-                      label={option.label}
-                      onCheckedChange={() => handleScopeToggle(option.scopes)}
-                    />
-                  </Card>
-                );
-              })}
-            </div>
+            <ApiKeyPermissionEditor
+              levels={productForm.permissionLevels}
+              onLevelChange={handleLevelChange}
+            />
           </div>
 
           <div className="mt-4 flex justify-end">
             <Button
               onClick={handleCreateProductKey}
-              isDisabled={
-                isCreatingProductKey || productForm.selectedScopes.length === 0
-              }
+              isDisabled={isCreatingProductKey || selectedScopes.length === 0}
             >
               <Plus className="size-4" />
               {isCreatingProductKey

@@ -1,7 +1,10 @@
+import { isApiKeyPermissionLevelOffered } from '@genfeedai/contracts/constants';
 import type {
   AdminModelPricingReport,
   AdminModelPricingRow,
+  ApiKeyPermissionLevel,
   BrandKitFieldKey,
+  IAdminPartnerApiKeyResult,
   IHarnessActivationReport,
   IOnboardingFunnelReport,
   IOrganizationAppsReport,
@@ -19,6 +22,7 @@ import {
   flattenSingle,
   type JsonApiDocument,
 } from '@/api/json-api';
+import { GenfeedError } from '@/utils/errors';
 
 export interface SystemBrandRevision {
   content?: unknown;
@@ -208,6 +212,52 @@ export async function grantOrganizationCredits(
 ): Promise<OrganizationCreditGrant> {
   const response = await adminPost<DataEnvelope<OrganizationCreditGrant>>(
     `/admin/organizations/${encodeURIComponent(organizationId)}/credits`,
+    input
+  );
+  return response.data;
+}
+
+export interface PartnerApiKeyInput {
+  defaultBrandId?: string;
+  description?: string;
+  expiresInDays?: number;
+  label: string;
+  levels?: Record<string, ApiKeyPermissionLevel>;
+}
+
+const PERMISSION_LEVELS: readonly ApiKeyPermissionLevel[] = ['none', 'read', 'write'];
+
+function isPermissionLevel(value: string): value is ApiKeyPermissionLevel {
+  return (PERMISSION_LEVELS as readonly string[]).includes(value);
+}
+
+/**
+ * Parse `resource=level` pairs (`images=write`, `brands=read`) into a level per
+ * permission resource. Throws on an unknown resource or a level it does not offer.
+ */
+export function parsePartnerKeyLevels(
+  pairs: readonly string[]
+): Record<string, ApiKeyPermissionLevel> {
+  const levels: Record<string, ApiKeyPermissionLevel> = {};
+  for (const pair of pairs) {
+    const [resourceId = '', level = ''] = pair.split('=').map((part) => part.trim());
+    if (!isPermissionLevel(level) || !isApiKeyPermissionLevelOffered(resourceId, level)) {
+      throw new GenfeedError(
+        `Invalid --level "${pair}": use resource=none|read|write for a resource that offers that level`
+      );
+    }
+    levels[resourceId] = level;
+  }
+  return levels;
+}
+
+/** Mint a partner key in any organization. The plain key is returned once. */
+export async function mintPartnerApiKey(
+  organizationId: string,
+  input: PartnerApiKeyInput
+): Promise<IAdminPartnerApiKeyResult> {
+  const response = await adminPost<DataEnvelope<IAdminPartnerApiKeyResult>>(
+    `/admin/organizations/${encodeURIComponent(organizationId)}/api-keys`,
     input
   );
   return response.data;
