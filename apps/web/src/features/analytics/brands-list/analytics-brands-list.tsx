@@ -16,7 +16,7 @@ import {
 } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import {
   isCollectionFetchReady,
   useCollectionScope,
@@ -33,7 +33,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import SearchField from '@/components/content/search-field/SearchField';
 import AnalyticsBrandSummary from '@/features/analytics/brands-list/analytics-brand-summary';
@@ -73,18 +73,6 @@ export default function AnalyticsBrandsList({
   const currentPage = Number(searchParams.get('page')) || 1;
   const { dateRange, filters, refreshTrigger, setFilter, triggerRefresh } =
     useAnalyticsContext();
-  const getAnalyticsService = useAuthedService((token: string) =>
-    AnalyticsService.getInstance(token),
-  );
-
-  const [brandsResponse, setBrandsResponse] =
-    useState<IPaginatedBrandsResponse | null>(null);
-  const brandsData = brandsResponse?.data ?? [];
-  const totals = brandsResponse?.totals;
-  const totalBrands = brandsResponse?.pagination?.total ?? brandsData.length;
-  // Starts loading so the first paint is a skeleton, not an empty table and zeros.
-  const [isLoading, setIsLoading] = useState(true);
-  const [isError, setIsError] = useState(false);
   const searchTerm = filters.query ?? '';
   // The API searches, so a keystroke must not cost a request.
   const debouncedSearchTerm = useDebounce(searchTerm, SEARCH_DEBOUNCE_MS);
@@ -101,33 +89,25 @@ export default function AnalyticsBrandsList({
       : `${basePath}/brands/${brandId}`;
   };
 
-  // `searchParams`, `pathname` and `replace` are read only to clear an
-  // out-of-range page; the URL query must not refetch the list on its own.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
-  useEffect(() => {
-    // Refresh nonce from analytics context: force refetch when refresh button is pressed
-    if (refreshTrigger < 0) {
-      return;
-    }
+  const { startDate, endDate } = getDateRangeWithDefaults(
+    dateRange?.startDate ?? undefined,
+    dateRange?.endDate ?? undefined,
+  );
+  const hasDateRange = Boolean(dateRange.startDate && dateRange.endDate);
+  const listScopeKey = [
+    'analytics-brands-list',
+    scope.organizationId ?? null,
+    scopedBrandId ?? null,
+  ];
 
-    const controller = new AbortController();
-    const fetchBrandsData = async () => {
-      if (!isSignedIn || !isScopeReady) {
-        return;
-      }
-      if (!dateRange.startDate || !dateRange.endDate) {
-        return;
-      }
-
-      setIsLoading(true);
-      setIsError(false);
+  // Coming back to the list paints the cached page; the subbar Refresh
+  // re-reads in the background and keeps the rows on screen.
+  const brandsQuery = useAuthedQuery({
+    enabled: isSignedIn === true && isScopeReady && hasDateRange,
+    keepPreviousDataWithin: listScopeKey,
+    queryFn: async (service: AnalyticsService, signal) => {
       try {
-        const service = await getAnalyticsService();
-        const { startDate, endDate } = getDateRangeWithDefaults(
-          dateRange?.startDate ?? undefined,
-          dateRange?.endDate ?? undefined,
-        );
-        const response = await service.getBrandsWithStats(
+        return await service.getBrandsWithStats(
           {
             ...(scopedBrandId ? { brandId: scopedBrandId } : {}),
             endDate,
@@ -137,50 +117,57 @@ export default function AnalyticsBrandsList({
             sort: sortBy,
             startDate,
           },
-          controller.signal,
+          signal,
         );
-        if (controller.signal.aborted) return;
-
-        // A new search, sort or date range can leave the URL page past the
-        // last page of the new result set: start over at page 1.
-        if (
-          currentPage > 1 &&
-          response.pagination &&
-          currentPage > Math.max(1, response.pagination.totalPages)
-        ) {
-          const params = new URLSearchParams(searchParams.toString());
-          params.delete('page');
-          const query = params.toString();
-          replace(query ? `${pathname}?${query}` : pathname, {
-            scroll: false,
-          });
-          return;
-        }
-
-        setBrandsResponse(response);
       } catch (error) {
-        if (!controller.signal.aborted) {
-          logger.error('Failed to fetch brand analytics list', error);
-          setIsError(true);
-        }
-      } finally {
-        if (!controller.signal.aborted) setIsLoading(false);
+        logger.error('Failed to fetch brand analytics list', error);
+        throw error;
       }
-    };
+    },
+    queryKey: [
+      ...listScopeKey,
+      {
+        endDate,
+        page: currentPage,
+        search: debouncedSearchTerm,
+        sort: sortBy,
+        startDate,
+      },
+    ],
+    refreshKey: refreshTrigger,
+    service: (token: string) => AnalyticsService.getInstance(token),
+  });
+  const brandsResponse: IPaginatedBrandsResponse | null =
+    brandsQuery.data ?? null;
+  const brandsData = brandsResponse?.data ?? [];
+  const totals = brandsResponse?.totals;
+  const totalBrands = brandsResponse?.pagination?.total ?? brandsData.length;
+  // Pending until the first read lands, so the first paint is a skeleton,
+  // not an empty table and zeros.
+  const isLoading = brandsQuery.isPending;
+  const isError = brandsQuery.isError;
+  const isShowingPreviousPage = brandsQuery.isPlaceholderData;
+  const resolvedTotalPages = brandsResponse?.pagination?.totalPages;
 
-    void fetchBrandsData();
-    return () => controller.abort();
-  }, [
-    isSignedIn,
-    isScopeReady,
-    scopedBrandId,
-    dateRange,
-    refreshTrigger,
-    sortBy,
-    debouncedSearchTerm,
-    currentPage,
-    getAnalyticsService,
-  ]);
+  // A new search, sort or date range can leave the URL page past the last
+  // page of the new result set: start over at page 1. `searchParams`,
+  // `pathname` and `replace` are read only to build that URL.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
+  useEffect(() => {
+    if (
+      isShowingPreviousPage ||
+      resolvedTotalPages === undefined ||
+      currentPage <= Math.max(1, resolvedTotalPages)
+    ) {
+      return;
+    }
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('page');
+    const query = params.toString();
+    replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  }, [currentPage, isShowingPreviousPage, resolvedTotalPages]);
 
   const filterMenu = useMemo(() => {
     const facets: FilterMenuFacet[] = [

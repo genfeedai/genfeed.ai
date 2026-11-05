@@ -126,7 +126,12 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
-  useAuthIdentity: () => ({ isLoaded: true, isSignedIn: true }),
+  useAuthIdentity: () => ({
+    isLoaded: true,
+    isSignedIn: true,
+    orgId: 'org-1',
+    userId: 'user-1',
+  }),
 }));
 
 // The fetch effect depends on the service getter's identity, so it must be
@@ -352,6 +357,22 @@ describe('AnalyticsBrandsList', () => {
         scroll: false,
       });
     });
+  });
+
+  it('paints the cached brands at once when the list is opened again', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderView(<AnalyticsBrandsList />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(await screen.findByText('Zenith')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    getBrandsWithStatsMock.mockImplementationOnce(() => new Promise(() => {}));
+    renderView(<AnalyticsBrandsList />, {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(screen.getByText('Zenith')).toBeInTheDocument();
   });
 
   it('pushes the search term into the analytics filters', async () => {
