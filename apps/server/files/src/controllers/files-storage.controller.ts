@@ -116,13 +116,8 @@ export class FilesStorageController {
           );
         }
         // Basic URL validation
-        try {
-          new URL(source.url);
-        } catch (urlError) {
-          this.logger.error('Invalid URL format', {
-            error: urlError,
-            url: source.url,
-          });
+        if (!URL.canParse(source.url)) {
+          this.logger.error('Invalid URL format', { url: source.url });
           throw new HttpException(
             `Invalid URL: ${source.url}`,
             HttpStatus.BAD_REQUEST,

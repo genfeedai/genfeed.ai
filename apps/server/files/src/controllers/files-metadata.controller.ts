@@ -128,24 +128,17 @@ export class FilesMetadataController {
       const filesUrl = this.configService.get(
         'GENFEEDAI_MICROSERVICES_FILES_URL',
       );
-      if (
-        !isSelfHostedDeployment() &&
-        filesUrl &&
-        origin === new URL(filesUrl).origin
-      )
+      const filesOrigin = filesUrl ? new URL(filesUrl).origin : undefined;
+      if (!isSelfHostedDeployment() && origin === filesOrigin)
         throw new HttpException(
           'Cloud metadata cannot probe the files service origin',
           HttpStatus.BAD_REQUEST,
         );
+      const cdnUrl = this.configService.get('GENFEEDAI_CDN_URL');
       const storageOrigins = [
-        this.configService.get('GENFEEDAI_CDN_URL'),
-        isSelfHostedDeployment() ? filesUrl : undefined,
-      ]
-        .filter(
-          (value): value is string =>
-            typeof value === 'string' && value.length > 0,
-        )
-        .map((value) => new URL(value).origin);
+        cdnUrl ? new URL(cdnUrl).origin : undefined,
+        isSelfHostedDeployment() ? filesOrigin : undefined,
+      ];
       const response = await safeFetch(
         url,
         { signal: AbortSignal.timeout(60_000) },

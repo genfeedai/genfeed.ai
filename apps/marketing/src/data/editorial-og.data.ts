@@ -469,25 +469,25 @@ export const ARTICLE_OG_CARDS = {
   'measure-b2b-content-against-pipeline-playbook': 'card-0057',
 } as const;
 
-export function getEditorialArticleCard(slug: string, source?: string) {
-  if (
-    !source ||
-    !Object.hasOwn(ARTICLE_OG_CARDS, slug) ||
-    !URL.canParse(source)
-  )
-    return null;
+function parseEditorialArticleCard(slug: string, source?: string) {
+  if (!source || !Object.hasOwn(ARTICLE_OG_CARDS, slug)) return null;
+  const url = URL.parse(source);
+  if (!url) return null;
   const id = ARTICLE_OG_CARDS[slug as keyof typeof ARTICLE_OG_CARDS];
-  const url = new URL(source);
   return url.origin === 'https://cdn.genfeed.ai' &&
     (url.pathname === `/assets/cards/articles/${id}.webp` ||
       url.pathname === `/assets/cards/articles/${slug}.jpg`)
-    ? id
+    ? { id, url }
     : null;
 }
 
+export function getEditorialArticleCard(slug: string, source?: string) {
+  return parseEditorialArticleCard(slug, source)?.id ?? null;
+}
+
 export function getEditorialArticleCoverUrl(slug: string, source?: string) {
-  if (!source || !getEditorialArticleCard(slug, source)) return source;
-  const url = new URL(source);
-  url.searchParams.set('v', 'founder-20260930');
-  return url.toString();
+  const card = parseEditorialArticleCard(slug, source);
+  if (!card) return source;
+  card.url.searchParams.set('v', 'founder-20260930');
+  return card.url.toString();
 }
