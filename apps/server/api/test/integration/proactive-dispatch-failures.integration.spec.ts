@@ -349,7 +349,7 @@ function setup() {
     } as never,
     runner,
     { getOrganizationCreditsBalance: vi.fn().mockResolvedValue(1000) } as never,
-    { findOne: vi.fn().mockResolvedValue({}) } as never,
+    { findOneSelect: vi.fn().mockResolvedValue({}) } as never,
     {} as never,
     {} as never,
     logger as never,
