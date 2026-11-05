@@ -9,7 +9,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type {
   IMemberInvitation,
-  IPaginatedResponse,
+  IPagedItems,
   IQueryParams,
   IRole,
 } from '@genfeedai/contracts/interfaces';
@@ -19,7 +19,9 @@ import {
   getUpgradeTierForLimit,
 } from '@genfeedai/pricing';
 import { openModal } from '@helpers/ui/modal/modal.helper';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Member } from '@models/organization/member.model';
 import { Member as MemberModel } from '@models/organization/member.model';
@@ -27,7 +29,7 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { MembersService } from '@services/organization/members.service';
-import { RolesService } from '@services/organization/roles.service';
+import { useQueryClient } from '@tanstack/react-query';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import Container from '@ui/layout/container/Container';
@@ -40,12 +42,13 @@ import { Ban, Lock, RotateCw, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import { LazyModalMember } from '@/components/lazy/modal/LazyModal';
 import type { MemberBrandAccessProps } from '@/features/settings/props/members-list.props';
 import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
+import { useOrganizationRoles } from '@/hooks/data/organization/use-organization-roles/use-organization-roles';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import MemberDetails from './member-details';
 
@@ -83,6 +86,18 @@ function canRetryInvitation(invitation: IMemberInvitation): boolean {
   return invitation.status !== 'accepted' && invitation.status !== 'revoked';
 }
 
+const EMPTY_MEMBERS: Member[] = [];
+const EMPTY_INVITATIONS: IMemberInvitation[] = [];
+const EMPTY_ROLES: IRole[] = [];
+
+function organizationMembersQueryKey(organizationId: string | undefined) {
+  return ['organization-members', organizationId ?? null] as const;
+}
+
+function memberInvitationsQueryKey(organizationId: string | undefined) {
+  return ['organization-member-invitations', organizationId ?? null] as const;
+}
+
 const MEMBER_SORT_KEYS = [
   'userFullName',
   'roleLabel',
@@ -114,46 +129,93 @@ function MembersListContent() {
     useCallback((token: string) => MembersService.getInstance(token), []),
   );
 
-  const [roles, setRoles] = useState<IRole[]>([]);
-  const [isLoadingRoles, setIsLoadingRoles] = useState(false);
-  const [rolesError, setRolesError] = useState<string | null>(null);
-  const rolesRequest = useRef<AbortController | null>(null);
-  const getRolesService = useAuthedService((token: string) =>
-    RolesService.getInstance(token),
-  );
-  useEffect(() => () => rolesRequest.current?.abort(), []);
-  async function loadRoles() {
-    rolesRequest.current?.abort();
-    const abort = new AbortController();
-    rolesRequest.current = abort;
-    setIsLoadingRoles(true);
-    setRolesError(null);
-    try {
-      const service = await getRolesService();
-      const data = await service.findAll({}, abort.signal);
-      if (!abort.signal.aborted) setRoles(data);
-    } catch {
-      if (!abort.signal.aborted)
-        setRolesError(translate('inlineEdit.loadRolesFailed'));
-    } finally {
-      if (!abort.signal.aborted) setIsLoadingRoles(false);
+  const translate = useTranslations('common.settings.members');
+  const rowSidebarT = useTranslations('ui.rowSidebar');
+  const queryClient = useQueryClient();
+
+  // Roles are read once a member is opened for editing; the invite dialog
+  // shares the same cached list.
+  const [isRolesRequested, setIsRolesRequested] = useState(false);
+  const rolesQuery = useOrganizationRoles(isRolesRequested);
+  const roles = rolesQuery.data ?? EMPTY_ROLES;
+  const isLoadingRoles = isRolesRequested && rolesQuery.isPending;
+  const rolesError =
+    rolesQuery.error && !rolesQuery.data
+      ? translate('inlineEdit.loadRolesFailed')
+      : null;
+  function loadRoles() {
+    if (isRolesRequested) {
+      void rolesQuery.refetch();
+      return;
     }
+    setIsRolesRequested(true);
   }
 
-  const [membersPage, setMembersPage] =
-    useState<IPaginatedResponse<Member> | null>(null);
-  const members = membersPage?.items ?? [];
-  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
-  const membersRequest = useRef<AbortController | null>(null);
-  const [invitations, setInvitations] = useState<IMemberInvitation[] | null>(
-    null,
+  // Members and invitations read through React Query, so coming back to the
+  // page paints the cached rows at once and refreshes them in the background;
+  // another page, search or sort keeps the current rows while it loads.
+  const isMembersEnabled = Boolean(organizationId) && !isTeamSubscriptionLocked;
+  const membersScopeKey = organizationMembersQueryKey(organizationId);
+  const membersQuery = usePagedAuthedQuery<MembersService, Member>({
+    enabled: isMembersEnabled,
+    keepPreviousDataWithin: membersScopeKey,
+    queryFn: (service, signal) => {
+      const query: IQueryParams = {
+        limit: ITEMS_PER_PAGE,
+        organization: organizationId,
+        page: currentPage,
+        ...(search ? { search } : {}),
+        ...(sort ? { sort } : {}),
+      };
+      return service.findAllPage(query, signal);
+    },
+    queryKey: [
+      ...membersScopeKey,
+      { page: currentPage, search, sort: sort ?? null },
+    ],
+    service: (token: string) => MembersService.getInstance(token),
+  });
+  const membersPage = isMembersEnabled ? membersQuery.data : undefined;
+  const members = membersPage?.items ?? EMPTY_MEMBERS;
+  const isLoadingMembers = isMembersEnabled && membersQuery.isPending;
+
+  const isInvitationsEnabled = isMembersEnabled && canManageInvitations;
+  const invitationsQuery = useAuthedQuery<MembersService, IMemberInvitation[]>({
+    enabled: isInvitationsEnabled,
+    queryFn: (service) => service.listInvitations(),
+    queryKey: memberInvitationsQueryKey(organizationId),
+    service: (token: string) => MembersService.getInstance(token),
+  });
+  const invitations = isInvitationsEnabled
+    ? (invitationsQuery.data ??
+      (invitationsQuery.error ? EMPTY_INVITATIONS : null))
+    : EMPTY_INVITATIONS;
+
+  const membersError = membersQuery.error ?? invitationsQuery.error;
+  useEffect(() => {
+    if (!membersError) {
+      return;
+    }
+    logger.error('GET /members failed', membersError);
+    NotificationsService.getInstance().error('Failed to load members');
+  }, [membersError]);
+
+  const refreshMembers = useCallback(
+    () =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: organizationMembersQueryKey(organizationId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: memberInvitationsQueryKey(organizationId),
+        }),
+      ]),
+    [organizationId, queryClient],
   );
+
   const [updatingInvitationIds, setUpdatingInvitationIds] = useState<
     Set<string>
   >(new Set());
-
-  const translate = useTranslations('common.settings.members');
-  const rowSidebarT = useTranslations('ui.rowSidebar');
 
   const columns: TableColumn<Member>[] = [
     {
@@ -230,21 +292,21 @@ function MembersListContent() {
         roles={roles}
         isLoadingRoles={isLoadingRoles}
         rolesError={rolesError}
-        onLoadRoles={() => {
-          void loadRoles();
-        }}
+        onLoadRoles={loadRoles}
         onUpdated={(updated) => {
-          setMembersPage((current) =>
-            current
-              ? {
-                  ...current,
-                  items: current.items.map((item) =>
-                    item.id === updated.id
-                      ? new MemberModel({ ...item, ...updated })
-                      : item,
-                  ),
-                }
-              : current,
+          queryClient.setQueriesData<IPagedItems<Member>>(
+            { queryKey: organizationMembersQueryKey(organizationId) },
+            (current) =>
+              current
+                ? {
+                    ...current,
+                    items: current.items.map((item) =>
+                      item.id === updated.id
+                        ? new MemberModel({ ...item, ...updated })
+                        : item,
+                    ),
+                  }
+                : current,
           );
         }}
       />
@@ -283,58 +345,6 @@ function MembersListContent() {
     },
   ];
 
-  const findAllMembers = useCallback(async () => {
-    membersRequest.current?.abort();
-    const request = new AbortController();
-    membersRequest.current = request;
-    if (!organizationId || isTeamSubscriptionLocked) {
-      setMembersPage(null);
-      setIsLoadingMembers(false);
-      setInvitations([]);
-      return;
-    }
-
-    setMembersPage(null);
-    setIsLoadingMembers(true);
-    if (canManageInvitations) setInvitations(null);
-
-    try {
-      const service = await getMembersService();
-      const query: IQueryParams = {
-        limit: ITEMS_PER_PAGE,
-        organization: organizationId,
-        page: currentPage,
-        ...(search ? { search } : {}),
-        ...(sort ? { sort } : {}),
-      };
-      const [memberData, invitationData] = await Promise.all([
-        service.findAllPage(query, request.signal),
-        canManageInvitations ? service.listInvitations() : Promise.resolve([]),
-      ]);
-      if (request.signal.aborted) return;
-      setMembersPage(memberData);
-      setInvitations(invitationData);
-      logger.info('GET /members success', { count: memberData.items.length });
-    } catch (error) {
-      if (request.signal.aborted) return;
-      logger.error('GET /members failed', error);
-      notificationsService.error('Failed to load members');
-      setMembersPage(null);
-      setInvitations([]);
-    } finally {
-      if (!request.signal.aborted) setIsLoadingMembers(false);
-    }
-  }, [
-    canManageInvitations,
-    currentPage,
-    getMembersService,
-    isTeamSubscriptionLocked,
-    notificationsService,
-    organizationId,
-    search,
-    sort,
-  ]);
-
   const updateInvitation = useCallback(
     async (invitation: IMemberInvitation, action: 'resend' | 'revoke') => {
       const invitationId = invitation.id;
@@ -353,7 +363,7 @@ function MembersListContent() {
           await service.revokeInvitation(invitationId);
           notificationsService.success('Invitation revoked');
         }
-        await findAllMembers();
+        await refreshMembers();
       } catch (error) {
         logger.error(`Invitation ${action} failed`, error);
         notificationsService.error(
@@ -369,7 +379,7 @@ function MembersListContent() {
         });
       }
     },
-    [findAllMembers, getMembersService, notificationsService],
+    [getMembersService, notificationsService, refreshMembers],
   );
 
   const invitationActions = [
@@ -395,11 +405,6 @@ function MembersListContent() {
       tooltip: 'Revoke invitation',
     },
   ];
-
-  useEffect(() => {
-    void findAllMembers();
-    return () => membersRequest.current?.abort();
-  }, [findAllMembers]);
 
   const upgradeTierLabel = formatTierLabel(upgradeTier, 'a paid plan');
 
@@ -445,7 +450,7 @@ function MembersListContent() {
       ) : (
         <>
           <AppTable<Member>
-            items={members ?? []}
+            items={members}
             columns={columns}
             actions={[]}
             isLoading={isLoadingMembers}
@@ -473,20 +478,15 @@ function MembersListContent() {
             <AutoPagination
               showTotal
               totalLabel="members"
-              totals={
-                membersPage
-                  ? {
-                      totalDocs: membersPage.total,
-                      totalPages: membersPage.totalPages,
-                    }
-                  : EMPTY_PAGE_TOTALS
-              }
+              totals={membersPage?.totals ?? EMPTY_PAGE_TOTALS}
             />
           </div>
 
           <LazyModalMember
             organizationId={organizationId ?? ''}
-            onConfirm={findAllMembers}
+            onConfirm={() => {
+              void refreshMembers();
+            }}
           />
         </>
       )}

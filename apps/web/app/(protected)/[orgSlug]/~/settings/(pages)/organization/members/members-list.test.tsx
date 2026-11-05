@@ -1,8 +1,13 @@
 import { paginatedResponse } from '@app-tests/paginated-response';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { IPageTotals } from '@genfeedai/contracts/interfaces';
 import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import '@testing-library/jest-dom/vitest';
 import { MemberRole } from '@genfeedai/contracts';
+import type { QueryClient } from '@tanstack/react-query';
 import {
   fireEvent,
   render,
@@ -48,6 +53,11 @@ vi.mock('@helpers/ui/modal/modal.helper', () => ({
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getMembersService,
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@/hooks/auth/use-user-role/use-user-role', () => ({
@@ -171,6 +181,8 @@ vi.mock('next/navigation', () => ({
 }));
 
 interface RenderOptions {
+  client?: QueryClient;
+  organizationId?: string;
   totals?: IPageTotals;
   invitations?: Array<Record<string, unknown>>;
   members?: Array<Record<string, unknown>>;
@@ -183,6 +195,8 @@ interface RenderOptions {
 }
 
 function renderMembers({
+  client = createTestQueryClient(),
+  organizationId = 'org-123',
   invitations = [],
   members,
   page = null,
@@ -194,7 +208,7 @@ function renderMembers({
   totals,
 }: RenderOptions) {
   mocks.useBrand.mockReturnValue({
-    organizationId: 'org-123',
+    organizationId,
     settings: { subscriptionTier: tier },
   });
   mocks.useSearchParams.mockReturnValue({
@@ -225,7 +239,7 @@ function renderMembers({
   mocks.listInvitations.mockResolvedValue(invitations);
   mocks.useUserRole.mockReturnValue(role);
 
-  return render(<MembersList />);
+  return render(<MembersList />, { wrapper: queryClientWrapper(client) });
 }
 
 function inviteButton(): HTMLElement {
@@ -497,5 +511,47 @@ describe('MembersList seat limit', () => {
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
     ).toHaveTextContent('61 members / 5 pages');
+  });
+
+  it('paints the cached members and invitations at once when coming back', async () => {
+    const client = createTestQueryClient();
+    const invitations = [
+      { email: 'invite@example.test', id: 'invite-1', status: 'pending' },
+    ];
+    const firstVisit = renderMembers({
+      client,
+      invitations,
+      pageCount: 1,
+      tier: 'scale',
+    });
+    expect(await screen.findByText('User 0')).toBeVisible();
+    expect(await screen.findByText('invite@example.test')).toBeVisible();
+    firstVisit.unmount();
+
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    mocks.listInvitations.mockReturnValue(new Promise(() => {}));
+    render(<MembersList />, { wrapper: queryClientWrapper(client) });
+
+    expect(screen.getByText('User 0')).toBeVisible();
+    expect(screen.getByText('invite@example.test')).toBeVisible();
+    expect(screen.queryByText('Loading members')).not.toBeInTheDocument();
+    expect(screen.queryByText('Loading Invitations')).not.toBeInTheDocument();
+  });
+
+  it('never shows one organization’s members under another', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderMembers({ client, pageCount: 1, tier: 'scale' });
+    expect(await screen.findByText('User 0')).toBeVisible();
+    firstVisit.unmount();
+
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    mocks.useBrand.mockReturnValue({
+      organizationId: 'org-456',
+      settings: { subscriptionTier: 'scale' },
+    });
+    render(<MembersList />, { wrapper: queryClientWrapper(client) });
+
+    expect(screen.getByText('Loading members')).toBeVisible();
+    expect(screen.queryByText('User 0')).not.toBeInTheDocument();
   });
 });
