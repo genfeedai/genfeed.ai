@@ -150,6 +150,21 @@ describe('calendar loading boundary', () => {
     expect(notifyError).not.toHaveBeenCalled();
   });
 
+  it('shows releases the agent added once the calendar reloads', async () => {
+    const { result } = renderHook(() => useContentCalendarData(OPTIONS), {
+      wrapper: queryClientWrapper(),
+    });
+    await waitFor(() => expect(result.current.releases).toEqual([RELEASE]));
+
+    const added = { id: 'release-2', title: 'Agent draft' } as IReleaseGroup;
+    services.findAllPages.mockResolvedValue([RELEASE, added]);
+    act(() => result.current.reload());
+
+    await waitFor(() =>
+      expect(result.current.releases).toEqual([RELEASE, added]),
+    );
+  });
+
   it('paints the cached schedule at once when the calendar is opened again', async () => {
     const client = createTestQueryClient();
     const first = renderHook(() => useContentCalendarData(OPTIONS), {
