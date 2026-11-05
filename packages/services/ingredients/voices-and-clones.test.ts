@@ -135,11 +135,11 @@ describe('VoicesService', () => {
       http.post.mockResolvedValue(axiosResponse({ data: sync }));
 
       const result = await service.importCatalogVoices([
-        'elevenlabs',
-      ] as Parameters<VoicesService['importCatalogVoices']>[0]);
+        VoiceProvider.ELEVENLABS,
+      ]);
 
       expect(http.post).toHaveBeenCalledWith('/import', {
-        providers: ['elevenlabs'],
+        providers: [VoiceProvider.ELEVENLABS],
       });
       expect(result).toEqual(sync);
     });

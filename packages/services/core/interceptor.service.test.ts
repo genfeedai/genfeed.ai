@@ -21,7 +21,9 @@ import {
 } from '@services/core/interceptor.service';
 import axios, {
   type AxiosError,
+  type AxiosInstance,
   type AxiosRequestConfig,
+  type CustomParamsSerializer,
   type InternalAxiosRequestConfig,
 } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -31,10 +33,17 @@ vi.mock('axios');
 vi.mock('./environment.service', () => ({
   EnvironmentService: {
     apiEndpoint: 'https://api.test.com',
-    isDevelopment: vi.fn(() => true),
-    isProduction: vi.fn(() => false),
+    isProduction: true,
   },
 }));
+
+function setProduction(isProduction: boolean): void {
+  Object.defineProperty(EnvironmentService, 'isProduction', {
+    configurable: true,
+    value: isProduction,
+    writable: true,
+  });
+}
 vi.mock('@genfeedai/helpers/ui/modal/modal.helper');
 vi.mock('@services/core/error-debug-store', () => ({
   clearErrorDebugInfo: vi.fn(),
@@ -51,16 +60,35 @@ class TestHTTPService extends HTTPBaseService {
 }
 class OtherTestHTTPService extends HTTPBaseService {}
 
+/** The protected and private state the interceptor tests observe. */
+type HTTPServiceInternals = {
+  abortController: AbortController | null;
+  baseURL: string;
+  handleRequest: (
+    request: InternalAxiosRequestConfig,
+  ) => InternalAxiosRequestConfig;
+  instance: AxiosInstance;
+  token: string;
+};
+
+function internals(target: HTTPBaseService): HTTPServiceInternals {
+  return target as unknown as HTTPServiceInternals;
+}
+
 function runRequestInterceptor(
   target: HTTPBaseService,
   config: InternalAxiosRequestConfig,
 ): InternalAxiosRequestConfig {
-  const { handleRequest } = target as unknown as {
-    handleRequest: (
-      request: InternalAxiosRequestConfig,
-    ) => InternalAxiosRequestConfig;
-  };
-  return handleRequest(config);
+  return internals(target).handleRequest(config);
+}
+
+function createdParamsSerializer(): CustomParamsSerializer {
+  const serializer = vi.mocked(axios.create).mock.calls[0]?.[0]
+    ?.paramsSerializer;
+  if (typeof serializer !== 'function') {
+    throw new Error('axios.create received no params serializer function');
+  }
+  return serializer;
 }
 class MultiArgHTTPService extends HTTPBaseService {
   public readonly organizationId: string;
@@ -94,6 +122,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    setProduction(true);
   });
 
   it('sends the renderer entry header alongside existing authorization', () => {
@@ -110,8 +139,8 @@ describe('HTTPBaseService (InterceptorService)', () => {
 
   describe('constructor', () => {
     it('initializes with correct baseURL and token', () => {
-      expect(service.baseURL).toBe(mockBaseURL);
-      expect(service.token).toBe(mockToken);
+      expect(internals(service).baseURL).toBe(mockBaseURL);
+      expect(internals(service).token).toBe(mockToken);
     });
 
     it('creates axios instance with correct config', () => {
@@ -127,10 +156,11 @@ describe('HTTPBaseService (InterceptorService)', () => {
     });
 
     it('serializes array params as repeated query keys', () => {
-      const axiosConfig = vi.mocked(axios.create).mock.calls[0]?.[0];
-      const paramsSerializer = axiosConfig?.paramsSerializer;
       const params = new URLSearchParams(
-        paramsSerializer?.({ page: 2, status: ['generated', 'processing'] }),
+        createdParamsSerializer()({
+          page: 2,
+          status: ['generated', 'processing'],
+        }),
       );
 
       expect(params.getAll('status')).toEqual(['generated', 'processing']);
@@ -138,14 +168,11 @@ describe('HTTPBaseService (InterceptorService)', () => {
     });
 
     it('omits empty arrays while keeping scalar params unchanged', () => {
-      const axiosConfig = vi.mocked(axios.create).mock.calls[0]?.[0];
-      const paramsSerializer = axiosConfig?.paramsSerializer;
-
-      expect(paramsSerializer?.({ page: 2, status: [] })).toBe('page=2');
+      expect(createdParamsSerializer()({ page: 2, status: [] })).toBe('page=2');
     });
 
     it('initializes request and response interceptors', () => {
-      const mockInstance = service.instance;
+      const mockInstance = internals(service).instance;
       expect(mockInstance.interceptors.request.use).toHaveBeenCalled();
       expect(mockInstance.interceptors.response.use).toHaveBeenCalled();
     });
@@ -160,7 +187,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
       );
 
       expect(instance).toBeInstanceOf(TestHTTPService);
-      expect(instance.baseURL).toBe(mockBaseURL);
+      expect(internals(instance).baseURL).toBe(mockBaseURL);
     });
 
     it('reuses the same instance for the same subclass and token', () => {
@@ -208,8 +235,8 @@ describe('HTTPBaseService (InterceptorService)', () => {
       );
 
       expect(first).not.toBe(second);
-      expect(first.token).toBe('token-a');
-      expect(second.token).toBe('token-b');
+      expect(internals(first).token).toBe('token-a');
+      expect(internals(second).token).toBe('token-b');
     });
 
     it('creates distinct instances when a multi-arg service switches organizations under the same token', () => {
@@ -225,8 +252,12 @@ describe('HTTPBaseService (InterceptorService)', () => {
       );
 
       expect(first).not.toBe(second);
-      expect(first.baseURL).toBe('https://api.test.com/organizations/org-1');
-      expect(second.baseURL).toBe('https://api.test.com/organizations/org-2');
+      expect(internals(first).baseURL).toBe(
+        'https://api.test.com/organizations/org-1',
+      );
+      expect(internals(second).baseURL).toBe(
+        'https://api.test.com/organizations/org-2',
+      );
     });
   });
 
@@ -290,25 +321,24 @@ describe('HTTPBaseService (InterceptorService)', () => {
     it('updates the token', () => {
       const newToken = 'new-token-456';
       service.setToken(newToken);
-      expect(service.token).toBe(newToken);
+      expect(internals(service).token).toBe(newToken);
     });
   });
 
   describe('cancelPendingRequests', () => {
     it('cancels pending requests when controller exists', () => {
-      const mockAbort = vi.fn();
-      service.abortController = {
-        abort: mockAbort,
-      } as AbortController;
+      const controller = new AbortController();
+      internals(service).abortController = controller;
 
       service.cancelPendingRequests();
 
-      expect(mockAbort).toHaveBeenCalledWith('Request cancelled');
-      expect(service.abortController).toBeNull();
+      expect(controller.signal.aborted).toBe(true);
+      expect(controller.signal.reason).toBe('Request cancelled');
+      expect(internals(service).abortController).toBeNull();
     });
 
     it('does nothing when no controller exists', () => {
-      service.abortController = null;
+      internals(service).abortController = null;
       expect(() => service.cancelPendingRequests()).not.toThrow();
     });
   });
@@ -319,7 +349,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
         headers: {},
       } as InternalAxiosRequestConfig;
 
-      const result = service.handleRequest(config);
+      const result = internals(service).handleRequest(config);
 
       expect(result.headers.Authorization).toBe(`Bearer ${mockToken}`);
     });
@@ -330,7 +360,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
       } as InternalAxiosRequestConfig;
       setRequestOrganizationId('org-confirmed');
 
-      const result = service.handleRequest(config);
+      const result = internals(service).handleRequest(config);
 
       expect(result.headers['x-genfeed-organization-id']).toBe('org-confirmed');
     });
@@ -341,7 +371,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
       } as InternalAxiosRequestConfig;
       clearRequestOrganizationId();
 
-      const result = service.handleRequest(config);
+      const result = internals(service).handleRequest(config);
 
       expect(result.headers['x-genfeed-organization-id']).toBeUndefined();
     });
@@ -378,10 +408,10 @@ describe('HTTPBaseService (InterceptorService)', () => {
         headers: {},
       } as InternalAxiosRequestConfig;
 
-      service.abortController = null;
-      service.handleRequest(config);
+      internals(service).abortController = null;
+      internals(service).handleRequest(config);
 
-      expect(service.abortController).not.toBeNull();
+      expect(internals(service).abortController).not.toBeNull();
     });
 
     it('adds abort signal to config', () => {
@@ -389,7 +419,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
         headers: {},
       } as InternalAxiosRequestConfig;
 
-      const result = service.handleRequest(config);
+      const result = internals(service).handleRequest(config);
 
       expect(result.signal).toBeDefined();
     });
@@ -506,8 +536,6 @@ describe('HTTPBaseService (InterceptorService)', () => {
     });
 
     it('sanitizes errors in production', async () => {
-      vi.mocked(EnvironmentService.isProduction).mockReturnValue(true);
-
       const error: Partial<AxiosError> = {
         config: {} as InternalAxiosRequestConfig,
         isAxiosError: true,
@@ -536,8 +564,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
     });
 
     it('preserves full error details in development', async () => {
-      vi.mocked(EnvironmentService.isProduction).mockReturnValue(false);
-      vi.mocked(EnvironmentService.isDevelopment).mockReturnValue(true);
+      setProduction(false);
 
       const errorData = { detail: 'Detailed error message' };
       const error: Partial<AxiosError> = {
@@ -555,18 +582,12 @@ describe('HTTPBaseService (InterceptorService)', () => {
         toJSON: () => ({}),
       };
 
-      // In development, the error is still sanitized but includes status info
-      await expect(
-        service.handleError(error as AxiosError),
-      ).rejects.toMatchObject({
-        status: 400,
-        statusText: 'Bad Request',
-      });
+      await expect(service.handleError(error as AxiosError)).rejects.toEqual(
+        errorData,
+      );
     });
 
     it('handles JSON API error format in production', async () => {
-      vi.mocked(EnvironmentService.isProduction).mockReturnValue(true);
-
       const jsonApiError = {
         errors: [
           {

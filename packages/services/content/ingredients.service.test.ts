@@ -574,10 +574,13 @@ describe('IngredientsService', () => {
         axiosResponse(resourceDocument({ deletedCount: 2 }, { id: 'bulk_1' })),
       );
 
-      const result = await service.bulkDelete({ ids: ['a', 'b'] });
+      const result = await service.bulkDelete({
+        ids: ['a', 'b'],
+        type: 'ingredients-delete',
+      });
 
       expect(http.delete).toHaveBeenCalledWith('', {
-        data: { ids: ['a', 'b'] },
+        data: { ids: ['a', 'b'], type: 'ingredients-delete' },
       });
       expect(result).toMatchObject({ deletedCount: 2 });
     });

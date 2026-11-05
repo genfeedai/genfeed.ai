@@ -72,10 +72,6 @@ vi.mock('@services/core/base.service', () => {
       };
     }
 
-    static getInstance(this: unknown, token: string) {
-      return new (MockBaseService as new (token: string) => unknown)(token);
-    }
-
     static getDataServiceInstance<T>(
       ServiceClass: new (...args: unknown[]) => T,
       ...args: unknown[]

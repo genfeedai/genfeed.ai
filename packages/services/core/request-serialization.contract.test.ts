@@ -200,7 +200,7 @@ describe('canonical request wire bodies', () => {
         description: null,
         width: 1280,
         model: 'model-1',
-      } as Parameters<IngredientsService['patchMetadata']>[1]),
+      } as unknown as Parameters<IngredientsService['patchMetadata']>[1]),
     );
     await capture('IngredientBulkDeleteSerializer: delete', ingredients, () =>
       ingredients.bulkDelete({
