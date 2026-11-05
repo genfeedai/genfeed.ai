@@ -5,7 +5,7 @@ import {
   formatCompactNumberIntl,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
-import { EmptyState } from '@ui/primitives/empty-state';
+import { ChartEmptyState } from '@ui/primitives/chart-empty-state';
 import LoadingOverlay from '@ui/primitives/loading-overlay';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
 import dynamic from 'next/dynamic';
@@ -60,6 +60,7 @@ export function PlatformTimeSeriesChart({
   isLoading = false,
   height = 300,
   className = '',
+  emptyAction,
 }: PlatformTimeSeriesChartProps) {
   const selectionLabels = useTranslations('ui.selectionGroups');
   const [selectionOverride, setSelectionOverride] =
@@ -142,8 +143,14 @@ export function PlatformTimeSeriesChart({
         {isLoading && <LoadingOverlay tone="veil" />}
 
         {isEmpty && !isLoading ? (
-          <EmptyState
-            isFill
+          <ChartEmptyState
+            action={emptyAction}
+            description={
+              hasConnectedPlatforms
+                ? 'Daily views per platform appear here after connected accounts publish and metrics sync back.'
+                : 'Connect a social account to see how each platform trends over time.'
+            }
+            shape="area"
             title={
               hasConnectedPlatforms
                 ? 'No performance trends yet'

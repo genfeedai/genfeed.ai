@@ -2,7 +2,7 @@
 import { formatFullNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import Card from '@ui/card/Card';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
-import { EmptyState } from '@ui/primitives/empty-state';
+import { ChartEmptyState } from '@ui/primitives/chart-empty-state';
 import LoadingOverlay from '@ui/primitives/loading-overlay';
 import dynamic from 'next/dynamic';
 import type { PieLabelRenderProps } from 'recharts';
@@ -44,6 +44,7 @@ export function PlatformBreakdownChart({
   isLoading = false,
   height = 300,
   className = '',
+  emptyAction,
 }: PlatformBreakdownChartProps) {
   const chartData = data ?? [];
   // Zero-value platforms are noise — empty when nothing has signal.
@@ -61,7 +62,12 @@ export function PlatformBreakdownChart({
           {isLoading && <LoadingOverlay tone="veil" />}
 
           {isEmpty && !isLoading ? (
-            <EmptyState isFill title="No platform distribution yet" />
+            <ChartEmptyState
+              action={emptyAction}
+              description="Views split by platform once a connected account reports them for this date range."
+              shape="donut"
+              title="No platform distribution yet"
+            />
           ) : null}
 
           {!isEmpty ? (

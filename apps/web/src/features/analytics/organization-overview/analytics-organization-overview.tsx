@@ -13,6 +13,7 @@ import {
   isCollectionFetchReady,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
   BrandPerformanceData,
   IBrandWithStats,
@@ -26,7 +27,7 @@ import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import Table from '@ui/display/table/Table';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
-import { EmptyState } from '@ui/primitives/empty-state';
+import { EmptyState, type EmptyStateAction } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Building2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -149,6 +150,8 @@ export default function AnalyticsOrganizationOverview({
   organizationId: organizationIdProp,
 }: AnalyticsOrganizationOverviewProps) {
   const { isSignedIn } = useAuthIdentity();
+  const router = useRouter();
+  const { orgHref } = useOrgUrl();
   const scope = useCollectionScope();
   const organizationId = organizationIdProp ?? scope.organizationId;
   // The brand context resolves the org id asynchronously. Fetching before it
@@ -238,12 +241,25 @@ export default function AnalyticsOrganizationOverview({
   const loadingPlatform =
     platformQuery.data === undefined && !platformQuery.isError;
 
+  // Accounts are connected per brand from the brands settings page. A platform
+  // admin viewing another organization gets no action: the link would open
+  // their own organization's settings.
+  const connectAccountsAction: EmptyStateAction | undefined = organizationIdProp
+    ? undefined
+    : {
+        label: 'Connect accounts',
+        onClick: () => router.push(orgHref(APP_ROUTES.SETTINGS.BRANDS)),
+      };
+
   const brandChartData: BrandPerformanceData[] = brandsData.map((brand) => ({
     engagement: brand.totalEngagement,
     name: brand.name,
     posts: brand.totalPosts,
     views: brand.totalViews,
   }));
+  // Published posts with no views means metrics have not synced yet, so
+  // pointing at account setup would send people to the wrong fix.
+  const hasPublishedPosts = brandChartData.some((brand) => brand.posts > 0);
 
   function getGrowthClass(growth: number): string {
     if (growth > 0) {
@@ -263,11 +279,13 @@ export default function AnalyticsOrganizationOverview({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <BrandPerformanceChart
           data={brandChartData}
+          emptyAction={connectAccountsAction}
           isLoading={loadingBrands}
           height={300}
         />
         <PlatformBreakdownChart
           data={platformData}
+          emptyAction={hasPublishedPosts ? undefined : connectAccountsAction}
           metric={AnalyticsMetric.VIEWS}
           isLoading={loadingPlatform}
           height={300}

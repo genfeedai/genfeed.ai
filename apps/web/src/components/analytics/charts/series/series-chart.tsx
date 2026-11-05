@@ -2,6 +2,7 @@
 
 import { formatChartDate } from '@genfeedai/helpers/formatting/format/format.helper';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
+import { ChartEmptyState } from '@ui/primitives/chart-empty-state';
 import Spinner from '@ui/primitives/spinner';
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
@@ -83,11 +84,11 @@ export function SeriesChart({
 
   if (!hasSignal) {
     return (
-      <div
-        className="flex items-center justify-center text-sm text-muted-foreground"
-        style={{ height }}
-      >
-        {emptyLabel}
+      <div className="relative" style={{ height }}>
+        <ChartEmptyState
+          shape={variant === 'stackedBar' ? 'bars' : 'area'}
+          title={emptyLabel}
+        />
       </div>
     );
   }

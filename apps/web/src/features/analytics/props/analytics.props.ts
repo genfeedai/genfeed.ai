@@ -2,6 +2,7 @@ import type { AnalyticsMetric } from '@genfeedai/contracts';
 import type { IEngagementBreakdown } from '@genfeedai/contracts/interfaces';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { PlatformBreakdownData } from '@genfeedai/services/analytics/analytics.service';
+import type { EmptyStateAction } from '@ui/primitives/empty-state';
 
 export interface AnalyticsTool {
   id: string;
@@ -55,6 +56,8 @@ export interface PlatformComparisonChartProps {
   isLoading?: boolean;
   height?: number;
   className?: string;
+  /** Next step shown when no platform has data in the range. */
+  emptyAction?: EmptyStateAction;
 }
 
 export interface AnalyticsTopAccountsProps {
@@ -83,4 +86,6 @@ export interface PlatformBreakdownChartProps {
   isLoading?: boolean;
   height?: number;
   className?: string;
+  /** Next step shown when no platform has reported views in the range. */
+  emptyAction?: EmptyStateAction;
 }

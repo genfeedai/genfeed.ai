@@ -24,6 +24,7 @@ import TableDateCell from '@ui/display/table/TableDateCell';
 import Container from '@ui/layout/container/Container';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
+import { ChartEmptyState } from '@ui/primitives/chart-empty-state';
 import { Text } from '@ui/typography/text';
 import { Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -370,7 +371,12 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
                   ) : !summary ||
                     (summary.total.generationCount === 0 &&
                       summary.total.creditsUsed === 0) ? (
-                    <Text color="muted">{translate('tables.emptyLabel')}</Text>
+                    <div className="relative h-60">
+                      <ChartEmptyState
+                        shape={metric === 'creditsUsed' ? 'area' : 'bars'}
+                        title={translate('tables.emptyLabel')}
+                      />
+                    </div>
                   ) : (
                     <ChartContainer
                       className="rounded-none border-0 bg-transparent p-0 shadow-none"

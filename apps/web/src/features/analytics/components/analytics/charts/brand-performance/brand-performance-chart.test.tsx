@@ -200,6 +200,43 @@ describe('BrandPerformanceChart', () => {
         screen.queryByText('No brand performance yet'),
       ).not.toBeInTheDocument();
     });
+
+    it('offers the next step when no brand has activity', () => {
+      const onClick = vi.fn();
+      render(
+        <BrandPerformanceChart
+          data={[]}
+          emptyAction={{ label: 'Connect accounts', onClick }}
+        />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Connect accounts' }));
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Posts published, metrics not synced', () => {
+    const postsOnlyData = [
+      { engagement: 0, name: 'Brand A', posts: 4, views: 0 },
+      { engagement: 0, name: 'Brand B', posts: 2, views: 0 },
+    ];
+
+    it('explains the missing engagement instead of drawing empty bars', () => {
+      render(<BrandPerformanceChart data={postsOnlyData} />);
+      expect(
+        screen.getByRole('heading', { name: 'No engagement yet' }),
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId('bar-chart')).not.toBeInTheDocument();
+    });
+
+    it('switches to the posts ranking from the empty state', () => {
+      render(<BrandPerformanceChart data={postsOnlyData} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Show posts' }));
+      expect(screen.getByRole('radio', { name: 'Posts' })).toHaveAttribute(
+        'aria-checked',
+        'true',
+      );
+      expect(screen.getByTestId('bar')).toHaveAttribute('data-key', 'posts');
+    });
   });
 
   describe('Metric Toggle Buttons', () => {
