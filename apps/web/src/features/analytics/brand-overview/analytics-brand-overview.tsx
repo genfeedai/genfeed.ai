@@ -4,13 +4,13 @@ import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { PageScope, PostStatus } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IAnalytics } from '@genfeedai/contracts/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import type { Post } from '@models/content/post.model';
 import { logger } from '@services/core/logger.service';
 import { BrandsService } from '@services/social/brands.service';
 import Container from '@ui/layout/container/Container';
 import { ChartColumn } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { PlatformComparisonData } from '@/features/analytics/props/analytics.props';
 import PostDetailPanel from '@/features/posts/detail/PostDetailPanel';
 import type { PlatformTimeSeriesDataPoint } from '@/props/analytics/charts.props';
@@ -26,6 +26,18 @@ type PostWithAnalytics = Post & {
   engagementRate?: number;
 };
 
+const EMPTY_POSTS: Post[] = [];
+const EMPTY_PLATFORMS: string[] = [];
+const EMPTY_SERIES: unknown[] = [];
+
+function createBrandsService(token: string): BrandsService {
+  return BrandsService.getInstance(token);
+}
+
+function toIsoDay(date: Date): string {
+  return date.toISOString().split('T')[0] ?? '';
+}
+
 export interface AnalyticsBrandOverviewProps {
   basePath?: string;
   brandId: string;
@@ -35,121 +47,111 @@ export default function AnalyticsBrandOverview({
   basePath = '/analytics',
   brandId,
 }: AnalyticsBrandOverviewProps) {
-  const { dateRange } = useAnalyticsContext();
-
-  const getBrandsService = useAuthedService((token: string) =>
-    BrandsService.getInstance(token),
-  );
-
-  const [analytics, setAnalytics] = useState<IAnalytics | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [timeSeriesData, setTimeSeriesData] = useState<
-    PlatformTimeSeriesDataPoint[]
-  >([]);
-  const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
-  // Each section starts loading: starting at false paints a zero for one frame
-  // before the fetch effect flips it, then a skeleton, then the data.
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingPosts, setIsLoadingPosts] = useState(true);
-  const [isLoadingTimeSeries, setIsLoadingTimeSeries] = useState(true);
-  const [brandName, setBrandName] = useState('');
+  const { dateRange, refreshTrigger } = useAnalyticsContext();
+  const startDay = dateRange.startDate ? toIsoDay(dateRange.startDate) : null;
+  const endDay = dateRange.endDate ? toIsoDay(dateRange.endDate) : null;
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      setIsLoading(true);
+  // Every section is cached per viewer and brand: coming back to a brand
+  // paints what it showed last at once, and the analytics Refresh re-reads
+  // each section in the background without bringing the skeletons back.
+  const analyticsQuery = useAuthedQuery<BrandsService, IAnalytics>({
+    queryFn: async (service) => {
       try {
-        const service = await getBrandsService();
-        const data = await service.findBrandAnalytics(brandId);
-        setAnalytics(data);
-        logger.info('Brand analytics fetched', { brandId, data });
-
-        const brand = await service.findOne(brandId);
-        setBrandName(brand.label);
+        return await service.findBrandAnalytics(brandId);
       } catch (error) {
         logger.error('Failed to fetch brand analytics', error);
-        setAnalytics(null);
-        setBrandName('');
-      } finally {
-        setIsLoading(false);
+        throw error;
       }
-    };
+    },
+    queryKey: ['analytics', 'brand-overview', brandId],
+    refreshKey: refreshTrigger,
+    service: createBrandsService,
+  });
 
-    fetchAnalytics();
-  }, [brandId, getBrandsService]);
-
-  useEffect(() => {
-    const fetchPosts = async () => {
-      setIsLoadingPosts(true);
+  const brandQuery = useAuthedQuery<BrandsService, string>({
+    queryFn: async (service) => {
       try {
-        const service = await getBrandsService();
-        const postsData = await service.findBrandPosts(brandId, {
+        return (await service.findOne(brandId)).label;
+      } catch (error) {
+        logger.error('Failed to fetch brand for analytics', error);
+        throw error;
+      }
+    },
+    queryKey: ['analytics', 'brand-overview-label', brandId],
+    service: createBrandsService,
+  });
+
+  const postsQuery = useAuthedQuery<BrandsService, Post[]>({
+    queryFn: async (service) => {
+      try {
+        return await service.findBrandPosts(brandId, {
           limit: ITEMS_PER_PAGE,
           page: 1,
           sort: '-createdAt',
         });
-        setPosts(postsData);
       } catch (error) {
         logger.error('Failed to fetch brand posts', error);
-        setPosts([]);
-      } finally {
-        setIsLoadingPosts(false);
+        throw error;
       }
-    };
+    },
+    queryKey: ['analytics', 'brand-overview-posts', brandId, ITEMS_PER_PAGE],
+    refreshKey: refreshTrigger,
+    service: createBrandsService,
+  });
 
-    fetchPosts();
-  }, [brandId, getBrandsService]);
-
-  useEffect(() => {
-    const fetchCredentials = async () => {
+  const platformsQuery = useAuthedQuery<BrandsService, string[]>({
+    queryFn: async (service) => {
       try {
-        const service = await getBrandsService();
         const credentials = await service.findBrandCredentials(brandId);
-        const connected = credentials
+        return credentials
           .filter((cred) => cred.isConnected)
           .flatMap((cred) =>
             cred.platform?.toLowerCase() ? [cred.platform.toLowerCase()] : [],
           );
-        setConnectedPlatforms(connected);
       } catch (error) {
         logger.error('Failed to fetch brand credentials', error);
-        setConnectedPlatforms([]);
+        throw error;
       }
-    };
+    },
+    queryKey: ['analytics', 'brand-overview-platforms', brandId],
+    service: createBrandsService,
+  });
 
-    fetchCredentials();
-  }, [brandId, getBrandsService]);
-
-  useEffect(() => {
-    const fetchTimeSeries = async () => {
-      if (!dateRange.startDate || !dateRange.endDate) {
-        return;
-      }
-
-      setIsLoadingTimeSeries(true);
-
+  // The same daily series the brands-list sidebar reads, so opening a brand
+  // from the list paints its trend chart from that cache. A new range keeps
+  // the current chart on screen while it loads.
+  const seriesScopeKey = ['analytics', 'brand-sidebar-series', brandId];
+  const seriesQuery = useAuthedQuery<BrandsService, unknown[]>({
+    enabled: Boolean(startDay && endDay),
+    keepPreviousDataWithin: seriesScopeKey,
+    queryFn: async (service) => {
       try {
-        const service = await getBrandsService();
-        const data = (await service.findBrandAnalyticsTimeSeries(brandId, {
-          endDate: dateRange.endDate?.toISOString().split('T')[0] || '',
+        return await service.findBrandAnalyticsTimeSeries(brandId, {
+          endDate: endDay ?? '',
           groupBy: 'day',
-          startDate: dateRange.startDate?.toISOString().split('T')[0] || '',
-        })) as PlatformTimeSeriesDataPoint[];
-        setTimeSeriesData(data);
-        logger.info('Time series data fetched', {
-          brandId,
-          dataLength: Array.isArray(data) ? data.length : 0,
+          startDate: startDay ?? '',
         });
       } catch (error) {
         logger.error('Failed to fetch time series data', error);
-        setTimeSeriesData([]);
-      } finally {
-        setIsLoadingTimeSeries(false);
+        throw error;
       }
-    };
+    },
+    queryKey: [...seriesScopeKey, startDay, endDay],
+    refreshKey: refreshTrigger,
+    service: createBrandsService,
+  });
 
-    fetchTimeSeries();
-  }, [brandId, dateRange, getBrandsService]);
+  const analytics = analyticsQuery.data ?? null;
+  const brandName = brandQuery.data ?? '';
+  const posts = postsQuery.data ?? EMPTY_POSTS;
+  const connectedPlatforms = platformsQuery.data ?? EMPTY_PLATFORMS;
+  const timeSeriesData = (seriesQuery.data ??
+    EMPTY_SERIES) as PlatformTimeSeriesDataPoint[];
+  // A section shows its skeleton only while it has nothing to show yet.
+  const isLoading = analyticsQuery.isPending;
+  const isLoadingPosts = postsQuery.isPending;
+  const isLoadingTimeSeries = seriesQuery.isPending;
 
   const platformCount = analytics
     ? Object.keys(analytics).filter((key) =>
