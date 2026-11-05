@@ -13,8 +13,11 @@ import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
 import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
-import { Fragment, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import type { CrunVideoControlsProps } from '@/props/studio/crun-video-controls.props';
+
+/** Keeps a control's label, input and error on one unit as the bar wraps. */
+const FIELD_GROUP_CLASS = 'flex flex-col gap-0.5';
 
 export default function PromptBarCrunVideoControls({
   controls,
@@ -77,7 +80,7 @@ export default function PromptBarCrunVideoControls({
         if (!field?.enum || (name === 'aspect_ratio' && hasFrames)) return null;
         const accessible = accessibility(name);
         return (
-          <Fragment key={name}>
+          <div key={name} className={FIELD_GROUP_CLASS}>
             <PromptBarCompactSelect
               ariaLabel={label}
               describedBy={accessible['aria-describedby']}
@@ -118,12 +121,12 @@ export default function PromptBarCrunVideoControls({
               value={String(value[key] ?? field.default ?? '')}
             />
             {errorMessage(name)}
-          </Fragment>
+          </div>
         );
       })}
       {hasFrames && <Label>{labels.aspectFromFrames}</Label>}
       {controls.fields.negative_prompt && (
-        <>
+        <div className={FIELD_GROUP_CLASS}>
           <Label htmlFor={`${id}-negative_prompt`}>
             {labels.negativePrompt}
           </Label>
@@ -136,10 +139,10 @@ export default function PromptBarCrunVideoControls({
             onChange={(event) => change({ negativePrompt: event.target.value })}
           />
           {errorMessage('negative_prompt')}
-        </>
+        </div>
       )}
       {controls.fields.cfg_scale && (
-        <>
+        <div className={FIELD_GROUP_CLASS}>
           <Label htmlFor={`${id}-cfg_scale`}>{labels.guidanceScale}</Label>
           <Input
             {...accessibility('cfg_scale')}
@@ -160,10 +163,10 @@ export default function PromptBarCrunVideoControls({
             }}
           />
           {errorMessage('cfg_scale')}
-        </>
+        </div>
       )}
       {controls.fields.translate_prompt && (
-        <>
+        <div className={FIELD_GROUP_CLASS}>
           <Label htmlFor={`${id}-translate_prompt`}>
             {labels.translatePrompt}
           </Label>
@@ -177,7 +180,7 @@ export default function PromptBarCrunVideoControls({
             }
           />
           {errorMessage('translate_prompt')}
-        </>
+        </div>
       )}
     </>
   );
