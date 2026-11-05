@@ -390,12 +390,12 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin list of another organization's credentials.
     {
       file: 'apps/server/api/src/collections/credentials/controllers/credentials.controller.ts',
-      line: 154,
+      line: 156,
     },
     // #6120: superadmin-only GET credential by id across organizations.
     {
       file: 'apps/server/api/src/collections/credentials/controllers/credentials.controller.ts',
-      line: 170,
+      line: 173,
     },
     // #6120: ledger idempotency keys are globally unique, so replay detection
     // is cross-organization.

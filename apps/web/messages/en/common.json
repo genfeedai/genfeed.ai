@@ -670,11 +670,13 @@
           "analytics": "Analytics",
           "articles": "Articles",
           "brands": "Brands and brand context",
+          "connected-accounts": "Connected accounts",
           "credits": "Credits",
           "direct-publishing": "Direct publishing",
           "images": "Images",
           "post-drafts": "Post drafts",
           "post-scheduling": "Post scheduling",
+          "posts": "Posts",
           "prompts": "Prompts",
           "publish-approvals": "Publish approvals",
           "videos": "Videos"

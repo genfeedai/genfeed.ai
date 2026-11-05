@@ -493,7 +493,7 @@ describe('operations/admin', () => {
       });
     });
 
-    it.each(['images', 'images=admin', 'analytics=write', 'posts=read'])(
+    it.each(['images', 'images=admin', 'analytics=write', 'posts=write'])(
       'rejects the partner key level %s',
       (pair) => {
         expect(() => parsePartnerKeyLevels([pair])).toThrow(/Invalid --level/);
