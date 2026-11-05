@@ -14,7 +14,7 @@ import {
   RETRY_CREDIT_BACK_SOURCE,
   RETRY_CREDIT_BACK_WINDOW_MS,
 } from '@genfeedai/contracts/constants';
-import type { IAddCreditsOptions } from '@genfeedai/contracts/interfaces';
+import type { IAddCreditsOptions } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
