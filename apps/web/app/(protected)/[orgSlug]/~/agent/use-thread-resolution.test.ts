@@ -150,6 +150,93 @@ describe('useThreadResolution', () => {
     expect(result.current.isResolved('page-100-49')).toBe(true);
     expect(api.getThreads).toHaveBeenCalledTimes(100);
     expect(api.getThreads.mock.calls.at(-1)?.[0]?.page).toBe(100);
+    expect(result.current.hasMoreResolved).toBe(true);
+  });
+
+  it('pages past the cap on demand until a short page ends the list', async () => {
+    const api = makeApi();
+    api.getThreads.mockImplementation(async (params) =>
+      params?.page === 102
+        ? [makeThread('page-102-0', { status: AgentThreadStatus.ARCHIVED })]
+        : makeArchivedPage(params?.page),
+    );
+    const { result } = renderHook(() => useThreadResolution(api, true));
+    await waitFor(() => expect(result.current.hasMoreResolved).toBe(true));
+
+    await act(() => result.current.loadMoreResolved());
+
+    expect(result.current.resolvedThreads).toHaveLength(5050);
+    expect(result.current.isResolved('page-101-49')).toBe(true);
+    expect(result.current.hasMoreResolved).toBe(true);
+
+    await act(() => result.current.loadMoreResolved());
+
+    expect(result.current.resolvedThreads).toHaveLength(5051);
+    expect(result.current.isResolved('page-102-0')).toBe(true);
+    expect(result.current.hasMoreResolved).toBe(false);
+    expect(
+      api.getThreads.mock.calls.slice(100).map(([params]) => params?.page),
+    ).toEqual([101, 102]);
+  });
+
+  it('offers no further page when the list ends inside the cap', async () => {
+    const api = makeApi([
+      makeThread('only', { status: AgentThreadStatus.ARCHIVED }),
+    ]);
+    const { result } = renderHook(() => useThreadResolution(api, true));
+    await waitFor(() => expect(result.current.isResolved('only')).toBe(true));
+
+    await act(() => result.current.loadMoreResolved());
+
+    expect(result.current.hasMoreResolved).toBe(false);
+    expect(api.getThreads).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries the page that failed when the operator loads more', async () => {
+    const error = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+    const api = makeApi();
+    api.getThreads
+      .mockResolvedValueOnce(makeArchivedPage(1))
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce([
+        makeThread('page-2-0', { status: AgentThreadStatus.ARCHIVED }),
+      ]);
+    const { result } = renderHook(() => useThreadResolution(api, true));
+    await waitFor(() => expect(result.current.hasMoreResolved).toBe(true));
+
+    await act(() => result.current.loadMoreResolved());
+
+    expect(result.current.isResolved('page-2-0')).toBe(true);
+    expect(result.current.resolvedThreads).toHaveLength(51);
+    expect(result.current.hasMoreResolved).toBe(false);
+    expect(api.getThreads.mock.calls.map(([params]) => params?.page)).toEqual([
+      1, 2, 2,
+    ]);
+    error.mockRestore();
+  });
+
+  it('keeps what it has and still offers the page when loading more fails', async () => {
+    const error = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+    const api = makeApi();
+    api.getThreads.mockImplementation(async (params) => {
+      if (params?.page === 101) {
+        throw new Error('offline');
+      }
+      return makeArchivedPage(params?.page);
+    });
+    const { result } = renderHook(() => useThreadResolution(api, true));
+    await waitFor(() => expect(result.current.hasMoreResolved).toBe(true));
+
+    await act(() => result.current.loadMoreResolved());
+
+    expect(result.current.resolvedThreads).toHaveLength(5000);
+    expect(result.current.hasMoreResolved).toBe(true);
+    expect(result.current.isLoadingMoreResolved).toBe(false);
+    expect(error).toHaveBeenCalledWith('Failed to load more resolved threads', {
+      error: new Error('offline'),
+      page: 101,
+    });
+    error.mockRestore();
   });
 
   it('keeps the pages already loaded and logs when a later page fails', async () => {
