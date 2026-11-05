@@ -103,6 +103,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 }));
 
 vi.mock('next-intl', () => ({
+  useFormatter: () => ({ dateTime: (date: Date) => date.toISOString() }),
   useTranslations: () => (key: string) => key,
 }));
 
@@ -282,7 +283,7 @@ describe('PublishingContentLibrary', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('dates a published post by when it went out and marks a draft not scheduled', () => {
+  it('keeps the time in the status badge: when a post went out, none for a draft', () => {
     mocks.queryData = {
       ...collections,
       posts: [
@@ -311,9 +312,14 @@ describe('PublishingContentLibrary', () => {
     const draftRow = screen
       .getByRole('link', { name: 'Open Still a draft' })
       .closest('tr') as HTMLElement;
-    expect(within(publishedRow).getAllByText(/Aug 9/)[0]).toBeVisible();
-    expect(within(publishedRow).queryByText('notScheduled')).toBeNull();
-    expect(within(draftRow).getByText('notScheduled')).toBeVisible();
+    expect(
+      within(publishedRow).getAllByText('published')[0]?.closest('time'),
+    ).toHaveAttribute('dateTime', '2026-08-09T12:00:00.000Z');
+    expect(within(draftRow).queryByText('scheduled')).toBeNull();
+    expect(within(draftRow).queryByText('published')).toBeNull();
+    expect(
+      screen.queryByRole('columnheader', { name: /Date/ }),
+    ).not.toBeInTheDocument();
   });
 
   it('keeps the row tinted while its detail is open in the context sidebar', () => {
@@ -330,7 +336,7 @@ describe('PublishingContentLibrary', () => {
     ).not.toHaveClass('bg-accent');
   });
 
-  it('opens a release title through the release query param, not the post editor route', () => {
+  it("opens a release title in its first channel's post editor", () => {
     mocks.queryData = {
       ...collections,
       releases: [
@@ -349,7 +355,7 @@ describe('PublishingContentLibrary', () => {
 
     expect(
       screen.getByRole('link', { name: 'Open Launch update release' }),
-    ).toHaveAttribute('href', '/acme/main/publishing/posts?release=release-1');
+    ).toHaveAttribute('href', '/acme/main/publishing/posts/release-post-1');
   });
 
   it('keeps the leading search tied to the URL, with the filters inside it and none on the right', async () => {

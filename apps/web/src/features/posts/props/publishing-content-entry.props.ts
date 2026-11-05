@@ -37,6 +37,13 @@ export interface PublishingContentThumbnailProps {
   media: PublishingContentMedia | null;
 }
 
+/** A row's status badge; its publish or schedule time shows on hover. */
+export interface PublishingContentStatusProps {
+  status: string;
+  publishedAt?: string | null;
+  scheduledAt?: string | null;
+}
+
 /** A non-plain format worth a tag on a row; plain posts carry none. */
 export type PublishingContentFormat =
   | 'thread'

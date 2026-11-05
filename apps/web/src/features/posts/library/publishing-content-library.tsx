@@ -40,9 +40,7 @@ import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
 import AppTable from '@ui/display/table/Table';
-import TableDateCell from '@ui/display/table/TableDateCell';
 import Pagination from '@ui/navigation/pagination/Pagination';
-import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import {
@@ -67,6 +65,7 @@ import {
 import PublishingContentLibraryToolbar, {
   PublishingContentLibrarySearch,
 } from '@/features/posts/library/publishing-content-library-toolbar';
+import PublishingContentStatus from '@/features/posts/library/publishing-content-status';
 import PublishingPostHoverPreview from '@/features/posts/library/publishing-post-hover-preview';
 import PublishingViewToggle from '@/features/posts/library/publishing-view-toggle';
 import CapturedPostsList from '@/features/posts/list/captured-posts-list';
@@ -348,8 +347,17 @@ export default function PublishingContentLibrary() {
 
   const getDetailHref = useCallback(
     (item: PublishingContentLibraryItem) => {
+      // The title opens the editor; the row opens the drawer. A release has
+      // no editor of its own, so its title opens its first channel's post.
       if (item.release) {
-        return href(getPublishingReleaseHref(item.id));
+        const firstTargetId = Array.isArray(item.release.targets)
+          ? item.release.targets[0]?.id
+          : undefined;
+        return href(
+          firstTargetId
+            ? getPublishingPostHref(firstTargetId)
+            : getPublishingReleaseHref(item.id),
+        );
       }
       if (item.type === 'post') {
         return href(getPublishingPostHref(item.id));
@@ -559,12 +567,11 @@ export default function PublishingContentLibrary() {
             titleHref={getDetailHref(item)}
           />
           <div className="mt-2 flex flex-wrap items-center gap-2 md:hidden">
-            <Badge status={item.status}>
-              {formatPublishingContentStatus(item.status)}
-            </Badge>
-            {item.publishedAt || item.scheduledAt ? (
-              <TableDateCell value={item.publishedAt ?? item.scheduledAt} />
-            ) : null}
+            <PublishingContentStatus
+              publishedAt={item.publishedAt}
+              scheduledAt={item.scheduledAt}
+              status={item.status}
+            />
           </div>
         </PublishingPostHoverPreview>
       ),
@@ -573,26 +580,15 @@ export default function PublishingContentLibrary() {
       className: 'hidden md:table-cell',
       header: 'Status',
       key: 'status',
+      // One column: the badge says where the post is; hovering it says when
+      // it went out or when it goes out.
       render: (item) => (
-        <Badge status={item.status}>
-          {formatPublishingContentStatus(item.status)}
-        </Badge>
+        <PublishingContentStatus
+          publishedAt={item.publishedAt}
+          scheduledAt={item.scheduledAt}
+          status={item.status}
+        />
       ),
-    },
-    {
-      className: 'hidden md:table-cell',
-      header: 'Date',
-      key: 'scheduledAt',
-      // Published rows show when they went out, scheduled rows when they go
-      // out; a draft has neither yet.
-      render: (item) =>
-        item.publishedAt || item.scheduledAt ? (
-          <TableDateCell value={item.publishedAt ?? item.scheduledAt} />
-        ) : (
-          <span className="text-xs text-muted-foreground">
-            {translate('notScheduled')}
-          </span>
-        ),
     },
   ];
 
@@ -729,9 +725,11 @@ export default function PublishingContentLibrary() {
           />
         </PublishingPostHoverPreview>
         <div className="flex items-center justify-between gap-2">
-          <Badge status={item.status}>
-            {formatPublishingContentStatus(item.status)}
-          </Badge>
+          <PublishingContentStatus
+            publishedAt={item.publishedAt}
+            scheduledAt={item.scheduledAt}
+            status={item.status}
+          />
         </div>
         {renderPrimaryAction(item)}
       </Card>

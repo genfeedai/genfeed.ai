@@ -217,7 +217,6 @@
     "collection": {
       "all": "All",
       "needsYou": "Needs you",
-      "notScheduled": "Not scheduled",
       "open": "Open",
       "retry": "Retry",
       "retryFailed": "Could not retry this post. Please try again.",
@@ -232,7 +231,11 @@
       "variations": "Remix {platform} post",
       "setStatus": "Set status to {status}",
       "statusFailed": "Could not update the post status.",
-      "textOnlyMark": "Aa"
+      "textOnlyMark": "Aa",
+      "statusTime": {
+        "published": "Published {date}",
+        "scheduled": "Goes out {date}"
+      }
     },
     "admin": {
       "columnPost": "Post",
