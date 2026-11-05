@@ -1,17 +1,12 @@
+import { sendPostHogCapture } from '@api/services/analytics/posthog-capture.util';
 import { LlmVendorCostLedgerService } from '@api/services/integrations/llm/llm-vendor-cost-ledger.service';
 import { buildTypedDecisionTelemetryProperties } from '@api/services/typed-decisions/typed-decision-telemetry.util';
 import { TYPED_DECISION_TELEMETRY_EVENT } from '@api/services/typed-decisions/typed-decisions.constants';
 import type { TypedDecisionTelemetryRecord } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { safeFetch } from '@libs/security/destination-guard';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
-
-const TRAILING_SLASH_PATTERN = /\/$/;
-
-const DEFAULT_POSTHOG_HOST = 'https://eu.i.posthog.com';
-const POSTHOG_CAPTURE_TIMEOUT_MS = 800;
 
 /**
  * Records one row per typed decision (#4864): the decision point, the answer
@@ -84,44 +79,13 @@ export class TypedDecisionTelemetryService {
   private async capturePostHog(
     record: TypedDecisionTelemetryRecord,
   ): Promise<void> {
-    const projectKey = this.readProjectKey();
-    if (!projectKey) {
-      return;
+    const result = await sendPostHogCapture(this.configService, {
+      distinctId: record.userId || record.organizationId || 'anonymous',
+      event: TYPED_DECISION_TELEMETRY_EVENT,
+      properties: buildTypedDecisionTelemetryProperties(record),
+    });
+    if (result.status === 'failed') {
+      throw new Error(`PostHog capture failed: ${result.category}`);
     }
-
-    const host = this.readHost();
-    const origin = new URL(host).origin;
-
-    await safeFetch(
-      `${host}/i/v0/e/`,
-      {
-        body: JSON.stringify({
-          api_key: projectKey,
-          distinct_id: record.userId || record.organizationId || 'anonymous',
-          event: TYPED_DECISION_TELEMETRY_EVENT,
-          properties: buildTypedDecisionTelemetryProperties(record),
-        }),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
-        signal: AbortSignal.timeout(POSTHOG_CAPTURE_TIMEOUT_MS),
-      },
-      { allowedOrigins: [origin] },
-    );
-  }
-
-  private readProjectKey(): string {
-    return String(
-      this.configService.get('POSTHOG_PROJECT_API_KEY') || '',
-    ).trim();
-  }
-
-  private readHost(): string {
-    const configured = String(
-      this.configService.get('POSTHOG_HOST') || DEFAULT_POSTHOG_HOST,
-    ).trim();
-
-    return (
-      configured.replace(TRAILING_SLASH_PATTERN, '') || DEFAULT_POSTHOG_HOST
-    );
   }
 }

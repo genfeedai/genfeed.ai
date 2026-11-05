@@ -1,3 +1,4 @@
+import { POSTHOG_CAPTURE_TIMEOUT_MS as CAPTURE_TIMEOUT_MS } from '@api/services/analytics/posthog-capture.util';
 import { ServerFunnelCaptureService } from '@api/services/analytics/server-funnel-capture.service';
 import type { ConfigService } from '@libs/config/config.service';
 import { safeFetch } from '@libs/security/destination-guard';
@@ -14,8 +15,6 @@ vi.mock('@sentry/nestjs', async (importOriginal) => ({
 
 const SECRET_PROJECT_KEY = 'phc_test_key';
 const SECRET_MARKER = 'super-secret-rollout-plan';
-// Matches CAPTURE_TIMEOUT_MS in server-funnel-capture.service.ts.
-const CAPTURE_TIMEOUT_MS = 800;
 
 describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
   let configService: { get: ReturnType<typeof vi.fn> };
@@ -393,7 +392,7 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
       expect(Sentry.captureException).not.toHaveBeenCalled();
     });
 
-    it('never throws when the PostHog request fails (e.g. timeout), and reports it to Sentry', async () => {
+    it('never throws when the PostHog request times out, and reports it as a timeout', async () => {
       vi.mocked(safeFetch).mockRejectedValue(
         new DOMException('The operation was aborted', 'TimeoutError'),
       );
@@ -405,10 +404,23 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
       expect(logger.warn).toHaveBeenCalledTimes(1);
       const [, loggedContext] = logger.warn.mock.calls[0];
       expect(loggedContext).toEqual({
-        category: 'request_failed',
+        category: 'timeout',
         event: 'onboarding_completed',
       });
       expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    });
+    it('reports a network failure that is not a timeout as request_failed', async () => {
+      vi.mocked(safeFetch).mockRejectedValue(new TypeError('fetch failed'));
+
+      await service.capture({
+        distinctId: 'org_1',
+        event: 'onboarding_completed',
+      });
+
+      expect(logger.warn).toHaveBeenCalledWith(expect.any(String), {
+        category: 'request_failed',
+        event: 'onboarding_completed',
+      });
     });
   });
 
