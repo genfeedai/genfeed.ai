@@ -2,10 +2,15 @@
 
 import '@testing-library/jest-dom/vitest';
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
   ActivityKey,
   CredentialPlatform,
   PageScope,
   ReleaseStatus,
+  TargetExecutionState,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import type {
@@ -17,11 +22,12 @@ import type {
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
 import {
   fireEvent,
-  render,
+  render as renderView,
   screen,
   waitFor,
   within,
 } from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type ReviewInboxItem =
@@ -111,6 +117,11 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => mocks.brandState,
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -261,6 +272,11 @@ const { default: OperationalHomeContent } = await import('./content');
 const { CONNECT_CARD_DISMISS_TTL_MS } = await import(
   './use-connect-card-dismissal'
 );
+
+/** Each render gets its own cache unless a spec passes a shared wrapper. */
+function render(ui: ReactElement) {
+  return renderView(ui, { wrapper: queryClientWrapper() });
+}
 
 function buildReviewItem(id: string): ReviewInboxItem {
   return {
@@ -683,6 +699,51 @@ describe('OperationalHomeContent', () => {
       '/acme/moonrise/publishing/posts?release=release_1',
     );
     expect(within(publishing).getByText('scheduled')).toBeInTheDocument();
+  });
+
+  it('paints the cached upcoming schedule at once when home is opened again', async () => {
+    const tomorrowNoon = new Date();
+    tomorrowNoon.setDate(tomorrowNoon.getDate() + 1);
+    tomorrowNoon.setHours(12, 0, 0, 0);
+    mocks.publications = [
+      {
+        id: 'release_1',
+        title: 'Launch announcement',
+        status: ReleaseStatus.SCHEDULED,
+        updatedAt: '2026-09-24T12:00:00Z',
+      },
+    ] as IReleaseGroup[];
+    mocks.upcomingReleases = [
+      {
+        id: 'release_1',
+        targets: [
+          {
+            executionState: TargetExecutionState.SCHEDULED,
+            id: 'target_1',
+            scheduledAt: tomorrowNoon.toISOString(),
+          },
+        ],
+      },
+    ];
+    const client = createTestQueryClient();
+    const firstVisit = renderView(<OperationalHomeContent />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(
+      await within(screen.getByTestId('operational-home-upcoming')).findByText(
+        'today',
+      ),
+    ).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.upcomingReleases = null;
+    renderView(<OperationalHomeContent />, {
+      wrapper: queryClientWrapper(client),
+    });
+
+    const upcoming = screen.getByTestId('operational-home-upcoming');
+    expect(within(upcoming).getByText('today')).toBeInTheDocument();
+    expect(within(upcoming).getByText('scheduled')).toBeInTheDocument();
   });
 
   it('retries a publishing failure through its own query', () => {
