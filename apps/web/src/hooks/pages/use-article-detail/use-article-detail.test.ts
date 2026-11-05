@@ -1,7 +1,15 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { ArticleStatus } from '@genfeedai/contracts';
+import type { QueryClient } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useArticleDetail } from '@/hooks/pages/use-article-detail/use-article-detail';
+import {
+  type UseArticleDetailOptions,
+  useArticleDetail,
+} from '@/hooks/pages/use-article-detail/use-article-detail';
 
 const pushMock = vi.fn();
 const postMock = vi.fn();
@@ -31,6 +39,11 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
     brandId: 'brand-1',
     organizationId: 'org-1',
   })),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -64,6 +77,15 @@ vi.mock('next/navigation', () => ({
   useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
+function renderArticleDetail(
+  options: UseArticleDetailOptions,
+  client: QueryClient = createTestQueryClient(),
+) {
+  return renderHook(() => useArticleDetail(options), {
+    wrapper: queryClientWrapper(client),
+  });
+}
+
 describe('useArticleDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -93,7 +115,7 @@ describe('useArticleDetail', () => {
   });
 
   it('returns required fields', () => {
-    const { result } = renderHook(() => useArticleDetail({}));
+    const { result } = renderArticleDetail({});
     expect(result.current).toHaveProperty('article');
     expect(result.current).toHaveProperty('isLoading');
     expect(result.current).toHaveProperty('isSaving');
@@ -110,14 +132,12 @@ describe('useArticleDetail', () => {
   });
 
   it('initializes with null article', () => {
-    const { result } = renderHook(() => useArticleDetail({}));
+    const { result } = renderArticleDetail({});
     expect(result.current.article).toBeNull();
   });
 
   it('initializes with isLoading true when articleId is provided', async () => {
-    const { result } = renderHook(() =>
-      useArticleDetail({ articleId: 'article-1' }),
-    );
+    const { result } = renderArticleDetail({ articleId: 'article-1' });
     expect(result.current.isLoading).toBe(true);
 
     await waitFor(() => {
@@ -126,7 +146,7 @@ describe('useArticleDetail', () => {
   });
 
   it('initializes form with default values', () => {
-    const { result } = renderHook(() => useArticleDetail({}));
+    const { result } = renderArticleDetail({});
     expect(result.current.form).toHaveProperty('content');
     expect(result.current.form).toHaveProperty('label');
     expect(result.current.form).toHaveProperty('status');
@@ -136,7 +156,7 @@ describe('useArticleDetail', () => {
   });
 
   it('all handlers are functions', () => {
-    const { result } = renderHook(() => useArticleDetail({}));
+    const { result } = renderArticleDetail({});
     expect(typeof result.current.handleSave).toBe('function');
     expect(typeof result.current.handlePublish).toBe('function');
     expect(typeof result.current.handleArchive).toBe('function');
@@ -146,9 +166,7 @@ describe('useArticleDetail', () => {
   });
 
   it('scores SEO for the current article', async () => {
-    const { result } = renderHook(() =>
-      useArticleDetail({ articleId: 'article-1' }),
-    );
+    const { result } = renderArticleDetail({ articleId: 'article-1' });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -159,14 +177,14 @@ describe('useArticleDetail', () => {
     });
 
     expect(scoreSeoMock).toHaveBeenCalledWith('article-1');
-    expect(result.current.article?.seoScore).toBe(82);
+    await waitFor(() => expect(result.current.article?.seoScore).toBe(82));
     expect(notificationsServiceMock.success).toHaveBeenCalledWith(
       'SEO score updated',
     );
   });
 
   it('navigates to the scoped article editor after creating a new article', async () => {
-    const { result } = renderHook(() => useArticleDetail({}));
+    const { result } = renderArticleDetail({});
 
     act(() => {
       result.current.setFormField('label', 'New article');
@@ -186,15 +204,17 @@ describe('useArticleDetail', () => {
   });
 
   it('loads an existing article into the form', async () => {
-    const { result } = renderHook(() =>
-      useArticleDetail({ articleId: 'article-1' }),
-    );
+    const { result } = renderArticleDetail({ articleId: 'article-1' });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(findOneMock).toHaveBeenCalledWith('article-1');
+    expect(findOneMock).toHaveBeenCalledWith(
+      'article-1',
+      {},
+      expect.any(AbortSignal),
+    );
     expect(result.current.form.label).toBe('Existing article');
     expect(result.current.form.slug).toBe('existing-article');
     expect(result.current.isDirty).toBe(false);
@@ -203,9 +223,7 @@ describe('useArticleDetail', () => {
   it('reports an error when the article fails to load', async () => {
     findOneMock.mockRejectedValue(new Error('boom'));
 
-    const { result } = renderHook(() =>
-      useArticleDetail({ articleId: 'article-1' }),
-    );
+    const { result } = renderArticleDetail({ articleId: 'article-1' });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -218,7 +236,7 @@ describe('useArticleDetail', () => {
   });
 
   it('auto-generates a slug for new articles and marks the form dirty', () => {
-    const { result } = renderHook(() => useArticleDetail({}));
+    const { result } = renderArticleDetail({});
 
     act(() => {
       result.current.setFormField('label', 'Hello, World!  Article');
@@ -229,9 +247,7 @@ describe('useArticleDetail', () => {
   });
 
   it('does not regenerate the slug when editing an existing article', async () => {
-    const { result } = renderHook(() =>
-      useArticleDetail({ articleId: 'article-1' }),
-    );
+    const { result } = renderArticleDetail({ articleId: 'article-1' });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -246,9 +262,7 @@ describe('useArticleDetail', () => {
 
   it('patches an existing article on save', async () => {
     patchMock.mockResolvedValue({ id: 'article-1', label: 'Renamed' });
-    const { result } = renderHook(() =>
-      useArticleDetail({ articleId: 'article-1' }),
-    );
+    const { result } = renderArticleDetail({ articleId: 'article-1' });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -274,9 +288,7 @@ describe('useArticleDetail', () => {
 
   it('notifies when saving fails', async () => {
     patchMock.mockRejectedValue(new Error('boom'));
-    const { result } = renderHook(() =>
-      useArticleDetail({ articleId: 'article-1' }),
-    );
+    const { result } = renderArticleDetail({ articleId: 'article-1' });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -297,9 +309,7 @@ describe('useArticleDetail', () => {
       id: 'article-1',
       status: ArticleStatus.PUBLISHED,
     });
-    const { result } = renderHook(() =>
-      useArticleDetail({ articleId: 'article-1' }),
-    );
+    const { result } = renderArticleDetail({ articleId: 'article-1' });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -320,9 +330,7 @@ describe('useArticleDetail', () => {
 
   it('keeps PUBLISHED after publish even if the API echoes a legacy status', async () => {
     publishMock.mockResolvedValue({ id: 'article-1', status: 'public' });
-    const { result } = renderHook(() =>
-      useArticleDetail({ articleId: 'article-1' }),
-    );
+    const { result } = renderArticleDetail({ articleId: 'article-1' });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -341,9 +349,7 @@ describe('useArticleDetail', () => {
       id: 'article-1',
       status: ArticleStatus.ARCHIVED,
     });
-    const { result } = renderHook(() =>
-      useArticleDetail({ articleId: 'article-1' }),
-    );
+    const { result } = renderArticleDetail({ articleId: 'article-1' });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -360,9 +366,7 @@ describe('useArticleDetail', () => {
 
   it('deletes the article and navigates to publish', async () => {
     deleteMock.mockResolvedValue(undefined);
-    const { result } = renderHook(() =>
-      useArticleDetail({ articleId: 'article-1' }),
-    );
+    const { result } = renderArticleDetail({ articleId: 'article-1' });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -378,9 +382,7 @@ describe('useArticleDetail', () => {
 
   it('notifies when deleting fails', async () => {
     deleteMock.mockRejectedValue(new Error('boom'));
-    const { result } = renderHook(() =>
-      useArticleDetail({ articleId: 'article-1' }),
-    );
+    const { result } = renderArticleDetail({ articleId: 'article-1' });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -396,9 +398,7 @@ describe('useArticleDetail', () => {
   });
 
   it('skips SEO scoring while the form is dirty', async () => {
-    const { result } = renderHook(() =>
-      useArticleDetail({ articleId: 'article-1' }),
-    );
+    const { result } = renderArticleDetail({ articleId: 'article-1' });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -416,7 +416,7 @@ describe('useArticleDetail', () => {
   });
 
   it('ignores publish, archive, delete, and SEO scoring without an id', async () => {
-    const { result } = renderHook(() => useArticleDetail({}));
+    const { result } = renderArticleDetail({});
 
     await act(async () => {
       await result.current.handlePublish();
@@ -429,5 +429,49 @@ describe('useArticleDetail', () => {
     expect(archiveMock).not.toHaveBeenCalled();
     expect(deleteMock).not.toHaveBeenCalled();
     expect(scoreSeoMock).not.toHaveBeenCalled();
+  });
+
+  it('paints the cached article and its form at once when reopened', async () => {
+    const client = createTestQueryClient();
+    const first = renderArticleDetail({ articleId: 'article-1' }, client);
+    await waitFor(() =>
+      expect(first.result.current.form.label).toBe('Existing article'),
+    );
+    first.unmount();
+
+    findOneMock.mockReturnValue(new Promise(() => undefined));
+    const { result } = renderArticleDetail({ articleId: 'article-1' }, client);
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.article?.label).toBe('Existing article');
+    expect(result.current.form.label).toBe('Existing article');
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it('keeps unsaved edits when a fresh read of the article arrives', async () => {
+    const client = createTestQueryClient();
+    const { result } = renderArticleDetail({ articleId: 'article-1' }, client);
+    await waitFor(() =>
+      expect(result.current.form.label).toBe('Existing article'),
+    );
+    act(() => {
+      result.current.setFormField('label', 'My edit');
+    });
+
+    findOneMock.mockResolvedValue({
+      id: 'article-1',
+      label: 'Changed elsewhere',
+      slug: 'existing-article',
+      status: ArticleStatus.DRAFT,
+      tags: [],
+    });
+    await act(async () => {
+      await client.refetchQueries({ queryKey: ['article-detail'] });
+    });
+
+    await waitFor(() =>
+      expect(result.current.article?.label).toBe('Changed elsewhere'),
+    );
+    expect(result.current.form.label).toBe('My edit');
   });
 });
