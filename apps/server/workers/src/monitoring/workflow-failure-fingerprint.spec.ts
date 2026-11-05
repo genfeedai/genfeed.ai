@@ -1,3 +1,4 @@
+import { testId } from '@helpers/testing/test-id.helper';
 import { describe, expect, it } from 'vitest';
 import { workflowFailureFingerprint } from './workflow-failure-fingerprint';
 
@@ -53,8 +54,8 @@ describe('workflowFailureFingerprint', () => {
       'Nodes failed: publish: Post 9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d rejected',
     ],
     [
-      'Nodes failed: publish: Job cmhq2x9k40001ab12cd34ef56 timed out at 2026-11-05T05:27:35.560Z',
-      'Nodes failed: publish: Job cmhq3z1m80002gh78ij90kl12 timed out at 2026-11-04T09:14:46.131Z',
+      `Nodes failed: publish: Job ${testId('job', 1)} timed out at 2026-11-05T05:27:35.560Z`,
+      `Nodes failed: publish: Job ${testId('job', 2)} timed out at 2026-11-04T09:14:46.131Z`,
     ],
   ])(
     'puts runs that differ only in ids, urls or times together',
