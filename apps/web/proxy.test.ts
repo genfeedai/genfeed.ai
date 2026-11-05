@@ -108,6 +108,7 @@ function makeSignedOutRequest(pathname: string, search?: string) {
       get: vi.fn(() => null),
     },
     nextUrl: {
+      origin: 'http://localhost:3000',
       pathname,
       search: resolvedSearch,
       searchParams: new URLSearchParams(
@@ -209,6 +210,7 @@ function makeDesktopRequest(
       }),
     },
     nextUrl: {
+      origin: 'http://localhost:3000',
       pathname,
       search,
       searchParams: new URLSearchParams(

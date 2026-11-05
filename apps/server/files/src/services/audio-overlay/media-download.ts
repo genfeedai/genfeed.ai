@@ -9,24 +9,17 @@ export async function downloadPublicMedia(
 ): Promise<Buffer> {
   const cdnUrl = config?.get('GENFEEDAI_CDN_URL');
   const filesUrl = config?.get('GENFEEDAI_MICROSERVICES_FILES_URL');
+  const filesOrigin = filesUrl ? new URL(filesUrl).origin : undefined;
   const configuredOrigins = [
-    cdnUrl,
-    isSelfHostedDeployment() ? filesUrl : undefined,
-  ]
-    .filter(
-      (value): value is string => typeof value === 'string' && value.length > 0,
-    )
-    .map((value) => new URL(value).origin);
+    cdnUrl ? new URL(cdnUrl).origin : undefined,
+    isSelfHostedDeployment() ? filesOrigin : undefined,
+  ];
   const resolvedUrl =
     url.startsWith('/local/') && (filesUrl || cdnUrl)
       ? new URL(url, filesUrl || cdnUrl).href
       : url;
   const origin = new URL(resolvedUrl).origin;
-  if (
-    !isSelfHostedDeployment() &&
-    filesUrl &&
-    origin === new URL(filesUrl).origin
-  )
+  if (!isSelfHostedDeployment() && origin === filesOrigin)
     throw new Error(
       'Cloud media cannot download from the files service origin',
     );

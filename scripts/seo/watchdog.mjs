@@ -204,7 +204,8 @@ function parseRobots(text) {
 }
 
 function robotsDecision(parsed, url) {
-  const pathname = `${new URL(url).pathname}${new URL(url).search}`;
+  const { pathname: path, search } = new URL(url);
+  const pathname = `${path}${search}`;
   const googleGroups = parsed.groups.filter((group) =>
     group.userAgents.some((agent) => agent === 'googlebot'),
   );
