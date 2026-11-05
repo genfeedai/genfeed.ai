@@ -125,7 +125,6 @@ export interface PromptBarProps {
   suggestions?: PromptBarSuggestionItem[];
   onSuggestionSelect?: (item: PromptBarSuggestionItem) => void;
   showSuggestionsWhenEmpty?: boolean;
-  maxSuggestions?: number;
   extraExtensions?: readonly AnyExtension[];
   onPromptDocumentChange?: (document: JSONContent) => void;
   onPrepareSubmit?: (input: {
@@ -597,7 +596,6 @@ export interface PromptBarExpandedViewProps {
   suggestions?: PromptBarSuggestionItem[];
   onSuggestionSelect?: (item: PromptBarSuggestionItem) => void;
   showSuggestionsWhenEmpty?: boolean;
-  maxSuggestions?: number;
 
   openGallery: (options: GalleryModalOptions) => void;
   openUpload: (options: UploadModalOptions) => void;

@@ -2,7 +2,7 @@
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { DropdownMenuItem } from '@ui/primitives/dropdown-menu';
-import { parseAspectRatio } from '@/features/studio/components/dropdowns/generation-setup/GenerationSetupAspectRatioIcon';
+import { parseAspectRatio } from '@ui/prompt-bars/components/toolbar/PromptBarAspectRatioIcon';
 import type { GenerationSetupRatioGridProps } from '@/features/studio/props/generation-setup.props';
 
 const FRAME_LONG_EDGE = 28;

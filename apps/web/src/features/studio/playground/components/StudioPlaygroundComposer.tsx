@@ -63,15 +63,9 @@ import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorite
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarSubmitSlot from '@ui/prompt-bars/components/toolbar/PromptBarSubmitSlot';
@@ -1179,46 +1173,31 @@ export default function StudioPlaygroundComposer({
 
       {isFlux ? (
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <Select
+          <PromptBarCompactSelect
+            ariaLabel={translate('editImage.fluxResolution')}
+            icon="output"
+            onChange={(resolution) => onSettingsChange({ resolution })}
+            options={FLUX_3_RESOLUTIONS.map((value) => ({
+              label: value.toUpperCase(),
+              value,
+            }))}
             value={settings.resolution}
-            onValueChange={(resolution) => onSettingsChange({ resolution })}
-          >
-            <SelectTrigger
-              aria-label={translate('editImage.fluxResolution')}
-              className="w-40"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {FLUX_3_RESOLUTIONS.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {value.toUpperCase()}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
+          />
+          <PromptBarCompactSelect
+            ariaLabel={translate('editImage.fluxAspectRatio')}
+            icon="aspectRatio"
+            onChange={(aspectRatio) => onSettingsChange({ aspectRatio })}
+            options={FLUX_3_ASPECT_RATIOS.map((value) => ({
+              label:
+                value === 'auto'
+                  ? type === 'image-edit'
+                    ? translate('editImage.matchSourceAspectRatio')
+                    : translate('editImage.autoAspectRatio')
+                  : value,
+              value,
+            }))}
             value={settings.aspectRatio}
-            onValueChange={(aspectRatio) => onSettingsChange({ aspectRatio })}
-          >
-            <SelectTrigger
-              aria-label={translate('editImage.fluxAspectRatio')}
-              className="w-52"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {FLUX_3_ASPECT_RATIOS.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {value === 'auto'
-                    ? type === 'image-edit'
-                      ? translate('editImage.matchSourceAspectRatio')
-                      : translate('editImage.autoAspectRatio')
-                    : value}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          />
           {droppedEditingControls ? (
             <p role="status" className="text-xs text-muted-foreground">
               {translate('editImage.removedFluxControls')}
@@ -1229,68 +1208,47 @@ export default function StudioPlaygroundComposer({
       {type === 'image-edit' ? (
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {editSources.length > 1 ? (
-            <Select
+            <PromptBarCompactSelect
+              ariaLabel={translate('editImage.targetAria')}
+              icon="source"
+              onChange={(editPrimaryId) => onSettingsChange({ editPrimaryId })}
+              options={editSources.map((asset, index) => ({
+                label: translate('editImage.target', {
+                  name:
+                    asset.name ||
+                    translate('editImage.sourceFallback', {
+                      index: index + 1,
+                    }),
+                }),
+                value: asset.ingredientId ?? asset.id,
+              }))}
+              placeholder={translate('editImage.targetPlaceholder')}
               value={
                 settings.editPrimaryId ??
                 editSources[0].ingredientId ??
                 editSources[0].id
               }
-              onValueChange={(editPrimaryId) =>
-                onSettingsChange({ editPrimaryId })
-              }
-            >
-              <SelectTrigger
-                aria-label={translate('editImage.targetAria')}
-                className="w-44"
-              >
-                <SelectValue
-                  placeholder={translate('editImage.targetPlaceholder')}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {editSources.map((asset, index) => (
-                  <SelectItem
-                    key={asset.id}
-                    value={asset.ingredientId ?? asset.id}
-                  >
-                    {translate('editImage.target', {
-                      name:
-                        asset.name ||
-                        translate('editImage.sourceFallback', {
-                          index: index + 1,
-                        }),
-                    })}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
           ) : null}
           {!isFlux ? (
             <>
-              <Select
-                disabled={hasEditMask}
-                value={hasEditMask ? 'source' : (settings.editSize ?? 'source')}
-                onValueChange={(value) => {
+              <PromptBarCompactSelect
+                ariaLabel={translate('editImage.outputSize')}
+                icon="output"
+                isDisabled={hasEditMask}
+                onChange={(value) => {
                   if (isImageEditSize(value))
                     onSettingsChange({ editSize: value });
                 }}
-              >
-                <SelectTrigger
-                  aria-label={translate('editImage.outputSize')}
-                  className="w-40"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {IMAGE_EDIT_SIZES.map((size) => (
-                    <SelectItem key={size} value={size}>
-                      {size === 'source'
-                        ? translate('editImage.sourceDimensions')
-                        : size}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                options={IMAGE_EDIT_SIZES.map((size) => ({
+                  label:
+                    size === 'source'
+                      ? translate('editImage.sourceDimensions')
+                      : size,
+                  value: size,
+                }))}
+                value={hasEditMask ? 'source' : (settings.editSize ?? 'source')}
+              />
               <Input
                 aria-label={translate('editImage.seedAria')}
                 className="w-36"

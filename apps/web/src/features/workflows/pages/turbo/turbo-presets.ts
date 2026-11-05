@@ -1,11 +1,4 @@
-import {
-  CalendarDays,
-  Clapperboard,
-  Images,
-  Megaphone,
-  MessageCircleQuestion,
-  UserRound,
-} from 'lucide-react';
+import { CalendarDays, Clapperboard, UserRound } from 'lucide-react';
 import type { TurboPreset } from '@/features/workflows/props/turbo-presets.props';
 
 /**
@@ -37,29 +30,5 @@ export const TURBO_PRESETS: readonly TurboPreset[] = [
     formats: ['avatar'],
     icon: UserRound,
     id: 'avatarExplainers',
-  },
-  {
-    angle:
-      'Clean still images with a bold headline and one clear idea each, easy to read at a glance in a crowded feed.',
-    count: 9,
-    formats: ['image'],
-    icon: Images,
-    id: 'imageBatch',
-  },
-  {
-    angle:
-      'A launch countdown in four beats: tease, reveal, social proof and last call, each with a distinct hook.',
-    count: 6,
-    formats: ['image', 'video'],
-    icon: Megaphone,
-    id: 'launchCountdown',
-  },
-  {
-    angle:
-      'Myth busting: name a common misconception in the niche, then correct it in one sentence and show the proof.',
-    count: 3,
-    formats: ['video', 'avatar'],
-    icon: MessageCircleQuestion,
-    id: 'mythBusting',
   },
 ];

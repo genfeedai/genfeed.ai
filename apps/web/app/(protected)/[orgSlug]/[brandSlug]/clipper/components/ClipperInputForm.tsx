@@ -195,6 +195,7 @@ export default function ClipperInputForm({
               <>
                 <PromptBarCompactSelect
                   ariaLabel={t('generationMode')}
+                  icon="source"
                   onChange={(value) => {
                     if (isClipperResultMode(value)) onModeChange(value);
                   }}

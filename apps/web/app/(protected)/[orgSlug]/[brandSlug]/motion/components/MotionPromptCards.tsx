@@ -40,7 +40,6 @@ export default function MotionPromptCards({
       <PromptBarSuggestions
         className="grid grid-cols-1 @md:grid-cols-2 [&>button]:w-full [&>button]:max-w-none"
         isDisabled={isDisabled}
-        maxSuggestions={MOTION_PRESETS.length}
         onSuggestionSelect={(suggestion) => {
           const preset = MOTION_PRESETS.find(
             (candidate) => candidate.id === suggestion.id,

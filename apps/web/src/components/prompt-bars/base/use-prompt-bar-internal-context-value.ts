@@ -129,7 +129,6 @@ type UsePromptBarInternalContextValueParams = {
   suggestions?: PromptBarSuggestionItem[];
   onSuggestionSelect?: (item: PromptBarSuggestionItem) => void;
   showSuggestionsWhenEmpty?: boolean;
-  maxSuggestions?: number;
   openGallery: (options: GalleryModalOptions) => void;
   openUpload: (options: UploadModalOptions) => void;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
@@ -244,7 +243,6 @@ export function usePromptBarInternalContextValue(
       suggestions: p.suggestions,
       onSuggestionSelect: p.onSuggestionSelect,
       showSuggestionsWhenEmpty: p.showSuggestionsWhenEmpty,
-      maxSuggestions: p.maxSuggestions,
       openGallery: p.openGallery,
       openUpload: p.openUpload,
       textareaRef: p.textareaRef,
@@ -357,7 +355,6 @@ export function usePromptBarInternalContextValue(
       p.suggestions,
       p.onSuggestionSelect,
       p.showSuggestionsWhenEmpty,
-      p.maxSuggestions,
       p.openGallery,
       p.openUpload,
       p.textareaRef,

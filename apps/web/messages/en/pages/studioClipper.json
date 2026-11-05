@@ -121,18 +121,6 @@
       "interviewSoundbites": {
         "title": "Interview soundbites",
         "description": "Find the punchy one-liners and strong opinions in an interview."
-      },
-      "tutorialTips": {
-        "title": "Tutorial quick tips",
-        "description": "Cut a how-to into bite-sized tips that stand on their own."
-      },
-      "keynoteMoments": {
-        "title": "Talk and keynote moments",
-        "description": "Keep only the strongest stories and bold claims from a talk."
-      },
-      "avatarRemix": {
-        "title": "Avatar re-voice",
-        "description": "Re-tell each highlight with an AI avatar and voice. Needs avatar and voice defaults."
       }
     }
   },

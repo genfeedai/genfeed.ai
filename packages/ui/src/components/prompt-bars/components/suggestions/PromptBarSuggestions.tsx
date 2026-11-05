@@ -14,13 +14,19 @@ interface PromptBarSuggestionsProps {
   suggestions: PromptBarSuggestionItem[];
   onSuggestionSelect: (item: PromptBarSuggestionItem) => void;
   isDisabled?: boolean;
-  maxSuggestions?: number;
   className?: string;
   /** The suggestion shown as chosen (a ring, `aria-pressed`). Leave out when picking never sticks. */
   activeId?: string;
   /** `cards` = Codex-style tiles; `chips` = compact pills. */
   variant?: 'cards' | 'chips';
 }
+
+/**
+ * Every suggestion grid in the app, chips and cards alike, shows at most this
+ * many. Callers pass the brand's own suggestions first and a fallback after,
+ * and never choose a count.
+ */
+export const PROMPT_BAR_SUGGESTION_LIMIT = 3;
 
 const TOOLTIP_MAX_LENGTH = 160;
 
@@ -60,7 +66,6 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
   suggestions,
   onSuggestionSelect,
   isDisabled = false,
-  maxSuggestions = 3,
   className,
   activeId,
   variant = 'chips',
@@ -68,7 +73,7 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
   const [failedThumbnailIds, setFailedThumbnailIds] = useState<
     ReadonlySet<string>
   >(new Set());
-  const visibleSuggestions = suggestions.slice(0, maxSuggestions);
+  const visibleSuggestions = suggestions.slice(0, PROMPT_BAR_SUGGESTION_LIMIT);
 
   if (visibleSuggestions.length === 0) {
     return null;

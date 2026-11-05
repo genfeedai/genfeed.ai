@@ -1,12 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 
-export type MotionPresetId =
-  | 'kineticQuote'
-  | 'statCounter'
-  | 'lowerThird'
-  | 'featureCallouts'
-  | 'logoReveal'
-  | 'barChart';
+export type MotionPresetId = 'kineticQuote' | 'statCounter' | 'lowerThird';
 
 /** A compose-form starting point. Titles live in i18n by `id`. */
 export interface MotionPreset {

@@ -4,6 +4,7 @@ import { StudioProposalsService } from '@api/services/content-engine/studio-prop
 import {
   STUDIO_MEDIA_PROPOSALS_SCHEMA_NAME,
   STUDIO_STORYBOARD_PROPOSALS_SCHEMA_NAME,
+  STUDIO_TURBO_PROPOSALS_SCHEMA_NAME,
 } from '@genfeedai/contracts/api-types/contracts';
 import {
   ForbiddenException,
@@ -126,6 +127,39 @@ describe('StudioProposalsService', () => {
     expect(completeStructured.mock.calls[0][0].schemaName).toBe(
       STUDIO_STORYBOARD_PROPOSALS_SCHEMA_NAME,
     );
+  });
+
+  it('drafts Turbo idea angles with formats and a batch size', async () => {
+    const proposals = [
+      {
+        angle: 'Behind-the-scenes mornings at the studio, one tip per post.',
+        count: 6,
+        formats: ['image', 'video'],
+        title: 'Studio mornings',
+        why: 'Behind-the-scenes posts are your top performers.',
+      },
+    ];
+    completeStructured.mockResolvedValue({ proposals });
+
+    const result = await service.propose({ ...request, surface: 'turbo' });
+
+    expect(result).toEqual({ isBrandApproved: true, proposals, surface: 'turbo' });
+    expect(completeStructured.mock.calls[0][0].schemaName).toBe(
+      STUDIO_TURBO_PROPOSALS_SCHEMA_NAME,
+    );
+    expect(resolveBrief.mock.calls[0][0].contentType).toBe('post');
+  });
+
+  it('keeps the fallback Turbo starters for a brand without an approved Brand OS', async () => {
+    findApproved.mockResolvedValue(null);
+
+    await expect(
+      service.propose({ ...request, surface: 'turbo' }),
+    ).resolves.toEqual({
+      isBrandApproved: false,
+      proposals: [],
+      surface: 'turbo',
+    });
   });
 
   it('fails when the brand context cannot be assembled', async () => {

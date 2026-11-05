@@ -31,7 +31,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import SubscriptionRequiredState from '@/features/workflows/components/guards/subscription/SubscriptionRequiredState';
-import type { TurboPreset } from '@/features/workflows/props/turbo-presets.props';
+import type { TurboStarter } from '@/features/workflows/props/turbo-presets.props';
 import {
   createWorkflowApiService,
   type WorkflowSummary,
@@ -206,7 +206,7 @@ export default function TurboNewPane() {
       : isWorkflowEnabled &&
         !loading &&
         workflows.some((workflow) => workflow.id === workflowId));
-  function applyPreset(next: TurboPreset, title: string) {
+  function applyPreset(next: TurboStarter, title: string) {
     setPrompt(next.angle);
     setFormats(next.formats);
     setCount(next.count);
@@ -383,6 +383,7 @@ export default function TurboNewPane() {
               <>
                 <PromptBarCompactSelect
                   ariaLabel={t('sourceAria')}
+                  icon="source"
                   isDisabled={busy}
                   onChange={(next) => {
                     setKind(
@@ -410,6 +411,7 @@ export default function TurboNewPane() {
                   <>
                     <PromptBarCompactSelect
                       ariaLabel={t('formats')}
+                      icon="format"
                       isDisabled={busy}
                       onChange={(next) => {
                         const option = FORMAT_OPTIONS.find(
@@ -425,6 +427,7 @@ export default function TurboNewPane() {
                     />
                     <PromptBarCompactSelect
                       ariaLabel={t('ideaCount')}
+                      icon="count"
                       isDisabled={busy}
                       onChange={(next) => setCount(Number(next))}
                       options={COUNT_OPTIONS.map((option) => ({
@@ -437,6 +440,7 @@ export default function TurboNewPane() {
                 ) : isWorkflowEnabled && workflows.length > 0 ? (
                   <PromptBarCompactSelect
                     ariaLabel={t('workflow')}
+                    icon="workflow"
                     isDisabled={busy}
                     onChange={setWorkflowId}
                     options={workflows.map((workflow) => ({
@@ -466,6 +470,7 @@ export default function TurboNewPane() {
       <div className="flex flex-col gap-4">
         {isIdeas ? (
           <TurboPromptCards
+            brandId={brandId || undefined}
             isDisabled={busy || !isIdeasEnabled}
             onSelect={applyPreset}
           />

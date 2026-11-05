@@ -60,6 +60,7 @@ export default function RepliesReplyComposer({
           <>
             <PromptBarCompactSelect
               ariaLabel={translate('composer.intentLabel')}
+              icon="intent"
               isDisabled={isBusy}
               onChange={(value) => onIntentChange(value as ReplyIntent)}
               options={INTENT_VALUES.map((value) => ({

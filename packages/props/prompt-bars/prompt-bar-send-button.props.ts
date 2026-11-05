@@ -31,8 +31,26 @@ export interface PromptBarCompactSelectOption {
   value: string;
 }
 
+/** What a prompt-bar chip sets, so each concept wears one icon in every bar. */
+export type PromptBarChipIconKind =
+  | 'aspectRatio'
+  | 'count'
+  | 'duration'
+  | 'format'
+  | 'intent'
+  | 'model'
+  | 'output'
+  | 'source'
+  | 'workflow';
+
 export interface PromptBarCompactSelectProps {
   ariaLabel: string;
+  /**
+   * The setting the chip changes. Every chip shows its icon and its current
+   * value; a `source` chip (the mode that decides what the bar makes) also
+   * shows the chevron, like the Studio type chip.
+   */
+  icon: PromptBarChipIconKind;
   isDisabled?: boolean;
   onChange: (value: string) => void;
   options: ReadonlyArray<PromptBarCompactSelectOption>;

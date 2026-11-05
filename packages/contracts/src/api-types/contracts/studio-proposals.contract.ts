@@ -1,5 +1,5 @@
 /**
- * Agent-proposed Studio drafts (#7341). Playground and Storyboard open on
+ * Agent-proposed Studio drafts (#7341). Playground, Storyboard and Turbo open on
  * these, so a member can generate without typing a prompt. Each proposal
  * carries a short `why` grounded in the brand and its performance.
  */
@@ -10,6 +10,7 @@ export const STUDIO_PROPOSAL_SURFACES = [
   'image',
   'video',
   'storyboard',
+  'turbo',
 ] as const;
 export type StudioProposalSurface = (typeof STUDIO_PROPOSAL_SURFACES)[number];
 
@@ -42,6 +43,23 @@ export const studioStoryboardProposalSchema = z.object({
   why: z.string().min(1),
 });
 
+/** The Turbo idea projects the generator accepts; mirrors `TurboIdeaFormat`. */
+export const STUDIO_TURBO_PROPOSAL_FORMATS = [
+  'image',
+  'video',
+  'avatar',
+] as const;
+/** Turbo keeps at most this many characters of the creative angle. */
+export const STUDIO_TURBO_ANGLE_MAX_LENGTH = 300;
+
+export const studioTurboProposalSchema = z.object({
+  angle: z.string().min(1).max(STUDIO_TURBO_ANGLE_MAX_LENGTH),
+  count: z.number().int().min(3).max(18),
+  formats: z.array(z.enum(STUDIO_TURBO_PROPOSAL_FORMATS)).min(1).max(3),
+  title: z.string().min(1),
+  why: z.string().min(1),
+});
+
 export const studioMediaProposalGenerationSchema = z.object({
   proposals: z
     .array(studioMediaProposalSchema)
@@ -56,7 +74,15 @@ export const studioStoryboardProposalGenerationSchema = z.object({
     .max(STUDIO_PROPOSAL_MAX_COUNT),
 });
 
+export const studioTurboProposalGenerationSchema = z.object({
+  proposals: z
+    .array(studioTurboProposalSchema)
+    .min(1)
+    .max(STUDIO_PROPOSAL_MAX_COUNT),
+});
+
 export type StudioMediaProposal = z.infer<typeof studioMediaProposalSchema>;
+export type StudioTurboProposal = z.infer<typeof studioTurboProposalSchema>;
 export type StudioStoryboardProposal = z.infer<
   typeof studioStoryboardProposalSchema
 >;
@@ -64,6 +90,7 @@ export type StudioStoryboardProposal = z.infer<
 export const STUDIO_MEDIA_PROPOSALS_SCHEMA_NAME = 'studio_media_proposals';
 export const STUDIO_STORYBOARD_PROPOSALS_SCHEMA_NAME =
   'studio_storyboard_proposals';
+export const STUDIO_TURBO_PROPOSALS_SCHEMA_NAME = 'studio_turbo_proposals';
 
 /**
  * `isBrandApproved` false means the brand has no approved Brand OS: the
@@ -79,4 +106,9 @@ export type StudioProposalsResult =
       isBrandApproved: boolean;
       proposals: StudioStoryboardProposal[];
       surface: 'storyboard';
+    }
+  | {
+      isBrandApproved: boolean;
+      proposals: StudioTurboProposal[];
+      surface: 'turbo';
     };

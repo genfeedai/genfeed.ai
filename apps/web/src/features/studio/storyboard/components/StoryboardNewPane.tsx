@@ -29,10 +29,9 @@ import type {
   StoryboardPreset,
 } from '@/features/studio/props/storyboard-presets.props';
 import { resolveAgentPromptAuthor } from '@/features/studio/shared/utils/agent-prompt-author';
-import StoryboardAgentBriefs from '@/features/studio/storyboard/components/StoryboardAgentBriefs';
 import StoryboardPitchCards from '@/features/studio/storyboard/components/StoryboardPitchCards';
-import StoryboardPresetCards from '@/features/studio/storyboard/components/StoryboardPresetCards';
 import StoryboardReferencesPanel from '@/features/studio/storyboard/components/StoryboardReferencesPanel';
+import StoryboardStarterCards from '@/features/studio/storyboard/components/StoryboardStarterCards';
 import { STORYBOARD_PRESETS } from '@/features/studio/storyboard/data/storyboard-presets';
 import { useCreateStoryboard } from '@/features/studio/storyboard/hooks/use-create-storyboard';
 import { buildStoryboardAgentBrief } from '@/features/studio/storyboard/utils/storyboard-agent-brief';
@@ -311,6 +310,7 @@ export default function StoryboardNewPane() {
   const modeSelect = (
     <PromptBarCompactSelect
       ariaLabel={translate('sourceAria')}
+      icon="source"
       isDisabled={isCreating}
       options={[
         { label: translate('fromBrief'), value: 'brief' },
@@ -352,6 +352,7 @@ export default function StoryboardNewPane() {
               <>
                 <PromptBarCompactSelect
                   ariaLabel={translate('formatAria')}
+                  icon="aspectRatio"
                   isDisabled={isCreating}
                   options={formatOptions(formats)}
                   value={format}
@@ -362,6 +363,7 @@ export default function StoryboardNewPane() {
                 {isLongForm || isSlideshow ? null : (
                   <PromptBarCompactSelect
                     ariaLabel={translate('runtimeBudget')}
+                    icon="duration"
                     isDisabled={isCreating}
                     options={budgetOptions}
                     value={budget}
@@ -435,20 +437,15 @@ export default function StoryboardNewPane() {
         />
       </>
     ) : (
-      <>
-        <StoryboardAgentBriefs
-          brandId={brandId || undefined}
-          isDisabled={isCreating}
-          onSelect={applyAgentBrief}
-        />
-        <StoryboardPresetCards
-          activePresetId={
-            STORYBOARD_PRESETS.find((preset) => preset.brief === brief)?.id
-          }
-          isDisabled={isCreating}
-          onSelect={applyPreset}
-        />
-      </>
+      <StoryboardStarterCards
+        activePresetId={
+          STORYBOARD_PRESETS.find((preset) => preset.brief === brief)?.id
+        }
+        brandId={brandId || undefined}
+        isDisabled={isCreating}
+        onSelectBrief={applyAgentBrief}
+        onSelectPreset={applyPreset}
+      />
     );
   const referenceItems = [
     ...(mode === 'brief' && image

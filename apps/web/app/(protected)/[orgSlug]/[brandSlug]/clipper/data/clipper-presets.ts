@@ -1,11 +1,4 @@
-import {
-  GraduationCap,
-  Lightbulb,
-  Mic,
-  Presentation,
-  UserRound,
-  Users,
-} from 'lucide-react';
+import { Mic, Presentation, Users } from 'lucide-react';
 import type { ClipperPreset } from '@/features/clipper/props/clipper-presets.props';
 
 /**
@@ -34,27 +27,6 @@ export const CLIPPER_PRESETS: readonly ClipperPreset[] = [
     maxClips: 10,
     minViralityScore: 65,
     mode: 'raw-cut',
-  },
-  {
-    icon: GraduationCap,
-    id: 'tutorialTips',
-    maxClips: 5,
-    minViralityScore: 60,
-    mode: 'raw-cut',
-  },
-  {
-    icon: Lightbulb,
-    id: 'keynoteMoments',
-    maxClips: 6,
-    minViralityScore: 75,
-    mode: 'raw-cut',
-  },
-  {
-    icon: UserRound,
-    id: 'avatarRemix',
-    maxClips: 5,
-    minViralityScore: 70,
-    mode: 'avatar',
   },
 ];
 

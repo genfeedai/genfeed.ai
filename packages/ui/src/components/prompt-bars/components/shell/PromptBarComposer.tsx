@@ -28,7 +28,7 @@ export interface PromptBarComposerProps extends PromptBarShellProps {
  * notices step aside until the bar opens again.
  */
 const RESTING_BODY_CLASS = cn(
-  'flex items-center gap-2 py-1.5',
+  'flex items-center gap-2 p-1.5',
   '[&>*:not([data-prompt-editor]):not([data-prompt-bar-toolbar])]:hidden',
   '[&>[data-prompt-editor]]:min-w-0 [&>[data-prompt-editor]]:flex-1',
   '[&_.ProseMirror]:!min-h-8 [&_.ProseMirror]:!max-h-8 [&_.ProseMirror]:overflow-hidden [&_.ProseMirror]:whitespace-nowrap [&_.ProseMirror]:leading-8 [&_.ProseMirror]:!py-0',

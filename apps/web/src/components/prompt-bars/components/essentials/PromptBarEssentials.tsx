@@ -109,7 +109,6 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
   suggestions = [],
   onSuggestionSelect,
   showSuggestionsWhenEmpty = true,
-  maxSuggestions = 3,
   textareaRef: _textareaRef,
   textareaRegister: _textareaRegister,
   modelDropdownRef,
@@ -209,7 +208,6 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               suggestions={suggestions}
               onSuggestionSelect={handleSuggestionSelect}
               isDisabled={isDisabledState}
-              maxSuggestions={maxSuggestions}
             />
           </div>
         )}

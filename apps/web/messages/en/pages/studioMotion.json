@@ -86,18 +86,6 @@
       "lowerThird": {
         "title": "Lower-third title",
         "description": "A name and title that slide over a video and back out."
-      },
-      "featureCallouts": {
-        "title": "Feature callout reel",
-        "description": "Three feature cards that take turns, ending on a call to action."
-      },
-      "logoReveal": {
-        "title": "Logo reveal sting",
-        "description": "A short, crisp reveal that settles into a wordmark and tagline."
-      },
-      "barChart": {
-        "title": "Animated bar chart",
-        "description": "Five bars that grow in sequence, with the leader highlighted."
       }
     }
   }

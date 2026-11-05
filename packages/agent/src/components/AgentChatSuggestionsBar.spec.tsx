@@ -1,5 +1,5 @@
 import { AgentChatSuggestionsBar } from '@genfeedai/agent/components/AgentChatSuggestionsBar';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -48,7 +48,7 @@ describe('AgentChatSuggestionsBar', () => {
     const suggestions = screen.getByRole('toolbar', {
       name: 'Prompt suggestions',
     });
-    expect(suggestions).toHaveClass('grid-cols-2');
+    expect(suggestions).toHaveClass('grid-cols-3');
     const action = screen.getByRole('button', { name: 'Review selection' });
     expect(action).toHaveClass('rounded-card');
     expect(action.querySelector('.lucide-bot-message-square')).not.toBeNull();
@@ -100,7 +100,7 @@ describe('AgentChatSuggestionsBar', () => {
     );
   });
 
-  it('gives four new-conversation actions four columns only in a wide pane', () => {
+  it('keeps new-conversation actions in one row of three tiles, however many are passed', () => {
     render(
       <AgentChatSuggestionsBar
         isReadOnly={false}
@@ -109,13 +109,33 @@ describe('AgentChatSuggestionsBar', () => {
         suggestedActions={[
           ...suggestedActions,
           { label: 'About this page', prompt: 'Explain this page' },
-        ].slice(0, 4)}
+        ]}
       />,
     );
 
     const toolbar = screen.getByRole('toolbar', { name: 'Prompt suggestions' });
-    expect(toolbar).toHaveClass('@md:grid-cols-2', '@3xl:grid-cols-4');
-    expect(toolbar).not.toHaveClass('lg:grid-cols-4');
+    expect(toolbar).toHaveClass('@lg:grid-cols-3');
+    expect(toolbar).not.toHaveClass('@3xl:grid-cols-4');
     expect(toolbar.parentElement).toHaveClass('@container');
+  });
+
+  it('shows only three dock suggestions', () => {
+    render(
+      <AgentChatSuggestionsBar
+        isReadOnly={false}
+        layout="dock"
+        onSend={vi.fn()}
+        suggestedActions={[
+          ...suggestedActions,
+          { label: 'About this page', prompt: 'Explain this page' },
+        ]}
+      />,
+    );
+
+    expect(
+      within(
+        screen.getByRole('toolbar', { name: 'Prompt suggestions' }),
+      ).getAllByRole('button'),
+    ).toHaveLength(3);
   });
 });

@@ -4,10 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 export type ClipperPresetId =
   | 'podcastHighlights'
   | 'webinarSnippets'
-  | 'interviewSoundbites'
-  | 'tutorialTips'
-  | 'keynoteMoments'
-  | 'avatarRemix';
+  | 'interviewSoundbites';
 
 /** Starting settings for a new clip project. Titles live in i18n by `id`. */
 export interface ClipperPreset {

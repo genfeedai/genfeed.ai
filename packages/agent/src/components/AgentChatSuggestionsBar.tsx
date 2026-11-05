@@ -2,7 +2,9 @@ import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-ac
 import { CardGap, CardPadding } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
-import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
+import PromptBarSuggestions, {
+  PROMPT_BAR_SUGGESTION_LIMIT,
+} from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import { BotMessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useMemo } from 'react';
@@ -46,10 +48,10 @@ export function AgentChatSuggestionsBar({
     return (
       <div
         aria-label={translate('suggestionsAria')}
-        className="grid w-full min-w-0 grid-cols-2 gap-2"
+        className="grid w-full min-w-0 grid-cols-3 gap-2"
         role="toolbar"
       >
-        {normalized.slice(0, 4).map((action) => (
+        {normalized.slice(0, PROMPT_BAR_SUGGESTION_LIMIT).map((action) => (
           <Card
             key={action.id}
             aria-label={action.label}
@@ -97,7 +99,6 @@ export function AgentChatSuggestionsBar({
           onSend(action.prompt);
         }}
         isDisabled={isReadOnly}
-        maxSuggestions={4}
         variant={hasDescriptions || layout === 'equal' ? 'cards' : 'chips'}
         className={
           layout === 'equal'
@@ -105,11 +106,7 @@ export function AgentChatSuggestionsBar({
                 // `sm:` would put three tiles in a narrow pane on a wide
                 // screen; the container queries below own the columns.
                 'grid grid-cols-1 sm:grid-cols-1 [&>button]:w-full [&>button]:max-w-none',
-                // A fourth tile (the leading "About this page" action) gets
-                // its own column instead of orphaning onto a second row.
-                normalized.length > 3
-                  ? '@md:grid-cols-2 @3xl:grid-cols-4'
-                  : '@lg:grid-cols-3',
+                '@lg:grid-cols-3',
               )
             : undefined
         }

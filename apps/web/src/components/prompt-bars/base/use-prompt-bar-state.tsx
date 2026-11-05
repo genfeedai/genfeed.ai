@@ -103,7 +103,6 @@ type UsePromptBarStateParams = Pick<
   | 'suggestions'
   | 'onSuggestionSelect'
   | 'showSuggestionsWhenEmpty'
-  | 'maxSuggestions'
   | 'isDisabled'
   | 'extraExtensions'
   | 'onPromptDocumentChange'
@@ -153,7 +152,6 @@ export function usePromptBarState({
   suggestions,
   onSuggestionSelect,
   showSuggestionsWhenEmpty = true,
-  maxSuggestions = 3,
   extraExtensions,
   onPromptDocumentChange,
   onPrepareSubmit,
@@ -1098,7 +1096,6 @@ export function usePromptBarState({
     isSupported,
     isVoiceControlEnabled: settings?.isVoiceControlEnabled,
     maxReferenceCount,
-    maxSuggestions,
     modelDropdownRef,
     models,
     normalizedWatchedModels,

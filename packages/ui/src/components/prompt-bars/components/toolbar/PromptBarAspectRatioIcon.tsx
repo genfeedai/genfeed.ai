@@ -16,8 +16,11 @@ export function parseAspectRatio(
   return { height, width };
 }
 
-/** A frame in the shape of the ratio; `auto` (or anything unparsable) is a dashed square. */
-export default function GenerationSetupAspectRatioIcon({
+/**
+ * A frame in the shape of the ratio; `auto` (or anything unparsable) is a
+ * dashed square. The one ratio glyph on every prompt bar.
+ */
+export default function PromptBarAspectRatioIcon({
   className,
   ratio,
 }: {
