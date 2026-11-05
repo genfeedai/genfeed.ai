@@ -18,6 +18,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import {
   AnalyticsMetric,
   CredentialPlatform,
+  TargetExecutionState,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import type {
@@ -456,7 +457,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       FROM posts p
       INNER JOIN brands b ON b.id = p."brandId" AND b."organizationId" = p."organizationId" AND b."isDeleted" = false
       WHERE p."isDeleted" = false AND p.source = 'extension'
-        AND p."targetExecutionState" = 'PUBLISHED'
+        AND p."targetExecutionState" = ${TargetExecutionState.PUBLISHED}
         AND p."publishedAt" >= ${startDate} AND p."publishedAt" <= ${endDate}
         ${uncollectedScope}
         AND NOT EXISTS (

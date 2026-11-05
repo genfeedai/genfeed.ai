@@ -1,5 +1,5 @@
-import { NOTIFICATION_DELIVERY_STATUS } from '@api/services/notifications/workflow-notifications/workflow-notification.constants';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { NotificationDeliveryStatus } from '@genfeedai/contracts';
 import type { IChannelMessage } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
@@ -138,8 +138,8 @@ export async function writeNotificationOutbox(
       organizationId: event.organizationId,
       provider: delivery.provider,
       status: delivery.isDelivered
-        ? NOTIFICATION_DELIVERY_STATUS.DELIVERED
-        : NOTIFICATION_DELIVERY_STATUS.PENDING,
+        ? NotificationDeliveryStatus.DELIVERED
+        : NotificationDeliveryStatus.PENDING,
       topic: delivery.topic,
       userId: delivery.userId ?? null,
     };
@@ -165,7 +165,7 @@ export async function writeNotificationOutbox(
           }),
         );
     deliveryIds.push(row.id);
-    if (row.status === NOTIFICATION_DELIVERY_STATUS.PENDING) {
+    if (row.status === NotificationDeliveryStatus.PENDING) {
       pendingDeliveryIds.push(row.id);
     }
     if (

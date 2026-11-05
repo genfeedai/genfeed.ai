@@ -1,6 +1,7 @@
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   CreditReservationStatus,
+  PostProviderPublishReceiptStatus,
   TurboRunStatus,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
@@ -16,7 +17,10 @@ import { ConflictException } from '@nestjs/common';
  * look that state up in the wrong tenant.
  */
 
-const UNRESOLVED_PUBLISH_RECEIPT_STATUSES = ['attempting', 'uncertain'];
+const UNRESOLVED_PUBLISH_RECEIPT_STATUSES = [
+  PostProviderPublishReceiptStatus.ATTEMPTING,
+  PostProviderPublishReceiptStatus.UNCERTAIN,
+];
 const UNFINISHED_CONTINUATION_STATUSES = [
   WorkflowNodeContinuationStatus.COMPLETED,
   WorkflowNodeContinuationStatus.FAILED,

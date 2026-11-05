@@ -28,6 +28,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   ContentIntelligencePlatform,
   CredentialPlatform,
+  TargetExecutionState,
 } from '@genfeedai/contracts';
 import { isPublishApprovalRequired } from '@genfeedai/contracts/constants';
 import type { IBrandAgentAutoPublish } from '@genfeedai/contracts/interfaces';
@@ -281,7 +282,7 @@ export class DailyPublishingService implements OnModuleInit {
         credentialId: state.credentialId,
         isDeleted: false,
         isAnalyticsEnabled: true,
-        targetExecutionState: 'published',
+        targetExecutionState: TargetExecutionState.PUBLISHED,
         externalId: { not: null },
         publishedAt: { gte: new Date(Date.now() - 30 * 86400000) },
       },
@@ -457,7 +458,12 @@ export class DailyPublishingService implements OnModuleInit {
         credentialId: scope.credentialId,
         isDeleted: false,
         date: { gte: new Date(Date.now() - 30 * 86400000) },
-        post: { is: { ...scope, targetExecutionState: 'published' } },
+        post: {
+          is: {
+            ...scope,
+            targetExecutionState: TargetExecutionState.PUBLISHED,
+          },
+        },
       },
       orderBy: [{ engagementRate: 'desc' }, { date: 'desc' }],
       take: 20,
@@ -509,7 +515,7 @@ export class DailyPublishingService implements OnModuleInit {
         targetIdempotencyKey: state.slotKey,
         scheduleSlot: state.slotKey,
         timezone: state.request.timezone ?? 'UTC',
-        targetExecutionState: 'draft',
+        targetExecutionState: TargetExecutionState.DRAFT,
         status: 'draft',
       },
     });

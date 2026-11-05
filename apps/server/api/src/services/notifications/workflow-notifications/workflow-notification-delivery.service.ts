@@ -9,7 +9,6 @@ import {
   AGENT_STATUS_NOTIFICATION_TOPIC,
   type AgentReviewNotificationPayload,
   EMAIL_NOTIFICATION_CHANNEL,
-  NOTIFICATION_DELIVERY_STATUS,
   readNotificationSourcePath,
   WORKFLOW_STATUS_NOTIFICATION_TOPIC,
   type WorkflowStatusNotificationPayload,
@@ -21,6 +20,7 @@ import {
   ActivityKey,
   AgentFailureReason,
   MemberRole,
+  NotificationDeliveryStatus,
 } from '@genfeedai/contracts';
 import {
   CHANNEL_MESSAGE_TYPES,
@@ -84,7 +84,7 @@ export class WorkflowNotificationDeliveryService {
       data: {
         attemptCount: { increment: 1 },
         lockedAt: now,
-        status: NOTIFICATION_DELIVERY_STATUS.PROCESSING,
+        status: NotificationDeliveryStatus.PROCESSING,
       },
       where: {
         id: deliveryId,
@@ -94,14 +94,14 @@ export class WorkflowNotificationDeliveryService {
             nextAttemptAt: { lte: now },
             status: {
               in: [
-                NOTIFICATION_DELIVERY_STATUS.PENDING,
-                NOTIFICATION_DELIVERY_STATUS.RETRY_PENDING,
+                NotificationDeliveryStatus.PENDING,
+                NotificationDeliveryStatus.RETRY_PENDING,
               ],
             },
           },
           {
             lockedAt: { lte: leaseExpiredAt },
-            status: NOTIFICATION_DELIVERY_STATUS.PROCESSING,
+            status: NotificationDeliveryStatus.PROCESSING,
           },
         ],
       },
@@ -452,14 +452,14 @@ export class WorkflowNotificationDeliveryService {
             nextAttemptAt: { lte: now },
             status: {
               in: [
-                NOTIFICATION_DELIVERY_STATUS.PENDING,
-                NOTIFICATION_DELIVERY_STATUS.RETRY_PENDING,
+                NotificationDeliveryStatus.PENDING,
+                NotificationDeliveryStatus.RETRY_PENDING,
               ],
             },
           },
           {
             lockedAt: { lte: leaseExpiredAt },
-            status: NOTIFICATION_DELIVERY_STATUS.PROCESSING,
+            status: NotificationDeliveryStatus.PROCESSING,
           },
         ],
       },
@@ -500,7 +500,7 @@ export class WorkflowNotificationDeliveryService {
         lastError: null,
         lockedAt: null,
         providerMessageId,
-        status: NOTIFICATION_DELIVERY_STATUS.DELIVERED,
+        status: NotificationDeliveryStatus.DELIVERED,
       },
       where: { id: deliveryId, isDeleted: false, organizationId },
     });
@@ -516,7 +516,7 @@ export class WorkflowNotificationDeliveryService {
         lastError: reason,
         lockedAt: null,
         skippedAt: new Date(),
-        status: NOTIFICATION_DELIVERY_STATUS.SKIPPED,
+        status: NotificationDeliveryStatus.SKIPPED,
       },
       where: { id: deliveryId, isDeleted: false, organizationId },
     });
@@ -531,7 +531,7 @@ export class WorkflowNotificationDeliveryService {
       data: {
         lastError: reason,
         lockedAt: null,
-        status: NOTIFICATION_DELIVERY_STATUS.FAILED,
+        status: NotificationDeliveryStatus.FAILED,
       },
       where: { id: deliveryId, isDeleted: false, organizationId },
     });
@@ -556,8 +556,8 @@ export class WorkflowNotificationDeliveryService {
         lockedAt: null,
         nextAttemptAt: new Date(Date.now() + backoffMs),
         status: isExhausted
-          ? NOTIFICATION_DELIVERY_STATUS.FAILED
-          : NOTIFICATION_DELIVERY_STATUS.RETRY_PENDING,
+          ? NotificationDeliveryStatus.FAILED
+          : NotificationDeliveryStatus.RETRY_PENDING,
       },
       where: { id: deliveryId, isDeleted: false, organizationId },
     });

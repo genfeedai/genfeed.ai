@@ -31,7 +31,7 @@ describe.skipIf(!connectionString)(
       CREATE TEMP TABLE brands (id text, "organizationId" text, "isDeleted" boolean DEFAULT false, label text);
       CREATE TEMP TABLE posts (
         id text, "organizationId" text, "brandId" text, "isDeleted" boolean DEFAULT false, platform text,
-        "publishedAt" timestamp, "targetExecutionState" text DEFAULT 'PUBLISHED', "isAnalyticsEnabled" boolean,
+        "publishedAt" timestamp, "targetExecutionState" text DEFAULT 'published', "isAnalyticsEnabled" boolean,
         source text, label text, description text, visibility text, "entityIngredientId" text
       );
       CREATE TEMP TABLE ingredients (id text, "organizationId" text, "isDeleted" boolean, category text);
