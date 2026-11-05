@@ -209,8 +209,10 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
       await result.current.handleToggleSchedule('wf-1', true);
     });
 
-    const wf = result.current.workflows.find((w) => w.id === 'wf-1');
-    expect(wf?.nextRunAt).toBe('2099-01-01T09:00:00.000Z');
+    await waitFor(() => {
+      const wf = result.current.workflows.find((w) => w.id === 'wf-1');
+      expect(wf?.nextRunAt).toBe('2099-01-01T09:00:00.000Z');
+    });
   });
 
   it('applies an optimistic update before the API resolves', async () => {
@@ -314,7 +316,9 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
       schedule: '0 8 * * *',
       timezone: 'UTC',
     });
-    expect(result.current.workflows[0]?.isScheduleEnabled).toBe(false);
+    await waitFor(() => {
+      expect(result.current.workflows[0]?.isScheduleEnabled).toBe(false);
+    });
   });
 
   it('disables schedules for every selected workflow that has a cadence', async () => {
@@ -369,11 +373,13 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
       });
     });
 
-    const wf = result.current.workflows.find((w) => w.id === 'wf-2');
-    expect(wf?.schedule).toBe('0 9 * * *');
-    expect(wf?.timezone).toBe('Europe/Paris');
-    expect(wf?.isScheduleEnabled).toBe(true);
-    expect(wf?.nextRunAt).toBe('2099-01-01T09:00:00.000Z');
+    await waitFor(() => {
+      const wf = result.current.workflows.find((w) => w.id === 'wf-2');
+      expect(wf?.schedule).toBe('0 9 * * *');
+      expect(wf?.timezone).toBe('Europe/Paris');
+      expect(wf?.isScheduleEnabled).toBe(true);
+      expect(wf?.nextRunAt).toBe('2099-01-01T09:00:00.000Z');
+    });
   });
 });
 
