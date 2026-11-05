@@ -217,6 +217,7 @@
     "collection": {
       "all": "All",
       "needsYou": "Needs you",
+      "notScheduled": "Not scheduled",
       "open": "Open",
       "retry": "Retry",
       "retryFailed": "Could not retry this post. Please try again.",

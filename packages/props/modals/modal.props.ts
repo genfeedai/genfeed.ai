@@ -159,6 +159,11 @@ export interface ModalProps {
   onClose?: () => void;
   modalBoxClassName?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  /**
+   * Off when the children own their scroll region (a fixed header and footer
+   * around one scrolling body). Leaving it on there nests two scrollbars.
+   */
+  isBodyScrollable?: boolean;
 }
 
 export interface ModalStoryboardUploadProps {

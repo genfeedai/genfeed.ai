@@ -32,6 +32,7 @@ export interface PublishingContentLibraryItem {
   channels?: string[];
   format?: PublishingContentFormat;
   release?: IReleaseGroup;
+  publishedAt?: string | null;
   scheduledAt?: string | null;
   channel: string;
   createdAt: string;
@@ -198,6 +199,7 @@ export function createPublishingContentLibraryItems({
       ),
       createdAt: release.createdAt,
       id: release.id,
+      publishedAt: release.publishedAt ?? null,
       release,
       scheduledAt: release.scheduledAt,
       status: normalizedStatus(release.status),
@@ -221,6 +223,9 @@ export function createPublishingContentLibraryItems({
       createdAt: post.createdAt,
       format: resolvePostFormat(post),
       id: post.id,
+      publishedAt: post.publishedAt
+        ? new Date(post.publishedAt).toISOString()
+        : null,
       scheduledAt: post.scheduledDate
         ? new Date(post.scheduledDate).toISOString()
         : null,

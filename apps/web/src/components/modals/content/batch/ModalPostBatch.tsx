@@ -74,8 +74,11 @@ export default function ModalPostBatch(props: ModalPostBatchProps) {
       onClose={() => setError(null)}
       accessibleTitle="Schedule post"
       size="md"
+      isBodyScrollable={false}
     >
-      <div className="h-full flex flex-col overflow-hidden">
+      {/* One scroll region: alerts, step header and footer stay put and only
+          the step body scrolls. */}
+      <div className="flex min-h-0 flex-1 flex-col">
         <ModalPostBatchEmptyState
           ingredient={ingredient}
           credentials={credentials}
@@ -89,15 +92,17 @@ export default function ModalPostBatch(props: ModalPostBatchProps) {
         credentials &&
         credentials?.length > 0 &&
         hasAvailableCredentials ? (
-          <div className="flex h-full flex-col overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col">
             {activeTab === 'results' ? (
-              <ModalPostBatchResultsView
-                platformStatuses={platformStatuses}
-                onClose={closeModalPost}
-              />
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <ModalPostBatchResultsView
+                  platformStatuses={platformStatuses}
+                  onClose={closeModalPost}
+                />
+              </div>
             ) : (
               <Form
-                className="flex h-full min-h-0 flex-col"
+                className="flex min-h-0 flex-1 flex-col"
                 ref={formRef}
                 onSubmit={handleFormSubmit}
               >

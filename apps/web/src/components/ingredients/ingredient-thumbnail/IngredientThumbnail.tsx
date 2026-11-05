@@ -10,6 +10,7 @@ import {
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { ImageOff } from 'lucide-react';
 import Image from 'next/image';
+import { useState } from 'react';
 import type { IngredientThumbnailProps } from '@/props/content/ingredient.props';
 
 /** An image shown through the media grant the API issues, with a placeholder instead of a broken image. */
@@ -29,8 +30,11 @@ export default function IngredientThumbnail({
       ? grant.url
       : undefined
     : getIngredientPreviewUrl(ingredient);
+  // A URL can resolve and still fail to load (a video file, an expired grant);
+  // the browser would then print the alt text in place of the image.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
-  if (!src) {
+  if (!src || failedSrc === src) {
     return (
       <SimpleTooltip label={title}>
         <span
@@ -54,6 +58,7 @@ export default function IngredientThumbnail({
       alt={alt}
       className={className}
       data-testid={testId}
+      onError={() => setFailedSrc(src)}
       src={src}
       title={title}
       unoptimized={!canOptimizeImageSource(src)}
