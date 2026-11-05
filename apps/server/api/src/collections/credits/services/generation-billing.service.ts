@@ -567,7 +567,8 @@ export class GenerationBillingService {
     organizationId: string,
     reason: 'release' | 'expiry' = 'release',
   ): Promise<GenerationReleaseOutcome> {
-    return this.terminal.track(ingredientId, organizationId, 'released', () =>
+    const outcome = reason === 'expiry' ? 'expired' : 'released';
+    return this.terminal.track(ingredientId, organizationId, outcome, () =>
       this.releaseHold(ingredientId, organizationId, reason),
     );
   }

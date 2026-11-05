@@ -67,6 +67,7 @@ describe('PlatformSchedulesProcessor', () => {
     reconcileContinuations: handler(),
     reconcilePendingExecutions: handler(),
     recoverWorkspaceTaskRollups: handler(),
+    recoverAgentTransfers: handler(),
   };
   const crun = { reconcile: handler(), synchronizeContracts: handler() };
   const logger = { debug: vi.fn() };
@@ -228,6 +229,10 @@ describe('PlatformSchedulesProcessor', () => {
       [
         PLATFORM_SCHEDULED_TASKS.WORKSPACE_TASK_ROLLUP_RECOVERY,
         workflowSchedules.recoverWorkspaceTaskRollups,
+      ],
+      [
+        PLATFORM_SCHEDULED_TASKS.AGENT_TRANSFER_RECOVERY,
+        workflowSchedules.recoverAgentTransfers,
       ],
       [
         PLATFORM_SCHEDULED_TASKS.X_REPLY_WATCH,

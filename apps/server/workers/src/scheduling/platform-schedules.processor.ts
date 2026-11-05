@@ -188,6 +188,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.workflowSchedules.reconcileContinuations(),
       [PLATFORM_SCHEDULED_TASKS.WORKSPACE_TASK_ROLLUP_RECOVERY]: () =>
         this.workflowSchedules.recoverWorkspaceTaskRollups(),
+      [PLATFORM_SCHEDULED_TASKS.AGENT_TRANSFER_RECOVERY]: () =>
+        this.workflowSchedules.recoverAgentTransfers(),
       [PLATFORM_SCHEDULED_TASKS.X_REPLY_WATCH]: () =>
         this.xReplyWatch.watchRecentPostReplies(),
       [PLATFORM_SCHEDULED_TASKS.EXTERNAL_VOICE_CATALOG_SYNC]: () =>

@@ -3,13 +3,13 @@ import {
   classifyMediaOutput,
   MEDIA_RENDER_FAILED_REASON,
   readIngredientOutputIds,
+  recoverStalledAgentTransfers,
   settleAgentTransferFromExecution,
   settleAgentTransferMediaOutput,
 } from '@api/collections/agent-transfers/services/agent-transfer-settlement.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentTransferStatus,
-  CreditReservationStatus,
   IngredientStatus,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
@@ -35,45 +35,20 @@ const POST_REF = {
 
 describe('classifyMediaOutput', () => {
   it.each([
-    [IngredientStatus.GENERATED, undefined, undefined, 'done'],
-    [IngredientStatus.VALIDATED, undefined, undefined, 'done'],
-    [IngredientStatus.FAILED, undefined, undefined, 'failed'],
-    [IngredientStatus.REJECTED, undefined, 'settled', 'failed'],
-    [IngredientStatus.GENERATED, undefined, 'released', 'done'],
-    [IngredientStatus.PROCESSING, undefined, undefined, 'pending'],
-    [IngredientStatus.PROCESSING, undefined, 'released', 'failed'],
-    [IngredientStatus.PROCESSING, undefined, 'settled', 'done'],
-    [
-      IngredientStatus.PROCESSING,
-      CreditReservationStatus.RELEASED,
-      undefined,
-      'failed',
-    ],
-    [
-      IngredientStatus.PROCESSING,
-      CreditReservationStatus.EXPIRED,
-      undefined,
-      'failed',
-    ],
-    [
-      IngredientStatus.PROCESSING,
-      CreditReservationStatus.SETTLED,
-      undefined,
-      'done',
-    ],
-    [
-      IngredientStatus.PROCESSING,
-      CreditReservationStatus.RESERVED,
-      undefined,
-      'pending',
-    ],
-    [undefined, undefined, undefined, 'failed'],
+    [IngredientStatus.GENERATED, undefined, 'done'],
+    [IngredientStatus.VALIDATED, undefined, 'done'],
+    [IngredientStatus.FAILED, undefined, 'failed'],
+    [IngredientStatus.REJECTED, 'settled', 'failed'],
+    [IngredientStatus.GENERATED, 'released', 'done'],
+    [IngredientStatus.PROCESSING, undefined, 'pending'],
+    [IngredientStatus.PROCESSING, 'released', 'failed'],
+    [IngredientStatus.PROCESSING, 'settled', 'done'],
+    [IngredientStatus.PROCESSING, 'expired', 'pending'],
+    [undefined, undefined, 'failed'],
   ] as const)(
-    'reads %s (hold %s, signal %s) as %s',
-    (ingredientStatus, reservationStatus, signal, expected) => {
-      expect(
-        classifyMediaOutput({ ingredientStatus, reservationStatus, signal }),
-      ).toBe(expected);
+    'reads %s (signal %s) as %s',
+    (ingredientStatus, signal, expected) => {
+      expect(classifyMediaOutput({ ingredientStatus, signal })).toBe(expected);
     },
   );
 });
@@ -102,6 +77,7 @@ describe('applyMediaOutcomes', () => {
         status: AgentTransferStatus.COMPLETED,
       }),
     ).toEqual({
+      droppedRenders: 1,
       failureReason: null,
       outputs: [ingredientRef('image-1')],
       status: AgentTransferStatus.COMPLETED,
@@ -117,6 +93,7 @@ describe('applyMediaOutcomes', () => {
         status: AgentTransferStatus.COMPLETED,
       }),
     ).toEqual({
+      droppedRenders: 1,
       failureReason: MEDIA_RENDER_FAILED_REASON,
       outputs: [],
       status: AgentTransferStatus.FAILED,
@@ -132,6 +109,7 @@ describe('applyMediaOutcomes', () => {
         status: AgentTransferStatus.COMPLETED,
       }),
     ).toEqual({
+      droppedRenders: 0,
       failureReason: null,
       outputs: [],
       status: AgentTransferStatus.COMPLETED,
@@ -162,8 +140,10 @@ interface FakeMessage {
  * assert the transfer and the master's note rather than the calls made.
  */
 function createStore(input: {
+  executionCompletedAt?: Date;
   executionStatus?: WorkflowExecutionStatus;
   ingredients: Record<string, IngredientStatus>;
+  outputs?: unknown[];
 }) {
   const transfer: FakeTransfer = {
     completedAt: null,
@@ -198,26 +178,42 @@ function createStore(input: {
         where,
       }: {
         where: {
-          outputArtifactReferences: {
+          id?: { gt: string };
+          outputArtifactReferences?: {
             array_contains: Array<{ recordId: string }>;
           };
-          status: AgentTransferStatus;
+          status: AgentTransferStatus | { in: AgentTransferStatus[] };
         };
       }) => {
-        const wanted = where.outputArtifactReferences.array_contains[0];
-        const listed = transfer.outputArtifactReferences.some(
-          (item) => (item as { recordId: string }).recordId === wanted.recordId,
-        );
-        return transfer.status === where.status && listed ? [transfer] : [];
+        const wanted = where.outputArtifactReferences?.array_contains[0];
+        const isListed =
+          !wanted ||
+          transfer.outputArtifactReferences.some(
+            (item) =>
+              (item as { recordId: string }).recordId === wanted.recordId,
+          );
+        const statuses =
+          typeof where.status === 'string' ? [where.status] : where.status.in;
+        return !where.id && statuses.includes(transfer.status) && isListed
+          ? [transfer]
+          : [];
       },
       updateMany: async ({
         data,
         where,
       }: {
         data: Partial<FakeTransfer>;
-        where: { status: { in: AgentTransferStatus[] } };
+        where: {
+          destinationExecutionId: string;
+          id: string;
+          status: { in: AgentTransferStatus[] };
+        };
       }) => {
-        if (!where.status.in.includes(transfer.status)) {
+        if (
+          where.id !== transfer.id ||
+          where.destinationExecutionId !== transfer.destinationExecutionId ||
+          !where.status.in.includes(transfer.status)
+        ) {
           return { count: 0 };
         }
         Object.assign(transfer, data);
@@ -233,17 +229,24 @@ function createStore(input: {
     },
     workflowExecution: {
       findFirst: async () => ({
+        ...completedExecution(input.outputs ?? []),
+        completedAt: input.executionCompletedAt ?? COMPLETED_AT,
         status: input.executionStatus ?? WorkflowExecutionStatus.COMPLETED,
       }),
     },
   } as unknown as PrismaService;
+  Object.assign(prisma, {
+    $transaction: (run: (tx: PrismaService) => Promise<unknown>) => run(prisma),
+  });
 
   return { ingredients, messages, prisma, transfer };
 }
 
+const COMPLETED_AT = new Date('2026-11-05T10:00:00Z');
+
 function completedExecution(outputs: unknown[]) {
   return {
-    completedAt: new Date('2026-11-05T10:00:00Z'),
+    completedAt: COMPLETED_AT,
     error: null,
     id: 'execution-1',
     progress: 100,
@@ -382,5 +385,120 @@ describe('settling a hand-off whose media is still rendering', () => {
     ).toBe(0);
     expect(store.transfer.status).toBe(AgentTransferStatus.RUNNING);
     expect(store.messages).toEqual([]);
+  });
+
+  it('ignores a settle from a superseded execution after a retry', async () => {
+    const store = createStore({
+      ingredients: { 'video-1': IngredientStatus.GENERATED },
+    });
+    store.transfer.destinationExecutionId = 'execution-2';
+
+    expect(
+      await settleAgentTransferFromExecution(store.prisma, {
+        execution: completedExecution([ingredientRef('video-1')]),
+        organizationId: ORG,
+        transferId: 'transfer-1',
+      }),
+    ).toBe(false);
+    expect(store.transfer.status).toBe(AgentTransferStatus.QUEUED);
+    expect(store.messages).toEqual([]);
+  });
+
+  it('tells the master when some renders were left out', async () => {
+    const store = createStore({
+      ingredients: {
+        'image-1': IngredientStatus.GENERATED,
+        'video-1': IngredientStatus.FAILED,
+      },
+    });
+
+    await settleAgentTransferFromExecution(store.prisma, {
+      execution: completedExecution([
+        ingredientRef('image-1'),
+        ingredientRef('video-1'),
+      ]),
+      organizationId: ORG,
+      transferId: 'transfer-1',
+    });
+
+    expect(store.messages[0].content).toBe(
+      'Hero video finished.\n\nMade a 9:16 video.\n\n1 render failed and was left out of its outputs.',
+    );
+    expect(store.messages[0].metadata.agentTransferResult).toMatchObject({
+      droppedRenderCount: 1,
+      outputArtifactReferences: [ingredientRef('image-1')],
+    });
+  });
+
+  it('keeps waiting when a hold only expired', async () => {
+    const store = createStore({
+      ingredients: { 'video-1': IngredientStatus.PROCESSING },
+    });
+
+    await settleAgentTransferFromExecution(store.prisma, {
+      execution: completedExecution([ingredientRef('video-1')]),
+      organizationId: ORG,
+      transferId: 'transfer-1',
+    });
+    await settleAgentTransferMediaOutput(store.prisma, {
+      ingredientId: 'video-1',
+      organizationId: ORG,
+      outcome: 'expired',
+    });
+
+    expect(store.transfer.status).toBe(AgentTransferStatus.RUNNING);
+    expect(store.messages).toEqual([]);
+  });
+});
+
+describe('recovering a stalled hand-off', () => {
+  const NOW = new Date('2026-11-05T10:10:00Z');
+
+  it('finishes a hand-off whose render ended without telling it', async () => {
+    const store = createStore({
+      ingredients: { 'video-1': IngredientStatus.PROCESSING },
+      outputs: [ingredientRef('video-1')],
+    });
+    await settleAgentTransferFromExecution(store.prisma, {
+      execution: completedExecution([ingredientRef('video-1')]),
+      organizationId: ORG,
+      transferId: 'transfer-1',
+    });
+    store.ingredients['video-1'] = IngredientStatus.GENERATED;
+
+    expect(
+      await recoverStalledAgentTransfers(store.prisma, { now: NOW }),
+    ).toEqual({ failed: 0, recovered: 1 });
+    expect(store.transfer.status).toBe(AgentTransferStatus.COMPLETED);
+    expect(store.messages).toHaveLength(1);
+  });
+
+  it('leaves a render that is still within its wait alone', async () => {
+    const store = createStore({
+      ingredients: { 'video-1': IngredientStatus.PROCESSING },
+      outputs: [ingredientRef('video-1')],
+    });
+    store.transfer.status = AgentTransferStatus.RUNNING;
+
+    expect(
+      await recoverStalledAgentTransfers(store.prisma, { now: NOW }),
+    ).toEqual({ failed: 0, recovered: 0 });
+    expect(store.transfer.status).toBe(AgentTransferStatus.RUNNING);
+  });
+
+  it('gives up on a render still running past the hold lifetime', async () => {
+    const store = createStore({
+      executionCompletedAt: new Date('2026-11-05T07:00:00Z'),
+      ingredients: { 'video-1': IngredientStatus.PROCESSING },
+      outputs: [ingredientRef('video-1')],
+    });
+    store.transfer.status = AgentTransferStatus.RUNNING;
+
+    await recoverStalledAgentTransfers(store.prisma, { now: NOW });
+
+    expect(store.transfer).toMatchObject({
+      failureReason: MEDIA_RENDER_FAILED_REASON,
+      status: AgentTransferStatus.FAILED,
+    });
   });
 });

@@ -2,6 +2,7 @@ import {
   type AgentStrategyDueConfig,
   isAgentStrategyDue,
 } from '@api/collections/agent-strategies/services/agent-strategy-due.util';
+import { recoverStalledAgentTransfers } from '@api/collections/agent-transfers/services/agent-transfer-settlement.util';
 import { PLATFORM_WORKFLOW_SCHEDULE_SOURCE } from '@api/collections/workflows/system-workflow-definition';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tokens';
@@ -96,6 +97,25 @@ export class PlatformWorkflowSchedulesService {
     const recovered = await this.taskOrchestrator.recoverStalledRollups();
     if (recovered > 0) {
       this.logger.log('Recovered stalled workspace task rollups', {
+        recovered,
+      });
+    }
+  }
+
+  async recoverAgentTransfers(): Promise<void> {
+    const { failed, recovered } = await recoverStalledAgentTransfers(
+      this.prisma,
+      {
+        onError: (error, transferId) =>
+          this.logger.error('Agent transfer recovery failed', {
+            error,
+            transferId,
+          }),
+      },
+    );
+    if (recovered > 0 || failed > 0) {
+      this.logger.log('Recovered stalled agent transfers', {
+        failed,
         recovered,
       });
     }

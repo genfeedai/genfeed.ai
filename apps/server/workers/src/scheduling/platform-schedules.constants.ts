@@ -65,6 +65,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   WORKFLOW_ARTIFACT_CLEANUP: 'workflow-artifact-cleanup',
   WORKFLOW_CONTINUATION_RECONCILE: 'workflow-continuation-reconcile',
   WORKSPACE_TASK_ROLLUP_RECOVERY: 'workspace-task-rollup-recovery',
+  AGENT_TRANSFER_RECOVERY: 'agent-transfer-recovery',
   X_REPLY_WATCH: 'x-reply-watch',
   EXTERNAL_VOICE_CATALOG_SYNC: 'external-voice-catalog-sync',
   YOUTUBE_MESSAGES: 'youtube-messages',
@@ -275,6 +276,12 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   // or whose lease holder failed; the 10-minute lease is the retry backoff.
   [PLATFORM_SCHEDULED_TASKS.WORKSPACE_TASK_ROLLUP_RECOVERY]: {
     pattern: '*/2 * * * *',
+    timezone: 'UTC',
+  },
+  // Durable backstop for agent hand-offs whose child stopped but whose result
+  // never reached the master (a lost event, or a render that never reported).
+  [PLATFORM_SCHEDULED_TASKS.AGENT_TRANSFER_RECOVERY]: {
+    pattern: '*/5 * * * *',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.X_REPLY_WATCH]: {

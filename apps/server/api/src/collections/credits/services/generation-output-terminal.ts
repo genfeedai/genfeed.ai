@@ -24,7 +24,8 @@ export class GenerationOutputTerminal {
     outcome: GenerationOutputTerminalEvent['outcome'],
     step: () => Promise<T>,
   ): Promise<T> {
-    void this.receipts?.syncTerminal(organizationId, ingredientId, outcome);
+    const signal = outcome === 'settled' ? 'settled' : 'released';
+    void this.receipts?.syncTerminal(organizationId, ingredientId, signal);
     try {
       return await step();
     } finally {
