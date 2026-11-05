@@ -168,8 +168,8 @@ describe('useIngredientsList', () => {
   });
 
   it('returns basic state values', () => {
-    const { result } = renderHook(() =>
-      useIngredientsList({ scope: PageScope.BRAND, type: 'videos' }),
+    const { result } = renderHook(
+      () => useIngredientsList({ scope: PageScope.BRAND, type: 'videos' }),
       { wrapper: queryClientWrapper() },
     );
 
@@ -180,8 +180,8 @@ describe('useIngredientsList', () => {
   });
 
   it('clears filters via context setter', () => {
-    const { result } = renderHook(() =>
-      useIngredientsList({ scope: PageScope.BRAND, type: 'videos' }),
+    const { result } = renderHook(
+      () => useIngredientsList({ scope: PageScope.BRAND, type: 'videos' }),
       { wrapper: queryClientWrapper() },
     );
 
@@ -199,8 +199,8 @@ describe('useIngredientsList', () => {
   });
 
   it('clears selected ingredient ids', () => {
-    const { result } = renderHook(() =>
-      useIngredientsList({ scope: PageScope.BRAND, type: 'videos' }),
+    const { result } = renderHook(
+      () => useIngredientsList({ scope: PageScope.BRAND, type: 'videos' }),
       { wrapper: queryClientWrapper() },
     );
 
@@ -216,8 +216,8 @@ describe('useIngredientsList', () => {
   });
 
   it('opens lightbox returns false when ingredient not in media list', () => {
-    const { result } = renderHook(() =>
-      useIngredientsList({ scope: PageScope.BRAND, type: 'videos' }),
+    const { result } = renderHook(
+      () => useIngredientsList({ scope: PageScope.BRAND, type: 'videos' }),
       { wrapper: queryClientWrapper() },
     );
 

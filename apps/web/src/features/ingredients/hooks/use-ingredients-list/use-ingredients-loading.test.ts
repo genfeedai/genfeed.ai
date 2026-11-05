@@ -1,14 +1,14 @@
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
   IngredientCategory,
   LibraryShelf,
   PageScope,
 } from '@genfeedai/contracts';
 import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import {
-  createTestQueryClient,
-  queryClientWrapper,
-} from '@app-tests/query-client.harness';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { useIngredientsLoading } from '@/features/ingredients/hooks/use-ingredients-list/use-ingredients-loading';
@@ -140,7 +140,9 @@ describe('useIngredientsLoading', () => {
   });
 
   it('returns required fields', () => {
-    const { result } = renderHook(() => useIngredientsLoading(baseProps), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useIngredientsLoading(baseProps), {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(result.current).toHaveProperty('ingredients');
     expect(result.current).toHaveProperty('isLoading');
@@ -173,24 +175,32 @@ describe('useIngredientsLoading', () => {
   });
 
   it('initializes with empty ingredients and folders', () => {
-    const { result } = renderHook(() => useIngredientsLoading(baseProps), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useIngredientsLoading(baseProps), {
+      wrapper: queryClientWrapper(),
+    });
     expect(result.current.ingredients).toEqual([]);
     expect(result.current.folders).toEqual([]);
   });
 
   it('initializes isLoading state', () => {
-    const { result } = renderHook(() => useIngredientsLoading(baseProps), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useIngredientsLoading(baseProps), {
+      wrapper: queryClientWrapper(),
+    });
     expect(typeof result.current.isLoading).toBe('boolean');
   });
 
   it('findAllIngredientsByCategory and findAllFolders are functions', () => {
-    const { result } = renderHook(() => useIngredientsLoading(baseProps), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useIngredientsLoading(baseProps), {
+      wrapper: queryClientWrapper(),
+    });
     expect(typeof result.current.findAllIngredientsByCategory).toBe('function');
     expect(typeof result.current.findAllFolders).toBe('function');
   });
 
   it('adds lightweight=true for media list fetches', async () => {
-    renderHook(() => useIngredientsLoading(baseProps), { wrapper: queryClientWrapper() });
+    renderHook(() => useIngredientsLoading(baseProps), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(ingredientsFindAllMock).toHaveBeenCalled();
@@ -203,8 +213,10 @@ describe('useIngredientsLoading', () => {
   });
 
   it('lists every organization for the admin scope and turns the type into a category filter', async () => {
-    renderHook(() =>
-      useIngredientsLoading({ ...baseProps, scope: PageScope.SUPERADMIN }), { wrapper: queryClientWrapper() }
+    renderHook(
+      () =>
+        useIngredientsLoading({ ...baseProps, scope: PageScope.SUPERADMIN }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => {
@@ -221,14 +233,18 @@ describe('useIngredientsLoading', () => {
   });
 
   it('narrows the admin list to the organization and brand picked in the subbar', async () => {
-    renderHook(() =>
-      useIngredientsLoading({
-        ...baseProps,
-        parsedSearchParams: new URLSearchParams('organization=org-9&brand=b-9'),
-        scope: PageScope.SUPERADMIN,
-        singularType: 'ingredient',
-        type: 'ingredients',
-      }), { wrapper: queryClientWrapper() }
+    renderHook(
+      () =>
+        useIngredientsLoading({
+          ...baseProps,
+          parsedSearchParams: new URLSearchParams(
+            'organization=org-9&brand=b-9',
+          ),
+          scope: PageScope.SUPERADMIN,
+          singularType: 'ingredient',
+          type: 'ingredients',
+        }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => {
@@ -253,15 +269,17 @@ describe('useIngredientsLoading', () => {
       findAll: ingredientsFindAllMock,
       findAllPages,
     });
-    const { result } = renderHook(() =>
-      useIngredientsLoading({
-        ...baseProps,
-        query: {
-          shelf: LibraryShelf.FAILED,
-          search: 'coffee',
-          folder: 'folder-1',
-        },
-      }), { wrapper: queryClientWrapper() }
+    const { result } = renderHook(
+      () =>
+        useIngredientsLoading({
+          ...baseProps,
+          query: {
+            shelf: LibraryShelf.FAILED,
+            search: 'coffee',
+            folder: 'folder-1',
+          },
+        }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => expect(result.current.ingredients).toHaveLength(1));
@@ -278,14 +296,16 @@ describe('useIngredientsLoading', () => {
   });
 
   it('lists the organization through the same ingredients list, across every brand', async () => {
-    renderHook(() =>
-      useIngredientsLoading({
-        ...baseProps,
-        query: {},
-        scope: PageScope.ORGANIZATION,
-        singularType: IngredientCategory.INGREDIENT,
-        type: 'ingredients',
-      }), { wrapper: queryClientWrapper() }
+    renderHook(
+      () =>
+        useIngredientsLoading({
+          ...baseProps,
+          query: {},
+          scope: PageScope.ORGANIZATION,
+          singularType: IngredientCategory.INGREDIENT,
+          type: 'ingredients',
+        }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => {
@@ -302,20 +322,22 @@ describe('useIngredientsLoading', () => {
   });
 
   it('strips empty query params before requesting ingredients', async () => {
-    renderHook(() =>
-      useIngredientsLoading({
-        ...baseProps,
-        query: {
-          brand: '',
-          favorite: '',
-          format: 'landscape',
-          provider: '',
-          search: '',
-          sort: '',
-          status: ['generated', 'processing', 'validated'],
-          type: '',
-        },
-      }), { wrapper: queryClientWrapper() }
+    renderHook(
+      () =>
+        useIngredientsLoading({
+          ...baseProps,
+          query: {
+            brand: '',
+            favorite: '',
+            format: 'landscape',
+            provider: '',
+            search: '',
+            sort: '',
+            status: ['generated', 'processing', 'validated'],
+            type: '',
+          },
+        }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => {
@@ -345,7 +367,9 @@ describe('useIngredientsLoading', () => {
   it('exposes a recoverable error when the query fails without cached assets', async () => {
     ingredientsFindAllMock.mockRejectedValue(new Error('network unavailable'));
 
-    const { result } = renderHook(() => useIngredientsLoading(baseProps), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useIngredientsLoading(baseProps), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -370,13 +394,15 @@ describe('useIngredientsLoading', () => {
       request: { body: { password: 'super-secret' } },
     });
 
-    const { result } = renderHook(() =>
-      useIngredientsLoading({
-        ...baseProps,
-        query: { shelf: 'unsorted' },
-        singularType: IngredientCategory.INGREDIENT,
-        type: 'ingredients',
-      }), { wrapper: queryClientWrapper() }
+    const { result } = renderHook(
+      () =>
+        useIngredientsLoading({
+          ...baseProps,
+          query: { shelf: 'unsorted' },
+          singularType: IngredientCategory.INGREDIENT,
+          type: 'ingredients',
+        }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => {
@@ -418,13 +444,15 @@ describe('useIngredientsLoading', () => {
   it('reports a generic service failure as one normalized Error', async () => {
     ingredientsFindAllMock.mockRejectedValue(new Error('Network error'));
 
-    const { result } = renderHook(() =>
-      useIngredientsLoading({
-        ...baseProps,
-        query: { shelf: 'unsorted' },
-        singularType: IngredientCategory.INGREDIENT,
-        type: 'ingredients',
-      }), { wrapper: queryClientWrapper() }
+    const { result } = renderHook(
+      () =>
+        useIngredientsLoading({
+          ...baseProps,
+          query: { shelf: 'unsorted' },
+          singularType: IngredientCategory.INGREDIENT,
+          type: 'ingredients',
+        }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => {
@@ -453,7 +481,9 @@ describe('useIngredientsLoading', () => {
     }
   });
   it('ignores an older refresh that resolves after the latest review refresh', async () => {
-    const { result } = renderHook(() => useIngredientsLoading(baseProps), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useIngredientsLoading(baseProps), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     let resolveOld: ((assets: IIngredient[]) => void) | undefined;
     ingredientsFindAllMock.mockImplementationOnce(
@@ -476,7 +506,9 @@ describe('useIngredientsLoading', () => {
   });
 
   it('skips a second list fetch when the sender already reloaded the list', async () => {
-    const { result } = renderHook(() => useIngredientsLoading(baseProps), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useIngredientsLoading(baseProps), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     const callsAfterLoad = ingredientsFindAllMock.mock.calls.length;
 
@@ -504,7 +536,9 @@ describe('useIngredientsLoading', () => {
   });
 
   it('preserves visible review decisions when a refresh fails', async () => {
-    const { result } = renderHook(() => useIngredientsLoading(baseProps), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useIngredientsLoading(baseProps), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     const approved = { id: 'approved', status: 'VALIDATED' } as IIngredient;
     act(() => result.current.setIngredients([approved]));
@@ -517,7 +551,9 @@ describe('useIngredientsLoading', () => {
   });
 
   it('sends exactly one list request on mount', async () => {
-    const { result } = renderHook(() => useIngredientsLoading(baseProps), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useIngredientsLoading(baseProps), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     await act(async () => {
       await Promise.resolve();
@@ -544,7 +580,9 @@ describe('useIngredientsLoading', () => {
   });
 
   it('passes an abort signal so superseded list requests are cancelled on the wire', async () => {
-    const { result } = renderHook(() => useIngredientsLoading(baseProps), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useIngredientsLoading(baseProps), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     const signal = ingredientsFindAllMock.mock.calls[0]?.[1];
@@ -578,7 +616,9 @@ describe('useIngredientsLoading', () => {
       });
     mockGetIngredientsService.mockResolvedValue({ findAllPage });
 
-    const { result } = renderHook(() => useIngredientsLoading(baseProps), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useIngredientsLoading(baseProps), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(findAllPage.mock.calls[0]?.[0]).toMatchObject({ paging: 'cursor' });
@@ -607,7 +647,9 @@ describe('useIngredientsLoading', () => {
     });
     mockGetIngredientsService.mockResolvedValue({ findAllPage });
 
-    const { result } = renderHook(() => useIngredientsLoading(baseProps), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useIngredientsLoading(baseProps), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     await act(async () => {
       await result.current.loadMoreIngredients();
@@ -658,7 +700,9 @@ describe('useIngredientsLoading', () => {
       });
     mockGetIngredientsService.mockResolvedValue({ findAllPage });
 
-    const { result } = renderHook(() => useIngredientsLoading(baseProps), { wrapper: queryClientWrapper() });
+    const { result } = renderHook(() => useIngredientsLoading(baseProps), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     let pending: Promise<void> | undefined;
@@ -703,7 +747,7 @@ describe('useIngredientsLoading', () => {
     ]);
   });
 
-  it('never paints one brand\'s cached list under another brand', async () => {
+  it("never paints one brand's cached list under another brand", async () => {
     const client = createTestQueryClient();
     ingredientsFindAllMock.mockResolvedValueOnce([
       { id: 'brand-1-asset' },
