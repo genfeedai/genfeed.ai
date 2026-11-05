@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { RouterPriority } from '@genfeedai/contracts';
 import type {
   IStudioLook,
@@ -207,7 +211,9 @@ describe('useStudioLooks', () => {
   });
 
   it('hides the previous brand snapshot immediately when the active brand changes', async () => {
-    const { rerender, result } = renderHook(() => useStudioLooks('video'));
+    const { rerender, result } = renderHook(() => useStudioLooks('video'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(result.current.looks).toEqual([look]));
 
@@ -219,9 +225,56 @@ describe('useStudioLooks', () => {
     expect(result.current.isLoading).toBe(true);
   });
 
+  it('paints the cached Looks at once when Studio is opened again', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderHook(() => useStudioLooks('video'), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() =>
+      expect(firstVisit.result.current.looks).toEqual([look]),
+    );
+    firstVisit.unmount();
+
+    mocks.service.findForAssetType.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(() => useStudioLooks('video'), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.looks).toEqual([look]);
+  });
+
+  it('keeps a saved Look in the cache for the next visit', async () => {
+    const client = createTestQueryClient();
+    const savedLook = { ...look, id: 'look-b', label: 'Fresh' };
+    mocks.service.post.mockResolvedValue(savedLook);
+    const firstVisit = renderHook(() => useStudioLooks('video'), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() =>
+      expect(firstVisit.result.current.looks).toEqual([look]),
+    );
+    await act(async () => {
+      await firstVisit.result.current.saveLook('Fresh', values);
+    });
+    await waitFor(() =>
+      expect(firstVisit.result.current.looks).toEqual([savedLook, look]),
+    );
+    firstVisit.unmount();
+
+    mocks.service.findForAssetType.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(() => useStudioLooks('video'), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(result.current.looks).toEqual([savedLook, look]);
+  });
+
   it('saves a Look built from the full generation-setup values', async () => {
     mocks.service.post.mockResolvedValue(look);
-    const { result } = renderHook(() => useStudioLooks('video'));
+    const { result } = renderHook(() => useStudioLooks('video'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(result.current.looks).toEqual([look]));
 
@@ -255,7 +308,10 @@ describe('useStudioLooks', () => {
     async (change) => {
       const { result, rerender } = renderHook(
         ({ type }) => useStudioLooks(type),
-        { initialProps: { type: 'video' as StudioPlaygroundType } },
+        {
+          initialProps: { type: 'video' as StudioPlaygroundType },
+          wrapper: queryClientWrapper(),
+        },
       );
       await waitFor(() => expect(result.current.looks).toEqual([look]));
       mocks.service.findForAssetType.mockReturnValueOnce(new Promise(() => {}));
@@ -269,7 +325,9 @@ describe('useStudioLooks', () => {
   it.each(['save', 'delete'] as const)(
     'does not dispatch an old %s after actor change during service acquisition',
     async (operation) => {
-      const { result, rerender } = renderHook(() => useStudioLooks('video'));
+      const { result, rerender } = renderHook(() => useStudioLooks('video'), {
+        wrapper: queryClientWrapper(),
+      });
       await waitFor(() => expect(result.current.looks).toEqual([look]));
       const acquisition = deferred<typeof mocks.service>();
       mocks.getService.mockReturnValueOnce(acquisition.promise);
@@ -294,7 +352,9 @@ describe('useStudioLooks', () => {
   it.each(['save', 'delete'] as const)(
     'does not revive an old %s after a brand scope round trip during acquisition',
     async (operation) => {
-      const { result, rerender } = renderHook(() => useStudioLooks('video'));
+      const { result, rerender } = renderHook(() => useStudioLooks('video'), {
+        wrapper: queryClientWrapper(),
+      });
       await waitFor(() => expect(result.current.looks).toEqual([look]));
       const acquisition = deferred<typeof mocks.service>();
       mocks.getService.mockReturnValueOnce(acquisition.promise);
@@ -321,7 +381,9 @@ describe('useStudioLooks', () => {
   it.each(['save', 'delete'] as const)(
     'does not dispatch an old %s after unmount during service acquisition',
     async (operation) => {
-      const { result, unmount } = renderHook(() => useStudioLooks('video'));
+      const { result, unmount } = renderHook(() => useStudioLooks('video'), {
+        wrapper: queryClientWrapper(),
+      });
       await waitFor(() => expect(result.current.looks).toEqual([look]));
       const acquisition = deferred<typeof mocks.service>();
       mocks.getService.mockReturnValueOnce(acquisition.promise);
@@ -357,7 +419,9 @@ describe('useStudioLooks', () => {
       method
         .mockReturnValueOnce(oldRequest.promise)
         .mockReturnValueOnce(newRequest.promise);
-      const { result, rerender } = renderHook(() => useStudioLooks('video'));
+      const { result, rerender } = renderHook(() => useStudioLooks('video'), {
+        wrapper: queryClientWrapper(),
+      });
       await waitFor(() => expect(result.current.looks).toEqual([look]));
       let oldPending!: Promise<boolean>;
       act(() => {
@@ -408,7 +472,9 @@ describe('useStudioLooks', () => {
   );
 
   it('captures save values before waiting for the auth service', async () => {
-    const { result } = renderHook(() => useStudioLooks('video'));
+    const { result } = renderHook(() => useStudioLooks('video'), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.looks).toEqual([look]));
     const acquisition = deferred<typeof mocks.service>();
     mocks.getService.mockReturnValueOnce(acquisition.promise);
@@ -433,7 +499,9 @@ describe('useStudioLooks', () => {
     async (outcome) => {
       const oldRequest = deferred<IStudioLook[]>();
       mocks.service.findForAssetType.mockReturnValueOnce(oldRequest.promise);
-      const { result, rerender } = renderHook(() => useStudioLooks('video'));
+      const { result, rerender } = renderHook(() => useStudioLooks('video'), {
+        wrapper: queryClientWrapper(),
+      });
       await waitFor(() =>
         expect(mocks.service.findForAssetType).toHaveBeenCalledTimes(1),
       );
@@ -463,7 +531,9 @@ describe('useStudioLooks', () => {
   it('does not start an aborted read after service acquisition finishes on unmount', async () => {
     const acquisition = deferred<typeof mocks.service>();
     mocks.getService.mockReturnValueOnce(acquisition.promise);
-    const { unmount } = renderHook(() => useStudioLooks('video'));
+    const { unmount } = renderHook(() => useStudioLooks('video'), {
+      wrapper: queryClientWrapper(),
+    });
     unmount();
     await act(async () => {
       acquisition.resolve(mocks.service);
@@ -473,7 +543,9 @@ describe('useStudioLooks', () => {
   });
 
   it('preserves a current owner delete and normal failure feedback', async () => {
-    const { result } = renderHook(() => useStudioLooks('video'));
+    const { result } = renderHook(() => useStudioLooks('video'), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.looks).toEqual([look]));
     mocks.service.removeLook.mockRejectedValueOnce(
       new Error('Current failure'),
@@ -496,7 +568,9 @@ describe('useStudioLooks', () => {
     mocks.service.findForAssetType.mockRejectedValueOnce(
       new Error('Current load failure'),
     );
-    const { result } = renderHook(() => useStudioLooks('video'));
+    const { result } = renderHook(() => useStudioLooks('video'), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() =>
       expect(result.current.error).toBe('Saved Looks could not be loaded.'),
     );
