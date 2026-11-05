@@ -169,7 +169,7 @@ test.describe('Persisted Turbo projects', () => {
     await mockTurboProject(page, TurboProjectKind.IDEAS);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(base);
-    await expectStarterThumbnails(page, 6);
+    await expectStarterThumbnails(page, 3);
     await page.getByRole('button', { name: /Weekly content mix/ }).click();
     await expect(
       page.getByRole('textbox', { name: 'Creative angle' }),

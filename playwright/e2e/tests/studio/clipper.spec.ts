@@ -366,8 +366,8 @@ test.describe('Clip Factory', () => {
 
     await authenticatedPage.goto(CLIPPER_URL);
 
-    // The project list sits on the right of the workspace; "Open" is the row's
-    // primary link.
+    // The project list sits on the right of the workspace; the row's title
+    // link opens the project.
     const projectRow = authenticatedPage.getByTestId(
       `clipper-project-row-${MOCK_PROJECT_ID}`,
     );
@@ -375,7 +375,7 @@ test.describe('Clip Factory', () => {
     await expect(projectRow).toContainText(/podcast ep 12/i);
     await expect(projectRow.getByText(/8 clips/i)).toBeVisible();
 
-    await projectRow.getByRole('link', { exact: true, name: 'Open' }).click();
+    await projectRow.getByRole('link', { name: /podcast ep 12/i }).click();
 
     await expect(authenticatedPage).toHaveURL(
       new RegExp(`${CLIPPER_URL}/${MOCK_PROJECT_ID}`),
