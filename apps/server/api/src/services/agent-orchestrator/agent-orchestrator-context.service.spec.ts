@@ -316,6 +316,17 @@ function userMessage(content: string): AgentMessageDocument {
   } as AgentMessageDocument;
 }
 
+function systemMessage(
+  content: string,
+  metadata: AgentMessageDocument['metadata'] = {},
+): AgentMessageDocument {
+  return {
+    content,
+    metadata,
+    role: AgentMessageRole.SYSTEM,
+  } as AgentMessageDocument;
+}
+
 function assistantMessage(content: string): AgentMessageDocument {
   return {
     content,
@@ -773,23 +784,19 @@ describe('AgentOrchestratorContextService buildMessageHistory hand-off results',
     const history = createService().buildMessageHistory([
       userMessage('Make a hero image, then a video from it.'),
       assistantMessage('I asked the Hero image thread to make it.'),
-      {
-        content: 'Hero image finished.',
-        metadata: {
-          agentTransferResult: {
-            destinationThreadId: 'thread-image',
-            outputArtifactReferences: [
-              {
-                kind: 'ingredient',
-                organizationId: 'org-1',
-                recordId: 'image-1',
-              },
-            ],
-            status: 'COMPLETED',
-          },
+      systemMessage('Hero image finished.', {
+        agentTransferResult: {
+          destinationThreadId: 'thread-image',
+          outputArtifactReferences: [
+            {
+              kind: 'ingredient',
+              organizationId: 'org-1',
+              recordId: 'image-1',
+            },
+          ],
+          status: 'COMPLETED',
         },
-        role: AgentMessageRole.SYSTEM,
-      } as AgentMessageDocument,
+      }),
     ]);
 
     expect(history.map((message) => message.role)).toEqual([
@@ -805,10 +812,7 @@ describe('AgentOrchestratorContextService buildMessageHistory hand-off results',
 
   it('still leaves other system notes out of the model history', () => {
     const history = createService().buildMessageHistory([
-      {
-        content: 'Thread renamed.',
-        role: AgentMessageRole.SYSTEM,
-      } as AgentMessageDocument,
+      systemMessage('Thread renamed.'),
     ]);
 
     expect(history.map((message) => message.role)).toEqual(['system']);
