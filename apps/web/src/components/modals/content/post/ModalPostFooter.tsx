@@ -4,22 +4,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type { ModalPostFooterProps } from '@genfeedai/props/modals/modal.props';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import { Button } from '@ui/primitives/button';
-import { useTranslations } from 'next-intl';
-
-function formatScheduledDate(date: Date, timeZone: string): string {
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      month: 'short',
-      timeZone,
-      weekday: 'short',
-    }).format(date);
-  } catch {
-    return date.toLocaleString();
-  }
-}
+import { useFormatter, useTranslations } from 'next-intl';
 
 /**
  * Footer of the schedule modal: what will happen, in one line, then Cancel and
@@ -35,6 +20,7 @@ export default function ModalPostFooter({
   isFormValid = false,
 }: ModalPostFooterProps) {
   const translate = useTranslations('ui.postBatch.footer');
+  const format = useFormatter();
 
   return (
     <ModalActions className="justify-between">
@@ -42,7 +28,14 @@ export default function ModalPostFooter({
         {scheduledDate
           ? translate('summary', {
               count: channelCount,
-              date: formatScheduledDate(scheduledDate, scheduleTimezone),
+              date: format.dateTime(scheduledDate, {
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                month: 'short',
+                timeZone: scheduleTimezone,
+                weekday: 'short',
+              }),
               timezone: scheduleTimezone,
             })
           : translate('summaryNoDate', { count: channelCount })}

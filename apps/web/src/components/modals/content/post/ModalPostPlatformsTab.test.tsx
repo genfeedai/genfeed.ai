@@ -21,7 +21,7 @@ import ModalPostPlatformsTab, {
 } from '@/components/modals/content/post/ModalPostPlatformsTab';
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
 

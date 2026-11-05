@@ -4,7 +4,13 @@ import ModalPostFooter from '@/components/modals/content/post/ModalPostFooter';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
-  return { useTranslations: translateFromCatalog };
+  return {
+    useFormatter: () => ({
+      dateTime: (value: Date, options?: Intl.DateTimeFormatOptions) =>
+        new Intl.DateTimeFormat('en-GB', options).format(value),
+    }),
+    useTranslations: translateFromCatalog,
+  };
 });
 
 const baseProps = {

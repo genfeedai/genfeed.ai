@@ -13,7 +13,13 @@ import ModalPostBatch from '@/components/modals/content/batch/ModalPostBatch';
 // Mock dependencies
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
-  return { useTranslations: translateFromCatalog };
+  return {
+    useFormatter: () => ({
+      dateTime: (value: Date, options?: Intl.DateTimeFormatOptions) =>
+        new Intl.DateTimeFormat('en-GB', options).format(value),
+    }),
+    useTranslations: translateFromCatalog,
+  };
 });
 
 vi.mock('@ui/modals/modal/Modal', () => ({
@@ -132,6 +138,7 @@ describe('ModalPostBatch', () => {
     } as unknown as IIngredient;
     const credentials = [
       {
+        accessTokenExpiry: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         externalHandle: 'genfeed',
         id: 'credential-2',
         isConnected: true,
