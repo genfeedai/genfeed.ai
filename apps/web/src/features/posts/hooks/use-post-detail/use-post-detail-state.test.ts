@@ -256,7 +256,8 @@ describe('usePostDetailState', () => {
 
   it('returns required state fields', () => {
     const { result } = renderHook(
-      () => usePostDetailState({ postId: 'post-1' }),
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
       { wrapper: queryClientWrapper() },
     );
     expect(result.current).toHaveProperty('post');
@@ -271,7 +272,8 @@ describe('usePostDetailState', () => {
 
   it('initializes post as null', () => {
     const { result } = renderHook(
-      () => usePostDetailState({ postId: 'post-1' }),
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
       { wrapper: queryClientWrapper() },
     );
     expect(result.current.post).toBeNull();
@@ -279,7 +281,8 @@ describe('usePostDetailState', () => {
 
   it('initializes isLoading as true', () => {
     const { result } = renderHook(
-      () => usePostDetailState({ postId: 'post-1' }),
+      () =>
+        usePostDetailState({ postId: 'post-1', scope: PageScope.PUBLISHING }),
       { wrapper: queryClientWrapper() },
     );
     expect(result.current.isLoading).toBe(true);

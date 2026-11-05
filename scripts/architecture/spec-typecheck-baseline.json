@@ -7465,14 +7465,6 @@
       "workspace": "web"
     },
     {
-      "code": 2345,
-      "count": 3,
-      "file": "apps/web/src/features/posts/hooks/use-post-detail/use-post-detail-state.test.ts",
-      "fingerprint": "ba2e17a8071a109f7288",
-      "message": "Argument of type '{ postId: string; }' is not assignable to parameter of type 'UsePostDetailStateOptions'.   Property 'scope' is missing in type '{ postId: string; }' but required in type 'UsePostDetailStateOptions'.",
-      "workspace": "web"
-    },
-    {
       "code": 2352,
       "count": 1,
       "file": "apps/web/src/features/posts/hooks/use-post-detail/use-post-detail.test.ts",
