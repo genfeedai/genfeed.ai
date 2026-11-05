@@ -48,7 +48,7 @@ vi.mock('discord.js', () => {
   };
 });
 
-import { Client, TextChannel } from 'discord.js';
+import { Client, TextChannel, type WebhookClient } from 'discord.js';
 
 const createMockDiscordClient = () => ({
   channels: {
@@ -690,7 +690,7 @@ describe('DiscordBotService', () => {
   });
 
   describe('getBillingWebhook', () => {
-    async function openBillingWebhook(): Promise<void> {
+    async function openBillingWebhook(): Promise<WebhookClient | null> {
       await service.onModuleInit();
       const readyCallback = mockClient.once.mock.calls[0][1];
       readyCallback();
@@ -705,12 +705,13 @@ describe('DiscordBotService', () => {
         }),
       });
       mockClient.channels.fetch.mockResolvedValue(mockChannel);
-      await service.getBillingWebhook();
+      return service.getBillingWebhook();
     }
 
     it('posts to the users channel while no billing channel is set', async () => {
-      await openBillingWebhook();
+      const webhook = await openBillingWebhook();
 
+      expect(webhook).not.toBeNull();
       expect(mockClient.channels.fetch).toHaveBeenCalledWith(
         'channel-users-789',
       );
@@ -734,8 +735,9 @@ describe('DiscordBotService', () => {
 
     it('posts to the billing channel once one is set', async () => {
       configuredBillingChannel = 'channel-billing-654';
-      await openBillingWebhook();
+      const webhook = await openBillingWebhook();
 
+      expect(webhook).not.toBeNull();
       expect(mockClient.channels.fetch).toHaveBeenCalledWith(
         'channel-billing-654',
       );

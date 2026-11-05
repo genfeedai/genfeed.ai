@@ -571,16 +571,14 @@ export class DiscordService {
         const articleUrl =
           article.publicUrl || `https://genfeed.ai/articles/${article.slug}`;
 
-        await webhookClient.send(
-          buildOperatorCard({
-            action: { label: 'Read Article', url: articleUrl },
-            color: 0xff6b00, // Orange for articles
-            footer: article.category,
-            imageUrl: article.thumbnailUrl,
-            summary: article.summary?.substring(0, 300),
-            title: article.label,
-          }),
-        );
+        await this.sendOperatorCard(webhookClient, {
+          action: { label: 'Read Article', url: articleUrl },
+          color: 0xff6b00, // Orange for articles
+          footer: article.category,
+          imageUrl: article.thumbnailUrl,
+          summary: article.summary?.substring(0, 300),
+          title: article.label,
+        });
 
         this.loggerService.log(`${url} succeeded`, {
           articleSlug: article.slug,
@@ -600,15 +598,14 @@ export class DiscordService {
       await this.discordBotService.getBillingWebhook(),
       url,
       async (webhookClient) => {
-        const appUrl =
-          this.configService.get('GENFEEDAI_APP_URL') ||
-          'https://app.genfeed.ai';
         const isCritical = payload.balance <= 0;
         const organization =
           payload.organizationLabel || payload.organizationId;
         const balance = formatCredits(payload.balance);
+        // No configured app origin, no admin button: a self-hosted install
+        // must not link operators to the hosted app.
         const organizationUrl = adminOrganizationUrl(
-          appUrl,
+          this.configService.get('GENFEEDAI_APP_URL'),
           payload.organizationId,
         );
 

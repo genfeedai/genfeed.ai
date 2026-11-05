@@ -871,6 +871,20 @@ describe('DiscordService', () => {
       expect(embed.image).toEqual({ url: 'https://cdn/thumb.png' });
     });
 
+    it('posts as the configured operator bot like every other card', async () => {
+      const { service } = await createService();
+
+      await service.sendArticleNotification({
+        label: 'Launch',
+        slug: 'launch',
+      });
+
+      expect(lastSendPayload()).toMatchObject({
+        avatarURL: 'https://cdn/avatar.png',
+        username: 'Genfeed.ai',
+      });
+    });
+
     it('should prefer an explicit public url and log send failures', async () => {
       mockSend.mockRejectedValue(new Error('send failed'));
       const { service } = await createService();
@@ -972,6 +986,17 @@ describe('DiscordService', () => {
         label: 'View in Admin',
         url: 'https://app.genfeed.ai/admin/organizations/o-1',
       });
+    });
+
+    it('leaves the admin button off when no app origin is configured', async () => {
+      mockConfigService.get.mockReturnValue(undefined);
+      const { service } = await createService();
+
+      await service.sendLowCreditsAlert({ balance: 5, organizationId: 'o-1' });
+
+      const payload = lastSendPayload();
+      expect(payload.components).toBeUndefined();
+      expect((payload.embeds?.[0] as IDiscordEmbed).url).toBeUndefined();
     });
 
     it('should send a critical alert when balance is zero', async () => {
