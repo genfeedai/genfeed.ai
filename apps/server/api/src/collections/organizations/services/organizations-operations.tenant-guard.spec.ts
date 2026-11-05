@@ -10,6 +10,7 @@ import type { RolesService } from '@api/collections/roles/services/roles.service
 import type { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
 import type { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
   assertTenantScopedQuery,
@@ -43,6 +44,7 @@ describe('OrganizationsOperationsService tenant guard (CLOUD)', () => {
       guard('Brand', { where });
       return { id: `brand_of_${String(where.organizationId)}`, label: 'B' };
     }),
+    findOneSelect: delegateFindOneSelect(),
   };
   const membersService = {
     create: vi.fn(),
@@ -53,20 +55,30 @@ describe('OrganizationsOperationsService tenant guard (CLOUD)', () => {
         ? { currentBrandId: 'brand_member', id: 'm1' }
         : null;
     }),
+    findOneSelect: delegateFindOneSelect(),
     setCurrentBrand: vi.fn(),
   };
   const organizationSettingsService = {
     ensureForOrganization: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
   const organizationsService = {
     count: vi.fn(),
     create: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     generateUniqueSlug: vi.fn(),
   };
-  const rolesService = { findOne: vi.fn() };
-  const usersService = { findOne: vi.fn(), patch: vi.fn() };
+  const rolesService = {
+    findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
+  };
+  const usersService = {
+    findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
+    patch: vi.fn(),
+  };
   const billingAccountsService = { ensureForOrganization: vi.fn() };
   const userAccessCacheService = { invalidateAll: vi.fn() };
   const organizationLogoService = { resolveLogoUrls: vi.fn() };

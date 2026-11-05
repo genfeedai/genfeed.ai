@@ -209,10 +209,10 @@ export class CreatorsController {
       ErrorResponse.notFound('CreatorAnalysis', id);
     }
 
-    const creator = await this.contentIntelligenceService.findOne({
-      id: id,
-      organizationId: user.organizationId,
-    });
+    const creator = await this.contentIntelligenceService.findOneSelect(
+      { id: id, organizationId: user.organizationId },
+      { id: true },
+    );
 
     if (!creator) {
       ErrorResponse.notFound('CreatorAnalysis', id);
@@ -248,10 +248,10 @@ export class CreatorsController {
       ErrorResponse.notFound('CreatorAnalysis', id);
     }
 
-    const creator = await this.contentIntelligenceService.findOne({
-      id: id,
-      organizationId: user.organizationId,
-    });
+    const creator = await this.contentIntelligenceService.findOneSelect(
+      { id: id, organizationId: user.organizationId },
+      { id: true },
+    );
 
     if (!creator) {
       ErrorResponse.notFound('CreatorAnalysis', id);

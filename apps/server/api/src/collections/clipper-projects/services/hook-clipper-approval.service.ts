@@ -257,12 +257,15 @@ export class HookClipApprovalService {
     } else if (!hookClipperResultId) {
       state = 'generating_hook';
     } else {
-      const hookResult = await this.clipperResultsService.findOne({
-        id: hookClipperResultId,
-        isDeleted: false,
-        organizationId,
-        projectId,
-      });
+      const hookResult = await this.clipperResultsService.findOneSelect(
+        {
+          id: hookClipperResultId,
+          isDeleted: false,
+          organizationId,
+          projectId,
+        },
+        { status: true },
+      );
       const hookStatus = this.readString(hookResult?.status);
       if (hookStatus === 'failed' || hookStatus === 'degraded') {
         state = 'failed';

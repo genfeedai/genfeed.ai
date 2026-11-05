@@ -167,6 +167,9 @@ describe('AgentThreadStatusPublisherService', () => {
     vi.spyOn(threadsService, 'findOne').mockImplementation(
       async () => thread as never,
     );
+    vi.spyOn(threadsService, 'findOneSelect').mockImplementation(
+      async (params) => (await threadsService.findOne(params)) as never,
+    );
 
     publisher = new AgentThreadStatusPublisherService(
       { publish } as unknown as RedisService,

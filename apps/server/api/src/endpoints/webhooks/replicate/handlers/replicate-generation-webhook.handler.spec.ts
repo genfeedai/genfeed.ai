@@ -9,6 +9,7 @@ import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/repli
 import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata-lookup.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { ModelCategory } from '@genfeedai/contracts';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -19,9 +20,18 @@ const FOREIGN_URL = 'https://evil.example.com/out-0.png';
 
 describe('ReplicateGenerationWebhookHandler', () => {
   let handler: ReplicateGenerationWebhookHandler;
-  let assetsService: { findOne: vi.Mock; patch: vi.Mock };
-  let ingredientsService: { findOne: vi.Mock };
-  let metadataService: { findOne: vi.Mock; findAll: vi.Mock; patch: vi.Mock };
+  let assetsService: {
+    findOne: vi.Mock;
+    findOneSelect: vi.Mock;
+    patch: vi.Mock;
+  };
+  let ingredientsService: { findOne: vi.Mock; findOneSelect: vi.Mock };
+  let metadataService: {
+    findOne: vi.Mock;
+    findOneSelect: vi.Mock;
+    findAll: vi.Mock;
+    patch: vi.Mock;
+  };
   let loggerService: { error: vi.Mock; log: vi.Mock; warn: vi.Mock };
   let webhooksService: {
     handleFailedGeneration: vi.Mock;
@@ -42,14 +52,19 @@ describe('ReplicateGenerationWebhookHandler', () => {
   beforeEach(async () => {
     assetsService = {
       findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn(),
     };
     // No ingredient/metadata record found by default — falls back to the
     // model-registry guess so the pre-existing IMAGE-default tests keep
     // passing unchanged.
-    ingredientsService = { findOne: vi.fn().mockResolvedValue(null) };
+    ingredientsService = {
+      findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
+    };
     metadataService = {
       findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
       findAll: vi.fn().mockResolvedValue({ docs: [] }),
       patch: vi.fn(),
     };
@@ -75,6 +90,7 @@ describe('ReplicateGenerationWebhookHandler', () => {
             findOne: vi.fn().mockResolvedValue({
               category: ModelCategory.IMAGE,
             }),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
         {

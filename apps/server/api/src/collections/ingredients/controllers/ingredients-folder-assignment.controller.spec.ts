@@ -9,6 +9,7 @@ import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { createIngredientDocumentFixture } from '@api-test/fixtures/ingredient-document.fixture';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -90,6 +91,7 @@ describe('IngredientsController folder assignment', () => {
           provide: IngredientsService,
           useValue: {
             findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
             patch: vi.fn(),
             assertClientTags: vi.fn(),
           },
@@ -98,6 +100,7 @@ describe('IngredientsController folder assignment', () => {
           provide: FoldersService,
           useValue: {
             findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
         {

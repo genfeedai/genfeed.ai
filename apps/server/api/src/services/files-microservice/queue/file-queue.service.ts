@@ -451,12 +451,15 @@ export class FileQueueService {
         sourceStorageKey = requireStoredMediaKey(source);
       }
       // Fetch credential from database
-      const credential = await this.credentialsService.findOne({
-        id: data.credentialId,
-        organizationId: data.organizationId,
-        isDeleted: false,
-        isConnected: true,
-      });
+      const credential = await this.credentialsService.findOneSelect(
+        {
+          id: data.credentialId,
+          organizationId: data.organizationId,
+          isDeleted: false,
+          isConnected: true,
+        },
+        { id: true, refreshToken: true },
+      );
 
       if (!credential) {
         throw new Error('YouTube credential not found or not connected');
@@ -473,11 +476,14 @@ export class FileQueueService {
       });
 
       // Re-fetch credential to get the refreshed token
-      const refreshedCredential = await this.credentialsService.findOne({
-        id: data.credentialId,
-        organizationId: data.organizationId,
-        isDeleted: false,
-      });
+      const refreshedCredential = await this.credentialsService.findOneSelect(
+        {
+          id: data.credentialId,
+          organizationId: data.organizationId,
+          isDeleted: false,
+        },
+        { accessToken: true, refreshToken: true },
+      );
 
       if (!refreshedCredential) {
         throw new Error('Failed to fetch refreshed credential');

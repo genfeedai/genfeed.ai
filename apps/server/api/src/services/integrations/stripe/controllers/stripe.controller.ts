@@ -122,9 +122,10 @@ export class StripeController {
       // Load the current user's DB record by id.
       // Post-Better-Auth cutover, user.id is the Genfeed User.id (JWT sub),
       // not a legacy external auth-provider id.
-      const dbUser = await this.usersService.findOne({
-        id: user.id,
-      });
+      const dbUser = await this.usersService.findOneSelect(
+        { id: user.id },
+        { id: true },
+      );
       if (!dbUser) {
         return returnNotFound('User', user.id);
       }
@@ -249,7 +250,10 @@ export class StripeController {
       );
     }
 
-    const dbUser = await this.usersService.findOne({ id: user.id });
+    const dbUser = await this.usersService.findOneSelect(
+      { id: user.id },
+      { email: true },
+    );
     if (!dbUser) {
       throw new NotFoundException('User', user.id);
     }

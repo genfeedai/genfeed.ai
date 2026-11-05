@@ -13,6 +13,7 @@ import type { RequestContextCacheService } from '@api/common/services/request-co
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import type { ISubscriptionsService } from '@genfeedai/contracts/interfaces/billing';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -26,7 +27,11 @@ describe('UsersController', () => {
   let usersService: Record<string, ReturnType<typeof vi.fn>>;
   let settingsService: Record<string, ReturnType<typeof vi.fn>>;
   let brandsService: Record<
-    'clearBrandSelectionForUser' | 'findAll' | 'findOne' | 'selectBrandForUser',
+    | 'clearBrandSelectionForUser'
+    | 'findAll'
+    | 'findOne'
+    | 'findOneSelect'
+    | 'selectBrandForUser',
     ReturnType<typeof vi.fn>
   > & {
     brandAccessService: ReturnType<typeof brandAccessFixture>;
@@ -70,6 +75,7 @@ describe('UsersController', () => {
     usersService = {
       findAll: vi.fn(),
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       hasOnboardingField: vi.fn(),
       patch: vi.fn(),
       updateAdminProfile: vi.fn(),
@@ -79,6 +85,7 @@ describe('UsersController', () => {
     };
     settingsService = {
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn(),
       patchWithFavoriteWorkflowIds: vi.fn(),
       withLiveFavoriteWorkflowIds: vi
@@ -90,16 +97,22 @@ describe('UsersController', () => {
       clearBrandSelectionForUser: vi.fn(),
       findAll: vi.fn(),
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       selectBrandForUser: vi.fn(),
     };
     organizationsService = {
       findAll: vi.fn(),
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn(),
     };
-    subscriptionsService = { findOne: vi.fn() };
+    subscriptionsService = {
+      findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
+    };
     membersService = {
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       setCurrentBrand: vi.fn().mockResolvedValue({}),
     };
     filesClientService = {

@@ -1,10 +1,12 @@
 import { AgentGenerationScopeService } from '@api/services/agent-orchestrator/tools/agent-generation-scope.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { describe, expect, it, vi } from 'vitest';
 
 function createService() {
   const brandsService = {
     findAll: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
   const knowledgeRecords = {
     getSource: vi.fn(),

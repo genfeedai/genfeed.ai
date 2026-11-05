@@ -8,6 +8,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { OrganizationCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 
@@ -33,6 +34,7 @@ describe('UserSetupService', () => {
   const mockOrganizationsService = {
     create: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     generateUniqueSlug: vi.fn(),
   };
 
@@ -43,23 +45,27 @@ describe('UserSetupService', () => {
   const mockBrandsService = {
     create: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     generateUniqueSlug: vi.fn(),
   };
 
   const mockMembersService = {
     create: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn(),
   };
 
   const mockRolesService = {
     create: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
 
   const mockSettingsService = {
     create: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
 
   const mockCreditBalanceService = {

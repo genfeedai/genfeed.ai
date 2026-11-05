@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
   AutoSwagger: () => () => undefined,
 }));
@@ -30,7 +32,10 @@ describe('AdsGatewayWriteController paused-only campaign writes', () => {
     comparePlatforms: ReturnType<typeof vi.fn>;
     getAdapter: ReturnType<typeof vi.fn>;
   };
-  let credentialsService: { findOne: ReturnType<typeof vi.fn> };
+  let credentialsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let mockAdapter: {
     createCampaign: ReturnType<typeof vi.fn>;
     updateCampaign: ReturnType<typeof vi.fn>;
@@ -60,6 +65,7 @@ describe('AdsGatewayWriteController paused-only campaign writes', () => {
 
     credentialsService = {
       findOne: vi.fn().mockResolvedValue({ accessToken: 'token-abc' }),
+      findOneSelect: delegateFindOneSelect(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

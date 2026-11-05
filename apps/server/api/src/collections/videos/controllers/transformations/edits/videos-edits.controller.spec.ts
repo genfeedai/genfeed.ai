@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -84,14 +85,18 @@ describe('VideosEditsController', () => {
     filesClientService: { uploadToS3: vi.fn() },
     ingredientsService: { patch: vi.fn() },
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
-    metadataService: { findOne: vi.fn(), patch: vi.fn() },
+    metadataService: {
+      findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
+      patch: vi.fn(),
+    },
     sharedService: {
       createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: { id: ingredientId },
         metadataData: { id: metadataId },
       }),
     },
-    videosService: { findOne: vi.fn() },
+    videosService: { findOne: vi.fn(), findOneSelect: delegateFindOneSelect() },
     websocketService: {
       publishMediaFailed: vi.fn(),
       publishVideoComplete: vi.fn(),

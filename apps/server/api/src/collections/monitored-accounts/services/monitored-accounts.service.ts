@@ -206,7 +206,10 @@ export class MonitoredAccountsService extends BaseService<
     id: string,
     organizationId: string,
   ): Promise<void> {
-    const existing = await this.findOne(scopedWhere(organizationId, { id }));
+    const existing = await this.findOneSelect(
+      scopedWhere(organizationId, { id }),
+      { config: true },
+    );
     const config = (existing?.config as AccountConfig) ?? {};
 
     await this.prisma.monitoredAccount.update({
@@ -227,7 +230,10 @@ export class MonitoredAccountsService extends BaseService<
     id: string,
     organizationId: string,
   ): Promise<void> {
-    const existing = await this.findOne(scopedWhere(organizationId, { id }));
+    const existing = await this.findOneSelect(
+      scopedWhere(organizationId, { id }),
+      { config: true },
+    );
     const config = (existing?.config as AccountConfig) ?? {};
 
     await this.prisma.monitoredAccount.update({

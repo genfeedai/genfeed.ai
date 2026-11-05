@@ -34,11 +34,14 @@ export class ReplicatePollProcessor extends WorkerHost {
   }
 
   async process(job: Job<ReplicatePollJobData>): Promise<void> {
-    const ingredient = await this.ingredients.findOne({
-      id: job.data.ingredientId,
-      isDeleted: false,
-      organizationId: job.data.organizationId,
-    });
+    const ingredient = await this.ingredients.findOneSelect(
+      {
+        id: job.data.ingredientId,
+        isDeleted: false,
+        organizationId: job.data.organizationId,
+      },
+      { generationError: true, status: true },
+    );
     const isProcessingTimeout =
       ingredient?.status === IngredientStatus.FAILED &&
       ingredient.generationError === INGREDIENT_PROCESSING_TIMEOUT_ERROR;

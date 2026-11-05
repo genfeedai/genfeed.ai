@@ -353,10 +353,10 @@ export class AgentAnalyticsToolHandler {
     const contentId = this.analyticsContentId(params);
 
     if (postId) {
-      const post = await this.postsService.findOne({
-        id: postId,
-        organizationId: ctx.organizationId,
-      });
+      const post = await this.postsService.findOneSelect(
+        { id: postId, organizationId: ctx.organizationId },
+        { brandId: true },
+      );
 
       if (!post) {
         return {

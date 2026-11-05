@@ -186,10 +186,10 @@ export class CredentialsController {
     @Param('credentialId') credentialId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const credential = await this.credentialsService.findOne({
-      id: credentialId,
-      organizationId: user.organizationId,
-    });
+    const credential = await this.credentialsService.findOneSelect(
+      { id: credentialId, organizationId: user.organizationId },
+      { brandId: true, id: true, organizationId: true, platform: true },
+    );
 
     if (!credential) {
       return returnNotFound(this.constructorName, credentialId);
@@ -451,10 +451,10 @@ export class CredentialsController {
     @Req() request: Request,
   ): Promise<JsonApiSingleResponse> {
     // Verify ownership before deletion
-    const credential = await this.credentialsService.findOne({
-      id: credentialId,
-      organizationId: user.organizationId,
-    });
+    const credential = await this.credentialsService.findOneSelect(
+      { id: credentialId, organizationId: user.organizationId },
+      { id: true },
+    );
 
     if (!credential) {
       return returnNotFound(this.constructorName, credentialId);

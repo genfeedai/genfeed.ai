@@ -393,8 +393,9 @@ export class WorkflowEngineExecutorHelperService {
 
     const sourceIngredientId = this.extractIngredientId(source);
     if (sourceIngredientId && this.ingredientsService) {
-      const sourceIngredient = await this.ingredientsService.findOne(
+      const sourceIngredient = await this.ingredientsService.findOneSelect(
         scopedWhere(organizationId, { id: sourceIngredientId }),
+        { brandId: true },
       );
 
       // Read the scalar FK (`brandId`) — the Mongo-era `brand` alias is
@@ -441,11 +442,10 @@ export class WorkflowEngineExecutorHelperService {
         'Select a saved Library media asset before running this node',
       );
     }
-    const asset = await this.ingredientsService.findOne({
-      id,
-      organizationId,
-      isDeleted: false,
-    });
+    const asset = await this.ingredientsService.findOneSelect(
+      { id, organizationId, isDeleted: false },
+      { brandId: true, category: true, s3Key: true, status: true },
+    );
     if (
       !asset ||
       !categories.includes(asset.category as IngredientCategory) ||

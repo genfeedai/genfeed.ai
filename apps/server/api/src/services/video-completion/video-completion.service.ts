@@ -412,10 +412,10 @@ export class VideoCompletionService {
     organizationId: string,
     metadataUpdate: Record<string, number>,
   ): Promise<void> {
-    const ingredient = await this.ingredientsService.findOne({
-      id: ingredientId,
-      organizationId,
-    });
+    const ingredient = await this.ingredientsService.findOneSelect(
+      { id: ingredientId, organizationId },
+      { metadataId: true },
+    );
 
     const metadataId = ingredient?.metadataId ?? undefined;
 

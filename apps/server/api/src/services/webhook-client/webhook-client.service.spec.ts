@@ -1,4 +1,5 @@
 import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WebhookClientService', () => {
@@ -8,7 +9,10 @@ describe('WebhookClientService', () => {
     log: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
-  let organizationSettingsService: { findOne: ReturnType<typeof vi.fn> };
+  let organizationSettingsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let service: WebhookClientService;
 
   beforeEach(() => {
@@ -26,6 +30,7 @@ describe('WebhookClientService', () => {
         webhookEndpoint: 'https://8.8.8.8/webhook',
         webhookSecret: 'secret',
       }),
+      findOneSelect: delegateFindOneSelect(),
     };
     service = new WebhookClientService(
       queue as never,

@@ -1,6 +1,7 @@
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   AgentFailureReason,
   IngredientCategory,
@@ -16,7 +17,10 @@ describe('WorkflowEngineExecutorHelperService.resolveBrandIdFromInputOrFail', ()
   const organizationId = 'org-1';
 
   const findOne = vi.fn();
-  const ingredientsService = { findOne } as unknown as IngredientsService;
+  const ingredientsService = {
+    findOne,
+    findOneSelect: delegateFindOneSelect(),
+  } as unknown as IngredientsService;
   const configService = {} as unknown as ConfigService;
 
   let service: WorkflowEngineExecutorHelperService;
@@ -344,7 +348,10 @@ describe('WorkflowEngineExecutorHelperService.requireMediaAsset activated storag
       { isAuthorizedMediaDeliveryEnabled: true } as ConfigService,
       undefined,
       undefined,
-      { findOne } as unknown as IngredientsService,
+      {
+        findOne,
+        findOneSelect: delegateFindOneSelect(),
+      } as unknown as IngredientsService,
     );
     const asset = await helper.requireMediaAsset('asset-1', 'org-1', [
       IngredientCategory.VIDEO,
@@ -369,7 +376,10 @@ describe('WorkflowEngineExecutorHelperService.requireMediaAsset activated storag
       { isAuthorizedMediaDeliveryEnabled: true } as ConfigService,
       undefined,
       undefined,
-      { findOne } as unknown as IngredientsService,
+      {
+        findOne,
+        findOneSelect: delegateFindOneSelect(),
+      } as unknown as IngredientsService,
     );
     await expect(
       helper.requireMediaAsset('asset-1', 'org-1', [IngredientCategory.VIDEO]),

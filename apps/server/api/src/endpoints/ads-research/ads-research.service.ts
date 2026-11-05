@@ -962,15 +962,18 @@ export class AdsResearchService {
       throw new BadRequestException('credentialId is invalid');
     }
 
-    const credential = await this.credentialsService.findOne({
-      id: params.credentialId,
-      isConnected: true,
-      isDeleted: false,
-      organizationId,
-      platform: toPrismaCredentialPlatform(
-        mapAdsCredentialPlatform(params.platform),
-      ),
-    });
+    const credential = await this.credentialsService.findOneSelect(
+      {
+        id: params.credentialId,
+        isConnected: true,
+        isDeleted: false,
+        organizationId,
+        platform: toPrismaCredentialPlatform(
+          mapAdsCredentialPlatform(params.platform),
+        ),
+      },
+      { accessToken: true, accessTokenSecret: true },
+    );
 
     if (!credential?.accessToken) {
       throw new BadRequestException(

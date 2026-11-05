@@ -1,5 +1,6 @@
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { KlingWebhookService } from '@api/endpoints/webhooks/klingai/webhooks.kling.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { KlingAIWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -19,6 +20,7 @@ function createMockDeps() {
     },
     metadataService: {
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn(),
     },
   };

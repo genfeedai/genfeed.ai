@@ -39,12 +39,13 @@ export class ArticleTrafficService {
     now: Date = new Date(),
   ): Promise<ArticleTraffic> {
     // Match the editor/list visibility boundary; never trust a client-supplied slug.
-    const article = await this.articlesService.findOne(
+    const article = await this.articlesService.findOneSelect(
       scopedWhere(input.organizationId, {
         id: input.articleId,
         ...(input.brandId ? { brandId: input.brandId } : {}),
         OR: [{ userId: input.userId }, { scope: 'ORGANIZATION' }],
       }),
+      { id: true, publishedAt: true, slug: true },
     );
     if (!article) throw new NotFoundException('Article', input.articleId);
 

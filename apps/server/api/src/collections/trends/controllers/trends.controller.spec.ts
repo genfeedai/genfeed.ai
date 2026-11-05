@@ -1,6 +1,7 @@
 import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
 import { TENANT_READ_POLICY } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { getTenantContext } from '@libs/prisma/tenant-context';
 import type { ExecutionContext } from '@nestjs/common';
 import { defer, firstValueFrom } from 'rxjs';
@@ -44,15 +45,19 @@ describe('TrendsController', () => {
   };
   let modelsService: {
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
   };
   let brandsService: {
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
   };
   let membersService: {
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
   };
   let apiKeysService: {
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
   };
 
   const mockTrend = {
@@ -111,18 +116,22 @@ describe('TrendsController', () => {
       findOne: vi.fn().mockResolvedValue({
         pricing: { input: 1, output: 1 },
       }),
+      findOneSelect: delegateFindOneSelect(),
     };
     brandsService = {
       findOne: vi.fn().mockResolvedValue({
         id: mockUser.brandId,
         label: 'Mock Brand',
       }),
+      findOneSelect: delegateFindOneSelect(),
     };
     membersService = {
       findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
     };
     apiKeysService = {
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
     };
     controller = new TrendsController(
       mockTrendsService as never,

@@ -238,10 +238,10 @@ export class ContentPerformanceController {
   @Delete(':id')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async delete(@Param('id') id: string, @CurrentUser() user: User) {
-    const record = await this.contentPerformanceService.findOne({
-      id: id,
-      organizationId: user.organizationId,
-    });
+    const record = await this.contentPerformanceService.findOneSelect(
+      { id: id, organizationId: user.organizationId },
+      { id: true },
+    );
 
     if (!record) {
       return returnNotFound(this.constructorName, id);

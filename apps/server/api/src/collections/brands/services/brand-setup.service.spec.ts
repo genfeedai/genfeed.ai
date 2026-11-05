@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import type { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { BrandScrapeErrorCode } from '@genfeedai/contracts';
 import { HttpException } from '@nestjs/common';
 
@@ -34,6 +35,7 @@ function buildService(
       label: 'Acme',
       organizationId: 'org-1',
     }),
+    findOneSelect: delegateFindOneSelect(),
   };
   const onboardingCreditGrantsService = {
     completeMissions: vi.fn().mockResolvedValue(undefined),
@@ -42,6 +44,7 @@ function buildService(
     findOne: vi
       .fn()
       .mockResolvedValue({ id: 'settings-1', isFirstLogin: true }),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn().mockResolvedValue(undefined),
   };
   const brandDataMapper = {

@@ -39,10 +39,10 @@ export class LaunchCopyController {
 
     this.loggerService.log(url, { brandId: dto.brandId, channel: dto.channel });
 
-    const brand = await this.brandsService.findOne({
-      id: dto.brandId,
-      organizationId: user.organizationId,
-    });
+    const brand = await this.brandsService.findOneSelect(
+      { id: dto.brandId, organizationId: user.organizationId },
+      { id: true },
+    );
 
     if (!brand) {
       return returnBadRequest({

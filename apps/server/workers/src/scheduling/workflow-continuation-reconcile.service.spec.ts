@@ -10,7 +10,15 @@ describe('WorkflowContinuationReconcileService', () => {
     failProviderAction: vi.fn(),
     reconcileProviderContinuations: vi.fn(),
   };
-  const ingredients = { findOne: vi.fn() };
+  const ingredients = {
+    findOne: vi.fn(),
+    findOneSelect: vi.fn(function (
+      this: { findOne: (params: unknown) => unknown },
+      params: unknown,
+    ) {
+      return this.findOne(params);
+    }),
+  };
   const replicate = { getPrediction: vi.fn() };
   const webhooks = {
     handleFailedGenerationForIngredient: vi.fn(),

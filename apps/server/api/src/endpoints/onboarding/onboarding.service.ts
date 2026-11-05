@@ -207,10 +207,10 @@ export class OnboardingService {
         title: 'Error',
       },
       async () => {
-        const org = await this.organizationsService.findOne({
-          id: organizationId,
-          isDeleted: false,
-        });
+        const org = await this.organizationsService.findOneSelect(
+          { id: organizationId, isDeleted: false },
+          { prefix: true },
+        );
 
         if (!org) {
           throw new HttpException(

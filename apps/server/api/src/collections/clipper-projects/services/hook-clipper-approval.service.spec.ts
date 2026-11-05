@@ -2,6 +2,7 @@ import type { ClipperProjectsService } from '@api/collections/clipper-projects/c
 import type { ClipperGenerationService } from '@api/collections/clipper-projects/services/clipper-generation.service';
 import type { ClipperResultsService } from '@api/collections/clipper-results/clipper-results.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import type { ModuleRef } from '@nestjs/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HookClipApprovalService } from './hook-clipper-approval.service';
@@ -71,13 +72,18 @@ describe('HookClipApprovalService workflow review gate', () => {
   let clipperGeneration: { generateClips: ReturnType<typeof vi.fn> };
   let clipperProjects: {
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
   let clipperResults: {
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
-  let executions: { findOne: ReturnType<typeof vi.fn> };
+  let executions: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let executor: { submitReviewGateApproval: ReturnType<typeof vi.fn> };
   let service: HookClipApprovalService;
 
@@ -88,13 +94,18 @@ describe('HookClipApprovalService workflow review gate', () => {
         id: 'project-1',
         workflowExecutionId: 'execution-1',
       }),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn().mockResolvedValue({}),
     };
     clipperResults = {
       findOne: vi.fn().mockResolvedValue({ status: 'completed' }),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn().mockResolvedValue({}),
     };
-    executions = { findOne: vi.fn().mockResolvedValue(createExecution()) };
+    executions = {
+      findOne: vi.fn().mockResolvedValue(createExecution()),
+      findOneSelect: delegateFindOneSelect(),
+    };
     executor = {
       submitReviewGateApproval: vi.fn().mockResolvedValue({
         status: 'approved',

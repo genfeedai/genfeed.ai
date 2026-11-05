@@ -32,10 +32,10 @@ export class TelegramController {
     @Body('authData') authData: TelegramAuthData,
   ) {
     const organizationId = user.organizationId;
-    const brand = await this.brandsService.findOne({
-      id: brandId,
-      organizationId,
-    });
+    const brand = await this.brandsService.findOneSelect(
+      { id: brandId, organizationId },
+      { id: true },
+    );
 
     if (!brand) {
       throw new HttpException(

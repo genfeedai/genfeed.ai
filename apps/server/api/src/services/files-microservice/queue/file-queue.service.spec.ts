@@ -5,6 +5,7 @@ import {
   FileQueueService,
   JobResponse,
 } from '@api/services/files-microservice/queue/file-queue.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { PostVisibility } from '@genfeedai/contracts';
 import type {
   IFrameInput,
@@ -62,6 +63,7 @@ describe('FileQueueService', () => {
 
     const mockCredentialsService = {
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn(),
     };
 
@@ -592,7 +594,7 @@ describe('FileQueueService', () => {
       value: { readSources },
     });
     Object.defineProperty(service, 'credentialsService', {
-      value: { findOne },
+      value: { findOne, findOneSelect: delegateFindOneSelect() },
     });
     Object.defineProperty(service, 'refreshYoutubeToken', {
       value: vi.fn().mockResolvedValue({}),

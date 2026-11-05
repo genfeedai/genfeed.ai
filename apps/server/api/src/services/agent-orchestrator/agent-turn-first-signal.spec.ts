@@ -3,6 +3,7 @@ import {
   AgentTurnWorkflowExecutionService,
   type PreparedAgentTurnState,
 } from '@api/services/agent-orchestrator/agent-turn-workflow-execution.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { AgentGenerationMode } from '@genfeedai/contracts';
 
 function deferred() {
@@ -44,6 +45,7 @@ function setup() {
       await settingsGate.promise;
       return undefined;
     }),
+    findOneSelect: delegateFindOneSelect(),
   };
   const context = {
     resolveSystemPromptAndModel: vi.fn(async () => {
@@ -107,6 +109,7 @@ function setup() {
       findOne: vi
         .fn()
         .mockResolvedValue({ id: state.threadId, title: 'Hello' }),
+      findOneSelect: delegateFindOneSelect(),
     },
     {
       addMessage: vi.fn(),

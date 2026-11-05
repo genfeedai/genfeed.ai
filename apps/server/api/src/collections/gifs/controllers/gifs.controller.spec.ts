@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((name: string, id: string) => {
     throw new HttpException(
@@ -78,9 +80,13 @@ describe('GifsController', () => {
   let gifsService: {
     findAll: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
   };
-  let votesService: { findOne: ReturnType<typeof vi.fn> };
+  let votesService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
 
   const mockRequest = {} as unknown as Request;
   const mockUser = {
@@ -108,11 +114,13 @@ describe('GifsController', () => {
         totalDocs: 1,
       }),
       findOne: vi.fn().mockResolvedValue(mockGif),
+      findOneSelect: delegateFindOneSelect(),
       remove: vi.fn().mockResolvedValue(mockGif),
     };
 
     votesService = {
       findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

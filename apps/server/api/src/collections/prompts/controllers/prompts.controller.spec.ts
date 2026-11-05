@@ -1,5 +1,6 @@
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { PromptEnhancementService } from '@api/services/prompt-enhancement/prompt-enhancement.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((response) => {
@@ -75,6 +76,7 @@ describe('PromptsController', () => {
     create: vi.fn(),
     findAll: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn(),
   };
   const mockOpenRouterService = {
@@ -110,7 +112,10 @@ describe('PromptsController', () => {
         },
         {
           provide: BrandsService,
-          useValue: { findOne: vi.fn() },
+          useValue: {
+            findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
+          },
         },
         {
           provide: CreditsUtilsService,
@@ -118,7 +123,10 @@ describe('PromptsController', () => {
         },
         {
           provide: IngredientsService,
-          useValue: { findOne: vi.fn() },
+          useValue: {
+            findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
+          },
         },
         {
           provide: LoggerService,

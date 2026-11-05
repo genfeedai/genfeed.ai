@@ -5,6 +5,7 @@ import type { ClipperProjectIngestionService } from '@api/collections/clipper-pr
 import type { ClipperResultsService } from '@api/collections/clipper-results/clipper-results.service';
 import { AgentClipperToolHandler } from '@api/services/agent-orchestrator/tools/agent-clipper-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -91,6 +92,7 @@ function buildHarness(): Harness {
           result.organizationId === query.organizationId,
       ),
     ),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn(async (id: string, patch: Record<string, unknown>) => {
       patches.push({ id, patch });
     }),
@@ -102,6 +104,7 @@ function buildHarness(): Harness {
         ? PROJECT
         : null,
     ),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn(async (_id: string, patch: Record<string, unknown>) => {
       projectPatches.push(patch);
     }),

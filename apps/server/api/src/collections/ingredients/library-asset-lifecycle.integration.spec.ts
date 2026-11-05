@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -504,7 +506,10 @@ describe('Library asset lifecycle', () => {
     const musicsService = new MusicsService(prisma, logger, ingredientsService);
     const captionsService = new CaptionsService(prisma, logger);
     const foldersService = new FoldersService(prisma, logger);
-    const votesService = { findOne: vi.fn().mockResolvedValue(null) };
+    const votesService = {
+      findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
+    };
 
     filesClientService = {
       getPresignedUploadUrl: vi.fn(),

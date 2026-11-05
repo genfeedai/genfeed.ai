@@ -108,10 +108,11 @@ export class WatchlistsService extends BaseService<
 
     if (hasConfigPatch) {
       const tenantOrganizationId = getTenantContext()?.organizationId;
-      const existing = await this.findOne(
+      const existing = await this.findOneSelect(
         tenantOrganizationId
           ? scopedWhere(tenantOrganizationId, { id })
           : { id },
+        { config: true },
       );
       if (!existing) {
         throw new NotFoundException('Watchlist', id);

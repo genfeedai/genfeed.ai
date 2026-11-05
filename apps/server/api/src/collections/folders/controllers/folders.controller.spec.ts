@@ -7,6 +7,7 @@ import { FoldersService } from '@api/collections/folders/services/folders.servic
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { FolderSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -114,6 +115,7 @@ describe('FoldersController', () => {
             create: vi.fn(),
             findAll: vi.fn(),
             findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
             patch: vi.fn(),
             remove: vi.fn(),
           },

@@ -798,8 +798,9 @@ export class AgentOrchestratorStreamLoopService {
       return false;
     }
 
-    const execution = await this.workflowExecutionsService.findOne(
+    const execution = await this.workflowExecutionsService.findOneSelect(
       scopedWhere(context.organizationId, { id: context.executionId }),
+      { status: true },
     );
     return execution?.status === WorkflowExecutionStatus.CANCELLED;
   }

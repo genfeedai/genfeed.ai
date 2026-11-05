@@ -331,10 +331,10 @@ export class UsersRelationshipsController {
     @CurrentUser() user: User,
     @Param('organizationId') organizationId: string,
   ) {
-    const organization = await this.organizationsService.findOne({
-      id: organizationId,
-      userId: user.userId ?? user.id,
-    });
+    const organization = await this.organizationsService.findOneSelect(
+      { id: organizationId, userId: user.userId ?? user.id },
+      { id: true },
+    );
 
     if (!organization) {
       return returnNotFound('Organization', organizationId);

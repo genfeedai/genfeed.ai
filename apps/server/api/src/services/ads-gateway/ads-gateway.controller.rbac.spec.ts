@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
   AutoSwagger: () => () => undefined,
 }));
@@ -259,6 +261,7 @@ function ownerFixture(query: Record<string, unknown>, actor = user) {
       expect(getTenantReadScope()).toBeUndefined();
       return { accessToken: 'encrypted-owner-token' };
     }),
+    findOneSelect: delegateFindOneSelect(),
   };
   const contextService = new AdsGatewayRequestContextService(
     credentials as unknown as CredentialsService,

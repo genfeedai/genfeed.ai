@@ -136,10 +136,10 @@ export class PatternsController {
       ErrorResponse.notFound('ContentPattern', id);
     }
 
-    const pattern = await this.patternStoreService.findOne({
-      id: id,
-      organizationId: user.organizationId,
-    });
+    const pattern = await this.patternStoreService.findOneSelect(
+      { id: id, organizationId: user.organizationId },
+      { id: true },
+    );
 
     if (!pattern) {
       ErrorResponse.notFound('ContentPattern', id);

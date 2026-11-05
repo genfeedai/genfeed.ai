@@ -408,12 +408,15 @@ export class MetaAdsController {
     const organizationId = user.organizationId as string;
     const userId = (user.userId ?? user.id) as string;
 
-    const credential = await this.credentialsService.findOne({
-      isConnected: true,
-      organizationId: organizationId,
-      platform: CredentialPlatform.FACEBOOK,
-      userId: userId,
-    });
+    const credential = await this.credentialsService.findOneSelect(
+      {
+        isConnected: true,
+        organizationId: organizationId,
+        platform: CredentialPlatform.FACEBOOK,
+        userId: userId,
+      },
+      { accessToken: true },
+    );
 
     if (!credential?.accessToken) {
       throw new NotFoundException({

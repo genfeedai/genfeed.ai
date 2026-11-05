@@ -1,3 +1,4 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/collections/articles/services/articles.service', () => ({
@@ -29,7 +30,11 @@ describe('ArticleTrafficService', () => {
   let settings: Record<string, string>;
   function service() {
     return new ArticleTrafficService(
-      { findOne, findPublicArticleBySlug } as unknown as ArticlesService,
+      {
+        findOne,
+        findOneSelect: delegateFindOneSelect(),
+        findPublicArticleBySlug,
+      } as unknown as ArticlesService,
       { get: (key: string) => settings[key] } as unknown as ConfigService,
       { warn: vi.fn() } as unknown as LoggerService,
     );

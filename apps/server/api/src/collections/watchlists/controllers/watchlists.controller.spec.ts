@@ -1,6 +1,7 @@
 import { WatchlistsController } from '@api/collections/watchlists/controllers/watchlists.controller';
 import { WatchlistsService } from '@api/collections/watchlists/services/watchlists.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConflictException } from '@nestjs/common';
 
@@ -34,6 +35,7 @@ describe('WatchlistsController', () => {
       findAllByAccount: vi.fn().mockResolvedValue({ docs: [] }),
       findByHandle: vi.fn().mockResolvedValue(null),
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn(),
       remove: vi.fn(),
     };

@@ -15,6 +15,7 @@ import type {
 } from '@api/services/agent-generation-gateway/agent-endpoint.interface';
 import { AgentEndpointInvoker } from '@api/services/agent-generation-gateway/agent-endpoint-invoker.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { ActivitySource, MemberRole, PlatformRole } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ForbiddenException } from '@nestjs/common';
@@ -43,7 +44,10 @@ describe('AgentEndpointInvoker', () => {
     release: ReturnType<typeof vi.fn>;
     settle: ReturnType<typeof vi.fn>;
   };
-  let membersService: { findOne: ReturnType<typeof vi.fn> };
+  let membersService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let modelsGuard: { validate: ReturnType<typeof vi.fn> };
   let prisma: { user: { findFirst: ReturnType<typeof vi.fn> } };
   let requestContextMiddleware: { hydrate: ReturnType<typeof vi.fn> };
@@ -91,6 +95,7 @@ describe('AgentEndpointInvoker', () => {
     };
     membersService = {
       findOne: vi.fn().mockResolvedValue({ id: MEMBER_ID }),
+      findOneSelect: delegateFindOneSelect(),
     };
     modelsGuard = {
       validate: vi.fn(async () => {

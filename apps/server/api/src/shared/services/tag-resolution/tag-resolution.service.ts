@@ -41,9 +41,10 @@ export class TagResolutionService {
       return null;
     }
 
-    const tag = await this.tagsService.findOne({
-      id: tagId,
-    });
+    const tag = await this.tagsService.findOneSelect(
+      { id: tagId },
+      { label: true },
+    );
     return tag?.label || null;
   }
 }

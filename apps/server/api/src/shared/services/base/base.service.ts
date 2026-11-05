@@ -594,6 +594,31 @@ export abstract class BaseService<
     }
   }
 
+  /**
+   * `findOne` that reads only the named columns, for callers that need a few
+   * fields of a row rather than the whole document. Same soft-delete and
+   * tenant scoping as `findOne`; relations are never loaded. The result is
+   * typed to the selected keys, so reading an unselected field fails to
+   * compile.
+   */
+  async findOneSelect<K extends keyof (T & BaseDocument) & string>(
+    params: PrismaFilter,
+    select: Record<K, true>,
+  ): Promise<Pick<T & BaseDocument, K> | null> {
+    if (
+      'id' in params &&
+      (params.id === undefined || params.id === null || params.id === '')
+    ) {
+      return null;
+    }
+    this.queryNormalizationAdapter.assertProjectionFields(select, 'select');
+    const result = await this.internalDelegate.findFirst({
+      where: this.withSoftDeleteFilter(this.normalizeWhere(params), params),
+      select,
+    });
+    return result ? (this.normalizeDocument(result) as T & BaseDocument) : null;
+  }
+
   async patch(
     id: string,
     updateDto: Partial<UpdateDto> | PrismaUpdate,

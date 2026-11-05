@@ -73,10 +73,10 @@ export class TurboRunCreationService {
     strategyId?: string,
   ): Promise<ITurboRunSummary> {
     // Verify brand exists and belongs to org
-    const brand = await this.brandsService.findOne({
-      id: dto.brandId,
-      organizationId: orgId,
-    });
+    const brand = await this.brandsService.findOneSelect(
+      { id: dto.brandId, organizationId: orgId },
+      { id: true },
+    );
 
     if (!brand) {
       throw new NotFoundException('Brand', dto.brandId);
@@ -183,10 +183,10 @@ export class TurboRunCreationService {
     userId: string,
     orgId: string,
   ): Promise<ITurboRunSummary> {
-    const brand = await this.brandsService.findOne({
-      id: dto.brandId,
-      organizationId: orgId,
-    });
+    const brand = await this.brandsService.findOneSelect(
+      { id: dto.brandId, organizationId: orgId },
+      { id: true },
+    );
 
     if (!brand) {
       throw new NotFoundException('Brand', dto.brandId);

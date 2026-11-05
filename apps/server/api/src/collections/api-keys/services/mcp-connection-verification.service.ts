@@ -112,12 +112,15 @@ export class McpConnectionVerificationService {
     const connectedAccountCount = await this.credentialsService.countConnected(
       input.organizationId,
     );
-    const latestApiKey = await this.apiKeysService.findOne({
-      id: input.apiKeyId,
-      isRevoked: false,
-      organizationId: input.organizationId,
-      userId: input.userId,
-    });
+    const latestApiKey = await this.apiKeysService.findOneSelect(
+      {
+        id: input.apiKeyId,
+        isRevoked: false,
+        organizationId: input.organizationId,
+        userId: input.userId,
+      },
+      { metadata: true },
+    );
     const metadata = this.readMetadata(
       latestApiKey?.metadata ?? apiKey.metadata,
     );

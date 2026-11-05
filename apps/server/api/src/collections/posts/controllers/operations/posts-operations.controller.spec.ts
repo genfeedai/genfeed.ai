@@ -1,6 +1,7 @@
 import { PostAccountGenerationService } from '@api/collections/posts/services/post-account-generation.service';
 import { PostDraftGenerationService } from '@api/collections/posts/services/post-draft-generation.service';
 import { ORGANIZATION_MODULE_KEY } from '@api/common/organization-modules/organization-module.decorator';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((response) => {
@@ -220,6 +221,7 @@ describe('PostsOperationsController', () => {
 
   const mockModelsService = {
     findOne: vi.fn().mockResolvedValue(null),
+    findOneSelect: delegateFindOneSelect(),
   };
 
   const mockConfigService = {
@@ -234,23 +236,28 @@ describe('PostsOperationsController', () => {
 
   const mockCredentialsService = {
     findOne: vi.fn().mockResolvedValue(mockCredential),
+    findOneSelect: delegateFindOneSelect(),
   };
 
   const mockIngredientsService = {
     findByIds: vi.fn().mockResolvedValue([]),
     findOne: vi.fn().mockResolvedValue(mockIngredient),
+    findOneSelect: delegateFindOneSelect(),
   };
 
   const mockMembersService = {
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
 
   const mockBrandsService = {
     findOne: vi.fn().mockResolvedValue(null),
+    findOneSelect: delegateFindOneSelect(),
   };
 
   const mockApiKeysService = {
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
 
   const mockLoggerService = {
@@ -271,6 +278,7 @@ describe('PostsOperationsController', () => {
     findAll: vi.fn().mockResolvedValue({ docs: [mockPost] }),
     findByIds: vi.fn().mockResolvedValue([mockPost]),
     findOne: vi.fn().mockResolvedValue(mockPost),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn().mockResolvedValue(mockPost),
   };
 

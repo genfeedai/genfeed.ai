@@ -4,6 +4,7 @@ import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-w
 import { ANNOUNCEMENT_BROADCAST_ACTION_IDS } from '@api/endpoints/admin/announcements/announcement-broadcast-workflow-definition';
 import { AdminAnnouncementsService } from '@api/endpoints/admin/announcements/announcements.service';
 import type { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -85,12 +86,16 @@ describe('AdminAnnouncementsService', () => {
           useValue: {
             createAnnouncement: vi.fn(),
             findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
             getAll: vi.fn(),
           },
         },
         {
           provide: CredentialsService,
-          useValue: { findOne: vi.fn() },
+          useValue: {
+            findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
+          },
         },
         {
           provide: LoggerService,

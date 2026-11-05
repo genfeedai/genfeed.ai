@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn(() => {
     throw new Error('not found');
@@ -30,6 +32,7 @@ describe('IngredientsTagsController', () => {
   const ingredientsService = {
     assertClientTags: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn(),
   };
   const ingredientTagsService = { bulkSetTag: vi.fn() };

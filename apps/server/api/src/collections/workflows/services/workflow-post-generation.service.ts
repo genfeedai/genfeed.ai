@@ -235,13 +235,16 @@ export class WorkflowPostGenerationService {
   ): Promise<WorkflowPostGenerationTarget[]> {
     const { brandId, context } = input;
     if (input.credentialId) {
-      const credential = await this.credentialsService.findOne({
-        brandId,
-        id: input.credentialId,
-        isConnected: true,
-        isDeleted: false,
-        organizationId: context.organizationId,
-      });
+      const credential = await this.credentialsService.findOneSelect(
+        {
+          brandId,
+          id: input.credentialId,
+          isConnected: true,
+          isDeleted: false,
+          organizationId: context.organizationId,
+        },
+        { id: true, platform: true },
+      );
       if (!credential) return [];
       const platform = fromPrismaCredentialPlatform(
         String(credential.platform ?? ''),

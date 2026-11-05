@@ -285,10 +285,10 @@ export class EditorProjectsController {
     @Param('id') id: string,
     @Body() updateDto: UpdateEditorProjectDto,
   ): Promise<JsonApiSingleResponse> {
-    const existing = await this.editorProjectsService.findOne({
-      id,
-      organizationId: user.organizationId,
-    });
+    const existing = await this.editorProjectsService.findOneSelect(
+      { id, organizationId: user.organizationId },
+      { config: true },
+    );
 
     if (!existing) {
       return returnNotFound('Editor project', id);
@@ -416,10 +416,10 @@ export class EditorProjectsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    const existing = await this.editorProjectsService.findOne({
-      id,
-      organizationId: user.organizationId,
-    });
+    const existing = await this.editorProjectsService.findOneSelect(
+      { id, organizationId: user.organizationId },
+      { id: true },
+    );
 
     if (!existing) {
       return returnNotFound('Editor project', id);

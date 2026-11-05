@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
   AutoSwagger: () => () => undefined,
 }));
@@ -42,7 +44,10 @@ describe('AdsGatewayController', () => {
     comparePlatforms: ReturnType<typeof vi.fn>;
     getAdapter: ReturnType<typeof vi.fn>;
   };
-  let credentialsService: { findOne: ReturnType<typeof vi.fn> };
+  let credentialsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let logger: { log: ReturnType<typeof vi.fn> };
   let mockAdapter: {
     createAd: ReturnType<typeof vi.fn>;
@@ -91,6 +96,7 @@ describe('AdsGatewayController', () => {
 
     credentialsService = {
       findOne: vi.fn().mockResolvedValue({ accessToken: 'token-abc' }),
+      findOneSelect: delegateFindOneSelect(),
     };
 
     logger = { log: vi.fn() };

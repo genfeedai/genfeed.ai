@@ -280,11 +280,10 @@ export class VideosClipChainController {
         path: 'video-clip-chain',
       });
     for (const id of ids) {
-      const asset = await this.ingredientsService.findOne({
-        id,
-        organizationId,
-        isDeleted: false,
-      });
+      const asset = await this.ingredientsService.findOneSelect(
+        { id, organizationId, isDeleted: false },
+        { brandId: true, category: true, status: true },
+      );
       if (
         !asset ||
         !IDENTITY_STILL_CATEGORIES.includes(

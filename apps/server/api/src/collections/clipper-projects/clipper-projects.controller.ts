@@ -176,10 +176,10 @@ export class ClipperProjectsController {
     @Param('id') id: string,
     @Body() updateDto: UpdateClipperProjectDto,
   ): Promise<JsonApiSingleResponse> {
-    const existing = await this.clipperProjectsService.findOne({
-      id: id,
-      organizationId: user.organizationId,
-    });
+    const existing = await this.clipperProjectsService.findOneSelect(
+      { id: id, organizationId: user.organizationId },
+      { brandId: true },
+    );
 
     if (!existing) {
       return returnNotFound(this.constructorName, id);

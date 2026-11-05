@@ -167,7 +167,10 @@ export class OrganizationsOperationsService {
 
     await this.assertOrganizationCreationAllowed(user, userId);
 
-    const userDocument = await this.usersService.findOne({ id: userId });
+    const userDocument = await this.usersService.findOneSelect(
+      { id: userId },
+      { id: true },
+    );
     if (!userDocument) {
       throw new HttpException(
         { detail: 'User document not found', title: 'Not Found' },
@@ -252,9 +255,10 @@ export class OrganizationsOperationsService {
       userId,
     } as unknown as Parameters<MembersService['create']>[0]);
 
-    const settings = await this.organizationSettingsService.findOne({
-      organizationId: organization.id,
-    });
+    const settings = await this.organizationSettingsService.findOneSelect(
+      { organizationId: organization.id },
+      { subscriptionTier: true },
+    );
     await this.billingAccountsService.ensureForOrganization({
       billingAccountId: input.billingAccountId,
       isSeparateAccount: getIsSuperAdmin(user),
@@ -286,11 +290,10 @@ export class OrganizationsOperationsService {
     user: User,
     userId: string,
   ): Promise<OrganizationSelectionResult> {
-    const member = await this.membersService.findOne({
-      isActive: true,
-      organizationId,
-      userId,
-    });
+    const member = await this.membersService.findOneSelect(
+      { isActive: true, organizationId, userId },
+      { currentBrandId: true },
+    );
 
     if (!member && !getIsSuperAdmin(user)) {
       throw new HttpException(
@@ -335,9 +338,10 @@ export class OrganizationsOperationsService {
     }
     await this.userAccessCacheService.invalidateAll(userId);
 
-    const organization = await this.organizationsService.findOne({
-      id: organizationId,
-    });
+    const organization = await this.organizationsService.findOneSelect(
+      { id: organizationId },
+      { label: true },
+    );
 
     return {
       brand: { id: brand.id.toString(), label: brand.label },

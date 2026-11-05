@@ -9,6 +9,7 @@ import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/wor
 import { HeygenWebhookService } from '@api/endpoints/webhooks/heygen/webhooks.heygen.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { HeygenWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -26,11 +27,13 @@ function createMockDeps() {
 
   const metadataService = {
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn(),
   };
 
   const ingredientsService = {
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
 
   const clipperAvatarBilling = {
@@ -54,6 +57,7 @@ function createMockDeps() {
   const clipperResultsService = {
     findByProject: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn(),
   };
 

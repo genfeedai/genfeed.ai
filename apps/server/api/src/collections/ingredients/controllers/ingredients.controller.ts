@@ -418,10 +418,11 @@ export class IngredientsController {
       Object.hasOwn(processedDto, 'folderId') &&
       processedDto.folderId !== null
     ) {
-      const folder = await this.foldersService.findOne(
+      const folder = await this.foldersService.findOneSelect(
         scopedWhere(user.organizationId, {
           id: processedDto.folderId,
         }),
+        { brandId: true },
       );
 
       if (

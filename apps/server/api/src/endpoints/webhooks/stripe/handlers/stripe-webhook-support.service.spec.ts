@@ -12,6 +12,7 @@ import type { StripeCheckoutSession } from '@api/services/integrations/stripe/se
 import { StripePaymentRevenueReferenceService } from '@api/services/integrations/stripe/services/stripe-payment-revenue-reference.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   ActivityKey,
   ActivitySource,
@@ -75,11 +76,16 @@ describe('StripeWebhookSupportService', () => {
   };
   const organizationSettingsService = {
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     getLatestMajorVersionModelIds: vi.fn().mockResolvedValue(['model_1']),
     patch: vi.fn(),
   };
   const subscriptionsService = { findByStripeCustomerId: vi.fn() };
-  const usersService = { findOne: vi.fn(), patch: vi.fn() };
+  const usersService = {
+    findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
+    patch: vi.fn(),
+  };
   const requestContextCacheService = {
     invalidateForOrganization: vi.fn(),
     invalidateForUser: vi.fn(),

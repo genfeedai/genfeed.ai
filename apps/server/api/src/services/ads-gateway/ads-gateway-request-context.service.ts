@@ -70,13 +70,18 @@ export class AdsGatewayRequestContextService {
     organizationId: string,
     platform: AdsPlatform,
   ): Promise<AdsCredentialAuth> {
-    const credential = await this.credentialsService.findOne({
-      id: credentialId,
-      isConnected: true,
-      isDeleted: false,
-      organizationId,
-      platform: toPrismaCredentialPlatform(mapAdsCredentialPlatform(platform)),
-    });
+    const credential = await this.credentialsService.findOneSelect(
+      {
+        id: credentialId,
+        isConnected: true,
+        isDeleted: false,
+        organizationId,
+        platform: toPrismaCredentialPlatform(
+          mapAdsCredentialPlatform(platform),
+        ),
+      },
+      { accessToken: true, accessTokenSecret: true },
+    );
 
     if (!credential?.accessToken) {
       throw new UnauthorizedException(

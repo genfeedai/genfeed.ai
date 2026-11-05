@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn(
     (_req: unknown, _serializer: unknown, data: { docs: unknown[] }) =>
@@ -27,11 +29,15 @@ import type { Request } from 'express';
 
 describe('GoogleSearchConsoleController', () => {
   let controller: GoogleSearchConsoleController;
-  let brandsService: { findOne: ReturnType<typeof vi.fn> };
+  let brandsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let credentialsService: {
     beginOAuthForBrand: ReturnType<typeof vi.fn>;
     connectAccount: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     findPendingOAuthCredential: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
@@ -66,6 +72,7 @@ describe('GoogleSearchConsoleController', () => {
   beforeEach(async () => {
     brandsService = {
       findOne: vi.fn().mockResolvedValue(brand),
+      findOneSelect: delegateFindOneSelect(),
     };
     credentialsService = {
       beginOAuthForBrand: vi.fn().mockResolvedValue({
@@ -76,6 +83,7 @@ describe('GoogleSearchConsoleController', () => {
         .fn()
         .mockResolvedValue({ ...credential, isConnected: true }),
       findOne: vi.fn().mockResolvedValue(credential),
+      findOneSelect: delegateFindOneSelect(),
       findPendingOAuthCredential: vi.fn().mockResolvedValue(credential),
       patch: vi.fn().mockResolvedValue({ ...credential, isConnected: true }),
     };

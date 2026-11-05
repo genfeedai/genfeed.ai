@@ -1,3 +1,4 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -89,6 +90,7 @@ describe('MusicGenerationService', () => {
         defaultMusicModel: 'brand-model',
         id: 'brand-from-user',
       }),
+      findOneSelect: delegateFindOneSelect(),
     };
     const creditsUtilsService = {
       bindReservationOutput: vi
@@ -124,6 +126,7 @@ describe('MusicGenerationService', () => {
     };
     const modelsService = {
       findOne: vi.fn().mockResolvedValue(activeMusicModel),
+      findOneSelect: delegateFindOneSelect(),
     };
     const musicProviderRegistry = {
       assertSupported: vi.fn(),
@@ -141,6 +144,7 @@ describe('MusicGenerationService', () => {
       findOne: vi
         .fn()
         .mockResolvedValue({ defaultMusicModel: 'organization-model' }),
+      findOneSelect: delegateFindOneSelect(),
     };
     const promptsService = {
       create: vi.fn().mockImplementation((prompt) =>

@@ -188,13 +188,16 @@ export class GifsController {
     }
 
     // Ingredient votes are written with the voter's organization.
-    const vote = await this.votesService.findOne({
-      entityId: gifId,
-      entityModel: ActivityEntityModel.INGREDIENT,
-      isDeleted: false,
-      organizationId: readScope.organizationId,
-      userId: user.userId ?? user.id,
-    });
+    const vote = await this.votesService.findOneSelect(
+      {
+        entityId: gifId,
+        entityModel: ActivityEntityModel.INGREDIENT,
+        isDeleted: false,
+        organizationId: readScope.organizationId,
+        userId: user.userId ?? user.id,
+      },
+      { id: true },
+    );
 
     data.hasVoted = !!vote;
 

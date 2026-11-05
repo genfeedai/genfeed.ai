@@ -5,6 +5,7 @@ import {
   VIDEO_PROMPT_OUTPUT_CONTRACT,
 } from '@api/services/prompt-enhancement/media-prompt-output.util';
 import { PromptEnhancementService } from '@api/services/prompt-enhancement/prompt-enhancement.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { PromptStatus } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -26,7 +27,10 @@ function setup() {
   const skills = {
     resolveGenerationSkillPromptSections: vi.fn().mockResolvedValue(''),
   };
-  const prompts = { findOne: vi.fn().mockResolvedValue(null) };
+  const prompts = {
+    findOne: vi.fn().mockResolvedValue(null),
+    findOneSelect: delegateFindOneSelect(),
+  };
   const modelRegistry = {
     resolveModelKey: vi.fn().mockResolvedValue('admin/default-text'),
   };

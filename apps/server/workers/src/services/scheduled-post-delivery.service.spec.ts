@@ -113,7 +113,15 @@ function createDeliveryMocks() {
   const registeredActions = new Map<string, RegisteredAction>();
   return {
     activitiesService: { record: vi.fn().mockResolvedValue(undefined) },
-    credentialsService: { findOne: vi.fn() },
+    credentialsService: {
+      findOne: vi.fn(),
+      findOneSelect: vi.fn(function (
+        this: { findOne: (params: unknown) => unknown },
+        params: unknown,
+      ) {
+        return this.findOne(params);
+      }),
+    },
     logger: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     mediaReadinessService: {
       evaluatePublishReadiness: vi.fn().mockResolvedValue({

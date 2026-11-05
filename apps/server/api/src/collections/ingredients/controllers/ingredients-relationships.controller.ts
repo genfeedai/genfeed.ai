@@ -199,9 +199,10 @@ export class IngredientsRelationshipsController {
     @Param('ingredientId') ingredientId: string,
     @Query() query: BaseQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    const ingredient = await this.ingredientsService.findOne({
-      id: ingredientId,
-    });
+    const ingredient = await this.ingredientsService.findOneSelect(
+      { id: ingredientId },
+      { organizationId: true },
+    );
 
     if (!ingredient) {
       return returnNotFound(this.constructorName, ingredientId);

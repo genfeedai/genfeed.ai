@@ -229,10 +229,11 @@ export class ReplyBotConfigsService extends BaseService<
 
     if (needsExisting) {
       const tenantOrganizationId = getTenantContext()?.organizationId;
-      const existing = await this.findOne(
+      const existing = await this.findOneSelect(
         tenantOrganizationId
           ? scopedWhere(tenantOrganizationId, { id })
           : { id },
+        { config: true, organizationId: true },
       );
       if (!existing) {
         throw new NotFoundException('ReplyBotConfig', id);

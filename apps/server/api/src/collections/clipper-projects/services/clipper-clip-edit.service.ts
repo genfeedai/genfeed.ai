@@ -88,11 +88,10 @@ export class ClipperClipEditService {
     organizationId: string,
     projectId: string,
   ): Promise<IClipperProjectClips> {
-    const project = await this.clipperProjectsService.findOne({
-      id: projectId,
-      isDeleted: false,
-      organizationId,
-    });
+    const project = await this.clipperProjectsService.findOneSelect(
+      { id: projectId, isDeleted: false, organizationId },
+      { id: true },
+    );
     if (!project) {
       throw new NotFoundException('ClipperProject', projectId);
     }

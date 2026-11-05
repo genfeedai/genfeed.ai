@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: {
     decrypt: vi.fn((value: string) => value),
@@ -55,6 +57,7 @@ describe('CredentialsController', () => {
       findAll: vi.fn().mockResolvedValue({ docs: [], totalDocs: 0 }),
       findConnectedAccounts: vi.fn().mockResolvedValue([]),
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn(),
       remove: vi.fn(),
       createAndAttachTag: vi.fn(),

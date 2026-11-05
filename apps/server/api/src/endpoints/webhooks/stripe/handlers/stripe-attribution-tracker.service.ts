@@ -51,9 +51,10 @@ export class StripeAttributionTrackerService {
       const organizationId = subscription.organizationId;
       const userId = subscription.userId;
 
-      const user = await this.usersService.findOne({
-        id: userId,
-      });
+      const user = await this.usersService.findOneSelect(
+        { id: userId },
+        { email: true },
+      );
 
       const metadata = extractAttributionMetadata(
         session.metadata,

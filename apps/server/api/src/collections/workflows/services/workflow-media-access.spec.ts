@@ -1,3 +1,4 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/index', () => ({ scopedWhere: vi.fn() }));
@@ -25,9 +26,9 @@ function setup(asset: unknown) {
     {} as Args[0],
     undefined,
     undefined,
-    { findOne } as unknown as Args[3],
+    { findOne, findOneSelect: delegateFindOneSelect() } as unknown as Args[3],
   );
-  return { helper, findOne };
+  return { helper, findOne, findOneSelect: delegateFindOneSelect() };
 }
 describe('Workflow Library media access', () => {
   it('uses tenant, deletion, readiness and stored object identity for a localized audio artifact', async () => {

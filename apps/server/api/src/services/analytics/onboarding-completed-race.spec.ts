@@ -3,6 +3,7 @@ import { UsersController } from '@api/collections/users/controllers/users.contro
 import { UserOnboardingCompletionService } from '@api/collections/users/services/user-onboarding-completion.service';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { describe, expect, it, vi } from 'vitest';
 
 /**
@@ -40,6 +41,7 @@ describe('onboarding_completed cross-surface race (genfeedai/genfeed.ai#5311)', 
       findOne: vi
         .fn()
         .mockResolvedValue({ id: USER_ID, isOnboardingCompleted: false }),
+      findOneSelect: delegateFindOneSelect(),
       patchAll: vi
         .fn()
         .mockImplementation(
@@ -64,6 +66,7 @@ describe('onboarding_completed cross-surface race (genfeedai/genfeed.ai#5311)', 
         id: CONTEXT.organizationId,
         accountType: 'CREATOR',
       }),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn(),
     };
 
@@ -102,7 +105,10 @@ describe('onboarding_completed cross-surface race (genfeedai/genfeed.ai#5311)', 
 
     const handler = new AgentOnboardingToolHandler(
       {} as never, // brandsService
-      { findOne: vi.fn().mockResolvedValue(null) } as never, // postsService
+      {
+        findOne: vi.fn().mockResolvedValue(null),
+        findOneSelect: delegateFindOneSelect(),
+      } as never, // postsService
       {} as never, // creditsUtilsService
       onboardingCreditGrantsService,
       undefined, // credentialsService
@@ -147,6 +153,7 @@ describe('onboarding_completed cross-surface race (genfeedai/genfeed.ai#5311)', 
       findOne: vi
         .fn()
         .mockResolvedValue({ id: USER_ID, isOnboardingCompleted: true }),
+      findOneSelect: delegateFindOneSelect(),
       patchAll: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
     };
     const serverFunnelCaptureService = {

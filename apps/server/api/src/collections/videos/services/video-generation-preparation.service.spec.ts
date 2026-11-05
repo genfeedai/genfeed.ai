@@ -11,6 +11,7 @@ import {
 } from '@api/collections/videos/services/video-generation-prompt.util';
 import { resolveStoredVideoReference } from '@api/collections/videos/services/video-generation-reference.util';
 import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -367,7 +368,7 @@ describe('authorized native Seedance reference evidence', () => {
         unused,
         unused,
         { getPresignedDownloadUrlForObjectKey, fingerprintMedia } as never,
-        { findOne } as never,
+        { findOne, findOneSelect: delegateFindOneSelect() } as never,
         unused,
         unused,
         unused,

@@ -9,6 +9,7 @@ import { WorkflowExecutionsService } from '@api/collections/workflow-executions/
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { GENFEED_AGENT_IDENTITY_WITH_BRAND_QUESTIONS } from '@api/services/agent-orchestrator/constants/genfeed-agent-identity.constant';
 import { WorkspaceTaskWorkflowQueueService } from '@api/services/task-orchestration/workspace-task-workflow-queue.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { BadRequestException } from '@nestjs/common';
 
 describe('TaskPlanningService', () => {
@@ -21,12 +22,19 @@ describe('TaskPlanningService', () => {
   let agentThreadsService: {
     create: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     updateThreadMetadata: ReturnType<typeof vi.fn>;
   };
   let agentMessagesService: { getMessagesByRoom: ReturnType<typeof vi.fn> };
-  let workflowExecutionsService: { findOne: ReturnType<typeof vi.fn> };
+  let workflowExecutionsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let taskCountersService: { getNextNumber: ReturnType<typeof vi.fn> };
-  let organizationsService: { findOne: ReturnType<typeof vi.fn> };
+  let organizationsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let agentOrchestratorService: { chat: ReturnType<typeof vi.fn> };
 
   const baseTask = {
@@ -51,13 +59,18 @@ describe('TaskPlanningService', () => {
     agentThreadsService = {
       create: vi.fn(),
       findOne: vi.fn().mockResolvedValue({ id: 'thread-1' }),
+      findOneSelect: delegateFindOneSelect(),
       updateThreadMetadata: vi.fn(),
     };
     agentMessagesService = { getMessagesByRoom: vi.fn() };
-    workflowExecutionsService = { findOne: vi.fn() };
+    workflowExecutionsService = {
+      findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
+    };
     taskCountersService = { getNextNumber: vi.fn().mockResolvedValue(7) };
     organizationsService = {
       findOne: vi.fn().mockResolvedValue({ prefix: 'ACME' }),
+      findOneSelect: delegateFindOneSelect(),
     };
     agentOrchestratorService = { chat: vi.fn() };
 

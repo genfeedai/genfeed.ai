@@ -1,5 +1,6 @@
 import * as dispatchLock from '@api/collections/workflows/services/agent-autopilot-dispatch-lock.util';
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { getActionDefinition } from '@genfeedai/actions';
 import {
   AgentAutonomyMode,
@@ -202,7 +203,10 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
     const performance = {
       getPerformanceSnapshot: vi.fn().mockResolvedValue(snapshot),
     };
-    const settings = { findOne: vi.fn().mockResolvedValue({}) };
+    const settings = {
+      findOne: vi.fn().mockResolvedValue({}),
+      findOneSelect: delegateFindOneSelect(),
+    };
     const credits = {
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(1000),
     };

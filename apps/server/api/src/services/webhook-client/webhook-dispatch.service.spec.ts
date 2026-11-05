@@ -1,4 +1,5 @@
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   WEBHOOK_CLIENT_QUEUE,
   type WebhookJobData,
@@ -24,6 +25,7 @@ describe('WebhookDispatchService', () => {
   let service: WebhookDispatchService;
   let settingsService: {
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     recordWebhookDeliveryStatus: ReturnType<typeof vi.fn>;
   };
 
@@ -36,6 +38,7 @@ describe('WebhookDispatchService', () => {
         webhookEndpoint: 'https://example.com/webhook',
         webhookSecret: 'secret',
       }),
+      findOneSelect: delegateFindOneSelect(),
       recordWebhookDeliveryStatus: vi.fn().mockResolvedValue(undefined),
     };
 

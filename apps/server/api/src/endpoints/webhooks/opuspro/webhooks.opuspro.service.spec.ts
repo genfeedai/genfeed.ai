@@ -1,6 +1,7 @@
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { OpusProWebhookService } from '@api/endpoints/webhooks/opuspro/webhooks.opuspro.service';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { OpusProWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -21,6 +22,7 @@ describe('OpusProWebhookService', () => {
           provide: MetadataService,
           useValue: {
             findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
             patch: vi.fn(),
           },
         },

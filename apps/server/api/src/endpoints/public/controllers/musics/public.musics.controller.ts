@@ -151,14 +151,17 @@ export class PublicMusicsController {
       return;
     }
 
-    const music = await this.musicsService.findOne({
-      id: musicId,
-      category: CategoryPrismaUtil.toIngredientCategory(
-        IngredientCategory.MUSIC,
-      ),
-      scope: AssetScope.PUBLIC,
-      status: IngredientStatus.GENERATED,
-    });
+    const music = await this.musicsService.findOneSelect(
+      {
+        id: musicId,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.MUSIC,
+        ),
+        scope: AssetScope.PUBLIC,
+        status: IngredientStatus.GENERATED,
+      },
+      { id: true },
+    );
 
     if (!music) {
       res.status(404).json({ error: 'Music not found' });

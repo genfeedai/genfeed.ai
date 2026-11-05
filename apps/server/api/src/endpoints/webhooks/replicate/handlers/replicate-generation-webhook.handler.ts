@@ -207,9 +207,10 @@ export class ReplicateGenerationWebhookHandler {
       return null;
     }
 
-    const ingredient = await this.ingredientsService.findOne({
-      metadataId: metadata.id,
-    });
+    const ingredient = await this.ingredientsService.findOneSelect(
+      { metadataId: metadata.id },
+      { category: true },
+    );
 
     return ingredient?.category
       ? (ingredient.category as IngredientCategory)
@@ -223,9 +224,10 @@ export class ReplicateGenerationWebhookHandler {
   private async resolveIngredientCategoryForIngredient(
     ingredientId: string,
   ): Promise<IngredientCategory> {
-    const ingredient = await this.ingredientsService.findOne({
-      id: ingredientId,
-    });
+    const ingredient = await this.ingredientsService.findOneSelect(
+      { id: ingredientId },
+      { category: true },
+    );
 
     if (ingredient?.category) {
       return ingredient.category as IngredientCategory;
@@ -289,11 +291,14 @@ export class ReplicateGenerationWebhookHandler {
           `Replicate callback ${payload.id} does not own continuation ${workflowContinuationId}`,
         );
       }
-      const targetIngredient = await this.ingredientsService.findOne({
-        id: target.ingredientId,
-        organizationId: target.organizationId,
-        isDeleted: false,
-      });
+      const targetIngredient = await this.ingredientsService.findOneSelect(
+        {
+          id: target.ingredientId,
+          organizationId: target.organizationId,
+          isDeleted: false,
+        },
+        { metadataId: true },
+      );
       const workflowOutputUrl = await this.requireSingleOutput(
         payload,
         targetIngredient?.metadataId ?? undefined,
@@ -497,11 +502,10 @@ export class ReplicateGenerationWebhookHandler {
     await Promise.all(
       slots.map(async (slot) => {
         if (slot.isDeleted) return;
-        const liveOwner = await this.ingredientsService.findOne({
-          metadataId: slot.id,
-          organizationId,
-          isDeleted: false,
-        });
+        const liveOwner = await this.ingredientsService.findOneSelect(
+          { metadataId: slot.id, organizationId, isDeleted: false },
+          { id: true },
+        );
         if (!liveOwner) return;
         const index = Number(slot.externalId?.slice(payload.id.length + 1));
         const url = returned[index];

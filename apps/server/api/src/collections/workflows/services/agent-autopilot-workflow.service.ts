@@ -406,11 +406,11 @@ export class AgentAutopilotWorkflowService {
   ): Promise<number | null> {
     const organizationId = strategy.organizationId;
     const strategyId = strategy.id;
-    const organizationSettings = await this.organizationSettingsService.findOne(
-      {
-        organizationId: organizationId,
-      },
-    );
+    const organizationSettings =
+      await this.organizationSettingsService.findOneSelect(
+        { organizationId: organizationId },
+        { agentPolicy: true },
+      );
     ownership?.assertOwned();
     const orgAgentDailyCap =
       organizationSettings?.agentPolicy?.creditGovernance

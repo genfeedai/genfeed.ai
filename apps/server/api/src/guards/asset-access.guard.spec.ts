@@ -2,6 +2,7 @@ import {
   AssetAccessGuard,
   normalizeAssetScope,
 } from '@api/guards/asset-access.guard';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { AssetScope } from '@genfeedai/contracts';
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,6 +31,7 @@ describe('AssetAccessGuard', () => {
   const findOne = vi.fn();
   const guard = new AssetAccessGuard({
     findOne,
+    findOneSelect: delegateFindOneSelect(),
   } as never);
 
   function createContext(params: {

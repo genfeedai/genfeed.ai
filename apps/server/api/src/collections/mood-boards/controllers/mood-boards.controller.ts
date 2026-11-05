@@ -67,8 +67,9 @@ export class MoodBoardsController {
   ): Promise<JsonApiSingleResponse> {
     const organizationId = user.organizationId;
 
-    const existing = await this.service.findOne(
+    const existing = await this.service.findOneSelect(
       scopedWhere(organizationId, { id }),
+      { id: true },
     );
 
     if (!existing) {

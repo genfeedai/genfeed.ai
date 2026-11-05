@@ -260,12 +260,10 @@ export class AssetIngestionService {
       validatedParent,
     );
     const userId = user.userId ?? user.id;
-    const ingredient = await this.ingredientsService.findOne({
-      id: validatedIngredientId,
-      isDeleted: false,
-      organizationId,
-      userId,
-    });
+    const ingredient = await this.ingredientsService.findOneSelect(
+      { id: validatedIngredientId, isDeleted: false, organizationId, userId },
+      { category: true, metadataId: true },
+    );
 
     if (!ingredient) {
       return returnNotFound('Ingredient', validatedIngredientId);
@@ -279,9 +277,10 @@ export class AssetIngestionService {
       throw new ValidationException('Ingredient metadata not found');
     }
 
-    const metadata = await this.metadataService.findOne({
-      id: ingredient.metadataId,
-    });
+    const metadata = await this.metadataService.findOneSelect(
+      { id: ingredient.metadataId },
+      { id: true },
+    );
 
     if (!metadata) {
       throw new ValidationException('Ingredient metadata not found');

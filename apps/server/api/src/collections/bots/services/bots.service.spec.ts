@@ -137,6 +137,7 @@ describe('BotsService', () => {
         isDeleted: false,
         organizationId: 'organization-1',
       },
+      select: { config: true },
     });
     expectCloudGuardPasses('Bot', 'findFirst', findFirst);
   });

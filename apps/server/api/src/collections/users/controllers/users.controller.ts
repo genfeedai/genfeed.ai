@@ -389,9 +389,10 @@ export class UsersController {
       return returnNotFound(this.constructorName, userId);
     }
 
-    const existingUser = await this.usersService.findOne({
-      id: userId,
-    });
+    const existingUser = await this.usersService.findOneSelect(
+      { id: userId },
+      { id: true, onboardingStartedAt: true },
+    );
 
     if (!existingUser) {
       return returnNotFound(this.constructorName, userId);
@@ -441,10 +442,10 @@ export class UsersController {
     @Body() profile: AdminUpdateUserProfileDto,
   ) {
     if (!getIsSuperAdmin(currentUser, request)) throw new ForbiddenException();
-    const existing = await this.usersService.findOne({
-      id: userId,
-      isDeleted: false,
-    });
+    const existing = await this.usersService.findOneSelect(
+      { id: userId, isDeleted: false },
+      { id: true },
+    );
     if (!existing) return returnNotFound(this.constructorName, userId);
     await this.usersService.updateAdminProfile(userId, profile);
     await this.userAccessCacheService.invalidateAll(userId);
@@ -460,10 +461,10 @@ export class UsersController {
     @Param('userId') userId: string,
   ) {
     if (!getIsSuperAdmin(currentUser, request)) throw new ForbiddenException();
-    const existing = await this.usersService.findOne({
-      id: userId,
-      isDeleted: false,
-    });
+    const existing = await this.usersService.findOneSelect(
+      { id: userId, isDeleted: false },
+      { id: true },
+    );
     if (!existing) return returnNotFound(this.constructorName, userId);
     await this.usersService.resetOnboarding(userId);
     await this.userAccessCacheService.invalidateAll(userId);

@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
   const actual =
     await importOriginal<
@@ -36,8 +38,14 @@ describe('TrialCardController', () => {
     createTrialCardSetupSession: vi.fn(),
     getTrialCardFingerprint: vi.fn(),
   };
-  const usersService = { findOne: vi.fn() };
-  const organizationsService = { findOne: vi.fn() };
+  const usersService = {
+    findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
+  };
+  const organizationsService = {
+    findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
+  };
   const billingAccountService = { resolveOrProvision: vi.fn() };
   const billingAccountsService = {
     ensureForOrganization: vi.fn(),

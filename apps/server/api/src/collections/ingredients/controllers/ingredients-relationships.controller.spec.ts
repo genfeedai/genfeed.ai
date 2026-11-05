@@ -6,6 +6,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { IngredientLineageDirection } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -51,6 +52,7 @@ describe('IngredientsRelationshipsController', () => {
         total: 1,
       }),
       findOne: vi.fn().mockResolvedValue(mockIngredient),
+      findOneSelect: delegateFindOneSelect(),
     },
     lineageService: {
       findLineage: vi.fn().mockResolvedValue({

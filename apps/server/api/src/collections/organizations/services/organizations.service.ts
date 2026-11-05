@@ -247,7 +247,7 @@ export class OrganizationsService extends BaseService<
       const prefix = updateDto.prefix.toUpperCase();
 
       // Prefix is immutable once set — reject if the org already has one.
-      const org = await this.findOne({ id: id });
+      const org = await this.findOneSelect({ id: id }, { prefix: true });
       if (!org) {
         throw new NotFoundException('Organization');
       }

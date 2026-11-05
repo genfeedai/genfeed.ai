@@ -843,11 +843,10 @@ export class ClipperProjectIngestionService {
     organizationId: string,
     draftProjectId: string,
   ): Promise<void> {
-    const draft = await this.clipperProjectsService.findOne({
-      id: draftProjectId,
-      isDeleted: false,
-      organizationId,
-    });
+    const draft = await this.clipperProjectsService.findOneSelect(
+      { id: draftProjectId, isDeleted: false, organizationId },
+      { status: true },
+    );
     if (!draft) {
       throw new NotFoundException('ClipperProject', draftProjectId);
     }
@@ -868,11 +867,10 @@ export class ClipperProjectIngestionService {
       return brandId;
     }
 
-    const draft = await this.clipperProjectsService.findOne({
-      id: draftProjectId,
-      isDeleted: false,
-      organizationId,
-    });
+    const draft = await this.clipperProjectsService.findOneSelect(
+      { id: draftProjectId, isDeleted: false, organizationId },
+      { brandId: true },
+    );
     return draft?.brandId ?? undefined;
   }
 

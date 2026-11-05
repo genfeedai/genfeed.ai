@@ -135,10 +135,10 @@ export class BrandPersistenceService {
       return;
     }
 
-    const existingWebsiteLink = await this.linksService.findOne({
-      brandId: brandId,
-      category: LinkCategory.WEBSITE,
-    });
+    const existingWebsiteLink = await this.linksService.findOneSelect(
+      { brandId: brandId, category: LinkCategory.WEBSITE },
+      { id: true },
+    );
 
     if (existingWebsiteLink) {
       await this.linksService.patch(String(existingWebsiteLink.id), {
@@ -190,10 +190,10 @@ export class BrandPersistenceService {
         continue;
       }
 
-      const existingLink = await this.linksService.findOne({
-        brandId: brandId,
-        category,
-      });
+      const existingLink = await this.linksService.findOneSelect(
+        { brandId: brandId, category },
+        { id: true },
+      );
 
       if (existingLink) {
         continue;
@@ -232,11 +232,10 @@ export class BrandPersistenceService {
     extractedData: IExtractedBrandData,
     preserveOnboardingAnswers = false,
   ): Promise<void> {
-    const brand = await this.brandsService.findOne({
-      id: brandId,
-      organizationId,
-      isDeleted: false,
-    });
+    const brand = await this.brandsService.findOneSelect(
+      { id: brandId, organizationId, isDeleted: false },
+      { agentConfig: true },
+    );
 
     if (!brand) {
       return;

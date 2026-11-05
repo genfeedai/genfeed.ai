@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 let mockCloudMode = true;
 vi.mock('@genfeedai/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/config')>();
@@ -28,26 +30,35 @@ describe('OrganizationsOperationsService', () => {
   const brandsService = {
     create: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
   const membersService = {
     create: vi.fn(),
     findActiveForUserAccess: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     setCurrentBrand: vi.fn(),
   };
   const organizationSettingsService = {
     ensureForOrganization: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
   const organizationsService = {
     count: vi.fn(),
     create: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     generateUniqueSlug: vi.fn(),
   };
-  const rolesService = { findOne: vi.fn(), create: vi.fn() };
+  const rolesService = {
+    findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
+    create: vi.fn(),
+  };
   const usersService = {
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn(),
   };
   const billingAccountsService = {

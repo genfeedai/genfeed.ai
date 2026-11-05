@@ -279,11 +279,14 @@ export class VideosController {
       evaluation,
     };
 
-    const vote = await this.votesService.findOne({
-      entityId: videoId,
-      entityModel: ActivityEntityModel.INGREDIENT,
-      userId: user.userId ?? user.id,
-    });
+    const vote = await this.votesService.findOneSelect(
+      {
+        entityId: videoId,
+        entityModel: ActivityEntityModel.INGREDIENT,
+        userId: user.userId ?? user.id,
+      },
+      { id: true },
+    );
 
     mergedData.hasVoted = !!vote;
 

@@ -1,10 +1,14 @@
 import { TrendFilteringService } from '@api/collections/trends/services/modules/trend-filtering.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { Timeframe } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 function setup(description: string) {
-  const brands = { findOne: vi.fn().mockResolvedValue({ description }) };
+  const brands = {
+    findOne: vi.fn().mockResolvedValue({ description }),
+    findOneSelect: delegateFindOneSelect(),
+  };
   const preferences = {
     getPreferences: vi.fn().mockResolvedValue({
       keywords: [],

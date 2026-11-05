@@ -654,11 +654,10 @@ export class TrendsService {
     } = {},
   ): Promise<TrendContentResult> {
     if (organizationId && brandId) {
-      const brand = await this.brandsService.findOne({
-        id: brandId,
-        organizationId,
-        isDeleted: false,
-      });
+      const brand = await this.brandsService.findOneSelect(
+        { id: brandId, organizationId, isDeleted: false },
+        { id: true },
+      );
       if (!brand) throw new NotFoundException('Brand');
     }
     return this.trendSourcePreviewService.getTrendContent(

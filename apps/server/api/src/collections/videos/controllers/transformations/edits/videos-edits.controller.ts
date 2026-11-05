@@ -255,9 +255,10 @@ export class VideosEditsController {
       );
     }
 
-    const originalMetadata = await this.metadataService.findOne({
-      ingredients: { some: { id: videoId } },
-    });
+    const originalMetadata = await this.metadataService.findOneSelect(
+      { ingredients: { some: { id: videoId } } },
+      { height: true, width: true },
+    );
 
     if (!originalMetadata) {
       throw new HttpException(

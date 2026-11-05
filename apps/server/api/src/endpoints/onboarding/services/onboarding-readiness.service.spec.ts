@@ -2,6 +2,7 @@ import type { BrandsService } from '@api/collections/brands/services/brands.serv
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import type { ConfigService } from '@libs/config/config.service';
 import {
   afterAll,
@@ -270,16 +271,22 @@ describe('OnboardingReadinessService workspace readiness', () => {
     const service = new OnboardingReadinessService(
       {
         findOne: vi.fn().mockResolvedValue(hasBrand ? { id: BRAND_ID } : null),
+        findOneSelect: delegateFindOneSelect(),
       } as unknown as BrandsService,
       {
         findOne: vi.fn().mockResolvedValue(null),
+        findOneSelect: delegateFindOneSelect(),
       } as unknown as OrganizationSettingsService,
       {
         findOne: vi
           .fn()
           .mockResolvedValue(hasOrganization ? { id: ORGANIZATION_ID } : null),
+        findOneSelect: delegateFindOneSelect(),
       } as unknown as OrganizationsService,
-      { findOne: vi.fn().mockResolvedValue(null) } as unknown as UsersService,
+      {
+        findOne: vi.fn().mockResolvedValue(null),
+        findOneSelect: delegateFindOneSelect(),
+      } as unknown as UsersService,
       envConfigService,
     );
 
@@ -318,14 +325,22 @@ describe('OnboardingReadinessService workspace readiness', () => {
     });
 
     const service = new OnboardingReadinessService(
-      { findOne: brandsFindOne } as unknown as BrandsService,
+      {
+        findOne: brandsFindOne,
+        findOneSelect: delegateFindOneSelect(),
+      } as unknown as BrandsService,
       {
         findOne: vi.fn().mockResolvedValue(null),
+        findOneSelect: delegateFindOneSelect(),
       } as unknown as OrganizationSettingsService,
       {
         findOne: vi.fn().mockResolvedValue({ id: ORGANIZATION_ID }),
+        findOneSelect: delegateFindOneSelect(),
       } as unknown as OrganizationsService,
-      { findOne: vi.fn().mockResolvedValue(null) } as unknown as UsersService,
+      {
+        findOne: vi.fn().mockResolvedValue(null),
+        findOneSelect: delegateFindOneSelect(),
+      } as unknown as UsersService,
       envConfigService,
     );
 

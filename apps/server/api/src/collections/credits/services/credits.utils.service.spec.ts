@@ -15,6 +15,7 @@ import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/tra
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { ActivitySource } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 
@@ -45,11 +46,13 @@ describe('CreditsUtilsService', () => {
   const creditTransactionsService = {
     createTransactionEntry: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     getLatestTransactionBeforeDate: vi.fn(),
     getOrganizationTransactionsInRange: vi.fn(),
   };
   const organizationSettingsService = {
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn(),
   };
   const websocketService = { emit: vi.fn() };

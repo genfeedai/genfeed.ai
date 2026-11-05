@@ -2,6 +2,7 @@ import { BrandAccessService } from '@api/authorization/brand-access/brand-access
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import type { AssembleContextParams } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { MemberRole } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
@@ -43,6 +44,7 @@ function fixture() {
       label: 'Authorized identity',
       organizationId: 'org-a',
     }),
+    findOneSelect: delegateFindOneSelect(),
     resolveBrandKitAssets: vi
       .fn()
       .mockResolvedValue({ logo: null, banner: null, references: [] }),
@@ -61,12 +63,16 @@ function fixture() {
     retrieval as never,
     {
       findOne: vi.fn().mockResolvedValue({ currentBrandId: 'brand-a' }),
+      findOneSelect: delegateFindOneSelect(),
     } as never,
     { post: { findMany: recentPosts } } as never,
     { generateKey: (...parts: string[]) => parts.join(':'), getOrSet } as never,
     { log: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } as never,
     performance as never,
-    { findOne: vi.fn().mockResolvedValue(null) } as never,
+    {
+      findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
+    } as never,
     undefined as never,
   );
   return {

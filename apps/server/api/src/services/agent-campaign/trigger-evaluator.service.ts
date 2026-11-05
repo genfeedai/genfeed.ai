@@ -436,10 +436,10 @@ export class TriggerEvaluatorService {
       return '';
     }
 
-    const brand = await this.brandsService.findOne({
-      id: scope.brandId,
-      organizationId: scope.organizationId,
-    });
+    const brand = await this.brandsService.findOneSelect(
+      { id: scope.brandId, organizationId: scope.organizationId },
+      { description: true, label: true, text: true },
+    );
 
     if (!brand) {
       return '';

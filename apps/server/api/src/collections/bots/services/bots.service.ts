@@ -108,10 +108,11 @@ export class BotsService extends BaseService<
     if (hasConfigPatch) {
       // `super.patch` writes by id; resolve the pre-read under the request tenant.
       const tenantOrganizationId = getTenantContext()?.organizationId;
-      const existing = await this.findOne(
+      const existing = await this.findOneSelect(
         tenantOrganizationId
           ? scopedWhere(tenantOrganizationId, { id })
           : { id },
+        { config: true },
       );
       if (!existing) {
         throw new NotFoundException('Bot', id);

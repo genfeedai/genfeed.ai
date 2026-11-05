@@ -210,8 +210,9 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       }
       case 'post': {
         if (!this.postsService) throw new Error('PostsService not available');
-        const post = await this.postsService.findOne(
+        const post = await this.postsService.findOneSelect(
           scopedWhere(organizationId, { id: contentId }),
+          { description: true },
         );
         if (!post) throw new NotFoundException('Post', contentId);
         if (!post.description)

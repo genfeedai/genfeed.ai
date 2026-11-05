@@ -195,13 +195,16 @@ export abstract class BaseIntegrationController {
       return false;
     }
 
-    const existing = await this.credentialsService.findOne({
-      brandId: input.brandId,
-      id: input.credentialId,
-      isDeleted: false,
-      organizationId: input.organizationId,
-      userId: input.userId,
-    });
+    const existing = await this.credentialsService.findOneSelect(
+      {
+        brandId: input.brandId,
+        id: input.credentialId,
+        isDeleted: false,
+        organizationId: input.organizationId,
+        userId: input.userId,
+      },
+      { id: true, isConnected: true },
+    );
 
     if (!existing || existing.isConnected) {
       return false;

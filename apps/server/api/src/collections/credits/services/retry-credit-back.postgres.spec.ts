@@ -196,8 +196,10 @@ describe.skipIf(!connectionString)('retry credit back (PostgreSQL)', () => {
       invalidateForOrganization: vi.fn().mockResolvedValue(undefined),
     } as unknown as AccessBootstrapCacheService;
     const settings = {
-      findOne: (where: { organizationId: string }) =>
-        database().organizationSetting.findFirst({ where }),
+      findOneSelect: (
+        where: { organizationId: string },
+        select: { hasEverHadCredits: true; id: true },
+      ) => database().organizationSetting.findFirst({ select, where }),
       patch: (id: string, data: { hasEverHadCredits: boolean }) =>
         database().organizationSetting.update({ data, where: { id } }),
     } as unknown as OrganizationSettingsService;

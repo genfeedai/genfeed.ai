@@ -41,11 +41,14 @@ export class ArticleContentPersistenceService {
 
     for (const label of labels) {
       try {
-        const existing = await this.tagsService.findOne({
-          isDeleted: false,
-          label: { equals: label, mode: 'insensitive' },
-          organizationId: params.organizationId,
-        });
+        const existing = await this.tagsService.findOneSelect(
+          {
+            isDeleted: false,
+            label: { equals: label, mode: 'insensitive' },
+            organizationId: params.organizationId,
+          },
+          { id: true },
+        );
 
         if (existing) {
           ids.push(existing.id);

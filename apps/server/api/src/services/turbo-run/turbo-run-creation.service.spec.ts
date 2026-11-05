@@ -1,5 +1,6 @@
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { TurboRunCreationService } from '@api/services/turbo-run/turbo-run-creation.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { ContentFormat } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 
@@ -18,7 +19,10 @@ describe('TurboRunCreationService manual review Post linking', () => {
     },
   };
   const logger = { error: vi.fn(), log: vi.fn() };
-  const brandsService = { findOne: vi.fn() };
+  const brandsService = {
+    findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
+  };
   const postsService = { create: vi.fn() };
   const cacheService = {};
   const summaryService = { toTurboRunSummary: vi.fn() };
@@ -176,7 +180,10 @@ describe('TurboRunCreationService platform normalize (#2696)', () => {
     },
   };
   const logger = { error: vi.fn(), log: vi.fn() };
-  const brandsService = { findOne: vi.fn() };
+  const brandsService = {
+    findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
+  };
   const postsService = { create: vi.fn() };
   const cacheService = {};
   const summaryService = { toTurboRunSummary: vi.fn() };
@@ -274,7 +281,10 @@ describe('TurboRunCreationService strategy attribution', () => {
     const service = new TurboRunCreationService(
       prisma as never,
       { log: vi.fn() } as never,
-      { findOne: vi.fn().mockResolvedValue({ id: 'brand' }) } as never,
+      {
+        findOne: vi.fn().mockResolvedValue({ id: 'brand' }),
+        findOneSelect: delegateFindOneSelect(),
+      } as never,
       {} as never,
       {} as never,
       { toTurboRunSummary: (turboRun: unknown) => turboRun } as never,
@@ -339,7 +349,7 @@ describe('TurboRunCreationService.appendManualReviewItems', () => {
   const service = new TurboRunCreationService(
     prisma as never,
     logger as never,
-    { findOne: vi.fn() } as never,
+    { findOne: vi.fn(), findOneSelect: delegateFindOneSelect() } as never,
     postsService as never,
     {} as never,
     summaryService as never,

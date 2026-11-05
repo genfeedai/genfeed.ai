@@ -1,5 +1,6 @@
 import { ArticleVersionService } from '@api/collections/articles/services/article-version.service';
 import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('ArticleVersionService', () => {
@@ -69,6 +70,7 @@ describe('ArticleVersionService', () => {
         enhanced:
           '{"content":"Restored body","summary":"Restored summary","title":"Restored title"}',
       }),
+      findOneSelect: delegateFindOneSelect(),
     } as unknown as PromptsService;
     const service = new ArticleVersionService(logger, promptsService);
     const restored = { id: 'article_1', label: 'Restored title' };
@@ -98,6 +100,7 @@ describe('ArticleVersionService', () => {
   it('rejects corrupted version data without patching the article', async () => {
     const promptsService = {
       findOne: vi.fn().mockResolvedValue({ enhanced: '{broken' }),
+      findOneSelect: delegateFindOneSelect(),
     } as unknown as PromptsService;
     const service = new ArticleVersionService(logger, promptsService);
     const patchArticle = vi.fn();

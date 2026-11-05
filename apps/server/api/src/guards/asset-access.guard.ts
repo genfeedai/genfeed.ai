@@ -40,9 +40,10 @@ export class AssetAccessGuard implements CanActivate {
     }
 
     // Find asset (include isDeleted check to avoid accessing soft-deleted assets)
-    const asset = await this.ingredientsService.findOne({
-      id: assetId,
-    });
+    const asset = await this.ingredientsService.findOneSelect(
+      { id: assetId },
+      { brandId: true, organizationId: true, scope: true, userId: true },
+    );
 
     if (!asset) {
       throw new NotFoundException('Asset');

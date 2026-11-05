@@ -1,3 +1,4 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import 'reflect-metadata';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { ArticlesTrafficController } from '@api/collections/articles/controllers/articles-traffic.controller';
@@ -323,9 +324,11 @@ describe('content mandatory selected-data regressions', () => {
           where.organizationId === selectedOrg ? video : tenantRows[0],
         ),
       ),
+      findOneSelect: delegateFindOneSelect(),
     };
     const votesService = {
       findOne: vi.fn().mockResolvedValue({ userId: actor.userId }),
+      findOneSelect: delegateFindOneSelect(),
     };
     const evaluationProjection = {
       attachToItem: vi.fn(
@@ -379,12 +382,15 @@ describe('content mandatory selected-data regressions', () => {
   });
   it('image default visibility keeps selected/global arms and actor vote identity', async () => {
     const findOne = vi.fn().mockResolvedValue(tenantRows[1]);
-    const votesService = { findOne: vi.fn().mockResolvedValue(null) };
+    const votesService = {
+      findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
+    };
     const evaluationProjection = {
       attachToItem: vi.fn((row: unknown) => Promise.resolve(row)),
     };
     const c = instance(ImagesController.prototype, {
-      imagesService: { findOne },
+      imagesService: { findOne, findOneSelect: delegateFindOneSelect() },
       votesService,
       evaluationProjection,
     });
@@ -418,6 +424,7 @@ describe('content mandatory selected-data regressions', () => {
       findOne: vi.fn((where: { organizationId: string }) =>
         Promise.resolve(orgRows(where.organizationId)[0]),
       ),
+      findOneSelect: delegateFindOneSelect(),
     };
     const captionsService = {
       findAll: vi.fn((input: { where: { organizationId: string } }) =>
@@ -712,6 +719,7 @@ describe('provenance resource and children boundary', () => {
         ),
       ),
     ),
+    findOneSelect: delegateFindOneSelect(),
   };
   const metadataRows = [
     {
@@ -770,6 +778,7 @@ describe('provenance resource and children boundary', () => {
           ),
         ),
     ),
+    findOneSelect: delegateFindOneSelect(),
   };
   const captionsService = {
     find: vi.fn((where: { ingredientId: string; organizationId?: string }) =>
@@ -940,7 +949,10 @@ describe('owner credential and actual-member gates remain intact', () => {
   ])(
     '$handler preserves original organization/user credential filter on ordinary path',
     async ({ prototype, handler, serviceKey }) => {
-      const credentialsService = { findOne: vi.fn().mockResolvedValue(null) };
+      const credentialsService = {
+        findOne: vi.fn().mockResolvedValue(null),
+        findOneSelect: delegateFindOneSelect(),
+      };
       const provider = {
         listAccessibleCustomers: vi.fn(),
         listSites: vi.fn(),

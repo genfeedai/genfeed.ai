@@ -1,5 +1,6 @@
 import { WorkflowExecutionQueryDto } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
 import { buildCustomerExecutionWhere } from '@api/collections/workflow-executions/services/workflow-execution-query.util';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn((_req, _serializer, data) => data.docs || data),
@@ -44,6 +45,7 @@ describe('WorkflowExecutionsController', () => {
     findAll: vi.fn(),
     findOneWithAccounting: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     getExecutionStats: vi.fn(),
     getCustomerSummary: vi.fn(),
     patchOneWhere: vi.fn(),
