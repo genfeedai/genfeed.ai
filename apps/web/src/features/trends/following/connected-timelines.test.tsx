@@ -56,9 +56,6 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
   useSidebarNavigation: () => ({ hasCanonicalBreadcrumb: true }),
 }));
-vi.mock('@ui/layout/section-topbar/SectionTopbar', () => ({
-  default: () => null,
-}));
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
