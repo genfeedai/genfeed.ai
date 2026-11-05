@@ -234,10 +234,8 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
       'organizationId',
     );
     const credentialId = requiredString(request.credentialId, 'credentialId');
-    const [, bots] = await Promise.all([
-      this.loadCredential(credentialId, organizationId),
-      this.replyBotConfigsService.findActive(organizationId),
-    ]);
+    await this.loadCredential(credentialId, organizationId);
+    const bots = await this.replyBotConfigsService.findActive(organizationId);
     return {
       items: bots.map((bot) => ({
         botConfigId: bot.id.toString(),
