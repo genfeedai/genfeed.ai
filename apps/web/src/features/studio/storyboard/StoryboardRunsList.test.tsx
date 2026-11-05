@@ -83,7 +83,7 @@ describe('StoryboardRunsList', () => {
     expect(within(row).getByText('Draft')).toBeVisible();
     expect(within(row).getByText('3 shots')).toBeVisible();
     expect(within(row).getByText('12.5s')).toBeVisible();
-    expect(within(row).getByText(/^Edited /)).toBeVisible();
+    expect(within(row).getByText('Sep 2')).toBeVisible();
     expect(
       screen.getByRole('link', { name: /Proof-led hook/ }),
     ).toHaveAttribute('href', '/acme/northstar/storyboard/run-1');
@@ -120,7 +120,11 @@ describe('StoryboardRunsList', () => {
 
     const needsYou = screen.getByRole('heading', { name: /Needs you/ });
     expect(needsYou).toBeVisible();
-    expect(screen.getAllByText('Stalled run')).toHaveLength(2);
+    const needsYouRows = within(screen.getByTestId('storyboard-needs-you'));
+    expect(needsYouRows.getByText('Stalled run')).toBeVisible();
+    expect(needsYouRows.getByRole('img', { name: 'Needs you' })).toBeVisible();
+    expect(needsYouRows.queryByText('Draft run')).toBeNull();
+    expect(screen.getAllByText('Stalled run')).toHaveLength(1);
     expect(screen.getAllByText('Draft run')).toHaveLength(1);
   });
 

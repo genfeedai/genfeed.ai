@@ -1,9 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
-/** `rail` keeps the agent a narrow column (22.5rem) beside a wide tool surface. */
-type OpenProjectLayoutMode = 'rail' | 'split';
-
-const RAIL_AGENT_WIDTH_PX = 360;
 /** The prompt bar is the last thing in the agent column, plus a small gutter. */
 const PROMPT_BAR_BOTTOM_GAP_PX = 160;
 
@@ -16,10 +12,7 @@ const PROMPT_BAR_BOTTOM_GAP_PX = 160;
  * Call at a desktop viewport (1440 wide). Below `xl` the two panes collapse
  * into an Agent / Output switch.
  */
-export async function expectOpenProjectLayout(
-  page: Page,
-  { mode = 'split' }: { mode?: OpenProjectLayoutMode } = {},
-): Promise<void> {
+export async function expectOpenProjectLayout(page: Page): Promise<void> {
   const agent = page.getByTestId('agent-output-agent-pane');
   const output = page.getByTestId('agent-output-output-pane');
   await expect(agent).toBeVisible();
@@ -33,13 +26,7 @@ export async function expectOpenProjectLayout(
     throw new Error('Agent and output panes must both be laid out.');
   }
   expect(agentBox.x).toBeLessThan(outputBox.x);
-  if (mode === 'rail') {
-    expect(Math.abs(agentBox.width - RAIL_AGENT_WIDTH_PX)).toBeLessThanOrEqual(
-      2,
-    );
-  } else {
-    expect(Math.abs(agentBox.width - outputBox.width)).toBeLessThanOrEqual(2);
-  }
+  expect(Math.abs(agentBox.width - outputBox.width)).toBeLessThanOrEqual(2);
 
   // One agent: the product dock stays off beside the page's own conversation.
   await expect(page.getByTestId('topbar-agent-dock-toggle')).toHaveCount(0);

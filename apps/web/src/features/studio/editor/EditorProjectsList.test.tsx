@@ -16,6 +16,7 @@ import EditorProjectsList from './EditorProjectsList';
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return {
+    useLocale: () => 'en',
     useTranslations: (namespace: string) => {
       const translate = translateFromCatalog(namespace);
       // Real next-intl hands back a new translator when messages resolve
@@ -310,8 +311,8 @@ describe('EditorProjectsList', () => {
   });
 
   it('shows the age and status of each project and deletes one from its menu', async () => {
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60_000).toISOString();
-    const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60_000).toISOString();
+    const firstEdited = '2020-03-05T12:00:00Z';
+    const secondEdited = '2020-03-03T12:00:00Z';
 
     mocks.findAll.mockResolvedValue(
       paginatedResponse(
@@ -321,14 +322,14 @@ describe('EditorProjectsList', () => {
             name: 'Launch cut',
             status: 'draft',
             tracks: [],
-            updatedAt: thirtyMinutesAgo,
+            updatedAt: firstEdited,
           },
           {
             id: 'project-2',
             name: 'Teaser edit',
             status: 'ready',
             tracks: [],
-            updatedAt: twoDaysAgo,
+            updatedAt: secondEdited,
           },
         ],
         { totalDocs: 61, totalPages: 5 },
@@ -339,8 +340,8 @@ describe('EditorProjectsList', () => {
     render(<EditorProjectsList />);
 
     const all = within(await screen.findByTestId('editor-projects-all'));
-    expect(all.getByText('30m ago')).toBeVisible();
-    expect(all.getByText('2d ago')).toBeVisible();
+    expect(all.getByText('Mar 5')).toBeVisible();
+    expect(all.getByText('Mar 3')).toBeVisible();
     expect(all.getByText('Draft')).toBeVisible();
     expect(all.getByText('Ready')).toBeVisible();
     await userEvent.click(

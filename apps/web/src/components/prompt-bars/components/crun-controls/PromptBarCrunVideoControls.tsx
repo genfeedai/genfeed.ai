@@ -11,14 +11,8 @@ import {
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
 import { Fragment, useId, useState } from 'react';
 import type { CrunVideoControlsProps } from '@/props/studio/crun-video-controls.props';
 
@@ -70,24 +64,28 @@ export default function PromptBarCrunVideoControls({
     ) : null;
   }
   const selects = [
-    ['duration', 'duration', labels.duration],
-    ['aspect_ratio', 'aspectRatio', labels.aspectRatio],
-    ['resolution', 'resolution', labels.resolution],
+    ['duration', 'duration', labels.duration, 'duration'],
+    ['aspect_ratio', 'aspectRatio', labels.aspectRatio, 'aspectRatio'],
+    ['resolution', 'resolution', labels.resolution, 'format'],
   ] as const;
   const hasFrames =
     controls.videoRules?.omitAspectRatioWithReferences && !!value.startFrameId;
   return (
     <>
-      {selects.map(([name, key, label]) => {
+      {selects.map(([name, key, label, icon]) => {
         const field = controls.fields[name];
         if (!field?.enum || (name === 'aspect_ratio' && hasFrames)) return null;
+        const accessible = accessibility(name);
         return (
           <Fragment key={name}>
-            <Label htmlFor={`${id}-${name}`}>{label}</Label>
-            <Select
-              disabled={isDisabled}
-              value={String(value[key] ?? field.default ?? '')}
-              onValueChange={(selected) => {
+            <PromptBarCompactSelect
+              ariaLabel={label}
+              describedBy={accessible['aria-describedby']}
+              icon={icon}
+              id={accessible.id}
+              isDisabled={isDisabled}
+              isInvalid={accessible['aria-invalid']}
+              onChange={(selected) => {
                 const option = field.enum?.find(
                   (item) => String(item) === selected,
                 );
@@ -100,32 +98,25 @@ export default function PromptBarCrunVideoControls({
                 } else if (typeof option === 'string')
                   change({ [key]: option });
               }}
-            >
-              <SelectTrigger {...accessibility(name)} aria-label={label}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {field.enum.map((option) => {
-                  if (typeof option !== 'number' && typeof option !== 'string')
-                    return null;
-                  const unavailable =
-                    name === 'duration' &&
-                    typeof option === 'number' &&
-                    !controls.videoRules?.availableDurations.includes(option);
-                  return (
-                    <SelectItem
-                      key={String(option)}
-                      value={String(option)}
-                      disabled={unavailable}
-                    >
-                      {String(option)}
-                      {name === 'duration' ? 's' : ''}
-                      {unavailable ? ` — ${labels.pricingReviewRequired}` : ''}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+              options={field.enum.flatMap((option) => {
+                if (typeof option !== 'number' && typeof option !== 'string')
+                  return [];
+                const unavailable =
+                  name === 'duration' &&
+                  typeof option === 'number' &&
+                  !controls.videoRules?.availableDurations.includes(option);
+                return [
+                  {
+                    isDisabled: unavailable,
+                    label: `${String(option)}${name === 'duration' ? 's' : ''}${
+                      unavailable ? ` — ${labels.pricingReviewRequired}` : ''
+                    }`,
+                    value: String(option),
+                  },
+                ];
+              })}
+              value={String(value[key] ?? field.default ?? '')}
+            />
             {errorMessage(name)}
           </Fragment>
         );

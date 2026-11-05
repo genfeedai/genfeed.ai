@@ -1,13 +1,16 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { NotificationsService } from '@services/core/notifications.service';
-import CollectionItemActions from '@ui/collection/CollectionItemActions';
-import CollectionView from '@ui/collection/CollectionView';
-import { ListRow } from '@ui/lists/list-row/ListRow';
+import { ListRowsSkeleton } from '@ui/lists/list-row/ListRowsSkeleton';
+import { formatThreadTime } from '@ui/lists/thread-list/group-by-recency';
+import {
+  ThreadListRecencySections,
+  ThreadListRow,
+  ThreadListSubtitle,
+} from '@ui/lists/thread-list/ThreadList';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -22,8 +25,7 @@ import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Pencil, Trash2 } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { type FormEvent, useState } from 'react';
 import type {
   ClipperProjectListProps,
@@ -39,6 +41,7 @@ export default function ClipperProjectList({
 }: ClipperProjectListProps) {
   const { href } = useOrgUrl();
   const t = useTranslations('pages.studioClipper');
+  const locale = useLocale();
   const [renameTarget, setRenameTarget] =
     useState<ClipperProjectSummary | null>(null);
   const [name, setName] = useState('');
@@ -68,21 +71,11 @@ export default function ClipperProjectList({
     }
   }
 
-  function actions(project: ClipperProjectSummary) {
+  function row(project: ClipperProjectSummary) {
+    const thumbnail = youtubeThumbnailUrl(project.sourceVideoUrl);
     return (
-      <CollectionItemActions
-        overflowLabel={t('projectActions', { name: project.name })}
-        primary={
-          <Button
-            asChild
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-            withWrapper={false}
-          >
-            <Link href={projectHref(project)}>{t('open')}</Link>
-          </Button>
-        }
-        overflow={[
+      <ThreadListRow
+        actions={[
           ...(onRename
             ? [
                 {
@@ -108,64 +101,60 @@ export default function ClipperProjectList({
               ]
             : []),
         ]}
-      />
-    );
-  }
-
-  function row(project: ClipperProjectSummary) {
-    const date = project.updatedAt ?? project.createdAt;
-    const thumbnail = youtubeThumbnailUrl(project.sourceVideoUrl);
-    return (
-      <ListRow
+        actionsLabel={t('projectActions', { name: project.name })}
         data-testid={`clipper-project-row-${project.id}`}
+        href={projectHref(project)}
         leading={
           thumbnail ? (
             <Image
               src={thumbnail}
               alt=""
-              width={64}
-              height={36}
+              width={48}
+              height={27}
               unoptimized
-              className="shrink-0 rounded object-cover"
+              className="mt-0.5 shrink-0 rounded object-cover"
             />
           ) : undefined
         }
-        density="compact"
-        title={project.name}
-        meta={
-          <>
-            <span>
-              {project.isDraft
-                ? t('draftBadge')
-                : t('clipsCount', { count: project.readyClipCount })}
-            </span>
-            {!project.isDraft && (
-              <span>{project.status.replaceAll('_', ' ')}</span>
-            )}
-            {date && <span>{getRelativeTime(date)}</span>}
-          </>
+        status={
+          project.status === 'failed'
+            ? 'attention'
+            : project.status === 'completed' && !project.isDraft
+              ? 'done'
+              : 'idle'
         }
-        trailing={actions(project)}
+        subtitle={
+          <ThreadListSubtitle
+            parts={[
+              project.isDraft
+                ? t('draftBadge')
+                : t('clipsCount', { count: project.readyClipCount }),
+              project.isDraft ? null : project.status.replaceAll('_', ' '),
+            ]}
+          />
+        }
+        time={formatThreadTime(project.updatedAt ?? project.createdAt, locale)}
+        title={project.name}
       />
     );
   }
 
   return (
-    <div className="flex flex-col gap-4" data-testid="clipper-project-list">
-      <CollectionView
-        data-testid={
-          isLoading
-            ? 'clipper-project-list-loading'
-            : 'clipper-projects-all-collection'
-        }
-        getItemKey={(project) => project.id}
-        isLoading={isLoading}
-        items={projects}
-        renderGridItem={row}
-        renderListItem={row}
-        skeletonCount={3}
-        view={ViewType.LIST}
-      />
+    <div className="flex flex-col gap-2" data-testid="clipper-project-list">
+      {isLoading ? (
+        <div data-testid="clipper-project-list-loading">
+          <ListRowsSkeleton rows={3} />
+        </div>
+      ) : (
+        <div data-testid="clipper-projects-all-collection">
+          <ThreadListRecencySections
+            getDate={(project) => project.updatedAt ?? project.createdAt}
+            getKey={(project) => project.id}
+            items={projects}
+            renderRow={row}
+          />
+        </div>
+      )}
       <Dialog
         open={renameTarget !== null}
         onOpenChange={(open) => {

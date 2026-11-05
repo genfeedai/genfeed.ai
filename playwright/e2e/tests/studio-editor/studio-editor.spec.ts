@@ -178,7 +178,7 @@ test.describe('Studio Editor', () => {
     });
   });
 
-  test('opens a project with a narrow agent rail beside the timeline', async ({
+  test('opens a project with the agent and the timeline split evenly', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
@@ -189,7 +189,7 @@ test.describe('Studio Editor', () => {
     await authenticatedPage.goto(PROJECT_ROUTE);
 
     await expectProjectEditor(authenticatedPage);
-    await expectOpenProjectLayout(authenticatedPage, { mode: 'rail' });
+    await expectOpenProjectLayout(authenticatedPage);
   });
 
   /**

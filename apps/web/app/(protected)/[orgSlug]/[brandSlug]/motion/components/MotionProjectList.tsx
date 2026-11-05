@@ -3,20 +3,32 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant, formatEnumLabel } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { ThreadListStatus } from '@genfeedai/props/ui/lists/thread-list.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import CollectionList from '@ui/collection/CollectionList';
 import Container from '@ui/layout/container/Container';
 import { useCreativeProjectsPresence } from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
 import CreativeProjectsEmptyState from '@ui/layout/creative-app-workspace/CreativeProjectsEmptyState';
-import { ListRow } from '@ui/lists/list-row/ListRow';
-import { Badge } from '@ui/primitives/badge';
+import { formatThreadTime } from '@ui/lists/thread-list/group-by-recency';
+import {
+  ThreadListRecencySections,
+  ThreadListRow,
+  ThreadListSubtitle,
+} from '@ui/lists/thread-list/ThreadList';
 import { Button } from '@ui/primitives/button';
 import { SquarePlay } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type ReactElement, useState } from 'react';
 import SearchField from '@/components/content/search-field/SearchField';
 import { useVisualProjects } from '@/hooks/data/content/use-visual-projects';
+
+/** A failed render waits on the creator; a finished one is done. */
+function motionStatus(status: string): ThreadListStatus {
+  const normalised = status.toLowerCase();
+  if (normalised === 'failed') return 'attention';
+  if (normalised === 'completed') return 'done';
+  return 'idle';
+}
 
 /**
  * The right side of the Motion workspace while no project is open: one list of
@@ -62,7 +74,7 @@ export default function MotionProjectList(): ReactElement {
       }
       titleVisibility="sr-only"
     >
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
         {projects.error ? <p role="alert">{projects.error.message}</p> : null}
         {projects.isLoading ? <p role="status">{t('loading')}</p> : null}
         {isEmpty && query ? (
@@ -79,38 +91,31 @@ export default function MotionProjectList(): ReactElement {
           />
         ) : null}
         {visible.length > 0 ? (
-          <CollectionList>
-            {visible.map((item) => {
+          <ThreadListRecencySections
+            getDate={(item) => item.updatedAt}
+            getKey={(item) => item.id}
+            items={visible}
+            renderRow={(item) => {
               const status = item.revisions?.[0]?.status;
               return (
-                <ListRow
-                  density="compact"
+                <ThreadListRow
                   href={`${href(APP_ROUTES.STUDIO.MOTION)}/${encodeURIComponent(item.id)}`}
-                  key={item.id}
-                  meta={
-                    <>
-                      <span>
-                        {t('revision', { number: item.currentRevision })}
-                      </span>
-                      <span>
-                        {item.updatedAt
-                          ? new Date(item.updatedAt).toLocaleString(locale)
-                          : ''}
-                      </span>
-                    </>
+                  status={status ? motionStatus(status) : 'idle'}
+                  statusLabel={status ? formatEnumLabel(status) : undefined}
+                  subtitle={
+                    <ThreadListSubtitle
+                      parts={[
+                        t('revision', { number: item.currentRevision }),
+                        status ? formatEnumLabel(status) : null,
+                      ]}
+                    />
                   }
+                  time={formatThreadTime(item.updatedAt, locale)}
                   title={item.label}
-                  trailing={
-                    status ? (
-                      <Badge status={status.toLowerCase()}>
-                        {formatEnumLabel(status)}
-                      </Badge>
-                    ) : undefined
-                  }
                 />
               );
-            })}
-          </CollectionList>
+            }}
+          />
         ) : null}
         {projects.hasNextPage ? (
           <Button

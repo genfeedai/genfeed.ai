@@ -45,6 +45,10 @@ export type PromptBarChipIconKind =
 
 export interface PromptBarCompactSelectProps {
   ariaLabel: string;
+  /** Id of the element naming the error, for a chip whose value is rejected. */
+  describedBy?: string;
+  /** Lets a form label or error point at the chip. */
+  id?: string;
   /**
    * The setting the chip changes. Every chip shows its icon and its current
    * value; a `source` chip (the mode that decides what the bar makes) also
@@ -52,6 +56,8 @@ export interface PromptBarCompactSelectProps {
    */
   icon: PromptBarChipIconKind;
   isDisabled?: boolean;
+  /** The chosen value is rejected; the chip says so to assistive tech. */
+  isInvalid?: boolean;
   onChange: (value: string) => void;
   options: ReadonlyArray<PromptBarCompactSelectOption>;
   /** Shown while `value` matches no option (a choice not made yet). */

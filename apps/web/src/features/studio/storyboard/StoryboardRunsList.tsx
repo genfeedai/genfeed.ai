@@ -3,12 +3,16 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { CreativeAppAgentContext } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import CollectionList from '@ui/collection/CollectionList';
-import CollectionSection from '@ui/collection/CollectionSection';
 import Container from '@ui/layout/container/Container';
 import { useCreativeProjectsPresence } from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
 import CreativeProjectsEmptyState from '@ui/layout/creative-app-workspace/CreativeProjectsEmptyState';
-import { ListRow } from '@ui/lists/list-row/ListRow';
+import { formatThreadTime } from '@ui/lists/thread-list/group-by-recency';
+import {
+  ThreadListRecencySections,
+  ThreadListRow,
+  ThreadListSection,
+  ThreadListSubtitle,
+} from '@ui/lists/thread-list/ThreadList';
 import { Button } from '@ui/primitives/button';
 import { Clapperboard } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -46,42 +50,40 @@ export default function StoryboardRunsList(): ReactElement {
   );
   useCreativeAppAgentContext(creativeApp);
   const needsAttention = runs.filter(isStoryboardRunNeedingAttention);
+  const otherRuns = runs.filter((run) => !isStoryboardRunNeedingAttention(run));
 
   function row(run: StoryboardListRun): ReactElement {
     return (
-      <ListRow
+      <ThreadListRow
         data-testid="storyboard-run-row"
-        density="compact"
         href={href(
           `${APP_ROUTES.STUDIO.STORYBOARD}/${encodeURIComponent(run.id)}`,
         )}
-        meta={
-          <>
-            <span>
-              {translate(
+        status={isStoryboardRunNeedingAttention(run) ? 'attention' : 'idle'}
+        statusLabel={
+          isStoryboardRunNeedingAttention(run)
+            ? translate('needsYou')
+            : undefined
+        }
+        subtitle={
+          <ThreadListSubtitle
+            parts={[
+              translate(
                 `sourceKinds.${'sourceLabel' in run ? run.sourceLabel : run.sourceKind}`,
-              )}
-            </span>
-            <span>
-              {'phase' in run
+              ),
+              'phase' in run
                 ? translate(`phases.${run.phase}`)
                 : translate.has?.(`states.${run.state}`)
                   ? translate(`states.${run.state}`)
-                  : run.state.replaceAll('_', ' ')}
-            </span>
-            <span>{translate('shotCount', { count: run.shotCount })}</span>
-            {run.runtimeSeconds === null ? null : (
-              <span>
-                {translate('runtime', { seconds: run.runtimeSeconds })}
-              </span>
-            )}
-            <span>
-              {translate('lastEdited', {
-                time: new Date(run.updatedAt).toLocaleString(locale),
-              })}
-            </span>
-          </>
+                  : run.state.replaceAll('_', ' '),
+              translate('shotCount', { count: run.shotCount }),
+              run.runtimeSeconds === null
+                ? null
+                : translate('runtime', { seconds: run.runtimeSeconds }),
+            ]}
+          />
         }
+        time={formatThreadTime(run.updatedAt, locale)}
         title={run.title}
       />
     );
@@ -110,7 +112,7 @@ export default function StoryboardRunsList(): ReactElement {
       moduleChrome
       titleVisibility="sr-only"
     >
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-2">
         {error ? <p role="alert">{error}</p> : null}
         {isEmpty && isSearching ? (
           <CreativeProjectsEmptyState
@@ -125,31 +127,21 @@ export default function StoryboardRunsList(): ReactElement {
             title={translate('emptyTitle')}
           />
         ) : null}
-        {needsAttention.length > 0 ? (
-          <CollectionSection
-            itemCount={needsAttention.length}
-            title={translate('needsYou')}
-          >
-            <CollectionList>
-              {needsAttention.map((run) => (
-                <Fragment key={run.id}>{row(run)}</Fragment>
-              ))}
-            </CollectionList>
-          </CollectionSection>
-        ) : null}
-        {runs.length > 0 ? (
-          <CollectionSection
-            isLoading={isLoading}
-            itemCount={runs.length}
-            title={translate('all')}
-          >
-            <CollectionList>
-              {runs.map((run) => (
-                <Fragment key={run.id}>{row(run)}</Fragment>
-              ))}
-            </CollectionList>
-          </CollectionSection>
-        ) : null}
+        <ThreadListSection
+          data-testid="storyboard-needs-you"
+          itemCount={needsAttention.length}
+          title={translate('needsYou')}
+        >
+          {needsAttention.map((run) => (
+            <Fragment key={run.id}>{row(run)}</Fragment>
+          ))}
+        </ThreadListSection>
+        <ThreadListRecencySections
+          getDate={(run) => run.updatedAt}
+          getKey={(run) => run.id}
+          items={otherRuns}
+          renderRow={row}
+        />
         {hasMore || error ? (
           <Button isDisabled={isLoading} onClick={loadMore}>
             {translate(error ? 'retryLoad' : 'more')}

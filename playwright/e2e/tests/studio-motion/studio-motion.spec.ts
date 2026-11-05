@@ -185,7 +185,7 @@ test('Motion lists saved projects beside the prompt and fills the form from a st
   ).toHaveAttribute('href', /\/motion\/saved-motion$/);
   // With a project saved, the list takes the second column.
   await expect(page.getByTestId('agent-output-output-pane')).toBeVisible();
-  await expectStarterThumbnails(page, 6);
+  await expectStarterThumbnails(page, 3);
   await page.getByRole('button', { name: /Kinetic quote card/ }).click();
   await expect(
     page.getByRole('textbox', { name: 'Prompt', exact: true }),
