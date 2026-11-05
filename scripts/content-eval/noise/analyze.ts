@@ -23,6 +23,8 @@ import {
 } from './contracts';
 import { estimate, mean, pooledSd } from './stats';
 
+const TIMEOUT_ERROR_PATTERN = /time(d)? ?out/i;
+
 const NOISE_SUITES = new Set<ScoredRow['suite']>(['ladder', 'harness-ab']);
 
 /** Rows grouped as contestant → case → repeat scores. */
@@ -91,7 +93,9 @@ function errorsFor(rows: ScoredRow[], contestantId: string) {
   const own = rows.filter((row) => row.contestant?.id === contestantId);
   const voided = own.filter((row) => row.voidReason !== null);
   const reasonOf = (row: ScoredRow): string => row.voidReason ?? '';
-  const timeouts = voided.filter((row) => /time(d)? ?out/i.test(reasonOf(row)));
+  const timeouts = voided.filter((row) =>
+    TIMEOUT_ERROR_PATTERN.test(reasonOf(row)),
+  );
   const generation = voided.filter((row) =>
     reasonOf(row).startsWith('generation failed'),
   );

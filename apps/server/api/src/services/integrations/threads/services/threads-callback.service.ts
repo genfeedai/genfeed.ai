@@ -17,6 +17,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 export interface ThreadsDataDeletionResponse {
   confirmation_code: string;
   url: string;
@@ -117,7 +119,7 @@ export class ThreadsCallbackService {
     const configured = this.configService
       .get('GENFEEDAI_API_PUBLIC_URL')
       ?.trim()
-      .replace(/\/+$/, '');
+      .replace(TRAILING_SLASHES_PATTERN, '');
 
     if (!configured || isUnconfiguredSecret(configured)) {
       throw new ServiceUnavailableException(

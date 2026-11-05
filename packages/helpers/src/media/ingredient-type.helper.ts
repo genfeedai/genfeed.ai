@@ -1,6 +1,8 @@
 import { IngredientCategory, IngredientExtension } from '@genfeedai/contracts';
 import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 
+const LEADING_DOT_PATTERN = /^\./;
+
 const AVATAR_IMAGE_EXTENSIONS = new Set([IngredientExtension.JPG, 'jpeg']);
 
 const IMAGE_EXTENSIONS_BY_MIME = new Map<string, string>([
@@ -38,7 +40,7 @@ function validatedImageMetadataExtension(
 ): string | undefined {
   const extension = getNormalizedMetadataExtension(ingredient)
     ?.trim()
-    .replace(/^\./, '');
+    .replace(LEADING_DOT_PATTERN, '');
   if (!extension || !IMAGE_METADATA_EXTENSIONS.has(extension)) {
     return undefined;
   }

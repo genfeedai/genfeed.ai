@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
+const BRACKETED_IPV6_PATTERN = /^\[(.*)\]$/;
+
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 const LOCAL_HOSTS = new Set([...LOOPBACK_HOSTS, 'genfeed.localhost']);
 const LOCAL_DEVELOPMENT_HOST_SUFFIX = '.genfeed.localhost';
@@ -91,6 +93,6 @@ export class LocalhostOnlyGuard implements CanActivate {
       return trimmed.slice(7);
     }
 
-    return trimmed.replace(/^\[(.*)\]$/, '$1');
+    return trimmed.replace(BRACKETED_IPV6_PATTERN, '$1');
   }
 }

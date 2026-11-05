@@ -47,6 +47,8 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 
+const SNAKE_CASE_WORD_PATTERN = /^[a-z_]+$/;
+
 const terminal = [
   VisualCodeStatus.COMPLETED,
   VisualCodeStatus.FAILED,
@@ -895,7 +897,7 @@ export class VisualProjectWorkflowService implements OnModuleInit {
       await this.assertOwnership();
       revision = await this.current(revision);
       const code =
-        error instanceof Error && /^[a-z_]+$/.test(error.message)
+        error instanceof Error && SNAKE_CASE_WORD_PATTERN.test(error.message)
           ? error.message
           : 'visual_execution_failed';
       revision = await this.update(revision, {

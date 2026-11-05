@@ -25,6 +25,8 @@ import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 import { SystemEmailEligibilityService } from './system-email-eligibility.service';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 const DELIVERY_STATUS = {
   CANCELED: 'canceled',
   FAILED: 'failed',
@@ -485,7 +487,7 @@ export class LifecycleEmailDeliveryService {
   }
 
   private stripTrailingSlash(value: string): string {
-    return value.replace(/\/+$/, '');
+    return value.replace(TRAILING_SLASHES_PATTERN, '');
   }
 
   private parseMetadata(value: unknown): LifecycleEmailMetadata {

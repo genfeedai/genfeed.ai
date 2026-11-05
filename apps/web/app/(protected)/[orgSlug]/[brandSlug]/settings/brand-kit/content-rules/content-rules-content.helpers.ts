@@ -1,3 +1,14 @@
+const AMPERSANDS_PATTERN = /&/g;
+const LESS_THAN_SIGNS_PATTERN = /</g;
+const GREATER_THAN_SIGNS_PATTERN = />/g;
+const AMP_ENTITIES_PATTERN = /&amp;/g;
+const LT_ENTITIES_PATTERN = /&lt;/g;
+const GT_ENTITIES_PATTERN = /&gt;/g;
+const NBSP_ENTITIES_PATTERN = /&nbsp;/g;
+const BLOCK_CLOSING_TAGS_PATTERN = /<\/(p|div|li|h[1-6])>/gi;
+const BR_TAGS_PATTERN = /<br\s*\/?>/gi;
+const HTML_TAGS_PATTERN = /<[^>]+>/g;
+
 /**
  * The harness persistence shape stores prose fields as newline-joined
  * strings/arrays (see `IHarnessProfileStructure`, `IHarnessProfileThesis`,
@@ -7,17 +18,17 @@
 
 function escapeHtml(value: string): string {
   return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(AMPERSANDS_PATTERN, '&amp;')
+    .replace(LESS_THAN_SIGNS_PATTERN, '&lt;')
+    .replace(GREATER_THAN_SIGNS_PATTERN, '&gt;');
 }
 
 function decodeHtmlEntities(value: string): string {
   return value
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ');
+    .replace(AMP_ENTITIES_PATTERN, '&')
+    .replace(LT_ENTITIES_PATTERN, '<')
+    .replace(GT_ENTITIES_PATTERN, '>')
+    .replace(NBSP_ENTITIES_PATTERN, ' ');
 }
 
 /**
@@ -48,9 +59,9 @@ export function harnessLinesToEditorHtml(
  */
 export function harnessEditorHtmlToLines(html: string): string {
   const withBreaks = html
-    .replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
-    .replace(/<br\s*\/?>/gi, '\n');
-  const withoutTags = withBreaks.replace(/<[^>]+>/g, '');
+    .replace(BLOCK_CLOSING_TAGS_PATTERN, '\n')
+    .replace(BR_TAGS_PATTERN, '\n');
+  const withoutTags = withBreaks.replace(HTML_TAGS_PATTERN, '');
 
   return withoutTags
     .split('\n')

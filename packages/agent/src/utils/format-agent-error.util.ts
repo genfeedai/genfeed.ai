@@ -1,6 +1,17 @@
 import { AgentFailureReason } from '@genfeedai/contracts';
 import type { IAgentFailure } from '@genfeedai/contracts/interfaces';
 
+const OPENAI_SECRET_KEYS_PATTERN = /sk-[a-zA-Z0-9_-]{8,}/g;
+const BEARER_TOKENS_PATTERN = /Bearer\s+[^\s]+/gi;
+const OPENROUTER_API_KEY_NAME_PATTERN = /OPENROUTER_API_KEY/gi;
+const API_KEY_ENV_NAMES_PATTERN = /[A-Z][A-Z0-9_]{2,}_API_KEY/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const LINE_BREAK_PATTERN = /\r?\n/;
+const FAILED_AT_LINE_PATTERN = /^Failed at:[^\S\r\n]*\S[^\r\n]*$/i;
+const RETRYABLE_STEP_LINE_PATTERN = /^This step can be retried\.$/i;
+const BARE_STATUS_CODE_ERROR_PATTERN =
+  /^Request failed with status code (\d{3})$/i;
+
 /**
  * Map raw provider / ops errors into user-facing copy.
  * Never surface env var names, stack frames, or raw HTTP dumps in the UI.
@@ -222,29 +233,27 @@ const CONFIG_PATTERNS: Array<{
 
 function scrubSecrets(text: string): string {
   return text
-    .replace(/sk-[a-zA-Z0-9_-]{8,}/g, 'sk-…')
-    .replace(/Bearer\s+[^\s]+/gi, 'Bearer …')
-    .replace(/OPENROUTER_API_KEY/gi, 'provider key')
-    .replace(/[A-Z][A-Z0-9_]{2,}_API_KEY/g, 'provider key')
-    .replace(/\s+/g, ' ')
+    .replace(OPENAI_SECRET_KEYS_PATTERN, 'sk-…')
+    .replace(BEARER_TOKENS_PATTERN, 'Bearer …')
+    .replace(OPENROUTER_API_KEY_NAME_PATTERN, 'provider key')
+    .replace(API_KEY_ENV_NAMES_PATTERN, 'provider key')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
 }
 
 function extractSafeContext(text: string): string | null {
-  const lines = text.split(/\r?\n/).map((line) => line.trim());
+  const lines = text.split(LINE_BREAK_PATTERN).map((line) => line.trim());
   // `\s*[^\r\n]+` overlaps on spaces, so a line of nothing but padding forced
   // the engine to retry every split of it. Requiring a non-space after the
   // optional padding makes the two classes disjoint; lines are trimmed above,
   // so a padding-only tail could never have satisfied the old form either.
-  const failedAt = lines.find((line) =>
-    /^Failed at:[^\S\r\n]*\S[^\r\n]*$/i.test(line),
-  );
+  const failedAt = lines.find((line) => FAILED_AT_LINE_PATTERN.test(line));
   if (!failedAt) {
     return null;
   }
 
   const retryHint = lines.find((line) =>
-    /^This step can be retried\.$/i.test(line),
+    RETRYABLE_STEP_LINE_PATTERN.test(line),
   );
   return scrubSecrets([failedAt, retryHint].filter(Boolean).join('\n')).slice(
     0,
@@ -407,9 +416,7 @@ export function formatAgentError(
 
   const cleaned = scrubSecrets(original);
 
-  const statusOnly = cleaned.match(
-    /^Request failed with status code (\d{3})$/i,
-  );
+  const statusOnly = cleaned.match(BARE_STATUS_CODE_ERROR_PATTERN);
   if (statusOnly) {
     const code = statusOnly[1];
     return {

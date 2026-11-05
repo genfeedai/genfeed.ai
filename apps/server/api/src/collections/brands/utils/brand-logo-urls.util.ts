@@ -5,6 +5,9 @@ import {
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+const LEADING_SLASHES_PATTERN = /^\/+/;
+
 /**
  * Live logo CDN URLs for many brands at once, keyed by brand id. The newest logo
  * wins. Each organization's brand ids are looked up under that organization, so a
@@ -40,7 +43,7 @@ export async function resolveBrandLogoCdnUrls(
     },
   });
 
-  const cdnBase = cdnUrl.replace(/\/+$/, '');
+  const cdnBase = cdnUrl.replace(TRAILING_SLASHES_PATTERN, '');
   const logoUrlsByBrandId = new Map<string, string>();
   for (const asset of assets) {
     if (!asset.parentBrandId || logoUrlsByBrandId.has(asset.parentBrandId)) {
@@ -51,7 +54,7 @@ export async function resolveBrandLogoCdnUrls(
       `${ASSET_UPLOAD_TYPE_BY_ROLE.logo}/${asset.id}`;
     logoUrlsByBrandId.set(
       asset.parentBrandId,
-      `${cdnBase}/${objectKey.replace(/^\/+/, '')}`,
+      `${cdnBase}/${objectKey.replace(LEADING_SLASHES_PATTERN, '')}`,
     );
   }
 

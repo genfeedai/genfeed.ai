@@ -23,6 +23,8 @@ import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 const SUPPORTED_CONNECTION_PLATFORMS = new Set<string>([
   CredentialPlatform.FACEBOOK,
   CredentialPlatform.FANVUE,
@@ -281,7 +283,7 @@ export class AgentConnectionRequestService {
         : input.organizationId;
     const appUrl = String(
       this.configService.get('GENFEEDAI_APP_URL') ?? 'https://app.genfeed.ai',
-    ).replace(/\/+$/, '');
+    ).replace(TRAILING_SLASHES_PATTERN, '');
     const path = createOrganizationAppRoute(
       slug,
       `${APP_ROUTES.CONNECT}/social`,

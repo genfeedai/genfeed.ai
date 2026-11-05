@@ -9,6 +9,9 @@ import type {
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import { ConflictException } from '@nestjs/common';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const NON_WORD_CHARS_PATTERN = /[^\p{L}\p{N}\s]/gu;
+
 export const UNSUPPORTED_SCENE_STRICT_FIDELITY =
   'Strict fidelity is not supported by the selected generation path. Use Guided fidelity instead.';
 
@@ -112,7 +115,8 @@ export function assertScenePlan(config: BrandRemixRunConfig): void {
       scene.durationSeconds > 15
     )
       throw new ConflictException('Plan 3–15 seconds for each scene.');
-    const words = scene.narration?.trim().split(/\s+/).length ?? 0;
+    const words =
+      scene.narration?.trim().split(WHITESPACE_RUN_PATTERN).length ?? 0;
     if (!words || words > scene.durationSeconds * 4)
       throw new ConflictException(
         'Each scene needs original narration bounded to its planned duration.',
@@ -141,8 +145,8 @@ export function assertOriginalNarration(
   const normalize = (value: string) =>
     value
       .toLowerCase()
-      .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-      .split(/\s+/)
+      .replace(NON_WORD_CHARS_PATTERN, ' ')
+      .split(WHITESPACE_RUN_PATTERN)
       .filter(Boolean);
   const source = normalize(transcript);
   const output = normalize(narration);

@@ -1,5 +1,9 @@
 import { escapeRegExp } from '@helpers/utils/regexp.util';
 
+const LEADING_V_PATTERN = /^v/i;
+const MARKDOWN_H3_LINES_PATTERN = /^###\s+(.+)$/gm;
+const MARKDOWN_BULLET_LINES_PATTERN = /^(?:-|\*)\s+\S/gm;
+
 const RELEASE_DATE: Intl.DateTimeFormatOptions = {
   day: 'numeric',
   month: 'long',
@@ -13,7 +17,7 @@ export function formatReleaseDate(publishedAt: string): string {
 
 /** Drop the version heading the page already shows in the release row. */
 export function releaseNotes(body: string, tag: string): string {
-  const version = tag.replace(/^v/i, '');
+  const version = tag.replace(LEADING_V_PATTERN, '');
   const escapedVersion = escapeRegExp(version);
   // Only a linked heading whose link text is this release's own version
   // (e.g. `## [0.1.76](...) - 2026-09-25`) is the duplicate row title. A
@@ -34,7 +38,7 @@ export function releaseNotes(body: string, tag: string): string {
 }
 
 export function releaseSummary(notes: string): string {
-  const sections = [...notes.matchAll(/^###\s+(.+)$/gm)].map((match) =>
+  const sections = [...notes.matchAll(MARKDOWN_H3_LINES_PATTERN)].map((match) =>
     match[1].trim(),
   );
   if (sections.length > 0) {
@@ -44,7 +48,7 @@ export function releaseSummary(notes: string): string {
       ? `${visible.join(' · ')} · +${extra}`
       : visible.join(' · ');
   }
-  const changes = notes.match(/^(?:-|\*)\s+\S/gm)?.length ?? 0;
+  const changes = notes.match(MARKDOWN_BULLET_LINES_PATTERN)?.length ?? 0;
   if (changes === 0) return '';
   return changes === 1 ? '1 change' : `${changes} changes`;
 }

@@ -1,5 +1,7 @@
 import { downloadBounded } from '@libs/security/bounded-download';
 
+const UNSAFE_FILENAME_CHARS_PATTERN = /[^A-Za-z0-9_-]/g;
+
 /** Discord rejects webhook uploads above its default 10 MiB limit. */
 export const DISCORD_ATTACHMENT_MAX_BYTES = 8 * 1024 * 1024;
 
@@ -51,7 +53,9 @@ export async function downloadDiscordAttachment(
       .toLowerCase();
     const extension = EXTENSION_BY_CONTENT_TYPE[contentType];
     if (!extension || !contentType.startsWith(`${allowedKind}/`)) return null;
-    const safeName = baseName.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
+    const safeName = baseName
+      .replace(UNSAFE_FILENAME_CHARS_PATTERN, '')
+      .slice(0, 64);
     return {
       attachment: data,
       name: `${safeName || 'genfeed'}.${extension}`,

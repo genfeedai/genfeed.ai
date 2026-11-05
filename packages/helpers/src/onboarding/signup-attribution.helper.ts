@@ -1,6 +1,9 @@
 import type { ISignupAttribution } from '@genfeedai/contracts/interfaces';
 import { extractBrandDomain } from './signup-brand-domain.helper';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const QUERY_OR_HASH_PATTERN = /[?#]/;
+
 /**
  * Query parameters that carry first-touch attribution from the marketing site
  * onto the app sign-up URL. `utm_term` is deliberately absent: it is free-text
@@ -45,7 +48,10 @@ const UTM_KEYS = [
 export function normalizeSignupAttributionValue(
   value?: string | null,
 ): string | undefined {
-  const normalized = value?.trim().replace(/\s+/g, ' ').toLowerCase();
+  const normalized = value
+    ?.trim()
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
+    .toLowerCase();
 
   if (
     !normalized ||
@@ -62,7 +68,7 @@ export function normalizeSignupAttributionValue(
 export function normalizeSignupLandingPath(
   value?: string | null,
 ): string | undefined {
-  const path = value?.trim().split(/[?#]/)[0];
+  const path = value?.trim().split(QUERY_OR_HASH_PATTERN)[0];
 
   if (
     !path ||

@@ -27,6 +27,9 @@ import {
 } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+const ACTOR_PATH_PATTERN = /^[^/~]+\/[^/~]+$/;
+const ISO8601_DURATION_PATTERN = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
+
 type ApifyActorRegistration = {
   capability: string;
   mode: 'fallback_only' | 'temporarily_apify_primary';
@@ -147,7 +150,7 @@ export class ApifyBaseService {
 
   private readonly apiUrl = 'https://api.apify.com/v2';
   private readonly constructorName: string = String(this.constructor.name);
-  private readonly actorPathPattern = /^[^/~]+\/[^/~]+$/;
+  private readonly actorPathPattern = ACTOR_PATH_PATTERN;
 
   /**
    * Usage-limit suspensions keyed by token scope, so one organization's
@@ -703,7 +706,7 @@ export class ApifyBaseService {
     }
 
     // Handle ISO 8601 duration format (PT1H2M3S)
-    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    const match = duration.match(ISO8601_DURATION_PATTERN);
     if (match) {
       const hours = parseInt(match[1] || '0', 10);
       const minutes = parseInt(match[2] || '0', 10);

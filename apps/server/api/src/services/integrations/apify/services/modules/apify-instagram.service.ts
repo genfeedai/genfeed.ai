@@ -12,6 +12,8 @@ import type { SocialSourceResearchContext } from '@api/services/source-collector
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+const LEADING_HASH_PATTERN = /^#/;
+
 /**
  * ApifyInstagramService
  *
@@ -225,7 +227,7 @@ export class ApifyInstagramService {
   ): Promise<ApifyInstagramPost[]> {
     try {
       const input = {
-        hashtags: [hashtag.replace(/^#/, '')],
+        hashtags: [hashtag.replace(LEADING_HASH_PATTERN, '')],
         resultsLimit: options?.limit || 50,
       };
 
@@ -261,7 +263,9 @@ export class ApifyInstagramService {
     for (const post of posts) {
       const hashtags = new Set(
         (post.hashtags ?? [])
-          .map((hashtag) => hashtag.replace(/^#/, '').trim().toLowerCase())
+          .map((hashtag) =>
+            hashtag.replace(LEADING_HASH_PATTERN, '').trim().toLowerCase(),
+          )
           .filter(Boolean),
       );
 

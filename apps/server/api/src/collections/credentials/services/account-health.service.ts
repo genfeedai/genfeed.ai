@@ -40,6 +40,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 export interface AssessAccountHealthParams {
   brandId?: string;
   credentialId: string;
@@ -744,7 +746,9 @@ export class AccountHealthService {
       return explicitLabel;
     }
 
-    return handle ? `${platform} @${handle.replace(/^@/, '')}` : platform;
+    return handle
+      ? `${platform} @${handle.replace(LEADING_AT_SIGN_PATTERN, '')}`
+      : platform;
   }
 
   private getHoldReason(

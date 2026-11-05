@@ -6,6 +6,8 @@ import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 export interface RestreamTokenResponse {
   access_token: string;
   expires_in?: number;
@@ -55,7 +57,9 @@ export class RestreamService {
     const appUrl = this.readConfigString('GENFEEDAI_APP_URL');
     this.redirectUri =
       explicitRedirect ||
-      (appUrl ? `${appUrl.replace(/\/$/, '')}/oauth/restream` : undefined);
+      (appUrl
+        ? `${appUrl.replace(TRAILING_SLASH_PATTERN, '')}/oauth/restream`
+        : undefined);
   }
 
   isConfigured(): boolean {

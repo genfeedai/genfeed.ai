@@ -29,6 +29,9 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 export async function recordExternalPublicationWrite(
   prisma: PrismaService,
   input: ExtensionPublicationCaptureInput,
@@ -114,7 +117,7 @@ async function recordExternalPublicationInTransaction(
   if (
     capture.platform === 'linkedin' &&
     normalized.urlIdentity &&
-    /^\d+$/.test(normalized.urlIdentity.value)
+    DIGITS_ONLY_PATTERN.test(normalized.urlIdentity.value)
   ) {
     const activityId = normalized.urlIdentity.value;
     for (const valueFilter of [
@@ -187,7 +190,7 @@ async function findCaptureCredentialId(
     throw new BadRequestException('Unsupported publication platform');
   const author = capture.author;
   const normalizeHandle = (handle: string | null | undefined) =>
-    handle?.trim().replace(/^@/, '').toLowerCase() ?? '';
+    handle?.trim().replace(LEADING_AT_SIGN_PATTERN, '').toLowerCase() ?? '';
   if (author?.externalId || normalizeHandle(author?.handle)) {
     const credentials = await tx.credential.findMany({
       where: scopedWhere(scope.organizationId, {

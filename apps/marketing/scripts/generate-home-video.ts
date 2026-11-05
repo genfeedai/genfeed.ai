@@ -46,6 +46,9 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+const ENV_ASSIGNMENT_PATTERN = /^\s*([A-Z0-9_]+)\s*=\s*(.*)$/;
+const EDGE_QUOTES_PATTERN = /^["']|["']$/g;
+
 const logger = {
   error: (message: string) => console.error(`[home-video] ${message}`),
   log: (message: string) => console.log(`[home-video] ${message}`),
@@ -248,9 +251,9 @@ function readEnvLocal(key: string): string | undefined {
   if (!existsSync(envPath)) return undefined;
 
   for (const line of readFileSync(envPath, 'utf8').split('\n')) {
-    const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/);
+    const match = line.match(ENV_ASSIGNMENT_PATTERN);
     if (match?.[1] === key) {
-      return match[2]?.trim().replace(/^["']|["']$/g, '');
+      return match[2]?.trim().replace(EDGE_QUOTES_PATTERN, '');
     }
   }
 

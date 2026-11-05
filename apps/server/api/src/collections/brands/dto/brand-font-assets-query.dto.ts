@@ -8,10 +8,15 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator';
+
+const DIGITS_ONLY_PATTERN = /^[0-9]+$/;
+
 export class BrandFontAssetsQueryDto {
   static readonly [FORBID_NON_WHITELISTED] = true;
   @Transform(({ value }) =>
-    typeof value === 'string' && /^[0-9]+$/.test(value) ? Number(value) : value,
+    typeof value === 'string' && DIGITS_ONLY_PATTERN.test(value)
+      ? Number(value)
+      : value,
   )
   @IsInt()
   @Min(1)

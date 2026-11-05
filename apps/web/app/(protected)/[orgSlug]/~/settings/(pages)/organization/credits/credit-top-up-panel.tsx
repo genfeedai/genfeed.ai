@@ -16,9 +16,11 @@ import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';
 import type { CreditTopUpPanelProps } from '@/features/settings/props/credit-top-up-panel.props';
 
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+
 function parseUsd(value: string): number | null {
   const normalized = value.trim();
-  if (!/^\d+$/.test(normalized)) {
+  if (!DIGITS_ONLY_PATTERN.test(normalized)) {
     return null;
   }
 

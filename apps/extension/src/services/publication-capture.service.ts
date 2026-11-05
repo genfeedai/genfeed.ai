@@ -52,6 +52,10 @@ import {
   subscribeWorkspace,
 } from '~services/workspace.service';
 
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const UNKNOWN_TOOL_ERROR_PATTERN =
+  /(?:unknown|not found|not registered).*(?:tool|action)|(?:tool|action).*(?:unknown|not found|not registered)/i;
+
 const PENDING = 'genfeed-publication-pending-v1';
 const OUTBOX = 'genfeed-publication-outbox-v1';
 const SETTINGS = 'genfeed-settings';
@@ -112,7 +116,7 @@ async function pendingEntries(): Promise<
     const v = object(value);
     const attempt = parseAttempt(v?.attempt);
     if (
-      !/^\d+$/.test(id) ||
+      !DIGITS_ONLY_PATTERN.test(id) ||
       !v ||
       !keys(v, ['tabId', 'origin', 'attempt']) ||
       v.tabId !== Number(id) ||
@@ -252,7 +256,7 @@ async function record(
         const unavailable =
           response.status === 404 ||
           (response.status === 400 &&
-            /(?:unknown|not found|not registered).*(?:tool|action)|(?:tool|action).*(?:unknown|not found|not registered)/i.test(
+            UNKNOWN_TOOL_ERROR_PATTERN.test(
               typeof envelope?.error === 'string'
                 ? envelope.error
                 : typeof envelope?.message === 'string'

@@ -3,8 +3,11 @@
 import { appendFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const MATRIX_KEY_PATTERN = /^[a-z0-9][a-z0-9-]*$/u;
+
 function splitWords(value) {
-  return (value ?? '').split(/\s+/).filter(Boolean);
+  return (value ?? '').split(WHITESPACE_RUN_PATTERN).filter(Boolean);
 }
 
 // Cold execution seconds observed on 2026-09-27; estimates schedule work only,
@@ -20,7 +23,7 @@ export const SPEC_WORKSPACE_WEIGHTS = {
 
 export function buildSpecTypecheckMatrix({ workspaces, soloWorkspaces = [] }) {
   const selected = [...new Set(workspaces)];
-  if (selected.some((name) => !/^[a-z0-9][a-z0-9-]*$/u.test(name))) {
+  if (selected.some((name) => !MATRIX_KEY_PATTERN.test(name))) {
     throw new Error('Invalid spec workspace name');
   }
   if (selected.length === 0) return { include: [] };

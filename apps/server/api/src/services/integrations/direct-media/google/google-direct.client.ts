@@ -18,6 +18,14 @@ import {
   validateGoogleDirectRequest,
 } from '@api/services/integrations/direct-media/google/google-direct.contract';
 
+const LINE_BREAK_CHAR_PATTERN = /[\r\n]/;
+const PERCENT_ENCODED_BYTES_PATTERN = /%[0-9a-f]{2}/gi;
+const VEO_OPERATION_NAME_PATTERN =
+  /^models\/veo-3\.1-generate-preview\/operations\/[A-Za-z0-9_-]+$/;
+const GOOGLE_FILE_DOWNLOAD_PATH_PATTERN =
+  /^\/v1beta\/files\/[A-Za-z0-9_-]+(?::download)?$/;
+const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
+
 function responseInvalid(isSubmissionUncertain = false): never {
   throw new DirectMediaProviderError(
     'GOOGLE_RESPONSE_INVALID',
@@ -37,7 +45,7 @@ function requireKey(context: DirectMediaRequestContext): void {
   if (
     typeof context.apiKey !== 'string' ||
     !context.apiKey.trim() ||
-    /[\r\n]/.test(context.apiKey)
+    LINE_BREAK_CHAR_PATTERN.test(context.apiKey)
   ) {
     throw new DirectMediaProviderError(
       'GOOGLE_CREDENTIAL_REQUIRED',
@@ -51,8 +59,10 @@ function hasCredentialReflection(value: string, apiKey: string): boolean {
   let decoded = value;
   for (let pass = 0; pass < 3; pass++) {
     if (decoded.includes(apiKey)) return true;
-    const next = decoded.replace(/%[0-9a-f]{2}/gi, (encoded: string) =>
-      String.fromCharCode(Number.parseInt(encoded.slice(1), 16)),
+    const next = decoded.replace(
+      PERCENT_ENCODED_BYTES_PATTERN,
+      (encoded: string) =>
+        String.fromCharCode(Number.parseInt(encoded.slice(1), 16)),
     );
     if (next === decoded) return false;
     decoded = next;
@@ -63,9 +73,7 @@ function hasCredentialReflection(value: string, apiKey: string): boolean {
 function operationUrl(task: DirectMediaTask, apiKey: string): string {
   if (
     typeof task.externalId !== 'string' ||
-    !/^models\/veo-3\.1-generate-preview\/operations\/[A-Za-z0-9_-]+$/.test(
-      task.externalId,
-    ) ||
+    !VEO_OPERATION_NAME_PATTERN.test(task.externalId) ||
     hasCredentialReflection(task.externalId, apiKey) ||
     (task.model !== undefined && task.model !== GOOGLE_DIRECT_VEO_MODEL)
   ) {
@@ -108,7 +116,7 @@ function protectedOutput(
     url.username ||
     url.password ||
     url.hash ||
-    !/^\/v1beta\/files\/[A-Za-z0-9_-]+(?::download)?$/.test(url.pathname) ||
+    !GOOGLE_FILE_DOWNLOAD_PATH_PATTERN.test(url.pathname) ||
     [...url.searchParams].some(
       ([key, value]) => key !== 'alt' || value !== 'media',
     )
@@ -209,7 +217,7 @@ export class GoogleDirectClient implements DirectMediaClient {
         if (
           typeof content.data === 'string' &&
           content.uri === undefined &&
-          /^[A-Za-z0-9+/]+={0,2}$/.test(content.data) &&
+          BASE64_PATTERN.test(content.data) &&
           content.data.length % 4 === 0 &&
           !content.data.includes(context.apiKey)
         ) {

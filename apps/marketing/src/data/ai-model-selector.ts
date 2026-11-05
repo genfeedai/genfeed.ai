@@ -1,6 +1,8 @@
 import { CostTier, QualityTier, SpeedTier } from '@genfeedai/contracts';
 import type { PublicModelCatalogItem } from '@public/models/models-loader';
 
+const ASPECT_RATIO_PATTERN = /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/;
+
 export const MODEL_FORMATS = [
   { label: 'Images', value: 'image' },
   { label: 'Video', value: 'video' },
@@ -53,7 +55,7 @@ export function matchesOrientation(
   orientation: ModelOrientation,
 ): boolean {
   if (orientation === 'any') return true;
-  const match = /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/.exec(ratio);
+  const match = ASPECT_RATIO_PATTERN.exec(ratio);
   if (!match) return false;
   const width = Number(match[1]);
   const height = Number(match[2]);

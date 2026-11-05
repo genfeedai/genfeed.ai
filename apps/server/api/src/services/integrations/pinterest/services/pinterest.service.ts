@@ -18,6 +18,9 @@ import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+const COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/;
+const NON_ALPHANUMERIC_CHARS_PATTERN = /[^a-z0-9]/gi;
+
 interface PinterestTrendsResponse {
   trends?: PinterestTrendResponse[];
 }
@@ -226,7 +229,7 @@ export class PinterestService {
     }
 
     const normalizedRegion = region.trim().toUpperCase();
-    if (!/^[A-Z]{2}$/.test(normalizedRegion)) {
+    if (!COUNTRY_CODE_PATTERN.test(normalizedRegion)) {
       throw new Error('Pinterest trends region must be a two-letter code');
     }
 
@@ -485,7 +488,7 @@ export class PinterestService {
   }
 
   private normalizeMetricName(value: string): string {
-    return value.replace(/[^a-z0-9]/gi, '').toLowerCase();
+    return value.replace(NON_ALPHANUMERIC_CHARS_PATTERN, '').toLowerCase();
   }
 
   public async searchPins(

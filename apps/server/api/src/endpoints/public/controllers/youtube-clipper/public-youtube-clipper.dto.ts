@@ -8,6 +8,8 @@ import {
   MaxLength,
 } from 'class-validator';
 
+const SAFE_IDENTIFIER_PATTERN = /^[A-Za-z0-9_-]+$/;
+
 export class CreatePublicYoutubeClipperDto {
   @ApiProperty({
     description: 'Public YouTube video URL to analyze.',
@@ -28,6 +30,6 @@ export class CreatePublicYoutubeClipperPreviewDto {
   @IsOptional()
   @IsString()
   @Length(1, 128)
-  @Matches(/^[A-Za-z0-9_-]+$/)
+  @Matches(SAFE_IDENTIFIER_PATTERN)
   readonly recommendationId?: string;
 }

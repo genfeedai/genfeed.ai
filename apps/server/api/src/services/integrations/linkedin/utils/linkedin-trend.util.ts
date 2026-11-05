@@ -1,6 +1,11 @@
 import type { TrendSourceClassification } from '@api/collections/trends/interfaces/trend.interfaces';
 import { buildPublicPlatformReferenceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
 
+const HASHTAGS_PATTERN = /#[a-zA-Z0-9_]+/g;
+const HTTP_URLS_PATTERN = /https?:\/\/\S+/g;
+const NON_ALPHANUMERIC_CHARS_PATTERN = /[^a-z0-9\s]/g;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 export interface LinkedInTrendTopic {
   growthRate: number;
   mentions: number;
@@ -108,7 +113,7 @@ function calculateGrowthRate(
 function extractTrendTerms(post: string): string[] {
   const hashtags = Array.from(
     new Set(
-      (post.match(/#[a-zA-Z0-9_]+/g) || []).map((value) =>
+      (post.match(HASHTAGS_PATTERN) || []).map((value) =>
         value.trim().toLowerCase(),
       ),
     ),
@@ -120,9 +125,9 @@ function extractTrendTerms(post: string): string[] {
 
   const tokens = post
     .toLowerCase()
-    .replace(/https?:\/\/\S+/g, ' ')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .split(/\s+/)
+    .replace(HTTP_URLS_PATTERN, ' ')
+    .replace(NON_ALPHANUMERIC_CHARS_PATTERN, ' ')
+    .split(WHITESPACE_RUN_PATTERN)
     .filter(
       (token) => token.length >= 4 && !LINKEDIN_TREND_STOP_WORDS.has(token),
     );

@@ -5,6 +5,14 @@ import type {
   IBrandVoiceStylometrics,
 } from '@genfeedai/contracts/interfaces';
 
+const CURLY_SINGLE_QUOTES_PATTERN = /[’‘]/g;
+const CURLY_DOUBLE_QUOTES_PATTERN = /[“”]/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const CURLY_APOSTROPHES_PATTERN = /’/g;
+const LEADING_NON_WORD_PATTERN = /^[^\p{L}\p{N}]+/u;
+const WORD_CHAR_PATTERN = /[\p{L}\p{N}']/u;
+const NON_LETTERS_PATTERN = /[^\p{L}]/gu;
+
 /**
  * Deterministic stylometrics over a brand's own writing. Pure functions only:
  * the same samples always yield the same numbers, rules, and ordering, so the
@@ -141,9 +149,9 @@ export function normalizeVoiceText(text: string): string {
   return stripLeadingMentions(text)
     .replace(URL_PATTERN, ' ')
     .toLowerCase()
-    .replace(/[’‘]/g, "'")
-    .replace(/[“”]/g, '"')
-    .replace(/\s+/g, ' ')
+    .replace(CURLY_SINGLE_QUOTES_PATTERN, "'")
+    .replace(CURLY_DOUBLE_QUOTES_PATTERN, '"')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
 }
 
@@ -157,7 +165,9 @@ function words(text: string): string[] {
 }
 
 function lowerWords(text: string): string[] {
-  return words(text).map((word) => word.toLowerCase().replace(/’/g, "'"));
+  return words(text).map((word) =>
+    word.toLowerCase().replace(CURLY_APOSTROPHES_PATTERN, "'"),
+  );
 }
 
 /** Nearest-rank percentile over an ascending-sorted list. */
@@ -320,14 +330,14 @@ function computeRecurringPhrases(
 function matchDisagreementOpener(text: string): string | null {
   const lowered = text
     .toLowerCase()
-    .replace(/’/g, "'")
-    .replace(/^[^\p{L}\p{N}]+/u, '');
+    .replace(CURLY_APOSTROPHES_PATTERN, "'")
+    .replace(LEADING_NON_WORD_PATTERN, '');
   for (const opener of DISAGREEMENT_OPENERS) {
     if (!lowered.startsWith(opener)) {
       continue;
     }
     const next = lowered.charAt(opener.length);
-    if (next === '' || !/[\p{L}\p{N}']/u.test(next)) {
+    if (next === '' || !WORD_CHAR_PATTERN.test(next)) {
       return opener;
     }
   }
@@ -392,7 +402,7 @@ export function computeVoiceStylometrics(
 
   for (const text of texts) {
     for (const word of words(text)) {
-      const letters = word.replace(/[^\p{L}]/gu, '');
+      const letters = word.replace(NON_LETTERS_PATTERN, '');
       if (
         letters.length < 3 ||
         letters.toLowerCase() === letters.toUpperCase()

@@ -1,12 +1,14 @@
 import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-workflow.contract';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 
+const NON_WHITESPACE_CHAR_PATTERN = /\S/;
+
 /** Require the persisted run actor without changing its opaque identity. */
 export function requireRecordedWorkflowActor(
   executionId: string,
   userId: unknown,
 ): string {
-  if (typeof userId !== 'string' || !/\S/.test(userId)) {
+  if (typeof userId !== 'string' || !NON_WHITESPACE_CHAR_PATTERN.test(userId)) {
     throw new Error(
       `Workflow execution ${executionId} has no recorded actor; resume is blocked.`,
     );
@@ -47,7 +49,7 @@ export class WorkflowActorMembershipVerifier {
     if (userId === SYSTEM_WORKFLOW_PRINCIPAL_ID) {
       return true;
     }
-    if (!/\S/.test(organizationId)) {
+    if (!NON_WHITESPACE_CHAR_PATTERN.test(organizationId)) {
       return false;
     }
     const member = await this.prisma.member.findFirst({

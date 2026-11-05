@@ -1,6 +1,15 @@
 import { inflateRawSync } from 'node:zlib';
 import { extractPdfText } from '@api/collections/contexts/utils/extract-source-text.util';
 
+const XML_ENTITIES_PATTERN = /&(#x[0-9a-f]+|#\d+|[a-z]+);/gi;
+const DOCX_TABS_PATTERN = /<w:tab\/>/g;
+const DOCX_LINE_BREAKS_PATTERN = /<w:(br|cr)\/>/g;
+const DOCX_PARAGRAPH_ENDS_PATTERN = /<\/w:p>/g;
+const HTML_TAGS_PATTERN = /<[^>]+>/g;
+const HORIZONTAL_WHITESPACE_RUNS_PATTERN = /[ \t]+/g;
+const FILE_EXTENSION_PATTERN = /\.([a-z0-9]+)$/i;
+const CRLF_PATTERN = /\r\n/g;
+
 export const KNOWLEDGE_UPLOAD_EXTENSIONS = [
   'docx',
   'md',
@@ -121,18 +130,15 @@ function readZipEntry(buffer: Buffer, entryPath: string): Buffer {
 }
 
 function decodeXmlEntities(text: string): string {
-  return text.replace(
-    /&(#x[0-9a-f]+|#\d+|[a-z]+);/gi,
-    (match, entity: string) => {
-      if (entity.startsWith('#x') || entity.startsWith('#X')) {
-        return String.fromCodePoint(Number.parseInt(entity.slice(2), 16));
-      }
-      if (entity.startsWith('#')) {
-        return String.fromCodePoint(Number.parseInt(entity.slice(1), 10));
-      }
-      return XML_ENTITIES[entity.toLowerCase()] ?? match;
-    },
-  );
+  return text.replace(XML_ENTITIES_PATTERN, (match, entity: string) => {
+    if (entity.startsWith('#x') || entity.startsWith('#X')) {
+      return String.fromCodePoint(Number.parseInt(entity.slice(2), 16));
+    }
+    if (entity.startsWith('#')) {
+      return String.fromCodePoint(Number.parseInt(entity.slice(1), 10));
+    }
+    return XML_ENTITIES[entity.toLowerCase()] ?? match;
+  });
 }
 
 /** Paragraph-preserving plain text from a DOCX (Office Open XML) file. */
@@ -140,13 +146,13 @@ export function extractDocxText(buffer: Buffer): string {
   const xml = readZipEntry(buffer, DOCX_DOCUMENT_PATH).toString('utf8');
   const text = decodeXmlEntities(
     xml
-      .replace(/<w:tab\/>/g, '\t')
-      .replace(/<w:(br|cr)\/>/g, '\n')
-      .replace(/<\/w:p>/g, '\n')
-      .replace(/<[^>]+>/g, ''),
+      .replace(DOCX_TABS_PATTERN, '\t')
+      .replace(DOCX_LINE_BREAKS_PATTERN, '\n')
+      .replace(DOCX_PARAGRAPH_ENDS_PATTERN, '\n')
+      .replace(HTML_TAGS_PATTERN, ''),
   )
     .split('\n')
-    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+    .map((line) => line.replace(HORIZONTAL_WHITESPACE_RUNS_PATTERN, ' ').trim())
     .filter(Boolean)
     .join('\n');
 
@@ -159,7 +165,7 @@ export function extractDocxText(buffer: Buffer): string {
 }
 
 function readExtension(fileName: string): string {
-  const match = /\.([a-z0-9]+)$/i.exec(fileName.trim());
+  const match = FILE_EXTENSION_PATTERN.exec(fileName.trim());
   return match?.[1]?.toLowerCase() ?? '';
 }
 
@@ -188,7 +194,7 @@ export function extractUploadedDocumentText(file: {
   if (extension === 'txt' || extension === 'md' || extension === 'markdown') {
     const text = new TextDecoder('utf-8', { fatal: false })
       .decode(file.buffer)
-      .replace(/\r\n/g, '\n')
+      .replace(CRLF_PATTERN, '\n')
       .trim();
     if (!text) {
       throw new UnsupportedUploadedDocumentError('The uploaded file is empty.');

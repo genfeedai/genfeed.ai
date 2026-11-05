@@ -47,6 +47,7 @@ import {
 } from '@api/collections/brands/utils/brand-config-merge.util';
 import { normalizeBrandIdentityDefaults } from '@api/collections/brands/utils/brand-identity-defaults.util';
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
+import { toBrandSlugBase } from '@api/collections/brands/utils/brand-slug.util';
 import { resolveCreateAgentConfig } from '@api/collections/brands/utils/expert-brand-defaults.util';
 import { withPersistedFontFamily } from '@api/collections/brands/utils/persisted-font-family';
 import {
@@ -590,11 +591,7 @@ export class BrandsService extends BaseService<
     label: string,
     excludeBrandId?: string,
   ): Promise<string> {
-    const base = label
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/-{2,}/g, '-')
-      .replace(/^-|-$/g, '');
+    const base = toBrandSlugBase(label);
 
     if (base.length < 2) {
       throw new BadRequestException('Label too short to generate a valid slug');

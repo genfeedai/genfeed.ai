@@ -8,6 +8,8 @@ import {
   websocketService,
 } from '@/services/websocket.service';
 
+const BACKGROUND_APP_STATE_PATTERN = /inactive|background/;
+
 function subscribeToAppStateChange(
   handler: (nextAppState: AppStateStatus) => void,
 ): () => void {
@@ -61,7 +63,7 @@ export function useWebSocket(): UseWebSocketReturn {
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (
-        appStateRef.current?.match(/inactive|background/) &&
+        appStateRef.current?.match(BACKGROUND_APP_STATE_PATTERN) &&
         nextAppState === 'active'
       ) {
         connect();

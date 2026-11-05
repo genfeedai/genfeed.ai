@@ -15,6 +15,8 @@ import { createAppNextConfig } from '@genfeedai/next-config';
 import { withSerwist } from '@serwist/turbopack';
 import createNextIntlPlugin from 'next-intl/plugin';
 
+const COMMIT_SHA_PATTERN = /^[a-f0-9]{7,40}$/i;
+
 // Deterministic, empty-string-safe build id. A plain `??` chain does NOT skip
 // empty strings, and Vercel sets VERCEL_GIT_COMMIT_SHA="" on CLI deploys with no
 // git metadata. An empty buildId makes Next.js embed "b":"" in RSC flight
@@ -54,7 +56,7 @@ function resolveCommitSha(): string {
     process.env.BUILD_ID,
     process.env.VERCEL_GIT_COMMIT_SHA,
   );
-  if (supplied && /^[a-f0-9]{7,40}$/i.test(supplied)) return supplied;
+  if (supplied && COMMIT_SHA_PATTERN.test(supplied)) return supplied;
   try {
     return execFileSync('git', ['rev-parse', 'HEAD'], {
       cwd: appDir,

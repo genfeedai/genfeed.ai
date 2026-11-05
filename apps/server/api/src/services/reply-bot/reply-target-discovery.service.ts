@@ -28,6 +28,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 const SEARCH_RESULT_LIMIT = 50;
 /** Authors looked up for follower counts; one user lookup each. */
 const CANDIDATE_LOOKUP_LIMIT = 15;
@@ -152,7 +154,9 @@ export class ReplyTargetDiscoveryService {
     userId: string;
     username: string;
   }): Promise<IReplyTargetAddResult> {
-    const username = params.username.trim().replace(/^@/, '');
+    const username = params.username
+      .trim()
+      .replace(LEADING_AT_SIGN_PATTERN, '');
     if (!username) {
       throw new BadRequestException('Choose an account to monitor.');
     }
@@ -345,7 +349,9 @@ export class ReplyTargetDiscoveryService {
       select: { externalHandle: true },
       where: scopedWhere(organizationId, { brandId, platform }),
     });
-    return (credential?.externalHandle ?? '').replace(/^@/, '').toLowerCase();
+    return (credential?.externalHandle ?? '')
+      .replace(LEADING_AT_SIGN_PATTERN, '')
+      .toLowerCase();
   }
 
   private async findBrandCredentialId(

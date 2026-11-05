@@ -57,6 +57,8 @@ import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail'
 import PublishingPostingSetsSection from './publishing-posting-sets-section';
 import PublishingRssSourcesSection from './publishing-rss-sources-section';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 const CUSTOM_SCHEDULE_VALUE = 'custom';
 
 /** Human cadence presets — still stored as cron on the brand config. */
@@ -681,7 +683,7 @@ export default function BrandSettingsPublishingPage() {
                           size={ComponentSize.SM}
                         />
                         {context.account.handle
-                          ? ` · @${context.account.handle.replace(/^@/, '')}`
+                          ? ` · @${context.account.handle.replace(LEADING_AT_SIGN_PATTERN, '')}`
                           : ''}
                       </p>
                     </div>

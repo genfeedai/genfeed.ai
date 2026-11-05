@@ -9,6 +9,8 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 export interface MurekaGenerateSongInput {
   instrumental?: boolean;
   lyrics?: string;
@@ -107,7 +109,7 @@ export class MurekaService {
         url.hash
       )
         throw new Error();
-      return url.toString().replace(/\/+$/, '');
+      return url.toString().replace(TRAILING_SLASHES_PATTERN, '');
     } catch {
       throw new Error(
         'Mureka base URL must be an absolute HTTPS URL without credentials, query or fragment.',

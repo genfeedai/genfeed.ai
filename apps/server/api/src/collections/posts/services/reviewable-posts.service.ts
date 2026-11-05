@@ -18,6 +18,8 @@ import type { Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 const LABEL_LENGTH = 80;
 
 export interface ReviewablePostInput extends GeneratedContentInput {
@@ -186,7 +188,7 @@ export class ReviewablePostsService {
   }
 
   private labelFromContent(content: string): string {
-    const normalized = content.trim().replace(/\s+/g, ' ');
+    const normalized = content.trim().replace(WHITESPACE_RUNS_PATTERN, ' ');
     if (normalized.length <= LABEL_LENGTH) {
       return normalized;
     }

@@ -15,6 +15,8 @@ import type {
   ChatCompletionTool,
 } from 'openai/resources/chat/completions';
 
+const OPENAI_OR_LOCAL_MODEL_PREFIX_PATTERN = /^(?:openai|local)\//;
+
 @Traced()
 @Injectable()
 export class OpenAiLlmService {
@@ -130,7 +132,10 @@ export class OpenAiLlmService {
 
     try {
       // Strip provider prefixes (openai/, local/) from model name
-      const model = params.model.replace(/^(?:openai|local)\//, '');
+      const model = params.model.replace(
+        OPENAI_OR_LOCAL_MODEL_PREFIX_PATTERN,
+        '',
+      );
       const messages = this.convertMessages(params.messages);
       const tools = this.convertTools(params.tools);
 
@@ -248,7 +253,10 @@ export class OpenAiLlmService {
     const client = this.createClient(apiKey, baseURL);
 
     try {
-      const model = params.model.replace(/^(?:openai|local)\//, '');
+      const model = params.model.replace(
+        OPENAI_OR_LOCAL_MODEL_PREFIX_PATTERN,
+        '',
+      );
       const messages = this.convertMessages(params.messages);
       const tools = this.convertTools(params.tools);
 
@@ -317,7 +325,10 @@ export class OpenAiLlmService {
     const client = this.createClient(apiKey, baseURL);
 
     try {
-      const model = params.model.replace(/^(?:openai|local)\//, '');
+      const model = params.model.replace(
+        OPENAI_OR_LOCAL_MODEL_PREFIX_PATTERN,
+        '',
+      );
       const messages = this.convertMessages(params.messages);
       const tools = this.convertTools(params.tools);
 

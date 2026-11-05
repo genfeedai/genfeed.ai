@@ -24,6 +24,8 @@ import {
 } from '@ui/primitives/select';
 import { useState } from 'react';
 
+const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+
 function InlineSelectField({ editor }: { editor: InlineSelectFieldEditor }) {
   const { isSaving, save } = useInlineSave();
 
@@ -118,7 +120,7 @@ function InlineMultiSelectField({
 
 /** A native color input only takes `#rrggbb`; anything else shows black. */
 function toColorValue(value: string | undefined): string {
-  return value && /^#[0-9a-f]{6}$/i.test(value) ? value : '#000000';
+  return value && HEX_COLOR_PATTERN.test(value) ? value : '#000000';
 }
 
 function InlineColorField({ editor }: { editor: InlineColorFieldEditor }) {

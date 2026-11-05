@@ -34,6 +34,8 @@ import { SaveIndicator } from './SaveIndicator';
 import { ToolbarDropdown } from './ToolbarDropdown';
 import type { DropdownItem, ToolbarProps } from './types';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 /**
  * Validates workflow JSON structure before loading
  */
@@ -260,7 +262,7 @@ export function Toolbar({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${workflow.name.toLowerCase().replace(/\s+/g, '-')}.json`;
+    link.download = `${workflow.name.toLowerCase().replace(WHITESPACE_RUNS_PATTERN, '-')}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

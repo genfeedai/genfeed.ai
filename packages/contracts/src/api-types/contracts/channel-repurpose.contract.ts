@@ -30,6 +30,11 @@ import {
   validateChannelTargetSettings,
 } from './channel-capabilities.contract';
 
+const WHITESPACE_CHAR_PATTERN = /\s/u;
+const SPACE_BEFORE_PUNCTUATION_PATTERN = /[^\S\n]+([,.;:!?])/gu;
+const REPEATED_INLINE_WHITESPACE_PATTERN = /[^\S\n]{2,}/gu;
+const TRAILING_LINE_WHITESPACE_PATTERN = /[^\S\n]+$/gmu;
+
 /**
  * Per-channel caption text policy the deterministic transform applies before
  * length truncation. `maxHashtags: undefined` means the channel has no useful
@@ -324,7 +329,7 @@ function cutAtSentenceBoundary(
     if (
       character !== undefined &&
       SENTENCE_END_CHARS.has(character) &&
-      (next === undefined || /\s/u.test(next))
+      (next === undefined || WHITESPACE_CHAR_PATTERN.test(next))
     ) {
       return codePoints.slice(0, index + 1).join('');
     }
@@ -342,7 +347,7 @@ function cutAtWordBoundary(
 
   for (let index = budget; index >= minimumEnd; index -= 1) {
     const character = codePoints[index];
-    if (character !== undefined && /\s/u.test(character)) {
+    if (character !== undefined && WHITESPACE_CHAR_PATTERN.test(character)) {
       const kept = codePoints.slice(0, index).join('').trimEnd();
       if (kept.length > 0) {
         return `${kept}${ELLIPSIS}`;
@@ -356,8 +361,8 @@ function cutAtWordBoundary(
 /** Collapse doubled spaces and orphaned space-before-punctuation left by token removal. */
 function tidyWhitespace(caption: string): string {
   return caption
-    .replace(/[^\S\n]+([,.;:!?])/gu, '$1')
-    .replace(/[^\S\n]{2,}/gu, ' ')
-    .replace(/[^\S\n]+$/gmu, '')
+    .replace(SPACE_BEFORE_PUNCTUATION_PATTERN, '$1')
+    .replace(REPEATED_INLINE_WHITESPACE_PATTERN, ' ')
+    .replace(TRAILING_LINE_WHITESPACE_PATTERN, '')
     .trim();
 }

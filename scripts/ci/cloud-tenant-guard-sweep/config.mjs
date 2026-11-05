@@ -1,6 +1,12 @@
 import { homedir } from 'node:os';
 import { validateRunDirectory } from './local-mail-stub.mjs';
 
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const LOOPBACK_API_URL_PATTERN = /^http:\/\/127\.0\.0\.1:[0-9]+\/?$/;
+const SWEEP_DATABASE_PATH_PATTERN =
+  /^\/genfeed_cloud_sweep_6175_[0-9]{14}_[a-f0-9]{8}_test$/;
+const LOOPBACK_REDIS_URL_PATTERN = /^redis:\/\/127\.0\.0\.1:[0-9]+(?:\/0)?$/;
+
 const CI_DATABASE = 'postgresql://genfeed:genfeed_local@localhost:5432/test';
 const CI_API = 'http://127.0.0.1:3010';
 const CI_REDIS = 'redis://localhost:6379';
@@ -12,7 +18,7 @@ function requireValue(condition, message) {
 
 function highPort(value) {
   return (
-    /^\d+$/.test(value ?? '') &&
+    DIGITS_ONLY_PATTERN.test(value ?? '') &&
     Number(value) >= 49152 &&
     Number(value) <= 65535
   );
@@ -74,7 +80,7 @@ export function validateRuntimeConfig(env, { home = homedir() } = {}) {
     );
   }
   requireValue(
-    /^http:\/\/127\.0\.0\.1:[0-9]+\/?$/.test(env.CLOUD_SWEEP_BASE_URL) &&
+    LOOPBACK_API_URL_PATTERN.test(env.CLOUD_SWEEP_BASE_URL) &&
       api.protocol === 'http:' &&
       api.hostname === '127.0.0.1' &&
       highPort(api.port) &&
@@ -92,14 +98,12 @@ export function validateRuntimeConfig(env, { home = homedir() } = {}) {
       database.port === '5432' &&
       !database.search &&
       !database.hash &&
-      /^\/genfeed_cloud_sweep_6175_[0-9]{14}_[a-f0-9]{8}_test$/.test(
-        database.pathname,
-      ) &&
+      SWEEP_DATABASE_PATH_PATTERN.test(database.pathname) &&
       database.username,
     'new owned disposable loopback database required',
   );
   requireValue(
-    /^redis:\/\/127\.0\.0\.1:[0-9]+(?:\/0)?$/.test(env.REDIS_URL) &&
+    LOOPBACK_REDIS_URL_PATTERN.test(env.REDIS_URL) &&
       redis.protocol === 'redis:' &&
       redis.hostname === '127.0.0.1' &&
       highPort(redis.port) &&

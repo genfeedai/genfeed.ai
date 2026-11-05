@@ -2,6 +2,8 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ArticleStatus } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 
+const HYPHENS_PATTERN = /-/g;
+
 /**
  * Maps ArticleStatus to Prisma-persisted labels.
  * PROCESSING and FAILED are domain-only pipeline states; they never persist to
@@ -61,7 +63,9 @@ export const ArticleFilterUtil = {
     }
 
     // Legacy lowercase / `public` alias from before SCREAMING_SNAKE harmonization.
-    const normalized = String(status).replace(/-/g, '_').toUpperCase();
+    const normalized = String(status)
+      .replace(HYPHENS_PATTERN, '_')
+      .toUpperCase();
     if (normalized === 'PUBLIC') {
       return 'PUBLISHED';
     }

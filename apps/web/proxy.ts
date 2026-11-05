@@ -23,6 +23,15 @@ import {
 import { DESKTOP_HTTP_HEADERS } from '@genfeedai/contracts/desktop';
 import { type NextRequest, NextResponse } from 'next/server';
 
+const SEMVER_PATTERN =
+  /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
+const TRAILING_SLASH_PATTERN = /\/$/;
+const PLUS_SIGNS_PATTERN = /\+/g;
+const SLASHES_PATTERN = /\//g;
+const BASE64_PADDING_PATTERN = /=+$/;
+const HYPHENS_PATTERN = /-/g;
+const UNDERSCORES_PATTERN = /_/g;
+
 type BootstrapBrandSummary = {
   id: string;
   organization?: {
@@ -63,10 +72,7 @@ type ParsedVersion = {
 };
 
 function parseVersion(value: string): ParsedVersion | null {
-  const match =
-    /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/.exec(
-      value,
-    );
+  const match = SEMVER_PATTERN.exec(value);
   if (!match) {
     return null;
   }
@@ -167,13 +173,13 @@ function getApiBaseUrl(): string {
     process.env.API_URL ||
     process.env.NEXT_PUBLIC_API_ENDPOINT ||
     'http://localhost:3010/v1'
-  ).replace(/\/$/, '');
+  ).replace(TRAILING_SLASH_PATTERN, '');
 
   try {
     const url = new URL(rawBaseUrl);
     if (url.pathname === '' || url.pathname === '/') {
       url.pathname = '/v1';
-      return url.toString().replace(/\/$/, '');
+      return url.toString().replace(TRAILING_SLASH_PATTERN, '');
     }
   } catch {
     // Relative paths such as /v1 are already valid API bases for fetch.
@@ -345,13 +351,15 @@ function uint8ToBase64Url(bytes: Uint8Array): string {
     binary += String.fromCharCode(byte);
   }
   return btoa(binary)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+    .replace(PLUS_SIGNS_PATTERN, '-')
+    .replace(SLASHES_PATTERN, '_')
+    .replace(BASE64_PADDING_PATTERN, '');
 }
 
 function base64UrlToUint8(str: string): Uint8Array<ArrayBuffer> {
-  const padded = str.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = str
+    .replace(HYPHENS_PATTERN, '+')
+    .replace(UNDERSCORES_PATTERN, '/');
   const binary = atob(padded);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {

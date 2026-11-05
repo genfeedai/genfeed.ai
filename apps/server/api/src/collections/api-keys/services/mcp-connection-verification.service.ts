@@ -19,6 +19,9 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import axios, { type AxiosInstance } from 'axios';
 
+const MCP_PATH_SUFFIX_PATTERN = /\/mcp\/?$/;
+const SLASH_RUNS_PATTERN = /\/+/g;
+
 const MCP_VERIFICATION_TIMEOUT_MS = 5_000;
 
 interface McpJsonRpcResponse {
@@ -267,8 +270,8 @@ export class McpConnectionVerificationService {
 
   private getToolsEndpoint(mcpEndpoint: string): string {
     const url = new URL(mcpEndpoint);
-    const basePath = url.pathname.replace(/\/mcp\/?$/, '');
-    url.pathname = `${basePath}/v1/tools`.replace(/\/+/g, '/');
+    const basePath = url.pathname.replace(MCP_PATH_SUFFIX_PATTERN, '');
+    url.pathname = `${basePath}/v1/tools`.replace(SLASH_RUNS_PATTERN, '/');
     url.search = '';
 
     return url.toString();

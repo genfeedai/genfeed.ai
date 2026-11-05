@@ -284,6 +284,21 @@ describe('WhisperService', () => {
       );
     });
 
+    it.each([
+      [403, 'Media download is unavailable (HTTP 403)'],
+      [404, 'Media download is unavailable (HTTP 404)'],
+      [502, 'Media download is unavailable (HTTP 502)'],
+    ])(
+      'names HTTP %i when the media URL refuses the download',
+      async (status, message) => {
+        safeFetchMock.mockResolvedValue(new Response('denied', { status }));
+
+        await expect(
+          service.transcribeUrl('https://example.com/audio.mp3'),
+        ).rejects.toThrow(message);
+      },
+    );
+
     it('should throw when video download fails', async () => {
       safeFetchMock.mockImplementation(() => {
         throw new Error('Download failed');

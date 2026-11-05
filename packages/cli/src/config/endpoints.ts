@@ -1,3 +1,5 @@
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 /**
  * Endpoint derivation for the browser login flow.
  *
@@ -36,7 +38,7 @@ function isLocalHostname(hostname: string): boolean {
 
 /** Strip trailing slashes so composed paths never become `//oauth/cli`. */
 export function normalizeBaseUrl(url: string): string {
-  return url.trim().replace(/\/+$/, '');
+  return url.trim().replace(TRAILING_SLASHES_PATTERN, '');
 }
 
 /**

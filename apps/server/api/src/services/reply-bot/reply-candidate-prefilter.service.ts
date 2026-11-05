@@ -4,6 +4,8 @@ import type { ReplyBotPlatform, ReplyBotType } from '@genfeedai/contracts';
 import type { IReplyBotCredentialData } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 export interface ReplyCandidate extends SocialContentData {
   replyContext?: string;
 }
@@ -306,7 +308,7 @@ export class ReplyCandidatePrefilterService {
 
   private normalize(value: unknown): string {
     return typeof value === 'string'
-      ? value.trim().replace(/^@/, '').toLowerCase()
+      ? value.trim().replace(LEADING_AT_SIGN_PATTERN, '').toLowerCase()
       : '';
   }
 

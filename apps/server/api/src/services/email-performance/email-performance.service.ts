@@ -32,6 +32,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 
+const CLICK_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+
 const ATTRIBUTION_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 /**
  * The provider posts receipts for every message on the account, including mail
@@ -434,7 +436,7 @@ export class EmailPerformanceService {
   }
 
   async trackClick(token: string): Promise<string> {
-    if (!/^[A-Za-z0-9_-]{43}$/.test(token))
+    if (!CLICK_TOKEN_PATTERN.test(token))
       throw new NotFoundException('Email link');
     // tenant-scope-ignore: unguessable capability resolves only its stored approved destination, never a caller-provided redirect.
     const message = await this.prisma.emailMessage.findFirst({

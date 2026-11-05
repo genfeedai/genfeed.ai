@@ -20,6 +20,9 @@ import {
   scopedWorkspaceRequest,
 } from '~services/workspace.service';
 
+const ANALYTICS_REFRESH_COOLDOWN_MESSAGE_PATTERN =
+  /^Analytics can only be refreshed once per hour\. Please try again in ([1-9]|[1-5][0-9]|60) minutes\.$/;
+
 export class PublicationInsightsRequestError extends Error {
   constructor(
     readonly code: ExtensionPublicationInsightsErrorCode,
@@ -116,9 +119,7 @@ async function request(
     const detail = envelope.success
       ? (envelope.data.detail ?? envelope.data.errors?.[0]?.detail)
       : undefined;
-    const minutes = detail?.match(
-      /^Analytics can only be refreshed once per hour\. Please try again in ([1-9]|[1-5][0-9]|60) minutes\.$/,
-    );
+    const minutes = detail?.match(ANALYTICS_REFRESH_COOLDOWN_MESSAGE_PATTERN);
     throw new PublicationInsightsRequestError(
       'rate-limited',
       status,

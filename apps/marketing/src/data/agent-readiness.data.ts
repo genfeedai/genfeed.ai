@@ -7,6 +7,10 @@ import { renderPublicSurfaceIndex } from '@data/llms-text.data';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const FRONTMATTER_DESCRIPTION_PATTERN = /^description:\s*(.+)$/m;
+const QUOTED_VALUE_PATTERN = /^(['"])(.*)\1$/;
+
 const WEBSITE_ORIGIN = 'https://genfeed.ai';
 const MCP_ENDPOINT = 'https://mcp.genfeed.ai/mcp';
 const AGENT_SKILLS_SCHEMA =
@@ -37,7 +41,7 @@ const PUBLISHED_AGENT_SKILL_FILES: ReadonlyMap<string, string> = new Map(
         withFileTypes: true,
       })
         .filter((entry) => entry.isDirectory())
-        .filter((entry) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(entry.name))
+        .filter((entry) => SLUG_PATTERN.test(entry.name))
         .map((entry): [string, string] => [
           entry.name,
           resolve(
@@ -63,12 +67,12 @@ export interface PublishedAgentSkill {
 }
 
 function readFrontmatterDescription(content: string, name: string): string {
-  const match = /^description:\s*(.+)$/m.exec(content);
+  const match = FRONTMATTER_DESCRIPTION_PATTERN.exec(content);
   if (!match?.[1]) {
     throw new Error(`Public skill ${name} is missing a description.`);
   }
 
-  return match[1].trim().replace(/^(['"])(.*)\1$/, '$2');
+  return match[1].trim().replace(QUOTED_VALUE_PATTERN, '$2');
 }
 
 export function getPublishedAgentSkill(

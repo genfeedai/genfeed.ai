@@ -20,6 +20,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 /**
  * Twitter Social Adapter
  *
@@ -214,7 +216,7 @@ export class TwitterSocialAdapter {
 
       const platformUsername =
         typeof credential?.externalHandle === 'string'
-          ? credential.externalHandle.replace(/^@/, '')
+          ? credential.externalHandle.replace(LEADING_AT_SIGN_PATTERN, '')
           : null;
 
       if (!platformUsername) {
@@ -279,7 +281,7 @@ export class TwitterSocialAdapter {
 
       const platformUsername =
         typeof credential?.externalHandle === 'string'
-          ? credential.externalHandle.replace(/^@/, '')
+          ? credential.externalHandle.replace(LEADING_AT_SIGN_PATTERN, '')
           : null;
 
       if (!platformUsername) {

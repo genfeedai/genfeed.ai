@@ -2,6 +2,10 @@ import type { Stats } from 'node:fs';
 import { lstat } from 'node:fs/promises';
 import path from 'node:path';
 
+const PATH_SEPARATOR_PATTERN = /[\\/]/;
+const WINDOWS_DRIVE_PREFIX_PATTERN = /^[A-Za-z]:\//;
+const ENCODED_PATH_SEPARATOR_PATTERN = /%(?:00|2f|5c)/i;
+
 /** Factory that turns a validation message into a consumer-owned error. */
 export type SecurityErrorFactory = (message: string) => Error;
 
@@ -54,7 +58,9 @@ function assertCandidatePath(
 }
 
 function hasTraversalSegment(value: string): boolean {
-  return value.split(/[\\/]/).some((segment) => segment === '..');
+  return value
+    .split(PATH_SEPARATOR_PATTERN)
+    .some((segment) => segment === '..');
 }
 
 function assertUnambiguousPathSyntax(
@@ -66,14 +72,14 @@ function assertUnambiguousPathSyntax(
     value.includes('\0') ||
     (path.sep !== '\\' && value.includes('\\')) ||
     hasTraversalSegment(value) ||
-    (path.sep !== '\\' && /^[A-Za-z]:\//.test(value))
+    (path.sep !== '\\' && WINDOWS_DRIVE_PREFIX_PATTERN.test(value))
   ) {
     throw createError(`${name} contains traversal or separator confusion`);
   }
 
   let decoded = value;
   for (;;) {
-    if (/%(?:00|2f|5c)/i.test(decoded)) {
+    if (ENCODED_PATH_SEPARATOR_PATTERN.test(decoded)) {
       throw createError(`${name} contains encoded path syntax`);
     }
 
@@ -94,8 +100,8 @@ function assertUnambiguousPathSyntax(
       hasTraversalSegment(next) ||
       (!decoded.startsWith('/') && next.startsWith('/')) ||
       (path.sep !== '\\' &&
-        !/^[A-Za-z]:\//.test(decoded) &&
-        /^[A-Za-z]:\//.test(next))
+        !WINDOWS_DRIVE_PREFIX_PATTERN.test(decoded) &&
+        WINDOWS_DRIVE_PREFIX_PATTERN.test(next))
     ) {
       throw createError(`${name} contains encoded path syntax`);
     }

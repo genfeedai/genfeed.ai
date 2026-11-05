@@ -10,6 +10,8 @@ import type {
   BrandArtifactValidationInputV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 
+const NON_WHITESPACE_CHAR_PATTERN = /\S/;
+
 const MAX_MATCHED_FONTS = 16;
 type Snapshot = BrandArtifactValidationInputV1['snapshot'];
 type TypographyRule = Snapshot['generationRules']['typography'][number];
@@ -164,7 +166,9 @@ export function proveBrandFontChecks(
       .filter((font) => approved.some((candidate) => candidate.matches(font)))
       .map((font) => font.id),
   );
-  const layers = manifest.textLayers.filter((layer) => /\S/.test(layer.text));
+  const layers = manifest.textLayers.filter((layer) =>
+    NON_WHITESPACE_CHAR_PATTERN.test(layer.text),
+  );
   if (layers.length === 0) return settle('font_no_text_layers');
   for (const layer of layers) {
     const problem = layerProblem(manifest, layer, approvedFontIds);

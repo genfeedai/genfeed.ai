@@ -1,3 +1,5 @@
+const WORD_INITIALS_PATTERN = /\b\w/g;
+
 const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
   notation: 'compact',
 });
@@ -60,7 +62,7 @@ export function capitalize(str: string | null | undefined): string {
 export function formatSnakeCaseLabel(value: string): string {
   return value
     .replaceAll('_', ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    .replace(WORD_INITIALS_PATTERN, (letter) => letter.toUpperCase());
 }
 
 /**

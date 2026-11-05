@@ -10,6 +10,10 @@ import { withPlatformTenantArm } from '@libs/prisma/platform-scope';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+const NON_WORD_CHARS_PATTERN = /[^\w\s]/g;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const AI_WORD_PATTERN = /\bai\b/;
+
 @Traced()
 @Injectable()
 export class TrendFilteringService {
@@ -111,8 +115,8 @@ export class TrendFilteringService {
 
     const keywords = brandDescription
       .toLowerCase()
-      .replace(/[^\w\s]/g, ' ')
-      .split(/\s+/)
+      .replace(NON_WORD_CHARS_PATTERN, ' ')
+      .split(WHITESPACE_RUN_PATTERN)
       .filter(
         (word) => (word.length > 2 || word === 'ai') && !commonWords.has(word),
       );
@@ -129,7 +133,7 @@ export class TrendFilteringService {
       for (const keyword of keywords) {
         if (
           keyword === 'ai'
-            ? /\bai\b/.test(trendText)
+            ? AI_WORD_PATTERN.test(trendText)
             : trendText.includes(keyword)
         ) {
           score += 1;
@@ -277,8 +281,8 @@ export class TrendFilteringService {
     // Extract keywords from topic for matching
     const keywords = topic
       .toLowerCase()
-      .replace(/[^\w\s]/g, ' ')
-      .split(/\s+/)
+      .replace(NON_WORD_CHARS_PATTERN, ' ')
+      .split(WHITESPACE_RUN_PATTERN)
       .filter((word) => word.length > 2);
 
     if (keywords.length === 0) {

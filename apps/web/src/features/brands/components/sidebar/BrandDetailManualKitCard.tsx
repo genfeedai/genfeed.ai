@@ -40,6 +40,10 @@ import { CircleCheck, FileText, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ChangeEvent, useCallback, useMemo, useState } from 'react';
 
+const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+const SHORT_HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{3}$/;
+const BARE_HEX_COLOR_PATTERN = /^[0-9a-fA-F]{6}$/;
+
 type ManualKitFormState = {
   backgroundColor: string;
   description: string;
@@ -102,14 +106,14 @@ function normalizeFontFamily(value: string | undefined | null): string {
 /** Native `<input type="color">` requires `#rrggbb`. */
 function toColorPickerValue(value: string): string {
   const trimmed = value.trim();
-  if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) {
+  if (HEX_COLOR_PATTERN.test(trimmed)) {
     return trimmed.toLowerCase();
   }
-  if (/^#[0-9a-fA-F]{3}$/.test(trimmed)) {
+  if (SHORT_HEX_COLOR_PATTERN.test(trimmed)) {
     const [, r, g, b] = trimmed;
     return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
   }
-  if (/^[0-9a-fA-F]{6}$/.test(trimmed)) {
+  if (BARE_HEX_COLOR_PATTERN.test(trimmed)) {
     return `#${trimmed.toLowerCase()}`;
   }
   return '#000000';

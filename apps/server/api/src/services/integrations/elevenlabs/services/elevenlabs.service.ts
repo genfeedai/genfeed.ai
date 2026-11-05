@@ -13,6 +13,8 @@ import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
+const TWO_LETTER_CODE_PATTERN = /^[a-z]{2}$/;
+
 export type ElevenLabsSpeechOptions = {
   languageCode?: string;
   /** Catalog-selected model id; the platform `elevenlabsModel` setting otherwise. */
@@ -321,7 +323,10 @@ export class ElevenLabsService {
   }
 
   private speechOptions(options?: ElevenLabsSpeechOptions) {
-    if (options?.languageCode && !/^[a-z]{2}$/.test(options.languageCode)) {
+    if (
+      options?.languageCode &&
+      !TWO_LETTER_CODE_PATTERN.test(options.languageCode)
+    ) {
       throw new Error('Speech language must be an ISO 639-1 code');
     }
     if (

@@ -1,5 +1,12 @@
 import { z } from 'zod';
 
+const BEARER_TOKEN_PATTERN = /\bBearer\s+[A-Za-z0-9._~+/=-]+/gi;
+const BASIC_AUTH_CREDENTIALS_PATTERN = /\bBasic\s+[A-Za-z0-9+/=]+/gi;
+const QUOTED_SECRET_ASSIGNMENTS_PATTERN =
+  /(["']?)(access[_-]?token|refresh[_-]?token|oauth[_-]?token|session[_-]?token|id[_-]?token|api[_-]?key|client[_-]?secret|webhook[_-]?secret|password|signature|secret|token)\1(\s*[:=]\s*)(["'])([^"']*)\4/gi;
+const SECRET_ASSIGNMENTS_PATTERN =
+  /\b(access[_-]?token|refresh[_-]?token|oauth[_-]?token|session[_-]?token|id[_-]?token|api[_-]?key|client[_-]?secret|webhook[_-]?secret|password|signature|secret|token)(\s*[:=]\s*)([^\s,;"'}\]]+)/gi;
+
 /**
  * Primitives shared by every outbound webhook event family (publish,
  * generation, workflow). Families own their own payload shape and schema
@@ -89,16 +96,10 @@ export function classifyWebhookError(message: string): WebhookErrorClass {
 
 export function redactWebhookText(value: string): string {
   return value
-    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
-    .replace(/\bBasic\s+[A-Za-z0-9+/=]+/gi, 'Basic [REDACTED]')
-    .replace(
-      /(["']?)(access[_-]?token|refresh[_-]?token|oauth[_-]?token|session[_-]?token|id[_-]?token|api[_-]?key|client[_-]?secret|webhook[_-]?secret|password|signature|secret|token)\1(\s*[:=]\s*)(["'])([^"']*)\4/gi,
-      '$1$2$1$3$4[REDACTED]$4',
-    )
-    .replace(
-      /\b(access[_-]?token|refresh[_-]?token|oauth[_-]?token|session[_-]?token|id[_-]?token|api[_-]?key|client[_-]?secret|webhook[_-]?secret|password|signature|secret|token)(\s*[:=]\s*)([^\s,;"'}\]]+)/gi,
-      '$1$2[REDACTED]',
-    );
+    .replace(BEARER_TOKEN_PATTERN, 'Bearer [REDACTED]')
+    .replace(BASIC_AUTH_CREDENTIALS_PATTERN, 'Basic [REDACTED]')
+    .replace(QUOTED_SECRET_ASSIGNMENTS_PATTERN, '$1$2$1$3$4[REDACTED]$4')
+    .replace(SECRET_ASSIGNMENTS_PATTERN, '$1$2[REDACTED]');
 }
 
 /**

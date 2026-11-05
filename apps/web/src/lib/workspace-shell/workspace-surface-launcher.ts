@@ -16,12 +16,15 @@ export type {
   WorkspaceSurfaceLaunch,
 } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 
+const SAFE_IDENTIFIER_PATTERN = /^[A-Za-z0-9_-]+$/;
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 function isSafeOpaqueId(value: string | null | undefined): value is string {
   return Boolean(
     value &&
       value !== 'undefined' &&
       value !== 'null' &&
-      /^[A-Za-z0-9_-]+$/.test(value),
+      SAFE_IDENTIFIER_PATTERN.test(value),
   );
 }
 
@@ -109,7 +112,7 @@ function applyConversationLaunch(
 ): void {
   stripAllShellParams(url);
   if (retainedThreadId && route.canonicalUrl.endsWith('/agent')) {
-    url.pathname = `${url.pathname.replace(/\/$/, '')}/${encodeURIComponent(retainedThreadId)}`;
+    url.pathname = `${url.pathname.replace(TRAILING_SLASH_PATTERN, '')}/${encodeURIComponent(retainedThreadId)}`;
   }
 }
 

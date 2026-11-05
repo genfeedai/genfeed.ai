@@ -68,6 +68,8 @@ import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, Optional } from '@nestjs/common';
 
+const MUSIC_INGREDIENT_KEY_PATTERN = /^ingredients\/(musics|audio|audios)\/.+/;
+
 const STITCH_JOB_TIMEOUT_MS = 300_000;
 /**
  * How long a background tracker follows a queued or running merge job. A
@@ -484,10 +486,7 @@ export class VideoStitchService {
         throw stitchRequestError('music', 'Music asset is not available');
       }
       if (this.configService?.isAuthorizedMediaDeliveryEnabled) {
-        if (
-          !music.s3Key ||
-          !/^ingredients\/(musics|audio|audios)\/.+/.test(music.s3Key)
-        ) {
+        if (!music.s3Key || !MUSIC_INGREDIENT_KEY_PATTERN.test(music.s3Key)) {
           throw stitchRequestError(
             'music',
             'Music asset has no valid stored media key',

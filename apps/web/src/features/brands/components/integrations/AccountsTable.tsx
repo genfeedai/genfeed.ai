@@ -25,6 +25,8 @@ import {
   needsDirectMessageReconnect,
 } from './account-connection-status.util';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 function sortConnections(
   connections: BrandDetailSocialConnection[],
 ): BrandDetailSocialConnection[] {
@@ -156,7 +158,7 @@ export default function AccountsTable({
         getId: (connection) => connection.credentialId,
         getSubtitle: (connection) =>
           connection.handle
-            ? `@${connection.handle.replace(/^@/, '')}`
+            ? `@${connection.handle.replace(LEADING_AT_SIGN_PATTERN, '')}`
             : undefined,
         getTitle: getConnectionLabel,
         kind: 'account',

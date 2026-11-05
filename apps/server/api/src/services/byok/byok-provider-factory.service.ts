@@ -5,6 +5,8 @@ import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 @Traced()
 @Injectable()
 export class ByokProviderFactoryService {
@@ -66,6 +68,6 @@ export class ByokProviderFactoryService {
       return undefined;
     }
 
-    return `${apiUrl.replace(/\/+$/, '')}/v1/managed-inference`;
+    return `${apiUrl.replace(TRAILING_SLASHES_PATTERN, '')}/v1/managed-inference`;
   }
 }

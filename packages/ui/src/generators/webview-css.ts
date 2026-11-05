@@ -1,10 +1,12 @@
 import { radiusTokens } from '@ui/core/radius';
 import { webviewSemanticTokenMap } from '@ui/semantic/webview';
 
+const UPPERCASE_LETTERS_PATTERN = /[A-Z]/g;
+
 export function generateWebviewTokenCss(): string {
   const semanticLines = Object.entries(webviewSemanticTokenMap).map(
     ([tokenName, value]) =>
-      `    --${tokenName.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`)}: ${value};`,
+      `    --${tokenName.replace(UPPERCASE_LETTERS_PATTERN, (match) => `-${match.toLowerCase()}`)}: ${value};`,
   );
 
   return `:root {

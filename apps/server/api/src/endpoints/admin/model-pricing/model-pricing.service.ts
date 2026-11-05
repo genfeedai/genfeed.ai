@@ -42,6 +42,8 @@ import {
   Injectable,
 } from '@nestjs/common';
 
+const HYPHENS_OR_SPACES_PATTERN = /[- ]/g;
+
 const pricingContractSelect = {
   provider: true,
   endpoint: true,
@@ -172,7 +174,7 @@ function evidence(
 }
 
 function priceTypeForUnit(unit: string | null): string | null {
-  switch (unit?.toLowerCase().replaceAll(/[- ]/g, '_')) {
+  switch (unit?.toLowerCase().replaceAll(HYPHENS_OR_SPACES_PATTERN, '_')) {
     case 'image':
       return 'flat';
     case 'request':

@@ -1,3 +1,12 @@
+const LOCAL_HTTP_ORIGIN_PATTERN =
+  /^http:\/\/(localhost|([a-z0-9-]+\.)*genfeed\.localhost):(3\d{3})$/;
+const LOCAL_HTTPS_ORIGIN_PATTERN =
+  /^https:\/\/([a-z0-9-]+\.)*genfeed\.localhost$/;
+const CHROME_EXTENSION_ORIGIN_PATTERN = /^chrome-extension:\/\/.*$/;
+const GENFEED_APEX_ORIGIN_PATTERN = /^https:\/\/genfeed\.ai$/;
+const GENFEED_SUBDOMAIN_ORIGIN_PATTERN =
+  /^https:\/\/(admin|app|chatgpt|console|docs|login|marketplace|studio|website|workflows)\.genfeed\.ai$/;
+
 /**
  * Shared CORS configuration for all Genfeed.ai services
  *
@@ -78,13 +87,13 @@ export function getGenfeedCorsOrigins(
   if (isDevelopment) {
     return [
       // Explicit fixed-port fallback for dev:debug / run-service without Portless.
-      /^http:\/\/(localhost|([a-z0-9-]+\.)*genfeed\.localhost):(3\d{3})$/,
+      LOCAL_HTTP_ORIGIN_PATTERN,
 
       // Canonical Portless HTTPS contract. Portless may add a worktree prefix.
-      /^https:\/\/([a-z0-9-]+\.)*genfeed\.localhost$/,
+      LOCAL_HTTPS_ORIGIN_PATTERN,
 
       // Allow Chrome extensions in development
-      /^chrome-extension:\/\/.*$/,
+      CHROME_EXTENSION_ORIGIN_PATTERN,
 
       // ChatGPT GPT Actions
       'https://chat.openai.com',
@@ -95,11 +104,11 @@ export function getGenfeedCorsOrigins(
 
   const productionOrigins: (string | RegExp)[] = [
     // Main domain
-    /^https:\/\/genfeed\.ai$/,
+    GENFEED_APEX_ORIGIN_PATTERN,
 
     // All subdomains
 
-    /^https:\/\/(admin|app|chatgpt|console|docs|login|marketplace|studio|website|workflows)\.genfeed\.ai$/,
+    GENFEED_SUBDOMAIN_ORIGIN_PATTERN,
 
     // ChatGPT GPT Actions
     'https://chat.openai.com',

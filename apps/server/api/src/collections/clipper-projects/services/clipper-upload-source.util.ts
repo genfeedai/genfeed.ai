@@ -3,6 +3,8 @@ import type { IngredientDocument } from '@api/collections/ingredients/schemas/in
 import { CLIPPER_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/contracts/constants';
 import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 
+const AUDIO_OR_VIDEO_MIME_PATTERN = /^(audio|video)\//;
+
 export interface AcceptedUploadedSource {
   durationSeconds: number;
   sizeBytes: number;
@@ -39,7 +41,7 @@ export function readAcceptedUploadedSource(
   if (sizeBytes > MAX_CLIP_SOURCE_SIZE_BYTES) {
     throw new BadRequestException('Clip sources may be up to 10 GB.');
   }
-  if (!/^(audio|video)\//.test(String(ingredient.mimeType))) {
+  if (!AUDIO_OR_VIDEO_MIME_PATTERN.test(String(ingredient.mimeType))) {
     throw new BadRequestException(
       'The uploaded clip source is not supported audio or video media.',
     );

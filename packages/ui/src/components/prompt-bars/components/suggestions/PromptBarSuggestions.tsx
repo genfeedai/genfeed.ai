@@ -8,6 +8,8 @@ import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Image from 'next/image';
 import { Fragment, memo, type ReactElement, useState } from 'react';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 interface PromptBarSuggestionsProps {
   suggestions: PromptBarSuggestionItem[];
   onSuggestionSelect: (item: PromptBarSuggestionItem) => void;
@@ -23,7 +25,7 @@ interface PromptBarSuggestionsProps {
 const TOOLTIP_MAX_LENGTH = 160;
 
 function normalize(value: string | undefined): string {
-  return value?.trim().replace(/\s+/g, ' ') ?? '';
+  return value?.trim().replace(WHITESPACE_RUNS_PATTERN, ' ') ?? '';
 }
 
 /**

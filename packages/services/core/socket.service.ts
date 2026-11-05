@@ -3,6 +3,9 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { io, type Socket } from 'socket.io-client';
 
+const HYPHENS_PATTERN = /-/g;
+const UNDERSCORES_PATTERN = /_/g;
+
 export type SocketDisconnectRecovery = 'automatic' | 'manual' | 'none';
 
 export interface SocketDisconnectDisposition {
@@ -119,7 +122,9 @@ function closeSocketEngine(socket: Socket): void {
 }
 
 function decodeBase64Url(segment: string): string {
-  const normalized = segment.replace(/-/g, '+').replace(/_/g, '/');
+  const normalized = segment
+    .replace(HYPHENS_PATTERN, '+')
+    .replace(UNDERSCORES_PATTERN, '/');
   const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
 
   if (typeof globalThis.atob === 'function') {

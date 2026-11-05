@@ -1,3 +1,5 @@
+const LEADING_AT_SIGNS_PATTERN = /^@+/;
+
 /**
  * A brand handle is `Brand.slug`: the `/u/<handle>` public profile path and
  * the `[brandSlug]` app route segment. It is unique across every brand,
@@ -14,7 +16,7 @@ export const BRAND_HANDLE_RESERVED_MESSAGE =
 
 /** Accepts what people type: a leading `@`, surrounding spaces, capitals. */
 export function normalizeBrandHandle(value: string): string {
-  return value.trim().replace(/^@+/, '').toLowerCase();
+  return value.trim().replace(LEADING_AT_SIGNS_PATTERN, '').toLowerCase();
 }
 
 export function isValidBrandHandle(value: string): boolean {

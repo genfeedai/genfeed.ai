@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
+const PACKAGE_TEST_TASK_PATTERN = /^@genfeedai\/[a-z0-9-]+#test$/u;
+
 // Scheduling estimates from run 37527722448 (2026-10-06), not coverage rules.
 // Each pool runs one Turbo task at a time. Vitest can use the runner's CPUs
 // without competing with nine other packages' worker pools.
@@ -32,7 +34,7 @@ export function allPackageTestTasks(root) {
 export function buildPackageTestMatrix(tasks) {
   const selected = [...new Set(tasks)];
   for (const task of selected) {
-    if (!/^@genfeedai\/[a-z0-9-]+#test$/u.test(task))
+    if (!PACKAGE_TEST_TASK_PATTERN.test(task))
       throw new Error(`Invalid package test task: ${task}`);
   }
   const hasUi = selected.includes('@genfeedai/ui#test');

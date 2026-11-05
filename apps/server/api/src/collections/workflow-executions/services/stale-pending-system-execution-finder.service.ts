@@ -97,18 +97,8 @@ export class StalePendingSystemExecutionFinderService {
             cancelRequestedAt: null,
           },
           {
-            result: {
-              path: ['metadata', 'dispatchClass'],
-              equals: SystemWorkflowDispatchClass.INTERACTIVE,
-            },
-          },
-          {
-            OR: AGENT_CONVERSATION_WORKFLOW_IDS.map((canonicalId) => ({
-              result: {
-                path: ['metadata', 'canonicalId'],
-                equals: canonicalId,
-              },
-            })),
+            canonicalId: { in: [...AGENT_CONVERSATION_WORKFLOW_IDS] },
+            dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
           },
         ],
       },
@@ -143,7 +133,7 @@ export class StalePendingSystemExecutionFinderService {
     return {
       createdAt,
       isDeleted: false,
-      result: { path: ['metadata', 'isSystemAction'], equals: true },
+      isSystemAction: true,
       status: PrismaWorkflowExecutionStatus.PENDING,
     };
   }

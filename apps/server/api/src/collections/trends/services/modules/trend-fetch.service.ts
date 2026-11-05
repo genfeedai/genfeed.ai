@@ -32,6 +32,9 @@ import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 
+const NON_ALPHANUMERIC_CHARS_PATTERN = /[^a-z0-9\s]/g;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 export interface TrendProviderExecutionOptions {
   allowApifyFallback?: boolean;
 }
@@ -390,8 +393,8 @@ export class TrendFetchService {
           : [];
       const words = (brand.description ?? '')
         .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, ' ')
-        .split(/\s+/)
+        .replace(NON_ALPHANUMERIC_CHARS_PATTERN, ' ')
+        .split(WHITESPACE_RUN_PATTERN)
         .filter(
           (word) =>
             (word.length > 2 || word === 'ai') &&

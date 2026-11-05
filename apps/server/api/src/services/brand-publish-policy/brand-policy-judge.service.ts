@@ -16,6 +16,10 @@ import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 
+const CURLY_SINGLE_QUOTES_PATTERN = /[\u2018\u2019]/g;
+const CURLY_DOUBLE_QUOTES_PATTERN = /[\u201C\u201D]/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 const CACHE_LIMIT = 500;
 const CACHE_TTL_MS = 3_600_000;
 
@@ -44,9 +48,9 @@ function cacheKey(request: BrandPolicyJudgeRequest): string {
 function normalizeRule(value: string): string {
   return value
     .normalize('NFKC')
-    .replace(/[\u2018\u2019]/g, "'")
-    .replace(/[\u201C\u201D]/g, '"')
-    .replace(/\s+/g, ' ')
+    .replace(CURLY_SINGLE_QUOTES_PATTERN, "'")
+    .replace(CURLY_DOUBLE_QUOTES_PATTERN, '"')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim()
     .toLocaleLowerCase('en-US');
 }

@@ -80,6 +80,7 @@ env:
   TF_VAR_owner_email: ${{ vars.HOSTED_OWNER_EMAIL }}
   TF_VAR_organization_label: ${{ vars.HOSTED_ORGANIZATION_LABEL }}
   TF_VAR_cdn_bucket: ${{ vars.CDN_BUCKET }}
+  TF_VAR_permissions_boundary_arn: ${{ vars.WORKLOAD_PERMISSIONS_BOUNDARY_ARN }}
 
 jobs:
   deploy:

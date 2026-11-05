@@ -15,6 +15,8 @@ import {
   measurePlatformText,
 } from '@genfeedai/helpers/content/platform-text-length.helper';
 
+const CALL_TO_ACTION_PATTERN = /comment|click|learn more|reply|share|visit/i;
+
 export const DEFAULT_EVENT_OPPORTUNITY_COST = 12;
 export const DEFAULT_IMAGE_OPPORTUNITY_COST = 24;
 export const DEFAULT_TEXT_OPPORTUNITY_COST = 10;
@@ -282,8 +284,7 @@ export function scoreTextPublishGate(
   segments?: readonly string[],
 ): PublishGateResult {
   const hasCTA =
-    analysis.metadata?.hasCallToAction ??
-    /comment|click|learn more|reply|share|visit/i.test(content);
+    analysis.metadata?.hasCallToAction ?? CALL_TO_ACTION_PATTERN.test(content);
   const overallScore = Number(analysis.overallScore ?? 0);
   const ctaRequired = strategy.goalProfile === 'reach_traffic';
   const minPostScore = strategy.publishPolicy?.minPostScore ?? 70;

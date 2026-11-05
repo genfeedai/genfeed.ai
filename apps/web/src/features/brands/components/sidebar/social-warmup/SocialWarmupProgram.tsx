@@ -37,6 +37,8 @@ import {
   resolveWarmupCheck,
 } from './social-warmup.helpers';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 const STATE_MESSAGE_KEYS = {
   healthy: 'state.healthy',
   not_started: 'state.not_started',
@@ -226,7 +228,10 @@ export default function SocialWarmupProgram({
     connection.handle ?? health?.handle,
     platform,
   );
-  const handle = (connection.handle ?? health?.handle ?? '').replace(/^@/, '');
+  const handle = (connection.handle ?? health?.handle ?? '').replace(
+    LEADING_AT_SIGN_PATTERN,
+    '',
+  );
   const platformLabel = formatPlatformLabel(platform) ?? platform;
   const lastRefreshLabel = formatRefreshTime(model?.lastRefreshAt ?? null);
 

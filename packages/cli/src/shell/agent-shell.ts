@@ -34,6 +34,8 @@ import {
 import { setReplMode } from '@/utils/errors';
 import { extractString } from '@/utils/extract';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 interface AgentShellOptions {
   initialThreadId?: string;
   model?: string;
@@ -315,7 +317,7 @@ async function submitPendingInput(state: AgentShellState, answer: string): Promi
 }
 
 async function handleSlashCommand(state: AgentShellState, input: string): Promise<boolean> {
-  const [command, ...args] = input.slice(1).trim().split(/\s+/);
+  const [command, ...args] = input.slice(1).trim().split(WHITESPACE_RUN_PATTERN);
 
   switch (command) {
     case 'exit':

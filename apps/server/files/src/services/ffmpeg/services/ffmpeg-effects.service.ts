@@ -12,6 +12,8 @@ import { VideoEaseCurve } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+const LUT_FILE_PATH_PATTERN = /^[A-Za-z0-9_./-]+\.cube$/;
+
 /**
  * Video effects operations.
  * Handles Ken Burns, split screens, overlays, and captions.
@@ -422,7 +424,7 @@ export class FFmpegEffectsService {
     await SecurityUtil.validateFileExists(lut);
     // The path is written into the filtergraph, where `:`, `'`, `\` and `,`
     // mean something, so only plain path characters are let through.
-    if (!/^[A-Za-z0-9_./-]+\.cube$/.test(lut)) {
+    if (!LUT_FILE_PATH_PATTERN.test(lut)) {
       throw new Error('LUT path must be a plain .cube file path');
     }
     const output = SecurityUtil.validateFilePath(outputPath);

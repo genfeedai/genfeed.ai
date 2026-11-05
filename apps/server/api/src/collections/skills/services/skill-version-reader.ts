@@ -18,6 +18,12 @@ import type {
   SkillVersionSourceEvidenceV1,
 } from '@genfeedai/contracts/interfaces/ai/skill-version-read.interface';
 
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+const NON_SPACE_CHAR_PATTERN = /[^ ]/;
+const SKILL_VERSION_HASH_PATTERN = /^sha256:skill-v1:[a-f0-9]{64}$/;
+const SKILL_INSTRUCTION_HASH_PATTERN =
+  /^sha256:skill-instruction-v1:[a-f0-9]{64}$/;
+
 interface SkillVersionReaderContext {
   decide(
     actor: SkillLibraryActor,
@@ -77,7 +83,7 @@ export function isVerifiedOrdinaryUploadVersionReadV1(
       provenance.format !== 'genfeed.skill.ordinary-upload.v1' ||
       provenance.importedByUserId !== parent.ownerUserId ||
       typeof provenance.packageChecksum !== 'string' ||
-      !/^[a-f0-9]{64}$/.test(provenance.packageChecksum) ||
+      !SHA256_HEX_PATTERN.test(provenance.packageChecksum) ||
       config.checksum !== provenance.packageChecksum
     )
       return null;
@@ -98,7 +104,7 @@ export function isVerifiedOrdinaryUploadVersionReadV1(
       sourceField !== row.instructionSourceField ||
       payload.instructionUsable !== row.instructionUsable ||
       // PostgreSQL btrim removes only ASCII spaces; preserve every captured character.
-      row.instructionUsable !== /[^ ]/.test(row.instructionText)
+      row.instructionUsable !== NON_SPACE_CHAR_PATTERN.test(row.instructionText)
     )
       return null;
     return provenance.packageChecksum;
@@ -119,9 +125,9 @@ function isWellFormedSkillVersionReadV1(
     row.id === `sv1_${skillId}_${row.versionNumber}` &&
     typeof row.instructionText === 'string' &&
     typeof row.contentHash === 'string' &&
-    /^sha256:skill-v1:[a-f0-9]{64}$/.test(row.contentHash) &&
+    SKILL_VERSION_HASH_PATTERN.test(row.contentHash) &&
     typeof row.instructionHash === 'string' &&
-    /^sha256:skill-instruction-v1:[a-f0-9]{64}$/.test(row.instructionHash) &&
+    SKILL_INSTRUCTION_HASH_PATTERN.test(row.instructionHash) &&
     row.createdAt instanceof Date &&
     Number.isFinite(row.createdAt.getTime())
   );

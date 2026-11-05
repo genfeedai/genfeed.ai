@@ -30,6 +30,8 @@ import {
   Injectable,
 } from '@nestjs/common';
 
+const SHA256_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
+
 @Traced()
 @Injectable()
 export class BrandOsRevisionsService {
@@ -334,7 +336,7 @@ export class BrandOsRevisionsService {
         reviewedGenerationRulesHash !== undefined &&
         (typeof reviewedGenerationRulesHash !== 'string' ||
           reviewedGenerationRulesHash.length !== 71 ||
-          !/^sha256:[0-9a-f]{64}$/.test(reviewedGenerationRulesHash))
+          !SHA256_DIGEST_PATTERN.test(reviewedGenerationRulesHash))
       )
         throw new BadRequestException('Invalid generation rules review hash');
       let generationRulesReviewHash: string | null = null;

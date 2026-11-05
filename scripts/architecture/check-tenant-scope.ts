@@ -50,6 +50,9 @@ import {
 } from '../../packages/libs/prisma/discover-tenant-models';
 import { parseSourceFile } from './parse-source-file';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/gu;
+const LINE_BREAK_PATTERN = /\r?\n/u;
+
 export { discoverTenantModels, type TenantModel };
 
 const DEFAULT_SCHEMA_PATH = 'packages/prisma/prisma/schema.prisma';
@@ -948,7 +951,7 @@ function canonicalCallText(
 ): string {
   return printer
     .printNode(ts.EmitHint.Unspecified, call, sourceFile)
-    .replace(/\s+/gu, ' ')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
 }
 
@@ -983,7 +986,7 @@ function findingsForCandidate(
   occurrence: number,
 ): TenantScopeFinding[] {
   const callLine = lineForNode(sourceFile, candidate.call);
-  const sourceLines = sourceFile.text.split(/\r?\n/u);
+  const sourceLines = sourceFile.text.split(LINE_BREAK_PATTERN);
 
   if (validSuppressionReason(sourceLines, callLine)) {
     return [];
@@ -1113,7 +1116,7 @@ function scanSourceFile(
   return {
     findings,
     suppressionViolations: collectSuppressionViolations(
-      sourceText.split(/\r?\n/u),
+      sourceText.split(LINE_BREAK_PATTERN),
       file,
     ),
   };

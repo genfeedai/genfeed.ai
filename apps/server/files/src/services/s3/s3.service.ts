@@ -24,6 +24,8 @@ import { assertStoredObjectKey } from '@libs/security/stored-object-key';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 
+const HTTP_STATUS_CODE_PATTERN = /:\s(\d+)/;
+
 /** Minimal shape covering AWS SDK S3 errors */
 interface S3Error extends Error {
   code?: string;
@@ -303,7 +305,9 @@ export class S3Service {
       }
       this.logger.error('Failed to download file from URL', {
         error: getErrorMessage(error) || 'Unknown error',
-        statusCode: getErrorMessage(error)?.match(/:\s(\d+)/)?.[1],
+        statusCode: getErrorMessage(error)?.match(
+          HTTP_STATUS_CODE_PATTERN,
+        )?.[1],
         url,
       });
       throw error;

@@ -6,6 +6,12 @@ import type {
 import type { Prisma } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
 
+const SQL_SINGLE_QUOTED_STRINGS_PATTERN = /'([^']|'')*'/g;
+const SQL_DOUBLE_QUOTED_IDENTIFIERS_PATTERN = /"([^"]|"")*"/g;
+const SQL_POSITIONAL_PARAMS_PATTERN = /\$\d+/g;
+const SQL_NUMBERS_PATTERN = /\b\d+\b/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 interface RequestPerformanceStore {
   queryCount: number;
   queryDuration: number;
@@ -127,11 +133,11 @@ function readPositiveNumber(
 
 function fingerprintSql(sql: string): string {
   return sql
-    .replace(/'([^']|'')*'/g, '?')
-    .replace(/"([^"]|"")*"/g, '?')
-    .replace(/\$\d+/g, '?')
-    .replace(/\b\d+\b/g, '?')
-    .replace(/\s+/g, ' ')
+    .replace(SQL_SINGLE_QUOTED_STRINGS_PATTERN, '?')
+    .replace(SQL_DOUBLE_QUOTED_IDENTIFIERS_PATTERN, '?')
+    .replace(SQL_POSITIONAL_PARAMS_PATTERN, '?')
+    .replace(SQL_NUMBERS_PATTERN, '?')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim()
     .slice(0, 500);
 }

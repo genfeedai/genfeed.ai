@@ -18,6 +18,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 
+const LINE_BREAK_PATTERN = /\r?\n/;
+
 export const BANNED_ASSERTION_KINDS = ['as_any', 'ts_ignore'] as const;
 export const RATCHETED_ASSERTION_KINDS = ['as_never'] as const;
 
@@ -225,7 +227,7 @@ export function scanTypeAssertions(
       continue;
     }
 
-    const lines = text.split(/\r?\n/);
+    const lines = text.split(LINE_BREAK_PATTERN);
     let inBlockComment = false;
     let templateStack: TemplateLiteralFrame[] = [];
     for (let index = 0; index < lines.length; index += 1) {

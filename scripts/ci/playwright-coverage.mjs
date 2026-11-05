@@ -14,6 +14,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const COVERAGE_FILE_PATTERN = /^coverage-.*\.json$/;
+const COVERED_SOURCE_PATTERN = /(?:apps\/web\/|packages\/)(?!.*node_modules)/;
+const LCOV_SOURCE_FILE_PATTERN = /^SF:.+/m;
+const LCOV_LINE_DATA_PATTERN = /^DA:\d+,\d+/m;
+const LCOV_END_OF_RECORD_PATTERN = /^end_of_record$/m;
+
 export const METRICS = ['branches', 'functions', 'lines', 'statements'];
 const POLICY_PATH = fileURLToPath(
   new URL('./playwright-coverage.baseline.json', import.meta.url),
@@ -220,7 +226,7 @@ export async function mergeCoverage(
     const directory = path.join(inputRoot, name, 'raw');
     const files = readdirSync(directory);
     const coverageFiles = files.filter((file) =>
-      /^coverage-.*\.json$/.test(file),
+      COVERAGE_FILE_PATTERN.test(file),
     );
     if (!coverageFiles.length)
       throw new Error(`Missing raw coverage in ${name}`);
@@ -241,8 +247,7 @@ export async function mergeCoverage(
     inputDir,
     outputDir,
     sourceFilter: (sourcePath) =>
-      /(?:apps\/web\/|packages\/)(?!.*node_modules)/.test(sourcePath) &&
-      !sourcePath.includes('.next/'),
+      COVERED_SOURCE_PATTERN.test(sourcePath) && !sourcePath.includes('.next/'),
     reports: [['json-summary'], ['lcovonly', { file: 'lcov.info' }]],
   });
   const generated = await reporter.generate();
@@ -251,9 +256,9 @@ export async function mergeCoverage(
   const metrics = validateSummary(summary.total);
   const lcov = readFileSync(path.join(outputDir, 'lcov.info'), 'utf8');
   if (
-    !/^SF:.+/m.test(lcov) ||
-    !/^DA:\d+,\d+/m.test(lcov) ||
-    !/^end_of_record$/m.test(lcov)
+    !LCOV_SOURCE_FILE_PATTERN.test(lcov) ||
+    !LCOV_LINE_DATA_PATTERN.test(lcov) ||
+    !LCOV_END_OF_RECORD_PATTERN.test(lcov)
   )
     throw new Error('Merged LCOV contains no executable source records');
   const report = {
@@ -298,9 +303,9 @@ export function readMergedEvidence(directory) {
   const summary = readJson(path.join(directory, 'coverage-summary.json'));
   const lcov = readFileSync(path.join(directory, 'lcov.info'), 'utf8');
   if (
-    !/^SF:.+/m.test(lcov) ||
-    !/^DA:\d+,\d+/m.test(lcov) ||
-    !/^end_of_record$/m.test(lcov)
+    !LCOV_SOURCE_FILE_PATTERN.test(lcov) ||
+    !LCOV_LINE_DATA_PATTERN.test(lcov) ||
+    !LCOV_END_OF_RECORD_PATTERN.test(lcov)
   )
     throw new Error('Missing executable LCOV artifact');
   if (

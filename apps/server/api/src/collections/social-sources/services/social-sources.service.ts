@@ -41,6 +41,9 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 
+const UNAVAILABLE_POST_ERROR_PATTERN = /not found|deleted|private|incomplete/i;
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 /** How far back a scheduled own-account resync reaches. */
 export const SOCIAL_OWN_ACCOUNT_RESYNC_WINDOW_DAYS = 90;
 /** Upper bound on posts pulled per scheduled own-account resync. */
@@ -425,7 +428,7 @@ export class SocialSourcesService {
       ) {
         throw error;
       }
-      if (/not found|deleted|private|incomplete/i.test(message)) {
+      if (UNAVAILABLE_POST_ERROR_PATTERN.test(message)) {
         throw new NotFoundException({
           message:
             'Post could not be resolved — it may be deleted, private, or the link is wrong',
@@ -502,7 +505,7 @@ export class SocialSourcesService {
       reference.authorHandle ||
       'unknown'
     )
-      .replace(/^@/, '')
+      .replace(LEADING_AT_SIGN_PATTERN, '')
       .toLowerCase();
 
     const existingContainer = await this.prisma.socialSource.findFirst({

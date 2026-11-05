@@ -1,3 +1,5 @@
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 export const CHARACTER_SHEET_PRESET_VERSION = '1.0.0';
 
 export interface CharacterSheetPresetInput {
@@ -10,7 +12,9 @@ export interface CharacterSheetPresetInput {
 export function composeCharacterSheetPrompt(
   input: CharacterSheetPresetInput,
 ): string {
-  const description = input.description.replace(/\s+/g, ' ').trim();
+  const description = input.description
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
+    .trim();
   const includeProfile = Boolean(input.isNonHumanoid || input.includeProfile);
   const style = input.styleDirectives?.trim();
 

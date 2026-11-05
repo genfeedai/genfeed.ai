@@ -40,6 +40,8 @@ import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 interface HiggsFieldRequestOptions {
   expectedCredentialFingerprint?: string;
   idempotencyKey?: string;
@@ -85,7 +87,7 @@ export class HiggsFieldService {
   ) {
     this.endpoint = (
       this.configService.get('HIGGSFIELD_API_BASE_URL') ?? HIGGSFIELD_API_BASE
-    ).replace(/\/+$/, '');
+    ).replace(TRAILING_SLASHES_PATTERN, '');
     this.apiKey = this.configService.get('HIGGSFIELD_API_KEY') ?? '';
     this.apiSecret = this.configService.get('HIGGSFIELD_API_SECRET') ?? '';
   }

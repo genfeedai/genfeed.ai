@@ -7,6 +7,8 @@ import { assertSafeObjectKey } from '@libs/security';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 /** Client references must resolve to a live video in this workspace. */
 @Traced()
 @Injectable()
@@ -70,7 +72,9 @@ export class ClipperProjectClientSourceService {
   private readCdnKey(value: string): string | undefined {
     try {
       const url = new URL(value);
-      const cdn = new URL(`${this.config.cdnUrl.replace(/\/+$/, '')}/`);
+      const cdn = new URL(
+        `${this.config.cdnUrl.replace(TRAILING_SLASHES_PATTERN, '')}/`,
+      );
       if (url.origin !== cdn.origin || !url.pathname.startsWith(cdn.pathname))
         return undefined;
       return decodeURIComponent(url.pathname.slice(cdn.pathname.length));

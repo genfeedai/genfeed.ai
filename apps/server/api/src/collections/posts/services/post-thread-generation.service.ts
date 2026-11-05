@@ -33,6 +33,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
+const HTML_TAGS_PATTERN = /<[^>]+>/g;
+
 type ThreadGenerationMetadata = Pick<
   AuthenticatedUser,
   'brandId' | 'organizationId' | 'userId'
@@ -161,7 +163,7 @@ export class PostThreadGenerationService {
   ): Promise<Array<string | null>> {
     const additionalCount = dto.count - 1;
     const originalContent =
-      originalPost.description?.replace(/<[^>]+>/g, ' ').trim() || '';
+      originalPost.description?.replace(HTML_TAGS_PATTERN, ' ').trim() || '';
     const [template, brief] = await Promise.all([
       this.templatesService.getRenderedPrompt(
         PromptTemplateKey.THREAD_EXPAND,

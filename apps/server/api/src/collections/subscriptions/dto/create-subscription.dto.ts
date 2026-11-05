@@ -12,10 +12,12 @@ import {
   Min,
 } from 'class-validator';
 
+const STRIPE_PRICE_ID_PATTERN = /^price_[a-zA-Z0-9]+$/;
+
 export class CreateSubscriptionPreviewDto {
   @IsString()
   @IsNotEmpty()
-  @Matches(/^price_[a-zA-Z0-9]+$/, {
+  @Matches(STRIPE_PRICE_ID_PATTERN, {
     message: 'Invalid Stripe price ID format',
   })
   @ApiProperty({
@@ -28,7 +30,7 @@ export class CreateSubscriptionPreviewDto {
 export class CreateCheckoutSessionDto {
   @IsString()
   @IsNotEmpty()
-  @Matches(/^price_[a-zA-Z0-9]+$/, {
+  @Matches(STRIPE_PRICE_ID_PATTERN, {
     message: 'Invalid Stripe price ID format',
   })
   @ApiProperty({
@@ -97,7 +99,7 @@ export class CreateSubscriptionDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^price_[a-zA-Z0-9]+$/, {
+  @Matches(STRIPE_PRICE_ID_PATTERN, {
     message: 'Invalid Stripe price ID format',
   })
   @ApiProperty({

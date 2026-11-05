@@ -8,6 +8,8 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
+const QUERY_OR_HASH_PATTERN = /[?#]/;
+
 export interface BuildAssistantUiActionsParams {
   reviewRequired: boolean;
   toolCalls: AgentCompletionToolCall[];
@@ -215,7 +217,7 @@ export class AgentCompletionCardBuilderService {
     }
 
     const trimmed = href.trim();
-    const queryIndex = trimmed.search(/[?#]/);
+    const queryIndex = trimmed.search(QUERY_OR_HASH_PATTERN);
     const path = queryIndex === -1 ? trimmed : trimmed.slice(0, queryIndex);
     const suffix = queryIndex === -1 ? '' : trimmed.slice(queryIndex);
 

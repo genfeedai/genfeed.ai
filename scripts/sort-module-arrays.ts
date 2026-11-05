@@ -9,6 +9,11 @@
 import { Logger } from '@nestjs/common';
 import { Glob } from 'bun';
 
+const LINE_COMMENT_PATTERN = /\/\/.*$/;
+const TRAILING_COMMA_PATTERN = /,\s*$/;
+const FORWARD_REF_PATTERN = /^forwardRef\(\s*\(\)\s*=>\s*(\w+)\s*\)$/;
+const IDENTIFIER_PATTERN = /^\w+$/;
+
 const logger = new Logger('SortModuleArrays');
 
 const DRY_RUN = process.argv.includes('--dry-run');
@@ -33,7 +38,7 @@ function bracketDepth(text: string): number {
 
 /** Check if a line ends with a comma (ignoring inline comments) */
 function lineEndsWithComma(line: string): boolean {
-  const stripped = line.replace(/\/\/.*$/, '').trimEnd();
+  const stripped = line.replace(LINE_COMMENT_PATTERN, '').trimEnd();
   return stripped.endsWith(',');
 }
 
@@ -43,21 +48,21 @@ function extractCode(entryText: string): string {
     .split('\n')
     .filter((l) => !l.trim().startsWith('//') && l.trim() !== '')
     .join('\n')
-    .replace(/,\s*$/, '')
-    .replace(/\/\/.*$/, '')
+    .replace(TRAILING_COMMA_PATTERN, '')
+    .replace(LINE_COMMENT_PATTERN, '')
     .trim();
 }
 
 /** Extract alphabetical sort key from a code expression */
 function getSortKey(code: string): string | null {
   // forwardRef(() => X) → sort by X
-  const fwdMatch = code.match(/^forwardRef\(\s*\(\)\s*=>\s*(\w+)\s*\)$/);
+  const fwdMatch = code.match(FORWARD_REF_PATTERN);
   if (fwdMatch) {
     return fwdMatch[1];
   }
 
   // Simple identifier (e.g. SomeService, SomeModule)
-  if (/^\w+$/.test(code)) {
+  if (IDENTIFIER_PATTERN.test(code)) {
     return code;
   }
 

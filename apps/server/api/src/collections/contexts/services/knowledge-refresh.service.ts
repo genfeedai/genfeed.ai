@@ -46,6 +46,13 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
+const GONE_ERROR_PATTERN = /404|410|gone/i;
+const DENIED_ERROR_PATTERN = /401|403|denied/i;
+const RATE_LIMIT_ERROR_PATTERN = /429|rate/i;
+const TIMEOUT_ERROR_PATTERN = /timeout|abort/i;
+const FEED_ERROR_PATTERN = /feed/i;
+const SIZE_ERROR_PATTERN = /size|byte/i;
+
 const LEASE_MS = 5 * 60 * 1000;
 const BACKOFF_MINUTES = [15, 30, 60, 120];
 const SAFE_ERRORS = {
@@ -805,12 +812,12 @@ export class KnowledgeRefreshService {
     if (error instanceof KnowledgeSourceUnavailableException)
       return error.message;
     const message = error instanceof Error ? error.message : String(error);
-    if (/404|410|gone/i.test(message)) return SAFE_ERRORS.missing;
-    if (/401|403|denied/i.test(message)) return SAFE_ERRORS.denied;
-    if (/429|rate/i.test(message)) return SAFE_ERRORS.rateLimited;
-    if (/timeout|abort/i.test(message)) return SAFE_ERRORS.timeout;
-    if (/feed/i.test(message)) return SAFE_ERRORS.invalidFeed;
-    if (/size|byte/i.test(message)) return SAFE_ERRORS.tooLarge;
+    if (GONE_ERROR_PATTERN.test(message)) return SAFE_ERRORS.missing;
+    if (DENIED_ERROR_PATTERN.test(message)) return SAFE_ERRORS.denied;
+    if (RATE_LIMIT_ERROR_PATTERN.test(message)) return SAFE_ERRORS.rateLimited;
+    if (TIMEOUT_ERROR_PATTERN.test(message)) return SAFE_ERRORS.timeout;
+    if (FEED_ERROR_PATTERN.test(message)) return SAFE_ERRORS.invalidFeed;
+    if (SIZE_ERROR_PATTERN.test(message)) return SAFE_ERRORS.tooLarge;
     if (message.includes('Failed to fetch')) return SAFE_ERRORS.network;
     return SAFE_ERRORS.ingestion;
   }

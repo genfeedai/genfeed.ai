@@ -277,16 +277,15 @@ export async function assertNoBrandOrgOrphans(
 
   // Columns are camelCase (`brandId`, `organizationId`), so the identifiers are
   // quoted below and may carry capitals.
-  const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
   const unhandled: string[] = [];
   for (const candidate of candidates) {
     if (knownTables.has(candidate.table_name)) {
       continue;
     }
     if (
-      !IDENTIFIER.test(candidate.table_name) ||
-      !IDENTIFIER.test(candidate.brand_col) ||
-      !IDENTIFIER.test(candidate.org_col)
+      !SQL_IDENTIFIER.test(candidate.table_name) ||
+      !SQL_IDENTIFIER.test(candidate.brand_col) ||
+      !SQL_IDENTIFIER.test(candidate.org_col)
     ) {
       continue;
     }

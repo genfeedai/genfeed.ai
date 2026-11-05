@@ -41,13 +41,15 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
+const HTML_TAGS_PATTERN = /<[^>]+>/g;
+
 /** Flat charge for one proposal, the price of every agent text tool. */
 const DRAFT_THREAD_CREDITS = GENERATE_CONTENT_TEXT_CREDITS;
 
 type SavedThreadPost = { description: string; id: string; order: number };
 
 function stripMarkup(description: string | undefined): string {
-  return description?.replace(/<[^>]+>/g, ' ').trim() ?? '';
+  return description?.replace(HTML_TAGS_PATTERN, ' ').trim() ?? '';
 }
 
 function failure(

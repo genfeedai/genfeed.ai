@@ -30,6 +30,17 @@ import { globSync } from 'glob';
 import ts from 'typescript';
 import { parseSourceFile } from '../../architecture/parse-source-file';
 
+const TS_EXTENSION_PATTERN = /\.tsx?$/;
+const EDGE_IMPORTANT_MARKERS_PATTERN = /^!|!$/g;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const SIZE_CLASS_PATTERN = /^size-(\d+(?:\.\d+)?)$/;
+const ROUNDED_CLASS_PATTERN = /^rounded(-(sm|md|lg|xl))?$/;
+const AVATAR_HINT_PATTERN = /logo|avatar|profile/i;
+const BG_CLASS_PATTERN = /^bg-/;
+const CENTERING_CLASS_PATTERN =
+  /^(items|justify|content)-center$|^text-center$/;
+const GET_INITIALS_CALL_PATTERN = /getInitials\(/;
+
 export type AvatarRule =
   | 'avatar-restyle'
   | 'hand-built-avatar'
@@ -82,7 +93,7 @@ function isTestLike(rel: string): boolean {
 function isScanned(rel: string): boolean {
   const withSlash = `/${rel}`;
   return (
-    /\.tsx?$/.test(rel) &&
+    TS_EXTENSION_PATTERN.test(rel) &&
     !rel.endsWith('.d.ts') &&
     !isTestLike(rel) &&
     !EXCLUDED_SEGMENTS.some((segment) => withSlash.includes(segment)) &&
@@ -91,7 +102,9 @@ function isScanned(rel: string): boolean {
 }
 
 function baseOf(token: string): string {
-  return token.slice(token.lastIndexOf(':') + 1).replace(/^!|!$/g, '');
+  return token
+    .slice(token.lastIndexOf(':') + 1)
+    .replace(EDGE_IMPORTANT_MARKERS_PATTERN, '');
 }
 
 /** Every string a className expression can produce, split into classes. */
@@ -102,11 +115,15 @@ function classTokens(initializer: ts.JsxAttributeValue | undefined): string[] {
   const tokens: string[] = [];
   const visit = (node: ts.Node): void => {
     if (ts.isStringLiteralLike(node)) {
-      tokens.push(...node.text.split(/\s+/).filter(Boolean));
+      tokens.push(...node.text.split(WHITESPACE_RUN_PATTERN).filter(Boolean));
     } else if (ts.isTemplateExpression(node)) {
-      tokens.push(...node.head.text.split(/\s+/).filter(Boolean));
+      tokens.push(
+        ...node.head.text.split(WHITESPACE_RUN_PATTERN).filter(Boolean),
+      );
       for (const span of node.templateSpans) {
-        tokens.push(...span.literal.text.split(/\s+/).filter(Boolean));
+        tokens.push(
+          ...span.literal.text.split(WHITESPACE_RUN_PATTERN).filter(Boolean),
+        );
       }
     }
     ts.forEachChild(node, visit);
@@ -138,7 +155,7 @@ function srcOf(element: ts.JsxOpeningLikeElement): string {
 
 function frameUnits(tokens: string[]): number | null {
   for (const token of tokens) {
-    const match = /^size-(\d+(?:\.\d+)?)$/.exec(token);
+    const match = SIZE_CLASS_PATTERN.exec(token);
     if (match) {
       const units = Number(match[1]);
       if (units >= MIN_FRAME_UNITS && units <= MAX_FRAME_UNITS) {
@@ -221,17 +238,14 @@ export function detectInFile(rel: string, content: string): AvatarViolation[] {
         // or a logo; a square thumbnail of generated media is not.
         const isRounded = isPicture
           ? tokens.includes('rounded-full') ||
-            (hasToken(tokens, /^rounded(-(sm|md|lg|xl))?$/) &&
-              /logo|avatar|profile/i.test(srcOf(node)))
+            (hasToken(tokens, ROUNDED_CLASS_PATTERN) &&
+              AVATAR_HINT_PATTERN.test(srcOf(node)))
           : tokens.includes('rounded-full');
         const isFramed = isPicture
           ? tokens.includes('object-cover')
-          : hasToken(tokens, /^bg-/) &&
+          : hasToken(tokens, BG_CLASS_PATTERN) &&
             (tokens.includes('overflow-hidden') ||
-              hasToken(
-                tokens,
-                /^(items|justify|content)-center$|^text-center$/,
-              )) &&
+              hasToken(tokens, CENTERING_CLASS_PATTERN)) &&
             ts.isJsxOpeningElement(node) &&
             ts.isJsxElement(node.parent) &&
             containsPictureOrLetter(node.parent);
@@ -259,7 +273,7 @@ export function detectInFile(rel: string, content: string): AvatarViolation[] {
       ts.isVariableDeclaration(node) &&
       ts.isIdentifier(node.name) &&
       node.initializer &&
-      !/getInitials\(/.test(node.initializer.getText()) &&
+      !GET_INITIALS_CALL_PATTERN.test(node.initializer.getText()) &&
       (INITIALS_NAME.test(node.name.text) ||
         (INITIAL_NAME.test(node.name.text) &&
           LETTER_DERIVATION.test(node.initializer.getText())))

@@ -3,6 +3,8 @@ import {
   internalMediaHosts,
 } from '@api/helpers/utils/reference/internal-media-url.util';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+
 /**
  * Last-mile authorization of the media URLs inside a provider request.
  *
@@ -37,7 +39,7 @@ function internalIngredientId(
   hosts: ReadonlySet<string>,
 ): string | undefined {
   // Only absolute URLs reach a provider; free text such as a prompt is never one.
-  if (!/^https?:\/\//i.test(value.trim())) return undefined;
+  if (!HTTP_PROTOCOL_PREFIX_PATTERN.test(value.trim())) return undefined;
   const classification = classifyInternalMediaUrl(value, hosts);
   if (!classification.isInternal) return undefined;
   // A thumbnail has no stored key, and an internal URL naming no asset is

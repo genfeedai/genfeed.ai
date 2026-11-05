@@ -1,3 +1,5 @@
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 export type EtaConfidence = 'low' | 'medium' | 'high';
 
 export interface GenerationEtaSnapshot {
@@ -190,7 +192,8 @@ function estimateAvatarDurationMs(
   const provider =
     input.provider?.toLowerCase() ?? input.model?.toLowerCase() ?? '';
   const promptWordCount =
-    input.promptText?.trim().split(/\s+/).filter(Boolean).length ?? 0;
+    input.promptText?.trim().split(WHITESPACE_RUN_PATTERN).filter(Boolean)
+      .length ?? 0;
   const inferredSpeechSeconds = clamp(
     Math.round(promptWordCount / 2.5),
     20,

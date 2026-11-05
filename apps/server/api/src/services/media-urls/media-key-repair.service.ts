@@ -8,6 +8,8 @@ import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+
 const REPAIRABLE_CATEGORIES = [
   IngredientCategory.IMAGE,
   IngredientCategory.IMAGE_EDIT,
@@ -83,7 +85,7 @@ export class MediaKeyRepairService {
 
   /** True when the stored key is absent or a URL instead of an object key. */
   static isBrokenKey(s3Key: string | null): boolean {
-    return !s3Key || /^https?:\/\//i.test(s3Key);
+    return !s3Key || HTTP_PROTOCOL_PREFIX_PATTERN.test(s3Key);
   }
 
   /** Verifies the canonical object exists; persists only when `isApply`. */

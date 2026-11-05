@@ -11,6 +11,8 @@ export type {
   ManagedCreditsProvisioningResult,
 } from '@genfeedai/contracts/interfaces';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 export class ManagedCreditsApiError extends Error {
   constructor(
     message: string,
@@ -45,7 +47,7 @@ interface JsonApiDocument<TAttributes> {
 }
 
 function joinEndpoint(baseUrl: string, path: string): string {
-  return `${baseUrl.replace(/\/$/, '')}${path}`;
+  return `${baseUrl.replace(TRAILING_SLASH_PATTERN, '')}${path}`;
 }
 
 function readErrorMessage(payload: unknown, fallback: string): string {

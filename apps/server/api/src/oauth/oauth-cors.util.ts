@@ -8,6 +8,8 @@ import type {
 } from '@nestjs/common/interfaces/external/cors-options.interface';
 import type { Request } from 'express';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 /**
  * OAuth endpoints a public client calls before it holds any credential:
  * dynamic registration (RFC 7591), token exchange and refresh (RFC 6749), and
@@ -37,7 +39,10 @@ export function isPublicOAuthCorsPath(url: string | undefined): boolean {
   if (!url) {
     return false;
   }
-  const path = url.split('?')[0].replace(/\/+$/, '').toLowerCase();
+  const path = url
+    .split('?')[0]
+    .replace(TRAILING_SLASHES_PATTERN, '')
+    .toLowerCase();
   return PUBLIC_OAUTH_CORS_PATHS.has(path);
 }
 

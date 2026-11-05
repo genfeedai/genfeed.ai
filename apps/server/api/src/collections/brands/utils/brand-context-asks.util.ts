@@ -11,6 +11,8 @@ import { ONBOARDING_ANSWER_FIELD_IDS } from '@genfeedai/contracts/types';
 import { computeBrandCompleteness } from '@genfeedai/helpers';
 import { readRecordOrNull } from '@genfeedai/utils/data/extract.util';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 /** `request_input` ids of in-flow brand-context asks: `brand_context:<field>`. */
 export const BRAND_CONTEXT_ASK_REQUEST_PREFIX = 'brand_context:';
 
@@ -85,7 +87,7 @@ function readSuggestionList(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value
     .filter((item): item is string => typeof item === 'string')
-    .map((item) => item.replace(/\s+/g, ' ').trim())
+    .map((item) => item.replace(WHITESPACE_RUNS_PATTERN, ' ').trim())
     .filter((item) => item && item.length <= MAX_SUGGESTION_LENGTH)
     .slice(0, MAX_SUGGESTIONS);
 }

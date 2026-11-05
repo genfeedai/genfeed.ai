@@ -7,12 +7,14 @@ import {
   MinLength,
 } from 'class-validator';
 
+const ORGANIZATION_PREFIX_PATTERN = /^[A-Z]{3}$/;
+
 export class SetPrefixDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(3)
   @MaxLength(3)
-  @Matches(/^[A-Z]{3}$/, {
+  @Matches(ORGANIZATION_PREFIX_PATTERN, {
     message: 'Prefix must be exactly 3 uppercase letters (A-Z)',
   })
   @ApiProperty({

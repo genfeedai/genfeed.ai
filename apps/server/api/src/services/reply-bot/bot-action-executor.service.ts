@@ -21,6 +21,8 @@ import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { TwitterApi } from 'twitter-api-v2';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 @Traced()
 @Injectable()
 export class BotActionExecutorService {
@@ -553,7 +555,7 @@ export class BotActionExecutorService {
 
     try {
       const client = this.createTwitterClient(credential);
-      const cleanUsername = username.replace(/^@/, '');
+      const cleanUsername = username.replace(LEADING_AT_SIGN_PATTERN, '');
       const result = await client.v2.userByUsername(cleanUsername);
 
       if (!result.data?.id) {

@@ -5,6 +5,9 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const EDGE_HYPHENS_PATTERN = /^-+|-+$/g;
+
 export type AdminMemberRoleKey = 'admin' | 'member';
 
 export interface AdminAddMemberInput {
@@ -26,8 +29,8 @@ export interface AdminAddMemberResult {
 function createHandle(email: string): string {
   const seed = (email.split('@')[0] ?? 'member')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
+    .replace(EDGE_HYPHENS_PATTERN, '')
     .slice(0, 24);
   return `${seed || 'member'}-${randomUUID().slice(0, 8)}`;
 }

@@ -2,6 +2,14 @@ import { ValidationException } from '@api/exceptions/validation.exception';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ValidationConfigService } from '@libs/config/services/validation.config';
 
+const AMPERSANDS_PATTERN = /&/g;
+const LESS_THAN_SIGNS_PATTERN = /</g;
+const GREATER_THAN_SIGNS_PATTERN = />/g;
+const DOUBLE_QUOTES_PATTERN = /"/g;
+const SINGLE_QUOTES_PATTERN = /'/g;
+const SLASHES_PATTERN = /\//g;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 /**
  * Comprehensive input validation utility
  */
@@ -44,12 +52,12 @@ function sanitizeString(value: string, fieldName: string): string {
 
   // Basic HTML encoding for special characters
   sanitized = sanitized
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;');
+    .replace(AMPERSANDS_PATTERN, '&amp;')
+    .replace(LESS_THAN_SIGNS_PATTERN, '&lt;')
+    .replace(GREATER_THAN_SIGNS_PATTERN, '&gt;')
+    .replace(DOUBLE_QUOTES_PATTERN, '&quot;')
+    .replace(SINGLE_QUOTES_PATTERN, '&#x27;')
+    .replace(SLASHES_PATTERN, '&#x2F;');
 
   return sanitized;
 }
@@ -272,7 +280,7 @@ export const InputValidationUtil = {
   ): string {
     const email = InputValidationUtil.validateString(value, fieldName, {
       maxLength: 254,
-      pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      pattern: EMAIL_PATTERN,
       required,
     });
 

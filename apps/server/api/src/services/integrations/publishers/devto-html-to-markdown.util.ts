@@ -1,6 +1,10 @@
 import { sanitizeHtml } from '@genfeedai/helpers';
 import TurndownService from 'turndown';
 
+const NON_ALPHANUMERIC_CHARS_PATTERN = /[^a-z0-9]/g;
+const FENCED_CODE_BLOCKS_PATTERN = /(```[\s\S]*?```)/g;
+const HTML_TAGS_PATTERN = /<\/?[a-zA-Z][^>\n]*>/g;
+
 /** Dev.to accepts at most four tags on `POST /articles`. */
 const DEVTO_TAG_LIMIT = 4;
 const DEVTO_TAG_MAX_LENGTH = 30;
@@ -42,7 +46,7 @@ export function readDevtoTags(value: string | undefined): string[] {
     const tag = part
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9]/g, '')
+      .replace(NON_ALPHANUMERIC_CHARS_PATTERN, '')
       .slice(0, DEVTO_TAG_MAX_LENGTH);
     if (!tag || tags.includes(tag)) {
       continue;
@@ -57,9 +61,9 @@ export function readDevtoTags(value: string | undefined): string[] {
 
 function stripHtmlOutsideFences(markdown: string): string {
   return markdown
-    .split(/(```[\s\S]*?```)/g)
+    .split(FENCED_CODE_BLOCKS_PATTERN)
     .map((part, index) =>
-      index % 2 === 1 ? part : part.replace(/<\/?[a-zA-Z][^>\n]*>/g, ''),
+      index % 2 === 1 ? part : part.replace(HTML_TAGS_PATTERN, ''),
     )
     .join('');
 }

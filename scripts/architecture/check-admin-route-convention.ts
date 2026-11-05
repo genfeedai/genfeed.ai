@@ -18,6 +18,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 
+const ROUTE_GROUP_SEGMENT_PATTERN = /^\(.*\)$/u;
+
 const ADMIN_PAGES_DIR = 'apps/web/app/(protected)/admin';
 const ROUTES_FILE = 'packages/contracts/src/constants/routes.constant.ts';
 
@@ -38,7 +40,7 @@ function routeOf(page: string): string[] {
     .replaceAll('\\', '/')
     .split('/')
     .slice(0, -1)
-    .filter((segment) => !/^\(.*\)$/u.test(segment));
+    .filter((segment) => !ROUTE_GROUP_SEGMENT_PATTERN.test(segment));
 }
 
 function checkDetailPages(rootDir: string): AdminRouteConventionViolation[] {

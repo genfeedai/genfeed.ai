@@ -7,6 +7,8 @@ import {
 import type { AgentConversationRoute } from '@genfeedai/contracts/interfaces';
 import type { Task } from '@services/management/tasks.service';
 
+const LEADING_SLASH_PATTERN = /^\//;
+
 export type TaskLaunchMode =
   | 'auto'
   | 'automation'
@@ -57,7 +59,7 @@ const KNOWN_PROTECTED_PREFIXES = [
 const RESERVED_GLOBAL_ROOT_SEGMENTS = new Set(
   [
     ...Object.values(APP_ROUTE_PREFIXES).map(
-      (prefix) => prefix.replace(/^\//, '').split('/')[0] ?? '',
+      (prefix) => prefix.replace(LEADING_SLASH_PATTERN, '').split('/')[0] ?? '',
     ),
     APP_ROUTES.CONNECT.replace(/^\//, ''),
     APP_ROUTES.LOGIN.replace(/^\//, ''),

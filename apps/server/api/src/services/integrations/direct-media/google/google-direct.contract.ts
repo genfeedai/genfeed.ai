@@ -6,6 +6,9 @@ import {
   type PreparedDirectMediaRequest,
 } from '@api/services/integrations/direct-media/direct-media.types';
 
+const IMAGE_DATA_URL_PATTERN =
+  /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})$/;
+
 export const GOOGLE_DIRECT_ORIGIN = 'https://generativelanguage.googleapis.com';
 const VERSION = 'google-direct-2026-10-02';
 const NANO = 'gemini-3.1-flash-image';
@@ -77,10 +80,7 @@ function checkedReference(
     Object.keys(reference).some((key) => !['url', 'mimeType'].includes(key))
   )
     invalid();
-  const inline =
-    /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})$/.exec(
-      reference.url,
-    );
+  const inline = IMAGE_DATA_URL_PATTERN.exec(reference.url);
   if (inline) {
     if (
       inline[2].length % 4 !== 0 ||

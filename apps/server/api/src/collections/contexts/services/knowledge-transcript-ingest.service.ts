@@ -36,6 +36,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const INSUFFICIENT_ERROR_PATTERN = /insufficient/i;
+
 export interface KnowledgeTranscriptResolution {
   cues: TranscriptCue[];
   mediaUrl?: string;
@@ -125,7 +128,7 @@ function cuesToText(cues: TranscriptCue[]): string {
   return cues
     .map((cue) => cue.text)
     .join(' ')
-    .replace(/\s+/g, ' ')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
 }
 
@@ -413,7 +416,10 @@ export class KnowledgeTranscriptIngestService {
           })
           .catch(() => undefined);
       }
-      if (error instanceof Error && /insufficient/i.test(error.message)) {
+      if (
+        error instanceof Error &&
+        INSUFFICIENT_ERROR_PATTERN.test(error.message)
+      ) {
         throw this.unavailable(
           'Transcript generation needs one available credit',
           KnowledgeTranscriptState.UNAVAILABLE,

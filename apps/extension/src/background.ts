@@ -69,6 +69,8 @@ import {
 } from '~utils/knowledge-snapshot.util';
 import { logger } from '~utils/logger.util';
 
+const WWW_PREFIX_PATTERN = /^www\./;
+
 // Type for Chrome extension sendResponse callback
 type SendResponse = (response?: Record<string, unknown>) => void;
 
@@ -626,7 +628,7 @@ async function captureCurrentTab(mode: CaptureMode = 'page', url?: string) {
   if (targetUrl && mode === 'social') {
     const host = (value: string) =>
       new URL(value).hostname
-        .replace(/^www\./, '')
+        .replace(WWW_PREFIX_PATTERN, '')
         .replace('twitter.com', 'x.com');
     if (host(targetUrl) !== host(tab.url))
       throw new Error('Return to the social post before capturing it.');

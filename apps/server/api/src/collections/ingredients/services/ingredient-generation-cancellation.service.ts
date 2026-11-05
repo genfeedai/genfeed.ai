@@ -14,6 +14,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+const PREDICTION_INDEX_SUFFIX_PATTERN = /_\d+$/;
+
 export interface CancelProcessingIngredientInput {
   id: string;
   organizationId: string;
@@ -170,7 +172,7 @@ export class IngredientGenerationCancellationService {
    * The cancel API takes the raw prediction id.
    */
   private replicatePredictionId(externalId: string): string {
-    return externalId.replace(/_\d+$/, '');
+    return externalId.replace(PREDICTION_INDEX_SUFFIX_PATTERN, '');
   }
 
   private websocketPathFor(ingredient: IngredientDocument): string {

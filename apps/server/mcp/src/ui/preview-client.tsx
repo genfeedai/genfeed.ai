@@ -78,6 +78,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -409,7 +411,7 @@ function BrandList({
           const avatarUrl = trustedAvatarUrl(item.avatarUrl, bridge.origins);
           const handle = item.facts
             ?.find((fact) => fact.label === 'Handle')
-            ?.value.replace(/^@/, '');
+            ?.value.replace(LEADING_AT_SIGN_PATTERN, '');
           const action = item.actions?.find(
             (candidate) => candidate.kind === 'select_brand',
           );
@@ -674,7 +676,9 @@ function SummaryCard({
         labelAs="h2"
         isLabelWrapped
         description={
-          hasIdentity && handle ? `@${handle.replace(/^@/, '')}` : undefined
+          hasIdentity && handle
+            ? `@${handle.replace(LEADING_AT_SIGN_PATTERN, '')}`
+            : undefined
         }
         headerAction={
           statusNode || (link && item.linkLabel) ? (

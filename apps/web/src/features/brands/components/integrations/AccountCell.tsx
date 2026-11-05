@@ -5,6 +5,8 @@ import { SimpleTooltip } from '@ui/primitives/tooltip';
 import AccountAvatar from './AccountAvatar';
 import { getConnectionLabel } from './account-connection-status.util';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 /**
  * Account column content: avatar + platform badge, name, and `@handle`.
  * The handle only renders when the credential actually captured one — it
@@ -23,7 +25,7 @@ export default function AccountCell({ connection }: AccountCellProps) {
         {connection.handle ? (
           <SimpleTooltip label={connection.handle}>
             <span className="block truncate text-xs text-muted-foreground">
-              @{connection.handle.replace(/^@/, '')}
+              @{connection.handle.replace(LEADING_AT_SIGN_PATTERN, '')}
             </span>
           </SimpleTooltip>
         ) : null}

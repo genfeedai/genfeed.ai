@@ -19,6 +19,9 @@ import {
   Optional,
 } from '@nestjs/common';
 
+const SHA256_PREFIX_PATTERN = /^sha256:/;
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 const DOWNLOAD_URL_TTL_SECONDS = 900;
 const MAX_PACK_DOWNLOAD_BYTES = 1_000_000;
 
@@ -524,8 +527,10 @@ export class SkillDownloadService {
   }
 
   private requireChecksum(checksum: string | undefined): string {
-    const normalized = checksum?.replace(/^sha256:/, '').toLowerCase();
-    if (!normalized || !/^[a-f0-9]{64}$/.test(normalized)) {
+    const normalized = checksum
+      ?.replace(SHA256_PREFIX_PATTERN, '')
+      .toLowerCase();
+    if (!normalized || !SHA256_HEX_PATTERN.test(normalized)) {
       throw new ForbiddenException('Skills Pro pack checksum is unavailable');
     }
     return normalized;

@@ -1,9 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, Matches } from 'class-validator';
 
+const CHECKOUT_SESSION_ID_PATTERN = /^cs_[A-Za-z0-9_]+$/;
+
 export class ClaimTrialCardDto {
   @IsString()
-  @Matches(/^cs_[A-Za-z0-9_]+$/, {
+  @Matches(CHECKOUT_SESSION_ID_PATTERN, {
     message: 'sessionId must be a Stripe Checkout session id',
   })
   @ApiProperty({

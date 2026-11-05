@@ -174,3 +174,13 @@ variable "content_harness_packages" {
     error_message = "Use the deployment pipeline's verified bundle path or leave empty."
   }
 }
+
+variable "permissions_boundary_arn" {
+  description = "IAM policy ARN set as the permissions boundary on every role this stack creates. Empty leaves the roles without a boundary."
+  type        = string
+  default     = ""
+  validation {
+    condition     = var.permissions_boundary_arn == "" || can(regex("^arn:aws[a-z-]*:iam::[0-9]{12}:policy/.+$", var.permissions_boundary_arn))
+    error_message = "permissions_boundary_arn must be an IAM policy ARN or empty."
+  }
+}

@@ -9,6 +9,8 @@ import {
   type MediaObservation,
 } from '@/utils/media-status';
 
+const API_VERSION_SUFFIX_PATTERN = /\/v\d+$/;
+
 export interface WaitForCompletionOptions<T extends MediaObservation> {
   taskId: string;
   taskType: 'IMAGE' | 'VIDEO';
@@ -24,7 +26,7 @@ export interface WaitResult<T> {
 
 async function getWebSocketUrl(): Promise<string> {
   const apiUrl = await getApiUrl();
-  return apiUrl.replace(/\/v\d+$/, '');
+  return apiUrl.replace(API_VERSION_SUFFIX_PATTERN, '');
 }
 
 export async function waitForCompletion<T extends MediaObservation>(

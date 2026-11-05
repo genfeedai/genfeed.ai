@@ -33,6 +33,9 @@ import { Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//iu;
+const LIST_SEPARATOR_RUN_PATTERN = /[\n,]+/;
+
 const BRAND_KIT_SCALAR_FIELDS: Partial<Record<BrandKitFieldKey, string>> = {
   backgroundColor: 'backgroundColor',
   description: 'description',
@@ -497,7 +500,7 @@ export class BrandKitDraftService {
   ): IBrandKitAssetImportCandidate | undefined {
     if (typeof value === 'string') {
       const url = value.trim();
-      if (!/^https?:\/\//iu.test(url)) {
+      if (!HTTP_PROTOCOL_PREFIX_PATTERN.test(url)) {
         return undefined;
       }
       return {
@@ -510,7 +513,7 @@ export class BrandKitDraftService {
 
     const record = this.toBrandKitRecord(value);
     const url = typeof record.url === 'string' ? record.url.trim() : '';
-    if (!/^https?:\/\//iu.test(url)) {
+    if (!HTTP_PROTOCOL_PREFIX_PATTERN.test(url)) {
       return undefined;
     }
 
@@ -613,7 +616,7 @@ export class BrandKitDraftService {
     const values = Array.isArray(value)
       ? value
       : typeof value === 'string'
-        ? value.split(/[\n,]+/)
+        ? value.split(LIST_SEPARATOR_RUN_PATTERN)
         : [];
 
     const normalized = values

@@ -27,6 +27,8 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 function readOptionalNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value)
     ? value
@@ -299,7 +301,10 @@ export class AgentXActionsToolHandler {
     // A brand may hold several X accounts; an explicit id reads as that one,
     // otherwise the resolver picks the brand default and logs the rest.
     const credentialId = readOptionalString(params.credentialId);
-    let username = readOptionalString(params.username)?.replace(/^@/, '');
+    let username = readOptionalString(params.username)?.replace(
+      LEADING_AT_SIGN_PATTERN,
+      '',
+    );
     let accessToken: string | undefined;
     const twitterService = this.resolveTwitterService();
     if (!twitterService) {
@@ -322,7 +327,10 @@ export class AgentXActionsToolHandler {
         platform: CredentialPlatform.TWITTER,
       });
 
-      username = readOptionalString(credential?.username)?.replace(/^@/, '');
+      username = readOptionalString(credential?.username)?.replace(
+        LEADING_AT_SIGN_PATTERN,
+        '',
+      );
       if (!username) {
         return {
           creditsUsed: 0,

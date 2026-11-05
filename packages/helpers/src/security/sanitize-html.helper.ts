@@ -2,6 +2,13 @@ import sanitize from 'sanitize-html';
 
 export { stripHtmlToPlainText } from './strip-html.helper';
 
+const AMPERSANDS_PATTERN = /&/g;
+const LESS_THAN_SIGNS_PATTERN = /</g;
+const GREATER_THAN_SIGNS_PATTERN = />/g;
+const CR_LINE_ENDINGS_PATTERN = /\r\n?/g;
+const PARAGRAPH_BREAK_PATTERN = /\n{2,}/;
+const NEWLINES_PATTERN = /\n/g;
+
 /**
  * Elements that survive sanitization.
  *
@@ -210,9 +217,9 @@ const HTML_TAG_PATTERN = /<\/?[a-z][^>]*>/i;
 
 function escapeHtmlText(text: string): string {
   return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(AMPERSANDS_PATTERN, '&amp;')
+    .replace(LESS_THAN_SIGNS_PATTERN, '&lt;')
+    .replace(GREATER_THAN_SIGNS_PATTERN, '&gt;');
 }
 
 /**
@@ -221,7 +228,7 @@ function escapeHtmlText(text: string): string {
  * with single newlines as line breaks, so line structure survives the editor.
  */
 export function plainTextToHtml(value?: string | null): string {
-  const text = (value ?? '').replace(/\r\n?/g, '\n').trim();
+  const text = (value ?? '').replace(CR_LINE_ENDINGS_PATTERN, '\n').trim();
   if (!text) {
     return '';
   }
@@ -229,7 +236,10 @@ export function plainTextToHtml(value?: string | null): string {
     return sanitizeHtml(text);
   }
   return text
-    .split(/\n{2,}/)
-    .map((block) => `<p>${escapeHtmlText(block).replace(/\n/g, '<br>')}</p>`)
+    .split(PARAGRAPH_BREAK_PATTERN)
+    .map(
+      (block) =>
+        `<p>${escapeHtmlText(block).replace(NEWLINES_PATTERN, '<br>')}</p>`,
+    )
     .join('');
 }

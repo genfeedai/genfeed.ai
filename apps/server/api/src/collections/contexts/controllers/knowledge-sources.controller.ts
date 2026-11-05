@@ -45,6 +45,8 @@ import {
 import { ApiBearerAuth, ApiHeader, ApiQuery } from '@nestjs/swagger';
 import type { Request } from 'express';
 
+const KNOWLEDGE_SOURCE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/;
+
 @AutoSwagger()
 @ApiBearerAuth()
 @Controller('knowledge-sources')
@@ -295,10 +297,7 @@ export class KnowledgeSourcesController {
     @Query('brandId') brandId?: string,
     @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    if (
-      !idempotencyKey ||
-      !/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(idempotencyKey)
-    ) {
+    if (!idempotencyKey || !KNOWLEDGE_SOURCE_ID_PATTERN.test(idempotencyKey)) {
       throw new BadRequestException(
         'Idempotency-Key must contain 8–128 letters, digits, dots, colons, underscores or hyphens',
       );

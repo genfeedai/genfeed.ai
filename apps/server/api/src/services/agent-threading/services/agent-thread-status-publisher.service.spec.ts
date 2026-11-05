@@ -93,7 +93,7 @@ function createDatabase() {
 
   return {
     ...client,
-    $queryRaw: vi.fn().mockResolvedValue([]),
+    workflowExecution: { findMany: vi.fn().mockResolvedValue([]) },
     $transaction: async <T>(run: (tx: typeof client) => Promise<T>) =>
       run(client),
     agentThread: { count: vi.fn().mockResolvedValue(1), findMany: vi.fn() },
@@ -323,7 +323,9 @@ describe('AgentThreadStatusPublisherService', () => {
     });
 
     it('pushes the failure when the recovery event lands before the execution closes', async () => {
-      database.$queryRaw.mockResolvedValue([executionRow('PENDING')]);
+      database.workflowExecution.findMany.mockResolvedValue([
+        executionRow('PENDING'),
+      ]);
       await record('thread.turn_requested');
       publish.mockClear();
 
@@ -339,7 +341,9 @@ describe('AgentThreadStatusPublisherService', () => {
     });
 
     it('pushes nothing when the event lands after the execution already failed', async () => {
-      database.$queryRaw.mockResolvedValue([executionRow('FAILED')]);
+      database.workflowExecution.findMany.mockResolvedValue([
+        executionRow('FAILED'),
+      ]);
       await record('thread.turn_requested');
       publish.mockClear();
 

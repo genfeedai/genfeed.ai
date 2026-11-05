@@ -19,6 +19,9 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const LAST_COLON_PATTERN = /:(?=[^:]+$)/;
+
 const DEFAULT_INCLUDE_GLOBS = [
   'apps/web/**/*.{ts,tsx}',
   'apps/marketing/**/*.{ts,tsx}',
@@ -323,7 +326,7 @@ function collectImplicitLocaleOccurrences(
   return IMPLICIT_LOCALE_PATTERNS.flatMap(({ api, pattern }) =>
     [...sourceText.matchAll(pattern)].map((match) => ({
       api,
-      expression: match[0].replace(/\s+/g, ' '),
+      expression: match[0].replace(WHITESPACE_RUNS_PATTERN, ' '),
       file,
       line: lineForOffset(sourceText, match.index),
     })),
@@ -403,7 +406,7 @@ if (isMainModule()) {
     console.log(
       JSON.stringify(
         [...counts.entries()].map(([key, occurrences]) => {
-          const [file, api] = key.split(/:(?=[^:]+$)/);
+          const [file, api] = key.split(LAST_COLON_PATTERN);
           return {
             api,
             count: occurrences.length,

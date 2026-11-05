@@ -7,6 +7,24 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 
+const UNAUTHORIZED_ERROR_PATTERN =
+  /status code 401\b|\bHTTP\s*401\b|\bunauthorized\b|\bunauthenticated\b|invalid(?:\s+\w+)?\s+token|authentication (?:failed|required)|rejected the credentials|(?:failed with status|generation failed:)\s*401\b|:\s*401\s*$/i;
+const FORBIDDEN_ERROR_PATTERN =
+  /status code 403\b|\bHTTP\s*403\b|\bforbidden\b|insufficient permissions|(?:failed with status|generation failed:)\s*403\b|:\s*403\s*$/i;
+const FORBIDDEN_REQUEST_PREFIX_PATTERN =
+  /^Request failed with status code 403:?\s*/i;
+const FORBIDDEN_UI_ACTION_PREFIX_PATTERN =
+  /^Failed to respond to UI action:\s*403\s*-\s*/i;
+const BARE_FORBIDDEN_MESSAGE_PATTERN = /^Request failed with status code 403$/i;
+const VALIDATION_ERROR_PATTERN =
+  /status code 400\b|\bHTTP\s*400\b|(?:failed with status|generation failed:)\s*400\b|:\s*400\s*$/i;
+const BAD_REQUEST_PREFIX_PATTERN = /^Request failed with status code 400:?\s*/i;
+const BAD_REQUEST_UI_ACTION_PREFIX_PATTERN =
+  /^Failed to respond to UI action:\s*400\s*-\s*/i;
+const BARE_BAD_REQUEST_MESSAGE_PATTERN =
+  /^Request failed with status code 400$/i;
+const CANCELLED_BY_USER_PATTERN = /Cancelled by user/i;
+
 const PROVIDER_AUTHENTICATION_DETAIL =
   'The model provider rejected the credentials for this request.';
 
@@ -17,19 +35,11 @@ function inferAuthFailureStatus(
     return null;
   }
 
-  if (
-    /status code 401\b|\bHTTP\s*401\b|\bunauthorized\b|\bunauthenticated\b|invalid(?:\s+\w+)?\s+token|authentication (?:failed|required)|rejected the credentials|(?:failed with status|generation failed:)\s*401\b|:\s*401\s*$/i.test(
-      error,
-    )
-  ) {
+  if (UNAUTHORIZED_ERROR_PATTERN.test(error)) {
     return HttpStatus.UNAUTHORIZED;
   }
 
-  if (
-    /status code 403\b|\bHTTP\s*403\b|\bforbidden\b|insufficient permissions|(?:failed with status|generation failed:)\s*403\b|:\s*403\s*$/i.test(
-      error,
-    )
-  ) {
+  if (FORBIDDEN_ERROR_PATTERN.test(error)) {
     return HttpStatus.FORBIDDEN;
   }
 
@@ -43,12 +53,11 @@ function readForbiddenDetail(error: string | undefined): string {
   }
 
   const withoutStatus = trimmed
-    .replace(/^Request failed with status code 403:?\s*/i, '')
-    .replace(/^Failed to respond to UI action:\s*403\s*-\s*/i, '')
+    .replace(FORBIDDEN_REQUEST_PREFIX_PATTERN, '')
+    .replace(FORBIDDEN_UI_ACTION_PREFIX_PATTERN, '')
     .trim();
 
-  return !withoutStatus ||
-    /^Request failed with status code 403$/i.test(trimmed)
+  return !withoutStatus || BARE_FORBIDDEN_MESSAGE_PATTERN.test(trimmed)
     ? 'Insufficient permissions'
     : withoutStatus;
 }
@@ -58,9 +67,7 @@ function inferValidationFailure(error: string | undefined): boolean {
     return false;
   }
 
-  return /status code 400\b|\bHTTP\s*400\b|(?:failed with status|generation failed:)\s*400\b|:\s*400\s*$/i.test(
-    error,
-  );
+  return VALIDATION_ERROR_PATTERN.test(error);
 }
 
 const MAX_SAFE_VALIDATION_DETAIL = 240;
@@ -68,13 +75,13 @@ const MAX_SAFE_VALIDATION_DETAIL = 240;
 function readValidationDetail(error: string | undefined): string {
   const trimmed = error?.trim() ?? '';
   const withoutStatus = trimmed
-    .replace(/^Request failed with status code 400:?\s*/i, '')
-    .replace(/^Failed to respond to UI action:\s*400\s*-\s*/i, '')
+    .replace(BAD_REQUEST_PREFIX_PATTERN, '')
+    .replace(BAD_REQUEST_UI_ACTION_PREFIX_PATTERN, '')
     .trim();
 
   if (
     !withoutStatus ||
-    /^Request failed with status code 400$/i.test(trimmed) ||
+    BARE_BAD_REQUEST_MESSAGE_PATTERN.test(trimmed) ||
     withoutStatus.startsWith('{') ||
     withoutStatus.startsWith('[') ||
     withoutStatus.length > MAX_SAFE_VALIDATION_DETAIL
@@ -143,7 +150,7 @@ export function throwFailedUiActionResult(
   if (generationResultError) {
     throwGenerationResultUnavailable(generationResultError);
   }
-  if (/Cancelled by user/i.test(error ?? '')) {
+  if (CANCELLED_BY_USER_PATTERN.test(error ?? '')) {
     ErrorResponse.conflict('generation', 'Cancelled by user');
   }
   throw new InternalServerErrorException(error?.trim() || fallback);

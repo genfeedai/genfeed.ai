@@ -30,13 +30,16 @@ import type {
   BrandPreviewTemplate,
 } from '@/features/brands/props/brand-kit-workspace.props';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//u;
+const HEX_COLOR_PATTERN = /^#[\da-f]{3,8}$/iu;
+
 function hasPreviewValue(value: unknown): boolean {
   if (typeof value === 'string') return value.trim().length > 0;
   if (Array.isArray(value)) return value.some(hasPreviewValue);
   if (isRecord(value)) {
     if (
       typeof value.url === 'string' &&
-      /^https?:\/\//u.test(value.url.trim())
+      HTTP_PROTOCOL_PREFIX_PATTERN.test(value.url.trim())
     ) {
       return true;
     }
@@ -46,7 +49,7 @@ function hasPreviewValue(value: unknown): boolean {
 }
 
 function isPreviewHex(value: string): boolean {
-  return /^#[\da-f]{3,8}$/iu.test(value) && [4, 5, 7, 9].includes(value.length);
+  return HEX_COLOR_PATTERN.test(value) && [4, 5, 7, 9].includes(value.length);
 }
 
 function previewFontStyle(font: string): {
@@ -65,7 +68,7 @@ function readPreviewSocialLinks(value: unknown): BrandPreviewSocialLink[] {
   return value.flatMap((entry) => {
     if (!isRecord(entry) || typeof entry.url !== 'string') return [];
     const url = entry.url.trim();
-    if (!/^https?:\/\//u.test(url)) return [];
+    if (!HTTP_PROTOCOL_PREFIX_PATTERN.test(url)) return [];
     const platform =
       typeof entry.platform === 'string'
         ? entry.platform
@@ -224,7 +227,7 @@ export default function BrandKitLocalPreview({
   const logoUrl =
     isRecord(logo) &&
     typeof logo.url === 'string' &&
-    /^https?:\/\//u.test(logo.url)
+    HTTP_PROTOCOL_PREFIX_PATTERN.test(logo.url)
       ? logo.url
       : undefined;
   const socialLinks = readPreviewSocialLinks(value('socialLinks', []));

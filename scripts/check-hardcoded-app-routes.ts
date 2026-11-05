@@ -31,6 +31,8 @@ import path from 'node:path';
 import { globSync } from 'glob';
 import { APP_ROUTES } from '../packages/contracts/src/constants/routes.constant';
 
+const QUERY_OR_HASH_PATTERN = /[?#]/;
+
 const logger = {
   error: (message: string) =>
     console.error(`[CheckHardcodedAppRoutes] ${message}`),
@@ -213,7 +215,7 @@ function collect(
 }
 
 function shouldFlagPlaywrightRoute(routePath: string): boolean {
-  const pathname = routePath.split(/[?#]/, 1)[0] ?? routePath;
+  const pathname = routePath.split(QUERY_OR_HASH_PATTERN, 1)[0] ?? routePath;
   return CANONICAL_NON_ROOT_ROUTE_VALUES.some(
     (canonicalRoute) =>
       pathname === canonicalRoute || pathname.startsWith(`${canonicalRoute}/`),

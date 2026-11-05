@@ -28,6 +28,8 @@ import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, RequestTimeoutException } from '@nestjs/common';
 
+const JSON_VALUE_PATTERN = /[[{][\s\S]*[\]}]/;
+
 export const DEFAULT_BRAND_VOICE_ANALYSIS = {
   audience: 'General audience',
   hashtags: [],
@@ -221,7 +223,7 @@ export class MasterPromptGeneratorService {
       }
 
       // Extract JSON from response (may contain markdown code blocks)
-      const jsonMatch = content.match(/[[{][\s\S]*[\]}]/);
+      const jsonMatch = content.match(JSON_VALUE_PATTERN);
       const jsonContent = jsonMatch ? jsonMatch[0] : content;
       const parsed = JSON.parse(jsonContent);
       const prompts: IMasterPrompt[] = Array.isArray(parsed)

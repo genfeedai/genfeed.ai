@@ -5,6 +5,9 @@ import type {
   BrandRenderEvidenceFontV1,
 } from '@genfeedai/contracts/interfaces/content/brand-render-evidence.interface';
 
+const FONT_WEIGHT_PATTERN = /^\d{1,4}$/;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 type Capture = VisualRenderObservations['captures'][number];
 type FontFace = VisualRenderObservations['fontFaces'][number];
 interface RequestedFace {
@@ -67,7 +70,7 @@ function sameFamily(left: string, right: string): boolean {
 }
 
 function parseWeight(weight: string): number | null {
-  return /^\d{1,4}$/.test(weight) ? Number(weight) : null;
+  return FONT_WEIGHT_PATTERN.test(weight) ? Number(weight) : null;
 }
 
 /** Whether an @font-face weight descriptor ("700", "100 900", "bold") covers a weight. */
@@ -75,7 +78,7 @@ function coversWeight(descriptor: string, weight: number): boolean {
   const named: Record<string, number> = { normal: 400, bold: 700 };
   const bounds = descriptor
     .trim()
-    .split(/\s+/)
+    .split(WHITESPACE_RUN_PATTERN)
     .map((part) => named[part] ?? Number(part));
   if (bounds.length === 0 || bounds.length > 2 || bounds.some(Number.isNaN))
     return false;

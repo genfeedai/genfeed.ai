@@ -4,6 +4,12 @@ import {
   schemaModels,
   validateTenantFailure,
 } from './tenant-evidence-policy.mjs';
+
+const MD5_HEX_PATTERN = /^[a-f0-9]{32}$/;
+const GIT_SHA_PATTERN = /^[a-f0-9]{40}$/;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const POSITIVE_INTEGER_PATTERN = /^[1-9][0-9]*$/;
+
 export const OBSERVER_SYMBOL = Symbol.for(
   'genfeed.cloudTenantGuard.observer.v1',
 );
@@ -280,8 +286,8 @@ export function validateObservationRecord(record) {
     if (
       b.version !== 1 ||
       !['api', 'database'].includes(b.producer) ||
-      !/^[a-f0-9]{32}$/.test(b.runNonce) ||
-      !/^[a-f0-9]{40}$/.test(b.sourceSha)
+      !MD5_HEX_PATTERN.test(b.runNonce) ||
+      !GIT_SHA_PATTERN.test(b.sourceSha)
     )
       throw new Error('Invalid sampler binding');
   }
@@ -424,7 +430,7 @@ export function normalizeDatabaseRows(rows) {
     const integer = (value) => {
       if (
         typeof value !== 'number' &&
-        (typeof value !== 'string' || !/^\d+$/.test(value))
+        (typeof value !== 'string' || !DIGITS_ONLY_PATTERN.test(value))
       )
         throw new Error('Invalid database integer');
       return safe(Number(value));
@@ -612,7 +618,7 @@ export function createApiObserver({
         if (header === undefined) return;
         if (
           typeof header !== 'string' ||
-          !/^[1-9][0-9]*$/.test(header) ||
+          !POSITIVE_INTEGER_PATTERN.test(header) ||
           !Number.isSafeInteger(Number(header))
         ) {
           counts.invalidSequences++;

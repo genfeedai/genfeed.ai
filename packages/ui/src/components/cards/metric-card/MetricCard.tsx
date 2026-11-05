@@ -18,6 +18,10 @@ import { Skeleton } from '@ui/primitives/skeleton';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import { memo, type ReactElement, type ReactNode } from 'react';
 
+const NUMERIC_PREFIX_PATTERN = /^([\d.]+)(.*)$/;
+const DECIMAL_DIGITS_PATTERN = /\.(\d+)/;
+const ABBREVIATED_NUMBER_PATTERN = /^[\d.]+[KMB]?$/;
+
 const BODY_PADDING: Record<MetricCardSize, CardPadding> = {
   lg: CardPadding.LG,
   md: CardPadding.MD,
@@ -66,10 +70,10 @@ const ICON_TONE: Record<MetricCardTone, string> = {
 };
 
 function AnimatedValue({ value }: { value: string }): ReactElement {
-  const match = value.match(/^([\d.]+)(.*)$/);
+  const match = value.match(NUMERIC_PREFIX_PATTERN);
   const numericValue = match ? Number.parseFloat(match[1]) : 0;
   const suffix = match ? match[2] || '' : '';
-  const decimalMatch = match ? match[1].match(/\.(\d+)/) : null;
+  const decimalMatch = match ? match[1].match(DECIMAL_DIGITS_PATTERN) : null;
   const decimals = decimalMatch ? decimalMatch[1].length : 0;
 
   const { ref, value: animatedValue } = useAnimatedCounter({
@@ -100,7 +104,7 @@ function resolveValueContent(
     );
   }
 
-  if (typeof value === 'string' && /^[\d.]+[KMB]?$/.test(value)) {
+  if (typeof value === 'string' && ABBREVIATED_NUMBER_PATTERN.test(value)) {
     return <AnimatedValue value={value} />;
   }
 

@@ -3,6 +3,8 @@ import type {
   SkillDraftPatchResult,
 } from '@/features/settings/props/skills.props';
 
+const SURROGATE_PAIRS_PATTERN = /[\uD800-\uDBFF][\uDC00-\uDFFF]/g;
+
 const LIMITS = {
   name: 140,
   description: 2000,
@@ -18,7 +20,7 @@ function backendStringLength(value: string): number {
   const presentationSequences = value.match(PRESENTATION)?.length ?? 0;
   return (
     value.length -
-    (value.match(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g)?.length ?? 0) -
+    (value.match(SURROGATE_PAIRS_PATTERN)?.length ?? 0) -
     presentationSequences
   );
 }

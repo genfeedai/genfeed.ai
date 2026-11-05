@@ -8,6 +8,8 @@ import type { ImageEditingRecipe } from '@genfeedai/contracts/interfaces';
 import type { StudioPlaygroundSettings } from '@/features/studio/playground/types';
 import { optionalText, ratioValue } from './studio-playground-values';
 
+const ASPECT_RATIO_PATTERN = /^\d+(?:\.\d+)?:\d+(?:\.\d+)?$/;
+
 /** Pixel rounding only. A nearer ladder entry is not the source ratio. */
 const ASPECT_MATCH_TOLERANCE = 0.01;
 
@@ -79,7 +81,7 @@ function ratioShaped(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
   if (!trimmed) return undefined;
   if (trimmed === 'auto') return trimmed;
-  return /^\d+(?:\.\d+)?:\d+(?:\.\d+)?$/.test(trimmed) ? trimmed : undefined;
+  return ASPECT_RATIO_PATTERN.test(trimmed) ? trimmed : undefined;
 }
 
 function positive(value: unknown): number | undefined {

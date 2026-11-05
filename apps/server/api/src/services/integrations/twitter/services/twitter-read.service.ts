@@ -16,6 +16,8 @@ import {
   type TwitterUsersResponse,
 } from './twitter-response.mapper';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 interface TwitterApiErrorShape {
   code?: number;
   message?: string;
@@ -80,7 +82,7 @@ export class TwitterReadService {
 
     try {
       const result = (await this.resolveClient().v2.get(
-        `users/by/username/${encodeURIComponent(username.replace(/^@/, ''))}`,
+        `users/by/username/${encodeURIComponent(username.replace(LEADING_AT_SIGN_PATTERN, ''))}`,
         { 'user.fields': 'public_metrics' },
       )) as TwitterUserResponse;
       return this.responseMapper.mapUser(result);

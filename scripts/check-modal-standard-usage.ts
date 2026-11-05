@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 const ROOT = process.cwd();
 
 const INCLUDE_GLOBS = [
@@ -49,7 +51,7 @@ function isUiPackageFile(filePath: string): boolean {
 }
 
 function classifyOverlayClasses(classes: string): string | null {
-  const tokens = new Set(classes.split(/\s+/).filter(Boolean));
+  const tokens = new Set(classes.split(WHITESPACE_RUN_PATTERN).filter(Boolean));
   if (tokens.has('pointer-events-none')) {
     return null;
   }

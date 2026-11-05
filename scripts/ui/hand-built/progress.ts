@@ -30,6 +30,14 @@ import {
   scriptKindFor,
 } from '../../architecture/parse-source-file';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const INLINE_PERCENT_WIDTH_PATTERN = /\bwidth\s*:\s*`[^`]*\$\{[^`]*%/;
+const SCALE_X_CALL_PATTERN = /scaleX\(/;
+const PROGRESS_HINT_PATTERN = /Progress|rounded-full|style=/;
+const LUCIDE_CHECK_IMPORT_PATTERN =
+  /import\s*\{[^}]*\bCheck\b[^}]*\}\s*from\s*['"]lucide-react['"]/;
+const VARIANT_PREFIX_PATTERN = /^[a-z-]+:/;
+
 export type ProgressViolationRule = 'bar' | 'restyle' | 'stepper';
 
 export type ProgressViolation = {
@@ -82,7 +90,7 @@ function stringsIn(node: ts.Node): string[] {
 function classTokens(attribute: ts.JsxAttribute): string[] {
   if (!attribute.initializer) return [];
   return stringsIn(attribute.initializer).flatMap((text) =>
-    text.split(/\s+/).filter(Boolean),
+    text.split(WHITESPACE_RUN_PATTERN).filter(Boolean),
   );
 }
 
@@ -101,14 +109,16 @@ function findAttribute(
 function isInlineFill(attribute: ts.JsxAttribute | undefined): boolean {
   if (!attribute?.initializer) return false;
   const text = attribute.initializer.getText();
-  return /\bwidth\s*:\s*`[^`]*\$\{[^`]*%/.test(text) || /scaleX\(/.test(text);
+  return (
+    INLINE_PERCENT_WIDTH_PATTERN.test(text) || SCALE_X_CALL_PATTERN.test(text)
+  );
 }
 
 export function detectProgressViolations(
   filePath: string,
   source: string,
 ): ProgressViolation[] {
-  if (!/Progress|rounded-full|style=/.test(source)) return [];
+  if (!PROGRESS_HINT_PATTERN.test(source)) return [];
 
   const sourceFile = parseSourceFile(
     filePath,
@@ -118,10 +128,7 @@ export function detectProgressViolations(
   );
   const lines = source.split('\n');
   const violations: ProgressViolation[] = [];
-  const importsCheckIcon =
-    /import\s*\{[^}]*\bCheck\b[^}]*\}\s*from\s*['"]lucide-react['"]/.test(
-      source,
-    );
+  const importsCheckIcon = LUCIDE_CHECK_IMPORT_PATTERN.test(source);
 
   const report = (
     node: ts.Node,
@@ -150,7 +157,7 @@ export function detectProgressViolations(
           );
         }
         const restyles = tokens.filter((token) =>
-          RESTYLE_CLASS.test(token.replace(/^[a-z-]+:/, '')),
+          RESTYLE_CLASS.test(token.replace(VARIANT_PREFIX_PATTERN, '')),
         );
         if (restyles.length > 0) {
           report(

@@ -1,5 +1,9 @@
 import type { AgentInstallation } from '@genfeedai/contracts/interfaces/website/agent-installation.interface';
 
+const PLUS_SIGNS_PATTERN = /\+/g;
+const SLASHES_PATTERN = /\//g;
+const BASE64_PADDING_PATTERN = /=+$/;
+
 const repository = 'https://github.com/genfeedai/agent';
 // claude.ai universal links open the Claude app (iOS and Android) on this path
 // only with `modal=add-custom-connector`; without it the link stays in the browser.
@@ -102,8 +106,8 @@ export function buildCursorInstallUrl(url: string): string {
 
 export function buildHermesInstallUrl(url: string): string {
   const config = btoa(JSON.stringify({ url, auth: 'oauth' }))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+    .replace(PLUS_SIGNS_PATTERN, '-')
+    .replace(SLASHES_PATTERN, '_')
+    .replace(BASE64_PADDING_PATTERN, '');
   return `hermes://mcp/install?name=genfeed&config=${config}`;
 }

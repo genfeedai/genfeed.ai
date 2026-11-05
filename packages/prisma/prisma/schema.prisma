@@ -3115,6 +3115,7 @@ learningCheckpoints ContentLearningCheckpoint[]
   @@index([brandId, isDeleted, scheduledDate], map: "posts_brand_deleted_scheduled_date_idx")
   @@index([isDeleted, nextScheduledDate, status])
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([userId, isDeleted, createdAt(sort: Desc)], map: "posts_user_deleted_created_at_idx")
   @@index([brandId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, isDeleted, status, createdAt(sort: Desc)], map: "posts_org_deleted_status_created_at_idx")
   @@index([brandId, isDeleted, status, createdAt(sort: Desc)], map: "posts_brand_deleted_status_created_at_idx")
@@ -5541,6 +5542,22 @@ model WorkflowExecution {
 
   trigger String?
 
+  /// Identity keys copied out of `result.metadata` when the execution is
+  /// created, so hot filters never read or detoast the `result` blob. A
+  /// BEFORE INSERT trigger (`promote_workflow_execution_metadata`) fills them
+  /// for every writer; they never change, and `result.metadata` keeps its copy
+  /// for the runtime document. `metadata.brandId` is deliberately not promoted:
+  /// a brand column would make executions brand-keyed for brand relocation.
+  canonicalId    String?
+  source         String?
+  /// `metadata.strategyId`, falling back to `metadata.agentStrategyId`.
+  strategyId     String?
+  threadId       String?
+  dispatchClass  String?
+  dispatchId     String?
+  campaignId     String?
+  isSystemAction Boolean @default(false)
+
   @@unique([organizationId, idempotencyKey], map: "workflow_executions_org_idempotency_key")
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, workflowVersionId, createdAt(sort: Desc)])
@@ -5548,6 +5565,8 @@ model WorkflowExecution {
   @@index([workflowId, organizationId], map: "workflow_executions_workflow_org_idx")
   @@index([purgeAt, payloadScrubbedAt, isDeleted], map: "workflow_executions_purgeAt_idx")
   @@index([status, isDeleted, failureReason, completedAt(sort: Desc), id], map: "workflow_executions_failure_feed_idx")
+  @@index([organizationId, isDeleted, threadId, canonicalId, createdAt(sort: Desc), id(sort: Desc)], map: "workflow_executions_thread_idx")
+  @@index([organizationId, isDeleted, threadId, createdAt(sort: Desc), id(sort: Desc)], map: "workflow_executions_thread_created_idx")
   @@map("workflow_executions")
   @@unique([id, organizationId])
   readScope WorkflowExecutionReadScope?

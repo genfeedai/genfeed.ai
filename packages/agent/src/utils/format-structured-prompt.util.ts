@@ -1,3 +1,6 @@
+const ESCAPED_NEWLINES_PATTERN = /\\n/g;
+const EXCESS_BLANK_LINES_PATTERN = /\n{3,}/g;
+
 /** `SCENE:` / `NEGATIVE:` style block labels the orchestrator emits. */
 const STRUCTURED_PROMPT_LABEL = /[A-Z][A-Z0-9/&()' -]{1,40}:[ \t\n]/.source;
 
@@ -21,7 +24,7 @@ export function formatStructuredPrompt(prompt: string): string {
   return (
     prompt
       // Literal "\n" escapes survive some provider round-trips.
-      .replace(/\\n/g, '\n')
+      .replace(ESCAPED_NEWLINES_PATTERN, '\n')
       // Run-on: "...end of sentence. LABEL: ..." — consume inline whitespace only.
       .replace(
         new RegExp(`([^\\n])[ \\t]+(?=${STRUCTURED_PROMPT_LABEL})`, 'g'),
@@ -32,7 +35,7 @@ export function formatStructuredPrompt(prompt: string): string {
         new RegExp(`([^\\n])\\n(?=${STRUCTURED_PROMPT_LABEL})`, 'g'),
         '$1\n\n',
       )
-      .replace(/\n{3,}/g, '\n\n')
+      .replace(EXCESS_BLANK_LINES_PATTERN, '\n\n')
       .trim()
   );
 }

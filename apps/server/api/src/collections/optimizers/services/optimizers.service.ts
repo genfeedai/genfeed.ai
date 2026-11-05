@@ -39,6 +39,11 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import type { ZodType } from 'zod';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const HASHTAGS_PATTERN = /#\w+/g;
+const EMOJI_PATTERN =
+  /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
+
 @Traced()
 @Injectable()
 export class OptimizersService {
@@ -626,12 +631,9 @@ text, format (portrait, landscape or square), style, mood, camera${dto.targetMed
    * Private: Extract metadata from content
    */
   private extractMetadata(content: string): Record<string, unknown> {
-    const words = content.trim().split(/\s+/);
-    const hashtags = content.match(/#\w+/g) || [];
-    const emojis =
-      content.match(
-        /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu,
-      ) || [];
+    const words = content.trim().split(WHITESPACE_RUN_PATTERN);
+    const hashtags = content.match(HASHTAGS_PATTERN) || [];
+    const emojis = content.match(EMOJI_PATTERN) || [];
 
     const ctaKeywords = [
       'click',

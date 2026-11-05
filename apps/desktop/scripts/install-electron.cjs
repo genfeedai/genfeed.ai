@@ -6,6 +6,8 @@ const os = require('node:os');
 const path = require('node:path');
 const childProcess = require('node:child_process');
 
+const LEADING_V_PATTERN = /^v/;
+
 const electronRoot = path.dirname(require.resolve('electron/package.json'));
 const pathFile = path.join(electronRoot, 'path.txt');
 const electronRequire = createRequire(path.join(electronRoot, 'install.js'));
@@ -18,7 +20,7 @@ function hasInstalledBinary() {
   try {
     const installedVersion = fs
       .readFileSync(path.join(electronRoot, 'dist', 'version'), 'utf8')
-      .replace(/^v/, '')
+      .replace(LEADING_V_PATTERN, '')
       .trim();
     const installedPath = fs.readFileSync(pathFile, 'utf8');
     const electronPath =

@@ -1,5 +1,7 @@
 import type { IngredientCategory } from '@genfeedai/contracts';
 
+const HYPHENS_PATTERN = /-/g;
+
 /**
  * Ingredient endpoint configuration
  */
@@ -27,7 +29,7 @@ export const IngredientEndpoints = {
     const normalized = this.normalizeUrlPath(typeOrPath);
     const upperType = typeOrPath
       .toUpperCase()
-      .replace(/-/g, '_') as keyof typeof IngredientCategory;
+      .replace(HYPHENS_PATTERN, '_') as keyof typeof IngredientCategory;
 
     if (this.endpoints[upperType]) {
       return this.endpoints[upperType];

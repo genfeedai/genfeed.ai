@@ -16,6 +16,9 @@ import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+const SUBREDDIT_PREFIX_PATTERN = /^r\//i;
+const SUBREDDIT_NAME_PATTERN = /^[a-z0-9_]{2,21}$/i;
+
 interface RedditAccessTokenResponse {
   access_token?: string;
   expires_in?: number;
@@ -181,7 +184,7 @@ export class RedditService {
     // OAuth stores the Reddit account id in externalId. Only the historical
     // `r/<name>` shape is safe to interpret as the pre-settings subreddit.
     const legacySubreddit = credential?.externalId?.trim();
-    if (!legacySubreddit || !/^r\//i.test(legacySubreddit)) {
+    if (!legacySubreddit || !SUBREDDIT_PREFIX_PATTERN.test(legacySubreddit)) {
       return null;
     }
 
@@ -189,9 +192,11 @@ export class RedditService {
   }
 
   private normalizeSubreddit(value?: string): string | null {
-    const candidate = value?.trim().replace(/^r\//i, '');
+    const candidate = value?.trim().replace(SUBREDDIT_PREFIX_PATTERN, '');
 
-    return candidate && /^[a-z0-9_]{2,21}$/i.test(candidate) ? candidate : null;
+    return candidate && SUBREDDIT_NAME_PATTERN.test(candidate)
+      ? candidate
+      : null;
   }
 
   private async getListing(

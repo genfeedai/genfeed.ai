@@ -36,6 +36,9 @@ import {
 } from './bots-livestream-runtime.service';
 import { BotsRestreamChatService } from './bots-restream-chat.service';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const SENTENCE_PUNCTUATION_PATTERN = /[.!?]/;
+
 type LivestreamMessageType = BotLivestreamMessageType;
 
 interface TranscriptPayload {
@@ -758,12 +761,12 @@ export class BotsLivestreamService {
     const transcriptSummary = relevantChunks
       .map((chunk) => chunk.text.trim())
       .join(' ')
-      .replace(/\s+/g, ' ')
+      .replace(WHITESPACE_RUNS_PATTERN, ' ')
       .trim()
       .slice(0, 500);
 
     const currentTopic = transcriptSummary
-      .split(/[.!?]/)[0]
+      .split(SENTENCE_PUNCTUATION_PATTERN)[0]
       ?.trim()
       .slice(0, 140);
     const transcriptConfidence =

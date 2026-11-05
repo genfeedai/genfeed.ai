@@ -12,6 +12,11 @@ import {
 } from './secure-storage.util';
 import type { DesktopKeyValueStore } from './store.service';
 
+const PLUS_SIGNS_PATTERN = /\+/g;
+const SLASHES_PATTERN = /\//g;
+const BASE64_PADDING_PATTERN = /=+$/;
+const WHITESPACE_CHAR_PATTERN = /\s/;
+
 const SESSION_STORAGE_KEY = 'desktop.session';
 const PENDING_AUTH_STORAGE_KEY = 'desktop.pendingAuth';
 const CLOUD_SERVER_ID = 'cloud';
@@ -278,9 +283,9 @@ const deserializeSession = (value: string): IDesktopSession | null =>
 const toBase64Url = (input: Buffer): string =>
   input
     .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+    .replace(PLUS_SIGNS_PATTERN, '-')
+    .replace(SLASHES_PATTERN, '_')
+    .replace(BASE64_PADDING_PATTERN, '');
 
 const createCodeVerifier = (): string => toBase64Url(randomBytes(32));
 const createState = (): string => toBase64Url(randomBytes(24));
@@ -650,7 +655,7 @@ export class DesktopSessionService {
       return trimmed;
     }
 
-    if (trimmed.includes('://') || /\s/.test(trimmed)) {
+    if (trimmed.includes('://') || WHITESPACE_CHAR_PATTERN.test(trimmed)) {
       return null;
     }
 

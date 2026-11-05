@@ -1,3 +1,5 @@
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 /**
  * Strictly parses an `Authorization` header into a single scheme and a
  * single token. Real clients never send more than that; a header with
@@ -32,7 +34,7 @@ export function parseAuthorizationHeader(
     return undefined;
   }
 
-  const parts = trimmed.split(/\s+/);
+  const parts = trimmed.split(WHITESPACE_RUN_PATTERN);
   if (parts.length !== 2) {
     return undefined;
   }
@@ -67,6 +69,6 @@ export function isBearerScheme(authHeader: string | undefined): boolean {
     return false;
   }
 
-  const [firstField] = trimmed.split(/\s+/);
+  const [firstField] = trimmed.split(WHITESPACE_RUN_PATTERN);
   return firstField.toLowerCase() === 'bearer';
 }

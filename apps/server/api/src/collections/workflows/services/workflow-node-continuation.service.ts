@@ -40,6 +40,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 const RESUME_LEASE_MS = 5 * 60 * 1000;
 
 @Traced()
@@ -276,7 +278,7 @@ export class WorkflowNodeContinuationService {
       ![measured.duration, measured.framesPerSecond].every(
         (value) => Number.isFinite(value) && value > 0,
       ) ||
-      !/^[a-f0-9]{64}$/.test(measured.assetHash) ||
+      !SHA256_HEX_PATTERN.test(measured.assetHash) ||
       !measured.assetKey
     )
       throw new Error('Fal output measurement is incomplete');

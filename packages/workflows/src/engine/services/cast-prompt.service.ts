@@ -6,6 +6,8 @@ import {
   isCinematicPreset,
 } from '../presets/ugc-presets';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 export type CameraMovement =
   | 'dolly'
   | 'tracking'
@@ -49,14 +51,14 @@ const CAMERA_MOVEMENT_DESCRIPTIONS: Record<CameraMovement, string> = {
  * Count words in a string
  */
 const countWords = (text: string): number => {
-  return text.trim().split(/\s+/).length;
+  return text.trim().split(WHITESPACE_RUN_PATTERN).length;
 };
 
 /**
  * Truncate text to a maximum word count while preserving sentence structure
  */
 const truncateToWordLimit = (text: string, maxWords: number): string => {
-  const words = text.trim().split(/\s+/);
+  const words = text.trim().split(WHITESPACE_RUN_PATTERN);
   if (words.length <= maxWords) {
     return text;
   }

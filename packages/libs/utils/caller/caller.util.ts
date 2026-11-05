@@ -1,3 +1,7 @@
+const STACK_FRAME_PREFIX_PATTERN = /^at\s+(?:async\s+)?/;
+const STACK_FRAME_ALIAS_PATTERN = /\s+\[as [^\]]+\]$/;
+const TRAILING_IDENTIFIER_PATTERN = /(?:^|[.\s])([A-Za-z_$][\w$]*)$/;
+
 /**
  * CallerUtil - Utility for extracting function names from call stack
  *
@@ -53,7 +57,7 @@ export class CallerUtil {
         // anonymous ("at /path/file.ts:1:2").
         // V8:  "at async UsersController.findMe (file:line:column)"
         // Bun: "at findMe (file:line:column)"
-        const frame = callerLine.replace(/^at\s+(?:async\s+)?/, '');
+        const frame = callerLine.replace(STACK_FRAME_PREFIX_PATTERN, '');
         const locationStart = frame.indexOf(' (');
         if (locationStart === -1) {
           return 'unknown';
@@ -61,10 +65,10 @@ export class CallerUtil {
 
         const functionName = frame
           .slice(0, locationStart)
-          .replace(/\s+\[as [^\]]+\]$/, '');
+          .replace(STACK_FRAME_ALIAS_PATTERN, '');
 
         // Last identifier of "ClassName.methodName", ".methodName" or "methodName"
-        const match = functionName.match(/(?:^|[.\s])([A-Za-z_$][\w$]*)$/);
+        const match = functionName.match(TRAILING_IDENTIFIER_PATTERN);
         if (match?.[1]) {
           return match[1];
         }

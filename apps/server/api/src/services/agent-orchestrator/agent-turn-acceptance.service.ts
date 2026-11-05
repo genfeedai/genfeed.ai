@@ -30,6 +30,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
+const LEADING_COMMA_PATTERN = /^,\s*/;
+const UNSAFE_IDENTIFIER_CHARS_PATTERN = /[^a-zA-Z0-9_-]/g;
+
 function matchMultiSelectOptions(
   content: string,
   options: AgentInputRequestOption[],
@@ -47,7 +50,7 @@ function matchMultiSelectOptions(
     selected.set(option.id, option);
     remaining = remaining
       .slice(option.label.length)
-      .replace(/^,\s*/, '')
+      .replace(LEADING_COMMA_PATTERN, '')
       .trim();
   }
   return [...selected.values()];
@@ -344,7 +347,9 @@ export class AgentTurnAcceptanceService {
       });
     } catch {
       this.logger.warn('Agent turn accepted publication failed', {
-        runId: data.runId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 128),
+        runId: data.runId
+          .replace(UNSAFE_IDENTIFIER_CHARS_PATTERN, '')
+          .slice(0, 128),
       });
     }
   }

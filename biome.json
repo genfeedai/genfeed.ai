@@ -88,10 +88,39 @@
       "a11y": {
         "noLabelWithoutControl": "off"
       },
+      "performance": {
+        "useTopLevelRegex": "error"
+      },
       "preset": "recommended"
     }
   },
   "overrides": [
+    {
+      "includes": [
+        "**/*.spec.*",
+        "**/*.test.*",
+        "**/*.stories.*",
+        "**/*.fixture.*",
+        "**/__tests__/**",
+        "**/__mocks__/**",
+        "**/e2e/**",
+        "**/test/**",
+        "**/tests/**",
+        "**/fixtures/**",
+        "**/mocks/**",
+        "**/testing/**",
+        "playwright/**",
+        "apps/extension/src/platforms/source-capture-extract.ts",
+        "apps/extension/src/utils/knowledge-snapshot.util.ts"
+      ],
+      "linter": {
+        "rules": {
+          "performance": {
+            "useTopLevelRegex": "off"
+          }
+        }
+      }
+    },
     {
       "includes": ["skills/*/*/**/*.json", "!skills/app/**"],
       "formatter": {

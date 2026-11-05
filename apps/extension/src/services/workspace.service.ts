@@ -12,6 +12,10 @@ import { authService } from '~services/auth.service';
 import { apiEndpoint } from '~services/environment.service';
 import { ServiceInstanceManager } from '~utils/service-instance-manager.util';
 
+const DISCONNECTED_ACCOUNT_ERROR_PATTERN =
+  /expired|rejected|Sign in|no longer accessible/;
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 const storage = new Storage({ area: 'local' });
 const listeners = new Set<ExtensionWorkspaceListener>();
 let state: ExtensionWorkspaceState = { status: 'loading' };
@@ -207,7 +211,7 @@ async function reconcile(
     if (attempt === validation && generation === revision) {
       if (
         error instanceof Error &&
-        /expired|rejected|Sign in|no longer accessible/.test(error.message)
+        DISCONNECTED_ACCOUNT_ERROR_PATTERN.test(error.message)
       ) {
         reset();
         lastVerified = null;
@@ -326,7 +330,9 @@ export async function scopedWorkspaceRequest(
     target.origin !== base.origin ||
     !(
       target.pathname === base.pathname ||
-      target.pathname.startsWith(`${base.pathname.replace(/\/$/, '')}/`)
+      target.pathname.startsWith(
+        `${base.pathname.replace(TRAILING_SLASH_PATTERN, '')}/`,
+      )
     )
   )
     throw new Error('Authenticated requests must target the Genfeed API.');

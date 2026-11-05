@@ -18,6 +18,8 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
+const QUOTED_SLUGS_PATTERN = /'([^']+)'/gu;
+
 const MIGRATIONS_DIR = 'packages/prisma/prisma/migrations';
 const SKILLS_INDEX = 'skills/index.json';
 const FUNCTION_DEFINITION =
@@ -39,7 +41,7 @@ export function parseAllowlistSlugs(sql: string): string[] | null {
   if (!match) {
     return null;
   }
-  return [...match[1].matchAll(/'([^']+)'/gu)].map((slug) => slug[1]);
+  return [...match[1].matchAll(QUOTED_SLUGS_PATTERN)].map((slug) => slug[1]);
 }
 
 export function readLatestAllowlist(

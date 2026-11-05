@@ -11,6 +11,8 @@ import type { Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
+const LINE_BREAK_PATTERN = /\r?\n/;
+
 export interface AnalyticsSyncOptions {
   organizationId: string;
   brandId?: string;
@@ -109,7 +111,7 @@ export class AnalyticsSyncService {
         const contentType = mapPostCategoryToContentType(post.category);
         const description = post.description?.trim();
         const hookUsed = description
-          ?.split(/\r?\n/)
+          ?.split(LINE_BREAK_PATTERN)
           .find((line) => line.trim())
           ?.trim();
         const promptUsed = post.promptUsed?.trim() || description;

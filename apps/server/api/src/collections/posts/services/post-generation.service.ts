@@ -49,6 +49,10 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 
+const JSON_ARRAY_PATTERN = /\[[\s\S]*\]/;
+const LIST_NUMBER_PREFIX_PATTERN = /^\d+[.)]\s*/;
+const EDGE_QUOTES_PATTERN = /^["']|["']$/g;
+
 /**
  * Identity fields threaded through the generation pipeline. Derived from
  * {@link AuthenticatedUser} so callers can pass the resolved request metadata
@@ -396,7 +400,7 @@ Requirements:
     let hooks: string[] = [];
     try {
       // Try to parse JSON from the response
-      const jsonMatch = result.match(/\[[\s\S]*\]/);
+      const jsonMatch = result.match(JSON_ARRAY_PATTERN);
       if (jsonMatch) {
         hooks = JSON.parse(jsonMatch[0]);
       }
@@ -406,8 +410,8 @@ Requirements:
         .split('\n')
         .map((line: string) =>
           line
-            .replace(/^\d+[.)]\s*/, '')
-            .replace(/^["']|["']$/g, '')
+            .replace(LIST_NUMBER_PREFIX_PATTERN, '')
+            .replace(EDGE_QUOTES_PATTERN, '')
             .trim(),
         )
         .filter((line: string) => line.length > 10)

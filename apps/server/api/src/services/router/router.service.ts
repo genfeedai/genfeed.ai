@@ -27,6 +27,18 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 
+const HIGH_QUALITY_PROMPT_PATTERN =
+  /professional|high quality|detailed|intricate|complex|photorealistic|ultra|4k|hd/;
+const SPEED_PROMPT_PATTERN = /quick|fast|simple|draft|rapid|immediate/;
+const ARTISTIC_STYLE_PROMPT_PATTERN =
+  /anime|cartoon|oil painting|watercolor|sketch|artistic|stylized|illustration/;
+const CINEMATIC_PROMPT_PATTERN = /cinematic|movie|film/;
+const PHOTO_PROMPT_PATTERN = /photo|photograph|realistic/;
+const LANDSCAPE_PROMPT_PATTERN = /landscape|nature|outdoor/;
+const PORTRAIT_PROMPT_PATTERN = /portrait|person|face/;
+const CREATIVE_PROMPT_PATTERN = /artistic|creative|abstract/;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 /** Registry-backed model selection and recommendation policy. */
 @Traced()
 @Injectable()
@@ -629,37 +641,29 @@ export class RouterService {
     const lowerPrompt = prompt.toLowerCase();
 
     // Quality indicators
-    const hasQualityIndicators =
-      /professional|high quality|detailed|intricate|complex|photorealistic|ultra|4k|hd/.test(
-        lowerPrompt,
-      );
+    const hasQualityIndicators = HIGH_QUALITY_PROMPT_PATTERN.test(lowerPrompt);
 
     // Speed indicators
-    const hasSpeedIndicators = /quick|fast|simple|draft|rapid|immediate/.test(
-      lowerPrompt,
-    );
+    const hasSpeedIndicators = SPEED_PROMPT_PATTERN.test(lowerPrompt);
 
     // Style indicators
-    const hasSpecificStyle =
-      /anime|cartoon|oil painting|watercolor|sketch|artistic|stylized|illustration/.test(
-        lowerPrompt,
-      );
+    const hasSpecificStyle = ARTISTIC_STYLE_PROMPT_PATTERN.test(lowerPrompt);
 
     // Detect features
     const detectedFeatures: string[] = [];
-    if (/cinematic|movie|film/.test(lowerPrompt)) {
+    if (CINEMATIC_PROMPT_PATTERN.test(lowerPrompt)) {
       detectedFeatures.push('cinematic');
     }
-    if (/photo|photograph|realistic/.test(lowerPrompt)) {
+    if (PHOTO_PROMPT_PATTERN.test(lowerPrompt)) {
       detectedFeatures.push('photorealistic');
     }
-    if (/landscape|nature|outdoor/.test(lowerPrompt)) {
+    if (LANDSCAPE_PROMPT_PATTERN.test(lowerPrompt)) {
       detectedFeatures.push('landscape');
     }
-    if (/portrait|person|face/.test(lowerPrompt)) {
+    if (PORTRAIT_PROMPT_PATTERN.test(lowerPrompt)) {
       detectedFeatures.push('portrait');
     }
-    if (/artistic|creative|abstract/.test(lowerPrompt)) {
+    if (CREATIVE_PROMPT_PATTERN.test(lowerPrompt)) {
       detectedFeatures.push('artistic');
     }
 
@@ -682,7 +686,9 @@ export class RouterService {
       hasQualityIndicators,
       hasSpecificStyle,
       hasSpeedIndicators,
-      keywords: lowerPrompt.split(/\s+/).filter((w) => w.length > 3),
+      keywords: lowerPrompt
+        .split(WHITESPACE_RUN_PATTERN)
+        .filter((w) => w.length > 3),
     };
   }
 

@@ -16,6 +16,8 @@ import {
   topologicalSort,
 } from '@genfeedai/workflows/engine';
 
+const NON_NEGATIVE_INTEGER_PATTERN = /^(0|[1-9]\d*)$/;
+
 function invalid(): never {
   throw new BusinessLogicException('Workflow admission source is invalid');
 }
@@ -55,7 +57,7 @@ function projectArray(
     if (key === 'length') continue;
     if (
       typeof key !== 'string' ||
-      !/^(0|[1-9]\d*)$/.test(key) ||
+      !NON_NEGATIVE_INTEGER_PATTERN.test(key) ||
       Number(key) >= value.length
     )
       invalid();

@@ -12,6 +12,9 @@ import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 
+const SERVER_ERROR_STATUS_PATTERN = /\b(500|502|503|504)\b/;
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+
 const RETRYABLE_ERROR_PATTERNS = [
   'rate limit',
   'rate_limited',
@@ -68,10 +71,12 @@ export function getPublishErrorCode(error: unknown): string {
   ) {
     return 'timeout';
   }
-  if (/\b(500|502|503|504)\b/.test(classificationText)) {
+  if (SERVER_ERROR_STATUS_PATTERN.test(classificationText)) {
     return 'provider_unavailable';
   }
-  return rawCode.replace(/[^a-z0-9]+/g, '_') || 'provider_error';
+  return (
+    rawCode.replace(NON_ALPHANUMERIC_RUNS_PATTERN, '_') || 'provider_error'
+  );
 }
 
 export function isRetryablePublishError(error: unknown): boolean {

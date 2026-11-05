@@ -2,6 +2,9 @@ locals {
   name_prefix = "${var.project}-${var.environment}"
   fqdn        = "${var.api_subdomain}.${var.domain}"
 
+  # Unset GitHub variables arrive as "", which IAM rejects as a boundary.
+  permissions_boundary_arn = var.permissions_boundary_arn == "" ? null : var.permissions_boundary_arn
+
   public_backend_service_names = ["mcp", "notifications"]
   public_service_hostnames = merge(
     { api = local.fqdn },

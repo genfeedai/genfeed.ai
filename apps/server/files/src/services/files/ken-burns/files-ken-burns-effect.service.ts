@@ -8,6 +8,9 @@ import { ImagesToVideoConfig } from '@libs/interfaces/video.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+const DIGITS_PATTERN = /\d+/;
+const MP3_EXTENSION_PATTERN = /\.mp3$/;
+
 export interface KenBurnsEffectOptions {
   slideText?: SlideText[];
   isClipSelected?: boolean;
@@ -213,11 +216,13 @@ export class FilesKenBurnsEffectService {
       .readdirSync(voiceDir)
       .filter((f) => f.endsWith('.mp3'))
       .sort((a, b) => {
-        const aNum = parseInt(a.match(/\d+/)?.[0] || '0', 10);
-        const bNum = parseInt(b.match(/\d+/)?.[0] || '0', 10);
+        const aNum = parseInt(a.match(DIGITS_PATTERN)?.[0] || '0', 10);
+        const bNum = parseInt(b.match(DIGITS_PATTERN)?.[0] || '0', 10);
         return aNum - bNum;
       });
-    const srtFiles = voiceFiles.map((file) => file.replace(/\.mp3$/, '.srt'));
+    const srtFiles = voiceFiles.map((file) =>
+      file.replace(MP3_EXTENSION_PATTERN, '.srt'),
+    );
 
     this.loggerService.log('Started adding audio');
 

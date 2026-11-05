@@ -1,3 +1,5 @@
+const REPEATED_SLASHES_PATTERN = /\/{2,}/g;
+
 const LEGACY_NEST_AUTH_ROUTES: Readonly<Record<string, ReadonlySet<string>>> = {
   GET: new Set(['/bootstrap', '/bootstrap/overview', '/whoami']),
   HEAD: new Set(['/bootstrap', '/bootstrap/overview', '/whoami']),
@@ -36,7 +38,7 @@ export function shouldBypassBetterAuthHandler(
  */
 export function isBetterAuthAdminPath(mountedPath: string): boolean {
   const path = normalizeMountedPath(mountedPath)
-    .replace(/\/{2,}/g, '/')
+    .replace(REPEATED_SLASHES_PATTERN, '/')
     .toLowerCase();
 
   return path === '/admin' || path.startsWith('/admin/');

@@ -6,6 +6,10 @@ import { GenerateNewsletterTopicsDto } from '@api/collections/newsletters/dto/ge
 import { UpdateNewsletterDto } from '@api/collections/newsletters/dto/update-newsletter.dto';
 import type { NewsletterDocument } from '@api/collections/newsletters/schemas/newsletter.schema';
 import {
+  parseJsonArray,
+  resolveDraftTitle,
+} from '@api/collections/newsletters/utils/newsletter-draft-text.util';
+import {
   type SystemWorkflowGraphDefinition,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
@@ -576,7 +580,7 @@ export class NewslettersService
       });
 
       const raw = completion.choices?.[0]?.message?.content ?? '[]';
-      const parsed = this.parseJsonArray<TopicProposal>(raw);
+      const parsed = parseJsonArray<TopicProposal>(raw);
       return parsed.slice(0, count);
     } catch {
       return this.buildFallbackTopics(count, recent);
@@ -717,7 +721,7 @@ export class NewslettersService
   ): Promise<{ newsletterId: string }> {
     const { contextNewsletters, ctx, dto, generatedContent, prompt } = state;
     const sourceRefs = dto.sourceRefs ?? [];
-    const label = this.resolveDraftTitle(dto.topic, generatedContent);
+    const label = resolveDraftTitle(dto.topic, generatedContent);
     const summary = this.extractSummary(generatedContent);
     const payload: UpdateNewsletterDto = {
       angle: dto.angle,
@@ -972,18 +976,6 @@ export class NewslettersService
     return defaults
       .filter((item) => !excludedTopics.has(item.title.toLowerCase()))
       .slice(0, count);
-  }
-
-  private parseJsonArray<T>(value: string): T[] {
-    const match = value.match(/\[[\s\S]*\]/);
-    const json = match?.[0] ?? value;
-    const parsed = JSON.parse(json) as unknown;
-    return Array.isArray(parsed) ? (parsed as T[]) : [];
-  }
-
-  private resolveDraftTitle(topic: string, draftContent: string): string {
-    const firstLine = draftContent.split('\n')[0]?.replace(/^#\s*/, '').trim();
-    return firstLine || topic;
   }
 
   private extractSummary(content: string): string {

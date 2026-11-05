@@ -19,6 +19,9 @@ import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const NON_SLUG_CHARS_PATTERN = /[^a-z0-9-]/g;
+
 export default function ModalRole({ onConfirm }: ModalRoleProps) {
   const t = useTranslations('ui.createModal');
   const { form, formRef, isSubmitting, onSubmit, closeModal } = useCrudModal<
@@ -43,8 +46,8 @@ export default function ModalRole({ onConfirm }: ModalRoleProps) {
     if (name === 'key') {
       const formattedKey = value
         .toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9-]/g, '');
+        .replace(WHITESPACE_RUNS_PATTERN, '-')
+        .replace(NON_SLUG_CHARS_PATTERN, '');
       form.setValue('key', formattedKey, { shouldValidate: true });
       return;
     }

@@ -16,6 +16,8 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import type { Context } from 'grammy';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//;
+
 type TelegramMediaOutput = {
   type: 'image' | 'video';
   url: string;
@@ -224,7 +226,10 @@ export class TelegramWorkflowRunnerService {
       inheritedType?: TelegramMediaOutput['type'],
     ): void => {
       if (typeof candidate === 'string') {
-        if (!/^https?:\/\//.test(candidate) || seen.has(candidate)) {
+        if (
+          !HTTP_PROTOCOL_PREFIX_PATTERN.test(candidate) ||
+          seen.has(candidate)
+        ) {
           return;
         }
         const normalizedKey = key.toLowerCase();

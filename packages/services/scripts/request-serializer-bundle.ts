@@ -10,6 +10,16 @@ import {
 
 export { readPinnedAppRuntime } from './request-serializer-build-receipt';
 
+const SERIALIZERS_PACKAGE_PATH_PATTERN = /\/packages\/serializers\//;
+const FORBIDDEN_NODE_MODULE_PATH_PATTERN =
+  /\/node_modules\/(?:ts-jsonapi|lodash)\//;
+const TURBOPACK_CHUNK_PATH_PATTERN = /\/turbopack-/;
+const BRACKETED_SOURCE_PREFIX_PATTERN = /^\[[^\]]+\]\//;
+const REQUEST_SERIALIZERS_RUNTIME_PATH_PATTERN =
+  /\/packages\/services\/core\/request-serializers\.runtime\.ts/;
+const TS_JSONAPI_PATH_PATTERN = /\/node_modules\/ts-jsonapi\//;
+const LODASH_PATH_PATTERN = /\/node_modules\/lodash\//;
+
 const coverage = z.enum(['exact', 'unsupported', 'not_a_chunk']);
 const recordSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('meta'), schema_version: z.literal(1) }),
@@ -147,8 +157,8 @@ function isClientJavaScript(file: string): boolean {
 
 function forbiddenSource(source: string): boolean {
   return (
-    /\/packages\/serializers\//.test(source) ||
-    /\/node_modules\/(?:ts-jsonapi|lodash)\//.test(source)
+    SERIALIZERS_PACKAGE_PATH_PATTERN.test(source) ||
+    FORBIDDEN_NODE_MODULE_PATH_PATTERN.test(source)
   );
 }
 
@@ -194,7 +204,7 @@ export function verifyRequestSerializerBundle(
             if (!output) throw new Error(`Missing analyzer output: ${file}`);
             if (
               output.coverage === 'not_a_chunk' &&
-              /\/turbopack-/.test(file) &&
+              TURBOPACK_CHUNK_PATH_PATTERN.test(file) &&
               output.modules.length === 0
             )
               return [];
@@ -263,7 +273,9 @@ export function verifyRequestSerializerBundle(
           paths: sources
             .filter((source) => match.test(source))
             .slice(0, 5)
-            .map((source) => source.replace(/^\[[^\]]+\]\//, '')),
+            .map((source) =>
+              source.replace(BRACKETED_SOURCE_PREFIX_PATTERN, ''),
+            ),
         };
       }
       return {
@@ -278,12 +290,10 @@ export function verifyRequestSerializerBundle(
         ),
         actualEmittedGzipBytes: null,
         sources: {
-          canonical: evidence(/\/packages\/serializers\//),
-          runtime: evidence(
-            /\/packages\/services\/core\/request-serializers\.runtime\.ts/,
-          ),
-          tsJsonapi: evidence(/\/node_modules\/ts-jsonapi\//),
-          lodash: evidence(/\/node_modules\/lodash\//),
+          canonical: evidence(SERIALIZERS_PACKAGE_PATH_PATTERN),
+          runtime: evidence(REQUEST_SERIALIZERS_RUNTIME_PATH_PATTERN),
+          tsJsonapi: evidence(TS_JSONAPI_PATH_PATTERN),
+          lodash: evidence(LODASH_PATH_PATTERN),
         },
         otherSourcePaths: sources
           .filter(
@@ -294,7 +304,7 @@ export function verifyRequestSerializerBundle(
               ),
           )
           .slice(0, 10)
-          .map((source) => source.replace(/^\[[^\]]+\]\//, '')),
+          .map((source) => source.replace(BRACKETED_SOURCE_PREFIX_PATTERN, '')),
       };
     }
     if (leaked.length)

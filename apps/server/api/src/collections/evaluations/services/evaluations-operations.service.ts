@@ -28,6 +28,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const JSON_OBJECT_PATTERN = /\{[\s\S]*\}/;
+
 interface EvaluationContext {
   prompt?: string;
   /** Stored video duration; frame sampling probes the file only without it. */
@@ -134,7 +136,7 @@ export class EvaluationsOperationsService {
     try {
       return JSON.parse(output);
     } catch {
-      const jsonMatch = output.match(/\{[\s\S]*\}/);
+      const jsonMatch = output.match(JSON_OBJECT_PATTERN);
       if (jsonMatch) {
         try {
           return JSON.parse(jsonMatch[0]);

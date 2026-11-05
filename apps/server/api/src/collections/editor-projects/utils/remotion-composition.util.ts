@@ -9,6 +9,8 @@ import type {
   IRemotionCompositionProject,
 } from '@genfeedai/contracts/interfaces';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 export function buildProductStoryComposition(
   input: IRemotionCompositionInput,
 ): IRemotionCompositionProject {
@@ -126,7 +128,7 @@ export function buildProductStoryComposition(
 export function wrapCompositionText(text: string, width: number): string {
   const words = text
     .trim()
-    .split(/\s+/)
+    .split(WHITESPACE_RUN_PATTERN)
     .flatMap((word) => word.match(new RegExp(`.{1,${width}}`, 'gu')) ?? []);
   const lines: string[] = [];
   for (const word of words) {

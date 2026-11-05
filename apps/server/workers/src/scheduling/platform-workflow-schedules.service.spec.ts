@@ -364,13 +364,8 @@ describe('PlatformWorkflowSchedulesService', () => {
         isDeleted: false,
         status: 'PENDING',
         idempotencyKey: { startsWith: 'proactive:' },
-        result: { path: ['metadata', 'source'], equals: 'proactive' },
-        OR: [
-          {
-            organizationId: 'org-1',
-            result: { path: ['metadata', 'strategyId'], equals: 'strategy-1' },
-          },
-        ],
+        source: 'proactive',
+        OR: [{ organizationId: 'org-1', strategyId: 'strategy-1' }],
       },
       select: { organizationId: true },
     });

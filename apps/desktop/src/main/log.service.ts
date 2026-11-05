@@ -1,18 +1,18 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+const GENFEED_KEY_IN_LOG_PATTERN =
+  /(^|[^A-Za-z0-9._-])gf_[A-Za-z0-9._-]+(?=$|[^A-Za-z0-9._-])/g;
+const BEARER_TOKEN_PATTERN = /\bBearer\s+[A-Za-z0-9._~+/=-]+/gi;
+const SECRET_LOG_FIELD_PATTERN =
+  /("?(?:apiKey|cookieValue|token)"?\s*[:=]\s*")([^"\s]+)(")/gi;
+
 const MAX_LOG_BYTES = 2 * 1024 * 1024;
 export function redactDesktopLogLine(value: string): string {
   return value
-    .replace(
-      /(^|[^A-Za-z0-9._-])gf_[A-Za-z0-9._-]+(?=$|[^A-Za-z0-9._-])/g,
-      '$1[REDACTED]',
-    )
-    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
-    .replace(
-      /("?(?:apiKey|cookieValue|token)"?\s*[:=]\s*")([^"\s]+)(")/gi,
-      '$1[REDACTED]$3',
-    );
+    .replace(GENFEED_KEY_IN_LOG_PATTERN, '$1[REDACTED]')
+    .replace(BEARER_TOKEN_PATTERN, 'Bearer [REDACTED]')
+    .replace(SECRET_LOG_FIELD_PATTERN, '$1[REDACTED]$3');
 }
 
 export class DesktopLogService {

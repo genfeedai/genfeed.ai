@@ -1,5 +1,7 @@
 import { isObjectLike } from '@genfeedai/utils/data/extract.util';
 
+const CREDITS_DEPLETED_ERROR_PATTERN = /credits?-?depleted/i;
+
 function readFiniteNumber(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
@@ -336,7 +338,8 @@ export function isTwitterCreditsDepletedError(error: unknown): boolean {
   const title = typeof data?.title === 'string' ? data.title : '';
   const type = typeof data?.type === 'string' ? data.type : '';
   return (
-    readStatus(error) === 402 || /credits?-?depleted/i.test(`${title} ${type}`)
+    readStatus(error) === 402 ||
+    CREDITS_DEPLETED_ERROR_PATTERN.test(`${title} ${type}`)
   );
 }
 

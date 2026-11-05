@@ -5,6 +5,8 @@ import {
   handleContentCampaignTool,
 } from '@mcp/tools/content-campaign.tool';
 
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 export const CONTENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   ...CONTENT_CAMPAIGN_TOOL_NAMES,
   'create_article_draft',
@@ -37,8 +39,7 @@ export async function handleContentTool(
     case 'create_article_draft': {
       const label = requireArticleString(args, 'label', 200);
       const slug = requireArticleString(args, 'slug', 160);
-      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))
-        throw new Error('Invalid article slug');
+      if (!SLUG_PATTERN.test(slug)) throw new Error('Invalid article slug');
       const summary = requireArticleString(args, 'summary', 500);
       const content = requireArticleString(args, 'content', 250000);
       const coverImageUrl =

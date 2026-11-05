@@ -37,6 +37,20 @@ import { Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 import { buildLogoDevLogoUrl } from './logo-dev-logo.util';
 
+const EMPLOYEE_COUNT_PATTERN = /\d+.*employee/;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const X_PROFILE_HANDLE_PATTERN = /(?:twitter\.com|x\.com)\/([^/?#]+)/;
+const EMOJI_PATTERN =
+  /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}]/u;
+const CSS_CONTENT_TYPE_PATTERN = /^text\/css(?:\s*;|\s*$)/i;
+const STYLESHEET_LIMIT_ERROR_PATTERN =
+  /^stylesheet_(content_type|size_limit|total_limit)$/;
+const TOO_MANY_REDIRECTS_ERROR_PATTERN = /Too many redirects/;
+const BLOCKED_STYLESHEET_ERROR_PATTERN =
+  /blocked|private|unsafe|Invalid redirect|Unsupported stylesheet URL/i;
+const SHOPIFY_COLLECTION_PATH_PATTERN = /^\/collections\/([^/]+)/;
+const HTTPS_PREFIX_PATTERN = /^https:\/\//i;
+
 const WEBSITE_TIMEOUT_MS = 60_000;
 /**
  * Logged-out LinkedIn company pages put each update's text in the activity
@@ -280,14 +294,14 @@ export class BrandScraperService {
         if (text.includes('industr')) {
           result.industry = $(el).next().text().trim() || text;
         }
-        if (text.includes('employee') || text.match(/\d+.*employee/)) {
+        if (text.includes('employee') || text.match(EMPLOYEE_COUNT_PATTERN)) {
           result.employeeCount = text;
         }
       });
 
       const recentPosts = new Set<string>();
       $(LINKEDIN_POST_TEXT_SELECTOR).each((_i, el) => {
-        const text = $(el).text().replace(/\s+/g, ' ').trim();
+        const text = $(el).text().replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
         if (text.length >= LINKEDIN_POST_MIN_LENGTH) {
           recentPosts.add(text.slice(0, LINKEDIN_POST_MAX_LENGTH));
         }
@@ -321,9 +335,7 @@ export class BrandScraperService {
       const $ = cheerio.load(html);
 
       // Extract handle from URL
-      const handleMatch = normalizedUrl.match(
-        /(?:twitter\.com|x\.com)\/([^/?#]+)/,
-      );
+      const handleMatch = normalizedUrl.match(X_PROFILE_HANDLE_PATTERN);
       const handle = handleMatch?.[1];
 
       const result: XProfileScrapedData = {
@@ -362,10 +374,7 @@ export class BrandScraperService {
       if (result.recentTweets.length > 0) {
         const allText = result.recentTweets.join(' ');
         result.contentStyle.usesHashtags = allText.includes('#');
-        result.contentStyle.usesEmojis =
-          /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}]/u.test(
-            allText,
-          );
+        result.contentStyle.usesEmojis = EMOJI_PATTERN.test(allText);
         result.contentStyle.avgTweetLength = Math.round(
           result.recentTweets.reduce((sum, t) => sum + t.length, 0) /
             result.recentTweets.length,
@@ -604,7 +613,7 @@ export class BrandScraperService {
         );
         if (!sheetResponse.ok) throw new Error('stylesheet_failed');
         if (
-          !/^text\/css(?:\s*;|\s*$)/i.test(
+          !CSS_CONTENT_TYPE_PATTERN.test(
             sheetResponse.headers.get('content-type') ?? '',
           )
         )
@@ -627,13 +636,11 @@ export class BrandScraperService {
           performance.now() >= budget.deadlineAt ||
           message === 'deadline_exceeded'
             ? 'deadline_exceeded'
-            : /^stylesheet_(content_type|size_limit|total_limit)$/.test(message)
+            : STYLESHEET_LIMIT_ERROR_PATTERN.test(message)
               ? message
-              : /Too many redirects/.test(message)
+              : TOO_MANY_REDIRECTS_ERROR_PATTERN.test(message)
                 ? 'stylesheet_redirect_limit'
-                : /blocked|private|unsafe|Invalid redirect|Unsupported stylesheet URL/i.test(
-                      message,
-                    )
+                : BLOCKED_STYLESHEET_ERROR_PATTERN.test(message)
                   ? 'stylesheet_unsafe'
                   : 'stylesheet_failed';
         diagnostics.push(
@@ -682,7 +689,9 @@ export class BrandScraperService {
     diagnostics: IBrandKitDiagnostic[],
   ): Promise<void> {
     const page = new URL(pageUrl);
-    const collection = page.pathname.match(/^\/collections\/([^/]+)/)?.[1];
+    const collection = page.pathname.match(
+      SHOPIFY_COLLECTION_PATH_PATTERN,
+    )?.[1];
     const feedPaths =
       collection && collection !== 'all'
         ? [`/collections/${collection}/products.json`, '/products.json']
@@ -712,7 +721,7 @@ export class BrandScraperService {
         ) as ShopifyProductsFeed;
         const productImages = (feed.products ?? [])
           .map((product) => product.images?.[0]?.src)
-          .filter((src): src is string => /^https:\/\//i.test(src ?? ''))
+          .filter((src): src is string => HTTPS_PREFIX_PATTERN.test(src ?? ''))
           .slice(0, MAX_SHOPIFY_PRODUCT_IMAGES);
         if (productImages.length === 0) continue;
 

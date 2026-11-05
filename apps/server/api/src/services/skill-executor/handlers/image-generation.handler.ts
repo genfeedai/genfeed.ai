@@ -15,6 +15,9 @@ import type { ByokResolutionResult } from '@genfeedai/contracts/interfaces';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+const PROVIDER_CAPACITY_ERROR_PATTERN =
+  /unavailable|high demand|capacity|rate limit|too many requests/i;
+
 /**
  * Detects provider capacity/availability errors that warrant failover.
  * Auth errors (401) and input errors (400) are NOT retryable.
@@ -26,12 +29,7 @@ function isProviderCapacityError(error: unknown): boolean {
 
   if (status === 503 || status === 429 || status === 502) return true;
   if (code === 'E003') return true;
-  if (
-    /unavailable|high demand|capacity|rate limit|too many requests/i.test(
-      message,
-    )
-  )
-    return true;
+  if (PROVIDER_CAPACITY_ERROR_PATTERN.test(message)) return true;
 
   return false;
 }

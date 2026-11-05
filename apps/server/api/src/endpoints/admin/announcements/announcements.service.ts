@@ -32,6 +32,8 @@ import {
 } from '@nestjs/common';
 import { TwitterApi } from 'twitter-api-v2';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 type AnnouncementBroadcastRequest = {
   authorId: string;
   body: string;
@@ -335,7 +337,7 @@ export class AdminAnnouncementsService implements OnModuleInit {
     }
 
     const handle = credential.externalHandle ?? 'i';
-    const cleanHandle = handle.replace(/^@/, '');
+    const cleanHandle = handle.replace(LEADING_AT_SIGN_PATTERN, '');
     const tweetUrl = `https://x.com/${cleanHandle}/status/${tweetId}`;
 
     return { tweetId, tweetUrl };

@@ -10,6 +10,8 @@ import { ParseMode } from '@genfeedai/contracts';
 import { Traced } from '@libs/tracing/traced';
 import type { Context } from 'grammy';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 export class TelegramAuthContextService {
   private readonly chatAuthContexts = new Map<number, ChatAuthContext>();
   private defaultAuthContext: ChatAuthContext | null = null;
@@ -135,7 +137,7 @@ export class TelegramAuthContextService {
       // Best-effort: the bot may not have permission to delete the message.
     }
 
-    const apiKeyRaw = args.split(/\s+/)[0];
+    const apiKeyRaw = args.split(WHITESPACE_RUN_PATTERN)[0];
     if (!apiKeyRaw.startsWith('gf_')) {
       await ctx.reply('❌ Invalid key format. Keys must start with `gf_`.');
       return;

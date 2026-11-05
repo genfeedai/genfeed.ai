@@ -27,6 +27,8 @@ import {
   Injectable,
 } from '@nestjs/common';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 export const AGENT_MEMORY_REVISION_PAGE_DEFAULT = 20;
 export const AGENT_MEMORY_REVISION_PAGE_MAX = 50;
 
@@ -61,7 +63,7 @@ export interface AgentMemoryCorrectionResult {
 const SUMMARY_LENGTH = 220;
 
 function summarize(content: string): string {
-  const flat = content.trim().replace(/\s+/g, ' ');
+  const flat = content.trim().replace(WHITESPACE_RUNS_PATTERN, ' ');
   return flat.length <= SUMMARY_LENGTH
     ? flat
     : `${flat.slice(0, SUMMARY_LENGTH - 3)}...`;

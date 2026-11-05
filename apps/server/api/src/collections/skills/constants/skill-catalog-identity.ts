@@ -1,3 +1,5 @@
+const NON_ALPHANUMERIC_CHARS_PATTERN = /[^a-z0-9]/g;
+
 /**
  * Stable identity scheme for the executable + first-party built-in catalog.
  *
@@ -46,7 +48,7 @@ export type OriginalBuiltInSkillSlug =
 export function compactBuiltInSkillId(slug: string): string {
   return `${BUILT_IN_SKILL_ID_PREFIX}${slug
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, '')}`;
+    .replace(NON_ALPHANUMERIC_CHARS_PATTERN, '')}`;
 }
 
 export function isOriginalBuiltInSkillSlug(

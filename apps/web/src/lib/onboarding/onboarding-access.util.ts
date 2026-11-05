@@ -18,6 +18,8 @@ import {
 } from '@genfeedai/helpers';
 import { EnvironmentService } from '@services/core/environment.service';
 
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+
 export const ONBOARDING_ACCESS_SOURCE = 'oss-onboarding';
 
 const SUBSCRIPTION_TIER_LABELS: Record<string, string> = {
@@ -141,7 +143,7 @@ function readTrimmedParam(params: URLSearchParams, key: string): string | null {
 export function parsePositiveInteger(value?: string | null): string | null {
   const normalizedValue = value?.trim();
 
-  if (!normalizedValue || !/^\d+$/.test(normalizedValue)) {
+  if (!normalizedValue || !DIGITS_ONLY_PATTERN.test(normalizedValue)) {
     return null;
   }
 

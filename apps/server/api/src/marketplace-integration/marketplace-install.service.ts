@@ -9,6 +9,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 interface InstallResult {
   resourceId: string;
   resourceType: string;
@@ -166,7 +168,8 @@ export class MarketplaceInstallService {
     );
 
     const slug =
-      (downloadData.slug as string) || title.toLowerCase().replace(/\s+/g, '-');
+      (downloadData.slug as string) ||
+      title.toLowerCase().replace(WHITESPACE_RUNS_PATTERN, '-');
 
     const skill = await this.skillsService.createSkill(organizationId, {
       description: downloadData.description as string | undefined,

@@ -126,56 +126,65 @@ export class AnalyticsAggregationService {
     const brandFilter = this.buildBrandSqlPredicate(brandId);
     const orgFilter = Prisma.sql`AND "organizationId" = ${organizationId}`;
 
-    const [currentRow, previousRow, platformRows] = await Promise.all([
-      this.prisma.$queryRaw<
-        Array<{
-          total_comments: number;
-          total_likes: number;
-          total_posts: number;
-          total_saves: number;
-          total_shares: number;
-          total_views: number;
-        }>
-      >(
-        analyticsPeriodTotalsSql({
-          brandFilter,
-          endDate: parsedEndDate,
-          orgFilter,
-          startDate: parsedStartDate,
-        }),
-      ),
-      this.prisma.$queryRaw<
-        Array<{
-          total_comments: number;
-          total_likes: number;
-          total_saves: number;
-          total_shares: number;
-          total_views: number;
-        }>
-      >(
-        analyticsPeriodTotalsSql({
-          brandFilter,
-          endDate: previousEndDate,
-          orgFilter,
-          startDate: previousStartDate,
-        }),
-      ),
-      this.prisma.postAnalytics.groupBy({
-        _sum: { totalViews: true },
-        by: ['platform'],
-        orderBy: { _sum: { totalViews: 'desc' } },
-        take: 20,
-        where: scopedWhere(
-          organizationId,
-          this.buildPostAnalyticsWhere({
-            brandId,
+    const [currentRow, previousRow, platformRows, postCount, totalBrands] =
+      await Promise.all([
+        this.prisma.$queryRaw<
+          Array<{
+            total_comments: number;
+            total_likes: number;
+            total_posts: number;
+            total_saves: number;
+            total_shares: number;
+            total_views: number;
+          }>
+        >(
+          analyticsPeriodTotalsSql({
+            brandFilter,
             endDate: parsedEndDate,
-            organizationId,
+            orgFilter,
             startDate: parsedStartDate,
           }),
         ),
-      }),
-    ]);
+        this.prisma.$queryRaw<
+          Array<{
+            total_comments: number;
+            total_likes: number;
+            total_saves: number;
+            total_shares: number;
+            total_views: number;
+          }>
+        >(
+          analyticsPeriodTotalsSql({
+            brandFilter,
+            endDate: previousEndDate,
+            orgFilter,
+            startDate: previousStartDate,
+          }),
+        ),
+        this.prisma.postAnalytics.groupBy({
+          _sum: { totalViews: true },
+          by: ['platform'],
+          orderBy: { _sum: { totalViews: 'desc' } },
+          take: 20,
+          where: scopedWhere(
+            organizationId,
+            this.buildPostAnalyticsWhere({
+              brandId,
+              endDate: parsedEndDate,
+              organizationId,
+              startDate: parsedStartDate,
+            }),
+          ),
+        }),
+        this.postsService.count(organizationId, {
+          ...(brandId ? { brandId } : {}),
+        }),
+        // Authoritative brand count for the organization — org-scoped and
+        // soft-delete-aware so the "Total Brands" metric matches the brand switcher.
+        this.prisma.brand.count({
+          where: scopedWhere(organizationId, {}),
+        }),
+      ]);
 
     const current = currentRow[0];
     const previous = previousRow[0];
@@ -208,17 +217,6 @@ export class AnalyticsAggregationService {
         totalViews: Number(previous?.total_views ?? 0),
       },
     };
-
-    // Authoritative brand count for the organization — org-scoped and
-    // soft-delete-aware so the "Total Brands" metric matches the brand switcher.
-    const [postCount, totalBrands] = await Promise.all([
-      this.postsService.count(organizationId, {
-        ...(brandId ? { brandId } : {}),
-      }),
-      this.prisma.brand.count({
-        where: scopedWhere(organizationId, {}),
-      }),
-    ]);
 
     // Prisma label (`INSTAGRAM`) in, domain id (`instagram`) out
     // (genfeedai/genfeed.ai#5424).

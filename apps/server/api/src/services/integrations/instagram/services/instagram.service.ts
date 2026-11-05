@@ -47,6 +47,8 @@ import {
 } from './instagram-analytics.service';
 import { InstagramPublishingService } from './instagram-publishing.service';
 
+const HASHTAGS_PATTERN = /#\w+/g;
+
 function requireString(
   value: string | null | undefined,
   field: string,
@@ -552,7 +554,7 @@ export class InstagramService {
                 }>
               ).forEach((post) => {
                 const caption = post.caption || '';
-                const hashtags = caption.match(/#\w+/g) || [];
+                const hashtags = caption.match(HASHTAGS_PATTERN) || [];
                 hashtags.forEach((tag: string) => {
                   const count =
                     (post.like_count || 0) + (post.comments_count || 0);

@@ -45,6 +45,8 @@ import {
   resolveInterviewQuestionCatalog,
 } from '../constants/brand-interview-question-catalog.constant';
 
+const ANSWER_SEPARATOR_PATTERN = /[\n,]+/;
+
 @Traced()
 @Injectable()
 export class BrandInterviewService {
@@ -636,7 +638,7 @@ export class BrandInterviewService {
   ): string | string[] {
     if (question.answerType === 'list') {
       const items = raw
-        .split(/[\n,]+/)
+        .split(ANSWER_SEPARATOR_PATTERN)
         .map((s) => s.trim())
         .filter((s) => s.length > 0);
       if (items.length === 0) {

@@ -32,6 +32,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+const RATE_LIMIT_ERROR_PATTERN = /rate[\s_-]?limit/i;
+
 @Traced()
 @Injectable()
 export class WorkflowSocialExecutorRegistrarService {
@@ -131,7 +134,7 @@ export class WorkflowSocialExecutorRegistrarService {
       }
 
       const limit = Math.min(Math.max(params.limit, 1), 50);
-      let username = params.username?.replace(/^@/, '');
+      let username = params.username?.replace(LEADING_AT_SIGN_PATTERN, '');
       let accessToken: string | undefined;
 
       if (params.brandId) {
@@ -152,7 +155,9 @@ export class WorkflowSocialExecutorRegistrarService {
             organizationId: params.organizationId,
             platform: CredentialPlatform.TWITTER,
           });
-          username = credential?.username?.replace(/^@/, '') || undefined;
+          username =
+            credential?.username?.replace(LEADING_AT_SIGN_PATTERN, '') ||
+            undefined;
         }
       }
 
@@ -582,7 +587,7 @@ export function formatSocialReadProviderError(error: unknown): Error {
   const isRateLimit =
     shape.code === 429 ||
     Boolean(shape.rateLimit) ||
-    /rate[\s_-]?limit/i.test(message);
+    RATE_LIMIT_ERROR_PATTERN.test(message);
 
   if (isRateLimit) {
     const resetIso = readRateLimitResetIso(shape);

@@ -28,6 +28,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 type LlmProvider = 'anthropic' | 'openai' | 'openrouter' | 'local';
 
 /**
@@ -245,7 +247,7 @@ export class LlmDispatcherService {
           return this.openAiLlmService.chatCompletion(
             params,
             undefined,
-            `${endpoint?.replace(/\/$/, '')}/v1`,
+            `${endpoint?.replace(TRAILING_SLASH_PATTERN, '')}/v1`,
           );
         default:
           return this.openRouterService.chatCompletion(params, apiKeyOverride);

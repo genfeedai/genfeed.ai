@@ -40,6 +40,8 @@ import { Traced } from '@libs/tracing/traced';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, Optional } from '@nestjs/common';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+
 /** Maps a workflow videoStitch step onto the stitch service. */
 export function toWorkflowStitchRequest(
   params: VideoStitchProcessorParams,
@@ -552,7 +554,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
       if (trimmed.length === 0) {
         continue;
       }
-      if (/^https?:\/\//i.test(trimmed)) {
+      if (HTTP_PROTOCOL_PREFIX_PATTERN.test(trimmed)) {
         resolved.push(trimmed);
         continue;
       }

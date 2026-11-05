@@ -3,6 +3,12 @@ import type { MediaPerceptionFingerprint } from '@genfeedai/contracts/api-types/
 import type { MediaProbe } from '@genfeedai/contracts/api-types/contracts/media-readiness.contract';
 import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 
+const SEEDANCE_2_0_REFERENCE_TO_VIDEO_PATTERN =
+  /^bytedance\/seedance-2\.0\/(?:fast\/|mini\/|us\/)?reference-to-video$/;
+const SEEDANCE_2_5_REFERENCE_TO_VIDEO_PATTERN =
+  /^bytedance\/seedance-2\.5\/(?:us\/)?reference-to-video$/;
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 /** Populated only by tenant-scoped stored-asset lookup and measured file bytes. */
 export interface SeedanceVideoReferenceEvidence {
   assetId: string;
@@ -74,14 +80,8 @@ export function measuredSeedanceVideoReference(
 }
 
 export function seedanceVideoReferenceLimit(endpoint: string): number | null {
-  if (
-    /^bytedance\/seedance-2\.0\/(?:fast\/|mini\/|us\/)?reference-to-video$/.test(
-      endpoint,
-    )
-  )
-    return 3;
-  if (/^bytedance\/seedance-2\.5\/(?:us\/)?reference-to-video$/.test(endpoint))
-    return 10;
+  if (SEEDANCE_2_0_REFERENCE_TO_VIDEO_PATTERN.test(endpoint)) return 3;
+  if (SEEDANCE_2_5_REFERENCE_TO_VIDEO_PATTERN.test(endpoint)) return 10;
   return null;
 }
 
@@ -111,7 +111,7 @@ export function bindSeedanceVideoReferences(
       !reference.assetId ||
       !reference.sourceKey ||
       reference.organizationId !== organizationId ||
-      !/^[a-f0-9]{64}$/.test(reference.sourceVersion) ||
+      !SHA256_HEX_PATTERN.test(reference.sourceVersion) ||
       ![width, height, sizeBytes].every(
         (value) => Number.isSafeInteger(value) && value > 0,
       ) ||
@@ -178,7 +178,7 @@ export function assertSeedanceReferenceBinding(
   actual: SeedanceReferenceQuoteEvidence,
 ): void {
   if (
-    !/^[a-f0-9]{64}$/.test(expected.referenceEvidenceHash) ||
+    !SHA256_HEX_PATTERN.test(expected.referenceEvidenceHash) ||
     expected.referenceEvidenceHash !== actual.referenceEvidenceHash ||
     expected.inputDuration !== actual.inputDuration
   )

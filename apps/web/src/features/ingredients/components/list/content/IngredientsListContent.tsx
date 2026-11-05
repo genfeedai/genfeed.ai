@@ -74,6 +74,8 @@ import type { IngredientsListContentProps } from '@/features/ingredients/props/i
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import type { IngredientTimeGroupHeadingProps } from '@/props/content/ingredient.props';
 
+const IMAGE_URL_EXTENSION_PATTERN = /\.(avif|gif|jpe?g|png|webp)(?:$|[?#])/i;
+
 // React Flow is heavier than the whole grid; only the canvas view pays for it.
 const LibraryCanvas = dynamic(
   () =>
@@ -156,8 +158,9 @@ function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
   // Video grants can point at extensionless delivery endpoints. Only a known
   // image suffix identifies an authorized poster; retained raw URLs never
   // replace a pending or failed capability.
-  const imageSuffix = /\.(avif|gif|jpe?g|png|webp)(?:$|[?#])/i;
-  const grantIsPoster = Boolean(grant?.url && imageSuffix.test(grant.url));
+  const grantIsPoster = Boolean(
+    grant?.url && IMAGE_URL_EXTENSION_PATTERN.test(grant.url),
+  );
   const placeholderPrefix = `${EnvironmentService.assetsEndpoint}/placeholders/`;
   const thumbnailUrl = ingredient.thumbnailUrl;
   const legacyVideoUrl = ingredient.ingredientUrl;
@@ -166,7 +169,7 @@ function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
       !thumbnailUrl.startsWith(placeholderPrefix)
       ? thumbnailUrl
       : legacyVideoUrl &&
-          imageSuffix.test(legacyVideoUrl) &&
+          IMAGE_URL_EXTENSION_PATTERN.test(legacyVideoUrl) &&
           !legacyVideoUrl.startsWith(placeholderPrefix)
         ? legacyVideoUrl
         : undefined
@@ -189,7 +192,7 @@ function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
           : null
         : legacyVideoUrl &&
             !legacyVideoUrl.startsWith(placeholderPrefix) &&
-            !imageSuffix.test(legacyVideoUrl)
+            !IMAGE_URL_EXTENSION_PATTERN.test(legacyVideoUrl)
           ? legacyVideoUrl
           : null
       : null;

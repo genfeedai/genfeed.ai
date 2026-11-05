@@ -1,6 +1,8 @@
 import type { ToolCallSummary } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { type AgentUiAction } from '@genfeedai/contracts/interfaces';
 
+const SENTENCE_OR_LINE_BREAK_PATTERN = /(?<=[.!?])\s+|\n+/;
+
 /**
  * Sent once when the model announces finished drafts that this turn never
  * produced, so the next round writes them instead of only saying so.
@@ -23,7 +25,7 @@ const MIN_BODY_LINE_LENGTH = 30;
 
 function sentencesOf(content: string): string[] {
   return content
-    .split(/(?<=[.!?])\s+|\n+/)
+    .split(SENTENCE_OR_LINE_BREAK_PATTERN)
     .map((sentence) => sentence.trim())
     .filter((sentence) => sentence.length > 0);
 }

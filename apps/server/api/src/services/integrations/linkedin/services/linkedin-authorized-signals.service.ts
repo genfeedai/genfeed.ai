@@ -73,6 +73,8 @@ export {
   LINKEDIN_PROFILE_SCOPE,
 } from './linkedin-authorized-signals-evidence.mapper';
 
+const LINKEDIN_ORGANIZATION_URN_PATTERN = /urn:li:organization:(\d+)/;
+
 const LINKEDIN_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS = 5 * 60;
 const LINKEDIN_STALE_SIGNALS_CACHE_TTL_SECONDS = 60;
 const LINKEDIN_AUTHORIZED_SIGNALS_STORAGE_KEY = 'linkedinAuthorized';
@@ -152,7 +154,7 @@ function organizationIdFromUrn(urn: string | undefined): string | undefined {
   if (!urn) {
     return undefined;
   }
-  const match = urn.match(/urn:li:organization:(\d+)/);
+  const match = urn.match(LINKEDIN_ORGANIZATION_URN_PATTERN);
   return match?.[1];
 }
 

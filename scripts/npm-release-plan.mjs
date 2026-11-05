@@ -15,6 +15,8 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readPackageInventory } from './publish-packages-from-json.mjs';
 
+const NPM_NOT_FOUND_ERROR_PATTERN = /E404|No match found|Not Found/i;
+
 const ENROLLMENT_FILE = 'scripts/npm-release-enrollment.json';
 const RUNTIME_DEPENDENCY_FIELDS = [
   'dependencies',
@@ -224,7 +226,7 @@ function npmPublishedVersions(packageName) {
   }
 
   const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
-  if (/E404|No match found|Not Found/i.test(output)) return null;
+  if (NPM_NOT_FOUND_ERROR_PATTERN.test(output)) return null;
   fail(`npm view ${packageName} failed\n${output.trim()}`);
 }
 
