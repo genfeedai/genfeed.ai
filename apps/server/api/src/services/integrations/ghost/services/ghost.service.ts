@@ -27,6 +27,8 @@ import { Injectable } from '@nestjs/common';
 import jwt from 'jsonwebtoken';
 import { firstValueFrom } from 'rxjs';
 
+const HTTP_SCHEME_PATTERN = /^https?:\/\//i;
+
 @Traced()
 @Injectable()
 export class GhostService {
@@ -316,7 +318,7 @@ export class GhostService {
     let normalized = trimTrailingCharacter(ghostUrl, '/');
 
     // The connect form keeps the scheme as typed, so `HTTPS://` counts too.
-    if (!/^https?:\/\//i.test(normalized)) {
+    if (!HTTP_SCHEME_PATTERN.test(normalized)) {
       normalized = `https://${normalized}`;
     }
 
