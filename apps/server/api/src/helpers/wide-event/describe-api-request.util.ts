@@ -1,7 +1,4 @@
-import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import type { Request } from 'express';
-
-type AuthenticatedRequest = Request & { user?: AuthenticatedUser };
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 
 /**
  * Business context every API wide event carries: who made the request, for
@@ -10,10 +7,14 @@ type AuthenticatedRequest = Request & { user?: AuthenticatedUser };
  * for requests that were rejected after authentication.
  */
 export function describeApiRequest(
-  request: AuthenticatedRequest,
+  request: RequestWithContext,
 ): Record<string, unknown> {
   const user = request.user;
   if (!user) return { auth_method: 'anonymous' };
+
+  // Role and plan come from the hydrated request context, which honours the
+  // admin IP allowlist, not from the raw identity.
+  const context = request.context;
 
   return {
     action_origin: user.actionOrigin,
@@ -23,8 +24,8 @@ export function describeApiRequest(
     organization: { id: user.organizationId },
     user: {
       id: user.userId || user.id,
-      is_super_admin: user.isSuperAdmin ? true : undefined,
-      subscription_tier: user.subscriptionTier,
+      is_super_admin: context?.isSuperAdmin ? true : undefined,
+      subscription_tier: context?.subscriptionTier,
     },
   };
 }
