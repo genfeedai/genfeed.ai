@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((payload: Record<string, string>) => ({
     errors: [payload],
@@ -164,12 +166,14 @@ describe('InstagramController', () => {
 
     const accountsMock = {
       findOne: brandsFindOneMock,
+      findOneSelect: delegateFindOneSelect(),
     } as unknown as BrandsService;
 
     const credentialsMock = {
       beginOAuthForBrand: credentialsBeginOAuthForBrandMock,
       findConnectedAccounts: credentialsFindConnectedAccountsMock,
       findOne: credentialsFindOneMock,
+      findOneSelect: delegateFindOneSelect(),
       findPendingOAuthCredential: credentialsFindPendingOAuthCredentialMock,
       patch: credentialsPatchMock,
       resolveBrandAccount: credentialsResolveBrandAccountMock,
@@ -911,6 +915,7 @@ describe('InstagramController', () => {
           userId: 'user-id',
         }),
         findOne: vi.fn(),
+        findOneSelect: delegateFindOneSelect(),
         patch: vi.fn(),
       } as unknown as CredentialsService;
       const emptyConnectionResolver = new InstagramConnectionResolverService(
@@ -924,7 +929,10 @@ describe('InstagramController', () => {
       );
       const ctrl = new InstagramController(
         emptyConfigMock,
-        { findOne: vi.fn() } as unknown as BrandsService,
+        {
+          findOne: vi.fn(),
+          findOneSelect: delegateFindOneSelect(),
+        } as unknown as BrandsService,
         emptyCredentialsMock,
         instagramServiceMock as unknown as InstagramService,
         instagramAuthorizedSignalsServiceMock as unknown as InstagramAuthorizedSignalsService,

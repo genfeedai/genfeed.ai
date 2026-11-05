@@ -31,11 +31,14 @@ export class AgentGenerationScopeService {
   ): Promise<{ brandId: string } | { error: AgentToolResult }> {
     const explicitId = this.readId(params.brandId);
     if (explicitId) {
-      const brand = await this.brandsService.findOne({
-        id: explicitId,
-        isDeleted: false,
-        organizationId: ctx.organizationId,
-      });
+      const brand = await this.brandsService.findOneSelect(
+        {
+          id: explicitId,
+          isDeleted: false,
+          organizationId: ctx.organizationId,
+        },
+        { id: true },
+      );
       if (!brand?.id) {
         return {
           error: {
@@ -49,11 +52,14 @@ export class AgentGenerationScopeService {
     }
 
     if (ctx.brandId) {
-      const contextBrand = await this.brandsService.findOne({
-        id: ctx.brandId,
-        isDeleted: false,
-        organizationId: ctx.organizationId,
-      });
+      const contextBrand = await this.brandsService.findOneSelect(
+        {
+          id: ctx.brandId,
+          isDeleted: false,
+          organizationId: ctx.organizationId,
+        },
+        { id: true },
+      );
       if (!contextBrand?.id) {
         return {
           error: {

@@ -294,10 +294,10 @@ export class EvaluationsController extends BaseCRUDController<
       includeUser: true,
     });
 
-    const evaluation = await this.evaluationsService.findOne({
-      id: evaluationId,
-      ...ownershipFilter,
-    });
+    const evaluation = await this.evaluationsService.findOneSelect(
+      { id: evaluationId, ...ownershipFilter },
+      { id: true },
+    );
 
     if (!evaluation) {
       return returnNotFound(this.constructorName, evaluationId);

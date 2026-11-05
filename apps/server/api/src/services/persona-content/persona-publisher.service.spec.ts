@@ -6,6 +6,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import { PersonaPublisherService } from '@api/services/persona-content/persona-publisher.service';
 import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   PostCategory,
   PostVisibility,
@@ -23,17 +24,25 @@ describe('PersonaPublisherService', () => {
     approveAutonomousItems: ReturnType<typeof vi.fn>;
   };
 
-  let personasService: { findOne: ReturnType<typeof vi.fn> };
-  let credentialsService: { findOne: ReturnType<typeof vi.fn> };
+  let personasService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
+  let credentialsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let postsService: { create: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     moduleAccess = { assertAccess: vi.fn().mockResolvedValue(undefined) };
     personasService = {
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
     };
     credentialsService = {
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
     };
     postsService = {
       create: vi.fn(),

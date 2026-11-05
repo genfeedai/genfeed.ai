@@ -453,9 +453,10 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       return mediaResult;
     }
     await this.publishTurnPhase(state, 'preparing');
-    const userSettings = await this.settingsService.findOne({
-      userId: state.userId,
-    });
+    const userSettings = await this.settingsService.findOneSelect(
+      { userId: state.userId },
+      { generationPriority: true },
+    );
     // Chat has no user-facing model picker: the resolver below always
     // returns the Admin text catalog default unless a strategy or thinking
     // override applies. request.model is never read for that decision.
@@ -510,10 +511,10 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       resolvedSkills: resolved.resolvedSkills,
       scope,
     };
-    const thread = await this.agentThreadsService.findOne({
-      id: state.threadId,
-      organizationId: state.organizationId,
-    });
+    const thread = await this.agentThreadsService.findOneSelect(
+      { id: state.threadId, organizationId: state.organizationId },
+      { title: true },
+    );
     // Name the thread from its first intent only; an empty seed disables model
     // retitling. Acceptance persists this turn's user message (id = execution
     // id) before the workflow runs, so it is excluded from the count — a plain
@@ -702,10 +703,10 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     // the model and charges immediately, so a Plan or Manual thread takes the
     // normal path below instead (the plan, or the `generate` review card with
     // model and cost), whether the media mode was locked or inferred.
-    const thread = await this.agentThreadsService.findOne({
-      id: state.threadId,
-      organizationId: state.organizationId,
-    });
+    const thread = await this.agentThreadsService.findOneSelect(
+      { id: state.threadId, organizationId: state.organizationId },
+      { mode: true },
+    );
     if (
       thread?.mode === AgentThreadMode.PLAN ||
       thread?.mode === AgentThreadMode.MANUAL

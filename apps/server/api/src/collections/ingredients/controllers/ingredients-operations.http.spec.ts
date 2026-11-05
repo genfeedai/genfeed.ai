@@ -12,6 +12,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { createIngredientDocumentFixture } from '@api-test/fixtures/ingredient-document.fixture';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   AssetScope,
   IngredientCategory,
@@ -187,6 +188,7 @@ describe('Ingredients operations registered HTTP boundary', () => {
           provide: MembersService,
           useValue: {
             findOne: vi.fn().mockResolvedValue({ id: 'membership' }),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
         { provide: CacheService, useValue: { invalidateByTags } },
@@ -216,6 +218,9 @@ describe('Ingredients operations registered HTTP boundary', () => {
       );
       return row ? createIngredientDocumentFixture(row) : null;
     });
+    vi.spyOn(service, 'findOneSelect').mockImplementation(
+      async (where) => (await service.findOne(where)) as never,
+    );
     vi.spyOn(service, 'patch').mockResolvedValue(
       createIngredientDocumentFixture(rows[0]),
     );

@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ClipperResultsController } from '@api/collections/clipper-results/clipper-results.controller';
 import type { ClipperResultsService } from '@api/collections/clipper-results/clipper-results.service';
 import type { ClipperResultDocument } from '@api/collections/clipper-results/schemas/clipper-result.schema';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';
@@ -34,6 +35,7 @@ function createMockService(): Record<string, ReturnType<typeof vi.fn>> {
     findRecentByOrganization: vi.fn(),
     findByProject: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn(),
   };
 }

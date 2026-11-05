@@ -8,6 +8,7 @@ import { McpConnectionVerificationService } from '@api/collections/api-keys/serv
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ApiAccessGuard } from '@api/helpers/guards/api-access/api-access.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   ActionOrigin,
   API_KEY_ACTION_ORIGIN_METADATA_KEY,
@@ -63,6 +64,7 @@ describe('ApiKeysController', () => {
     findAll: vi.fn(),
     findByKey: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn(),
     resolveActionOrigin: vi.fn().mockReturnValue(ActionOrigin.API),
     remove: vi.fn(),

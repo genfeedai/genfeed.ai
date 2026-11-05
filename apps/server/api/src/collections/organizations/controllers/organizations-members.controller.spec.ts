@@ -1,5 +1,6 @@
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
@@ -82,11 +83,13 @@ describe('OrganizationsMembersController', () => {
     create: vi.fn(),
     findAll: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn(),
   };
 
   const mockOrganizationsService = {
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
 
   const mockOrganizationSettingsService = {
@@ -95,11 +98,13 @@ describe('OrganizationsMembersController', () => {
 
   const mockRolesService = {
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
 
   const mockSettingsService = {
     create: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
 
   const mockUsersService = {
@@ -107,6 +112,7 @@ describe('OrganizationsMembersController', () => {
       id: userId,
     }),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
 
   const mockConfigService = {

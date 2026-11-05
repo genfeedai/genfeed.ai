@@ -1,4 +1,5 @@
 import { AgentExecutionRecoveryEventService } from '@api/services/agent-threading/services/agent-execution-recovery-event.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const orgId = 'a'.repeat(24);
@@ -23,7 +24,7 @@ describe('AgentExecutionRecoveryEventService', () => {
     appendEvent.mockResolvedValue({ sequence: 4 });
     service = new AgentExecutionRecoveryEventService(
       { workflowExecution: { findUnique } } as never,
-      { findOne } as never,
+      { findOne, findOneSelect: delegateFindOneSelect() } as never,
       { appendEvent } as never,
       { warn } as never,
     );

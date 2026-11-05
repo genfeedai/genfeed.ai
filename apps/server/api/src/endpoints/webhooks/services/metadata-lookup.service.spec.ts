@@ -1,4 +1,5 @@
 import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata-lookup.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { IngredientStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -6,10 +7,12 @@ describe('MetadataLookupService', () => {
   let service: MetadataLookupService;
   let metadataService: {
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
   let ingredientsService: {
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
   let websocketService: { publishMediaFailed: ReturnType<typeof vi.fn> };
@@ -23,10 +26,12 @@ describe('MetadataLookupService', () => {
   beforeEach(() => {
     metadataService = {
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn(),
     };
     ingredientsService = {
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn(),
     };
     websocketService = {

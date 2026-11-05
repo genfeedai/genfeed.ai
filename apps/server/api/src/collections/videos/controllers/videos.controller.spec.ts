@@ -19,6 +19,7 @@ import {
 import { MediaGenerationReceiptsService } from '@api/services/media-generation-receipts/media-generation-receipts.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { VideoGenerationSerializer } from '@genfeedai/serializers';
 
 vi.mock('@api/collections/templates/services/templates.service', () => ({
@@ -286,12 +287,14 @@ describe('VideosController', () => {
           provide: BrandsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue(mockBrand),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
         {
           provide: AssetsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue(null),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
         {
@@ -356,6 +359,7 @@ describe('VideosController', () => {
           provide: IngredientsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue(null),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
         {
@@ -383,6 +387,7 @@ describe('VideosController', () => {
           provide: MembersService,
           useValue: {
             findOne: vi.fn().mockResolvedValue(null),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
         {
@@ -413,6 +418,7 @@ describe('VideosController', () => {
           provide: ModelsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue(mockModelData),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
         { provide: PersonasService, useValue: personasServiceStub() },
@@ -420,6 +426,7 @@ describe('VideosController', () => {
           provide: OrganizationSettingsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue(null),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
         {
@@ -430,6 +437,7 @@ describe('VideosController', () => {
               original: 'Test prompt',
             }),
             findOne: vi.fn().mockResolvedValue(null),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
         {
@@ -462,6 +470,7 @@ describe('VideosController', () => {
           useValue: {
             findAll: vi.fn(),
             findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
             patch: vi.fn().mockResolvedValue(mockVideo),
             patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
             remove: vi.fn(),
@@ -471,6 +480,7 @@ describe('VideosController', () => {
           provide: VotesService,
           useValue: {
             findOne: vi.fn().mockResolvedValue(null),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
         {
@@ -1960,8 +1970,14 @@ beforeAll(async () => {
         useValue: { ingredientsEndpoint: 'https://cdn.genfeed.ai' },
       },
       { provide: ActivityRecorderService, useValue: { record: vi.fn() } },
-      { provide: BrandsService, useValue: { findOne: vi.fn() } },
-      { provide: AssetsService, useValue: { findOne: vi.fn() } },
+      {
+        provide: BrandsService,
+        useValue: { findOne: vi.fn(), findOneSelect: delegateFindOneSelect() },
+      },
+      {
+        provide: AssetsService,
+        useValue: { findOne: vi.fn(), findOneSelect: delegateFindOneSelect() },
+      },
       {
         provide: FilesClientService,
         useValue: { generateThumbnail: vi.fn(), uploadToS3: vi.fn() },
@@ -1978,7 +1994,10 @@ beforeAll(async () => {
         provide: FailedGenerationService,
         useValue: { handleFailedVideoGeneration: vi.fn() },
       },
-      { provide: IngredientsService, useValue: { findOne: vi.fn() } },
+      {
+        provide: IngredientsService,
+        useValue: { findOne: vi.fn(), findOneSelect: delegateFindOneSelect() },
+      },
       {
         provide: IngredientGenerationCancellationService,
         useValue: {
@@ -1994,7 +2013,10 @@ beforeAll(async () => {
         provide: KlingAIService,
         useValue: { queueGenerateTextToVideo: vi.fn() },
       },
-      { provide: MembersService, useValue: { findOne: vi.fn() } },
+      {
+        provide: MembersService,
+        useValue: { findOne: vi.fn(), findOneSelect: delegateFindOneSelect() },
+      },
       {
         provide: LoggerService,
         useValue: {
@@ -2012,15 +2034,22 @@ beforeAll(async () => {
         provide: ModelRegistrationService,
         useValue: { registerGeneratedOutput: vi.fn() },
       },
-      { provide: ModelsService, useValue: { findOne: vi.fn() } },
+      {
+        provide: ModelsService,
+        useValue: { findOne: vi.fn(), findOneSelect: delegateFindOneSelect() },
+      },
       { provide: PersonasService, useValue: personasServiceStub() },
       {
         provide: OrganizationSettingsService,
-        useValue: { findOne: vi.fn() },
+        useValue: { findOne: vi.fn(), findOneSelect: delegateFindOneSelect() },
       },
       {
         provide: PromptsService,
-        useValue: { create: vi.fn(), findOne: vi.fn() },
+        useValue: {
+          create: vi.fn(),
+          findOne: vi.fn(),
+          findOneSelect: delegateFindOneSelect(),
+        },
       },
       { provide: PromptBuilderService, useValue: { buildPrompt: vi.fn() } },
       {
@@ -2038,11 +2067,15 @@ beforeAll(async () => {
         useValue: {
           findAll: vi.fn(),
           findOne: vi.fn(),
+          findOneSelect: delegateFindOneSelect(),
           patch: vi.fn(),
           remove: vi.fn(),
         },
       },
-      { provide: VotesService, useValue: { findOne: vi.fn() } },
+      {
+        provide: VotesService,
+        useValue: { findOne: vi.fn(), findOneSelect: delegateFindOneSelect() },
+      },
       { provide: CacheService, useValue: { invalidateByTags: vi.fn() } },
       {
         provide: RouterService,

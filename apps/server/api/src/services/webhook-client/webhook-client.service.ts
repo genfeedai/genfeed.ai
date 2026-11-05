@@ -33,9 +33,10 @@ export class WebhookClientService {
     metadata?: MetadataEntity | null,
   ): Promise<void> {
     try {
-      const settings = await this.organizationSettingsService.findOne({
-        organizationId: organizationId,
-      });
+      const settings = await this.organizationSettingsService.findOneSelect(
+        { organizationId: organizationId },
+        { isWebhookEnabled: true, webhookEndpoint: true, webhookSecret: true },
+      );
 
       if (!settings?.isWebhookEnabled || !settings.webhookEndpoint) {
         this.logger.log(
@@ -114,9 +115,10 @@ export class WebhookClientService {
     data: Record<string, unknown>,
   ): Promise<void> {
     try {
-      const settings = await this.organizationSettingsService.findOne({
-        organizationId: organizationId,
-      });
+      const settings = await this.organizationSettingsService.findOneSelect(
+        { organizationId: organizationId },
+        { isWebhookEnabled: true, webhookEndpoint: true, webhookSecret: true },
+      );
 
       if (
         !settings?.isWebhookEnabled ||

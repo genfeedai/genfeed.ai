@@ -418,12 +418,15 @@ export class VideoGenerationPreparationService {
       {
         files: this.filesClientService,
         findStoredVideo: async (id, organizationId) => {
-          const ingredient = await this.ingredientsService.findOne({
-            id,
-            organizationId,
-            isDeleted: false,
-            category: IngredientCategory.VIDEO,
-          });
+          const ingredient = await this.ingredientsService.findOneSelect(
+            {
+              id,
+              organizationId,
+              isDeleted: false,
+              category: IngredientCategory.VIDEO,
+            },
+            { s3Key: true },
+          );
           return ingredient ? { s3Key: ingredient.s3Key ?? null } : null;
         },
       },
@@ -444,12 +447,15 @@ export class VideoGenerationPreparationService {
     const organizationId = context.user.organizationId;
     const fresh: SeedanceVideoReferenceEvidence[] = [];
     for (const reference of references) {
-      const ingredient = await this.ingredientsService.findOne({
-        id: reference.assetId,
-        organizationId,
-        isDeleted: false,
-        category: IngredientCategory.VIDEO,
-      });
+      const ingredient = await this.ingredientsService.findOneSelect(
+        {
+          id: reference.assetId,
+          organizationId,
+          isDeleted: false,
+          category: IngredientCategory.VIDEO,
+        },
+        { s3Key: true },
+      );
       requireSeedanceStoredReferenceKey(ingredient?.s3Key, reference.sourceKey);
       const url =
         await this.filesClientService.getPresignedDownloadUrlForObjectKey(

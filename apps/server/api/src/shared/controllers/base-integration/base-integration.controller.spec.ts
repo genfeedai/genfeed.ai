@@ -8,6 +8,7 @@ import {
   BaseIntegrationController,
   type OAuthUrlResult,
 } from '@api/shared/controllers/base-integration/base-integration.controller';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -117,11 +118,15 @@ describe('BaseIntegrationController', () => {
   const brandId = testId('brand');
 
   let controller: TestIntegrationController;
-  let brandsService: { findOne: ReturnType<typeof vi.fn> };
+  let brandsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let credentialsService: {
     connectAccount: ReturnType<typeof vi.fn>;
     createPendingForBrand: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
 
@@ -139,6 +144,7 @@ describe('BaseIntegrationController', () => {
         organizationId: orgId,
         userId,
       }),
+      findOneSelect: delegateFindOneSelect(),
     };
 
     credentialsService = {
@@ -150,6 +156,7 @@ describe('BaseIntegrationController', () => {
         id: testId('brand'),
         isConnected: false,
       }),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn().mockResolvedValue({ id: 'cred-1', isConnected: true }),
     };
 

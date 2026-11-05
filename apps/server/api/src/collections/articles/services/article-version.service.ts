@@ -118,12 +118,10 @@ export class ArticleVersionService {
         throw new Error('Prompts service not available');
       }
 
-      const prompt = await this.promptsService.findOne({
-        id: promptId,
-        articleId,
-        organizationId,
-        userId,
-      });
+      const prompt = await this.promptsService.findOneSelect(
+        { id: promptId, articleId, organizationId, userId },
+        { enhanced: true },
+      );
 
       if (!prompt) {
         throw new NotFoundException('Version');

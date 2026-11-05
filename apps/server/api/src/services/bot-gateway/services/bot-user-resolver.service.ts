@@ -30,11 +30,10 @@ export class BotUserResolverService {
 
     try {
       // Find credential by platform user ID (externalId)
-      const credential = await this.credentialsService.findOne({
-        externalId: platformUserId,
-        isConnected: true,
-        platform,
-      });
+      const credential = await this.credentialsService.findOneSelect(
+        { externalId: platformUserId, isConnected: true, platform },
+        { brandId: true, id: true, organizationId: true, userId: true },
+      );
 
       if (!credential) {
         this.loggerService.log(`${url} no credential found`, {
@@ -101,10 +100,13 @@ export class BotUserResolverService {
 
     try {
       // Find brand by name within the user's organization
-      const brand = await this.brandsService.findOne({
-        label: { contains: new RegExp(`^${brandName}$`, 'i') },
-        organizationId: resolvedUser.organizationId,
-      });
+      const brand = await this.brandsService.findOneSelect(
+        {
+          label: { contains: new RegExp(`^${brandName}$`, 'i') },
+          organizationId: resolvedUser.organizationId,
+        },
+        { id: true, label: true },
+      );
 
       if (!brand) {
         this.loggerService.warn(`${url} brand not found`, {

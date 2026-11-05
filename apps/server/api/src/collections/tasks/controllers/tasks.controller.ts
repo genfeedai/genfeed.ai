@@ -81,9 +81,10 @@ export class TasksController extends BaseCRUDController<
     const organizationId = user.organizationId;
     const brandId = createDto.brandId ?? user.brandId;
 
-    const org = await this.organizationsService.findOne({
-      id: organizationId,
-    });
+    const org = await this.organizationsService.findOneSelect(
+      { id: organizationId },
+      { prefix: true },
+    );
 
     if (!org?.prefix) {
       throw new BadRequestException(
@@ -317,8 +318,9 @@ export class TasksController extends BaseCRUDController<
 
     // When a task is marked done/cancelled, check if parent's children are all complete
     if (updateDto.status === 'done' || updateDto.status === 'cancelled') {
-      const task = await this.tasksService.findOne(
+      const task = await this.tasksService.findOneSelect(
         scopedWhere(user.organizationId, { id }),
+        { parentId: true },
       );
 
       if (task?.parentId) {

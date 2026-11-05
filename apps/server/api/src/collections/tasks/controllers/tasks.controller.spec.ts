@@ -7,6 +7,7 @@ import type { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
 import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { TaskSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -23,6 +24,7 @@ describe('TasksController', () => {
     findByIdentifier: ReturnType<typeof vi.fn>;
     findChildren: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     keepOutput: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
     requestChanges: ReturnType<typeof vi.fn>;
@@ -30,7 +32,10 @@ describe('TasksController', () => {
     unkeepOutput: ReturnType<typeof vi.fn>;
   };
   let taskCountersService: { getNextNumber: ReturnType<typeof vi.fn> };
-  let organizationsService: { findOne: ReturnType<typeof vi.fn> };
+  let organizationsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let loggerService: {
     debug: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
@@ -62,6 +67,7 @@ describe('TasksController', () => {
       findByIdentifier: vi.fn(),
       findChildren: vi.fn().mockResolvedValue([]),
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       keepOutput: vi.fn(),
       patch: vi.fn(),
       requestChanges: vi.fn(),
@@ -73,6 +79,7 @@ describe('TasksController', () => {
     };
     organizationsService = {
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
     };
     loggerService = {
       debug: vi.fn(),

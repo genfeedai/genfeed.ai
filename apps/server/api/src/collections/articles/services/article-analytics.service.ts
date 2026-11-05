@@ -86,11 +86,15 @@ export class ArticleAnalyticsService extends BaseService<
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const todayAnalytics = await this.findOne({
-      articleId,
-      date: today,
-      organizationId,
-    });
+    const todayAnalytics = await this.findOneSelect(
+      { articleId, date: today, organizationId },
+      {
+        totalComments: true,
+        totalLikes: true,
+        totalShares: true,
+        totalViews: true,
+      },
+    );
 
     const currentViews = metrics.totalViews ?? todayAnalytics?.totalViews ?? 0;
     const currentLikes = metrics.totalLikes ?? todayAnalytics?.totalLikes ?? 0;

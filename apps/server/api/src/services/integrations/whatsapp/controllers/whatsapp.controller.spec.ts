@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { WhatsappController } from '@api/services/integrations/whatsapp/controllers/whatsapp.controller';
 import { WhatsappService } from '@api/services/integrations/whatsapp/services/whatsapp.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -35,7 +36,10 @@ describe('WhatsappController', () => {
         },
         {
           provide: BrandsService,
-          useValue: { findOne: vi.fn() },
+          useValue: {
+            findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
+          },
         },
         {
           provide: LoggerService,

@@ -50,11 +50,14 @@ export class AgentBrandContextSnapshotService {
   async buildSnapshot(
     params: AgentBrandContextSnapshotParams,
   ): Promise<IAgentBrandContextSnapshot> {
-    const brand = await this.brandsService.findOne({
-      id: params.brandId,
-      isDeleted: false,
-      organizationId: params.organizationId,
-    });
+    const brand = await this.brandsService.findOneSelect(
+      {
+        id: params.brandId,
+        isDeleted: false,
+        organizationId: params.organizationId,
+      },
+      { agentConfig: true, description: true, label: true },
+    );
     if (!brand) {
       throw new NotFoundException('Brand', params.brandId);
     }

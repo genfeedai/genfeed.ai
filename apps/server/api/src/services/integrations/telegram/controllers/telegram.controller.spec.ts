@@ -6,6 +6,7 @@ import {
   type TelegramAuthData,
   TelegramService,
 } from '@api/services/integrations/telegram/services/telegram.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
@@ -16,6 +17,7 @@ describe('TelegramController', () => {
   };
   let brandsService: {
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
   };
 
   const orgId = 'cmorganization000000000000001';
@@ -52,6 +54,7 @@ describe('TelegramController', () => {
       findOne: vi
         .fn()
         .mockResolvedValue({ id: brandId, organizationId: orgId }),
+      findOneSelect: delegateFindOneSelect(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

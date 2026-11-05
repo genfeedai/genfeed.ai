@@ -3,6 +3,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { GoogleAdsOAuthService } from '@api/services/integrations/google-ads/services/google-ads-oauth.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -41,13 +42,16 @@ const MOCK_CREDENTIAL = {
 
 describe('GoogleAdsController', () => {
   let controller: GoogleAdsController;
-  let brandsService: vi.Mocked<Pick<BrandsService, 'findOne'>>;
+  let brandsService: vi.Mocked<
+    Pick<BrandsService, 'findOne' | 'findOneSelect'>
+  >;
   let credentialsService: vi.Mocked<
     Pick<
       CredentialsService,
       | 'beginOAuthForBrand'
       | 'connectAccount'
       | 'findOne'
+      | 'findOneSelect'
       | 'findPendingOAuthCredential'
       | 'patch'
     >
@@ -78,6 +82,7 @@ describe('GoogleAdsController', () => {
         organizationId: 'test-object-id',
         userId: 'test-object-id',
       }),
+      findOneSelect: delegateFindOneSelect(),
     };
     credentialsService = {
       beginOAuthForBrand: vi.fn().mockResolvedValue({
@@ -86,6 +91,7 @@ describe('GoogleAdsController', () => {
       }),
       connectAccount: vi.fn().mockResolvedValue({ id: 'cred-1' }),
       findOne: vi.fn().mockResolvedValue(MOCK_CREDENTIAL),
+      findOneSelect: delegateFindOneSelect(),
       findPendingOAuthCredential: vi.fn().mockResolvedValue(MOCK_CREDENTIAL),
       patch: vi.fn().mockResolvedValue({ id: 'cred-1' }),
     };

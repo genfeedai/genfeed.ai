@@ -148,14 +148,17 @@ export class TrialCardController {
   }
 
   private async resolveStripeCustomerId(user: User): Promise<string> {
-    const dbUser = await this.usersService.findOne({ id: user.id });
+    const dbUser = await this.usersService.findOneSelect(
+      { id: user.id },
+      { email: true, id: true },
+    );
     if (!dbUser) {
       throw new NotFoundException('User', user.id);
     }
-    const organization = await this.organizationsService.findOne({
-      id: user.organizationId,
-      isDeleted: false,
-    });
+    const organization = await this.organizationsService.findOneSelect(
+      { id: user.organizationId, isDeleted: false },
+      { label: true },
+    );
     if (!organization) {
       throw new NotFoundException('Organization', user.organizationId);
     }

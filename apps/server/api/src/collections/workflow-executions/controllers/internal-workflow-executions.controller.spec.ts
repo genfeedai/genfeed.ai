@@ -3,6 +3,7 @@ import { WorkflowExecutionsService } from '@api/collections/workflow-executions/
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -39,9 +40,11 @@ describe('InternalWorkflowExecutionsController', () => {
   const mockWorkflowExecutionsService = {
     cancelExecution: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
   const mockWorkflowsService = {
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
 
   beforeEach(async () => {

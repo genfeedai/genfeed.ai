@@ -65,10 +65,13 @@ export class WorkflowContinuationReconcileService {
           continue;
         }
 
-        const ingredient = await this.ingredients.findOne({
-          id: candidate.ingredientId,
-          organizationId: candidate.organizationId,
-        });
+        const ingredient = await this.ingredients.findOneSelect(
+          {
+            id: candidate.ingredientId,
+            organizationId: candidate.organizationId,
+          },
+          { category: true },
+        );
         if (!ingredient) {
           await this.coordinator.failProviderAction({
             error: `Continuation ingredient ${candidate.ingredientId} not found`,

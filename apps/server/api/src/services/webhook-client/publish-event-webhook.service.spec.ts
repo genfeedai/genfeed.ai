@@ -1,5 +1,6 @@
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import {
   WEBHOOK_CLIENT_QUEUE,
@@ -32,6 +33,7 @@ describe('PublishEventWebhookService', () => {
   let service: PublishEventWebhookService;
   let settingsService: {
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     recordWebhookDeliveryStatus: ReturnType<typeof vi.fn>;
   };
 
@@ -50,6 +52,7 @@ describe('PublishEventWebhookService', () => {
         webhookEndpoint: 'https://example.com/webhook',
         webhookSecret: 'secret',
       }),
+      findOneSelect: delegateFindOneSelect(),
       recordWebhookDeliveryStatus: vi.fn().mockResolvedValue(undefined),
     };
     postsService = {

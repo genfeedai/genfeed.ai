@@ -177,10 +177,10 @@ export class OrganizationSettingsService extends BaseService<
     this.validateModuleOverrides(data);
     if (data.defaultAvatarRef || data.defaultVoiceRef) {
       const organizationId = getTenantContext()?.organizationId;
-      const existing = await this.findOne({
-        id,
-        ...(organizationId ? { organizationId } : {}),
-      });
+      const existing = await this.findOneSelect(
+        { id, ...(organizationId ? { organizationId } : {}) },
+        { organizationId: true },
+      );
       if (!existing) throw new NotFoundException('Organization settings', id);
       const identities = this.moduleRef.get<HeyGenIdentityService>(
         HEYGEN_IDENTITY_SERVICE,
@@ -616,9 +616,10 @@ export class OrganizationSettingsService extends BaseService<
   async ensureJourneyState(
     organizationId: string,
   ): Promise<IOnboardingJourneyMissionState[]> {
-    const settings = await this.findOne({
-      organizationId: organizationId,
-    });
+    const settings = await this.findOneSelect(
+      { organizationId: organizationId },
+      { id: true, onboardingJourneyMissions: true },
+    );
 
     if (!settings) {
       return [];

@@ -25,6 +25,7 @@ import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util
 import type { StripeInvoice } from '@api/services/integrations/stripe/services/stripe.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { SubscriptionPlan } from '@genfeedai/contracts';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -74,6 +75,7 @@ describe('Stripe webhook credit grant guard (relink between persist and reconcil
   const creditTransactionsService = {
     createTransactionEntry: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
   const txClient = {} as PrismaTransactionClient;
   const transactionUtil = {
@@ -191,7 +193,13 @@ describe('Stripe webhook credit grant guard (relink between persist and reconcil
           provide: AccessBootstrapCacheService,
           useValue: accessBootstrapCache,
         },
-        { provide: UsersService, useValue: { findOne: vi.fn() } },
+        {
+          provide: UsersService,
+          useValue: {
+            findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
+          },
+        },
         { provide: EventEmitter2, useValue: { emit: vi.fn() } },
         { provide: CreditReservationService, useValue: {} },
         // Credit grants are never gated by the free trial; admission's trial
@@ -205,7 +213,11 @@ describe('Stripe webhook credit grant guard (relink between persist and reconcil
         },
         {
           provide: OrganizationSettingsService,
-          useValue: { findOne: vi.fn(async () => null), patch: vi.fn() },
+          useValue: {
+            findOne: vi.fn(async () => null),
+            findOneSelect: delegateFindOneSelect(),
+            patch: vi.fn(),
+          },
         },
       ],
     }).compile();

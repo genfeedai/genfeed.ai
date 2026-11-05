@@ -7,6 +7,7 @@ import { EvaluationFiltersDto } from '@api/collections/evaluations/dto/evaluatio
 import { RecordEvaluationReviewDto } from '@api/collections/evaluations/dto/record-evaluation-review.dto';
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   EvaluationType,
   ExternalPlatform,
@@ -64,6 +65,7 @@ describe('EvaluationsController', () => {
       evaluateExternalUrl: vi.fn().mockResolvedValue(mockEvaluation),
       findAll: vi.fn(),
       findOne: vi.fn().mockResolvedValue(mockEvaluation),
+      findOneSelect: delegateFindOneSelect(),
       getEvaluationTrends: vi.fn().mockResolvedValue({
         averageScore: 85,
         trends: [],

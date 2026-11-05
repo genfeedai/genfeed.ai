@@ -204,11 +204,14 @@ export class AgentQualityToolHandler {
 
       // Fail closed: only an ingredient in the caller's own organization can be
       // rated, so a foreign or unknown id never reaches the votes table.
-      const ingredient = await this.ingredientsService.findOne({
-        id: ingredientId,
-        isDeleted: false,
-        organizationId: ctx.organizationId,
-      });
+      const ingredient = await this.ingredientsService.findOneSelect(
+        {
+          id: ingredientId,
+          isDeleted: false,
+          organizationId: ctx.organizationId,
+        },
+        { id: true },
+      );
 
       if (!ingredient) {
         return {

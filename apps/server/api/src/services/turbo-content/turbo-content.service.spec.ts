@@ -6,6 +6,7 @@ import type { HarnessGenerationService } from '@api/services/harness/harness-gen
 import type { TurboContentRequest } from '@api/services/turbo-content/interfaces/turbo-content.interfaces';
 import { TurboContentService } from '@api/services/turbo-content/turbo-content.service';
 import { TURBO_CONTENT_ACTION_IDS } from '@api/services/turbo-content/turbo-content-workflow-definition';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { LoggerService } from '@libs/logger/logger.service';
 
@@ -19,6 +20,7 @@ describe('TurboContentService', () => {
   };
   const brands = {
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
   const workflowQueue = {
     queueSystemWorkflow: vi.fn(),

@@ -2,6 +2,7 @@ import { MoodBoardsController } from '@api/collections/mood-boards/controllers/m
 import { UpdateMoodBoardDto } from '@api/collections/mood-boards/dto/update-mood-board.dto';
 import { MoodBoardsService } from '@api/collections/mood-boards/services/mood-boards.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -52,6 +53,7 @@ describe('MoodBoardsController', () => {
 
     const mockService = {
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       findOrCreateByBrand: vi.fn(),
       patch: vi.fn(),
     };

@@ -101,9 +101,10 @@ export class UserStripeController {
       }
 
       // Load the current user's DB record by id (Better Auth: user.id is the Genfeed User.id).
-      const dbUser = await this.usersService.findOne({
-        id: user.id,
-      });
+      const dbUser = await this.usersService.findOneSelect(
+        { id: user.id },
+        { id: true, stripeCustomerId: true },
+      );
       if (!dbUser) {
         return returnNotFound('User', user.id);
       }
@@ -199,9 +200,10 @@ export class UserStripeController {
 
     try {
       // Load the current user's DB record by id (Better Auth: user.id is the Genfeed User.id).
-      const dbUser = await this.usersService.findOne({
-        id: user.id,
-      });
+      const dbUser = await this.usersService.findOneSelect(
+        { id: user.id },
+        { id: true, stripeCustomerId: true },
+      );
       if (!dbUser) {
         return returnNotFound('User', user.id);
       }
@@ -259,9 +261,10 @@ export class UserStripeController {
 
     try {
       // Load the current user's DB record by id (Better Auth: user.id is the Genfeed User.id).
-      const dbUser = await this.usersService.findOne({
-        id: user.id,
-      });
+      const dbUser = await this.usersService.findOneSelect(
+        { id: user.id },
+        { id: true },
+      );
       if (!dbUser) {
         return returnNotFound('User', user.id);
       }
@@ -273,10 +276,10 @@ export class UserStripeController {
 
       // Get user's creator org credit balance
       let balance = 0;
-      const creatorOrg = await this.organizationsService.findOne({
-        category: OrganizationCategory.CREATOR,
-        members: dbUser.id,
-      });
+      const creatorOrg = await this.organizationsService.findOneSelect(
+        { category: OrganizationCategory.CREATOR, members: dbUser.id },
+        { id: true },
+      );
 
       if (creatorOrg) {
         balance = await this.creditsUtilsService.getOrganizationCreditsBalance(

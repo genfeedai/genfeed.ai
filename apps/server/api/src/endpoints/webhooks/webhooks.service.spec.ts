@@ -4,6 +4,7 @@ import {
 } from '@api/collections/assets/constants/asset-origin.constant';
 import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { WebhookGenerationSettlementService } from '@api/endpoints/webhooks/services/webhook-generation-settlement.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 
 vi.mock('@api/collections/evaluations/services/evaluations.service', () => ({
   EvaluationsService: class {},
@@ -212,6 +213,7 @@ describe('WebhooksService', () => {
             create: vi.fn(),
             findAll: vi.fn(),
             findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
             patch: vi.fn(),
             patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
           },
@@ -221,6 +223,7 @@ describe('WebhooksService', () => {
           useValue: {
             create: vi.fn(),
             findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
             patch: vi.fn(),
           },
         },
@@ -242,12 +245,14 @@ describe('WebhooksService', () => {
           provide: OrganizationSettingsService,
           useValue: {
             findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
         {
           provide: AssetsService,
           useValue: {
             findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
             patch: vi.fn(),
             patchAll: vi.fn(),
           },

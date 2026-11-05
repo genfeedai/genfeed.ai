@@ -498,13 +498,16 @@ export class ArticlesService
     params.updateData.scope = ArticleScope.PUBLIC;
 
     // Find and verify ownership
-    const currentArticle = await this.findOne({
-      id: params.id,
-      OR: [
-        { userId: params.userId },
-        { organizationId: params.organizationId },
-      ],
-    });
+    const currentArticle = await this.findOneSelect(
+      {
+        id: params.id,
+        OR: [
+          { userId: params.userId },
+          { organizationId: params.organizationId },
+        ],
+      },
+      { publishedAt: true },
+    );
 
     if (currentArticle) {
       // Set publishedAt if empty/null (first time publishing or missing date).
@@ -532,8 +535,9 @@ export class ArticlesService
       assertArticleOwnershipIds(userId, organizationId, brandId);
 
       // First verify the article exists and belongs to the user
-      const article = await super.findOne(
+      const article = await super.findOneSelect(
         scopedWhere(organizationId, { id, brandId, userId }),
+        { id: true },
       );
 
       if (!article) {
@@ -795,8 +799,13 @@ export class ArticlesService
         undefined,
         DEFAULT_TEXT_MODEL,
       )) ?? DEFAULT_TEXT_MODEL;
-    const settings = await this.organizationSettingsService?.findOne(
+    const settings = await this.organizationSettingsService?.findOneSelect(
       scopedWhere(organizationId, {}),
+      {
+        defaultModel: true,
+        defaultModelReview: true,
+        defaultModelUpdate: true,
+      },
     );
 
     return {

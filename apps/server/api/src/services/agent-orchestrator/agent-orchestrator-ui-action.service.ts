@@ -371,11 +371,10 @@ export class AgentOrchestratorUiActionService {
     if (!isEntityId(threadId)) {
       return null;
     }
-    const thread = await this.agentThreadsService.findOne({
-      id: threadId,
-      organizationId,
-      userId: { in: [userId] },
-    });
+    const thread = await this.agentThreadsService.findOneSelect(
+      { id: threadId, organizationId, userId: { in: [userId] } },
+      { id: true },
+    );
     return thread ? String(thread.id) : null;
   }
 

@@ -5,6 +5,7 @@ import {
   AgentTurnWorkflowExecutionService,
   type PreparedAgentTurnState,
 } from '@api/services/agent-orchestrator/agent-turn-workflow-execution.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { AgentGenerationMode, RouterPriority } from '@genfeedai/contracts';
 import { BadRequestException, HttpStatus } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
@@ -94,7 +95,10 @@ describe('agent runtime workflow registration contract', () => {
   });
 
   it('executes explicit media through the shared UI-action workflow path without resolving or billing a chat round', async () => {
-    const settingsService = { findOne: vi.fn() };
+    const settingsService = {
+      findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
+    };
     const creditsUtilsService = {
       checkOrganizationCreditsAvailable: vi.fn(),
     };
@@ -120,6 +124,7 @@ describe('agent runtime workflow registration contract', () => {
         brandId: null,
         contextVersion: 4,
       }),
+      findOneSelect: delegateFindOneSelect(),
     };
     const addMessage = vi.fn().mockResolvedValue({ id: 'source-message' });
     dependencies[3] = { addMessage };

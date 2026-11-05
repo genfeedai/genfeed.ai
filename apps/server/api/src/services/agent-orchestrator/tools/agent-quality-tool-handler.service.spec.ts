@@ -2,6 +2,7 @@ import type { IngredientsService } from '@api/collections/ingredients/services/i
 import type { VotesService } from '@api/collections/votes/services/votes.service';
 import { AgentQualityToolHandler } from '@api/services/agent-orchestrator/tools/agent-quality-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { VoteEntityModel } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,7 +13,10 @@ describe('AgentQualityToolHandler.rateIngredient', () => {
     userId: 'user-1',
   };
   const logger = { error: vi.fn(), log: vi.fn() };
-  let ingredients: { findOne: ReturnType<typeof vi.fn> };
+  let ingredients: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let votes: {
     addVote: ReturnType<typeof vi.fn>;
     removeVote: ReturnType<typeof vi.fn>;
@@ -21,7 +25,10 @@ describe('AgentQualityToolHandler.rateIngredient', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    ingredients = { findOne: vi.fn().mockResolvedValue({ id: 'ing-1' }) };
+    ingredients = {
+      findOne: vi.fn().mockResolvedValue({ id: 'ing-1' }),
+      findOneSelect: delegateFindOneSelect(),
+    };
     votes = {
       addVote: vi
         .fn()

@@ -173,9 +173,10 @@ export class OnboardingReadinessService {
   async getOnboardingStatus(
     organizationId: string,
   ): Promise<{ isFirstLogin: boolean; hasCompletedOnboarding: boolean }> {
-    const settings = await this.organizationSettingsService.findOne({
-      organizationId: organizationId,
-    });
+    const settings = await this.organizationSettingsService.findOneSelect(
+      { organizationId: organizationId },
+      { isFirstLogin: true },
+    );
 
     return {
       hasCompletedOnboarding: settings?.isFirstLogin === false,
@@ -219,9 +220,10 @@ export class OnboardingReadinessService {
     }
 
     if (organizationId) {
-      const organization = await this.organizationsService.findOne({
-        id: organizationId,
-      });
+      const organization = await this.organizationsService.findOneSelect(
+        { id: organizationId },
+        { id: true },
+      );
 
       hasOrganization = !!organization;
 

@@ -118,8 +118,9 @@ export class TaskOrchestratorService {
     organizationId: string,
   ): Promise<void> {
     for (const executionId of executionIds) {
-      const execution = await this.workflowExecutionsService.findOne(
+      const execution = await this.workflowExecutionsService.findOneSelect(
         scopedWhere(organizationId, { id: executionId }),
+        { status: true },
       );
       if (
         execution &&
@@ -327,8 +328,9 @@ export class TaskOrchestratorService {
     organizationId: string,
   ): Promise<boolean> {
     for (const executionId of executionIds) {
-      const execution = await this.workflowExecutionsService.findOne(
+      const execution = await this.workflowExecutionsService.findOneSelect(
         scopedWhere(organizationId, { id: executionId }),
+        { status: true },
       );
       if (
         !execution ||

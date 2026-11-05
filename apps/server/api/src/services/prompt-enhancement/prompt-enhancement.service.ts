@@ -98,15 +98,18 @@ export class PromptEnhancementService {
     );
     if (requestedSkillSlugs && !this.skills) throw unavailableRequestedSkill();
     if (input.promptId && input.brandId && !requestedSkillSlugs) {
-      const saved = await this.prompts.findOne({
-        id: input.promptId,
-        organizationId: input.organizationId,
-        brandId: input.brandId,
-        isDeleted: false,
-        isSkipEnhancement: false,
-        status: PromptStatus.GENERATED,
-        enhanced: input.userPrompt,
-      });
+      const saved = await this.prompts.findOneSelect(
+        {
+          id: input.promptId,
+          organizationId: input.organizationId,
+          brandId: input.brandId,
+          isDeleted: false,
+          isSkipEnhancement: false,
+          status: PromptStatus.GENERATED,
+          enhanced: input.userPrompt,
+        },
+        { id: true },
+      );
       if (saved)
         return { result: input.userPrompt, tokensUsed: 0, isByok: false };
     }

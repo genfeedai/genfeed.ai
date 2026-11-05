@@ -173,8 +173,9 @@ export class WatchlistsController {
     @Param('watchlistId') watchlistId: string,
     @Body() dto: UpdateWatchlistDto,
   ) {
-    const existing = await this.service.findOne(
+    const existing = await this.service.findOneSelect(
       scopedWhere(user.organizationId, { id: watchlistId }),
+      { brandId: true, handle: true, platform: true },
     );
     if (!existing) {
       throw new NotFoundException('Watchlist item');
@@ -220,8 +221,9 @@ export class WatchlistsController {
     @CurrentUser() user: User,
     @Param('watchlistId') watchlistId: string,
   ) {
-    const existing = await this.service.findOne(
+    const existing = await this.service.findOneSelect(
       scopedWhere(user.organizationId, { id: watchlistId }),
+      { id: true },
     );
     if (!existing) {
       throw new NotFoundException('Watchlist item');

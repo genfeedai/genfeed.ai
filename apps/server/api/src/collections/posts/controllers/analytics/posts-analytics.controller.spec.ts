@@ -2,6 +2,7 @@ import { PostsController } from '@api/collections/posts/controllers/posts.contro
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { PostLinkTrackingService } from '@api/collections/posts/services/post-link-tracking.service';
 import { BaseQueryNormalizationAdapter } from '@api/shared/services/base/base-query-normalization.adapter';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { MemberRole } from '@genfeedai/contracts';
 import { Controller, type ExecutionContext, Get } from '@nestjs/common';
 import { MODULE_METADATA } from '@nestjs/common/constants';
@@ -77,6 +78,7 @@ describe('PostsAnalyticsController', () => {
     findPublicationInsightById: vi.fn().mockResolvedValue(null),
     findAll: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     getCachedData: vi.fn().mockResolvedValue(null),
     setCachedData: vi.fn().mockResolvedValue(undefined),
   };
@@ -88,6 +90,7 @@ describe('PostsAnalyticsController', () => {
 
   const mockCredentialsService = {
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
 
   const mockAnalyticsSyncWorkflowService = {

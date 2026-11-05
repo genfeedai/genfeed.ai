@@ -466,13 +466,16 @@ export class AdBulkUploadWorkflowService {
     request: AdBulkUploadWorkflowRequest,
     organizationId: string,
   ): Promise<string> {
-    const credential = await this.credentials.findOne({
-      id: request.credentialId,
-      isConnected: true,
-      isDeleted: false,
-      organizationId,
-      platform: CredentialPlatform.FACEBOOK,
-    });
+    const credential = await this.credentials.findOneSelect(
+      {
+        id: request.credentialId,
+        isConnected: true,
+        isDeleted: false,
+        organizationId,
+        platform: CredentialPlatform.FACEBOOK,
+      },
+      { accessToken: true },
+    );
     if (!credential?.accessToken) {
       throw new Error(
         `Facebook credential ${request.credentialId} is unavailable`,

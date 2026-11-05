@@ -7,6 +7,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import * as dispatchLock from '@api/collections/workflows/services/agent-autopilot-dispatch-lock.util';
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   AgentAutonomyMode,
   PostCategory,
@@ -250,7 +251,10 @@ function setup(dailyCreditBudget = 20) {
     performance,
     runner as never,
     { getOrganizationCreditsBalance: vi.fn(async () => 1000) } as never,
-    { findOne: vi.fn(async () => ({})) } as never,
+    {
+      findOne: vi.fn(async () => ({})),
+      findOneSelect: delegateFindOneSelect(),
+    } as never,
     {} as never,
     {} as never,
     logger as never,

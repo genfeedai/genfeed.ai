@@ -313,11 +313,14 @@ export class AdminAnnouncementsService implements OnModuleInit {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     // Find the org's Twitter credential
-    const credential = await this.credentialsService.findOne({
-      isConnected: true,
-      organizationId: organizationId,
-      platform: CredentialPlatform.TWITTER,
-    });
+    const credential = await this.credentialsService.findOneSelect(
+      {
+        isConnected: true,
+        organizationId: organizationId,
+        platform: CredentialPlatform.TWITTER,
+      },
+      { accessToken: true, externalHandle: true },
+    );
 
     if (!credential?.accessToken) {
       this.loggerService.warn(

@@ -19,6 +19,7 @@ import { WorkflowTrendPublishExecutorRegistrarService } from '@api/collections/w
 import { GENERATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/generation-templates';
 import { isPersistableWorkflowNodeType } from '@api/collections/workflows/workflow-version-definition';
 import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import type { ExecutableNode } from '@genfeedai/workflows/engine';
 import { getWorkflowActionIdForNodeType } from '@genfeedai/workflows/nodes';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -1104,11 +1105,13 @@ describe('WorkflowEngineAdapterService', () => {
           }
           return null;
         }),
+        findOneSelect: delegateFindOneSelect(),
         patch: vi.fn().mockResolvedValue({}),
       };
       const metadataService = { patch: vi.fn().mockResolvedValue({}) };
       const musicsService = {
         findOne: vi.fn().mockResolvedValue({ id: musicId }),
+        findOneSelect: delegateFindOneSelect(),
       };
       const sharedService = {
         createMediaDocumentsInternal: vi.fn().mockResolvedValue({

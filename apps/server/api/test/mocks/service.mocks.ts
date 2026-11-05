@@ -5,7 +5,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { of } from 'rxjs';
-import { vi } from 'vitest';
+import { type Mock, vi } from 'vitest';
 
 export const mockLoggerService = (): Partial<LoggerService> => ({
   debug: vi.fn(),
@@ -319,4 +319,20 @@ export const createMockPrismaService = (
       ].map((name) => [name, { ...modelMock(), ...(overrides[name] ?? {}) }]),
     ),
   } as unknown as Partial<PrismaService>;
+};
+
+/**
+ * A `findOneSelect` mock that answers through the same mock object's
+ * `findOne`, so a spec that stubs `findOne` keeps covering callers that read
+ * only a projection of the row.
+ */
+export const delegateFindOneSelect = (): Mock => {
+  const findOneSelect: Mock = vi.fn();
+  findOneSelect.mockImplementation(function (
+    this: { findOne: (params: unknown) => unknown },
+    params: unknown,
+  ) {
+    return this.findOne(params);
+  });
+  return findOneSelect;
 };

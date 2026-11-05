@@ -265,14 +265,17 @@ export class GoogleSearchConsoleController {
     brandId?: string,
     credentialId?: string,
   ): Promise<string> {
-    const credential = await this.credentialsService.findOne({
-      ...(brandId ? { brandId: brandId } : {}),
-      ...(credentialId ? { id: credentialId } : {}),
-      isConnected: true,
-      organizationId: user.organizationId,
-      platform: CredentialPlatform.GOOGLE_SEARCH_CONSOLE,
-      userId: user.userId ?? user.id,
-    });
+    const credential = await this.credentialsService.findOneSelect(
+      {
+        ...(brandId ? { brandId: brandId } : {}),
+        ...(credentialId ? { id: credentialId } : {}),
+        isConnected: true,
+        organizationId: user.organizationId,
+        platform: CredentialPlatform.GOOGLE_SEARCH_CONSOLE,
+        userId: user.userId ?? user.id,
+      },
+      { accessToken: true },
+    );
 
     if (!credential?.accessToken) {
       throw new HttpException(

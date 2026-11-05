@@ -18,6 +18,7 @@ import { ShopifyService } from '@api/services/integrations/shopify/services/shop
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { WordpressService } from '@api/services/integrations/wordpress/services/wordpress.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   CredentialPlatform,
   PostCategory,
@@ -249,7 +250,11 @@ describe.each(cases)(
         description: 'https://mastodon.example',
       },
     };
-    const credentials = { findOne: vi.fn(), resolveBrandAccount: vi.fn() };
+    const credentials = {
+      findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
+      resolveBrandAccount: vi.fn(),
+    };
     const http = { get: vi.fn(), post: vi.fn() };
 
     async function createPublisher() {

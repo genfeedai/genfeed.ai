@@ -159,9 +159,10 @@ export class PostProcessingOrchestratorService {
       return;
     }
 
-    const orgSettings = await this.organizationSettingsService.findOne({
-      organizationId: organizationId,
-    });
+    const orgSettings = await this.organizationSettingsService.findOneSelect(
+      { organizationId: organizationId },
+      { isAutoEvaluateEnabled: true },
+    );
 
     if (!orgSettings?.isAutoEvaluateEnabled) {
       this.loggerService.debug(`${this.logContext} auto-evaluate disabled`, {

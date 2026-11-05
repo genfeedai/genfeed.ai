@@ -1,5 +1,6 @@
 import { AgentOrchestratorPlanModeService } from '@api/services/agent-orchestrator/agent-orchestrator-plan-mode.service';
 import type { OpenRouterChatCompletionParams } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { testId } from '@helpers/testing/test-id.helper';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -10,7 +11,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * nothing else.
  */
 describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
-  let agentThreadsService: { findOne: ReturnType<typeof vi.fn> };
+  let agentThreadsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let llmDispatcher: { chatCompletion: ReturnType<typeof vi.fn> };
   let agentMessagesService: { addMessage: ReturnType<typeof vi.fn> };
   let creditsUtilsService: {
@@ -47,7 +51,10 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
   const host = { maybeUpdateThreadTitle: vi.fn().mockResolvedValue(null) };
 
   beforeEach(() => {
-    agentThreadsService = { findOne: vi.fn() };
+    agentThreadsService = {
+      findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
+    };
     llmDispatcher = {
       chatCompletion: vi.fn().mockResolvedValue({
         choices: [

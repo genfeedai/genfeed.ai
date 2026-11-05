@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((payload: Record<string, string>) => ({
     errors: [payload],
@@ -20,7 +22,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 describe('LaunchCopyController', () => {
   let controller: LaunchCopyController;
   let generatorService: { generate: ReturnType<typeof vi.fn> };
-  let brandsService: { findOne: ReturnType<typeof vi.fn> };
+  let brandsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
 
   const loggerMock = {
     error: vi.fn(),
@@ -43,7 +48,10 @@ describe('LaunchCopyController', () => {
 
   beforeEach(async () => {
     generatorService = { generate: vi.fn() };
-    brandsService = { findOne: vi.fn() };
+    brandsService = {
+      findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [LaunchCopyController],

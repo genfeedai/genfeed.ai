@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock(
   '@api/services/agent-orchestrator/constants/agent-credit-costs.constant',
   async (importOriginal) => ({
@@ -35,7 +37,10 @@ describe('background agent terminal failures', () => {
       contextService as never,
       {} as never,
       effects as never,
-      { findOne: vi.fn().mockResolvedValue({ status: 'RUNNING' }) } as never,
+      {
+        findOne: vi.fn().mockResolvedValue({ status: 'RUNNING' }),
+        findOneSelect: delegateFindOneSelect(),
+      } as never,
       // #4865 auto-routing resolver: `off` is the shipped default, so the
       // round keeps today's gateway request.
       { resolve: vi.fn().mockResolvedValue({ mode: 'off' }) } as never,
@@ -88,7 +93,10 @@ describe('background agent terminal failures', () => {
       contextService as never,
       {} as never,
       effects as never,
-      { findOne: vi.fn().mockResolvedValue({ status: 'RUNNING' }) } as never,
+      {
+        findOne: vi.fn().mockResolvedValue({ status: 'RUNNING' }),
+        findOneSelect: delegateFindOneSelect(),
+      } as never,
       { resolve: vi.fn().mockResolvedValue({ mode: 'off' }) } as never,
       undefined,
       { getFeatureSettings } as never,

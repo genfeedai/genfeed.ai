@@ -285,8 +285,9 @@ export class ClipperLibraryLinkService {
       return input.ingredientId;
     }
 
-    const winner = await this.clipperResultsService.findOne(
+    const winner = await this.clipperResultsService.findOneSelect(
       scopedWhere(input.organizationId, { id: String(input.clipperResult.id) }),
+      { ingredientId: true },
     );
     const winnerId = this.readString(winner?.ingredientId);
     if (winnerId && winnerId !== input.ingredientId && input.created) {

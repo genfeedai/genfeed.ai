@@ -654,10 +654,10 @@ export class AgentOrchestratorPlanModeService {
     threadId: string,
     organizationId: string,
   ): Promise<boolean> {
-    const thread = await this.agentThreadsService.findOne({
-      id: threadId,
-      organizationId: organizationId,
-    });
+    const thread = await this.agentThreadsService.findOneSelect(
+      { id: threadId, organizationId: organizationId },
+      { mode: true, source: true },
+    );
 
     // A host that cannot show a plan would leave the run paused with nothing
     // to approve, so its threads answer directly even if they were saved in

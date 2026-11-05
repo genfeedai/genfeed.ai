@@ -244,12 +244,10 @@ export class AgentEndpointInvoker {
 
     // In-process calls carry no client IP, so super-admin (bound to
     // ADMIN_ALLOWED_IPS) never applies: every principal proves membership.
-    const member = await this.membersService.findOne({
-      isActive: true,
-      isDeleted: false,
-      organizationId,
-      userId: user.id,
-    });
+    const member = await this.membersService.findOneSelect(
+      { isActive: true, isDeleted: false, organizationId, userId: user.id },
+      { id: true },
+    );
 
     if (!member) {
       throw new ForbiddenException(

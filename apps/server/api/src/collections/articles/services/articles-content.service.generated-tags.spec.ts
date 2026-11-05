@@ -11,6 +11,7 @@ import type { TagsService } from '@api/collections/tags/services/tags.service';
 import type { TemplatesService } from '@api/collections/templates/services/templates.service';
 import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { ArticleCategory, TagCategory } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -88,6 +89,7 @@ describe('ArticlesContentService generated tags', () => {
         const label = (where.label as { equals: string }).equals;
         return Promise.resolve(params.existingTagsByLabel?.[label] ?? null);
       }),
+      findOneSelect: delegateFindOneSelect(),
     } as unknown as TagsService;
 
     const articleContentPersistenceService =

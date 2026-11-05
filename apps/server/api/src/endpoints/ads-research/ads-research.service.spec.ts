@@ -1,5 +1,6 @@
 import type { AdPerformanceDocument } from '@api/collections/ad-performance/schemas/ad-performance.schema';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { AdsChannel, AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -55,6 +56,7 @@ describe('AdsResearchService', () => {
   const credentialsService = {
     findConnectedAccounts: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
   const adsGatewayService = {
     getAdapter: vi.fn(),

@@ -52,10 +52,10 @@ export class OrganizationLogoGenerationService {
   ) {}
 
   async generate(organizationId: string, user: User): Promise<AssetDocument> {
-    const organization = await this.organizationsService.findOne({
-      id: organizationId,
-      isDeleted: false,
-    });
+    const organization = await this.organizationsService.findOneSelect(
+      { id: organizationId, isDeleted: false },
+      { label: true },
+    );
 
     if (!organization) {
       return returnNotFound('Organization', organizationId);

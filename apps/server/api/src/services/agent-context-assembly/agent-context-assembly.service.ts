@@ -248,10 +248,10 @@ export class AgentContextAssemblyService {
     if (!params.userId) {
       return null;
     }
-    const member = await this.membersService.findOne({
-      organizationId: params.organizationId,
-      userId: params.userId,
-    });
+    const member = await this.membersService.findOneSelect(
+      { organizationId: params.organizationId, userId: params.userId },
+      { currentBrandId: true },
+    );
     return typeof member?.currentBrandId === 'string'
       ? member.currentBrandId
       : null;
@@ -922,10 +922,10 @@ export class AgentContextAssemblyService {
     if (!this.credentialsService) return;
 
     try {
-      const credential = await this.credentialsService.findOne({
-        id: credentialId,
-        organizationId: organizationId,
-      });
+      const credential = await this.credentialsService.findOneSelect(
+        { id: credentialId, organizationId: organizationId },
+        { label: true, platform: true, username: true },
+      );
 
       if (!credential) return;
 

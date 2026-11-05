@@ -2,6 +2,7 @@ import { EvaluationsService } from '@api/collections/evaluations/services/evalua
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { ByokProvider, Status } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -36,10 +37,12 @@ function createMocks() {
     prisma,
     postsService: {
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       getChildren: vi.fn(),
     },
     videosService: {
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
     },
     textGenerationCreditsService: {
       resolveDispatch: vi.fn().mockResolvedValue(undefined),

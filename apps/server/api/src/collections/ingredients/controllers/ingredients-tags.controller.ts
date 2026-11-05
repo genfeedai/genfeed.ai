@@ -61,8 +61,9 @@ export class IngredientsTagsController {
     @CurrentUser() user: User,
     @Body() updateTagsDto: UpdateTagsDto,
   ): Promise<JsonApiSingleResponse> {
-    const ingredient = await this.ingredientsService.findOne(
+    const ingredient = await this.ingredientsService.findOneSelect(
       scopedWhere(user.organizationId, { id: ingredientId }),
+      { brandId: true },
     );
 
     if (!ingredient) {

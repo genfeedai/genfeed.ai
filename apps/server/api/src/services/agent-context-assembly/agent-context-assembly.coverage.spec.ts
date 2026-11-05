@@ -6,6 +6,7 @@ import {
 } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import type { AssembleContextParams } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   KnowledgeProcessingState,
   KnowledgeRetentionState,
@@ -65,6 +66,7 @@ function createService({ readSources, withoutCoverage }: FixtureOptions = {}) {
         label: 'Acme',
         organizationId: 'org-1',
       }),
+      findOneSelect: delegateFindOneSelect(),
       resolveBrandKitAssets: vi
         .fn()
         .mockResolvedValue({ banner: null, logo: null, references: [] }),
@@ -77,6 +79,7 @@ function createService({ readSources, withoutCoverage }: FixtureOptions = {}) {
     } as never,
     {
       findOne: vi.fn().mockResolvedValue({ currentBrandId: 'brand-1' }),
+      findOneSelect: delegateFindOneSelect(),
     } as never,
     { post: { findMany: vi.fn().mockResolvedValue([]) } } as never,
     {
@@ -85,7 +88,10 @@ function createService({ readSources, withoutCoverage }: FixtureOptions = {}) {
     } as never,
     { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
     { getTopPatternsForBrand: vi.fn().mockResolvedValue([]) } as never,
-    { findOne: vi.fn().mockResolvedValue(null) } as never,
+    {
+      findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
+    } as never,
     undefined as never,
     withoutCoverage ? undefined : coverage,
   );

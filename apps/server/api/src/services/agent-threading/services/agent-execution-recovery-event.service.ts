@@ -50,11 +50,14 @@ export class AgentExecutionRecoveryEventService {
         return;
       }
 
-      const thread = await this.agentThreadsService.findOne({
-        id: threadId,
-        isDeleted: false,
-        organizationId: execution.organizationId,
-      });
+      const thread = await this.agentThreadsService.findOneSelect(
+        {
+          id: threadId,
+          isDeleted: false,
+          organizationId: execution.organizationId,
+        },
+        { userId: true },
+      );
       if (!thread?.userId) {
         return;
       }

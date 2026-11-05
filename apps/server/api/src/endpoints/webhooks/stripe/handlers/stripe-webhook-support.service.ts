@@ -760,9 +760,10 @@ export class StripeWebhookSupportService {
     url: string,
   ): Promise<void> {
     try {
-      const orgSetting = await this.organizationSettingsService.findOne({
-        organizationId: organizationId,
-      });
+      const orgSetting = await this.organizationSettingsService.findOneSelect(
+        { organizationId: organizationId },
+        { id: true },
+      );
       if (orgSetting) {
         await this.organizationSettingsService.patch(orgSetting.id.toString(), {
           hasEverHadCredits: true,
@@ -853,9 +854,10 @@ export class StripeWebhookSupportService {
     url: string,
   ): Promise<void> {
     try {
-      const orgSetting = await this.organizationSettingsService.findOne({
-        organizationId: organizationId,
-      });
+      const orgSetting = await this.organizationSettingsService.findOneSelect(
+        { organizationId: organizationId },
+        { id: true },
+      );
 
       if (!orgSetting) {
         this.loggerService.warn(

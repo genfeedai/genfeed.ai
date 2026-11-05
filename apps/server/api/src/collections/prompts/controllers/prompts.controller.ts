@@ -286,13 +286,16 @@ export class PromptsController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     // Verify the prompt exists and belongs to the user
-    const prompt = await this.promptsService.findOne({
-      id: promptId,
-      OR: [
-        { userId: user.userId ?? user.id },
-        { organizationId: user.organizationId },
-      ],
-    });
+    const prompt = await this.promptsService.findOneSelect(
+      {
+        id: promptId,
+        OR: [
+          { userId: user.userId ?? user.id },
+          { organizationId: user.organizationId },
+        ],
+      },
+      { id: true },
+    );
 
     if (!prompt) {
       return returnNotFound(this.constructorName, promptId);

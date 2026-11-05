@@ -18,6 +18,7 @@ import type { StripeCheckoutSession } from '@api/services/integrations/stripe/se
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { ActivitySource } from '@genfeedai/contracts';
 import {
   type ISubscriptionOssReadModel,
@@ -44,15 +45,24 @@ describe('StripeCheckoutWebhookHandler', () => {
   const apiKeysService = {
     createWithKey: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn(),
   };
-  const brandsService = { findOne: vi.fn() };
+  const brandsService = {
+    findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
+  };
   const subscriptionsService = { findByStripeCustomerId: vi.fn() };
   const creditsUtilsService = {
     getOrganizationCreditsBalance: vi.fn().mockResolvedValue(35_000),
   };
   const customersService = { upsertForOrganization: vi.fn() };
-  const usersService = { create: vi.fn(), findOne: vi.fn(), patch: vi.fn() };
+  const usersService = {
+    create: vi.fn(),
+    findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
+    patch: vi.fn(),
+  };
   const managedStripeCheckoutService = {
     cacheCheckoutResult: vi.fn(),
     getCheckoutResult: vi.fn(),
@@ -61,9 +71,16 @@ describe('StripeCheckoutWebhookHandler', () => {
     markSessionProvisioned: vi.fn(),
     withProvisioningLock: vi.fn(),
   };
-  const organizationsService = { findOne: vi.fn() };
+  const organizationsService = {
+    findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
+  };
   const userSubscriptionsService = { updateFromStripeSession: vi.fn() };
-  const organizationSettingsService = { findOne: vi.fn(), patch: vi.fn() };
+  const organizationSettingsService = {
+    findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
+    patch: vi.fn(),
+  };
   const prisma = {
     skillReceipt: { create: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
   };

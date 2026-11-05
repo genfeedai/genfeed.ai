@@ -2,6 +2,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { StripeAttributionTrackerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-attribution-tracker.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import type { ISubscriptionOssReadModel } from '@genfeedai/contracts/interfaces/billing';
 import { SUBSCRIPTION_ATTRIBUTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -13,7 +14,10 @@ describe('StripeAttributionTrackerService', () => {
 
   const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const stripeService = { getSubscription: vi.fn() };
-  const usersService = { findOne: vi.fn() };
+  const usersService = {
+    findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
+  };
   const subscriptionAttributionsService = { trackSubscription: vi.fn() };
 
   const subscription = {

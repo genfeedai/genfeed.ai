@@ -5,6 +5,7 @@ import type { ClipperResultsService } from '@api/collections/clipper-results/cli
 import type { ClipperResultDocument } from '@api/collections/clipper-results/schemas/clipper-result.schema';
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   CaptionFormat,
   CaptionLanguage,
@@ -53,15 +54,20 @@ describe('ClipperLibraryLinkService', () => {
     create: ReturnType<typeof vi.fn>;
     patchOneWhere: ReturnType<typeof vi.fn>;
   };
-  let clipperProjectsService: { findOne: ReturnType<typeof vi.fn> };
+  let clipperProjectsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let clipperResultsService: {
     claimLibraryIngredient: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     markLibraryLinkState: ReturnType<typeof vi.fn>;
   };
   let ingredientsService: {
     create: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
   let metadataService: {
@@ -80,15 +86,18 @@ describe('ClipperLibraryLinkService', () => {
         id: 'project-1',
         organizationId: 'org-1',
       }),
+      findOneSelect: delegateFindOneSelect(),
     };
     clipperResultsService = {
       claimLibraryIngredient: vi.fn().mockResolvedValue(true),
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       markLibraryLinkState: vi.fn().mockResolvedValue(undefined),
     };
     ingredientsService = {
       create: vi.fn().mockResolvedValue({ id: 'ingredient-1' }),
       findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn().mockResolvedValue(undefined),
     };
     metadataService = {

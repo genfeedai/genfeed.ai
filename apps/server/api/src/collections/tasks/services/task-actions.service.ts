@@ -232,8 +232,9 @@ export class TaskActionsService {
       organizationId,
       outputId,
     );
-    const ingredient = await this.ingredientsService.findOne(
+    const ingredient = await this.ingredientsService.findOneSelect(
       scopedWhere(organizationId, { id: outputId }),
+      { id: true },
     );
     if (!ingredient) throw new NotFoundException('Ingredient', outputId);
     await this.ingredientsService.patch(outputId, { isDeleted: true });

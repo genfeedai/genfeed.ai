@@ -77,17 +77,19 @@ export class MetadataLookupService {
         ? externalId.split('_')[0]
         : externalId;
 
-      const foundMetadata = await this.metadataService.findOne({
-        externalId: baseExternalIdForSearch,
-      });
+      const foundMetadata = await this.metadataService.findOneSelect(
+        { externalId: baseExternalIdForSearch },
+        { id: true },
+      );
 
       if (!foundMetadata) {
         return;
       }
 
-      const ingredient = await this.ingredientsService.findOne({
-        metadataId: foundMetadata.id,
-      });
+      const ingredient = await this.ingredientsService.findOneSelect(
+        { metadataId: foundMetadata.id },
+        { id: true, userId: true },
+      );
 
       if (!ingredient) {
         return;

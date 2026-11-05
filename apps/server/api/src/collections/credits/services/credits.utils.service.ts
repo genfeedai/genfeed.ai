@@ -110,11 +110,11 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     // `OrganizationSetting` has no `isDeleted` column, so `scopedWhere` built a
     // filter Prisma rejects outright — every credit grant that reached this
     // point threw PrismaClientValidationError (API-GENFEED-AI-7T).
-    const organizationSettings = await this.organizationSettingsService.findOne(
-      {
-        organizationId,
-      },
-    );
+    const organizationSettings =
+      await this.organizationSettingsService.findOneSelect(
+        { organizationId },
+        { hasEverHadCredits: true, id: true },
+      );
 
     if (organizationSettings && !organizationSettings.hasEverHadCredits) {
       await this.organizationSettingsService.patch(

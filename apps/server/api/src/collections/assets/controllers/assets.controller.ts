@@ -162,10 +162,10 @@ export class AssetsController {
       'assetId',
     );
 
-    const existingAsset = await this.assetsService.findOne({
-      id: validatedId,
-      userId: user.userId ?? user.id,
-    });
+    const existingAsset = await this.assetsService.findOneSelect(
+      { id: validatedId, userId: user.userId ?? user.id },
+      { category: true },
+    );
 
     if (!existingAsset) {
       return returnNotFound(this.constructorName, assetId);
@@ -283,10 +283,10 @@ export class AssetsController {
       'assetId',
     );
 
-    const existingAsset = await this.assetsService.findOne({
-      id: validatedId,
-      userId: user.userId ?? user.id,
-    });
+    const existingAsset = await this.assetsService.findOneSelect(
+      { id: validatedId, userId: user.userId ?? user.id },
+      { category: true },
+    );
 
     if (!existingAsset) {
       return returnNotFound(this.constructorName, assetId);
@@ -323,11 +323,10 @@ export class AssetsController {
       return;
     }
 
-    const brand = await this.brandsService.findOne({
-      id: parentId,
-      isDeleted: false,
-      organizationId: user.organizationId,
-    });
+    const brand = await this.brandsService.findOneSelect(
+      { id: parentId, isDeleted: false, organizationId: user.organizationId },
+      { id: true },
+    );
 
     if (!brand) {
       throw new NotFoundException('Parent', parentId);

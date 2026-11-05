@@ -1,6 +1,7 @@
 import { WorkflowPostGenerationService } from '@api/collections/workflows/services/workflow-post-generation.service';
 import type { WorkflowPostGenerationInput } from '@api/collections/workflows/services/workflow-post-generation.types';
 import type { BrandedTextGenerationRequestV1 } from '@api/services/branded-text-generation/branded-text-generation.types';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { Platform, TargetExecutionState } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -60,8 +61,13 @@ function makeService(
   const credentialsService = {
     findConnectedAccounts: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
-  const postsService = { create: vi.fn(), findOne: vi.fn() };
+  const postsService = {
+    create: vi.fn(),
+    findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
+  };
   const prisma = {
     member: {
       findFirst: vi

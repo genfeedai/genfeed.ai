@@ -198,10 +198,10 @@ export class UserSetupService {
   private async findMembershipOrganization(
     userId: string,
   ): Promise<OrganizationDocument | null> {
-    const membership = await this.membersService.findOne({
-      isActive: true,
-      userId: userId,
-    });
+    const membership = await this.membersService.findOneSelect(
+      { isActive: true, userId: userId },
+      { organizationId: true },
+    );
 
     // Scalar FK: the legacy `organization` alias is undefined unless the query
     // populated the relation, so reading it here would make every membership
@@ -243,17 +243,20 @@ export class UserSetupService {
 
     if (existing) {
       if (existing.isProactiveOnboarding) {
-        const pendingHandoff = await this.organizationsService.findOne({
-          id: existing.id,
-          isDeleted: false,
-          warmupAccounts: {
-            some: {
-              customerUserId: userId,
-              isDeleted: false,
-              status: { not: 'CLAIMED' },
+        const pendingHandoff = await this.organizationsService.findOneSelect(
+          {
+            id: existing.id,
+            isDeleted: false,
+            warmupAccounts: {
+              some: {
+                customerUserId: userId,
+                isDeleted: false,
+                status: { not: 'CLAIMED' },
+              },
             },
           },
-        });
+          { id: true },
+        );
         if (pendingHandoff)
           throw new ForbiddenException(
             'Accept the prepared workspace invitation before continuing',

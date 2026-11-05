@@ -1,5 +1,6 @@
 import { ArticleContentPersistenceService } from '@api/collections/articles/services/article-content-persistence.service';
 import type { TagsService } from '@api/collections/tags/services/tags.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   ArticleCategory,
   ArticleStatus,
@@ -36,6 +37,7 @@ describe('ArticleContentPersistenceService', () => {
               params?.existingTagsByLabel?.[label] ?? null,
             );
           }),
+        findOneSelect: delegateFindOneSelect(),
       } as unknown as TagsService;
       const service = new ArticleContentPersistenceService(logger, tagsService);
       const createArticleFn = vi.fn().mockResolvedValue({ id: 'article_1' });

@@ -7,6 +7,7 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-post-preview.util';
 import { agentToolCreditEstimate } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   type CuratedActionName,
   getActionDefinition,
@@ -190,6 +191,7 @@ describe('AgentToolExecutorService', () => {
       create: vi.fn(),
       findAll: vi.fn(),
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       handleYoutubePost: vi.fn(),
       patch: vi.fn(),
     };
@@ -259,11 +261,13 @@ describe('AgentToolExecutorService', () => {
     // "acting member's currentBrandId" lookup that now precedes it.
     const membersService = {
       findOne: vi.fn().mockResolvedValue({ currentBrandId: 'brand-1' }),
+      findOneSelect: delegateFindOneSelect(),
     };
     const brandsService = {
       create: vi.fn().mockResolvedValue({ id: 'brand-1' }),
       findCreateByIdentityConfirmationSource: vi.fn().mockResolvedValue(null),
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn().mockResolvedValue({ id: 'brand-1' }),
       updateIdentityForOrganization: vi
         .fn()
@@ -350,6 +354,7 @@ describe('AgentToolExecutorService', () => {
         ],
         userId: testId('user'),
       }),
+      findOneSelect: delegateFindOneSelect(),
     };
     const botsLivestreamService = {
       getOrCreateSession: vi.fn().mockResolvedValue({
@@ -417,6 +422,7 @@ describe('AgentToolExecutorService', () => {
       }),
       findAll: vi.fn().mockResolvedValue({ docs: [] }),
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       getWorkflowTemplates: vi.fn().mockResolvedValue([]),
       patch: vi.fn().mockResolvedValue({}),
     };
@@ -472,6 +478,7 @@ describe('AgentToolExecutorService', () => {
     const workflowExecutionsService = {
       findAll: vi.fn().mockResolvedValue({ docs: [] }),
       findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
     };
     const trendsService = {
       getTrends: vi.fn().mockResolvedValue([]),
@@ -512,6 +519,7 @@ describe('AgentToolExecutorService', () => {
     };
     const videosService = {
       findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
     };
     const creditsUtilsService = {
       addOrganizationCreditsWithExpiration: vi
@@ -563,12 +571,14 @@ describe('AgentToolExecutorService', () => {
     const credentialsService = {
       find: vi.fn().mockResolvedValue([]),
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       resolveBrandAccount: vi.fn((options: Record<string, unknown>) =>
         credentialsService.findOne(options),
       ),
     };
     const organizationsService = {
       findOne: vi.fn().mockResolvedValue({ onboardingCompleted: false }),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn().mockResolvedValue({}),
     };
     const routeRewriteService = new AgentRouteRewriteService(
@@ -582,6 +592,7 @@ describe('AgentToolExecutorService', () => {
         id: 'settings-1',
         onboardingJourneyMissions: [],
       }),
+      findOneSelect: delegateFindOneSelect(),
       getNextRecommendedJourneyMission: vi
         .fn()
         .mockReturnValue('complete_company_info'),
@@ -640,6 +651,7 @@ describe('AgentToolExecutorService', () => {
     };
     const usersService = {
       findOne: vi.fn().mockResolvedValue({ id: 'user-db-1' }),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn().mockResolvedValue({}),
       patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
     };
@@ -696,6 +708,7 @@ describe('AgentToolExecutorService', () => {
     const imagesService = {
       findAllByOrganization: vi.fn().mockResolvedValue([]),
       findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
     };
     const voicesService = {
       findAll: vi.fn().mockResolvedValue({ docs: [] }),
@@ -716,9 +729,11 @@ describe('AgentToolExecutorService', () => {
     };
     const ingredientsService = {
       findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
     };
     const articlesService = {
       findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
     };
     const articleAnalyticsService = {
       getArticleAnalyticsSummary: vi.fn().mockResolvedValue(null),
@@ -950,6 +965,7 @@ describe('AgentToolExecutorService', () => {
         autonomyMode: 'AUTO_PUBLISH',
         publishPolicy: { autoPublishEnabled: true },
       }),
+      findOneSelect: delegateFindOneSelect(),
     };
     const agentPublishAuditsService = {
       createAudit: vi.fn().mockResolvedValue({ id: 'audit-1' }),
@@ -1217,7 +1233,10 @@ describe('AgentToolExecutorService', () => {
       new AgentToolMutationAuthorizationService(
         loggerService,
         approvals as never,
-        { findOne: vi.fn().mockResolvedValue({ mode: threadMode }) } as never,
+        {
+          findOne: vi.fn().mockResolvedValue({ mode: threadMode }),
+          findOneSelect: delegateFindOneSelect(),
+        } as never,
       );
     const service = new AgentToolExecutorService(
       loggerService,
@@ -6291,7 +6310,10 @@ describe('AgentToolExecutorService', () => {
       credentialsService as never,
       imagesService as never,
       organizationsService as never,
-      { findOne: vi.fn().mockResolvedValue({}) } as never,
+      {
+        findOne: vi.fn().mockResolvedValue({}),
+        findOneSelect: delegateFindOneSelect(),
+      } as never,
       usersService as never,
       undefined,
     );
@@ -6390,9 +6412,13 @@ describe('AgentToolExecutorService', () => {
         ),
         new AgentWorkflowToolExecuteService(
           workflowsService as never,
-          { findOne: vi.fn() } as never,
+          { findOne: vi.fn(), findOneSelect: delegateFindOneSelect() } as never,
           { updateSchedule: vi.fn() } as never,
-          { findAll: vi.fn(), findOne: vi.fn() } as never,
+          {
+            findAll: vi.fn(),
+            findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
+          } as never,
           { runAuthenticated: vi.fn() } as never,
         ),
         passThroughScheduleAuthority as never,
@@ -6454,7 +6480,10 @@ describe('AgentToolExecutorService', () => {
         brandsService as never,
         membersService as never,
         workflowsService as never,
-        { findOne: vi.fn().mockResolvedValue({}) } as never,
+        {
+          findOne: vi.fn().mockResolvedValue({}),
+          findOneSelect: delegateFindOneSelect(),
+        } as never,
         { findAll: vi.fn().mockResolvedValue({ docs: [] }) } as never,
       ),
       new AgentSpawnToolHandler(loggerService, undefined),

@@ -341,13 +341,11 @@ export class FoldersController extends BaseCRUDController<
         );
       }
 
-      const ancestor: FolderDocument | null = await this.foldersService.findOne(
-        {
-          id: ancestorId,
-          isDeleted: false,
-          organizationId,
-        },
-      );
+      const ancestor: Pick<FolderDocument, 'parentId'> | null =
+        await this.foldersService.findOneSelect(
+          { id: ancestorId, isDeleted: false, organizationId },
+          { parentId: true },
+        );
 
       if (!ancestor) {
         return;

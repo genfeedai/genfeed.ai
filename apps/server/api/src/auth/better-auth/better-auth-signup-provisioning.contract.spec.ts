@@ -19,6 +19,7 @@ import type { ActivityRecorderService } from '@api/services/activity-recording/a
 import type { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import type { SignupPrefillWorkflowService } from '@api/services/signup-prefill/signup-prefill-workflow.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import * as deployment from '@genfeedai/config';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { betterAuth } from 'better-auth';
@@ -88,6 +89,7 @@ function createSignupProvisioningHarness() {
       label: 'Default Organization',
     }),
     findOne: vi.fn().mockResolvedValue(null),
+    findOneSelect: delegateFindOneSelect(),
     generateUniqueSlug: vi.fn().mockResolvedValue('default-organization'),
   };
   const organizationSettingsService = {
@@ -100,6 +102,7 @@ function createSignupProvisioningHarness() {
       organizationId: ORGANIZATION_ID,
     }),
     findOne: vi.fn().mockResolvedValue(null),
+    findOneSelect: delegateFindOneSelect(),
     getLatestMajorVersionModelIds: vi.fn().mockResolvedValue(['model1']),
   };
   const brandsService = {
@@ -108,6 +111,7 @@ function createSignupProvisioningHarness() {
       organizationId: ORGANIZATION_ID,
     }),
     findOne: vi.fn().mockResolvedValue(null),
+    findOneSelect: delegateFindOneSelect(),
     generateUniqueSlug: vi.fn().mockResolvedValue('default-organization'),
   };
   const membersService = {
@@ -116,13 +120,16 @@ function createSignupProvisioningHarness() {
       organizationId: ORGANIZATION_ID,
     }),
     findOne: vi.fn().mockResolvedValue(null),
+    findOneSelect: delegateFindOneSelect(),
   };
   const rolesService = {
     findOne: vi.fn().mockResolvedValue({ id: ROLE_ID, key: 'admin' }),
+    findOneSelect: delegateFindOneSelect(),
   };
   const settingsService = {
     create: vi.fn().mockResolvedValue({ id: 'user_settings_signup' }),
     findOne: vi.fn().mockResolvedValue(null),
+    findOneSelect: delegateFindOneSelect(),
   };
   const creditBalanceService = {
     getOrCreateBalance: vi.fn().mockResolvedValue({ balance: 0 }),

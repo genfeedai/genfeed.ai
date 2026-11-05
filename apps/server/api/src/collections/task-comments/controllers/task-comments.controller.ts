@@ -72,10 +72,10 @@ export class TaskCommentsController {
     @CurrentUser() user: User,
   ) {
     const organization = user.organizationId;
-    const comment = await this.taskCommentsService.findOne({
-      id: commentId,
-      organizationId: organization,
-    });
+    const comment = await this.taskCommentsService.findOneSelect(
+      { id: commentId, organizationId: organization },
+      { id: true },
+    );
 
     if (!comment) {
       return { deleted: false };

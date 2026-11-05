@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { UserOnboardingCompletionService } from '@api/collections/users/services/user-onboarding-completion.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { describe, expect, it, vi } from 'vitest';
 
 function createService() {
@@ -9,6 +10,7 @@ function createService() {
   };
   const usersService = {
     findOne: vi.fn(async () => ({ id: 'user-1' })),
+    findOneSelect: delegateFindOneSelect(),
     patchAll: vi.fn(async (filter: { isOnboardingCompleted?: boolean }) => {
       if (filter.isOnboardingCompleted !== state.user.isOnboardingCompleted) {
         return { modifiedCount: 0 };

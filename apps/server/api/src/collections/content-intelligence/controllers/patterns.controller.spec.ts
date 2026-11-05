@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn(
     (
@@ -63,6 +65,7 @@ describe('PatternsController', () => {
   const mockPatternStoreService = {
     findAll: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     remove: vi.fn(),
   };
 

@@ -1,4 +1,5 @@
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { testId } from '@helpers/testing/test-id.helper';
 
 const CHANNEL = 'agent-chat';
@@ -48,6 +49,7 @@ const mockLoggerService = {
 
 const mockAgentThreadsService = {
   findOne: vi.fn(),
+  findOneSelect: delegateFindOneSelect(),
 };
 
 const mockAgentThreadEngineService = {
@@ -1094,6 +1096,7 @@ describe('authorized media stream projection', () => {
     };
     const threads = {
       findOne: vi.fn().mockResolvedValue({ organizationId, userId }),
+      findOneSelect: delegateFindOneSelect(),
     };
     const publisher = new AgentStreamPublisherService(
       redis as never,

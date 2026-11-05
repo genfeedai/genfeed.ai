@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((name: string, id: string) => {
     throw new HttpException(
@@ -92,6 +94,7 @@ describe('ImagesController', () => {
   let imagesService: {
     findAll: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
   };
 
@@ -120,6 +123,7 @@ describe('ImagesController', () => {
     imagesService = {
       findAll: vi.fn().mockResolvedValue({ docs: [mockImage], totalDocs: 1 }),
       findOne: vi.fn().mockResolvedValue(mockImage),
+      findOneSelect: delegateFindOneSelect(),
       remove: vi.fn().mockResolvedValue(mockImage),
     };
 
@@ -136,7 +140,13 @@ describe('ImagesController', () => {
             warn: vi.fn(),
           },
         },
-        { provide: VotesService, useValue: { findOne: vi.fn() } },
+        {
+          provide: VotesService,
+          useValue: {
+            findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
+          },
+        },
         {
           provide: IngredientCharacterFilterService,
           useValue: characterFilterService,

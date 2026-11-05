@@ -3,6 +3,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import type { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 
 import { TaskActionsService } from './task-actions.service';
 
@@ -43,6 +44,7 @@ describe('TaskActionsService', () => {
   };
   let ingredientsService: {
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
   let notificationsPublisher: { emit: ReturnType<typeof vi.fn> };
@@ -64,6 +66,7 @@ describe('TaskActionsService', () => {
     };
     ingredientsService = {
       findOne: vi.fn().mockResolvedValue({ id: outputId }),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn().mockResolvedValue(undefined),
     };
     notificationsPublisher = {

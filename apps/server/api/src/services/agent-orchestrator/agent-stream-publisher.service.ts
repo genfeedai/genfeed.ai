@@ -91,11 +91,10 @@ export class AgentStreamPublisherService {
     const ids = ingredientResponseIds(data);
     const assetIds = assetResponseIds(data);
     if (ids.length === 0 && assetIds.length === 0) return data;
-    const thread = await this.agentThreadsService?.findOne({
-      id: data.threadId,
-      userId: data.userId,
-      isDeleted: false,
-    });
+    const thread = await this.agentThreadsService?.findOneSelect(
+      { id: data.threadId, userId: data.userId, isDeleted: false },
+      { brandId: true, organizationId: true },
+    );
     if (!thread?.organizationId || !this.mediaIssuer)
       return projectMediaResponse(data, [], false) as T;
     const scope = {
@@ -221,9 +220,10 @@ export class AgentStreamPublisherService {
         return undefined;
       }
 
-      const thread = await this.agentThreadsService.findOne({
-        id: threadId,
-      });
+      const thread = await this.agentThreadsService.findOneSelect(
+        { id: threadId },
+        { organizationId: true },
+      );
 
       const organizationId = thread?.organizationId;
 
@@ -265,12 +265,15 @@ export class AgentStreamPublisherService {
     if (!data.userId || data.userId.trim() === '') {
       throw new BadRequestException('Invalid userId');
     }
-    const thread = await this.agentThreadsService.findOne({
-      id: data.threadId,
-      organizationId: data.organizationId,
-      userId: data.userId,
-      isDeleted: false,
-    });
+    const thread = await this.agentThreadsService.findOneSelect(
+      {
+        id: data.threadId,
+        organizationId: data.organizationId,
+        userId: data.userId,
+        isDeleted: false,
+      },
+      { id: true },
+    );
     if (!thread) {
       throw new NotFoundException(`Thread "${data.threadId}" not found`);
     }

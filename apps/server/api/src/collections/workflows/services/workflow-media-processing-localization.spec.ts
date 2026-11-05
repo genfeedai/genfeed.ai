@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock('@api/collections/captions/services/captions.service', () => ({
   CaptionsService: class {},
 }));
@@ -89,6 +91,7 @@ function setup(isAuthorizedMediaDeliveryEnabled = false) {
   ]);
   const ingredients = {
     findOne: vi.fn(async ({ id }: { id: string }) => assets.get(id)),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn().mockResolvedValue({}),
   };
   const metadata = { patch: vi.fn().mockResolvedValue({}) };

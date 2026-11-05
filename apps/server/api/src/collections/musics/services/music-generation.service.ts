@@ -322,9 +322,11 @@ export class MusicGenerationService {
     const brand = brandId
       ? await this.brandsService.findOne({ id: brandId, organizationId })
       : null;
-    const organizationSettings = await this.organizationSettingsService.findOne(
-      { organizationId },
-    );
+    const organizationSettings =
+      await this.organizationSettingsService.findOneSelect(
+        { organizationId },
+        { defaultMusicModel: true },
+      );
     const brandDefault = brand?.defaultMusicModel;
     const organizationDefault = organizationSettings?.defaultMusicModel;
 

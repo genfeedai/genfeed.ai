@@ -187,20 +187,24 @@ export class OrganizationsMembersController {
     });
 
     // Verify organization exists
-    const organization = await this.organizationsService.findOne({
-      id: organizationId,
-    });
+    const organization = await this.organizationsService.findOneSelect(
+      { id: organizationId },
+      { id: true },
+    );
     if (!organization) {
       return returnNotFound('Organization', organizationId);
     }
 
     // Verify member exists and belongs to this organization
-    const member = await this.membersService.findOne({
-      id: memberId,
-      organizationId,
-      // Explicit undefined opts out of BaseService's live-only default for restore.
-      isDeleted: updateMemberDto.isDeleted === false ? undefined : false,
-    });
+    const member = await this.membersService.findOneSelect(
+      {
+        id: memberId,
+        organizationId,
+        // Explicit undefined opts out of BaseService's live-only default for restore.
+        isDeleted: updateMemberDto.isDeleted === false ? undefined : false,
+      },
+      { id: true },
+    );
 
     if (!member) {
       return returnNotFound('Member', memberId);

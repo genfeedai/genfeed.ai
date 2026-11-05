@@ -1,6 +1,7 @@
 import { WorkflowEngineConverterService } from '@api/collections/workflows/services/workflow-engine-converter.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowNodeGraphRuntimeService } from '@api/collections/workflows/services/workflow-node-graph-runtime.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
@@ -101,6 +102,7 @@ describe('WorkflowExecutorService', () => {
     completeExecution: vi.fn(),
     createExecution: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     getRuntimeState: vi.fn(),
     setCreditsUsed: vi.fn(),
     setFailedNodeId: vi.fn(),

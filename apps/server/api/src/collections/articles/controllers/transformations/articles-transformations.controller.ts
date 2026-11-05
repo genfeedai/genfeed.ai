@@ -271,11 +271,11 @@ export class ArticlesTransformationsController {
         })
       : null;
 
-    const organizationSettings = await this.organizationSettingsService.findOne(
-      {
-        organizationId: user.organizationId,
-      },
-    );
+    const organizationSettings =
+      await this.organizationSettingsService.findOneSelect(
+        { organizationId: user.organizationId },
+        { defaultImageModel: true },
+      );
     const model = resolveGenerationDefaultModel<string>({
       brandDefault: brand?.defaultImageModel,
       explicit: body.model,
@@ -324,11 +324,11 @@ export class ArticlesTransformationsController {
         })
       : null;
 
-    const organizationSettings = await this.organizationSettingsService.findOne(
-      {
-        organizationId: user.organizationId,
-      },
-    );
+    const organizationSettings =
+      await this.organizationSettingsService.findOneSelect(
+        { organizationId: user.organizationId },
+        { defaultVideoModel: true },
+      );
     const model = resolveGenerationDefaultModel<string>({
       brandDefault: brand?.defaultVideoModel,
       explicit: body.model,

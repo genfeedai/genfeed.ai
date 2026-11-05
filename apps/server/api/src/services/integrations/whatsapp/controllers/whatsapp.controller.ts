@@ -40,10 +40,10 @@ export class WhatsappController {
       });
     }
 
-    const brand = await this.brandsService.findOne({
-      id: body.brandId,
-      organizationId: user.organizationId,
-    });
+    const brand = await this.brandsService.findOneSelect(
+      { id: body.brandId, organizationId: user.organizationId },
+      { id: true },
+    );
 
     if (!brand) {
       return returnBadRequest({
@@ -79,10 +79,10 @@ export class WhatsappController {
       });
     }
 
-    const brand = await this.brandsService.findOne({
-      id: body.brandId,
-      organizationId: user.organizationId,
-    });
+    const brand = await this.brandsService.findOneSelect(
+      { id: body.brandId, organizationId: user.organizationId },
+      { id: true },
+    );
 
     if (!brand) {
       return returnBadRequest({
@@ -113,10 +113,10 @@ export class WhatsappController {
       });
     }
 
-    const brand = await this.brandsService.findOne({
-      id: brandId,
-      organizationId: readScope.organizationId,
-    });
+    const brand = await this.brandsService.findOneSelect(
+      { id: brandId, organizationId: readScope.organizationId },
+      { id: true },
+    );
 
     if (!brand) {
       return returnBadRequest({

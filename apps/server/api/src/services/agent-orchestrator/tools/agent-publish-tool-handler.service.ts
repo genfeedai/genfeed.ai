@@ -1003,11 +1003,10 @@ export class AgentPublishToolHandler {
     }
 
     try {
-      const sourcePost = await this.postsService.findOne({
-        id: postId,
-        isDeleted: false,
-        organizationId: ctx.organizationId,
-      });
+      const sourcePost = await this.postsService.findOneSelect(
+        { id: postId, isDeleted: false, organizationId: ctx.organizationId },
+        { brandId: true },
+      );
       if (!sourcePost) {
         return {
           creditsUsed: 0,

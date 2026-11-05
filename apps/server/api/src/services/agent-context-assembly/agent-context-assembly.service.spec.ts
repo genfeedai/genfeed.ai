@@ -3,6 +3,7 @@ import { AgentContextAssemblyService } from '@api/services/agent-context-assembl
 import { fitBrandContextToBudgetWithReport } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import type { AssembledBrandContext } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
@@ -90,6 +91,7 @@ describe('AgentContextAssemblyService', () => {
   let brandsService: {
     brandAccessService: BrandAccessService;
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     resolveBrandKitAssets: ReturnType<typeof vi.fn>;
   };
   let cacheService: ReturnType<typeof createCacheService>;
@@ -99,8 +101,14 @@ describe('AgentContextAssemblyService', () => {
     retrieveOrgAndPersonalContentMemory: ReturnType<typeof vi.fn>;
   };
   let loggerService: ReturnType<typeof createLogger>;
-  let membersService: { findOne: ReturnType<typeof vi.fn> };
-  let organizationSettingsService: { findOne: ReturnType<typeof vi.fn> };
+  let membersService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
+  let organizationSettingsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let patternMatcherService: {
     getTopPatternsForBrand: ReturnType<typeof vi.fn>;
   };
@@ -114,6 +122,7 @@ describe('AgentContextAssemblyService', () => {
     brandsService = {
       brandAccessService: brandAccessFixture(),
       findOne: vi.fn().mockResolvedValue(createCompleteBrand()),
+      findOneSelect: delegateFindOneSelect(),
       resolveBrandKitAssets: vi.fn().mockResolvedValue(createBrandKitAssets()),
     };
     cacheService = createCacheService();
@@ -128,9 +137,11 @@ describe('AgentContextAssemblyService', () => {
     // caller has no explicit brand scope (#5219).
     membersService = {
       findOne: vi.fn().mockResolvedValue({ currentBrandId: 'brand-1' }),
+      findOneSelect: delegateFindOneSelect(),
     };
     organizationSettingsService = {
       findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
     };
     patternMatcherService = {
       getTopPatternsForBrand: vi.fn().mockResolvedValue([]),

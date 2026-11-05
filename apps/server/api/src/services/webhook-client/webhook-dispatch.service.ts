@@ -74,9 +74,15 @@ export class WebhookDispatchService {
     options: WebhookDispatchOptions = {},
   ): Promise<IWebhookDeliveryStatus | null> {
     const label = options.logLabel ?? this.constructorName;
-    const settings = await this.organizationSettingsService.findOne({
-      organizationId: organizationId,
-    });
+    const settings = await this.organizationSettingsService.findOneSelect(
+      { organizationId: organizationId },
+      {
+        isWebhookEnabled: true,
+        webhookEndpoint: true,
+        webhookEventTypes: true,
+        webhookSecret: true,
+      },
+    );
 
     if (
       !settings?.isWebhookEnabled ||
@@ -166,9 +172,15 @@ export class WebhookDispatchService {
     event?: OrganizationWebhookEventType;
     organizationId: string;
   }): Promise<IWebhookDeliveryStatus> {
-    const settings = await this.organizationSettingsService.findOne({
-      organizationId: input.organizationId,
-    });
+    const settings = await this.organizationSettingsService.findOneSelect(
+      { organizationId: input.organizationId },
+      {
+        isWebhookEnabled: true,
+        webhookEndpoint: true,
+        webhookEventTypes: true,
+        webhookSecret: true,
+      },
+    );
 
     if (
       !settings?.isWebhookEnabled ||

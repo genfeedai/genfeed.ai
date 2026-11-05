@@ -758,9 +758,10 @@ export class AgentOrchestratorRecurringTaskService {
   private async resolveOrganizationTimezone(
     organizationId: string,
   ): Promise<string> {
-    const settings = await this.organizationSettingsService.findOne({
-      organizationId,
-    });
+    const settings = await this.organizationSettingsService.findOneSelect(
+      { organizationId },
+      { timezone: true },
+    );
 
     return settings?.timezone?.trim() || 'UTC';
   }

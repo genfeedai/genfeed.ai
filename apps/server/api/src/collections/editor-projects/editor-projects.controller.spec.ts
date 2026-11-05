@@ -6,6 +6,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   EditorTrackType,
   IngredientCategory,
@@ -96,6 +97,7 @@ describe('EditorProjectsController', () => {
             create: vi.fn(),
             findAll: vi.fn(),
             findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
             findForRender: vi.fn().mockResolvedValue({ config: {} }),
             patch: vi.fn(),
             patchOneWhere: vi.fn(),
@@ -120,12 +122,14 @@ describe('EditorProjectsController', () => {
           useValue: {
             findAll: vi.fn(),
             findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
         {
           provide: MetadataService,
           useValue: {
             findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
         {

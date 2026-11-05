@@ -35,9 +35,10 @@ export class LeonardoaiWebhookService {
     }
 
     // Get metadata for this callback
-    const metadata = await this.metadataService.findOne({
-      id: metadataId,
-    });
+    const metadata = await this.metadataService.findOneSelect(
+      { id: metadataId },
+      { id: true },
+    );
     if (!metadata) {
       this.loggerService.warn(`${url} metadata not found`, { metadataId });
       return;

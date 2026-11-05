@@ -24,6 +24,7 @@ import { ClipperProjectClientSourceService } from '@api/collections/clipper-proj
 import type { HookClipApprovalService } from '@api/collections/clipper-projects/services/hook-clipper-approval.service';
 import type { ClipperResultsService } from '@api/collections/clipper-results/clipper-results.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import type {
   AgentClipperRunIdentity,
   AgentClipperRunIdentityField,
@@ -50,6 +51,7 @@ function createMockClipperProjectsService(): Pick<
   | 'create'
   | 'claimFailedResultRetry'
   | 'findOne'
+  | 'findOneSelect'
   | 'patch'
   | 'reconcileTerminalState'
   | 'selectReferenceFrame'
@@ -58,6 +60,7 @@ function createMockClipperProjectsService(): Pick<
     claimFailedResultRetry: vi.fn().mockResolvedValue(true),
     create: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn(),
     reconcileTerminalState: vi.fn(),
     selectReferenceFrame: vi.fn(),

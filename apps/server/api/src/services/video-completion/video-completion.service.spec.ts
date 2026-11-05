@@ -9,6 +9,7 @@ import { VideoCompletionService } from '@api/services/video-completion/video-com
 import { VideoCompletionSubscriberService } from '@api/services/video-completion/video-completion-subscriber.service';
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { createIngredientDocumentFixture } from '@api-test/fixtures/ingredient-document.fixture';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { IngredientStatus, Status } from '@genfeedai/contracts';
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -118,6 +119,7 @@ describe('VideoCompletionService', () => {
           provide: IngredientsService,
           useValue: {
             findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
             patch: vi.fn(),
           },
         },

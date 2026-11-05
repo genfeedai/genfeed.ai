@@ -84,11 +84,14 @@ export class AgentThreadStatusPublisherService {
         return false;
       }
 
-      const thread = await this.agentThreadsService.findOne({
-        id: params.threadId,
-        isDeleted: false,
-        organizationId: params.organizationId,
-      });
+      const thread = await this.agentThreadsService.findOneSelect(
+        {
+          id: params.threadId,
+          isDeleted: false,
+          organizationId: params.organizationId,
+        },
+        { isDeleted: true, status: true, userId: true },
+      );
       // Archived and deleted threads are not in the sidebar's active list.
       if (
         !thread ||

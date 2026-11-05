@@ -15,6 +15,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   ActivitySource,
   IngredientCategory,
@@ -69,6 +70,7 @@ const stills: Record<string, Record<string, unknown>> = {
 function createHarness() {
   const ingredientsService = {
     findOne: vi.fn(async (where: { id: string }) => stills[where.id] ?? null),
+    findOneSelect: delegateFindOneSelect(),
   };
   const personasService = {
     resolveCharacterHandles: vi.fn().mockResolvedValue({

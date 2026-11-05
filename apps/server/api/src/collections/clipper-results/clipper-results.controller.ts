@@ -148,10 +148,10 @@ export class ClipperResultsController {
     @Body() updateClipperResultDto: UpdateClipperResultDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const existing = await this.clipperResultsService.findOne({
-      id: id,
-      organizationId: user.organizationId,
-    });
+    const existing = await this.clipperResultsService.findOneSelect(
+      { id: id, organizationId: user.organizationId },
+      { id: true },
+    );
 
     if (!existing) {
       return returnNotFound(this.constructorName, id);

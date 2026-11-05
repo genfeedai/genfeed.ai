@@ -342,11 +342,20 @@ export class InstagramController {
       });
     }
 
-    const credential = await this.credentialsService.findOne({
-      id: credentialId,
-      organizationId: user.organizationId,
-      platform: CredentialPlatform.INSTAGRAM,
-    });
+    const credential = await this.credentialsService.findOneSelect(
+      {
+        id: credentialId,
+        organizationId: user.organizationId,
+        platform: CredentialPlatform.INSTAGRAM,
+      },
+      {
+        accessToken: true,
+        externalId: true,
+        id: true,
+        isConnected: true,
+        isDeleted: true,
+      },
+    );
 
     if (!credential || credential.isDeleted) {
       return returnNotFound('Instagram credential', credentialId);

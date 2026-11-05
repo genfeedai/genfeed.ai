@@ -1,6 +1,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { BotUserResolverService } from '@api/services/bot-gateway/services/bot-user-resolver.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -15,16 +16,27 @@ const mockCredential = (overrides: Record<string, unknown> = {}) => ({
 
 describe('BotUserResolverService', () => {
   let service: BotUserResolverService;
-  let credentialsService: vi.Mocked<Pick<CredentialsService, 'findOne'>>;
-  let brandsService: vi.Mocked<Pick<BrandsService, 'findOne' | 'find'>>;
+  let credentialsService: vi.Mocked<
+    Pick<CredentialsService, 'findOne' | 'findOneSelect'>
+  >;
+  let brandsService: vi.Mocked<
+    Pick<BrandsService, 'findOne' | 'findOneSelect' | 'find'>
+  >;
   let loggerService: vi.Mocked<Pick<LoggerService, 'log' | 'warn' | 'error'>>;
 
   const platform = CredentialPlatform.TELEGRAM;
   const platformUserId = 'tg-user-99';
 
   beforeEach(async () => {
-    credentialsService = { findOne: vi.fn() };
-    brandsService = { find: vi.fn(), findOne: vi.fn() };
+    credentialsService = {
+      findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
+    };
+    brandsService = {
+      find: vi.fn(),
+      findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
+    };
     loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({

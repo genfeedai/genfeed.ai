@@ -138,10 +138,10 @@ export class TrendsController {
     // Re-fetch the resolved brand's fields (description/label/text) for the
     // idea-generation prompt context below — the resolver above only proves
     // the id, not the full row.
-    const brand = await this.brandsService.findOne({
-      id: brandId,
-      organizationId,
-    });
+    const brand = await this.brandsService.findOneSelect(
+      { id: brandId, organizationId },
+      { description: true, label: true, text: true },
+    );
     const creditsConfig = (req as CreditsGuardRequest).creditsConfig;
     if (!creditsConfig?.isByokBypass) {
       await assertOrganizationCreditsAvailable(

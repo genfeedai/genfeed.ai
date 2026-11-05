@@ -29,7 +29,15 @@ function buildJob(
 
 describe('ReplicatePollProcessor', () => {
   const byok = { lookupApiKey: vi.fn() };
-  const ingredients = { findOne: vi.fn() };
+  const ingredients = {
+    findOne: vi.fn(),
+    findOneSelect: vi.fn(function (
+      this: { findOne: (params: unknown) => unknown },
+      params: unknown,
+    ) {
+      return this.findOne(params);
+    }),
+  };
   const logger = { error: vi.fn(), warn: vi.fn() };
   const pollQueue = { schedule: vi.fn() };
   const replicate = { getPrediction: vi.fn() };

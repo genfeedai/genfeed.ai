@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn((_req, _serializer, data) => ({
     data: data.docs || data,
@@ -74,6 +76,7 @@ describe('CreatorsController', () => {
     findAll: vi.fn(),
     findByHandle: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     remove: vi.fn(),
   };
 

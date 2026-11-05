@@ -4,6 +4,7 @@ import { AgentContextAssemblyService } from '@api/services/agent-context-assembl
 import type { AssembledBrandContext } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
 import { AgentBrandContextSnapshotService } from '@api/services/agent-orchestrator/agent-brand-context-snapshot.service';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -125,7 +126,10 @@ function createHarness(options?: {
   const contextService = new AgentOrchestratorContextService(
     registry as never,
     {} as never,
-    { findOne: vi.fn().mockResolvedValue(null) } as never,
+    {
+      findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
+    } as never,
     {
       prepareForTurn: vi.fn(
         async (params: { requestedBrandId?: string | null }) => ({
@@ -140,6 +144,7 @@ function createHarness(options?: {
     contextAssembly as never,
     {
       findOne: vi.fn().mockResolvedValue({ agentReplyStyle: undefined }),
+      findOneSelect: delegateFindOneSelect(),
     } as never,
     { findOneById: vi.fn() } as never,
     modelAccess as never,
@@ -169,6 +174,7 @@ function createHarness(options?: {
           }
         : options.brand,
     ),
+    findOneSelect: delegateFindOneSelect(),
   };
   const service = new AgentBrandContextSnapshotService(
     brandsService as never,

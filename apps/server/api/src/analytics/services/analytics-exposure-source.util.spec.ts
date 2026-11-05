@@ -8,6 +8,7 @@ import type {
   ServerCredentialStore,
   ServerPostAnalytics,
 } from '@api/server.dependencies';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { Platform, toPrismaCredentialPlatform } from '@genfeedai/contracts';
 import type {
   AnalyticsPersistenceContext,
@@ -108,6 +109,7 @@ function harness(
   };
   const credentials = {
     findOne: vi.fn(async () => credential),
+    findOneSelect: delegateFindOneSelect(),
     resolveBrandAccount: vi.fn(async () => credential),
     findConnectedAccounts: vi.fn(async () => [credential]),
   } as unknown as ServerCredentialStore;

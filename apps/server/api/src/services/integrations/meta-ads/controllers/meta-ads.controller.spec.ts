@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((val: string) => `decrypted:${val}`) },
 }));
@@ -17,7 +19,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('MetaAdsController', () => {
   let controller: MetaAdsController;
-  let credentialsService: { findOne: ReturnType<typeof vi.fn> };
+  let credentialsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let metaAdsService: {
     compareCampaigns: ReturnType<typeof vi.fn>;
     createAd: ReturnType<typeof vi.fn>;
@@ -58,7 +63,10 @@ describe('MetaAdsController', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    credentialsService = { findOne: vi.fn().mockResolvedValue(mockCredential) };
+    credentialsService = {
+      findOne: vi.fn().mockResolvedValue(mockCredential),
+      findOneSelect: delegateFindOneSelect(),
+    };
 
     metaAdsService = {
       compareCampaigns: vi.fn(),

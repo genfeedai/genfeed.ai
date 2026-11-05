@@ -11,6 +11,7 @@ import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   AssetCategory,
   AssetParent,
@@ -76,6 +77,7 @@ describe('AssetIngestionService', () => {
   };
   const ingredientsService = {
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
   const loggerService = {
     error: vi.fn(),
@@ -84,6 +86,7 @@ describe('AssetIngestionService', () => {
   };
   const metadataService = {
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
   const websocketService = {
     publishAssetStatus: vi.fn(),

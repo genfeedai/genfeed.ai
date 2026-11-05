@@ -106,10 +106,10 @@ export class InternalWorkflowExecutionsController {
     @Param('id') id: string,
     @Body() dto: UpdateWorkflowExecutionDto,
   ) {
-    const execution = await this.workflowExecutionsService.findOne({
-      id: id,
-      organizationId: orgId,
-    });
+    const execution = await this.workflowExecutionsService.findOneSelect(
+      { id: id, organizationId: orgId },
+      { id: true },
+    );
 
     if (!execution) {
       throw new NotFoundException('Execution');

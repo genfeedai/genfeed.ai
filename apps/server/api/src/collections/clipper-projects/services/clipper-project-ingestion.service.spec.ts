@@ -8,6 +8,7 @@ import type { ClipperIdentityResolutionService } from '@api/collections/clipper-
 import { ClipperProjectIngestionService } from '@api/collections/clipper-projects/services/clipper-project-ingestion.service';
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import type { AgentClipperRunIdentity } from '@genfeedai/contracts/interfaces';
 import type { HttpService } from '@nestjs/axios';
 import {
@@ -44,6 +45,7 @@ describe('ClipperProjectIngestionService', () => {
     markSourceDispatchFailed: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
     patchDraft: ReturnType<typeof vi.fn>;
     releaseDraft: ReturnType<typeof vi.fn>;
@@ -64,7 +66,10 @@ describe('ClipperProjectIngestionService', () => {
   let clipperIdentityResolutionService: {
     resolve: ReturnType<typeof vi.fn>;
   };
-  let ingredientsService: { findOne: ReturnType<typeof vi.fn> };
+  let ingredientsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let presignedUploadService: {
     confirmUpload: ReturnType<typeof vi.fn>;
     getPresignedUploadUrl: ReturnType<typeof vi.fn>;
@@ -85,6 +90,7 @@ describe('ClipperProjectIngestionService', () => {
         id: 'project-1',
       } as ClipperProjectDocument),
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn(),
       patchDraft: vi.fn().mockResolvedValue({
         id: 'draft-1',
@@ -115,7 +121,10 @@ describe('ClipperProjectIngestionService', () => {
     clipperIdentityResolutionService = {
       resolve: vi.fn().mockResolvedValue(completeIdentity),
     };
-    ingredientsService = { findOne: vi.fn() };
+    ingredientsService = {
+      findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
+    };
     presignedUploadService = {
       confirmUpload: vi.fn(),
       getPresignedUploadUrl: vi.fn().mockResolvedValue({

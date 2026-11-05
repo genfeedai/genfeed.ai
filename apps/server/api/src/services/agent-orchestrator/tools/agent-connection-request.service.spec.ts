@@ -1,4 +1,5 @@
 import { AgentConnectionRequestService } from '@api/services/agent-orchestrator/tools/agent-connection-request.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -7,13 +8,16 @@ function createService() {
     beginOAuthForBrand: vi.fn(),
     createPendingForBrand: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
   const brandsService = {
     findAll: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
   const organizationsService = {
     findOne: vi.fn().mockResolvedValue({ slug: 'acme' }),
+    findOneSelect: delegateFindOneSelect(),
   };
   const configService = {
     get: vi.fn().mockReturnValue('https://app.genfeed.ai'),

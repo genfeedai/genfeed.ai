@@ -47,9 +47,10 @@ export class UserOnboardingCompletionService {
   async complete(user: User): Promise<string> {
     const canonicalUserId = (user.userId ?? user.id) || user.id;
 
-    const dbUser = await this.usersService.findOne({
-      id: canonicalUserId,
-    });
+    const dbUser = await this.usersService.findOneSelect(
+      { id: canonicalUserId },
+      { id: true },
+    );
 
     if (!dbUser?.id) {
       throw new UnauthorizedException('User account not found');

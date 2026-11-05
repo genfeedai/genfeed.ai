@@ -4,6 +4,7 @@ import type { LinksService } from '@api/collections/links/services/links.service
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import type { ReferenceImageDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { LinkCategory, ReferenceImageCategory } from '@genfeedai/contracts';
 import type { IExtractedBrandData } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -16,6 +17,7 @@ describe('BrandPersistenceService', () => {
   let service: BrandPersistenceService;
   let brandsService: {
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     generateUniqueSlug: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
     selectBrandForUser: ReturnType<typeof vi.fn>;
@@ -24,10 +26,12 @@ describe('BrandPersistenceService', () => {
   let linksService: {
     create: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
   let organizationsService: {
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     generateUniqueSlug: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
@@ -43,6 +47,7 @@ describe('BrandPersistenceService', () => {
   beforeEach(() => {
     brandsService = {
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       generateUniqueSlug: vi.fn(),
       patch: vi.fn(),
       selectBrandForUser: vi.fn(),
@@ -51,10 +56,12 @@ describe('BrandPersistenceService', () => {
     linksService = {
       create: vi.fn(),
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn(),
     };
     organizationsService = {
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
       generateUniqueSlug: vi.fn(),
       patch: vi.fn(),
     };

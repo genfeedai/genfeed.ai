@@ -9,6 +9,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CacheService } from '@api/services/cache/cache.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { AssetCategory, AssetParent } from '@genfeedai/contracts';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -48,6 +49,7 @@ describe('AssetsController', () => {
   const mockAssetsService = {
     findAll: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn(),
     patchAll: vi.fn(),
     remove: vi.fn(),
@@ -55,6 +57,7 @@ describe('AssetsController', () => {
 
   const mockBrandsService = {
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
   };
 
   const mockCacheService = {

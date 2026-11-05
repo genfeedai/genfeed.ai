@@ -250,13 +250,16 @@ export class ImagesController {
     };
 
     // Ingredient votes are written with the voter's organization.
-    const vote = await this.votesService.findOne({
-      entityId: imageId,
-      entityModel: ActivityEntityModel.INGREDIENT,
-      isDeleted: false,
-      organizationId: readScope.organizationId,
-      userId: user.userId ?? user.id,
-    });
+    const vote = await this.votesService.findOneSelect(
+      {
+        entityId: imageId,
+        entityModel: ActivityEntityModel.INGREDIENT,
+        isDeleted: false,
+        organizationId: readScope.organizationId,
+        userId: user.userId ?? user.id,
+      },
+      { id: true },
+    );
 
     mergedData.hasVoted = !!vote;
 

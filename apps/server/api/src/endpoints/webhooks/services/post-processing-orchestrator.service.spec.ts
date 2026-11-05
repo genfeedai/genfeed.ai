@@ -5,6 +5,7 @@ import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/servi
 import { StoryboardNotificationContextService } from '@api/endpoints/webhooks/services/storyboard-notification-context.service';
 import type { BotCallbackResponderService } from '@api/services/bot-gateway/services/bot-callback-responder.service';
 import type { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { EvaluationType, IngredientCategory } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -23,7 +24,10 @@ describe('PostProcessingOrchestratorService', () => {
     sendErrorResponse: ReturnType<typeof vi.fn>;
   };
   let configService: { ingredientsEndpoint: string };
-  let organizationSettingsService: { findOne: ReturnType<typeof vi.fn> };
+  let organizationSettingsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let loggerService: {
     debug: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
@@ -42,6 +46,7 @@ describe('PostProcessingOrchestratorService', () => {
     };
     organizationSettingsService = {
       findOne: vi.fn(),
+      findOneSelect: delegateFindOneSelect(),
     };
     loggerService = {
       debug: vi.fn(),

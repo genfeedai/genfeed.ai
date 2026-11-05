@@ -5,6 +5,7 @@ import {
   learningPublicationFinalizationVersionV1,
   learningPublicationPostVersionV1,
 } from '@api/collections/content-learning/services/learning-publication-source.helper';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { CredentialPlatform, Platform } from '@genfeedai/contracts';
 import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -29,6 +30,7 @@ function harness(platform: CredentialPlatform) {
       accessToken: 'token',
       externalId: 'page',
     }),
+    findOneSelect: delegateFindOneSelect(),
   };
   const analytics = {
     prepareLearningObservation: vi

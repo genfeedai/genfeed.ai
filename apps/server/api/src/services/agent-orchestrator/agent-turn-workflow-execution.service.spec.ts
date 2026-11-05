@@ -5,6 +5,7 @@ import {
 import { AGENT_RUNTIME_ACTION_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import type { SystemWorkflowActionExecutor } from '@api/collections/workflows/system-workflow-runner.service';
 import { AgentTurnWorkflowExecutionService } from '@api/services/agent-orchestrator/agent-turn-workflow-execution.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   ActionOrigin,
   AgentAutonomyMode,
@@ -68,12 +69,16 @@ function setup(
   };
   const service = Reflect.construct(AgentTurnWorkflowExecutionService, [
     prisma,
-    { findOne: vi.fn().mockResolvedValue({}) },
+    {
+      findOne: vi.fn().mockResolvedValue({}),
+      findOneSelect: delegateFindOneSelect(),
+    },
     {
       findOne: vi.fn().mockResolvedValue({
         title: 'Agent',
         ...(threadMode ? { mode: threadMode } : {}),
       }),
+      findOneSelect: delegateFindOneSelect(),
     },
     {
       addMessage: vi.fn(),

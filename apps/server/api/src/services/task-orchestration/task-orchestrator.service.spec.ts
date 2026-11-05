@@ -4,6 +4,7 @@ import {
   TASK_ROLLUP_MAX_ATTEMPTS,
   TaskOrchestratorService,
 } from '@api/services/task-orchestration/task-orchestrator.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 
 type StoredTask = {
@@ -97,6 +98,7 @@ function makeHarness(options: {
         isStalled(options.maxAttempts) ? 1 : 0,
     ),
     findOne: vi.fn(async () => structuredClone(task)),
+    findOneSelect: delegateFindOneSelect(),
     findStalledRollupCandidates: vi.fn(
       async (options: {
         createdAfter: Date;
@@ -135,6 +137,7 @@ function makeHarness(options: {
       const execution = options.executions[where.id];
       return execution ? { id: where.id, ...execution } : null;
     }),
+    findOneSelect: delegateFindOneSelect(),
   };
   const quality = {
     assess: vi.fn().mockResolvedValue({

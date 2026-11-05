@@ -337,10 +337,10 @@ export class TurboContentService implements OnModuleInit {
     organizationId: string,
     brandId: string,
   ): Promise<void> {
-    const brand = await this.brandsService.findOne({
-      id: brandId,
-      organizationId,
-    });
+    const brand = await this.brandsService.findOneSelect(
+      { id: brandId, organizationId },
+      { organizationId: true },
+    );
     if (!brand) {
       throw new NotFoundException('Brand', brandId);
     }

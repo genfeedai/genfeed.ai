@@ -1,3 +1,4 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { describe, expect, it, vi } from 'vitest';
 
 // See articles.service.cache.spec.ts: `@genfeedai/prisma` re-exports the
@@ -83,6 +84,7 @@ describe('ArticlesService article cycle model config', () => {
 
     const organizationSettingsService = {
       findOne: vi.fn().mockResolvedValue(settings),
+      findOneSelect: delegateFindOneSelect(),
     } as unknown as OrganizationSettingsService;
 
     const articlesContentService = {

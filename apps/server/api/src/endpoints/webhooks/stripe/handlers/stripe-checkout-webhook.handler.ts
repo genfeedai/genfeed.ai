@@ -825,10 +825,10 @@ export class StripeCheckoutWebhookHandler {
       }
 
       // Find user's creator org (every user gets a personal org on signup)
-      const creatorOrg = await this.organizationsService.findOne({
-        category: OrganizationCategory.CREATOR,
-        members: userId,
-      });
+      const creatorOrg = await this.organizationsService.findOneSelect(
+        { category: OrganizationCategory.CREATOR, members: userId },
+        { id: true },
+      );
 
       if (!creatorOrg) {
         this.loggerService.warn(
@@ -837,9 +837,10 @@ export class StripeCheckoutWebhookHandler {
         );
 
         // Fall back to first org the user belongs to
-        const fallbackOrg = await this.organizationsService.findOne({
-          members: userId,
-        });
+        const fallbackOrg = await this.organizationsService.findOneSelect(
+          { members: userId },
+          { id: true },
+        );
 
         if (!fallbackOrg) {
           this.loggerService.error(`${url} no organization found for user`, {

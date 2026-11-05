@@ -89,12 +89,15 @@ export class AnalyticsProviderCollectionService {
           );
         }
         await admitAnalyticsCollection(authorization);
-        const credential = await this.credentialsService.findOne({
-          id: resolution.credentialId,
-          isDeleted: false,
-          organizationId: post.organizationId,
-          platform: CredentialPlatform.FACEBOOK,
-        });
+        const credential = await this.credentialsService.findOneSelect(
+          {
+            id: resolution.credentialId,
+            isDeleted: false,
+            organizationId: post.organizationId,
+            platform: CredentialPlatform.FACEBOOK,
+          },
+          { accessToken: true, externalId: true },
+        );
         if (!credential?.accessToken) {
           throw Object.assign(
             new Error(`No Facebook credential found for post ${post.id}`),

@@ -9,6 +9,7 @@ import {
   createIngredientDocumentFixture,
   createPaginatedFixture,
 } from '@api-test/fixtures/ingredient-document.fixture';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { AssetScope, IngredientStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -88,6 +89,7 @@ describe('PublicMusicsController', () => {
           useValue: {
             findAll: vi.fn(),
             findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
         {

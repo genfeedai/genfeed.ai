@@ -1,6 +1,7 @@
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-resolution.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { testIds } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -37,6 +38,7 @@ describe('TagResolutionService', () => {
           useValue: {
             findAll: vi.fn(),
             findOne: vi.fn(),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
       ],

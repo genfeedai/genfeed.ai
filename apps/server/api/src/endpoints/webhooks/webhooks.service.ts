@@ -138,9 +138,10 @@ export class WebhooksService {
     providerDurationSeconds?: number,
   ): Promise<void> {
     const categoryValue = normalizeCategory(category);
-    const ingredient = await this.ingredientsService.findOne({
-      id: ingredientId,
-    });
+    const ingredient = await this.ingredientsService.findOneSelect(
+      { id: ingredientId },
+      { metadataId: true },
+    );
 
     if (!ingredient) {
       throw new Error(`Ingredient ${ingredientId} not found`);
@@ -400,9 +401,10 @@ export class WebhooksService {
     const logContext = `${this.constructorName} handleFailedGeneration`;
 
     try {
-      const metadata = await this.metadataService.findOne({
-        externalId,
-      });
+      const metadata = await this.metadataService.findOneSelect(
+        { externalId },
+        { id: true },
+      );
 
       if (!metadata) {
         this.loggerService.warn(`${logContext} metadata not found`, {
@@ -411,9 +413,10 @@ export class WebhooksService {
         return;
       }
 
-      const ingredient = await this.ingredientsService.findOne({
-        metadataId: metadata.id,
-      });
+      const ingredient = await this.ingredientsService.findOneSelect(
+        { metadataId: metadata.id },
+        { id: true },
+      );
       if (!ingredient) {
         // The failure reason still belongs on the metadata record when the
         // provider gave up before any ingredient row existed for it.
@@ -443,9 +446,19 @@ export class WebhooksService {
   ): Promise<void> {
     const logContext = `${this.constructorName} handleFailedGenerationForIngredient`;
 
-    const ingredient = await this.ingredientsService.findOne({
-      id: ingredientId,
-    });
+    const ingredient = await this.ingredientsService.findOneSelect(
+      { id: ingredientId },
+      {
+        brandId: true,
+        category: true,
+        generationError: true,
+        id: true,
+        metadataId: true,
+        organizationId: true,
+        status: true,
+        userId: true,
+      },
+    );
     if (!ingredient) {
       this.loggerService.warn(`${logContext} ingredient not found`, {
         ingredientId,
@@ -495,9 +508,10 @@ export class WebhooksService {
       { status: IngredientStatus.FAILED, isGenerationFailureConfirmed: true },
     );
     if (claimed.modifiedCount !== 1) {
-      const latest = await this.ingredientsService.findOne({
-        id: ingredientId,
-      });
+      const latest = await this.ingredientsService.findOneSelect(
+        { id: ingredientId },
+        { organizationId: true, status: true },
+      );
       if (latest?.status === IngredientStatus.FAILED)
         await this.generationSettlement.releaseOutput(
           ingredientId,

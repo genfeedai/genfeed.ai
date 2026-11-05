@@ -317,11 +317,10 @@ export class WorkflowExecutionsController {
     // the authorization. The write below is scoped to the row's own tenant.
     const updated = await crossOrgUnsafe(async () => {
       // tenant-scope-ignore: superadmin-only lookup of a failed execution to learn its tenant
-      const execution = await this.workflowExecutionsService.findOne({
-        id,
-        isDeleted: false,
-        status: WorkflowExecutionStatus.FAILED,
-      });
+      const execution = await this.workflowExecutionsService.findOneSelect(
+        { id, isDeleted: false, status: WorkflowExecutionStatus.FAILED },
+        { organizationId: true },
+      );
       if (!execution) {
         throw new NotFoundException('Execution');
       }
@@ -430,10 +429,10 @@ export class WorkflowExecutionsController {
     @Body() dto: UpdateWorkflowExecutionDto,
   ) {
     // Verify ownership first
-    const execution = await this.workflowExecutionsService.findOne({
-      ...buildCustomerExecutionWhere(user.organizationId),
-      id,
-    });
+    const execution = await this.workflowExecutionsService.findOneSelect(
+      { ...buildCustomerExecutionWhere(user.organizationId), id },
+      { id: true },
+    );
 
     if (!execution) {
       throw new NotFoundException('Execution');

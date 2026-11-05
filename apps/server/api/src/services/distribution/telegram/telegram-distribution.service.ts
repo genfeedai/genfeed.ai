@@ -390,11 +390,14 @@ export class TelegramDistributionService implements OnModuleInit {
     }
 
     // Fall back to org-level credential
-    const orgCredential = await this.credentialsService.findOne({
-      isConnected: true,
-      organizationId: organizationId,
-      platform: CredentialPlatform.TELEGRAM,
-    });
+    const orgCredential = await this.credentialsService.findOneSelect(
+      {
+        isConnected: true,
+        organizationId: organizationId,
+        platform: CredentialPlatform.TELEGRAM,
+      },
+      { accessToken: true },
+    );
 
     if (orgCredential?.accessToken) {
       return EncryptionUtil.decrypt(orgCredential.accessToken);

@@ -196,7 +196,7 @@ export class PostsAnalyticsController {
       throw new BadRequestException(
         'An authenticated organization and selected brand are required',
       );
-    const post = await this.postsService.findOne(
+    const post = await this.postsService.findOneSelect(
       scopedWhere(user.organizationId, {
         id: postId,
         brandId: selectedBrandId,
@@ -205,6 +205,7 @@ export class PostsAnalyticsController {
           is: { organizationId: user.organizationId, isDeleted: false },
         },
       }),
+      { id: true },
     );
 
     if (!post) {
@@ -325,14 +326,17 @@ export class PostsAnalyticsController {
     const platform = toPrismaCredentialPlatform(post.platform);
     if (!platform)
       throw new BadRequestException('Unsupported publication platform');
-    const credential = await this.credentialsService.findOne({
-      id: credentialId,
-      brandId,
-      organizationId,
-      isDeleted: false,
-      isConnected: true,
-      platform,
-    });
+    const credential = await this.credentialsService.findOneSelect(
+      {
+        id: credentialId,
+        brandId,
+        organizationId,
+        isDeleted: false,
+        isConnected: true,
+        platform,
+      },
+      { platform: true },
+    );
 
     if (!credential) {
       throw new HttpException(

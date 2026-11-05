@@ -392,7 +392,11 @@ export class IngredientsService extends BaseService<
       // In a request the row is read, written and re-read under its organization.
       const organizationId = requestOrganizationId();
       const rowWhere = organizationId ? { id, organizationId } : { id };
-      const current = await this.findOne(rowWhere);
+      const current = await this.findOneSelect(rowWhere, {
+        organizationId: true,
+        providerData: true,
+        reviewStatus: true,
+      });
       if (!current) throw new NotFoundException('Ingredient', id);
       if (Object.hasOwn(data, 'providerData'))
         data.providerData = preserveIngredientGenerationEntry(

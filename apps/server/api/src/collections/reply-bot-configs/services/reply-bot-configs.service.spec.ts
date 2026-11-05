@@ -141,6 +141,7 @@ describe('ReplyBotConfigsService persistence', () => {
 
     expect(replyBotConfig.findFirst).toHaveBeenCalledWith({
       where: { id: 'bot-1', isDeleted: false, organizationId: 'org-1' },
+      select: { config: true, organizationId: true },
     });
     expectCloudGuardPasses(
       'ReplyBotConfig',

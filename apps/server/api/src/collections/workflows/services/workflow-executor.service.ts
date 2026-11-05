@@ -517,11 +517,10 @@ export class WorkflowExecutorService {
     }
 
     if (idempotencyKey) {
-      const existingExecution = await this.executionsService.findOne({
-        idempotencyKey,
-        isDeleted: false,
-        organizationId,
-      });
+      const existingExecution = await this.executionsService.findOneSelect(
+        { idempotencyKey, isDeleted: false, organizationId },
+        { id: true },
+      );
       if (existingExecution) {
         return {
           execution: await this.continueExistingExecution(

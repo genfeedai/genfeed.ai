@@ -154,9 +154,10 @@ export class TaskPlanningService {
     const taskOrgId =
       ((task as Record<string, unknown>).organizationId as string) ??
       organizationId;
-    const org = await this.organizationsService.findOne({
-      id: taskOrgId,
-    });
+    const org = await this.organizationsService.findOneSelect(
+      { id: taskOrgId },
+      { prefix: true },
+    );
 
     const tasks = await Promise.all(
       followUpSteps.map(async (step) => {

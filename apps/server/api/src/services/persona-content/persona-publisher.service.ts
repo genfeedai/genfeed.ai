@@ -78,12 +78,15 @@ export class PersonaPublisherService {
 
     for (const credentialId of credentialIds) {
       try {
-        const credential = await this.credentialsService.findOne({
-          id: credentialId,
-          organizationId: input.organizationId,
-          brandId: input.brandId,
-          isDeleted: false,
-        });
+        const credential = await this.credentialsService.findOneSelect(
+          {
+            id: credentialId,
+            organizationId: input.organizationId,
+            brandId: input.brandId,
+            isDeleted: false,
+          },
+          { platform: true },
+        );
 
         if (!credential) {
           failedCredentials.push(String(credentialId));

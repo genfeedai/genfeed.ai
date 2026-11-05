@@ -9,6 +9,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import { MemberSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -46,11 +47,15 @@ describe('Organization member mutations (real HTTP role guard)', () => {
   const members = {
     findMembershipRoleKey: vi.fn(),
     findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
     patch: vi.fn(),
     resolveRoleAssignment: vi.fn(),
   };
   const invitations = { createInvitation: vi.fn() };
-  const organizations = { findOne: vi.fn() };
+  const organizations = {
+    findOne: vi.fn(),
+    findOneSelect: delegateFindOneSelect(),
+  };
   const brands = { findAll: vi.fn() };
 
   beforeAll(async () => {

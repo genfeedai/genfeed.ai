@@ -485,7 +485,10 @@ export class ContentQualityScorerService {
       if (organizationId) {
         query.organizationId = organizationId;
       }
-      const post = await this.postsService.findOne(query);
+      const post = await this.postsService.findOneSelect(query, {
+        description: true,
+        label: true,
+      });
       return post?.description || post?.label || undefined;
     } catch {
       return undefined;

@@ -1,3 +1,4 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { testId } from '@helpers/testing/test-id.helper';
 
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({
@@ -20,7 +21,10 @@ import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 
 describe('AdsGatewayRequestContextService', () => {
   let service: AdsGatewayRequestContextService;
-  let credentialsService: { findOne: ReturnType<typeof vi.fn> };
+  let credentialsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
 
   const user = {
     id: 'user_authProvider_123',
@@ -32,6 +36,7 @@ describe('AdsGatewayRequestContextService', () => {
   beforeEach(() => {
     credentialsService = {
       findOne: vi.fn().mockResolvedValue({ accessToken: 'token-abc' }),
+      findOneSelect: delegateFindOneSelect(),
     };
     service = new AdsGatewayRequestContextService(
       credentialsService as unknown as CredentialsService,

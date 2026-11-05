@@ -175,11 +175,14 @@ export class AgentConnectionRequestService {
   ): Promise<{ id: string } | { error: AgentToolResult }> {
     const explicitId = this.readId(params.brandId) ?? this.readId(ctx.brandId);
     if (explicitId) {
-      const brand = await this.brandsService.findOne({
-        id: explicitId,
-        isDeleted: false,
-        organizationId: ctx.organizationId,
-      });
+      const brand = await this.brandsService.findOneSelect(
+        {
+          id: explicitId,
+          isDeleted: false,
+          organizationId: ctx.organizationId,
+        },
+        { id: true },
+      );
       if (!brand?.id) {
         return {
           error: {
@@ -273,10 +276,10 @@ export class AgentConnectionRequestService {
     organizationId: string;
     platform: string;
   }): Promise<string> {
-    const organization = await this.organizationsService.findOne({
-      id: input.organizationId,
-      isDeleted: false,
-    });
+    const organization = await this.organizationsService.findOneSelect(
+      { id: input.organizationId, isDeleted: false },
+      { slug: true },
+    );
     const slug =
       typeof organization?.slug === 'string' && organization.slug.length > 0
         ? organization.slug

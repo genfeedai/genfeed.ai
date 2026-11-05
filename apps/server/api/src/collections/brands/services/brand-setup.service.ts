@@ -425,9 +425,10 @@ export class BrandSetupService {
         // Only cascade the rename to the organization during the first-login
         // onboarding window. Outside it, this is a plain brand label update — an
         // arbitrary brand PATCH must never rename an established organization.
-        const settings = await this.organizationSettingsService.findOne({
-          organizationId: organizationId,
-        });
+        const settings = await this.organizationSettingsService.findOneSelect(
+          { organizationId: organizationId },
+          { isFirstLogin: true },
+        );
 
         if (settings?.isFirstLogin) {
           await this.brandPersistenceService.syncBrandAndOrgSlug(
@@ -484,9 +485,10 @@ export class BrandSetupService {
    * Mark onboarding as complete (set isFirstLogin to false)
    */
   private async completeOnboarding(organizationId: string): Promise<void> {
-    const settings = await this.organizationSettingsService.findOne({
-      organizationId: organizationId,
-    });
+    const settings = await this.organizationSettingsService.findOneSelect(
+      { organizationId: organizationId },
+      { id: true },
+    );
 
     if (settings) {
       await this.organizationSettingsService.patch(settings.id, {

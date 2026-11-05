@@ -113,11 +113,14 @@ export class TwitterPublisherService extends BasePublisherService {
       context,
       attemptStartedAt,
       async (cursor) => {
-        const credential = await this.credentialsService.findOne({
-          id: context.credential.id,
-          isDeleted: false,
-          organizationId: context.organizationId,
-        });
+        const credential = await this.credentialsService.findOneSelect(
+          {
+            id: context.credential.id,
+            isDeleted: false,
+            organizationId: context.organizationId,
+          },
+          { accessToken: true, externalId: true },
+        );
         if (
           !credential?.accessToken ||
           !credential.externalId ||

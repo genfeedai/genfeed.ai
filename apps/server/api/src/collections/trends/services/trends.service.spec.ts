@@ -29,6 +29,7 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { XaiService } from '@api/services/integrations/xai/services/xai.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -198,12 +199,14 @@ describe('TrendsService', () => {
               cost: 10,
               key: 'leonardoai',
             }),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
         {
           provide: BrandsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue({ description: 'AI marketing' }),
+            findOneSelect: delegateFindOneSelect(),
           },
         },
         {

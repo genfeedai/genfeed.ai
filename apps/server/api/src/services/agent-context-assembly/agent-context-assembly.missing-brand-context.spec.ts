@@ -2,6 +2,7 @@ import { AgentContextAssemblyService } from '@api/services/agent-context-assembl
 import type { AssembleContextParams } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
 import { MISSING_BRAND_CONTEXT_HEADER } from '@api/services/agent-orchestrator/constants/missing-brand-context.constant';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { describe, expect, it, vi } from 'vitest';
 
 /** Every card field filled except Offer, with a scanned offer suggestion. */
@@ -32,6 +33,7 @@ function createService(brand = createBrand()) {
     {
       brandAccessService: brandAccessFixture(),
       findOne: vi.fn().mockResolvedValue(brand),
+      findOneSelect: delegateFindOneSelect(),
       resolveBrandKitAssets: vi
         .fn()
         .mockResolvedValue({ banner: null, logo: null, references: [] }),
@@ -44,6 +46,7 @@ function createService(brand = createBrand()) {
     } as never,
     {
       findOne: vi.fn().mockResolvedValue({ currentBrandId: 'brand-1' }),
+      findOneSelect: delegateFindOneSelect(),
     } as never,
     { post: { findMany: vi.fn().mockResolvedValue([]) } } as never,
     {
@@ -52,7 +55,10 @@ function createService(brand = createBrand()) {
     } as never,
     { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
     { getTopPatternsForBrand: vi.fn().mockResolvedValue([]) } as never,
-    { findOne: vi.fn().mockResolvedValue(null) } as never,
+    {
+      findOne: vi.fn().mockResolvedValue(null),
+      findOneSelect: delegateFindOneSelect(),
+    } as never,
     undefined as never,
   );
 }

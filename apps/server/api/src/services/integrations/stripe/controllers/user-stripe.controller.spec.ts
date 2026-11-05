@@ -1,3 +1,5 @@
+import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+
 vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
   const actual =
     await importOriginal<
@@ -47,6 +49,7 @@ describe('UserStripeController', () => {
   };
   let usersService: {
     findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
   let userSubscriptionsService: {
@@ -56,7 +59,10 @@ describe('UserStripeController', () => {
   let creditsUtilsService: {
     getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
   };
-  let organizationsService: { findOne: ReturnType<typeof vi.fn> };
+  let organizationsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    findOneSelect: ReturnType<typeof vi.fn>;
+  };
   let loggerService: {
     error: ReturnType<typeof vi.fn>;
     log: ReturnType<typeof vi.fn>;
@@ -104,6 +110,7 @@ describe('UserStripeController', () => {
 
     usersService = {
       findOne: vi.fn().mockResolvedValue(mockDbUser),
+      findOneSelect: delegateFindOneSelect(),
       patch: vi.fn().mockResolvedValue(mockDbUser),
     };
 
@@ -127,6 +134,7 @@ describe('UserStripeController', () => {
 
     organizationsService = {
       findOne: vi.fn().mockResolvedValue({ id: 'test-object-id' }),
+      findOneSelect: delegateFindOneSelect(),
     };
     lifecycleEmailService = {
       recordCheckoutStarted: vi.fn().mockResolvedValue(undefined),

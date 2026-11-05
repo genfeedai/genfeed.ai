@@ -149,11 +149,14 @@ export class PostsOperationsController {
 
     try {
       // Validate credential
-      const credential = await this.credentialsService.findOne({
-        id: dto.credentialId,
-        isConnected: true,
-        organizationId: user.organizationId,
-      });
+      const credential = await this.credentialsService.findOneSelect(
+        {
+          id: dto.credentialId,
+          isConnected: true,
+          organizationId: user.organizationId,
+        },
+        { platform: true },
+      );
 
       if (!credential) {
         throw new HttpException(
