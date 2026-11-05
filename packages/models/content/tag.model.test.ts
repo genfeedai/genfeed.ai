@@ -1,12 +1,11 @@
-import { AssetScope, TagCategory } from '@genfeedai/contracts';
-import type {
-  IBrand,
-  IOrganization,
-  IOrganizationSetting,
-  ISetting,
-  ITag,
-  IUser,
-} from '@genfeedai/contracts/interfaces';
+import { TagCategory } from '@genfeedai/contracts';
+import type { ITag } from '@genfeedai/contracts/interfaces';
+import {
+  createBaseEntity,
+  createBrand,
+  createOrganization,
+  createUser,
+} from '@genfeedai/helpers/testing/entity-fixtures';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/client/models', () => ({
@@ -48,104 +47,6 @@ vi.mock('@models/organization/organization.model', () => ({
 }));
 
 import { Tag } from '@models/content/tag.model';
-
-const createBaseEntity = <T extends { id: string }>(
-  partial: Partial<T> = {},
-): Pick<T, 'id'> & {
-  createdAt: string;
-  isDeleted: boolean;
-  updatedAt: string;
-} => ({
-  createdAt: '2026-01-01T00:00:00.000Z',
-  id: (partial.id ?? 'entity-1') as string,
-  isDeleted: false,
-  updatedAt: '2026-01-01T00:00:00.000Z',
-});
-
-const createSetting = (partial: Partial<ISetting> = {}): ISetting => ({
-  ...createBaseEntity<ISetting>(partial),
-  contentPreferences: [],
-  isAdvancedMode: false,
-  isFirstLogin: false,
-  isMenuCollapsed: false,
-  isTrendNotificationsEmail: false,
-  isTrendNotificationsInApp: false,
-  isTrendNotificationsTelegram: false,
-  isVideoNotificationsEmail: false,
-  isVerified: false,
-  theme: 'light',
-  trendNotificationsFrequency: 'DAILY',
-  trendNotificationsMinViralScore: 0,
-  ...partial,
-});
-
-const createUser = (partial: Partial<IUser> = {}): IUser => ({
-  ...createBaseEntity<IUser>(partial),
-  email: 'test@example.com',
-  firstName: 'Test',
-  handle: 'test-user',
-  lastName: 'User',
-  settings: createSetting(),
-  ...partial,
-});
-
-const createOrganizationSetting = (
-  partial: Partial<IOrganizationSetting> = {},
-): IOrganizationSetting => ({
-  ...createBaseEntity<IOrganizationSetting>(partial),
-  brandsLimit: 1,
-  isAutoEvaluateEnabled: false,
-  isFleetNsfwVisible: false,
-  isGenerateArticlesEnabled: true,
-  isGenerateImagesEnabled: true,
-  isGenerateMusicEnabled: true,
-  isGenerateVideosEnabled: true,
-  isNotificationsDiscordEnabled: false,
-  isNotificationsTelegramEnabled: false,
-  isNotificationsEmailEnabled: false,
-  isVerifyIngredientEnabled: false,
-  isVerifyScriptEnabled: false,
-  isVerifyVideoEnabled: false,
-  isVoiceControlEnabled: false,
-  isWatermarkEnabled: false,
-  isWebhookEnabled: false,
-  isWhitelabelEnabled: false,
-  seatsLimit: 1,
-  ...partial,
-});
-
-const createOrganization = (
-  partial: Partial<IOrganization> = {},
-): IOrganization => ({
-  ...createBaseEntity<IOrganization>(partial),
-  isSelected: false,
-  label: 'Test Organization',
-  settings: createOrganizationSetting(),
-  user: createUser(),
-  ...partial,
-});
-
-const createBrand = (partial: Partial<IBrand> = {}): IBrand => ({
-  ...createBaseEntity<IBrand>(partial),
-  backgroundColor: '#000000',
-  credentials: [],
-  description: 'Brand description',
-  fontFamily: 'Inter',
-  handle: 'test-brand',
-  isActive: true,
-  isFleetEnabled: false,
-  isDefault: false,
-  isSelected: false,
-  isVerified: false,
-  label: 'Test Brand',
-  links: [],
-  organization: createOrganization(),
-  primaryColor: '#ffffff',
-  scope: AssetScope.BRAND,
-  secondaryColor: '#cccccc',
-  user: createUser(),
-  ...partial,
-});
 
 const createTag = (partial: Partial<ITag> = {}) =>
   new Tag({

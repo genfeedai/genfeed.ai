@@ -1,3 +1,14 @@
+import {
+  SocialWarmupEventAction,
+  SocialWarmupSignalSource,
+  SocialWarmupSignalStatus,
+} from '@genfeedai/contracts';
+import {
+  createBaseEntity,
+  createBrand,
+  createOrganization,
+  createUser,
+} from '@genfeedai/helpers/testing/entity-fixtures';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/client/models', () => ({
@@ -53,10 +64,10 @@ import {
 describe('SocialWarmupEvent', () => {
   it('hydrates nested organization, brand, and actor user objects', () => {
     const event = new SocialWarmupEvent({
-      actorUser: { id: 'user-1' },
-      brand: { id: 'brand-1' },
+      actorUser: createUser({ id: 'user-1' }),
+      brand: createBrand({ id: 'brand-1' }),
       id: 'event-1',
-      organization: { id: 'org-1' },
+      organization: createOrganization({ id: 'org-1' }),
     });
     expect(event.organization).toMatchObject({ id: 'org-1' });
     expect(event.brand).toMatchObject({ id: 'brand-1' });
@@ -78,9 +89,9 @@ describe('SocialWarmupEvent', () => {
 describe('SocialWarmupSignal', () => {
   it('hydrates nested organization and brand objects', () => {
     const signal = new SocialWarmupSignal({
-      brand: { id: 'brand-1' },
+      brand: createBrand({ id: 'brand-1' }),
       id: 'signal-1',
-      organization: { id: 'org-1' },
+      organization: createOrganization({ id: 'org-1' }),
     });
     expect(signal.organization).toMatchObject({ id: 'org-1' });
     expect(signal.brand).toMatchObject({ id: 'brand-1' });
@@ -90,9 +101,32 @@ describe('SocialWarmupSignal', () => {
 describe('SocialWarmupEnrollment', () => {
   it('constructs nested events and signals', () => {
     const enrollment = new SocialWarmupEnrollment({
-      events: [{ id: 'event-1', itemId: 'watch-niche-content' }],
+      events: [
+        {
+          ...createBaseEntity({ id: 'event-1' }),
+          action: SocialWarmupEventAction.COMPLETED,
+          actorUserId: 'user-1',
+          brandId: 'brand-1',
+          enrollmentId: 'enrollment-1',
+          itemId: 'watch-niche-content',
+          occurredAt: '2026-01-01T00:00:00.000Z',
+          organizationId: 'org-1',
+          provenance: 'user_confirmed',
+        },
+      ],
       id: 'enrollment-1',
-      signals: [{ id: 'signal-1', key: 'first-upload-platform-signal' }],
+      signals: [
+        {
+          ...createBaseEntity({ id: 'signal-1' }),
+          brandId: 'brand-1',
+          enrollmentId: 'enrollment-1',
+          evidence: {},
+          key: 'first-upload-platform-signal',
+          organizationId: 'org-1',
+          source: SocialWarmupSignalSource.PLATFORM,
+          status: SocialWarmupSignalStatus.AVAILABLE,
+        },
+      ],
     });
     expect(enrollment.events).toHaveLength(1);
     expect(enrollment.signals).toHaveLength(1);
@@ -100,10 +134,10 @@ describe('SocialWarmupEnrollment', () => {
 
   it('hydrates enrollment relations and defaults missing collections', () => {
     const enrollment = new SocialWarmupEnrollment({
-      brand: { id: 'brand-1' },
-      enrolledByUser: { id: 'user-1' },
+      brand: createBrand({ id: 'brand-1' }),
+      enrolledByUser: createUser({ id: 'user-1' }),
       id: 'enrollment-2',
-      organization: { id: 'org-1' },
+      organization: createOrganization({ id: 'org-1' }),
     });
     expect(enrollment.organization).toMatchObject({ id: 'org-1' });
     expect(enrollment.brand).toMatchObject({ id: 'brand-1' });

@@ -1,10 +1,9 @@
-import type {
-  ICredit,
-  IOrganization,
-  IOrganizationSetting,
-  ISetting,
-  IUser,
-} from '@genfeedai/contracts/interfaces';
+import type { ICredit, IOrganization } from '@genfeedai/contracts/interfaces';
+import {
+  createBaseEntity,
+  createOrganizationSetting,
+  createUser,
+} from '@genfeedai/helpers/testing/entity-fixtures';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/client/models', () => ({
@@ -36,71 +35,6 @@ vi.mock('@models/organization/organization-setting.model', () => ({
 }));
 
 import { Organization } from '@models/organization/organization.model';
-
-const createBaseEntity = <T extends { id: string }>(
-  partial: Partial<T> = {},
-): Pick<T, 'id'> & {
-  createdAt: string;
-  isDeleted: boolean;
-  updatedAt: string;
-} => ({
-  createdAt: '2026-01-01T00:00:00.000Z',
-  id: (partial.id ?? 'entity-1') as string,
-  isDeleted: false,
-  updatedAt: '2026-01-01T00:00:00.000Z',
-});
-
-const createSetting = (partial: Partial<ISetting> = {}): ISetting => ({
-  ...createBaseEntity<ISetting>(partial),
-  contentPreferences: [],
-  isAdvancedMode: false,
-  isFirstLogin: false,
-  isMenuCollapsed: false,
-  isTrendNotificationsEmail: false,
-  isTrendNotificationsInApp: false,
-  isTrendNotificationsTelegram: false,
-  isVideoNotificationsEmail: false,
-  isVerified: false,
-  theme: 'light',
-  trendNotificationsFrequency: 'DAILY',
-  trendNotificationsMinViralScore: 0,
-  ...partial,
-});
-
-const createUser = (partial: Partial<IUser> = {}): IUser => ({
-  ...createBaseEntity<IUser>(partial),
-  email: 'test@example.com',
-  firstName: 'Test',
-  handle: 'test-user',
-  lastName: 'User',
-  settings: createSetting(),
-  ...partial,
-});
-
-const createOrganizationSetting = (
-  partial: Partial<IOrganizationSetting> = {},
-): IOrganizationSetting => ({
-  ...createBaseEntity<IOrganizationSetting>(partial),
-  brandsLimit: 1,
-  isAutoEvaluateEnabled: false,
-  isFleetNsfwVisible: false,
-  isGenerateArticlesEnabled: true,
-  isGenerateImagesEnabled: true,
-  isGenerateMusicEnabled: true,
-  isGenerateVideosEnabled: true,
-  isNotificationsDiscordEnabled: false,
-  isNotificationsTelegramEnabled: false,
-  isNotificationsEmailEnabled: false,
-  isVerifyIngredientEnabled: false,
-  isVerifyScriptEnabled: false,
-  isVerifyVideoEnabled: false,
-  isVoiceControlEnabled: false,
-  isWatermarkEnabled: false,
-  isWebhookEnabled: false,
-  isWhitelabelEnabled: false,
-  seatsLimit: 1,
-  ...partial,
-});
 
 const createCredit = (partial: Partial<ICredit> = {}): ICredit => ({
   ...createBaseEntity<ICredit>(partial),
