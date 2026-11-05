@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { Avatar } from '@ui/primitives/avatar';
 import type { ConnectionSuccessProps } from '@genfeedai/props/ui/feedback/connection-success.props';
 import { useEffect, useRef } from 'react';
 
@@ -67,6 +68,41 @@ const ANIMATION_STYLES = `
     animation: connection-success-draw 320ms ease-out 1350ms forwards;
   }
 
+  .connection-success-avatar {
+    opacity: 0;
+    transform: scale(0.8);
+    animation: connection-success-pop 520ms cubic-bezier(0.22, 1, 0.36, 1) 150ms forwards;
+  }
+
+  .connection-success-avatar-brand {
+    opacity: 0;
+    transform: scale(0.4);
+    animation: connection-success-pop 420ms cubic-bezier(0.32, 0.72, 0, 1) 650ms forwards;
+  }
+
+  .connection-success-avatar-ring {
+    border: 2px solid currentColor;
+    opacity: 0;
+    animation: connection-success-ring 900ms cubic-bezier(0.22, 1, 0.36, 1) 500ms both;
+  }
+
+  .connection-success-avatar-check {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: connection-success-draw 320ms ease-out 1100ms forwards;
+  }
+
+  .connection-success-avatar-badge {
+    opacity: 0;
+    transform: scale(0.4);
+    animation: connection-success-pop 420ms cubic-bezier(0.32, 0.72, 0, 1) 900ms forwards;
+  }
+
   @keyframes connection-success-draw {
     to { stroke-dashoffset: 0; }
   }
@@ -91,10 +127,16 @@ const ANIMATION_STYLES = `
     .connection-success-fill,
     .connection-success-badge { animation: none; opacity: 1; transform: none; }
     .connection-success-check { animation: none; stroke-dashoffset: 0; }
+    .connection-success-avatar-ring { display: none; }
+    .connection-success-avatar,
+    .connection-success-avatar-brand,
+    .connection-success-avatar-badge { animation: none; opacity: 1; transform: none; }
+    .connection-success-avatar-check { animation: none; stroke-dashoffset: 0; }
   }
 `;
 
 export default function ConnectionSuccess({
+  account,
   brand,
   className,
   description,
@@ -117,6 +159,8 @@ export default function ConnectionSuccess({
     trace.dataset.ready = 'true';
   }, []);
 
+  const hasAccount = Boolean(account?.avatarUrl || account?.name);
+
   return (
     <div
       className={cn(
@@ -128,6 +172,38 @@ export default function ConnectionSuccess({
       <style href="genfeed-connection-success" precedence="genfeed-component">
         {ANIMATION_STYLES}
       </style>
+      {hasAccount ? (
+        <div
+          aria-hidden="true"
+          className="relative size-24"
+          data-connection-account=""
+          data-connection-brand={brand.name}
+          style={color ? { color } : undefined}
+        >
+          <span className="connection-success-avatar-ring absolute inset-0 rounded-full" />
+          <Avatar
+            className="connection-success-avatar size-24"
+            name={account?.name}
+            size="2xl"
+            src={account?.avatarUrl}
+          />
+          <span
+            className="connection-success-avatar-brand absolute -right-1 -bottom-1 flex size-9 items-center justify-center rounded-full bg-background p-1.5 ring-4 ring-background"
+            data-connection-platform={brand.name}
+          >
+            <Icon className="size-full" />
+          </span>
+          <span className="connection-success-avatar-badge absolute -top-1 -right-1 flex size-7 items-center justify-center rounded-full bg-success text-success-foreground ring-4 ring-background">
+            <svg className="size-3.5" viewBox="0 0 24 24">
+              <path
+                className="connection-success-avatar-check"
+                d="M5 12.5l4.5 4.5L19 7.5"
+                pathLength="1"
+              />
+            </svg>
+          </span>
+        </div>
+      ) : (
       <div
         aria-hidden="true"
         className="relative size-24"
@@ -155,6 +231,7 @@ export default function ConnectionSuccess({
           </svg>
         </span>
       </div>
+      )}
       <output aria-live="polite" className="block space-y-1">
         <span className="block text-base font-semibold">{title}</span>
         {description ? (
