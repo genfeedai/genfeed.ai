@@ -318,6 +318,7 @@ describe('direct product route module admission inventory', () => {
         'org-1',
         'playground',
         'write',
+        expect.any(Object),
       );
       assertAccess.mockClear();
       for (const { handler, method } of [
@@ -361,6 +362,7 @@ describe('direct product route module admission inventory', () => {
         'org-1',
         'playground',
         'write',
+        expect.any(Object),
       );
     }
     assertAccess.mockClear();
@@ -384,7 +386,12 @@ describe('direct product route module admission inventory', () => {
         'PATCH',
       ),
     );
-    expect(assertAccess).toHaveBeenLastCalledWith('org-1', 'messages', 'read');
+    expect(assertAccess).toHaveBeenLastCalledWith(
+      'org-1',
+      'messages',
+      'read',
+      expect.any(Object),
+    );
     await guard.canActivate(
       context(CampaignsController, CampaignsController.prototype.pause, 'POST'),
     );
@@ -392,6 +399,7 @@ describe('direct product route module admission inventory', () => {
       'org-1',
       'publishing',
       'cancel',
+      expect.any(Object),
     );
   });
 

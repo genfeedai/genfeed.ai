@@ -282,4 +282,59 @@ describe('OrganizationModuleAccessService', () => {
       expect(paidAccess.isSubscriptionGatedFresh).not.toHaveBeenCalled();
     },
   );
+
+  it.each(['read', 'export', 'cancel', 'write'] as const)(
+    'answers Storyboard %s with 404 while its kill switch is off',
+    async (operation) => {
+      const { service } = createService(false, { storyboard: false });
+      await expect(
+        service.assertAccess('org-1', 'storyboard', operation),
+      ).rejects.toMatchObject({ status: 404 });
+    },
+  );
+
+  it.each([
+    { moduleId: 'turbo', flags: { ...RELEASED_FLAGS, turbo: false } },
+    { moduleId: 'analytics', flags: { ...RELEASED_FLAGS, analytics: false } },
+    { moduleId: 'publishing', flags: { ...RELEASED_FLAGS, publishing: false } },
+    { moduleId: 'discovery', flags: { ...RELEASED_FLAGS, discovery: false } },
+  ] as const)(
+    'refuses new $moduleId work while its kill switch is off',
+    async ({ moduleId, flags }) => {
+      const { service } = createService(false, flags);
+      await expect(service.canStartWork('org-1', moduleId)).resolves.toBe(
+        false,
+      );
+    },
+  );
+
+  it('lets a superadmin through a switched-off module without lifting the release gate', async () => {
+    const { service } = createService(false, {
+      storyboard: false,
+      motion: false,
+    });
+    await expect(
+      service.assertAccess('org-1', 'storyboard', 'write', {
+        isSuperAdmin: true,
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      service.assertAccess('org-1', 'motion', 'write', { isSuperAdmin: true }),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'ORGANIZATION_MODULE_UNRELEASED',
+      }),
+      status: 403,
+    });
+  });
+
+  it('keeps Playground generation open with Studio switched off', async () => {
+    const { service } = createService(false, { studio: false });
+    await expect(
+      service.assertAccess('org-1', 'playground'),
+    ).resolves.toBeUndefined();
+    await expect(
+      service.assertAccess('org-1', 'playground', 'read'),
+    ).resolves.toBeUndefined();
+  });
 });

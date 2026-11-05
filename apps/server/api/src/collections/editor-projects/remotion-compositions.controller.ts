@@ -2,7 +2,6 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { RenderRemotionCompositionDto } from '@api/collections/editor-projects/dto/render-remotion-composition.dto';
 import { RemotionCompositionsService } from '@api/collections/editor-projects/services/remotion-compositions.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -28,7 +27,6 @@ import type { Request } from 'express';
 
 @ApiTags('remotion-compositions')
 @ApiBearerAuth()
-@FeatureFlag('studio')
 @OrganizationModule('editor')
 @Controller('remotion-compositions')
 @UseGuards(RolesGuard)

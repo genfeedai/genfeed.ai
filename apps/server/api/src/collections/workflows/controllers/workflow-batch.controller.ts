@@ -3,7 +3,6 @@ import { WorkflowExecutionsService } from '@api/collections/workflow-executions/
 import { ExecuteWorkflowBatchDto } from '@api/collections/workflows/dto/execute-workflow.dto';
 import { BatchWorkflowExecutionService } from '@api/collections/workflows/services/batch-workflow-execution.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -18,7 +17,6 @@ import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
-@FeatureFlag('automation')
 @OrganizationModule('automation')
 @Controller('workflows')
 @UseGuards(RolesGuard)

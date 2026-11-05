@@ -6,7 +6,6 @@ import {
 import { ClipperGenerationDispatchService } from '@api/collections/clipper-projects/services/clipper-generation-dispatch.service';
 import { HookClipApprovalService } from '@api/collections/clipper-projects/services/hook-clipper-approval.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -34,7 +33,6 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 @AutoSwagger()
 @ApiTags('clipper-projects')
 @ApiBearerAuth()
-@FeatureFlag('clipper')
 @OrganizationModule('clipper')
 @Controller('clipper-projects')
 @UseGuards(RolesGuard)

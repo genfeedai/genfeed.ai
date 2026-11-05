@@ -28,7 +28,6 @@ import type { SourcePostVariationRequest } from '@api/collections/posts/services
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -84,7 +83,6 @@ import {
 import type { Request } from 'express';
 
 @AutoSwagger()
-@FeatureFlag('publishing')
 @OrganizationModule('publishing')
 @Controller('posts')
 @UseGuards(RolesGuard)

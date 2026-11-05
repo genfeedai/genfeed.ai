@@ -3,7 +3,6 @@ import { BulkScheduleDto } from '@api/collections/schedules/dto/bulk-schedule.dt
 import { GetOptimalTimeDto } from '@api/collections/schedules/dto/optimal-time.dto';
 import { SchedulesService } from '@api/collections/schedules/services/schedules.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { ApiKeyReadAccess } from '@api/helpers/decorators/scopes/api-key-read-access.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -19,7 +18,6 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @ApiTags('Schedules')
-@FeatureFlag('publishing')
 @OrganizationModule('publishing')
 @Controller('schedules')
 export class SchedulesController {

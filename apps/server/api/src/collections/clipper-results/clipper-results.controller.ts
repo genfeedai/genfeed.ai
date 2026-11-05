@@ -4,7 +4,6 @@ import { CreateClipperResultDto } from '@api/collections/clipper-results/dto/cre
 import { UpdateClipperResultDto } from '@api/collections/clipper-results/dto/update-clipper-result.dto';
 import { type ClipperResultDocument } from '@api/collections/clipper-results/schemas/clipper-result.schema';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -39,7 +38,6 @@ import type { Request } from 'express';
 const CLIPPER_RESULTS_LIST_LIMIT = 100;
 
 @AutoSwagger()
-@FeatureFlag('clipper')
 @OrganizationModule('clipper')
 @Controller('clipper-results')
 @ApiBearerAuth()

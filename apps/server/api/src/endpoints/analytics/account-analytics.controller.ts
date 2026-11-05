@@ -14,7 +14,6 @@ import {
 import { XGrowthReportQueryDto } from '@api/endpoints/analytics/dto/x-growth-report-query.dto';
 import { XGrowthReportService } from '@api/endpoints/analytics/x-growth-report/x-growth-report.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -47,7 +46,6 @@ import {
 import type { Request as ExpressRequest } from 'express';
 
 @AutoSwagger()
-@FeatureFlag('analytics')
 @OrganizationModule('analytics')
 @Controller('analytics')
 @UseGuards(RolesGuard)

@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreateArticleDeliveryDto } from '@api/collections/long-form-deliveries/dto/create-article-delivery.dto';
 import { LongFormDeliveriesService } from '@api/collections/long-form-deliveries/services/long-form-deliveries.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -30,7 +29,6 @@ import type { Request } from 'express';
  */
 @AutoSwagger()
 @ApiTags('Articles')
-@FeatureFlag('publishing')
 @OrganizationModule('publishing')
 @Controller('articles')
 export class ArticleDeliveriesController {

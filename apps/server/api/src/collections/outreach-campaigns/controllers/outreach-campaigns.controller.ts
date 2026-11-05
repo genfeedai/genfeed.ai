@@ -7,7 +7,6 @@ import type { OutreachCampaignDocument } from '@api/collections/outreach-campaig
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -36,7 +35,6 @@ import type { Request } from 'express';
 
 @ApiTags('OutreachCampaigns')
 @AutoSwagger()
-@FeatureFlag('messages')
 @OrganizationModule('messages')
 @Controller('outreach-campaigns')
 export class OutreachCampaignsController extends BaseCRUDController<

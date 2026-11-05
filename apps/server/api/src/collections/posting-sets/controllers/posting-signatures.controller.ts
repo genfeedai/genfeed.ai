@@ -4,7 +4,6 @@ import { PostingSignaturesQueryDto } from '@api/collections/posting-sets/dto/pos
 import { UpdatePostingSignatureDto } from '@api/collections/posting-sets/dto/update-posting-signature.dto';
 import { PostingSignaturesService } from '@api/collections/posting-sets/services/posting-signatures.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -35,7 +34,6 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @ApiTags('PostingSignatures')
-@FeatureFlag('publishing')
 @OrganizationModule('publishing')
 @Controller('posting-signatures')
 export class PostingSignaturesController {

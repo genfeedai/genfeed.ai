@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ClipperProjectsService } from '@api/collections/clipper-projects/clipper-projects.service';
 import { SelectClipperReferenceFrameDto } from '@api/collections/clipper-projects/dto/select-clipper-reference-frame.dto';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -27,7 +26,6 @@ import type { Request } from 'express';
 @AutoSwagger()
 @ApiTags('clipper-projects')
 @ApiBearerAuth()
-@FeatureFlag('clipper')
 @OrganizationModule('clipper')
 @Controller('clipper-projects')
 @UseGuards(RolesGuard)

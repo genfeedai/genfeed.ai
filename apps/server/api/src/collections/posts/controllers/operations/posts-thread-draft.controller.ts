@@ -12,7 +12,6 @@ import { PostGenerationService } from '@api/collections/posts/services/post-gene
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -40,7 +39,6 @@ import type { Request } from 'express';
  * saved here; accepted replies are created through the regular post routes.
  */
 @AutoSwagger()
-@FeatureFlag('publishing')
 @OrganizationModule('publishing')
 @Controller('posts')
 @UseGuards(RolesGuard)

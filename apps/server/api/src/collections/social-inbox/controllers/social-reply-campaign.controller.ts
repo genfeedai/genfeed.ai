@@ -9,7 +9,6 @@ import {
 import type { SocialInboxScope } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialReplyCampaignService } from '@api/collections/social-inbox/services/social-reply-campaign.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -55,7 +54,6 @@ import type { Request } from 'express';
 @ApiTags('Messages')
 @AutoSwagger()
 @ApiBearerAuth()
-@FeatureFlag('messages')
 @OrganizationModule('messages')
 @Controller('message-campaigns')
 @UseGuards(RolesGuard)

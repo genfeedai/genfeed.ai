@@ -4,7 +4,6 @@ import { OrganizationModule } from '@api/common/organization-modules/organizatio
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { resolveOwnedAnalyticsTenantScope } from '@api/endpoints/analytics/analytics-tenant-scope';
 import { WinnerPostsQueryDto } from '@api/endpoints/analytics/dto/winner-posts-query.dto';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -19,7 +18,6 @@ import type { Request as ExpressRequest } from 'express';
  * evidence that qualified them. Analytics Posts uses it as the Winners filter.
  */
 @AutoSwagger()
-@FeatureFlag('analytics')
 @OrganizationModule('analytics')
 @Controller('analytics')
 @UseGuards(RolesGuard)

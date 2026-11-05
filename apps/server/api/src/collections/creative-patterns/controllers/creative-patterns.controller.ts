@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
 import { CreativePatternsQueryDto } from '@api/collections/creative-patterns/dto/creative-patterns-query.dto';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -21,7 +20,6 @@ import {
 import type { Request } from 'express';
 
 @AutoSwagger()
-@FeatureFlag('analytics')
 @OrganizationModule('analytics')
 @Controller('creative-patterns')
 export class CreativePatternsController {

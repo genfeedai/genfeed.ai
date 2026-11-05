@@ -1,6 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { OrganizationModuleGuard } from '@api/common/organization-modules/organization-module.guard';
+import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { FeatureFlagGuard } from '@api/feature-flag/feature-flag.guard';
 import {
   DEFAULT_PLATFORM_FEATURE_SETTINGS,
   DEFAULT_PLATFORM_FLAGS,
@@ -239,35 +240,44 @@ describe('AgentStrategiesController', () => {
   });
 });
 
+function createModuleGuard(flags: Record<string, boolean>) {
+  const access = new OrganizationModuleAccessService(
+    {} as never,
+    {} as never,
+    {
+      getFeatureSettingsState: async () => ({
+        isResolved: true,
+        settings: {
+          ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+          flags: { ...DEFAULT_PLATFORM_FLAGS, ...flags },
+        },
+      }),
+    } as never,
+  );
+  return new OrganizationModuleGuard(new Reflector(), access);
+}
+
+const rosterRead = {
+  getClass: () => AgentStrategiesController,
+  getHandler: () => AgentStrategiesController.prototype.buildFindAllQuery,
+  switchToHttp: () => ({
+    getRequest: () => ({
+      method: 'GET',
+      user: { organizationId: 'org-1' },
+      context: { organizationId: 'org-1' },
+    }),
+  }),
+};
+
 describe('AgentStrategiesController module ownership', () => {
   it('keeps Automation agents available when chat is disabled', async () => {
-    const guard = new FeatureFlagGuard(new Reflector(), {
-      getFeatureSettings: async () => ({
-        ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
-        flags: { ...DEFAULT_PLATFORM_FLAGS, agent: false, automation: true },
-      }),
-    } as never);
-    const context = {
-      getClass: () => AgentStrategiesController,
-      getHandler: () => AgentStrategiesController.prototype.buildFindAllQuery,
-      switchToHttp: () => ({ getRequest: () => ({}) }),
-    };
-    await expect(guard.canActivate(context as never)).resolves.toBe(true);
+    const guard = createModuleGuard({ agent: false, automation: true });
+    await expect(guard.canActivate(rosterRead as never)).resolves.toBe(true);
   });
 
   it('blocks the roster when Automation is disabled even with chat enabled', async () => {
-    const guard = new FeatureFlagGuard(new Reflector(), {
-      getFeatureSettings: async () => ({
-        ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
-        flags: { ...DEFAULT_PLATFORM_FLAGS, agent: true, automation: false },
-      }),
-    } as never);
-    const context = {
-      getClass: () => AgentStrategiesController,
-      getHandler: () => AgentStrategiesController.prototype.buildFindAllQuery,
-      switchToHttp: () => ({ getRequest: () => ({}) }),
-    };
-    await expect(guard.canActivate(context as never)).rejects.toBeInstanceOf(
+    const guard = createModuleGuard({ agent: true, automation: false });
+    await expect(guard.canActivate(rosterRead as never)).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });

@@ -9,7 +9,6 @@ import { AgentCampaignsService } from '@api/collections/agent-campaigns/services
 import { UsersService } from '@api/collections/users/services/users.service';
 import { toWorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -38,7 +37,6 @@ import type { Request } from 'express';
 
 @ApiTags('Agent Campaigns')
 @AutoSwagger()
-@FeatureFlag('automation')
 @OrganizationModule('automation')
 @Controller('agent-campaigns')
 export class AgentCampaignsController extends BaseCRUDController<

@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { RetryAccountGenerationDto } from '@api/collections/posts/dto/retry-account-generation.dto';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -14,7 +13,6 @@ import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
-@FeatureFlag('publishing')
 @OrganizationModule('publishing')
 @Controller('posts')
 @UseGuards(RolesGuard)

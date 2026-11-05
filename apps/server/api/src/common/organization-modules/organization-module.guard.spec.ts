@@ -62,7 +62,12 @@ describe('OrganizationModuleGuard', () => {
         }) as never,
       ),
     ).rejects.toThrow('disabled');
-    expect(assertAccess).toHaveBeenCalledWith('org-1', 'turbo', 'write');
+    expect(assertAccess).toHaveBeenCalledWith(
+      'org-1',
+      'turbo',
+      'write',
+      expect.any(Object),
+    );
   });
   it.each([
     {},
@@ -107,6 +112,7 @@ describe('OrganizationModuleGuard', () => {
         'org-1',
         'turbo',
         operation,
+        expect.any(Object),
       );
     }
   });

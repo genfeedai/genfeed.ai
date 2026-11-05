@@ -12,7 +12,6 @@ import { WorkflowsService } from '@api/collections/workflows/services/workflows.
 import { toMarketplaceWorkflow } from '@api/collections/workflows/utils/workflow-marketplace-projection.util';
 import { withNextRunAt } from '@api/collections/workflows/utils/workflow-next-run.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -50,7 +49,6 @@ type WorkflowTemplates = Awaited<
  * cascade behind `WorkflowsService.publishToMarketplace`.
  */
 @AutoSwagger()
-@FeatureFlag('automation')
 @OrganizationModule('automation')
 @Controller('workflows')
 export class WorkflowMarketplaceController {

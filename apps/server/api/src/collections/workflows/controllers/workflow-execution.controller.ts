@@ -13,7 +13,6 @@ import { WorkflowExecutorService } from '@api/collections/workflows/services/wor
 import { WorkflowRunControlService } from '@api/collections/workflows/services/workflow-run-control.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
-import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -53,7 +52,6 @@ import type { Request } from 'express';
  * (#1354); node lock/unlock became `PATCH /workflows/:id/nodes`.
  */
 @AutoSwagger()
-@FeatureFlag('automation')
 @OrganizationModule('automation')
 @Controller('workflows')
 @UseGuards(RolesGuard)

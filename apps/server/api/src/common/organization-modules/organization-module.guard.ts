@@ -5,6 +5,7 @@ import {
   type OrganizationModuleRecoveryPolicy,
 } from '@api/common/organization-modules/organization-module.decorator';
 import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { getDeserializer, type JsonApiDocument } from '@genfeedai/helpers';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import {
@@ -46,6 +47,7 @@ export class OrganizationModuleGuard implements CanActivate {
       organizationId,
       policy.moduleId,
       admittedOperation,
+      { isSuperAdmin: getIsSuperAdmin(request.user, request) },
     );
     return true;
   }
