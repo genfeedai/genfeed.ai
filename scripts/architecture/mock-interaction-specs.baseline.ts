@@ -17,7 +17,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-composer.test.tsx',
   'apps/web/app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient.spec.tsx',
   'apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/organization/credits/trial-card-claim-card.test.tsx',
-  'apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/organization/memory/edit-memory-dialog.behavior.test.tsx',
   'apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/organization/organization-publishing-caps-card.test.tsx',
   'apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/organization/subscription/upgrade-plan.test.tsx',
   'apps/web/app/(protected)/[orgSlug]/~/settings/models/[type]/page-content.test.tsx',
