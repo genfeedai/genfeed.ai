@@ -6,7 +6,9 @@ export const WIDE_EVENT_TYPE = 'wide_event';
 
 export type WideEventLogLevel = 'error' | 'warn' | 'info';
 
-export function isWideEventInfo(info: { type?: unknown }): boolean {
+export function isWideEventInfo(
+  info: Record<string | symbol, unknown>,
+): boolean {
   return info.type === WIDE_EVENT_TYPE;
 }
 
