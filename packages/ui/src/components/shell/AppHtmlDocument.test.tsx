@@ -36,6 +36,28 @@ function executeDocumentBootstrap(
 }
 
 describe('AppHtmlDocument', () => {
+  it('opts the document out of browser page translation only when asked', () => {
+    const translatable = renderToStaticMarkup(
+      <AppHtmlDocument fontVariables="font-test" initialTheme="system">
+        <main>Content</main>
+      </AppHtmlDocument>,
+    );
+    const untranslatable = renderToStaticMarkup(
+      <AppHtmlDocument
+        fontVariables="font-test"
+        initialTheme="system"
+        isTranslatable={false}
+      >
+        <main>Content</main>
+      </AppHtmlDocument>,
+    );
+
+    expect(translatable).not.toContain('translate=');
+    expect(translatable).not.toContain('notranslate');
+    expect(untranslatable).toContain('translate="no"');
+    expect(untranslatable).toContain('name="google"');
+  });
+
   it('leaves System unresolved so CSS and the head bootstrap can follow the host', () => {
     const html = renderToStaticMarkup(
       <AppHtmlDocument fontVariables="font-test" initialTheme="system">

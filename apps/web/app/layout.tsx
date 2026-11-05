@@ -69,6 +69,7 @@ export default function RootLayout({ children }: LayoutProps) {
       fontVariables={fontVariables}
       bodyClassName="gf-app gf-studio-app"
       lang={DEFAULT_LOCALE}
+      isTranslatable={false}
       head={
         <>
           <RuntimeConfigScript source={createRuntimeConfigScript()} />
