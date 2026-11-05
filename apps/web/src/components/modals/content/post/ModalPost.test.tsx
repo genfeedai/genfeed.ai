@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import '@testing-library/jest-dom/vitest';
 import type { PostModalSchema } from '@genfeedai/client/schemas';
 import { IngredientCategory, ModalEnum } from '@genfeedai/contracts';
@@ -8,9 +12,9 @@ import {
   openModal,
 } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { calculateTweetLength } from '@helpers/formatting/tweet-length/tweet-length.helper';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { type ReactNode, useRef } from 'react';
+import { type ReactElement, type ReactNode, useRef } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ModalPost from '@/components/modals/content/post/ModalPost';
 
@@ -24,6 +28,16 @@ const mocks = vi.hoisted(() => ({
   openGallery: vi.fn(),
   openUpload: vi.fn(),
 }));
+
+function render(ui: ReactElement, client = createTestQueryClient()) {
+  return rtlRender(ui, { wrapper: queryClientWrapper(client) });
+}
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({

@@ -82,3 +82,9 @@ export interface AgentContextPageState {
   refresh: () => void;
   snapshot: IAgentBrandContextSnapshot | null;
 }
+
+/** The memories the viewer may see on the agent context page. */
+export interface AgentContextMemories {
+  brand: IAgentMemoryEntry[];
+  personal: IAgentMemoryEntry[];
+}

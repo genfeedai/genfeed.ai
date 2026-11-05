@@ -15,8 +15,6 @@ import type { ICalendarSlot } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { ArticlesService } from '@services/content/articles.service';
-import { NewslettersService } from '@services/content/newsletters.service';
 import { PostingCadencesService } from '@services/content/posting-cadences.service';
 import { PostsService } from '@services/content/posts.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
@@ -63,9 +61,6 @@ export default function ContentCalendarPage({
 }: ContentCalendarPageProps = {}): React.JSX.Element {
   const searchParams = useSearchParams();
   const globalFilterQuery = embedded ? searchParams.toString() : '';
-  const getNewslettersService = useAuthedService(
-    useCallback((token: string) => NewslettersService.getInstance(token), []),
-  );
   const { brandId, credentials, selectedBrand } = useBrand();
   const { push } = useRouter();
   const { href } = useOrgUrl();
@@ -75,10 +70,6 @@ export default function ContentCalendarPage({
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
     [],
-  );
-
-  const getArticlesService = useAuthedService((token: string) =>
-    ArticlesService.getInstance(token),
   );
 
   const getReleaseGroupsService = useAuthedService((token: string) =>
@@ -118,10 +109,6 @@ export default function ContentCalendarPage({
     campaignId,
     dateRange,
     filters,
-    getArticlesService,
-    getNewslettersService,
-    getPostingCadencesService,
-    getReleaseGroupsService,
     notificationsService,
   });
   const {

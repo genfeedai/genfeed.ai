@@ -1,5 +1,9 @@
-import { paginatedResponse } from '@app-tests/paginated-response';
 // @vitest-environment jsdom
+import { paginatedResponse } from '@app-tests/paginated-response';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { IngredientStatus } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { act, renderHook, waitFor } from '@testing-library/react';
@@ -12,26 +16,17 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => navigation.searchParams,
 }));
 
-const mocks = vi.hoisted(() => {
-  const composeSheetPrompt = vi.fn();
-  const createFromSheet = vi.fn();
-  const listCharactersPage = vi.fn();
-  const postImage = vi.fn();
-  const personasService = {
-    composeSheetPrompt,
-    createFromSheet,
-    listCharactersPage,
-  };
-  const imagesService = { post: postImage };
-  return {
-    composeSheetPrompt,
-    createFromSheet,
-    getImagesService: async () => imagesService,
-    getPersonasService: async () => personasService,
-    listCharactersPage,
-    postImage,
-  };
-});
+const mocks = vi.hoisted(() => ({
+  brand: {
+    brandId: 'brand-1',
+    brands: [{ id: 'brand-1', label: 'Personal brand' }],
+    organizationId: 'org-1',
+  },
+  composeSheetPrompt: vi.fn(),
+  createFromSheet: vi.fn(),
+  listCharactersPage: vi.fn(),
+  postImage: vi.fn(),
+}));
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -42,28 +37,16 @@ vi.mock('next-intl', async () => {
 });
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({
-    brandId: 'brand-1',
-    brands: [{ id: 'brand-1', label: 'Personal brand' }],
-  }),
+  useBrand: () => mocks.brand,
 }));
 
 vi.mock('@/hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: () => undefined,
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: (factory: (token: string) => unknown) => {
-    const created = factory('test-token') as { listCharactersPage?: unknown };
-    if (
-      created &&
-      typeof created === 'object' &&
-      'listCharactersPage' in created
-    ) {
-      return mocks.getPersonasService;
-    }
-    return mocks.getImagesService;
-  },
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
@@ -116,6 +99,11 @@ describe('useCharactersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     navigation.searchParams = new URLSearchParams();
+    mocks.brand = {
+      brandId: 'brand-1',
+      brands: [{ id: 'brand-1', label: 'Personal brand' }],
+      organizationId: 'org-1',
+    };
     mocks.listCharactersPage.mockResolvedValue(paginatedResponse([]));
     mocks.composeSheetPrompt.mockResolvedValue({
       prompt: 'CHARACTER REFERENCE SHEET PRESET v1.0.0',
@@ -139,7 +127,9 @@ describe('useCharactersPage', () => {
       ]),
     );
 
-    const { result } = renderHook(() => useCharactersPage());
+    const { result } = renderHook(() => useCharactersPage(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.characters).toHaveLength(1);
@@ -148,7 +138,9 @@ describe('useCharactersPage', () => {
   it('requests the server page named in the URL', async () => {
     navigation.searchParams = new URLSearchParams('page=2');
 
-    const { result } = renderHook(() => useCharactersPage());
+    const { result } = renderHook(() => useCharactersPage(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(mocks.listCharactersPage).toHaveBeenCalledWith(
@@ -158,7 +150,9 @@ describe('useCharactersPage', () => {
   });
 
   it('generates a sheet and moves to the candidate step', async () => {
-    const { result } = renderHook(() => useCharactersPage());
+    const { result } = renderHook(() => useCharactersPage(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -179,7 +173,9 @@ describe('useCharactersPage', () => {
   });
 
   it('creates a character and resets the create form', async () => {
-    const { result } = renderHook(() => useCharactersPage());
+    const { result } = renderHook(() => useCharactersPage(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -214,7 +210,9 @@ describe('useCharactersPage', () => {
   });
 
   it('closing the dialog discards the in-progress candidate', async () => {
-    const { result } = renderHook(() => useCharactersPage());
+    const { result } = renderHook(() => useCharactersPage(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -243,12 +241,123 @@ describe('useCharactersPage', () => {
         { totalDocs: 61, totalPages: 5 },
       ),
     );
-    const { result } = renderHook(() => useCharactersPage());
+    const { result } = renderHook(() => useCharactersPage(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     act(() => {
       result.current.applyReferences('p1', []);
     });
+    await waitFor(() =>
+      expect(result.current.characters[0].referenceIngredientIds).toEqual([]),
+    );
     expect(result.current.pageTotals).toEqual({ totalDocs: 61, totalPages: 5 });
-    expect(result.current.characters[0].referenceIngredientIds).toEqual([]);
+  });
+
+  it('paints the cached characters at once when the page is opened again', async () => {
+    mocks.listCharactersPage.mockResolvedValue(
+      paginatedResponse(
+        [{ avatarIngredientId: null, handle: 'anna', id: 'p1', label: 'Anna' }],
+        { totalDocs: 16, totalPages: 2 },
+      ),
+    );
+    const client = createTestQueryClient();
+    const first = renderHook(() => useCharactersPage(), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() =>
+      expect(first.result.current.characters[0]?.label).toBe('Anna'),
+    );
+    first.unmount();
+
+    mocks.listCharactersPage.mockReturnValue(new Promise(() => undefined));
+    const { result } = renderHook(() => useCharactersPage(), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.characters[0]?.label).toBe('Anna');
+    expect(result.current.pageTotals).toEqual({ totalDocs: 16, totalPages: 2 });
+  });
+
+  it('never shows another brand the characters cached for this one', async () => {
+    mocks.listCharactersPage.mockResolvedValue(
+      paginatedResponse([
+        { avatarIngredientId: null, handle: 'anna', id: 'p1', label: 'Anna' },
+      ]),
+    );
+    const client = createTestQueryClient();
+    const first = renderHook(() => useCharactersPage(), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() =>
+      expect(first.result.current.characters).toHaveLength(1),
+    );
+    first.unmount();
+
+    mocks.brand = { ...mocks.brand, brandId: 'brand-2' };
+    mocks.listCharactersPage.mockReturnValue(new Promise(() => undefined));
+    const { result } = renderHook(() => useCharactersPage(), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.characters).toEqual([]);
+  });
+
+  it('keeps the current rows on screen while the next page loads', async () => {
+    mocks.listCharactersPage.mockResolvedValue(
+      paginatedResponse([
+        { avatarIngredientId: null, handle: 'anna', id: 'p1', label: 'Anna' },
+      ]),
+    );
+    const { result, rerender } = renderHook(() => useCharactersPage(), {
+      wrapper: queryClientWrapper(),
+    });
+    await waitFor(() => expect(result.current.characters).toHaveLength(1));
+
+    mocks.listCharactersPage.mockReturnValue(new Promise(() => undefined));
+    navigation.searchParams = new URLSearchParams('page=2');
+    rerender();
+
+    await waitFor(() =>
+      expect(mocks.listCharactersPage).toHaveBeenLastCalledWith(
+        { limit: ITEMS_PER_PAGE, page: 2 },
+        expect.any(AbortSignal),
+      ),
+    );
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.characters[0]?.label).toBe('Anna');
+  });
+
+  it('re-reads the list after a character is created', async () => {
+    const { result } = renderHook(() => useCharactersPage(), {
+      wrapper: queryClientWrapper(),
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    mocks.listCharactersPage.mockResolvedValue(
+      paginatedResponse([
+        { avatarIngredientId: null, handle: 'anna', id: 'p1', label: 'Anna' },
+      ]),
+    );
+
+    act(() => {
+      result.current.create.setDescription('a tall woman');
+    });
+    await act(async () => {
+      await result.current.generateSheet();
+    });
+    act(() => {
+      result.current.approveCandidate();
+      result.current.approve.setLabel('Anna');
+      result.current.approve.setHandle('anna');
+    });
+    await act(async () => {
+      await result.current.createCharacter();
+    });
+
+    await waitFor(() =>
+      expect(result.current.characters[0]?.label).toBe('Anna'),
+    );
   });
 });

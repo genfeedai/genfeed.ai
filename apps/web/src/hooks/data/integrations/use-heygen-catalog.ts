@@ -7,13 +7,33 @@ import type {
   HeyGenCatalogAvatar,
   HeyGenCatalogVoice,
 } from '@genfeedai/contracts/interfaces';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import { HeyGenService } from '@services/ingredients/heygen.service';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const RECONNECT_MESSAGE =
   'HeyGen rejected the saved credentials. Reconnect HeyGen in Integrations.';
+const LOAD_MORE_ERROR =
+  'More HeyGen avatars could not be loaded. Try loading more again.';
+
+const OWNERSHIPS = ['public', 'private'] as const;
+type AvatarOwnership = (typeof OWNERSHIPS)[number];
+
+const EMPTY_AVATARS: HeyGenCatalogAvatar[] = [];
+const EMPTY_VOICES: HeyGenCatalogVoice[] = [];
+
+/** The avatar pages "load more" followed from one cached first page. */
+interface AvatarContinuation {
+  avatars: HeyGenCatalogAvatar[];
+  /** The first page these follow; a refreshed first page drops them. */
+  base: HeyGenAvatarCatalogPage;
+  nextCursor: string | null;
+  seenCursors: ReadonlySet<string>;
+}
+
+type AvatarContinuations = Partial<Record<AvatarOwnership, AvatarContinuation>>;
 
 function isCredentialsInvalid(error: unknown): boolean {
   return (
@@ -21,224 +41,243 @@ function isCredentialsInvalid(error: unknown): boolean {
   );
 }
 
+function createHeyGenService(token: string): HeyGenService {
+  return HeyGenService.getInstance(token);
+}
+
+function avatarKey(avatar: HeyGenCatalogAvatar): string {
+  return `${avatar.avatarRef.ownership}:${avatar.avatarId}`;
+}
+
+function mergeAvatars(
+  current: readonly HeyGenCatalogAvatar[],
+  next: readonly HeyGenCatalogAvatar[],
+): HeyGenCatalogAvatar[] {
+  const values = new Map(current.map((avatar) => [avatarKey(avatar), avatar]));
+  for (const avatar of next) values.set(avatarKey(avatar), avatar);
+  return [...values.values()];
+}
+
+async function readAvatarPage(
+  service: HeyGenService,
+  ownership: AvatarOwnership,
+  signal: AbortSignal,
+  cursor?: string,
+): Promise<HeyGenAvatarCatalogPage> {
+  const page = await service.fetchAvatarPage({ cursor, ownership, signal });
+  if (page.ownership !== ownership)
+    throw new Error('Catalogue ownership mismatch');
+  return page;
+}
+
 export interface UseHeyGenCatalogOptions {
   /** Skip every catalogue request for surfaces that do not need avatars or stock voices. */
   isEnabled?: boolean;
 }
 
-/** Organization-bound pages; healthy sources remain usable during an outage. */
+/**
+ * Organization-bound pages; healthy sources remain usable during an outage.
+ *
+ * The public and private avatar first pages and the stock voices are three
+ * cached reads per organization, so coming back to an avatar surface paints
+ * the catalogue at once and refreshes it in the background. "Load more"
+ * follows each partition's cursor locally. Only a source with nothing to show
+ * reports its failure; a failed background refresh keeps what is on screen.
+ */
 export function useHeyGenCatalog({
   isEnabled = true,
 }: UseHeyGenCatalogOptions = {}) {
   const { organizationId } = useBrand();
-  const getService = useAuthedService((token: string) =>
-    HeyGenService.getInstance(token),
-  );
-  const [catalogOrganizationId, setCatalogOrganizationId] = useState<
-    string | undefined
-  >();
-  const [avatars, setAvatars] = useState<HeyGenCatalogAvatar[]>([]);
-  const [voices, setVoices] = useState<HeyGenCatalogVoice[]>([]);
-  const [cursors, setCursors] = useState<
-    Record<'public' | 'private', string | null>
-  >({ public: null, private: null });
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMoreAvatars, setIsLoadingMoreAvatars] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isReconnectRequired, setIsReconnectRequired] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const active = useRef<AbortController | null>(null);
-  const activeOrganization = useRef<string | undefined>(undefined);
-  const loadingMore = useRef(false);
-  const seen = useRef({
-    public: new Set<string>(),
-    private: new Set<string>(),
+  const getService = useAuthedService(createHeyGenService);
+  const isActive = isEnabled && Boolean(organizationId);
+  const scopeKey = ['heygen', 'catalog', organizationId ?? null] as const;
+
+  const publicAvatars = useAuthedQuery<HeyGenService, HeyGenAvatarCatalogPage>({
+    enabled: isActive,
+    queryFn: (service, signal) => readAvatarPage(service, 'public', signal),
+    queryKey: [...scopeKey, 'avatars', 'public'],
+    service: createHeyGenService,
   });
-  const retry = useCallback(() => setRetryCount((count) => count + 1), []);
-
-  const acceptPage = useCallback(
-    (page: HeyGenAvatarCatalogPage, append: boolean) => {
-      const partition = page.ownership;
-      if (page.nextCursor && seen.current[partition].has(page.nextCursor))
-        throw new Error('HeyGen returned a repeated catalogue cursor.');
-      if (page.nextCursor) seen.current[partition].add(page.nextCursor);
-      setAvatars((previous) => {
-        const retained = append
-          ? previous
-          : previous.filter(
-              (avatar) => avatar.avatarRef.ownership !== partition,
-            );
-        const values = new Map(
-          retained.map((avatar) => [
-            `${avatar.avatarRef.ownership}:${avatar.avatarId}`,
-            avatar,
-          ]),
-        );
-        for (const avatar of page.avatars)
-          values.set(`${partition}:${avatar.avatarId}`, avatar);
-        return [...values.values()];
-      });
-      setCursors((previous) => ({ ...previous, [partition]: page.nextCursor }));
+  const privateAvatars = useAuthedQuery<HeyGenService, HeyGenAvatarCatalogPage>(
+    {
+      enabled: isActive,
+      queryFn: (service, signal) => readAvatarPage(service, 'private', signal),
+      queryKey: [...scopeKey, 'avatars', 'private'],
+      service: createHeyGenService,
     },
-    [],
+  );
+  const voicesQuery = useAuthedQuery<HeyGenService, HeyGenCatalogVoice[]>({
+    enabled: isActive,
+    queryFn: (service, signal) => service.fetchVoices(signal),
+    queryKey: [...scopeKey, 'voices'],
+    service: createHeyGenService,
+  });
+
+  const publicPage = isActive ? publicAvatars.data : undefined;
+  const privatePage = isActive ? privateAvatars.data : undefined;
+
+  const [continuations, setContinuations] = useState<AvatarContinuations>({});
+  const [isLoadingMoreAvatars, setIsLoadingMoreAvatars] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+  const loadMoreController = useRef<AbortController | null>(null);
+
+  // Another organization never receives a continuation still in flight.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: organizationId and isEnabled mark a new catalogue
+  useEffect(() => {
+    loadMoreController.current?.abort();
+    loadMoreController.current = null;
+    setIsLoadingMoreAvatars(false);
+    setLoadMoreError(null);
+    return () => loadMoreController.current?.abort();
+  }, [isEnabled, organizationId]);
+
+  const partitions = useMemo(
+    () =>
+      OWNERSHIPS.map((ownership) => {
+        const base = ownership === 'public' ? publicPage : privatePage;
+        const continuation = continuations[ownership];
+        const followed =
+          base && continuation?.base === base ? continuation : undefined;
+        return {
+          avatars: base
+            ? followed
+              ? followed.avatars
+              : base.avatars
+            : EMPTY_AVATARS,
+          base,
+          nextCursor: followed
+            ? followed.nextCursor
+            : (base?.nextCursor ?? null),
+          ownership,
+          seenCursors:
+            followed?.seenCursors ??
+            new Set(base?.nextCursor ? [base.nextCursor] : []),
+        };
+      }),
+    [continuations, privatePage, publicPage],
+  );
+  const avatars = useMemo(
+    () =>
+      partitions.reduce<HeyGenCatalogAvatar[]>(
+        (all, partition) => mergeAvatars(all, partition.avatars),
+        [],
+      ),
+    [partitions],
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: retryCount explicitly requests a fresh catalogue load.
-  useEffect(() => {
-    const abort = new AbortController();
-    if (activeOrganization.current !== organizationId) {
-      setAvatars([]);
-      setVoices([]);
-    }
-    active.current = abort;
-    activeOrganization.current = organizationId;
-    loadingMore.current = false;
-    seen.current = { public: new Set(), private: new Set() };
-    setCursors({ public: null, private: null });
-    setIsLoadingMoreAvatars(false);
-    setError(null);
-    setIsReconnectRequired(false);
-    setIsLoading(Boolean(organizationId) && isEnabled);
-    async function load() {
-      const failures: string[] = [];
-      let isCredentialsRejected = false;
-      try {
-        const service = await getService();
-        if (abort.signal.aborted) return;
-        await Promise.all([
-          ...(['public', 'private'] as const).map(async (ownership) => {
-            try {
-              const page = await service.fetchAvatarPage({
-                ownership,
-                signal: abort.signal,
-              });
-              if (abort.signal.aborted) return;
-              if (page.ownership !== ownership)
-                throw new Error('Catalogue ownership mismatch');
-              setCatalogOrganizationId(organizationId);
-              acceptPage(page, false);
-            } catch (caught) {
-              if (abort.signal.aborted) return;
-              failures.push(`${ownership} avatars`);
-              setAvatars((previous) =>
-                previous.filter(
-                  (avatar) => avatar.avatarRef.ownership !== ownership,
-                ),
-              );
-              if (isCredentialsInvalid(caught)) {
-                isCredentialsRejected = true;
-                setIsReconnectRequired(true);
-              }
-              setError(
-                isCredentialsRejected
-                  ? RECONNECT_MESSAGE
-                  : `HeyGen ${failures.join(' and ')} could not be loaded. Retry or check your connection in Integrations.`,
-              );
-            }
-          }),
-          (async () => {
-            try {
-              const nextVoices = await service.fetchVoices(abort.signal);
-              if (abort.signal.aborted) return;
-              setCatalogOrganizationId(organizationId);
-              setVoices(nextVoices);
-            } catch (caught) {
-              if (abort.signal.aborted) return;
-              failures.push('voices');
-              setVoices([]);
-              if (isCredentialsInvalid(caught)) {
-                isCredentialsRejected = true;
-                setIsReconnectRequired(true);
-              }
-              setError(
-                isCredentialsRejected
-                  ? RECONNECT_MESSAGE
-                  : `HeyGen ${failures.join(' and ')} could not be loaded. Retry or check your connection in Integrations.`,
-              );
-            }
-          })(),
-        ]);
-      } catch {
-        if (!abort.signal.aborted) {
-          setCatalogOrganizationId(organizationId);
-          setAvatars([]);
-          setVoices([]);
-          setError(
-            'HeyGen identities could not be loaded. Retry or check your connection in Integrations.',
-          );
-        }
-      } finally {
-        if (!abort.signal.aborted) {
-          setCatalogOrganizationId(organizationId);
-          setIsLoading(false);
-        }
-      }
-    }
-    if (organizationId && isEnabled) void load();
-    return () => abort.abort();
-  }, [acceptPage, getService, isEnabled, organizationId, retryCount]);
+  const isLoading =
+    isActive &&
+    (publicAvatars.isLoading ||
+      privateAvatars.isLoading ||
+      voicesQuery.isLoading);
 
   const loadMoreAvatars = useCallback(async () => {
-    const abort = active.current;
-    if (
-      !abort ||
-      abort.signal.aborted ||
-      loadingMore.current ||
-      isLoading ||
-      activeOrganization.current !== organizationId
-    )
-      return;
-    loadingMore.current = true;
+    if (!isActive || isLoading || loadMoreController.current) return;
+    const pending = partitions.filter(
+      (partition) => partition.base && partition.nextCursor,
+    );
+    if (pending.length === 0) return;
+
+    const abort = new AbortController();
+    loadMoreController.current = abort;
     setIsLoadingMoreAvatars(true);
-    setError(null);
+    setLoadMoreError(null);
     try {
       const service = await getService();
       if (abort.signal.aborted) return;
       await Promise.all(
-        (['public', 'private'] as const).map(async (ownership) => {
-          const cursor = cursors[ownership];
-          if (!cursor) return;
+        pending.map(async (partition) => {
+          const { base, nextCursor, ownership, seenCursors } = partition;
+          if (!base || !nextCursor) return;
           try {
-            const page = await service.fetchAvatarPage({
+            const page = await readAvatarPage(
+              service,
               ownership,
-              cursor,
-              signal: abort.signal,
-            });
+              abort.signal,
+              nextCursor,
+            );
             if (abort.signal.aborted) return;
-            if (page.ownership !== ownership)
-              throw new Error('Catalogue ownership mismatch');
-            acceptPage(page, true);
+            if (page.nextCursor && seenCursors.has(page.nextCursor))
+              throw new Error('HeyGen returned a repeated catalogue cursor.');
+            setContinuations((current) => {
+              const previous = current[ownership];
+              const followed =
+                previous?.base === base
+                  ? previous
+                  : {
+                      avatars: base.avatars,
+                      base,
+                      nextCursor: base.nextCursor,
+                      seenCursors,
+                    };
+              return {
+                ...current,
+                [ownership]: {
+                  avatars: mergeAvatars(followed.avatars, page.avatars),
+                  base,
+                  nextCursor: page.nextCursor,
+                  seenCursors: page.nextCursor
+                    ? new Set([...followed.seenCursors, page.nextCursor])
+                    : followed.seenCursors,
+                },
+              };
+            });
           } catch {
-            if (!abort.signal.aborted)
-              setError(
-                'More HeyGen avatars could not be loaded. Try loading more again.',
-              );
+            if (!abort.signal.aborted) setLoadMoreError(LOAD_MORE_ERROR);
           }
         }),
       );
     } catch {
-      if (!abort.signal.aborted)
-        setError(
-          'More HeyGen avatars could not be loaded. Try loading more again.',
-        );
+      if (!abort.signal.aborted) setLoadMoreError(LOAD_MORE_ERROR);
     } finally {
-      if (!abort.signal.aborted) {
-        loadingMore.current = false;
+      if (loadMoreController.current === abort) {
+        loadMoreController.current = null;
         setIsLoadingMoreAvatars(false);
       }
     }
-  }, [acceptPage, cursors, getService, isLoading, organizationId]);
-  const matchesOrganization = catalogOrganizationId === organizationId;
+  }, [getService, isActive, isLoading, partitions]);
+
+  const { refetch: refetchPublic } = publicAvatars;
+  const { refetch: refetchPrivate } = privateAvatars;
+  const { refetch: refetchVoices } = voicesQuery;
+  const retry = useCallback(() => {
+    setLoadMoreError(null);
+    void refetchPublic();
+    void refetchPrivate();
+    void refetchVoices();
+  }, [refetchPrivate, refetchPublic, refetchVoices]);
+
+  // A source fails the catalogue only when it has nothing to show; a rejected
+  // credential asks for a reconnect even over cached results.
+  const sources = [
+    { label: 'public avatars', query: publicAvatars },
+    { label: 'private avatars', query: privateAvatars },
+    { label: 'voices', query: voicesQuery },
+  ];
+  const failures = isActive
+    ? sources.filter(({ query }) => query.isError && query.data === undefined)
+    : [];
+  const isReconnectRequired =
+    isActive &&
+    sources.some(
+      ({ query }) => query.isError && isCredentialsInvalid(query.error),
+    );
+  const loadError =
+    failures.length === 0
+      ? null
+      : `HeyGen ${failures.map(({ label }) => label).join(' and ')} could not be loaded. Retry or check your connection in Integrations.`;
+
   return {
-    avatars: matchesOrganization ? avatars : [],
-    voices: matchesOrganization ? voices : [],
-    hasMoreAvatars:
-      matchesOrganization && Boolean(cursors.public || cursors.private),
+    avatars,
+    voices: (isActive ? voicesQuery.data : undefined) ?? EMPTY_VOICES,
+    hasMoreAvatars: partitions.some((partition) => partition.nextCursor),
     loadMoreAvatars,
     isLoadingMoreAvatars,
     isLoading,
-    error: matchesOrganization ? error : null,
-    isReconnectRequired: matchesOrganization && isReconnectRequired,
+    error: isReconnectRequired
+      ? RECONNECT_MESSAGE
+      : (loadError ?? (isActive ? loadMoreError : null)),
+    isReconnectRequired,
     retry,
   };
 }

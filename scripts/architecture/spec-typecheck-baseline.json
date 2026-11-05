@@ -5089,14 +5089,6 @@
       "workspace": "web"
     },
     {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/library/captions/captions-list.test.tsx",
-      "fingerprint": "f34b1f018c7f9cf302f5",
-      "message": "Conversion of type '{ createdAt: string; format: \"srt\"; id: string; label: string; }' to type 'Caption' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ createdAt: string; format: \"srt\"; id: string; label: string; }' is missing the following properties from type 'Caption': ingredient, user, language, isDeleted, updatedAt",
-      "workspace": "web"
-    },
-    {
       "code": 5097,
       "count": 1,
       "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/library/library-credit-notice.test.tsx",
