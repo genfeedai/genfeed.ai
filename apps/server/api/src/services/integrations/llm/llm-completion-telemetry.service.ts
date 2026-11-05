@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { workflowAccountingAttribution } from '@api/collections/workflow-executions/services/workflow-accounting.context';
+import { sendPostHogCapture } from '@api/services/analytics/posthog-capture.util';
 import { LlmCostSettlementQueueService } from '@api/services/integrations/llm/llm-cost-settlement-queue.service';
 import { buildLlmGenerationTelemetryProperties } from '@api/services/integrations/llm/llm-generation-telemetry';
 import { LlmVendorCostLedgerService } from '@api/services/integrations/llm/llm-vendor-cost-ledger.service';
@@ -18,14 +19,8 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { safeFetch } from '@libs/security/destination-guard';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
-
-const TRAILING_SLASH_PATTERN = /\/$/;
-
-const DEFAULT_POSTHOG_HOST = 'https://eu.i.posthog.com';
-const POSTHOG_CAPTURE_TIMEOUT_MS = 800;
 
 @Traced()
 @Injectable()
@@ -171,45 +166,13 @@ export class LlmCompletionTelemetryService {
     event: ILlmCompletionTelemetryEvent,
     costs: ILlmGenerationTelemetryCosts,
   ): Promise<void> {
-    const projectKey = this.readProjectKey();
-    if (!projectKey) {
-      return;
+    const result = await sendPostHogCapture(this.configService, {
+      distinctId: event.userId || event.organizationId || 'anonymous',
+      event: LLM_GENERATION_TELEMETRY_EVENT,
+      properties: buildLlmGenerationTelemetryProperties(event, costs),
+    });
+    if (result.status === 'failed') {
+      throw new Error(`PostHog capture failed: ${result.category}`);
     }
-
-    const host = this.readHost();
-    const origin = new URL(host).origin;
-    const properties = buildLlmGenerationTelemetryProperties(event, costs);
-
-    await safeFetch(
-      `${host}/i/v0/e/`,
-      {
-        body: JSON.stringify({
-          api_key: projectKey,
-          distinct_id: event.userId || event.organizationId || 'anonymous',
-          event: LLM_GENERATION_TELEMETRY_EVENT,
-          properties,
-        }),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
-        signal: AbortSignal.timeout(POSTHOG_CAPTURE_TIMEOUT_MS),
-      },
-      { allowedOrigins: [origin] },
-    );
-  }
-
-  private readProjectKey(): string {
-    return String(
-      this.configService.get('POSTHOG_PROJECT_API_KEY') || '',
-    ).trim();
-  }
-
-  private readHost(): string {
-    const configured = String(
-      this.configService.get('POSTHOG_HOST') || DEFAULT_POSTHOG_HOST,
-    ).trim();
-
-    return (
-      configured.replace(TRAILING_SLASH_PATTERN, '') || DEFAULT_POSTHOG_HOST
-    );
   }
 }
