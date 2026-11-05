@@ -2,11 +2,11 @@
 
 import { clearClientProtectedBootstrapCache } from '@contexts/providers/protected-bootstrap/client-protected-bootstrap';
 import { ButtonVariant } from '@genfeedai/contracts';
+import type { ConnectionAccount } from '@genfeedai/props/ui/feedback/connection-success.props';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
-import type { ConnectionAccount } from '@genfeedai/props/ui/feedback/connection-success.props';
 import ConnectionSuccess from '@ui/feedback/connection-success/ConnectionSuccess';
 import { resolvePlatformConnectionBrand } from '@ui/feedback/connection-success/connection-brand';
 import { Button } from '@ui/primitives/button';
@@ -96,23 +96,26 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
     navigateToReturnPath(returnTo);
   }, [clearStoredReturnTo, resolveReturnTo]);
 
-  const completeSuccess = useCallback((account?: ConnectionAccount | null) => {
-    // Resolve before clearing: providers drop query params on redirect, so
-    // the stored path is the only return channel, and the delayed navigation below
-    // reads it after this frame. Clearing first always fell back to default.
-    const returnTo = resolveReturnTo();
-    setResult({ account, status: 'success' });
-    clearStoredReturnTo();
-    // Every connect entry point (integrations page, agent setup panel, chat
-    // connect cards) lands here. Brand context embeds credentials in the
-    // protected bootstrap, so the page we return to must not reuse a client
-    // snapshot taken before this account existed.
-    clearClientProtectedBootstrapCache();
+  const completeSuccess = useCallback(
+    (account?: ConnectionAccount | null) => {
+      // Resolve before clearing: providers drop query params on redirect, so
+      // the stored path is the only return channel, and the delayed navigation below
+      // reads it after this frame. Clearing first always fell back to default.
+      const returnTo = resolveReturnTo();
+      setResult({ account, status: 'success' });
+      clearStoredReturnTo();
+      // Every connect entry point (integrations page, agent setup panel, chat
+      // connect cards) lands here. Brand context embeds credentials in the
+      // protected bootstrap, so the page we return to must not reuse a client
+      // snapshot taken before this account existed.
+      clearClientProtectedBootstrapCache();
 
-    setTimeout(() => {
-      navigateToReturnPath(returnTo);
-    }, REDIRECT_DELAY_MS);
-  }, [clearStoredReturnTo, resolveReturnTo]);
+      setTimeout(() => {
+        navigateToReturnPath(returnTo);
+      }, REDIRECT_DELAY_MS);
+    },
+    [clearStoredReturnTo, resolveReturnTo],
+  );
 
   const verify = useCallback(
     async (forceRefresh = false) => {

@@ -41,7 +41,10 @@ describe('ConnectionSuccess', () => {
   it('shows the connected account picture with the platform logo on it', () => {
     const { container } = render(
       <ConnectionSuccess
-        account={{ avatarUrl: 'https://cdn.example/shayla.jpg', name: 'Shayla' }}
+        account={{
+          avatarUrl: 'https://cdn.example/shayla.jpg',
+          name: 'Shayla',
+        }}
         brand={resolvePlatformConnectionBrand('instagram')}
         title="Instagram Connected"
       />,

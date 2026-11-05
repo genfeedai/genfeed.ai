@@ -1,8 +1,8 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { Avatar } from '@ui/primitives/avatar';
 import type { ConnectionSuccessProps } from '@genfeedai/props/ui/feedback/connection-success.props';
+import { Avatar } from '@ui/primitives/avatar';
 import { useEffect, useRef } from 'react';
 
 const TRACE_SHAPES = 'path, circle, ellipse, line, polygon, polyline, rect';
@@ -204,33 +204,33 @@ export default function ConnectionSuccess({
           </span>
         </div>
       ) : (
-      <div
-        aria-hidden="true"
-        className="relative size-24"
-        data-connection-brand={brand.name}
-        style={color ? { color } : undefined}
-      >
-        <span className="connection-success-disc absolute inset-0 rounded-full" />
-        <span className="connection-success-ring absolute inset-0 rounded-full" />
-        <span className="connection-success-fill absolute inset-[22%]">
-          <Icon className="size-full" />
-        </span>
-        <span
-          className="connection-success-trace absolute inset-[22%]"
-          ref={traceRef}
+        <div
+          aria-hidden="true"
+          className="relative size-24"
+          data-connection-brand={brand.name}
+          style={color ? { color } : undefined}
         >
-          <Icon className="size-full" />
-        </span>
-        <span className="connection-success-badge absolute -right-1 -bottom-1 flex size-8 items-center justify-center rounded-full bg-success text-success-foreground ring-4 ring-background">
-          <svg className="size-4" viewBox="0 0 24 24">
-            <path
-              className="connection-success-check"
-              d="M5 12.5l4.5 4.5L19 7.5"
-              pathLength="1"
-            />
-          </svg>
-        </span>
-      </div>
+          <span className="connection-success-disc absolute inset-0 rounded-full" />
+          <span className="connection-success-ring absolute inset-0 rounded-full" />
+          <span className="connection-success-fill absolute inset-[22%]">
+            <Icon className="size-full" />
+          </span>
+          <span
+            className="connection-success-trace absolute inset-[22%]"
+            ref={traceRef}
+          >
+            <Icon className="size-full" />
+          </span>
+          <span className="connection-success-badge absolute -right-1 -bottom-1 flex size-8 items-center justify-center rounded-full bg-success text-success-foreground ring-4 ring-background">
+            <svg className="size-4" viewBox="0 0 24 24">
+              <path
+                className="connection-success-check"
+                d="M5 12.5l4.5 4.5L19 7.5"
+                pathLength="1"
+              />
+            </svg>
+          </span>
+        </div>
       )}
       <output aria-live="polite" className="block space-y-1">
         <span className="block text-base font-semibold">{title}</span>
