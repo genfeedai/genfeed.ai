@@ -61,11 +61,11 @@ export class WhisperService {
       }
     });
     const { data } = await downloadBounded(input, {
-      createError: (reason) =>
+      createError: (reason, response) =>
         new Error(
           reason === 'too-large'
             ? 'Media download exceeds the size limit'
-            : 'Media download is unavailable',
+            : `Media download is unavailable (HTTP ${response?.status ?? 'unknown'})`,
         ),
       deadlineMs: MEDIA_DOWNLOAD_TIMEOUT_MS,
       destination: configuredOrigin
