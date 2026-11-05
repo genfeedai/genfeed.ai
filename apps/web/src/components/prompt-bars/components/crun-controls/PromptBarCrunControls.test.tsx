@@ -52,8 +52,7 @@ describe('Crun output format', () => {
       'aria-invalid',
       'true',
     );
-    expect(screen.getByRole('combobox')).toHaveAttribute(
-      'aria-description',
+    expect(screen.getByRole('combobox')).toHaveAccessibleDescription(
       'Unsupported format',
     );
   });

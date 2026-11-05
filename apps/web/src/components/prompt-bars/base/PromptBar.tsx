@@ -165,87 +165,99 @@ function PromptBar({
                 <Label
                   role="status"
                   aria-live="polite"
-                  className="text-xs text-muted-foreground"
+                  className="px-3 pt-2 text-xs text-muted-foreground"
                 >
                   {crunQuoteLabel}
                 </Label>
               ) : null}
-              {crunInputControls?.mediaKind === 'image' ? (
-                <PromptBarCrunControls
-                  controls={crunInputControls}
-                  value={watchedCrunControls?.outputFormat}
-                  isDisabled={isDisabledState}
-                  onChange={(outputFormat) => {
-                    if (!watchedCrunControls) return;
-                    form.setValue(
-                      'crunControls',
-                      { ...watchedCrunControls, outputFormat },
-                      { shouldValidate: true },
-                    );
-                    triggerConfigChange();
-                  }}
-                />
-              ) : null}
-              {crunInputControls?.mediaKind === 'video' && crunVideoDraft ? (
-                <PromptBarCrunVideoControls
-                  controls={crunInputControls}
-                  value={crunVideoDraft}
-                  isDisabled={isDisabledState}
-                  labels={{
-                    duration: translate('duration'),
-                    aspectRatio: translate('aspectRatio'),
-                    resolution: translate('resolution'),
-                    negativePrompt: translate('negativePrompt'),
-                    guidanceScale: translate('guidanceScale'),
-                    translatePrompt: translate('translatePrompt'),
-                    pricingReviewRequired: translate('pricingReviewRequired'),
-                    aspectFromFrames: translate('aspectFromFrames'),
-                    invalidContract: translate('invalidContract'),
-                    errorMessages: {
-                      required: translate('fieldRequired'),
-                      unknown: translate('fieldUnknown'),
-                      type: translate('fieldType'),
-                      enum: translate('fieldEnum'),
-                      bounds: translate('fieldBounds'),
-                      uri: translate('fieldUri'),
-                      reference_required: translate('fieldReferenceRequired'),
-                      pricing_unavailable: translate('pricingReviewRequired'),
-                      contract_mismatch: translate('invalidContract'),
-                    },
-                  }}
-                  onChange={(patch) => {
-                    const current = form.getValues('crunControls');
-                    if (!current) return;
-                    if (Object.hasOwn(patch, 'duration'))
-                      form.setValue('duration', patch.duration, {
-                        shouldValidate: true,
-                      });
-                    if (Object.hasOwn(patch, 'resolution'))
-                      form.setValue('resolution', patch.resolution ?? '', {
-                        shouldValidate: true,
-                      });
-                    form.setValue(
-                      'crunControls',
-                      {
-                        ...current,
-                        ...(Object.hasOwn(patch, 'aspectRatio')
-                          ? { aspectRatio: patch.aspectRatio }
-                          : {}),
-                        ...(Object.hasOwn(patch, 'negativePrompt')
-                          ? { negativePrompt: patch.negativePrompt }
-                          : {}),
-                        ...(Object.hasOwn(patch, 'guidanceScale')
-                          ? { guidanceScale: patch.guidanceScale }
-                          : {}),
-                        ...(Object.hasOwn(patch, 'translatePrompt')
-                          ? { translatePrompt: patch.translatePrompt }
-                          : {}),
-                      },
-                      { shouldValidate: true },
-                    );
-                    triggerConfigChange();
-                  }}
-                />
+              {crunInputControls?.mediaKind === 'image' ||
+              (crunInputControls?.mediaKind === 'video' && crunVideoDraft) ? (
+                <div className="flex flex-wrap items-center gap-1.5 px-2 pb-1">
+                  {crunInputControls?.mediaKind === 'image' ? (
+                    <PromptBarCrunControls
+                      controls={crunInputControls}
+                      value={watchedCrunControls?.outputFormat}
+                      isDisabled={isDisabledState}
+                      onChange={(outputFormat) => {
+                        if (!watchedCrunControls) return;
+                        form.setValue(
+                          'crunControls',
+                          { ...watchedCrunControls, outputFormat },
+                          { shouldValidate: true },
+                        );
+                        triggerConfigChange();
+                      }}
+                    />
+                  ) : null}
+                  {crunInputControls?.mediaKind === 'video' &&
+                  crunVideoDraft ? (
+                    <PromptBarCrunVideoControls
+                      controls={crunInputControls}
+                      value={crunVideoDraft}
+                      isDisabled={isDisabledState}
+                      labels={{
+                        duration: translate('duration'),
+                        aspectRatio: translate('aspectRatio'),
+                        resolution: translate('resolution'),
+                        negativePrompt: translate('negativePrompt'),
+                        guidanceScale: translate('guidanceScale'),
+                        translatePrompt: translate('translatePrompt'),
+                        pricingReviewRequired: translate(
+                          'pricingReviewRequired',
+                        ),
+                        aspectFromFrames: translate('aspectFromFrames'),
+                        invalidContract: translate('invalidContract'),
+                        errorMessages: {
+                          required: translate('fieldRequired'),
+                          unknown: translate('fieldUnknown'),
+                          type: translate('fieldType'),
+                          enum: translate('fieldEnum'),
+                          bounds: translate('fieldBounds'),
+                          uri: translate('fieldUri'),
+                          reference_required: translate(
+                            'fieldReferenceRequired',
+                          ),
+                          pricing_unavailable: translate(
+                            'pricingReviewRequired',
+                          ),
+                          contract_mismatch: translate('invalidContract'),
+                        },
+                      }}
+                      onChange={(patch) => {
+                        const current = form.getValues('crunControls');
+                        if (!current) return;
+                        if (Object.hasOwn(patch, 'duration'))
+                          form.setValue('duration', patch.duration, {
+                            shouldValidate: true,
+                          });
+                        if (Object.hasOwn(patch, 'resolution'))
+                          form.setValue('resolution', patch.resolution ?? '', {
+                            shouldValidate: true,
+                          });
+                        form.setValue(
+                          'crunControls',
+                          {
+                            ...current,
+                            ...(Object.hasOwn(patch, 'aspectRatio')
+                              ? { aspectRatio: patch.aspectRatio }
+                              : {}),
+                            ...(Object.hasOwn(patch, 'negativePrompt')
+                              ? { negativePrompt: patch.negativePrompt }
+                              : {}),
+                            ...(Object.hasOwn(patch, 'guidanceScale')
+                              ? { guidanceScale: patch.guidanceScale }
+                              : {}),
+                            ...(Object.hasOwn(patch, 'translatePrompt')
+                              ? { translatePrompt: patch.translatePrompt }
+                              : {}),
+                          },
+                          { shouldValidate: true },
+                        );
+                        triggerConfigChange();
+                      }}
+                    />
+                  ) : null}
+                </div>
               ) : null}
               {isCollapsed && isCollapsible ? (
                 <PromptBarCollapsedView

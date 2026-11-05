@@ -11,8 +11,8 @@ import {
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
-import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
 import { Textarea } from '@ui/primitives/textarea';
+import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
 import { Fragment, useId, useState } from 'react';
 import type { CrunVideoControlsProps } from '@/props/studio/crun-video-controls.props';
 
