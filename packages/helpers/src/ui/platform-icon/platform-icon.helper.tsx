@@ -239,11 +239,12 @@ const PLATFORM_BRANDS: Record<string, IPlatformBadgeConfig> = {
     textColor: 'text-foreground',
   },
   [Platform.TIKTOK]: {
-    bgColor: 'bg-platform-tiktok/10',
+    bgColor: 'bg-foreground/10',
     icon: TiktokIcon,
-    iconColor: 'text-platform-tiktok',
+    // TikTok's mark is monochrome like X's; #fe2c55 is only its accent and
+    // reads as an error next to the other platform marks.
+    iconColor: 'text-foreground',
     label: label(Platform.TIKTOK),
-    // TikTok's mark is black; #fe2c55 is only its accent and reads as an error.
     solidBgColor: 'bg-black',
     textColor: 'text-foreground',
   },

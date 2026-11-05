@@ -36,6 +36,7 @@ export default function Modal({
   onClose,
   modalBoxClassName = '',
   size = 'lg',
+  isBodyScrollable = true,
 }: ModalProps) {
   const subscribe = useCallback(
     (listener: () => void) => subscribeModal(id, listener),
@@ -136,7 +137,12 @@ export default function Modal({
           </DialogHeader>
         )}
 
-        <DialogBody className="flex flex-col gap-4">{children}</DialogBody>
+        <DialogBody
+          className="flex flex-col gap-4"
+          scrollable={isBodyScrollable}
+        >
+          {children}
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

@@ -267,19 +267,53 @@ describe('PublishingContentLibrary', () => {
     );
   });
 
-  it('ends the table on Scheduled and leaves Content unsortable', () => {
+  it('ends the table on Date and leaves Content unsortable', () => {
     render(<PublishingContentLibrary />);
 
     const headers = screen
       .getAllByRole('columnheader')
       .map((header) => header.textContent);
-    expect(headers.slice(0, 3)).toEqual(['Content', 'Status', 'Scheduled']);
+    expect(headers.slice(0, 3)).toEqual(['Content', 'Status', 'Date']);
     expect(
       screen.queryByRole('columnheader', { name: 'Created' }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Content' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('dates a published post by when it went out and marks a draft not scheduled', () => {
+    mocks.queryData = {
+      ...collections,
+      posts: [
+        {
+          createdAt: '2026-08-08T10:00:00.000Z',
+          description: 'Went out',
+          id: 'post-published',
+          platform: Platform.TWITTER,
+          publishedAt: '2026-08-09T12:00:00.000Z',
+          status: PostStatus.PUBLIC,
+        },
+        {
+          createdAt: '2026-08-08T10:00:00.000Z',
+          description: 'Still a draft',
+          id: 'post-draft',
+          platform: Platform.TIKTOK,
+          status: PostStatus.DRAFT,
+        },
+      ],
+    };
+    render(<PublishingContentLibrary />);
+
+    const publishedRow = screen
+      .getByRole('link', { name: 'Open Went out' })
+      .closest('tr') as HTMLElement;
+    const draftRow = screen
+      .getByRole('link', { name: 'Open Still a draft' })
+      .closest('tr') as HTMLElement;
+    expect(within(publishedRow).getAllByText(/Aug 9/)[0]).toBeVisible();
+    expect(within(publishedRow).queryByText('notScheduled')).toBeNull();
+    expect(within(draftRow).getByText('notScheduled')).toBeVisible();
   });
 
   it('keeps the row tinted while its detail is open in the context sidebar', () => {

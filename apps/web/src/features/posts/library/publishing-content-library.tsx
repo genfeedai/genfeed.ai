@@ -561,8 +561,8 @@ export default function PublishingContentLibrary() {
             <Badge status={item.status}>
               {formatPublishingContentStatus(item.status)}
             </Badge>
-            {item.scheduledAt ? (
-              <TableDateCell value={item.scheduledAt} />
+            {item.publishedAt || item.scheduledAt ? (
+              <TableDateCell value={item.publishedAt ?? item.scheduledAt} />
             ) : null}
           </div>
         </PublishingPostHoverPreview>
@@ -580,9 +580,18 @@ export default function PublishingContentLibrary() {
     },
     {
       className: 'hidden md:table-cell',
-      header: 'Scheduled',
+      header: 'Date',
       key: 'scheduledAt',
-      render: (item) => <TableDateCell value={item.scheduledAt} />,
+      // Published rows show when they went out, scheduled rows when they go
+      // out; a draft has neither yet.
+      render: (item) =>
+        item.publishedAt || item.scheduledAt ? (
+          <TableDateCell value={item.publishedAt ?? item.scheduledAt} />
+        ) : (
+          <span className="text-xs text-muted-foreground">
+            {translate('notScheduled')}
+          </span>
+        ),
     },
   ];
 

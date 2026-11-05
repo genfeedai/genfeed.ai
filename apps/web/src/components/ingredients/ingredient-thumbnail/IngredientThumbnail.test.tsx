@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import IngredientThumbnail from './IngredientThumbnail';
@@ -13,14 +13,17 @@ vi.mock('next/image', () => ({
   default: ({
     alt,
     fill,
+    onError,
     src,
   }: {
     alt: string;
     fill?: boolean;
+    onError?: () => void;
     src: string;
   }) => (
     <span data-fill={fill ? 'true' : undefined} data-src={src}>
       {alt}
+      <img alt="" onError={onError} src={src} />
     </span>
   ),
 }));
@@ -48,6 +51,17 @@ describe('IngredientThumbnail', () => {
       'data-src',
       'https://cdn.test/images/img-1.jpg',
     );
+  });
+
+  it('shows the placeholder when the image fails to load', () => {
+    render(
+      <IngredientThumbnail alt="Anna" ingredient={ingredient} size={40} />,
+    );
+
+    fireEvent.error(screen.getByText('Anna').querySelector('img') as Element);
+
+    expect(screen.getByRole('img', { name: 'Anna' })).toBeVisible();
+    expect(screen.queryByText('Anna')).toBeNull();
   });
 
   it('prefers the issued media grant', () => {
