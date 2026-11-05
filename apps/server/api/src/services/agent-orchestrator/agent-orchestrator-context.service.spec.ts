@@ -792,6 +792,7 @@ describe('AgentOrchestratorContextService buildMessageHistory hand-off results',
               kind: 'ingredient',
               organizationId: 'org-1',
               recordId: 'image-1',
+              serializer: 'ingredient',
             },
           ],
           status: 'COMPLETED',
@@ -805,9 +806,9 @@ describe('AgentOrchestratorContextService buildMessageHistory hand-off results',
       'assistant',
       'user',
     ]);
-    expect(readMessageText(history.at(-1))).toContain(
-      'It produced: ingredient:image-1.',
-    );
+    const resultText = readMessageText(history.at(-1));
+    expect(resultText).toContain('"recordId":"image-1"');
+    expect(resultText).toContain(UNTRUSTED_USER_DATA_FRAMING);
   });
 
   it('still leaves other system notes out of the model history', () => {

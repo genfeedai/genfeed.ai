@@ -2,6 +2,7 @@ import { type AgentMessageDocument } from '@api/collections/agent-messages/schem
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { scopedWhere } from '@api/index';
+import { renderTransferResultForHistory } from '@api/services/agent-orchestrator/utils/agent-transfer-result-history.util';
 import { CacheService } from '@api/services/cache/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
@@ -291,6 +292,11 @@ export class ThreadContextCompressorService {
     // Build conversation text for compression
     const conversationText = messagesToCompress
       .map((msg) => {
+        // A hand-off result keeps its output records through compaction.
+        const transferResult = renderTransferResultForHistory(msg);
+        if (transferResult) {
+          return `Hand-off result: ${transferResult}`;
+        }
         const role = msg.role === 'user' ? 'User' : 'Assistant';
         return `${role}: ${msg.content || '[no content]'}`;
       })

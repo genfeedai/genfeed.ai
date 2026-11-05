@@ -28,12 +28,32 @@ describe('renderTransferResultForHistory', () => {
     ).toBe(
       [
         'A thread you handed work to reported back. Thread thread-image, status COMPLETED.',
-        'It produced: ingredient:image-1. To hand any of these to another thread, pass them as artifactReferences on transfer_agent_conversation.',
+        'It produced these records. To hand any of them to another thread, pass them unchanged in artifactReferences on transfer_agent_conversation: [{"kind":"ingredient","organizationId":"org-1","recordId":"image-1","serializer":"ingredient"}]',
         UNTRUSTED_USER_DATA_FRAMING,
         'Hero image finished.',
         '',
         'Made a 9:16 beach image.',
       ].join('\n'),
+    );
+  });
+
+  it('leaves out an output that is not a complete reference', () => {
+    expect(
+      renderTransferResultForHistory({
+        content: '',
+        metadata: {
+          agentTransferResult: {
+            destinationThreadId: 'thread-image',
+            outputArtifactReferences: [
+              { kind: 'ingredient', recordId: 'image-1' },
+            ],
+            status: 'COMPLETED',
+          },
+        },
+        role: AgentMessageRole.SYSTEM,
+      }),
+    ).toBe(
+      'A thread you handed work to reported back. Thread thread-image, status COMPLETED.\nIt recorded no output records.',
     );
   });
 

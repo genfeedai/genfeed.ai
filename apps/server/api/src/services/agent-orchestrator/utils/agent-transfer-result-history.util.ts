@@ -10,15 +10,34 @@ interface TransferResultSource {
   role?: string | null;
 }
 
-function listOutputs(value: unknown): string[] {
+/**
+ * Each output as the whole reference `transfer_agent_conversation` takes, so
+ * the master can pass it on as is. Anything that is not a complete reference
+ * is left out.
+ */
+function listOutputs(value: unknown): Record<string, string>[] {
   if (!Array.isArray(value)) {
     return [];
   }
   return value.slice(0, MAX_LISTED_OUTPUTS).flatMap((item: unknown) => {
     const record = readRecord(item);
     const kind = readString(record.kind);
+    const organizationId = readString(record.organizationId);
     const recordId = readString(record.recordId);
-    return kind && recordId ? [`${kind}:${recordId}`] : [];
+    const serializer = readString(record.serializer);
+    const brandId = readString(record.brandId);
+    if (!kind || !organizationId || !recordId || !serializer) {
+      return [];
+    }
+    return [
+      {
+        ...(brandId ? { brandId } : {}),
+        kind,
+        organizationId,
+        recordId,
+        serializer,
+      },
+    ];
   });
 }
 
@@ -47,7 +66,7 @@ export function renderTransferResultForHistory(
   const lines = [
     `A thread you handed work to reported back. Thread ${threadId}, status ${status}.`,
     outputs.length > 0
-      ? `It produced: ${outputs.join(', ')}. To hand any of these to another thread, pass them as artifactReferences on transfer_agent_conversation.`
+      ? `It produced these records. To hand any of them to another thread, pass them unchanged in artifactReferences on transfer_agent_conversation: ${JSON.stringify(outputs)}`
       : 'It recorded no output records.',
   ];
   const report = fenceUntrustedContent(message.content ?? '');
