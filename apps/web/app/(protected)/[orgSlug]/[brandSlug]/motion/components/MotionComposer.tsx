@@ -138,6 +138,7 @@ export default function MotionComposer({
           <>
             <PromptBarCompactSelect
               ariaLabel={t('inputMode')}
+              icon="source"
               onChange={updateMode}
               options={modeOptions}
               value={mode}
@@ -145,6 +146,7 @@ export default function MotionComposer({
             {!project && (
               <PromptBarCompactSelect
                 ariaLabel={t('model')}
+                icon="model"
                 onChange={updateModel}
                 options={modelOptions}
                 value={modelKey}

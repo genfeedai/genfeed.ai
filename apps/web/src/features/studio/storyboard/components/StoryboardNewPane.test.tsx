@@ -24,8 +24,19 @@ const mocks = vi.hoisted(() => ({
   error: null as string | null,
   openGallery: vi.fn<(config: GlobalModalGalleryConfig) => void>(),
   openUpload: vi.fn(),
+  proposals: [] as StudioStoryboardProposal[],
   push: vi.fn(),
 }));
+
+const AGENT_PROPOSAL: StudioStoryboardProposal = {
+  brief: 'A founder shows the serum going from lab to shelf.',
+  shots: [
+    { description: 'Lab bench close-up', durationSeconds: 5 },
+    { description: 'Bottle on the shelf', durationSeconds: 7 },
+  ],
+  title: 'Lab to shelf',
+  why: 'Origin stories held viewers longest.',
+};
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
@@ -57,33 +68,13 @@ vi.mock('@/features/studio/storyboard/hooks/use-create-storyboard', () => ({
   }),
 }));
 vi.mock(
-  '@/features/studio/storyboard/components/StoryboardAgentBriefs',
+  '@/features/studio/storyboard/hooks/use-storyboard-agent-briefs',
   () => ({
-    default: ({
-      brandId,
-      onSelect,
-    }: {
-      brandId?: string;
-      onSelect: (proposal: StudioStoryboardProposal) => void;
-    }) => (
-      <button
-        type="button"
-        data-brand-id={brandId}
-        onClick={() =>
-          onSelect({
-            brief: 'A founder shows the serum going from lab to shelf.',
-            shots: [
-              { description: 'Lab bench close-up', durationSeconds: 5 },
-              { description: 'Bottle on the shelf', durationSeconds: 7 },
-            ],
-            title: 'Lab to shelf',
-            why: 'Origin stories held viewers longest.',
-          })
-        }
-      >
-        Agent brief
-      </button>
-    ),
+    useStoryboardAgentBriefs: () => ({
+      isBrandApproved: true,
+      isLoading: false,
+      proposals: mocks.proposals,
+    }),
   }),
 );
 vi.mock('@genfeedai/agent/components/AgentMediaArtifactPreview', () => ({
@@ -137,23 +128,25 @@ describe('StoryboardNewPane', () => {
     mocks.openGallery.mockReset();
     mocks.openUpload.mockReset();
     mocks.push.mockReset();
+    mocks.proposals = [];
   });
   it('prefills the brief, format and runtime from a preset without submitting', () => {
     render(<StoryboardNewPane />);
-    fireEvent.click(screen.getByRole('button', { name: 'How-to tutorial' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Product launch teaser' }),
+    );
     expect(
       (screen.getByLabelText('Brief') as HTMLTextAreaElement).value,
-    ).toContain('how-to tutorial');
+    ).toContain('product launch teaser');
     expect(screen.getByLabelText('Runtime budget (seconds)')).toHaveTextContent(
-      '40s',
+      '15s',
     );
     expect(mocks.create).not.toHaveBeenCalled();
   });
   it('fills the brief, shot plan and runtime from an agent brief without submitting', () => {
+    mocks.proposals = [AGENT_PROPOSAL];
     render(<StoryboardNewPane />);
-    const agentBrief = screen.getByRole('button', { name: 'Agent brief' });
-    expect(agentBrief).toHaveAttribute('data-brand-id', 'brand-a');
-    fireEvent.click(agentBrief);
+    fireEvent.click(screen.getByRole('button', { name: 'Lab to shelf' }));
     expect((screen.getByLabelText('Brief') as HTMLTextAreaElement).value).toBe(
       'A founder shows the serum going from lab to shelf.\n\nShots:\n1. (5s) Lab bench close-up\n2. (7s) Bottle on the shelf',
     );
@@ -163,8 +156,9 @@ describe('StoryboardNewPane', () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
   it('saves an agent brief sent unchanged as agent-authored', async () => {
+    mocks.proposals = [AGENT_PROPOSAL];
     render(<StoryboardNewPane />);
-    fireEvent.click(screen.getByRole('button', { name: 'Agent brief' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lab to shelf' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
     await waitFor(() =>
       expect(mocks.create).toHaveBeenCalledWith(
@@ -174,9 +168,10 @@ describe('StoryboardNewPane', () => {
       ),
     );
   });
-  it("saves an edited agent brief as agent_edited, and a preset after it as the member's", async () => {
+  it('saves an edited agent brief as agent_edited', async () => {
+    mocks.proposals = [AGENT_PROPOSAL];
     render(<StoryboardNewPane />);
-    fireEvent.click(screen.getByRole('button', { name: 'Agent brief' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lab to shelf' }));
     const editor = screen.getByLabelText('Brief') as HTMLTextAreaElement;
     fireEvent.change(editor, {
       target: { value: `${editor.value}\n3. (3s) Logo end card` },
@@ -189,10 +184,6 @@ describe('StoryboardNewPane', () => {
         }),
       ),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'How-to tutorial' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
-    await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(2));
-    expect(mocks.create.mock.calls[1][0].source).not.toHaveProperty('author');
   });
   it('saves the brief with a usable default duration, then navigates to its scoped project', async () => {
     render(<StoryboardNewPane />);

@@ -320,6 +320,7 @@ export default function PostComposerActions({
         })}
         <PromptBarCompactSelect
           ariaLabel={translate('toneAria')}
+          icon="intent"
           isDisabled={isRunning}
           options={toneSelectOptions}
           value={tone}

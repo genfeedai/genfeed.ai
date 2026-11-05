@@ -136,7 +136,6 @@ export interface PromptBarInternalContextValue {
   suggestions?: PromptBarSuggestionItem[];
   onSuggestionSelect?: (item: PromptBarSuggestionItem) => void;
   showSuggestionsWhenEmpty?: boolean;
-  maxSuggestions?: number;
 
   openGallery: (options: GalleryModalOptions) => void;
   openUpload: (options: UploadModalOptions) => void;

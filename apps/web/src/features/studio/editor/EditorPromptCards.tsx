@@ -40,7 +40,6 @@ export default function EditorPromptCards({
       <PromptBarSuggestions
         className="grid grid-cols-1 @md:grid-cols-3 [&>button]:w-full [&>button]:max-w-none"
         isDisabled={isDisabled}
-        maxSuggestions={EDITOR_STARTERS.length}
         onSuggestionSelect={(suggestion) => {
           const starter = EDITOR_STARTERS.find(
             (candidate) => candidate.id === suggestion.id,

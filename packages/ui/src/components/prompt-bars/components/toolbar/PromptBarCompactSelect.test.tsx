@@ -82,6 +82,7 @@ describe('PromptBarCompactSelect', () => {
     render(
       <PromptBarCompactSelect
         ariaLabel="Format"
+        icon="aspectRatio"
         onChange={vi.fn()}
         options={OPTIONS}
         value="16:9"
@@ -96,6 +97,7 @@ describe('PromptBarCompactSelect', () => {
     render(
       <PromptBarCompactSelect
         ariaLabel="Format"
+        icon="aspectRatio"
         onChange={onChange}
         options={OPTIONS}
         value="9:16"
@@ -104,5 +106,46 @@ describe('PromptBarCompactSelect', () => {
 
     fireEvent.click(screen.getByRole('option', { name: '16:9' }));
     expect(onChange).toHaveBeenCalledWith('16:9');
+  });
+
+  it('draws the aspect-ratio glyph from the chosen ratio', () => {
+    const { container } = render(
+      <PromptBarCompactSelect
+        ariaLabel="Format"
+        icon="aspectRatio"
+        onChange={vi.fn()}
+        options={OPTIONS}
+        value="16:9"
+      />,
+    );
+
+    expect(
+      container.querySelector('svg[data-aspect-ratio="16:9"]'),
+    ).not.toBeNull();
+  });
+
+  it('shows the chevron only on a source chip', () => {
+    const { container, rerender } = render(
+      <PromptBarCompactSelect
+        ariaLabel="Source"
+        icon="source"
+        onChange={vi.fn()}
+        options={OPTIONS}
+        value="16:9"
+      />,
+    );
+    expect(container.querySelector('.lucide-chevron-down')).not.toBeNull();
+
+    rerender(
+      <PromptBarCompactSelect
+        ariaLabel="Length"
+        icon="duration"
+        onChange={vi.fn()}
+        options={OPTIONS}
+        value="16:9"
+      />,
+    );
+    expect(container.querySelector('.lucide-chevron-down')).toBeNull();
+    expect(container.querySelector('.lucide-clock-3')).not.toBeNull();
   });
 });

@@ -121,30 +121,36 @@ vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
   },
 }));
 
-vi.mock('@ui/prompt-bars/components/suggestions/PromptBarSuggestions', () => ({
-  default: function MockPromptBarSuggestions(props: {
-    suggestions?: Array<{ id?: string; label: string; prompt: string }>;
-    onSuggestionSelect?: (suggestion: {
-      id?: string;
-      label: string;
-      prompt: string;
-    }) => void;
-  }) {
-    return (
-      <div>
-        {props.suggestions?.map((suggestion) => (
-          <button
-            key={suggestion.id ?? suggestion.label}
-            type="button"
-            onClick={() => props.onSuggestionSelect?.(suggestion)}
-          >
-            {suggestion.label}
-          </button>
-        ))}
-      </div>
-    );
-  },
-}));
+vi.mock(
+  '@ui/prompt-bars/components/suggestions/PromptBarSuggestions',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@ui/prompt-bars/components/suggestions/PromptBarSuggestions')
+    >()),
+    default: function MockPromptBarSuggestions(props: {
+      suggestions?: Array<{ id?: string; label: string; prompt: string }>;
+      onSuggestionSelect?: (suggestion: {
+        id?: string;
+        label: string;
+        prompt: string;
+      }) => void;
+    }) {
+      return (
+        <div>
+          {props.suggestions?.map((suggestion) => (
+            <button
+              key={suggestion.id ?? suggestion.label}
+              type="button"
+              onClick={() => props.onSuggestionSelect?.(suggestion)}
+            >
+              {suggestion.label}
+            </button>
+          ))}
+        </div>
+      );
+    },
+  }),
+);
 
 vi.mock('@genfeedai/agent/hooks/use-agent-chat', () => ({
   useAgentChat: () => ({

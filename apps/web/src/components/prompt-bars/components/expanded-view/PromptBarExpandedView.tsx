@@ -265,7 +265,6 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView() {
       suggestions={ctx.suggestions}
       onSuggestionSelect={ctx.onSuggestionSelect}
       showSuggestionsWhenEmpty={ctx.showSuggestionsWhenEmpty}
-      maxSuggestions={ctx.maxSuggestions}
       onToggleCollapse={
         isCollapsible && ctx.setIsCollapsed
           ? () => ctx.setIsCollapsed?.(!ctx.isCollapsed)

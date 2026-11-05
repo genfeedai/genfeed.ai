@@ -1,11 +1,4 @@
-import {
-  BarChart3,
-  Captions,
-  Hash,
-  LayoutList,
-  Quote,
-  Sparkles,
-} from 'lucide-react';
+import { Captions, Hash, Quote } from 'lucide-react';
 import type { MotionPreset } from '@/features/motion/props/motion-presets.props';
 
 /**
@@ -40,33 +33,6 @@ export const MOTION_PRESETS: readonly MotionPreset[] = [
     id: 'lowerThird',
     prompt:
       'A broadcast-style lower third for a landscape video. A name and a job title slide in from the left over a semi-transparent bar with a thin accent line, hold for two seconds and slide back out. Keep everything inside the lower safe area and leave the rest of the frame empty.',
-    width: 1920,
-  },
-  {
-    durationFrames: 360,
-    height: 1920,
-    icon: LayoutList,
-    id: 'featureCallouts',
-    prompt:
-      'A vertical feature callout reel. Three feature cards enter one after another, each with a simple icon, a short title and a one-line benefit. Highlight the active card, dim the others, and close on a call-to-action button that scales in with a gentle bounce.',
-    width: 1080,
-  },
-  {
-    durationFrames: 120,
-    height: 1080,
-    icon: Sparkles,
-    id: 'logoReveal',
-    prompt:
-      'A short logo reveal for a landscape video. Simple geometric shapes sweep across a clean background and settle into a placeholder wordmark, followed by a light shimmer and a soft tagline fading in beneath. Use one accent color and keep the motion crisp.',
-    width: 1920,
-  },
-  {
-    durationFrames: 360,
-    height: 1080,
-    icon: BarChart3,
-    id: 'barChart',
-    prompt:
-      'An animated horizontal bar chart with five categories. Bars grow from zero in sequence with staggered easing, values count up beside each bar, and the leading bar is highlighted at the end. Add a clear title at the top and a small source line at the bottom.',
     width: 1920,
   },
 ];

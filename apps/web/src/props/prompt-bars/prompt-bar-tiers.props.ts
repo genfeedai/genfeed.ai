@@ -97,7 +97,6 @@ export interface PromptBarEssentialsProps {
   suggestions?: PromptBarSuggestionItem[];
   onSuggestionSelect?: (item: PromptBarSuggestionItem) => void;
   showSuggestionsWhenEmpty?: boolean;
-  maxSuggestions?: number;
 
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   textareaRegister: UseFormRegisterReturn<Path<PromptTextareaSchema>>;

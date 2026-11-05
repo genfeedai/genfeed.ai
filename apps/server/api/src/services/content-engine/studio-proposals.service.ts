@@ -10,10 +10,13 @@ import {
   STUDIO_PROPOSAL_ASPECT_RATIOS,
   STUDIO_PROPOSAL_DEFAULT_COUNT,
   STUDIO_STORYBOARD_PROPOSALS_SCHEMA_NAME,
+  STUDIO_TURBO_ANGLE_MAX_LENGTH,
+  STUDIO_TURBO_PROPOSALS_SCHEMA_NAME,
   type StudioProposalSurface,
   type StudioProposalsResult,
   studioMediaProposalGenerationSchema,
   studioStoryboardProposalGenerationSchema,
+  studioTurboProposalGenerationSchema,
 } from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { ContentKind } from '@genfeedai/harness';
@@ -35,6 +38,7 @@ const STUDIO_PROPOSALS_BRAND_CONTEXT_UNAVAILABLE =
 const SURFACE_CONTENT_KIND: Record<StudioProposalSurface, ContentKind> = {
   image: 'image',
   storyboard: 'video-script',
+  turbo: 'post',
   video: 'video',
 };
 
@@ -42,6 +46,7 @@ const SURFACE_INSTRUCTIONS: Record<StudioProposalSurface, string> = {
   image: `Propose still images. Each prompt is a complete, model-ready image prompt (subject, setting, composition, lighting, style) of 40-120 words. Pick the aspect ratio that suits where the brand posts (${STUDIO_PROPOSAL_ASPECT_RATIOS.join(', ')}).`,
   storyboard:
     'Propose short videos as storyboards. Each brief is 2-4 sentences on the story and the outcome for the viewer. Each shot describes what is on screen; the shots add up to 15-60 seconds.',
+  turbo: `Propose batches of social content ideas for the brand's idea generator. Each angle is one or two sentences (at most ${STUDIO_TURBO_ANGLE_MAX_LENGTH} characters) naming the theme and what makes it worth posting. Pick the formats that suit it (image, video, avatar) and a batch size between 3 and 18 ideas.`,
   video: `Propose short videos. Each prompt is a complete, model-ready video prompt (subject, action, camera movement, setting, style) of 40-120 words for a 5-10 second clip. Pick the aspect ratio that suits where the brand posts (${STUDIO_PROPOSAL_ASPECT_RATIOS.join(', ')}).`,
 };
 
@@ -72,7 +77,9 @@ export class StudioProposalsService {
     if (!approved) {
       return surface === 'storyboard'
         ? { isBrandApproved: false, proposals: [], surface }
-        : { isBrandApproved: false, proposals: [], surface };
+        : surface === 'turbo'
+          ? { isBrandApproved: false, proposals: [], surface }
+          : { isBrandApproved: false, proposals: [], surface };
     }
 
     const harnessBrief = await this.resolveHarnessBrief(request);
@@ -115,6 +122,20 @@ export class StudioProposalsService {
           model: LLM_DEFAULTS.creativeAgent,
           schema: studioStoryboardProposalGenerationSchema,
           schemaName: STUDIO_STORYBOARD_PROPOSALS_SCHEMA_NAME,
+          temperature: 0.8,
+        },
+        organizationId,
+      );
+      return { isBrandApproved: true, proposals, surface };
+    }
+
+    if (surface === 'turbo') {
+      const { proposals } = await this.llmDispatcherService.completeStructured(
+        {
+          messages,
+          model: LLM_DEFAULTS.creativeAgent,
+          schema: studioTurboProposalGenerationSchema,
+          schemaName: STUDIO_TURBO_PROPOSALS_SCHEMA_NAME,
           temperature: 0.8,
         },
         organizationId,

@@ -13,6 +13,7 @@ import TurboNewPane from './TurboNewPane';
 const mocks = vi.hoisted(() => ({
   isIdeasEnabled: true,
   brandId: 'brand-1',
+  ideas: [] as Array<Record<string, unknown>>,
   settings: {
     hasOrganizationBilling: true,
     isReleasePreviewEnabled: true,
@@ -41,6 +42,14 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@/../tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
+
+vi.mock('@/features/workflows/hooks/use-turbo-brand-ideas', () => ({
+  useTurboBrandIdeas: () => ({
+    isBrandApproved: true,
+    isLoading: false,
+    proposals: mocks.ideas,
+  }),
+}));
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mocks.push }),
@@ -126,6 +135,7 @@ function resetMocks() {
   vi.clearAllMocks();
   mocks.brandId = 'brand-1';
   mocks.isIdeasEnabled = true;
+  mocks.ideas = [];
   mocks.settings = {
     hasOrganizationBilling: true,
     isReleasePreviewEnabled: true,
@@ -207,6 +217,43 @@ describe('TurboNewPane', () => {
 
     expect(promptBox()).toHaveValue(WEEKLY_MIX_ANGLE);
     expect(db.projects).toEqual([]);
+  });
+
+  it("fills the prompt, formats and count from the agent's idea for the brand", async () => {
+    mocks.ideas = [
+      {
+        angle: 'Studio mornings: one behind-the-scenes tip per post.',
+        count: 9,
+        formats: ['image'],
+        title: 'Studio mornings',
+        why: 'Behind-the-scenes posts are your top performers.',
+      },
+    ];
+    render(<TurboNewPane />);
+
+    expect(
+      screen.queryByRole('button', { name: /Weekly content mix/ }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Studio mornings/ }));
+    fireEvent.click(sendButton());
+
+    await waitFor(() =>
+      expect(db.projects).toEqual([
+        {
+          brandId: 'brand-1',
+          id: 'run-1',
+          kind: TurboProjectKind.IDEAS,
+          name: 'Studio mornings',
+          settings: {
+            ideas: {
+              angle: 'Studio mornings: one behind-the-scenes tip per post.',
+              count: 9,
+              formats: ['image'],
+            },
+          },
+        },
+      ]),
+    );
   });
 
   it('names the project after the starter when the prompt is left as the starter', async () => {

@@ -27,6 +27,7 @@ import {
 } from '@ui/primitives/popover';
 import { TooltipProvider } from '@ui/primitives/tooltip';
 import { keepFocusOnSwitch } from '@ui/prompt-bars/base/keep-focus-on-switch';
+import PromptBarAspectRatioIcon from '@ui/prompt-bars/components/toolbar/PromptBarAspectRatioIcon';
 import {
   Bookmark,
   Clock3,
@@ -38,7 +39,6 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useState } from 'react';
-import GenerationSetupAspectRatioIcon from '@/features/studio/components/dropdowns/generation-setup/GenerationSetupAspectRatioIcon';
 import GenerationSetupCustomizePanel from '@/features/studio/components/dropdowns/generation-setup/GenerationSetupCustomizePanel';
 import GenerationSetupLookMenu from '@/features/studio/components/dropdowns/generation-setup/GenerationSetupLookMenu';
 import GenerationSetupOutputMenu from '@/features/studio/components/dropdowns/generation-setup/GenerationSetupOutputMenu';
@@ -122,7 +122,7 @@ export default function GenerationSetupSectionChips(
   });
   if (outputFields.showAspectRatio)
     chips.push({
-      icon: <GenerationSetupAspectRatioIcon ratio={setup.values.aspectRatio} />,
+      icon: <PromptBarAspectRatioIcon ratio={setup.values.aspectRatio} />,
       id: 'aspectRatio',
       label: translate('aspectRatio'),
       value:

@@ -130,6 +130,7 @@ export default function EditorNewPane() {
             leading={
               <PromptBarCompactSelect
                 ariaLabel={t('format')}
+                icon="aspectRatio"
                 isDisabled={isBusy}
                 onChange={(next) => {
                   const option = EDITOR_FORMAT_OPTIONS.find(

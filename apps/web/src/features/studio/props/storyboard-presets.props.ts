@@ -6,12 +6,7 @@ export type StoryboardPresetFormat = '9:16' | '16:9' | '1:1';
 export type StoryboardPresetId =
   | 'productLaunch'
   | 'founderStory'
-  | 'beforeAfter'
-  | 'threeStepExplainer'
-  | 'customerStory'
-  | 'seasonRecap'
-  | 'behindTheScenes'
-  | 'howTo';
+  | 'beforeAfter';
 
 /** One ready-to-run storyboard starting point. Titles live in i18n by `id`. */
 export interface StoryboardPreset {
@@ -28,18 +23,17 @@ export interface StoryboardPreset {
   thumbnailSrc: string;
 }
 
-export interface StoryboardPresetCardsProps {
+/**
+ * The three starters on the storyboard landing: the agent's briefs for the
+ * brand, or the brand-neutral presets when it has none.
+ */
+export interface StoryboardStarterCardsProps {
   /** Preset whose brief is currently in the composer, highlighted as selected. */
   activePresetId?: StoryboardPresetId;
-  isDisabled?: boolean;
-  onSelect: (preset: StoryboardPreset) => void;
-}
-
-/** Agent-written storyboard briefs shown above the presets (#7341). */
-export interface StoryboardAgentBriefsProps {
   brandId?: string;
   isDisabled?: boolean;
-  onSelect: (proposal: StudioStoryboardProposal) => void;
+  onSelectBrief: (proposal: StudioStoryboardProposal) => void;
+  onSelectPreset: (preset: StoryboardPreset) => void;
 }
 
 export type StoryboardPitchKind = 'slideshow' | 'longForm';

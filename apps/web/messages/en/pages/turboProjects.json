@@ -104,20 +104,10 @@
       "avatarExplainers": {
         "title": "Avatar explainers",
         "description": "A presenter answers the questions customers ask most, in plain language."
-      },
-      "imageBatch": {
-        "title": "Image post batch",
-        "description": "Clean on-brand stills with a bold headline and one clear idea each."
-      },
-      "launchCountdown": {
-        "title": "Launch countdown",
-        "description": "Tease, reveal, social proof and last call, each with its own hook."
-      },
-      "mythBusting": {
-        "title": "Myth busting",
-        "description": "Name a common misconception in your niche and correct it with proof."
       }
-    }
+    },
+    "loading": "Your agent is drafting ideas for this brand.",
+    "needsBrandApproval": "Approve the brand kit so your agent can write starters for this brand."
   },
   "search": "Search Turbo projects",
   "emptySearch": "No Turbo projects match your search."

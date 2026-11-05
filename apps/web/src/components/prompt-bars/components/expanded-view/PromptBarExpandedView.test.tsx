@@ -83,7 +83,6 @@ function createMockContext(
     isRecording: false,
     isSupported: false,
     maxReferenceCount: 1,
-    maxSuggestions: 3,
     modelDropdownRef: { current: null },
     models: [],
     normalizedWatchedModels: [],

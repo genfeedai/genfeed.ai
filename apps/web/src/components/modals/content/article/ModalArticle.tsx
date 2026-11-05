@@ -277,6 +277,7 @@ export default function ModalArticle({
                 leading={
                   <PromptBarCompactSelect
                     ariaLabel="Number of Articles"
+                    icon="count"
                     isDisabled={isSubmitting}
                     options={ARTICLE_COUNT_OPTIONS}
                     value={count || '1'}

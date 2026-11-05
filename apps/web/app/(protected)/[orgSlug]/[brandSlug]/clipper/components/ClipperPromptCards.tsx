@@ -41,7 +41,6 @@ export default function ClipperPromptCards({
       <PromptBarSuggestions
         className="grid grid-cols-1 @md:grid-cols-2 [&>button]:w-full [&>button]:max-w-none"
         isDisabled={isDisabled}
-        maxSuggestions={CLIPPER_PRESETS.length}
         onSuggestionSelect={(suggestion) => {
           const preset = CLIPPER_PRESETS.find(
             (candidate) => candidate.id === suggestion.id,

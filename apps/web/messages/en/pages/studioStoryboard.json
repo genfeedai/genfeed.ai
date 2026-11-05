@@ -1,13 +1,10 @@
 {
   "agentBriefs": {
-    "apply": "Use brief: {title}",
-    "description": "Written by your agent from the brand kit and what has performed. Picking one fills the brief and its shot plan.",
     "loading": "Your agent is drafting storyboards for this brand.",
     "needsBrandApproval": "Approve the brand kit so your agent can draft storyboards for this brand.",
     "runtime": "{shots} shots · {seconds}s",
     "shotLine": "{index}. ({seconds}s) {description}",
-    "shotsHeading": "Shots:",
-    "title": "Agent briefs"
+    "shotsHeading": "Shots:"
   },
   "animatic": {
     "ariaLabel": "Storyboard animatic",
@@ -245,33 +242,13 @@
         "description": "Show the starting point and the finished result side by side.",
         "title": "Before and after"
       },
-      "behindTheScenes": {
-        "description": "Show how the work really gets made.",
-        "title": "Behind the scenes"
-      },
-      "customerStory": {
-        "description": "A casual, user-generated style testimonial with candid B-roll.",
-        "title": "Customer story"
-      },
       "founderStory": {
         "description": "The problem, the early days, the turning point and the mission.",
         "title": "Founder story"
       },
-      "howTo": {
-        "description": "Teach one skill step by step and end on a clear result.",
-        "title": "How-to tutorial"
-      },
       "productLaunch": {
         "description": "Tease a product with fast cuts, then reveal it with a bold promise.",
         "title": "Product launch teaser"
-      },
-      "seasonRecap": {
-        "description": "Relive the biggest moments of an event or season.",
-        "title": "Event or season recap"
-      },
-      "threeStepExplainer": {
-        "description": "A problem, three clear steps and the outcome.",
-        "title": "3-step explainer"
       }
     },
     "runtime": "{seconds}s"
