@@ -1,5 +1,10 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import type { QueryClient } from '@tanstack/react-query';
+import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', async () => {
@@ -22,16 +27,6 @@ const mocks = vi.hoisted(() => {
     addComment,
     findOne,
     getChildren,
-    getCommentsService: vi.fn(async () => ({
-      addComment,
-      list: listComments,
-    })),
-    getTasksService: vi.fn(async () => ({
-      findOne,
-      getByIdentifier: findOne,
-      getChildren,
-      updateTask,
-    })),
     listComments,
     loggerError: vi.fn(),
     notificationsService: {
@@ -43,13 +38,28 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: (factory: (token: string) => unknown) => {
-    const created = factory('test-token') as { getChildren?: unknown };
-    if (created && typeof created === 'object' && 'getChildren' in created) {
-      return mocks.getTasksService;
-    }
-    return mocks.getCommentsService;
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
+vi.mock('@services/management/tasks.service', () => ({
+  TasksService: {
+    getInstance: () => ({
+      findOne: mocks.findOne,
+      getByIdentifier: mocks.findOne,
+      getChildren: mocks.getChildren,
+      updateTask: mocks.updateTask,
+    }),
+  },
+}));
+
+vi.mock('@services/management/task-comments.service', () => ({
+  TaskCommentsService: {
+    getInstanceForTask: () => ({
+      addComment: mocks.addComment,
+      list: mocks.listComments,
+    }),
   },
 }));
 
@@ -87,8 +97,36 @@ vi.mock('./issue-sub-issues-card', () => ({
 }));
 
 vi.mock('./issue-comments-card', () => ({
-  default: () => <div>Comments</div>,
+  default: ({
+    comments,
+  }: {
+    comments: Array<{ body: string; id: string }>;
+  }) => (
+    <ul aria-label="Comments">
+      {comments.map((comment) => (
+        <li key={comment.id}>{comment.body}</li>
+      ))}
+    </ul>
+  ),
 }));
+
+function renderIssueDetail(
+  props: { issueId: string; useIdentifier?: boolean },
+  client: QueryClient = createTestQueryClient(),
+) {
+  return render(<IssueDetail {...props} />, {
+    wrapper: queryClientWrapper(client),
+  });
+}
+
+const SHIPPING_TASK = {
+  description: '',
+  id: 'task-1',
+  identifier: 'TASK-1',
+  priority: 'medium',
+  status: 'todo',
+  title: 'Ship shell-first loading',
+};
 
 describe('IssueDetail', () => {
   beforeEach(() => {
@@ -100,7 +138,7 @@ describe('IssueDetail', () => {
   it('scopes the back-to-issues link so the workspace shell recognizes the destination', () => {
     mocks.findOne.mockReturnValue(new Promise(() => {}));
 
-    render(<IssueDetail issueId="task-1" />);
+    renderIssueDetail({ issueId: 'task-1' });
 
     expect(
       screen.getByRole('link', { name: /back to issues/i }),
@@ -115,7 +153,7 @@ describe('IssueDetail', () => {
       }),
     );
 
-    render(<IssueDetail issueId="task-1" />);
+    renderIssueDetail({ issueId: 'task-1' });
 
     // Chrome: the back link renders immediately, before the issue resolves.
     expect(
@@ -124,14 +162,9 @@ describe('IssueDetail', () => {
     expect(screen.getByTestId('issue-detail-loading')).toBeInTheDocument();
     expect(screen.queryByText('Sidebar')).not.toBeInTheDocument();
 
-    resolveFindOne({
-      description: '',
-      id: 'task-1',
-      identifier: 'TASK-1',
-      priority: 'medium',
-      status: 'todo',
-      title: 'Ship shell-first loading',
-    });
+    resolveFindOne(SHIPPING_TASK);
+    // The page paints once the task and its comments are both read.
+    expect(await screen.findByText('Sidebar')).toBeInTheDocument();
 
     expect(
       await screen.findByRole('heading', {
@@ -160,7 +193,7 @@ describe('IssueDetail', () => {
   it('renders the back link and a not-found card when the issue does not exist', async () => {
     mocks.findOne.mockRejectedValue(new Error('not found'));
 
-    render(<IssueDetail issueId="missing-task" />);
+    renderIssueDetail({ issueId: 'missing-task' });
 
     expect(
       screen.getByRole('link', { name: /back to issues/i }),
@@ -173,5 +206,67 @@ describe('IssueDetail', () => {
     expect(
       screen.queryByTestId('issue-detail-loading'),
     ).not.toBeInTheDocument();
+  });
+
+  it('paints the cached task and its comments at once when it is reopened', async () => {
+    mocks.findOne.mockResolvedValue(SHIPPING_TASK);
+    mocks.listComments.mockResolvedValue([
+      { body: 'Skeleton is gone on revisit', id: 'comment-1' },
+    ]);
+    const client = createTestQueryClient();
+    const firstVisit = renderIssueDetail({ issueId: 'task-1' }, client);
+    expect(
+      await screen.findByText('Skeleton is gone on revisit'),
+    ).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.findOne.mockReturnValue(new Promise(() => {}));
+    mocks.listComments.mockReturnValue(new Promise(() => {}));
+    renderIssueDetail({ issueId: 'task-1' }, client);
+
+    expect(screen.getByText('Skeleton is gone on revisit')).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('heading', {
+        level: 2,
+        name: 'Ship shell-first loading',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('issue-detail-loading'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('never paints one task under another task id', async () => {
+    mocks.findOne.mockResolvedValue(SHIPPING_TASK);
+    const client = createTestQueryClient();
+    const firstVisit = renderIssueDetail({ issueId: 'task-1' }, client);
+    expect(await screen.findByText('Sidebar')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.findOne.mockReturnValue(new Promise(() => {}));
+    renderIssueDetail({ issueId: 'task-2' }, client);
+
+    expect(screen.getByTestId('issue-detail-loading')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Ship shell-first loading'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the task on screen when a background refresh fails', async () => {
+    mocks.findOne.mockResolvedValue(SHIPPING_TASK);
+    const client = createTestQueryClient();
+    const firstVisit = renderIssueDetail({ issueId: 'task-1' }, client);
+    expect(await screen.findByText('Sidebar')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.findOne.mockRejectedValue(new Error('offline'));
+    renderIssueDetail({ issueId: 'task-1' }, client);
+
+    await waitFor(() => {
+      expect(mocks.loggerError).toHaveBeenCalled();
+    });
+    expect(screen.getByText('Sidebar')).toBeInTheDocument();
+    expect(screen.queryByText('Issue not found')).not.toBeInTheDocument();
   });
 });

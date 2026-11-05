@@ -1,26 +1,24 @@
-import type { TaskComment } from '@services/management/task-comments.service';
+import type { TaskCommentsService } from '@services/management/task-comments.service';
 import type { Task } from '@services/management/tasks.service';
 
-export interface IssueDetailState {
-  issue: Task | null;
-  comments: TaskComment[];
+/** What the task detail page reads and caches for one task. */
+export interface IssueDetailData {
   children: Task[];
-  isLoading: boolean;
+  issue: Task;
+}
+
+/** Builds the comments service for one task from the same auth token. */
+export type TaskCommentsServiceFactory = (
+  taskId: string,
+) => TaskCommentsService;
+
+export interface IssueDetailState {
   commentBody: string;
   isSubmitting: boolean;
   showAllComments: boolean;
 }
 
 export type IssueDetailAction =
-  | { type: 'LOAD_START' }
-  | {
-      type: 'LOAD_SUCCESS';
-      payload: { issue: Task; comments: TaskComment[]; children: Task[] };
-    }
-  | { type: 'LOAD_ERROR' }
-  | { type: 'LOAD_DONE' }
-  | { type: 'SET_ISSUE'; payload: Task }
-  | { type: 'APPEND_COMMENT'; payload: TaskComment }
   | { type: 'SET_COMMENT_BODY'; payload: string }
   | { type: 'SUBMIT_START' }
   | { type: 'SUBMIT_END' }

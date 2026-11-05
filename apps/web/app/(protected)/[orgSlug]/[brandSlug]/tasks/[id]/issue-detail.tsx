@@ -4,17 +4,23 @@ import {
   useTaskStatusLabels,
 } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-status.constants';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { TaskCommentsService } from '@services/management/task-comments.service';
 import {
+  type TaskComment,
+  TaskCommentsService,
+} from '@services/management/task-comments.service';
+import {
+  type Task,
   type TaskLinkedEntityModel,
   type TaskPriority,
   type TaskStatus,
   TasksService,
 } from '@services/management/tasks.service';
+import { useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
@@ -24,8 +30,10 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import type {
   IssueDetailAction,
+  IssueDetailData,
   IssueDetailProps,
   IssueDetailState,
+  TaskCommentsServiceFactory,
 } from '@/features/tasks/props/issue-detail.props';
 import IssueCommentsCard from './issue-comments-card';
 import IssueHeader from './issue-header';
@@ -66,11 +74,23 @@ const ENTITY_MODEL_COLORS: Record<TaskLinkedEntityModel, string> = {
 
 const VISIBLE_COMMENT_COUNT = 3;
 
+const EMPTY_COMMENTS: TaskComment[] = [];
+const EMPTY_CHILDREN: Task[] = [];
+
+function createTaskCommentsServices(token: string): TaskCommentsServiceFactory {
+  return (taskId) => TaskCommentsService.getInstanceForTask(token, taskId);
+}
+
+function issueDetailQueryKey(issueId: string, useIdentifier: boolean) {
+  return ['task-detail', useIdentifier ? 'identifier' : 'id', issueId] as const;
+}
+
+/** Shared with the task inspector, which reads the same comments. */
+function taskCommentsQueryKey(taskId: string) {
+  return ['task-comments', taskId] as const;
+}
+
 const initialIssueDetailState: IssueDetailState = {
-  issue: null,
-  comments: [],
-  children: [],
-  isLoading: true,
   commentBody: '',
   isSubmitting: false,
   showAllComments: false,
@@ -81,23 +101,6 @@ function issueDetailReducer(
   action: IssueDetailAction,
 ): IssueDetailState {
   switch (action.type) {
-    case 'LOAD_START':
-      return { ...state, isLoading: true };
-    case 'LOAD_SUCCESS':
-      return {
-        ...state,
-        issue: action.payload.issue,
-        comments: action.payload.comments,
-        children: action.payload.children,
-      };
-    case 'LOAD_ERROR':
-      return { ...state, issue: null };
-    case 'LOAD_DONE':
-      return { ...state, isLoading: false };
-    case 'SET_ISSUE':
-      return { ...state, issue: action.payload };
-    case 'APPEND_COMMENT':
-      return { ...state, comments: [...state.comments, action.payload] };
     case 'SET_COMMENT_BODY':
       return { ...state, commentBody: action.payload };
     case 'SUBMIT_START':
@@ -113,92 +116,79 @@ function issueDetailReducer(
 
 export default function IssueDetail({
   issueId,
-  useIdentifier,
+  useIdentifier = false,
 }: IssueDetailProps) {
   const statusLabels = useTaskStatusLabels();
   const priorityLabels = useTaskPriorityLabels();
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
+  const queryClient = useQueryClient();
   const [state, dispatch] = useReducer(
     issueDetailReducer,
     initialIssueDetailState,
   );
-  const {
-    issue,
-    comments,
-    children,
-    isLoading,
-    commentBody,
-    isSubmitting,
-    showAllComments,
-  } = state;
-  const controllerRef = useRef<AbortController | null>(null);
+  const { commentBody, isSubmitting, showAllComments } = state;
   const lastCommentRef = useRef<HTMLDivElement | null>(null);
 
-  const resolvedIdRef = useRef<string | null>(null);
+  // The task, its sub-issues and its comments read through React Query, so
+  // reopening a task paints it at once and refreshes it in the background.
+  const detailQuery = useAuthedQuery<TasksService, IssueDetailData>({
+    queryFn: async (service) => {
+      const issue = useIdentifier
+        ? await service.getByIdentifier(issueId)
+        : await service.findOne(issueId);
+      const children = await service.getChildren(issue.id);
+      return { children, issue };
+    },
+    queryKey: issueDetailQueryKey(issueId, useIdentifier),
+    service: (token: string) => TasksService.getInstance(token),
+  });
+  const issue = detailQuery.data?.issue ?? null;
+  const children = detailQuery.data?.children ?? EMPTY_CHILDREN;
+  const taskId = issue?.id ?? '';
+
+  const commentsQuery = useAuthedQuery<
+    TaskCommentsServiceFactory,
+    TaskComment[]
+  >({
+    enabled: Boolean(taskId),
+    queryFn: (forTask) => forTask(taskId).list(),
+    queryKey: taskCommentsQueryKey(taskId),
+    service: createTaskCommentsServices,
+  });
+  const comments = taskId
+    ? (commentsQuery.data ?? EMPTY_COMMENTS)
+    : EMPTY_COMMENTS;
+  // A failed background refresh keeps the task on screen; the not-found card
+  // only replaces it when nothing was ever read.
+  const isLoading =
+    detailQuery.isPending || (Boolean(taskId) && commentsQuery.isPending);
+
+  const loadError = detailQuery.error ?? commentsQuery.error;
+  useEffect(() => {
+    if (!loadError) {
+      return;
+    }
+    logger.error('Failed to load task detail', { error: loadError, issueId });
+  }, [issueId, loadError]);
 
   const getTasksService = useAuthedService((token) =>
     TasksService.getInstance(token),
   );
 
   const getCommentsService = useAuthedService((token) =>
-    TaskCommentsService.getInstanceForTask(
-      token,
-      resolvedIdRef.current || issueId,
-    ),
+    TaskCommentsService.getInstanceForTask(token, taskId || issueId),
   );
 
-  const loadIssue = useCallback(async () => {
-    controllerRef.current?.abort();
-    const controller = new AbortController();
-    controllerRef.current = controller;
-
-    dispatch({ type: 'LOAD_START' });
-    try {
-      const issuesService = await getTasksService();
-
-      const issueData = useIdentifier
-        ? await issuesService.getByIdentifier(issueId)
-        : await issuesService.findOne(issueId);
-
-      resolvedIdRef.current = issueData.id;
-      const commentsService = await getCommentsService();
-
-      const [commentsData, childrenData] = await Promise.all([
-        commentsService.list(),
-        issuesService.getChildren(issueData.id),
-      ]);
-
-      if (!controller.signal.aborted) {
-        dispatch({
-          type: 'LOAD_SUCCESS',
-          payload: {
-            issue: issueData,
-            comments: commentsData,
-            children: childrenData,
-          },
-        });
-      }
-    } catch (error) {
-      if (!controller.signal.aborted) {
-        logger.error('Failed to load task detail', { error, issueId });
-        dispatch({ type: 'LOAD_ERROR' });
-      }
-    } finally {
-      if (!controller.signal.aborted) {
-        dispatch({ type: 'LOAD_DONE' });
-      }
-    }
-  }, [getTasksService, getCommentsService, issueId, useIdentifier]);
-
-  useEffect(() => {
-    loadIssue();
-    const controller = controllerRef.current;
-
-    return () => {
-      controller?.abort();
-    };
-  }, [loadIssue]);
+  const updateCachedDetail = useCallback(
+    (update: (current: IssueDetailData) => IssueDetailData) => {
+      queryClient.setQueriesData<IssueDetailData>(
+        { queryKey: issueDetailQueryKey(issueId, useIdentifier) },
+        (current) => (current ? update(current) : current),
+      );
+    },
+    [issueId, queryClient, useIdentifier],
+  );
 
   const handleStatusUpdate = useCallback(
     async (newStatus: TaskStatus) => {
@@ -208,7 +198,7 @@ export default function IssueDetail({
         const updated = await issuesService.updateTask(issue.id, {
           status: newStatus,
         });
-        dispatch({ type: 'SET_ISSUE', payload: updated });
+        updateCachedDetail((current) => ({ ...current, issue: updated }));
       } catch (error) {
         logger.error('Failed to update task status', {
           error,
@@ -218,7 +208,7 @@ export default function IssueDetail({
         notificationsService.error('Failed to update task status');
       }
     },
-    [getTasksService, issue, notificationsService],
+    [getTasksService, issue, notificationsService, updateCachedDetail],
   );
 
   const handleAddComment = useCallback(async () => {
@@ -230,7 +220,10 @@ export default function IssueDetail({
     try {
       const commentsService = await getCommentsService();
       const newComment = await commentsService.addComment(commentBody.trim());
-      dispatch({ type: 'APPEND_COMMENT', payload: newComment });
+      queryClient.setQueriesData<TaskComment[]>(
+        { queryKey: taskCommentsQueryKey(taskId) },
+        (current) => (current ? [...current, newComment] : current),
+      );
       dispatch({ type: 'SET_COMMENT_BODY', payload: '' });
     } catch (error) {
       logger.error('Failed to add task comment', {
@@ -248,6 +241,8 @@ export default function IssueDetail({
     issue?.id,
     issueId,
     notificationsService,
+    queryClient,
+    taskId,
   ]);
 
   const hiddenCommentCount = Math.max(
