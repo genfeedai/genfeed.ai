@@ -177,7 +177,7 @@ export function useWorkflowLibraryPage({
         });
       }
     },
-    [getService, workflows, relatedWorkflows, onWorkflowRemoved],
+    [getService, workflows, relatedWorkflows, onWorkflowRemoved, setWorkflows],
   );
 
   const handleToggleSchedule = useCallback(
@@ -237,6 +237,7 @@ export function useWorkflowLibraryPage({
       workflows,
       relatedWorkflows,
       onWorkflowUpdated,
+      setWorkflows,
     ],
   );
 
@@ -297,7 +298,7 @@ export function useWorkflowLibraryPage({
         ),
       );
     },
-    [onWorkflowUpdated],
+    [onWorkflowUpdated, setWorkflows],
   );
 
   return {
