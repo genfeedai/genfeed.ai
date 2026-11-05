@@ -182,7 +182,7 @@ export default function ConnectionSuccess({
         >
           <span className="connection-success-avatar-ring absolute inset-0 rounded-full" />
           <Avatar
-            className="connection-success-avatar size-24"
+            className="connection-success-avatar"
             name={account?.name}
             size="2xl"
             src={account?.avatarUrl}
