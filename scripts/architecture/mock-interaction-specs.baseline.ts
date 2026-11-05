@@ -24,7 +24,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/web/app/(protected)/admin/configuration/fonts/font-families-list.test.tsx',
   'apps/web/app/(protected)/admin/configuration/tags/[filter]/tags-list.test.tsx',
   'apps/web/app/(protected)/admin/folders/folders-list.test.tsx',
-  'apps/web/app/(protected)/admin/settings/system-notifications-panel.test.tsx',
   'apps/web/app/(protected)/protected-layout-client.platform-flags.test.tsx',
   'apps/web/app/(protected)/root-resolver-client.test.tsx',
   'apps/web/src/features/analytics/posts-list/posts-content.test.tsx',

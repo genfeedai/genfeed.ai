@@ -1,7 +1,18 @@
 import * as domMatchers from '@testing-library/jest-dom/matchers';
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { ISystemNotificationOverview } from '@genfeedai/contracts/interfaces';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { QueryClient } from '@tanstack/react-query';
+import {
+  fireEvent,
+  render as renderWithoutClient,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SystemNotificationsPanel from './system-notifications-panel';
 
@@ -18,6 +29,10 @@ const mocks = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 const getService = vi.hoisted(() => vi.fn(async () => mocks));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getService,
 }));
@@ -33,6 +48,9 @@ vi.mock('next-intl', async () => {
   const t = translateFromCatalog('pages.platformSettings.notifications');
   return { useTranslations: () => t };
 });
+function render(ui: ReactElement, client?: QueryClient) {
+  return renderWithoutClient(ui, { wrapper: queryClientWrapper(client) });
+}
 const overview: ISystemNotificationOverview = {
   id: 'system-notifications',
   configuration: {
@@ -103,7 +121,7 @@ describe('admin notification destinations', () => {
     ).toBeTruthy();
   });
   it('posts a test message to a Discord channel and reports a failure reason', async () => {
-    mocks.overview.mockResolvedValue({
+    const discordOverview = {
       ...overview,
       configuration: {
         ...overview.configuration,
@@ -113,7 +131,10 @@ describe('admin notification destinations', () => {
           missingChannels: [],
         },
       },
-    });
+    };
+    mocks.overview.mockResolvedValue(discordOverview);
+    // A channel test returns the refreshed overview, Discord still configured.
+    mocks.testDiscordChannel.mockResolvedValue(discordOverview);
     render(<SystemNotificationsPanel />);
     fireEvent.click(await screen.findByRole('button', { name: 'Test Models' }));
     await waitFor(() =>
@@ -174,5 +195,46 @@ describe('admin notification destinations', () => {
     expect(
       await screen.findByText(/Recording is disabled/),
     ).toBeInTheDocument();
+  });
+  it('paints the cached destinations at once when the page is revisited', async () => {
+    const client = createTestQueryClient();
+    const first = render(<SystemNotificationsPanel />, client);
+    expect(
+      await screen.findByText('Signup alerts · discord'),
+    ).toBeInTheDocument();
+    first.unmount();
+
+    mocks.overview.mockReturnValue(new Promise(() => {}));
+    render(<SystemNotificationsPanel />, client);
+
+    expect(screen.getByText('Signup alerts · discord')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Loading notifications…'),
+    ).not.toBeInTheDocument();
+  });
+  it('keeps a saved destination when the page is revisited', async () => {
+    mocks.save.mockResolvedValue({
+      ...overview,
+      destinations: [{ ...overview.destinations[0], label: 'Renamed alerts' }],
+    });
+    const client = createTestQueryClient();
+    const first = render(<SystemNotificationsPanel />, client);
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    fireEvent.change(screen.getByLabelText('Name'), {
+      target: { value: 'Renamed alerts' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save destination' }));
+    expect(
+      await screen.findByText('Renamed alerts · discord'),
+    ).toBeInTheDocument();
+    first.unmount();
+
+    mocks.overview.mockReturnValue(new Promise(() => {}));
+    render(<SystemNotificationsPanel />, client);
+
+    expect(screen.getByText('Renamed alerts · discord')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Signup alerts · discord'),
+    ).not.toBeInTheDocument();
   });
 });
