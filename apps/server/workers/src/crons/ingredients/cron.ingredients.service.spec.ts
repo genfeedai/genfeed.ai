@@ -14,6 +14,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
 import { ConfigService } from '@workers/config/config.service';
 import { CronIngredientsService } from '@workers/crons/ingredients/cron.ingredients.service';
+import type { Mocked } from 'vitest';
 
 vi.mock('@sentry/nestjs', () => ({
   captureException: vi.fn(),
@@ -27,12 +28,12 @@ describe('CronIngredientsService', () => {
     findOne: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
   };
-  let ingredientsService: vi.Mocked<IngredientsService>;
-  let metadataService: vi.Mocked<MetadataService>;
-  let filesClientService: vi.Mocked<FilesClientService>;
-  let configService: vi.Mocked<ConfigService>;
-  let cacheService: vi.Mocked<CacheService>;
-  let loggerService: vi.Mocked<LoggerService>;
+  let ingredientsService: Mocked<IngredientsService>;
+  let metadataService: Mocked<MetadataService>;
+  let filesClientService: Mocked<FilesClientService>;
+  let configService: Mocked<ConfigService>;
+  let cacheService: Mocked<CacheService>;
+  let loggerService: Mocked<LoggerService>;
   let replicatePollQueue: { schedule: ReturnType<typeof vi.fn> };
 
   const mockStuckIngredients = {
