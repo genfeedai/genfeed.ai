@@ -17,7 +17,6 @@ import type { ModalMemberProps } from '@props/modals/modal.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
-import { RolesService } from '@services/organization/roles.service';
 import Modal from '@ui/modals/modal/Modal';
 import {
   getErrorMessage,
@@ -26,10 +25,20 @@ import {
 import { isAxiosError } from '@utils/error/json-api-status.util';
 import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
+import { useOrganizationRoles } from '@/hooks/data/organization/use-organization-roles/use-organization-roles';
 import { useFocusFirstInput } from '@/hooks/ui/use-focus-first-input/use-focus-first-input';
 import { useFormSubmitWithState } from '@/hooks/utils/use-form-submit/use-form-submit';
 import EditMemberForm from './EditMemberForm';
 import InviteForm from './InviteForm';
+
+const EMPTY_ROLES: IRole[] = [];
+
+const INVITE_DEFAULT_VALUES: InviteMemberSchema = {
+  email: '',
+  firstName: '',
+  lastName: '',
+  roleId: '',
+};
 
 export default function ModalMember({
   member,
@@ -39,28 +48,27 @@ export default function ModalMember({
   const { brands } = useBrand();
   const [error, setError] = useState<string | null>(null);
 
-  const getRolesService = useAuthedService((token: string) =>
-    RolesService.getInstance(token),
-  );
-
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );
 
   const notificationsService = NotificationsService.getInstance();
 
-  // States for invite mode
-  const [roles, setRoles] = useState<IRole[]>([]);
-  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
+  // Invite mode reads the roles through React Query, so reopening the dialog
+  // paints the role picker at once and refreshes it in the background.
+  const rolesQuery = useOrganizationRoles(!member);
+  const roles = rolesQuery.data ?? EMPTY_ROLES;
+  const isLoadingRoles = rolesQuery.isPending;
+  const defaultRoleId =
+    (roles.find((role) => role.key === 'user') ?? roles[0])?.id ?? '';
+  // A failed background refresh keeps the cached roles; the error only shows
+  // when there are none.
+  const rolesError =
+    rolesQuery.error && !rolesQuery.data ? 'Failed to load roles' : null;
 
   // Forms for different modes
   const form = useForm<InviteMemberSchema>({
-    defaultValues: {
-      email: '',
-      firstName: '',
-      lastName: '',
-      roleId: '',
-    },
+    defaultValues: INVITE_DEFAULT_VALUES,
     resolver: standardSchemaResolver(inviteMemberSchema),
   });
 
@@ -82,45 +90,34 @@ export default function ModalMember({
     setError(null); // Clear error when closing modal
 
     if (!member) {
-      form.reset();
+      form.reset({ ...INVITE_DEFAULT_VALUES, roleId: defaultRoleId });
     } else {
       editForm.reset();
     }
     onConfirm(isRefreshing);
   };
 
+  const { error: rolesLoadError } = rolesQuery;
   useEffect(() => {
-    if (!member) {
-      const findAllRoles = async () => {
-        const url = 'GET /roles';
-        setIsLoadingRoles(true);
-
-        try {
-          const service = await getRolesService();
-          const data = await service.findAll();
-          setRoles(data);
-
-          if (data.length > 0) {
-            const defaultRole = data.find((r) => r.key === 'user') || data[0];
-            form.setValue('roleId', defaultRole.id);
-          }
-        } catch (error) {
-          logger.error(`${url} failed`, error);
-          setError('Failed to load roles');
-        }
-
-        setIsLoadingRoles(false);
-      };
-
-      findAllRoles();
-    } else if (member && organizationId) {
-      if (member) {
-        const brandIds =
-          member.brands?.map((brand: IBrand | Brand) => brand.id) || [];
-        editForm.setValue('brandIds', brandIds as string[]);
-      }
+    if (rolesLoadError) {
+      logger.error('GET /roles failed', rolesLoadError);
     }
-  }, [member, organizationId, form, editForm, getRolesService]);
+  }, [rolesLoadError]);
+
+  // Pick the default role once roles are known, unless one is already chosen.
+  useEffect(() => {
+    if (!member && defaultRoleId && !form.getValues('roleId')) {
+      form.setValue('roleId', defaultRoleId);
+    }
+  }, [defaultRoleId, form, member]);
+
+  useEffect(() => {
+    if (member && organizationId) {
+      const brandIds =
+        member.brands?.map((brand: IBrand | Brand) => brand.id) || [];
+      editForm.setValue('brandIds', brandIds as string[]);
+    }
+  }, [member, organizationId, editForm]);
 
   const handleInviteSubmit = async () => {
     const values = form.getValues();
@@ -190,7 +187,7 @@ export default function ModalMember({
   return (
     <Modal
       id={ModalEnum.MEMBER}
-      error={error}
+      error={error ?? (member ? null : rolesError)}
       title={member ? 'Edit Member' : 'Invite Member'}
       onClose={() => setError(null)}
     >
