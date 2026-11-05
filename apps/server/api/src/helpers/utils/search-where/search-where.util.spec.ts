@@ -56,12 +56,23 @@ describe('buildSearchWhere', () => {
           OR: [
             {
               referral: {
-                referrerId: { contains: 'org_1', mode: 'insensitive' },
+                referrerId: { contains: 'org\\_1', mode: 'insensitive' },
               },
             },
           ],
         },
       ],
+    });
+  });
+
+  it.each([
+    ['100%', '100\\%'],
+    ['a_b', 'a\\_b'],
+    ['back\\slash', 'back\\\\slash'],
+    ['plain', 'plain'],
+  ])('escapes LIKE wildcards in %j so it matches literally', (search, term) => {
+    expect(buildSearchWhere(search, { columns: ['label'] })).toEqual({
+      AND: [{ OR: [{ label: { contains: term, mode: 'insensitive' } }] }],
     });
   });
 

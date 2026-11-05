@@ -3,8 +3,8 @@ import {
   buildReleaseListCountSql,
   buildReleaseListPageSql,
   resolveReleaseListSort,
-  toContainsPattern,
 } from '@api/collections/post-groups/services/post-group-release-list.query';
+import { toContainsPattern } from '@api/helpers/utils/like-pattern/like-pattern.util';
 import {
   CredentialPlatform,
   PostCategory,

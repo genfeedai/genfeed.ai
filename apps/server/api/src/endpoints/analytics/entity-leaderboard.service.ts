@@ -33,10 +33,10 @@ import {
   resolveFirstBrandLogos,
   resolveOwnersByUserId,
   resolvePersonalOwnerDomains,
-  toContainsPattern,
 } from '@api/endpoints/analytics/organization-qualification.sql';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
+import { toContainsPattern } from '@api/helpers/utils/like-pattern/like-pattern.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { classifyEmail } from '@api/shared/utils/email-class/email-class.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
