@@ -48,8 +48,10 @@ function filterRecord(value: unknown): Row {
 function matchesExecution(row: Row, where: Row): boolean {
   const checks = Object.entries(where).map(([key, value]) => {
     switch (key) {
+      case 'dispatchId':
       case 'id':
       case 'organizationId':
+      case 'source':
       case 'status':
         if (typeof value !== 'string')
           throw new Error(`Unsupported ${key} filter`);
@@ -71,37 +73,12 @@ function matchesExecution(row: Row, where: Row): boolean {
           row.idempotencyKey.startsWith(filter.startsWith)
         );
       }
-      case 'result': {
+      case 'strategyId': {
+        if (typeof value === 'string') return row.strategyId === value;
         const filter = filterRecord(value);
-        if (Object.keys(filter).length === 0) return true;
-        if (
-          Object.keys(filter).some(
-            (field) => !['path', 'equals'].includes(field),
-          ) ||
-          !Object.hasOwn(filter, 'equals') ||
-          !Array.isArray(filter.path) ||
-          filter.path.length !== 2 ||
-          filter.path[0] !== 'metadata' ||
-          typeof filter.path[1] !== 'string' ||
-          (!['string', 'number', 'boolean'].includes(typeof filter.equals) &&
-            filter.equals !== null)
-        )
-          throw new Error('Unsupported result JSON filter');
-        const result = row.result;
-        if (
-          typeof result !== 'object' ||
-          result === null ||
-          Array.isArray(result)
-        )
-          return false;
-        const metadata = filterRecord(result).metadata;
-        if (
-          typeof metadata !== 'object' ||
-          metadata === null ||
-          Array.isArray(metadata)
-        )
-          return false;
-        return filterRecord(metadata)[filter.path[1]] === filter.equals;
+        if (Object.keys(filter).length !== 1 || !Array.isArray(filter.in))
+          throw new Error('Unsupported strategy filter');
+        return filter.in.includes(row.strategyId);
       }
       case 'OR':
       case 'AND': {
@@ -121,6 +98,26 @@ function matchesExecution(row: Row, where: Row): boolean {
     }
   });
   return checks.every(Boolean);
+}
+/** Mirrors the `workflow_execution_metadata_promotion` insert trigger. */
+function promotedMetadataColumns(result: unknown): Row {
+  const metadata =
+    typeof result === 'object' && result !== null && !Array.isArray(result)
+      ? (result as Row).metadata
+      : undefined;
+  const fields =
+    typeof metadata === 'object' &&
+    metadata !== null &&
+    !Array.isArray(metadata)
+      ? (metadata as Row)
+      : {};
+  const text = (key: string) =>
+    typeof fields[key] === 'string' ? fields[key] : null;
+  return {
+    dispatchId: text('dispatchId'),
+    source: text('source'),
+    strategyId: text('strategyId') ?? text('agentStrategyId'),
+  };
 }
 function executionTimestamp(value: unknown): number {
   if (value instanceof Date) return value.getTime();
@@ -202,6 +199,7 @@ function setup() {
       createdAt: now,
       updatedAt: now,
       ...data,
+      ...promotedMetadataColumns(data.result),
       workflow: mirror,
     };
     executions.set(row.id, row);
@@ -444,15 +442,9 @@ describe('proactive dispatch failure accounting across real services', () => {
     // idempotency guard still runs (and finds nothing) even when the
     // failure happens before an execution could ever be created.
     const calls = fixture.prisma.workflowExecution.findFirst.mock.calls;
-    const dispatchQueries = calls.filter(([args]) => {
-      const result = args.where.result;
-      return (
-        typeof result === 'object' &&
-        result !== null &&
-        JSON.stringify(filterRecord(result).path) ===
-          JSON.stringify(['metadata', 'dispatchId'])
-      );
-    });
+    const dispatchQueries = calls.filter(
+      ([args]) => typeof args.where.dispatchId === 'string',
+    );
     expect(dispatchQueries).toHaveLength(1);
     expect(fixture.prisma.workflowExecution.findFirst).toHaveBeenCalledWith({
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
@@ -461,10 +453,8 @@ describe('proactive dispatch failure accounting across real services', () => {
         isDeleted: false,
         status: 'PENDING',
         idempotencyKey: { startsWith: 'proactive:' },
-        result: { path: ['metadata', 'source'], equals: 'proactive' },
-        OR: [
-          { result: { path: ['metadata', 'strategyId'], equals: 'strategy' } },
-        ],
+        source: 'proactive',
+        strategyId: { in: ['strategy'] },
       },
     });
     expect(fixture.prisma.workflowExecution.findFirst).toHaveBeenCalledWith({
@@ -588,16 +578,8 @@ describe('proactive execution fixture query and persistence ABI', () => {
       isDeleted: false,
       status: 'PENDING',
       idempotencyKey: { startsWith: 'proactive:' },
-      result: { path: ['metadata', 'source'], equals: 'proactive' },
-      OR: [
-        { result: { path: ['metadata', 'strategyId'], equals: 'strategy' } },
-        {
-          result: {
-            path: ['metadata', 'strategyId'],
-            equals: 'second-strategy',
-          },
-        },
-      ],
+      source: 'proactive',
+      strategyId: { in: ['strategy', 'second-strategy'] },
     };
     expect(
       await fixture.prisma.workflowExecution.findFirst({
@@ -627,29 +609,25 @@ describe('proactive execution fixture query and persistence ABI', () => {
     expect(
       await fixture.prisma.workflowExecution.findFirst({
         where: {
-          AND: [
-            where,
-            { result: { path: ['metadata', 'dispatchId'], equals: 'absent' } },
-          ],
+          AND: [where, { dispatchId: 'absent' }],
         },
       }),
     ).toBeNull();
     expect(
       matchesExecution({ organizationId: 'org' }, { organizationId: 'org' }),
     ).toBe(true);
-    expect(matchesExecution({}, { result: {} })).toBe(true);
+    expect(
+      matchesExecution({ dispatchId: 'dispatch' }, { dispatchId: 'dispatch' }),
+    ).toBe(true);
     expect(
       matchesExecution(
-        {},
-        { result: { path: ['metadata', 'dispatchId'], equals: 'dispatch' } },
+        promotedMetadataColumns({ metadata: { agentStrategyId: 'legacy' } }),
+        { strategyId: 'legacy' },
       ),
-    ).toBe(false);
-    expect(() =>
-      matchesExecution(
-        {},
-        { result: { path: ['wrong', 'dispatchId'], equals: 'dispatch' } },
-      ),
-    ).toThrow('Unsupported');
+    ).toBe(true);
+    expect(() => matchesExecution({}, { strategyId: { not: null } })).toThrow(
+      'Unsupported',
+    );
     expect(() => matchesExecution({}, { status: { in: ['PENDING'] } })).toThrow(
       'Unsupported',
     );

@@ -22,10 +22,7 @@ describe('StalePendingSystemExecutionFinderService', () => {
         where: expect.objectContaining({
           createdAt: { gte: createdAfter, lt: staleBefore },
           isDeleted: false,
-          result: {
-            path: ['metadata', 'isSystemAction'],
-            equals: true,
-          },
+          isSystemAction: true,
           status: 'PENDING',
         }),
       }),
@@ -192,10 +189,7 @@ describe('StalePendingSystemExecutionFinderService', () => {
           where: expect.objectContaining({
             createdAt: { lt: createdBefore },
             isDeleted: false,
-            result: {
-              path: ['metadata', 'isSystemAction'],
-              equals: true,
-            },
+            isSystemAction: true,
             status: 'PENDING',
           }),
         }),
@@ -267,7 +261,7 @@ describe('StalePendingSystemExecutionFinderService', () => {
         where: {
           createdAt: { gte: createdAfter, lt: staleBefore },
           isDeleted: false,
-          result: { path: ['metadata', 'isSystemAction'], equals: true },
+          isSystemAction: true,
           status: 'PENDING',
         },
       });
@@ -399,7 +393,7 @@ describe('StalePendingSystemExecutionFinderService', () => {
       const args = findMany.mock.calls[0][0];
       expect(args.take).toBe(50);
       expect(args.orderBy).toEqual([{ createdAt: 'asc' }, { id: 'asc' }]);
-      const [base, dispatch, canonical] = args.where.AND;
+      const [base, agentTurn] = args.where.AND;
       expect(base).toEqual(
         expect.objectContaining({
           cancelRequestedAt: null,
@@ -408,18 +402,16 @@ describe('StalePendingSystemExecutionFinderService', () => {
           status: 'PENDING',
         }),
       );
-      expect(dispatch).toEqual({
-        result: { equals: 'interactive', path: ['metadata', 'dispatchClass'] },
+      expect(agentTurn).toEqual({
+        canonicalId: {
+          in: [
+            'agent.turn.execute',
+            'agent.thread.ui-action',
+            'agent.thread.input-response',
+          ],
+        },
+        dispatchClass: 'interactive',
       });
-      expect(canonical.OR.map((clause: never) => clause)).toEqual(
-        [
-          'agent.turn.execute',
-          'agent.thread.ui-action',
-          'agent.thread.input-response',
-        ].map((canonicalId) => ({
-          result: { equals: canonicalId, path: ['metadata', 'canonicalId'] },
-        })),
-      );
     });
   });
 });

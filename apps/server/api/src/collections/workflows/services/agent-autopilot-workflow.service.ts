@@ -251,7 +251,7 @@ export class AgentAutopilotWorkflowService {
       });
       if (page.length === 0) break;
       const pending = await this.prisma.workflowExecution.findMany({
-        select: { result: true },
+        select: { strategyId: true },
         where: scopedWhere(
           organizationId,
           this.pendingDispatchWhere(
@@ -261,11 +261,7 @@ export class AgentAutopilotWorkflowService {
         ),
       });
       const pendingIds = new Set(
-        pending.map(
-          (execution) =>
-            this.readRecord(this.readRecord(execution.result).metadata)
-              .strategyId,
-        ),
+        pending.map((execution) => execution.strategyId),
       );
       for (const strategy of page) {
         const snapshot = this.readStrategySnapshot(strategy);
@@ -395,10 +391,8 @@ export class AgentAutopilotWorkflowService {
     return scopedWhere(organizationId, {
       status: PrismaWorkflowExecutionStatus.PENDING,
       idempotencyKey: { startsWith: 'proactive:' },
-      result: { path: ['metadata', 'source'], equals: 'proactive' },
-      OR: strategyIds.map((id) => ({
-        result: { path: ['metadata', 'strategyId'], equals: id },
-      })),
+      source: 'proactive',
+      strategyId: { in: strategyIds },
     });
   }
 
@@ -528,7 +522,7 @@ export class AgentAutopilotWorkflowService {
       if (dispatchId) {
         const execution = await transaction.workflowExecution.findFirst({
           where: scopedWhere(strategy.organizationId, {
-            result: { path: ['metadata', 'dispatchId'], equals: dispatchId },
+            dispatchId,
           }),
           select: { id: true },
         });

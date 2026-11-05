@@ -29,7 +29,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // Platform-owned system workflow ids are read under the system principal.
     {
       file: 'apps/server/api/src/collections/workflow-executions/services/workflow-execution-query.util.ts',
-      line: 36,
+      line: 60,
     },
     // Historical trend analysis intentionally reads only the shared global corpus; the Prisma where remains pinned to organizationId:null.
     {

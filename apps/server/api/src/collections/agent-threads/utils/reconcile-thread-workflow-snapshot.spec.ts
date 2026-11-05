@@ -316,8 +316,9 @@ describe('durable workflow snapshot recovery', () => {
       for (const branch of branches) {
         expect(branch).toContain('"organizationId" = ?');
         expect(branch).toContain('"isDeleted" = false');
-        expect(branch).toContain("result #> '{metadata,threadId}'::text[]");
-        expect(branch).toContain("result #> '{metadata,canonicalId}'::text[]");
+        expect(branch).toContain('"threadId" = ?');
+        expect(branch).toContain('"canonicalId" = ?');
+        expect(branch).not.toContain('result');
         expect(branch).toContain('ORDER BY "createdAt" DESC, id DESC LIMIT 1');
       }
       expect(
@@ -328,14 +329,14 @@ describe('durable workflow snapshot recovery', () => {
       expect(query.sql).not.toContain(current.organizationId);
       expect(query.values).toEqual([
         current.organizationId,
-        JSON.stringify(threadId),
-        JSON.stringify('agent.turn.execute'),
+        threadId,
+        'agent.turn.execute',
         current.organizationId,
-        JSON.stringify(threadId),
-        JSON.stringify('agent.thread.ui-action'),
+        threadId,
+        'agent.thread.ui-action',
         current.organizationId,
-        JSON.stringify(threadId),
-        JSON.stringify('agent.thread.input-response'),
+        threadId,
+        'agent.thread.input-response',
       ]);
     },
   );
