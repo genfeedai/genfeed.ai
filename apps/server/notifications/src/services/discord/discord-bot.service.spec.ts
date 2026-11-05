@@ -98,7 +98,7 @@ describe('DiscordBotService', () => {
     // Reset Client mock — `function`-style so `new Client()` works
     mockClient = createMockDiscordClient();
 
-    (Client as Mock).mockImplementation(function MockClient() {
+    vi.mocked(Client).mockImplementation(function MockClient() {
       return mockClient;
     });
 
@@ -139,7 +139,7 @@ describe('DiscordBotService', () => {
     service = module.get<DiscordBotService>(DiscordBotService);
 
     vi.clearAllMocks();
-    (Client as Mock).mockImplementation(function MockClient() {
+    vi.mocked(Client).mockImplementation(function MockClient() {
       return mockClient;
     });
   });
@@ -439,7 +439,7 @@ describe('DiscordBotService', () => {
     });
 
     it('should use configured webhook creation reason', async () => {
-      mockConfigService.get.mockImplementation((key: string) => {
+      mockConfigService.get.mockImplementation((key) => {
         const config: Record<string, string> = {
           DISCORD_BOT_TOKEN: 'test-bot-token',
           DISCORD_WEBHOOK_REASON: 'Self-hosted notification webhook',
@@ -607,7 +607,7 @@ describe('DiscordBotService', () => {
     });
 
     it('should prefix bot-managed webhook names when configured', async () => {
-      mockConfigService.get.mockImplementation((key: string) => {
+      mockConfigService.get.mockImplementation((key) => {
         const config: Record<string, string> = {
           DISCORD_BOT_TOKEN: 'test-bot-token',
           DISCORD_CHANNEL_ID_POSTS: 'channel-posts-123',

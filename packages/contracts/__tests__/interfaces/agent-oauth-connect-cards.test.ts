@@ -1,12 +1,13 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { describe, expect, it } from 'vitest';
-
 import {
   collapseOAuthConnectCards,
   collectConnectPlatforms,
-} from './collapse-oauth-connect-cards';
+} from '../../src/interfaces/ai/agent-oauth-connect-cards';
+import type { AgentUiActionOf } from '../../src/interfaces/ai/agent-ui-action.interface';
 
-function connectCard(partial: Partial<AgentUiAction> = {}): AgentUiAction {
+function connectCard(
+  partial: Partial<AgentUiActionOf<'oauth_connect_card'>> = {},
+): AgentUiActionOf<'oauth_connect_card'> {
   return {
     id: 'oauth-connect-twitter-1',
     platform: 'twitter',
@@ -16,7 +17,7 @@ function connectCard(partial: Partial<AgentUiAction> = {}): AgentUiAction {
   };
 }
 
-function preview(): AgentUiAction {
+function preview(): AgentUiActionOf<'content_preview_card'> {
   return {
     id: 'preview-1',
     title: 'Draft ready',
@@ -60,10 +61,12 @@ describe('collapseOAuthConnectCards', () => {
 
     expect(collapsed).toHaveLength(2);
     const [card, ...rest] = collapsed;
-    expect(card.type).toBe('oauth_connect_card');
-    expect(card.platforms).toEqual(['twitter', 'instagram', 'youtube']);
-    expect(card.platform).toBeUndefined();
-    expect(card.title).toBe('Connect an account');
+    expect(card).toMatchObject({
+      platform: undefined,
+      platforms: ['twitter', 'instagram', 'youtube'],
+      title: 'Connect an account',
+      type: 'oauth_connect_card',
+    });
     expect(rest[0]?.type).toBe('content_preview_card');
   });
 
@@ -73,9 +76,11 @@ describe('collapseOAuthConnectCards', () => {
       connectCard({ id: 'b' }),
     ]);
 
-    expect(card.platforms).toEqual(['twitter']);
-    expect(card.platform).toBe('twitter');
-    expect(card.title).toBe('X (Twitter) not connected');
+    expect(card).toMatchObject({
+      platform: 'twitter',
+      platforms: ['twitter'],
+      title: 'X (Twitter) not connected',
+    });
   });
 
   it('keeps only the first generic picker when no platform is named', () => {

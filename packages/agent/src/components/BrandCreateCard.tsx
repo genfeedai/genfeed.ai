@@ -1,4 +1,4 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -9,7 +9,7 @@ import { Sparkles } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
 
 interface BrandCreateCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'brand_create_card'>;
   onCreate?: (payload: {
     name: string;
     description: string;

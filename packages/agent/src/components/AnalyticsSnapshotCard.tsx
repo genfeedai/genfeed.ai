@@ -1,7 +1,7 @@
 'use client';
 
 import { AgentCardCollapseToggle } from '@genfeedai/agent/components/AgentCardCollapseToggle';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { extractAnalyticsPeriod } from '@genfeedai/agent/utils/extract-analytics-period';
 import {
   ButtonSize,
@@ -21,7 +21,7 @@ import { ChartColumn, Eye, Heart, MessageCircle } from 'lucide-react';
 import { type ReactElement, useMemo, useState } from 'react';
 
 interface AnalyticsSnapshotCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'analytics_snapshot_card'>;
 }
 
 interface MetricData {
@@ -47,7 +47,9 @@ interface PeriodSnapshot {
 
 const PREVIEW_METRIC_COUNT = 2;
 
-function resolvePeriodSnapshots(action: AgentUiAction): PeriodSnapshot[] {
+function resolvePeriodSnapshots(
+  action: AgentUiActionOf<'analytics_snapshot_card'>,
+): PeriodSnapshot[] {
   const raw = action.data?.periodSnapshots;
   if (Array.isArray(raw) && raw.length > 0) {
     return (

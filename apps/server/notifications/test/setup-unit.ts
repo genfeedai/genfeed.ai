@@ -6,7 +6,7 @@
  */
 import { vi } from 'vitest';
 
-process.env.NODE_ENV = 'test';
+vi.stubEnv('NODE_ENV', 'test');
 
 // `baseSchema.PORT` is `Joi.number().required()` and this service deliberately
 // declares no default (its deployments always supply one), so anything that

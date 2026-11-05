@@ -1,10 +1,10 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { ImageIcon, Maximize2, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import type { ReactElement } from 'react';
 
 interface ImageTransformCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'image_transform_card'>;
 }
 
 export function ImageTransformCard({

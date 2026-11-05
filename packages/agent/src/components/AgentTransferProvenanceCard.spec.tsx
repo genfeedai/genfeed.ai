@@ -4,7 +4,7 @@ import {
   AgentThreadResolutionProvider,
 } from '@genfeedai/agent/components/AgentThreadResolutionContext';
 import { AgentTransferProvenanceCard } from '@genfeedai/agent/components/AgentTransferProvenanceCard';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import {
   AgentTransferDeliveryMode,
   AgentTransferStatus,
@@ -12,7 +12,9 @@ import {
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-function makeAction(overrides: Record<string, unknown> = {}): AgentUiAction {
+function makeAction(
+  overrides: Record<string, unknown> = {},
+): AgentUiActionOf<'agent_transfer_card'> {
   return {
     data: {
       transfer: {
@@ -84,7 +86,7 @@ describe('AgentTransferProvenanceCard', () => {
 
   it('dispatches explicit send-and-run confirmation from a pending card', () => {
     const onUiAction = vi.fn();
-    const action: AgentUiAction = {
+    const action: AgentUiActionOf<'agent_transfer_card'> = {
       ctas: [
         {
           action: 'confirm_agent_transfer',

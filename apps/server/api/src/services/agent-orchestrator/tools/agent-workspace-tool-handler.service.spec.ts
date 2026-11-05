@@ -3,6 +3,7 @@ import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tool
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
+import { requireUiAction } from '@api-test/helpers/agent-ui-action';
 import { IngredientCategory, MemberRole } from '@genfeedai/contracts';
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -62,9 +63,9 @@ describe('AgentWorkspaceToolHandler.openStudioHandoff', () => {
         ingredientId: 'img-1',
       }),
     );
-    expect(result.nextActions?.[0]?.studioUrl).toBe(
-      createLibraryAssetRoute(IngredientCategory.IMAGE, 'img-1'),
-    );
+    expect(
+      requireUiAction(result.nextActions, 'studio_handoff_card').studioUrl,
+    ).toBe(createLibraryAssetRoute(IngredientCategory.IMAGE, 'img-1'));
     expect(JSON.stringify(result)).not.toContain('/g/');
     expect(JSON.stringify(result)).not.toContain('/studio?type=');
   });

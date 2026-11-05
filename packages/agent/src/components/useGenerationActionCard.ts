@@ -1,8 +1,8 @@
 import { findUiActionState } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
 import { useGenerationQuote } from '@genfeedai/agent/hooks/use-generation-quote';
 import type {
-  AgentUiAction,
   AgentUiActionHandler,
+  AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type {
   AgentApiService,
@@ -140,7 +140,7 @@ function readAgentGenerationPreference(
 }
 
 interface UseGenerationActionCardParams {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'generation_action_card'>;
   apiService: AgentApiService;
   onRegenerate?: () => void;
   onUiAction?: AgentUiActionHandler;

@@ -1,10 +1,10 @@
+import { ButtonVariant } from '@genfeedai/contracts';
 import type {
+  AgentClipperRunIdentity,
   ClipperRunCardState,
   ClipperRunModes,
   ClipperRunStep,
-} from '@genfeedai/agent/models/clipper-run-card.model';
-import { ButtonVariant } from '@genfeedai/contracts';
-import type { AgentClipperRunIdentity } from '@genfeedai/contracts/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   Alert,
   AlertActions,

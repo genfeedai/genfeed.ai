@@ -17,12 +17,10 @@ describe('ConfigService (Slack)', () => {
 
   beforeEach(() => {
     vi.resetModules();
-    process.env = { ...originalEnv };
+    process.env = { ...originalEnv, NODE_ENV: 'test' };
 
     const fs = require('node:fs');
     fs.existsSync = vi.fn().mockReturnValue(false);
-
-    process.env.NODE_ENV = 'test';
   });
 
   afterEach(() => {

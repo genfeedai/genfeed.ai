@@ -16,7 +16,7 @@ describe('serializeTurboRunItemAssignee', () => {
       handle: 'jane',
       id: 'user-1',
     });
-    expect(Object.keys(assignee).toSorted()).toEqual([
+    expect(Object.keys(assignee).sort()).toEqual([
       'displayName',
       'handle',
       'id',

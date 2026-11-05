@@ -1001,7 +1001,9 @@
       "topPostsTitle": "Top posts",
       "noPosts": "No published posts yet",
       "postViews": "{count} views",
-      "untitledPost": "Untitled post"
+      "untitledPost": "Untitled post",
+      "brandsTitle": "Brands",
+      "noBrandEngagement": "No brand engagement in this period"
     },
     "caption": {
       "fallbackTitle": "Caption"

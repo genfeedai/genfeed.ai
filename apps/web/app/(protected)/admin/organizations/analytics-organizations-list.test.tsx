@@ -61,6 +61,15 @@ vi.mock(
   }),
 );
 
+vi.mock(
+  '@app/(protected)/admin/organizations/components/organization-sidebar-activity',
+  () => ({
+    default: ({ organizationId }: { organizationId: string }) => (
+      <div>Activity for {organizationId}</div>
+    ),
+  }),
+);
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => async () => ({
     getOrganizationsWithStats: mocks.getOrganizationsWithStats,

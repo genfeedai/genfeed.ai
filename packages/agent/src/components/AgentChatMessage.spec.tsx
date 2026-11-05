@@ -509,6 +509,7 @@ describe('AgentChatMessage', () => {
             uiActions: [
               {
                 turboRunCount: 20,
+                completedCount: 0,
                 creditsUsed: 5,
                 id: 'batch-result-1',
                 platforms: ['instagram', 'twitter'],

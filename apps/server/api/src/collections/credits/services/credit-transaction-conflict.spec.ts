@@ -20,6 +20,12 @@ describe('isCreditTransactionConflict', () => {
       }),
     ],
     [
+      'top-level adapter write conflict without SQLSTATE',
+      adapterError('TransactionWriteConflict', {
+        kind: 'TransactionWriteConflict',
+      }),
+    ],
+    [
       'adapter deadlock cause',
       adapterError('DriverAdapterError', { originalCode: '40P01' }),
     ],
@@ -44,6 +50,10 @@ describe('isCreditTransactionConflict', () => {
     ['null', null],
     ['plain error', new Error('boom')],
     ['unique violation', { code: 'P2002' }],
+    [
+      'adapter write conflict message on another error name',
+      Object.assign(new Error('TransactionWriteConflict'), { cause: {} }),
+    ],
     [
       'adapter error with another SQLSTATE',
       adapterError('DriverAdapterError', { originalCode: '23505' }),

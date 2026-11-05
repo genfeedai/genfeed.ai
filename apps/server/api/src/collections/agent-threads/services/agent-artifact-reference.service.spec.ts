@@ -3,11 +3,16 @@ import {
   type AgentArtifactReferenceTransaction,
 } from '@api/index';
 import { authorizeAgentArtifactWrite } from '@api/shared/utils/agent-artifact-reference-write.util';
+import { IngredientStatus } from '@genfeedai/contracts';
 import type {
   AgentArtifactRecordKind,
   AgentArtifactReference,
 } from '@genfeedai/contracts/interfaces';
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  HttpStatus,
+} from '@nestjs/common';
 
 vi.mock('@genfeedai/serializers', () => {
   const serializer = {
@@ -418,6 +423,103 @@ describe('AgentArtifactReferenceService', () => {
       response: expect.objectContaining({
         code: 'content_version_pin_mismatch',
       }),
+    });
+  });
+
+  describe('generated outputs whose render failed', () => {
+    let ingredients: Map<string, Record<string, unknown>>;
+
+    function storeIngredient(id: string, status: IngredientStatus) {
+      ingredients.set(id, {
+        brandId,
+        id,
+        organizationId: orgId,
+        sources: [],
+        status,
+        version: 1,
+      });
+    }
+
+    beforeEach(() => {
+      ingredients = new Map();
+      prisma.ingredient.findFirst.mockImplementation(
+        async ({
+          where,
+        }: {
+          where: { id: string; organizationId: string };
+        }) => {
+          const row = ingredients.get(where.id);
+          return row && row.organizationId === where.organizationId
+            ? row
+            : null;
+        },
+      );
+      prisma.agentMessage.findFirst.mockResolvedValue({
+        artifactReferences: [
+          reference('ingredient', 'image-1'),
+          reference('ingredient', 'video-1'),
+        ],
+        id: 'message-1',
+        isLegacyArtifactReferenceEligible: false,
+        legacyArtifactReferenceReadCount: 0,
+        metadata: {},
+      });
+      prisma.agentMessage.updateMany.mockResolvedValue({ count: 1 });
+    });
+
+    async function readMessageOutputIds(): Promise<string[]> {
+      const resolved = await service.resolveMessageReferences({
+        messageId: 'message-1',
+        readContext: { brandId, organizationId: orgId },
+      });
+      return resolved.map((item) => item.reference.recordId);
+    }
+
+    it('drops a render recorded while queued once it fails, on every later read', async () => {
+      storeIngredient('image-1', IngredientStatus.GENERATED);
+      storeIngredient('video-1', IngredientStatus.PROCESSING);
+      await expect(readMessageOutputIds()).resolves.toEqual([
+        'image-1',
+        'video-1',
+      ]);
+
+      storeIngredient('video-1', IngredientStatus.FAILED);
+      await expect(readMessageOutputIds()).resolves.toEqual(['image-1']);
+      await expect(readMessageOutputIds()).resolves.toEqual(['image-1']);
+    });
+
+    it('keeps a render that succeeded', async () => {
+      storeIngredient('image-1', IngredientStatus.GENERATED);
+      storeIngredient('video-1', IngredientStatus.GENERATED);
+
+      await expect(readMessageOutputIds()).resolves.toEqual([
+        'image-1',
+        'video-1',
+      ]);
+    });
+
+    it('rejects a failed render as a reusable reference', async () => {
+      storeIngredient('video-1', IngredientStatus.FAILED);
+
+      await expect(
+        service.resolveReference(reference('ingredient', 'video-1'), {
+          brandId,
+          organizationId: orgId,
+        }),
+      ).rejects.toMatchObject({ status: HttpStatus.GONE });
+    });
+
+    it('still refuses an output that belongs to another organization', async () => {
+      storeIngredient('image-1', IngredientStatus.GENERATED);
+      ingredients.set('video-1', {
+        ...ingredients.get('image-1'),
+        id: 'video-1',
+        organizationId: 'org-2',
+      });
+
+      await expect(readMessageOutputIds()).rejects.toMatchObject({
+        status: HttpStatus.NOT_FOUND,
+      });
     });
   });
 

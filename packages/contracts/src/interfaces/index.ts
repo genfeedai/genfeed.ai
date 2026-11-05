@@ -18,6 +18,7 @@ export * from './ai/agent-failure.interface';
 export * from './ai/agent-generation-quote.interface';
 export * from './ai/agent-input-request.interface';
 export * from './ai/agent-memory-revision.interface';
+export * from './ai/agent-oauth-connect-cards';
 export * from './ai/agent-prep-brief.interface';
 export * from './ai/agent-publish.interface';
 export * from './ai/agent-runtime.interface';

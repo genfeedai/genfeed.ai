@@ -4,6 +4,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { runWithActionOrigin, SERVER_TOKENS } from '@api/index';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { requireUiAction } from '@api-test/helpers/agent-ui-action';
 import {
   ActionOrigin,
   AgentAutonomyMode,
@@ -312,9 +313,10 @@ describe('AgentPublishToolHandler per-channel review', () => {
       scopedContext('brand-1'),
     );
 
-    const youtube = result.nextActions?.[0]?.targets?.find(
-      (target) => target.platform === CredentialPlatform.YOUTUBE,
-    );
+    const youtube = requireUiAction(
+      result.nextActions,
+      'publish_post_card',
+    ).targets?.find((target) => target.platform === CredentialPlatform.YOUTUBE);
     expect(youtube?.blockers.map((blocker) => blocker.message)).toEqual(
       expect.arrayContaining(['YouTube does not support image media.']),
     );

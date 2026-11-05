@@ -1,10 +1,15 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentUiAction,
+  AgentUiActionOf,
+} from './agent-ui-action.interface';
 
 /**
  * Every platform a connect card offers, lowercased and de-duplicated.
  * Collapsed cards carry `platforms`; a single card carries `platform`.
  */
-export function collectConnectPlatforms(action: AgentUiAction): string[] {
+export function collectConnectPlatforms(
+  action: AgentUiActionOf<'oauth_connect_card'>,
+): string[] {
   const candidates = action.platforms?.length
     ? action.platforms
     : [action.platform ?? ''];
@@ -25,8 +30,8 @@ export function collectConnectPlatforms(action: AgentUiAction): string[] {
  * `oauth_connect_card` per probe — six stacked cards for a single question.
  * Collapse them into one picker card at the position of the first card.
  *
- * Applied server-side in `AgentCompletionCardBuilderService` for stored
- * turns, and here for streamed turns.
+ * The server applies it before storing a turn and the client to streamed
+ * turns, so both render the same way.
  */
 export function collapseOAuthConnectCards(
   uiActions: AgentUiAction[],
@@ -66,7 +71,7 @@ export function collapseOAuthConnectCards(
 
   let hasEmittedCollapsed = false;
 
-  return uiActions.flatMap((action) => {
+  return uiActions.flatMap<AgentUiAction>((action) => {
     if (action.type !== 'oauth_connect_card') {
       return [action];
     }

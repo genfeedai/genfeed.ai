@@ -1,14 +1,18 @@
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { ReleaseStatus } from '@genfeedai/contracts';
 import type { RecurrencePreviewResult } from '@genfeedai/contracts/api-types/contracts';
 import {
   act,
   fireEvent,
-  render,
+  render as rtlRender,
   screen,
   waitFor,
 } from '@testing-library/react';
-import type { InputHTMLAttributes } from 'react';
+import type { InputHTMLAttributes, ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import EvergreenSeriesControls from './evergreen-series-controls';
 
@@ -59,6 +63,15 @@ function createDeferred<T>(): {
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
+function render(ui: ReactElement, client = createTestQueryClient()) {
+  return rtlRender(ui, { wrapper: queryClientWrapper(client) });
+}
 
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
@@ -351,5 +364,28 @@ describe('EvergreenSeriesControls', () => {
         screen.queryByText(new Date(staleOccurrence).toLocaleString()),
       ).not.toBeInTheDocument();
     });
+  });
+
+  it('paints the series it already loaded straight away when reopened', async () => {
+    const client = createTestQueryClient();
+    const firstOpen = render(
+      <EvergreenSeriesControls groupId="release-1" />,
+      client,
+    );
+    expect(await screen.findByLabelText('Next occurrence')).toHaveValue(
+      '2026-08-03T09:00',
+    );
+    firstOpen.unmount();
+
+    mocks.getOne.mockReturnValue(new Promise(() => {}));
+    render(<EvergreenSeriesControls groupId="release-1" />, client);
+
+    expect(screen.queryByText('Loading series…')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Next occurrence')).toHaveValue(
+      '2026-08-03T09:00',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Pause series' }),
+    ).toBeInTheDocument();
   });
 });

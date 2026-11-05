@@ -41,6 +41,7 @@ import {
   type AgentThreadStatusEvent,
   deriveAgentUiActionStates,
   isAgentUiActionSourceOwner,
+  overlayAgentUiAction,
 } from '@genfeedai/contracts/interfaces';
 import {
   adoptNewScopeSetup,
@@ -616,9 +617,7 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
           }
           if (update && update.type === action.type) {
             return {
-              ...action,
-              ...update,
-              data: { ...action.data, ...update.data },
+              ...overlayAgentUiAction(action, update, { isDataMerged: true }),
               id: isMutationApprovalReplacement(update, actionId)
                 ? update.id
                 : actionId,
@@ -669,10 +668,10 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
           if (existingIndex === -1) {
             pendingUiActions.push(action);
           } else {
-            pendingUiActions[existingIndex] = {
-              ...pendingUiActions[existingIndex],
-              ...action,
-            };
+            const existing = pendingUiActions[existingIndex];
+            pendingUiActions[existingIndex] = existing
+              ? overlayAgentUiAction(existing, action)
+              : action;
           }
         }
 

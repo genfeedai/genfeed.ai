@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BrandIdentityConfirmationCard } from '@genfeedai/agent/components/BrandIdentityConfirmationCard';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { getAgentUiActionSourceId } from '@genfeedai/contracts/interfaces';
 import {
@@ -34,8 +34,8 @@ function acceptingUiAction() {
 }
 
 function makeCreateAction(
-  overrides: Partial<AgentUiAction> = {},
-): AgentUiAction {
+  overrides: Partial<AgentUiActionOf<'brand_identity_confirmation_card'>> = {},
+): AgentUiActionOf<'brand_identity_confirmation_card'> {
   return {
     ctas: [
       {
@@ -65,7 +65,7 @@ function makeCreateAction(
   };
 }
 
-function makeRenameAction(): AgentUiAction {
+function makeRenameAction(): AgentUiActionOf<'brand_identity_confirmation_card'> {
   return {
     ctas: [
       {

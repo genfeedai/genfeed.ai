@@ -2,6 +2,7 @@ import type {
   AgentChatMessage,
   AgentToolCall,
   AgentUiAction,
+  AgentUiActionOf,
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import {
@@ -509,8 +510,8 @@ export function getSnapshotCollapseKey(action: {
  * with periodSnapshots so the UI can toggle 7d / 30d without stacking cards.
  */
 export function mergeAnalyticsSnapshotActions(
-  snapshots: readonly AgentUiAction[],
-): AgentUiAction | null {
+  snapshots: readonly AgentUiActionOf<'analytics_snapshot_card'>[],
+): AgentUiActionOf<'analytics_snapshot_card'> | null {
   if (snapshots.length === 0) {
     return null;
   }
@@ -519,9 +520,9 @@ export function mergeAnalyticsSnapshotActions(
     string,
     {
       period: string;
-      metrics?: AgentUiAction['metrics'];
+      metrics?: Record<string, unknown>;
       title?: string;
-      source: AgentUiAction;
+      source: AgentUiActionOf<'analytics_snapshot_card'>;
     }
   >();
 
@@ -576,7 +577,7 @@ export function mergeAnalyticsSnapshotActions(
 export function collapseSupersededSnapshotCards(
   messages: readonly AgentChatMessage[],
 ): AgentChatMessage[] {
-  const allAnalytics: AgentUiAction[] = [];
+  const allAnalytics: AgentUiActionOf<'analytics_snapshot_card'>[] = [];
   let latestAnalyticsMessageId: string | null = null;
   const latestCompletionByKey = new Map<string, string>();
 

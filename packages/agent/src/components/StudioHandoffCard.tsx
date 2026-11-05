@@ -1,11 +1,11 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { Badge } from '@ui/primitives/badge';
 import { ExternalLink, Paintbrush } from 'lucide-react';
 import Image from 'next/image';
 import type { ReactElement } from 'react';
 
 interface StudioHandoffCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'studio_handoff_card'>;
 }
 
 export function StudioHandoffCard({

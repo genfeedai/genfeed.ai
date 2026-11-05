@@ -97,6 +97,32 @@ export interface OrganizationCreditGrant {
   organizationId: string;
 }
 
+export interface OrganizationCreditLedgerQuery {
+  /** Inclusive ISO timestamp. */
+  from: string;
+  limit?: number;
+  /** Exclusive ISO timestamp, at most 31 days after `from`. */
+  to: string;
+}
+
+export interface OrganizationCreditLedgerEntry {
+  actorUserId?: string | null;
+  amount: number;
+  balanceAfter?: number | null;
+  brandId?: string | null;
+  category?: string | null;
+  createdAt: string;
+  description?: string | null;
+  id: string;
+  metadata?: Record<string, unknown> | null;
+  referenceId?: string | null;
+  referenceType?: string | null;
+  reservationId?: string | null;
+  source?: string | null;
+  workflowExecutionId?: string | null;
+  workflowNodeId?: string | null;
+}
+
 export interface OrganizationMemberInput {
   email: string;
   firstName?: string;
@@ -211,6 +237,22 @@ export async function grantOrganizationCredits(
     input
   );
   return response.data;
+}
+
+/**
+ * Read one organization's credit ledger in a time window (newest first), including
+ * an organization the operator is not a member of. Read-only.
+ */
+export async function readOrganizationCreditLedger(
+  organizationId: string,
+  query: OrganizationCreditLedgerQuery
+): Promise<OrganizationCreditLedgerEntry[]> {
+  const params = new URLSearchParams({ from: query.from, to: query.to });
+  if (query.limit !== undefined) params.set('limit', String(query.limit));
+  const document = await adminGet<JsonApiDocument>(
+    `/admin/organizations/${encodeURIComponent(organizationId)}/credits/ledger?${params}`
+  );
+  return flattenCollection<OrganizationCreditLedgerEntry>(document);
 }
 
 /** Add a member to any organization with a role, without sending an invitation email. */

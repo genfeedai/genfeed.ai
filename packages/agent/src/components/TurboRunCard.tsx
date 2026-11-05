@@ -1,5 +1,5 @@
 import { AGENT_CONVERSATION_SURFACE_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant, ContentFormat } from '@genfeedai/contracts';
 import {
   DEFAULT_TURBO_CONTENT_MIX,
@@ -16,7 +16,7 @@ import { DollarSign, Layers } from 'lucide-react';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
 
 interface TurboRunCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'turbo_run_card'>;
   onGenerate?: (payload: { count: number; platforms: string[] }) => void;
 }
 

@@ -1,7 +1,7 @@
 import { useAgentUiActionRequest } from '@genfeedai/agent/hooks/use-agent-ui-action-request';
 import type {
-  AgentUiAction,
   AgentUiActionHandler,
+  AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { type ReactElement, useCallback } from 'react';
 
 interface WorkflowCreatedCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'workflow_created_card'>;
   onUiAction?: AgentUiActionHandler;
 }
 

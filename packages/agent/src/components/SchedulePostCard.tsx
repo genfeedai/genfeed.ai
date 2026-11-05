@@ -1,7 +1,7 @@
 import { useAgentUiActionRequest } from '@genfeedai/agent/hooks/use-agent-ui-action-request';
 import type {
-  AgentUiAction,
   AgentUiActionHandler,
+  AgentUiActionOf,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
 import {
@@ -43,7 +43,7 @@ import {
 } from './schedule-post-card.helpers';
 
 interface SchedulePostCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'schedule_post_card'>;
   onSchedule?: (payload: {
     platforms: string[];
     postingSetId?: string;

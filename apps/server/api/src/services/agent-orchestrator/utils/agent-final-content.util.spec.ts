@@ -1,9 +1,21 @@
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
-import type { AgentUiAction } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentUiAction,
+  AgentUiActionOf,
+} from '@genfeedai/contracts/interfaces';
 
 describe('agent-final-content.util', () => {
-  const pendingPost: AgentUiAction = {
-    data: { status: 'pending', summary: 'Create post' },
+  const pendingData: AgentUiActionOf<'mutation_approval_card'>['data'] = {
+    approvalId: 'approval-1',
+    brandId: null,
+    expiresAt: '2099-01-01T00:00:00.000Z',
+    items: [],
+    sourceActionId: 'post-1',
+    status: 'pending',
+    summary: 'Create post',
+  };
+  const pendingPost: AgentUiActionOf<'mutation_approval_card'> = {
+    data: pendingData,
     id: 'mutation-approval:post-1',
     title: 'Create post',
     type: 'mutation_approval_card',
@@ -81,16 +93,20 @@ describe('agent-final-content.util', () => {
     );
   });
 
-  it('preserves confirmed creation and unrelated pending approvals', () => {
-    for (const action of [
-      { ...pendingPost, data: { status: 'approved' } },
+  it.each<[string, AgentUiAction]>([
+    [
+      'a confirmed post approval',
+      { ...pendingPost, data: { ...pendingData, status: 'approved' } },
+    ],
+    [
+      'an unrelated pending approval',
       { ...pendingPost, title: 'Update brand' },
-    ]) {
-      expect(
-        normalizeFinalAssistantContent('Your post was created.', [], [action])
-          .content,
-      ).toBe('Your post was created.');
-    }
+    ],
+  ])('preserves the creation claim beside %s', (_label, action) => {
+    expect(
+      normalizeFinalAssistantContent('Your post was created.', [], [action])
+        .content,
+    ).toBe('Your post was created.');
   });
 
   it('returns content when non-empty and no Turbo run card', () => {

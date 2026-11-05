@@ -1,4 +1,4 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentUiActionOf } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ReviewInboxDecision } from '@genfeedai/contracts/interfaces';
@@ -18,17 +18,8 @@ import {
 
 import { AgentErrorMessage } from './AgentErrorMessage';
 
-interface ReviewItem {
-  /** A review inbox item id; the API routes it to the gate that owns it. */
-  id: string;
-  title: string;
-  type?: string;
-  platform?: string;
-  previewUrl?: string;
-}
-
 interface ReviewGateCardProps {
-  action: AgentUiAction;
+  action: AgentUiActionOf<'review_gate_card'>;
   /** Absent while the conversation is read-only: decisions stay unavailable. */
   apiService?: AgentApiService;
 }
@@ -38,7 +29,7 @@ export function ReviewGateCard({
   apiService,
 }: ReviewGateCardProps): ReactElement {
   const translate = useTranslations('agent.reviewGateCard');
-  const items = (action.items ?? []) as ReviewItem[];
+  const items = action.items ?? [];
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
