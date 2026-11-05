@@ -767,3 +767,50 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
     expect(registry.resolveOverrideModelKey).not.toHaveBeenCalled();
   });
 });
+
+describe('AgentOrchestratorContextService buildMessageHistory hand-off results', () => {
+  it('gives the master the result a finished thread left in its chat', () => {
+    const history = createService().buildMessageHistory([
+      userMessage('Make a hero image, then a video from it.'),
+      assistantMessage('I asked the Hero image thread to make it.'),
+      {
+        content: 'Hero image finished.',
+        metadata: {
+          agentTransferResult: {
+            destinationThreadId: 'thread-image',
+            outputArtifactReferences: [
+              {
+                kind: 'ingredient',
+                organizationId: 'org-1',
+                recordId: 'image-1',
+              },
+            ],
+            status: 'COMPLETED',
+          },
+        },
+        role: AgentMessageRole.SYSTEM,
+      } as AgentMessageDocument,
+    ]);
+
+    expect(history.map((message) => message.role)).toEqual([
+      'system',
+      'user',
+      'assistant',
+      'user',
+    ]);
+    expect(readMessageText(history.at(-1))).toContain(
+      'It produced: ingredient:image-1.',
+    );
+  });
+
+  it('still leaves other system notes out of the model history', () => {
+    const history = createService().buildMessageHistory([
+      {
+        content: 'Thread renamed.',
+        role: AgentMessageRole.SYSTEM,
+      } as AgentMessageDocument,
+    ]);
+
+    expect(history.map((message) => message.role)).toEqual(['system']);
+  });
+});

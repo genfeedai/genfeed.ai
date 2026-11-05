@@ -148,6 +148,8 @@ export async function settleAgentTransferFromExecution(
       metadata: {
         agentTransferResult: {
           destinationThreadId: transfer.destinationThreadId,
+          outputArtifactReferences:
+            turnResult.artifactReferences as Prisma.InputJsonValue,
           status,
           transferId,
         },

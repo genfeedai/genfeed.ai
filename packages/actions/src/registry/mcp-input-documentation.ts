@@ -604,8 +604,8 @@ const PARAMETER_DOCUMENTATION = new Map([
     'Image/video brand handles to reference images; max 4, unresolved handles fail.',
   ],
   [
-    'Video only. Start-frame image URL for image-to-video; with audioUrl, talking-avatar lip-sync.',
-    'Video start-frame URL; with audioUrl enables avatar lip-sync.',
+    'Video only. Start frame for image-to-video: the Library image id (from a generated image, get_assets, or a handed-off ingredient record). With audioUrl, talking-avatar lip-sync.',
+    'Video start-frame Library image id; with audioUrl enables avatar lip-sync.',
   ],
   [
     'Video only. Audio URL for avatar lip-sync together with imageUrl.',
