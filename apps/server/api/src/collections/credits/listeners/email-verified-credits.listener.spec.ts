@@ -47,9 +47,7 @@ function listenerWith(
               row.isDeleted === where.isDeleted &&
               row.isProactiveOnboarding === where.isProactiveOnboarding,
           )
-          .sort((left, right) =>
-            left.createdAt.localeCompare(right.createdAt),
-          );
+          .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
         return owned[0] ? { id: owned[0].id } : null;
       },
     },
