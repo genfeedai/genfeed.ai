@@ -9,6 +9,7 @@ const ORIGINAL_NAMES = [
   'accountHistoryImport',
   'activities',
   'adminAgents',
+  'adminBots',
   'adminCreditHolds',
   'adminEconomics',
   'adminFlags',
