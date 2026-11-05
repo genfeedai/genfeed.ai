@@ -191,8 +191,8 @@ describe('WorkflowTemplateSeederService platform authority (#6689)', () => {
     it('marks rows forged with seeded metadata only when the graph is canonical', async () => {
       const [first] = PLATFORM_SEED_TEMPLATE_SETS.analyticsSync.templates;
       prisma.workflow.findMany.mockImplementation(
-        async (args: { where: { metadata: { equals: string } } }) =>
-          args.where.metadata.equals === first.id
+        async (args: { where: { sourceTemplateId: string } }) =>
+          args.where.sourceTemplateId === first.id
             ? [
                 {
                   brandId: null,

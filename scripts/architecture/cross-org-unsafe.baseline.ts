@@ -24,7 +24,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // Superadmin failure resolution; the write itself is scoped to the execution row's own tenant.
     {
       file: 'apps/server/api/src/collections/workflow-executions/controllers/workflow-executions.controller.ts',
-      line: 318,
+      line: 308,
     },
     // Platform-owned system workflow ids are read under the system principal.
     {
@@ -125,7 +125,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // tenant.
     {
       file: 'apps/server/api/src/collections/workflows/system-workflow-mirror.util.ts',
-      line: 38,
+      line: 35,
     },
     // #6120: assertHiddenSystemWorkflowParent reads the system-principal
     // parent workflow.

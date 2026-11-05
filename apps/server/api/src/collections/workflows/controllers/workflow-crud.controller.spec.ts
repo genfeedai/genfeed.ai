@@ -216,12 +216,7 @@ describe('WorkflowCrudController', () => {
         ];
       expect(aggregateArg.where.OR).toEqual([
         { userId: mockSuperAdminUser.userId },
-        {
-          metadata: {
-            equals: 'organization',
-            path: ['systemWorkflow', 'visibility'],
-          },
-        },
+        { systemWorkflowVisibility: 'organization' },
       ]);
       expect(aggregateArg.where.NOT).toBeUndefined();
     });

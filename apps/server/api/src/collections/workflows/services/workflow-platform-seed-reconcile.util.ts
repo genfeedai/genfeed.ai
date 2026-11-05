@@ -70,9 +70,7 @@ export async function reconcilePlatformSeedMarker(
       updatedAt: true,
       userId: true,
     },
-    where: scopedWhere(organizationId, {
-      metadata: { equals: template.id, path: ['sourceTemplateId'] },
-    }),
+    where: scopedWhere(organizationId, { sourceTemplateId: template.id }),
   });
 
   if (

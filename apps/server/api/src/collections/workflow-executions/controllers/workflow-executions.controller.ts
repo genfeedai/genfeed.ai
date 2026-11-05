@@ -261,12 +261,7 @@ export class WorkflowExecutionsController {
                         equals: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
                       },
                     },
-                    {
-                      metadata: {
-                        path: ['systemWorkflow', 'visibility'],
-                        equals: 'internal',
-                      },
-                    },
+                    { systemWorkflowVisibility: 'internal' },
                     {
                       metadata: {
                         path: ['systemWorkflow', 'duplicable'],
@@ -274,14 +269,9 @@ export class WorkflowExecutionsController {
                       },
                     },
                     {
-                      OR: AGENT_CONVERSATION_WORKFLOW_IDS.map(
-                        (canonicalId) => ({
-                          metadata: {
-                            path: ['systemWorkflow', 'canonicalId'],
-                            equals: canonicalId,
-                          },
-                        }),
-                      ),
+                      systemWorkflowCanonicalId: {
+                        in: [...AGENT_CONVERSATION_WORKFLOW_IDS],
+                      },
                     },
                   ],
                 },
