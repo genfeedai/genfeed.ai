@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { IngredientLineageDirection } from '@genfeedai/contracts';
 import type { IIngredientLineagePage } from '@genfeedai/contracts/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
@@ -6,7 +10,12 @@ import { useIngredientLineage } from './use-ingredient-lineage';
 
 const findLineage = vi.hoisted(() => vi.fn());
 
-vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => {
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
   // Like the real hook, the getter keeps one identity across renders.
   const getService = () => Promise.resolve({ findLineage });
   return { useAuthedService: () => getService };
@@ -45,8 +54,10 @@ describe('useIngredientLineage', () => {
       page({ hiddenCount: 2, items: [item('a')], total: 1 }),
     );
 
-    const { result } = renderHook(() =>
-      useIngredientLineage('asset-1', IngredientLineageDirection.MADE_FROM),
+    const { result } = renderHook(
+      () =>
+        useIngredientLineage('asset-1', IngredientLineageDirection.MADE_FROM),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -66,8 +77,9 @@ describe('useIngredientLineage', () => {
       .mockResolvedValueOnce(page({ hasNext: true, items: [item('a')] }))
       .mockResolvedValueOnce(page({ items: [item('b')], page: 2 }));
 
-    const { result } = renderHook(() =>
-      useIngredientLineage('asset-1', IngredientLineageDirection.USED_IN),
+    const { result } = renderHook(
+      () => useIngredientLineage('asset-1', IngredientLineageDirection.USED_IN),
+      { wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(result.current.hasNext).toBe(true));
 
@@ -92,7 +104,7 @@ describe('useIngredientLineage', () => {
     const { rerender, result } = renderHook(
       ({ id }) =>
         useIngredientLineage(id, IngredientLineageDirection.MADE_FROM),
-      { initialProps: { id: 'asset-1' } },
+      { initialProps: { id: 'asset-1' }, wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(result.current.items).toHaveLength(1));
 
@@ -111,8 +123,10 @@ describe('useIngredientLineage', () => {
   it('reports an error without throwing', async () => {
     findLineage.mockRejectedValue(new Error('boom'));
 
-    const { result } = renderHook(() =>
-      useIngredientLineage('asset-1', IngredientLineageDirection.MADE_FROM),
+    const { result } = renderHook(
+      () =>
+        useIngredientLineage('asset-1', IngredientLineageDirection.MADE_FROM),
+      { wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(result.current.hasError).toBe(true));
 
@@ -130,7 +144,7 @@ describe('useIngredientLineage', () => {
     const { rerender, result } = renderHook(
       ({ id }) =>
         useIngredientLineage(id, IngredientLineageDirection.MADE_FROM),
-      { initialProps: { id: 'asset-a' } },
+      { initialProps: { id: 'asset-a' }, wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(result.current.hasNext).toBe(true));
     act(() => result.current.loadMore());
@@ -158,8 +172,10 @@ describe('useIngredientLineage', () => {
       .mockRejectedValueOnce(new Error('boom'))
       .mockResolvedValueOnce(page({ items: [item('b')], page: 2 }));
 
-    const { result } = renderHook(() =>
-      useIngredientLineage('asset-1', IngredientLineageDirection.MADE_FROM),
+    const { result } = renderHook(
+      () =>
+        useIngredientLineage('asset-1', IngredientLineageDirection.MADE_FROM),
+      { wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(result.current.hasNext).toBe(true));
 
@@ -175,5 +191,73 @@ describe('useIngredientLineage', () => {
 
     const pages = findLineage.mock.calls.map(([, , options]) => options.page);
     expect(pages).toEqual([1, 2, 2]);
+  });
+
+  it('paints the cached first page on a return visit without a loading state', async () => {
+    findLineage.mockResolvedValueOnce(
+      page({ hasNext: true, hiddenCount: 1, items: [item('a')] }),
+    );
+    const client = createTestQueryClient();
+    const first = renderHook(
+      () =>
+        useIngredientLineage('asset-1', IngredientLineageDirection.MADE_FROM),
+      { wrapper: queryClientWrapper(client) },
+    );
+    await waitFor(() => expect(first.result.current.items).toHaveLength(1));
+    first.unmount();
+
+    findLineage.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(
+      () =>
+        useIngredientLineage('asset-1', IngredientLineageDirection.MADE_FROM),
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.items.map((entry) => entry.id)).toEqual(['a']);
+    expect(result.current.hiddenCount).toBe(1);
+    expect(result.current.hasNext).toBe(true);
+  });
+
+  it('never paints one direction cached for another', async () => {
+    findLineage.mockResolvedValueOnce(page({ items: [item('source')] }));
+    const client = createTestQueryClient();
+    const first = renderHook(
+      () =>
+        useIngredientLineage('asset-1', IngredientLineageDirection.MADE_FROM),
+      { wrapper: queryClientWrapper(client) },
+    );
+    await waitFor(() => expect(first.result.current.items).toHaveLength(1));
+    first.unmount();
+
+    findLineage.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(
+      () => useIngredientLineage('asset-1', IngredientLineageDirection.USED_IN),
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.items).toEqual([]);
+  });
+
+  it('keeps the loaded lineage when a background refresh fails', async () => {
+    findLineage
+      .mockResolvedValueOnce(page({ items: [item('a')] }))
+      .mockRejectedValueOnce(new Error('boom'));
+    const client = createTestQueryClient();
+    const { result } = renderHook(
+      () =>
+        useIngredientLineage('asset-1', IngredientLineageDirection.MADE_FROM),
+      { wrapper: queryClientWrapper(client) },
+    );
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    await act(() =>
+      client.refetchQueries({ queryKey: ['ingredient-lineage'] }),
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.hasError).toBe(false);
+    expect(result.current.items.map((entry) => entry.id)).toEqual(['a']);
   });
 });
