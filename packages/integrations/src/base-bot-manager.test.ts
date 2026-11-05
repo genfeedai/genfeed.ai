@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
-import { BaseBotManager } from './base-bot-manager';
+import { BaseBotManager, type BotManagerLogger } from './base-bot-manager';
 import { REDIS_EVENTS } from './constants';
 import type { OrgIntegration } from './types';
 
@@ -13,6 +13,12 @@ class TestBotManager extends BaseBotManager<{ id: string; token: string }> {
   destroyedInstances: Array<{ id: string; token: string }> = [];
   fetchAndAddCalls: string[] = [];
   fetchAndUpdateCalls: string[] = [];
+  /** Set to make the next integration fetch fail. */
+  fetchAndAddError: Error | null = null;
+
+  constructor(logger: BotManagerLogger) {
+    super(logger);
+  }
 
   async initialize(): Promise<void> {
     this.initializeCalled = true;
@@ -37,6 +43,7 @@ class TestBotManager extends BaseBotManager<{ id: string; token: string }> {
 
   protected async fetchAndAddIntegration(integrationId: string): Promise<void> {
     this.fetchAndAddCalls.push(integrationId);
+    if (this.fetchAndAddError) throw this.fetchAndAddError;
   }
 
   protected async fetchAndUpdateIntegration(
@@ -75,10 +82,10 @@ function createIntegration(
 describe('BaseBotManager', () => {
   let manager: TestBotManager;
   let mockLogger: {
-    debug: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
+    debug: Mock<BotManagerLogger['debug']>;
+    error: Mock<BotManagerLogger['error']>;
+    log: Mock<BotManagerLogger['log']>;
+    warn: Mock<BotManagerLogger['warn']>;
   };
 
   beforeEach(() => {
@@ -356,11 +363,7 @@ describe('BaseBotManager', () => {
 
     it('should catch and log errors without throwing', async () => {
       const error = new Error('fetch failed');
-      manager.fetchAndAddCalls = [];
-      vi.spyOn(
-        manager as TestBotManager,
-        'fetchAndAddIntegration' as never,
-      ).mockRejectedValueOnce(error);
+      manager.fetchAndAddError = error;
 
       await expect(
         manager.handleRedisEvent(REDIS_EVENTS.INTEGRATION_CREATED, {
