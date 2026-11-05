@@ -28,7 +28,7 @@ import {
 } from '@utils/url/desktop-loop-url.util';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import TargetPreview from '@/components/previews/TargetPreview';
@@ -41,8 +41,11 @@ import PostDetailNeedsYou from '@/features/posts/detail/components/PostDetailNee
 import PostDetailPublished from '@/features/posts/detail/components/PostDetailPublished';
 import { buildPostDetailFacts } from '@/features/posts/detail/post-detail-facts.helper';
 import { buildPostTargetPreview } from '@/features/posts/detail/post-detail-preview.helpers';
+import { usePostAgent } from '@/features/posts/hooks/use-post-agent/use-post-agent';
 import { usePostDetail } from '@/features/posts/hooks/use-post-detail/use-post-detail';
 import type { PostReviewSummary } from '@/props/components/post-detail-sidebar.props';
+
+const PUBLISHING_ROUTE_SEGMENT = 'publishing';
 
 export interface PostDetailProps {
   postId: string;
@@ -150,6 +153,28 @@ export default function PostDetail({
     notificationsService,
     refreshPost,
   } = hookData;
+  const pathname = usePathname();
+  // The editor page and a post selected on a Publishing list hand the agent
+  // this post. Elsewhere (Library, Analytics) the page's own surface keeps it.
+  const isAgentSubject =
+    presentation === 'page' ||
+    pathname.split('/').includes(PUBLISHING_ROUTE_SEGMENT);
+  const applyAgentText = useCallback(
+    (html: string) => {
+      if (post) {
+        autoSaveRefs.currentDescriptions.current.set(post.id, html);
+      }
+      setDescriptionDraft(html);
+    },
+    [autoSaveRefs, post, setDescriptionDraft],
+  );
+  const { onAskAgent } = usePostAgent({
+    descriptionDraft,
+    isEnabled: isAgentSubject && scope === PageScope.PUBLISHING,
+    labelDraft,
+    onApplyText: applyAgentText,
+    post,
+  });
   const [isScoringSeo, setIsScoringSeo] = useState(false);
   const [isTikTokPublishingReady, setIsTikTokPublishingReady] = useState(false);
   const guardTikTokPublish = useCallback(
@@ -403,7 +428,10 @@ export default function PostDetail({
           onTikTokReadinessChange={setIsTikTokPublishingReady}
         />
         {!isStandalonePage && targetPreview ? (
-          <TargetPreview {...targetPreview} />
+          <TargetPreview
+            {...targetPreview}
+            presentation={presentation === 'sidebar' ? 'compact' : 'full'}
+          />
         ) : null}
         {!isStandalonePage && !isPublished ? (
           <EngagementPreview post={post} />
@@ -427,6 +455,7 @@ export default function PostDetail({
     isScoringSeo,
     isStandalonePage,
     post,
+    presentation,
     refreshPost,
     reviewSummary,
     scheduleDraft,
@@ -537,6 +566,7 @@ export default function PostDetail({
           ? handleCreateRemix
           : undefined,
         onDelete: handleDeletePost,
+        onAskAgent,
         onDuplicate: handleDuplicate,
         onExpandToThread: handleExpandToThread,
         onPublishNow: publishNow,
@@ -671,6 +701,7 @@ export default function PostDetail({
                     handleSetGrokQuestion={handleSetGrokQuestion}
                     handleToggleFirstComment={handleToggleFirstComment}
                     handleUpdateChild={handleUpdateChild}
+                    onAskAgent={onAskAgent}
                     autoSaveRefs={autoSaveRefs}
                     performAutoSaveForPost={performAutoSaveForPost}
                     getPostsService={getPostsService}

@@ -7,8 +7,8 @@ import PostDetailContent, {
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi } from 'vitest';
 
-const { listProps, barProps } = vi.hoisted(() => ({
-  barProps: { current: null as Record<string, unknown> | null },
+const { listProps, actionsProps } = vi.hoisted(() => ({
+  actionsProps: { current: null as Record<string, unknown> | null },
   listProps: { current: null as Record<string, unknown> | null },
 }));
 
@@ -24,11 +24,11 @@ vi.mock('@/features/posts/detail/components/PostDetailThreadFooter', () => ({
 }));
 
 vi.mock(
-  '@/features/posts/components/composer-prompt-bar/PostComposerPromptBar',
+  '@/features/posts/components/composer-actions/PostComposerActions',
   () => ({
     default: (props: Record<string, unknown>) => {
-      barProps.current = props;
-      return <div data-testid="prompt-bar">{String(props.targetLabel)}</div>;
+      actionsProps.current = props;
+      return <div data-testid="ai-actions">{String(props.targetLabel)}</div>;
     },
   }),
 );
@@ -52,11 +52,11 @@ vi.mock(
 );
 
 function applyRewrite(text: string): void {
-  const apply = barProps.current?.onApplyRewrite as
+  const apply = actionsProps.current?.onApplyRewrite as
     | ((value: string) => void)
     | undefined;
   if (!apply) {
-    throw new Error('Prompt bar was not rendered');
+    throw new Error('AI actions were not rendered');
   }
   apply(text);
 }
@@ -161,21 +161,21 @@ describe('PostDetailContent', () => {
     expect(screen.queryByTestId('post-list')).not.toBeInTheDocument();
   });
 
-  it('renders the thread footer and prompt bar while composing', () => {
+  it('renders the thread footer and AI actions while composing', () => {
     render(<PostDetailContent {...buildProps()} />);
 
     expect(screen.getByTestId('thread-footer')).toBeInTheDocument();
-    expect(screen.getByTestId('prompt-bar')).toBeInTheDocument();
+    expect(screen.getByTestId('ai-actions')).toBeInTheDocument();
   });
 
-  it('hides the thread footer and prompt bar outside the publisher scope', () => {
+  it('hides the thread footer and AI actions outside the publisher scope', () => {
     render(<PostDetailContent {...buildProps({ scope: PageScope.BRAND })} />);
 
     expect(screen.queryByTestId('thread-footer')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('prompt-bar')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('ai-actions')).not.toBeInTheDocument();
   });
 
-  it('hides the prompt bar once the post is published', () => {
+  it('hides the AI actions once the post is published', () => {
     render(
       <PostDetailContent
         {...buildProps({
@@ -184,7 +184,7 @@ describe('PostDetailContent', () => {
       />,
     );
 
-    expect(screen.queryByTestId('prompt-bar')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('ai-actions')).not.toBeInTheDocument();
   });
 
   it('keeps the first comment out of the post list', () => {
@@ -200,7 +200,7 @@ describe('PostDetailContent', () => {
     );
 
     expect(listProps.current?.sortedChildren).toEqual([]);
-    expect(barProps.current?.canAddFirstComment).toBe(false);
+    expect(actionsProps.current?.canAddFirstComment).toBe(false);
   });
 
   it('offers thread presets on an X post without replies', () => {
@@ -216,9 +216,9 @@ describe('PostDetailContent', () => {
       />,
     );
 
-    expect(barProps.current?.canDraftThread).toBe(true);
-    expect(barProps.current?.canEndWithGrok).toBe(true);
-    expect(screen.getByTestId('prompt-bar')).toHaveTextContent('Post 1');
+    expect(actionsProps.current?.canDraftThread).toBe(true);
+    expect(actionsProps.current?.canEndWithGrok).toBe(true);
+    expect(screen.getByTestId('ai-actions')).toHaveTextContent('Post 1');
   });
 
   it('applies an accepted rewrite to the post the user last worked in', () => {
@@ -241,14 +241,14 @@ describe('PostDetailContent', () => {
     rerender(<PostDetailContent {...props} focusedPostId="child-1" />);
     rerender(<PostDetailContent {...props} focusedPostId={null} />);
 
-    expect(screen.getByTestId('prompt-bar')).toHaveTextContent('Post 2');
+    expect(screen.getByTestId('ai-actions')).toHaveTextContent('Post 2');
     act(() => {
       applyRewrite('Reply');
     });
     expect(setChildDescription).toHaveBeenCalledWith('child-1', '<p>Reply</p>');
   });
 
-  it('routes quick actions and free-form prompts to the target post', async () => {
+  it('routes quick actions and other presets to the target post', async () => {
     const handleQuickAction = vi.fn().mockResolvedValue('a');
     const handlePerTweetEnhance = vi.fn().mockResolvedValue('b');
     render(
@@ -256,7 +256,7 @@ describe('PostDetailContent', () => {
         {...buildProps({ handlePerTweetEnhance, handleQuickAction })}
       />,
     );
-    const onRewrite = barProps.current?.onRewrite as (
+    const onRewrite = actionsProps.current?.onRewrite as (
       prompt: string,
       actionKey: string | null,
       tone: string,

@@ -665,6 +665,7 @@ function UniversalWorkspaceShellContent({
     agentApiService,
     isConversationHost,
     !isAgentRoute,
+    productSurfaceAdapter?.threadKey ?? null,
   );
   const setIsAgentDockAvailable = agentDock?.setIsAvailable;
   const closeAgentDock = agentDock?.close;

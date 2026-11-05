@@ -9,6 +9,11 @@ import { AgentThreadKind, AgentThreadStatus } from '@genfeedai/contracts';
 import type { AgentDockThreadOption } from '@props/ui/agent-dock.props';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  forgetThreadId,
+  readRememberedThreadId,
+  rememberThreadId,
+} from './agent-dock-thread-keys';
 
 const THREAD_LIST_LIMIT = 30;
 
@@ -24,6 +29,9 @@ function threadRecency(thread: AgentThread): string {
  * Threads for the product-page chat box. The full `/agent` page owns its own
  * list; this only loads while the dock can open, then switches the shared
  * conversation store so the dock transcript follows.
+ *
+ * A page about one record passes its `threadKey` (e.g. `post:<id>`): the dock
+ * then holds that record's own conversation, never the master.
  */
 export function useAgentDockThreads(
   apiService: Pick<AgentApiService, 'getMessages' | 'getThreads'> &
@@ -31,6 +39,7 @@ export function useAgentDockThreads(
   isEnabled: boolean,
   // False where the page opens the master itself (the `/agent` workspace).
   shouldOpenMaster = true,
+  threadKey: string | null = null,
 ) {
   const threads = useAgentChatStore((state) => state.threads);
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
@@ -56,6 +65,8 @@ export function useAgentDockThreads(
   // Set when the operator starts a blank conversation, so opening the master by
   // default does not undo it. Cleared when the dock stops being the host.
   const hasStartedFreshThread = useRef(false);
+  // The record whose conversation the dock currently holds.
+  const openedThreadKey = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isEnabled || typeof apiService.getThreads !== 'function') {
@@ -110,10 +121,10 @@ export function useAgentDockThreads(
   }, [threads, translate]);
 
   const selectThread = useCallback(
-    async (threadId: string) => {
+    async (threadId: string): Promise<boolean> => {
       const currentThreadId = useAgentChatStore.getState().activeThreadId;
       if (currentThreadId === threadId) {
-        return;
+        return true;
       }
 
       const serial = ++requestSerial.current;
@@ -123,7 +134,7 @@ export function useAgentDockThreads(
       const restored = restoreCachedConversation(threadId);
       setActiveThread(threadId);
       if (restored) {
-        return;
+        return true;
       }
 
       setMessages([]);
@@ -137,15 +148,17 @@ export function useAgentDockThreads(
           serial !== requestSerial.current ||
           useAgentChatStore.getState().activeThreadId !== threadId
         ) {
-          return;
+          return true;
         }
         setMessages(messages);
         setError(null);
+        return true;
       } catch {
         if (serial !== requestSerial.current) {
-          return;
+          return true;
         }
         setError(translate('threadOpenFailed'));
+        return false;
       }
     },
     [
@@ -173,14 +186,76 @@ export function useAgentDockThreads(
     resetActiveConversationState();
   }, [cacheConversation, resetActiveConversationState, setActiveThread]);
 
-  // The dock opens on the master conversation unless a thread is already open
-  // or the operator asked for a blank one.
+  // A record page holds the record's own conversation: the thread the dock
+  // last held for it, else a fresh one that the first message creates.
+  useEffect(() => {
+    if (!isEnabled || !threadKey) {
+      if (openedThreadKey.current) {
+        openedThreadKey.current = null;
+        // Leaving the record without a conversation lets the master return.
+        if (!useAgentChatStore.getState().activeThreadId) {
+          hasStartedFreshThread.current = false;
+        }
+      }
+      return;
+    }
+    if (openedThreadKey.current === threadKey) {
+      return;
+    }
+
+    openedThreadKey.current = threadKey;
+    const rememberedThreadId = readRememberedThreadId(threadKey);
+    if (!rememberedThreadId) {
+      startThread();
+      return;
+    }
+
+    void selectThread(rememberedThreadId).then((isOpened) => {
+      if (isOpened || openedThreadKey.current !== threadKey) {
+        return;
+      }
+      // The thread is gone (archived, deleted): start the record over.
+      forgetThreadId(threadKey);
+      setError(null);
+      startThread();
+    });
+  }, [isEnabled, selectThread, setError, startThread, threadKey]);
+
+  // The first message on a record's fresh conversation creates its thread;
+  // remember it so the record reopens it next time.
+  useEffect(() => {
+    // Read the store, not this render: opening the record above may have
+    // switched the thread in the same commit.
+    const { activeThreadId: currentThreadId, threads: currentThreads } =
+      useAgentChatStore.getState();
+    if (
+      !isEnabled ||
+      !threadKey ||
+      !activeThreadId ||
+      !currentThreadId ||
+      openedThreadKey.current !== threadKey ||
+      readRememberedThreadId(threadKey) === currentThreadId
+    ) {
+      return;
+    }
+    const currentThread = currentThreads.find(
+      (thread) => thread.id === currentThreadId,
+    );
+    if (currentThread?.kind === AgentThreadKind.MASTER) {
+      return;
+    }
+    rememberThreadId(threadKey, currentThreadId);
+  }, [activeThreadId, isEnabled, threadKey]);
+
+  // The dock opens on the master conversation unless a thread is already open,
+  // the operator asked for a blank one, or the page holds a record's thread.
   useEffect(() => {
     if (!isEnabled) {
       hasStartedFreshThread.current = false;
       return;
     }
     if (
+      threadKey ||
       !shouldOpenMaster ||
       activeThreadId ||
       hasStartedFreshThread.current ||
@@ -210,7 +285,14 @@ export function useAgentDockThreads(
       .catch(() => undefined);
 
     return () => controller.abort();
-  }, [activeThreadId, apiService, isEnabled, selectThread, shouldOpenMaster]);
+  }, [
+    activeThreadId,
+    apiService,
+    isEnabled,
+    selectThread,
+    shouldOpenMaster,
+    threadKey,
+  ]);
 
   return {
     activeThreadId,

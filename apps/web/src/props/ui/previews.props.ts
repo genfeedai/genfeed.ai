@@ -3,6 +3,7 @@ import type {
   ICredential,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
+import type { PlatformPreviewProps } from '@genfeedai/props/components/platform-preview.props';
 
 /**
  * The slice of a release group a preview renderer needs. `attachments` is
@@ -27,4 +28,6 @@ export interface TargetPreviewProps {
   target: IChannelTarget;
   credential: TargetPreviewCredential;
   className?: string;
+  /** `compact` is the flat card for a narrow side panel: author, media, text. */
+  presentation?: PlatformPreviewProps['presentation'];
 }

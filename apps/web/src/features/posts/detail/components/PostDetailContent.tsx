@@ -17,8 +17,8 @@ import type { PostsService } from '@services/content/posts.service';
 import type { NotificationsService } from '@services/core/notifications.service';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import PostComposerPromptBar from '@/features/posts/components/composer-prompt-bar/PostComposerPromptBar';
-import type { TweetTone } from '@/features/posts/components/composer-prompt-bar/PostComposerPromptBar.props';
+import PostComposerActions from '@/features/posts/components/composer-actions/PostComposerActions';
+import type { TweetTone } from '@/features/posts/components/composer-actions/PostComposerActions.props';
 import ThreadPreviewPanel from '@/features/posts/components/posts/preview/thread-preview-panel/ThreadPreviewPanel';
 import PostDetailPostList from '@/features/posts/detail/components/PostDetailPostList';
 import PostDetailThreadFooter from '@/features/posts/detail/components/PostDetailThreadFooter';
@@ -101,6 +101,8 @@ export interface PostDetailContentProps {
   handleSetGrokQuestion: (question: string) => Promise<void>;
   handleToggleFirstComment: (checked: boolean) => Promise<void>;
   handleUpdateChild: (childId: string, updates: Partial<IPost>) => void;
+  /** Opens the agent on this post's own conversation; absent when none can open. */
+  onAskAgent?: () => void;
 
   autoSaveRefs: {
     currentDescriptions: React.MutableRefObject<Map<string, string>>;
@@ -173,6 +175,7 @@ export default function PostDetailContent({
   handleSetGrokQuestion,
   handleToggleFirstComment,
   handleUpdateChild,
+  onAskAgent,
   autoSaveRefs,
   performAutoSaveForPost,
   getPostsService,
@@ -317,7 +320,7 @@ export default function PostDetailContent({
       ) : null}
 
       {isComposing ? (
-        <PostComposerPromptBar
+        <PostComposerActions
           targetLabel={targetLabel}
           targetContent={targetContent}
           platformLabel={
@@ -337,6 +340,7 @@ export default function PostDetailContent({
           onAddThreadPosts={handleAddThreadPosts}
           onEndWithGrok={() => void handleToggleGrokFeedback(true)}
           onAddFirstComment={() => void handleToggleFirstComment(true)}
+          onAskAgent={onAskAgent}
         />
       ) : null}
     </div>

@@ -6,9 +6,14 @@ import { buildTargetPreview } from './preview.helpers';
 
 export default function TargetPreview({
   className,
+  presentation,
   ...props
 }: TargetPreviewProps) {
   return (
-    <PlatformPreview className={className} target={buildTargetPreview(props)} />
+    <PlatformPreview
+      className={className}
+      presentation={presentation}
+      target={buildTargetPreview(props)}
+    />
   );
 }

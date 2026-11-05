@@ -68,8 +68,12 @@ vi.mock(
 );
 
 vi.mock('@/components/previews/TargetPreview', () => ({
-  default: ({ release }: TargetPreviewProps) => (
-    <div data-testid="target-preview" data-content={release.baseContent} />
+  default: ({ presentation, release }: TargetPreviewProps) => (
+    <div
+      data-testid="target-preview"
+      data-content={release.baseContent}
+      data-presentation={presentation}
+    />
   ),
 }));
 
@@ -284,7 +288,12 @@ describe('PostDetail', () => {
 
   it('renders only the compact detail in the sidebar presentation', () => {
     mockUsePostDetail.mockReturnValue(
-      buildHookData({ post: buildPost({ status: PostStatus.FAILED }) }),
+      buildHookData({
+        post: buildPost({
+          platform: Platform.TWITTER,
+          status: PostStatus.FAILED,
+        }),
+      }),
     );
 
     render(
@@ -310,6 +319,11 @@ describe('PostDetail', () => {
     expect(screen.queryByTestId('post-header')).not.toBeInTheDocument();
     expect(screen.queryByTestId('post-content')).not.toBeInTheDocument();
     expect(screen.getByTestId('sidebar-selection')).toHaveTextContent('post-1');
+    // A flat preview in the narrow panel, not the full platform mock.
+    expect(within(inspector).getByTestId('target-preview')).toHaveAttribute(
+      'data-presentation',
+      'compact',
+    );
   });
 
   it('reports the sidebar close to the page', async () => {

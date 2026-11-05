@@ -12,11 +12,11 @@ import {
 import type {
   PostComposerPresetKey,
   TweetTone,
-} from '@/features/posts/components/composer-prompt-bar/PostComposerPromptBar.props';
+} from '@/features/posts/components/composer-actions/PostComposerActions.props';
 
 /**
- * Preset data is keyed, not English: the bar resolves each label from
- * `ui.postComposerPromptBar.presets.<key>`.
+ * Preset data is keyed, not English: the actions resolve each label from
+ * `ui.postComposerActions.presets.<key>`.
  */
 export interface PostComposerPreset {
   key: PostComposerPresetKey;
