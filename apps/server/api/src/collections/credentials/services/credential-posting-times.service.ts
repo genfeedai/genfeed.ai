@@ -113,16 +113,15 @@ export class CredentialPostingTimesService {
       throw new BadRequestException('after must be a valid ISO-8601 instant.');
     }
 
-    const timezone = await this.resolveBrandTimezone(
-      organizationId,
-      credential.brandId,
-    );
-    const occupiedInstants = await this.listOccupiedInstants({
-      after: afterDate,
-      brandId: credential.brandId,
-      credentialId: credential.id,
-      organizationId,
-    });
+    const [timezone, occupiedInstants] = await Promise.all([
+      this.resolveBrandTimezone(organizationId, credential.brandId),
+      this.listOccupiedInstants({
+        after: afterDate,
+        brandId: credential.brandId,
+        credentialId: credential.id,
+        organizationId,
+      }),
+    ]);
 
     return findNextFreeSlot({
       after: afterDate,

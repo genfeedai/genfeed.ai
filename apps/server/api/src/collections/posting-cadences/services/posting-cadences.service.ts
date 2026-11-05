@@ -981,12 +981,10 @@ export class PostingCadencesService {
         targetId: existing.generatedItemId,
       };
     }
-
     const generatedItemId = existing.generatedItemId;
     if (!generatedItemId) {
       throw new BadRequestException('This slot has no generated item.');
     }
-
     const release = await this.postGroupsService.getOne(
       organizationId,
       generatedItemId,

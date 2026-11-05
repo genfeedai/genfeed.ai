@@ -639,9 +639,7 @@ export class PostsService extends BaseService<
     });
   }
 
-  /**
-   * Create a thread (batch of posts with parent-child relationships)
-   */
+  /** Creates a thread of posts linked by parent and child relationships. */
   @HandleErrors('create thread', 'posts')
   async createThread(
     threadPosts: PostCreateInput[],

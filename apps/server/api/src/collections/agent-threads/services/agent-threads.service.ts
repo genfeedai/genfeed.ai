@@ -175,10 +175,8 @@ export class AgentThreadsService extends BaseService<
     });
   }
 
-  /**
-   * One page of the user's threads (newest first) with the total, so the list
-   * never loads every thread and snapshot the user has ever created.
-   */
+  // Returns one page of the user's threads, newest first, plus the total.
+  // This avoids loading every thread and snapshot for the user.
   async getUserThreads(
     userId: string,
     organizationId: string,

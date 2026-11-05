@@ -83,19 +83,21 @@ export class XGrowthReportService {
       isTruncated = page === MAX_PUBLICATION_PAGES;
     }
 
-    const postFacts = await this.loadPostFacts(
-      scope,
-      publications.map((publication) => publication.id),
-    );
-    const snapshots = await this.prisma.accountAnalyticsSnapshot.findMany({
-      orderBy: { date: 'asc' },
-      select: { date: true, followers: true, metricAvailability: true },
-      where: scopedWhere(scope.organizationId, {
-        brandId: scope.brandId,
-        credentialId: credential.id,
-        date: { gte: new Date(period.from), lte: new Date(period.to) },
+    const [postFacts, snapshots] = await Promise.all([
+      this.loadPostFacts(
+        scope,
+        publications.map((publication) => publication.id),
+      ),
+      this.prisma.accountAnalyticsSnapshot.findMany({
+        orderBy: { date: 'asc' },
+        select: { date: true, followers: true, metricAvailability: true },
+        where: scopedWhere(scope.organizationId, {
+          brandId: scope.brandId,
+          credentialId: credential.id,
+          date: { gte: new Date(period.from), lte: new Date(period.to) },
+        }),
       }),
-    });
+    ]);
 
     return buildXGrowthReport({
       isTruncated,

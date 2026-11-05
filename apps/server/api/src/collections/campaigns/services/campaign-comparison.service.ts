@@ -32,15 +32,13 @@ export class CampaignComparisonService {
     const metric = query.metric === 'engagements' ? 'engagements' : 'views';
     const entries = await Promise.all(
       uniqueIds.map(async (campaignId) => {
-        const campaign = await this.campaigns.getOne(
-          organizationId,
-          campaignId,
-        );
-        const performance = await this.performance.getPerformance(
-          organizationId,
-          campaignId,
-          { endDate: query.endDate, startDate: query.startDate },
-        );
+        const [campaign, performance] = await Promise.all([
+          this.campaigns.getOne(organizationId, campaignId),
+          this.performance.getPerformance(organizationId, campaignId, {
+            endDate: query.endDate,
+            startDate: query.startDate,
+          }),
+        ]);
         return {
           campaign,
           organic: performance.organic,

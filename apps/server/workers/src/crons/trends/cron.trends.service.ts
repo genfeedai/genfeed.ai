@@ -178,32 +178,33 @@ export class CronTrendsService implements OnModuleInit {
   private async discoverScopedTrendTasks(): Promise<{
     items: ScopedTrendRefreshTask[];
   }> {
-    const credentials = await this.prisma.credential.findMany({
-      distinct: ['organizationId', 'brandId', 'platform'],
-      select: { brandId: true, organizationId: true, platform: true },
-      where: {
-        brandId: { not: null },
-        isConnected: true,
-        isDeleted: false,
-        organizationId: { not: null },
-        platform: {
-          in: [
-            PrismaCredentialPlatform.INSTAGRAM,
-            PrismaCredentialPlatform.LINKEDIN,
-            PrismaCredentialPlatform.PINTEREST,
-            PrismaCredentialPlatform.REDDIT,
-            PrismaCredentialPlatform.TIKTOK,
-            PrismaCredentialPlatform.TWITTER,
-            PrismaCredentialPlatform.YOUTUBE,
-          ],
+    const [credentials, preferences] = await Promise.all([
+      this.prisma.credential.findMany({
+        distinct: ['organizationId', 'brandId', 'platform'],
+        select: { brandId: true, organizationId: true, platform: true },
+        where: {
+          brandId: { not: null },
+          isConnected: true,
+          isDeleted: false,
+          organizationId: { not: null },
+          platform: {
+            in: [
+              PrismaCredentialPlatform.INSTAGRAM,
+              PrismaCredentialPlatform.LINKEDIN,
+              PrismaCredentialPlatform.PINTEREST,
+              PrismaCredentialPlatform.REDDIT,
+              PrismaCredentialPlatform.TIKTOK,
+              PrismaCredentialPlatform.TWITTER,
+              PrismaCredentialPlatform.YOUTUBE,
+            ],
+          },
         },
-      },
-    });
-
-    const preferences = await this.prisma.trendPreferences.findMany({
-      select: { brandId: true, config: true, organizationId: true },
-      where: { brandId: { not: null }, isDeleted: false },
-    });
+      }),
+      this.prisma.trendPreferences.findMany({
+        select: { brandId: true, config: true, organizationId: true },
+        where: { brandId: { not: null }, isDeleted: false },
+      }),
+    ]);
 
     // A brand is searched on TikTok when it set niche keywords, hashtags or
     // categories, or has a connected TikTok account (then its description

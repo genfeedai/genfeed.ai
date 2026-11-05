@@ -574,22 +574,24 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     try {
       const postsService = this.postsService;
-      const children = await loadPostThreadChildren(
-        postsService
-          ? {
-              getChildren: (parentId) =>
-                postsService.getChildren(parentId, organizationId),
-            }
-          : undefined,
-        postId,
-      );
-      const previousEvaluation = await this.prisma.evaluation.findFirst({
-        where: scopedWhere(organizationId, {
-          contentId: postId,
-          contentType: 'post',
+      const [children, previousEvaluation] = await Promise.all([
+        loadPostThreadChildren(
+          postsService
+            ? {
+                getChildren: (parentId) =>
+                  postsService.getChildren(parentId, organizationId),
+              }
+            : undefined,
+          postId,
+        ),
+        this.prisma.evaluation.findFirst({
+          where: scopedWhere(organizationId, {
+            contentId: postId,
+            contentType: 'post',
+          }),
+          orderBy: PREVIOUS_EVALUATION_ORDER_BY,
         }),
-        orderBy: PREVIOUS_EVALUATION_ORDER_BY,
-      });
+      ]);
       const { context, threadContent } =
         evaluationResultProjection.buildPostEvaluationContext(
           post,

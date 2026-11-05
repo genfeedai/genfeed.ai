@@ -799,10 +799,8 @@ export class SkillsService {
     return resolvedSkills.sort((left, right) => left.priority - right.priority);
   }
 
-  /**
-   * Normalize a raw Prisma Skill row into a SkillDocument-compatible shape.
-   * Spreads config fields to the top level for the API document contract.
-   */
+  // Normalize a Prisma Skill row to the API SkillDocument shape.
+  // The API exposes config fields at the top level.
   private normalizeSkill(row: Record<string, unknown>): SkillDocument {
     const config = this.getConfig(row);
     return {

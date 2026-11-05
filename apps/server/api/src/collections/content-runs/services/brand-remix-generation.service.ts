@@ -254,15 +254,14 @@ export class BrandRemixGenerationService {
         'Use scene quotes for video/avatar; generic generation supports one to eight copy/image variants.',
       );
     const brandId = this.persistence.requireBrandId(run);
-    const context = await this.planning.resolveBrandContext(
-      organizationId,
-      brandId,
-    );
-    const source = await this.planning.resolveSource(
-      organizationId,
-      brandId,
-      config.sourceSnapshot.selector,
-    );
+    const [context, source] = await Promise.all([
+      this.planning.resolveBrandContext(organizationId, brandId),
+      this.planning.resolveSource(
+        organizationId,
+        brandId,
+        config.sourceSnapshot.selector,
+      ),
+    ]);
     const readiness = await this.planning.assertReadyForGeneration(
       organizationId,
       brandId,

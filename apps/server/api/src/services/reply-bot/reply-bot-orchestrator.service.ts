@@ -265,11 +265,10 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     skipped: number;
   }> {
     const request = readBotRequest(action.input.request);
-    const botConfig = await this.loadBotConfig(request);
-    const credential = await this.loadCredential(
-      request.credentialId,
-      request.organizationId,
-    );
+    const [botConfig, credential] = await Promise.all([
+      this.loadBotConfig(request),
+      this.loadCredential(request.credentialId, request.organizationId),
+    ]);
     const platformInput =
       credential.platform ?? botConfig.platform ?? ReplyBotPlatform.TWITTER;
     const platform = normalizeReplyBotPlatform(platformInput);
@@ -996,10 +995,8 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     });
   }
 
-  /**
-   * The platform a reply goes out on is the credential's (the executor routes
-   * on it), so the draft-only rule reads it from there.
-   */
+  // The executor routes replies by the credential's platform.
+  // Use that same platform to check whether replies must stay drafts.
   private async isManualReply(
     state: ReplyBotContentState,
     botConfig: ReplyBotConfigDocument,

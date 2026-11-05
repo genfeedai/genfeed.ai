@@ -114,8 +114,10 @@ export class PostRepurposeService {
   ) {}
 
   async repurpose(params: RepurposePostParams): Promise<RepurposePostResult> {
-    const source = await this.getSourcePostOrThrow(params);
-    const credential = await this.resolveCredential(params);
+    const [source, credential] = await Promise.all([
+      this.getSourcePostOrThrow(params),
+      this.resolveCredential(params),
+    ]);
     const media = this.toSourceMedia(source);
 
     if (params.mode === PostRepurposeMode.AGENT) {

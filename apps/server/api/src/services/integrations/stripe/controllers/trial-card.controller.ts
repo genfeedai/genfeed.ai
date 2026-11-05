@@ -116,8 +116,10 @@ export class TrialCardController {
     @Body() dto: ClaimTrialCardDto,
     @Req() request: Request,
   ): Promise<ITrialClaimResponse> {
-    const stripeCustomerId = await this.resolveStripeCustomerId(user);
-    const dbUser = await this.usersService.findOne({ id: user.id });
+    const [stripeCustomerId, dbUser] = await Promise.all([
+      this.resolveStripeCustomerId(user),
+      this.usersService.findOne({ id: user.id }),
+    ]);
     if (!dbUser) {
       throw new NotFoundException('User', user.id);
     }

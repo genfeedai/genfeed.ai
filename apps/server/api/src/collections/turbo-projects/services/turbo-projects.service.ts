@@ -258,10 +258,7 @@ export class TurboProjectsService {
     return this.loadProject(id, scope);
   }
 
-  /**
-   * Deletion takes the project lock start and retry take, so a project can
-   * never be deleted between their generating check and their claim.
-   */
+  /** Uses the start and retry lock to prevent deletion while a run is claimed. */
   remove(id: string, scope: ITurboProjectScope): Promise<void> {
     return this.reconcileService.runExclusive(id, () =>
       this.removeLocked(id, scope),

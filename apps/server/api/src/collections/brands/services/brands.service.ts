@@ -623,10 +623,7 @@ export class BrandsService extends BaseService<
     return candidate;
   }
 
-  /**
-   * Whether `slug` is free for `brandId`; global like the database constraint.
-   * Top-level app route names (`turbo`, `clipper`, ...) are never free.
-   */
+  /** Checks global slug availability for the brand, including reserved app routes. */
   async isSlugAvailable(slug: string, brandId: string): Promise<boolean> {
     if (isReservedAppRootSegment(slug)) {
       return false;

@@ -984,9 +984,7 @@ export class SystemWorkflowRunnerService
     organizationId: string,
     userId?: string,
   ): Promise<string> {
-    if (userId) {
-      return userId;
-    }
+    if (userId) return userId;
     const organization = await this.prisma.organization.findUnique({
       select: { userId: true },
       where: { id: organizationId },

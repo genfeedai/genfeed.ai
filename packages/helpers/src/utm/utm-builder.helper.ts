@@ -19,13 +19,17 @@ const LINK_TYPE_PATTERNS: Array<{ pattern: string; type: string }> = [
   { pattern: 'paypal.com', type: 'integration_paypal' },
 ];
 
+function linkTypeForHostname(hostname: string): string {
+  const host = hostname.toLowerCase();
+  const match = LINK_TYPE_PATTERNS.find(({ pattern }) =>
+    host.includes(pattern),
+  );
+  return match?.type ?? 'custom_link';
+}
+
 export function getLinkType(url: string): string {
   try {
-    const hostname = new URL(url).hostname.toLowerCase();
-    const match = LINK_TYPE_PATTERNS.find(({ pattern }) =>
-      hostname.includes(pattern),
-    );
-    return match?.type ?? 'custom_link';
+    return linkTypeForHostname(new URL(url).hostname);
   } catch {
     return 'custom_link';
   }
@@ -47,7 +51,7 @@ export function addUTMParameters(
       return url;
     }
 
-    const contentType = linkType || getLinkType(url);
+    const contentType = linkType || linkTypeForHostname(urlObj.hostname);
 
     urlObj.searchParams.append('utm_source', 'genfeedai_profile');
     urlObj.searchParams.append('utm_medium', 'profile_link');

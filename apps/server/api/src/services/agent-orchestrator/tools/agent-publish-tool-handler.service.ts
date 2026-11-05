@@ -528,12 +528,10 @@ export class AgentPublishToolHandler {
       typeof params.scheduledAt === 'string' && params.scheduledAt.trim()
         ? params.scheduledAt.trim()
         : undefined;
-
     return { caption, platforms, requestedScheduledAt, requestedTargets };
   }
 
-  // Only a resumed publish card needs its sourceActionId verified against a
-  // persisted confirmation; an auto-publish-permitted call never showed one.
+  /** Verifies persisted confirmation only for resumed publish cards. */
   private async rejectUnverifiedPublishCard(
     sourceActionId: string,
     ctx: ToolExecutionContext,

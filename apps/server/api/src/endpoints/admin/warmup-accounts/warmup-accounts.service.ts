@@ -180,15 +180,17 @@ export class AdminWarmupAccountsService {
     const account = await this.settleFailedStarterGeneration(
       await this.getAccount(id),
     );
-    const invitation = await this.loadInvitation(account);
-
-    const previews = await this.contentPreviews.listForWarmups([account.id]);
+    const [invitation, previews, readiness] = await Promise.all([
+      this.loadInvitation(account),
+      this.contentPreviews.listForWarmups([account.id]),
+      warmupReadiness(this.prisma, account),
+    ]);
     return {
       ...this.toView(account, invitation),
       previews: (previews.get(account.id) ?? []).map((preview) =>
         this.contentPreviews.toView(preview),
       ),
-      readiness: await warmupReadiness(this.prisma, account),
+      readiness,
     };
   }
 
@@ -345,10 +347,12 @@ export class AdminWarmupAccountsService {
 
     // Readiness is computed for this page's accounts only, in a fixed number
     // of batched queries rather than one query fan-out per account.
-    const readiness = await warmupReadinessBatch(this.prisma, accounts);
-    const previews = await this.contentPreviews.listForWarmups(
-      accounts.map((account) => account.id),
-    );
+    const [readiness, previews] = await Promise.all([
+      warmupReadinessBatch(this.prisma, accounts),
+      this.contentPreviews.listForWarmups(
+        accounts.map((account) => account.id),
+      ),
+    ]);
 
     return buildPaginatedResult(
       accounts.map((account, index) => ({

@@ -454,9 +454,11 @@ export class NewslettersService
     id: string,
     ctx: TenantContext,
   ): Promise<Record<string, unknown>> {
-    const newsletter = await this.findOneScoped(id, ctx);
-    const brand = await this.getBrandContext(ctx);
-    const recentNewsletters = await this.getRecentPublishedNewsletters(ctx);
+    const [newsletter, brand, recentNewsletters] = await Promise.all([
+      this.findOneScoped(id, ctx),
+      this.getBrandContext(ctx),
+      this.getRecentPublishedNewsletters(ctx),
+    ]);
     const selectedContextIds = (newsletter.contextNewsletterIds ?? []).map(
       (item) => item.toString(),
     );

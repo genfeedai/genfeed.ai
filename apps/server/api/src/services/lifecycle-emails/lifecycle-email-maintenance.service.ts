@@ -513,33 +513,35 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     )
       return;
     const now = new Date(request.referenceDate);
-    const ingredients = await this.prisma.ingredient.findMany({
-      where: scopedWhere(request.organizationId, {
-        ...GENERATED_CONTENT_FILTER,
-        userId,
-        generationCompletedAt: {
-          gte: new Date(now.getTime() - 7 * DAY_MS),
-          lt: new Date(now.getTime() - DAY_MS),
-        },
-        brandId: { not: null },
+    const [ingredients, articles] = await Promise.all([
+      this.prisma.ingredient.findMany({
+        where: scopedWhere(request.organizationId, {
+          ...GENERATED_CONTENT_FILTER,
+          userId,
+          generationCompletedAt: {
+            gte: new Date(now.getTime() - 7 * DAY_MS),
+            lt: new Date(now.getTime() - DAY_MS),
+          },
+          brandId: { not: null },
+        }),
+        select: { brandId: true },
+        distinct: ['brandId'],
       }),
-      select: { brandId: true },
-      distinct: ['brandId'],
-    });
-    const articles = await this.prisma.article.findMany({
-      where: {
-        organizationId: request.organizationId,
-        isDeleted: false,
-        userId,
-        brandId: { not: null },
-        generationCompletedAt: {
-          gte: new Date(now.getTime() - 7 * DAY_MS),
-          lt: new Date(now.getTime() - DAY_MS),
+      this.prisma.article.findMany({
+        where: {
+          organizationId: request.organizationId,
+          isDeleted: false,
+          userId,
+          brandId: { not: null },
+          generationCompletedAt: {
+            gte: new Date(now.getTime() - 7 * DAY_MS),
+            lt: new Date(now.getTime() - DAY_MS),
+          },
         },
-      },
-      select: { brandId: true },
-      distinct: ['brandId'],
-    });
+        select: { brandId: true },
+        distinct: ['brandId'],
+      }),
+    ]);
     const items = [
       ...new Map(
         [...ingredients, ...articles].map((item) => [item.brandId, item]),

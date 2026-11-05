@@ -156,14 +156,10 @@ export class BrandRemixSceneQuoteService {
       throw new ConflictException(
         'Nano Banana 2 is unavailable or has no valid price.',
       );
-    const imageByok = await this.byok.isByokActiveForProvider(
-      organizationId,
-      ByokProvider.REPLICATE,
-    );
-    const videoByok = await this.byok.isByokActiveForProvider(
-      organizationId,
-      ByokProvider.HEYGEN,
-    );
+    const [imageByok, videoByok] = await Promise.all([
+      this.byok.isByokActiveForProvider(organizationId, ByokProvider.REPLICATE),
+      this.byok.isByokActiveForProvider(organizationId, ByokProvider.HEYGEN),
+    ]);
     const scenes = config.concept?.storyboard ?? [];
     if (
       input.operation === 'repair' &&

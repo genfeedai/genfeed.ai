@@ -49,20 +49,42 @@ function isHttpUrl(value: string): boolean {
   return /^https?:\/\//i.test(value);
 }
 
+const MAX_PARSED_CDN_BASES = 8;
+const parsedCdnBases = new Map<string, URL | null>();
+
+/**
+ * The configured CDN base, parsed once per distinct value. It is read for
+ * every media row, so it is not re-parsed per call. Callers must not mutate
+ * the returned URL.
+ */
+function parseCdnBase(cdnUrl: string): URL | null {
+  const cached = parsedCdnBases.get(cdnUrl);
+  if (cached !== undefined) {
+    return cached;
+  }
+  if (parsedCdnBases.size >= MAX_PARSED_CDN_BASES) {
+    parsedCdnBases.clear();
+  }
+  let parsed: URL | null;
+  try {
+    parsed = new URL(cdnUrl);
+  } catch {
+    parsed = null;
+  }
+  parsedCdnBases.set(cdnUrl, parsed);
+  return parsed;
+}
+
 /**
  * The files host serves the files API and local-disk driver, not public media;
  * a files-host origin resolves to the public staging CDN instead.
  */
 function publicCdnOrigin(cdnOrigin: string): string {
   const trimmed = trimSlash(cdnOrigin);
-  try {
-    if (isFilesServiceHostname(new URL(trimmed).hostname)) {
-      return STAGING_CDN_ORIGIN;
-    }
-  } catch {
-    return trimmed;
-  }
-  return trimmed;
+  const base = parseCdnBase(trimmed);
+  return base && isFilesServiceHostname(base.hostname)
+    ? STAGING_CDN_ORIGIN
+    : trimmed;
 }
 
 function storageKeyFromPath(pathname: string): string | undefined {
@@ -217,11 +239,13 @@ export function signCdnUrl(
   config: MediaUrlConfig,
   options: MediaUrlOptions = {},
 ): string {
+  const cdnBase = parseCdnBase(config.cdnUrl);
+  if (!cdnBase) {
+    return absoluteUrl;
+  }
   let parsed: URL;
-  let cdnBase: URL;
   try {
     parsed = new URL(absoluteUrl);
-    cdnBase = new URL(config.cdnUrl);
   } catch {
     return absoluteUrl;
   }

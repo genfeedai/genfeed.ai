@@ -116,9 +116,7 @@ export class EntityLeaderboardService {
     return Prisma.raw(`"${field}"`);
   }
 
-  /**
-   * Calculate growth percentage between current and previous values
-   */
+  /** Calculates percentage growth between the current and previous values. */
   private calculateGrowth(current: number, previous: number): number {
     if (previous > 0) {
       return Math.round(((current - previous) / previous) * 100 * 100) / 100;

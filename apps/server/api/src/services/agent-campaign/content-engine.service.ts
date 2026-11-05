@@ -235,11 +235,10 @@ export class ContentEngineService {
       0,
       MAX_ORCHESTRATED_STRATEGIES_PER_RUN,
     );
-    const goalSummaries = await this.loadGoalSummaries(
-      selectedStrategies,
-      organizationId,
-    );
-    const analyticsOverview = await this.loadAnalyticsOverview(campaign);
+    const [goalSummaries, analyticsOverview] = await Promise.all([
+      this.loadGoalSummaries(selectedStrategies, organizationId),
+      this.loadAnalyticsOverview(campaign),
+    ]);
     const remainingCampaignBudget = this.getRemainingCampaignBudget(campaign);
 
     if (remainingCampaignBudget !== null && remainingCampaignBudget <= 0) {
@@ -476,11 +475,10 @@ export class ContentEngineService {
 
     const organizationId = input.organizationId;
     const userId = this.requireCampaignUserId(campaign, input.campaignId);
-    const goalSummaries = await this.loadGoalSummaries(
-      input.strategies,
-      organizationId,
-    );
-    const analyticsOverview = await this.loadAnalyticsOverview(campaign);
+    const [goalSummaries, analyticsOverview] = await Promise.all([
+      this.loadGoalSummaries(input.strategies, organizationId),
+      this.loadAnalyticsOverview(campaign),
+    ]);
     const remainingCampaignBudget = this.getRemainingCampaignBudget(campaign);
 
     if (remainingCampaignBudget !== null && remainingCampaignBudget <= 0) {
@@ -695,9 +693,7 @@ export class ContentEngineService {
     const overview = await this.analyticsService.getOverview(
       sevenDaysAgo.toISOString(),
       now.toISOString(),
-      // Scalar FKs: the relation aliases are `undefined` on an unpopulated read
-      // and stringify to "[object Object]" on a populated one — either way the
-      // overview gets scoped to a brand/organization that does not exist.
+      // Scalar IDs keep the overview scoped even when relations are unpopulated.
       campaign.brandId ?? undefined,
       requireRelationId(
         campaign.organizationId,

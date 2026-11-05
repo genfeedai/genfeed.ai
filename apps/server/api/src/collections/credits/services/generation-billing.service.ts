@@ -170,10 +170,7 @@ export class GenerationBillingService {
     );
   }
 
-  /**
-   * Binds an output to its own hold before provider dispatch, so a fast
-   * completion callback always finds immutable funding for that output.
-   */
+  /** Binds immutable funding to an output before dispatch so callbacks can settle it. */
   async bindOutput(
     request: GenerationBillingRequest,
     output: {

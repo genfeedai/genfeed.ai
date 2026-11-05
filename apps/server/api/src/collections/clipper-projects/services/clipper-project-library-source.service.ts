@@ -64,19 +64,20 @@ export class ClipperProjectLibrarySourceService {
     const orgId = user.organizationId;
     const userId = user.userId ?? user.id;
     const brandId = dto.brandId ?? user.brandId;
-    const identity = await this.clipperIdentityResolutionService.resolve({
-      brandId,
-      organizationId: orgId,
-    });
-
-    const ingredient = await this.ingredientsService.findOne(
-      {
-        id: dto.ingredientId,
-        isDeleted: false,
+    const [identity, ingredient] = await Promise.all([
+      this.clipperIdentityResolutionService.resolve({
+        brandId,
         organizationId: orgId,
-      },
-      [{ path: 'metadata' }],
-    );
+      }),
+      this.ingredientsService.findOne(
+        {
+          id: dto.ingredientId,
+          isDeleted: false,
+          organizationId: orgId,
+        },
+        [{ path: 'metadata' }],
+      ),
+    ]);
     // Same visibility rule as the Library: an org-shared asset (no brand) is
     // usable from any brand, a branded asset only from its own brand.
     if (!ingredient || (ingredient.brandId && ingredient.brandId !== brandId)) {

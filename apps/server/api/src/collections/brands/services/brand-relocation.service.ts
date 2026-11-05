@@ -457,10 +457,7 @@ export class BrandRelocationService {
     };
   }
 
-  /**
-   * Read-only preview for a brand relocation. Workflows are one-to-one with a
-   * brand now, so they move with the brand.
-   */
+  /** Previews brand relocation, including the workflow that moves with the brand. */
   async previewRelocation(
     brandId: string,
     destOrgId: string,

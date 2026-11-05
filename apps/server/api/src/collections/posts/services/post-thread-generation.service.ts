@@ -162,21 +162,19 @@ export class PostThreadGenerationService {
     const additionalCount = dto.count - 1;
     const originalContent =
       originalPost.description?.replace(/<[^>]+>/g, ' ').trim() || '';
-    const template = await this.templatesService.getRenderedPrompt(
-      PromptTemplateKey.THREAD_EXPAND,
-      {
-        additionalCount,
-        count: dto.count,
-        originalContent,
-        tone: dto.tone || TweetTone.PROFESSIONAL,
-      },
-      identity.organizationId,
-    );
-    const brief = await this.resolveThreadBrief(
-      originalPost,
-      originalContent,
-      identity,
-    );
+    const [template, brief] = await Promise.all([
+      this.templatesService.getRenderedPrompt(
+        PromptTemplateKey.THREAD_EXPAND,
+        {
+          additionalCount,
+          count: dto.count,
+          originalContent,
+          tone: dto.tone || TweetTone.PROFESSIONAL,
+        },
+        identity.organizationId,
+      ),
+      this.resolveThreadBrief(originalPost, originalContent, identity),
+    ]);
     const prompt = [
       template,
       `Brand brief for this thread. Write every reply in this voice and follow its X thread craft and guardrails:\n${brief}`,

@@ -35,8 +35,10 @@ export class OutliersService {
   async refresh(scope: OutlierAccountScope) {
     const account = await this.inputs.authorize(scope);
     const computedAt = new Date();
-    const observations = await this.inputs.read(account);
-    const config = await this.configuration.resolve(account.organizationId);
+    const [observations, config] = await Promise.all([
+      this.inputs.read(account),
+      this.configuration.resolve(account.organizationId),
+    ]);
     const where = { ...account, isDeleted: false };
     const previousTypes = await this.prisma.outlierBaselineSnapshot.groupBy({
       where: scopedWhere(account.organizationId, where),

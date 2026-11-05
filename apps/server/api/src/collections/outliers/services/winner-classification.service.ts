@@ -61,8 +61,10 @@ export class WinnerClassificationService {
     now: Date = new Date(),
   ): Promise<IWinnerPost[]> {
     const { organizationId } = query;
-    const config = await this.configuration.resolve(organizationId);
-    const candidates = await this.readCandidates(query);
+    const [config, candidates] = await Promise.all([
+      this.configuration.resolve(organizationId),
+      this.readCandidates(query),
+    ]);
     const buckets = new Map<string, WinnerCandidate[]>();
     for (const candidate of candidates) {
       const { accountId, platform, contentType } = candidate.input;

@@ -382,10 +382,8 @@ export class StripeService {
     );
   }
 
-  /**
-   * Create a Stripe customer for an individual user (consumer apps like getshareable.app)
-   * User-level customers are separate from organization customers
-   */
+  // Creates a Stripe customer for an individual user.
+  // User-level customers are separate from organization customers.
   public async createUserCustomer(
     userId: string,
     email: string,

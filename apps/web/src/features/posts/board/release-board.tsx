@@ -262,8 +262,10 @@ export default function ReleaseBoard({
     void (async () => {
       setPendingAction(SCHEDULE_NEXT_SLOT_ACTION);
       try {
-        const credentialsService = await getCredentialsService();
-        const releaseGroupsService = await getReleaseGroupsService();
+        const [credentialsService, releaseGroupsService] = await Promise.all([
+          getCredentialsService(),
+          getReleaseGroupsService(),
+        ]);
         for (const release of selected) {
           // One API call per selected release — the bulk action is a fan-out of
           // individual reschedules, not a single batched endpoint.
