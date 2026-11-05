@@ -8,16 +8,7 @@ import { createAssistantStreamRenderer } from '@/shell/assistant-stream-renderer
 import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
 import { parsePositiveInteger } from '@/utils/options';
-
-async function readAnswerFromStdin(): Promise<string> {
-  const chunks: Buffer[] = [];
-
-  for await (const chunk of process.stdin) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-
-  return Buffer.concat(chunks).toString('utf8').trim();
-}
+import { readStdin } from '@/utils/stdin';
 
 export const threadsCommand = new Command('threads')
   .description('Inspect and resume agent threads')
@@ -110,7 +101,7 @@ export const threadsCommand = new Command('threads')
       .action(async (threadId, answer, options) => {
         try {
           await requireAuth();
-          const stdinAnswer = options.stdin ? await readAnswerFromStdin() : '';
+          const stdinAnswer = options.stdin ? await readStdin() : '';
           const finalAnswer = (answer ?? stdinAnswer).trim();
 
           if (!finalAnswer) {
