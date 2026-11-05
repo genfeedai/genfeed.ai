@@ -30,6 +30,10 @@ function createConversationDom(turnIds: string[]) {
     configurable: true,
     value: 1_000,
   });
+  Object.defineProperty(container, 'scrollHeight', {
+    configurable: true,
+    value: 4_000,
+  });
   container.getBoundingClientRect = vi.fn(() => ({
     bottom: 1_000,
     height: 1_000,
@@ -65,6 +69,26 @@ afterEach(() => {
 });
 
 describe('AgentConversationTurnNavigator', () => {
+  it('stays out of the way while the conversation fits on screen', () => {
+    const conversation = createConversationDom(['user-1', 'user-2']);
+    Object.defineProperty(conversation.container, 'scrollHeight', {
+      configurable: true,
+      value: 1_000,
+    });
+
+    render(
+      <AgentConversationTurnNavigator
+        scrollContainerRef={conversation.ref}
+        timeline={[
+          buildMessage('user-1', 'user', 'Plan the launch'),
+          buildMessage('user-2', 'user', 'Now draft the announcement'),
+        ]}
+      />,
+    );
+
+    expect(screen.queryByRole('navigation')).toBeNull();
+  });
+
   it('renders one prompt marker per user message', () => {
     const conversation = createConversationDom(['user-1', 'user-2']);
 

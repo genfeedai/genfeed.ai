@@ -1316,8 +1316,6 @@
     "title": "Agent"
   },
   "agentThreads": {
-    "allBrands": "All brands",
-    "brandFilter": "Filter by brand",
     "breadcrumb": "Thread location",
     "empty": "No threads yet. Ask the master to start one.",
     "groups": {

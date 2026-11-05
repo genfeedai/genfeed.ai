@@ -92,6 +92,42 @@ describe('agent-thread-title.util', () => {
       expect(result.content).toBe('Here is the plan.');
       expect(result.title).toBe('Launch Plan');
     });
+
+    const leakedReply =
+      'I\'ll check your review queue for pending drafts first.\n{"title":"Check review queue","summary":"Checking pending drafts before scheduling.","explanation":"The request is to schedule posts.","content":"I\'ll pull up your review queue to see what\'s ready to schedule.","steps":[{"step":"Fetch review queue","status":"in_progress"}]}';
+
+    it('keeps the prose and drops a JSON envelope that follows it', () => {
+      const result = extractThreadEnvelope({
+        assistantContent: leakedReply,
+        prompt: 'schedule my posts for the week',
+        seedTitle: 'schedule my posts for the week',
+      });
+      expect(result.content).toBe(
+        "I'll check your review queue for pending drafts first.\n\nI'll pull up your review queue to see what's ready to schedule.",
+      );
+      expect(result.title).toBe('Check Review Queue');
+    });
+
+    it('drops the envelope from a later reply too, with no title', () => {
+      const result = extractThreadEnvelope({
+        assistantContent: leakedReply,
+        prompt: 'schedule my posts for the week',
+        seedTitle: '',
+      });
+      expect(result.content).not.toContain('{');
+      expect(result.title).toBeNull();
+    });
+
+    it('leaves JSON the user asked for alone on a later reply', () => {
+      const reply = 'Here is the config:\n{"retries":3,"mode":"fast"}';
+      expect(
+        extractThreadEnvelope({
+          assistantContent: reply,
+          prompt: 'give me json',
+          seedTitle: '',
+        }).content,
+      ).toBe(reply);
+    });
   });
 
   describe('maybeUpdateThreadTitle', () => {

@@ -1,4 +1,5 @@
 import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { findTrailingJsonObject } from '@api/services/agent-orchestrator/utils/agent-plan-question.util';
 import {
   isUntrustedFramingTitle,
   stripUntrustedContentFraming,
@@ -81,43 +82,106 @@ export function sanitizeGeneratedThreadTitle(
     .join(' ');
 }
 
+const REPLY_ENVELOPE_KEYS: ReadonlySet<string> = new Set([
+  'content',
+  'explanation',
+  'steps',
+  'summary',
+  'title',
+]);
+
+interface ReplyEnvelope {
+  content?: unknown;
+  explanation?: unknown;
+  steps?: unknown;
+  summary?: unknown;
+  title?: unknown;
+}
+
+function readEnvelopeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+/**
+ * Splits a reply into the prose around its title/content/plan envelope and the
+ * envelope itself. A model asked for JSON often opens with a sentence ("I'll
+ * check your review queue first.") and then the object; the object must not
+ * reach the transcript as text. A reply that is only JSON keeps the old rule
+ * (anything with a `content` string unwraps); an object after prose counts as
+ * an envelope only when every key belongs to one.
+ */
+function isReplyEnvelope(parsed: ReplyEnvelope): boolean {
+  return (
+    Object.keys(parsed).every((key) => REPLY_ENVELOPE_KEYS.has(key)) &&
+    (typeof parsed.content === 'string' || Array.isArray(parsed.steps))
+  );
+}
+
+function splitReplyEnvelope(
+  assistantContent: string,
+  options: { isLenient: boolean },
+): {
+  envelope: ReplyEnvelope | null;
+  prose: string;
+} {
+  const trimmed = assistantContent.trim();
+  const fencedJsonMatch = trimmed.match(FENCED_JSON_PATTERN);
+  const candidate = fencedJsonMatch?.[1]?.trim() ?? trimmed;
+
+  if (candidate.startsWith('{') && candidate.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(candidate) as ReplyEnvelope;
+      return options.isLenient || isReplyEnvelope(parsed)
+        ? { envelope: parsed, prose: '' }
+        : { envelope: null, prose: trimmed };
+    } catch {
+      return { envelope: null, prose: trimmed };
+    }
+  }
+
+  const embedded = findTrailingJsonObject(candidate);
+  if (!embedded) {
+    return { envelope: null, prose: trimmed };
+  }
+  const parsed = JSON.parse(embedded) as ReplyEnvelope;
+  return isReplyEnvelope(parsed)
+    ? {
+        envelope: parsed,
+        prose: candidate.slice(0, candidate.length - embedded.length).trim(),
+      }
+    : { envelope: null, prose: trimmed };
+}
+
 export function extractThreadEnvelope(params: {
   assistantContent: string;
   prompt: string;
   seedTitle: string;
 }): { content: string; title: string | null } {
+  // The first reply is asked for a title/content envelope, so any JSON object
+  // with a `content` string unwraps. Later replies only lose an object that is
+  // shaped like an envelope, so JSON the user asked for survives.
+  const { envelope, prose } = splitReplyEnvelope(params.assistantContent, {
+    isLenient: Boolean(params.seedTitle.trim()),
+  });
+  const envelopeText = readEnvelopeText(envelope?.content);
+  const content = envelope
+    ? [
+        ...new Set(
+          [
+            prose,
+            envelopeText ||
+              readEnvelopeText(envelope.summary) ||
+              readEnvelopeText(envelope.explanation),
+          ].filter(Boolean),
+        ),
+      ].join('\n\n') || params.assistantContent
+    : params.assistantContent;
+
   if (!params.seedTitle.trim()) {
-    return {
-      content: params.assistantContent,
-      title: null,
-    };
+    return { content, title: null };
   }
 
-  const trimmed = params.assistantContent.trim();
-  const fencedJsonMatch = trimmed.match(FENCED_JSON_PATTERN);
-  const candidate = fencedJsonMatch?.[1]?.trim() ?? trimmed;
-  let parsed: {
-    content?: unknown;
-    title?: unknown;
-  } | null = null;
-
-  if (candidate.startsWith('{') && candidate.endsWith('}')) {
-    try {
-      parsed = JSON.parse(candidate) as {
-        content?: unknown;
-        title?: unknown;
-      };
-    } catch {
-      parsed = null;
-    }
-  }
-
-  const content =
-    typeof parsed?.content === 'string' && parsed.content.trim()
-      ? parsed.content.trim()
-      : params.assistantContent;
-  const parsedTitle =
-    typeof parsed?.title === 'string' ? parsed.title.trim() : '';
+  const parsedTitle = readEnvelopeText(envelope?.title);
 
   return {
     content,

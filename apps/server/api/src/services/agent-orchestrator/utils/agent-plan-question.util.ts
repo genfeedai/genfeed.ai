@@ -96,7 +96,7 @@ const MAX_EMBEDDED_JSON_ATTEMPTS = 25;
  * "I'll check your review queue first." Without this the whole reply, braces
  * included, would be posted as an ordinary message.
  */
-function findTrailingJsonObject(text: string): string | null {
+export function findTrailingJsonObject(text: string): string | null {
   if (!text.endsWith('}')) return null;
   let attempts = 0;
   for (
