@@ -1,96 +1,146 @@
+import type { CacheService } from '@api/services/cache/cache.service';
 import { ConflictException } from '@nestjs/common';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { runIdempotent } from './idempotency.util';
 
-function createCache(
-  overrides: Partial<{
-    acquireLock: ReturnType<typeof vi.fn>;
-    get: ReturnType<typeof vi.fn>;
-    releaseLock: ReturnType<typeof vi.fn>;
-    set: ReturnType<typeof vi.fn>;
-  }> = {},
-) {
+/**
+ * An in-memory cache with expiring entries and locks, on a clock the test
+ * moves by hand.
+ */
+function expiringCache() {
+  let now = 0;
+  const values = new Map<string, { expiresAt: number; value: unknown }>();
+  const locks = new Map<string, number>();
+  const cache = {
+    acquireLock: async (key: string, ttlSeconds: number) => {
+      const heldUntil = locks.get(key);
+      if (heldUntil !== undefined && heldUntil > now) {
+        return false;
+      }
+      locks.set(key, now + ttlSeconds);
+      return true;
+    },
+    get: async (key: string) => {
+      const entry = values.get(key);
+      return entry && entry.expiresAt > now ? entry.value : null;
+    },
+    releaseLock: async (key: string) => locks.delete(key),
+    set: async (key: string, value: unknown, options: { ttl: number }) => {
+      values.set(key, { expiresAt: now + options.ttl, value });
+      return true;
+    },
+  };
   return {
-    acquireLock: vi.fn().mockResolvedValue(true),
-    get: vi.fn().mockResolvedValue(null),
-    releaseLock: vi.fn().mockResolvedValue(true),
-    set: vi.fn().mockResolvedValue(true),
-    ...overrides,
+    advance: (seconds: number) => {
+      now += seconds;
+    },
+    cache: cache as unknown as CacheService,
+  };
+}
+
+/** An operation that counts its runs and returns a fresh batch each time. */
+function createBatch() {
+  let runs = 0;
+  return {
+    operation: async () => {
+      runs += 1;
+      return { id: `batch-${runs}` };
+    },
+    runs: () => runs,
   };
 }
 
 describe('runIdempotent', () => {
-  it('returns cached results for duplicate completed requests', async () => {
-    const cached = { id: 'batch-1' };
-    const cache = createCache({
-      get: vi.fn().mockResolvedValue(cached),
-    });
-    const operation = vi.fn();
+  it('runs once and replays the first result to duplicates within the hour', async () => {
+    const { advance, cache } = expiringCache();
+    const batch = createBatch();
 
-    await expect(
-      runIdempotent(cache as never, 'key-1', operation),
-    ).resolves.toEqual(cached);
+    const first = await runIdempotent(cache, 'key-1', batch.operation);
+    advance(3_599);
+    const duplicate = await runIdempotent(cache, 'key-1', batch.operation);
 
-    expect(operation).not.toHaveBeenCalled();
-    expect(cache.acquireLock).not.toHaveBeenCalled();
+    expect([first, duplicate]).toEqual([{ id: 'batch-1' }, { id: 'batch-1' }]);
+    expect(batch.runs()).toBe(1);
   });
 
-  it('caches successful operation results for later duplicates', async () => {
-    const cache = createCache();
-    const result = { id: 'batch-1' };
+  it('runs again once the hour has passed', async () => {
+    const { advance, cache } = expiringCache();
+    const batch = createBatch();
 
-    await expect(
-      runIdempotent(cache as never, 'key-1', async () => result),
-    ).resolves.toEqual(result);
+    await runIdempotent(cache, 'key-1', batch.operation);
+    advance(3_601);
 
-    expect(cache.acquireLock).toHaveBeenCalledWith('idempotency:key-1', 3600);
-    expect(cache.set).toHaveBeenCalledWith('idempotency-result:key-1', result, {
-      ttl: 3600,
+    expect(await runIdempotent(cache, 'key-1', batch.operation)).toEqual({
+      id: 'batch-2',
     });
-    expect(cache.releaseLock).not.toHaveBeenCalled();
   });
 
-  it('supports a short in-flight lock while retaining the completed result window', async () => {
-    const cache = createCache();
+  it('keeps different keys apart', async () => {
+    const { cache } = expiringCache();
+    const batch = createBatch();
 
-    await runIdempotent(
-      cache as never,
-      'media-key',
-      async () => ({ id: 'asset-1' }),
-      { lockTtlSeconds: 120 },
+    const results = [
+      await runIdempotent(cache, 'key-1', batch.operation),
+      await runIdempotent(cache, 'key-2', batch.operation),
+    ];
+
+    expect(results).toEqual([{ id: 'batch-1' }, { id: 'batch-2' }]);
+  });
+
+  it('rejects a duplicate while the first request is still running', async () => {
+    const { cache } = expiringCache();
+    let finish: () => void = () => undefined;
+    const first = runIdempotent(
+      cache,
+      'key-1',
+      () =>
+        new Promise<{ id: string }>((resolve) => {
+          finish = () => resolve({ id: 'batch-1' });
+        }),
     );
 
-    expect(cache.acquireLock).toHaveBeenCalledWith(
-      'idempotency:media-key',
-      120,
-    );
-    expect(cache.set).toHaveBeenCalledWith(
-      'idempotency-result:media-key',
-      { id: 'asset-1' },
-      { ttl: 3600 },
-    );
-  });
-
-  it('releases the lock when the operation fails so callers can retry', async () => {
-    const cache = createCache();
-    const error = new Error('boom');
-
     await expect(
-      runIdempotent(cache as never, 'key-1', async () => {
-        throw error;
-      }),
-    ).rejects.toThrow(error);
-
-    expect(cache.releaseLock).toHaveBeenCalledWith('idempotency:key-1');
-  });
-
-  it('rejects duplicates while the first request is still processing', async () => {
-    const cache = createCache({
-      acquireLock: vi.fn().mockResolvedValue(false),
-    });
-
-    await expect(
-      runIdempotent(cache as never, 'key-1', async () => ({ id: 'batch-1' })),
+      runIdempotent(cache, 'key-1', async () => ({ id: 'batch-2' })),
     ).rejects.toBeInstanceOf(ConflictException);
+    finish();
+    await first;
+  });
+
+  it('lets a retry run after the operation fails', async () => {
+    const { cache } = expiringCache();
+    const batch = createBatch();
+
+    await expect(
+      runIdempotent(cache, 'key-1', async () => {
+        throw new Error('boom');
+      }),
+    ).rejects.toThrow('boom');
+
+    expect(await runIdempotent(cache, 'key-1', batch.operation)).toEqual({
+      id: 'batch-1',
+    });
+  });
+
+  it('frees a short in-flight lock left by a crashed run, but keeps a finished result for the hour', async () => {
+    const { advance, cache } = expiringCache();
+    const batch = createBatch();
+    void runIdempotent(cache, 'stuck', () => new Promise<never>(() => {}), {
+      lockTtlSeconds: 120,
+    });
+    await runIdempotent(cache, 'done', batch.operation, {
+      lockTtlSeconds: 120,
+    });
+    advance(121);
+
+    const results = [
+      await runIdempotent(cache, 'stuck', batch.operation, {
+        lockTtlSeconds: 120,
+      }),
+      await runIdempotent(cache, 'done', batch.operation, {
+        lockTtlSeconds: 120,
+      }),
+    ];
+
+    expect(results).toEqual([{ id: 'batch-2' }, { id: 'batch-1' }]);
   });
 });
