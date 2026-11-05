@@ -11,6 +11,8 @@ import {
 import { BadRequestException } from '@nestjs/common';
 import { z } from 'zod';
 
+const REGEX_SPECIAL_CHARS_PATTERN = /[.*+?^${}()|[\]\\]/g;
+
 /** Terminal operations beyond this are pruned oldest first; live ones never are. */
 export const STILL_JOURNAL_CAPACITY = 64;
 /** A dispatch that left no placeholder for this long never reached a provider. */
@@ -64,7 +66,7 @@ export function appendStillOperations(
 }
 
 function mentions(action: string, name: string): boolean {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escaped = name.replace(REGEX_SPECIAL_CHARS_PATTERN, '\\$&');
   return new RegExp(
     `(^|[^\\p{L}\\p{N}])${escaped}($|[^\\p{L}\\p{N}])`,
     'iu',

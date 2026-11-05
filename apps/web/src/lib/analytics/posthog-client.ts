@@ -21,6 +21,8 @@ import {
   markBrandOsDraftAccepted,
 } from './brand-os-funnel-dedupe';
 
+const POSTHOG_PROJECT_KEY_PATTERN = /^phc_[A-Za-z0-9]+$/;
+
 /**
  * Gated PostHog client for Genfeed Cloud product analytics (issue #1178).
  *
@@ -108,7 +110,7 @@ const FIRST_ONLY_ANALYTICS_EVENTS: ReadonlySet<AnalyticsEvent> = new Set([
  * session.
  */
 export function isAnalyticsEnabled(): boolean {
-  return /^phc_[A-Za-z0-9]+$/.test(POSTHOG_KEY ?? '') && isSaaS();
+  return POSTHOG_PROJECT_KEY_PATTERN.test(POSTHOG_KEY ?? '') && isSaaS();
 }
 
 /**

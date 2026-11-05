@@ -52,6 +52,9 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 @Injectable()
 export class LearningAccountService {
   constructor(
@@ -161,7 +164,7 @@ export class LearningAccountService {
     const descriptor = scope.cellDescriptor;
     if (
       !validLearningDescriptor(descriptor) ||
-      !/^[a-f0-9]{64}$/.test(scope.descriptorHash) ||
+      !SHA256_HEX_PATTERN.test(scope.descriptorHash) ||
       learningHash(learningDescriptorTuple(descriptor)) !==
         scope.descriptorHash ||
       descriptor.platform !== platform ||

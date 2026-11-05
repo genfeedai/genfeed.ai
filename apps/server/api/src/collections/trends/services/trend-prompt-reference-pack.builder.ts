@@ -20,6 +20,9 @@ import {
 import { isTrendPromptReady } from '@api/collections/trends/utils/trend-prompt-ready.util';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 
+const SENTENCE_PUNCTUATION_PATTERN = /[.!?]/;
+const SEPARATOR_RUN_PATTERN = /[-_\s]+/;
+
 const PROMPT_REFERENCE_PACK_TYPES: TrendPromptReferencePackType[] = [
   'hooks',
   'formats',
@@ -199,7 +202,7 @@ export class TrendPromptReferencePackBuilder {
 
   private deriveHook(reference: TrendSourceReferenceRecord): string {
     const label = this.getReferenceLabel(reference);
-    const firstSentence = label.split(/[.!?]/)[0]?.trim();
+    const firstSentence = label.split(SENTENCE_PUNCTUATION_PATTERN)[0]?.trim();
     return SecurityUtil.sanitizePromptInput(firstSentence || label, 160);
   }
 
@@ -442,7 +445,7 @@ export class TrendPromptReferencePackBuilder {
 
   private toTitleCase(value: string): string {
     return value
-      .split(/[-_\s]+/)
+      .split(SEPARATOR_RUN_PATTERN)
       .filter(Boolean)
       .map((part) => `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}`)
       .join(' ');

@@ -37,6 +37,8 @@ import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 const generateReferralCode = customAlphabet(
   '23456789abcdefghjkmnpqrstuvwxyz',
   12,
@@ -148,7 +150,7 @@ export class ReferralsService {
     );
     const configuredBaseUrl = String(
       this.configService.get('GENFEEDAI_APP_URL') ?? '',
-    ).replace(/\/$/, '');
+    ).replace(TRAILING_SLASH_PATTERN, '');
 
     return {
       code: referralCode.code,

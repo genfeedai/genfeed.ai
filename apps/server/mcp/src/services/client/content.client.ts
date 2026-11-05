@@ -35,13 +35,15 @@ import {
 import type { BaseApiClient } from './base-api-client';
 import { CONTENT_STATUS } from './client.types';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 /**
  * `wordCount` is not a serialized article attribute — derive it from the
  * content the API did return rather than reporting a hardcoded 0.
  */
 function countWords(content: string): number {
   const trimmed = content.trim();
-  return trimmed ? trimmed.split(/\s+/).length : 0;
+  return trimmed ? trimmed.split(WHITESPACE_RUN_PATTERN).length : 0;
 }
 
 function reviewedArticleResponse(

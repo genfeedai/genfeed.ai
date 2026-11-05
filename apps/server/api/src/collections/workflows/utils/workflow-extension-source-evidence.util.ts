@@ -3,6 +3,8 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 /** An admitted Extend run must still point at the same stored source bytes at dispatch. */
 export async function assertWorkflowExtensionSourceEvidence(
   prisma: PrismaService,
@@ -22,7 +24,7 @@ export async function assertWorkflowExtensionSourceEvidence(
     typeof proof.sourceKey !== 'string' ||
     !proof.sourceKey ||
     typeof proof.sourceVersion !== 'string' ||
-    !/^[a-f0-9]{64}$/.test(proof.sourceVersion) ||
+    !SHA256_HEX_PATTERN.test(proof.sourceVersion) ||
     typeof proof.sizeBytes !== 'number' ||
     !Number.isSafeInteger(proof.sizeBytes) ||
     proof.sizeBytes <= 0
@@ -71,7 +73,7 @@ export async function assertWorkflowExtensionSourceEvidence(
       frameProof.assetId !== input.frameIngredientId ||
       frameProof.sourceKey !== frame.s3Key ||
       typeof frameProof.sourceVersion !== 'string' ||
-      !/^[a-f0-9]{64}$/.test(frameProof.sourceVersion) ||
+      !SHA256_HEX_PATTERN.test(frameProof.sourceVersion) ||
       typeof frameProof.sizeBytes !== 'number' ||
       !Number.isSafeInteger(frameProof.sizeBytes) ||
       frameProof.sizeBytes <= 0

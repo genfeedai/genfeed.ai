@@ -5,6 +5,9 @@ import type {
 } from '@api/collections/content-performance/services/performance-summary.service';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 
+const NON_ALPHANUMERIC_RUN_PATTERN = /[^a-z0-9]+/;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+
 const HOOK_STOP_WORDS = new Set([
   'about',
   'after',
@@ -47,12 +50,12 @@ export function tokenizeHook(hook: string | undefined): string[] {
 
   return hook
     .toLowerCase()
-    .split(/[^a-z0-9]+/)
+    .split(NON_ALPHANUMERIC_RUN_PATTERN)
     .filter(
       (token) =>
         token.length >= 3 &&
         !HOOK_STOP_WORDS.has(token) &&
-        !/^\d+$/.test(token),
+        !DIGITS_ONLY_PATTERN.test(token),
     );
 }
 

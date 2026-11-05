@@ -10,6 +10,9 @@ import { Plugin, PluginKey } from '@tiptap/pm/state';
 import Suggestion from '@tiptap/suggestion';
 import { createSuggestionPopupRenderer } from '@ui/prompt-editor/suggestion-popup.util';
 
+const STUDIO_MENTION_LABEL_PATTERN = /^(Image|Video|Audio)\d+$/;
+const TRAILING_DIGITS_PATTERN = /\d+$/;
+
 export const STUDIO_REFERENCES_CHANGED = 'studioReferencesChanged';
 
 /** One @ menu owns both kinds. Positional handles are reserved for explicit
@@ -30,7 +33,7 @@ export function studioMentionSuggestions(
     .map((reference) => ({ kind: 'reference', reference }));
   const characters: StudioMentionSuggestion[] = options
     .getCharacters()
-    .filter((item) => !/^(Image|Video|Audio)\d+$/.test(item.handle))
+    .filter((item) => !STUDIO_MENTION_LABEL_PATTERN.test(item.handle))
     .filter((item) =>
       `${item.handle} ${item.label}`.toLowerCase().includes(needle),
     )
@@ -178,7 +181,7 @@ export const StudioReferenceMention =
               // Zero is never a valid slot. Persisting a removed chip as an
               // invalid token also prevents rebinding after a plain-text draft reload.
               const label = isMissing
-                ? String(node.attrs.label).replace(/\d+$/, '0')
+                ? String(node.attrs.label).replace(TRAILING_DIGITS_PATTERN, '0')
                 : reference.token;
               if (
                 label !== node.attrs.label ||

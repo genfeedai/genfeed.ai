@@ -7,6 +7,8 @@ import { IMAGE_REFERENCE_FIELDS } from '@api/services/prompt-builder/interfaces/
 import { ErrorCode } from '@genfeedai/contracts';
 import { HttpStatus } from '@nestjs/common';
 
+const MAX_IMAGES_HINT_PATTERN = /(?:maximum|max|up to)\s+(\d+)/i;
+
 /**
  * Derives a stable model slug from a Replicate model ID.
  *
@@ -80,7 +82,7 @@ export function getArrayImageLimit(
 
   // Parse patterns like "Maximum 8 images", "supports up to 14 images",
   // "up to 10 images", "max 4"
-  const match = prop.description.match(/(?:maximum|max|up to)\s+(\d+)/i);
+  const match = prop.description.match(MAX_IMAGES_HINT_PATTERN);
   return match ? Number.parseInt(match[1], 10) : undefined;
 }
 

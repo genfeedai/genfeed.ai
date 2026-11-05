@@ -1,4 +1,7 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
+
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 export const brandFontAssetAttributes = createEntityAttributes([
   'brandId',
   'category',
@@ -19,7 +22,7 @@ export function fontAssetBrandId(record: Record<string, unknown>): string {
 export function fontAssetContentHash(record: Record<string, unknown>): string {
   if (
     typeof record.sha256 !== 'string' ||
-    !/^[a-f0-9]{64}$/.test(record.sha256)
+    !SHA256_HEX_PATTERN.test(record.sha256)
   )
     throw new Error('font_asset_unavailable');
   return `sha256:${record.sha256}`;

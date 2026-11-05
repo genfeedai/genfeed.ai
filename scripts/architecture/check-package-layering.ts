@@ -16,6 +16,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 
+const PACKAGE_FILE_PATH_PATTERN = /^packages\/([^/]+)\//u;
+const GENFEED_PACKAGE_IMPORT_PATTERN = /^@genfeedai\/([^/]+)/u;
+
 const BASELINE_PATH = 'scripts/architecture/package-layering.baseline.json';
 
 /**
@@ -142,7 +145,7 @@ function normalizePath(file: string): string {
 }
 
 function packageOfFile(file: string): string | undefined {
-  return /^packages\/([^/]+)\//u.exec(file)?.[1];
+  return PACKAGE_FILE_PATH_PATTERN.exec(file)?.[1];
 }
 
 /** The package or app an import specifier lands in, if it leaves its package. */
@@ -150,7 +153,7 @@ export function resolveImportTarget(
   specifier: string,
   file: string,
 ): string | undefined {
-  const scoped = /^@genfeedai\/([^/]+)/u.exec(specifier)?.[1];
+  const scoped = GENFEED_PACKAGE_IMPORT_PATTERN.exec(specifier)?.[1];
   if (scoped) {
     return scoped;
   }

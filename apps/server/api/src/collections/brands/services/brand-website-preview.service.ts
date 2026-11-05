@@ -2,6 +2,9 @@ import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.s
 import type { IScrapedBrandData } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const EDGE_HYPHENS_PATTERN = /^-+|-+$/g;
+
 export interface BrandWebsitePreviewData {
   description?: string;
   label?: string;
@@ -82,8 +85,8 @@ export class BrandWebsitePreviewService {
     return value
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+      .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
+      .replace(EDGE_HYPHENS_PATTERN, '');
   }
 
   private readErrorMessage(error: unknown): string | undefined {

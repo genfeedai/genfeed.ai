@@ -7,6 +7,8 @@ import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 /**
  * The operator Discord card for a just-published article, as an outbox
  * channel delivery (#5197). One card per article, however often it is saved.
@@ -20,7 +22,7 @@ export function buildArticlePublishedDispatch(
   // base URL for any other organization.
   const publicUrl =
     article.slug && publicBaseUrl
-      ? `${publicBaseUrl.replace(/\/$/, '')}/articles/${article.slug}`
+      ? `${publicBaseUrl.replace(TRAILING_SLASH_PATTERN, '')}/articles/${article.slug}`
       : undefined;
   return {
     deduplicationKey: `message.article-published/${article.id}`,

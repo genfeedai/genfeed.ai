@@ -23,6 +23,9 @@ import path from 'node:path';
 import { globSync } from 'glob';
 import ts from 'typescript';
 
+const TSC_PROJECT_FLAGS_PATTERN = /(?:^|\s)(?:-p|--project)\s+(\S+)/g;
+const TSC_WORD_PATTERN = /\btsc\b/;
+
 const TURBO_ROOT_PREFIX = '$TURBO_ROOT$/';
 const TURBO_DEFAULT = '$TURBO_DEFAULT$';
 const TURBO_EXTENDS = '$TURBO_EXTENDS$';
@@ -299,14 +302,14 @@ export function isHashedBy(
 
 /** The tsconfig files a `type-check` script hands to `tsc`. */
 export function typecheckTsconfigs(script: string): string[] {
-  const projects = [...script.matchAll(/(?:^|\s)(?:-p|--project)\s+(\S+)/g)]
+  const projects = [...script.matchAll(TSC_PROJECT_FLAGS_PATTERN)]
     .map((match) => match[1])
     .filter((project): project is string => Boolean(project));
 
   if (projects.length > 0) {
     return projects;
   }
-  return /\btsc\b/.test(script) ? ['tsconfig.json'] : [];
+  return TSC_WORD_PATTERN.test(script) ? ['tsconfig.json'] : [];
 }
 
 function readCompilerPaths(tsconfigPath: string): {

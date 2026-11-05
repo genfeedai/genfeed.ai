@@ -3,9 +3,11 @@ import {
   RETRY_CREDIT_BACK_RATE,
 } from '@genfeedai/contracts/constants';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 /** The same brief is the same prompt, ignoring case and spacing. */
 export function normalizeBriefPrompt(prompt: string): string {
-  return prompt.trim().replace(/\s+/g, ' ').toLowerCase();
+  return prompt.trim().replace(WHITESPACE_RUNS_PATTERN, ' ').toLowerCase();
 }
 
 export interface RetryCreditBackInput {

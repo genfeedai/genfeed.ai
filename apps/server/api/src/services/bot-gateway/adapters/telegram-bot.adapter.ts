@@ -16,6 +16,9 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const LEADING_SLASH_PATTERN = /^\//;
+
 interface TelegramUpdate {
   edited_message?: TelegramUpdateMessage;
   message?: TelegramUpdateMessage;
@@ -87,9 +90,11 @@ export class TelegramBotAdapter implements IBotPlatformAdapter {
       return null;
     }
 
-    const [rawCommandToken, ...args] = message.text.trim().split(/\s+/);
+    const [rawCommandToken, ...args] = message.text
+      .trim()
+      .split(WHITESPACE_RUN_PATTERN);
     const commandToken = rawCommandToken
-      .replace(/^\//, '')
+      .replace(LEADING_SLASH_PATTERN, '')
       .split('@')[0]
       .toLowerCase();
 

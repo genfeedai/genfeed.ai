@@ -1,5 +1,7 @@
 import { FontFamily } from '@genfeedai/contracts';
 
+const WHITESPACE_OR_HYPHEN_RUNS_PATTERN = /[\s-]+/g;
+
 const PERSISTED_FONT_FAMILIES = new Set<string>(Object.values(FontFamily));
 
 /**
@@ -23,7 +25,9 @@ export function toPersistedFontFamily(
     return trimmed as FontFamily;
   }
 
-  const normalized = trimmed.toUpperCase().replace(/[\s-]+/g, '_');
+  const normalized = trimmed
+    .toUpperCase()
+    .replace(WHITESPACE_OR_HYPHEN_RUNS_PATTERN, '_');
   if (PERSISTED_FONT_FAMILIES.has(normalized)) {
     return normalized as FontFamily;
   }

@@ -21,6 +21,8 @@ import { useTranslations } from 'next-intl';
 import { type FormEvent, useState } from 'react';
 import type { TrackPostLinkModalProps } from '@/features/analytics/props/track-post-link-modal.props';
 
+const WWW_PREFIX_PATTERN = /^www\./;
+
 export default function TrackPostLinkModal({
   brandId,
   triggerRef,
@@ -38,7 +40,8 @@ export default function TrackPostLinkModal({
   );
   let isLinkedIn = false;
   try {
-    isLinkedIn = new URL(url).hostname.replace(/^www\./, '') === 'linkedin.com';
+    isLinkedIn =
+      new URL(url).hostname.replace(WWW_PREFIX_PATTERN, '') === 'linkedin.com';
   } catch {
     /* URL is still being entered. */
   }

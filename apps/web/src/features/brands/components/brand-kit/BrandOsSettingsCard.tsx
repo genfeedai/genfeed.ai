@@ -42,6 +42,8 @@ import BrandOsIdentityPreview from './BrandOsIdentityPreview';
 import BrandOsPolicyEditor from './BrandOsPolicyEditor';
 import BrandOsRevisionFields from './BrandOsRevisionFields';
 
+const SHA256_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
+
 const AUTO_SAVE_DELAY_MS = 1500;
 
 function errorMessage(error: unknown, fallback: string): string {
@@ -212,7 +214,7 @@ export default function BrandOsSettingsCard({
   const hasCandidate =
     typeof candidate === 'string' &&
     candidate.length === 71 &&
-    /^sha256:[0-9a-f]{64}$/.test(candidate);
+    SHA256_DIGEST_PATTERN.test(candidate);
   const canReview = Boolean(
     selected?.status === BrandOsRevisionStatus.DRAFT &&
       hasRules &&

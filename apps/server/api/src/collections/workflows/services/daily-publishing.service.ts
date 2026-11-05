@@ -38,6 +38,10 @@ import {
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
+const ISO_DATE_SUFFIX_PATTERN = /\d{4}-\d{2}-\d{2}$/;
+const LESS_THAN_SIGNS_PATTERN = /</g;
+const GREATER_THAN_SIGNS_PATTERN = />/g;
+
 /** The scheduled actor was denied mid-run: the account is held and does no further work. */
 const ACTOR_HELD_OUTCOME = 'actor-held';
 
@@ -380,7 +384,7 @@ export class DailyPublishingService implements OnModuleInit {
       !state.slotKey.startsWith(
         `daily-publishing:${state.request.brandId}:${state.credentialId}:`,
       ) ||
-      !/\d{4}-\d{2}-\d{2}$/.test(state.slotKey)
+      !ISO_DATE_SUFFIX_PATTERN.test(state.slotKey)
     )
       throw new Error('Invalid daily account slot');
     // tenant-scope-ignore: organizationId is pinned by the compound idempotency key; isDeleted is intentionally omitted so a soft-deleted slot is still detected below
@@ -675,8 +679,8 @@ export class DailyPublishingService implements OnModuleInit {
             platform: state.platform,
             source: (state.source?.text ?? '').slice(0, 3000),
           })
-            .replace(/</g, '\\u003c')
-            .replace(/>/g, '\\u003e') +
+            .replace(LESS_THAN_SIGNS_PATTERN, '\\u003c')
+            .replace(GREATER_THAN_SIGNS_PATTERN, '\\u003e') +
           '\n</untrusted-reference-data>',
         action.context.organizationId,
       );

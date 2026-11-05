@@ -51,6 +51,8 @@ import {
   type LinkedInMediaAnalytics,
 } from './linkedin-analytics.service';
 
+const LINKEDIN_PERSON_URN_PATTERN = /^urn:li:person:[A-Za-z0-9_-]+$/;
+
 interface LinkedInCredential {
   id: string;
   accessToken?: string | null;
@@ -530,7 +532,7 @@ export class LinkedInService {
     const author = credential.externalId.startsWith('urn:li:person:')
       ? credential.externalId
       : `urn:li:person:${credential.externalId}`;
-    if (!/^urn:li:person:[A-Za-z0-9_-]+$/.test(author))
+    if (!LINKEDIN_PERSON_URN_PATTERN.test(author))
       throw new Error('LinkedIn verification member identity unavailable');
     const response = await firstValueFrom(
       this.httpService.get<unknown>(this.getApiUrl('ugcPosts'), {

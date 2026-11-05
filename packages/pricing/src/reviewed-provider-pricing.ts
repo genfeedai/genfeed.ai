@@ -12,12 +12,15 @@ import {
 } from './decimal-pricing';
 import { applyMargin } from './plans-pricing';
 
+const SELECTOR_NUMBER_PATTERN = /^\s*-?\d+(\.\d+)?\s*$/;
+const HTTPS_PREFIX_PATTERN = /^https:\/\//;
+
 /** The number a selector value spells (`6` or `'6'`), else null. */
 export function selectorNumber(
   value: string | number | boolean | undefined,
 ): number | null {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-  if (typeof value === 'string' && /^\s*-?\d+(\.\d+)?\s*$/.test(value))
+  if (typeof value === 'string' && SELECTOR_NUMBER_PATTERN.test(value))
     return Number(value);
   return null;
 }
@@ -34,7 +37,7 @@ export function selectorValuesEqual(
   const numeric = (value: unknown): number | null =>
     typeof value === 'number'
       ? value
-      : typeof value === 'string' && /^\s*-?\d+(\.\d+)?\s*$/.test(value)
+      : typeof value === 'string' && SELECTOR_NUMBER_PATTERN.test(value)
         ? Number(value)
         : null;
   if (typeof selected === 'boolean' || typeof declared === 'boolean')
@@ -121,7 +124,7 @@ export function quoteReviewedProviderPricing(
   if (
     pricing.currency !== 'USD' ||
     pricing.reviewStatus !== 'approved' ||
-    !/^https:\/\//.test(pricing.sourceUrl) ||
+    !HTTPS_PREFIX_PATTERN.test(pricing.sourceUrl) ||
     !Number.isFinite(Date.parse(pricing.verifiedAt))
   ) {
     return unresolved(

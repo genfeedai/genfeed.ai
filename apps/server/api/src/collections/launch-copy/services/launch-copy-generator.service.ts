@@ -11,6 +11,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
+const JSON_CODE_FENCES_PATTERN = /```json\n?/g;
+const CODE_FENCES_PATTERN = /```\n?/g;
+
 /**
  * Channel-conform launch copy. Fields are populated per channel:
  * - Hacker News: `showHnTitle` + `firstComment`
@@ -159,9 +162,11 @@ export class LaunchCopyGeneratorService {
   ): LaunchCopyResult {
     let jsonStr = response.trim();
     if (jsonStr.startsWith('```json')) {
-      jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      jsonStr = jsonStr
+        .replace(JSON_CODE_FENCES_PATTERN, '')
+        .replace(CODE_FENCES_PATTERN, '');
     } else if (jsonStr.startsWith('```')) {
-      jsonStr = jsonStr.replace(/```\n?/g, '');
+      jsonStr = jsonStr.replace(CODE_FENCES_PATTERN, '');
     }
 
     let parsed: Record<string, unknown>;

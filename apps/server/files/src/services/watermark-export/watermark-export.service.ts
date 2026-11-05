@@ -25,6 +25,9 @@ import {
 } from '@nestjs/common';
 import sharp, { type OverlayOptions } from 'sharp';
 
+const XML_SPECIAL_CHARS_PATTERN = /[&<>"']/g;
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 const POSITIONS = new Set([
   'top-left',
   'top-right',
@@ -43,7 +46,7 @@ const invalid = (message: string) => new BadRequestException(message);
 
 function escapeXml(value: string): string {
   return value.replace(
-    /[&<>"']/g,
+    XML_SPECIAL_CHARS_PATTERN,
     (character) =>
       ({
         '&': '&amp;',
@@ -378,7 +381,7 @@ export class WatermarkExportService {
       throw invalid('Expected an image or video export');
     if (
       request.cacheKey !== undefined &&
-      !/^[a-f0-9]{64}$/.test(request.cacheKey)
+      !SHA256_HEX_PATTERN.test(request.cacheKey)
     )
       throw invalid('Invalid export cache key');
     this.validateStoredSource(request.storageKey);

@@ -10,6 +10,9 @@ import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { isTenantScopedFieldSet } from '@libs/prisma/discover-tenant-models';
 
+const NON_ENUM_CHAR_RUNS_PATTERN = /[^A-Z0-9]+/g;
+const BOOLEAN_FIELD_NAME_PATTERN = /^(is|has)[A-Z]/;
+
 export type PrismaFilter = Record<string, unknown>;
 export type PrismaUpdate = Record<string, unknown>;
 export type PopulateInput = (string | PopulateOption)[] | 'none';
@@ -367,7 +370,9 @@ export class BaseQueryNormalizationAdapter {
   private toPrismaEnumCandidate(enumName: string, value: string): string {
     const trimmed = value.trim();
     const alias = PRISMA_ENUM_ALIASES[enumName]?.[trimmed.toLowerCase()];
-    return alias ?? trimmed.toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+    return (
+      alias ?? trimmed.toUpperCase().replace(NON_ENUM_CHAR_RUNS_PATTERN, '_')
+    );
   }
 
   /**
@@ -376,7 +381,10 @@ export class BaseQueryNormalizationAdapter {
    * contract, so coerce only those keys that actually exist on the model.
    */
   private coerceBooleanScalarValue(fieldName: string, value: unknown): unknown {
-    if (typeof value !== 'string' || !/^(is|has)[A-Z]/.test(fieldName)) {
+    if (
+      typeof value !== 'string' ||
+      !BOOLEAN_FIELD_NAME_PATTERN.test(fieldName)
+    ) {
       return value;
     }
     if (!this.fieldExists(fieldName)) {

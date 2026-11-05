@@ -19,6 +19,8 @@ import {
   User,
 } from 'lucide-react';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 /**
  * Icons for statuses the shared Badge has no icon of its own for: account
  * roles and review states. Canonical statuses (active, scheduled, failed…)
@@ -53,7 +55,7 @@ const STATUS_ALIASES: Readonly<
 
 /** Every status on every card: uppercase, tinted, with an icon. */
 export function StatusBadge({ label, status }: StatusBadgeProps) {
-  const key = status.trim().toLowerCase().replace(/\s+/g, '_');
+  const key = status.trim().toLowerCase().replace(WHITESPACE_RUNS_PATTERN, '_');
   const alias = STATUS_ALIASES[key];
   const Icon = STATUS_ICONS[key] ?? Info;
   return (

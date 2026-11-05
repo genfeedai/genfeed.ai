@@ -23,23 +23,32 @@ import {
 import { basename, join } from 'node:path';
 import { APPLICATION_MODULE } from '../apps/server/api/src/collections/skills/catalog/skill-catalog-artifact';
 
+const MD_EXTENSION_PATTERN = /\.md$/;
+const UPPERCASE_LETTERS_PATTERN = /[A-Z]/g;
+const NON_SLUG_CHARS_PATTERN = /[^a-z0-9-]/g;
+const HYPHEN_RUNS_PATTERN = /-+/g;
+const EDGE_HYPHEN_PATTERN = /^-|-$/g;
+const HEADING_PREFIX_PATTERN = /^#+\s*/;
+const PURPOSE_LABEL_PATTERN = /^\*\*Purpose:\*\*/i;
+const PURPOSE_LABEL_WITH_SPACE_PATTERN = /^\*\*Purpose:\*\*\s*/i;
+
 const KEBAB_RE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
 const MAX_BODY_LINES = 200;
 
 function toKebab(name: string): string {
   return name
-    .replace(/\.md$/, '')
-    .replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)
-    .replace(/[^a-z0-9-]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(MD_EXTENSION_PATTERN, '')
+    .replace(UPPERCASE_LETTERS_PATTERN, (c) => `-${c.toLowerCase()}`)
+    .replace(NON_SLUG_CHARS_PATTERN, '-')
+    .replace(HYPHEN_RUNS_PATTERN, '-')
+    .replace(EDGE_HYPHEN_PATTERN, '');
 }
 
 function extractTitle(content: string): string {
   const stripped = content.replace(FRONTMATTER_RE, '').trim();
   const firstLine = stripped.split('\n')[0] ?? '';
-  return firstLine.replace(/^#+\s*/, '').trim();
+  return firstLine.replace(HEADING_PREFIX_PATTERN, '').trim();
 }
 
 function extractPurpose(content: string): string {
@@ -48,8 +57,8 @@ function extractPurpose(content: string): string {
   // Look for a Purpose line, a "When to Use" section, or the first non-heading paragraph
   for (let i = 0; i < Math.min(lines.length, 20); i++) {
     const line = lines[i].trim();
-    if (/^\*\*Purpose:\*\*/i.test(line)) {
-      return line.replace(/^\*\*Purpose:\*\*\s*/i, '').trim();
+    if (PURPOSE_LABEL_PATTERN.test(line)) {
+      return line.replace(PURPOSE_LABEL_WITH_SPACE_PATTERN, '').trim();
     }
   }
   // Fallback: first paragraph after title

@@ -26,6 +26,17 @@ import { AgentMessageRole } from '@genfeedai/contracts';
 
 import { Injectable, Optional } from '@nestjs/common';
 
+const GENERATE_VERB_PATTERN = /\b(generate|create|make|write|draft)\b/;
+const POST_COUNT_PATTERN = /\b\d+\s+(posts?|tweets?|drafts?)\b/;
+const POST_COUNT_CAPTURE_PATTERN = /\b(\d+)\s+(posts?|tweets?|drafts?)\b/;
+const HANDLE_MENTION_PATTERN = /@\w[\w.]{1,}/;
+const X_PLATFORM_PHRASE_PATTERN = /\b(?:for|on)\s+(?:x|twitter)\b/;
+const LINKEDIN_PLATFORM_PHRASE_PATTERN = /\b(?:for|on)\s+linkedin\b/;
+const INSTAGRAM_PLATFORM_PHRASE_PATTERN = /\b(?:for|on)\s+instagram\b/;
+const THIS_MONTH_PHRASE_PATTERN = /\bthis month\b/;
+const NEXT_MONTH_PHRASE_PATTERN = /\bnext month\b/;
+const NEXT_WEEK_PHRASE_PATTERN = /\bnext week\b/;
+
 interface TurboRunDraft {
   brandId?: string;
   count: number;
@@ -325,8 +336,8 @@ export class AgentOrchestratorTurboRunService {
     const normalized = content.toLowerCase();
 
     return (
-      /\b(generate|create|make|write|draft)\b/.test(normalized) &&
-      /\b\d+\s+(posts?|tweets?|drafts?)\b/.test(normalized)
+      GENERATE_VERB_PATTERN.test(normalized) &&
+      POST_COUNT_PATTERN.test(normalized)
     );
   }
 
@@ -339,14 +350,14 @@ export class AgentOrchestratorTurboRunService {
     }
 
     const normalized = content.toLowerCase();
-    const countMatch = normalized.match(/\b(\d+)\s+(posts?|tweets?|drafts?)\b/);
+    const countMatch = normalized.match(POST_COUNT_CAPTURE_PATTERN);
     const count = Number.parseInt(countMatch?.[1] ?? '', 10);
 
     if (!Number.isFinite(count) || count <= 0) {
       return null;
     }
 
-    const handle = content.match(/@\w[\w.]{1,}/)?.[0];
+    const handle = content.match(HANDLE_MENTION_PATTERN)?.[0];
 
     if (!handle && !fallbackBrandId) {
       return null;
@@ -370,16 +381,16 @@ export class AgentOrchestratorTurboRunService {
   ): string[] {
     if (
       noun?.startsWith('tweet') ||
-      /\b(?:for|on)\s+(?:x|twitter)\b/.test(normalizedContent)
+      X_PLATFORM_PHRASE_PATTERN.test(normalizedContent)
     ) {
       return ['twitter'];
     }
 
-    if (/\b(?:for|on)\s+linkedin\b/.test(normalizedContent)) {
+    if (LINKEDIN_PLATFORM_PHRASE_PATTERN.test(normalizedContent)) {
       return ['linkedin'];
     }
 
-    if (/\b(?:for|on)\s+instagram\b/.test(normalizedContent)) {
+    if (INSTAGRAM_PLATFORM_PHRASE_PATTERN.test(normalizedContent)) {
       return ['instagram'];
     }
 
@@ -402,14 +413,14 @@ export class AgentOrchestratorTurboRunService {
     const start = new Date();
     const end = new Date(start);
 
-    if (/\bthis month\b/.test(normalizedContent)) {
+    if (THIS_MONTH_PHRASE_PATTERN.test(normalizedContent)) {
       end.setDate(end.getDate() + 30);
-    } else if (/\bnext month\b/.test(normalizedContent)) {
+    } else if (NEXT_MONTH_PHRASE_PATTERN.test(normalizedContent)) {
       start.setMonth(start.getMonth() + 1, 1);
       end.setTime(start.getTime());
       end.setMonth(end.getMonth() + 1);
       end.setDate(end.getDate() - 1);
-    } else if (/\bnext week\b/.test(normalizedContent)) {
+    } else if (NEXT_WEEK_PHRASE_PATTERN.test(normalizedContent)) {
       start.setDate(start.getDate() + 7);
       end.setTime(start.getTime());
       end.setDate(end.getDate() + 7);

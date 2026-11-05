@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 const CATEGORY_ICONS: Record<string, ReactNode> = {
   'Content Creation': <Sparkles className="size-5" />,
   'Features & Access': <Box className="size-5" />,
@@ -35,7 +37,7 @@ const faqs: FAQCategory[] = FAQ_CATEGORIES.map((category) => ({
 }));
 
 function categorySlug(category: string): string {
-  return category.toLowerCase().replace(/\s+/g, '-');
+  return category.toLowerCase().replace(WHITESPACE_RUNS_PATTERN, '-');
 }
 
 export default function FAQContent() {

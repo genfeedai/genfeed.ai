@@ -1,9 +1,11 @@
+const NON_ALPHANUMERIC_RUN_PATTERN = /[^a-z0-9]+/;
+
 const MIN_TOKEN_LENGTH = 3;
 
 export function tokenizeForOverlap(value: string): string[] {
   return value
     .toLowerCase()
-    .split(/[^a-z0-9]+/)
+    .split(NON_ALPHANUMERIC_RUN_PATTERN)
     .filter((token) => token.length >= MIN_TOKEN_LENGTH);
 }
 

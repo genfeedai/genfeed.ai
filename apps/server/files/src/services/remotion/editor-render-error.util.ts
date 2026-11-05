@@ -8,6 +8,9 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 
+const MEDIA_FETCH_ERROR_PATTERN =
+  /download|fetch|http status|media|asset|net::|network|status code/i;
+
 export interface ClassifiedEditorRenderError {
   publicMessage: string;
   reason: EditorRenderTerminalReason;
@@ -30,11 +33,7 @@ export function classifyEditorRenderError(
   }
 
   const message = getErrorMessage(error);
-  if (
-    /download|fetch|http status|media|asset|net::|network|status code/i.test(
-      message,
-    )
-  ) {
+  if (MEDIA_FETCH_ERROR_PATTERN.test(message)) {
     return {
       publicMessage: EDITOR_RENDER_PUBLIC_MESSAGES.asset_unavailable,
       reason: 'asset_unavailable',

@@ -42,8 +42,10 @@ import {
 } from '~services/publication-capture-validation';
 import { NOT_WRITTEN_BY_GENFEED } from '~services/publication-capture-written';
 
+const CRLF_PATTERN = /\r\n/g;
+
 const EDITOR_MUTATION_THROTTLE_MS = 250;
-const normalize = (text: string) => text.replace(/\r\n/g, '\n').trim();
+const normalize = (text: string) => text.replace(CRLF_PATTERN, '\n').trim();
 const textOf = (element: HTMLElement) =>
   normalize(element.innerText ?? element.textContent ?? '');
 const recordingEnabled = (settings: unknown): boolean =>

@@ -17,6 +17,19 @@ import {
   sanitizeCaptureUrl,
 } from '~utils/knowledge-snapshot.util';
 
+const WWW_PREFIX_PATTERN = /^www\./;
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+const PODCAST_KEYWORD_PATTERN = /podcast/;
+const SPOTIFY_HOST_PATTERN = /(^|\.)spotify\.com$/;
+const SPOTIFY_EPISODE_OR_SHOW_PATH_PATTERN = /^\/(?:episode|show)\//;
+const NEWSLETTER_KEYWORD_PATTERN = /newsletter/;
+const NEWSLETTER_SUBDOMAIN_PATTERN = /^newsletter\./;
+const ARTICLE_SCHEMA_TYPE_PATTERN =
+  /\b(?:article|blogposting|newsarticle|reportage)\b/;
+const VIDEO_SCHEMA_TYPE_PATTERN = /\bvideoobject\b|video\./;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 export class SourceCaptureError extends Error {
   constructor(message: string) {
     super(message);
@@ -52,7 +65,7 @@ const PODCAST_HOSTS =
 
 function hostnameOf(url: string): string {
   try {
-    return new URL(url).hostname.toLowerCase().replace(/^www\./, '');
+    return new URL(url).hostname.toLowerCase().replace(WWW_PREFIX_PATTERN, '');
   } catch {
     return '';
   }
@@ -67,7 +80,7 @@ function pathnameOf(url: string): string {
 }
 
 function isHttpUrl(url: string): boolean {
-  return /^https?:\/\//i.test(url);
+  return HTTP_PROTOCOL_PREFIX_PATTERN.test(url);
 }
 
 /** The page URL the source is saved under. A declared canonical must stay on the same site. */
@@ -168,20 +181,21 @@ export function classifySourceKind(raw: RawSourceCapture): ImportedSourceKind {
   if (raw.scope === 'media') return raw.media[0]?.kind ?? 'page';
   const hints = raw.typeHints.join(' ');
   if (
-    /podcast/.test(hints) ||
+    PODCAST_KEYWORD_PATTERN.test(hints) ||
     PODCAST_HOSTS.test(host) ||
-    (/(^|\.)spotify\.com$/.test(host) && /^\/(?:episode|show)\//.test(path))
+    (SPOTIFY_HOST_PATTERN.test(host) &&
+      SPOTIFY_EPISODE_OR_SHOW_PATH_PATTERN.test(path))
   ) {
     return 'podcast';
   }
   if (
     NEWSLETTER_HOSTS.test(host) ||
-    /newsletter/.test(hints) ||
-    /^newsletter\./.test(host)
+    NEWSLETTER_KEYWORD_PATTERN.test(hints) ||
+    NEWSLETTER_SUBDOMAIN_PATTERN.test(host)
   ) {
     return 'newsletter';
   }
-  if (/\b(?:article|blogposting|newsarticle|reportage)\b/.test(hints)) {
+  if (ARTICLE_SCHEMA_TYPE_PATTERN.test(hints)) {
     return 'article';
   }
   if (
@@ -190,7 +204,7 @@ export function classifySourceKind(raw: RawSourceCapture): ImportedSourceKind {
   ) {
     return 'podcast';
   }
-  if (/\bvideoobject\b|video\./.test(hints) && raw.text.length < 2_000) {
+  if (VIDEO_SCHEMA_TYPE_PATTERN.test(hints) && raw.text.length < 2_000) {
     return 'video';
   }
   return raw.text.length > 400 ? 'article' : 'page';
@@ -224,13 +238,16 @@ export function defaultMediaIndex(
 
 function sanitizedLine(value: string | undefined, max = 1000): string {
   return sanitizeCaptureText(value ?? '')
-    .replace(/\s+/g, ' ')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .slice(0, max)
     .trim();
 }
 
 function authorLabelOf(raw: RawSourceCapture): string {
-  const handle = sanitizedLine(raw.authorHandle).replace(/^@/, '');
+  const handle = sanitizedLine(raw.authorHandle).replace(
+    LEADING_AT_SIGN_PATTERN,
+    '',
+  );
   const name = sanitizedLine(raw.author);
   if (name && handle) return `${name} @${handle}`;
   return name || (handle ? `@${handle}` : '');
@@ -294,7 +311,10 @@ export function buildSourceSnapshot(
       throw new SourceCaptureError('The selected media link cannot be saved.');
     }
   }
-  const handle = sanitizedLine(raw.authorHandle).replace(/^@/, '');
+  const handle = sanitizedLine(raw.authorHandle).replace(
+    LEADING_AT_SIGN_PATTERN,
+    '',
+  );
   const name = sanitizedLine(raw.author);
   const candidate = {
     ...(name ? { authorDisplayName: name } : {}),

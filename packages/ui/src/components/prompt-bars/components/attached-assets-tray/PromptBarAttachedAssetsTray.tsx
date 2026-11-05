@@ -8,6 +8,8 @@ import { FolderOpen, ImageIcon, Music, Tv, X } from 'lucide-react';
 import Image from 'next/image';
 import { memo } from 'react';
 
+const TRANSLATION_PLACEHOLDERS_PATTERN = /\{(\w+)\}/g;
+
 const DEFAULT_ASSET_MESSAGES = {
   editingTarget: 'Editing target',
   editingSource: 'Editing source',
@@ -31,7 +33,7 @@ type AssetTranslator = (
 
 const translateDefault: AssetTranslator = (key, values) =>
   DEFAULT_ASSET_MESSAGES[key].replace(
-    /\{(\w+)\}/g,
+    TRANSLATION_PLACEHOLDERS_PATTERN,
     (token, name: string) => values?.[name] ?? token,
   );
 

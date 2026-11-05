@@ -22,9 +22,11 @@ import type {
 import { GENERATION_BRIEF_CONTRACT_VERSION } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import { normalizeAspectRatioForModel } from '@genfeedai/helpers';
 
+const TRAILING_DOTS_PATTERN = /\.+$/u;
+
 export function joinGenerationBriefPromptParts(parts: string[]): string {
   return parts
-    .map((part) => part.trim().replace(/\.+$/u, ''))
+    .map((part) => part.trim().replace(TRAILING_DOTS_PATTERN, ''))
     .filter((part) => part.length > 0)
     .join('. ');
 }

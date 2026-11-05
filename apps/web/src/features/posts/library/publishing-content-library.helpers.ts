@@ -18,6 +18,8 @@ import type {
   PublishingContentFormat,
 } from '@/features/posts/props/publishing-content-entry.props';
 
+const SEPARATORS_PATTERN = /[_-]/g;
+
 export const PUBLISHING_CONTENT_TYPES = [
   'post',
   'article',
@@ -142,7 +144,7 @@ function toAccounts(
 
 export function formatPublishingContentStatus(status: string): string {
   return status
-    .split(/[_-]/g)
+    .split(SEPARATORS_PATTERN)
     .filter(Boolean)
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(' ');

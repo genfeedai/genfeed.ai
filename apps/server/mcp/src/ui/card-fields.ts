@@ -4,6 +4,8 @@ import type {
   McpCardMetric,
 } from '@mcp/shared/interfaces/mcp-app.interface';
 
+const SEPARATORS_PATTERN = /[_-]/g;
+
 /** Field readers and card shapes shared by every card view builder. */
 
 export function record(value: unknown): Record<string, unknown> {
@@ -51,7 +53,7 @@ export function fact(label: string, value: unknown): McpCardFact[] {
 }
 
 export function words(value: string): string {
-  const spaced = value.replace(/[_-]/g, ' ').toLowerCase();
+  const spaced = value.replace(SEPARATORS_PATTERN, ' ').toLowerCase();
   return `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}`;
 }
 

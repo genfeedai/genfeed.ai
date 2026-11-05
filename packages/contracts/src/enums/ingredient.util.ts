@@ -1,5 +1,7 @@
 import { IngredientCategory } from './ingredient.enum';
 
+const HYPHENS_PATTERN = /-/g;
+
 const INGREDIENT_CATEGORY_VALUES = new Set<string>(
   Object.values(IngredientCategory),
 );
@@ -31,7 +33,7 @@ export function parseIngredientCategory(
     return undefined;
   }
 
-  const normalized = value.trim().replace(/-/g, '_').toUpperCase();
+  const normalized = value.trim().replace(HYPHENS_PATTERN, '_').toUpperCase();
   if (!normalized || !INGREDIENT_CATEGORY_VALUES.has(normalized)) {
     return undefined;
   }

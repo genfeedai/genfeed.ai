@@ -42,6 +42,9 @@ import {
 } from '@nestjs/common';
 import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+const WWW_PREFIX_PATTERN = /^www\./;
+
 export type SignupPrefillStatus =
   | 'completed'
   | 'failed'
@@ -265,7 +268,9 @@ export class SignupPrefillService {
       )
     )
       return '';
-    return decodeURIComponent(segment).replace(/^@/, '').trim();
+    return decodeURIComponent(segment)
+      .replace(LEADING_AT_SIGN_PATTERN, '')
+      .trim();
   }
 
   private scrapedCompanyLabel(
@@ -275,11 +280,11 @@ export class SignupPrefillService {
     const name = companyName?.trim();
     if (this.profileLabel(websiteUrl) === undefined) return name;
     const hostName = new URL(websiteUrl).hostname
-      .replace(/^www\./, '')
+      .replace(WWW_PREFIX_PATTERN, '')
       .split('.')[0];
     const platformNames = new Set([
       hostName,
-      new URL(websiteUrl).hostname.replace(/^www\./, ''),
+      new URL(websiteUrl).hostname.replace(WWW_PREFIX_PATTERN, ''),
       'linktree',
       'beacons',
       'youtube',

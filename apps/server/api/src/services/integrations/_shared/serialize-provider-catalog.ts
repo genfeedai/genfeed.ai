@@ -2,6 +2,8 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { isAxiosError } from 'axios';
 import { ZodError } from 'zod';
 
+const TIMEOUT_ERROR_PATTERN = /timeout/i;
+
 export type ProviderCatalogResponse<TType extends string, TAttributes> = {
   data: {
     attributes: TAttributes;
@@ -154,7 +156,7 @@ function resolveCategory(error: unknown): {
       };
     }
     const code = error.code ?? '';
-    if (TIMEOUT_CODES.has(code) || /timeout/i.test(error.message)) {
+    if (TIMEOUT_CODES.has(code) || TIMEOUT_ERROR_PATTERN.test(error.message)) {
       return { category: 'provider_timeout' };
     }
     return { category: 'provider_unavailable' };

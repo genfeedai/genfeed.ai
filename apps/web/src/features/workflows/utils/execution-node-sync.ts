@@ -8,6 +8,11 @@ import type {
   ExecutionResult,
 } from '@/features/workflows/services/workflow-api';
 
+const AUDIO_EXTENSION_PATTERN = /\.(wav|mp3|m4a|aac|flac|ogg|opus)$/u;
+const AUDIO_INGREDIENT_PATH_PATTERN = /\/(musics|audios)\/[^/]+$/u;
+const VIDEO_EXTENSION_PATTERN = /\.(mp4|mov|webm|m4v)$/u;
+const IMAGE_EXTENSION_PATTERN = /\.(png|jpe?g|gif|webp|avif|svg)$/u;
+
 export interface ExecutionNodePatch {
   nodeId: string;
   patch: Record<string, unknown>;
@@ -68,16 +73,16 @@ function inferReviewMediaType(
 
   const normalized = inputMedia.split('?')[0]?.toLowerCase() ?? inputMedia;
   if (
-    /\.(wav|mp3|m4a|aac|flac|ogg|opus)$/u.test(normalized) ||
-    /\/(musics|audios)\/[^/]+$/u.test(normalized)
+    AUDIO_EXTENSION_PATTERN.test(normalized) ||
+    AUDIO_INGREDIENT_PATH_PATTERN.test(normalized)
   )
     return 'audio';
 
-  if (/\.(mp4|mov|webm|m4v)$/u.test(normalized)) {
+  if (VIDEO_EXTENSION_PATTERN.test(normalized)) {
     return 'video';
   }
 
-  if (/\.(png|jpe?g|gif|webp|avif|svg)$/u.test(normalized)) {
+  if (IMAGE_EXTENSION_PATTERN.test(normalized)) {
     return 'image';
   }
 

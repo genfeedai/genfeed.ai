@@ -6,6 +6,13 @@ import { globSync } from 'glob';
 import ts from 'typescript';
 import { parseSourceFile } from '../architecture/parse-source-file';
 
+const START_OF_STRING_PATTERN = /^/;
+const END_OF_STRING_PATTERN = /$/;
+const ROUTE_PARAM_SEGMENT_PATTERN = /\/:[^/]+/;
+const EDGE_SLASHES_PATTERN = /^\/+|\/+$/g;
+const SLASH_RUNS_PATTERN = /\/+/g;
+const PIPES_PATTERN = /\|/g;
+
 const DEFAULT_SOURCE_GLOBS = ['apps/server/api/src/**/*.controller.ts'];
 const DEFAULT_IGNORE_GLOBS = [
   '**/*.spec.ts',
@@ -143,8 +150,8 @@ export function formatEndpointInventory(
       ]
         .map(escapeMarkdownCell)
         .join(' | ')
-        .replace(/^/, '| ')
-        .replace(/$/, ' |'),
+        .replace(START_OF_STRING_PATTERN, '| ')
+        .replace(END_OF_STRING_PATTERN, ' |'),
     );
   }
 
@@ -359,7 +366,7 @@ function getFixtureRequirements(
     requirements.push('non-idempotent method');
   }
 
-  if (/\/:[^/]+/.test(routePath)) {
+  if (ROUTE_PARAM_SEGMENT_PATTERN.test(routePath)) {
     requirements.push('path params');
   }
 
@@ -378,11 +385,11 @@ function joinRoutePath(...segments: string[]): string {
   const joined = segments
     .map((segment) => segment.trim())
     .filter(Boolean)
-    .map((segment) => segment.replace(/^\/+|\/+$/g, ''))
+    .map((segment) => segment.replace(EDGE_SLASHES_PATTERN, ''))
     .filter(Boolean)
     .join('/');
 
-  return `/${joined}`.replace(/\/+/g, '/');
+  return `/${joined}`.replace(SLASH_RUNS_PATTERN, '/');
 }
 
 function countBy<T>(
@@ -407,7 +414,7 @@ function formatCountLines(counts: Record<string, number>): string[] {
 }
 
 function escapeMarkdownCell(value: string): string {
-  return value.replace(/\|/g, '\\|');
+  return value.replace(PIPES_PATTERN, '\\|');
 }
 
 function parseArgs(argv: string[]): CliOptions {

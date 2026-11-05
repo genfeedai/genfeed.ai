@@ -1,3 +1,13 @@
+const CUE_TIMESTAMP_PATTERN = /^(\d{1,2}):(\d{2})(?::(\d{2}))?[.,](\d{1,3})$/;
+const HTML_TAGS_PATTERN = /<[^>]+>/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const BYTE_ORDER_MARK_PATTERN = /^\uFEFF/;
+const BLANK_LINE_PATTERN = /\r?\n\r?\n/;
+const CUE_ARROW_PATTERN = /-->/;
+const LINE_BREAK_PATTERN = /\r?\n/;
+const CUE_SETTINGS_PATTERN = /,.+$/;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+
 export interface TranscriptCue {
   endMs: number;
   startMs: number;
@@ -15,9 +25,7 @@ const MAX_CHUNK_DURATION_MS = 60_000;
 const GAP_BREAK_MS = 2_000;
 
 function parseTimestampToMs(value: string): number {
-  const match = value
-    .trim()
-    .match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?[.,](\d{1,3})$/);
+  const match = value.trim().match(CUE_TIMESTAMP_PATTERN);
   if (!match) {
     throw new Error('Transcript cue has an invalid timestamp');
   }
@@ -41,36 +49,36 @@ function parseTimestampToMs(value: string): number {
 
 function stripCueMarkup(text: string): string {
   return text
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(HTML_TAGS_PATTERN, ' ')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
 }
 
 export function parseWebVtt(source: string): TranscriptCue[] {
-  const body = source.replace(/^\uFEFF/, '');
+  const body = source.replace(BYTE_ORDER_MARK_PATTERN, '');
   if (!body.trim().startsWith('WEBVTT')) {
     throw new Error('Transcript is not a valid WebVTT document');
   }
   return parseCues(
     body
-      .split(/\r?\n\r?\n/)
+      .split(BLANK_LINE_PATTERN)
       .slice(1)
-      .flatMap((block) => parseCueBlock(block, /-->/)),
+      .flatMap((block) => parseCueBlock(block, CUE_ARROW_PATTERN)),
   );
 }
 
 export function parseSrt(source: string): TranscriptCue[] {
   return parseCues(
     source
-      .replace(/^\uFEFF/, '')
-      .split(/\r?\n\r?\n/)
-      .flatMap((block) => parseCueBlock(block, /-->/)),
+      .replace(BYTE_ORDER_MARK_PATTERN, '')
+      .split(BLANK_LINE_PATTERN)
+      .flatMap((block) => parseCueBlock(block, CUE_ARROW_PATTERN)),
   );
 }
 
 function parseCueBlock(block: string, separator: RegExp): TranscriptCue[] {
   const lines = block
-    .split(/\r?\n/)
+    .split(LINE_BREAK_PATTERN)
     .map((line) => line.trim())
     .filter(Boolean);
   const timing = lines.find((line) => separator.test(line));
@@ -83,10 +91,15 @@ function parseCueBlock(block: string, separator: RegExp): TranscriptCue[] {
   }
   const startMs = parseTimestampToMs(startRaw.split(' ')[0] ?? '');
   const endMs = parseTimestampToMs(
-    (endRaw.split(' ')[0] ?? '').replace(/,.+$/, (match) => match),
+    (endRaw.split(' ')[0] ?? '').replace(
+      CUE_SETTINGS_PATTERN,
+      (match) => match,
+    ),
   );
   const text = stripCueMarkup(
-    lines.filter((line) => line !== timing && !/^\d+$/.test(line)).join(' '),
+    lines
+      .filter((line) => line !== timing && !DIGITS_ONLY_PATTERN.test(line))
+      .join(' '),
   );
   if (!text) {
     return [];

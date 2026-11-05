@@ -1,3 +1,7 @@
+const TRAILING_DOTS_PATTERN = /\.+$/;
+const QUERY_OR_HASH_PATTERN = /[?#]/;
+const REPEATED_SLASHES_PATTERN = /\/{2,}/g;
+
 const MEDIA_SEGMENTS = new Set([
   'avatars',
   'audios',
@@ -38,7 +42,7 @@ function parseUrl(value: string): URL | undefined {
 }
 
 function normalizeHost(hostname: string): string {
-  return hostname.toLowerCase().replace(/\.+$/, '');
+  return hostname.toLowerCase().replace(TRAILING_DOTS_PATTERN, '');
 }
 
 function decodePath(pathname: string): string | undefined {
@@ -76,8 +80,10 @@ export function classifyInternalMediaUrl(
   if (!isOnInternalHost && hosts.size > 0) {
     return { isInternal: false };
   }
-  const rawPath = parsed ? parsed.pathname : (trimmed.split(/[?#]/)[0] ?? '');
-  const path = decodePath(rawPath)?.replace(/\/{2,}/g, '/');
+  const rawPath = parsed
+    ? parsed.pathname
+    : (trimmed.split(QUERY_OR_HASH_PATTERN)[0] ?? '');
+  const path = decodePath(rawPath)?.replace(REPEATED_SLASHES_PATTERN, '/');
   const segments = path?.split('/').filter(Boolean) ?? [];
   // `ingredients/images/<id>` and `images/<id>` both name the asset.
   const mediaIndex = segments.findIndex((segment) =>

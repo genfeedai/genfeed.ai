@@ -27,6 +27,8 @@ import { useOrganization } from '@/hooks/data/organization/use-organization/use-
 import { useSaveQueue } from '@/hooks/utils/use-save-queue/use-save-queue';
 import { getBrandVoiceFailureView } from './brand-voice-failure.util';
 
+const EXEMPLAR_SEPARATOR_PATTERN = /\n\s*---\s*\n/;
+
 export const AUTO_MODEL_SELECT_VALUE = '__auto__';
 export const PLATFORM_OPTIONS = [
   { label: 'Twitter / X', value: 'twitter' },
@@ -67,7 +69,7 @@ function joinExemplars(values?: string[]): string {
 
 function parseExemplars(value: string): string[] {
   return value
-    .split(/\n\s*---\s*\n/)
+    .split(EXEMPLAR_SEPARATOR_PATTERN)
     .map((item) => item.trim())
     .filter(Boolean);
 }

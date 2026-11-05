@@ -32,6 +32,8 @@ import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import { isProjectChangeRequest } from '@/lib/creative-apps/project-change-request';
 import type { VisualCodeQuoteReview } from '@/props/studio/visual-code.props';
 
+const TRAILING_HIGH_SURROGATE_PATTERN = /[\uD800-\uDBFF]$/;
+
 const SETTLED_STATUSES = ['completed', 'failed', 'cancelled'];
 /** The project name takes at most this many characters. */
 const MAX_LABEL_LENGTH = 120;
@@ -158,7 +160,7 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
         : '';
     const truncated = (firstLine || t('newProject')).slice(0, MAX_LABEL_LENGTH);
     // A cut through an emoji leaves half a surrogate pair; drop it.
-    return /[\uD800-\uDBFF]$/.test(truncated)
+    return TRAILING_HIGH_SURROGATE_PATTERN.test(truncated)
       ? truncated.slice(0, -1)
       : truncated;
   }

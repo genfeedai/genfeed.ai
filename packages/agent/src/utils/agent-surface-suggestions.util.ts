@@ -9,6 +9,10 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { normalizeBrandAudience } from '@genfeedai/helpers/brand-audience.helper';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const EDGE_PUNCTUATION_PATTERN = /^[\s\p{P}\p{S}]+|[\s\p{P}\p{S}]+$/gu;
+const ACRONYM_PATTERN = /^\p{Lu}[\p{Lu}\d]+$/u;
+
 export type AgentPromptSurface =
   | 'analytics'
   | 'automation'
@@ -29,12 +33,16 @@ const MAX_LABEL_LENGTH = 32;
 const MAX_PROMPT_LENGTH = 220;
 
 function clamp(value: string, maxLength: number): string {
-  return value.trim().replace(/\s+/g, ' ').slice(0, maxLength).trim();
+  return value
+    .trim()
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
+    .slice(0, maxLength)
+    .trim();
 }
 
 /** A label is cut at a word, never mid-word, and says so with an ellipsis. */
 function clampLabel(value: string, maxLength: number): string {
-  const text = value.trim().replace(/\s+/g, ' ');
+  const text = value.trim().replace(WHITESPACE_RUNS_PATTERN, ' ');
   if (text.length <= maxLength) {
     return text;
   }
@@ -55,13 +63,13 @@ const MIN_BARE_TOPIC_LENGTH = 6;
  */
 export function sanitizeBrandTopic(value: string | undefined): string | null {
   const topic = (value ?? '')
-    .replace(/\s+/g, ' ')
-    .replace(/^[\s\p{P}\p{S}]+|[\s\p{P}\p{S}]+$/gu, '');
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
+    .replace(EDGE_PUNCTUATION_PATTERN, '');
   if (!topic) {
     return null;
   }
   const isBareWord = !topic.includes(' ');
-  const isAcronym = /^\p{Lu}[\p{Lu}\d]+$/u.test(topic);
+  const isAcronym = ACRONYM_PATTERN.test(topic);
   if (isBareWord && !isAcronym && topic.length < MIN_BARE_TOPIC_LENGTH) {
     return null;
   }

@@ -18,6 +18,8 @@ import { Injectable } from '@nestjs/common';
 import type { OAuth2Client } from 'google-auth-library';
 import { google, type youtube_v3 } from 'googleapis';
 
+const ISO8601_DURATION_PATTERN = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
+
 @Injectable()
 export class YoutubeAnalyticsService {
   private readonly constructorName = this.constructor.name;
@@ -261,7 +263,7 @@ export class YoutubeAnalyticsService {
   }
 
   private parseDuration(duration: string): number {
-    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    const match = duration.match(ISO8601_DURATION_PATTERN);
     if (!match) {
       return 0;
     }

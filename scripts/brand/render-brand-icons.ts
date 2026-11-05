@@ -2,6 +2,9 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 
+const MARK_PATH_DATA_PATTERN = /M2360 4944[^"']+/;
+const FILL_ATTRIBUTE_PATTERN = /fill="[^"]+"/;
+
 export const CANONICAL_LOGO_PATH = 'apps/web/public/logo.svg';
 
 export const OPAQUE_BLACK = { r: 0, g: 0, b: 0, alpha: 1 } as const;
@@ -132,7 +135,7 @@ export const PWA_ANY_ICON_FILES = {
 } as const;
 
 export function extractMarkPath(source: string): string {
-  const match = source.match(/M2360 4944[^"']+/);
+  const match = source.match(MARK_PATH_DATA_PATTERN);
   if (!match) {
     throw new Error('official Genfeed mark path not found');
   }
@@ -147,7 +150,7 @@ export function svgWithFill(svg: string, fill: string): string {
   if (!svg.includes('fill="')) {
     throw new Error('canonical SVG is missing a fill');
   }
-  return svg.replace(/fill="[^"]+"/, `fill="${fill}"`);
+  return svg.replace(FILL_ATTRIBUTE_PATTERN, `fill="${fill}"`);
 }
 
 export function svgAtSize(svg: string, px: number): string {

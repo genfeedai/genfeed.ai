@@ -1,3 +1,9 @@
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+const YOUTUBE_CHANNEL_ID_PATTERN = /^UC[\w-]{20,}$/i;
+const LEADING_AT_SIGN_PATTERN = /^@/;
+const YOUTUBE_HOST_PATTERN = /youtube\.com\//i;
+const YOUTU_BE_HOST_PATTERN = /youtu\.be\//i;
+
 /**
  * Pure YouTube URL normalizers for reply-inbox Apify/startUrl inputs.
  * SocialMonitor YouTube handlers forward strings as channel/video URLs — bare
@@ -14,14 +20,14 @@ export function toYouTubeChannelStartUrl(
   if (!raw) {
     return '';
   }
-  if (/^https?:\/\//i.test(raw)) {
+  if (HTTP_PROTOCOL_PREFIX_PATTERN.test(raw)) {
     return raw;
   }
   // Channel IDs are typically UC… and much longer than handles.
-  if (/^UC[\w-]{20,}$/i.test(raw)) {
+  if (YOUTUBE_CHANNEL_ID_PATTERN.test(raw)) {
     return `https://www.youtube.com/channel/${raw}`;
   }
-  const handle = raw.replace(/^@/, '');
+  const handle = raw.replace(LEADING_AT_SIGN_PATTERN, '');
   return `https://www.youtube.com/@${handle}`;
 }
 
@@ -35,7 +41,8 @@ export function toYouTubeVideoUrl(post: {
   const contentUrl = String(post.contentUrl ?? '').trim();
   if (
     contentUrl &&
-    (/youtube\.com\//i.test(contentUrl) || /youtu\.be\//i.test(contentUrl))
+    (YOUTUBE_HOST_PATTERN.test(contentUrl) ||
+      YOUTU_BE_HOST_PATTERN.test(contentUrl))
   ) {
     return contentUrl;
   }
@@ -57,7 +64,7 @@ export function toYouTubeVideoUrl(post: {
   if (!id) {
     return '';
   }
-  if (/^https?:\/\//i.test(id)) {
+  if (HTTP_PROTOCOL_PREFIX_PATTERN.test(id)) {
     return id;
   }
   return `https://www.youtube.com/watch?v=${id}`;

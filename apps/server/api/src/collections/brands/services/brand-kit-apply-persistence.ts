@@ -18,6 +18,8 @@ import type {
   IBrandKitAssetImportResponse,
 } from '@genfeedai/contracts/interfaces';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//iu;
+
 const SOCIAL_LINK_CATEGORIES: Record<string, LinkCategory> = {
   facebook: LinkCategory.FACEBOOK,
   instagram: LinkCategory.INSTAGRAM,
@@ -137,7 +139,7 @@ export async function saveAppliedBrandKitSocialLinks(
       ? SOCIAL_LINK_CATEGORIES[platform]
       : undefined;
     const url = link.url.trim();
-    if (!category || !/^https?:\/\//iu.test(url)) {
+    if (!category || !HTTP_PROTOCOL_PREFIX_PATTERN.test(url)) {
       continue;
     }
 

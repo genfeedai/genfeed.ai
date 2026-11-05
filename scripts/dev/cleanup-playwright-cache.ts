@@ -1,6 +1,8 @@
 import { rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 /**
  * Cache cleanup for a Playwright-owned dev server
  *
@@ -25,7 +27,10 @@ async function dirSizeBytes(target: string): Promise<number> {
     const { promisify } = await import('node:util');
     const run = promisify(execFile);
     const { stdout } = await run('du', ['-sk', target]);
-    const kb = Number.parseInt(stdout.trim().split(/\s+/)[0] ?? '0', 10);
+    const kb = Number.parseInt(
+      stdout.trim().split(WHITESPACE_RUN_PATTERN)[0] ?? '0',
+      10,
+    );
     return Number.isFinite(kb) ? kb * 1024 : 0;
   } catch {
     return 0;

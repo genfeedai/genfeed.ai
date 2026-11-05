@@ -12,6 +12,8 @@ import { useEffect, useRef, useState } from 'react';
 import { readRelationshipId } from '@/features/library-remix/library-remix-reference';
 import { useIngredientSidebar } from '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 
+const SAFE_IDENTIFIER_PATTERN = /^[A-Za-z0-9_-]{1,200}$/;
+
 // A link opened straight from another page races auth, brand and organization
 // settling: the first lookup can fail for a reason that clears a moment later.
 // Retry quietly and keep the neutral "opening" state instead of flashing the
@@ -55,7 +57,7 @@ export default function AssetDeepLink() {
       }
       const key = `${organizationId}:${brandId}:${assetId}`;
       if (openedKey.current === key) return;
-      if (!/^[A-Za-z0-9_-]{1,200}$/.test(assetId)) {
+      if (!SAFE_IDENTIFIER_PATTERN.test(assetId)) {
         setState('error');
         return;
       }

@@ -18,6 +18,12 @@ import {
   XAI_DIRECT_MODELS,
 } from '@api/services/integrations/direct-media/xai/xai-direct.contract';
 
+const SAFE_IDENTIFIER_PATTERN = /^[A-Za-z0-9_-]{1,200}$/;
+const WHITESPACE_CHAR_PATTERN = /\s/;
+const PERCENT_ENCODED_BYTES_PATTERN = /%[0-9a-f]{2}/gi;
+const BASE64_PATTERN =
+  /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+
 function record(value: unknown): Record<string, unknown> | undefined {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -37,7 +43,7 @@ function invalidResponse(isSubmission = false): never {
   );
 }
 function isSafeId(value: unknown): value is string {
-  return typeof value === 'string' && /^[A-Za-z0-9_-]{1,200}$/.test(value);
+  return typeof value === 'string' && SAFE_IDENTIFIER_PATTERN.test(value);
 }
 function isHttpsUrl(value: unknown): value is string {
   if (typeof value !== 'string') return false;
@@ -52,7 +58,7 @@ function validateContext(context: DirectMediaRequestContext): void {
   if (
     typeof context.apiKey !== 'string' ||
     !context.apiKey.trim() ||
-    /\s/.test(context.apiKey)
+    WHITESPACE_CHAR_PATTERN.test(context.apiKey)
   ) {
     throw new DirectMediaProviderError(
       'PROVIDER_CREDENTIAL_REQUIRED',
@@ -72,8 +78,10 @@ function hasCredentialReflection(value: string, apiKey: string): boolean {
   let decoded = value;
   for (let pass = 0; pass < 3; pass++) {
     if (decoded.includes(apiKey)) return true;
-    const next = decoded.replace(/%[0-9a-f]{2}/gi, (encoded: string) =>
-      String.fromCharCode(Number.parseInt(encoded.slice(1), 16)),
+    const next = decoded.replace(
+      PERCENT_ENCODED_BYTES_PATTERN,
+      (encoded: string) =>
+        String.fromCharCode(Number.parseInt(encoded.slice(1), 16)),
     );
     if (next === decoded) return false;
     decoded = next;
@@ -257,9 +265,7 @@ export class XaiDirectClient implements DirectMediaClient {
       if (
         typeof item.b64_json === 'string' &&
         item.b64_json.length > 0 &&
-        /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
-          item.b64_json,
-        ) &&
+        BASE64_PATTERN.test(item.b64_json) &&
         !item.b64_json.includes(context.apiKey)
       )
         return { base64: item.b64_json, mimeType: 'image/jpeg' };

@@ -30,6 +30,9 @@ import {
 import { Observable } from 'rxjs';
 import { finalize, tap } from 'rxjs/operators';
 
+const WORKFLOW_EXECUTION_PATH_PATTERN =
+  /^(?:\/v1)?\/workflow-executions\/[^/]+\/?$/;
+
 @Injectable()
 export class PerformanceInterceptor implements NestInterceptor {
   private readonly slowRequestThreshold = 1_000; // 1 second
@@ -186,7 +189,7 @@ export class PerformanceInterceptor implements NestInterceptor {
       error !== undefined &&
       method === 'GET' &&
       statusCode === 404 &&
-      /^(?:\/v1)?\/workflow-executions\/[^/]+\/?$/.test(url.split('?')[0]);
+      WORKFLOW_EXECUTION_PATH_PATTERN.test(url.split('?')[0]);
     const severity = this.readPerformanceSeverity(
       isSlow,
       isVerySlow,

@@ -9,6 +9,16 @@ import { pathToFileURL } from 'node:url';
 import { parse } from 'acorn';
 import { fixEsmRelativeImports } from './fix-esm-relative-imports.mjs';
 
+const NPM_NOT_FOUND_ERROR_PATTERN = /E404|No match found|Not Found/i;
+const LEADING_DOT_SLASH_PATTERN = /^\.\//;
+const REGEX_SPECIAL_CHARS_PATTERN = /[.+?^${}()|[\]\\]/g;
+const TEST_FILE_PATTERN = /\.(?:spec|test)\.[cm]?[jt]sx?$/;
+const TS_FILE_PATTERN = /\.[cm]?tsx?$/;
+const DECLARATION_FILE_PATTERN = /\.d\.[cm]?ts$/;
+const PACKED_IMPORT_FILE_PATTERN = /\.(?:[cm]?js|d\.[cm]?ts)$/;
+const JS_FILE_PATTERN = /\.[cm]?js$/;
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 const RUNTIME_DEPENDENCY_FIELDS = [
   'dependencies',
   'optionalDependencies',
@@ -237,7 +247,7 @@ function npmView(packageSpec) {
   }
 
   const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
-  if (/E404|No match found|Not Found/i.test(output)) return null;
+  if (NPM_NOT_FOUND_ERROR_PATTERN.test(output)) return null;
   fail(`npm view ${packageSpec} failed\n${output.trim()}`);
 }
 
@@ -274,10 +284,10 @@ function collectStringValues(value, values = []) {
 }
 
 function globTargetMatches(target, archiveFiles) {
-  const normalized = `package/${target.replace(/^\.\//, '')}`;
+  const normalized = `package/${target.replace(LEADING_DOT_SLASH_PATTERN, '')}`;
   const expression = new RegExp(
     `^${normalized
-      .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+      .replace(REGEX_SPECIAL_CHARS_PATTERN, '\\$&')
       .replaceAll('*', '[^/]+')}$`,
   );
   return archiveFiles.some((file) => expression.test(file));
@@ -350,8 +360,9 @@ export function validatePackedPackage({
       violations.push(`tarball includes macOS metadata: ${archiveFile}`);
     }
     if (
-      /\.(?:spec|test)\.[cm]?[jt]sx?$/.test(archiveFile) ||
-      (/\.[cm]?tsx?$/.test(archiveFile) && !/\.d\.[cm]?ts$/.test(archiveFile))
+      TEST_FILE_PATTERN.test(archiveFile) ||
+      (TS_FILE_PATTERN.test(archiveFile) &&
+        !DECLARATION_FILE_PATTERN.test(archiveFile))
     ) {
       violations.push(`tarball includes source/test code: ${archiveFile}`);
     }
@@ -407,7 +418,7 @@ function dependencyNameFromSpecifier(specifier) {
 }
 
 export function collectModuleSpecifiers(source, filePath = 'dist/index.js') {
-  if (/\.d\.[cm]?ts$/.test(filePath)) {
+  if (DECLARATION_FILE_PATTERN.test(filePath)) {
     const declarationPattern =
       /(?:\bfrom\s*|\bimport\s*(?:\(\s*)?|\brequire\s*\(\s*)['"]([^'"\r\n]+)['"]/g;
     return Array.from(source.matchAll(declarationPattern), (match) => match[1]);
@@ -478,7 +489,7 @@ function validatePackedImports(tarballPath, packedManifest) {
       for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
         const absolutePath = path.join(current, entry.name);
         if (entry.isDirectory()) stack.push(absolutePath);
-        else if (/\.(?:[cm]?js|d\.[cm]?ts)$/.test(entry.name)) {
+        else if (PACKED_IMPORT_FILE_PATTERN.test(entry.name)) {
           files.push(absolutePath);
         }
       }
@@ -490,7 +501,7 @@ function validatePackedImports(tarballPath, packedManifest) {
       for (const specifier of collectModuleSpecifiers(source, filePath)) {
         if (specifier?.startsWith('.')) {
           if (
-            /\.[cm]?js$/.test(filePath) &&
+            JS_FILE_PATTERN.test(filePath) &&
             !fs.existsSync(path.resolve(path.dirname(filePath), specifier))
           ) {
             missing.add(
@@ -554,7 +565,7 @@ function packRegistryVersion(packageSpec) {
         );
       }
       const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
-      if (/E404|No match found|Not Found/i.test(output)) return null;
+      if (NPM_NOT_FOUND_ERROR_PATTERN.test(output)) return null;
       fail(`npm pack ${packageSpec} failed\n${output.trim()}`);
     }
     const tarball = fs
@@ -680,7 +691,7 @@ export function assertMasterPublication(
 }
 
 function tarballName(request) {
-  return `${request.name.replace(/^@/, '').replace('/', '-')}-${request.version}.tgz`;
+  return `${request.name.replace(LEADING_AT_SIGN_PATTERN, '').replace('/', '-')}-${request.version}.tgz`;
 }
 
 function licenseSourcePath(root, request) {

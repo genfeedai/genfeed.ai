@@ -4,6 +4,9 @@ import {
   samePublicationCaptureScope as same,
 } from '~services/publication-capture-validation';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+
 /**
  * Text the extension itself wrote into an X composer. Only a publication whose
  * text matches one of these is ever captured: the user's other posts are
@@ -25,7 +28,7 @@ export type PublicationWrittenTexts = Record<string, PublicationWrittenText[]>;
 
 /** X rewrites whitespace in its editor, so compare on collapsed whitespace. */
 export function normalizePublicationWrittenText(value: string): string {
-  return value.replace(/\s+/g, ' ').trim();
+  return value.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
 }
 function parseEntry(value: unknown): PublicationWrittenText | null {
   const v = object(value);
@@ -60,7 +63,7 @@ export async function readPublicationWrittenTexts(): Promise<PublicationWrittenT
   const raw = object(stored[PUBLICATION_WRITTEN_KEY]);
   const entries: PublicationWrittenTexts = {};
   for (const [key, list] of Object.entries(raw ?? {})) {
-    if (!/^\d+$/.test(key) || !Array.isArray(list)) continue;
+    if (!DIGITS_ONLY_PATTERN.test(key) || !Array.isArray(list)) continue;
     const parsed = list.flatMap((item) => parseEntry(item) ?? []);
     if (parsed.length) entries[key] = parsed;
   }

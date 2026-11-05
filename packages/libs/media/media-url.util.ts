@@ -1,6 +1,11 @@
 import { getSignedUrl } from '@aws-sdk/cloudfront-signer';
 import { isFilesServiceHostname } from '@genfeedai/helpers/media/files-service-hostname.helper';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+const LEADING_SLASHES_PATTERN = /^\/+/;
+const LOCAL_STORAGE_PREFIX_PATTERN = /^local\//;
+
 /**
  * Media URLs are derived, never stored.
  *
@@ -42,11 +47,11 @@ export interface IngredientMediaSource {
 const STAGING_CDN_ORIGIN = 'https://staging-cdn.genfeed.ai';
 
 function trimSlash(value: string): string {
-  return value.replace(/\/+$/, '');
+  return value.replace(TRAILING_SLASHES_PATTERN, '');
 }
 
 function isHttpUrl(value: string): boolean {
-  return /^https?:\/\//i.test(value);
+  return HTTP_PROTOCOL_PREFIX_PATTERN.test(value);
 }
 
 /**
@@ -66,7 +71,9 @@ function publicCdnOrigin(cdnOrigin: string): string {
 }
 
 function storageKeyFromPath(pathname: string): string | undefined {
-  const key = pathname.replace(/^\/+/, '').replace(/^local\//, '');
+  const key = pathname
+    .replace(LEADING_SLASHES_PATTERN, '')
+    .replace(LOCAL_STORAGE_PREFIX_PATTERN, '');
   return key || undefined;
 }
 
@@ -196,7 +203,7 @@ export function buildMediaUrl(
   config: MediaUrlConfig,
   options: MediaUrlOptions = {},
 ): string {
-  const normalizedKey = objectKey.replace(/^\/+/, '');
+  const normalizedKey = objectKey.replace(LEADING_SLASHES_PATTERN, '');
   if (!normalizedKey.trim()) {
     throw new Error('objectKey is required to build a media URL');
   }
@@ -233,7 +240,7 @@ export function signCdnUrl(
   // A CDN base can carry a path (self-hosted serves local media under /local).
   // buildFromEncodedPath re-adds it, so the path must be recovered relative to
   // that base; a same-origin URL outside it is not ours to rewrite.
-  const basePath = cdnBase.pathname.replace(/\/+$/, '');
+  const basePath = cdnBase.pathname.replace(TRAILING_SLASHES_PATTERN, '');
   let relativePath = parsed.pathname;
   if (basePath) {
     if (!relativePath.startsWith(`${basePath}/`)) {
@@ -242,7 +249,7 @@ export function signCdnUrl(
     relativePath = relativePath.slice(basePath.length);
   }
 
-  const encodedPath = relativePath.replace(/^\/+/, '');
+  const encodedPath = relativePath.replace(LEADING_SLASHES_PATTERN, '');
   if (!encodedPath) {
     return absoluteUrl;
   }

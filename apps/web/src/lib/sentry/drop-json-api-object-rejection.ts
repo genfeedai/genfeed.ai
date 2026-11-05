@@ -1,5 +1,9 @@
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 
+const NON_ERROR_REJECTION_PATTERN =
+  /non-error (promise rejection|exception) captured/i;
+const ERRORS_KEY_PATTERN = /keys:\s*errors/i;
+
 interface DroppableSentryException {
   readonly type?: string;
   readonly value?: string;
@@ -27,11 +31,9 @@ function isNonErrorErrorsKeyEvent(event: DroppableSentryEvent): boolean {
 
   const isUnhandledObject =
     firstException.type === 'UnhandledRejection' ||
-    /non-error (promise rejection|exception) captured/i.test(
-      firstException.value,
-    );
+    NON_ERROR_REJECTION_PATTERN.test(firstException.value);
 
-  return isUnhandledObject && /keys:\s*errors/i.test(firstException.value);
+  return isUnhandledObject && ERRORS_KEY_PATTERN.test(firstException.value);
 }
 
 /**

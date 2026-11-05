@@ -1,6 +1,9 @@
 import { KnowledgeSourceKind } from '@genfeedai/contracts';
 import * as cheerio from 'cheerio';
 
+const NOAI_DIRECTIVE_PATTERN = /\bnoai\b/;
+const NOINDEX_DIRECTIVE_PATTERN = /\bnoindex\b/;
+
 type KnowledgeHtmlElement = Parameters<cheerio.CheerioAPI>[0];
 
 export const KNOWLEDGE_AUDIO_MIME_TYPES = new Set([
@@ -53,7 +56,10 @@ function isProhibitedRobots(html: string): boolean {
     .get()
     .join(',')
     .toLowerCase();
-  return /\bnoai\b/.test(robots) || /\bnoindex\b/.test(robots);
+  return (
+    NOAI_DIRECTIVE_PATTERN.test(robots) ||
+    NOINDEX_DIRECTIVE_PATTERN.test(robots)
+  );
 }
 
 function pickCaptionUrl(

@@ -8,6 +8,8 @@ import {
   Matches,
 } from 'class-validator';
 
+const CLOCK_TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
 export class ReplyBotScheduleDto {
   @IsBoolean()
   @IsOptional()
@@ -19,7 +21,7 @@ export class ReplyBotScheduleDto {
   enabled?: boolean;
 
   @IsString()
-  @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, {
+  @Matches(CLOCK_TIME_PATTERN, {
     message: 'activeHoursStart must be in HH:MM format',
   })
   @IsOptional()
@@ -32,7 +34,7 @@ export class ReplyBotScheduleDto {
   activeHoursStart?: string;
 
   @IsString()
-  @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, {
+  @Matches(CLOCK_TIME_PATTERN, {
     message: 'activeHoursEnd must be in HH:MM format',
   })
   @IsOptional()

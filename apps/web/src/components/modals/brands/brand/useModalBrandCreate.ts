@@ -32,6 +32,10 @@ import { useForm } from 'react-hook-form';
 import { useModalAutoOpen } from '@/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import { useFormSubmitWithState } from '@/hooks/utils/use-form-submit/use-form-submit';
 
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const EDGE_HYPHENS_PATTERN = /^-+|-+$/g;
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+
 const DEFAULT_BRAND_FORM_VALUES: BrandFormValues = {
   backgroundColor: THEME_COLORS.PRIMARY,
   defaultImageModel: '',
@@ -53,9 +57,9 @@ export function slugifyBrandLabel(value: string): string {
   return value
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
+    .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
     .slice(0, BRAND_HANDLE_MAX_LENGTH)
-    .replace(/^-+|-+$/g, '');
+    .replace(EDGE_HYPHENS_PATTERN, '');
 }
 
 export function normalizeWebsiteUrl(value: string): string {
@@ -63,7 +67,7 @@ export function normalizeWebsiteUrl(value: string): string {
   if (!trimmed) {
     return '';
   }
-  if (/^https?:\/\//i.test(trimmed)) {
+  if (HTTP_PROTOCOL_PREFIX_PATTERN.test(trimmed)) {
     return trimmed;
   }
   return `https://${trimmed}`;

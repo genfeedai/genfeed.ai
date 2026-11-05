@@ -34,6 +34,10 @@ import {
 import { Injectable } from '@nestjs/common';
 import Handlebars from 'handlebars';
 
+const EXCESS_BLANK_LINES_PATTERN = /\n{3,}/g;
+const UNDERSCORES_PATTERN = /_/g;
+const WORD_INITIALS_PATTERN = /\b\w/g;
+
 type Template = TemplateDocument;
 
 const DEFAULT_TEMPLATES_PAGE_SIZE = 20;
@@ -590,7 +594,7 @@ export class TemplatesService {
       let rendered = compiledTemplate(variables);
 
       // Clean up multiple consecutive newlines (3+ newlines -> 2 newlines)
-      rendered = rendered.replace(/\n{3,}/g, '\n\n');
+      rendered = rendered.replace(EXCESS_BLANK_LINES_PATTERN, '\n\n');
 
       // Trim any leading/trailing whitespace
       rendered = rendered.trim();
@@ -676,7 +680,9 @@ export class TemplatesService {
    * Private: Format variable name to label
    */
   private formatLabel(name: string): string {
-    return name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    return name
+      .replace(UNDERSCORES_PATTERN, ' ')
+      .replace(WORD_INITIALS_PATTERN, (l) => l.toUpperCase());
   }
 
   /**

@@ -28,6 +28,8 @@ import ExternalUrlField from '../long-form-delivery/external-url-field';
 import LongFormDeliveryHistory from '../long-form-delivery/long-form-delivery-history';
 import { useSourceDeliveries } from '../long-form-delivery/use-source-deliveries';
 
+const HTML_TAGS_PATTERN = /<[^>]*>/g;
+
 function accountLabel(credential: ICredential): string {
   return (
     credential.label ||
@@ -85,7 +87,7 @@ export default function ArticleDeliveryCard({
   );
   const { reload, targets } = useSourceDeliveries(loadDeliveries);
 
-  const hasContent = content.replace(/<[^>]*>/g, '').trim().length > 0;
+  const hasContent = content.replace(HTML_TAGS_PATTERN, '').trim().length > 0;
   const blockedReason = isDirty
     ? translate('saveFirst')
     : hasContent

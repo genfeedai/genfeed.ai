@@ -37,6 +37,9 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import type { Request } from 'express';
+
+const NON_NEGATIVE_INTEGER_PATTERN = /^(0|[1-9][0-9]{0,9})$/;
+
 @Controller('brands/:brandId/generation-receipts')
 @UseGuards(RolesGuard)
 @UsePipes(
@@ -73,7 +76,7 @@ export class BrandedGenerationReceiptsController {
     if (
       typeof value !== 'string' ||
       value.length > 10 ||
-      !/^(0|[1-9][0-9]{0,9})$/.test(value) ||
+      !NON_NEGATIVE_INTEGER_PATTERN.test(value) ||
       Number(value) > 2147483647
     )
       throw new BadRequestException('receipt_query_invalid');

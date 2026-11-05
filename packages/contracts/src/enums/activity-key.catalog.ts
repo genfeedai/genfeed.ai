@@ -10,6 +10,13 @@
 import { ActivityKey, ActivitySource } from './activity.enum';
 import { CreditTransactionCategory } from './credit.enum';
 
+const HYPHENS_PATTERN = /-/g;
+const BYOK_PREFIX_PATTERN = /^\[BYOK\]\s*/;
+const JSON_START_PATTERN = /^[{[]/;
+const SEPARATOR_RUNS_PATTERN = /[_-]+/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const WORD_INITIALS_PATTERN = /\b\w/g;
+
 /**
  * ICU `select` selectors must be valid identifiers — FormatJS rejects hyphens
  * (`EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT`). `CreditTransactionCategory.BYOK_USAGE`
@@ -489,7 +496,7 @@ export function parseActivityKey(key: string): ActivityKeyParts {
 }
 
 export function getActivitySubjectLabel(subject: string): string {
-  return SUBJECT_LABELS[subject] ?? subject.replace(/-/g, ' ');
+  return SUBJECT_LABELS[subject] ?? subject.replace(HYPHENS_PATTERN, ' ');
 }
 
 export function getActivityOperationLabel(
@@ -708,7 +715,7 @@ export function parseCreditActivityValue(value: string | undefined): {
       : Number.NaN;
   const description =
     typeof record?.description === 'string'
-      ? record.description.replace(/^\[BYOK\]\s*/, '').trim()
+      ? record.description.replace(BYOK_PREFIX_PATTERN, '').trim()
       : undefined;
 
   return {
@@ -719,7 +726,9 @@ export function parseCreditActivityValue(value: string | undefined): {
       ? { category: record?.category as CreditTransactionCategory }
       : {}),
     description:
-      description && !/^[{[]/.test(description) ? description : undefined,
+      description && !JSON_START_PATTERN.test(description)
+        ? description
+        : undefined,
   };
 }
 
@@ -949,10 +958,10 @@ function capitalize(value: string): string {
 
 function humanizeToken(value: string): string {
   return value
-    .replace(/[_-]+/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(SEPARATOR_RUNS_PATTERN, ' ')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim()
-    .replace(/\b\w/g, (char: string) => char.toUpperCase());
+    .replace(WORD_INITIALS_PATTERN, (char: string) => char.toUpperCase());
 }
 
 /** Map wire key → coarse status for badges / background tasks. */

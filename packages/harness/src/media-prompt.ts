@@ -4,6 +4,13 @@ import type {
   HarnessSourceRecord,
 } from './types';
 
+const ENDS_WITH_SENTENCE_PUNCTUATION_PATTERN = /[.!?]$/;
+const SCREAMING_CASE_CUES_PATTERN = /\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/g;
+const BACKGROUND_WORD_PATTERN = /background/i;
+const TRANSPARENT_WORD_PATTERN = /transparent/i;
+const TRAILING_PERIOD_PATTERN = /\.$/;
+const LINE_BREAK_PATTERN = /\r?\n/;
+
 const VISUAL_KINDS = new Set<ContentKind>([
   'ad-creative',
   'image',
@@ -61,12 +68,14 @@ function isVisualCue(line: string): boolean {
 
 function toSentence(line: string): string {
   const trimmed = line.trim();
-  return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+  return ENDS_WITH_SENTENCE_PUNCTUATION_PATTERN.test(trimmed)
+    ? trimmed
+    : `${trimmed}.`;
 }
 
 /** `Font family: MONTSERRAT_REGULAR` reads as `Font family: Montserrat Regular`. */
 function humanizeCue(line: string): string {
-  return line.replace(/\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/g, (token) =>
+  return line.replace(SCREAMING_CASE_CUES_PATTERN, (token) =>
     token
       .toLowerCase()
       .split('_')
@@ -76,7 +85,9 @@ function humanizeCue(line: string): string {
 }
 
 function isTransparentBackground(line: string): boolean {
-  return /background/i.test(line) && /transparent/i.test(line);
+  return (
+    BACKGROUND_WORD_PATTERN.test(line) && TRANSPARENT_WORD_PATTERN.test(line)
+  );
 }
 
 function selectVisualCues(
@@ -191,7 +202,9 @@ function selectMotionPalette(brief: ContentHarnessBrief): string[] {
   const names: string[] = [];
   for (const line of [...brief.styleDirectives, ...brief.systemDirectives]) {
     const value = PALETTE_LINE.exec(line.trim())?.[1];
-    const name = value ? describeHexColor(value.replace(/\.$/, '')) : undefined;
+    const name = value
+      ? describeHexColor(value.replace(TRAILING_PERIOD_PATTERN, ''))
+      : undefined;
     if (name && !names.includes(name)) {
       names.push(name);
     }
@@ -286,7 +299,9 @@ const MUSIC_FIELD_LABEL = /^prompt guidelines\s*:\s*/i;
 function selectMusicNotes(values: string[]): string[] {
   const seen = new Set<string>();
   const notes: string[] = [];
-  for (const line of values.flatMap((value) => value.split(/\r?\n/))) {
+  for (const line of values.flatMap((value) =>
+    value.split(LINE_BREAK_PATTERN),
+  )) {
     const note = line.trim().replace(MUSIC_FIELD_LABEL, '');
     const key = note.toLowerCase();
     if (!note || MUSIC_BOOKKEEPING_LINE.test(note) || seen.has(key)) continue;

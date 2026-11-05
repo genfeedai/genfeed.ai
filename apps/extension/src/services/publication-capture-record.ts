@@ -20,6 +20,11 @@ import {
   publicationCaptureUuid as uuid,
   validPublicationCaptureIdentity,
 } from '~services/publication-capture-validation';
+
+const LINKEDIN_POST_URN_PATTERN = /^urn:li:(?:share|ugcPost):\d+$/;
+const LINKEDIN_FEED_UPDATE_PATH_PATTERN =
+  /^\/feed\/update\/(urn:li:(?:activity|share|ugcPost):\d+)\/?$/;
+
 export function parsePublicationCaptureSenderBinding(
   value: unknown,
 ): PublicationCaptureSenderBinding | null {
@@ -75,8 +80,7 @@ export function publicationCaptureProviderId(
   observedExternalId: string,
 ): string | undefined {
   if (platform === 'twitter') return observedExternalId;
-  return kind === 'post' &&
-    /^urn:li:(?:share|ugcPost):\d+$/.test(observedExternalId)
+  return kind === 'post' && LINKEDIN_POST_URN_PATTERN.test(observedExternalId)
     ? observedExternalId
     : undefined;
 }
@@ -132,10 +136,7 @@ function storedObservedId(
 ): unknown {
   if (platform === 'twitter') return input.externalId;
   const url = page(input.url);
-  const post =
-    /^\/feed\/update\/(urn:li:(?:activity|share|ugcPost):\d+)\/?$/.exec(
-      url?.pathname ?? '',
-    );
+  const post = LINKEDIN_FEED_UPDATE_PATH_PATTERN.exec(url?.pathname ?? '');
   const comment = url?.searchParams.get('commentUrn');
   return post && (comment === null || comment === undefined)
     ? post[1]

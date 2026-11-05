@@ -9,6 +9,8 @@ import {
 import type { ContentLearningDecision, Prisma } from '@genfeedai/prisma';
 import { ConflictException } from '@nestjs/common';
 
+const CRLF_PATTERN = /\r\n/g;
+
 export interface LearningArtifactMaterialV1 {
   text: string;
   ingredients: ReadonlyArray<{ id: string; version: string }>;
@@ -69,7 +71,7 @@ export function learningArtifactHashV1(
   material: LearningArtifactMaterialV1,
 ): string {
   return learningHash({
-    text: material.text.replace(/\r\n/g, '\n'),
+    text: material.text.replace(CRLF_PATTERN, '\n'),
     ingredients: material.ingredients.map(({ id, version }) => ({
       id,
       version,
@@ -150,8 +152,8 @@ export async function bindLearningArtifactV1(
     // A user edit committed after the generated draft was saved must never be
     // attributed to generation; leave the decision unbound instead.
     if (
-      post.description.replace(/\r\n/g, '\n') !==
-      generatedText.replace(/\r\n/g, '\n')
+      post.description.replace(CRLF_PATTERN, '\n') !==
+      generatedText.replace(CRLF_PATTERN, '\n')
     )
       throw new ConflictException('Draft changed before artifact binding');
     if (decision.finalArtifactHash && decision.finalArtifactHash !== hash)

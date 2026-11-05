@@ -1,5 +1,14 @@
 import { createHash } from 'node:crypto';
 import { BadRequestException } from '@nestjs/common';
+
+const BACKSLASHES_PATTERN = /\\/g;
+const WOFF2_EXTENSION_PATTERN = /\.woff2$/i;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const SAFE_IDENTIFIER_PATTERN = /^[A-Za-z0-9_-]+$/;
+const ISO_TIMESTAMP_MS_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
 export const FONT_UPLOAD_MAX_BYTES = 4194304;
 export const FONT_UPLOAD_MIN_BYTES = 48;
 interface ValidatedBrandFontUpload {
@@ -25,8 +34,9 @@ function isControl(character: string): boolean {
 const invalid = () => new BadRequestException('font_asset_invalid');
 export function normalizeBrandFontFileName(value: string): string {
   if (typeof value !== 'string') throw invalid();
-  const basename = value.replace(/\\/g, '/').split('/').at(-1) ?? '';
-  if (!/\.woff2$/i.test(basename)) throw invalid();
+  const basename =
+    value.replace(BACKSLASHES_PATTERN, '/').split('/').at(-1) ?? '';
+  if (!WOFF2_EXTENSION_PATTERN.test(basename)) throw invalid();
   const name = Array.from(
     Array.from(basename)
       .filter((character) => !isControl(character))
@@ -35,7 +45,7 @@ export function normalizeBrandFontFileName(value: string): string {
   )
     .slice(0, 256)
     .join('');
-  if (!name || !/\.woff2$/i.test(name)) throw invalid();
+  if (!name || !WOFF2_EXTENSION_PATTERN.test(name)) throw invalid();
   return name;
 }
 export function validateBrandFontUpload(
@@ -44,9 +54,7 @@ export function validateBrandFontUpload(
   if (
     !input ||
     typeof input.requestId !== 'string' ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
-      input.requestId,
-    )
+    !UUID_PATTERN.test(input.requestId)
   )
     throw invalid();
   const file = input.file;
@@ -101,7 +109,7 @@ export function parseBrandFontCursor(value: string): BrandFontCursor {
   if (
     typeof value !== 'string' ||
     value.length > 2112 ||
-    !/^[A-Za-z0-9_-]+$/.test(value)
+    !SAFE_IDENTIFIER_PATTERN.test(value)
   )
     throw invalid();
   try {
@@ -116,7 +124,7 @@ export function parseBrandFontCursor(value: string): BrandFontCursor {
     if (
       Object.keys(record).sort().join(',') !== 'createdAt,id' ||
       typeof record.createdAt !== 'string' ||
-      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(record.createdAt) ||
+      !ISO_TIMESTAMP_MS_PATTERN.test(record.createdAt) ||
       new Date(record.createdAt).toISOString() !== record.createdAt ||
       typeof record.id !== 'string' ||
       !record.id ||

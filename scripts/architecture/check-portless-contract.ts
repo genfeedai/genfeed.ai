@@ -3,6 +3,8 @@ import path from 'node:path';
 import { PORTLESS_PROXY_ENVIRONMENT } from '../dev/portless-env';
 import { PORTLESS_SERVICE_INSTALL_ARGS } from '../dev/setup-portless';
 
+const LINE_BREAK_PATTERN = /\r?\n/;
+
 const ROUTED_SERVICES = [
   { directory: 'apps/web', runnerPath: '../../', service: 'app' },
   { directory: 'apps/docs', runnerPath: '../../', service: 'docs' },
@@ -110,7 +112,7 @@ function readJson<T>(rootDir: string, relativePath: string): T {
  */
 export function parseEnvExample(contents: string): Record<string, string> {
   const values: Record<string, string> = {};
-  for (const line of contents.split(/\r?\n/)) {
+  for (const line of contents.split(LINE_BREAK_PATTERN)) {
     const separator = line.indexOf('=');
     if (separator <= 0 || line.startsWith('#')) {
       continue;

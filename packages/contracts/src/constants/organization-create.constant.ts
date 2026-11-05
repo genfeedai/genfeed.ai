@@ -1,3 +1,5 @@
+const WHITESPACE_CHAR_PATTERN = /\s/;
+
 /**
  * Limits and messages for `POST /organizations`. The API DTO and the
  * create-organization form both read these, so a value the form accepts is a
@@ -27,7 +29,7 @@ const HOSTNAME_PATTERN =
 export function isValidWebsiteUrl(value: string): boolean {
   const trimmed = value.trim();
 
-  if (!trimmed || /\s/.test(trimmed)) {
+  if (!trimmed || WHITESPACE_CHAR_PATTERN.test(trimmed)) {
     return false;
   }
 

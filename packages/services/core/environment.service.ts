@@ -10,6 +10,8 @@ import {
   type ThemePreference,
 } from '@genfeedai/contracts/constants';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 const LOCAL_DEVELOPMENT_HOSTNAMES = new Set([
   '127.0.0.1',
   '::1',
@@ -80,7 +82,7 @@ export const EnvironmentService = {
     );
 
     if (configuredEndpoint) {
-      return configuredEndpoint.replace(/\/+$/, '');
+      return configuredEndpoint.replace(TRAILING_SLASHES_PATTERN, '');
     }
 
     return isCloudDeployment()
@@ -130,7 +132,7 @@ export const EnvironmentService = {
       getDesktopEnvironmentOverrides().cdnUrl ||
       process.env.NEXT_PUBLIC_CDN_URL ||
       'https://cdn.genfeed.ai'
-    ).replace(/\/+$/, '');
+    ).replace(TRAILING_SLASHES_PATTERN, '');
   },
 
   /**

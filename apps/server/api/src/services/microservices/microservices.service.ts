@@ -27,6 +27,8 @@ import {
 import Redis from 'ioredis';
 import { firstValueFrom } from 'rxjs';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 export interface ServiceHealth {
   name: string;
   url: string;
@@ -108,7 +110,7 @@ export class MicroservicesService implements OnModuleInit, HealthContributor {
       throw new Error(`${key} must be configured`);
     }
 
-    return value.trim().replace(/\/+$/, '');
+    return value.trim().replace(TRAILING_SLASHES_PATTERN, '');
   }
 
   private getRedisLogTarget(redisUrl: string): string {

@@ -14,6 +14,8 @@ import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.i
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+
 /**
  * Handles the non-training branches of the Replicate webhook: asset
  * (banner/logo) generations and regular ingredient media generations, both
@@ -456,7 +458,7 @@ export class ReplicateGenerationWebhookHandler {
       ).values(),
     ].filter((row) => {
       const suffix = row.externalId?.slice(payload.id.length + 1);
-      return suffix !== undefined && /^\d+$/.test(suffix);
+      return suffix !== undefined && DIGITS_ONLY_PATTERN.test(suffix);
     });
     if (
       (typeof output !== 'string' && !Array.isArray(output)) ||

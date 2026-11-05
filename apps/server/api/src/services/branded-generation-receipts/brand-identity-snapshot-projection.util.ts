@@ -21,6 +21,8 @@ import { assertSafeObjectKey } from '@genfeedai/storage';
 import { ConflictException } from '@nestjs/common';
 import { z } from 'zod';
 
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 const savedContent = z
   .object({
     brandId: learningContractIdSchema,
@@ -314,7 +316,7 @@ export function assertBrandIdentityAssetsAvailable(
       !reference.contentHash ||
       !reference.mimeType ||
       !asset.sha256 ||
-      !/^[a-f0-9]{64}$/.test(asset.sha256) ||
+      !SHA256_HEX_PATTERN.test(asset.sha256) ||
       reference.contentHash !== `sha256:${asset.sha256}` ||
       reference.mimeType !== asset.mimeType ||
       !Number.isInteger(asset.sizeBytes) ||

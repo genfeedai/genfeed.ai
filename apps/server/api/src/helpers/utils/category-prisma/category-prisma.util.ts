@@ -6,6 +6,8 @@ import {
 } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 
+const HYPHENS_PATTERN = /-/g;
+
 /**
  * Prisma UPPERCASE enum values for IngredientCategory.
  * These string literals must match the Prisma schema exactly.
@@ -170,7 +172,7 @@ const PRISMA_INGREDIENT_STATUS_VALUES = new Set<string>(
 
 /** Normalize legacy lowercase/hyphen domain spellings to Prisma labels. */
 function toPrismaLabel(value: string): string {
-  return value.replace(/-/g, '_').toUpperCase();
+  return value.replace(HYPHENS_PATTERN, '_').toUpperCase();
 }
 
 /**

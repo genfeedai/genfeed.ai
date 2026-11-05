@@ -34,6 +34,8 @@ import {
   useContextAuthedService,
 } from '../internal/context-authed-service';
 
+const ERROR_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_]{0,39}$/;
+
 export type RoutedOrganizationStatus =
   | 'failed'
   | 'loading'
@@ -133,9 +135,7 @@ function classifyFailure(error: unknown): RoutedOrganizationFailure {
  */
 function errorNameOf(error: unknown): string | undefined {
   if (!(error instanceof Error)) return 'NonError';
-  return /^[A-Za-z][A-Za-z0-9_]{0,39}$/.test(error.name)
-    ? error.name
-    : undefined;
+  return ERROR_NAME_PATTERN.test(error.name) ? error.name : undefined;
 }
 
 function toHttpStatus(value: unknown): number | undefined {

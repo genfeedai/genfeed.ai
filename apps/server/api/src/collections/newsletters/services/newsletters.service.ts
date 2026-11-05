@@ -33,6 +33,9 @@ import {
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
+const JSON_ARRAY_PATTERN = /\[[\s\S]*\]/;
+const LEADING_HEADING_MARKER_PATTERN = /^#\s*/;
+
 type TenantContext = {
   organizationId: string;
   brandId: string;
@@ -971,14 +974,17 @@ export class NewslettersService
   }
 
   private parseJsonArray<T>(value: string): T[] {
-    const match = value.match(/\[[\s\S]*\]/);
+    const match = value.match(JSON_ARRAY_PATTERN);
     const json = match?.[0] ?? value;
     const parsed = JSON.parse(json) as unknown;
     return Array.isArray(parsed) ? (parsed as T[]) : [];
   }
 
   private resolveDraftTitle(topic: string, draftContent: string): string {
-    const firstLine = draftContent.split('\n')[0]?.replace(/^#\s*/, '').trim();
+    const firstLine = draftContent
+      .split('\n')[0]
+      ?.replace(LEADING_HEADING_MARKER_PATTERN, '')
+      .trim();
     return firstLine || topic;
   }
 

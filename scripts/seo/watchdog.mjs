@@ -12,6 +12,29 @@ import {
   persistSnapshot,
 } from './snapshot.mjs';
 
+const TIMESTAMP_SEPARATORS_PATTERN = /[:.]/g;
+const REPEATED_SLASHES_PATTERN = /\/{2,}/g;
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+const TRACKING_PARAM_PATTERN = /^(?:utm_|fbclid$|gclid$|ref$)/i;
+const LINE_BREAK_PATTERN = /\r?\n/;
+const ROBOTS_COMMENT_PATTERN = /\s+#.*$/;
+const REGEX_SPECIAL_CHARS_PATTERN = /[.+?^${}()|[\]\\]/g;
+const ROBOTS_WILDCARDS_PATTERN = /\*/g;
+const ROBOTS_END_ANCHOR_PATTERN = /\$$/;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const WORDS_PATTERN = /[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu;
+const NOT_FOUND_TEXT_PATTERN =
+  /\b(?:404|not found|page does not exist|page doesn't exist)\b/i;
+const NOT_FOUND_HEADING_PATTERN =
+  /^(?:404\b|page not found\b|not found\b|the (?:requested )?page (?:does not|doesn't) exist\b|we (?:could not|couldn't) find (?:that|this) page\b).{0,200}/i;
+const DIRECTIVE_SEPARATOR_PATTERN = /[;,]/;
+const MARKDOWN_LINK_TARGETS_PATTERN =
+  /\[[^\]]*\]\(<?([^\s)>]+)>?(?:\s+[^)]*)?\)/g;
+const HTTP_URLS_PATTERN = /https?:\/\/[^\s<>"'`]+/g;
+const TRAILING_URL_PUNCTUATION_PATTERN = /[.,;:!?)\]}]+$/;
+const HTML_CONTENT_TYPE_PATTERN = /(?:text\/html|application\/xhtml\+xml)/i;
+const HTML_MIME_PATTERN = /text\/html/i;
+
 let chromium;
 let load;
 
@@ -49,7 +72,7 @@ const sleep = (milliseconds) =>
 const unicodeLength = (value) => Array.from(value ?? '').length;
 
 function snapshotId(date) {
-  return date.toISOString().replace(/[:.]/g, '-');
+  return date.toISOString().replace(TIMESTAMP_SEPARATORS_PATTERN, '-');
 }
 
 function normalizeUrl(value, base, { preserveQuery = false } = {}) {
@@ -64,14 +87,14 @@ function normalizeUrl(value, base, { preserveQuery = false } = {}) {
     ) {
       url.port = '';
     }
-    url.pathname = url.pathname.replace(/\/{2,}/g, '/');
+    url.pathname = url.pathname.replace(REPEATED_SLASHES_PATTERN, '/');
     if (url.pathname.length > 1)
-      url.pathname = url.pathname.replace(/\/+$/, '');
+      url.pathname = url.pathname.replace(TRAILING_SLASHES_PATTERN, '');
     if (!preserveQuery) {
       url.search = '';
     } else {
       const params = [...url.searchParams.entries()]
-        .filter(([key]) => !/^(?:utm_|fbclid$|gclid$|ref$)/i.test(key))
+        .filter(([key]) => !TRACKING_PARAM_PATTERN.test(key))
         .sort(([leftKey, leftValue], [rightKey, rightValue]) =>
           `${leftKey}=${leftValue}`.localeCompare(`${rightKey}=${rightValue}`),
         );
@@ -178,8 +201,8 @@ function parseRobots(text) {
   const sitemapUrls = [];
   const groups = [];
   let current = null;
-  for (const originalLine of text.split(/\r?\n/)) {
-    const line = originalLine.replace(/\s+#.*$/, '').trim();
+  for (const originalLine of text.split(LINE_BREAK_PATTERN)) {
+    const line = originalLine.replace(ROBOTS_COMMENT_PATTERN, '').trim();
     if (!line.includes(':')) continue;
     const separator = line.indexOf(':');
     const key = line.slice(0, separator).trim().toLowerCase();
@@ -216,9 +239,9 @@ function robotsDecision(parsed, url) {
     for (const rule of group.rules) {
       if (!rule.path) continue;
       const escaped = rule.path
-        .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
-        .replace(/\*/g, '.*')
-        .replace(/\$$/, '$');
+        .replace(REGEX_SPECIAL_CHARS_PATTERN, '\\$&')
+        .replace(ROBOTS_WILDCARDS_PATTERN, '.*')
+        .replace(ROBOTS_END_ANCHOR_PATTERN, '$');
       try {
         if (new RegExp(`^${escaped}`).test(pathname)) matches.push(rule);
       } catch {
@@ -316,7 +339,9 @@ function extractFetchedDom(html, base) {
     title: $('title').first().text().trim(),
     description: textOf($, 'meta[name="description" i]'),
     h1_strings: $('h1')
-      .map((_, element) => $(element).text().replace(/\s+/g, ' ').trim())
+      .map((_, element) =>
+        $(element).text().replace(WHITESPACE_RUNS_PATTERN, ' ').trim(),
+      )
       .get(),
     canonical: absoluteAttribute(
       $('link[rel="canonical" i]').first().attr('href'),
@@ -569,29 +594,23 @@ function parseJsonLd(rawBlocks) {
 }
 
 function countWords(text) {
-  return text.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu)?.length ?? 0;
+  return text.match(WORDS_PATTERN)?.length ?? 0;
 }
 
 function soft404Evidence(record) {
   if (record.http_status !== 200 || !record.rendered_dom) return [];
   const evidence = [];
   const title = record.rendered_dom.title;
-  if (
-    /\b(?:404|not found|page does not exist|page doesn't exist)\b/i.test(title)
-  ) {
+  if (NOT_FOUND_TEXT_PATTERN.test(title)) {
     evidence.push(`title: ${JSON.stringify(title)}`);
   }
   for (const h1 of record.rendered_dom.h1_strings) {
-    if (
-      /\b(?:404|not found|page does not exist|page doesn't exist)\b/i.test(h1)
-    ) {
+    if (NOT_FOUND_TEXT_PATTERN.test(h1)) {
       evidence.push(`h1: ${JSON.stringify(h1)}`);
     }
   }
   const main = (record.rendered_dom.main_text ?? '').trim();
-  const match = main.match(
-    /^(?:404\b|page not found\b|not found\b|the (?:requested )?page (?:does not|doesn't) exist\b|we (?:could not|couldn't) find (?:that|this) page\b).{0,200}/i,
-  );
+  const match = main.match(NOT_FOUND_HEADING_PATTERN);
   if (match) evidence.push(`main: ${JSON.stringify(match[0].trim())}`);
   return [...new Set(evidence)];
 }
@@ -608,7 +627,7 @@ function retiredRoutePrefix(record) {
 
 function directives(values) {
   return values
-    .flatMap((value) => value.split(/[;,]/))
+    .flatMap((value) => value.split(DIRECTIVE_SEPARATOR_PATTERN))
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
 }
@@ -706,11 +725,11 @@ async function loadPriorSnapshot() {
 export function extractLlmsPageLinks(text, origin) {
   const destinations = [
     ...Array.from(
-      text.matchAll(/\[[^\]]*\]\(<?([^\s)>]+)>?(?:\s+[^)]*)?\)/g),
+      text.matchAll(MARKDOWN_LINK_TARGETS_PATTERN),
       (match) => match[1],
     ),
-    ...Array.from(text.matchAll(/https?:\/\/[^\s<>"'`]+/g), (match) =>
-      match[0].replace(/[.,;:!?)\]}]+$/, ''),
+    ...Array.from(text.matchAll(HTTP_URLS_PATTERN), (match) =>
+      match[0].replace(TRAILING_URL_PUNCTUATION_PATTERN, ''),
     ),
   ];
   return [
@@ -924,9 +943,7 @@ async function auditPage({
       nav_internal_inlink_count: 0,
     };
   }
-  const isHtml = /(?:text\/html|application\/xhtml\+xml)/i.test(
-    fetched.contentType,
-  );
+  const isHtml = HTML_CONTENT_TYPE_PATTERN.test(fetched.contentType);
   const fetchedDom = isHtml
     ? extractFetchedDom(fetched.text, fetched.finalUrl)
     : null;
@@ -1356,9 +1373,7 @@ export function makeIssues({
 
   for (const record of records) {
     if (isPriorOnlyHardCut(record)) continue;
-    const isHtml = /(?:text\/html|application\/xhtml\+xml)/i.test(
-      record.content_type ?? '',
-    );
+    const isHtml = HTML_CONTENT_TYPE_PATTERN.test(record.content_type ?? '');
     const usable =
       record.http_status >= 200 && record.http_status < 300 && isHtml;
     if (record.http_status === null) {
@@ -1690,9 +1705,7 @@ export function makeIssues({
     (record) =>
       record.http_status >= 200 &&
       record.http_status < 300 &&
-      /(?:text\/html|application\/xhtml\+xml)/i.test(
-        record.content_type ?? '',
-      ) &&
+      HTML_CONTENT_TYPE_PATTERN.test(record.content_type ?? '') &&
       record.soft_404_evidence.length === 0,
   );
   for (const [field, rule, expected] of [
@@ -1754,7 +1767,7 @@ function selectPageSpeedTargets(originState, originRecords, priorSnapshot) {
     (record) =>
       record.http_status >= 200 &&
       record.http_status < 300 &&
-      /text\/html/i.test(record.content_type),
+      HTML_MIME_PATTERN.test(record.content_type),
   );
   if (usable.length < 5) return [];
   const byUrl = new Map(

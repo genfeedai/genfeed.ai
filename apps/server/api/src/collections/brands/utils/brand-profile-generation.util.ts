@@ -15,6 +15,12 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { readRecordOrNull } from '@genfeedai/utils/data/extract.util';
 
+const NON_DIGITS_PATTERN = /[^0-9]/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const JSON_OBJECT_PATTERN = /\{[\s\S]*\}/;
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const EDGE_HYPHEN_PATTERN = /^-|-$/g;
+
 /**
  * Provider output that does not satisfy the brand-profile contract. Carries
  * the public failure code and the missing field names only — never the raw
@@ -109,7 +115,7 @@ function readExemplarIds(value: unknown): number[] {
       typeof item === 'number'
         ? item
         : typeof item === 'string'
-          ? Number.parseInt(item.replace(/[^0-9]/g, ''), 10)
+          ? Number.parseInt(item.replace(NON_DIGITS_PATTERN, ''), 10)
           : Number.NaN;
     return Number.isInteger(parsed) ? [parsed] : [];
   });
@@ -124,7 +130,7 @@ function readRawStrings(value: unknown): string[] {
 function dedupeRules(rules: readonly string[], limit: number): string[] {
   const seen = new Set<string>();
   return rules.flatMap((rule) => {
-    const normalized = rule.trim().replace(/\s+/g, ' ');
+    const normalized = rule.trim().replace(WHITESPACE_RUNS_PATTERN, ' ');
     const key = normalized.toLowerCase();
     if (!normalized || seen.has(key) || seen.size >= limit) {
       return [];
@@ -135,7 +141,11 @@ function dedupeRules(rules: readonly string[], limit: number): string[] {
 }
 
 function clampText(value: string, maxLength: number): string {
-  return value.trim().replace(/\s+/g, ' ').slice(0, maxLength).trim();
+  return value
+    .trim()
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
+    .slice(0, maxLength)
+    .trim();
 }
 
 function readClampedProfileText(
@@ -180,7 +190,7 @@ function parseJsonObject(content: string): Record<string, unknown> {
     throw new BrandVoiceValidationError(BrandVoiceFailureCode.EMPTY_OUTPUT);
   }
 
-  const match = content.match(/\{[\s\S]*\}/);
+  const match = content.match(JSON_OBJECT_PATTERN);
   let parsed: unknown;
   try {
     parsed = JSON.parse(match?.[0] ?? content);
@@ -230,8 +240,8 @@ function normalizeSeed(
 function slugify(value: string): string {
   return value
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
+    .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
+    .replace(EDGE_HYPHEN_PATTERN, '')
     .slice(0, 48);
 }
 

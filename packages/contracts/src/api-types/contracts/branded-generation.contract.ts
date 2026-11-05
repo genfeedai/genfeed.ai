@@ -13,6 +13,10 @@ import {
   learningContractVersionSchema as version,
 } from './content-learning-generation.contract';
 
+const SENSITIVE_QUERY_PARAM_PATTERN =
+  /(token|secret|signature|credential|password|api[-_]?key|authorization|x-amz|x-goog)/i;
+const NON_WHITESPACE_CHAR_PATTERN = /\S/;
+
 const label = z.string().min(1).max(512);
 const text = z.string().max(16000);
 const code = z
@@ -62,9 +66,7 @@ const sourceUrl = z
         !u.password &&
         !u.hash &&
         !Array.from(u.searchParams.keys()).some((k) =>
-          /(token|secret|signature|credential|password|api[-_]?key|authorization|x-amz|x-goog)/i.test(
-            k,
-          ),
+          SENSITIVE_QUERY_PARAM_PATTERN.test(k),
         )
       );
     } catch {
@@ -182,7 +184,7 @@ const literalText = z
   )
   .refine(
     (value) =>
-      /\S/.test(value) &&
+      NON_WHITESPACE_CHAR_PATTERN.test(value) &&
       Array.from(value).every((char) => {
         const point = char.codePointAt(0) ?? 0;
         return (

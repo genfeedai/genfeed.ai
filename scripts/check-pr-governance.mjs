@@ -1,6 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
+const CRLF_PATTERN = /\r\n/g;
+const HTML_COMMENTS_PATTERN = /<!--[\s\S]*?-->/g;
+const REGEX_SPECIAL_CHARS_PATTERN = /[.*+?^${}()|[\]\\]/g;
+const MARKDOWN_PUNCTUATION_PATTERN = /[`*_#>-]/g;
+
 const requiredSections = [
   {
     heading: 'Optimization Target',
@@ -19,19 +24,19 @@ const requiredSections = [
 ];
 
 function normalize(text) {
-  return text.replace(/\r\n/g, '\n');
+  return text.replace(CRLF_PATTERN, '\n');
 }
 
 function cleanSectionContent(text) {
   return text
-    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(HTML_COMMENTS_PATTERN, '')
     .split('\n')
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
 }
 
 function getSectionContent(markdown, heading) {
-  const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escapedHeading = heading.replace(REGEX_SPECIAL_CHARS_PATTERN, '\\$&');
   const pattern = new RegExp(
     `^## ${escapedHeading}\\s*$([\\s\\S]*?)(?=^##\\s+|(?![\\s\\S]))`,
     'im',
@@ -65,7 +70,7 @@ function hasMeaningfulContent(lines, allowPhrases = []) {
       return false;
     }
 
-    return line.replace(/[`*_#>-]/g, '').trim().length > 3;
+    return line.replace(MARKDOWN_PUNCTUATION_PATTERN, '').trim().length > 3;
   });
 }
 

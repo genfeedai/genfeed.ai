@@ -28,6 +28,9 @@ import { Injectable, Optional } from '@nestjs/common';
 import type { Job } from 'bullmq';
 import sharp from 'sharp';
 
+const MUSIC_INGREDIENT_KEY_PATTERN = /^ingredients\/(musics|audio|audios)\/.+/;
+const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+
 /** Below one frame at 30 fps a trim is not worth a re-encode. */
 const BEAT_SYNC_MIN_TRIM_SECONDS = 1 / 30;
 const END_CARD_MAX_BYTES = 20 * 1024 * 1024;
@@ -239,10 +242,7 @@ export class VideoMergeJobService {
           )
         : assertSafeObjectKey(musicStorageKey, (message) => new Error(message))
       : this.s3Service.generateS3Key('audio', music);
-    if (
-      musicStorageKey &&
-      !/^ingredients\/(musics|audio|audios)\/.+/.test(musicS3Key)
-    ) {
+    if (musicStorageKey && !MUSIC_INGREDIENT_KEY_PATTERN.test(musicS3Key)) {
       throw new Error('Merge music must use an audio storage key');
     }
 
@@ -572,7 +572,7 @@ export class VideoMergeJobService {
     }
     if (
       !Number.isFinite(endCardDuration) ||
-      !/^#[0-9a-fA-F]{6}$/.test(endCardBackgroundColor ?? '')
+      !HEX_COLOR_PATTERN.test(endCardBackgroundColor ?? '')
     ) {
       throw new Error('End card needs a duration and a background color');
     }

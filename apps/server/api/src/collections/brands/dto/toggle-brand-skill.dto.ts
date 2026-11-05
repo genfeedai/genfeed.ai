@@ -14,13 +14,15 @@ import {
   ValidateIf,
 } from 'class-validator';
 
+const NON_WHITESPACE_CHAR_PATTERN = /\S/u;
+
 export class ToggleBrandSkillDto {
   @IsArray()
   @ArrayMaxSize(MAX_CONFIGURED_SKILL_SLUGS)
   @ArrayUnique()
   @IsString({ each: true })
   @MaxLength(MAX_SKILL_SLUG_LENGTH, { each: true })
-  @Matches(/\S/u, {
+  @Matches(NON_WHITESPACE_CHAR_PATTERN, {
     each: true,
     message: 'each skill slug must contain a non-whitespace character',
   })

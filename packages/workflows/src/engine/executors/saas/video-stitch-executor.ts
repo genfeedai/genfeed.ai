@@ -7,6 +7,8 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
+const NUMBERED_VIDEO_HANDLE_PATTERN = /^video-?(\d+)$/i;
+
 export type VideoStitchTransitionType = 'cut' | 'crossfade' | 'wipe' | 'fade';
 export type VideoStitchAudioCodec = 'aac' | 'mp3';
 export type VideoStitchOutputQuality = 'full' | 'draft';
@@ -92,7 +94,7 @@ function extractVideoUrl(value: unknown): string | undefined {
 }
 
 function numberedVideoHandleIndex(key: string): number | null {
-  const match = key.match(/^video-?(\d+)$/i);
+  const match = key.match(NUMBERED_VIDEO_HANDLE_PATTERN);
   if (!match) {
     return null;
   }

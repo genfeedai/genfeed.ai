@@ -10,6 +10,8 @@ import { globSync } from 'glob';
 import ts from 'typescript';
 import { parseSourceFile } from './parse-source-file';
 
+const SPEC_OR_TEST_FILE_PATTERN = /\.(?:spec|test)\.ts$/u;
+
 const MARKETPLACE_CONTRACT_DIR =
   'packages/contracts/src/interfaces/marketplace';
 
@@ -24,7 +26,7 @@ function isAllowedMarketplaceContractFile(file: string): boolean {
   return (
     ALLOWED_MARKETPLACE_CONTRACT_FILES.has(file) ||
     (file.startsWith(`${MARKETPLACE_CONTRACT_DIR}/`) &&
-      /\.(?:spec|test)\.ts$/u.test(file))
+      SPEC_OR_TEST_FILE_PATTERN.test(file))
   );
 }
 

@@ -5,6 +5,9 @@ import { globSync } from 'glob';
 import ts from 'typescript';
 import { parseSourceFile } from './architecture/parse-source-file';
 
+const ASSET_EXTENSION_PATTERN =
+  /\.(css|gif|jpeg|jpg|json|md|mdx|png|scss|svg|webp)$/;
+
 const logger = new Logger('CheckStaleTests');
 
 const TEST_GLOBS = [
@@ -568,7 +571,7 @@ function isInternalModuleSpecifier(
 }
 
 function isKnownAssetImport(specifier: string): boolean {
-  return /\.(css|gif|jpeg|jpg|json|md|mdx|png|scss|svg|webp)$/.test(specifier);
+  return ASSET_EXTENSION_PATTERN.test(specifier);
 }
 
 function resolveModule(

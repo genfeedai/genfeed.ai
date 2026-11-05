@@ -17,6 +17,8 @@
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type { PageFacts } from './page-parser';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 export const TITLE_MIN_LENGTH = 30;
 export const TITLE_MAX_LENGTH = 60;
 export const DESCRIPTION_MIN_LENGTH = 110;
@@ -198,7 +200,7 @@ export function checkCanonical(input: PageInput): Finding[] {
       ),
     ];
   }
-  const normalize = (url: string) => url.replace(/\/$/, '');
+  const normalize = (url: string) => url.replace(TRAILING_SLASH_PATTERN, '');
   if (normalize(facts.canonical) !== normalize(expectedCanonical)) {
     return [
       finding(

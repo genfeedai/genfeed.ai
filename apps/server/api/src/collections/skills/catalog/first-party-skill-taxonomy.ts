@@ -8,6 +8,8 @@ import { resolveSkillSurfaces } from '@genfeedai/helpers';
 
 import type { FirstPartySkillMetadata } from './first-party-skill.types';
 
+const BRAND_VOICE_KEYWORD_PATTERN = /brand[\s-]?voice/g;
+
 type SkillChannel = (typeof SKILL_CHANNELS)[number];
 type SkillModality = (typeof SKILL_MODALITIES)[number];
 type SkillWorkflowStage = (typeof SKILL_WORKFLOW_STAGES)[number];
@@ -72,7 +74,7 @@ function inferModalities(
   // "brand voice" is how a brand writes, not something Studio renders. Drop
   // that sense before the audio test so a voice-and-tone skill is not filed
   // as an audio generator.
-  const audioHaystack = haystack.replace(/brand[\s-]?voice/g, '');
+  const audioHaystack = haystack.replace(BRAND_VOICE_KEYWORD_PATTERN, '');
 
   const modalities: SkillModality[] = [];
 

@@ -6,6 +6,9 @@ import type { ComponentProps, CSSProperties, ReactNode } from 'react';
 import { createContext, useContext, useId, useMemo } from 'react';
 import { ResponsiveContainer } from 'recharts';
 
+const UNSAFE_IDENTIFIER_CHARS_PATTERN = /[^a-zA-Z0-9_-]/g;
+const COLONS_PATTERN = /:/g;
+
 export type ChartSeriesConfig = {
   color?: string;
   icon?: IconComponent;
@@ -31,7 +34,7 @@ function useChartContext() {
 }
 
 function slugifySeriesKey(key: string) {
-  return key.replace(/[^a-zA-Z0-9_-]/g, '-');
+  return key.replace(UNSAFE_IDENTIFIER_CHARS_PATTERN, '-');
 }
 
 export function chartColorVar(key: string) {
@@ -52,7 +55,7 @@ export function ChartContainer({
   height = 320,
   ...props
 }: ChartContainerProps) {
-  const chartId = useId().replace(/:/g, '');
+  const chartId = useId().replace(COLONS_PATTERN, '');
 
   const chartStyle = useMemo(() => {
     const nextStyle: CSSProperties & Record<string, string | number> = {

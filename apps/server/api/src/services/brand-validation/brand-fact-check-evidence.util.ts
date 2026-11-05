@@ -15,6 +15,10 @@ import { BRAND_FACT_PROOF_LIMITS } from '@genfeedai/contracts/api-types/contract
 import type { BrandContentMemoryHit } from '@genfeedai/contracts/interfaces';
 import type { BrandIdentitySnapshotV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 
+const CURLY_SINGLE_QUOTES_PATTERN = /[‘’ʼ]/g;
+const CURLY_DOUBLE_QUOTES_PATTERN = /[“”]/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 /** Evidence passages are shown to the judge, and quoted back, at most this long. */
 export const MAX_FACT_EVIDENCE_LENGTH = 1_500;
 /** A Brand OS fact is a short statement; a longer one is cut before the judge sees it. */
@@ -33,9 +37,9 @@ const MIN_QUOTE_LENGTH = 4;
 export function normalizeFactQuote(text: string): string {
   return text
     .normalize('NFC')
-    .replace(/[‘’ʼ]/g, "'")
-    .replace(/[“”]/g, '"')
-    .replace(/\s+/g, ' ')
+    .replace(CURLY_SINGLE_QUOTES_PATTERN, "'")
+    .replace(CURLY_DOUBLE_QUOTES_PATTERN, '"')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim()
     .toLowerCase();
 }

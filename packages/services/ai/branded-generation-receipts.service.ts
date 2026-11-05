@@ -33,6 +33,8 @@ import {
 } from '@services/core/json-api';
 import { z } from 'zod';
 
+const NON_NEGATIVE_INTEGER_PATTERN = /^(0|[1-9][0-9]{0,9})$/;
+
 const identityPreviewAttributesSchema = z.strictObject({
   snapshot: brandIdentitySnapshotV1Schema,
   source: z.enum(['current_approved_revision', 'receipt_snapshot']),
@@ -173,7 +175,7 @@ export class BrandedGenerationReceiptsService extends HTTPBaseService {
       let nextAfterRevision: number | null = null;
       if (cursor.nextCursor !== null) {
         if (
-          !/^(0|[1-9][0-9]{0,9})$/.test(cursor.nextCursor) ||
+          !NON_NEGATIVE_INTEGER_PATTERN.test(cursor.nextCursor) ||
           Number(cursor.nextCursor) > 2147483647
         )
           throw new Error();

@@ -5,6 +5,8 @@ import { syncBuiltinESMExports } from 'node:module';
 import net from 'node:net';
 import { dirname, resolve } from 'node:path';
 
+const GUARD_TOKEN_PATTERN = /^[0-9a-f]{32}$/;
+
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '::1', '[::1]']);
 const PORTS = new Set([3010, 3014, 5432, 6379, 3011]);
 const NOTIFICATION_PROBES = new Set([
@@ -34,7 +36,7 @@ export function destinationVerdict({
 
 export function installNetworkGuard({ report, nonce }) {
   if (
-    !/^[0-9a-f]{32}$/.test(nonce ?? '') ||
+    !GUARD_TOKEN_PATTERN.test(nonce ?? '') ||
     !report ||
     !resolve(report).endsWith(`/network-${nonce}.jsonl`)
   )

@@ -13,6 +13,8 @@ import { LEARNING_ARMS, learningContribution } from '@genfeedai/harness';
 import { BadRequestException } from '@nestjs/common';
 import { z } from 'zod';
 
+const NON_NEGATIVE_INTEGER_PATTERN = /^(0|[1-9][0-9]*)$/;
+
 const MAX_BYTES = 2097152;
 const MAX_NODES = 262144;
 const contributionFields = [
@@ -213,7 +215,10 @@ function detach(
         ['__proto__', 'constructor', 'prototype'].includes(key)
       )
         invalid();
-      if (array && (!/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= length))
+      if (
+        array &&
+        (!NON_NEGATIVE_INTEGER_PATTERN.test(key) || Number(key) >= length)
+      )
         invalid();
     }
     if (array && Object.keys(descriptors).length !== length + 1) invalid();

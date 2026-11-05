@@ -1,3 +1,5 @@
+const SLASH_RUNS_PATTERN = /\/+/g;
+
 export function ensureLeadingSlash(path: string): string {
   if (!path) {
     return '/';
@@ -32,7 +34,7 @@ export function joinUrlPaths(...segments: string[]): string {
     normalizedSegments.push(segment);
   }
 
-  return normalizedSegments.join('/').replace(/\/+/g, '/');
+  return normalizedSegments.join('/').replace(SLASH_RUNS_PATTERN, '/');
 }
 
 export function buildResourcePath(

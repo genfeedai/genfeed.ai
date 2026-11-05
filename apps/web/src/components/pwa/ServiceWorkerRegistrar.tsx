@@ -5,6 +5,11 @@ import { isDesktopClient } from '@genfeedai/config/deployment';
 import { logger } from '@services/core/logger.service';
 import { useEffect } from 'react';
 
+const SERVICE_WORKER_REGISTRATION_ERROR_PATTERN =
+  /Failed to register a ServiceWorker/i;
+const SERWIST_SCRIPT_PATTERN = /serwist\/sw\.js/i;
+const FORBIDDEN_STATUS_PATTERN = /403/;
+
 // Served by app/serwist/[path]/route.ts, which sets Service-Worker-Allowed: /
 // so the worker can claim the root scope from this nested URL.
 export const SERVICE_WORKER_URL = '/serwist/sw.js';
@@ -23,9 +28,9 @@ export function isIgnorableServiceWorkerError(error: unknown): boolean {
 
   return (
     (error instanceof Error && error.name === 'AbortError') ||
-    /Failed to register a ServiceWorker/i.test(message) ||
-    /serwist\/sw\.js/i.test(message) ||
-    /403/.test(message)
+    SERVICE_WORKER_REGISTRATION_ERROR_PATTERN.test(message) ||
+    SERWIST_SCRIPT_PATTERN.test(message) ||
+    FORBIDDEN_STATUS_PATTERN.test(message)
   );
 }
 

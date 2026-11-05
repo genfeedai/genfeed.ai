@@ -28,6 +28,9 @@ import {
   stripHtmlToText,
 } from './seo-text.util';
 
+const HTML_TAGS_PATTERN = /<[^>]+>/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 /** Qualitative checks the LLM layer is allowed to refine, keyed by check id. */
 const QUALITATIVE_LLM_FIELDS: Record<string, keyof SeoQualitativeScoring> = {
   active_voice: 'activeVoicePoints',
@@ -238,8 +241,8 @@ export class SeoScorerService {
       return null;
     }
     const plainText = (input.content ?? '')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s+/g, ' ')
+      .replace(HTML_TAGS_PATTERN, ' ')
+      .replace(WHITESPACE_RUNS_PATTERN, ' ')
       .trim()
       .slice(0, MAX_LLM_CONTENT_CHARS);
 

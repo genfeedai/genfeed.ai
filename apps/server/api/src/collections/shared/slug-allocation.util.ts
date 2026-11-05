@@ -1,3 +1,5 @@
+const NUMBERED_SLUG_PATTERN = /^(.*?)-(\d+)$/;
+
 /**
  * Shared helpers for global-unique slug allocation with race-safe retries.
  * Used by brand and organization provisioning paths (#2178).
@@ -42,7 +44,7 @@ export function nextSlugCandidate(
   if (attempt <= 0) {
     return trimmed;
   }
-  const match = trimmed.match(/^(.*?)-(\d+)$/);
+  const match = trimmed.match(NUMBERED_SLUG_PATTERN);
   if (match) {
     const [, prefix, suffix] = match;
     const numericSuffix = Number(suffix);
@@ -59,7 +61,7 @@ export function nextSlugCandidate(
  */
 export function slugAllocationBase(slug: string): string {
   const trimmed = slug.trim();
-  const match = trimmed.match(/^(.*?)-(\d+)$/);
+  const match = trimmed.match(NUMBERED_SLUG_PATTERN);
   if (!match) {
     return trimmed;
   }

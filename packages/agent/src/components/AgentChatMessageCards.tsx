@@ -28,6 +28,8 @@ import { buttonVariants } from '@ui/primitives/button.variants';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useEffect, useState } from 'react';
 
+const QUERY_OR_HASH_PATTERN = /[?#]/u;
+
 const MAX_ASSET_RECONCILIATION_ATTEMPTS = 150;
 const MAX_VIDEO_RECONCILIATION_ATTEMPTS = 900;
 
@@ -453,7 +455,8 @@ export function ContentPreviewCard({
 
             const normalizedHref =
               normalizeAgentAssetHref(cta.href, action.assetId) ?? cta.href;
-            const normalizedPath = normalizedHref.split(/[?#]/u)[0] ?? '';
+            const normalizedPath =
+              normalizedHref.split(QUERY_OR_HASH_PATTERN)[0] ?? '';
             const isAlreadyScoped = Boolean(
               parseScopedAppPath(normalizedPath).orgSlug,
             );

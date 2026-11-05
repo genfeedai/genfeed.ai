@@ -17,6 +17,8 @@ import {
   PLAYWRIGHT_E2E_QUARANTINES,
 } from './playwright-e2e-tiers.manifest.mjs';
 
+const SHARD_PATTERN = /^(\d+)\/(\d+)$/;
+
 const REPOSITORY_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const SPECS_ROOT = 'playwright/e2e/tests';
 const PLAYWRIGHT_CONFIG = 'playwright/configs/playwright.config.ts';
@@ -447,7 +449,7 @@ function appendGitHubSummary(summary) {
 }
 
 function parseShard(value) {
-  const match = /^(\d+)\/(\d+)$/.exec(value ?? '');
+  const match = SHARD_PATTERN.exec(value ?? '');
   if (!match) {
     return null;
   }

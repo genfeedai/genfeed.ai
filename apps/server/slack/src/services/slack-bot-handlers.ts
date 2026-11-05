@@ -8,6 +8,10 @@ import {
 } from '@genfeedai/integrations';
 import { type App, type RespondArguments, type types } from '@slack/bolt';
 
+const WORKFLOW_ACTION_PREFIX_PATTERN = /^wf:/;
+const IMAGE_CONFIG_ACTION_PREFIX_PATTERN = /^cfg:img:/;
+const VIDEO_CONFIG_ACTION_PREFIX_PATTERN = /^cfg:vid:/;
+
 interface SlackReplyArguments {
   blocks?: Array<types.Block | types.KnownBlock>;
   text: string;
@@ -91,16 +95,19 @@ export function registerSlackBotHandlers(
     await handlers.handleSettingsCommand(command.user_id, respond);
   });
 
-  app.action(/^wf:/, async ({ action, ack, respond, body }) => {
-    await ack();
-    const actionValue = (action as { value?: string }).value || '';
-    await handlers.selectWorkflow(
-      body.user.id,
-      orgId,
-      actionValue.slice(3),
-      respond,
-    );
-  });
+  app.action(
+    WORKFLOW_ACTION_PREFIX_PATTERN,
+    async ({ action, ack, respond, body }) => {
+      await ack();
+      const actionValue = (action as { value?: string }).value || '';
+      await handlers.selectWorkflow(
+        body.user.id,
+        orgId,
+        actionValue.slice(3),
+        respond,
+      );
+    },
+  );
 
   app.action('confirm:run', async ({ ack, respond, body }) => {
     await ack();
@@ -121,29 +128,35 @@ export function registerSlackBotHandlers(
     });
   });
 
-  app.action(/^cfg:img:/, async ({ action, ack, respond, body }) => {
-    await ack();
-    const model = ((action as { value?: string }).value || '').slice(8);
-    const settings = handlers.getUserSettings(body.user.id) || {
-      imageModel: IMAGE_MODELS[0],
-      videoModel: VIDEO_MODELS[0],
-    };
-    settings.imageModel = model;
-    handlers.setUserSettings(body.user.id, settings);
-    await respond({ text: `Image model set to: *${model}*` });
-  });
+  app.action(
+    IMAGE_CONFIG_ACTION_PREFIX_PATTERN,
+    async ({ action, ack, respond, body }) => {
+      await ack();
+      const model = ((action as { value?: string }).value || '').slice(8);
+      const settings = handlers.getUserSettings(body.user.id) || {
+        imageModel: IMAGE_MODELS[0],
+        videoModel: VIDEO_MODELS[0],
+      };
+      settings.imageModel = model;
+      handlers.setUserSettings(body.user.id, settings);
+      await respond({ text: `Image model set to: *${model}*` });
+    },
+  );
 
-  app.action(/^cfg:vid:/, async ({ action, ack, respond, body }) => {
-    await ack();
-    const model = ((action as { value?: string }).value || '').slice(8);
-    const settings = handlers.getUserSettings(body.user.id) || {
-      imageModel: IMAGE_MODELS[0],
-      videoModel: VIDEO_MODELS[0],
-    };
-    settings.videoModel = model;
-    handlers.setUserSettings(body.user.id, settings);
-    await respond({ text: `Video model set to: *${model}*` });
-  });
+  app.action(
+    VIDEO_CONFIG_ACTION_PREFIX_PATTERN,
+    async ({ action, ack, respond, body }) => {
+      await ack();
+      const model = ((action as { value?: string }).value || '').slice(8);
+      const settings = handlers.getUserSettings(body.user.id) || {
+        imageModel: IMAGE_MODELS[0],
+        videoModel: VIDEO_MODELS[0],
+      };
+      settings.videoModel = model;
+      handlers.setUserSettings(body.user.id, settings);
+      await respond({ text: `Video model set to: *${model}*` });
+    },
+  );
 
   app.message(async ({ message, say }) => {
     const msg = message as { user?: string; text?: string };

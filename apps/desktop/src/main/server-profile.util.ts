@@ -5,6 +5,8 @@ import type {
   IDesktopServerProfile,
 } from '@genfeedai/contracts/desktop';
 
+const EDGE_BRACKETS_PATTERN = /^\[|\]$/g;
+
 export const GENFEED_CLOUD_SERVER_ID = 'cloud';
 
 export const GENFEED_CLOUD_ENDPOINTS = {
@@ -58,7 +60,7 @@ function isPrivateIpv4(hostname: string): boolean {
  * accepted for this machine and private-network hosts.
  */
 export function isLocalNetworkHostname(hostname: string): boolean {
-  const normalized = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  const normalized = hostname.replace(EDGE_BRACKETS_PATTERN, '').toLowerCase();
   return (
     normalized === 'localhost' ||
     normalized === '::1' ||

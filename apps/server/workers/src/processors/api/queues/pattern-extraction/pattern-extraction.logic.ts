@@ -18,32 +18,42 @@ import type {
   PatternUpsertPayload,
 } from '@workers/processors/api/queues/pattern-extraction/pattern-extraction.types';
 
+const QUESTION_HOOK_PATTERN =
+  /^(Did|Do|Does|Are|Is|Can|Will|Have|Why|What|How|When|Where)\b/i;
+const STATISTIC_HOOK_PATTERN = /\d+%|\d+x|\d+ times/i;
+const WARNING_HOOK_PATTERN = /stop|warning|never|always|secret|truth|mistake/i;
+const TRANSFORMATION_HOOK_PATTERN = /before.*after|transform|went from/i;
+const ACTION_VERB_CTA_PATTERN =
+  /^(Buy|Get|Start|Try|Shop|Order|Claim|Grab|Download|Sign)/i;
+const URGENCY_CTA_PATTERN = /limited|ends|today only|last chance|hurry|now/i;
+const FREE_OFFER_CTA_PATTERN = /free|no cost|no charge/i;
+const NUMBERED_LIST_STRUCTURE_PATTERN = /^\d+\.|1\.|first/i;
+const UNDERSCORES_PATTERN = /_/g;
+
 export function classifyHook(text: string): string {
-  if (
-    /^(Did|Do|Does|Are|Is|Can|Will|Have|Why|What|How|When|Where)\b/i.test(text)
-  ) {
+  if (QUESTION_HOOK_PATTERN.test(text)) {
     return 'question_hook';
   }
-  if (/\d+%|\d+x|\d+ times/i.test(text)) {
+  if (STATISTIC_HOOK_PATTERN.test(text)) {
     return 'stat_hook';
   }
-  if (/stop|warning|never|always|secret|truth|mistake/i.test(text)) {
+  if (WARNING_HOOK_PATTERN.test(text)) {
     return 'pattern_interrupt_hook';
   }
-  if (/before.*after|transform|went from/i.test(text)) {
+  if (TRANSFORMATION_HOOK_PATTERN.test(text)) {
     return 'transformation_hook';
   }
   return 'narrative_hook';
 }
 
 export function classifyCta(text: string): string {
-  if (/^(Buy|Get|Start|Try|Shop|Order|Claim|Grab|Download|Sign)/i.test(text)) {
+  if (ACTION_VERB_CTA_PATTERN.test(text)) {
     return 'command_cta';
   }
-  if (/limited|ends|today only|last chance|hurry|now/i.test(text)) {
+  if (URGENCY_CTA_PATTERN.test(text)) {
     return 'urgency_cta';
   }
-  if (/free|no cost|no charge/i.test(text)) {
+  if (FREE_OFFER_CTA_PATTERN.test(text)) {
     return 'free_offer_cta';
   }
   if (text.trim().endsWith('?')) {
@@ -53,7 +63,7 @@ export function classifyCta(text: string): string {
 }
 
 export function classifyContentStructure(text: string): string {
-  if (/^\d+\.|1\.|first/i.test(text)) {
+  if (NUMBERED_LIST_STRUCTURE_PATTERN.test(text)) {
     return 'list_structure';
   }
   if (text.includes('?') && text.length > 20) {
@@ -336,7 +346,7 @@ export function classifyContentRow(
 }
 
 function humanizeFormula(classifiedType: string): string {
-  return classifiedType.replace(/_/g, ' ');
+  return classifiedType.replace(UNDERSCORES_PATTERN, ' ');
 }
 
 function groupSource(

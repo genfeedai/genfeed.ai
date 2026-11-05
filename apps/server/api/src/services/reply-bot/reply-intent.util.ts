@@ -10,6 +10,8 @@
 import type { ReplyIntent } from '@genfeedai/contracts/interfaces';
 import { REPLY_INTENT_VALUES } from '@genfeedai/contracts/interfaces';
 
+const HTTP_URLS_PATTERN = /https?:\/\/\S+/gi;
+
 export const DEFAULT_REPLY_MAX_AGE_HOURS = 24;
 /** Hard ceiling: never treat multi-day threads as fresh conversation. */
 export const MAX_REPLY_MAX_AGE_HOURS = 48;
@@ -55,11 +57,11 @@ export function classifyReplyIntent(text: string): ReplyIntent {
 }
 
 function looksLikeLinkDump(text: string): boolean {
-  const urls = text.match(/https?:\/\/\S+/gi) ?? [];
+  const urls = text.match(HTTP_URLS_PATTERN) ?? [];
   if (urls.length >= 2) {
     return true;
   }
-  const withoutUrl = text.replace(/https?:\/\/\S+/gi, '').trim();
+  const withoutUrl = text.replace(HTTP_URLS_PATTERN, '').trim();
   return urls.length === 1 && withoutUrl.length < 12;
 }
 

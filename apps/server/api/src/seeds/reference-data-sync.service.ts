@@ -19,6 +19,9 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+const FAILED_ENTRIES_MESSAGE_PATTERN =
+  /failed for(?: all \d+ entries)?: (.+)$/u;
+
 @Injectable()
 export class ReferenceDataSyncService {
   private readonly context = 'ReferenceDataSyncService';
@@ -163,9 +166,7 @@ export class ReferenceDataSyncService {
 
   private failedKeys(error: unknown): string[] {
     if (!(error instanceof Error)) return ['unknown'];
-    const named = error.message.match(
-      /failed for(?: all \d+ entries)?: (.+)$/u,
-    );
+    const named = error.message.match(FAILED_ENTRIES_MESSAGE_PATTERN);
     if (named?.[1]) {
       return named[1].split(', ').filter(Boolean);
     }

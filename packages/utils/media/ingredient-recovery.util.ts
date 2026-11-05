@@ -2,6 +2,15 @@ import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { IngredientRecovery } from '@genfeedai/contracts/interfaces/ingredients/ingredient-recovery.interface';
 
+const MISSING_REFERENCE_ERROR_PATTERN =
+  /reference.*(missing|not found|unavailable|expired)|(?:missing|expired).*reference/;
+const CONTENT_POLICY_ERROR_PATTERN =
+  /content policy|safety|nsfw|moderation|content.*(?:blocked|rejected)/;
+const INVALID_INPUT_ERROR_PATTERN =
+  /\b422\b|invalid (?:input|parameter|argument)|validation|unsupported|aspect ratio/;
+const TRANSIENT_PROVIDER_ERROR_PATTERN =
+  /service unavailable|serviceunavailable|\b50[234]\b|gateway timeout|timed? ?out|rate limit|\b429\b/;
+
 /** Legacy provider errors are free text. Only explicit evidence earns a retry. */
 export function getIngredientRecovery(
   ingredient: IIngredient,
@@ -27,44 +36,28 @@ export function getIngredientRecovery(
       reason: 'referenceRolesUnavailable',
     };
   }
-  if (
-    /reference.*(missing|not found|unavailable|expired)|(?:missing|expired).*reference/.test(
-      reason,
-    )
-  ) {
+  if (MISSING_REFERENCE_ERROR_PATTERN.test(reason)) {
     return {
       action: 'replaceReference',
       group: 'attention',
       reason: 'missingReference',
     };
   }
-  if (
-    /content policy|safety|nsfw|moderation|content.*(?:blocked|rejected)/.test(
-      reason,
-    )
-  ) {
+  if (CONTENT_POLICY_ERROR_PATTERN.test(reason)) {
     return {
       action: 'editPrompt',
       group: 'attention',
       reason: 'requestRejected',
     };
   }
-  if (
-    /\b422\b|invalid (?:input|parameter|argument)|validation|unsupported|aspect ratio/.test(
-      reason,
-    )
-  ) {
+  if (INVALID_INPUT_ERROR_PATTERN.test(reason)) {
     return {
       action: 'reviewInputs',
       group: 'attention',
       reason: 'invalidInputs',
     };
   }
-  if (
-    /service unavailable|serviceunavailable|\b50[234]\b|gateway timeout|timed? ?out|rate limit|\b429\b/.test(
-      reason,
-    )
-  ) {
+  if (TRANSIENT_PROVIDER_ERROR_PATTERN.test(reason)) {
     if (
       ingredient.category !== IngredientCategory.IMAGE &&
       ingredient.category !== IngredientCategory.VIDEO

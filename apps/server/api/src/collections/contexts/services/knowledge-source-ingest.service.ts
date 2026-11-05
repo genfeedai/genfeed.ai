@@ -42,6 +42,8 @@ import type { KnowledgeWorkflowInitiatingActor } from '@genfeedai/contracts/inte
 import { Prisma } from '@genfeedai/prisma';
 import { Injectable, Optional } from '@nestjs/common';
 
+const LINE_BREAK_PATTERN = /\r?\n/;
+
 export type KnowledgeSourceIngestStatus =
   | 'queued'
   | 'completed'
@@ -129,7 +131,8 @@ export function isIngestibleKnowledgeSourceKind(
 export function toSafeFailureReason(error: unknown): string {
   const message =
     error instanceof Error ? error.message : String(error ?? 'Unknown error');
-  const firstLine = message.split(/\r?\n/, 1)[0]?.trim() || 'Unknown error';
+  const firstLine =
+    message.split(LINE_BREAK_PATTERN, 1)[0]?.trim() || 'Unknown error';
   return firstLine.slice(0, KNOWLEDGE_MAX_FAILURE_REASON_LENGTH);
 }
 

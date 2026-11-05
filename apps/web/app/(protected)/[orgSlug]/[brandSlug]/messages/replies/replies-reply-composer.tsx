@@ -12,6 +12,8 @@ import { useTranslations } from 'next-intl';
 import type { RepliesReplyComposerProps } from '@/features/messages/props/replies-reply-composer.props';
 import type { ReplyIntent } from '@/props/messages/replies-page.props';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 const INTENT_VALUES: ReplyIntent[] = [
   'thanks',
   'question',
@@ -46,7 +48,7 @@ export default function RepliesReplyComposer({
   return (
     <PromptBarComposer density="compact">
       <PromptEditor
-        ariaLabel={`Reply to @${authorUsername.replace(/^@/, '')}`}
+        ariaLabel={`Reply to @${authorUsername.replace(LEADING_AT_SIGN_PATTERN, '')}`}
         className="min-h-12"
         onSubmit={handleSubmit}
         onValueChange={onDraftChange}

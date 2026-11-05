@@ -5,6 +5,9 @@ import { deferredLogger } from '@services/core/deferred-logger';
 import type { RefObject } from 'react';
 import { useEffect, useRef } from 'react';
 
+const INSERT_BEFORE_ERROR_PATTERN = /insertBefore/;
+const NOT_A_CHILD_ERROR_PATTERN = /not a child of this node/i;
+
 export interface GsapAnimation {
   /** CSS selector for elements to animate */
   selector: string;
@@ -61,8 +64,8 @@ function isDomInsertionRace(error: unknown): boolean {
 
   return (
     error.name === 'NotFoundError' ||
-    /insertBefore/.test(error.message) ||
-    /not a child of this node/i.test(error.message)
+    INSERT_BEFORE_ERROR_PATTERN.test(error.message) ||
+    NOT_A_CHILD_ERROR_PATTERN.test(error.message)
   );
 }
 

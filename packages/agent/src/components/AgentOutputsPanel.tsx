@@ -23,6 +23,8 @@ import NextImage from 'next/image';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 interface AgentOutputsPanelProps {
   className?: string;
   emptyDescription?: string;
@@ -45,7 +47,7 @@ function buildRefineContent(
 
   if (variant.kind === 'text' && variant.textContent) {
     const source = (variant.threadSegments?.[0] ?? variant.textContent)
-      .replace(/\s+/g, ' ')
+      .replace(WHITESPACE_RUNS_PATTERN, ' ')
       .trim();
     const excerpt =
       source.length > REFINE_EXCERPT_MAX_LENGTH

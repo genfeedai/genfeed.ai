@@ -12,6 +12,8 @@ import type {
 } from '@/features/posts/props/thread-preview-panel.props';
 import { useIngredientMediaUrl } from '@/hooks/media/use-ingredient-media-url';
 
+const HTML_TAGS_PATTERN = /<[^>]*>/g;
+
 const TWITTER_CHAR_LIMIT = 280;
 
 /**
@@ -20,11 +22,11 @@ const TWITTER_CHAR_LIMIT = 280;
 function getTextContent(html: string): string {
   if (typeof window === 'undefined') {
     // Server-side: simple regex to strip HTML tags
-    return html.replace(/<[^>]*>/g, '').trim();
+    return html.replace(HTML_TAGS_PATTERN, '').trim();
   }
   // Client-side: use DOM to extract text (sanitize first to prevent XSS)
   const div = document.createElement('div');
-  div.textContent = html.replace(/<[^>]*>/g, '');
+  div.textContent = html.replace(HTML_TAGS_PATTERN, '');
   return div.textContent || '';
 }
 

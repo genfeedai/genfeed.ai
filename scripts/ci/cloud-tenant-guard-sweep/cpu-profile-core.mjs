@@ -15,6 +15,8 @@ import { isAbsolute, join, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { validateRunDirectory } from './local-mail-stub.mjs';
 
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 export const CPU_LIMITS = Object.freeze({
   triggerMs: 400000,
   pollMs: 100,
@@ -300,7 +302,7 @@ export function validateCpuSeal(seal) {
     ['sampleCount', 'nodeCount', 'rawBytes'].some(
       (key) => !integer(seal[key]),
     ) ||
-    (seal.rawSha256 !== null && !/^[a-f0-9]{64}$/.test(seal.rawSha256)) ||
+    (seal.rawSha256 !== null && !SHA256_HEX_PATTERN.test(seal.rawSha256)) ||
     (seal.state === 'complete' &&
       (['triggerAt', 'startedAt', 'stoppedAt', 'actualDurationUs'].some(
         (key) => seal[key] === null,

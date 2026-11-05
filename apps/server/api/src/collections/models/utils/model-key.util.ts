@@ -2,6 +2,9 @@ import { ModelProvider } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { BadRequestException } from '@nestjs/common';
 
+const REPLICATE_DESTINATION_PATTERN = /^(?:[\w-]+\/[\w.-]+(?::[\w.-]+)?)$/;
+const REPLICATE_VERSION_ID_PATTERN = /^[a-f0-9]{25,}$/i;
+
 /**
  * A registry key, label, or endpoint is only safe to case-normalize once it is
  * a non-empty string. Prisma types the columns as `String`, but a registry row
@@ -115,7 +118,7 @@ export function isReplicateDestination(
   // Matches owner/model or owner/model:version. The model/version segments
   // allow dots for dot-versioned Replicate keys (e.g. "bytedance/seedream-4.5"),
   // but the owner segment stays dot-free to avoid over-matching arbitrary strings.
-  return /^(?:[\w-]+\/[\w.-]+(?::[\w.-]+)?)$/.test(key);
+  return REPLICATE_DESTINATION_PATTERN.test(key);
 }
 
 export function isReplicateVersionId(key?: string): boolean {
@@ -123,5 +126,5 @@ export function isReplicateVersionId(key?: string): boolean {
     return false;
   }
   // Heuristic: replicate version ids are long hex strings
-  return /^[a-f0-9]{25,}$/i.test(key);
+  return REPLICATE_VERSION_ID_PATTERN.test(key);
 }

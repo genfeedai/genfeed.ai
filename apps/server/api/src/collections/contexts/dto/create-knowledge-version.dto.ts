@@ -10,10 +10,12 @@ import {
   Matches,
 } from 'class-validator';
 
+const SHA256_DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/;
+
 export class CreateKnowledgeVersionDto {
   @ApiProperty({ description: 'SHA-256 identity of the captured evidence' })
   @IsString()
-  @Matches(/^sha256:[a-f0-9]{64}$/)
+  @Matches(SHA256_DIGEST_PATTERN)
   contentHash!: string;
 
   @ApiProperty({

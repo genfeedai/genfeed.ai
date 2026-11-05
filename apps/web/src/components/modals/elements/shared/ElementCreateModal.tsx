@@ -17,6 +17,9 @@ import { ELEMENT_CREATE_MODAL_CONFIG } from '@/components/modals/elements/shared
 import type { ElementCreateModalProps } from '@/features/admin/props/element-create-modal.props';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const NON_SLUG_CHARS_PATTERN = /[^a-z0-9-]/g;
+
 export default function ElementCreateModal({
   modalId,
   onConfirm,
@@ -48,8 +51,8 @@ export default function ElementCreateModal({
           'key',
           value
             .toLowerCase()
-            .replace(/\s+/g, '-')
-            .replace(/[^a-z0-9-]/g, ''),
+            .replace(WHITESPACE_RUNS_PATTERN, '-')
+            .replace(NON_SLUG_CHARS_PATTERN, ''),
           { shouldValidate: true },
         );
         break;

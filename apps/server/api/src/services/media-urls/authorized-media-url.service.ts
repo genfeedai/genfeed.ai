@@ -35,6 +35,8 @@ import {
 } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+
 /** Only record identities cross this boundary; raw URLs/keys are never inputs. */
 @Injectable()
 export class AuthorizedMediaUrlService implements OnModuleInit {
@@ -829,7 +831,7 @@ const BRAND_IDENTITY_CATEGORIES = Object.keys(
 function trustedAssetKey(key: string | null): string | null {
   if (
     !key ||
-    /^https?:\/\//i.test(key) ||
+    HTTP_PROTOCOL_PREFIX_PATTERN.test(key) ||
     key.startsWith('/') ||
     key.includes('\\') ||
     key

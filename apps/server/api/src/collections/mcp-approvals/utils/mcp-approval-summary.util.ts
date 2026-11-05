@@ -1,5 +1,8 @@
 import { getToolByName } from '@genfeedai/actions';
 
+const CAMEL_CASE_BOUNDARY_PATTERN = /([a-z])([A-Z])/g;
+const UNDERSCORES_PATTERN = /_/g;
+
 const PRIVATE_ARGUMENT = /secret|password|token|authorization|credential|key/i;
 /** Opaque ids say nothing to a reviewer; the brand gets its own column. */
 const OPAQUE_ID_ARGUMENT = /(?:Id|Ids|_id)$/;
@@ -15,7 +18,9 @@ export const MCP_APPROVAL_CAPTION_ARGUMENT_KEYS = [
 ] as const;
 
 export function humanizeToken(value: string): string {
-  const text = value.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ');
+  const text = value
+    .replace(CAMEL_CASE_BOUNDARY_PATTERN, '$1 $2')
+    .replace(UNDERSCORES_PATTERN, ' ');
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 

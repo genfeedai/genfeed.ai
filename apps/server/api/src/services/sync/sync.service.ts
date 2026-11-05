@@ -21,6 +21,8 @@ import type {
   SyncStatusResponse,
 } from './sync.interfaces';
 
+const REGEX_SPECIAL_CHARS_PATTERN = /[.*+?^${}()|[\]\\]/g;
+
 /** Regex matching local asset URLs: /local/... */
 const LOCAL_URL_PATTERN = /\/local\/[^\s"')]+/g;
 
@@ -294,7 +296,10 @@ export class SyncService {
     const localWorkflow = cdnUrl
       ? (this.rewriteUrls(
           remoteWorkflow,
-          new RegExp(`${cdnUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/`, 'g'),
+          new RegExp(
+            `${cdnUrl.replace(REGEX_SPECIAL_CHARS_PATTERN, '\\$&')}/`,
+            'g',
+          ),
           () => '/local/',
         ) as Record<string, unknown>)
       : remoteWorkflow;

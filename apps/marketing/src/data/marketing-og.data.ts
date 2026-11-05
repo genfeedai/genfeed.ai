@@ -7,6 +7,8 @@ import { getIntegrationBySlug } from '@data/integrations.data';
 import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 export const MARKETING_OG_SIZE = { height: 630, width: 1200 };
 
 /**
@@ -176,7 +178,8 @@ export function isMarketingOgCard(value: string): value is MarketingOgCard {
 }
 
 export function getMarketingOgImage(path: string, alt: string) {
-  const normalized = path.length > 1 ? path.replace(/\/$/, '') : path;
+  const normalized =
+    path.length > 1 ? path.replace(TRAILING_SLASH_PATTERN, '') : path;
   const id = MARKETING_OG_PATHS[normalized] ?? 'default';
   return {
     alt,

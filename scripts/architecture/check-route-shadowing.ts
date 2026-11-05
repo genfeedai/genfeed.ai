@@ -63,6 +63,8 @@ import { globSync } from 'glob';
 import ts from 'typescript';
 import { parseSourceFile } from './parse-source-file';
 
+const APP_ROOT_PATTERN = /^(apps\/server\/[^/]+|apps\/[^/]+)\//;
+
 const DEFAULT_INCLUDE_GLOBS = ['apps/server/**/*.ts', 'packages/libs/**/*.ts'];
 
 const DEFAULT_IGNORE_GLOBS = [
@@ -586,7 +588,7 @@ function routesWithInherited(
  * module, so they are compared against every app.
  */
 export function appRootFor(file: string): string | null {
-  const match = /^(apps\/server\/[^/]+|apps\/[^/]+)\//.exec(file);
+  const match = APP_ROOT_PATTERN.exec(file);
 
   return match === null ? null : match[1];
 }
