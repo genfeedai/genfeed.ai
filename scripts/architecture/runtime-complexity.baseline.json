@@ -1,6 +1,6 @@
 [
   {
-    "actual": 1081,
+    "actual": 1083,
     "file": "apps/server/api/src/collections/agent-threads/services/agent-threads.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/agent-threads/services/agent-threads.service.ts"
@@ -16,6 +16,18 @@
     "file": "apps/server/api/src/collections/billing-accounts/services/billing-account-migration.service.ts",
     "metric": "method-lines",
     "symbol": "BillingAccountMigrationService.run"
+  },
+  {
+    "actual": 1002,
+    "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts"
+  },
+  {
+    "actual": 1001,
+    "file": "apps/server/api/src/collections/brands/services/brands.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/collections/brands/services/brands.service.ts"
   },
   {
     "actual": 166,
@@ -42,10 +54,22 @@
     "symbol": "LearningReleaseService.control"
   },
   {
+    "actual": 1001,
+    "file": "apps/server/api/src/collections/content-learning/services/learning-run.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/collections/content-learning/services/learning-run.service.ts"
+  },
+  {
     "actual": 254,
     "file": "apps/server/api/src/collections/content-learning/services/learning-run.service.ts",
     "metric": "method-lines",
     "symbol": "LearningRunService.execute"
+  },
+  {
+    "actual": 1002,
+    "file": "apps/server/api/src/collections/credits/services/generation-billing.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/collections/credits/services/generation-billing.service.ts"
   },
   {
     "actual": 154,
@@ -54,16 +78,40 @@
     "symbol": "ListeningTopicAnalysisService.persistAnalysis"
   },
   {
-    "actual": 1009,
+    "actual": 1011,
     "file": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts"
   },
   {
-    "actual": 1024,
+    "actual": 1002,
+    "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/collections/posts/services/posts.service.ts"
+  },
+  {
+    "actual": 1026,
     "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/skills/services/skills.service.ts"
+  },
+  {
+    "actual": 1001,
+    "file": "apps/server/api/src/collections/turbo-projects/services/turbo-projects.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/collections/turbo-projects/services/turbo-projects.service.ts"
+  },
+  {
+    "actual": 1001,
+    "file": "apps/server/api/src/collections/workflows/system-workflow-runner.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/collections/workflows/system-workflow-runner.service.ts"
+  },
+  {
+    "actual": 1002,
+    "file": "apps/server/api/src/endpoints/analytics/entity-leaderboard.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/endpoints/analytics/entity-leaderboard.service.ts"
   },
   {
     "actual": 198,
@@ -78,10 +126,22 @@
     "symbol": "HeygenWebhookService.handleCallback"
   },
   {
-    "actual": 206,
+    "actual": 1015,
+    "file": "apps/server/api/src/publish-approvals/publish-approvals.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/publish-approvals/publish-approvals.service.ts"
+  },
+  {
+    "actual": 207,
     "file": "apps/server/api/src/publish-approvals/publish-approvals.service.ts",
     "metric": "method-lines",
     "symbol": "PublishApprovalsService.createForPost"
+  },
+  {
+    "actual": 1002,
+    "file": "apps/server/api/src/services/agent-campaign/content-engine.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/services/agent-campaign/content-engine.service.ts"
   },
   {
     "actual": 165,
@@ -114,7 +174,7 @@
     "symbol": "AgentAnalyticsToolHandler.getAnalytics"
   },
   {
-    "actual": 1084,
+    "actual": 1086,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts"
@@ -132,7 +192,7 @@
     "symbol": "AgentToolExecutorService.constructor"
   },
   {
-    "actual": 1110,
+    "actual": 1112,
     "file": "apps/server/api/src/services/integrations/stripe/services/stripe.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/integrations/stripe/services/stripe.service.ts"
@@ -156,7 +216,7 @@
     "symbol": "PromptBuilderService.buildPrompt"
   },
   {
-    "actual": 1061,
+    "actual": 1063,
     "file": "apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts"
