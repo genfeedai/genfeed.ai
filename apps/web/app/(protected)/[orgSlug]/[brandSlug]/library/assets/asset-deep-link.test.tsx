@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AssetDeepLink from './asset-deep-link';
@@ -37,6 +41,14 @@ vi.mock(
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
+function renderLink(client = createTestQueryClient()) {
+  return render(<AssetDeepLink />, { wrapper: queryClientWrapper(client) });
+}
 
 const ingredient = {
   id: 'asset-1',
@@ -59,15 +71,17 @@ describe('AssetDeepLink', () => {
     mocks.findOne.mockResolvedValue(ingredient);
   });
 
-  it('selects the exact asset into the sidebar in the current brand and aborts on unmount', async () => {
-    const { unmount } = render(<AssetDeepLink />);
+  it('selects the exact asset into the sidebar in the current brand', async () => {
+    renderLink();
     await waitFor(() => expect(mocks.open).toHaveBeenCalledWith(ingredient));
-    expect(mocks.findOne).toHaveBeenCalledWith(
-      'asset-1',
-      {},
-      expect.any(AbortSignal),
-    );
-    const signal = mocks.findOne.mock.calls[0][2];
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('aborts a lookup still in flight on unmount', async () => {
+    mocks.findOne.mockImplementation(() => new Promise(() => {}));
+    const { unmount } = renderLink();
+    await waitFor(() => expect(mocks.findOne).toHaveBeenCalledTimes(1));
+    const signal: AbortSignal = mocks.findOne.mock.calls[0][2];
     unmount();
     expect(signal.aborted).toBe(true);
   });
@@ -81,7 +95,7 @@ describe('AssetDeepLink', () => {
     'does not open a deleted, mismatched, or out-of-scope asset: %j',
     async (record) => {
       mocks.findOne.mockResolvedValue(record);
-      render(<AssetDeepLink />);
+      renderLink();
       expect(await screen.findByRole('alert')).toHaveTextContent(
         'This asset is unavailable',
       );
@@ -93,7 +107,7 @@ describe('AssetDeepLink', () => {
     mocks.pathname = '/org/~/library/assets';
     mocks.brand = { brandId: '', organizationId: 'org-1', isReady: true };
     mocks.findOne.mockResolvedValue({ ...ingredient, brandId: 'other-brand' });
-    render(<AssetDeepLink />);
+    renderLink();
     await waitFor(() => expect(mocks.open).toHaveBeenCalledTimes(1));
   });
 
@@ -101,14 +115,14 @@ describe('AssetDeepLink', () => {
     mocks.pathname = '/org/~/library/assets';
     mocks.brand = { brandId: '', organizationId: 'org-1', isReady: true };
     mocks.findOne.mockResolvedValue({ ...ingredient, organizationId: 'other' });
-    render(<AssetDeepLink />);
+    renderLink();
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     expect(mocks.open).not.toHaveBeenCalled();
   });
 
   it('does not fetch until brand context is ready', async () => {
     mocks.brand.isReady = false;
-    const { rerender } = render(<AssetDeepLink />);
+    const { rerender } = renderLink();
     expect(mocks.findOne).not.toHaveBeenCalled();
     mocks.brand.isReady = true;
     rerender(<AssetDeepLink />);
@@ -122,7 +136,7 @@ describe('AssetDeepLink', () => {
         complete = resolve;
       }),
     );
-    const { rerender } = render(<AssetDeepLink />);
+    const { rerender } = renderLink();
     await waitFor(() => expect(mocks.findOne).toHaveBeenCalledTimes(1));
     mocks.assetId = null;
     rerender(<AssetDeepLink />);
@@ -137,7 +151,7 @@ describe('AssetDeepLink', () => {
     mocks.findOne
       .mockRejectedValueOnce(new Error('Request failed with status code 404'))
       .mockResolvedValueOnce(ingredient);
-    render(<AssetDeepLink />);
+    renderLink();
     await waitFor(() => expect(mocks.findOne).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toBeInTheDocument();
@@ -149,7 +163,7 @@ describe('AssetDeepLink', () => {
 
   it('reports the asset unavailable only after every lookup attempt failed', async () => {
     mocks.findOne.mockRejectedValue(new Error('Request failed'));
-    render(<AssetDeepLink />);
+    renderLink();
     expect(
       await screen.findByRole('alert', {}, { timeout: 3000 }),
     ).toHaveTextContent('This asset is unavailable');
@@ -159,7 +173,7 @@ describe('AssetDeepLink', () => {
 
   it('waits for the brand scope instead of reporting the asset unavailable', async () => {
     mocks.brand = { brandId: '', organizationId: 'org-1', isReady: true };
-    const { rerender } = render(<AssetDeepLink />);
+    const { rerender } = renderLink();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(mocks.findOne).not.toHaveBeenCalled();
     mocks.brand = {
@@ -174,7 +188,7 @@ describe('AssetDeepLink', () => {
   it('rejects a malformed identifier even while brand context is not ready', async () => {
     mocks.brand.isReady = false;
     mocks.assetId = '../../users';
-    render(<AssetDeepLink />);
+    renderLink();
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'This asset is unavailable',
     );
@@ -183,7 +197,7 @@ describe('AssetDeepLink', () => {
 
   it('clears a stale error when the asset changes to a valid id before the scope is ready', async () => {
     mocks.assetId = '../../users';
-    const { rerender } = render(<AssetDeepLink />);
+    const { rerender } = renderLink();
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     mocks.brand.isReady = false;
     mocks.assetId = 'asset-1';
@@ -194,7 +208,7 @@ describe('AssetDeepLink', () => {
 
   it('does nothing without an asset query and rejects malformed identifiers locally', async () => {
     mocks.assetId = null;
-    const { rerender } = render(<AssetDeepLink />);
+    const { rerender } = renderLink();
     expect(mocks.getService).not.toHaveBeenCalled();
     mocks.assetId = '../../users';
     rerender(<AssetDeepLink />);
@@ -202,5 +216,38 @@ describe('AssetDeepLink', () => {
       'This asset is unavailable',
     );
     expect(mocks.getService).not.toHaveBeenCalled();
+  });
+  it('opens the cached asset at once when the same link is followed again', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderLink(client);
+    await waitFor(() => expect(mocks.open).toHaveBeenCalledWith(ingredient));
+    firstVisit.unmount();
+    mocks.open.mockClear();
+
+    mocks.findOne.mockImplementation(() => new Promise(() => {}));
+    renderLink(client);
+
+    await waitFor(() => expect(mocks.open).toHaveBeenCalledWith(ingredient));
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('never opens a cached asset under another organization', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderLink(client);
+    await waitFor(() => expect(mocks.open).toHaveBeenCalledWith(ingredient));
+    firstVisit.unmount();
+    mocks.open.mockClear();
+
+    mocks.brand = {
+      brandId: 'brand-1',
+      organizationId: 'org-2',
+      isReady: true,
+    };
+    mocks.findOne.mockImplementation(() => new Promise(() => {}));
+    renderLink(client);
+
+    expect(screen.getByRole('status')).toHaveTextContent('Opening');
+    expect(mocks.open).not.toHaveBeenCalled();
   });
 });
