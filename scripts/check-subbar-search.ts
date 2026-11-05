@@ -19,16 +19,15 @@ const EXCLUDE_GLOBS = [
   '**/*.spec.*',
   '**/dist/**',
   '**/node_modules/**',
-  // Feature folders that predate the move out of packages/pages (#8684) and
-  // were never scanned; they join once their existing findings are fixed.
-  'apps/web/src/features/settings/**',
-  'apps/web/src/features/workflows/**',
 ];
 
-/** Searches that live inside a modal or connect flow, not a list page's subbar. */
+/** Searches that live inside a modal, picker or dropdown, not a list page's subbar. */
 export const SUBBAR_SEARCH_ALLOWLIST: readonly string[] = [
   'apps/web/src/features/brands/components/integrations/connect-account/ConnectAccountShell.tsx',
   'apps/web/src/features/trends/following/FollowSourceModal.tsx',
+  'apps/web/src/features/workflows/components/dropdowns/multiselect/MultiSelectSearchBar.tsx',
+  'apps/web/src/features/workflows/components/editor/WorkflowPromptPicker.tsx',
+  'apps/web/src/features/workflows/workspace/WorkflowPickerOverlay.tsx',
 ];
 
 /** The `@ui` alias or a relative path to the primitive; `\s` spans a line break after `from`. */

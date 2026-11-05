@@ -22,6 +22,7 @@ import { MetricCardGrid } from '@ui/dashboard/MetricCardGrid';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import Container from '@ui/layout/container/Container';
+import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
 import { ChartEmptyState } from '@ui/primitives/chart-empty-state';
@@ -251,64 +252,68 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
         })),
       }}
       right={
-        <>
-          <FilterMenu
-            facets={[
-              {
-                defaultValue: String(DEFAULT_RANGE_DAYS),
-                isCounted: false,
-                key: 'dateRange',
-                label: translate('filters.dateRange'),
-                onChange: (value) => setRangeDays(Number(value)),
-                options: [7, 30, 90, 366].map((days) => ({
-                  label: translate('filters.lastDays', { days }),
-                  value: String(days),
-                })),
-                selection: 'single',
-                value: String(rangeDays),
-              },
-              ...(lockedBrandId
-                ? []
-                : [
-                    {
-                      defaultValue: ALL_BRANDS_VALUE,
-                      key: 'brand',
-                      label: translate('filters.brand'),
-                      onChange: (value: string) =>
-                        setSelectedBrandId(
-                          value === ALL_BRANDS_VALUE ? '' : value,
-                        ),
-                      options: [
-                        {
-                          label: translate('filters.allBrands'),
-                          value: ALL_BRANDS_VALUE,
-                        },
-                        ...brands.map((brand) => ({
-                          isLiteral: true,
-                          label: brand.label || brand.slug || brand.id,
-                          value: brand.id,
-                        })),
-                      ],
-                      selection: 'single' as const,
-                      value: selectedBrandId || ALL_BRANDS_VALUE,
-                    },
-                  ]),
-            ]}
-            onClear={() => {
-              setRangeDays(DEFAULT_RANGE_DAYS);
-              setSelectedBrandId('');
-            }}
-          />
-          <Button
-            variant={ButtonVariant.SECONDARY}
-            size={ButtonSize.SM}
-            onClick={() => void exportReport()}
-            isDisabled={!canLoad || isExporting}
-          >
-            <Download className="size-4" aria-hidden />
-            {translate('actions.exportCsv')}
-          </Button>
-        </>
+        <SubbarControls
+          filters={
+            <FilterMenu
+              facets={[
+                {
+                  defaultValue: String(DEFAULT_RANGE_DAYS),
+                  isCounted: false,
+                  key: 'dateRange',
+                  label: translate('filters.dateRange'),
+                  onChange: (value) => setRangeDays(Number(value)),
+                  options: [7, 30, 90, 366].map((days) => ({
+                    label: translate('filters.lastDays', { days }),
+                    value: String(days),
+                  })),
+                  selection: 'single',
+                  value: String(rangeDays),
+                },
+                ...(lockedBrandId
+                  ? []
+                  : [
+                      {
+                        defaultValue: ALL_BRANDS_VALUE,
+                        key: 'brand',
+                        label: translate('filters.brand'),
+                        onChange: (value: string) =>
+                          setSelectedBrandId(
+                            value === ALL_BRANDS_VALUE ? '' : value,
+                          ),
+                        options: [
+                          {
+                            label: translate('filters.allBrands'),
+                            value: ALL_BRANDS_VALUE,
+                          },
+                          ...brands.map((brand) => ({
+                            isLiteral: true,
+                            label: brand.label || brand.slug || brand.id,
+                            value: brand.id,
+                          })),
+                        ],
+                        selection: 'single' as const,
+                        value: selectedBrandId || ALL_BRANDS_VALUE,
+                      },
+                    ]),
+              ]}
+              onClear={() => {
+                setRangeDays(DEFAULT_RANGE_DAYS);
+                setSelectedBrandId('');
+              }}
+            />
+          }
+          primaryAction={
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+              onClick={() => void exportReport()}
+              isDisabled={!canLoad || isExporting}
+            >
+              <Download className="size-4" aria-hidden />
+              {translate('actions.exportCsv')}
+            </Button>
+          }
+        />
       }
       refresh={
         <ButtonRefresh

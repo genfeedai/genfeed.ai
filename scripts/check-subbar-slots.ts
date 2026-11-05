@@ -29,10 +29,6 @@ const EXCLUDE_GLOBS = [
   '**/dist/**',
   '**/node_modules/**',
   '**/.next/**',
-  // Feature folders that predate the move out of packages/pages (#8684) and
-  // were never scanned; they join once their existing findings are fixed.
-  'apps/web/src/features/settings/**',
-  'apps/web/src/features/workflows/**',
 ];
 
 const BAR_COMPONENTS = new Set([

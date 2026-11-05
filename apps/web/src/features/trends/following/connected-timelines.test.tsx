@@ -5,7 +5,13 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { CollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ConnectedTimelines from './connected-timelines';
@@ -128,6 +134,18 @@ describe('connected Following feeds and native action confirmation', () => {
         'credential-a',
       ),
     );
+  });
+
+  it('puts the page controls in the sub bar, not in the feed body', async () => {
+    renderFollowing();
+    await screen.findByText('Followed author');
+    const subbar = within(screen.getByTestId('section-topbar'));
+    expect(
+      subbar.getByRole('button', { name: 'Refresh feeds' }),
+    ).toBeInTheDocument();
+    expect(
+      subbar.getByRole('link', { name: 'Connected accounts' }),
+    ).toBeInTheDocument();
   });
 
   it('requires a brand instead of querying with an empty brand on organization routes', () => {
