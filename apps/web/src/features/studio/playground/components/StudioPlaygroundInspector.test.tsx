@@ -1,4 +1,3 @@
-import { queryClientWrapper } from '@app-tests/query-client.harness';
 import {
   createTestQueryClient,
   queryClientWrapper,
@@ -145,11 +144,6 @@ vi.mock('@services/ingredients/videos.service', () => ({
 vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn() },
 }));
-
-/** The generation cost reads through React Query; each render gets a fresh cache. */
-function render(ui: ReactElement) {
-  return rtlRender(ui, { wrapper: queryClientWrapper() });
-}
 
 const recipeJob = {
   createdAt: 1,
