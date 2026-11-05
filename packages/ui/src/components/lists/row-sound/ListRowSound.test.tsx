@@ -1,15 +1,24 @@
+import { IngredientCategory } from '@genfeedai/contracts';
+import type { IMusic } from '@genfeedai/contracts/interfaces';
+import {
+  createIngredientFixture,
+  createMetadataFixture,
+} from '@genfeedai/helpers/testing/entity-fixtures';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ListRowSound from '@ui/lists/row-sound/ListRowSound';
 import { describe, expect, it, vi } from 'vitest';
 
-const mockIngredient = {
-  id: 'test-id',
+const mockIngredient: IMusic = {
+  ...createIngredientFixture({
+    category: IngredientCategory.MUSIC,
+    id: 'test-id',
+    metadata: createMetadataFixture({
+      description: 'A test sound description',
+      label: 'Test Sound',
+    }),
+    provider: 'elevenlabs',
+  }),
   isPlaying: false,
-  metadata: {
-    description: 'A test sound description',
-    label: 'Test Sound',
-  },
-  provider: 'elevenlabs',
 };
 
 describe('ListRowSound', () => {

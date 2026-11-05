@@ -12,7 +12,7 @@ vi.mock('@genfeedai/services/core/clipboard.service', () => ({
 
 describe('DropdownPrompt', () => {
   it('should render nothing when promptText is not provided', () => {
-    const { container } = render(<DropdownPrompt />);
+    const { container } = render(<DropdownPrompt promptText={undefined} />);
     expect(container.firstChild).toBeNull();
   });
 

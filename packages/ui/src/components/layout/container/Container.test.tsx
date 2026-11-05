@@ -59,7 +59,10 @@ describe('Container', () => {
         <Container
           label="Details"
           right={<button type="button">Refresh details</button>}
-          tabs={['Recent', 'All']}
+          tabs={[
+            { id: 'recent', label: 'Recent' },
+            { id: 'all', label: 'All' },
+          ]}
         >
           Detail content
         </Container>
@@ -224,7 +227,6 @@ describe('Container', () => {
             { href: '/test', id: 'overview', label: 'Overview' },
             { href: '/test/details', id: 'details', label: 'Details' },
           ],
-          variant: 'pills',
         }}
         right={<button type="button">Refresh</button>}
       >
@@ -259,7 +261,6 @@ describe('Container', () => {
             { href: '/test', id: 'overview', label: 'Overview' },
             { href: '/test/details', id: 'details', label: 'Details' },
           ],
-          variant: 'default',
         }}
         right={<button type="button">Refresh</button>}
       >

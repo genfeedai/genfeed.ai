@@ -1,4 +1,6 @@
 import '@testing-library/jest-dom/vitest';
+import { IngredientCategory } from '@genfeedai/contracts';
+import { createIngredientFixture } from '@genfeedai/helpers/testing/entity-fixtures';
 import { render, waitFor } from '@testing-library/react';
 import * as LazyMasonry from '@ui/lazy/masonry/LazyMasonry';
 import { describe, expect, it, vi } from 'vitest';
@@ -46,14 +48,20 @@ describe('LazyMasonry', () => {
   });
 
   it('should render LazyMasonryImage when mounted', async () => {
-    const { getByTestId } = render(<LazyMasonry.LazyMasonryImage />);
+    const { getByTestId } = render(
+      <LazyMasonry.LazyMasonryImage image={createIngredientFixture()} />,
+    );
     await waitFor(() => {
       expect(getByTestId('lazy-component')).toBeInTheDocument();
     });
   });
 
   it('should render LazyMasonryVideo when mounted', async () => {
-    const { getByTestId } = render(<LazyMasonry.LazyMasonryVideo />);
+    const { getByTestId } = render(
+      <LazyMasonry.LazyMasonryVideo
+        video={createIngredientFixture({ category: IngredientCategory.VIDEO })}
+      />,
+    );
     await waitFor(() => {
       expect(getByTestId('lazy-component')).toBeInTheDocument();
     });

@@ -4,12 +4,11 @@ import { describe, expect, it } from 'vitest';
 
 describe('Masonry', () => {
   it('should render without crashing', () => {
-    const { container } = render(<Masonry />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<Masonry />);
+    const { container } = render(
+      <Masonry>
+        <div>Only</div>
+      </Masonry>,
+    );
     expect(container.firstChild).toBeInTheDocument();
   });
 

@@ -1,3 +1,4 @@
+import { Platform } from '@genfeedai/contracts';
 import type { IPostingSignature } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -18,7 +19,7 @@ function makeSignature(
     label: 'Launch sign-off',
     organizationId: 'org-1',
     placement: 'append',
-    platforms: ['twitter'],
+    platforms: [Platform.TWITTER],
     userId: 'user-1',
     ...overrides,
   } as IPostingSignature;
@@ -37,7 +38,7 @@ describe('PostingSignaturePicker', () => {
           makeSignature({
             id: 'sig-2',
             label: 'LinkedIn closer',
-            platforms: ['linkedin'],
+            platforms: [Platform.LINKEDIN],
           }),
         ]}
       />,

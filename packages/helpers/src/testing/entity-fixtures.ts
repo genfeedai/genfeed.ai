@@ -1,6 +1,12 @@
-import { AssetScope } from '@genfeedai/contracts';
+import {
+  AssetScope,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import type {
   IBrand,
+  IIngredient,
+  IMetadata,
   IOrganization,
   IOrganizationSetting,
   ISetting,
@@ -116,5 +122,37 @@ export const createBrand = (partial: Partial<IBrand> = {}): IBrand => ({
   secondaryColor: '#cccccc',
   slug: 'test-brand',
   user: createUser(),
+  ...partial,
+});
+
+/**
+ * A complete generated image ingredient. Media subtypes (`IImage`, `IVideo`,
+ * `IMusic`, ...) only add optional fields, so the result fits them too.
+ */
+export const createIngredientFixture = (
+  partial: Partial<IIngredient> = {},
+): IIngredient => ({
+  ...createBaseEntity<IIngredient>(partial),
+  category: IngredientCategory.IMAGE,
+  hasVoted: false,
+  isDefault: false,
+  isFavorite: false,
+  isHighlighted: false,
+  isVoteAnimating: false,
+  organization: createOrganization(),
+  scope: AssetScope.BRAND,
+  status: IngredientStatus.GENERATED,
+  totalChildren: 0,
+  totalVotes: 0,
+  user: createUser(),
+  ...partial,
+});
+
+/** Ingredient metadata with only its required label. */
+export const createMetadataFixture = (
+  partial: Partial<IMetadata> = {},
+): IMetadata => ({
+  ...createBaseEntity<IMetadata>(partial),
+  label: 'Test metadata',
   ...partial,
 });

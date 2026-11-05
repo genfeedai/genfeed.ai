@@ -14,8 +14,8 @@ function createPageHref(page: number): string {
 }
 
 export default function Pagination({
-  currentPage = 1,
-  totalPages = 1,
+  currentPage,
+  totalPages,
   onPageChange,
   totalItems,
   totalLabel = 'results',

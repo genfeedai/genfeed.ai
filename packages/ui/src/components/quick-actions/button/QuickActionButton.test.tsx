@@ -1,12 +1,14 @@
+import type { IQuickAction } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import QuickActionButton from '@ui/quick-actions/button/QuickActionButton';
 import { describe, expect, it, vi } from 'vitest';
 
-const mockAction = {
-  id: 'test-action',
+const mockAction: IQuickAction = {
   icon: <span data-testid="action-icon">icon</span>,
+  id: 'test-action',
   label: 'Test Action',
-  variant: 'primary' as const,
+  onClick: vi.fn(),
+  variant: 'primary',
 };
 
 describe('QuickActionButton', () => {
