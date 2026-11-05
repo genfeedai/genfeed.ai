@@ -7,8 +7,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { Newsletter } from '@models/content/newsletter.model';
 import type { GlobalModalsContextValue } from '@props/modals/global-modals.props';
-import type { ArticlesService } from '@services/content/articles.service';
-import type { NewslettersService } from '@services/content/newsletters.service';
 import type { PostingCadencesService } from '@services/content/posting-cadences.service';
 import type { PostsService } from '@services/content/posts.service';
 import type { ReleaseGroupsService } from '@services/content/release-groups.service';
@@ -43,17 +41,15 @@ export interface ContentCalendarLoadOptions {
   campaignId?: string;
   dateRange: ContentCalendarDateRange | null;
   filters: ReleaseCalendarFilters;
-  getArticlesService: () => Promise<Pick<ArticlesService, 'findAll'>>;
-  getNewslettersService: () => Promise<
-    Pick<NewslettersService, 'findAllPages'>
-  >;
-  getPostingCadencesService: () => Promise<
-    Pick<PostingCadencesService, 'list' | 'listSlots'>
-  >;
-  getReleaseGroupsService: () => Promise<
-    Pick<ReleaseGroupsService, 'findAllPages'>
-  >;
   notificationsService: Pick<NotificationsService, 'error'>;
+}
+/** One cached read of the calendar: everything it draws for a window. */
+export interface ContentCalendarData {
+  articles: IArticle[];
+  cadences: IPostingCadence[];
+  newsletters: Newsletter[];
+  releases: IReleaseGroup[];
+  slots: ICalendarSlot[];
 }
 export interface CalendarReleaseActionsOptions {
   releases: IReleaseGroup[];
