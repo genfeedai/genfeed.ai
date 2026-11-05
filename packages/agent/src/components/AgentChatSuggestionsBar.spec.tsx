@@ -3,23 +3,29 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@ui/prompt-bars/components/suggestions/PromptBarSuggestions', () => ({
-  default: ({
-    className,
-    variant,
-  }: {
-    className?: string;
-    children?: ReactNode;
-    variant?: string;
-  }) => (
-    <div
-      className={className}
-      data-variant={variant}
-      role="toolbar"
-      aria-label="Prompt suggestions"
-    />
-  ),
-}));
+vi.mock(
+  '@ui/prompt-bars/components/suggestions/PromptBarSuggestions',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@ui/prompt-bars/components/suggestions/PromptBarSuggestions')
+    >()),
+    default: ({
+      className,
+      variant,
+    }: {
+      className?: string;
+      children?: ReactNode;
+      variant?: string;
+    }) => (
+      <div
+        className={className}
+        data-variant={variant}
+        role="toolbar"
+        aria-label="Prompt suggestions"
+      />
+    ),
+  }),
+);
 
 const suggestedActions = [
   { label: 'Generate posts', prompt: 'Generate posts for this week' },

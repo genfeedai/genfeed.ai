@@ -143,7 +143,11 @@ describe('StudioProposalsService', () => {
 
     const result = await service.propose({ ...request, surface: 'turbo' });
 
-    expect(result).toEqual({ isBrandApproved: true, proposals, surface: 'turbo' });
+    expect(result).toEqual({
+      isBrandApproved: true,
+      proposals,
+      surface: 'turbo',
+    });
     expect(completeStructured.mock.calls[0][0].schemaName).toBe(
       STUDIO_TURBO_PROPOSALS_SCHEMA_NAME,
     );
