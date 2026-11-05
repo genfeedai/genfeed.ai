@@ -1,8 +1,13 @@
 import { selectFilterOption } from '@app-tests/filter-menu.helpers';
 import { paginatedResponse } from '@app-tests/paginated-response';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import '@testing-library/jest-dom/vitest';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,6 +27,7 @@ const mocks = vi.hoisted(() => ({
   getService: vi.fn(),
   list: vi.fn(),
   notifyError: vi.fn(),
+  organizationId: 'org-1',
   replace: vi.fn(),
   searchParams: new URLSearchParams(),
   updateTask: vi.fn(),
@@ -41,9 +47,18 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ brandId: null }),
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ brandId: null, organizationId: mocks.organizationId }),
+}));
+
+function renderIssuesList(client: QueryClient = createTestQueryClient()) {
+  return render(<IssuesList />, { wrapper: queryClientWrapper(client) });
+}
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
@@ -86,7 +101,7 @@ describe('IssuesList view controls', () => {
   it('reports a failed list request', async () => {
     const error = new Error('Request failed');
     mocks.list.mockRejectedValueOnce(error);
-    render(<IssuesList />);
+    renderIssuesList();
     await waitFor(() =>
       expect(mocks.logError).toHaveBeenCalledWith(
         'Failed to load tasks',
@@ -103,7 +118,7 @@ describe('IssuesList view controls', () => {
       }),
     );
 
-    render(<IssuesList />);
+    renderIssuesList();
 
     expect(screen.getByTestId('skeleton-table')).toBeVisible();
     expect(screen.queryByText('No tasks yet')).not.toBeInTheDocument();
@@ -116,7 +131,7 @@ describe('IssuesList view controls', () => {
   });
 
   it('start-empty surface is only the empty card with a create CTA (no toolbar)', async () => {
-    render(<IssuesList />);
+    renderIssuesList();
 
     expect(await screen.findByText('No tasks yet')).toBeVisible();
     expect(
@@ -148,7 +163,7 @@ describe('IssuesList view controls', () => {
       ),
     );
 
-    render(<IssuesList />);
+    renderIssuesList();
 
     expect(await screen.findByText('Ship empty-state CTA')).toBeVisible();
 
@@ -190,7 +205,7 @@ it('keeps failed tasks visible in the shared table and opens their details', asy
     ),
   );
   mocks.getService.mockResolvedValue({ findAllPage: mocks.list });
-  render(<IssuesList />);
+  renderIssuesList();
   const title = await screen.findByRole('link', {
     name: 'Recover the failed publish',
   });
@@ -255,7 +270,7 @@ describe('IssuesList inline editing and deep links', () => {
     mocks.searchParams = new URLSearchParams('taskId=missing-task');
     mocks.findOne.mockResolvedValue({ ...failedTask, id: 'missing-task' });
 
-    render(<IssuesList />);
+    renderIssuesList();
 
     await waitFor(() =>
       expect(mocks.findOne).toHaveBeenCalledWith('missing-task'),
@@ -267,7 +282,7 @@ describe('IssuesList inline editing and deep links', () => {
     mocks.searchParams = new URLSearchParams('taskId=gone');
     mocks.findOne.mockRejectedValue(new Error('not found'));
 
-    render(<IssuesList />);
+    renderIssuesList();
 
     await waitFor(() =>
       expect(mocks.notifyError).toHaveBeenCalledWith('Could not open task.'),
@@ -276,7 +291,7 @@ describe('IssuesList inline editing and deep links', () => {
 
   it('updates status inline and reloads the list', async () => {
     const user = userEvent.setup();
-    render(<IssuesList />);
+    renderIssuesList();
 
     await user.click(
       await screen.findByRole('combobox', {
@@ -296,7 +311,7 @@ describe('IssuesList inline editing and deep links', () => {
   it('surfaces a failed inline update', async () => {
     mocks.updateTask.mockRejectedValue(new Error('boom'));
     const user = userEvent.setup();
-    render(<IssuesList />);
+    renderIssuesList();
 
     await user.click(
       await screen.findByRole('combobox', {
@@ -337,7 +352,7 @@ describe('IssuesList URL view state', () => {
   it('restores the kanban view and status filter from the URL', async () => {
     mocks.searchParams = new URLSearchParams('view=kanban&status=todo');
 
-    render(<IssuesList />);
+    renderIssuesList();
 
     expect(await screen.findByTestId('tasks-kanban-board')).toBeVisible();
     expect(viewMenuTrigger('Kanban view')).toBeInTheDocument();
@@ -376,7 +391,7 @@ describe('IssuesList search', () => {
       ),
     );
 
-    render(<IssuesList />);
+    renderIssuesList();
 
     expect(await screen.findByText('Ship empty-state CTA')).toBeVisible();
     expect(mocks.list).toHaveBeenCalledWith(
@@ -394,7 +409,7 @@ describe('IssuesList search', () => {
       paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
     );
 
-    render(<IssuesList />);
+    renderIssuesList();
 
     expect(await screen.findByText('No matching tasks')).toBeVisible();
     expect(screen.getByRole('textbox', { name: 'Search tasks' })).toHaveValue(
@@ -418,7 +433,7 @@ describe('IssuesList pagination', () => {
 
   it('requests the server page from the URL with the page size', async () => {
     mocks.searchParams = new URLSearchParams('page=3');
-    render(<IssuesList />);
+    renderIssuesList();
 
     await waitFor(() =>
       expect(mocks.list).toHaveBeenCalledWith(
@@ -444,7 +459,7 @@ describe('IssuesList pagination', () => {
         { totalDocs: 61, totalPages: 5 },
       ),
     );
-    render(<IssuesList />);
+    renderIssuesList();
 
     expect(await screen.findByText('Paginated task')).toBeVisible();
     expect(
@@ -480,11 +495,62 @@ describe('IssuesList pagination', () => {
       ),
     );
     const user = userEvent.setup();
-    render(<IssuesList />);
+    renderIssuesList();
     await screen.findByText('Filtered task');
 
     await selectFilterOption(user, 'Status', 'All Statuses');
 
     expect(mocks.replace).toHaveBeenCalledWith('/', { scroll: false });
+  });
+});
+
+describe('IssuesList return visits', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.organizationId = 'org-1';
+    mocks.searchParams = new URLSearchParams();
+    mocks.list.mockResolvedValue(
+      paginatedResponse(
+        [
+          {
+            id: 'task-1',
+            identifier: 'TASK-1',
+            priority: 'medium',
+            status: 'todo',
+            title: 'Ship empty-state CTA',
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+        { totalDocs: 1, totalPages: 1 },
+      ),
+    );
+    mocks.getService.mockResolvedValue({ findAllPage: mocks.list });
+  });
+
+  it('paints the cached tasks at once when coming back', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderIssuesList(client);
+    expect(await screen.findByText('Ship empty-state CTA')).toBeVisible();
+    firstVisit.unmount();
+
+    mocks.list.mockReturnValue(new Promise(() => {}));
+    renderIssuesList(client);
+
+    expect(screen.getByText('Ship empty-state CTA')).toBeVisible();
+    expect(screen.queryByTestId('skeleton-table')).not.toBeInTheDocument();
+  });
+
+  it('never shows one organization’s tasks under another', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderIssuesList(client);
+    expect(await screen.findByText('Ship empty-state CTA')).toBeVisible();
+    firstVisit.unmount();
+
+    mocks.organizationId = 'org-2';
+    mocks.list.mockReturnValue(new Promise(() => {}));
+    renderIssuesList(client);
+
+    expect(screen.getByTestId('skeleton-table')).toBeVisible();
+    expect(screen.queryByText('Ship empty-state CTA')).not.toBeInTheDocument();
   });
 });
