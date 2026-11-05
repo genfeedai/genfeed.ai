@@ -1,8 +1,13 @@
 import 'reflect-metadata';
 import { isTraced, Traced, traced } from '@libs/tracing/traced';
 import { SetMetadata } from '@nestjs/common';
-import { flush, init, type StreamedSpanJSON, startSpan } from '@sentry/nestjs';
+import { flush, init, startSpan } from '@sentry/nestjs';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+
+/** The span shape `beforeSendSpan` receives in streaming mode. */
+type StreamedSpanJSON = Parameters<
+  NonNullable<NonNullable<Parameters<typeof init>[0]>['beforeSendSpan']>
+>[0];
 
 const sentSpans: StreamedSpanJSON[] = [];
 
