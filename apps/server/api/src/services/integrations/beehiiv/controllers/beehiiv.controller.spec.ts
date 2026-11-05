@@ -24,6 +24,7 @@ import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-conte
 import { TENANT_READ_POLICY } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { getTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { BeehiivController } from '@api/services/integrations/beehiiv/controllers/beehiiv.controller';
+import { BeehiivProviderError } from '@api/services/integrations/beehiiv/errors/beehiiv-provider.error';
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -32,6 +33,7 @@ import { getTenantContext } from '@libs/prisma/tenant-context';
 import {
   type ExecutionContext,
   ForbiddenException,
+  type HttpException,
   RequestMethod,
 } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
@@ -446,20 +448,6 @@ describe('BeehiivController', () => {
       );
     });
 
-    it('should return bad request when selected publication is not available', async () => {
-      brandsService.findOne.mockResolvedValue(mockBrand);
-      beehiivService.listPublications.mockResolvedValue([mockPublication]);
-
-      const result = await controller.connect(mockRequest, mockUser, {
-        apiKey: 'test-api-key',
-        brandId: testId('brand'),
-        publicationId: 'pub_missing',
-      });
-
-      expect(result).toHaveProperty('errors');
-      expect(credentialsService.createPendingForBrand).not.toHaveBeenCalled();
-    });
-
     it('should return bad request when apiKey is missing', async () => {
       const result = await controller.connect(mockRequest, mockUser, {
         apiKey: '',
@@ -491,33 +479,62 @@ describe('BeehiivController', () => {
       expect(beehiivService.listPublications).not.toHaveBeenCalled();
     });
 
-    it('should return bad request when no publications found', async () => {
-      brandsService.findOne.mockResolvedValue(mockBrand);
-      beehiivService.listPublications.mockResolvedValue([]);
+    it.each([
+      [
+        'the chosen publication is not on the key',
+        () =>
+          beehiivService.listPublications.mockResolvedValue([mockPublication]),
+        'pub_missing',
+        { code: 'API_KEY_CONNECT_PUBLICATION_NOT_FOUND', status: 400 },
+      ],
+      [
+        'the key sees no publication',
+        () => beehiivService.listPublications.mockResolvedValue([]),
+        undefined,
+        { code: 'API_KEY_CONNECT_PUBLICATION_NOT_FOUND', status: 400 },
+      ],
+      [
+        'Beehiiv refuses the key',
+        () =>
+          beehiivService.listPublications.mockRejectedValue(
+            new BeehiivProviderError('authorization_failed', 'refused', {
+              isRetryable: false,
+              statusCode: 401,
+            }),
+          ),
+        undefined,
+        { code: 'API_KEY_CONNECT_KEY_REJECTED', status: 400 },
+      ],
+      [
+        'Beehiiv is down',
+        () =>
+          beehiivService.listPublications.mockRejectedValue(
+            new Error('Beehiiv API down'),
+          ),
+        undefined,
+        { code: 'API_KEY_CONNECT_UNKNOWN', status: 500 },
+      ],
+    ])(
+      'refuses the connect when %s and stores nothing',
+      async (_case, arrange, publicationId, expected) => {
+        brandsService.findOne.mockResolvedValue(mockBrand);
+        arrange();
 
-      const result = await controller.connect(mockRequest, mockUser, {
-        apiKey: 'test-api-key',
-        brandId: testId('brand'),
-      });
+        const failure = await controller
+          .connect(mockRequest, mockUser, {
+            apiKey: 'test-api-key',
+            brandId: testId('brand'),
+            publicationId,
+          })
+          .catch((error: HttpException) => ({
+            code: (error.getResponse() as { code: string }).code,
+            status: error.getStatus(),
+          }));
 
-      expect(result).toHaveProperty('errors');
-      expect(credentialsService.createPendingForBrand).not.toHaveBeenCalled();
-    });
-
-    it('should return internal server error when listPublications throws', async () => {
-      brandsService.findOne.mockResolvedValue(mockBrand);
-      beehiivService.listPublications.mockRejectedValue(
-        new Error('Beehiiv API down'),
-      );
-
-      const result = await controller.connect(mockRequest, mockUser, {
-        apiKey: 'bad-key',
-        brandId: testId('brand'),
-      });
-
-      expect(result).toHaveProperty('errors');
-      expect(loggerMock.error).toHaveBeenCalled();
-    });
+        expect(failure).toEqual(expected);
+        expect(credentialsService.createPendingForBrand).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('listPublications', () => {

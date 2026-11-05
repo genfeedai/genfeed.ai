@@ -18,6 +18,7 @@ export * from './alert.enum';
 export * from './analytics-metric.enum';
 export * from './analytics-metric-availability.enum';
 export * from './api-key.enum';
+export * from './api-key-connect-error-code.enum';
 export * from './app-source.enum';
 export * from './article.enum';
 export * from './asset.enum';

@@ -8,7 +8,12 @@ import {
   returnInternalServerError,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import {
+  classifyApiKeyConnectError,
+  createApiKeyConnectException,
+} from '@api/services/integrations/_shared/api-key-connect-error.util';
 import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
+import { parseGhostConnectInput } from '@api/services/integrations/ghost/utils/ghost-connect-input.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   GhostConnectPayload,
@@ -68,47 +73,50 @@ export class GhostController {
       });
     }
 
-    try {
-      // Verify the Ghost credentials by fetching site info
-      const siteInfo = await this.ghostService.getSiteInfo(
-        body.ghostUrl,
-        body.apiKey,
-      );
-
-      // Provision the row first, then let identity reconciliation decide
-      // whether this is a reconnect of a site the brand already has or an
-      // additional one. The site URL is the identity — a brand may run several
-      // Ghost blogs, and two of them can share a title.
-      const pending = await this.credentialsService.createPendingForBrand(
-        brand,
-        user.userId ?? user.id,
-        CredentialPlatform.GHOST,
-        { accessToken: body.apiKey },
-      );
-
-      const credential = await this.credentialsService.updateExternalProfile(
-        pending.id,
-        brand.organizationId,
-        {
-          // A Ghost site URL is an address, not a public @handle.
-          handle: undefined,
-          id: body.ghostUrl,
-          name: siteInfo.title,
-        },
-      );
-
-      return serializeSingle(request, CredentialSerializer, credential);
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      return returnInternalServerError(
-        'Failed to connect Ghost. Verify your URL and Admin API key.',
-      );
+    const input = parseGhostConnectInput(body.ghostUrl, body.apiKey);
+    if (!input.ok) {
+      throw createApiKeyConnectException(input.code);
     }
+
+    let siteTitle: string;
+    try {
+      // Verify the pair by reading the site: proves the URL is a Ghost site
+      // and that it accepts the key.
+      const siteInfo = await this.ghostService.getSiteInfo(
+        input.ghostUrl,
+        input.apiKey,
+      );
+      siteTitle = siteInfo.title;
+    } catch (error: unknown) {
+      const code = classifyApiKeyConnectError(error);
+      // The service already logged the failure; only the outcome goes here.
+      this.loggerService.warn(`${url} refused`, { code });
+      throw createApiKeyConnectException(code);
+    }
+
+    // Provision the row first, then let identity reconciliation decide
+    // whether this is a reconnect of a site the brand already has or an
+    // additional one. The site URL is the identity — a brand may run several
+    // Ghost blogs, and two of them can share a title.
+    const pending = await this.credentialsService.createPendingForBrand(
+      brand,
+      user.userId ?? user.id,
+      CredentialPlatform.GHOST,
+      { accessToken: input.apiKey },
+    );
+
+    const credential = await this.credentialsService.updateExternalProfile(
+      pending.id,
+      brand.organizationId,
+      {
+        // A Ghost site URL is an address, not a public @handle.
+        handle: undefined,
+        id: input.ghostUrl,
+        name: siteTitle,
+      },
+    );
+
+    return serializeSingle(request, CredentialSerializer, credential);
   }
 
   /**

@@ -250,6 +250,9 @@ export class GhostService {
           },
           httpsAgent: agent,
           maxRedirects: 0,
+          // Connect waits on this call; a site that never answers must fail
+          // as unreachable instead of holding the form open.
+          timeout: PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
         }),
       );
 

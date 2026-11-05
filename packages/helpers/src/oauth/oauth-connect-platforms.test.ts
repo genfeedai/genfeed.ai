@@ -47,29 +47,43 @@ describe('OAUTH_CONNECT_PLATFORMS ads tiles', () => {
   });
 });
 
-describe('OAUTH_CONNECT_PLATFORMS Ghost tile', () => {
-  it('lists Ghost under Publishing as a key-based connect on the ghost service path', () => {
-    const ghost = OAUTH_CONNECT_PLATFORMS.filter(
-      (p) => p.platform === CredentialPlatform.GHOST,
-    );
-
-    expect(ghost).toHaveLength(1);
-    expect(ghost[0]).toMatchObject({
-      category: 'publishing',
-      connectMethod: 'api_key',
-      label: 'Ghost',
-    });
+describe('OAUTH_CONNECT_PLATFORMS publishing tiles', () => {
+  it('lists Ghost, dev.to and Beehiiv under Publishing as key-based connects', () => {
     expect(
-      resolveOAuthServicePath(CredentialPlatform.GHOST, ghost[0]?.servicePath),
-    ).toBe('ghost');
-    expect(
-      groupOAuthConnectPlatforms().find((g) => g.id === 'publishing')
-        ?.platforms,
-    ).toEqual(ghost);
+      groupOAuthConnectPlatforms()
+        .find((group) => group.id === 'publishing')
+        ?.platforms.map(({ connectMethod, label, platform, servicePath }) => ({
+          connectMethod,
+          label,
+          platform,
+          servicePath,
+        })),
+    ).toEqual([
+      {
+        connectMethod: 'api_key',
+        label: 'Ghost',
+        platform: CredentialPlatform.GHOST,
+        servicePath: 'ghost',
+      },
+      {
+        connectMethod: 'api_key',
+        label: 'dev.to',
+        platform: CredentialPlatform.DEV_TO,
+        servicePath: 'devto',
+      },
+      {
+        connectMethod: 'api_key',
+        label: 'Beehiiv',
+        platform: CredentialPlatform.BEEHIIV,
+        servicePath: 'beehiiv',
+      },
+    ]);
   });
 
   it.each([
     [CredentialPlatform.GHOST, true],
+    [CredentialPlatform.DEV_TO, true],
+    [CredentialPlatform.BEEHIIV, true],
     [CredentialPlatform.TWITTER, false],
     [CredentialPlatform.YOUTUBE, false],
   ])('isApiKeyConnectPlatform(%s) is %s', (platform, expected) => {

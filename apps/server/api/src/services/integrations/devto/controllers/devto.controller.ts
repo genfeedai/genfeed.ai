@@ -5,11 +5,17 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   returnBadRequest,
-  returnInternalServerError,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import {
+  classifyApiKeyConnectError,
+  createApiKeyConnectException,
+} from '@api/services/integrations/_shared/api-key-connect-error.util';
 import { DevtoService } from '@api/services/integrations/devto/services/devto.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import {
+  ApiKeyConnectErrorCode,
+  CredentialPlatform,
+} from '@genfeedai/contracts';
 import { CredentialSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -62,48 +68,51 @@ export class DevtoController {
       });
     }
 
+    const apiKey = body.apiKey.trim();
+    let devtoUser: Awaited<ReturnType<DevtoService['getCurrentUser']>>;
     try {
       // Verify the API key by fetching the authenticated dev.to user
-      const devtoUser = await this.devtoService.getCurrentUser(body.apiKey);
-
-      if (!devtoUser?.id) {
-        return returnBadRequest({
-          detail:
-            'Could not verify this dev.to API key. Please check the key and try again.',
-          title: 'Invalid API key',
-        });
-      }
-
-      const pending = await this.credentialsService.createPendingForBrand(
-        brand,
-        user.userId ?? user.id,
-        CredentialPlatform.DEV_TO,
-        { accessToken: body.apiKey },
-      );
-
-      // Identity reconciliation decides reconnect vs. additional account, so a
-      // brand can hold more than one dev.to author.
-      const credential = await this.credentialsService.updateExternalProfile(
-        pending.id,
-        brand.organizationId,
-        {
-          handle: devtoUser.username,
-          id: String(devtoUser.id),
-          name: devtoUser.name,
-        },
-      );
-
-      this.loggerService.log(`${url} connected`, {
-        devtoUserId: devtoUser.id,
-        username: devtoUser.username,
-      });
-
-      return serializeSingle(request, CredentialSerializer, credential);
+      devtoUser = await this.devtoService.getCurrentUser(apiKey);
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      return returnInternalServerError(
-        'Failed to connect dev.to. Please verify your API key.',
-      );
+      // dev.to has one fixed API host, so the only reason the user can fix
+      // in the form is a refused key.
+      const code =
+        classifyApiKeyConnectError(error) ===
+        ApiKeyConnectErrorCode.KEY_REJECTED
+          ? ApiKeyConnectErrorCode.KEY_REJECTED
+          : ApiKeyConnectErrorCode.UNKNOWN;
+      this.loggerService.warn(`${url} refused`, { code });
+      throw createApiKeyConnectException(code);
     }
+
+    if (!devtoUser?.id) {
+      throw createApiKeyConnectException(ApiKeyConnectErrorCode.KEY_REJECTED);
+    }
+
+    const pending = await this.credentialsService.createPendingForBrand(
+      brand,
+      user.userId ?? user.id,
+      CredentialPlatform.DEV_TO,
+      { accessToken: apiKey },
+    );
+
+    // Identity reconciliation decides reconnect vs. additional account, so a
+    // brand can hold more than one dev.to author.
+    const credential = await this.credentialsService.updateExternalProfile(
+      pending.id,
+      brand.organizationId,
+      {
+        handle: devtoUser.username,
+        id: String(devtoUser.id),
+        name: devtoUser.name,
+      },
+    );
+
+    this.loggerService.log(`${url} connected`, {
+      devtoUserId: devtoUser.id,
+      username: devtoUser.username,
+    });
+
+    return serializeSingle(request, CredentialSerializer, credential);
   }
 }

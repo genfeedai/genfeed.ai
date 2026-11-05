@@ -19,6 +19,7 @@ import type {
   BrandDetailConnectedAccountProps,
   BrandDetailSocialMediaCardProps,
 } from '@props/pages/brand-detail.props';
+import type { ApiKeyConnectTarget } from '@props/pages/brand-integrations.props';
 import type { SocialWarmupOverrideRequest } from '@props/social/social-warmup-program.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -43,6 +44,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import AccountAvatar from '@/features/brands/components/integrations/AccountAvatar';
 import AccountSettingsDialog from '@/features/brands/components/integrations/AccountSettingsDialog';
 import AccountsTable from '@/features/brands/components/integrations/AccountsTable';
+import ApiKeyConnectDialog from '@/features/brands/components/integrations/ApiKeyConnectDialog';
 import {
   getAccountConnectionStatus,
   getConnectionLabel,
@@ -52,7 +54,6 @@ import {
 } from '@/features/brands/components/integrations/account-connection-status.util';
 import { getHealthBadgeVariant } from '@/features/brands/components/integrations/account-health-badge-variant';
 import ConnectAccountModal from '@/features/brands/components/integrations/ConnectAccountModal';
-import GhostConnectDialog from '@/features/brands/components/integrations/GhostConnectDialog';
 import SocialWarmupProgram from '@/features/brands/components/sidebar/social-warmup/SocialWarmupProgram';
 import { rememberOAuthConnectContext } from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
 import { OAUTH_RETURN_TO_STORAGE_KEY } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
@@ -224,9 +225,12 @@ export default function BrandDetailSocialMediaCard({
   // whether to import its existing posts; the answer rides the connect call.
   const [importChoiceTarget, setImportChoiceTarget] =
     useState<ConnectablePlatform | null>(null);
-  // Ghost connects with a site URL + Admin API key, so it opens a form
-  // instead of redirecting to a provider.
-  const [isGhostConnectOpen, setIsGhostConnectOpen] = useState(false);
+  // Ghost, dev.to and Beehiiv connect with an API key, so they open a form
+  // instead of redirecting to a provider. The target outlives the close so
+  // the form keeps its fields while it animates out.
+  const [apiKeyConnectTarget, setApiKeyConnectTarget] =
+    useState<ApiKeyConnectTarget | null>(null);
+  const [isApiKeyConnectOpen, setIsApiKeyConnectOpen] = useState(false);
 
   const connectedConnections = connections;
   const hasVisibleConnections = connectedConnections.length > 0;
@@ -414,7 +418,11 @@ export default function BrandDetailSocialMediaCard({
     if (item.connectMethod === 'api_key') {
       setIsConnectAccountModalOpen(false);
       setIsDialogOpen(false);
-      setIsGhostConnectOpen(true);
+      setApiKeyConnectTarget({
+        platform: item.platform,
+        servicePath: resolveOAuthServicePath(item.platform, item.servicePath),
+      });
+      setIsApiKeyConnectOpen(true);
       return;
     }
 
@@ -715,14 +723,15 @@ export default function BrandDetailSocialMediaCard({
     </Dialog>
   );
 
-  const ghostConnectDialog = (
-    <GhostConnectDialog
+  const apiKeyConnectDialog = (
+    <ApiKeyConnectDialog
       brandId={brandId}
       onConnected={async () => {
         await Promise.all([onRefresh?.(), refreshBrands()]);
       }}
-      onOpenChange={setIsGhostConnectOpen}
-      open={isGhostConnectOpen}
+      onOpenChange={setIsApiKeyConnectOpen}
+      open={isApiKeyConnectOpen}
+      target={apiKeyConnectTarget}
     />
   );
 
@@ -872,7 +881,7 @@ export default function BrandDetailSocialMediaCard({
 
         {disconnectDialog}
         {importChoiceDialog}
-        {ghostConnectDialog}
+        {apiKeyConnectDialog}
         {overrideDialog}
       </>
     );
@@ -991,7 +1000,7 @@ export default function BrandDetailSocialMediaCard({
 
       {disconnectDialog}
       {importChoiceDialog}
-      {ghostConnectDialog}
+      {apiKeyConnectDialog}
       {overrideDialog}
     </>
   );
