@@ -1,19 +1,17 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
+import {
+  type AnimatedIconSequence,
+  useAnimatedIconControls,
+} from '@ui/primitives/animated-icons/use-animated-icon-controls';
 import type { Variants } from 'motion/react';
-import { motion, useAnimation } from 'motion/react';
-import type { HTMLAttributes } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
-
-export interface RadioIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface RadioIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
+import { motion } from 'motion/react';
+import { forwardRef } from 'react';
 
 const VARIANTS: Variants = {
   normal: {
@@ -37,45 +35,18 @@ const VARIANTS: Variants = {
   }),
 };
 
-const RadioIcon = forwardRef<RadioIconHandle, RadioIconProps>(
+const SEQUENCE: AnimatedIconSequence = {
+  start: async (controls) => {
+    await controls.start('fadeOut');
+    controls.start('fadeIn');
+  },
+  stop: (controls) => controls.start('normal'),
+};
+
+const RadioIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
-
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
-
-      return {
-        startAnimation: async () => {
-          await controls.start('fadeOut');
-          controls.start('fadeIn');
-        },
-        stopAnimation: () => controls.start('normal'),
-      };
-    });
-
-    const handleMouseEnter = useCallback(
-      async (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          await controls.start('fadeOut');
-          controls.start('fadeIn');
-        }
-      },
-      [controls, onMouseEnter],
-    );
-
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start('normal');
-        }
-      },
-      [controls, onMouseLeave],
-    );
+    const { controls, handleMouseEnter, handleMouseLeave } =
+      useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave }, SEQUENCE);
 
     return (
       <div

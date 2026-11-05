@@ -1,20 +1,14 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
 import { useAnimatedIconControls } from '@ui/primitives/animated-icons/use-animated-icon-controls';
 import type { Variants } from 'motion/react';
 import { motion } from 'motion/react';
-import type { HTMLAttributes } from 'react';
 import { forwardRef } from 'react';
-
-export interface LinkIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface LinkIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
 
 const PATH_VARIANTS: Variants = {
   initial: { pathLength: 1, pathOffset: 0, rotate: 0 },
@@ -33,7 +27,7 @@ const PATH_VARIANTS: Variants = {
   },
 };
 
-const LinkIcon = forwardRef<LinkIconHandle, LinkIconProps>(
+const LinkIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const { controls, handleMouseEnter, handleMouseLeave } =
       useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave });

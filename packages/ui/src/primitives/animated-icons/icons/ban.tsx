@@ -1,19 +1,17 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
+import {
+  type AnimatedIconSequence,
+  useAnimatedIconControls,
+} from '@ui/primitives/animated-icons/use-animated-icon-controls';
 import type { Variants } from 'motion/react';
-import { motion, useAnimation } from 'motion/react';
-import type { HTMLAttributes } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
-
-export interface BanIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface BanIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
+import { motion } from 'motion/react';
+import { forwardRef } from 'react';
 
 const CIRCLE_VARIANTS: Variants = {
   normal: {
@@ -53,45 +51,18 @@ const LINE_VARIANTS: Variants = {
   }),
 };
 
-const BanIcon = forwardRef<BanIconHandle, BanIconProps>(
+const SEQUENCE: AnimatedIconSequence = {
+  start: (controls) => {
+    controls.start('animate');
+    controls.start('slash', { delay: 0.5 });
+  },
+  stop: (controls) => controls.start('normal'),
+};
+
+const BanIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
-
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
-
-      return {
-        startAnimation: () => {
-          controls.start('animate');
-          controls.start('slash', { delay: 0.5 });
-        },
-        stopAnimation: () => controls.start('normal'),
-      };
-    });
-
-    const handleMouseEnter = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start('animate');
-          controls.start('slash', { delay: 0.5 });
-        }
-      },
-      [controls, onMouseEnter],
-    );
-
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start('normal');
-        }
-      },
-      [controls, onMouseLeave],
-    );
+    const { controls, handleMouseEnter, handleMouseLeave } =
+      useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave }, SEQUENCE);
 
     return (
       <div

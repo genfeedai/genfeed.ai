@@ -1,19 +1,13 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
 import type { Variants } from 'motion/react';
 import { motion, useAnimation } from 'motion/react';
-import type { HTMLAttributes } from 'react';
 import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
-
-export interface SparklesIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface SparklesIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
 
 const SPARKLE_VARIANTS: Variants = {
   initial: {
@@ -48,7 +42,7 @@ const STAR_VARIANTS: Variants = {
   }),
 };
 
-const SparklesIcon = forwardRef<SparklesIconHandle, SparklesIconProps>(
+const SparklesIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const starControls = useAnimation();
     const sparkleControls = useAnimation();

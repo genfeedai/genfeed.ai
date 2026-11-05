@@ -1,20 +1,14 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
 import { useAnimatedIconControls } from '@ui/primitives/animated-icons/use-animated-icon-controls';
 import type { Variants } from 'motion/react';
 import { motion } from 'motion/react';
-import type { HTMLAttributes } from 'react';
 import { forwardRef } from 'react';
-
-export interface MailCheckIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface MailCheckIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
 
 const CHECK_VARIANTS: Variants = {
   normal: {
@@ -34,7 +28,7 @@ const CHECK_VARIANTS: Variants = {
   },
 };
 
-const MailCheckIcon = forwardRef<MailCheckIconHandle, MailCheckIconProps>(
+const MailCheckIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const { controls, handleMouseEnter, handleMouseLeave } =
       useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave });

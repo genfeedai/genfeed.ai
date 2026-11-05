@@ -1,19 +1,14 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
+import { useAnimatedIconControls } from '@ui/primitives/animated-icons/use-animated-icon-controls';
 import type { Variants } from 'motion/react';
-import { motion, useAnimation } from 'motion/react';
-import type { HTMLAttributes, MouseEvent } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
-
-export interface FolderOpenIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface FolderOpenIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
+import { motion } from 'motion/react';
+import { forwardRef } from 'react';
 
 const VARIANTS: Variants = {
   normal: { rotate: 0 },
@@ -28,40 +23,10 @@ const VARIANTS: Variants = {
   },
 };
 
-const FolderOpenIcon = forwardRef<FolderOpenIconHandle, FolderOpenIconProps>(
+const FolderOpenIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
-
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
-      return {
-        startAnimation: () => controls.start('animate'),
-        stopAnimation: () => controls.start('normal'),
-      };
-    });
-
-    const handleMouseEnter = useCallback(
-      (e: MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start('animate');
-        }
-      },
-      [controls, onMouseEnter],
-    );
-
-    const handleMouseLeave = useCallback(
-      (e: MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start('normal');
-        }
-      },
-      [controls, onMouseLeave],
-    );
+    const { controls, handleMouseEnter, handleMouseLeave } =
+      useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave });
 
     return (
       <div

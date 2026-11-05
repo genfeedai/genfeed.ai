@@ -1,5 +1,9 @@
 'use client';
 
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
 import { useAnimatedIconControls } from '@ui/primitives/animated-icons/use-animated-icon-controls';
 
 // Not in lucide-animated: drawn here on Lucide's Scissors geometry, following
@@ -7,19 +11,9 @@ import { useAnimatedIconControls } from '@ui/primitives/animated-icons/use-anima
 
 import { cn } from '@genfeedai/helpers';
 import { motion } from 'motion/react';
-import type { HTMLAttributes } from 'react';
 import { forwardRef } from 'react';
 
-export interface ScissorsIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface ScissorsIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
-
-const ScissorsIcon = forwardRef<ScissorsIconHandle, ScissorsIconProps>(
+const ScissorsIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const { controls, handleMouseEnter, handleMouseLeave } =
       useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave });

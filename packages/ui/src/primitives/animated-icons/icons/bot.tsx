@@ -1,21 +1,15 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
 import { useAnimatedIconControls } from '@ui/primitives/animated-icons/use-animated-icon-controls';
 import { motion } from 'motion/react';
-import type { HTMLAttributes } from 'react';
 import { forwardRef } from 'react';
 
-export interface BotIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface BotIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
-
-const BotIcon = forwardRef<BotIconHandle, BotIconProps>(
+const BotIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const { controls, handleMouseEnter, handleMouseLeave } =
       useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave });

@@ -1,20 +1,14 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
 import { useAnimatedIconControls } from '@ui/primitives/animated-icons/use-animated-icon-controls';
 import type { Variants } from 'motion/react';
 import { motion } from 'motion/react';
-import type { HTMLAttributes } from 'react';
 import { forwardRef } from 'react';
-
-export interface ArrowRightIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface ArrowRightIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
 
 const PATH_VARIANTS: Variants = {
   normal: { d: 'M5 12h14' },
@@ -37,7 +31,7 @@ const SECONDARY_PATH_VARIANTS: Variants = {
   },
 };
 
-const ArrowRightIcon = forwardRef<ArrowRightIconHandle, ArrowRightIconProps>(
+const ArrowRightIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const { controls, handleMouseEnter, handleMouseLeave } =
       useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave });
