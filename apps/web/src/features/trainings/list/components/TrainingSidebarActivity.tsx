@@ -1,5 +1,6 @@
 'use client';
 
+import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { TrainingsService } from '@services/ai/trainings.service';
@@ -7,7 +8,6 @@ import { logger } from '@services/core/logger.service';
 import RowSidebarItemList from '@ui/display/row-sidebar/RowSidebarItemList';
 import RowSidebarSection from '@ui/display/row-sidebar/RowSidebarSection';
 import RowSidebarStats from '@ui/display/row-sidebar/RowSidebarStats';
-import { formatDistanceToNow } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import type { TrainingSidebarActivityProps } from '@/features/trainings/props/training-sidebar.props';
 
@@ -67,9 +67,7 @@ export default function TrainingSidebarActivity({
           items={images.map((image) => ({
             id: image.id,
             meta: image.createdAt
-              ? formatDistanceToNow(new Date(image.createdAt), {
-                  addSuffix: true,
-                })
+              ? getRelativeTime(image.createdAt) || undefined
               : undefined,
             title: image.generationPrompt?.trim() || trainingT('untitledImage'),
           }))}
