@@ -9,6 +9,7 @@ import {
 } from '@helpers/ui/form-error/form-error.helper';
 import type { ModalRoleProps } from '@props/modals/modal.props';
 import { RolesService } from '@services/organization/roles.service';
+import { normalizeElementKey } from '@ui/display/element-scope-badge/element-row-sidebar';
 import FormControl from '@ui/forms/base/form-control/FormControl';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -18,9 +19,6 @@ import Spinner from '@ui/primitives/spinner';
 import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
-
-const WHITESPACE_RUNS_PATTERN = /\s+/g;
-const NON_SLUG_CHARS_PATTERN = /[^a-z0-9-]/g;
 
 export default function ModalRole({ onConfirm }: ModalRoleProps) {
   const t = useTranslations('ui.createModal');
@@ -44,10 +42,7 @@ export default function ModalRole({ onConfirm }: ModalRoleProps) {
     const { name, value } = e.target;
 
     if (name === 'key') {
-      const formattedKey = value
-        .toLowerCase()
-        .replace(WHITESPACE_RUNS_PATTERN, '-')
-        .replace(NON_SLUG_CHARS_PATTERN, '');
+      const formattedKey = normalizeElementKey(value);
       form.setValue('key', formattedKey, { shouldValidate: true });
       return;
     }

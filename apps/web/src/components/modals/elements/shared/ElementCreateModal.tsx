@@ -4,6 +4,7 @@ import {
 } from '@genfeedai/client/schemas';
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { IElementMood } from '@genfeedai/contracts/interfaces';
+import { normalizeElementKey } from '@ui/display/element-scope-badge/element-row-sidebar';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
@@ -16,9 +17,6 @@ import ElementPlatformFields from '@/components/modals/elements/shared/ElementPl
 import { ELEMENT_CREATE_MODAL_CONFIG } from '@/components/modals/elements/shared/element-create-modal.config';
 import type { ElementCreateModalProps } from '@/features/admin/props/element-create-modal.props';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
-
-const WHITESPACE_RUNS_PATTERN = /\s+/g;
-const NON_SLUG_CHARS_PATTERN = /[^a-z0-9-]/g;
 
 export default function ElementCreateModal({
   modalId,
@@ -47,14 +45,9 @@ export default function ElementCreateModal({
     const { name, value } = event.target;
     switch (name) {
       case 'key':
-        form.setValue(
-          'key',
-          value
-            .toLowerCase()
-            .replace(WHITESPACE_RUNS_PATTERN, '-')
-            .replace(NON_SLUG_CHARS_PATTERN, ''),
-          { shouldValidate: true },
-        );
+        form.setValue('key', normalizeElementKey(value), {
+          shouldValidate: true,
+        });
         break;
       case 'label':
         form.setValue('label', value, { shouldValidate: true });
