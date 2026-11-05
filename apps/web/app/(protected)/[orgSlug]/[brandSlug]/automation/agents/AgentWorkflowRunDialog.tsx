@@ -1,5 +1,5 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { ImagesService } from '@services/ingredients/images.service';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -34,6 +34,8 @@ import {
 } from './agent-workflow-run-input.util';
 
 const NONE_INGREDIENT = '__none__';
+const LIBRARY_IMAGE_LIMIT = 40;
+const EMPTY_LIBRARY_IMAGES: WorkflowIngredientSelection[] = [];
 
 function resolveIngredientUrl(row: Record<string, unknown>): string {
   for (const key of [
@@ -75,6 +77,27 @@ function resolveIngredientLabel(
   return fallbackId.slice(0, 12);
 }
 
+function toLibraryImages(rows: unknown): WorkflowIngredientSelection[] {
+  return (Array.isArray(rows) ? rows : []).flatMap((row: unknown) => {
+    if (!row || typeof row !== 'object') {
+      return [];
+    }
+    const record = row as Record<string, unknown>;
+    const id = typeof record.id === 'string' ? record.id : '';
+    const url = resolveIngredientUrl(record);
+    if (!id || !url) {
+      return [];
+    }
+    return [
+      {
+        id,
+        label: resolveIngredientLabel(record, id),
+        url,
+      } satisfies WorkflowIngredientSelection,
+    ];
+  });
+}
+
 export default function AgentWorkflowRunDialog({
   binding,
   isLoadingBinding,
@@ -92,14 +115,32 @@ export default function AgentWorkflowRunDialog({
   const [extraInputs, setExtraInputs] = useState<Record<string, string>>({});
   const [selectedIngredientId, setSelectedIngredientId] =
     useState(NONE_INGREDIENT);
-  const [libraryImages, setLibraryImages] = useState<
+  // The brand's library images are cached per viewer and brand, so reopening
+  // the dialog lists them at once and refreshes them in the background.
+  const libraryBrandId = strategy?.brandId ?? strategy?.brand?.id ?? null;
+  const libraryQuery = useAuthedQuery<
+    ImagesService,
     WorkflowIngredientSelection[]
-  >([]);
-  const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
-
-  const getImagesService = useAuthedService((token: string) =>
-    ImagesService.getInstance(token),
-  );
+  >({
+    enabled: isOpen,
+    queryFn: async (service, signal) => {
+      const rows = await service.findAll(
+        libraryBrandId
+          ? { brandId: libraryBrandId, limit: LIBRARY_IMAGE_LIMIT }
+          : { limit: LIBRARY_IMAGE_LIMIT },
+        signal,
+      );
+      return toLibraryImages(rows);
+    },
+    queryKey: [
+      'agent-workflow-run-library-images',
+      libraryBrandId,
+      { limit: LIBRARY_IMAGE_LIMIT },
+    ],
+    service: (token: string) => ImagesService.getInstance(token),
+  });
+  const libraryImages = libraryQuery.data ?? EMPTY_LIBRARY_IMAGES;
+  const isLoadingLibrary = libraryQuery.isLoading;
 
   useEffect(() => {
     if (!isOpen || !strategy) {
@@ -124,74 +165,6 @@ export default function AgentWorkflowRunDialog({
     }
     setExtraInputs(seedExtraInputsFromBinding(binding.inputs));
   }, [binding, isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    let cancelled = false;
-    const controller = new AbortController();
-
-    async function loadLibrary() {
-      setIsLoadingLibrary(true);
-      try {
-        const service = await getImagesService();
-        if (cancelled || controller.signal.aborted) {
-          return;
-        }
-        const brandId = strategy?.brandId ?? strategy?.brand?.id;
-        const rows = await service.findAll(
-          brandId ? { brandId, limit: 40 } : { limit: 40 },
-          controller.signal,
-        );
-        if (cancelled || controller.signal.aborted) {
-          return;
-        }
-        const list = (Array.isArray(rows) ? rows : []).flatMap((row) => {
-          const record = row as unknown as Record<string, unknown>;
-          const modelUrl =
-            typeof (row as { ingredientUrl?: unknown }).ingredientUrl ===
-            'string'
-              ? (row as { ingredientUrl: string }).ingredientUrl
-              : '';
-          const id =
-            typeof record.id === 'string'
-              ? record.id
-              : typeof row.id === 'string'
-                ? row.id
-                : '';
-          const url = modelUrl.trim() || resolveIngredientUrl(record);
-          if (!id || !url) {
-            return [];
-          }
-          return [
-            {
-              id,
-              label: resolveIngredientLabel(record, id),
-              url,
-            } satisfies WorkflowIngredientSelection,
-          ];
-        });
-        setLibraryImages(list);
-      } catch {
-        if (cancelled || controller.signal.aborted) {
-          return;
-        }
-        setLibraryImages([]);
-      } finally {
-        if (!cancelled) {
-          setIsLoadingLibrary(false);
-        }
-      }
-    }
-
-    void loadLibrary();
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [getImagesService, isOpen, strategy?.brand?.id, strategy?.brandId]);
 
   const extraSlots = useMemo(
     () => listEditableExtraSlots(binding?.inputs),
