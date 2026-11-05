@@ -95,6 +95,94 @@ describe('PlatformTemplateSeedService', () => {
     expect(rendered).toContain('"sections"');
   });
 
+  it.each([
+    [
+      PromptTemplateKey.ARTICLE_VIRALITY,
+      { category: 'post', content: 'Body', summary: 'Sum', title: 'A "title"' },
+      'Title: A "title"',
+    ],
+    [
+      PromptTemplateKey.ARTICLE_VIRALITY,
+      { category: 'post', content: 'Body', summary: 'Sum', title: 'T' },
+      '"viralityScore"',
+    ],
+    [
+      PromptTemplateKey.ARTICLE_IMAGE_PROMPT,
+      { content: 'Body', summary: 'Sum', title: 'A "title"' },
+      'Article excerpt:\nBody',
+    ],
+    [
+      PromptTemplateKey.THREAD_EXPAND,
+      {
+        additionalCount: 3,
+        count: 4,
+        originalContent: 'Ship "fast"',
+        tone: 'casual',
+      },
+      'into a thread of 4 posts',
+    ],
+    [
+      PromptTemplateKey.THREAD_EXPAND,
+      {
+        additionalCount: 3,
+        count: 4,
+        originalContent: 'Ship "fast"',
+        tone: 'casual',
+      },
+      'Ship "fast"',
+    ],
+    [
+      PromptTemplateKey.TWEET_REPLY,
+      {
+        context: 'Earlier',
+        customInstructions: 'Be brief',
+        length: 'short',
+        tone: 'friendly',
+        tweetAuthor: '@ada',
+        tweetContent: 'AI & "content"',
+      },
+      'Post by @ada:\nAI & "content"',
+    ],
+    [
+      PromptTemplateKey.TWEET_REPLY,
+      {
+        context: 'Earlier',
+        customInstructions: 'Be brief',
+        length: 'short',
+        tone: 'friendly',
+        tweetAuthor: '@ada',
+        tweetContent: 'Hi',
+      },
+      'Tone: friendly. Length: short.',
+    ],
+  ])(
+    'renders the %s brief with its variables: %#',
+    (key, variables, expected) => {
+      const template = PLATFORM_TEMPLATES.find((t) => t.key === key);
+
+      expect(Handlebars.compile(template?.content ?? '')(variables)).toContain(
+        expected,
+      );
+    },
+  );
+
+  it('leaves out the optional reply lines when there is no context or instructions', () => {
+    const template = PLATFORM_TEMPLATES.find(
+      (t) => t.key === PromptTemplateKey.TWEET_REPLY,
+    );
+    const rendered = Handlebars.compile(template?.content ?? '')({
+      context: '',
+      customInstructions: '',
+      length: 'medium',
+      tone: 'casual',
+      tweetAuthor: '@ada',
+      tweetContent: 'Hello',
+    });
+
+    expect(rendered).not.toContain('Conversation so far');
+    expect(rendered).not.toContain('Extra instructions');
+  });
+
   it('leaves out the optional lines when there is no category or keywords', () => {
     const template = PLATFORM_TEMPLATES.find(
       (t) => t.key === PromptTemplateKey.ARTICLE_GENERATE,
