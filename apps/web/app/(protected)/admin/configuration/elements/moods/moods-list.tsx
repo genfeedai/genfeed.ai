@@ -10,6 +10,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { ElementMood } from '@models/elements/mood.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
@@ -27,29 +28,12 @@ import {
   Suspense,
   useCallback,
   useEffect,
-  useReducer,
   useRef,
 } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { LazyElementCreateModal } from '@/components/lazy/modal/LazyModal';
-import type {
-  MoodsListAction,
-  MoodsListState,
-} from '@/features/admin/props/moods.props';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
-
-function moodsListReducer(
-  state: MoodsListState,
-  action: MoodsListAction,
-): MoodsListState {
-  switch (action.type) {
-    case 'SET_PAGE':
-      return { ...state, page: action.payload };
-    case 'SET_IS_LOADING':
-      return { ...state, isLoading: action.payload };
-  }
-}
 
 const EMPTY_MOODS: ElementMood[] = [];
 
@@ -70,13 +54,6 @@ function MoodsListContent({
   });
   const currentPage = Number(searchParams.get('page')) || 1;
 
-  const [state, dispatch] = useReducer(moodsListReducer, undefined, () => ({
-    page: null,
-    isLoading: true,
-  }));
-
-  const { page, isLoading } = state;
-  const moods = page?.items ?? EMPTY_MOODS;
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
 
@@ -91,6 +68,72 @@ function MoodsListContent({
     onLoadingChangeRef.current = onLoadingChange;
     onRefreshingChangeRef.current = onRefreshingChange;
   });
+
+  // Cached per scope and page: coming back paints the rows and footer it
+  // already has while they refresh, and another page, search or sort keeps
+  // the current rows on screen while it loads.
+  const scopeKey = ['admin', 'moods', { adminBrand, adminOrg, scope }] as const;
+  const moodsQuery = usePagedAuthedQuery<MoodsService, ElementMood>({
+    keepPreviousDataWithin: scopeKey,
+    queryFn: async (service, signal) => {
+      const query: IQueryParams = {
+        limit: ITEMS_PER_PAGE,
+        page: currentPage,
+        search: filters?.search || undefined,
+        ...(sort ? { sort } : {}),
+      };
+
+      if (scope === PageScope.SUPERADMIN) {
+        if (adminOrg) {
+          query.organization = adminOrg;
+        }
+        if (adminBrand) {
+          query.brand = adminBrand;
+        }
+      }
+
+      try {
+        const data = await service.findAllPage(query, signal);
+        logger.info('GET /moods success', data.items);
+        return data;
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('GET /moods failed', error);
+        }
+        throw error;
+      }
+    },
+    queryKey: [
+      ...scopeKey,
+      { page: currentPage, search: filters?.search ?? '', sort: sort ?? null },
+    ],
+    service: (token: string) => MoodsService.getInstance(token),
+  });
+  const moods = moodsQuery.data?.items ?? EMPTY_MOODS;
+  const {
+    errorUpdatedAt,
+    isError,
+    isFetching,
+    isLoading,
+    refetch: refreshMoods,
+  } = moodsQuery;
+  const isRefreshing = isFetching && !isLoading;
+
+  // One toast per failed read, not one per render.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
+  useEffect(() => {
+    if (isError) {
+      notificationsService.error('Failed to load moods');
+    }
+  }, [errorUpdatedAt, isError, notificationsService]);
+
+  useEffect(() => {
+    onLoadingChangeRef.current?.(isLoading);
+  }, [isLoading]);
+
+  useEffect(() => {
+    onRefreshingChangeRef.current?.(isRefreshing);
+  }, [isRefreshing]);
 
   const scopeTranslate = useTranslations('ui.elementPlatformFields');
   const columns: TableColumn<ElementMood>[] = [
@@ -118,76 +161,11 @@ function MoodsListContent({
     },
   ];
 
-  // Only the latest request may fill the list, so a slow response for an
-  // earlier sort or search cannot replace the current one.
-  const latestRequestRef = useRef(0);
-
-  const findAllMoods = useCallback(
-    async (isRefreshRequest = false) => {
-      const requestId = ++latestRequestRef.current;
-      dispatch({ type: 'SET_IS_LOADING', payload: !isRefreshRequest });
-      onRefreshingChangeRef.current?.(isRefreshRequest);
-      onLoadingChangeRef.current?.(!isRefreshRequest);
-
-      try {
-        const service = await getMoodsService();
-        const query: IQueryParams = {
-          limit: ITEMS_PER_PAGE,
-          page: currentPage,
-          search: filters?.search || undefined,
-          ...(sort ? { sort } : {}),
-        };
-
-        if (scope === PageScope.SUPERADMIN) {
-          if (adminOrg) {
-            query.organization = adminOrg;
-          }
-          if (adminBrand) {
-            query.brand = adminBrand;
-          }
-        }
-
-        const data = await service.findAllPage(query);
-        if (requestId !== latestRequestRef.current) {
-          return;
-        }
-        dispatch({ type: 'SET_PAGE', payload: data });
-        logger.info('GET /moods success', data.items);
-      } catch (error) {
-        if (requestId !== latestRequestRef.current) {
-          return;
-        }
-        logger.error('GET /moods failed', error);
-        notificationsService.error('Failed to load moods');
-      } finally {
-        if (requestId === latestRequestRef.current) {
-          dispatch({ type: 'SET_IS_LOADING', payload: false });
-          onLoadingChangeRef.current?.(false);
-          onRefreshingChangeRef.current?.(false);
-        }
-      }
-    },
-    [
-      currentPage,
-      filters?.search,
-      sort,
-      getMoodsService,
-      notificationsService.error,
-      scope,
-      adminOrg,
-      adminBrand,
-    ],
-  );
-
-  useEffect(() => {
-    findAllMoods();
-  }, [findAllMoods]);
-
   useEffect(() => {
     if (onRefresh) {
-      return onRefresh(() => findAllMoods(true));
+      return onRefresh(() => refreshMoods());
     }
-  }, [onRefresh, findAllMoods]);
+  }, [onRefresh, refreshMoods]);
 
   async function handleDelete(mood: IElementMood | null): Promise<void> {
     if (!mood) {
@@ -198,7 +176,7 @@ function MoodsListContent({
       const service = await getMoodsService();
       await service.delete(mood.id);
       notificationsService.success('Mood deleted');
-      findAllMoods(true);
+      void refreshMoods();
     } catch (error) {
       logger.error('Failed to delete mood', error);
       notificationsService.error('Failed to delete mood');
@@ -228,7 +206,9 @@ function MoodsListContent({
 
   const saveMood = useInlineRecordSave<Partial<IElementMood>>({
     errorMessage: 'Failed to update mood',
-    onSaved: () => findAllMoods(true),
+    onSaved: () => {
+      void refreshMoods();
+    },
     save: async (id, patch) => (await getMoodsService()).patch(id, patch),
   });
 
@@ -257,7 +237,7 @@ function MoodsListContent({
       {scope === PageScope.SUPERADMIN && (
         <LazyElementCreateModal
           modalId={ModalEnum.MOOD}
-          onConfirm={() => findAllMoods(true)}
+          onConfirm={() => refreshMoods()}
         />
       )}
 
@@ -265,11 +245,7 @@ function MoodsListContent({
         <AutoPagination
           showTotal
           totalLabel="moods"
-          totals={
-            page
-              ? { totalDocs: page.total, totalPages: page.totalPages }
-              : EMPTY_PAGE_TOTALS
-          }
+          totals={moodsQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
         />
       </div>
     </>

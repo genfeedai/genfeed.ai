@@ -2,15 +2,20 @@ import { paginatedResponse } from '@app-tests/paginated-response';
 import type { IPageTotals } from '@genfeedai/contracts/interfaces';
 
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { PageScope } from '@genfeedai/contracts';
+import type { QueryClient } from '@tanstack/react-query';
 import {
   act,
   fireEvent,
-  render,
+  render as renderWithoutClient,
   screen,
   waitFor,
 } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MoodsList from './moods-list';
 
@@ -22,6 +27,7 @@ vi.mock('next-intl', async () => {
 });
 
 const mocks = vi.hoisted(() => ({
+  urlOrganization: 'org-1',
   urlSort: null as string | null,
   deleteMood: vi.fn(),
   findAllPage: vi.fn(),
@@ -32,6 +38,11 @@ const mocks = vi.hoisted(() => ({
   notificationsSuccess: vi.fn(),
   openConfirm: vi.fn(),
   replace: vi.fn(),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -177,13 +188,13 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => ({
     get: (key: string) => {
       if (key === 'page') return '2';
-      if (key === 'organization') return 'org-1';
+      if (key === 'organization') return mocks.urlOrganization;
       if (key === 'brand') return 'brand-1';
       if (key === 'sort') return mocks.urlSort;
       return null;
     },
     toString: () =>
-      `organization=org-1&brand=brand-1&page=2${
+      `organization=${mocks.urlOrganization}&brand=brand-1&page=2${
         mocks.urlSort ? `&sort=${mocks.urlSort}` : ''
       }`,
   }),
@@ -205,9 +216,14 @@ function mockMoods(
   mocks.findAllPage.mockResolvedValue(paginatedResponse(data));
 }
 
+function render(ui: ReactElement, client?: QueryClient) {
+  return renderWithoutClient(ui, { wrapper: queryClientWrapper(client) });
+}
+
 describe('MoodsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.urlOrganization = 'org-1';
     mocks.urlSort = null;
     mocks.deleteMood.mockResolvedValue({ ok: true });
     mocks.getMoodsService.mockResolvedValue({
@@ -251,6 +267,7 @@ describe('MoodsList', () => {
         organization: 'org-1',
         page: 2,
       }),
+      expect.any(AbortSignal),
     );
   });
 
@@ -267,6 +284,7 @@ describe('MoodsList', () => {
       await waitFor(() => {
         expect(mocks.findAllPage).toHaveBeenCalledWith(
           expect.objectContaining({ page: 2, sort }),
+          expect.any(AbortSignal),
         );
       });
     },
@@ -281,6 +299,7 @@ describe('MoodsList', () => {
     });
     expect(mocks.findAllPage).not.toHaveBeenCalledWith(
       expect.objectContaining({ sort: expect.anything() }),
+      expect.any(AbortSignal),
     );
   });
 
@@ -369,5 +388,44 @@ describe('MoodsList', () => {
       await registerRefresh.mock.calls[0][0]();
     });
     expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
+  });
+
+  it('paints the cached moods and their own footer total when coming back', async () => {
+    mocks.findAllPage.mockResolvedValue(
+      paginatedResponse([makeMood()], { totalDocs: 14, totalPages: 2 }),
+    );
+    const client = createTestQueryClient();
+    const firstVisit = render(
+      <MoodsList scope={PageScope.SUPERADMIN} />,
+      client,
+    );
+    expect(await screen.findByText('Calm')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
+    render(<MoodsList scope={PageScope.SUPERADMIN} />, client);
+
+    expect(screen.getByText('Calm')).toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('14');
+    expect(screen.queryByText('Loading moods')).not.toBeInTheDocument();
+  });
+
+  it("never paints one organization's cached moods for another", async () => {
+    const client = createTestQueryClient();
+    const firstVisit = render(
+      <MoodsList scope={PageScope.SUPERADMIN} />,
+      client,
+    );
+    expect(await screen.findByText('Calm')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.urlOrganization = 'org-2';
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
+    render(<MoodsList scope={PageScope.SUPERADMIN} />, client);
+
+    expect(screen.getByText('Loading moods')).toBeInTheDocument();
+    expect(screen.queryByText('Calm')).not.toBeInTheDocument();
   });
 });
