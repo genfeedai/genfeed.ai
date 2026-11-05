@@ -24,7 +24,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // Superadmin failure resolution; the write itself is scoped to the execution row's own tenant.
     {
       file: 'apps/server/api/src/collections/workflow-executions/controllers/workflow-executions.controller.ts',
-      line: 308,
+      line: 306,
     },
     // Platform-owned system workflow ids are read under the system principal.
     {
@@ -141,13 +141,13 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin-only cross-organization workflow failure feed.
     {
       file: 'apps/server/api/src/collections/workflow-executions/controllers/workflow-executions.controller.ts',
-      line: 219,
+      line: 217,
     },
     // #6120: marketplace lists public workflow templates published by every
     // organization.
     {
       file: 'apps/server/api/src/collections/workflows/controllers/workflow-marketplace.controller.ts',
-      line: 135,
+      line: 133,
     },
     // #6120: runAsSuperAdmin, the single generic-CRUD seam where a verified
     // superadmin reads, edits or removes another organization's row or a
