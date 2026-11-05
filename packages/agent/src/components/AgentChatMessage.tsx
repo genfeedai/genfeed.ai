@@ -15,11 +15,11 @@ import type {
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { collapseOAuthConnectCards } from '@genfeedai/agent/utils/collapse-oauth-connect-cards';
 import { shouldCollapseUserMessage } from '@genfeedai/agent/utils/should-collapse-user-message';
-import { stripTrailingReplyEnvelope } from '@genfeedai/agent/utils/strip-reply-envelope.util';
 import {
   hasProductResultCard,
   shouldRenderCompletionSummary,
 } from '@genfeedai/agent/utils/should-render-completion-summary';
+import { stripTrailingReplyEnvelope } from '@genfeedai/agent/utils/strip-reply-envelope.util';
 import {
   ButtonVariant,
   CardGap,

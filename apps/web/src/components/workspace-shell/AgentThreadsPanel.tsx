@@ -10,10 +10,12 @@ import {
   AgentThreadStatus,
   ButtonSize,
   ButtonVariant,
+  ComponentSize,
 } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import Searchbar from '@ui/primitives/searchbar';
+import Spinner from '@ui/primitives/spinner';
 import {
   hoverConcealClassName,
   hoverRevealClassName,
@@ -23,7 +25,6 @@ import {
   ChevronDown,
   CircleAlert,
   CircleCheck,
-  LoaderCircle,
   Undo2,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -58,10 +59,9 @@ function ThreadStatusIcon({
 }): ReactElement {
   if (!isResolved && tone === 'running') {
     return (
-      <LoaderCircle
-        aria-hidden="true"
-        className="mt-0.5 size-4 shrink-0 animate-spin text-info"
-      />
+      <span aria-hidden="true" className="mt-0.5 shrink-0">
+        <Spinner size={ComponentSize.SM} />
+      </span>
     );
   }
   if (!isResolved && tone) {
@@ -186,6 +186,7 @@ export default function AgentThreadsPanel({
         className="group relative rounded-lg transition-colors focus-within:bg-foreground/5 hover:bg-foreground/5"
         key={thread.id}
       >
+        {/* ui-guard-allow:unstyled-look -- the row <li> owns the hover and focus look; this is its click target */}
         <Button
           className="flex w-full min-w-0 items-start gap-2.5 rounded-lg px-2.5 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60"
           data-testid={`agent-threads-panel-thread-${thread.id}`}
@@ -262,6 +263,7 @@ export default function AgentThreadsPanel({
         data-testid={`agent-threads-panel-group-${key}`}
         key={key}
       >
+        {/* ui-guard-allow:unstyled-look -- a disclosure header, not a standalone button */}
         <Button
           aria-controls={listId}
           aria-expanded={isOpen}

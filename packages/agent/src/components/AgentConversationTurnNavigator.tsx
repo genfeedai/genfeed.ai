@@ -66,6 +66,8 @@ export function AgentConversationTurnNavigator({
   // nothing to scrub, so it shows only once the transcript really scrolls.
   const [isScrollable, setIsScrollable] = useState(false);
 
+  // `timeline` re-runs the effect so transcript rows added later get observed.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: timeline is a trigger, not read
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) {
