@@ -26,6 +26,8 @@ export default function ModalPostSimpleActions({
   onPublishNow,
   onSchedule,
   onContinue,
+  composerStep,
+  onComposerStepChange,
   showViewDetailsButton,
   onViewDetails,
   onViewDetailsClick,
@@ -34,6 +36,7 @@ export default function ModalPostSimpleActions({
   const translate = useTranslations('ui.postComposer');
   const [isSchedulePickerOpen, setIsSchedulePickerOpen] = useState(false);
   const isBlocked = isSubmitting || isOverLimit || isTitleError || !isFormValid;
+  const isChannelsStep = composerStep === 'channels';
   const submitLabel = (() => {
     if (isSubmitting) {
       return 'Saving…';
@@ -52,7 +55,10 @@ export default function ModalPostSimpleActions({
 
   return (
     <ModalActions>
-      {hasPublishChoices && !isHandoff && isSchedulePickerOpen ? (
+      {hasPublishChoices &&
+      !isHandoff &&
+      !isChannelsStep &&
+      isSchedulePickerOpen ? (
         <div className="w-full space-y-2">
           <p className="text-sm font-medium">{translate('scheduleAt')}</p>
           <FormDateTimePicker
@@ -64,13 +70,22 @@ export default function ModalPostSimpleActions({
           />
         </div>
       ) : null}
-      {hasPublishChoices && !isHandoff && !hasAccount ? (
+      {hasPublishChoices && !isHandoff && !isChannelsStep && !hasAccount ? (
         <p className="w-full text-xs text-foreground/60">
           {translate('scheduleNeedsAccount')}
         </p>
       ) : null}
       <div className="flex justify-between w-full">
         <div className="flex gap-2">
+          {composerStep === 'content' ? (
+            <Button
+              type="button"
+              label={translate('back')}
+              variant={ButtonVariant.GHOST}
+              onClick={() => onComposerStepChange?.('channels')}
+              isDisabled={isSubmitting}
+            />
+          ) : null}
           {showViewDetailsButton && onViewDetails && (
             <Button
               type="button"
@@ -97,6 +112,13 @@ export default function ModalPostSimpleActions({
               label={translate('continue')}
               variant={ButtonVariant.DEFAULT}
               onClick={onContinue}
+            />
+          ) : isChannelsStep ? (
+            <Button
+              type="button"
+              label={translate('nextStep')}
+              variant={ButtonVariant.DEFAULT}
+              onClick={() => onComposerStepChange?.('content')}
             />
           ) : hasPublishChoices ? (
             <>

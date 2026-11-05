@@ -324,8 +324,26 @@ export interface ModalPostDestinationsProps {
   onSelectDestination: (destination: ComposerDestination) => void;
 }
 
+/** The new-post composer asks where the post goes, then what it says. */
+export type ModalPostComposerStep = 'channels' | 'content';
+
+export interface ModalPostComposerStepperProps {
+  step: ModalPostComposerStep;
+  onStepChange: (step: ModalPostComposerStep) => void;
+}
+
+export interface ModalPostSelectedChannelsProps {
+  credentials: ICredential[];
+  selectedCredentialIds: string[];
+  isDisabled: boolean;
+  onEdit: () => void;
+}
+
 export interface ModalPostComposerFieldsState
   extends ModalPostDestinationsProps {
+  step: ModalPostComposerStep;
+  /** Back to the channels step from the content step. */
+  onEditChannels: () => void;
   /** Any selected account is on X, so the thread option applies. */
   hasXTarget: boolean;
   isThread: boolean;
@@ -389,6 +407,9 @@ export interface ModalPostSimpleActionsProps {
   onPublishNow?: () => void;
   onSchedule?: () => void;
   onContinue?: () => void;
+  /** The composer's current step; absent outside the new-post composer. */
+  composerStep?: ModalPostComposerStep;
+  onComposerStepChange?: (step: ModalPostComposerStep) => void;
   showViewDetailsButton: boolean;
   onViewDetails?: () => void;
   onViewDetailsClick: () => void;

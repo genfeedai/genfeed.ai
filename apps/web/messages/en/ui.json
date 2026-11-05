@@ -167,7 +167,17 @@
     "threadReplyTitle": "Add Thread Reply",
     "threadReplyDescription": "Add a new reply to continue the thread",
     "draftTitle": "Create Post",
-    "draftDescription": "Write or generate a draft. Connect an account when you are ready to publish"
+    "draftDescription": "Write or generate a draft. Connect an account when you are ready to publish",
+    "back": "Back",
+    "editChannels": "Edit",
+    "nextStep": "Next: content",
+    "draftWithAi": "Draft with AI",
+    "hideDraftWithAi": "Hide AI draft",
+    "steps": {
+      "label": "New post steps",
+      "channels": "Channels",
+      "content": "Content"
+    }
   },
   "analyticsTrends": {
     "cachedEvaluationWarning": "Showing cached data; evaluation may be out of date.",

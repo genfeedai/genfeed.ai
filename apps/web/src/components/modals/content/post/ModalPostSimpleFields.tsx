@@ -1,6 +1,11 @@
 'use client';
 
-import { Platform, TargetExecutionState } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  Platform,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { CHANNEL_CAPABILITIES } from '@genfeedai/contracts/api-types/contracts';
 import { getPostVisibilityOptions } from '@genfeedai/helpers/content/posts.helper';
 import {
@@ -9,17 +14,20 @@ import {
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import type { ModalPostSimpleFieldsProps } from '@genfeedai/props/modals/modal.props';
 import { Alert } from '@ui/primitives/alert';
+import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
 import { Textarea } from '@ui/primitives/textarea';
+import { Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import BrandRuleProposals from '@/components/brand-rules/BrandRuleProposals';
 import LazyRichTextEditor from '@/components/editors/LazyRichTextEditor';
 import ModalPostDestinations from '@/components/modals/content/post/ModalPostDestinations';
 import ModalPostMedia from '@/components/modals/content/post/ModalPostMedia';
+import ModalPostSelectedChannels from '@/components/modals/content/post/ModalPostSelectedChannels';
 import PostDraftGenerator from '@/components/modals/content/post/PostDraftGenerator';
 
 export default function ModalPostSimpleFields({
@@ -46,19 +54,23 @@ export default function ModalPostSimpleFields({
     key: string;
     text: string;
   } | null>(null);
-  return (
-    <div className="space-y-4">
-      {hasFormErrors(form.formState.errors) && (
-        <Alert variant="destructive">
-          <div className="space-y-1">
-            {parseFormErrors(form.formState.errors).map((error) => (
-              <div key={error}>{error}</div>
-            ))}
-          </div>
-        </Alert>
-      )}
+  // The AI draft is one click away, not a prompt bar on top of the editor.
+  const [isDraftOpen, setIsDraftOpen] = useState(false);
+  const errors = hasFormErrors(form.formState.errors) ? (
+    <Alert variant="destructive">
+      <div className="space-y-1">
+        {parseFormErrors(form.formState.errors).map((error) => (
+          <div key={error}>{error}</div>
+        ))}
+      </div>
+    </Alert>
+  ) : null;
 
-      {composer ? (
+  // Step one of the composer: only where the post goes.
+  if (composer?.step === 'channels') {
+    return (
+      <div className="space-y-4">
+        {errors}
         <ModalPostDestinations
           credentials={composer.credentials}
           selectedCredentialIds={composer.selectedCredentialIds}
@@ -67,13 +79,28 @@ export default function ModalPostSimpleFields({
           onToggleCredential={composer.onToggleCredential}
           onSelectDestination={composer.onSelectDestination}
         />
+        {composer.destination ? (
+          <p className="text-sm text-foreground/70">
+            {composerTranslate('handoff')}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {errors}
+
+      {composer ? (
+        <ModalPostSelectedChannels
+          credentials={composer.credentials}
+          selectedCredentialIds={composer.selectedCredentialIds}
+          isDisabled={isSubmitting}
+          onEdit={composer.onEditChannels}
+        />
       ) : null}
-      {composer?.destination ? (
-        <p className="text-sm text-foreground/70">
-          {composerTranslate('handoff')}
-        </p>
-      ) : null}
-      {media && !composer?.destination ? <ModalPostMedia {...media} /> : null}
+      {media ? <ModalPostMedia {...media} /> : null}
       {!isEditMode && !composer && (
         <FormControl label={translate('platform')}>
           <SelectField
@@ -123,8 +150,19 @@ export default function ModalPostSimpleFields({
           </SelectField>
         </FormControl>
       )}
-      {composer?.destination ? null : (
-        <div className="grid gap-4 md:grid-cols-2">
+      <div className="space-y-4">
+        <Button
+          icon={<Sparkles className="size-4" />}
+          isDisabled={isSubmitting}
+          label={composerTranslate(
+            isDraftOpen ? 'hideDraftWithAi' : 'draftWithAi',
+          )}
+          onClick={() => setIsDraftOpen((isOpen) => !isOpen)}
+          size={ButtonSize.SM}
+          type="button"
+          variant={ButtonVariant.GHOST}
+        />
+        {isDraftOpen ? (
           <PostDraftGenerator
             key={`${selectedPlatform}-${form.watch('format')}`}
             platform={form.watch('platform') ?? Platform.TWITTER}
@@ -142,119 +180,119 @@ export default function ModalPostSimpleFields({
               });
             }}
           />
+        ) : null}
 
-          <div className="space-y-4">
-            {selectedPlatform !== Platform.TWITTER && (
-              <FormControl
-                label="Title"
-                error={
-                  isTitleError
-                    ? 'Title is required for YouTube'
-                    : form.formState.errors.label?.message
-                }
-              >
-                <Input
-                  name="label"
-                  control={form.control}
-                  placeholder={
-                    isTitleRequired ? 'Enter YouTube video title' : 'Optional'
-                  }
-                />
-              </FormControl>
-            )}
-
+        <div className="space-y-4">
+          {selectedPlatform !== Platform.TWITTER && (
             <FormControl
-              error={form.formState.errors.description?.message}
-              label={
-                <div className="flex items-center justify-between w-full gap-2">
-                  <span>
-                    {selectedPlatform === Platform.TWITTER
-                      ? 'Post'
-                      : 'Description'}
-                  </span>
-                  <span
-                    className={`text-xs ${isOverLimit ? 'text-destructive' : 'text-foreground/60'}`}
-                  >
-                    {currentLength} / {charLimit}
-                  </span>
-                </div>
+              label="Title"
+              error={
+                isTitleError
+                  ? 'Title is required for YouTube'
+                  : form.formState.errors.label?.message
               }
             >
-              {selectedPlatform === Platform.TWITTER ? (
-                <Textarea
-                  name="description"
-                  aria-label={translate('postContent')}
-                  value={form.watch('description') || ''}
-                  onChange={(event) => {
-                    form.setValue('description', event.target.value, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    });
-                  }}
-                  placeholder={translate('tweetPlaceholder')}
-                />
-              ) : (
-                <LazyRichTextEditor
-                  value={form.watch('description') || ''}
-                  onChange={(value) => {
-                    form.setValue('description', value, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    });
-                  }}
-                  placeholder="Enter post caption"
-                  minHeight={{ desktop: 300, mobile: 200 }}
-                />
-              )}
+              <Input
+                name="label"
+                control={form.control}
+                placeholder={
+                  isTitleRequired ? 'Enter YouTube video title' : 'Optional'
+                }
+              />
             </FormControl>
+          )}
 
-            <BrandRuleProposals
-              original={generated?.key === generatorKey ? generated.text : null}
-              edited={form.watch('description') || ''}
-            />
-
-            {composer?.hasXTarget ? (
-              <div className="space-y-1">
-                <Switch
-                  aria-label={composerTranslate('splitIntoThread')}
-                  label={composerTranslate('splitIntoThread')}
-                  isChecked={composer.isThread}
-                  isDisabled={isSubmitting}
-                  onCheckedChange={composer.onThreadChange}
-                />
-                <p className="text-xs text-foreground/60">
-                  {composer.isThread
-                    ? composerTranslate('threadCount', {
-                        count: composer.threadItemCount,
-                      })
-                    : composerTranslate('splitIntoThreadHelp')}
-                </p>
-                {composer.isLongPost ? (
-                  <p className="text-xs text-foreground/60">
-                    {composerTranslate('longPostHelp')}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-
-            {form.watch('credentialId') &&
-              selectedPlatform === Platform.YOUTUBE && (
-                <FormControl
-                  label="Visibility"
-                  error={form.formState.errors.visibility?.message}
+          <FormControl
+            error={form.formState.errors.description?.message}
+            label={
+              <div className="flex items-center justify-between w-full gap-2">
+                <span>
+                  {selectedPlatform === Platform.TWITTER
+                    ? 'Post'
+                    : 'Description'}
+                </span>
+                <span
+                  className={`text-xs ${isOverLimit ? 'text-destructive' : 'text-foreground/60'}`}
                 >
-                  <SelectField name="visibility" control={form.control}>
-                    {getPostVisibilityOptions().map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </SelectField>
-                </FormControl>
-              )}
-          </div>
+                  {currentLength} / {charLimit}
+                </span>
+              </div>
+            }
+          >
+            {selectedPlatform === Platform.TWITTER ? (
+              <Textarea
+                name="description"
+                aria-label={translate('postContent')}
+                value={form.watch('description') || ''}
+                onChange={(event) => {
+                  form.setValue('description', event.target.value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
+                placeholder={translate('tweetPlaceholder')}
+              />
+            ) : (
+              <LazyRichTextEditor
+                value={form.watch('description') || ''}
+                onChange={(value) => {
+                  form.setValue('description', value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
+                placeholder="Enter post caption"
+                minHeight={{ desktop: 300, mobile: 200 }}
+              />
+            )}
+          </FormControl>
+
+          <BrandRuleProposals
+            original={generated?.key === generatorKey ? generated.text : null}
+            edited={form.watch('description') || ''}
+          />
+
+          {composer?.hasXTarget ? (
+            <div className="space-y-1">
+              <Switch
+                aria-label={composerTranslate('splitIntoThread')}
+                label={composerTranslate('splitIntoThread')}
+                isChecked={composer.isThread}
+                isDisabled={isSubmitting}
+                onCheckedChange={composer.onThreadChange}
+              />
+              <p className="text-xs text-foreground/60">
+                {composer.isThread
+                  ? composerTranslate('threadCount', {
+                      count: composer.threadItemCount,
+                    })
+                  : composerTranslate('splitIntoThreadHelp')}
+              </p>
+              {composer.isLongPost ? (
+                <p className="text-xs text-foreground/60">
+                  {composerTranslate('longPostHelp')}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {form.watch('credentialId') &&
+            selectedPlatform === Platform.YOUTUBE && (
+              <FormControl
+                label="Visibility"
+                error={form.formState.errors.visibility?.message}
+              >
+                <SelectField name="visibility" control={form.control}>
+                  {getPostVisibilityOptions().map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </SelectField>
+              </FormControl>
+            )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
