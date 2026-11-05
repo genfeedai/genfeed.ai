@@ -1,17 +1,30 @@
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { TurboProjectItemStatus } from '@genfeedai/contracts';
 import type { ITurboProjectItem } from '@genfeedai/contracts/interfaces';
+import type { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TurboProjectItemCard from './TurboProjectItemCard';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@/../tests/next-intl.stub');
   return { useLocale: () => 'en', useTranslations: translateFromCatalog };
 });
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => vi.fn().mockResolvedValue({ findOne: vi.fn() }),
+const mocks = vi.hoisted(() => ({ findOne: vi.fn() }));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+vi.mock('@services/content/ingredients.service', () => ({
+  IngredientsService: {
+    getInstance: () => ({ findOne: mocks.findOne }),
+  },
 }));
 vi.mock('@ui/collection/CollectionItemActions', () => ({
   default: ({
@@ -39,10 +52,14 @@ const readyItem = {
   status: TurboProjectItemStatus.READY,
 } as ITurboProjectItem;
 
-function renderCard(onReview = vi.fn()) {
-  render(
+function renderCard(
+  onReview = vi.fn(),
+  item: ITurboProjectItem = readyItem,
+  client: QueryClient = createTestQueryClient(),
+) {
+  const view = render(
     <TurboProjectItemCard
-      item={readyItem}
+      item={item}
       isDraft={false}
       disabled={false}
       onRemove={vi.fn()}
@@ -50,13 +67,14 @@ function renderCard(onReview = vi.fn()) {
       onCaption={vi.fn()}
       onReview={onReview}
     />,
+    { wrapper: queryClientWrapper(client) },
   );
-  return onReview;
+  return { onReview, unmount: view.unmount };
 }
 
 describe('TurboProjectItemCard rejection', () => {
   it('asks why before rejecting and sends the reason with the decision', () => {
-    const onReview = renderCard();
+    const { onReview } = renderCard();
 
     fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
     expect(onReview).not.toHaveBeenCalled();
@@ -73,7 +91,7 @@ describe('TurboProjectItemCard rejection', () => {
   });
 
   it('rejects without a reason when none is typed', () => {
-    const onReview = renderCard();
+    const { onReview } = renderCard();
 
     fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
     fireEvent.click(screen.getByRole('button', { name: 'Reject draft' }));
@@ -82,7 +100,7 @@ describe('TurboProjectItemCard rejection', () => {
   });
 
   it('cancels without reviewing', () => {
-    const onReview = renderCard();
+    const { onReview } = renderCard();
 
     fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -90,6 +108,59 @@ describe('TurboProjectItemCard rejection', () => {
     expect(onReview).not.toHaveBeenCalled();
     expect(
       screen.queryByRole('button', { name: 'Reject draft' }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe('TurboProjectItemCard media', () => {
+  const outputItem = {
+    ...readyItem,
+    idea: { hook: 'Morning routine reel' },
+    outputIngredientId: 'ingredient-1',
+  } as ITurboProjectItem;
+
+  beforeEach(() => {
+    mocks.findOne.mockReset();
+    mocks.findOne.mockResolvedValue({
+      category: 'IMAGE',
+      id: 'ingredient-1',
+      ingredientUrl: 'https://cdn.example.test/ingredient-1.png',
+    });
+  });
+
+  it('paints the cached preview at once when the project reopens', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderCard(vi.fn(), outputItem, client);
+    expect(
+      await screen.findByRole('img', { name: 'Morning routine reel' }),
+    ).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.findOne.mockReturnValue(new Promise(() => {}));
+    renderCard(vi.fn(), outputItem, client);
+
+    expect(
+      screen.getByRole('img', { name: 'Morning routine reel' }),
+    ).toBeInTheDocument();
+  });
+
+  it('never shows one output’s preview on another item', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderCard(vi.fn(), outputItem, client);
+    expect(
+      await screen.findByRole('img', { name: 'Morning routine reel' }),
+    ).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.findOne.mockReturnValue(new Promise(() => {}));
+    renderCard(
+      vi.fn(),
+      { ...outputItem, outputIngredientId: 'ingredient-2' },
+      client,
+    );
+
+    expect(
+      screen.queryByRole('img', { name: 'Morning routine reel' }),
     ).not.toBeInTheDocument();
   });
 });

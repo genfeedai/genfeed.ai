@@ -57,7 +57,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/web/src/features/trends/desk/desk-filter-rail.test.tsx',
   'apps/web/src/features/trends/list/components/HookRemixModal.test.tsx',
   'apps/web/src/features/workflows/nodes/input/CloudImageInputNode.test.tsx',
-  'apps/web/src/features/workflows/pages/turbo/TurboProjectItemCard.test.tsx',
   'apps/web/src/features/workflows/workspace/WorkflowPickerOverlay.test.tsx',
   'apps/web/src/lib/analytics/workflow-run-tracker.test.ts',
   'apps/web/src/lib/api/workflows.test.ts',

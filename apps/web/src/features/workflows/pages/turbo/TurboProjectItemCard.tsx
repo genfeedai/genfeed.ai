@@ -6,7 +6,7 @@ import {
   TurboProjectItemStatus,
 } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { IngredientsService } from '@services/content/ingredients.service';
 import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
@@ -15,8 +15,12 @@ import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { TurboProjectItemCardProps } from './turbo-project.types';
+
+function ingredientByIdQueryKey(ingredientId: string) {
+  return ['ingredient-by-id', ingredientId] as const;
+}
 
 export default function TurboProjectItemCard({
   item,
@@ -28,23 +32,17 @@ export default function TurboProjectItemCard({
   onReview,
 }: TurboProjectItemCardProps) {
   const t = useTranslations('pages.turboProjects');
-  const service = useAuthedService((token: string) =>
-    IngredientsService.getInstance(token),
-  );
-  const [media, setMedia] = useState<IIngredient | null>(null);
   const ingredientId = item.outputIngredientId ?? item.inputIngredientId;
-  useEffect(() => {
-    const controller = new AbortController();
-    setMedia(null);
-    if (ingredientId)
-      void service()
-        .then((api) => api.findOne(ingredientId))
-        .then((ingredient) => {
-          if (!controller.signal.aborted) setMedia(ingredient);
-        })
-        .catch(() => undefined);
-    return () => controller.abort();
-  }, [ingredientId, service]);
+  // The item's media reads through React Query, so reopening a project paints
+  // each card's preview at once. A missing preview is optional: a failed read
+  // leaves the card without one.
+  const mediaQuery = useAuthedQuery<IngredientsService, IIngredient>({
+    enabled: Boolean(ingredientId),
+    queryFn: (api, signal) => api.findOne(ingredientId ?? '', {}, signal),
+    queryKey: ingredientByIdQueryKey(ingredientId ?? ''),
+    service: (token: string) => IngredientsService.getInstance(token),
+  });
+  const media = ingredientId ? (mediaQuery.data ?? null) : null;
   const [isRejecting, setIsRejecting] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const confirmReject = () => {
