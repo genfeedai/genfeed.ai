@@ -196,12 +196,15 @@ describe('getBetterAuthServerToken', () => {
       .mockImplementationOnce(async () => Response.json({ token: 'jwt' }));
     vi.stubGlobal('fetch', fetchMock);
 
+    // Each caller hashes its cookie with crypto.subtle before it can join, and
+    // those digests settle in either order, so either caller may own the
+    // shared request.
     await expect(
       Promise.all([
         getBetterAuthServerToken('session=abc'),
         getBetterAuthServerToken('session=abc'),
       ]),
-    ).resolves.toEqual([null, 'jwt']);
+    ).resolves.toEqual(expect.arrayContaining([null, 'jwt']));
   });
 
   it('keeps its own retry apart from a replacement request another prerender started', async () => {
@@ -251,12 +254,15 @@ describe('getBetterAuthServerToken', () => {
       .mockImplementationOnce(async () => Response.json({ token: 'jwt' }));
     vi.stubGlobal('fetch', fetchMock);
 
+    // Each caller hashes its cookie with crypto.subtle before it can join, and
+    // those digests settle in either order, so either caller may own the
+    // shared request.
     await expect(
       Promise.all([
         getBetterAuthServerToken('session=abc'),
         getBetterAuthServerToken('session=abc'),
       ]),
-    ).resolves.toEqual([null, 'jwt']);
+    ).resolves.toEqual(expect.arrayContaining([null, 'jwt']));
   });
 
   it('does not ask again for a joined request that was refused', async () => {
