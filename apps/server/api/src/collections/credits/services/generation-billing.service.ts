@@ -492,6 +492,12 @@ export class GenerationBillingService {
   }
 
   private async reconcileByok(now: Date): Promise<number> {
+    // Same terminal signal as the normal settle/release path, so a hand-off
+    // waiting on this render hears a reconciled outcome too.
+    const settle = (id: string, org: string) =>
+      this.terminal.track(id, org, 'settled', () => this.byok.settle(id, org));
+    const fail = (id: string, org: string) =>
+      this.terminal.track(id, org, 'released', () => this.byok.fail(id, org));
     let cursor: string | undefined;
     let acted = 0;
     for (;;) {
@@ -525,17 +531,17 @@ export class GenerationBillingService {
           )
             continue;
           if (SETTLEABLE_STATUSES.includes(row.status)) {
-            await this.byok.settle(row.id, row.organizationId);
+            await settle(row.id, row.organizationId);
           } else if (receipt.submissionIntentProvider) {
             if (
               receipt.confirmedFailure?.ingredientId === row.id &&
               receipt.confirmedFailure.provider ===
                 receipt.submissionIntentProvider
             ) {
-              await this.byok.fail(row.id, row.organizationId);
+              await fail(row.id, row.organizationId);
             } else continue;
           } else if (TERMINAL_FAILURE_STATUSES.includes(row.status)) {
-            await this.byok.fail(row.id, row.organizationId);
+            await fail(row.id, row.organizationId);
           } else if (new Date(receipt.expiresAt) <= now) {
             await this.failStuckIngredient(row.id, row.organizationId);
             const latest = await this.byok.readIngredient(
@@ -543,8 +549,8 @@ export class GenerationBillingService {
               row.organizationId,
             );
             if (latest && SETTLEABLE_STATUSES.includes(latest.status))
-              await this.byok.settle(row.id, row.organizationId);
-            else await this.byok.fail(row.id, row.organizationId);
+              await settle(row.id, row.organizationId);
+            else await fail(row.id, row.organizationId);
           } else continue;
           acted += 1;
         } catch (error: unknown) {
