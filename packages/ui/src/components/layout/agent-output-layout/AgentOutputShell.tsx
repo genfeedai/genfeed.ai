@@ -39,7 +39,6 @@ export default function AgentOutputShell({
   headerActions,
   isOutputExpandable,
   isOutputHidden,
-  mode,
   outputLabel,
   preview,
 }: AgentOutputShellProps) {
@@ -163,13 +162,10 @@ export default function AgentOutputShell({
       isOutputHidden={isOutputHidden && !host.isContextOpen}
       labels={{
         agent: translate('agent'),
-        collapseAgent: translate('collapseAgent'),
         collapseOutput: translate('collapseOutput'),
-        expandAgent: translate('expandAgent'),
         expandOutput: translate('expandOutput'),
         output: translate('output'),
       }}
-      mode={mode}
       preview={preview}
       tabs={tabs}
     />

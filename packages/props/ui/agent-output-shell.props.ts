@@ -1,12 +1,5 @@
 import type { ReactNode } from 'react';
 
-/**
- * `split` gives the agent and the output half the page each. `rail` keeps the
- * agent a narrow rail beside a wide tool surface (a timeline, a calendar, a
- * workflow graph) until the operator expands it to a split.
- */
-export type AgentOutputLayoutMode = 'rail' | 'split';
-
 export interface AgentOutputTabDefinition {
   readonly content: ReactNode;
   readonly id: string;
@@ -25,9 +18,7 @@ export interface AgentOutputPreviewDefinition {
 
 export interface AgentOutputLayoutLabels {
   readonly agent: string;
-  readonly collapseAgent: string;
   readonly collapseOutput: string;
-  readonly expandAgent: string;
   readonly expandOutput: string;
   readonly output: string;
 }
@@ -61,7 +52,6 @@ export interface AgentOutputLayoutProps {
    */
   readonly isOutputHidden?: boolean;
   readonly labels: AgentOutputLayoutLabels;
-  readonly mode?: AgentOutputLayoutMode;
   /** Docked third pane, shown from the `2xl` breakpoint. */
   readonly preview?: AgentOutputPreviewDefinition;
   readonly tabs: readonly AgentOutputTabDefinition[];
@@ -103,7 +93,6 @@ export interface AgentOutputShellProps {
   readonly isOutputExpandable?: boolean;
   /** The page output has nothing to show yet: the agent takes the page alone. */
   readonly isOutputHidden?: boolean;
-  readonly mode?: AgentOutputLayoutMode;
   /** Tab label for the page output. Defaults to "Output". */
   readonly outputLabel?: string;
   /** Docked third pane for the output's preview or final result. */

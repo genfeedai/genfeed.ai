@@ -15,9 +15,7 @@ vi.mock('next/navigation', () => ({
 
 const labels = {
   agent: 'Agent',
-  collapseAgent: 'Collapse agent',
   collapseOutput: 'Show agent',
-  expandAgent: 'Expand agent',
   expandOutput: 'Full size',
   output: 'Output',
 };
@@ -25,26 +23,25 @@ const labels = {
 function Harness({
   activeTabId = 'board',
   hasAgentHeader = true,
+  hasPageActions = true,
   isOutputExpandable,
   isOutputHidden,
-  mode,
 }: {
   activeTabId?: string;
   hasAgentHeader?: boolean;
+  hasPageActions?: boolean;
   isOutputExpandable?: boolean;
   isOutputHidden?: boolean;
-  mode?: 'rail' | 'split';
 }) {
   return (
     <AgentOutputLayout
       activeTabId={activeTabId}
       agent={<p>Agent transcript</p>}
       agentHeader={hasAgentHeader ? <span>Run thread</span> : undefined}
-      headerActions={<span>Page action</span>}
+      headerActions={hasPageActions ? <span>Page action</span> : undefined}
       isOutputExpandable={isOutputExpandable}
       isOutputHidden={isOutputHidden}
       labels={labels}
-      mode={mode}
       tabs={[
         { content: <p>Board content</p>, id: 'board', label: 'Board' },
         { content: <p>Threads content</p>, id: 'threads', label: 'Threads' },
@@ -78,7 +75,6 @@ describe('AgentOutputLayout', () => {
     expect(within(agentPane).getByText('Run thread')).toBeVisible();
     expect(within(outputPane).getByText('Board content')).toBeVisible();
     expect(within(outputPane).getByText('Page action')).toBeVisible();
-    expect(layout).toHaveAttribute('data-mode', 'split');
   });
 
   it('has no tab strip in the output pane and shows the chosen view', () => {
@@ -94,12 +90,24 @@ describe('AgentOutputLayout', () => {
     expect(board.parentElement).toHaveAttribute('hidden');
   });
 
-  it('renders no agent header when the page brings none', () => {
+  it('renders no headers when neither pane has one', () => {
+    render(<Harness hasAgentHeader={false} hasPageActions={false} />);
+    const layout = screen.getByTestId('agent-output-layout');
+
+    expect(layout.querySelectorAll('header')).toHaveLength(0);
+    expect(screen.getByText('Agent transcript')).toBeVisible();
+  });
+
+  it('gives both panes a header of the same fixed height so the divider lines meet', () => {
     render(<Harness hasAgentHeader={false} />);
     const agentPane = screen.getByTestId('agent-output-agent-pane');
+    const outputPane = screen.getByTestId('agent-output-output-pane');
 
-    expect(within(agentPane).queryByRole('banner')).toBeNull();
-    expect(within(agentPane).getByText('Agent transcript')).toBeVisible();
+    const agentHeader = agentPane.querySelector('header');
+    const outputHeader = outputPane.querySelector('header');
+    expect(agentHeader).toHaveClass('h-12');
+    expect(outputHeader).toHaveClass('h-12');
+    expect(agentHeader).not.toHaveClass('min-h-12');
   });
 
   it('shows one pane at a time on narrow screens without unmounting the other', async () => {
@@ -122,25 +130,8 @@ describe('AgentOutputLayout', () => {
     expect(screen.getByText('Agent transcript')).toBeInTheDocument();
   });
 
-  it('keeps the agent a rail until it is expanded', () => {
-    render(<Harness mode="rail" />);
-    const layout = screen.getByTestId('agent-output-layout');
-    expect(layout).toHaveAttribute('data-mode', 'rail');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Expand agent' }));
-    expect(layout).toHaveAttribute('data-mode', 'split');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Collapse agent' }));
-    expect(layout).toHaveAttribute('data-mode', 'rail');
-  });
-
-  it('has no rail toggle in split mode', () => {
-    render(<Harness />);
-    expect(screen.queryByTestId('agent-output-rail-toggle')).toBeNull();
-  });
-
   it('hides the agent for a full-size output without unmounting it', () => {
-    render(<Harness isOutputExpandable mode="rail" />);
+    render(<Harness isOutputExpandable />);
     const agentPane = screen.getByTestId('agent-output-agent-pane');
     expect(agentPane).not.toHaveClass('xl:hidden');
 
