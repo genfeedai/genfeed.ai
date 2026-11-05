@@ -1,13 +1,7 @@
 'use client';
 
 import type { PromptBarCrunControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
+import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
 import { useTranslations } from 'next-intl';
 
 export default function PromptBarCrunControls({
@@ -25,25 +19,18 @@ export default function PromptBarCrunControls({
     ) ?? [];
   if (!options.length) return null;
   return (
-    <Select
-      disabled={isDisabled}
+    <PromptBarCompactSelect
+      ariaLabel={translate('crun.outputFormat')}
+      icon="format"
+      isDisabled={isDisabled}
+      isInvalid={Boolean(error)}
+      onChange={onChange}
+      options={options.map((option) => ({
+        label: option.toUpperCase(),
+        value: option,
+      }))}
+      placeholder={translate('crun.outputFormat')}
       value={value ?? String(field?.default ?? options[0])}
-      onValueChange={onChange}
-    >
-      <SelectTrigger
-        aria-label={translate('crun.outputFormat')}
-        aria-invalid={Boolean(error)}
-        aria-description={error}
-      >
-        <SelectValue placeholder={translate('crun.outputFormat')} />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((option) => (
-          <SelectItem key={option} value={option}>
-            {option.toUpperCase()}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    />
   );
 }

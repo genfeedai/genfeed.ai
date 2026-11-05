@@ -22,8 +22,11 @@ import type { ReactElement } from 'react';
  */
 export default function PromptBarCompactSelect({
   ariaLabel,
+  describedBy,
   icon,
+  id,
   isDisabled = false,
+  isInvalid = false,
   onChange,
   options,
   placeholder,
@@ -35,9 +38,12 @@ export default function PromptBarCompactSelect({
   return (
     <Select disabled={isDisabled} onValueChange={onChange} value={value}>
       <SelectTrigger
+        aria-describedby={describedBy}
+        aria-invalid={isInvalid || undefined}
         aria-label={ariaLabel}
         className={PROMPT_BAR_CHIP_SELECT_CLASS}
         hideIndicator
+        id={id}
       >
         <PromptBarChipIcon kind={icon} value={selected?.label ?? value} />
         <SelectValue placeholder={placeholder}>
