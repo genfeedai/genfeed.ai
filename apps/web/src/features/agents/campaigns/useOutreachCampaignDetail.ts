@@ -130,15 +130,24 @@ export function useOutreachCampaignDetail() {
   }, [loadError, loadErrorUpdatedAt, notificationsService, translate]);
 
   const { refetch: refetchCampaign } = campaignQuery;
-  const { refetch: refetchTargets } = targetsQuery;
   // Every load after the first is a background refresh that keeps the
-  // campaign on screen.
+  // campaign on screen. Every cached target page is marked stale, not just
+  // this one: adding targets changes their totals and counts too.
   const loadCampaign = useCallback(async () => {
     if (!isFetchReady) {
       return;
     }
-    await Promise.all([refetchCampaign(), refetchTargets()]);
-  }, [isFetchReady, refetchCampaign, refetchTargets]);
+    await Promise.all([
+      refetchCampaign(),
+      queryClient.invalidateQueries({
+        queryKey: [
+          'outreach-campaign-targets',
+          organizationId ?? null,
+          campaignId ?? null,
+        ],
+      }),
+    ]);
+  }, [campaignId, isFetchReady, organizationId, queryClient, refetchCampaign]);
 
   const setCampaign = useCallback(
     async (updated: OutreachCampaign) => {

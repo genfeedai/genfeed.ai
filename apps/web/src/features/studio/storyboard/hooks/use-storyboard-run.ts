@@ -120,6 +120,23 @@ function storyboardRunQueryKey(brandId: string, runId: string) {
   return ['brand-remix-run', brandId, runId] as const;
 }
 
+/** The highest revision of `run` among it and the cached copies of it. */
+function newestRun(
+  run: BrandRemixRunView,
+  cached: ReadonlyArray<readonly [unknown, BrandRemixRunView | undefined]>,
+): BrandRemixRunView {
+  return cached.reduce<BrandRemixRunView>(
+    (newest, [, candidate]) =>
+      candidate &&
+      candidate.id === newest.id &&
+      candidate.brandId === newest.brandId &&
+      candidate.revision > newest.revision
+        ? candidate
+        : newest,
+    run,
+  );
+}
+
 /**
  * One Discovery storyboard run of the active brand. It is cached per brand and
  * run, so reopening the run paints it at once and refreshes it in the
@@ -148,9 +165,11 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
   const actionInFlightRef = useRef(false);
   const [action, setAction] = useState<{
     error: string | null;
+    /** The run read on screen when the action failed; a later read supersedes the error. */
+    readAt: number;
     isWorking: boolean;
     scope: string;
-  }>({ error: null, isWorking: false, scope });
+  }>({ error: null, readAt: 0, isWorking: false, scope });
 
   const runQuery = useAuthedQuery<ContentRunsService, BrandRemixRunView>({
     enabled: Boolean(brandId),
@@ -160,7 +179,14 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
       const nextRun = await service.findBrandRemixRun(runId, signal);
       if (nextRun.brandId !== brandId)
         throw new Error('Storyboard is unavailable in this brand.');
-      return nextRun;
+      // An action that returned a newer revision while this read was in
+      // flight wins over it.
+      return newestRun(
+        nextRun,
+        queryClient.getQueriesData<BrandRemixRunView>({
+          queryKey: storyboardRunQueryKey(brandId, runId),
+        }),
+      );
     },
     queryKey: storyboardRunQueryKey(brandId, runId),
     refetchInterval: (query) =>
@@ -169,6 +195,8 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
         : false,
     service: (token: string) => ContentRunsService.getInstance(token),
   });
+  const readAtRef = useRef(0);
+  readAtRef.current = runQuery.dataUpdatedAt;
   const cachedRun = runQuery.data;
   const run = cachedRun?.brandId === brandId ? cachedRun : null;
 
@@ -216,17 +244,21 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
       }
 
       actionInFlightRef.current = true;
-      setAction({ error: null, isWorking: true, scope });
+      setAction({ error: null, readAt: 0, isWorking: true, scope });
       try {
         const nextRun = await operation();
         if (activeScope.current !== scope) return null;
         if (nextRun.brandId !== brandId)
           throw new Error('Storyboard is unavailable in this brand.');
+        const runKey = storyboardRunQueryKey(brandId, nextRun.id);
+        // A read already in flight must not land over the action's result.
+        await queryClient.cancelQueries({ queryKey: runKey });
         queryClient.setQueriesData<BrandRemixRunView>(
-          { queryKey: storyboardRunQueryKey(brandId, nextRun.id) },
-          () => nextRun,
+          { queryKey: runKey },
+          (current) =>
+            current ? newestRun(nextRun, [[runKey, current]]) : nextRun,
         );
-        setAction({ error: null, isWorking: false, scope });
+        setAction({ error: null, readAt: 0, isWorking: false, scope });
         return nextRun;
       } catch (caughtError) {
         if (activeScope.current !== scope) return null;
@@ -235,6 +267,7 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
             caughtError,
             'The storyboard run could not be updated.',
           ),
+          readAt: readAtRef.current,
           isWorking: false,
           scope,
         });
@@ -392,8 +425,12 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
     [getScopedService, perform, run],
   );
 
+  // A failed action's message stays until a later read of the run lands.
   const currentAction =
-    action.scope === scope ? action : { error: null, isWorking: false, scope };
+    action.scope === scope &&
+    (action.isWorking || runQuery.dataUpdatedAt === action.readAt)
+      ? action
+      : { error: null, readAt: 0, isWorking: false, scope };
   const readError = runQuery.error
     ? getJsonApiErrorMessage(
         runQuery.error,

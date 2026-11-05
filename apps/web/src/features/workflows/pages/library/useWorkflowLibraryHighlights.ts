@@ -147,8 +147,11 @@ export function useWorkflowLibraryHighlights() {
   );
   const isSavingFavorite = savingScope === scopeKey;
 
+  // Each write first drops a read still in flight: it began before this
+  // change and would otherwise land the old list (or a deleted workflow) back.
   const updateFavorites = useCallback(
-    (update: (current: FavoritesData) => FavoritesData) => {
+    async (update: (current: FavoritesData) => FavoritesData) => {
+      await queryClient.cancelQueries({ queryKey: favoritesKey });
       queryClient.setQueriesData<FavoritesData>(
         { queryKey: favoritesKey },
         (current) => (current ? update(current) : current),
@@ -158,7 +161,10 @@ export function useWorkflowLibraryHighlights() {
   );
 
   const updateMostUsed = useCallback(
-    (update: (current: WorkflowUsageSummary[]) => WorkflowUsageSummary[]) => {
+    async (
+      update: (current: WorkflowUsageSummary[]) => WorkflowUsageSummary[],
+    ) => {
+      await queryClient.cancelQueries({ queryKey: mostUsedKey });
       queryClient.setQueriesData<WorkflowUsageSummary[]>(
         { queryKey: mostUsedKey },
         (current) => (current ? update(current) : current),
@@ -194,10 +200,7 @@ export function useWorkflowLibraryHighlights() {
         );
         if (scopeRef.current !== scope) return;
         const ids = settings.favoriteWorkflowIds ?? [];
-        // A read still in flight began before this save; drop it so it
-        // cannot put the old favorites back.
-        await queryClient.cancelQueries({ queryKey: favoritesKey });
-        updateFavorites((current) => ({
+        await updateFavorites((current) => ({
           ids,
           items: [
             ...current.items.filter((item) => item.id !== workflow.id),
@@ -230,13 +233,13 @@ export function useWorkflowLibraryHighlights() {
 
   const updateWorkflow = useCallback(
     (id: string, update: Partial<WorkflowSummary>) => {
-      updateFavorites((current) => ({
+      void updateFavorites((current) => ({
         ...current,
         items: current.items.map((item) =>
           item.id === id ? { ...item, ...update } : item,
         ),
       }));
-      updateMostUsed((current) =>
+      void updateMostUsed((current) =>
         current.map((item) => (item.id === id ? { ...item, ...update } : item)),
       );
     },
@@ -245,11 +248,13 @@ export function useWorkflowLibraryHighlights() {
 
   const removeWorkflow = useCallback(
     (id: string) => {
-      updateFavorites((current) => ({
+      void updateFavorites((current) => ({
         ids: current.ids.filter((item) => item !== id),
         items: current.items.filter((item) => item.id !== id),
       }));
-      updateMostUsed((current) => current.filter((item) => item.id !== id));
+      void updateMostUsed((current) =>
+        current.filter((item) => item.id !== id),
+      );
     },
     [updateFavorites, updateMostUsed],
   );

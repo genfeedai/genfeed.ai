@@ -299,6 +299,10 @@ export default function BrandContentRulesPage() {
         ? await service.updateProfile(editedProfile.id, payload)
         : await service.createForBrand(payload);
 
+      // A read still in flight would land the older profiles over this save.
+      await queryClient.cancelQueries({
+        queryKey: harnessProfilesQueryKey(brandId),
+      });
       queryClient.setQueriesData<IHarnessProfile[]>(
         { queryKey: harnessProfilesQueryKey(brandId) },
         (current) => withSavedProfile(current, saved),

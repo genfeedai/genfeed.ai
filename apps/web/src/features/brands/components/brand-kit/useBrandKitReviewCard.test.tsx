@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useBrandKitReviewCard } from './useBrandKitReviewCard';
 
 const mocks = vi.hoisted(() => ({
+  applyBrandKitDraft: vi.fn(),
   getService: vi.fn(),
   getClaimedBrandOsDraft: vi.fn(),
   loaded: vi.fn(),
@@ -81,6 +82,7 @@ describe('claimed Brand OS draft lifecycle', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getService.mockResolvedValue({
+      applyBrandKitDraft: mocks.applyBrandKitDraft,
       getClaimedBrandOsDraft: mocks.getClaimedBrandOsDraft,
     });
   });
@@ -178,6 +180,49 @@ describe('claimed Brand OS draft lifecycle', () => {
       expect(result.current.selectedCandidateIds.has('logo-1')).toBe(true),
     );
     expect(result.current.draft?.readiness.score).toBe(60);
+  });
+  it('keeps the draft being applied when a background refresh lands mid-apply', async () => {
+    const applicable: IBrandKitDraft = {
+      ...draft('brand-1', 60),
+      fields: {
+        description: {
+          applyActionDefault: 'preserve',
+          currentValue: 'Old description',
+          diagnostics: [],
+          evidence: [],
+          group: 'profile',
+          key: 'description',
+          label: 'Description',
+          ownerPath: 'brand.description',
+          proposedValue: 'New description',
+        },
+      },
+    } as IBrandKitDraft;
+    mocks.getClaimedBrandOsDraft.mockResolvedValue({ draft: applicable });
+    mocks.applyBrandKitDraft.mockReturnValue(new Promise(() => {}));
+    const client = createTestQueryClient();
+    const { result } = renderHook(() => useBrandKitReviewCard(props), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() => expect(result.current.draft?.readiness.score).toBe(60));
+
+    act(() => {
+      void result.current.handleApplyKeys(['description']);
+    });
+    await waitFor(() => expect(result.current.isApplying).toBe(true));
+    mocks.getClaimedBrandOsDraft.mockResolvedValue({
+      draft: draft('brand-1', 80),
+    });
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: ['brand-os-claimed-draft'] });
+      // React Query hands the refreshed read to observers on the next tick.
+      await new Promise((done) => setTimeout(done, 0));
+    });
+
+    expect(result.current.draft?.readiness.score).toBe(60);
+    expect(result.current.draft?.fields.description?.proposedValue).toBe(
+      'New description',
+    );
   });
   it('never shows one brand’s cached handoff for another brand', async () => {
     mocks.getClaimedBrandOsDraft.mockResolvedValue({

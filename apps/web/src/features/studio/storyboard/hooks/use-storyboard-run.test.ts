@@ -347,6 +347,63 @@ describe('useStoryboardRun', () => {
     expect(result.current.run?.id).toBe('run-1');
   });
 
+  it('keeps the revision an action returns when an older read lands after it', async () => {
+    mocks.findBrandRemixRun.mockResolvedValue({ ...run, phase: 'prefilled' });
+    const { result } = renderHook(() => useStoryboardRun('run-1'), {
+      wrapper: queryClientWrapper(),
+    });
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    let landOlderRead!: (value: BrandRemixRunView) => void;
+    mocks.findBrandRemixRun.mockReturnValue(
+      new Promise<BrandRemixRunView>((done) => {
+        landOlderRead = done;
+      }),
+    );
+    mocks.reviseBrandRemixRun.mockResolvedValue({
+      ...run,
+      phase: 'prefilled',
+      revision: 2,
+    });
+
+    act(() => {
+      void result.current.refresh();
+    });
+    await act(async () => {
+      await result.current.saveScenes({});
+    });
+    await act(async () => {
+      landOlderRead({ ...run, phase: 'prefilled', revision: 1 });
+      await new Promise((done) => setTimeout(done, 0));
+    });
+
+    expect(result.current.run?.revision).toBe(2);
+  });
+
+  it('drops a failed action message once a later read of the run lands', async () => {
+    mocks.findBrandRemixRun.mockResolvedValue({ ...run, phase: 'prefilled' });
+    mocks.reviseBrandRemixRun.mockRejectedValue({
+      errors: [{ detail: 'Reload this remix before changing the recipe.' }],
+    });
+    const { result } = renderHook(() => useStoryboardRun('run-1'), {
+      wrapper: queryClientWrapper(),
+    });
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await act(async () => {
+      await result.current.saveScenes({});
+    });
+    expect(result.current.error).toBe(
+      'Reload this remix before changing the recipe.',
+    );
+
+    await act(async () => {
+      await new Promise((done) => setTimeout(done, 2));
+      await result.current.refresh();
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    expect(result.current.error).toBeNull();
+  });
+
   it('shows the run an action returns', async () => {
     const { result } = renderHook(() => useStoryboardRun('run-1'), {
       wrapper: queryClientWrapper(),

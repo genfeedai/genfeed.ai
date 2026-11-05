@@ -194,6 +194,10 @@ export function useDropdownTags({
 
       if (newTag.id) {
         onChange([...selectedTags, newTag.id]);
+        // A list read before the tag existed would drop it again.
+        await queryClient.cancelQueries({
+          queryKey: dropdownTagsQueryKey(scope, brandId),
+        });
         queryClient.setQueriesData<ITag[]>(
           { queryKey: dropdownTagsQueryKey(scope, brandId) },
           (current) => [...(current ?? []), newTag],

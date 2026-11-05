@@ -73,6 +73,14 @@ export function InstalledAppsProvider({
   >([]);
   const scopeRef = useRef(0);
   const writeQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: an organization switch retires the previous organization's writes.
   useEffect(() => {
@@ -96,6 +104,13 @@ export function InstalledAppsProvider({
             ? await members.installApp(appId)
             : await members.uninstallApp(appId);
           if (scope !== scopeRef.current) return false;
+          if (!isMountedRef.current) {
+            // A remounted provider starts its own write queue, so this
+            // response may be older than one it already wrote. Re-read the
+            // server's list instead of trusting the order responses land in.
+            await queryClient.invalidateQueries({ queryKey: installedAppsKey });
+            return true;
+          }
           // A read still in flight began before this write; drop it so it
           // cannot put the old list back.
           await queryClient.cancelQueries({ queryKey: installedAppsKey });

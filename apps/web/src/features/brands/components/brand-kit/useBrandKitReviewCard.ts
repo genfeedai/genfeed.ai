@@ -327,6 +327,9 @@ export function useBrandKitReviewCard({
 
       setIsApplying(true);
       setError(null);
+      // From here the review is the user's: a background refresh landing while
+      // the apply is in flight must not re-seed the draft being applied.
+      setHasReviewEdits(true);
 
       try {
         const service = await getBrandsService();

@@ -138,7 +138,9 @@ export default function SettingsIntegrationsPage() {
     logger.error('Failed to fetch BYOK statuses', loadError);
   }, [loadError]);
 
-  function applyProviderStatuses(statuses: IByokProviderStatus[]) {
+  async function applyProviderStatuses(statuses: IByokProviderStatus[]) {
+    // A read still in flight would land the older statuses over this result.
+    await queryClient.cancelQueries({ queryKey: providersKey });
     queryClient.setQueriesData<IByokProviderStatus[]>(
       { queryKey: providersKey },
       statuses,
@@ -192,7 +194,7 @@ export default function SettingsIntegrationsPage() {
       const providerLabel = providerStatuses.find(
         (p) => p.provider === provider,
       )?.label;
-      applyProviderStatuses(statuses);
+      await applyProviderStatuses(statuses);
       dispatch({ type: 'SAVE_SUCCESS', payload: { provider } });
       NotificationsService.getInstance().success(
         `${providerLabel ?? 'Provider'} API key saved`,
@@ -217,7 +219,7 @@ export default function SettingsIntegrationsPage() {
       const providerLabel = providerStatuses.find(
         (p) => p.provider === provider,
       )?.label;
-      applyProviderStatuses(statuses);
+      await applyProviderStatuses(statuses);
       NotificationsService.getInstance().success(
         `${providerLabel ?? 'Provider'} API key removed`,
       );

@@ -101,44 +101,59 @@ export function useDurableStoryboardRun(runId: string) {
     [server, organizationId, sessionId, brandId, runId],
   );
   const latestRun = useRef<StoryboardRun | null>(null);
+  /** Counts runs written by saves and reconciles, to spot one during a read. */
+  const runWrites = useRef(0);
   const runQuery = useAuthedQuery<ContentRunsService, StoryboardRun>({
     enabled: Boolean(brandId),
     queryFn: async (service, signal) => {
       // A read superseded while it waited for its token never reaches the API.
       signal.throwIfAborted();
+      const writesBefore = runWrites.current;
       const run = await service.getStoryboardRun(brandId, runId, signal);
       if (run.organizationId !== organizationId)
         throw new Error('Storyboard organization changed.');
       if (run.brandId !== brandId || run.id !== runId)
         throw new Error('Storyboard scope changed.');
-      // A save that landed while this read was in flight is newer.
-      const known = latestRun.current;
-      return known &&
-        known.id === run.id &&
-        known.brandId === run.brandId &&
-        known.organizationId === run.organizationId &&
-        known.config.revision > run.config.revision
-        ? known
-        : run;
+      // A save that landed while this read was in flight is newer, whether
+      // this page or an earlier visit wrote it into the cache. A reconcile
+      // written during the read keeps its revision but carries newer
+      // progress, so it wins a tie.
+      const isWrittenDuringRead = runWrites.current !== writesBefore;
+      return [
+        latestRun.current,
+        ...queryClient
+          .getQueriesData<StoryboardRun>({ queryKey: runQueryKey })
+          .map(([, cached]) => cached ?? null),
+      ].reduce<StoryboardRun>(
+        (newest, known) =>
+          known &&
+          known.id === run.id &&
+          known.brandId === run.brandId &&
+          known.organizationId === run.organizationId &&
+          (known.config.revision > newest.config.revision ||
+            (isWrittenDuringRead &&
+              known === latestRun.current &&
+              known.config.revision === newest.config.revision))
+            ? known
+            : newest,
+        run,
+      );
     },
     queryKey: runQueryKey,
     // A missing or foreign run is an answer, not a transient failure.
     retry: false,
     service: (token: string) => ContentRunsService.getInstance(token),
   });
-  const currentRun = brandId ? (runQuery.data ?? null) : null;
+  // A deleted run is gone: a 404 on refresh stops showing the cached copy.
+  const isRunMissing = getJsonApiErrorMember(runQuery.error)?.status === 404;
+  const currentRun = brandId && !isRunMissing ? (runQuery.data ?? null) : null;
   latestRun.current = currentRun;
   const readError = brandId && !currentRun ? runQuery.error : null;
   const hasRun = currentRun !== null;
 
-  /** Writes a returned run into the cache, never over a newer revision. */
-  const writeRun = useCallback(
+  /** Writes a returned run into this scope's cache, never over a newer revision. */
+  const writeCachedRun = useCallback(
     (run: StoryboardRun) => {
-      latestRun.current =
-        !latestRun.current ||
-        run.config.revision >= latestRun.current.config.revision
-          ? run
-          : latestRun.current;
       queryClient.setQueriesData<StoryboardRun>(
         { queryKey: runQueryKey },
         (current) =>
@@ -148,6 +163,19 @@ export function useDurableStoryboardRun(runId: string) {
       );
     },
     [queryClient, runQueryKey],
+  );
+  /** Adopts a returned run on this page and in the cache. */
+  const writeRun = useCallback(
+    (run: StoryboardRun) => {
+      runWrites.current += 1;
+      latestRun.current =
+        !latestRun.current ||
+        run.config.revision >= latestRun.current.config.revision
+          ? run
+          : latestRun.current;
+      writeCachedRun(run);
+    },
+    [writeCachedRun],
   );
 
   // The draft transport is bound to the scope the run was read in. It is
@@ -197,6 +225,9 @@ export function useDurableStoryboardRun(runId: string) {
           throw new Error('Storyboard scope changed.');
         if (!controller.signal.aborted && activeScope.current === scope)
           writeRun(saved);
+        // A save that finishes after the page left still updates the cached
+        // run, so reopening it shows the saved plan.
+        else writeCachedRun(saved);
         return saved;
       };
       setTransport({
@@ -335,6 +366,7 @@ export function useDurableStoryboardRun(runId: string) {
     userId,
     orgSlug,
     server,
+    writeCachedRun,
     writeRun,
   ]);
 

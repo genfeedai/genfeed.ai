@@ -286,6 +286,93 @@ describe('brand-scoped durable storyboard loading', () => {
     expect(result.current.run?.config.plan?.title).toBe('Plan');
     expect(result.current.error).toBeNull();
   });
+  it('stops showing the cached run once a refresh finds it deleted', async () => {
+    mocks.get.mockResolvedValue(persistedRun());
+    const { result } = renderHook(() => useDurableStoryboardRun('run'), {
+      wrapper: queryClientWrapper(),
+    });
+    await waitFor(() => expect(result.current.run).not.toBeNull());
+    mocks.get.mockRejectedValue({
+      errors: [{ detail: 'Storyboard not found.', status: '404' }],
+    });
+
+    act(() => result.current.refresh());
+
+    await waitFor(() => expect(result.current.notFound).toBe(true));
+    expect(result.current.run).toBeNull();
+  });
+  it('shows a save that finished after the page left when the run is reopened', async () => {
+    const client = createTestQueryClient();
+    const run = persistedRun();
+    mocks.get.mockResolvedValue(run);
+    mocks.update.mockImplementation(async (_brand, _id, input) => ({
+      ...run,
+      config: {
+        ...run.config,
+        revision: input.expectedRevision + 1,
+        plan: input.plan,
+      },
+    }));
+    const firstVisit = renderHook(() => useDurableStoryboardRun('run'), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() =>
+      expect(firstVisit.result.current.transport).toBeDefined(),
+    );
+    const transport = firstVisit.result.current.transport;
+    if (!transport) throw new Error('Missing captured transport');
+    firstVisit.unmount();
+    await transport.write('plan', 1, {
+      plan: { ...run.config.plan, title: 'Detached title' },
+      source: run.config.sourceSnapshot.selector,
+    });
+
+    mocks.get.mockImplementation(() => new Promise(() => {}));
+    const { result } = renderHook(() => useDurableStoryboardRun('run'), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(result.current.run?.config.plan?.title).toBe('Detached title');
+  });
+  it('keeps a save from an earlier visit over an older read on reopen', async () => {
+    const client = createTestQueryClient();
+    const run = persistedRun();
+    mocks.get.mockResolvedValue(run);
+    const firstVisit = renderHook(() => useDurableStoryboardRun('run'), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() => expect(firstVisit.result.current.run).not.toBeNull());
+    firstVisit.unmount();
+    let landOlderRead!: (value: StoryboardRun) => void;
+    mocks.get.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          landOlderRead = resolve;
+        }),
+    );
+    const { result } = renderHook(() => useDurableStoryboardRun('run'), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() => expect(landOlderRead).toBeDefined());
+
+    // An earlier visit's save lands in the cache while the new read waits.
+    act(() => {
+      client.setQueriesData<StoryboardRun>(
+        { queryKey: ['storyboard-run'] },
+        (current) =>
+          current && {
+            ...current,
+            config: { ...current.config, revision: 2 },
+          },
+      );
+    });
+    await act(async () => {
+      landOlderRead(run);
+      await new Promise((done) => setTimeout(done, 0));
+    });
+
+    expect(result.current.run?.config.revision).toBe(2);
+  });
   it('keeps a newer saved revision over an older background read', async () => {
     const run = persistedRun();
     let resolveRead: ((value: StoryboardRun) => void) | undefined;

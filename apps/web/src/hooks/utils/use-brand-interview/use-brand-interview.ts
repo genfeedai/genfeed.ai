@@ -13,6 +13,7 @@ import {
   BrandInterviewService,
   type IActiveBrandInterview,
 } from '@genfeedai/services/social/brand-interview.service';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useQueryClient } from '@tanstack/react-query';
@@ -49,6 +50,7 @@ interface BrandInterviewSession {
 interface CompletedBrandInterview {
   brandId: string;
   session: BrandInterviewSession;
+  viewerKey: string;
 }
 
 const EMPTY_ANSWERED_FIELDS: Record<string, BrandInterviewAnswerValue> = {};
@@ -113,6 +115,9 @@ export function useBrandInterview(
   brandId: string | null | undefined,
 ): UseBrandInterviewReturn {
   const queryClient = useQueryClient();
+  const { orgId, userId } = useAuthIdentity();
+  // A finished interview belongs to the viewer who finished it.
+  const viewerKey = `${userId ?? ''}:${orgId ?? ''}`;
   const getInterviewService = useAuthedService(createInterviewService);
   const [completed, setCompleted] = useState<CompletedBrandInterview | null>(
     null,
@@ -151,7 +156,11 @@ export function useBrandInterview(
   });
 
   const completedSession =
-    completed && completed.brandId === brandId ? completed.session : null;
+    completed &&
+    completed.brandId === brandId &&
+    completed.viewerKey === viewerKey
+      ? completed.session
+      : null;
   const activeSession = activeQuery.data ?? null;
   const session = completedSession ?? activeSession;
   const status: BrandInterviewUiStatus = completedSession
@@ -176,9 +185,9 @@ export function useBrandInterview(
         { queryKey },
         isComplete ? null : next,
       );
-      setCompleted(isComplete ? { brandId, session: next } : null);
+      setCompleted(isComplete ? { brandId, session: next, viewerKey } : null);
     },
-    [brandId, queryClient],
+    [brandId, queryClient, viewerKey],
   );
 
   const startInterview = useCallback(async () => {

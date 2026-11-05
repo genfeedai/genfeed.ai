@@ -14,6 +14,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
+import { isCancelledRequest } from '@services/core/operation-error';
 import { BrandsService } from '@services/social/brands.service';
 import type {
   ApprovalResponse,
@@ -166,7 +167,10 @@ export class WorkflowApiService extends HTTPBaseService {
       );
       return deserializeCollection<WorkflowUsageSummary>(response.data);
     } catch (error) {
-      logger.error('Failed to list most used workflows', { error, limit });
+      // A read superseded by navigation is not a failure worth reporting.
+      if (!isCancelledRequest(error)) {
+        logger.error('Failed to list most used workflows', { error, limit });
+      }
       throw error;
     }
   }
