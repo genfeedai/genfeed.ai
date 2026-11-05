@@ -160,7 +160,6 @@ describe('db load profile', () => {
       `postgresql://postgres@127.0.0.1:55432/${dbName}`;
     const url = assertIsolatedDatabaseUrl(baseUrl);
     process.env.DATABASE_URL = `${url}${url.includes('?') ? '&' : '?'}options=-c%20statement_timeout%3D${STATEMENT_TIMEOUT_MS}`;
-    process.env.GENFEED_CLOUD = 'true';
 
     let captured: Statement[] | null = null;
     let statementCount = 0;

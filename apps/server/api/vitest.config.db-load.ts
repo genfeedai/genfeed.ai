@@ -12,6 +12,8 @@ export default defineConfig({
   test: {
     ...unitConfig.test,
     coverage: { enabled: false },
+    // The harness measures the hosted (CLOUD) tenant guard, as production runs it.
+    env: { ...unitConfig.test?.env, GENFEED_CLOUD: 'true' },
     exclude: ['**/node_modules/**', '**/dist/**'],
     hookTimeout: 0,
     include: ['scripts/db-load/**/*.loadtest.ts'],

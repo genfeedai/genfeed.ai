@@ -93,6 +93,13 @@ type ControllerUser = Parameters<PostsController['buildFindAllQuery']>[0];
 /** Collaborators that the measured query path never touches. */
 const stub = <T>(): T => ({}) as T;
 
+/**
+ * The cross-tenant worker sweeps read every organization by design, so they run
+ * under the named tenant-guard hatch. This is the only call site in the suite.
+ */
+const acrossAllTenants = <T>(run: () => Promise<T>): Promise<T> =>
+  crossOrgUnsafe(run);
+
 const user = (t: Tenant): ControllerUser =>
   ({
     brandId: t.brandId,
@@ -505,7 +512,7 @@ export const CATALOG: QuerySpec[] = [
     prepare: ({ prisma }) => {
       const finder = new StalePendingSystemExecutionFinderService(prisma);
       return () =>
-        crossOrgUnsafe(() =>
+        acrossAllTenants(() =>
           finder.findMany(
             new Date(Date.now() - 15 * 60_000),
             new Date(Date.now() - 24 * 3_600_000),
@@ -525,7 +532,7 @@ export const CATALOG: QuerySpec[] = [
     prepare: ({ prisma }) => {
       const finder = new StalePendingSystemExecutionFinderService(prisma);
       return () =>
-        crossOrgUnsafe(() =>
+        acrossAllTenants(() =>
           finder.findStalledInteractiveAgentTurns(
             new Date(Date.now() - 5 * 60_000),
             new Date(Date.now() - 2 * 3_600_000),
@@ -545,7 +552,8 @@ export const CATALOG: QuerySpec[] = [
     prepare: ({ prisma, logger }) => {
       const posts = new PostsService(prisma, logger, stub());
       const discovery = new ScheduledPostDiscoveryService(posts);
-      return () => crossOrgUnsafe(() => discovery.findDuePosts({ limit: 50 }));
+      return () =>
+        acrossAllTenants(() => discovery.findDuePosts({ limit: 50 }));
     },
     scope: 'global',
     source:
