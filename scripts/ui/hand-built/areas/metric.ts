@@ -21,6 +21,7 @@ const area: HandBuiltArea = {
         '@ui/components/cards/metric-card/MetricCard',
       ],
       isDefaultExport: true,
+      isScopeLocal: true,
       isSizeOwned: false,
       isToneLookupFlagged: true,
       rule: 'metric-card-restyle',
