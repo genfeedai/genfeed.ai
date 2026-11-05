@@ -6,6 +6,7 @@ import {
   LivestreamTranscriptSource,
   Platform,
 } from '@genfeedai/contracts';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { Bot, BotLivestreamSettings } from '@models/automation/bot.model';
@@ -13,7 +14,8 @@ import type { LivestreamSession } from '@models/automation/livestream-session.mo
 import { BotsService } from '@services/automation/bots.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { CredentialsService } from '@services/organization/credentials.service';
-import { startTransition, useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
 
 export type LivestreamPagePlatform = 'youtube' | 'twitch';
 
@@ -210,139 +212,191 @@ function hydrateForm(bot: Bot): LivestreamFormState {
   };
 }
 
+function isSameLivestreamForm(
+  a: LivestreamFormState,
+  b: LivestreamFormState,
+): boolean {
+  return (Object.keys(a) as Array<keyof LivestreamFormState>).every(
+    (key) => a[key] === b[key],
+  );
+}
+
 export type RestreamCredentialOption = {
   id: string;
   label: string;
 };
 
+function isLivestreamBotFor(
+  candidate: Bot,
+  brandId: string | undefined,
+): boolean {
+  const isLivestreamPlatform = candidate.platforms.some(
+    (platform) =>
+      platform === BotPlatform.YOUTUBE || platform === BotPlatform.TWITCH,
+  );
+  if (!isLivestreamPlatform) {
+    return false;
+  }
+  // Prefer brand-scoped bot when brand context is set.
+  const candidateBrandId = candidate.brandId;
+  if (brandId && candidateBrandId) {
+    return candidateBrandId === brandId;
+  }
+  return true;
+}
+
+function livestreamBotQueryKey(
+  organizationId: string,
+  brandId: string | undefined,
+) {
+  return ['livestream-chat-bot', organizationId, brandId ?? null] as const;
+}
+
+function livestreamSessionQueryKey(botId: string) {
+  return ['livestream-session', botId] as const;
+}
+
+function restreamCredentialsQueryKey(brandId: string) {
+  return ['livestream-restream-credentials', brandId] as const;
+}
+
+const EMPTY_RESTREAM_CREDENTIALS: RestreamCredentialOption[] = [];
+
 export function useLivestreamChatBotPage(
   defaultPlatform: LivestreamPagePlatform,
 ) {
   const { brandId, organizationId } = useCollectionScope();
+  const queryClient = useQueryClient();
   const getBotsService = useAuthedService((token: string) =>
     BotsService.getInstance(token),
   );
-  const getCredentialsService = useAuthedService((token: string) =>
-    CredentialsService.getInstance(token),
-  );
   const notificationsService = NotificationsService.getInstance();
 
-  const [bot, setBot] = useState<Bot | null>(null);
-  const [form, setForm] = useState<LivestreamFormState>(DEFAULT_FORM_STATE);
-  const [session, setSession] = useState<LivestreamSession | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // The bot, its session and the Restream picker read through React Query, so
+  // coming back to the page paints the saved configuration at once and
+  // refreshes it in the background.
+  const botQuery = useAuthedQuery<BotsService, Bot | null>({
+    enabled: Boolean(organizationId),
+    queryFn: async (service) => {
+      const bots = await service.findAllByOrganization(organizationId);
+      return (
+        bots.find((candidate) => isLivestreamBotFor(candidate, brandId)) ?? null
+      );
+    },
+    queryKey: livestreamBotQueryKey(organizationId, brandId),
+    service: (token: string) => BotsService.getInstance(token),
+  });
+  const bot = botQuery.data ?? null;
+  const botId = bot?.id ?? '';
+
+  const sessionQuery = useAuthedQuery<BotsService, LivestreamSession>({
+    enabled: Boolean(botId),
+    queryFn: (service) => service.getLivestreamSession(botId),
+    queryKey: livestreamSessionQueryKey(botId),
+    service: (token: string) => BotsService.getInstance(token),
+  });
+  const session = botId ? (sessionQuery.data ?? null) : null;
+
+  const restreamCredentialsQuery = useAuthedQuery<
+    CredentialsService,
+    RestreamCredentialOption[]
+  >({
+    enabled: Boolean(brandId),
+    queryFn: async (service, signal) => {
+      const credentials = await service.findAll(
+        {
+          brandId,
+          isConnected: true,
+          isDeleted: false,
+          limit: 20,
+          platform: Platform.RESTREAM,
+        },
+        signal,
+      );
+      return credentials.map((credential) => ({
+        id: credential.id,
+        label:
+          credential.externalHandle ||
+          credential.externalId ||
+          `Restream ${credential.id.slice(0, 6)}`,
+      }));
+    },
+    queryKey: restreamCredentialsQueryKey(brandId ?? ''),
+    service: (token: string) => CredentialsService.getInstance(token),
+  });
+  // Optional picker — on a failed read the free-text id remains available.
+  const restreamCredentials =
+    (brandId ? restreamCredentialsQuery.data : undefined) ??
+    EMPTY_RESTREAM_CREDENTIALS;
+
+  const isLoading =
+    botQuery.isLoading || (Boolean(botId) && sessionQuery.isLoading);
+
+  const [form, setForm] = useState<LivestreamFormState>(() =>
+    bot ? hydrateForm(bot) : DEFAULT_FORM_STATE,
+  );
+  // The bot the form was last seeded from. A fresh bot re-seeds the form while
+  // it is untouched, so a background refresh never wipes what the user is
+  // typing; another organization or brand always re-seeds it.
+  const scopeKey = `${organizationId}:${brandId ?? ''}`;
+  const [formSource, setFormSource] = useState({ bot, scopeKey });
+  if (formSource.bot !== bot || formSource.scopeKey !== scopeKey) {
+    setFormSource({ bot, scopeKey });
+    const seededForm = formSource.bot
+      ? hydrateForm(formSource.bot)
+      : DEFAULT_FORM_STATE;
+    if (
+      formSource.scopeKey !== scopeKey ||
+      isSameLivestreamForm(form, seededForm)
+    ) {
+      setForm(bot ? hydrateForm(bot) : DEFAULT_FORM_STATE);
+    }
+  }
+
   const [isSaving, setIsSaving] = useState(false);
   const [manualTopic, setManualTopic] = useState('');
   const [promotionAngle, setPromotionAngle] = useState('');
   const [transcriptChunk, setTranscriptChunk] = useState('');
   const [sendNowMessage, setSendNowMessage] = useState('');
-  const [restreamCredentials, setRestreamCredentials] = useState<
-    RestreamCredentialOption[]
-  >([]);
   const [selectedPlatform, setSelectedPlatform] =
     useState<LivestreamPagePlatform>(defaultPlatform);
 
+  const { error: botError } = botQuery;
   useEffect(() => {
-    async function loadLivestreamBot() {
-      if (!organizationId) {
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-
-      try {
-        const service = await getBotsService();
-        const bots = await service.findAllByOrganization(organizationId);
-        const existingBot =
-          bots.find((candidate) => {
-            const isLivestreamPlatform = candidate.platforms.some(
-              (platform) =>
-                platform === BotPlatform.YOUTUBE ||
-                platform === BotPlatform.TWITCH,
-            );
-            if (!isLivestreamPlatform) {
-              return false;
-            }
-            // Prefer brand-scoped bot when brand context is set.
-            const candidateBrandId = candidate.brandId;
-            if (brandId && candidateBrandId) {
-              return candidateBrandId === brandId;
-            }
-            return true;
-          }) || null;
-
-        startTransition(() => {
-          setBot(existingBot);
-          setForm(existingBot ? hydrateForm(existingBot) : DEFAULT_FORM_STATE);
-        });
-
-        if (existingBot) {
-          const currentSession = await service.getLivestreamSession(
-            existingBot.id,
-          );
-          startTransition(() => {
-            setSession(currentSession);
-          });
-        }
-
-        if (brandId) {
-          try {
-            const credentialsService = await getCredentialsService();
-            const credentials = await credentialsService.findAll({
-              brandId,
-              isConnected: true,
-              isDeleted: false,
-              platform: Platform.RESTREAM,
-              limit: 20,
-            });
-            startTransition(() => {
-              setRestreamCredentials(
-                credentials.map((credential) => ({
-                  id: credential.id,
-                  label:
-                    credential.externalHandle ||
-                    credential.externalId ||
-                    `Restream ${credential.id.slice(0, 6)}`,
-                })),
-              );
-            });
-          } catch {
-            // Optional picker — free-text id remains available.
-            startTransition(() => {
-              setRestreamCredentials([]);
-            });
-          }
-        }
-      } catch (_error) {
-        notificationsService.error(
-          'Failed to load livestream bot configuration',
-        );
-      } finally {
-        setIsLoading(false);
-      }
+    if (!botError) {
+      return;
     }
+    NotificationsService.getInstance().error(
+      'Failed to load livestream bot configuration',
+    );
+  }, [botError]);
 
-    void loadLivestreamBot();
-  }, [
-    brandId,
-    getBotsService,
-    getCredentialsService,
-    notificationsService,
-    organizationId,
-  ]);
+  const { error: sessionError } = sessionQuery;
+  useEffect(() => {
+    if (!sessionError) {
+      return;
+    }
+    NotificationsService.getInstance().error(
+      'Failed to load livestream bot configuration',
+    );
+  }, [sessionError]);
+
+  function writeSession(nextBotId: string, nextSession: LivestreamSession) {
+    queryClient.setQueriesData<LivestreamSession>(
+      { queryKey: livestreamSessionQueryKey(nextBotId) },
+      nextSession,
+    );
+  }
 
   const recentDeliveries = useMemo(
     () => (session?.deliveryHistory ?? []).slice(-5).reverse(),
     [session],
   );
 
-  async function refreshSession(botId: string): Promise<void> {
+  async function refreshSession(savedBotId: string): Promise<void> {
     const service = await getBotsService();
-    const nextSession = await service.getLivestreamSession(botId);
-    startTransition(() => {
-      setSession(nextSession);
-    });
+    const nextSession = await service.getLivestreamSession(savedBotId);
+    writeSession(savedBotId, nextSession);
   }
 
   async function handleSave(): Promise<void> {
@@ -393,9 +447,10 @@ export function useLivestreamChatBotPage(
         return;
       }
 
-      startTransition(() => {
-        setBot(savedBot);
-      });
+      queryClient.setQueriesData<Bot | null>(
+        { queryKey: livestreamBotQueryKey(organizationId, brandId) },
+        savedBot,
+      );
 
       await refreshSession(savedBot.id);
       notificationsService.success('Livestream bot configuration saved');
@@ -426,9 +481,7 @@ export function useLivestreamChatBotPage(
               ? await service.resumeLivestreamSession(bot.id)
               : await service.stopLivestreamSession(bot.id);
 
-      startTransition(() => {
-        setSession(nextSession);
-      });
+      writeSession(bot.id, nextSession);
       notificationsService.success(`Session ${action}ed`);
     } catch (_error) {
       notificationsService.error(`Failed to ${action} livestream session`);
@@ -447,9 +500,7 @@ export function useLivestreamChatBotPage(
         promotionAngle: promotionAngle || undefined,
         topic: manualTopic || undefined,
       });
-      startTransition(() => {
-        setSession(nextSession);
-      });
+      writeSession(bot.id, nextSession);
       notificationsService.success('Manual override applied');
     } catch (_error) {
       notificationsService.error('Failed to apply manual override');
@@ -475,10 +526,8 @@ export function useLivestreamChatBotPage(
         confidence: 0.8,
         text: transcriptChunk.trim(),
       });
-      startTransition(() => {
-        setSession(nextSession);
-        setTranscriptChunk('');
-      });
+      writeSession(bot.id, nextSession);
+      setTranscriptChunk('');
       notificationsService.success('Transcript chunk processed');
     } catch (_error) {
       notificationsService.error('Failed to process transcript chunk');
@@ -497,10 +546,8 @@ export function useLivestreamChatBotPage(
         message: sendNowMessage.trim() || undefined,
         platform: selectedPlatform,
       });
-      startTransition(() => {
-        setSession(nextSession);
-        setSendNowMessage('');
-      });
+      writeSession(bot.id, nextSession);
+      setSendNowMessage('');
       notificationsService.success('Livestream message sent');
     } catch (_error) {
       notificationsService.error('Failed to send livestream message');
