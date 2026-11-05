@@ -9,14 +9,20 @@
 -- the migration's only statement.
 --
 -- Idempotent: it recomputes the same values, so an interrupted run can simply
--- be applied again. `result -> 'metadata'` is read once per row.
+-- be applied again. `result -> 'metadata'` is read once per row. The walk stops
+-- at the newest id present when it starts: rows inserted meanwhile are already
+-- filled by the insert trigger, and chasing them could keep the loop running
+-- for as long as workflows keep writing.
 DO $$
 DECLARE
   last_id TEXT := '';
+  upper_bound TEXT;
   batch_ids TEXT[];
   batch_updated BIGINT;
   total_updated BIGINT := 0;
 BEGIN
+  SELECT max("id") INTO upper_bound FROM "workflow_executions";
+
   LOOP
     SELECT array_agg("id" ORDER BY "id")
     INTO batch_ids
@@ -24,6 +30,7 @@ BEGIN
       SELECT "id"
       FROM "workflow_executions"
       WHERE "id" > last_id
+        AND "id" <= upper_bound
       ORDER BY "id"
       LIMIT 2000
     ) AS batch;
@@ -35,7 +42,6 @@ BEGIN
       "canonicalId",
       "source",
       "strategyId",
-      "brandId",
       "threadId",
       "dispatchClass",
       "dispatchId",
@@ -49,7 +55,6 @@ BEGIN
           "workflow_execution_metadata_text"(m.metadata, 'strategyId'),
           "workflow_execution_metadata_text"(m.metadata, 'agentStrategyId')
         ),
-        "workflow_execution_metadata_text"(m.metadata, 'brandId'),
         "workflow_execution_metadata_text"(m.metadata, 'threadId'),
         "workflow_execution_metadata_text"(m.metadata, 'dispatchClass'),
         "workflow_execution_metadata_text"(m.metadata, 'dispatchId'),

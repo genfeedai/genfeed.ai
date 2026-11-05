@@ -81,7 +81,7 @@ describe('customer execution visibility', () => {
               },
             },
             expect.objectContaining({
-              brandId: 'brand-1',
+              result: { path: ['metadata', 'brandId'], equals: 'brand-1' },
               source: 'proactive',
             }),
           ],
@@ -96,7 +96,7 @@ describe('customer execution visibility', () => {
  * Behavioral (#5398): builds a minimal in-memory evaluator for the exact
  * Prisma filter shapes `buildCustomerExecutionWhere` emits (`AND`/`OR`/`NOT`,
  * relation objects, `{ not: null }`, and JSON `{ path, equals }` filters
- * against `workflow.metadata`) and checks whether representative rows would or
+ * against `workflow.metadata` and the execution `result`) and checks whether representative rows would or
  * would not be selected — the structural tests above catch a shape
  * regression, these catch a visibility regression. Same pattern as
  * `daily-publishing.integration.spec.ts`'s file-local `matches()` fake —
@@ -114,10 +114,10 @@ type FakeExecution = {
   workflowId?: string;
   status?: string;
   trigger?: string;
-  brandId?: string;
   canonicalId?: string;
   source?: string;
   strategyId?: string | null;
+  result?: Record<string, unknown>;
   workflow: FakeWorkflow;
 };
 
@@ -350,7 +350,7 @@ describe('customer execution visibility by workflow id', () => {
           OR: [
             { workflowId: { in: ['wf-1', 'wf-2'] } },
             expect.objectContaining({
-              brandId: 'brand-1',
+              result: { path: ['metadata', 'brandId'], equals: 'brand-1' },
               workflowId: { in: ['wf-agent'] },
             }),
           ],
@@ -373,7 +373,7 @@ describe('customer execution visibility by workflow id', () => {
       workflowId: 'wf-agent',
       source: 'proactive',
       canonicalId: 'agent.turn.execute',
-      brandId: 'brand-1',
+      result: { metadata: { brandId: 'brand-1' } },
       strategyId,
       workflow: {
         organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,

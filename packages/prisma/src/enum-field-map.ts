@@ -9010,7 +9010,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   WorkflowExecution: {
     allFields: [
-      'brandId',
       'campaignId',
       'cancelRequestedAt',
       'canonicalId',

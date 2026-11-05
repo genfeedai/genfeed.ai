@@ -24,6 +24,19 @@ const PROACTIVE_AGENT_TURN = {
 } satisfies Prisma.WorkflowExecutionWhereInput;
 
 /**
+ * A proactive turn records its brand only in `result.metadata`. The brand stays
+ * a JSON path rather than a promoted column: a `brandId` column would make the
+ * execution brand-keyed for relocation, and these turns run on the shared
+ * system workflow, so they do not move with the brand. The partial index keys
+ * this exact expression, so reads never detoast `result`.
+ */
+function proactiveBrandPath(
+  brandId: string,
+): Prisma.WorkflowExecutionWhereInput['result'] {
+  return { path: ['metadata', 'brandId'], equals: brandId };
+}
+
+/**
  * The workflows each arm of the customer-activity filter admits, resolved up
  * front so the execution query can match `workflowId IN (...)`.
  *
@@ -98,7 +111,7 @@ function buildCustomerExecutionIdsWhere(
 ): Prisma.WorkflowExecutionWhereInput {
   const proactive: Prisma.WorkflowExecutionWhereInput = {
     ...PROACTIVE_AGENT_TURN,
-    ...(query.brandId ? { brandId: query.brandId } : {}),
+    ...(query.brandId ? { result: proactiveBrandPath(query.brandId) } : {}),
     workflowId: { in: ids.agentTurn },
   };
 
@@ -195,7 +208,7 @@ export function buildCustomerExecutionWhere(
                     brandId: query.brandId,
                   },
                 },
-                { ...proactive, brandId: query.brandId },
+                { ...proactive, result: proactiveBrandPath(query.brandId) },
               ],
             },
           ]

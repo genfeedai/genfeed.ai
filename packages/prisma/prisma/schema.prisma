@@ -5542,14 +5542,15 @@ model WorkflowExecution {
   trigger String?
 
   /// Identity keys copied out of `result.metadata` when the execution is
-  /// created, so hot filters never read or detoast the `result` blob. They are
-  /// written once by `WorkflowExecutionsService.createExecution` and never
-  /// change; `result.metadata` keeps its copy for the runtime document.
+  /// created, so hot filters never read or detoast the `result` blob. A
+  /// BEFORE INSERT trigger (`promote_workflow_execution_metadata`) fills them
+  /// for every writer; they never change, and `result.metadata` keeps its copy
+  /// for the runtime document. `metadata.brandId` is deliberately not promoted:
+  /// a brand column would make executions brand-keyed for brand relocation.
   canonicalId    String?
   source         String?
   /// `metadata.strategyId`, falling back to `metadata.agentStrategyId`.
   strategyId     String?
-  brandId        String?
   threadId       String?
   dispatchClass  String?
   dispatchId     String?
@@ -5564,6 +5565,7 @@ model WorkflowExecution {
   @@index([purgeAt, payloadScrubbedAt, isDeleted], map: "workflow_executions_purgeAt_idx")
   @@index([status, isDeleted, failureReason, completedAt(sort: Desc), id], map: "workflow_executions_failure_feed_idx")
   @@index([organizationId, isDeleted, threadId, canonicalId, createdAt(sort: Desc), id(sort: Desc)], map: "workflow_executions_thread_idx")
+  @@index([organizationId, isDeleted, threadId, createdAt(sort: Desc), id(sort: Desc)], map: "workflow_executions_thread_created_idx")
   @@map("workflow_executions")
   @@unique([id, organizationId])
   readScope WorkflowExecutionReadScope?

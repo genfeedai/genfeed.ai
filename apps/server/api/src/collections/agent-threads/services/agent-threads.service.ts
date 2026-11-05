@@ -889,7 +889,7 @@ export class AgentThreadsService extends BaseService<
       return [];
     }
 
-    // Served by `workflow_executions_thread_idx`; no `result` blob is read.
+    // Served by `workflow_executions_thread_created_idx`; no `result` blob is read.
     const rows = await this.prisma.workflowExecution.findMany({
       orderBy: { createdAt: 'desc' },
       select: { createdAt: true, id: true, status: true, threadId: true },

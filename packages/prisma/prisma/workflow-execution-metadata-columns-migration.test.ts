@@ -29,7 +29,7 @@ describe('workflow execution metadata columns', () => {
     expect(model).toMatch(/canonicalId\s+String\?/);
     expect(model).toMatch(/source\s+String\?/);
     expect(model).toMatch(/strategyId\s+String\?/);
-    expect(model).toMatch(/brandId\s+String\?/);
+    expect(model).not.toMatch(/\bbrandId\s/);
     expect(model).toMatch(/threadId\s+String\?/);
     expect(model).toMatch(/dispatchClass\s+String\?/);
     expect(model).toMatch(/dispatchId\s+String\?/);
@@ -56,6 +56,8 @@ describe('workflow execution metadata columns', () => {
     );
     expect(sql.startsWith('DO $$')).toBe(true);
     expect(sql.endsWith('$$;')).toBe(true);
+    expect(sql.match(/\$\$/g)).toHaveLength(2);
+    expect(sql).toContain('AND "id" <= upper_bound');
     expect(sql).toContain('LIMIT 2000');
     expect(sql).toContain('COMMIT;');
     expect(sql).toContain(`'workflow_execution_metadata_columns_20261105'`);
@@ -67,8 +69,12 @@ describe('workflow execution metadata columns', () => {
       'CREATE INDEX CONCURRENTLY IF NOT EXISTS "workflow_executions_thread_idx" ON "workflow_executions" ("organizationId", "isDeleted", "threadId", "canonicalId", "createdAt" DESC, "id" DESC);',
     ],
     [
+      '20261105090150_workflow_execution_thread_created_index',
+      'CREATE INDEX CONCURRENTLY IF NOT EXISTS "workflow_executions_thread_created_idx" ON "workflow_executions" ("organizationId", "isDeleted", "threadId", "createdAt" DESC, "id" DESC);',
+    ],
+    [
       '20261105090200_workflow_execution_proactive_turn_brand_index',
-      `CREATE INDEX CONCURRENTLY IF NOT EXISTS "workflow_executions_proactive_turn_brand_idx" ON "workflow_executions" ("organizationId", "brandId", "createdAt" DESC) WHERE "isDeleted" = false AND "source" = 'proactive' AND "canonicalId" = 'agent.turn.execute' AND "strategyId" IS NOT NULL;`,
+      `CREATE INDEX CONCURRENTLY IF NOT EXISTS "workflow_executions_proactive_turn_brand_idx" ON "workflow_executions" ("organizationId", (result #> '{metadata,brandId}'::text[]), "createdAt" DESC) WHERE "isDeleted" = false AND "source" = 'proactive' AND "canonicalId" = 'agent.turn.execute' AND "strategyId" IS NOT NULL;`,
     ],
     [
       '20261105090400_workflow_execution_dispatch_id_index',
@@ -77,18 +83,6 @@ describe('workflow execution metadata columns', () => {
     [
       '20261105090500_workflow_execution_campaign_index',
       'CREATE INDEX CONCURRENTLY IF NOT EXISTS "workflow_executions_campaign_idx" ON "workflow_executions" ("organizationId", "campaignId", "createdAt" DESC) WHERE "campaignId" IS NOT NULL;',
-    ],
-    [
-      '20261105090600_drop_workflow_execution_agent_thread_lookup_index',
-      'DROP INDEX CONCURRENTLY IF EXISTS "workflow_executions_agent_thread_lookup_idx";',
-    ],
-    [
-      '20261105090700_drop_workflow_execution_thread_snapshot_index',
-      'DROP INDEX CONCURRENTLY IF EXISTS "workflow_executions_thread_snapshot_idx";',
-    ],
-    [
-      '20261105090800_drop_workflow_execution_proactive_agent_turn_index',
-      'DROP INDEX CONCURRENTLY IF EXISTS "workflow_executions_proactive_agent_turn_idx";',
     ],
   ])('%s is a single concurrent index statement', (migration, expected) => {
     expect(statement(migration)).toBe(expected);

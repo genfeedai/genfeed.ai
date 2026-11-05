@@ -121,6 +121,56 @@ async function explain(label: string) {
   );
   return result.rows[0]['QUERY PLAN'][0].Plan as PlanNode;
 }
+const PROMOTED_METADATA = {
+  campaignId: 'campaign-1',
+  canonicalId: 'agent.turn.execute',
+  dispatchClass: 'interactive',
+  dispatchId: 'dispatch-1',
+  isSystemAction: true,
+  source: 'proactive',
+  strategyId: 'strategy-1',
+  threadId: 'thread-promoted',
+};
+const PROMOTED_FIXTURES: [string, Record<string, unknown>][] = [
+  ['all', PROMOTED_METADATA],
+  ['both', { agentStrategyId: 'agent-strategy', strategyId: 'strategy' }],
+  ['agent', { agentStrategyId: 'agent-strategy' }],
+  ['typed', { canonicalId: 5, isSystemAction: 'true', threadId: null }],
+];
+async function insertPromotionFixtures(prefix: string) {
+  for (const [name, metadata] of PROMOTED_FIXTURES) {
+    await db.query(
+      `INSERT INTO workflow_executions (id, "organizationId", result)
+      VALUES ($1, 'org-promoted', $2::jsonb)`,
+      [`${prefix}-${name}`, JSON.stringify({ metadata })],
+    );
+  }
+}
+// Reads the stored columns back, so a trigger or backfill that skips a key fails.
+async function assertPromotedColumns(prefix: string) {
+  const { rows } = await db.query(
+    `SELECT id, "campaignId", "canonicalId", "dispatchClass", "dispatchId",
+      "isSystemAction", source, "strategyId", "threadId"
+    FROM workflow_executions WHERE id LIKE $1 ORDER BY id`,
+    [`${prefix}-%`],
+  );
+  const empty = {
+    campaignId: null,
+    canonicalId: null,
+    dispatchClass: null,
+    dispatchId: null,
+    isSystemAction: false,
+    source: null,
+    strategyId: null,
+    threadId: null,
+  };
+  assert.deepEqual(rows, [
+    { ...empty, id: `${prefix}-agent`, strategyId: 'agent-strategy' },
+    { ...PROMOTED_METADATA, id: `${prefix}-all` },
+    { ...empty, id: `${prefix}-both`, strategyId: 'strategy' },
+    { ...empty, id: `${prefix}-typed` },
+  ]);
+}
 async function applyMigration(name: string) {
   await db.query(
     await readFile(
@@ -155,12 +205,16 @@ try {
     INSERT INTO workflow_executions (id, "organizationId", result)
     SELECT 'dense-' || n, 'org-1', jsonb_build_object('metadata', jsonb_build_object('threadId', 'dense', 'canonicalId', 'unrelated-' || n))
     FROM generate_series(1, 20000) n`);
+  await insertPromotionFixtures('backfill');
   // Rows above predate the promoted columns: the backfill fills them. Rows
   // inserted below go through the insert trigger.
   await applyMigration('20261105090000_workflow_execution_metadata_columns');
   await applyMigration(
     '20261105090050_backfill_workflow_execution_metadata_columns',
   );
+  await assertPromotedColumns('backfill');
+  await insertPromotionFixtures('trigger');
+  await assertPromotedColumns('trigger');
   for (const [
     index,
     canonicalId,

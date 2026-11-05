@@ -3,8 +3,9 @@
 -- platform schedule sweep and the stale-PENDING reconciler all filtered on
 -- `result #> '{metadata,…}'`, so every candidate row had its `result` blob
 -- read and detoasted before Postgres could discard it. Three JSONB expression
--- indexes covered part of that; later migrations replace them with plain
--- column indexes.
+-- indexes covered part of that; later migrations add plain column indexes
+-- beside them. The JSONB indexes stay until a later release, because the old
+-- release still queries the JSON paths during the deploy and after a rollback.
 --
 -- The keys are set once, when the execution is created, and never change. A
 -- BEFORE INSERT trigger copies them from `result.metadata`, so every writer
@@ -16,6 +17,10 @@
 -- `isSystemAction`): JSON path equality never matched any other type, so the
 -- columns keep the old filters' semantics.
 --
+-- `metadata.brandId` stays in JSON: a `brandId` column would make executions
+-- brand-keyed for brand relocation, and proactive turns run on the shared
+-- system workflow, so they do not move with the brand.
+--
 -- Additive: nullable columns and one constant-default boolean (metadata-only
 -- changes), so the running release keeps working while this applies.
 
@@ -23,7 +28,6 @@ ALTER TABLE "workflow_executions"
   ADD COLUMN IF NOT EXISTS "canonicalId" TEXT,
   ADD COLUMN IF NOT EXISTS "source" TEXT,
   ADD COLUMN IF NOT EXISTS "strategyId" TEXT,
-  ADD COLUMN IF NOT EXISTS "brandId" TEXT,
   ADD COLUMN IF NOT EXISTS "threadId" TEXT,
   ADD COLUMN IF NOT EXISTS "dispatchClass" TEXT,
   ADD COLUMN IF NOT EXISTS "dispatchId" TEXT,
@@ -55,7 +59,6 @@ BEGIN
     "workflow_execution_metadata_text"(metadata, 'strategyId'),
     "workflow_execution_metadata_text"(metadata, 'agentStrategyId')
   );
-  NEW."brandId" := "workflow_execution_metadata_text"(metadata, 'brandId');
   NEW."threadId" := "workflow_execution_metadata_text"(metadata, 'threadId');
   NEW."dispatchClass" := "workflow_execution_metadata_text"(metadata, 'dispatchClass');
   NEW."dispatchId" := "workflow_execution_metadata_text"(metadata, 'dispatchId');
