@@ -29,6 +29,7 @@
     "views": "Website views",
     "chartViews": "Views",
     "resourceActions": "Resource actions",
+    "noTraffic": "No website views in this period yet",
     "unavailable": {
       "not_configured": "Website traffic reporting is not configured for this workspace yet.",
       "not_published": "Traffic is available after this article is published on the public website.",

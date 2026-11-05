@@ -1,5 +1,6 @@
 import type { AnalyticsMetric, Platform } from '@genfeedai/contracts';
 import type { BrandPerformanceData } from '@genfeedai/services/analytics/analytics.service';
+import type { EmptyStateAction } from '@ui/primitives/empty-state';
 
 /** Product {@link Platform} ids. Chart series keys stay lowercase enum values. */
 export type SocialPlatform = Platform;
@@ -23,6 +24,8 @@ export interface PlatformTimeSeriesChartProps {
   isLoading?: boolean;
   height?: number;
   className?: string;
+  /** Next step shown on the empty chart (connect an account, publish). */
+  emptyAction?: EmptyStateAction;
 }
 
 export interface BrandPerformanceChartProps {
@@ -35,4 +38,6 @@ export interface BrandPerformanceChartProps {
   isLoading?: boolean;
   height?: number;
   className?: string;
+  /** Next step shown when no brand has any activity in the range. */
+  emptyAction?: EmptyStateAction;
 }
