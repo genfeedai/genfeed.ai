@@ -1,19 +1,14 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
+import { useAnimatedIconControls } from '@ui/primitives/animated-icons/use-animated-icon-controls';
 import type { Variants } from 'motion/react';
-import { motion, useAnimation } from 'motion/react';
-import type { HTMLAttributes } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
-
-export interface GraduationCapIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface GraduationCapIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
+import { motion } from 'motion/react';
+import { forwardRef } from 'react';
 
 const CAP_VARIANTS: Variants = {
   normal: {
@@ -41,83 +36,52 @@ const TASSEL_VARIANTS: Variants = {
   },
 };
 
-const GraduationCapIcon = forwardRef<
-  GraduationCapIconHandle,
-  GraduationCapIconProps
->(({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-  const controls = useAnimation();
-  const isControlledRef = useRef(false);
+const GraduationCapIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
+  ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
+    const { controls, handleMouseEnter, handleMouseLeave } =
+      useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave });
 
-  useImperativeHandle(ref, () => {
-    isControlledRef.current = true;
-    return {
-      startAnimation: () => controls.start('animate'),
-      stopAnimation: () => controls.start('normal'),
-    };
-  });
-
-  const handleMouseEnter = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (isControlledRef.current) {
-        onMouseEnter?.(e);
-      } else {
-        controls.start('animate');
-      }
-    },
-    [controls, onMouseEnter],
-  );
-
-  const handleMouseLeave = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (isControlledRef.current) {
-        onMouseLeave?.(e);
-      } else {
-        controls.start('normal');
-      }
-    },
-    [controls, onMouseLeave],
-  );
-
-  return (
-    <div
-      className={cn('inline-flex shrink-0', className)}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      {...props}
-    >
-      <svg
-        className="size-full"
-        fill="none"
-        height={size}
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-        viewBox="0 0 24 24"
-        width={size}
-        xmlns="http://www.w3.org/2000/svg"
+    return (
+      <div
+        className={cn('inline-flex shrink-0', className)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        {...props}
       >
-        <motion.g
-          animate={controls}
-          style={{ transformOrigin: '12px 12px' }}
-          variants={CAP_VARIANTS}
+        <svg
+          className="size-full"
+          fill="none"
+          height={size}
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          viewBox="0 0 24 24"
+          width={size}
+          xmlns="http://www.w3.org/2000/svg"
         >
-          <path d="M2 10l10-5 10 5-10 5z" />
-          <path d="M6 12v5c3 3 9 3 12 0v-5" />
+          <motion.g
+            animate={controls}
+            style={{ transformOrigin: '12px 12px' }}
+            variants={CAP_VARIANTS}
+          >
+            <path d="M2 10l10-5 10 5-10 5z" />
+            <path d="M6 12v5c3 3 9 3 12 0v-5" />
 
-          <motion.path
-            d="M22 10v6"
-            style={{
-              transformBox: 'fill-box',
-              transformOrigin: 'top center',
-            }}
-            variants={TASSEL_VARIANTS}
-          />
-        </motion.g>
-      </svg>
-    </div>
-  );
-});
+            <motion.path
+              d="M22 10v6"
+              style={{
+                transformBox: 'fill-box',
+                transformOrigin: 'top center',
+              }}
+              variants={TASSEL_VARIANTS}
+            />
+          </motion.g>
+        </svg>
+      </div>
+    );
+  },
+);
 
 GraduationCapIcon.displayName = 'GraduationCapIcon';
 

@@ -15,23 +15,30 @@ import { ArrowRightIcon } from './icons/arrow-right';
 import { ArrowUpIcon } from './icons/arrow-up';
 import { AtSignIcon } from './icons/at-sign';
 import { AudioLinesIcon } from './icons/audio-lines';
+import { BadgePercentIcon } from './icons/badge-percent';
 import { BellIcon } from './icons/bell';
 import { BinaryIcon } from './icons/binary';
 import { BlocksIcon } from './icons/blocks';
 import { BoldIcon } from './icons/bold';
 import { BookTextIcon } from './icons/book-text';
 import { BookmarkIcon } from './icons/bookmark';
+import { BookmarkCheckIcon } from './icons/bookmark-check';
 import { BotIcon } from './icons/bot';
 import { BoxIcon } from './icons/box';
 import { BrainIcon } from './icons/brain';
+import { BriefcaseBusinessIcon } from './icons/briefcase-business';
+import { CalendarDaysIcon } from './icons/calendar-days';
 import { ChartLineIcon } from './icons/chart-line';
 import { ChartPieIcon } from './icons/chart-pie';
 import { CheckIcon } from './icons/check';
 import { ChevronLeftIcon } from './icons/chevron-left';
+import { ChevronRightIcon } from './icons/chevron-right';
 import { ChevronUpIcon } from './icons/chevron-up';
 import { CircleCheckIcon } from './icons/circle-check';
+import { CircleDollarSignIcon } from './icons/circle-dollar-sign';
 import { CircleHelpIcon } from './icons/circle-help';
 import { ClapIcon } from './icons/clap';
+import { ClipboardCheckIcon } from './icons/clipboard-check';
 import { CloudSyncIcon } from './icons/cloud-sync';
 import { CogIcon } from './icons/cog';
 import { CopyIcon } from './icons/copy';
@@ -39,14 +46,17 @@ import { CpuIcon } from './icons/cpu';
 import { CreditCardIcon } from './icons/credit-card';
 import { DownloadIcon } from './icons/download';
 import { ExpandIcon } from './icons/expand';
+import { ExternalLinkIcon } from './icons/external-link';
 import { EyeIcon } from './icons/eye';
 import { FilePenLineIcon } from './icons/file-pen-line';
 import { FileStackIcon } from './icons/file-stack';
 import { FileTextIcon as FILE_TEXT } from './icons/file-text';
 import { FlameIcon } from './icons/flame';
+import { FolderOpenIcon } from './icons/folder-open';
 import { FrameIcon } from './icons/frame';
 import { GaugeIcon } from './icons/gauge';
 import { GavelIcon } from './icons/gavel';
+import { GraduationCapIcon } from './icons/graduation-cap';
 import { HandCoinsIcon } from './icons/hand-coins';
 import { HandHeartIcon } from './icons/hand-heart';
 import { HistoryIcon } from './icons/history';
@@ -59,20 +69,29 @@ import { LockIcon } from './icons/lock';
 import { LockKeyholeIcon } from './icons/lock-keyhole';
 import { MailCheckIcon } from './icons/mail-check';
 import { Maximize2Icon } from './icons/maximize-2';
+import { MessageSquareIcon } from './icons/message-square';
 import { MicIcon } from './icons/mic';
+import { PanelLeftCloseIcon } from './icons/panel-left-close';
+import { PanelLeftOpenIcon } from './icons/panel-left-open';
 import { PauseIcon } from './icons/pause';
 import { PenToolIcon } from './icons/pen-tool';
 import { PlayIcon } from './icons/play';
 import { PlugZapIcon } from './icons/plug-zap';
 import { PlusIcon } from './icons/plus';
+import { RefreshCCWIcon } from './icons/refresh-ccw';
+import { RefreshCWIcon } from './icons/refresh-cw';
 import { RocketIcon } from './icons/rocket';
+import { RotateCCWIcon } from './icons/rotate-ccw';
 import { RouteIcon } from './icons/route';
 import { ScissorsIcon } from './icons/scissors';
 import { SearchIcon } from './icons/search';
 import { SendIcon } from './icons/send';
+import { ServerIcon } from './icons/server';
 import { ServerCrashIcon } from './icons/server-crash';
 import { SettingsIcon } from './icons/settings';
 import { ShieldCheckIcon } from './icons/shield-check';
+import { SlidersHorizontalIcon } from './icons/sliders-horizontal';
+import { SmileIcon } from './icons/smile';
 import { SquareActivityIcon } from './icons/square-activity';
 import { SquarePenIcon } from './icons/square-pen';
 import { TelescopeIcon } from './icons/telescope';
@@ -83,6 +102,7 @@ import { UploadIcon } from './icons/upload';
 import { UserIcon } from './icons/user';
 import { UserCheckIcon } from './icons/user-check';
 import { UserPlusIcon } from './icons/user-plus';
+import { UserRoundPlusIcon } from './icons/user-round-plus';
 import { UsersIcon } from './icons/users';
 import { UsersRoundIcon } from './icons/users-round';
 import { WalletIcon } from './icons/wallet';
@@ -195,6 +215,26 @@ const icons: Array<[string, AnimatedIconComponent, number]> = [
   ['wrench', WrenchIcon, 18],
   ['x', XIcon, 18],
   ['zap', ZapIcon, 18],
+  ['badge-percent', BadgePercentIcon, 18],
+  ['bookmark-check', BookmarkCheckIcon, 18],
+  ['briefcase-business', BriefcaseBusinessIcon, 18],
+  ['calendar-days', CalendarDaysIcon, 18],
+  ['chevron-right', ChevronRightIcon, 18],
+  ['circle-dollar-sign', CircleDollarSignIcon, 18],
+  ['clipboard-check', ClipboardCheckIcon, 18],
+  ['external-link', ExternalLinkIcon, 18],
+  ['folder-open', FolderOpenIcon, 18],
+  ['graduation-cap', GraduationCapIcon, 18],
+  ['message-square', MessageSquareIcon, 18],
+  ['panel-left-close', PanelLeftCloseIcon, 18],
+  ['panel-left-open', PanelLeftOpenIcon, 18],
+  ['refresh-ccw', RefreshCCWIcon, 18],
+  ['refresh-cw', RefreshCWIcon, 18],
+  ['rotate-ccw', RotateCCWIcon, 18],
+  ['server', ServerIcon, 18],
+  ['sliders-horizontal', SlidersHorizontalIcon, 18],
+  ['smile', SmileIcon, 18],
+  ['user-round-plus', UserRoundPlusIcon, 18],
 ];
 
 describe.each(icons)(

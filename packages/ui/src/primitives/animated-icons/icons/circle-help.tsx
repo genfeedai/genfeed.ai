@@ -1,27 +1,21 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
 import { useAnimatedIconControls } from '@ui/primitives/animated-icons/use-animated-icon-controls';
 import type { Variants } from 'motion/react';
 import { motion } from 'motion/react';
-import type { HTMLAttributes } from 'react';
 import { forwardRef } from 'react';
-
-export interface CircleHelpIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface CircleHelpIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
 
 const VARIANTS: Variants = {
   normal: { rotate: 0 },
   animate: { rotate: [0, -10, 10, -10, 0] },
 };
 
-const CircleHelpIcon = forwardRef<CircleHelpIconHandle, CircleHelpIconProps>(
+const CircleHelpIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const { controls, handleMouseEnter, handleMouseLeave } =
       useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave });

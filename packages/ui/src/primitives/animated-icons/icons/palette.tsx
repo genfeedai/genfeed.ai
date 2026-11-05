@@ -1,19 +1,13 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
 import type { Variants } from 'motion/react';
 import { motion, useAnimation } from 'motion/react';
-import type { HTMLAttributes } from 'react';
 import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
-
-export interface PaletteIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface PaletteIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
 
 const DASH_LENGTH = 70;
 const DRAW_DURATION = 0.45;
@@ -68,7 +62,7 @@ const DOT_VARIANTS: Variants = {
   },
 };
 
-const PaletteIcon = forwardRef<PaletteIconHandle, PaletteIconProps>(
+const PaletteIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const controls = useAnimation();
     const isControlledRef = useRef(false);

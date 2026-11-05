@@ -1,20 +1,15 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
 import { useAnimatedIconControls } from '@ui/primitives/animated-icons/use-animated-icon-controls';
 import type { Variants } from 'motion/react';
 import { motion } from 'motion/react';
-import type { HTMLAttributes } from 'react';
 import { forwardRef } from 'react';
 
-export interface HandHeartIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface HandHeartIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
 const HEART_VARIANTS: Variants = {
   normal: {
     translateY: 0,
@@ -40,7 +35,7 @@ const HEART_VARIANTS: Variants = {
   },
 };
 
-const HandHeartIcon = forwardRef<HandHeartIconHandle, HandHeartIconProps>(
+const HandHeartIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const { controls, handleMouseEnter, handleMouseLeave } =
       useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave });

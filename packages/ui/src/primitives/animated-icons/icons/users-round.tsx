@@ -1,19 +1,13 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
 import { useAnimatedIconControls } from '@ui/primitives/animated-icons/use-animated-icon-controls';
 import { motion, type Variants } from 'motion/react';
-import type { HTMLAttributes } from 'react';
 import { forwardRef } from 'react';
-
-export interface UsersRoundIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface UsersRoundIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
 
 const PATH_VARIANTS: Variants = {
   normal: {
@@ -37,7 +31,7 @@ const PATH_VARIANTS: Variants = {
   },
 };
 
-const UsersRoundIcon = forwardRef<UsersRoundIconHandle, UsersRoundIconProps>(
+const UsersRoundIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const { controls, handleMouseEnter, handleMouseLeave } =
       useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave });

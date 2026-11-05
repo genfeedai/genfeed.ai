@@ -1,20 +1,14 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
 import { useAnimatedIconControls } from '@ui/primitives/animated-icons/use-animated-icon-controls';
 import type { Variants } from 'motion/react';
 import { motion } from 'motion/react';
-import type { HTMLAttributes } from 'react';
 import { forwardRef } from 'react';
-
-export interface PauseIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface PauseIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
 
 const BASE_RECT_VARIANTS: Variants = {
   normal: {
@@ -47,7 +41,7 @@ const RIGHT_RECT_VARIANTS: Variants = {
   },
 };
 
-const PauseIcon = forwardRef<PauseIconHandle, PauseIconProps>(
+const PauseIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const { controls, handleMouseEnter, handleMouseLeave } =
       useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave });

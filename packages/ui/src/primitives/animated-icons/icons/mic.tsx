@@ -1,20 +1,14 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
 import { useAnimatedIconControls } from '@ui/primitives/animated-icons/use-animated-icon-controls';
 import type { Variants } from 'motion/react';
 import { motion } from 'motion/react';
-import type { HTMLAttributes } from 'react';
 import { forwardRef } from 'react';
-
-export interface MicIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface MicIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
 
 const CAPSULE_VARIANTS: Variants = {
   normal: { y: 0 },
@@ -27,7 +21,7 @@ const CAPSULE_VARIANTS: Variants = {
   },
 };
 
-const MicIcon = forwardRef<MicIconHandle, MicIconProps>(
+const MicIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const { controls, handleMouseEnter, handleMouseLeave } =
       useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave });

@@ -1,83 +1,45 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
+import {
+  type AnimatedIconSequence,
+  useAnimatedIconControls,
+} from '@ui/primitives/animated-icons/use-animated-icon-controls';
 import type { Variants } from 'motion/react';
-import { motion, useAnimation } from 'motion/react';
-import type { HTMLAttributes } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
-
-export interface ChartColumnIncreasingIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface ChartColumnIncreasingIconProps
-  extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
+import { motion } from 'motion/react';
+import { forwardRef } from 'react';
 
 const LINE_VARIANTS: Variants = {
   visible: { pathLength: 1, opacity: 1 },
   hidden: { pathLength: 0, opacity: 0 },
 };
 
+const SEQUENCE: AnimatedIconSequence = {
+  start: async (controls) => {
+    await controls.start((i) => ({
+      pathLength: 0,
+      opacity: 0,
+      transition: { delay: i * 0.1, duration: 0.3 },
+    }));
+    await controls.start((i) => ({
+      pathLength: 1,
+      opacity: 1,
+      transition: { delay: i * 0.1, duration: 0.3 },
+    }));
+  },
+  stop: (controls) => controls.start('visible'),
+};
+
 const ChartColumnIncreasingIcon = forwardRef<
-  ChartColumnIncreasingIconHandle,
-  ChartColumnIncreasingIconProps
+  AnimatedIconHandle,
+  AnimatedIconProps
 >(({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-  const controls = useAnimation();
-  const isControlledRef = useRef(false);
-
-  useImperativeHandle(ref, () => {
-    isControlledRef.current = true;
-
-    return {
-      startAnimation: async () => {
-        await controls.start((i) => ({
-          pathLength: 0,
-          opacity: 0,
-          transition: { delay: i * 0.1, duration: 0.3 },
-        }));
-        await controls.start((i) => ({
-          pathLength: 1,
-          opacity: 1,
-          transition: { delay: i * 0.1, duration: 0.3 },
-        }));
-      },
-      stopAnimation: () => controls.start('visible'),
-    };
-  });
-
-  const handleMouseEnter = useCallback(
-    async (e: React.MouseEvent<HTMLDivElement>) => {
-      if (isControlledRef.current) {
-        onMouseEnter?.(e);
-      } else {
-        await controls.start((i) => ({
-          pathLength: 0,
-          opacity: 0,
-          transition: { delay: i * 0.1, duration: 0.3 },
-        }));
-        await controls.start((i) => ({
-          pathLength: 1,
-          opacity: 1,
-          transition: { delay: i * 0.1, duration: 0.3 },
-        }));
-      }
-    },
-    [controls, onMouseEnter],
-  );
-
-  const handleMouseLeave = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (isControlledRef.current) {
-        onMouseLeave?.(e);
-      } else {
-        controls.start('visible');
-      }
-    },
-    [controls, onMouseLeave],
-  );
+  const { controls, handleMouseEnter, handleMouseLeave } =
+    useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave }, SEQUENCE);
 
   return (
     <div

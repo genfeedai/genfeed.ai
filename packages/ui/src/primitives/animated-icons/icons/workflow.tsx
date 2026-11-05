@@ -1,20 +1,14 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import type {
+  AnimatedIconHandle,
+  AnimatedIconProps,
+} from '@ui/primitives/animated-icons/animated-icon.types';
 import { useAnimatedIconControls } from '@ui/primitives/animated-icons/use-animated-icon-controls';
 import type { Transition, Variants } from 'motion/react';
 import { motion } from 'motion/react';
-import type { HTMLAttributes } from 'react';
 import { forwardRef } from 'react';
-
-export interface WorkflowIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-}
-
-interface WorkflowIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
-}
 
 const TRANSITION: Transition = {
   duration: 0.3,
@@ -36,7 +30,7 @@ const VARIANTS: Variants = {
   }),
 };
 
-const WorkflowIcon = forwardRef<WorkflowIconHandle, WorkflowIconProps>(
+const WorkflowIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const { controls, handleMouseEnter, handleMouseLeave } =
       useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave });
