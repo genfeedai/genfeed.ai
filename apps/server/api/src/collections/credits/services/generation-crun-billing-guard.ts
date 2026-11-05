@@ -339,3 +339,38 @@ export async function acknowledgeByokUsage(
   });
   return 'already-settled';
 }
+
+/** The Crun billing guard bound to one Prisma client. */
+export function bindCrunBillingGuard(prisma: PrismaService) {
+  return {
+    dispositionAllowed: (
+      ingredientId: string,
+      organizationId: string,
+      disposition: 'settle' | 'release',
+    ): Promise<boolean> =>
+      isCrunBillingDispositionAllowed(
+        prisma,
+        ingredientId,
+        organizationId,
+        disposition,
+      ),
+    mutate: <T>(
+      ingredientId: string,
+      organizationId: string,
+      disposition: 'settle' | 'release',
+      mutate: (tx: Prisma.TransactionClient) => Promise<T>,
+    ): Promise<T | 'held' | undefined> =>
+      runCrunBillingMutation(
+        prisma,
+        ingredientId,
+        organizationId,
+        disposition,
+        mutate,
+      ),
+    recordFailure: (
+      ingredientId: string,
+      organizationId: string,
+    ): Promise<boolean> =>
+      recordCrunSubmissionFailure(prisma, ingredientId, organizationId),
+  };
+}
