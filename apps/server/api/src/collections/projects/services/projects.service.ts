@@ -4,10 +4,12 @@ import type { ProjectDocument } from '@api/collections/projects/schemas/project.
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type ProjectCreateInput = CreateProjectDto & { organizationId: string };
 
+@Traced()
 @Injectable()
 export class ProjectsService extends BaseService<
   ProjectDocument,

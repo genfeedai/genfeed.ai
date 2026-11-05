@@ -4,6 +4,7 @@ import {
   KnowledgeProcessingState,
   KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface ExpertCorpusSummary {
@@ -15,6 +16,7 @@ export interface ExpertCorpusSummary {
  * The expert's corpus is their brand-scoped `BRAND_TRUTH` knowledge — the
  * existing purpose prompts already treat as authoritative.
  */
+@Traced()
 @Injectable()
 export class ExpertCorpusService {
   constructor(private readonly prisma: PrismaService) {}

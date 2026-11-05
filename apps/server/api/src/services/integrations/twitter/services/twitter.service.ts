@@ -29,6 +29,7 @@ import {
 } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Inject, Injectable } from '@nestjs/common';
@@ -81,6 +82,7 @@ function requireString(
   return value;
 }
 
+@Traced()
 @Injectable()
 export class TwitterService {
   private readonly constructorName: string = String(this.constructor.name);

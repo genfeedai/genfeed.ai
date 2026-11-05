@@ -36,6 +36,7 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   ConflictException,
@@ -78,6 +79,7 @@ const ALLOWED_ASSET_CATEGORIES: Record<
   ]),
 };
 
+@Traced()
 @Injectable()
 export class EditorRenderService {
   constructor(

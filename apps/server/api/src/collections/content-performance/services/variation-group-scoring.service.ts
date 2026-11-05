@@ -8,6 +8,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 // A source-post variation group needs at least 2 scored members for a
@@ -78,6 +79,7 @@ type PostAccumulator = {
  * `variant-performance-scoring.util` — see that file for the formula and
  * its canonical source (`ContentRunRecommendationsService`, issue #166).
  */
+@Traced()
 @Injectable()
 export class VariationGroupScoringService {
   private readonly logContext = 'VariationGroupScoringService';

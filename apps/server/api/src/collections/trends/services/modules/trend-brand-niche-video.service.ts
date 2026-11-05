@@ -2,6 +2,7 @@ import type { TrendingVideoDocument } from '@api/collections/trends/schemas/tren
 import { CacheService } from '@api/services/cache/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const BRAND_NICHE_VIDEOS_LIMIT = 30;
@@ -15,6 +16,7 @@ const BRAND_NICHE_TTL_SECONDS = 36 * 60 * 60;
  * trending-video table: that table has no tenant column and feeds the global
  * market view.
  */
+@Traced()
 @Injectable()
 export class TrendBrandNicheVideoService {
   constructor(

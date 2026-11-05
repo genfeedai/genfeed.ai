@@ -17,6 +17,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -47,6 +48,7 @@ type ResolvedWorkflow = {
  * fill inputVariables from strategy context + optional overrides, execute.
  * Does not call the LLM for tool selection.
  */
+@Traced()
 @Injectable()
 export class AgentStrategyWorkflowRunService {
   private readonly logContext = 'AgentStrategyWorkflowRunService';

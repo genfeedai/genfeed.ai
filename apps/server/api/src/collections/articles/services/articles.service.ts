@@ -99,6 +99,7 @@ import { ArticleScope, WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   forwardRef,
   Inject,
@@ -122,6 +123,7 @@ export type ArticleReviewActionResult = {
   review: ArticleReviewRubric;
 };
 
+@Traced()
 @Injectable()
 export class ArticlesService
   extends BaseService<

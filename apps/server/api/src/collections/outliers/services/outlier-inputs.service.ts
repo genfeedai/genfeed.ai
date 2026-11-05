@@ -13,6 +13,7 @@ import type {
   OutlierObservation,
   OutlierResolvedAccount,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export function normalizeOutlierContentType(value: string): string {
@@ -39,6 +40,7 @@ export function readOutlierViews(value: unknown): number | null {
   return typeof views === 'number' ? views : null;
 }
 
+@Traced()
 @Injectable()
 export class OutlierInputsService {
   constructor(private readonly prisma: PrismaService) {}

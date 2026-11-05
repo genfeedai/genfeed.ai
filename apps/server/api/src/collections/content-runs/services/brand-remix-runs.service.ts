@@ -48,6 +48,7 @@ import {
   type BrandRemixRunSummary,
   brandRemixRunListQuerySchema,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run-summary.contract';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 /**
@@ -55,6 +56,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
  * provider dispatch, execution, review, and paid-draft handoff stay in
  * independently testable services.
  */
+@Traced()
 @Injectable()
 export class BrandRemixRunsService {
   constructor(

@@ -6,6 +6,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { SystemEventWebhook } from '@genfeedai/prisma';
 import type { SystemEvent } from '@libs/interfaces/system-event.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** A destination delivery that keeps failing becomes terminal (`failedAt`) at this many attempts. */
@@ -68,6 +69,7 @@ export async function reopenFailedEvent(
   return true;
 }
 
+@Traced()
 @Injectable()
 export class SystemEventDeliveryService {
   constructor(

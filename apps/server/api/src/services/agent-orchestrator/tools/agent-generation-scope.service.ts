@@ -13,8 +13,10 @@ import {
   buildGenerationContextReceipt,
   readSelectedGenerationContext,
 } from '@genfeedai/helpers/generation-context.helper';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class AgentGenerationScopeService {
   constructor(

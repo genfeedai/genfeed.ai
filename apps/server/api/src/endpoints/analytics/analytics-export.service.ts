@@ -13,6 +13,7 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { CredentialPlatform, PublishStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import type {
@@ -65,6 +66,7 @@ export interface AnalyticsExportScope {
   readonly startDate?: string;
 }
 
+@Traced()
 @Injectable()
 export class AnalyticsExportService {
   constructor(

@@ -22,6 +22,7 @@ import type {
   TypedDecisionMode,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 /**
@@ -155,6 +156,7 @@ export interface EvaluateToolResultParams {
  * the flag on the run's audit trail with the tool and the source, and hands
  * the model the original content regardless.
  */
+@Traced()
 @Injectable()
 export class AgentUntrustedContentGateService {
   private readonly constructorName = String(this.constructor.name);

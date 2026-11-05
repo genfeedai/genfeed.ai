@@ -23,6 +23,7 @@ import {
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
 type SubscriptionInvoiceBillingReason =
@@ -50,6 +51,7 @@ function isSubscriptionInvoiceBillingReason(
 }
 
 /** Handles invoice.paid / invoice.payment_failed Stripe webhook events. */
+@Traced()
 @Injectable()
 export class StripeInvoiceWebhookHandler {
   constructor(

@@ -10,6 +10,7 @@ import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IFileMetadata } from '@genfeedai/contracts/interfaces';
 import { Prisma, WorkflowNodeContinuationStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const INGESTION_LEASE_MS = 15 * 60 * 1000;
@@ -20,6 +21,7 @@ function record(value: unknown): Record<string, unknown> {
 }
 
 /** Accepted provider URLs are ingested again after a file failure, never submitted to the provider again. */
+@Traced()
 @Injectable()
 export class WorkflowFalOutputFinalizationService {
   constructor(

@@ -6,6 +6,7 @@ import {
 } from '@api/seeds/studio-element-catalog';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export type StudioElementSeedResult = {
@@ -35,6 +36,7 @@ type ElementDelegate = {
   }) => Promise<{ id: string } | null>;
 };
 
+@Traced()
 @Injectable()
 export class StudioElementSeedService {
   private readonly context = 'StudioElementSeedService';

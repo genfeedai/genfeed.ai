@@ -16,6 +16,7 @@ import {
   readTrimmedStringOrNull,
 } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
@@ -118,6 +119,7 @@ export function classifyOwnAccountPost(
  * plus anything the user pasted as their own. Every read is scoped to the
  * organization and brand.
  */
+@Traced()
 @Injectable()
 export class BrandVoiceCorpusService {
   private readonly constructorName = this.constructor.name;

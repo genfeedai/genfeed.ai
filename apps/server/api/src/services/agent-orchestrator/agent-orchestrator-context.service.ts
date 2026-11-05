@@ -53,6 +53,7 @@ import {
 } from '@genfeedai/contracts';
 import type { ResolvedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
@@ -81,6 +82,7 @@ function isInFlowBrandQuestionTurn(request: AgentChatRequest): boolean {
   );
 }
 
+@Traced()
 @Injectable()
 export class AgentOrchestratorContextService {
   private readonly constructorName = String(this.constructor.name);

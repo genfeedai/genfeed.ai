@@ -19,6 +19,7 @@ import { createGenfeedActionNode } from '@genfeedai/actions';
 import { EditorTrackType, IngredientFormat } from '@genfeedai/contracts';
 import type { ClipperReadyAction } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -112,6 +113,7 @@ type ClipperHandoffInput = {
   projectId: string;
 };
 
+@Traced()
 @Injectable()
 export class ClipperHandoffWorkflowService implements OnModuleInit {
   constructor(

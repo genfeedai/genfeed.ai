@@ -10,8 +10,10 @@ import type {
 import { resolveProviderCostUnits } from '@genfeedai/pricing';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class MediaVendorCostLedgerService {
   private readonly constructorName = String(this.constructor.name);

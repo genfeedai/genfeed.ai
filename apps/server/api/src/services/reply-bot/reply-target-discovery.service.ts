@@ -25,6 +25,7 @@ import type {
   IReplyTargetSuggestion,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
@@ -61,6 +62,7 @@ interface AuthorTally {
  * warm-up monitor. It only reads: nothing is replied to from here, and the
  * monitor's replies are drafts for a person to post.
  */
+@Traced()
 @Injectable()
 export class ReplyTargetDiscoveryService {
   constructor(

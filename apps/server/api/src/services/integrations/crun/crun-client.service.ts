@@ -11,6 +11,7 @@ import type {
   CrunProviderRequest,
   CrunResolvedCredential,
 } from '@api/services/integrations/crun/crun-task.schema';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export type CrunClientResult<T> =
@@ -25,6 +26,7 @@ export type CrunClientResult<T> =
 const REFUSALS = new Set([401, 402, 422, 429, 455, 505]);
 const BASE = 'https://api.crun.ai/api/v1/client/job/';
 
+@Traced()
 @Injectable()
 export class CrunClient {
   constructor(private readonly cache: CacheService) {}

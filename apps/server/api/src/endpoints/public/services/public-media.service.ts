@@ -3,10 +3,12 @@ import type {
   IMediaProvenanceManifest,
   IPublicMediaRouteReference,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const publicMediaPath = (assetId: string): string => `/public/media/${assetId}`;
 
+@Traced()
 @Injectable()
 export class PublicMediaService {
   constructor(

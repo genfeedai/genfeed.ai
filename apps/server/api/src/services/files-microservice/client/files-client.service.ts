@@ -31,6 +31,7 @@ import type {
 import { filesServiceAuthHeaders } from '@libs/auth/files-service-key';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import type { AxiosResponse } from 'axios';
@@ -95,6 +96,7 @@ function filenameForUpload(contentType: string, filename = 'upload'): string {
   }
 }
 
+@Traced()
 @Injectable()
 export class FilesClientService {
   private readonly filesServiceUrl: string;

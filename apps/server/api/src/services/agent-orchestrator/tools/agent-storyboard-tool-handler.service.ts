@@ -26,6 +26,7 @@ import {
   storyboardSlideshowToolSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-slideshow-tool.contract';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, Injectable } from '@nestjs/common';
 import type { z } from 'zod';
 
@@ -53,6 +54,7 @@ const PRESENTER_TRACKS: Record<
  * render, is credit-spending, and so waits for chat approval in Manual mode.
  * The API still refuses it when the quoted inputs changed.
  */
+@Traced()
 @Injectable()
 export class AgentStoryboardToolHandler {
   constructor(

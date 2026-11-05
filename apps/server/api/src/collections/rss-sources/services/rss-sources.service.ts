@@ -37,6 +37,7 @@ import {
 import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { safeFetch } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const RSS_SCHEDULE_DELAY_MS = 5 * 60 * 1000;
@@ -96,6 +97,7 @@ async function readBoundedText(
   }
 }
 
+@Traced()
 @Injectable()
 export class RssSourcesService {
   constructor(

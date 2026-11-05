@@ -23,6 +23,7 @@ import {
 } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -34,6 +35,7 @@ type ArticlePatcher = (
   updates: Partial<UpdateArticleDto>,
 ) => Promise<unknown>;
 
+@Traced()
 @Injectable()
 export class ArticleInsightsService {
   private readonly constructorName = this.constructor.name;

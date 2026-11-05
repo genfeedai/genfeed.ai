@@ -11,8 +11,10 @@ import {
   SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
 } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ClipperFactoryWorkflowQueueService {
   constructor(private readonly workflowQueue: WorkflowExecutionQueueService) {}

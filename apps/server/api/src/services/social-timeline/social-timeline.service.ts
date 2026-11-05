@@ -37,6 +37,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma, SourcePostNativeAction } from '@genfeedai/prisma';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -44,6 +45,7 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class SocialTimelineService implements OnModuleInit {
   constructor(

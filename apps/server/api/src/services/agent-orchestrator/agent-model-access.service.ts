@@ -4,6 +4,7 @@ import {
   LLM_DEFAULTS,
 } from '@genfeedai/contracts/constants';
 import type { IAgentModelAccess } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const UNLOCKED: IAgentModelAccess = {
@@ -23,6 +24,7 @@ const UNLOCKED: IAgentModelAccess = {
  * billing (community self-host, desktop) never lock. BYOK keys never lift the
  * lock: BYOK itself requires a paid subscription on billed deployments.
  */
+@Traced()
 @Injectable()
 export class AgentModelAccessService {
   constructor(

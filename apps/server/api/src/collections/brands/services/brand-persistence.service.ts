@@ -14,6 +14,7 @@ import type {
   IScrapedBrandData,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
@@ -37,6 +38,7 @@ const SOCIAL_LINK_LABELS: Record<keyof IExtractedSocialLinks, string> = {
  * endpoint per REST audit #1354 so the OnboardingModule ↔ BrandsModule import
  * cycle disappears.
  */
+@Traced()
 @Injectable()
 export class BrandPersistenceService {
   private readonly constructorName: string = String(this.constructor.name);

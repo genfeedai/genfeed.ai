@@ -12,9 +12,11 @@ import { YoutubeService } from '@api/services/integrations/youtube/services/yout
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class YouTubePublisherService extends BasePublisherService {
   readonly platform = CredentialPlatform.YOUTUBE;

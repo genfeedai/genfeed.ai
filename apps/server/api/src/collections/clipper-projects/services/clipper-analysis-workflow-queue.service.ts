@@ -5,8 +5,10 @@ import {
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { ClipperAnalysisWorkflowInput } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ClipperAnalysisWorkflowQueueService {
   constructor(private readonly workflowQueue: WorkflowExecutionQueueService) {}

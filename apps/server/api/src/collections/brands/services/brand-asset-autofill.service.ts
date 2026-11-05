@@ -18,6 +18,7 @@ import type {
   IScrapedImageCandidate,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type AutofillRole = Exclude<BrandKitAssetRole, 'reference'>;
@@ -40,6 +41,7 @@ const SOCIAL_AVATAR_CANDIDATE_LIMIT = 5;
  * through to the next. Best-effort by design: failures are logged, never
  * thrown, so neither onboarding nor an OAuth callback can fail on them.
  */
+@Traced()
 @Injectable()
 export class BrandAssetAutofillService {
   private readonly context = 'BrandAssetAutofillService';

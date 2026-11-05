@@ -11,6 +11,7 @@ import {
   workflowWebhookPayloadSchema,
 } from '@genfeedai/contracts/api-types/contracts/workflow-webhook-events.contract';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import {
   WebhookDispatchService,
@@ -38,6 +39,7 @@ export interface WorkflowExecutionWebhookInput {
  * single terminal transition in `WorkflowExecutionsService.completeExecution`.
  * Emission is best-effort: a webhook problem never fails the execution.
  */
+@Traced()
 @Injectable()
 export class WorkflowEventWebhookService {
   private readonly constructorName = 'WorkflowEventWebhookService';

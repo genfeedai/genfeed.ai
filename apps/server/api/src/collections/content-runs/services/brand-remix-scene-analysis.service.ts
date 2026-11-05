@@ -17,6 +17,7 @@ import type {
   BrandRemixSceneQuote,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -63,6 +64,7 @@ const analysisOutput = z
   })
   .strict();
 
+@Traced()
 @Injectable()
 export class BrandRemixSceneAnalysisService {
   constructor(

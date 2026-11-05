@@ -37,8 +37,10 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { ModelBillableQuoteSnapshot } from '@genfeedai/contracts/interfaces';
 import { buildPricingAuditStamp } from '@genfeedai/pricing';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ImageGenerationCreditsService {
   constructor(

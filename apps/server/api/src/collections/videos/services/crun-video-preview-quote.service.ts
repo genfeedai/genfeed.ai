@@ -15,10 +15,12 @@ import { CrunTaskService } from '@api/services/integrations/crun/crun-task.servi
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export type CrunConsumedVideoQuote = CrunConsumedQuoteOf<CrunFrozenVideoQuote>;
 
+@Traced()
 @Injectable()
 export class CrunVideoPreviewQuoteService extends CrunPreviewQuoteLifecycle<
   CrunVideoQuoteIntent,

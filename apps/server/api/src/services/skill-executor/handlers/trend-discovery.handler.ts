@@ -4,8 +4,10 @@ import {
   type SkillExecutionContext,
   type SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class TrendDiscoveryHandler implements SkillHandler {
   constructor(private readonly trendsService: TrendsService) {}

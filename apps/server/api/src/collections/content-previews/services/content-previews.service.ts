@@ -20,6 +20,7 @@ import {
   toPrismaJson,
   WarmupAccountStatus,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export const DEFAULT_PREVIEW_LIFETIME_DAYS = 14;
@@ -46,6 +47,7 @@ export interface CreateContentPreviewInput {
  * SHA-256 hash, and an unknown, expired, revoked or archived preview all
  * resolve to the same 404 so a visitor cannot probe which tokens existed.
  */
+@Traced()
 @Injectable()
 export class ContentPreviewsService {
   constructor(

@@ -1,6 +1,9 @@
 // Dormant live algorithm coverage only. The unmocked activation boundary is tested separately.
 const { metricsCount } = vi.hoisted(() => ({ metricsCount: vi.fn() }));
-vi.mock('@sentry/nestjs', () => ({ metrics: { count: metricsCount } }));
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
+  metrics: { count: metricsCount },
+}));
 vi.mock(
   '@api/services/agent-orchestrator/utils/agent-untrusted-content-decision-config.util',
   () => ({

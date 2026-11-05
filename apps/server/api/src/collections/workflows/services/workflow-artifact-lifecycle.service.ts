@@ -16,6 +16,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export const WORKFLOW_ARTIFACT_ACTION_IDS = {
@@ -56,6 +57,7 @@ type CleanupScope = {
   userId: string;
 };
 
+@Traced()
 @Injectable()
 export class WorkflowArtifactLifecycleService implements OnModuleInit {
   private readonly context = 'WorkflowArtifactLifecycleService';

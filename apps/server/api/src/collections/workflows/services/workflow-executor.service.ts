@@ -56,6 +56,7 @@ import {
 import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
 import { toAgentScopeMetadata } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 export {
@@ -77,6 +78,7 @@ export type {
  * public API remains stable while graph traversal, review gates, progress/ETA,
  * and finalization stay testable in isolation.
  */
+@Traced()
 @Injectable()
 export class WorkflowExecutorService {
   private readonly logContext = 'WorkflowExecutorService';

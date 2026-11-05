@@ -21,6 +21,7 @@ import type {
   AdsResearchPlatform,
   AdsResearchSource,
 } from '@genfeedai/contracts/interfaces/integrations/ads-research.interface';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -49,6 +50,7 @@ function adsPlatformHref(platform: AdsResearchPlatform | 'all'): string {
  * `create_ad_remix_workflow`, `generate_ad_pack`, `prepare_ad_launch_review`).
  * Extracted from AgentToolExecutorService per #519.
  */
+@Traced()
 @Injectable()
 export class AgentAdsResearchToolHandler {
   constructor(

@@ -20,6 +20,7 @@ import {
   createTextActionGate,
   resolveTextActionLimit,
 } from '@genfeedai/helpers/content/text-action/text-action-text.helper';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const DEFAULT_CHANNEL_LIMIT = 5000;
@@ -37,6 +38,7 @@ const UNSUPPORTED_PLATFORM: TextActionFailureV1 = {
  * own draft (#4343) and draft reply options to a post (#4342). Each builds its
  * prompt and answer gate and hands one generation to the branded runner.
  */
+@Traced()
 @Injectable()
 export class BrandedTextActionsService {
   constructor(private readonly runner: BrandedTextRunnerService) {}

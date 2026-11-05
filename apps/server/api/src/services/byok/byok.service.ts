@@ -28,6 +28,7 @@ import {
   toPrismaJson,
 } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import {
@@ -210,6 +211,7 @@ const BYOK_PROVIDER_LABELS: Record<
  * credit bypass and provider factory resolves keys here, so an unpaid
  * organization falls back to Genfeed-hosted generation billed in credits.
  */
+@Traced()
 @Injectable()
 export class ByokService {
   constructor(

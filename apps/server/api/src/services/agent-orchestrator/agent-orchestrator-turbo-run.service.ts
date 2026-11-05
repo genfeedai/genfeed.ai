@@ -23,7 +23,7 @@ import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/uti
 import { buildAgentScopeMetadata } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
 import { buildFallbackThreadTitle } from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
 import { AgentMessageRole } from '@genfeedai/contracts';
-
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const GENERATE_VERB_PATTERN = /\b(generate|create|make|write|draft)\b/;
@@ -70,6 +70,7 @@ export type AgentOrchestratorTurboRunHost = {
 
 const TURBO_RUN_TOOL_NAME = 'generate_turbo_content';
 
+@Traced()
 @Injectable()
 export class AgentOrchestratorTurboRunService {
   constructor(

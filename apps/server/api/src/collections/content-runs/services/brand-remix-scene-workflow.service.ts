@@ -9,6 +9,7 @@ import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-w
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import type { BrandRemixScenePipeline } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -21,6 +22,7 @@ const jobSchema = z
     sequence: z.number().int().nonnegative().optional(),
   })
   .strict();
+@Traced()
 @Injectable()
 export class BrandRemixSceneWorkflowService implements OnModuleInit {
   constructor(

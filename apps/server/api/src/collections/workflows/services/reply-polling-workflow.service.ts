@@ -16,6 +16,7 @@ import {
 import { toPrismaJson, type Workflow } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const SOCIAL_TRIGGER_TYPES = [
@@ -68,6 +69,7 @@ export interface ReplyPollingWorkflowResult {
   triggered: number;
 }
 
+@Traced()
 @Injectable()
 export class ReplyPollingWorkflowService {
   private readonly logContext = 'ReplyPollingWorkflowService';

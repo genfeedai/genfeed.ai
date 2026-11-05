@@ -3,6 +3,7 @@ import type { AgentGenerationInput } from '@api/services/agent-orchestrator/gate
 import type { BotMediaGenerationDispatcher } from '@api/services/bot-gateway/services/bot-media-generation-dispatcher.interface';
 import { ActivitySource, BotCommandType } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -17,6 +18,7 @@ import {
  * `POST /v1/videos`. Only the credit ledger label differs, so bot spend stays
  * distinguishable in cost reporting.
  */
+@Traced()
 @Injectable()
 export class BotMediaGenerationDispatcherService
   implements BotMediaGenerationDispatcher

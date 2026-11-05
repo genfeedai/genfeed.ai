@@ -10,6 +10,7 @@ import {
   type StripeFailureCategory,
 } from '@api/services/integrations/stripe/services/stripe-error.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export type BillingAccountResolutionCode =
@@ -40,6 +41,7 @@ type BillingAccountProvisionInput = BillingAccountProjection & {
   userId: string;
 };
 
+@Traced()
 @Injectable()
 export class OrganizationBillingAccountService {
   constructor(

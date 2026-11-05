@@ -5,8 +5,10 @@ import { TagsService } from '@api/collections/tags/services/tags.service';
 import { ArticleStatus, TagCategory } from '@genfeedai/contracts';
 import type { ArticleCreatePayload } from '@genfeedai/contracts/interfaces/content/article.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ArticleContentPersistenceService {
   private readonly constructorName = this.constructor.name;

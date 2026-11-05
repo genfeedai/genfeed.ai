@@ -18,6 +18,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type { BreakoutOutputRecoveryResult } from '@genfeedai/contracts/interfaces';
 import { type BreakoutResponseOutput, Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 /** Only the native pinned action producer may supply this admission, never an input JSON actor. */
@@ -54,6 +55,7 @@ function awaitsBrandReview(
 }
 
 /** The concrete native-action integration: normal pricing/reservation → execution binding → generation → retained recovery. */
+@Traced()
 @Injectable()
 export class BreakoutResponseExecutionService {
   constructor(

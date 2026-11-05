@@ -13,6 +13,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import { isPlatform } from '@genfeedai/contracts';
 import type { BreakoutResponseView } from '@genfeedai/contracts/interfaces';
 import type { BreakoutResponse, Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -32,6 +33,7 @@ const triggerSchema = z.object({
 });
 
 /** Manual authenticated reads only; this service never resolves an automatic actor. */
+@Traced()
 @Injectable()
 export class BreakoutResponseReadsService {
   constructor(

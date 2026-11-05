@@ -29,6 +29,7 @@ import {
   FABRICATED_VIDEO_EXTENSION_STITCH_CREDITS,
 } from '@genfeedai/pricing';
 import { estimateClipChainCredits } from '@genfeedai/workflows/engine';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type ClipChainReservationHold = {
@@ -63,6 +64,7 @@ export function readClipChainReservationHold(
   return { reservationId, reservedCredits };
 }
 
+@Traced()
 @Injectable()
 export class VideoGenerationCreditsService {
   constructor(

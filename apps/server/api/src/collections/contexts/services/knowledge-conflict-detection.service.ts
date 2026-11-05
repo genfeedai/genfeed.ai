@@ -17,6 +17,7 @@ import {
   KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Chunk pairs judged for one scanned version; the most similar come first. */
@@ -54,6 +55,7 @@ function comparePairOrder(a: string, b: string): number {
  * runs inside the ingestion transactions, so a slow or unavailable judge
  * cannot hold up or fail an ingest.
  */
+@Traced()
 @Injectable()
 export class KnowledgeConflictDetectionService {
   constructor(

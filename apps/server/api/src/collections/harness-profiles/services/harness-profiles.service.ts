@@ -31,6 +31,7 @@ import type { ContentHarnessContribution } from '@genfeedai/harness';
 import { type Profile as PrismaProfile, toPrismaJson } from '@genfeedai/prisma';
 import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const HARNESS_PROFILE_TYPE = 'harness';
@@ -255,6 +256,7 @@ function mergeUnique(...lists: (string[] | undefined)[]): string[] {
   return Array.from(new Set(lists.flatMap((list) => list ?? [])));
 }
 
+@Traced()
 @Injectable()
 export class HarnessProfilesService {
   constructor(

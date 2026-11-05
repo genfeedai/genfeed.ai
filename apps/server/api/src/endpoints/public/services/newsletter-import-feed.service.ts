@@ -7,6 +7,7 @@ import type {
   NewsletterImportRecord,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import RSS from 'rss';
 
@@ -37,6 +38,7 @@ function escapeHtmlText(value: string): string {
     .replaceAll("'", '&#39;');
 }
 
+@Traced()
 @Injectable()
 export class NewsletterImportFeedService {
   private readonly apiUrl: string;

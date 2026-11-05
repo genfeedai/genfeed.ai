@@ -11,6 +11,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { IAgentCampaignStatusResponse } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   forwardRef,
@@ -18,6 +19,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class AgentCampaignExecutionService {
   private readonly constructorName = String(this.constructor.name);

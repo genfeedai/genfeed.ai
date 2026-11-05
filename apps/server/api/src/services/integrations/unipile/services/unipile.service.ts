@@ -34,6 +34,7 @@ import {
   resolveSafeDestination,
   safeFetch,
 } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const UNIPILE_PROVIDER = getIntegrationProviderDefinition('unipile');
@@ -43,6 +44,7 @@ const PRISMA_ACTIVE_STATUS =
   'ACTIVE' as (typeof PrismaIntegrationStatus)[keyof typeof PrismaIntegrationStatus];
 const DEFAULT_TIMEOUT_MS = 30000;
 
+@Traced()
 @Injectable()
 export class UnipileService {
   private readonly integrationHttpClient: IntegrationHttpClient;

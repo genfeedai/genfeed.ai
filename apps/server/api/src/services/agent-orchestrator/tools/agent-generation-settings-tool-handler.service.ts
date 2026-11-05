@@ -9,8 +9,10 @@ import type {
   AgentToolResult,
   UpdateGenerationHarnessSettings,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class AgentGenerationSettingsToolHandler {
   constructor(

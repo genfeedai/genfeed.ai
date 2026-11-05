@@ -9,6 +9,7 @@ import {
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 interface ChatCompletionMessage {
@@ -25,6 +26,7 @@ interface ChatCompletionRequest {
 
 type ChatCompletionResponse = OpenRouterChatCompletionResponse;
 
+@Traced()
 @Injectable()
 export class XaiService {
   private readonly defaultModel: string;

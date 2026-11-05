@@ -11,6 +11,7 @@ import { withOnboardingErrorHandling } from '@api/endpoints/onboarding/services/
 import { OnboardingReadinessService } from '@api/endpoints/onboarding/services/onboarding-readiness.service';
 import type { OrganizationCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
@@ -28,6 +29,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
  * OnboardingModule ↔ Brands/Users import cycles: OnboardingModule is now only
  * imported by the root module and can no longer be part of a dependency cycle.
  */
+@Traced()
 @Injectable()
 export class OnboardingService {
   private readonly constructorName: string = String(this.constructor.name);

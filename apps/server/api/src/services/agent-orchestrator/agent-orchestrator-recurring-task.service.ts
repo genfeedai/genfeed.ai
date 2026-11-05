@@ -35,6 +35,7 @@ import {
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentMessageRole } from '@genfeedai/contracts';
 import { type ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const RECURRING_CADENCE_PATTERN =
@@ -105,6 +106,7 @@ interface RecurringTaskResumeCursor extends Record<string, unknown> {
   updatedAt: string;
 }
 
+@Traced()
 @Injectable()
 export class AgentOrchestratorRecurringTaskService {
   constructor(

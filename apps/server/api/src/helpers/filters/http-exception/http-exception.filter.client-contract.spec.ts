@@ -24,7 +24,8 @@ import {
 } from '@genfeedai/utils/error/json-api-status.util';
 import { type ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 
-vi.mock('@sentry/nestjs', () => ({
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
   captureException: vi.fn(),
 }));
 

@@ -15,6 +15,7 @@ import {
 } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 function readStringArray(value: unknown): string[] {
@@ -26,6 +27,7 @@ function readStringArray(value: unknown): string[] {
     : [];
 }
 
+@Traced()
 @Injectable()
 export class PlaybookBuilderService extends BaseService<
   PatternPlaybookDocument,

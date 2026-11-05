@@ -15,6 +15,7 @@ import {
   NotificationChannel,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -45,6 +46,7 @@ const WEBHOOK_POST_TIMEOUT_MS = 8000;
  * channel is dispatched independently — one failing channel never blocks the
  * pause or the others.
  */
+@Traced()
 @Injectable()
 export class ReviewGateNotificationService {
   private readonly context = 'ReviewGateNotificationService';

@@ -11,6 +11,7 @@ import { ContextEmbeddingWriteService } from '@api/collections/contexts/services
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
@@ -35,6 +36,7 @@ interface CaptureAgentMemoryPayload {
   saveToContextMemory?: boolean;
 }
 
+@Traced()
 @Injectable()
 export class AgentMemoryCaptureService {
   constructor(

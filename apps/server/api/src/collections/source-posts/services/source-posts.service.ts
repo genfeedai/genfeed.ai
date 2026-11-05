@@ -31,6 +31,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { MAX_LISTENING_ATTRIBUTION_EVIDENCE_IDS } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 type SourceRecord = {
@@ -143,6 +144,7 @@ export interface SourcePostUpsertResult {
   rejectedCount: number;
 }
 
+@Traced()
 @Injectable()
 export class SourcePostsService {
   constructor(

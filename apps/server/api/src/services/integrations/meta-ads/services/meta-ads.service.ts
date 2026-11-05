@@ -27,6 +27,7 @@ import {
   META_GRAPH_API_VERSION,
   META_GRAPH_URL,
 } from '@genfeedai/integrations';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable } from '@nestjs/common';
@@ -50,6 +51,7 @@ export class MetaGraphPaginationLimitError extends Error {
   }
 }
 
+@Traced()
 @Injectable()
 export class MetaAdsService {
   private readonly API_VERSION = META_GRAPH_API_VERSION;

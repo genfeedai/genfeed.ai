@@ -35,6 +35,7 @@ import {
   readNonBlankStringOrNull as readString,
 } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, Injectable } from '@nestjs/common';
 
 const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
@@ -69,6 +70,7 @@ function readHttpUrl(value: unknown): string | null {
  * and MCP approvals waiting on a human, projected into one row model. Turbo
  * run drafts stay on the Turbo run endpoints.
  */
+@Traced()
 @Injectable()
 export class ReviewInboxService {
   constructor(

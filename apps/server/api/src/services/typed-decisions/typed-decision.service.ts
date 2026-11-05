@@ -24,6 +24,7 @@ import type {
   TypedDecisionTelemetryRecord,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 type TypedDecisionValueGuard<TValue> = (value: unknown) => value is TValue;
@@ -60,6 +61,7 @@ function isCalibratedConfidence(confidence: unknown): confidence is number {
  * with fewer than two levels, throws BadRequestException instead of silently
  * degrading.
  */
+@Traced()
 @Injectable()
 export class TypedDecisionService {
   private readonly constructorName = String(this.constructor.name);

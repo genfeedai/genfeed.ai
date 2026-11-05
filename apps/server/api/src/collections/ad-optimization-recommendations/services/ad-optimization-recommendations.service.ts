@@ -16,9 +16,11 @@ import {
   toPrismaJson,
 } from '@genfeedai/prisma';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { ConflictException, Inject, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class AdOptimizationRecommendationsService {
   private readonly constructorName = this.constructor.name;

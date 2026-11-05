@@ -2,6 +2,7 @@ import type { ContentPerformanceDocument } from '@api/collections/content-perfor
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface AttributionResult {
@@ -28,6 +29,7 @@ type AttributionAccumulator = {
   workflowExecutionId?: string;
 };
 
+@Traced()
 @Injectable()
 export class AttributionService {
   constructor(

@@ -24,6 +24,7 @@ import {
   getTenantContext,
   isCrossOrgUnsafe,
 } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type ClipperResultWriteDto = Partial<
@@ -56,6 +57,7 @@ const RESULT_SCALAR_KEYS = new Set([
   'viralityScore',
 ]);
 
+@Traced()
 @Injectable()
 export class ClipperResultsService extends BaseService<
   ClipperResultDocument,

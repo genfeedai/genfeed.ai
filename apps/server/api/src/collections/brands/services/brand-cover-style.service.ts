@@ -10,6 +10,7 @@ import type {
   IWatermarkLayer,
   WatermarkVariant,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
@@ -88,6 +89,7 @@ export function buildCoverSignature(
 }
 
 /** Looks up a brand and turns its settings into a cover style. */
+@Traced()
 @Injectable()
 export class BrandCoverStyleService {
   constructor(private readonly prisma: PrismaService) {}

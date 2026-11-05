@@ -1,8 +1,10 @@
 import { TemplateUsageEntity } from '@api/collections/template-usage/entities/template-usage.entity';
 import type { TemplateUsageDocument } from '@api/collections/template-usage/schemas/template-usage.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class TemplateUsageService {
   constructor(private readonly prisma: PrismaService) {}

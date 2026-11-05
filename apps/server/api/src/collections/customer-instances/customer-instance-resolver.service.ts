@@ -4,6 +4,7 @@ import {
   type ServerPrisma,
 } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
 type FleetRole = 'images' | 'voices' | 'videos';
@@ -12,6 +13,7 @@ type CustomerInstanceRow = {
   config?: unknown;
 };
 
+@Traced()
 @Injectable()
 export class CustomerInstanceResolverService
   implements ServerCustomerInstanceResolver

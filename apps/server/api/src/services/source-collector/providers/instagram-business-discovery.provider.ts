@@ -8,6 +8,7 @@ import type {
 import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -119,6 +120,7 @@ function mapDiscoveryNode(
  * professional (business/creator) accounts — this provider throws in that
  * case so the chain falls back to Apify.
  */
+@Traced()
 @Injectable()
 export class InstagramBusinessDiscoveryProvider
   implements SourceTimelineProvider

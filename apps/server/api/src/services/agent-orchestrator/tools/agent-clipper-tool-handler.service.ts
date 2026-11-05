@@ -8,6 +8,7 @@ import {
   readOptionalString,
 } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, Injectable } from '@nestjs/common';
 
 function toClipperUser(ctx: ToolExecutionContext): AuthenticatedUser {
@@ -44,6 +45,7 @@ function readTime(
  * `start_clip_analysis`: starts a free analysis of a YouTube video (audio,
  * transcript, highlights); `get_clip_highlights` reads what it found.
  */
+@Traced()
 @Injectable()
 export class AgentClipperToolHandler {
   constructor(

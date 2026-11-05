@@ -25,6 +25,7 @@ import {
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const VIDEO_LIP_SYNC_MODELS = ['sync/lipsync-2', 'sync/lipsync-2-pro'];
@@ -38,6 +39,7 @@ type LipSyncResolverArgs = Parameters<
  * output is bound to its hold before the provider sees the job, a definitive
  * rejection gives the hold back, and the provider callback settles it.
  */
+@Traced()
 @Injectable()
 export class WorkflowLipSyncExecutorRegistrarService {
   constructor(

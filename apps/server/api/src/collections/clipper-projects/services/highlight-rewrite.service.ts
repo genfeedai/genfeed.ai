@@ -7,8 +7,10 @@ import {
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class HighlightRewriteService {
   private readonly constructorName = String(this.constructor.name);

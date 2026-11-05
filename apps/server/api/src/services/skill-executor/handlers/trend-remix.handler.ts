@@ -10,6 +10,7 @@ import { SkillBrandBriefService } from '@api/services/skill-executor/skill-brand
 import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 /**
@@ -32,6 +33,7 @@ type RemixPackVariantDefinition = {
   type: string;
 };
 
+@Traced()
 @Injectable()
 export class TrendRemixHandler implements SkillHandler {
   constructor(

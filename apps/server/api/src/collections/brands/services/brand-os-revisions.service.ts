@@ -23,6 +23,7 @@ import {
   Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -31,6 +32,7 @@ import {
 
 const SHA256_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
 
+@Traced()
 @Injectable()
 export class BrandOsRevisionsService {
   constructor(

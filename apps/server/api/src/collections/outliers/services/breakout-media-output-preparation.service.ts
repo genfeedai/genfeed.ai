@@ -17,6 +17,7 @@ import { BreakoutVisualBrandReceiptService } from '@api/collections/outliers/ser
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { ModelCategory } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 /** The pinned native action supplies admission and both resolved models, never its input JSON. */
@@ -64,6 +65,7 @@ export function buildBreakoutVisualPrompts(
  * admission and reauthorization. A caption that is not cleanly approved, or a generation still
  * in flight or ambiguous, stops here before any later paid step. Never schedules or publishes.
  */
+@Traced()
 @Injectable()
 export class BreakoutMediaOutputPreparationService {
   constructor(

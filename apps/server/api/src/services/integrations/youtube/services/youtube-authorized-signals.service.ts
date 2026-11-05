@@ -39,6 +39,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/youtube-authorized-signals.contract';
 import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, Injectable } from '@nestjs/common';
@@ -146,6 +147,7 @@ function isoDate(value: Date): string {
   return value.toISOString().slice(0, 10);
 }
 
+@Traced()
 @Injectable()
 export class YoutubeAuthorizedSignalsService {
   private readonly constructorName = this.constructor.name;

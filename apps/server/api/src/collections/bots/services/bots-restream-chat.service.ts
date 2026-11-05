@@ -15,6 +15,7 @@ import {
   LivestreamTranscriptSource,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -52,6 +53,7 @@ export interface RestreamChatIngestResult {
  * use EXTERNAL_CAPTION_WEBHOOK (SyncWords/Deepgram → Genfeed) or MANUAL /
  * AUDIO_URL while the encoder feeds Restream Studio.
  */
+@Traced()
 @Injectable()
 export class BotsRestreamChatService {
   private readonly logContext = 'BotsRestreamChatService';

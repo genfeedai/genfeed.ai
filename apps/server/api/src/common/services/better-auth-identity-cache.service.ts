@@ -1,6 +1,7 @@
 import type { IBetterAuthResolvedIdentity } from '@api/auth/better-auth/better-auth.types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const IDENTITY_PREFIX = 'ba-identity';
@@ -22,6 +23,7 @@ function buildIdentityKey(userId: string): string {
  * Invalidated alongside `RequestContextCacheService` / `AccessBootstrapCacheService`
  * wherever `lastUsedOrganizationId` / `currentBrandId` change.
  */
+@Traced()
 @Injectable()
 export class BetterAuthIdentityCacheService {
   private readonly context = { service: BetterAuthIdentityCacheService.name };

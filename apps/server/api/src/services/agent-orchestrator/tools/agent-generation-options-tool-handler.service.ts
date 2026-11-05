@@ -7,6 +7,7 @@ import type {
   AgentToolResult,
   CallableGenerationModelType,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const GENERATION_OPTION_TYPES: readonly string[] = [
@@ -29,6 +30,7 @@ function isCallableType(type: string): type is CallableGenerationModelType {
  * callable model keys always, the effective settings always, and the Studio
  * credit estimate plus balance when a `type` is given.
  */
+@Traced()
 @Injectable()
 export class AgentGenerationOptionsToolHandler {
   constructor(

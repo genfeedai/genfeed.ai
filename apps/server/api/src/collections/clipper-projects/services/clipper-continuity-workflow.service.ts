@@ -26,6 +26,7 @@ import {
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type CanonicalReference = {
@@ -41,6 +42,7 @@ type ClipDescriptor = {
   videoUrl?: string;
 };
 
+@Traced()
 @Injectable()
 export class ClipperContinuityWorkflowService implements OnModuleInit {
   constructor(

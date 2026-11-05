@@ -15,6 +15,7 @@ import type {
   TikTokVideoUploadResponse,
 } from '@api/services/integrations/tiktok-ads/interfaces/tiktok-ads.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -37,6 +38,7 @@ const REPORT_METRICS = [
   'frequency',
 ];
 
+@Traced()
 @Injectable()
 export class TikTokAdsService {
   private readonly BASE_URL = 'https://business-api.tiktok.com/open_api/v1.3';

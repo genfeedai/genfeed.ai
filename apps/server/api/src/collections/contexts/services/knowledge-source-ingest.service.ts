@@ -40,6 +40,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { KnowledgeWorkflowInitiatingActor } from '@genfeedai/contracts/interfaces/automation/content-delivery-workflow.interface';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const LINE_BREAK_PATTERN = /\r?\n/;
@@ -159,6 +160,7 @@ function readPayload(value: unknown): KnowledgeSourceCapturePayload {
   };
 }
 
+@Traced()
 @Injectable()
 export class KnowledgeSourceIngestService {
   constructor(

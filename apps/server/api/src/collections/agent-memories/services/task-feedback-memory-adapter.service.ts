@@ -6,6 +6,7 @@ import type {
 import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { AgentMemoryCaptureService } from './agent-memory-capture.service';
 
@@ -32,6 +33,7 @@ export interface CaptureTaskFeedbackMemoryInput {
   userId?: string;
 }
 
+@Traced()
 @Injectable()
 export class TaskFeedbackMemoryAdapterService {
   constructor(

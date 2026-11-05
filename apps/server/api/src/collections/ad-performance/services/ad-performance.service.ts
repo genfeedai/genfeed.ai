@@ -26,6 +26,7 @@ import {
   resolvePaidCreativeProvider,
 } from '@genfeedai/integrations/ads';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
 const LIKE_WILDCARD_CHARS_PATTERN = /[\\%_]/g;
@@ -96,6 +97,7 @@ type SavedDiscoveryQuery = {
   cachedSourceIds?: string[];
 };
 
+@Traced()
 @Injectable()
 export class AdPerformanceService {
   constructor(

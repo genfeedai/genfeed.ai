@@ -65,6 +65,7 @@ import {
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -82,6 +83,7 @@ import { ModuleRef } from '@nestjs/core';
  * - `WorkflowRunControlService` — partial runs, resume, credits, execution logs
  * - `WorkflowWebhookService` — inbound webhook credentials + trigger path
  */
+@Traced()
 @Injectable()
 export class WorkflowsService extends BaseService<
   WorkflowDocument,

@@ -28,6 +28,7 @@ import {
   parsePlatform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -48,6 +49,7 @@ type ForEachResult<T> = {
   results: Array<{ index: number; result: T }>;
 };
 
+@Traced()
 @Injectable()
 export class AbTestSuggestionHarnessService implements OnModuleInit {
   constructor(

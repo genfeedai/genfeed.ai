@@ -17,6 +17,7 @@ import {
 } from '@genfeedai/contracts';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const MAX_BRANDS_PER_CYCLE = 10;
@@ -68,6 +69,7 @@ export interface ContentProductionWorkflowResult {
   status: 'completed' | 'skipped';
 }
 
+@Traced()
 @Injectable()
 export class ContentProductionWorkflowService {
   private readonly logContext = 'ContentProductionWorkflowService';

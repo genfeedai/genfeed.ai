@@ -8,6 +8,7 @@ import type {
 } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -19,6 +20,7 @@ import { Injectable } from '@nestjs/common';
  * no credits config and no subscription gate, matching the controller, which
  * declares only the class-level `RolesGuard`.
  */
+@Traced()
 @Injectable()
 export class AgentVideoMergeGatewayService implements IAgentVideoMergeGateway {
   constructor(

@@ -24,6 +24,7 @@ import {
   MODEL_OUTPUT_CAPABILITIES,
   resolveFlux3ReplicateEndpoint,
 } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const LOCAL_PREDICTION_POLL_INTERVAL_MS = 2_000;
@@ -35,6 +36,7 @@ type ReplicatePrediction = {
   status?: string;
 };
 
+@Traced()
 @Injectable()
 export class ReplicateImageGenerationProviderAdapter
   implements ImageGenerationProviderAdapter

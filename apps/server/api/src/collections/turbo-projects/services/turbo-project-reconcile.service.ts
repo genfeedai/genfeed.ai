@@ -38,6 +38,7 @@ import type {
 import type { TurboProject, TurboProjectItem } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 /** A workflow run claimed for an item but never recorded is failed after this. */
@@ -124,6 +125,7 @@ export function turboProjectRetryKey(itemId: string, attempt: number): string {
  * per-item child runs. Finished outputs enter the shared review inbox, and
  * review decisions made there flow back onto the project items.
  */
+@Traced()
 @Injectable()
 export class TurboProjectReconcileService {
   private readonly context = TurboProjectReconcileService.name;

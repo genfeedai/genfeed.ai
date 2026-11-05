@@ -43,6 +43,7 @@ import {
 import type { KnowledgeSourceRefreshPolicyRequest } from '@genfeedai/contracts/interfaces';
 import type { KnowledgeSourceRefreshRun } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const GONE_ERROR_PATTERN = /404|410|gone/i;
@@ -71,6 +72,7 @@ export interface KnowledgeRefreshResult {
   sourceId: string;
 }
 
+@Traced()
 @Injectable()
 export class KnowledgeRefreshService {
   constructor(

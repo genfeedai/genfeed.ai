@@ -1,9 +1,11 @@
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import apiFactory from 'api';
 
+@Traced()
 @Injectable()
 export class LeonardoAIService {
   private readonly constructorName: string = String(this.constructor.name);

@@ -15,6 +15,7 @@ import {
   FalSchemaFamily,
 } from '@api/services/integrations/fal/services/fal-contract';
 import type { ModelProvider } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const SEEDANCE_MODEL_PATTERN =
@@ -205,6 +206,7 @@ export function prepareFalVideoDispatch(
   };
 }
 
+@Traced()
 @Injectable()
 export class FalVideoGenerationProviderAdapter
   implements VideoGenerationProviderAdapter

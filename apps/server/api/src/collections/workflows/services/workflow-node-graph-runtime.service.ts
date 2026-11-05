@@ -13,6 +13,7 @@ import type {
   ExecutionRunResult,
   NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
+import { Traced } from '@libs/tracing/traced';
 
 export class WorkflowNodeGraphRuntimeService {
   constructor(
@@ -22,6 +23,7 @@ export class WorkflowNodeGraphRuntimeService {
     private readonly executionsService?: WorkflowExecutionsService,
   ) {}
 
+  @Traced()
   async hydrateCompletedNodesFromExecution(
     executionId: string,
     nodeCache: Map<string, unknown>,
@@ -95,6 +97,7 @@ export class WorkflowNodeGraphRuntimeService {
     }
   }
 
+  @Traced()
   async handleDelayNode(input: {
     workflow: ExecutableWorkflow;
     triggerEvent: TriggerEvent;
@@ -191,6 +194,7 @@ export class WorkflowNodeGraphRuntimeService {
     };
   }
 
+  @Traced()
   async executeSingleNode(
     node: ExecutableNode,
     inputs: Map<string, unknown>,

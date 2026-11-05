@@ -18,6 +18,7 @@ import {
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { ContentKind } from '@genfeedai/harness';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 export interface StudioProposalsRequest {
@@ -48,6 +49,7 @@ const SURFACE_INSTRUCTIONS: Record<StudioProposalSurface, string> = {
  * Agent-written Studio drafts (#7341). Only a brand with an approved Brand OS
  * gets proposals; every other brand keeps today's empty composer.
  */
+@Traced()
 @Injectable()
 export class StudioProposalsService {
   constructor(

@@ -34,6 +34,7 @@ import type {
   ServerAnalyticsCollectionState,
 } from '@genfeedai/contracts/interfaces';
 import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   classifyAnalyticsCollectionError,
@@ -46,6 +47,7 @@ type YouTubeBatchOutcome = {
   failedTargets: AnalyticsCollectionAttemptRef[];
   firstProcessingError: unknown;
 };
+@Traced()
 @Injectable()
 export class AnalyticsYouTubeCollectionService {
   constructor(

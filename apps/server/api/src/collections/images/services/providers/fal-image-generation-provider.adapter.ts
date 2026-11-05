@@ -10,8 +10,10 @@ import {
   type FalJsonSchema,
   type FalSchemaFamily,
 } from '@api/services/integrations/fal/services/fal-contract';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class FalImageGenerationProviderAdapter
   implements ImageGenerationProviderAdapter

@@ -8,7 +8,8 @@ import type { ArgumentsHost } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@sentry/nestjs', () => ({
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
   captureException: vi.fn(),
 }));
 

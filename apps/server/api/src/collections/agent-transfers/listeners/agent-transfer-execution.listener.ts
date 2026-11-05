@@ -6,6 +6,7 @@ import {
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 
@@ -15,6 +16,7 @@ import { OnEvent } from '@nestjs/event-emitter';
  * workflow-executions collection sits below transfers, so it emits rather
  * than calls. An execution with no transfer is ignored.
  */
+@Traced()
 @Injectable()
 export class AgentTransferExecutionListener {
   private readonly context = { service: AgentTransferExecutionListener.name };

@@ -4,6 +4,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { normalizeReviewDecision, ReviewDecision } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 export interface WorkflowReviewGateDecisionInput {
@@ -28,6 +29,7 @@ export interface WorkflowReviewGateDecisionInput {
  * Runs after the gate is resolved and must never undo or fail that decision;
  * failures are logged and swallowed.
  */
+@Traced()
 @Injectable()
 export class WorkflowReviewGateFeedbackService {
   private readonly constructorName = String(this.constructor.name);

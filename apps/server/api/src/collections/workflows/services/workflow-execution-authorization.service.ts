@@ -2,6 +2,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AgentScopeContextService, scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface AuthorizeWorkflowExecutionInput {
@@ -18,6 +19,7 @@ export interface AuthorizeWorkflowExecutionInput {
  * server scope validator. It authorizes only; deterministic execution remains
  * owned by WorkflowExecutorService and the workflow engine.
  */
+@Traced()
 @Injectable()
 export class WorkflowExecutionAuthorizationService {
   constructor(

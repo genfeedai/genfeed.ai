@@ -28,6 +28,7 @@ import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -93,6 +94,7 @@ const SCHEDULED_WORKFLOW_SELECT = {
  * Workers consume the resulting `scheduled-fire` jobs and call back into
  * `executeScheduledWorkflow` to run the workflow.
  */
+@Traced()
 @Injectable()
 export class WorkflowSchedulerService implements OnModuleInit {
   constructor(

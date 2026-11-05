@@ -17,6 +17,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { assertSafeObjectKey, createStorageProvider } from '@genfeedai/storage';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   ConflictException,
   HttpException,
@@ -70,6 +71,7 @@ function unavailable(): UnprocessableEntityException {
  * they leave the API, so the renderer can never be handed a different file under
  * an approved ID.
  */
+@Traced()
 @Injectable()
 export class BrandRenderFontStagingService {
   constructor(

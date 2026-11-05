@@ -7,6 +7,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PersonaStatus } from '@genfeedai/contracts';
 import type { PersonaAvailabilityFields } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const GRANT_PERSONA_SELECT = {
@@ -58,6 +59,7 @@ function keepGrantsOfCurrentOwner<T extends OwnerCheckedGrantRow>(
  * (`revokedAt` null) yields a row, so a revoked or missing grant matches
  * nothing and never reveals the character.
  */
+@Traced()
 @Injectable()
 export class PersonaGrantReadService {
   constructor(private readonly prisma: PrismaService) {}

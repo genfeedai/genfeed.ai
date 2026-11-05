@@ -18,6 +18,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentLearningMode, ModelCategory } from '@genfeedai/contracts';
 import { learningGenerationReceiptSchema } from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
 import type { BreakoutPublicationSource } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 /** Actual pinned native action supplies admission and the resolved server model separately from its input JSON. */
@@ -38,6 +39,7 @@ const VISUAL_CAPTION_SUBJECT = {
  * A visual output's caption is one finished text post written under that output's own format
  * scope, so its spend stays inside the same platform/format sub-budget as the visual itself.
  */
+@Traced()
 @Injectable()
 export class BreakoutTextOutputPreparationService {
   constructor(

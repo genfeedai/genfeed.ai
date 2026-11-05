@@ -41,6 +41,7 @@ import {
 } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const PRISMA_SERIALIZATION_FAILURE = 'P2034';
@@ -59,6 +60,7 @@ function isPrismaSerializationFailure(error: unknown): boolean {
   );
 }
 
+@Traced()
 @Injectable()
 export class OutreachCampaignsService {
   private readonly queryNormalizationAdapter =

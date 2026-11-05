@@ -50,6 +50,7 @@ import {
   resolvePaidCreativeSourceLabel,
   resolvePaidCreativeUsagePolicy,
 } from '@genfeedai/integrations/ads';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -87,6 +88,7 @@ interface LaunchPrepInput extends RemixWorkflowInput {
   dailyBudget?: number;
 }
 
+@Traced()
 @Injectable()
 export class AdsResearchService {
   constructor(

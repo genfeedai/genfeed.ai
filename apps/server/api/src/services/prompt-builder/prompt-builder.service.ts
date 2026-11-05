@@ -23,6 +23,7 @@ import {
 } from '@genfeedai/contracts';
 import { renderStructuredPrompt } from '@genfeedai/harness';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -30,6 +31,7 @@ import { Injectable } from '@nestjs/common';
  * Main prompt builder service
  * Routes to the appropriate provider-specific builder
  */
+@Traced()
 @Injectable()
 export class PromptBuilderService {
   private readonly constructorName: string = String(this.constructor.name);

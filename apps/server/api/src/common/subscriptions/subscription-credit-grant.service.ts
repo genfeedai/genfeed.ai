@@ -29,6 +29,7 @@ import {
 } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 
 /**
  * Prices change about as often as the pricing page does, but credit resolution
@@ -68,6 +69,7 @@ export class SubscriptionCreditGrantService {
    * price metadata nor the tier table can answer. Callers must treat `null` as
    * "grant nothing and tell an operator", never as zero-or-default.
    */
+  @Traced()
   async resolveMonthlyCredits(
     stripePriceId?: string | null,
   ): Promise<number | null> {
@@ -100,6 +102,7 @@ export class SubscriptionCreditGrantService {
    * twelve months of its monthly allowance up front, which is why the metadata
    * key is always expressed per month regardless of the price's interval.
    */
+  @Traced()
   async resolvePlanCredits(
     plan: string | null | undefined,
     stripePriceId?: string | null,
@@ -181,6 +184,7 @@ export class SubscriptionCreditGrantService {
     return cached.credits;
   }
 
+  @Traced()
   private async resolveAndCacheMonthlyCredits(
     stripePriceId: string,
   ): Promise<number | null> {
@@ -195,6 +199,7 @@ export class SubscriptionCreditGrantService {
     return credits;
   }
 
+  @Traced()
   private async readPriceMetadataCredits(
     stripePriceId: string,
   ): Promise<number | null> {

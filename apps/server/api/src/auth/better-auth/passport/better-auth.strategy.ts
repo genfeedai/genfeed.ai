@@ -3,6 +3,7 @@ import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
 import { BetterAuthIdentityResolverService } from '@api/auth/better-auth/services/better-auth-identity-resolver.service';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import type { Request } from 'express';
@@ -18,6 +19,7 @@ const LEGACY_OBJECT_ID_PATTERN = /^[0-9a-f]{24}$/i;
  * result as the same request user object the rest of the app expects, so
  * `RequestContextMiddleware` and downstream guards consume it unchanged.
  */
+@Traced()
 @Injectable()
 export class BetterAuthStrategy extends PassportStrategy(
   Strategy,

@@ -15,6 +15,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const POSITIONS: readonly string[] = [
@@ -23,6 +24,7 @@ const POSITIONS: readonly string[] = [
   'bottom-left',
   'bottom-right',
 ];
+@Traced()
 @Injectable()
 export class IngredientExportService {
   constructor(

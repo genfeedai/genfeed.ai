@@ -23,9 +23,11 @@ import {
   IngredientCategory,
   MetadataExtension,
 } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ActivityUpdateService {
   constructor(

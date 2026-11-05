@@ -4,6 +4,7 @@ import {
 } from '@api/collections/workflow-executions/constants/workflow-execution-events.constants';
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 
@@ -12,6 +13,7 @@ import { OnEvent } from '@nestjs/event-emitter';
  * workflow-executions collection sits below tasks, so it emits rather than
  * calls. Executions with no linked task are ignored by the orchestrator.
  */
+@Traced()
 @Injectable()
 export class WorkspaceTaskExecutionListener {
   private readonly context = { service: WorkspaceTaskExecutionListener.name };

@@ -13,6 +13,7 @@ import type {
   IAssistedReplyScope,
   IAssistedReplyUsage,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -24,6 +25,7 @@ const MINUTE_MS = 60 * 1000;
  * there, so Genfeed never replies to those accounts through the API. The cap
  * and spacing keep a new account's reply volume human.
  */
+@Traced()
 @Injectable()
 export class AssistedReplyQueueService {
   constructor(private readonly botActivitiesService: BotActivitiesService) {}

@@ -10,6 +10,7 @@ import {
   type NotificationTopic,
 } from '@genfeedai/contracts/interfaces';
 import type { NotificationPreference } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 function toNotificationPreference(
@@ -27,6 +28,7 @@ function toNotificationPreference(
   };
 }
 
+@Traced()
 @Injectable()
 export class NotificationPreferenceService {
   constructor(private readonly prisma: PrismaService) {}

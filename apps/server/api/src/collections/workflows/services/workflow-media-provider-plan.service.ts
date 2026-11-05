@@ -55,6 +55,7 @@ import {
 } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const IDENTITY_REFERENCE_ROLES = new Set<ClipChainIdentityReference['role']>([
@@ -127,6 +128,7 @@ function replaceReferenceTokens(
   return value;
 }
 
+@Traced()
 @Injectable()
 export class WorkflowMediaProviderPlanService {
   constructor(

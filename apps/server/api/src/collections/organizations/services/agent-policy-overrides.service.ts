@@ -8,6 +8,7 @@ import {
   AGENT_REVIEW_OVERRIDE_CATEGORIES,
   AGENT_THINKING_OVERRIDE_CATEGORIES,
 } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 type AgentPolicyModelOverrideField =
@@ -21,6 +22,7 @@ type AgentPolicyModelOverrideField =
  * `OrganizationsSettingsController` (#5317) to keep the controller focused on
  * request handling.
  */
+@Traced()
 @Injectable()
 export class AgentPolicyOverridesService {
   constructor(private readonly modelsService: ModelsService) {}

@@ -74,6 +74,7 @@ import {
 import type { IBrandRelocationSummary } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -161,6 +162,7 @@ type BrandSameOrganizationPatch = (
   updates: Partial<UpdateBrandDto>,
 ) => Promise<BrandDocument>;
 
+@Traced()
 @Injectable()
 export class BrandRelocationService {
   private readonly constructorName = this.constructor.name;
@@ -455,10 +457,7 @@ export class BrandRelocationService {
     };
   }
 
-  /**
-   * Read-only preview for a brand relocation. Workflows are one-to-one with a
-   * brand now, so they move with the brand.
-   */
+  /** Previews brand relocation, including the workflow that moves with the brand. */
   async previewRelocation(
     brandId: string,
     destOrgId: string,

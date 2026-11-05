@@ -12,6 +12,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const CONTENT_PERFORMANCE_SCALAR_FIELDS = [
@@ -55,6 +56,7 @@ type ContentPerformanceWriteInput = Omit<
 > &
   Partial<Pick<ContentPerformanceDocument, ContentPerformanceDomainField>>;
 
+@Traced()
 @Injectable()
 export class ContentPerformanceService extends BaseService<
   ContentPerformanceDocument,

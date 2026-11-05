@@ -12,12 +12,14 @@ import {
   SocialMessageDirection,
 } from '@genfeedai/contracts';
 import type { SocialSuggestedReply } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class SocialInboxSuggestedReplyService {
   constructor(

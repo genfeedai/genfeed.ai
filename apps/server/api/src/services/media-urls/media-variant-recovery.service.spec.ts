@@ -12,7 +12,8 @@ import { PrismaService } from '@libs/prisma/prisma.service';
 import { Test } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
 
-vi.mock('@sentry/nestjs', () => ({
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
   captureException: vi.fn(),
   captureMessage: vi.fn(),
 }));

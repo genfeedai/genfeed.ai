@@ -30,6 +30,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const WORKFLOW_SCHEDULER_SYNC_SELECT = {
@@ -53,6 +54,7 @@ const WORKFLOW_SCHEDULER_SYNC_SELECT = {
  * Split out of `WorkflowsService` (#754) so seeding concerns no longer share a
  * class with workflow CRUD and execution.
  */
+@Traced()
 @Injectable()
 export class WorkflowTemplateSeederService {
   constructor(

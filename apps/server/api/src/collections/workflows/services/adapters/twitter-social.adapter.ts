@@ -17,6 +17,7 @@ import {
   SAFE_SUBJECT_MAX_LENGTH,
 } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
@@ -37,6 +38,7 @@ const LEADING_AT_SIGN_PATTERN = /^@/;
  * - NewLikeChecker (GET /2/tweets/:id/liking_users)
  * - NewRepostChecker (GET /2/tweets/:id/retweeted_by)
  */
+@Traced()
 @Injectable()
 export class TwitterSocialAdapter {
   private readonly logContext = 'TwitterSocialAdapter';

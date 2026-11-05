@@ -11,6 +11,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 
 const CONTENT_DETAIL_PATH_PATTERN = /^\/content\/(?:posts|articles)\/(.+)$/;
@@ -64,6 +65,7 @@ const LEGACY_INTERNAL_PATH_REWRITES: Readonly<Record<string, string>> = {
   '/review': APP_ROUTES.PUBLISHING.APPROVALS,
 };
 
+@Traced()
 @Injectable()
 export class AgentRouteRewriteService {
   constructor(

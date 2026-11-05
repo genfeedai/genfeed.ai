@@ -2,6 +2,7 @@ import type {
   IUserSubscriptionOssReadModel,
   IUserSubscriptionsService,
 } from '@genfeedai/contracts/interfaces/billing';
+import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
 function organizationBillingUnavailable(): never {
@@ -24,6 +25,7 @@ function organizationBillingUnavailable(): never {
  * - `getOrCreateSubscription` (user-initiated checkout) THROWS
  *   `ForbiddenException`, mirroring `OssSubscriptionsService.createForOrganization`.
  */
+@Traced()
 @Injectable()
 export class OssUserSubscriptionsService implements IUserSubscriptionsService {
   async findByUser(

@@ -10,10 +10,10 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
-
 import type {
   CloudSyncMetadata,
   PullWorkflowResponse,
@@ -26,6 +26,7 @@ const REGEX_SPECIAL_CHARS_PATTERN = /[.*+?^${}()|[\]\\]/g;
 /** Regex matching local asset URLs: /local/... */
 const LOCAL_URL_PATTERN = /\/local\/[^\s"')]+/g;
 
+@Traced()
 @Injectable()
 export class SyncService {
   constructor(

@@ -11,6 +11,7 @@ import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prism
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ForbiddenException,
@@ -33,6 +34,7 @@ export interface InstagramWebhookResult {
  * so webhook and polled messages share one ingest path, one conversation id
  * and one set of dedupe keys.
  */
+@Traced()
 @Injectable()
 export class InstagramWebhookService {
   private readonly constructorName = String(this.constructor.name);

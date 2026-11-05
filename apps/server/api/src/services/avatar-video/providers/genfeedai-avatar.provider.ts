@@ -8,10 +8,12 @@ import type {
 import type { AvatarVideoProviderName } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const GENFEEDAI_CLIP_VIDEO_MODEL = 'genfeedai/clip-video';
 
+@Traced()
 @Injectable()
 export class GenfeedaiAvatarProvider implements AvatarVideoProvider {
   readonly providerName: AvatarVideoProviderName = 'genfeedai';

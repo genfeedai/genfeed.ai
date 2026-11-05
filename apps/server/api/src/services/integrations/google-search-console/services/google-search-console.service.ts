@@ -14,6 +14,7 @@ import type {
   GoogleSearchConsoleSite,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -36,6 +37,7 @@ const ALLOWED_DIMENSIONS = new Set<GoogleSearchConsoleDimension>([
   'searchAppearance',
 ]);
 
+@Traced()
 @Injectable()
 export class GoogleSearchConsoleService {
   private readonly BASE_URL = 'https://www.googleapis.com/webmasters/v3';

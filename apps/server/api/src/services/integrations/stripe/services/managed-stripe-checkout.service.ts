@@ -11,6 +11,7 @@ import { isSelfHostedDeployment } from '@genfeedai/config';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -32,6 +33,7 @@ export interface ManagedCheckoutResult {
   userId: string;
 }
 
+@Traced()
 @Injectable()
 export class ManagedStripeCheckoutService {
   private readonly constructorName = this.constructor.name;

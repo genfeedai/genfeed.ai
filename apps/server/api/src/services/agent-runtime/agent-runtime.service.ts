@@ -7,10 +7,12 @@ import type {
   IAgentRuntimeTurnHandle,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 const AGENT_TURN_WORKFLOW_ID = 'agent.turn.execute';
 
+@Traced()
 @Injectable()
 export class AgentRuntimeService {
   constructor(

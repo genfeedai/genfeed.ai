@@ -3,6 +3,7 @@ import { writeNotificationOutbox } from '@api/services/activity-recording/notifi
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { TrendRefreshHealth } from '@genfeedai/contracts/interfaces';
 import { withPlatformTenantArm } from '@libs/prisma/platform-scope';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export const TREND_REFRESH_EVENT_TYPE = 'trend_refresh_health';
@@ -87,6 +88,7 @@ function readEvidence(output: unknown): TrendRefreshHealth | null {
 }
 
 /** Durable refresh receipts use the operational event journal; corpus-health never starts work. */
+@Traced()
 @Injectable()
 export class TrendRefreshHealthService {
   constructor(private readonly prisma: PrismaService) {}

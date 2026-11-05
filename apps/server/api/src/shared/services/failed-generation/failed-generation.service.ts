@@ -7,6 +7,7 @@ import {
   ActivitySource,
   IngredientStatus,
 } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface FailedGenerationOptions {
@@ -29,6 +30,7 @@ export interface FailedGenerationOptions {
   delay?: number;
 }
 
+@Traced()
 @Injectable()
 export class FailedGenerationService {
   constructor(

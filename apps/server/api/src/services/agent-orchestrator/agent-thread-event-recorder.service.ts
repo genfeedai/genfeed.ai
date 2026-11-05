@@ -11,6 +11,7 @@ import type {
   AgentUIBlock,
 } from '@genfeedai/contracts/interfaces';
 import { toAgentScopeMetadata } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 export interface AgentThreadUiActionRef {
@@ -18,6 +19,7 @@ export interface AgentThreadUiActionRef {
   sourceId: string;
 }
 
+@Traced()
 @Injectable()
 export class AgentThreadEventRecorderService {
   constructor(

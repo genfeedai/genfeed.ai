@@ -10,9 +10,11 @@ import {
 } from '@api/shared/services/base/base.service';
 import { MetadataExtension } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class MetadataService extends BaseService<
   MetadataDocument,

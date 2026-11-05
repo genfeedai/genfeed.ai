@@ -21,6 +21,7 @@ import {
 } from '@genfeedai/pricing';
 import type { CrunGenerationTask, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -36,6 +37,7 @@ interface CrunFinalizationPhaseResult {
   disposition: 'continue' | 'stopped' | 'retry';
 }
 
+@Traced()
 @Injectable()
 export class CrunTaskFinalizationService {
   constructor(

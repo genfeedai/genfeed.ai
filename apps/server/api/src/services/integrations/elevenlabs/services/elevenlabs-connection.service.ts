@@ -2,6 +2,7 @@ import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.servic
 import { ByokService } from '@api/services/byok/byok.service';
 import { ApiKeyCategory, ByokProvider } from '@genfeedai/contracts';
 import type { ElevenLabsConnectionRef } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -17,6 +18,7 @@ export interface ResolvedElevenLabsConnection {
  * Resolves the ElevenLabs account a request runs on. A personal (`byok`)
  * binding never falls back to the platform account.
  */
+@Traced()
 @Injectable()
 export class ElevenLabsConnectionService {
   constructor(

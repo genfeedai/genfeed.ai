@@ -5,6 +5,7 @@ import type { TypedDecisionTelemetryRecord } from '@genfeedai/contracts/interfac
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const TRAILING_SLASH_PATTERN = /\/$/;
@@ -24,6 +25,7 @@ const POSTHOG_CAPTURE_TIMEOUT_MS = 800;
  * Nothing here is on the caller's critical path: `record` returns
  * synchronously and every failure is swallowed at warn level.
  */
+@Traced()
 @Injectable()
 export class TypedDecisionTelemetryService {
   private readonly constructorName = String(this.constructor.name);

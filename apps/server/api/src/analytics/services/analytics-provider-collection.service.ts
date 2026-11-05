@@ -34,6 +34,7 @@ import type {
   AnalyticsPersistenceContext,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 
@@ -44,6 +45,7 @@ export type AnalyticsCollectionResult = {
   context: AnalyticsPersistenceContext;
 };
 
+@Traced()
 @Injectable()
 export class AnalyticsProviderCollectionService {
   constructor(

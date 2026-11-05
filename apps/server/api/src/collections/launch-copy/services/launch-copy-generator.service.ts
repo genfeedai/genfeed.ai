@@ -8,6 +8,7 @@ import type { OpenRouterChatCompletionParams } from '@api/services/integrations/
 import { Platform } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -33,6 +34,7 @@ interface LaunchCopyPrompt {
   user: string;
 }
 
+@Traced()
 @Injectable()
 export class LaunchCopyGeneratorService {
   private readonly constructorName: string = String(this.constructor.name);

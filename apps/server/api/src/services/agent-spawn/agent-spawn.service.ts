@@ -7,6 +7,7 @@ import { SYSTEM_PROMPT_MANAGER } from '@api/services/agent-spawn/constants/spawn
 import { AgentType } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -17,6 +18,7 @@ export interface SpawnSubAgentParams {
   parentContext: AgentChatContext;
 }
 
+@Traced()
 @Injectable()
 export class AgentSpawnService implements OnModuleInit {
   private readonly constructorName = String(this.constructor.name);

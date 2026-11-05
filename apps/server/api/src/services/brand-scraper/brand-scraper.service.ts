@@ -31,6 +31,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
@@ -78,6 +79,7 @@ const BROWSER_USER_AGENT =
  * - Social media links
  * - Content for brand voice analysis
  */
+@Traced()
 @Injectable()
 export class BrandScraperService {
   private readonly constructorName: string = String(this.constructor.name);

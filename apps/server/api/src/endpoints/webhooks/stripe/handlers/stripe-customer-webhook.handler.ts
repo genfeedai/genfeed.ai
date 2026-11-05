@@ -5,9 +5,11 @@ import {
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
 /** Handles customer.created / customer.updated Stripe webhook events. */
+@Traced()
 @Injectable()
 export class StripeCustomerWebhookHandler {
   constructor(

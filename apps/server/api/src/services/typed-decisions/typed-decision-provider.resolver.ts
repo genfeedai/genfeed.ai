@@ -12,6 +12,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -28,6 +29,7 @@ import { Injectable } from '@nestjs/common';
  * 429 cooldown it learned, and rebuilding it every TTL would throw that away
  * and walk straight back into the rate limit.
  */
+@Traced()
 @Injectable()
 export class TypedDecisionProviderResolver {
   private readonly adapters = new Map<

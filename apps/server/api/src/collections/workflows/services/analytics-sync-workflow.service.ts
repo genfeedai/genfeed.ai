@@ -54,6 +54,7 @@ import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/con
 import type { AnalyticsPersistenceContext } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { ExecutionContext } from '@genfeedai/workflows/engine';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type AnalyticsPost = PostEntity & {
@@ -114,6 +115,7 @@ export function analyticsPostRefreshWorkflowId(
   return `analytics.post-refresh.${platform}`;
 }
 
+@Traced()
 @Injectable()
 export class AnalyticsSyncWorkflowService implements OnModuleInit {
   constructor(

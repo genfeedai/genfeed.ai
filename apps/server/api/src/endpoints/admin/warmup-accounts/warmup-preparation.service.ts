@@ -22,9 +22,11 @@ import {
   buildBrandKitDraftFromWebsiteScrape,
 } from '@genfeedai/helpers';
 import { Prisma, type WarmupAccount } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
+@Traced()
 @Injectable()
 export class WarmupPreparationService {
   constructor(

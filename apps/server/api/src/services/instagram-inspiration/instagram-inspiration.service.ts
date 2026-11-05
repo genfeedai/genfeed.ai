@@ -24,6 +24,7 @@ import type {
   InstagramRemixWorkflowResult,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const CACHE_TTL_SECONDS = 15 * 60;
@@ -59,6 +60,7 @@ interface CreateInstagramRemixWorkflowInput {
   username: string;
 }
 
+@Traced()
 @Injectable()
 export class InstagramInspirationService {
   private readonly constructorName = this.constructor.name;

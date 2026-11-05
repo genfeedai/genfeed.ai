@@ -40,6 +40,7 @@ import type {
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 type ReleasePageEntry = Pick<ReleaseListPageRow, 'id' | 'isSynthetic'>;
@@ -165,6 +166,7 @@ const SCHEDULER_POST_TARGET_SELECT = {
 /** Delivery history shown in the article and newsletter editors. */
 const SOURCE_RELEASE_LIMIT = 20;
 
+@Traced()
 @Injectable()
 export class PostGroupPersistenceService {
   constructor(

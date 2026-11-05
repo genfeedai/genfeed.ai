@@ -10,9 +10,11 @@ import {
   type ReleaseItemId,
   resolveOrganizationModuleAccess,
 } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 /** Shared admission for HTTP and execution adapters; no balance/key/admin bypass. */
+@Traced()
 @Injectable()
 export class OrganizationModuleAccessService {
   constructor(

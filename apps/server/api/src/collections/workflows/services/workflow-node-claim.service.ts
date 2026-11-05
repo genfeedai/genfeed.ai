@@ -7,6 +7,7 @@ import { retryTransactionStart } from '@api/collections/workflows/utils/serializ
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface WorkflowNodeClaimLease {
@@ -69,6 +70,7 @@ export class WorkflowNodeClaimLeaseLostError extends Error {
  * pair means another worker or a BullMQ retry already owns the node — load
  * the stored row and re-emit instead of re-executing publish/DM/credits.
  */
+@Traced()
 @Injectable()
 export class WorkflowNodeClaimService {
   constructor(

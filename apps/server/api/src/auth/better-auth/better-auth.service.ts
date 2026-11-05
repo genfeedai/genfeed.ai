@@ -1,4 +1,5 @@
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import {
   type CookieAttributes,
@@ -8,7 +9,6 @@ import {
 import { toNodeHandler } from 'better-auth/node';
 import type { RequestHandler } from 'express';
 import { decodeProtectedHeader, importJWK, type JWK, jwtVerify } from 'jose';
-
 import {
   BETTER_AUTH_BASE_PATH,
   BETTER_AUTH_INSTANCE,
@@ -111,6 +111,7 @@ const CLAIMS_CACHE_MAX_ENTRIES = 5_000;
  * used by the Passport strategy. When the flag is off the injected instance is
  * `null` and every accessor degrades safely.
  */
+@Traced()
 @Injectable()
 export class BetterAuthService {
   readonly basePath = BETTER_AUTH_BASE_PATH;

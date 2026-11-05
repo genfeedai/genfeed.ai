@@ -69,6 +69,7 @@ import { readRecordCopy } from '@genfeedai/utils/data/extract.util';
 import type { ExecutableNode } from '@genfeedai/workflows/engine';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -139,6 +140,7 @@ export interface PendingReviewGateExecution {
   autoApproveIfNoResponse: boolean;
 }
 
+@Traced()
 @Injectable()
 export class WorkflowExecutionsService extends BaseService<
   WorkflowExecutionDocument,

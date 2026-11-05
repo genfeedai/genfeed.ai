@@ -22,6 +22,7 @@ import {
   WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /**
@@ -30,6 +31,7 @@ import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
  * The adapter owns the engine instance and public execution/conversion API.
  * Executor registration is delegated to cohesive API-local registrar services.
  */
+@Traced()
 @Injectable()
 export class WorkflowEngineAdapterService implements OnApplicationBootstrap {
   private readonly logContext = 'WorkflowEngineAdapterService';

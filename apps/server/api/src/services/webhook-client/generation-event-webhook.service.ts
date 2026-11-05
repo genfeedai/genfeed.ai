@@ -19,6 +19,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import { readNonBlankStringOrNull } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 import {
   GENERATION_WEBHOOK_JOB_ID_PREFIX,
@@ -57,6 +58,7 @@ export interface GenerationWebhookFailureInput
  * the image, video, and article generation paths. Emission is best-effort: a
  * webhook problem never fails the generation that produced it.
  */
+@Traced()
 @Injectable()
 export class GenerationEventWebhookService {
   private readonly constructorName = 'GenerationEventWebhookService';

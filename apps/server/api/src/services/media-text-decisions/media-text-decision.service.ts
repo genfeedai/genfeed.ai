@@ -23,6 +23,7 @@ import type {
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Transcript text sent to the decision provider. */
@@ -86,6 +87,7 @@ type DecisionContext = {
  * leaves the asset undecided for good (review while `live`), since judging
  * the remaining text alone would pass what was never read.
  */
+@Traced()
 @Injectable()
 export class MediaTextDecisionService {
   private readonly constructorName = String(this.constructor.name);

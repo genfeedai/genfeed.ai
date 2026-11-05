@@ -45,6 +45,7 @@ import {
 import type { GenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import { generationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -53,6 +54,7 @@ import {
 
 const TRAILING_SENTENCE_PUNCTUATION_PATTERN = /[.!?]+$/;
 
+@Traced()
 @Injectable()
 export class BrandRemixRunPlanningService {
   constructor(

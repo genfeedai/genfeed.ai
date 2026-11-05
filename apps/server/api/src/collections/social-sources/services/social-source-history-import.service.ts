@@ -26,6 +26,7 @@ import type {
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
@@ -52,6 +53,7 @@ interface HistoryImportCompletion {
  * Scheduling lives apart from the run so integration controllers can depend on
  * it without pulling the collector chain (which itself depends on them).
  */
+@Traced()
 @Injectable()
 export class SocialSourceHistoryImportService {
   constructor(

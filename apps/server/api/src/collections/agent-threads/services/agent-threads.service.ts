@@ -36,6 +36,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -108,6 +109,7 @@ export type AgentExternalTurnAppendResult = {
   userMessage: AgentMessageDocument;
 };
 
+@Traced()
 @Injectable()
 export class AgentThreadsService extends BaseService<
   AgentRoomDocument,
@@ -172,10 +174,8 @@ export class AgentThreadsService extends BaseService<
     });
   }
 
-  /**
-   * One page of the user's threads (newest first) with the total, so the list
-   * never loads every thread and snapshot the user has ever created.
-   */
+  // Returns one page of the user's threads, newest first, plus the total.
+  // This avoids loading every thread and snapshot for the user.
   async getUserThreads(
     userId: string,
     organizationId: string,

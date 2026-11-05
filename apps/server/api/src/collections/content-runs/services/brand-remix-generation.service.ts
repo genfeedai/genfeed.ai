@@ -42,10 +42,12 @@ import {
   LLM_DEFAULTS,
   sourcePostVariationCredits,
 } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Inject, Injectable } from '@nestjs/common';
 
 const QUOTE_TTL_MS = 15 * 60_000;
 
+@Traced()
 @Injectable()
 export class BrandRemixGenerationService {
   constructor(

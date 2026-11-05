@@ -11,6 +11,7 @@ import { SocialSourceType } from '@genfeedai/contracts';
 import type { IContentPlanSeedSelection } from '@genfeedai/contracts/interfaces';
 import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** Planning looks further back than the weekly summary's default window. */
@@ -40,6 +41,7 @@ export interface PlanPerformanceContext {
  * watches, extracted creative patterns and the followed-creator corpus, so the
  * first plan after connecting is informed rather than generic.
  */
+@Traced()
 @Injectable()
 export class PlanPerformanceContextService {
   constructor(

@@ -9,6 +9,7 @@ import type {
   KnowledgeRetrievalFilters,
   KnowledgeSelection,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
@@ -17,6 +18,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
  * brand; a selection that names nothing the brand can see yields an empty
  * source list, so retrieval returns nothing rather than falling back to all.
  */
+@Traced()
 @Injectable()
 export class KnowledgeSelectionService {
   constructor(

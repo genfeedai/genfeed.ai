@@ -2,9 +2,11 @@ import { BETTER_AUTH_USER_CREATED_EVENT } from '@api/auth/better-auth/better-aut
 import type { IBetterAuthUserCreatedEvent } from '@api/auth/better-auth/better-auth.types';
 import { SystemEventsService } from '@api/services/system-events/system-events.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 
+@Traced()
 @Injectable()
 export class SystemEventSignupListener {
   constructor(

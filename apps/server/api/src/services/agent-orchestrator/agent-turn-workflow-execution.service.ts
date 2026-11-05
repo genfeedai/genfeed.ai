@@ -63,6 +63,7 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { parseGenerationEntry } from '@genfeedai/contracts/interfaces/content/generation-entry.interface';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   Injectable,
@@ -96,6 +97,7 @@ export type AgentTurnWorkflowResult = {
 const ARCHIVED_THREAD_WRITE_ERROR =
   'This thread is archived. Unarchive it before sending messages or running actions.';
 
+@Traced()
 @Injectable()
 export class AgentTurnWorkflowExecutionService implements OnModuleInit {
   constructor(

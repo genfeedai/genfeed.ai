@@ -19,11 +19,11 @@ import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { unwrapFencedJson } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, Optional } from '@nestjs/common';
 import Replicate from 'replicate';
 import type { ZodType } from 'zod';
-
 import type { ReplicateStructuredTextParams } from '../dto/replicate-structured-text.dto';
 
 const VIDEO_EXTENSION_PATTERN = /\.(mp4|mov|webm|mkv|ogv)$/i;
@@ -149,6 +149,7 @@ function withMediaContent(
   });
 }
 
+@Traced()
 @Injectable()
 export class ReplicateService {
   private readonly constructorName: string = String(this.constructor.name);

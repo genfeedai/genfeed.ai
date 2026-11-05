@@ -18,6 +18,7 @@ import {
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const TWO_LETTER_CODE_PATTERN = /^[a-z]{2}$/;
@@ -78,6 +79,7 @@ type LocalizationMetadataData = Awaited<
   ReturnType<SharedService['createMediaDocumentsInternal']>
 >['metadataData'];
 
+@Traced()
 @Injectable()
 export class MediaLocalizationService {
   constructor(

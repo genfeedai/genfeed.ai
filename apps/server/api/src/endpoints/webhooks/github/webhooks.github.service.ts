@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 
 export interface SecretAlert {
@@ -16,6 +17,7 @@ interface AlertResult {
   label: string;
 }
 
+@Traced()
 @Injectable()
 export class GitHubWebhookService {
   constructor(

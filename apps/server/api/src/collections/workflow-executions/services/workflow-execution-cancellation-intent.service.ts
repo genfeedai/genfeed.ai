@@ -2,6 +2,7 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -14,6 +15,7 @@ import { Injectable } from '@nestjs/common';
  *
  * Split out of `WorkflowExecutionsService`, which is at the file-size ratchet.
  */
+@Traced()
 @Injectable()
 export class WorkflowExecutionCancellationIntentService {
   constructor(

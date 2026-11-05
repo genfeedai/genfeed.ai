@@ -10,6 +10,7 @@ import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { VideoSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 const VIDEO_POPULATE = [
@@ -19,6 +20,7 @@ const VIDEO_POPULATE = [
   PopulatePatterns.brandMinimal,
 ];
 
+@Traced()
 @Injectable()
 export class VideoGenerationCompletionService {
   constructor(

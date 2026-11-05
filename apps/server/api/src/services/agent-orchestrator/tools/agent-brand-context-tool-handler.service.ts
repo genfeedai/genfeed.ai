@@ -6,6 +6,7 @@ import type {
   IAgentBrandContextLayers,
   IAgentBrandContextSnapshot,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const BRAND_CONTEXT_TOOLS = ['get_brand_context'] as const;
@@ -35,6 +36,7 @@ function clipList<T>(values: T[], max = MAX_LIST_ITEMS): T[] {
  * summarized for a tool result. Agent and MCP (through the agent-tools proxy)
  * share this one executor, so both surfaces see what the UI shows.
  */
+@Traced()
 @Injectable()
 export class AgentBrandContextToolHandler {
   constructor(

@@ -8,6 +8,7 @@ import type {
   IBrandVisionModelOptions,
 } from '@genfeedai/contracts/interfaces';
 import { platformTenantProof } from '@libs/prisma/platform-scope';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /** `owner/name:version`, the immutable Replicate version a prediction runs. */
@@ -60,6 +61,7 @@ function toOption(row: CatalogRow): IBrandVisionModelOption | null {
  * name a pinned version and a per-second price. The platform setting stores a
  * `Model.key`; this resolves it, and lists what an operator may pick.
  */
+@Traced()
 @Injectable()
 export class BrandVisionModelCatalogService {
   constructor(private readonly prisma: PrismaService) {}

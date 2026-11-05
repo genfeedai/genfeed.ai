@@ -9,6 +9,7 @@ import { ApifyBaseService } from '@api/services/integrations/apify/services/modu
 import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
 import type { SocialSourceResearchContext } from '@api/services/source-collector/source-collector.types';
 import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const LEADING_HASH_PATTERN = /^#/;
@@ -19,6 +20,7 @@ const LEADING_HASH_PATTERN = /^#/;
  * Handles all Twitter/X-related Apify scraping operations:
  * trends, mentions, timeline, replies, and search.
  */
+@Traced()
 @Injectable()
 export class ApifyTwitterService {
   private readonly constructorName: string = String(this.constructor.name);

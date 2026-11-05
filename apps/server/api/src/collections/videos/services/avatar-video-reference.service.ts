@@ -8,9 +8,11 @@ import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-m
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { readIngredientMediaUrl } from '@libs/media/media-url.util';
+import { Traced } from '@libs/tracing/traced';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 /** Resolves the scoped stored image or provider avatar used for execution. */
+@Traced()
 @Injectable()
 export class AvatarVideoReferenceService {
   constructor(

@@ -20,6 +20,7 @@ import type {
   AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -39,6 +40,7 @@ function record(value: unknown): Record<string, unknown> {
     : {};
 }
 
+@Traced()
 @Injectable()
 export class AgentOrchestratorUiActionMutationService {
   constructor(

@@ -30,6 +30,7 @@ import {
   buildBrandKitDraftFromWebsiteScrape,
 } from '@genfeedai/helpers';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//iu;
@@ -120,6 +121,7 @@ type BrandKitBrandWriter = (
   expectedAgentConfig: BrandDocument['agentConfig'],
 ) => Promise<BrandDocument>;
 
+@Traced()
 @Injectable()
 export class BrandKitDraftService {
   private static readonly SUPPORTED_GUIDANCE_EXTENSIONS = new Set([

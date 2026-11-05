@@ -54,6 +54,7 @@ import type {
   KnowledgeSelection,
 } from '@genfeedai/contracts/interfaces';
 import { extractHashtags } from '@genfeedai/utils/server';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
 const AI_ACTIONS: Readonly<Record<string, AiActionType>> = {
@@ -206,6 +207,7 @@ function readTextList(value: unknown): string[] | undefined {
     : undefined;
 }
 
+@Traced()
 @Injectable()
 export class AgentMediaTextGenerationService {
   constructor(

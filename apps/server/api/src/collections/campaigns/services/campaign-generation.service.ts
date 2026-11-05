@@ -27,9 +27,11 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { Campaign, Credential } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class CampaignGenerationService {
   constructor(

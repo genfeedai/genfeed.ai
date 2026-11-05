@@ -7,6 +7,7 @@ import {
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
 import type { ChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
 import { google, type youtube_v3 } from 'googleapis';
@@ -37,6 +38,7 @@ export interface YoutubeTrend {
   url: string;
 }
 
+@Traced()
 @Injectable()
 export class YoutubeService {
   // youtubeAPI is used with per-request auth passed via the auth parameter

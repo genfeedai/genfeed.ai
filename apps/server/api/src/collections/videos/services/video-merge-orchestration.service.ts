@@ -8,6 +8,7 @@ import { VideoStitchService } from '@api/services/video-stitch/video-stitch.serv
 import type { VideoStitchRequest } from '@api/services/video-stitch/video-stitch.types';
 import { IngredientFormat } from '@genfeedai/contracts';
 import { VIDEO_FORMAT_DIMENSIONS } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 /** Maps a hand-picked or Storyboard merge request onto the stitch service. */
@@ -70,6 +71,7 @@ export function toManualStitchRequest(
   };
 }
 
+@Traced()
 @Injectable()
 export class VideoMergeOrchestrationService {
   constructor(

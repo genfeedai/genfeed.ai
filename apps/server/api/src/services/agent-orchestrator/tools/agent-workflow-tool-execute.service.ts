@@ -20,11 +20,13 @@ import {
 } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { toAgentScopeMetadata } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
 /**
  * List / inspect / duplicate / schedule / run / execute workflow tools.
  */
+@Traced()
 @Injectable()
 export class AgentWorkflowToolExecuteService {
   constructor(

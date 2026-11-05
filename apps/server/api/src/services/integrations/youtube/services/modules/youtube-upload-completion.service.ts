@@ -6,6 +6,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { RedisService } from '@libs/redis/redis.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 
 type YoutubeUploadStatus =
@@ -87,6 +88,7 @@ function isYoutubeUploadCompletionEvent(
   return true;
 }
 
+@Traced()
 @Injectable()
 export class YoutubeUploadCompletionService implements OnModuleInit {
   private readonly logger = new Logger(YoutubeUploadCompletionService.name);

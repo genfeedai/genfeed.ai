@@ -11,7 +11,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { UserProvisioningListener } from './user-provisioning.listener';
 
-vi.mock('@sentry/nestjs', () => ({ captureException: vi.fn() }));
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
+  captureException: vi.fn(),
+}));
 
 function buildSetupResult(): UserSetupResult {
   return {

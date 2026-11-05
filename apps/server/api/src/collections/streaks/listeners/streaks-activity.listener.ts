@@ -4,10 +4,12 @@ import {
   type ActivityRecordedEvent,
 } from '@api/services/activity-recording/activity-recorded.event';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 
 /** Qualifying recorded activities advance the author's content streak. */
+@Traced()
 @Injectable()
 export class StreaksActivityListener {
   private readonly context = { service: StreaksActivityListener.name };

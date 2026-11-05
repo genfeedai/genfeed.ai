@@ -16,6 +16,7 @@ import type {
   ListeningTopicCollectionState,
 } from '@genfeedai/contracts/interfaces';
 import { LISTENING_CONTRACT_VERSION } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const RATE_LIMIT_ERROR_PATTERN =
@@ -62,6 +63,7 @@ type CollectorTopic = {
   sources: CollectorTopicSource[];
 };
 
+@Traced()
 @Injectable()
 export class ListeningTopicCollectorService {
   constructor(

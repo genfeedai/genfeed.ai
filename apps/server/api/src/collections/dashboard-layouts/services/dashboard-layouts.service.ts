@@ -15,10 +15,12 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { sanitizeLayoutForPersistence } from '@genfeedai/agent/server';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const DEFAULT_PAGE_KEY = 'workspace-overview';
 
+@Traced()
 @Injectable()
 export class DashboardLayoutsService extends BaseService<
   DashboardLayoutDocument,

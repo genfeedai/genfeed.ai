@@ -10,8 +10,10 @@ import type {
 } from '@api/services/content-gateway/interfaces/content-gateway.interfaces';
 import { SkillWorkflowService } from '@api/services/skill-executor/skill-executor.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ContentGatewayService {
   constructor(

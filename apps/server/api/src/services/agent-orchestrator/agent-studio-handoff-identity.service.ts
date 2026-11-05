@@ -18,6 +18,7 @@ import type {
   AgentStudioHandoffPayload,
   AgentStudioHandoffScope,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -29,6 +30,7 @@ import { Injectable } from '@nestjs/common';
  * (then organization) identity for this organization is applied. A foreign
  * or unresolvable identity is omitted, never substituted.
  */
+@Traced()
 @Injectable()
 export class AgentStudioHandoffIdentityService {
   constructor(

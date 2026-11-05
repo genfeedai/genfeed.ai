@@ -27,6 +27,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const PERSONA_WITH_REFERENCES_SELECT = {
@@ -64,6 +65,7 @@ function storedIds(references: readonly PersonaReferenceRow[]): string[] {
  * character created before references existed (only `avatarIngredientId`)
  * gets that image stored as its primary row on the first write.
  */
+@Traced()
 @Injectable()
 export class PersonaReferencesService {
   constructor(

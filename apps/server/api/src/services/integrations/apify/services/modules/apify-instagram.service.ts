@@ -9,6 +9,7 @@ import type {
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
 import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
 import type { SocialSourceResearchContext } from '@api/services/source-collector/source-collector.types';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const LEADING_HASH_PATTERN = /^#/;
@@ -19,6 +20,7 @@ const LEADING_HASH_PATTERN = /^#/;
  * Handles all Instagram-related Apify scraping operations:
  * trends, videos, comments, user posts, and hashtag search.
  */
+@Traced()
 @Injectable()
 export class ApifyInstagramService {
   private readonly constructorName: string = String(this.constructor.name);

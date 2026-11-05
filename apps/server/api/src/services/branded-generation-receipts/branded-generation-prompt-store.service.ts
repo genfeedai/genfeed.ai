@@ -32,6 +32,7 @@ import type {
 import { LEARNING_ARMS, learningContribution } from '@genfeedai/harness';
 import type { Prisma } from '@genfeedai/prisma';
 import { resolveTokenEncryptionKey } from '@libs/crypto/credential-cipher';
+import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   BadRequestException,
@@ -458,6 +459,7 @@ function decodeStoredPrompt(
     return { status: 'unavailable', reasonCode: 'prompt_integrity_failed' };
   }
 }
+@Traced()
 @Injectable()
 export class BrandedGenerationPromptStoreService {
   constructor(private readonly access: BrandedGenerationReceiptAccessService) {}

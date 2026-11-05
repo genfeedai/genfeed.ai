@@ -13,12 +13,14 @@ import {
   type AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const NON_PHASE_CHARS_PATTERN = /[^a-z_]/g;
 const UNSAFE_IDENTIFIER_CHARS_PATTERN = /[^a-zA-Z0-9_-]/g;
 const WHITESPACE_GROUPS_PATTERN = /(\s+)/;
 
+@Traced()
 @Injectable()
 export class AgentStreamEffectsService {
   private readonly constructorName = String(this.constructor.name);

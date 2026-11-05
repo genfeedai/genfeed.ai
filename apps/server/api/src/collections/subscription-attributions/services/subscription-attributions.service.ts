@@ -4,6 +4,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/contracts';
 import type { ISubscriptionAttributionsService } from '@genfeedai/contracts/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Logger } from '@nestjs/common';
 
 type SubscriptionAttribution = SubscriptionAttributionDocument;
@@ -67,6 +68,7 @@ type TopContentAggregateRow = {
   subscriptions: bigint;
 };
 
+@Traced()
 @Injectable()
 export class SubscriptionAttributionsService
   implements ISubscriptionAttributionsService

@@ -16,6 +16,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { platformOrTenantScope } from '@libs/prisma/platform-scope';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 export interface TrendCorpusFreshnessHealthOptions {
@@ -85,6 +86,7 @@ const MAX_CORPUS_FRESHNESS_TREND_RECORDS = 2000;
  * Owns corpus-health queries, tenant scoping, freshness aggregation, and
  * provider-failure projection.
  */
+@Traced()
 @Injectable()
 export class TrendCorpusFreshnessService {
   constructor(

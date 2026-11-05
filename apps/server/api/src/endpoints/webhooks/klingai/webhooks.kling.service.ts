@@ -1,6 +1,7 @@
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { KlingAIWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -14,6 +15,7 @@ type MediaUrls = {
   imageUrls: string[];
 };
 
+@Traced()
 @Injectable()
 export class KlingWebhookService {
   private readonly constructorName: string = String(this.constructor.name);

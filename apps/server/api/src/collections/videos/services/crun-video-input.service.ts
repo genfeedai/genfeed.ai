@@ -34,11 +34,13 @@ import {
   projectCrunInputControls,
 } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export type CrunPreparedImageInput = CrunPreparedInput<CrunVideoQuoteIntent>;
 export type CrunPreparedImageResult = CrunPreparedResult<CrunVideoQuoteIntent>;
 
+@Traced()
 @Injectable()
 export class CrunVideoInputService {
   constructor(

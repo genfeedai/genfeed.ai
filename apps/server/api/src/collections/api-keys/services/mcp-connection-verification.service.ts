@@ -15,6 +15,7 @@ import {
 } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import axios, { type AxiosInstance } from 'axios';
 
@@ -49,6 +50,7 @@ interface McpConnectionVerificationInput {
   userId: string;
 }
 
+@Traced()
 @Injectable()
 export class McpConnectionVerificationService {
   private readonly http: AxiosInstance = axios.create();

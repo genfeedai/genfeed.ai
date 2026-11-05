@@ -34,6 +34,7 @@ import {
   Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 type Request = {
@@ -100,6 +101,7 @@ function fingerprintCollision(error: unknown): boolean {
     target === 'content_learning_baselines_fingerprint_key'
   );
 }
+@Traced()
 @Injectable()
 export class LearningBaselineMaterializationService {
   constructor(

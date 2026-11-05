@@ -3,8 +3,10 @@ import { ByokService } from '@api/services/byok/byok.service';
 import type { ResolvedByokCredential } from '@api/services/byok/byok-credential-identity.interface';
 import type { ByokProvider } from '@genfeedai/contracts';
 import type { WorkflowGenerationDispatch } from '@genfeedai/contracts/interfaces/billing';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class WorkflowMediaCredentialRouteService {
   constructor(private readonly byok: ByokService) {}

@@ -14,6 +14,7 @@ import { ReplyBotType } from '@genfeedai/contracts';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const REPLY_BOT_CREATE_SCALAR_FIELDS = [
@@ -69,6 +70,7 @@ function parseConfigJson(raw: unknown): Record<string, unknown> {
   return {};
 }
 
+@Traced()
 @Injectable()
 export class ReplyBotConfigsService extends BaseService<
   ReplyBotConfigDocument,

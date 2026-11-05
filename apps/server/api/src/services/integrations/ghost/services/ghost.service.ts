@@ -19,6 +19,7 @@ import type {
   GhostTag,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -26,6 +27,7 @@ import { Injectable } from '@nestjs/common';
 import jwt from 'jsonwebtoken';
 import { firstValueFrom } from 'rxjs';
 
+@Traced()
 @Injectable()
 export class GhostService {
   private readonly constructorName = String(this.constructor.name);

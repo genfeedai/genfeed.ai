@@ -4,6 +4,7 @@ import type {
   IStripeProcessingFee,
 } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -12,6 +13,7 @@ import { Injectable } from '@nestjs/common';
  * so a refund or dispute can take its share out of the same organization's
  * revenue.
  */
+@Traced()
 @Injectable()
 export class StripePaymentRevenueReferenceService {
   constructor(

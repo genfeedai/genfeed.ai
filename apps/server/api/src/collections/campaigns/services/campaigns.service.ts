@@ -24,6 +24,7 @@ import type {
   ICampaignLifecycleResult,
 } from '@genfeedai/contracts/interfaces';
 import type { Campaign, Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -59,6 +60,7 @@ function toCampaignOrderBy(
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 
+@Traced()
 @Injectable()
 export class CampaignsService {
   constructor(private readonly prisma: PrismaService) {}

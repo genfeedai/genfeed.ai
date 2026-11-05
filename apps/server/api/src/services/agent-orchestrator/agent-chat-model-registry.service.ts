@@ -30,6 +30,7 @@ import {
 import { getRuntimeAgentChatMarginMultiplier } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export interface AgentChatRegistryRow {
@@ -95,6 +96,7 @@ function toDomainLifecycle(value: string): ModelLifecycle {
   }
 }
 
+@Traced()
 @Injectable()
 export class AgentChatModelRegistryService
   implements OnModuleInit, AgentRoundPricer

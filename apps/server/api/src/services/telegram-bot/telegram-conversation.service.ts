@@ -16,6 +16,7 @@ import type {
 import { extractWorkflowInputs } from '@api/services/telegram-bot/telegram-workflow-loader';
 import type { TelegramWorkflowRunnerService } from '@api/services/telegram-bot/telegram-workflow-runner.service';
 import { ParseMode } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { type Context, InlineKeyboard } from 'grammy';
 
 export class TelegramConversationService {
@@ -95,12 +96,14 @@ export class TelegramConversationService {
   }
 
   /** Clear conversation state and confirm the cancellation. */
+  @Traced()
   private async resetConversation(ctx: Context, chatId: number): Promise<void> {
     this.conversations.delete(chatId);
     await ctx.reply('❌ Cancelled. Send /workflows to start again.');
   }
 
   /** /cancel - cancel the current conversation unless mid-execution. */
+  @Traced()
   async handleCancelCommand(ctx: Context): Promise<void> {
     const chatId = ctx.chat?.id;
     if (!chatId) {
@@ -118,6 +121,7 @@ export class TelegramConversationService {
   }
 
   /** Dispatch an inline-keyboard callback query. */
+  @Traced()
   async handleCallbackQuery(ctx: Context): Promise<void> {
     const data = ctx.callbackQuery?.data;
     const chatId = ctx.chat?.id;
@@ -164,6 +168,7 @@ export class TelegramConversationService {
   }
 
   /** Display available workflows as an inline keyboard. */
+  @Traced()
   async handleWorkflowList(ctx: Context): Promise<void> {
     const keyboard = new InlineKeyboard();
 
@@ -186,6 +191,7 @@ export class TelegramConversationService {
   }
 
   /** Handle workflow selection and start collecting inputs. */
+  @Traced()
   private async handleWorkflowSelect(
     ctx: Context,
     chatId: number,
@@ -222,6 +228,7 @@ export class TelegramConversationService {
   }
 
   /** Prompt for the next required input or move to confirmation. */
+  @Traced()
   async promptNextInput(ctx: Context, chatId: number): Promise<void> {
     const state = this.conversations.get(chatId);
     if (!state) {
@@ -271,6 +278,7 @@ export class TelegramConversationService {
   }
 
   /** Show confirmation with a collected-inputs summary. */
+  @Traced()
   private async showConfirmation(ctx: Context, chatId: number): Promise<void> {
     const state = this.conversations.get(chatId);
     if (!state) {
@@ -323,6 +331,7 @@ export class TelegramConversationService {
   }
 
   /** Execute the workflow with collected inputs via the workflow runner. */
+  @Traced()
   private async handleConfirmRun(ctx: Context, chatId: number): Promise<void> {
     const state = this.conversations.get(chatId);
     if (!state?.workflow) {
@@ -338,6 +347,7 @@ export class TelegramConversationService {
   }
 
   /** Reset input collection for editing. */
+  @Traced()
   private async handleEditInputs(ctx: Context, chatId: number): Promise<void> {
     const state = this.conversations.get(chatId);
     if (!state) {

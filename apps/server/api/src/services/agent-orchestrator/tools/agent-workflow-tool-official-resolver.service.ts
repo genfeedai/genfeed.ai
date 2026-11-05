@@ -7,6 +7,7 @@ import type {
   OfficialWorkflowSourceKind,
   RecurringTaskContentType,
 } from '@api/services/agent-orchestrator/tools/agent-workflow-tool.types';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 /**
@@ -17,6 +18,7 @@ import { Injectable, Optional } from '@nestjs/common';
  * Extracted from `AgentWorkflowToolInstallService` (#519/#520) to keep that
  * file focused on the install/confirmation flow rather than source scoring.
  */
+@Traced()
 @Injectable()
 export class AgentWorkflowToolOfficialResolverService {
   constructor(

@@ -13,6 +13,7 @@ import {
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 
 interface AgentBrandsServiceLike {
@@ -76,6 +77,7 @@ function parseContentMixPercents(
     : undefined;
 }
 
+@Traced()
 @Injectable()
 export class AgentMediaTurboRunService {
   // Preserve the legacy log category so operational searches and alerts keep

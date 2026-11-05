@@ -58,6 +58,7 @@ import {
   type StartBrandRemixRun,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { Traced } from '@libs/tracing/traced';
 import {
   ConflictException,
   Inject,
@@ -89,6 +90,7 @@ type BrandRemixGenerateState = {
   successfulVariantIds?: string[];
   view?: BrandRemixRunView;
 };
+@Traced()
 @Injectable()
 export class BrandRemixRunExecutionService implements OnModuleInit {
   constructor(

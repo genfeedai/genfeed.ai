@@ -25,6 +25,7 @@ import {
   CampaignTargetType,
   CampaignType,
 } from '@genfeedai/contracts';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const LEADING_AT_SIGN_PATTERN = /^@/;
@@ -45,6 +46,7 @@ interface ParsedUrlResult {
   valid: boolean;
 }
 
+@Traced()
 @Injectable()
 export class OutreachCampaignTargetOperationsService {
   constructor(

@@ -14,6 +14,7 @@ import {
   validLearningDependencyKind,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   ConflictException,
@@ -31,6 +32,7 @@ function learningEvidenceSourceKind(kind: string): LearningDependencyKindV1 {
     throw new ConflictException('Invalid dependency identity');
   return mapped;
 }
+@Traced()
 @Injectable()
 export class LearningExperimentEvidenceService {
   constructor(

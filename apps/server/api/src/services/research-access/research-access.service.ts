@@ -1,5 +1,6 @@
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSaaS } from '@genfeedai/config';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import {
   type ResearchAccessDecision,
@@ -10,6 +11,7 @@ import {
  * Loads the organization subscription from Postgres. Session flags, API keys,
  * and BYOK settings are intentionally not inputs.
  */
+@Traced()
 @Injectable()
 export class ResearchAccessService {
   constructor(private readonly prisma: PrismaService) {}

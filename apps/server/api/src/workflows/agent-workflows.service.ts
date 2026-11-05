@@ -21,6 +21,7 @@ import {
 import { UpdateAgentWorkflowStateDto } from '@api/workflows/dto/update-agent-workflow-state.dto';
 import { type AgentWorkflow, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 type WorkflowConfig = AgentWorkflowDocumentShape & {
@@ -76,6 +77,7 @@ function toStateUpdate(
   return state;
 }
 
+@Traced()
 @Injectable()
 export class AgentWorkflowsService {
   constructor(

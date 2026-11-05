@@ -12,6 +12,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 const DIGITS_ONLY_PATTERN = /^\d+$/;
@@ -21,6 +22,7 @@ const DIGITS_ONLY_PATTERN = /^\d+$/;
  * (banner/logo) generations and regular ingredient media generations, both
  * on their completed and failed paths.
  */
+@Traced()
 @Injectable()
 export class ReplicateGenerationWebhookHandler {
   constructor(

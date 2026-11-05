@@ -30,6 +30,7 @@ import {
 import type { PaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
 import { GENERATE_CONTENT_TEXT_CREDITS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 export type {
@@ -38,6 +39,7 @@ export type {
   PublishGateResult,
 } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
 
+@Traced()
 @Injectable()
 export class AgentStrategyAutopilotService {
   constructor(

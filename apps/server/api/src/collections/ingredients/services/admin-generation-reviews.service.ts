@@ -10,6 +10,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivityEntityModel } from '@genfeedai/contracts';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -17,6 +18,7 @@ import { Injectable } from '@nestjs/common';
  * organization-scoped; this is the one path operators use to inspect another
  * tenant's original, enhanced and compiled prompts next to the result (#5763).
  */
+@Traced()
 @Injectable()
 export class AdminGenerationReviewsService {
   constructor(

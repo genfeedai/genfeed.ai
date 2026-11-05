@@ -20,6 +20,7 @@ import {
   resolvePaidCreativeLongevity,
   TIKTOK_AD_LIBRARY_COUNTRIES,
 } from '@genfeedai/integrations/ads';
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const META_AD_LIBRARY_ID_PATTERN = /^AR\d+$/i;
@@ -384,6 +385,7 @@ export function groupDiscoveryAdvertisers(
   });
 }
 
+@Traced()
 @Injectable()
 export class AdsDiscoveryService {
   constructor(

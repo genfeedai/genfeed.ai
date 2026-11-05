@@ -11,6 +11,7 @@ import {
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types';
 import { resolveFreeTrialRolloutAt } from '@genfeedai/contracts/constants';
 import { CredentialPlatform, type Prisma } from '@genfeedai/prisma';
+import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 
 export interface SystemEmailEligibilityInput {
@@ -34,6 +35,7 @@ export const GENERATED_CONTENT_FILTER = {
   status: IngredientStatus.GENERATED,
 } satisfies Prisma.IngredientWhereInput;
 
+@Traced()
 @Injectable()
 export class SystemEmailEligibilityService {
   constructor(

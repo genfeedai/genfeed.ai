@@ -7,6 +7,7 @@ import {
 import { CacheClientService } from '@api/services/cache/cache-client.service';
 import { CacheTagsService } from '@api/services/cache/cache-tags.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 import type Redis from 'ioredis';
 
@@ -160,6 +161,7 @@ return 1
 `;
 
 export type ResearchReservationNote = 'duplicate' | 'noted' | 'unavailable';
+@Traced()
 @Injectable()
 export class CacheService {
   private readonly defaultTtl = 300; // 5 minutes default

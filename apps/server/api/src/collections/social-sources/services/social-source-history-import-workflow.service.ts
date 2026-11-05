@@ -9,6 +9,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { SocialSourceHistoryImportWorkflowInput } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 interface HistoryImportRunResult {
@@ -22,6 +23,7 @@ interface HistoryImportRunResult {
  * Executes the own-account history import system workflow. Registered in the
  * API and worker processes alike; the queue decides where a run lands.
  */
+@Traced()
 @Injectable()
 export class SocialSourceHistoryImportWorkflowService implements OnModuleInit {
   constructor(

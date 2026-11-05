@@ -40,6 +40,7 @@ import {
   type ClipperSourceContract,
   DEFAULT_CLIP_RESULT_MODE,
 } from '@genfeedai/contracts/interfaces';
+import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
@@ -72,6 +73,7 @@ export interface PrepareClipperUploadResult {
   uploadUrl: string;
 }
 
+@Traced()
 @Injectable()
 export class ClipperProjectIngestionService {
   constructor(

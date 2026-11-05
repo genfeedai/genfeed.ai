@@ -11,6 +11,7 @@ import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util'
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   HttpException,
@@ -57,6 +58,7 @@ const CONTENT_STATS_LINK_LIMIT = 500;
 const CLICK_RATE_LIMIT = 120;
 const CLICK_RATE_WINDOW_MS = 60_000;
 
+@Traced()
 @Injectable()
 export class TrackedLinksService {
   private readonly clickRateLimiter = new Map<string, ClickRateEntry>();

@@ -27,6 +27,7 @@ import type {
 import { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type PrismaSql = ReturnType<typeof Prisma.sql>;
@@ -36,6 +37,7 @@ export type { AnalyticsBestPostingTime } from '@api/endpoints/analytics/analytic
 
 const analyticsResponseProjection = new AnalyticsResponseProjection();
 
+@Traced()
 @Injectable()
 export class AnalyticsService extends BaseService<Record<string, unknown>> {
   constructor(

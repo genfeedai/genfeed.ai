@@ -16,7 +16,7 @@ import type {
   InstagramInspirationSort,
   InstagramRemixMode,
 } from '@genfeedai/contracts/interfaces';
-
+import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 function readOptionalNumber(value: unknown): number | undefined {
@@ -37,6 +37,7 @@ function readOptionalString(value: unknown): string | undefined {
  * a routing boundary and the tenancy-sensitive brand resolver remains local to
  * this tool family.
  */
+@Traced()
 @Injectable()
 export class AgentInstagramInspirationToolHandler {
   constructor(

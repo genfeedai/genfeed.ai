@@ -6,8 +6,10 @@ import {
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ScheduledPostWorkflowQueueService {
   constructor(private readonly workflowQueue: WorkflowExecutionQueueService) {}

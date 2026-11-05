@@ -13,8 +13,10 @@ import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util'
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
+@Traced()
 @Injectable()
 export class ArticleAnalyticsService extends BaseService<
   ArticleAnalyticsDocument,

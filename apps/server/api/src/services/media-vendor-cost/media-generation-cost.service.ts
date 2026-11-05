@@ -14,6 +14,7 @@ import {
   resolveProviderCostUnits,
 } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
 type CostModel = NonNullable<Awaited<ReturnType<ModelsService['findOne']>>>;
@@ -36,6 +37,7 @@ type CostIngredient = {
  * service. MediaVendorCostLedgerService de-duplicates them by organization +
  * ingredient so retries cannot inflate agency reports.
  */
+@Traced()
 @Injectable()
 export class MediaGenerationCostService {
   private readonly constructorName = String(this.constructor.name);

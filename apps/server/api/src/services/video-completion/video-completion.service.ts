@@ -24,6 +24,7 @@ import {
   RAW_CUT_JOB_PREFIX,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 export type VideoCompletionEvent = {
@@ -58,6 +59,7 @@ const EDITOR_RENDER_STALE_MS = 45 * 60 * 1000;
 const RAW_CUT_RECONCILIATION_LOCK = 'raw-cut-clip-reconciliation';
 const RAW_CUT_RECONCILIATION_LOCK_TTL_SECONDS = 300;
 
+@Traced()
 @Injectable()
 export class VideoCompletionService {
   constructor(

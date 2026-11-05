@@ -18,6 +18,7 @@ import {
 } from '@genfeedai/contracts/types';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import {
   BadRequestException,
   forwardRef,
@@ -120,6 +121,7 @@ function serializeDate(value?: Date | string | null): string | null {
   return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString();
 }
 
+@Traced()
 @Injectable()
 export class StreaksService {
   constructor(
