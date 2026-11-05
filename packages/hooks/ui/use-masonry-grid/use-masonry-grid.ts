@@ -63,6 +63,9 @@ export function useMasonryGrid<T extends MasonryItem>(
   const transitionRef = useRef<ILayoutTransition | null>(null);
   const transitionSettleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scheduleLayoutRef = useRef<(delay?: number) => void>(() => undefined);
+  // A tile changed size while the sweep owned the layout (media finished
+  // loading mid-slide); the settled layout has to be packed again for it.
+  const hasDeferredTileResizeRef = useRef(false);
   const gap = useMemo(() => options.gap ?? 16, [options.gap]);
   const layoutSignature = useMemo(() => {
     if (itemsCount === 0) {
@@ -211,6 +214,7 @@ export function useMasonryGrid<T extends MasonryItem>(
 
     // A normal pack supersedes any sweep still being followed.
     endTransition();
+    hasDeferredTileResizeRef.current = false;
 
     // Get all masonry items
     const masonryItems = Array.from(
@@ -259,6 +263,12 @@ export function useMasonryGrid<T extends MasonryItem>(
     });
 
     layoutFrameRef.current = { frame, items: masonryItems };
+    // A sweep that stopped short leaves its interpolated height on the node,
+    // and React skips the write when the packed height equals the stale state.
+    const packedHeight = `${frame.height}px`;
+    if (isLayoutReady && container.style.height !== packedHeight) {
+      container.style.height = packedHeight;
+    }
     setContainerHeight(frame.height);
 
     if (!isLayoutReady) {
@@ -303,6 +313,7 @@ export function useMasonryGrid<T extends MasonryItem>(
       }
 
       cancelScheduledLayout();
+      isLiveResizeRef.current = false;
       transitionRef.current = {
         from: previous.frame,
         items,
@@ -337,6 +348,22 @@ export function useMasonryGrid<T extends MasonryItem>(
           return false;
         }
         return followTransition(currentWidth, false);
+      }
+
+      // Another transition can start or change course while this one runs and
+      // still end inside the same interval, so the destination is re-read.
+      if (canRetarget) {
+        const settledWidth = resolveSettledContainerWidth(container);
+        if (
+          settledWidth !== null &&
+          Math.abs(settledWidth - to.width) >= WIDTH_TOLERANCE_PX
+        ) {
+          if (!beginTransition(currentWidth)) {
+            endTransition();
+            return false;
+          }
+          return followTransition(currentWidth, false);
+        }
       }
 
       const isSettled =
@@ -374,6 +401,10 @@ export function useMasonryGrid<T extends MasonryItem>(
       if (isSettled) {
         endTransition();
         setContainerHeight(to.height);
+        if (hasDeferredTileResizeRef.current) {
+          hasDeferredTileResizeRef.current = false;
+          scheduleLayoutRef.current(50);
+        }
         return true;
       }
 
@@ -479,7 +510,8 @@ export function useMasonryGrid<T extends MasonryItem>(
         const currentWidth = container.clientWidth;
         const isFollowing = transitionRef.current
           ? followTransition(currentWidth)
-          : beginTransition(currentWidth) && followTransition(currentWidth);
+          : beginTransition(currentWidth) &&
+            followTransition(currentWidth, false);
         if (isFollowing) {
           return;
         }
@@ -490,7 +522,11 @@ export function useMasonryGrid<T extends MasonryItem>(
       }
       // A frame-synced pass is already queued, or the sweep owns the tiles;
       // a debounce would replace it.
-      if (isLiveResizeRef.current || transitionRef.current) {
+      if (transitionRef.current) {
+        hasDeferredTileResizeRef.current = true;
+        return;
+      }
+      if (isLiveResizeRef.current) {
         return;
       }
       scheduleLayout(50);

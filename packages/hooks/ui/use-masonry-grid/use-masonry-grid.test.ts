@@ -548,6 +548,64 @@ describe('useMasonryGrid', () => {
         expect(tiles[0].style.width).toBe('268px');
         expect(tileOffset(tiles[2]).x).toBe(552);
       });
+
+      it('resets the height a stopped slide left on the container', () => {
+        const { container, result } = mountOpenDrawerGrid();
+
+        slideTo(container, 820);
+        getAnimations.mockReturnValue([]);
+        act(() => {
+          vi.runAllTimers();
+        });
+
+        // The packed height equals the height state held before the slide, so
+        // only the node itself can still carry the interpolated value.
+        expect(result.current.containerHeight).toBe(208);
+        expect(container.style.height).toBe('208px');
+      });
+
+      it('repacks the settled layout for a tile that resized during the slide', () => {
+        const { container, result } = mountOpenDrawerGrid();
+        const tiles = Array.from(container.children) as HTMLElement[];
+        const observer = MockResizeObserver.instances.at(-1);
+
+        slideTo(container, 820);
+        Object.defineProperty(tiles[0], 'offsetHeight', {
+          configurable: true,
+          value: 300,
+        });
+        act(() => {
+          observer?.callback(
+            [{ target: tiles[0] } as unknown as ResizeObserverEntry],
+            observer as unknown as ResizeObserver,
+          );
+        });
+        slideTo(container, 1000);
+        act(() => {
+          vi.runAllTimers();
+        });
+
+        expect(result.current.containerHeight).toBe(300);
+      });
+
+      it('follows a slide whose end changes while it is running', () => {
+        const { container } = mountOpenDrawerGrid();
+        const tiles = Array.from(container.children) as HTMLElement[];
+
+        slideTo(container, 820);
+        // A second transition now ends at 760px: 240px of margin, three
+        // columns of 248px.
+        getAnimations.mockReturnValue([
+          {
+            effect: new FakeKeyframeEffect(document.body, '240px'),
+            transitionProperty: 'margin-right',
+          } as unknown as Animation,
+        ]);
+        slideTo(container, 760);
+
+        expect(tiles[0].style.width).toBe('248px');
+        expect(tileOffset(tiles[2])).toEqual({ x: 512, y: 0 });
+      });
     });
 
     it('observes tiles and repacks when intrinsic media heights arrive later', () => {
@@ -701,7 +759,11 @@ describe('useMasonryGrid', () => {
         subtree: true,
       });
       run();
-      const records = observer.takeRecords();
+      // The container's height belongs to React, which already holds the
+      // packed value in a real page; this bare node has none to match.
+      const records = observer
+        .takeRecords()
+        .filter((record) => record.target !== container);
       observer.disconnect();
       return {
         tiles: new Set(records.map((record) => record.target)).size,
