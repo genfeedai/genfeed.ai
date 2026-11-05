@@ -1,5 +1,7 @@
 import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
 import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
+import { runWithWideEvent } from '@libs/logger/wide-event/wide-event.context';
+import { startWideEvent } from '@libs/logger/wide-event/wide-event.lifecycle';
 import { type ArgumentsHost, HttpStatus } from '@nestjs/common';
 
 const jsonApiSerializerMock = {
@@ -24,6 +26,22 @@ vi.mock('@sentry/nestjs', () => ({
 type FilterInstance = {
   catch(exception: unknown, host: ArgumentsHost): void;
 };
+/** Runs a filter inside a request's wide event and returns the event. */
+function catchWithWideEvent(
+  filter: FilterInstance,
+  exception: unknown,
+  host: ArgumentsHost,
+) {
+  const { event } = startWideEvent({
+    identity: { service: 'api' },
+    kind: 'http',
+    requestId: 'req-1',
+    trace: { spanId: 'span-1', traceId: 'trace-1' },
+  });
+  runWithWideEvent(event, () => filter.catch(exception, host));
+  return event;
+}
+
 type FilterConstructor = new (
   loggerService: unknown,
   configService: unknown,
@@ -108,10 +126,14 @@ describe('AllExceptionFilter', () => {
   it('should handle generic exceptions', () => {
     const exception = new Error('Test error');
 
-    filter.catch(exception, mockArgumentsHost);
+    const event = catchWithWideEvent(filter, exception, mockArgumentsHost);
 
-    // Logger is always called regardless of environment
-    expect(mockLoggerService.error).toHaveBeenCalled();
+    // The real error is recorded regardless of environment
+    expect(event.error).toMatchObject({
+      message: 'Test error',
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
+      type: 'Error',
+    });
     expect(mockResponse.status).toHaveBeenCalledWith(
       HttpStatus.INTERNAL_SERVER_ERROR,
     );
@@ -172,15 +194,9 @@ describe('AllExceptionFilter', () => {
     );
     const exception = new Error('Test error');
 
-    devFilter.catch(exception, mockArgumentsHost);
+    const event = catchWithWideEvent(devFilter, exception, mockArgumentsHost);
 
-    expect(mockLoggerService.error).toHaveBeenCalledWith(
-      'GET /test 500 — Test error',
-      expect.objectContaining({
-        operation: 'catch',
-        service: 'AllExceptionFilter',
-      }),
-    );
+    expect(event.error).toMatchObject({ message: 'Test error', status: 500 });
     expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 

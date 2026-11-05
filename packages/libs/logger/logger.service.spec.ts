@@ -54,6 +54,48 @@ describe('LoggerService', () => {
     });
   });
 
+  describe('wideEvent', () => {
+    const event = {
+      duration_ms: 12,
+      kind: 'http',
+      method: 'GET',
+      outcome: 'success',
+      request_id: 'req-1',
+      route: '/v1/posts/:id',
+      service: 'api',
+      span_id: 'span-1',
+      status_code: 200,
+      timestamp: '2026-11-05T00:00:00.000Z',
+      trace_id: 'trace-1',
+    } as const;
+
+    it('emits the whole event as one record tagged as a wide event', () => {
+      service.wideEvent(event);
+
+      expect(mockWinston.info).toHaveBeenCalledOnce();
+      expect(mockWinston.info).toHaveBeenCalledWith(
+        'GET /v1/posts/:id 200 12ms',
+        { ...event, type: 'wide_event' },
+      );
+    });
+
+    it('emits failures at error level', () => {
+      service.wideEvent({ ...event, outcome: 'error', status_code: 500 });
+
+      expect(mockWinston.error).toHaveBeenCalledOnce();
+      expect(mockWinston.info).not.toHaveBeenCalled();
+    });
+
+    it('redacts secrets inside the event', () => {
+      service.wideEvent({ ...event, upstream: { apiKey: 'sk-live-123456' } });
+
+      expect(mockWinston.info).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ upstream: { apiKey: '[REDACTED]' } }),
+      );
+    });
+  });
+
   describe('warn', () => {
     it('should call winston.warn with message and context', () => {
       const message = 'Test warning message';

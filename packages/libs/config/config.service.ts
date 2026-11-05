@@ -91,7 +91,6 @@ interface ApiEnvConfig extends IEnvConfig {
 const apiSpecificSchema = {
   GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID: Joi.string().optional().allow(''),
   GENFEEDAI_CDN_SIGNING_PRIVATE_KEY: Joi.string().optional().allow(''),
-  API_METRICS_LOGGING: Joi.string().valid('true', 'false').optional().allow(''),
   API_PERFORMANCE_AUDIT: Joi.string()
     .valid('true', 'false')
     .optional()

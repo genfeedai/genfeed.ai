@@ -26,6 +26,7 @@ interface MockApp {
   listen: ReturnType<typeof vi.fn>;
   set: ReturnType<typeof vi.fn>;
   setGlobalPrefix: ReturnType<typeof vi.fn>;
+  use: ReturnType<typeof vi.fn>;
 }
 
 describe('runService', () => {
@@ -57,6 +58,7 @@ describe('runService', () => {
       listen: vi.fn().mockResolvedValue(undefined),
       set: vi.fn(),
       setGlobalPrefix: vi.fn(),
+      use: vi.fn(),
     };
     vi.mocked(NestFactory.create).mockResolvedValue(
       app as unknown as Awaited<ReturnType<typeof NestFactory.create>>,
@@ -94,6 +96,7 @@ describe('runService', () => {
     );
     expect(app.set).toHaveBeenCalledWith('trust proxy', 1);
     expect(app.enableShutdownHooks).toHaveBeenCalledOnce();
+    expect(app.use).toHaveBeenCalledWith(expect.any(Function));
     expect(serverGet).toHaveBeenCalledWith('/', expect.any(Function));
     expect(app.setGlobalPrefix).toHaveBeenCalledWith('v1');
     expect(app.listen).toHaveBeenCalledWith(3020);

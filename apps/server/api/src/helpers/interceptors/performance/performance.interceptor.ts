@@ -19,7 +19,10 @@ import type {
   PerformanceMetrics,
 } from '@api/shared/interfaces/performance/performance.interface';
 import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
+import {
+  enrichWideEvent,
+  recordWideEventError,
+} from '@libs/logger/wide-event/wide-event.context';
 import {
   CallHandler,
   ExecutionContext,
@@ -30,19 +33,21 @@ import {
 import { Observable } from 'rxjs';
 import { finalize, tap } from 'rxjs/operators';
 
+/**
+ * Adds request performance to the request's wide event (database work, memory
+ * pressure on slow requests, the caught error) and reports the same metrics to
+ * Sentry. It writes no log lines: the wide event is the one record of the
+ * request, emitted by the wide-event middleware when the response finishes.
+ */
 @Injectable()
 export class PerformanceInterceptor implements NestInterceptor {
   private readonly slowRequestThreshold = 1_000; // 1 second
   private readonly verySlowRequestThreshold = 5_000; // 5 seconds
-  private readonly logSuccessfulRequests: boolean;
 
   constructor(
-    private readonly logger: LoggerService,
     private readonly configService: ConfigService,
     @Optional() private readonly memoryMonitor?: MemoryMonitorService,
-  ) {
-    this.logSuccessfulRequests = configService.get('NODE_ENV') !== 'production';
-  }
+  ) {}
 
   private readError(error: unknown): {
     message?: string;
@@ -164,12 +169,8 @@ export class PerformanceInterceptor implements NestInterceptor {
     error?: unknown,
   ) {
     const duration = Date.now() - startTime;
-    const shouldLogCompletion = this.logSuccessfulRequests && !error;
     const isSlow = duration > this.slowRequestThreshold;
     const isVerySlow = duration > this.verySlowRequestThreshold;
-    const isUnauthorizedResponse =
-      !error && (statusCode === 401 || statusCode === 403);
-    const isFailedResponse = !error && statusCode >= 500;
     const metrics: PerformanceMetrics = {
       duration,
       method,
@@ -203,92 +204,33 @@ export class PerformanceInterceptor implements NestInterceptor {
       this.configService,
     );
 
-    if (isExpectedExecutionLookupMiss) {
-      this.logger.debug('Workflow execution lookup returned no result', {
-        ...metrics,
-        severity,
-      });
-      if (!isSlow) return;
-    }
-
-    if (
-      !shouldLogCompletion &&
-      !isSlow &&
-      !isVerySlow &&
-      !error &&
-      !isUnauthorizedResponse &&
-      !isFailedResponse
-    ) {
-      return;
-    }
-
-    // Check memory usage for slow requests
+    // Memory pressure is only worth its cost when the request was slow.
     const memoryStats =
       isSlow && this.memoryMonitor
         ? this.memoryMonitor.getMemoryStats()
         : undefined;
 
-    // Log based on performance thresholds
-    if (isVerySlow) {
-      this.logger.warn('Very slow request detected', {
-        ...metrics,
-        severity,
-        ...(databaseMetrics && { database: databaseMetrics }),
-        ...(errorDetails?.message && { error: errorDetails.message }),
-        ...(memoryStats && {
-          memory: memoryStats,
-          memoryWarning:
-            memoryStats.heapUsedPercent > 80
-              ? `High memory usage: ${memoryStats.heapUsedPercent}%`
-              : undefined,
-        }),
-      });
-    } else if (isSlow) {
-      this.logger.warn('Slow request detected', {
-        ...metrics,
-        severity,
-        ...(databaseMetrics && { database: databaseMetrics }),
-        ...(errorDetails?.message && { error: errorDetails.message }),
-        ...(memoryStats && {
-          memory: memoryStats,
-          memoryWarning:
-            memoryStats.heapUsedPercent > 80
-              ? `High memory usage: ${memoryStats.heapUsedPercent}%`
-              : undefined,
-        }),
-      });
-    } else if (isFailedResponse) {
-      this.logger.error('Request failed', {
-        ...metrics,
-        ...(databaseMetrics && { database: databaseMetrics }),
-        severity,
-      });
-    } else if (isUnauthorizedResponse) {
-      this.logger.warn('Request unauthorized', {
-        ...metrics,
-        ...(databaseMetrics && { database: databaseMetrics }),
-        severity,
-      });
-    } else if (shouldLogCompletion) {
-      // Keep low-value request completion logs out of the production hot path.
-      this.logger.debug('Request completed', {
-        ...metrics,
-        ...(databaseMetrics && { database: databaseMetrics }),
-        severity,
-        ...(errorDetails?.message && { error: errorDetails.message }),
-      });
-    }
+    enrichWideEvent({
+      database: databaseMetrics && {
+        query_count: databaseMetrics.queryCount,
+        query_duration_ms: databaseMetrics.queryDuration,
+        slow_queries: databaseMetrics.slowQueries.map((query) => ({
+          duration_ms: query.duration,
+          fingerprint: query.fingerprint,
+          target: query.target,
+        })),
+      },
+      memory: memoryStats && {
+        heap_used_mb: memoryStats.heapUsedMB,
+        heap_used_percent: memoryStats.heapUsedPercent,
+        rss_mb: memoryStats.rssMB,
+      },
+      performance_severity: severity,
+    });
 
-    // Log error requests separately for easier monitoring
     if (error && !isExpectedExecutionLookupMiss) {
-      this.logger.error('Request failed', {
-        ...metrics,
-        ...(databaseMetrics && { database: databaseMetrics }),
-        error: {
-          message: errorDetails?.message,
-          name: errorDetails?.name,
-          stack: errorDetails?.stack,
-        },
+      recordWideEventError(error, {
+        status: errorDetails?.status ?? statusCode,
       });
     }
   }
@@ -311,51 +253,5 @@ export class PerformanceInterceptor implements NestInterceptor {
     }
 
     return 'LOW';
-  }
-}
-
-// Additional interceptor for API-specific metrics
-@Injectable()
-export class APIMetricsInterceptor implements NestInterceptor {
-  private readonly logApiUsage: boolean;
-
-  constructor(
-    private readonly logger: LoggerService,
-    logApiUsage?: boolean,
-  ) {
-    this.logApiUsage = logApiUsage ?? false;
-  }
-
-  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    if (!this.logApiUsage) {
-      return next.handle();
-    }
-
-    const request = context.switchToHttp().getRequest();
-    const { method, url } = request;
-
-    // Track API endpoint usage
-    if (url.startsWith('/v1/')) {
-      const endpoint = this.extractEndpoint(url);
-
-      return next.handle().pipe(
-        tap({
-          next: () => {
-            this.logger.debug('API endpoint accessed', {
-              endpoint,
-              method,
-              timestamp: new Date().toISOString(),
-              type: 'api_usage',
-            });
-          },
-        }),
-      );
-    }
-
-    return next.handle();
-  }
-
-  private extractEndpoint(url: string): string {
-    return normalizeApiRoute(url);
   }
 }

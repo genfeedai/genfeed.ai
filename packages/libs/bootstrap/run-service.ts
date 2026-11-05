@@ -65,7 +65,7 @@ export async function runService(options: RunServiceOptions): Promise<void> {
   const port = config.get('PORT');
 
   try {
-    setupServiceShell(app, shell);
+    setupServiceShell(app, { ...shell, wideEventSink: logger });
 
     app.setGlobalPrefix(globalPrefix);
 
