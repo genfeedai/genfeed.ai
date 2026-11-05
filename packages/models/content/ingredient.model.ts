@@ -13,6 +13,7 @@ import type {
   ITag,
   MediaDeliveryGrant,
 } from '@genfeedai/contracts/interfaces';
+import { isFilesServiceHostname } from '@genfeedai/helpers';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
 import { resolveIngredientReferenceUrl } from '@genfeedai/utils/media/reference.util';
@@ -21,15 +22,6 @@ import { Metadata } from '@models/content/metadata.model';
 import { Prompt } from '@models/content/prompt.model';
 import { Asset } from '@models/ingredients/asset.model';
 import { Brand } from '@models/organization/brand.model';
-
-function isFilesServiceHostname(hostname: string): boolean {
-  const host = hostname.trim().toLowerCase();
-  return (
-    host === 'files.genfeed.ai' ||
-    host === 'files.genfeed.localhost' ||
-    host.endsWith('.files.genfeed.localhost')
-  );
-}
 
 export class Ingredient extends BaseIngredient {
   private _ingredientUrl: string = '';
