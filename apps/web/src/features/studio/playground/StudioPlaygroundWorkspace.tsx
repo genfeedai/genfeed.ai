@@ -33,6 +33,7 @@ import {
   MODEL_KEYS,
 } from '@genfeedai/contracts/constants';
 import type {
+  CreativeAppAgentContext,
   IIngredient,
   IStudioGenerateDraft,
   KnowledgeSelection,
@@ -198,6 +199,7 @@ import type {
   StudioPlaygroundFilter,
   StudioPlaygroundStarterSelection,
 } from '@/features/studio/props/studio-playground.props';
+import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 import { useFailedIngredientRecovery } from '@/hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery';
 import { useCrunGenerationQuote } from '@/hooks/prompt-bar/use-crun-generation-quote/use-crun-generation-quote';
 
@@ -215,6 +217,15 @@ interface StudioContentReference {
  */
 
 const EMPTY_KNOWLEDGE_SELECTION: KnowledgeSelection = {};
+/**
+ * The playground keeps no projects, so the agent treats every prompt here as
+ * a new generation instead of asking which project a change applies to. A
+ * module constant keeps the reference stable across renders.
+ */
+const PLAYGROUND_AGENT_CONTEXT: CreativeAppAgentContext = {
+  app: 'playground',
+  projects: [],
+};
 /** Recent images offered as "More like" in the composer while it is empty. */
 const COMPOSER_RECENT_LIMIT = 4;
 const EMPTY_ATTACHMENTS: AttachmentItem[] = [];
@@ -303,6 +314,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   const [recognizedSkillSlugs, setRecognizedSkillSlugs] = useState<string[]>(
     [],
   );
+  useCreativeAppAgentContext(PLAYGROUND_AGENT_CONTEXT);
   const agentApiService = useAgentApiService();
   const {
     extraExtensions: characterMentionExtensions,

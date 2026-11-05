@@ -220,6 +220,7 @@ const mocks = vi.hoisted(() => ({
   setType: vi.fn(),
   updateSettings: vi.fn(),
   modelsHook: vi.fn(),
+  publishContext: vi.fn(),
 }));
 
 const characterMentionMocks = vi.hoisted(() => ({
@@ -252,6 +253,11 @@ vi.mock(
       };
     },
   }),
+);
+
+vi.mock(
+  '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context',
+  () => ({ useCreativeAppAgentContext: mocks.publishContext }),
 );
 
 vi.mock('@hooks/ui/use-storyboard-entry/use-storyboard-entry', () => ({
@@ -929,6 +935,15 @@ describe('StudioPlaygroundWorkspace', () => {
       setType: mocks.setType,
       type: 'image',
       updateSettings: vi.fn(),
+    });
+  });
+
+  it('tells the agent the playground keeps no projects', () => {
+    render(<StudioPlaygroundWorkspace />);
+
+    expect(mocks.publishContext).toHaveBeenLastCalledWith({
+      app: 'playground',
+      projects: [],
     });
   });
 
