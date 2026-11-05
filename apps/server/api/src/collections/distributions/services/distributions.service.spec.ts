@@ -49,10 +49,12 @@ describe('DistributionsService', () => {
 
   describe('createDistribution', () => {
     it('persists a distribution scoped to the organization and user', async () => {
-      mockPrismaService.distribution.create.mockResolvedValue({
-        id: 'dist-id',
-        organizationId: orgId,
-      });
+      mockPrismaService.distribution.create.mockImplementation(
+        async ({ data }: { data: Record<string, unknown> }) => ({
+          ...data,
+          id: 'dist-id',
+        }),
+      );
 
       const result = await service.createDistribution(
         orgId,
@@ -65,16 +67,12 @@ describe('DistributionsService', () => {
         PublishStatus.PUBLISHING,
       );
 
-      expect(mockPrismaService.distribution.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            organizationId: orgId,
-            status: PublishStatus.PUBLISHING,
-            userId,
-          }),
-        }),
-      );
-      expect(result).toMatchObject({ id: 'dist-id' });
+      expect(result).toMatchObject({
+        id: 'dist-id',
+        organizationId: orgId,
+        status: PublishStatus.PUBLISHING,
+        userId,
+      });
     });
   });
   describe('tenant-scoped status transitions', () => {

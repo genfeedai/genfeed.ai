@@ -33,10 +33,18 @@ describe('VoicesAccountController', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Each fake echoes the scope it was called with into its result.
     accountVoices = {
       browse: vi.fn(),
-      import: vi.fn().mockResolvedValue(voice),
-      unlink: vi.fn().mockResolvedValue(voice),
+      import: vi.fn(async (importer: User, externalVoiceId: string) => ({
+        ...voice,
+        externalVoiceId,
+        organizationId: importer.organizationId,
+      })),
+      unlink: vi.fn(async (voiceOrganizationId: string, voiceId: string) => ({
+        id: voiceId,
+        organizationId: voiceOrganizationId,
+      })),
     };
     controller = new VoicesAccountController(
       accountVoices as unknown as ElevenLabsAccountVoicesService,
@@ -44,39 +52,50 @@ describe('VoicesAccountController', () => {
   });
 
   it('browses the caller organization account', async () => {
-    const page = {
-      connection: { status: 'connected' },
-      hasMore: false,
-      nextPageToken: null,
-      voices: [],
-    };
-    accountVoices.browse.mockResolvedValue(page);
+    accountVoices.browse.mockImplementation(
+      async (browserOrganizationId: string, query: { search?: string }) => ({
+        connection: { status: 'connected' },
+        hasMore: false,
+        nextPageToken: null,
+        voices: [{ name: query.search, organizationId: browserOrganizationId }],
+      }),
+    );
 
     await expect(
       controller.findAccountVoices(user, { search: 'clone' }),
-    ).resolves.toEqual({ data: page });
-    expect(accountVoices.browse).toHaveBeenCalledWith(organizationId, {
-      search: 'clone',
+    ).resolves.toEqual({
+      data: {
+        connection: { status: 'connected' },
+        hasMore: false,
+        nextPageToken: null,
+        voices: [{ name: 'clone', organizationId }],
+      },
     });
   });
 
   it('imports a voice and serializes the saved reference', async () => {
-    await controller.importAccountVoice(request, user, {
+    const imported = {
+      ...voice,
       externalVoiceId: 'el-voice-1',
-    });
+      organizationId,
+    };
 
-    expect(accountVoices.import).toHaveBeenCalledWith(user, 'el-voice-1');
+    await expect(
+      controller.importAccountVoice(request, user, {
+        externalVoiceId: 'el-voice-1',
+      }),
+    ).resolves.toEqual(imported);
     expect(serializeSingle).toHaveBeenCalledWith(
       request,
       VoiceSerializer,
-      voice,
+      imported,
     );
   });
 
   it('unlinks within the caller organization', async () => {
-    await controller.unlinkImportedVoice(request, user, voice.id);
-
-    expect(accountVoices.unlink).toHaveBeenCalledWith(organizationId, voice.id);
+    await expect(
+      controller.unlinkImportedVoice(request, user, voice.id),
+    ).resolves.toEqual({ id: voice.id, organizationId });
   });
 
   it('rejects malformed ids and reports missing references', async () => {

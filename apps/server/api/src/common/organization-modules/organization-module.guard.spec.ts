@@ -92,28 +92,37 @@ describe('OrganizationModuleGuard', () => {
       expect(assertAccess).not.toHaveBeenCalled();
     },
   );
-  it('resolves read, POST export and explicit mutating GET operations from trusted metadata', async () => {
-    const assertAccess = vi.fn().mockResolvedValue(undefined);
-    const guard = new OrganizationModuleGuard(new Reflector(), {
-      assertAccess,
-    } as never);
-    for (const [handler, method, operation] of [
-      ['list', 'GET', 'read'],
-      ['export', 'POST', 'export'],
-      ['mutatingGet', 'GET', 'write'],
-    ]) {
-      await guard.canActivate(
-        createContext(TurboController, handler, {
-          ...identity,
-          method,
-        }) as never,
+  it.each([
+    ['list', 'GET', 'read'],
+    ['export', 'POST', 'export'],
+    ['mutatingGet', 'GET', 'write'],
+  ])(
+    'resolves %s over %s as the %s operation from trusted metadata',
+    async (handler, method, operation) => {
+      // Grants only the expected operation, so any other resolution is denied.
+      const assertAccess = vi.fn(
+        async (organizationId: string, moduleId: string, op: string) => {
+          if (
+            organizationId !== 'org-1' ||
+            moduleId !== 'turbo' ||
+            op !== operation
+          ) {
+            throw new Error('disabled');
+          }
+        },
       );
-      expect(assertAccess).toHaveBeenLastCalledWith(
-        'org-1',
-        'turbo',
-        operation,
-        expect.any(Object),
-      );
-    }
-  });
+      const guard = new OrganizationModuleGuard(new Reflector(), {
+        assertAccess,
+      } as never);
+
+      await expect(
+        guard.canActivate(
+          createContext(TurboController, handler, {
+            ...identity,
+            method,
+          }) as never,
+        ),
+      ).resolves.toBe(true);
+    },
+  );
 });
