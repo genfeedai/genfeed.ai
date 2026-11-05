@@ -28,6 +28,9 @@ import {
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { Inject, Injectable } from '@nestjs/common';
 
+const LIKE_WILDCARD_CHARS_PATTERN = /[\\%_]/g;
+const META_AD_LIBRARY_ID_PATTERN = /^AR\d+$/i;
+
 const DEFAULT_PAGE_SIZE = 50;
 const UPSERT_BATCH_CHUNK_SIZE = 50;
 const DEFAULT_TOP_PERFORMER_LIMIT = 10;
@@ -548,11 +551,12 @@ export class AdPerformanceService {
   ): Promise<AdPerformanceDocument[]> {
     if (!params.organizationId || !params.brandId) return [];
     const provider = resolvePaidCreativeProvider(params.platform);
-    const escapeLike = (value: string) => value.replace(/[\\%_]/g, '\\$&');
+    const escapeLike = (value: string) =>
+      value.replace(LIKE_WILDCARD_CHARS_PATTERN, '\\$&');
     const keyword = escapeLike(params.keyword);
     const isGoogle =
       params.platform === 'google' || params.platform === 'youtube';
-    const isAdvertiserId = /^AR\d+$/i.test(params.keyword);
+    const isAdvertiserId = META_AD_LIBRARY_ID_PATTERN.test(params.keyword);
     const jsonContains = (field: string): Prisma.AdPerformanceWhereInput => ({
       data: { path: [field], string_contains: keyword, mode: 'insensitive' },
     });
@@ -914,6 +918,7 @@ export class AdPerformanceService {
     // sql-risk-audit: documented unbounded-read -- Privacy revocation intentionally rewrites every ad performance row for one organization.
     const records = await this.prisma.adPerformance.findMany({
       where: { organizationId },
+      select: { data: true, id: true },
     });
 
     await Promise.all(

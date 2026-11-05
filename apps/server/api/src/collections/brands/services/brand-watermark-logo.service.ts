@@ -64,6 +64,7 @@ export class BrandWatermarkLogoService {
   ): Promise<void> {
     const brand = await this.prisma.brand.findFirst({
       where: { id: brandId, organizationId, isDeleted: false },
+      select: { id: true },
     });
     if (!brand) throw new NotFoundException('Brand', brandId);
     const logo = await this.prisma.asset.findFirst({
@@ -74,6 +75,7 @@ export class BrandWatermarkLogoService {
         parentType: 'BRAND',
         isDeleted: false,
       },
+      select: { mimeType: true },
     });
     if (!logo?.mimeType?.startsWith('image/'))
       throw new BadRequestException(
@@ -97,6 +99,7 @@ export class BrandWatermarkLogoService {
       return;
     const brand = await this.prisma.brand.findFirst({
       where: { id: brandId, organizationId, isDeleted: false },
+      select: { endCardAssetId: true, isEndCardEnabled: true },
     });
     if (!brand) throw new NotFoundException('Brand', brandId);
     const assetId =
@@ -121,6 +124,7 @@ export class BrandWatermarkLogoService {
         parentType: 'BRAND',
         isDeleted: false,
       },
+      select: { mimeType: true },
     });
     if (!BRAND_END_CARD_MIME_TYPES.includes(asset?.mimeType ?? ''))
       throw new BadRequestException(

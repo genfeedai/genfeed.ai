@@ -4,6 +4,12 @@ import { performance } from 'node:perf_hooks';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 
+const START_OF_STRING_PATTERN = /^/;
+const END_OF_STRING_PATTERN = /$/;
+const PATH_TEMPLATE_PARAM_PATTERN = /\{[^}]+}/;
+const TRAILING_SLASHES_PATTERN = /\/+$/g;
+const PIPES_PATTERN = /\|/g;
+
 const HTTP_METHODS = ['get', 'head', 'post', 'put', 'patch', 'delete'] as const;
 type OpenApiHttpMethod = (typeof HTTP_METHODS)[number];
 
@@ -177,8 +183,8 @@ export function formatOpenApiSmokeReport(report: OpenApiSmokeReport): string {
       ]
         .map(escapeMarkdownCell)
         .join(' | ')
-        .replace(/^/, '| ')
-        .replace(/$/, ' |'),
+        .replace(START_OF_STRING_PATTERN, '| ')
+        .replace(END_OF_STRING_PATTERN, ' |'),
     );
   }
 
@@ -200,8 +206,8 @@ export function formatOpenApiSmokeReport(report: OpenApiSmokeReport): string {
       ]
         .map(escapeMarkdownCell)
         .join(' | ')
-        .replace(/^/, '| ')
-        .replace(/$/, ' |'),
+        .replace(START_OF_STRING_PATTERN, '| ')
+        .replace(END_OF_STRING_PATTERN, ' |'),
     );
   }
 
@@ -258,7 +264,10 @@ function collectSmokeTargets(document: OpenApiDocument): {
         return param.in === 'query' && param.required;
       });
 
-      if (requiredPathParams.length > 0 || /\{[^}]+}/.test(apiPath)) {
+      if (
+        requiredPathParams.length > 0 ||
+        PATH_TEMPLATE_PARAM_PATTERN.test(apiPath)
+      ) {
         skipped.push({
           method: method.toUpperCase(),
           operationId: operation.operationId,
@@ -384,11 +393,11 @@ function percentile(values: number[], percentileValue: number): number {
 }
 
 function normalizeBaseUrl(baseUrl: string): string {
-  return baseUrl.replace(/\/+$/g, '');
+  return baseUrl.replace(TRAILING_SLASHES_PATTERN, '');
 }
 
 function escapeMarkdownCell(value: string): string {
-  return value.replace(/\|/g, '\\|');
+  return value.replace(PIPES_PATTERN, '\\|');
 }
 
 function parseNumberArg(value: string | undefined, fallback: number): number {

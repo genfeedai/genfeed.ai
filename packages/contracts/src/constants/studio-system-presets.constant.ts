@@ -2,6 +2,8 @@ import { ContentTemplateKey } from '../enums/template.enum';
 import type { IPreset } from '../interfaces/elements/preset.interface';
 import type { GenerationSetupValues } from '../interfaces/studio/generation-setup.interface';
 
+const ASPECT_RATIO_PATTERN = /^[1-9]\d*(?:\.\d+)?:[1-9]\d*(?:\.\d+)?$/;
+
 /** Initial system templates. Persisted admin edits own the catalog after seeding. */
 export const STUDIO_SYSTEM_PRESETS = [
   {
@@ -173,8 +175,7 @@ export function resolveStudioSystemPresets(
     const aspectRatio =
       type === 'image-edit' ? undefined : row.aspectRatio || seedAspectRatio;
     if (
-      (aspectRatio !== undefined &&
-        !/^[1-9]\d*(?:\.\d+)?:[1-9]\d*(?:\.\d+)?$/.test(aspectRatio)) ||
+      (aspectRatio !== undefined && !ASPECT_RATIO_PATTERN.test(aspectRatio)) ||
       (row.duration != null &&
         (!Number.isFinite(row.duration) ||
           row.duration <= 0 ||

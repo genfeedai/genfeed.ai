@@ -12,6 +12,10 @@ import {
   MaxLength,
 } from 'class-validator';
 
+const ADVERTISER_HANDLE_PATTERN = /^[a-z0-9._-]+$/;
+
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 export class CreateAdWatchedAdvertiserDto {
   @ApiProperty({
     description:
@@ -32,7 +36,7 @@ export class CreateAdWatchedAdvertiserDto {
   @IsNotEmpty()
   @IsString()
   @MaxLength(64)
-  @Matches(/^[a-z0-9._-]+$/, {
+  @Matches(ADVERTISER_HANDLE_PATTERN, {
     message:
       'advertiserHandle must contain only letters, numbers, dots, hyphens, or underscores',
   })
@@ -41,7 +45,7 @@ export class CreateAdWatchedAdvertiserDto {
       return value;
     }
 
-    return value.trim().replace(/^@/, '').toLowerCase();
+    return value.trim().replace(LEADING_AT_SIGN_PATTERN, '').toLowerCase();
   })
   advertiserHandle!: string;
 

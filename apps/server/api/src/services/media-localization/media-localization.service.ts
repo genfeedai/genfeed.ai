@@ -20,6 +20,8 @@ import {
 } from '@genfeedai/contracts';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const TWO_LETTER_CODE_PATTERN = /^[a-z]{2}$/;
+
 const READY_SOURCE_STATUSES = [
   IngredientStatus.UPLOADED,
   IngredientStatus.GENERATED,
@@ -331,7 +333,10 @@ export class MediaLocalizationService {
   }
 
   private validateLocalizationRequest(request: LocalizeSpeechRequest) {
-    if (!/^[a-z]{2}$/.test(request.targetLanguage) || !request.voiceId.trim()) {
+    if (
+      !TWO_LETTER_CODE_PATTERN.test(request.targetLanguage) ||
+      !request.voiceId.trim()
+    ) {
       throw new BadRequestException(
         'A two-letter target language and voice id are required',
       );
@@ -798,7 +803,7 @@ export class MediaLocalizationService {
         typeof segment.text !== 'string' ||
         !segment.text.trim() ||
         (segment.language !== undefined &&
-          !/^[a-z]{2}$/.test(segment.language)) ||
+          !TWO_LETTER_CODE_PATTERN.test(segment.language)) ||
         (segment.voiceId !== undefined &&
           (typeof segment.voiceId !== 'string' || !segment.voiceId.trim()))
       ) {

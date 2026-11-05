@@ -22,6 +22,9 @@ import {
 } from './api-observer-core.mjs';
 import { validateRunDirectory } from './local-mail-stub.mjs';
 
+const GIT_SHA_PATTERN = /^[a-f0-9]{40}$/;
+const MD5_HEX_PATTERN = /^[a-f0-9]{32}$/;
+
 export const SAMPLER_SLOTS = Object.freeze({
   ready: 0,
   stop: 1,
@@ -42,8 +45,8 @@ export function validateSamplerData(data) {
   ]);
   if (
     data.version !== 1 ||
-    !/^[a-f0-9]{40}$/.test(data.sourceSha) ||
-    !/^[a-f0-9]{32}$/.test(data.runNonce) ||
+    !GIT_SHA_PATTERN.test(data.sourceSha) ||
+    !MD5_HEX_PATTERN.test(data.runNonce) ||
     typeof data.connectionString !== 'string' ||
     !data.connectionString ||
     !(data.control instanceof SharedArrayBuffer) ||

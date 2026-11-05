@@ -11,6 +11,10 @@ import type {
   IProvenanceTranscriptSegment,
 } from '@genfeedai/contracts/interfaces';
 
+const SRT_TIMESTAMP_PATTERN = /^(\d{1,2}):(\d{2}):(\d{2})[,.](\d{1,3})$/;
+const CRLF_PATTERN = /\r\n/g;
+const BLANK_LINE_PATTERN = /\n\s*\n/;
+
 /** Current manifest schema version. Bump when the manifest shape changes. */
 export const MEDIA_PROVENANCE_SCHEMA_VERSION = 1;
 export const MEDIA_WATERMARK_ATTRIBUTION_SCHEMA_VERSION = 1;
@@ -51,7 +55,7 @@ export function formatVttTimestamp(seconds: number): string {
 
 function parseSrtTimestamp(value: string): number | null {
   // Accepts `HH:MM:SS,mmm` or `HH:MM:SS.mmm`.
-  const match = value.trim().match(/^(\d{1,2}):(\d{2}):(\d{2})[,.](\d{1,3})$/);
+  const match = value.trim().match(SRT_TIMESTAMP_PATTERN);
   if (!match) {
     return null;
   }
@@ -71,7 +75,7 @@ export function parseSrt(srt: string): IProvenanceTranscriptSegment[] {
   }
 
   const segments: IProvenanceTranscriptSegment[] = [];
-  const blocks = srt.replace(/\r\n/g, '\n').split(/\n\s*\n/);
+  const blocks = srt.replace(CRLF_PATTERN, '\n').split(BLANK_LINE_PATTERN);
 
   for (const block of blocks) {
     const lines = block.split('\n').filter((line) => line.trim().length > 0);

@@ -18,6 +18,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 
+const NEWLINES_PATTERN = /\n/g;
+
 const AGENT_ORCHESTRATOR_TREE =
   'apps/server/api/src/services/agent-orchestrator';
 
@@ -72,7 +74,7 @@ export type AgentDecompositionSizeOptions = {
 };
 
 function countLines(contents: string): number {
-  const match = contents.match(/\n/g);
+  const match = contents.match(NEWLINES_PATTERN);
   return match ? match.length : 0;
 }
 

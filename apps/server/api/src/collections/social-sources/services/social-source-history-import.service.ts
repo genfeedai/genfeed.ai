@@ -28,6 +28,8 @@ import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 /** How far back a connect-time import reaches. */
 export const SOCIAL_HISTORY_IMPORT_WINDOW_DAYS = 90;
 /** Upper bound on posts pulled per import, whatever the window holds. */
@@ -88,6 +90,7 @@ export class SocialSourceHistoryImportService {
 
     const brand = await this.prisma.brand.findFirst({
       where: scopedWhere(params.organizationId, { id: credential.brandId }),
+      select: { id: true },
     });
     if (!brand) {
       return { skipReason: 'credential_unavailable', status: 'skipped' };
@@ -414,7 +417,10 @@ function resolveHandle(credential: {
   username: string | null;
 }): string | undefined {
   const candidate = credential.externalHandle ?? credential.username;
-  const handle = candidate?.trim().replace(/^@/, '').toLowerCase();
+  const handle = candidate
+    ?.trim()
+    .replace(LEADING_AT_SIGN_PATTERN, '')
+    .toLowerCase();
   return handle ? handle : undefined;
 }
 

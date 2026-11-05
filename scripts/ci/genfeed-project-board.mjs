@@ -1,3 +1,5 @@
+const PERMISSION_DENIED_ERROR_PATTERN = /resource not accessible/iu;
+
 /**
  * Shared native issue metadata and Project #12 wiring for CI failure trackers.
  *
@@ -36,7 +38,7 @@ const PRIORITY_FIELD_NAME = 'Priority';
  */
 function isPermissionDeniedError(error) {
   const message = error instanceof Error ? error.message : String(error ?? '');
-  if (/resource not accessible/iu.test(message)) {
+  if (PERMISSION_DENIED_ERROR_PATTERN.test(message)) {
     return true;
   }
   if (error?.status === 401 || error?.status === 403) {
@@ -46,7 +48,7 @@ function isPermissionDeniedError(error) {
   return graphqlErrors.some(
     (entry) =>
       entry?.type === 'FORBIDDEN' ||
-      /resource not accessible/iu.test(String(entry?.message ?? '')),
+      PERMISSION_DENIED_ERROR_PATTERN.test(String(entry?.message ?? '')),
   );
 }
 

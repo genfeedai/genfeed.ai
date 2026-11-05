@@ -16,6 +16,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PROTECTED_ROUTE_INVENTORY } from '../../apps/web/src/lib/workspace-shell/workspace-shell-registry';
 
+const ROUTE_GROUP_SEGMENT_PATTERN = /^\(.+\)$/;
+const OPTIONAL_CATCH_ALL_SEGMENT_PATTERN = /^\[\[\.\.\.([^[\]]+)\]\]$/;
+const CATCH_ALL_SEGMENT_PATTERN = /^\[\.\.\.([^[\]]+)\]$/;
+const DYNAMIC_SEGMENT_PATTERN = /^\[([^[\]]+)\]$/;
+
 export type PublicRouteApplication = 'app' | 'website';
 
 export type PublicRouteProductClass =
@@ -275,21 +280,21 @@ function collectPageFiles(directory: string): string[] {
 }
 
 function normalizeNextRouteSegment(segment: string): string | null {
-  if (/^\(.+\)$/.test(segment)) {
+  if (ROUTE_GROUP_SEGMENT_PATTERN.test(segment)) {
     return null;
   }
 
-  const optionalCatchAll = segment.match(/^\[\[\.\.\.([^[\]]+)\]\]$/);
+  const optionalCatchAll = segment.match(OPTIONAL_CATCH_ALL_SEGMENT_PATTERN);
   if (optionalCatchAll) {
     return `*${optionalCatchAll[1]}?`;
   }
 
-  const catchAll = segment.match(/^\[\.\.\.([^[\]]+)\]$/);
+  const catchAll = segment.match(CATCH_ALL_SEGMENT_PATTERN);
   if (catchAll) {
     return `*${catchAll[1]}`;
   }
 
-  const dynamic = segment.match(/^\[([^[\]]+)\]$/);
+  const dynamic = segment.match(DYNAMIC_SEGMENT_PATTERN);
   if (dynamic) {
     return `:${dynamic[1]}`;
   }

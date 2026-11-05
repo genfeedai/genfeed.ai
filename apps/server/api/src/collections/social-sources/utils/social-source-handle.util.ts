@@ -1,6 +1,11 @@
 import { parseSocialPostUrl, SocialSourcePlatform } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+const WWW_PREFIX_PATTERN = /^www\./;
+const LEADING_AT_SIGN_PATTERN = /^@/;
+const LEADING_SLASHES_PATTERN = /^\/+/;
+
 const YOUTUBE_CHANNEL_ID = /^UC[A-Za-z0-9_-]{22}$/;
 
 const SOCIAL_SOURCE_PLATFORMS = new Set<string>(
@@ -40,7 +45,7 @@ export function normalizePlatform(platform: string): SocialSourcePlatform {
 export function normalizeHandle(platform: string, input: string): string {
   const trimmed = input.trim();
   try {
-    if (/^https?:\/\//i.test(trimmed)) {
+    if (HTTP_PROTOCOL_PREFIX_PATTERN.test(trimmed)) {
       // Regression guard (#2660): a URL with a post identifier must never
       // silently degrade into following the whole account.
       if (parseSocialPostUrl(trimmed)) {
@@ -49,7 +54,9 @@ export function normalizeHandle(platform: string, input: string): string {
         );
       }
       const url = new URL(trimmed);
-      const hostname = url.hostname.toLowerCase().replace(/^www\./, '');
+      const hostname = url.hostname
+        .toLowerCase()
+        .replace(WWW_PREFIX_PATTERN, '');
       const allowedHosts = getPlatformHosts(platform);
       if (!allowedHosts.includes(hostname)) {
         throw new BadRequestException(
@@ -103,8 +110,8 @@ export function normalizeHandle(platform: string, input: string): string {
   }
 
   const handle = trimmed
-    .replace(/^@/, '')
-    .replace(/^\/+/, '')
+    .replace(LEADING_AT_SIGN_PATTERN, '')
+    .replace(LEADING_SLASHES_PATTERN, '')
     .trim()
     .toLowerCase();
   if (!handle) {

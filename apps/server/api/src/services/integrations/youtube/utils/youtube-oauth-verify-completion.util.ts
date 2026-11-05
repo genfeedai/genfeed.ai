@@ -20,6 +20,8 @@ import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 type YoutubeOAuthTokens = {
   access_token?: string;
   expiry_date?: number;
@@ -290,7 +292,7 @@ async function updateChannelProfileAfterConnection(params: {
         // A channel's `customUrl` (its "@handle") is the only real public
         // handle YouTube exposes; a channel without one has no handle, and
         // the title must never stand in for it.
-        handle: channelDetails.customUrl?.replace(/^@/, ''),
+        handle: channelDetails.customUrl?.replace(LEADING_AT_SIGN_PATTERN, ''),
         id: channelDetails.id,
         name: channelDetails.title,
       },

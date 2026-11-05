@@ -7,6 +7,8 @@ import type {
 import { useSyncExternalStore } from 'react';
 import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 
+const MAC_PLATFORM_PATTERN = /mac/i;
+
 type UserAgentDataCapable = Navigator & {
   userAgentData?: { platform?: string };
 };
@@ -35,7 +37,7 @@ export function isMacPlatform(): boolean {
     navigator.platform ??
     '';
 
-  return /mac/i.test(platform);
+  return MAC_PLATFORM_PATTERN.test(platform);
 }
 
 function readBridge(): WindowChromeBridge | null {

@@ -4,6 +4,9 @@ import { FontFamily } from '@genfeedai/contracts';
 import type { ICoverTitleStyle } from '@genfeedai/contracts/interfaces';
 import sharp, { type OverlayOptions } from 'sharp';
 
+const MARKUP_SPECIAL_CHARS_PATTERN = /[&<>]/g;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 const MAX_TITLE_CHARS = 120;
 const MAX_LINES = 4;
 /** Below this width there is no room for a readable title. */
@@ -16,7 +19,7 @@ const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
 function escapeMarkup(value: string): string {
   return value.replace(
-    /[&<>]/g,
+    MARKUP_SPECIAL_CHARS_PATTERN,
     (character) =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[character] ?? character,
   );
@@ -102,7 +105,7 @@ export async function overlayTitle(
   if (!width || !height || width < MIN_COVER_WIDTH) return image;
 
   const text = style.textCase === 'upper' ? trimmed.toUpperCase() : trimmed;
-  const words = text.split(/\s+/).filter(Boolean);
+  const words = text.split(WHITESPACE_RUN_PATTERN).filter(Boolean);
   const fontFile = resolveFontFile(style.fontFamily, FontFamily.INTER_BOLD);
   const sidePadding = Math.round(width * 0.06);
   const isTopLeft = style.placement === 'top-left';

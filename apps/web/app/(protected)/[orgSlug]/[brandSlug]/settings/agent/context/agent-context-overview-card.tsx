@@ -11,6 +11,8 @@ import { useTranslations } from 'next-intl';
 import { type KeyboardEvent, useState } from 'react';
 import type { AgentContextOverviewCardProps } from '@/features/settings/props/context.props';
 
+const H2_PREFIX_PATTERN = /^##\s+/;
+
 /** Model, credits per round, context budget, and a preview-query control. */
 export default function AgentContextOverviewCard({
   isRefreshing,
@@ -86,11 +88,11 @@ export default function AgentContextOverviewCard({
                 >
                   {section.isDropped
                     ? translate('budget.droppedSection', {
-                        header: section.header.replace(/^##\s+/, ''),
+                        header: section.header.replace(H2_PREFIX_PATTERN, ''),
                         original: section.originalChars,
                       })
                     : translate('budget.trimmedSection', {
-                        header: section.header.replace(/^##\s+/, ''),
+                        header: section.header.replace(H2_PREFIX_PATTERN, ''),
                         kept: section.keptChars,
                         original: section.originalChars,
                       })}

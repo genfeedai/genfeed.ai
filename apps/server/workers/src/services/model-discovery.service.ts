@@ -31,6 +31,9 @@ import {
 } from '@workers/services/model-discovery-decision.settings';
 import { ModelPricingService } from '@workers/services/model-pricing.service';
 
+const LABEL_SEPARATOR_PATTERN = /[-/]/;
+const LEADING_DIGIT_PATTERN = /^\d/;
+
 /** Public Replicate model pages are the structured rate source (#6196). */
 const REPLICATE_PAGE_TIMEOUT_MS = 30_000;
 
@@ -786,10 +789,10 @@ export class ModelDiscoveryService {
    */
   private buildDisplayLabel(_owner: string, name: string): string {
     return name
-      .split(/[-/]/)
+      .split(LABEL_SEPARATOR_PATTERN)
       .map((part) => {
         // Keep version numbers as-is
-        if (/^\d/.test(part)) {
+        if (LEADING_DIGIT_PATTERN.test(part)) {
           return part;
         }
         return part.charAt(0).toUpperCase() + part.slice(1);

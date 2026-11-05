@@ -39,6 +39,7 @@ export async function persistQuoteGroupFailure(
               isDeleted: false,
               workloadType: MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
             },
+            select: { id: true, metadata: true, status: true },
           });
           if (!hold || hold.status !== CreditReservationStatus.RESERVED) return;
           const metadata = generationQuoteGroupMetadataSchema.parse(

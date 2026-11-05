@@ -116,6 +116,7 @@ export class VideoGenerationLineageService {
           path: ['lineageId'],
         } satisfies Prisma.JsonFilter,
       }),
+      select: { amount: true, metadata: true },
     });
 
     return rows.map((row) => ({

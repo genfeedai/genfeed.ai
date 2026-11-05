@@ -196,6 +196,13 @@ describe('IngredientExportService', () => {
         parentType: 'BRAND',
         isDeleted: false,
       },
+      select: {
+        category: true,
+        cloudObjectKey: true,
+        id: true,
+        mimeType: true,
+        updatedAt: true,
+      },
     });
     expect(files.watermarkExport).not.toHaveBeenCalled();
   });

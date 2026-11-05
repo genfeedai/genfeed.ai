@@ -214,6 +214,7 @@ export class AccountAnalyticsService {
 
     const existing = await this.prisma.organizationSetting.findFirst({
       where: { organizationId },
+      select: { fleetEvaluationPolicy: true, id: true },
     });
     const current = this.readPolicy(existing?.fleetEvaluationPolicy) ?? {
       ...policy,

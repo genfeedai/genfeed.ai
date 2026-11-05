@@ -16,6 +16,7 @@ export async function findCreditRefundReplay(
       category: CreditTransactionCategory.REFUND,
       idempotencyKey,
     },
+    select: { balanceAfter: true },
   });
   return existing
     ? {
@@ -32,6 +33,7 @@ export async function assertRefundOrganization(
 ): Promise<void> {
   const organization = await prisma.organization.findFirst({
     where: { id: organizationId, isDeleted: false },
+    select: { id: true },
   });
   if (!organization) throw new BusinessLogicException('Organization not found');
 }

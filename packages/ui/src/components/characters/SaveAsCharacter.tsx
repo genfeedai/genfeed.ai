@@ -30,6 +30,8 @@ import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 export default function SaveAsCharacter({
   assetId,
   active = true,
@@ -101,7 +103,7 @@ export default function SaveAsCharacter({
 
   async function save() {
     const normalizedHandle = normalizePersonaHandle(
-      handle.trim().replace(/^@/, ''),
+      handle.trim().replace(LEADING_AT_SIGN_PATTERN, ''),
     );
     if (!name.trim() || !normalizedHandle) {
       setError(translate('errors.missingName'));

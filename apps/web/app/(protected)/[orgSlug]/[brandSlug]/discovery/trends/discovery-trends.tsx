@@ -23,6 +23,8 @@ import TrendingTopicsSection from './TrendingTopicsSection';
 import TrendsPageHeader from './TrendsPageHeader';
 import { useDiscoveryTrends } from './useDiscoveryTrends';
 
+const LEADING_HASH_PATTERN = /^#/;
+
 export default function DiscoveryTrends() {
   const { href } = useOrgUrl();
   const translate = useTranslations('pages.analytics.trends.page');
@@ -197,7 +199,9 @@ export default function DiscoveryTrends() {
         <section>
           <TrendingHashtags
             onHashtagClick={(hashtag) =>
-              setSelectedHashtag(hashtag.hashtag.replace(/^#/, ''))
+              setSelectedHashtag(
+                hashtag.hashtag.replace(LEADING_HASH_PATTERN, ''),
+              )
             }
             hashtags={trendingHashtags}
             isLoading={isLoadingHashtags}

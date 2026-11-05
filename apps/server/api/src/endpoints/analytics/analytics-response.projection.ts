@@ -12,6 +12,8 @@ import type {
   IViralHookVideo,
 } from '@genfeedai/contracts/interfaces';
 
+const FIRST_SENTENCE_PATTERN = /^[^.!?]+[.!?]/;
+
 export type RawAnalyticsRow = Record<string, unknown>;
 
 interface PlatformMetrics {
@@ -458,7 +460,7 @@ export class AnalyticsResponseProjection {
       return firstLine;
     }
 
-    const sentenceMatch = firstLine.match(/^[^.!?]+[.!?]/);
+    const sentenceMatch = firstLine.match(FIRST_SENTENCE_PATTERN);
     if (sentenceMatch) {
       return sentenceMatch[0].trim();
     }

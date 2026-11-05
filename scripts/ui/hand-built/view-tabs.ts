@@ -29,6 +29,10 @@ import {
   scriptKindFor,
 } from '../../architecture/parse-source-file';
 
+const CAMEL_CASE_BOUNDARY_PATTERN = /([a-z])([A-Z])/g;
+const NON_LETTER_RUN_PATTERN = /[^a-z]+/;
+const TABS_ELEMENT_PATTERN = /<Tabs\b/;
+
 export type ViewTabsViolation = {
   file: string;
   line: number;
@@ -61,9 +65,9 @@ const VIEW_OR_FILTER_WORDS = new Set([
 /** Splits `labels.views`, `viewAria` or "Agent panel view" into lowercase words. */
 function labelWords(label: string): string[] {
   return label
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(CAMEL_CASE_BOUNDARY_PATTERN, '$1 $2')
     .toLowerCase()
-    .split(/[^a-z]+/)
+    .split(NON_LETTER_RUN_PATTERN)
     .filter(Boolean);
 }
 
@@ -83,7 +87,7 @@ export function detectViewTabsViolations(
   filePath: string,
   source: string,
 ): ViewTabsViolation[] {
-  if (!/<Tabs\b/.test(source)) return [];
+  if (!TABS_ELEMENT_PATTERN.test(source)) return [];
 
   const sourceFile = parseSourceFile(
     filePath,

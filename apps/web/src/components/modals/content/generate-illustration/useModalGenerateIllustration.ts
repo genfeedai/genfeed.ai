@@ -23,6 +23,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useModalAutoOpen } from '@/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import { useGenerationListener } from '@/hooks/utils/use-generation-listener/use-generation-listener';
 
+const HTML_TAGS_PATTERN = /<[^>]+>/g;
+const EXCESS_BLANK_LINES_PATTERN = /\n{3,}/g;
+
 /**
  * Platform to format mapping for optimal image dimensions
  */
@@ -68,7 +71,7 @@ function stripTags(html: string): string {
   let previous: string;
   do {
     previous = current;
-    current = current.replace(/<[^>]+>/g, '');
+    current = current.replace(HTML_TAGS_PATTERN, '');
   } while (current !== previous);
   return current;
 }
@@ -76,7 +79,7 @@ function stripTags(html: string): string {
 function stripHtml(html: string): string {
   return stripTags(html)
     .replace(HTML_ENTITY_PATTERN, (entity) => HTML_ENTITIES[entity] ?? entity)
-    .replace(/\n{3,}/g, '\n\n') // Normalize multiple newlines
+    .replace(EXCESS_BLANK_LINES_PATTERN, '\n\n') // Normalize multiple newlines
     .trim();
 }
 

@@ -52,6 +52,16 @@ export async function loadNativeSourceExposurePublication(
       externalId,
       isDeleted: false,
     },
+    select: {
+      authorId: true,
+      contentType: true,
+      id: true,
+      mediaUrls: true,
+      publishedAt: true,
+      raw: true,
+      sourceId: true,
+      text: true,
+    },
   });
   if (
     !post?.authorId ||

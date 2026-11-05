@@ -20,6 +20,8 @@ import {
 
 export type { YoutubeVideoMetadata } from './modules/youtube-metadata.service';
 
+const ISO8601_DURATION_PATTERN = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
+
 export interface YoutubeTrend {
   channelId?: string;
   channelTitle?: string;
@@ -217,7 +219,7 @@ export class YoutubeService {
   }
 
   parseDuration(duration: string): number {
-    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    const match = duration.match(ISO8601_DURATION_PATTERN);
     if (!match) {
       return 0;
     }

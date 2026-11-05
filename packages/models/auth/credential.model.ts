@@ -7,6 +7,8 @@ import { CredentialPlatform } from '@genfeedai/contracts';
 import type { ICredential } from '@genfeedai/contracts/interfaces';
 import { User } from '@models/auth/user.model';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 export class CredentialInstagram extends BaseCredentialInstagram {}
 
 export class CredentialOAuth extends BaseCredentialOAuth {}
@@ -25,7 +27,9 @@ export class Credential extends BaseCredential {
   }
 
   public get externalUrl(): string {
-    const handle = this.externalHandle?.replace(/^@/, '').trim();
+    const handle = this.externalHandle
+      ?.replace(LEADING_AT_SIGN_PATTERN, '')
+      .trim();
     if (!handle) {
       return '';
     }

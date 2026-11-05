@@ -18,6 +18,9 @@ import type {
 import { LISTENING_CONTRACT_VERSION } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
+const RATE_LIMIT_ERROR_PATTERN =
+  /\b429\b|quota|rate[\s_-]*limit|too many requests/i;
+
 const LISTENING_SOURCE_COLLECTION_CONCURRENCY = 3;
 const finalTopicInclude = {
   sources: {
@@ -464,5 +467,5 @@ function getErrorMessage(error: unknown): string {
 }
 
 function isRateLimit(message: string): boolean {
-  return /\b429\b|quota|rate[\s_-]*limit|too many requests/i.test(message);
+  return RATE_LIMIT_ERROR_PATTERN.test(message);
 }

@@ -5,6 +5,12 @@ import { fileURLToPath } from 'node:url';
 
 import { groupHits, tenantHit } from './core.mjs';
 
+const BASELINE_UNSAFE_CHAR_PATTERN = /[?\s]/;
+const MODEL_OPERATION_KEY_PATTERN = /^\w+\.\w+$/;
+const SAFE_PATH_PATTERN = /^[a-zA-Z0-9_./-]+$/;
+const TENANT_ISOLATION_MODEL_PATTERN = /Tenant isolation:\s*(\w+) on (\w+)/;
+const GET_ROUTE_PATTERN = /\b(GET)\s+(\/\S+)/;
+
 export const OVERRIDE_PHASE = 'superadminOverrideGets';
 const baselinePath = new URL(
   './known-superadmin-override-hits.json',
@@ -29,10 +35,11 @@ export function loadBaseline(path = baselinePath) {
       entry?.method !== 'GET' ||
       typeof entry.route !== 'string' ||
       !entry.route.startsWith('/v1/') ||
-      /[?\s]/.test(entry.route) ||
+      BASELINE_UNSAFE_CHAR_PATTERN.test(entry.route) ||
       !Array.isArray(entry.models) ||
       entry.models.some(
-        (model) => typeof model !== 'string' || !/^\w+\.\w+$/.test(model),
+        (model) =>
+          typeof model !== 'string' || !MODEL_OPERATION_KEY_PATTERN.test(model),
       )
     )
       throw new Error('Invalid superadmin override baseline entry');
@@ -66,7 +73,7 @@ export function trustedBaseline(
   ref = process.env.CLOUD_SWEEP_BASE_SHA ?? 'origin/master',
   read = execFileSync,
 ) {
-  if (!/^[a-zA-Z0-9_./-]+$/.test(ref))
+  if (!SAFE_PATH_PATTERN.test(ref))
     throw new Error('Invalid trusted baseline ref');
   const path =
     'scripts/ci/cloud-tenant-guard-sweep/known-superadmin-override-hits.json';
@@ -118,12 +125,12 @@ export function logEvidence(log, overrideOffset = null) {
 }
 
 function modelOperation(message) {
-  const match = message?.match(/Tenant isolation:\s*(\w+) on (\w+)/);
+  const match = message?.match(TENANT_ISOLATION_MODEL_PATTERN);
   return match ? `${match[2]}.${match[1]}` : null;
 }
 
 function logRoute(message, requests) {
-  const match = message.match(/\b(GET)\s+(\/\S+)/);
+  const match = message.match(GET_ROUTE_PATTERN);
   if (!match) return null;
   const path = match[2].split('?')[0];
   const request = requests.find(

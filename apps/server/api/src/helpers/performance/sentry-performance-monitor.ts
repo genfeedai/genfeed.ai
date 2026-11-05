@@ -7,6 +7,11 @@ import type {
 import type { ConfigService } from '@libs/config/config.service';
 import * as Sentry from '@sentry/nestjs';
 
+const SLASH_RUNS_PATTERN = /\/+/g;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const DIGIT_PATTERN = /\d/;
+const PATH_SEGMENT_CHARS_PATTERN = /^[a-z0-9_-]+$/i;
+
 type PerformanceConfig = Pick<ConfigService, 'get'>;
 
 const OBJECT_ID_PATTERN = /^[0-9a-f]{24}$/i;
@@ -18,7 +23,10 @@ const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)+$/i;
 export function normalizeApiRoute(rawUrl: string): string {
   const [rawPath] = rawUrl.split('?');
   const path = rawPath || '/';
-  const segments = path.replace(/\/+/g, '/').split('/').filter(Boolean);
+  const segments = path
+    .replace(SLASH_RUNS_PATTERN, '/')
+    .split('/')
+    .filter(Boolean);
 
   if (segments.length === 0) {
     return '/';
@@ -168,15 +176,15 @@ function isDynamicPathSegment(
     OBJECT_ID_PATTERN.test(segment) ||
     UUID_PATTERN.test(segment) ||
     ULID_PATTERN.test(segment) ||
-    /^\d+$/.test(segment)
+    DIGITS_ONLY_PATTERN.test(segment)
   ) {
     return true;
   }
 
   if (
     segment.length >= 16 &&
-    /\d/.test(segment) &&
-    /^[a-z0-9_-]+$/i.test(segment)
+    DIGIT_PATTERN.test(segment) &&
+    PATH_SEGMENT_CHARS_PATTERN.test(segment)
   ) {
     return true;
   }

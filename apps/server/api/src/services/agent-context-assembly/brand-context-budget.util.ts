@@ -10,6 +10,8 @@ import {
 } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
 import { BrandedGenerationCompileError } from '@api/services/harness/branded-generation-compile.error';
 
+const CR_LINE_ENDINGS_PATTERN = /\r\n?/g;
+
 /**
  * Shared character budget for every brand-context contribution supplied to a
  * generation prompt. The budget is applied after all assemblers contribute so
@@ -143,7 +145,7 @@ function structuredSection(
     ? sanitizeAgentUntrustedInput(
         contribution.content,
         Number.POSITIVE_INFINITY,
-      ).replace(/\r\n?/g, '\n')
+      ).replace(CR_LINE_ENDINGS_PATTERN, '\n')
     : contribution.content;
   const content = renderContribution(contribution, body);
   return {
@@ -313,7 +315,7 @@ export function fitRequiredBrandContextToBudgetWithReport(
     if (
       contribution.untrusted &&
       sanitizeAgentUntrustedInput(contribution.content, Infinity).replace(
-        /\r\n?/g,
+        CR_LINE_ENDINGS_PATTERN,
         '\n',
       ) !== contribution.content
     ) {

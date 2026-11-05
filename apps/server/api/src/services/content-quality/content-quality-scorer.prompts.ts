@@ -1,3 +1,5 @@
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 export const IMAGE_SCORING_PROMPT = `You are a professional social media content quality analyst.
 Rate this image content quality 1-10 for social media use, with short feedback notes and concrete suggestions.
 
@@ -81,7 +83,7 @@ function formatScorerSection(
 ): string {
   const lines = items
     .map((item) => {
-      const normalized = item.replace(/\s+/g, ' ').trim();
+      const normalized = item.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
       return normalized.length <= 280
         ? normalized
         : `${normalized.slice(0, 279).trimEnd()}…`;

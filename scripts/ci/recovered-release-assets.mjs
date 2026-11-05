@@ -8,6 +8,13 @@ import { gunzipSync } from 'node:zlib';
 import { loadReleaseRecoveryQualifications } from './release-recovery-evidence.mjs';
 import { imageRevisions } from './resolve-server-image.mjs';
 
+const SHA256SUM_LINE_PATTERN = /^([0-9a-f]{64}) [ *]([^\r\n]+)\n?$/;
+const OUTPUT_TOO_LARGE_ERROR_PATTERN = /maxOutputLength|too large/i;
+const NUL_AND_REST_PATTERN = /\0.*/;
+const OCTAL_DIGITS_PATTERN = /^[0-7]+$/;
+const SHA256_HEX_PATTERN = /^[0-9a-f]{64}$/;
+const NOT_FOUND_ERROR_PATTERN = /Not Found|\b404\b/;
+
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const TAG_PATTERN = /^v[0-9]+\.[0-9]+\.[0-9]+$/;
@@ -58,7 +65,7 @@ export function readArchiveChecksum(checksumBytes, archiveBytes) {
     fail('Recovered checksum verification is missing asset bytes.');
   }
   const text = checksumBytes.toString('utf8');
-  const match = text.match(/^([0-9a-f]{64}) [ *]([^\r\n]+)\n?$/);
+  const match = text.match(SHA256SUM_LINE_PATTERN);
   if (!match || match[2] !== 'genfeed-selfhosted.tar.gz') {
     fail(
       'Recovered checksum asset is not a single sha256sum record for genfeed-selfhosted.tar.gz.',
@@ -92,7 +99,7 @@ function inflateArchive(bytes, maxUncompressedBytes) {
     const message = error instanceof Error ? error.message : '';
     if (
       code === 'ERR_BUFFER_TOO_LARGE' ||
-      /maxOutputLength|too large/i.test(message)
+      OUTPUT_TOO_LARGE_ERROR_PATTERN.test(message)
     ) {
       fail('Recovered archive exceeds the safe uncompressed size.');
     }
@@ -106,8 +113,8 @@ function readCString(bytes) {
 }
 
 function parseOctal(bytes) {
-  const text = bytes.toString('utf8').replace(/\0.*/, '').trim();
-  if (!/^[0-7]+$/.test(text)) {
+  const text = bytes.toString('utf8').replace(NUL_AND_REST_PATTERN, '').trim();
+  if (!OCTAL_DIGITS_PATTERN.test(text)) {
     fail('Recovered archive has a corrupt tar header.');
   }
   return Number.parseInt(text, 8);
@@ -438,7 +445,7 @@ export function assertRecoveredAssetIdentity(expected) {
     ['repository', expected?.repository, REPOSITORY_PATTERN],
     ['draft id', expected?.draftId, POSITIVE_INT_PATTERN],
     ['draft title', expected?.draftTitle, TAG_PATTERN],
-    ['draft body', expected?.draftBodySha256, /^[0-9a-f]{64}$/],
+    ['draft body', expected?.draftBodySha256, SHA256_HEX_PATTERN],
     ['changelog id', expected?.changelogAssetId, POSITIVE_INT_PATTERN],
     ['changelog digest', expected?.changelogAssetDigest, DIGEST_PATTERN],
     ['changelog size', expected?.changelogAssetSize, POSITIVE_INT_PATTERN],
@@ -618,7 +625,7 @@ function releaseTagExists({ env, repository, releaseTag, spawn }) {
     return true;
   }
   const detail = `${result.stderr ?? ''}\n${result.stdout ?? ''}`;
-  if (/Not Found|\b404\b/.test(detail)) {
+  if (NOT_FOUND_ERROR_PATTERN.test(detail)) {
     return false;
   }
   fail('Could not verify whether the release tag already exists.');

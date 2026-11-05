@@ -13,6 +13,8 @@ import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 interface CaptureAgentMemoryPayload {
   campaignId?: string;
   content: string;
@@ -192,7 +194,7 @@ export class AgentMemoryCaptureService {
   }
 
   private summarize(content: string): string {
-    const trimmed = content.trim().replace(/\s+/g, ' ');
+    const trimmed = content.trim().replace(WHITESPACE_RUNS_PATTERN, ' ');
     if (trimmed.length <= 220) {
       return trimmed;
     }

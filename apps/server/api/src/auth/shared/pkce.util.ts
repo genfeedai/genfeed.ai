@@ -1,11 +1,15 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 
+const PLUS_SIGNS_PATTERN = /\+/g;
+const SLASHES_PATTERN = /\//g;
+const BASE64_PADDING_PATTERN = /=+$/;
+
 export function toBase64Url(input: Buffer): string {
   return input
     .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+    .replace(PLUS_SIGNS_PATTERN, '-')
+    .replace(SLASHES_PATTERN, '_')
+    .replace(BASE64_PADDING_PATTERN, '');
 }
 
 export function buildCodeChallenge(verifier: string): string {

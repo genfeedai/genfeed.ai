@@ -8,6 +8,8 @@ import type {
   StoryboardPlan,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 
+const NON_WHITESPACE_RUNS_PATTERN = /\S+/gu;
+
 /**
  * Picture lags the voice by this much at every cut: the presenter starts the
  * line, then the B-roll comes in or goes out (a J-cut). Cuts that land on the
@@ -269,7 +271,7 @@ function captionPieces(
 ): { offset: number; text: string }[] {
   const pieces: { offset: number; text: string }[] = [];
   let current: { offset: number; text: string } | undefined;
-  for (const word of sentence.matchAll(/\S+/gu)) {
+  for (const word of sentence.matchAll(NON_WHITESPACE_RUNS_PATTERN)) {
     const offset = word.index ?? 0;
     if (current && offset + word[0].length - current.offset <= max) {
       current.text = sentence.slice(current.offset, offset + word[0].length);

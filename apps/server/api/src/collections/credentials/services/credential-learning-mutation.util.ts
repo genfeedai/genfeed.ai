@@ -446,6 +446,7 @@ async function discoverReconcileWhere(
       organizationId: input.organizationId,
       isDeleted: false,
     },
+    select: { brandId: true, platform: true },
   });
   if (!source) throw new NotFoundException('Credential', input.id);
   return {

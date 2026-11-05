@@ -20,6 +20,10 @@ import {
 import { ResendService } from '@notifications/services/resend/resend.service';
 import { TelegramService } from '@notifications/services/telegram/telegram.service';
 
+const SYSTEM_EVENT_KEY_PATTERN = /^[a-zA-Z0-9_./-]{1,250}$/;
+const CHAT_ID_PATTERN = /^-?\d{1,20}$/;
+const EMAIL_PATTERN = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
+
 const DISCORD_TEST_CHANNELS: readonly DiscordTestChannel[] = [
   'billing',
   'deployments',
@@ -66,7 +70,7 @@ export class SystemNotificationsController {
       !target ||
       typeof target !== 'object' ||
       typeof idempotencyKey !== 'string' ||
-      !/^[a-zA-Z0-9_./-]{1,250}$/.test(idempotencyKey)
+      !SYSTEM_EVENT_KEY_PATTERN.test(idempotencyKey)
     )
       throw new BadRequestException('Invalid delivery');
     const provider: unknown = Reflect.get(target, 'provider');
@@ -84,7 +88,7 @@ export class SystemNotificationsController {
         await this.discord.sendSystemNotification(event, url);
       } else if (provider === 'telegram') {
         const chatId: unknown = Reflect.get(target, 'chatId');
-        if (typeof chatId !== 'string' || !/^-?\d{1,20}$/.test(chatId))
+        if (typeof chatId !== 'string' || !CHAT_ID_PATTERN.test(chatId))
           throw new BadRequestException('Invalid Telegram destination');
         await this.telegram.sendSystemMessage(chatId, text);
       } else if (provider === 'email') {
@@ -92,7 +96,7 @@ export class SystemNotificationsController {
         if (
           typeof address !== 'string' ||
           address.length > 320 ||
-          !/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(address)
+          !EMAIL_PATTERN.test(address)
         )
           throw new BadRequestException('Invalid email destination');
         const emailId = await this.email.sendEmail({

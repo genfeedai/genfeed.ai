@@ -12,6 +12,8 @@ import { AdsResearchService } from '@services/ads/ads-research.service';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 export type AdsResearchWatchlistApi = {
   addError?: string;
   advertisers: AdWatchedAdvertiser[];
@@ -78,7 +80,9 @@ export function useAdsResearchWatchlist(
   async function addAdvertiser(
     input: CreateAdWatchedAdvertiserInput,
   ): Promise<boolean> {
-    const advertiserHandle = input.advertiserHandle.trim().replace(/^@/, '');
+    const advertiserHandle = input.advertiserHandle
+      .trim()
+      .replace(LEADING_AT_SIGN_PATTERN, '');
     if (!advertiserHandle) {
       setAddError('Enter the advertiser handle or page name to watch.');
       return false;

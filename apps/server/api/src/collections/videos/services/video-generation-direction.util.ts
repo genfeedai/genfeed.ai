@@ -1,5 +1,7 @@
 import type { MediaCreativeDirection } from '@api/services/prompt-enhancement/media-prompt-output.util';
 
+const THREE_D_WORD_PATTERN = /\b3d\b/gi;
+
 /** The Studio picks that steer a clip, as the request carries them. */
 export interface VideoDirectionInput {
   action?: string;
@@ -37,7 +39,7 @@ function clean(value: string | undefined): string | undefined {
  */
 export function humanizeStudioToken(value: string): string {
   const text = SLUG.test(value) ? value.replaceAll('-', ' ') : value;
-  return text.replace(/\b3d\b/gi, '3D');
+  return text.replace(THREE_D_WORD_PATTERN, '3D');
 }
 
 function labeled(label: string, ...values: Array<string | undefined>) {

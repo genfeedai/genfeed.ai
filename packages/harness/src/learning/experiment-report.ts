@@ -6,6 +6,9 @@ import type {
   LearningExperimentSpecV1,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { learningSeededRandom } from './evaluation';
+
+const SHA256_HEX_PATTERN = /^[0-9a-f]{64}$/;
+
 export interface LearningExperimentObservation {
   id: string;
   accountGroup: string;
@@ -104,7 +107,7 @@ function validateObservations(
           !validId(term.ledgerId) ||
           !['llm', 'media'].includes(term.ledgerKind) ||
           typeof term.ledgerFingerprint !== 'string' ||
-          !/^[0-9a-f]{64}$/.test(term.ledgerFingerprint) ||
+          !SHA256_HEX_PATTERN.test(term.ledgerFingerprint) ||
           !Number.isSafeInteger(term.vendorCostMicros) ||
           term.vendorCostMicros < 0 ||
           !Array.isArray(term.opportunityIds) ||

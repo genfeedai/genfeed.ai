@@ -79,6 +79,7 @@ describe('BrandWatermarkLogoService', () => {
       ).rejects.toThrow(BadRequestException);
       expect(delegate.findFirst).toHaveBeenCalledWith({
         where: { id: 'brand-1', organizationId: 'org-1', isDeleted: false },
+        select: { id: true },
       });
       expect(assetDelegate.findFirst).toHaveBeenCalledWith({
         where: {
@@ -88,6 +89,7 @@ describe('BrandWatermarkLogoService', () => {
           parentType: 'BRAND',
           isDeleted: false,
         },
+        select: { mimeType: true },
       });
     });
 
@@ -201,6 +203,7 @@ describe('BrandWatermarkLogoService', () => {
           parentType: 'BRAND',
           isDeleted: false,
         },
+        select: { mimeType: true },
       });
     });
 

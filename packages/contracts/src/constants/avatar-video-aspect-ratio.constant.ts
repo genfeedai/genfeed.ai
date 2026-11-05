@@ -1,5 +1,7 @@
 import { Platform } from '../enums/platform.enum';
 
+const VERTICAL_FORMAT_HINT_PATTERN = /reel|short|story|stories|tiktok/;
+
 export const AVATAR_VIDEO_ASPECT_RATIOS = ['9:16', '16:9', '1:1'] as const;
 export type AvatarVideoAspectRatio =
   (typeof AVATAR_VIDEO_ASPECT_RATIOS)[number];
@@ -45,7 +47,7 @@ export function resolveAvatarVideoAspectRatio(input: {
     typeof input.platform === 'string'
       ? input.platform.trim().toLowerCase()
       : '';
-  const shortForm = /reel|short|story|stories|tiktok/.test(platform);
+  const shortForm = VERTICAL_FORMAT_HINT_PATTERN.test(platform);
   if (shortForm) {
     return '9:16';
   }

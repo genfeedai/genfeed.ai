@@ -14,13 +14,15 @@ import { useExecutionStore } from '../../stores/execution';
 import { useWorkflowStore } from '../../stores/workflow';
 import { BaseNode } from '../BaseNode';
 
+const URL_EXTENSION_PATTERN = /\.(\w+)(?:\?.*)?$/;
+
 /**
  * Extract file extension from URL or use fallback based on input type
  */
 function getExtensionFromUrl(url: string, inputType: string): string {
   try {
     const urlPath = new URL(url).pathname;
-    const match = urlPath.match(/\.(\w+)(?:\?.*)?$/);
+    const match = urlPath.match(URL_EXTENSION_PATTERN);
     if (match) {
       const ext = match[1].toLowerCase();
       // Normalize common extensions

@@ -26,6 +26,8 @@ import type {
   GoldenTurboRunItemRecord,
 } from './golden-set.types';
 
+const WINNING_POST_PREFIX_PATTERN = /^Winning post[^:]*: /;
+
 function record(value: unknown): Record<string, unknown> {
   return isRecord(value) ? value : {};
 }
@@ -454,7 +456,7 @@ export function collectCandidates(snapshot: GoldenSetScopeSnapshot) {
         `winner:${entry.id}`,
         'social-post',
         brandId,
-        (string(data.content) ?? '').replace(/^Winning post[^:]*: /, ''),
+        (string(data.content) ?? '').replace(WINNING_POST_PREFIX_PATTERN, ''),
         null,
         string(metadata.platform),
         extractWinnerLabels(entry),

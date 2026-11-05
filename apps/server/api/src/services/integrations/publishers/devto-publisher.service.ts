@@ -17,6 +17,8 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 @Injectable()
 export class DevtoPublisherService extends BasePublisherService {
   readonly platform = CredentialPlatform.DEV_TO;
@@ -123,7 +125,9 @@ export class DevtoPublisherService extends BasePublisherService {
     credential: CredentialDocument,
     _externalShortcode?: string,
   ): string {
-    const handle = credential.externalHandle?.replace(/^@/, '').trim();
+    const handle = credential.externalHandle
+      ?.replace(LEADING_AT_SIGN_PATTERN, '')
+      .trim();
     if (handle) {
       return `https://dev.to/${handle}/${externalId}`;
     }

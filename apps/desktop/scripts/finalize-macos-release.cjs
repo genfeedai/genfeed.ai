@@ -4,11 +4,13 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
+const REGEX_SPECIAL_CHARS_PATTERN = /[.*+?^${}()|[\]\\]/gu;
+
 const desktopRoot = path.resolve(__dirname, '..');
 const defaultReleaseRoot = path.join(desktopRoot, 'release');
 
 function escapeRegularExpression(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+  return value.replace(REGEX_SPECIAL_CHARS_PATTERN, '\\$&');
 }
 
 function getArtifactSha512(filePath) {

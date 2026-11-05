@@ -1,5 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 
+const QUERY_OR_HASH_PATTERN = /[?#]/;
+
 type StreamedSpan = Parameters<
   NonNullable<NonNullable<Parameters<typeof Sentry.init>[0]>['beforeSendSpan']>
 >[0];
@@ -14,7 +16,7 @@ const QUERY_STRING_SPAN_KEYS = [
 const URL_SPAN_KEYS = ['http.url', 'url.full'] as const;
 
 function withoutQueryString(url: string): string {
-  const queryStart = url.search(/[?#]/);
+  const queryStart = url.search(QUERY_OR_HASH_PATTERN);
   return queryStart === -1 ? url : url.slice(0, queryStart);
 }
 

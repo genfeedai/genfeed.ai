@@ -8,12 +8,14 @@ import type { ChangeEvent } from 'react';
 import LazyRichTextEditor from '@/components/editors/LazyRichTextEditor';
 import type { ArticleEditFormProps } from '@/features/studio/props/article-edit-form.props';
 
+const SEPARATOR_CHAR_PATTERN = /[-_]/;
+
 const ARTICLE_CATEGORY_OPTIONS = Object.values(ArticleCategory)
   .filter((value) => value !== ArticleCategory.X_ARTICLE)
   .map((value) => ({
     key: value,
     label: value
-      .split(/[-_]/)
+      .split(SEPARATOR_CHAR_PATTERN)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' '),
   }));

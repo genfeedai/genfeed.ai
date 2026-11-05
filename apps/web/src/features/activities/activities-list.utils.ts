@@ -29,6 +29,9 @@ import {
 } from '@genfeedai/utils/media/generation-failure.util';
 import { EnvironmentService } from '@services/core/environment.service';
 
+const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9_-]+$/;
+const PUBLISHED_ACTIVITY_PATTERN = /Published to (\w+):\s*(https?:\/\/\S+)/i;
+
 /**
  * Background / media-ish tasks that show progress UI.
  * Prefer lifecycle parsing over enumerating every key when possible.
@@ -400,7 +403,7 @@ export function getActivityDetailText(
   if (
     value === activity.entityId ||
     ((MEDIA_SUBJECTS.has(subject) || ['article', 'post'].includes(subject)) &&
-      /^[a-zA-Z0-9_-]+$/.test(value))
+      SAFE_IDENTIFIER_PATTERN.test(value))
   ) {
     return undefined;
   }
@@ -430,7 +433,7 @@ export function getActivityDestinationPath(
       ? value.ingredientId
       : undefined) ||
     (['article', 'post'].includes(subject) &&
-    /^[a-zA-Z0-9_-]+$/.test(activity.value)
+    SAFE_IDENTIFIER_PATTERN.test(activity.value)
       ? activity.value
       : undefined);
 
@@ -473,7 +476,7 @@ export function parsePostActivityValue(
     // Fall through to string parsing
   }
 
-  const match = value.match(/Published to (\w+):\s*(https?:\/\/\S+)/i);
+  const match = value.match(PUBLISHED_ACTIVITY_PATTERN);
   if (match) {
     const platformStr = match[1].toLowerCase();
     const url = match[2];

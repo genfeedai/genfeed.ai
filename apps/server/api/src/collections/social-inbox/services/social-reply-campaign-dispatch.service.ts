@@ -148,6 +148,7 @@ export class SocialReplyCampaignDispatchService implements OnModuleInit {
     const request = this.readDispatchRequest(action.input);
     const campaign = await this.prisma.socialReplyCampaign.findFirst({
       where: scopedWhere(request.organizationId, { id: request.campaignId }),
+      select: { dispatchCursor: true, status: true },
     });
     if (
       !campaign ||
@@ -249,6 +250,7 @@ export class SocialReplyCampaignDispatchService implements OnModuleInit {
         id: recipientId,
         status: SocialReplyCampaignRecipientStatus.DISPATCHING,
       }),
+      select: { conversationId: true, idempotencyKey: true },
     });
     if (!recipient) {
       return {
@@ -261,6 +263,7 @@ export class SocialReplyCampaignDispatchService implements OnModuleInit {
       where: scopedWhere(campaign.organizationId, {
         id: recipient.conversationId,
       }),
+      select: { participantHandle: true, participantName: true },
     });
     if (!conversation) {
       await this.markSkipped(
@@ -338,6 +341,7 @@ export class SocialReplyCampaignDispatchService implements OnModuleInit {
     }
     const recipient = await this.prisma.socialReplyCampaignRecipient.findFirst({
       where: scopedWhere(campaign.organizationId, { id: recipientId }),
+      select: { attemptCount: true },
     });
     if (
       recipient &&

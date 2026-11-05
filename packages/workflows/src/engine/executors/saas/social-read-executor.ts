@@ -5,6 +5,8 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 export type SocialReadMode = 'timeline' | 'mentions' | 'search';
 export type SocialReadPlatform = 'twitter';
 
@@ -188,7 +190,9 @@ function buildSummary(mode: SocialReadMode, posts: SocialReadPost[]): string {
 
   const lines = posts.slice(0, 10).map((post, index) => {
     const author = post.authorUsername ? `@${post.authorUsername}` : 'unknown';
-    const text = (post.text ?? '').replace(/\s+/g, ' ').slice(0, 160);
+    const text = (post.text ?? '')
+      .replace(WHITESPACE_RUNS_PATTERN, ' ')
+      .slice(0, 160);
     return `${index + 1}. ${author}: ${text}`;
   });
 

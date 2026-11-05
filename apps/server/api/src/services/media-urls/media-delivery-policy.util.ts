@@ -5,6 +5,8 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { ForbiddenException } from '@nestjs/common';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+
 export const MEDIA_DELIVERY_POLICY_VERSION = 1;
 export const PLATFORM_PREVIEW_LAYERS = [
   { text: 'Genfeed.ai', position: 'bottom-right', opacity: 0.85 },
@@ -43,7 +45,7 @@ export function mediaSourceIdentity(source: MediaDeliverySource): string {
 export function requireStoredMediaKey(
   source: Pick<MediaDeliverySource, 's3Key'>,
 ): string {
-  if (!source.s3Key || /^https?:\/\//i.test(source.s3Key)) {
+  if (!source.s3Key || HTTP_PROTOCOL_PREFIX_PATTERN.test(source.s3Key)) {
     throw new ForbiddenException('Media has no trusted storage identity');
   }
   // Return the original bytes: escaped sequences in a raw key are not decoded.

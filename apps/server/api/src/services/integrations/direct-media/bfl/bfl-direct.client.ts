@@ -17,6 +17,9 @@ import {
 import { requestDirectMediaJson } from '@api/services/integrations/direct-media/direct-media-transport';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 
+const PERCENT_ENCODED_BYTES_PATTERN = /%[0-9a-f]{2}/gi;
+const BFL_DELIVERY_HOST_PATTERN = /^delivery\.[a-z0-9-]+\.bfl\.ai$/;
+
 const POLLING_ORIGINS = new Set([
   'https://api.bfl.ai',
   'https://api.eu.bfl.ai',
@@ -46,8 +49,10 @@ function hasCredentialReflection(value: string, apiKey: string): boolean {
   let decoded = value;
   for (let pass = 0; pass < 3; pass++) {
     if (decoded.includes(apiKey)) return true;
-    const next = decoded.replace(/%[0-9a-f]{2}/gi, (encoded: string) =>
-      String.fromCharCode(Number.parseInt(encoded.slice(1), 16)),
+    const next = decoded.replace(
+      PERCENT_ENCODED_BYTES_PATTERN,
+      (encoded: string) =>
+        String.fromCharCode(Number.parseInt(encoded.slice(1), 16)),
     );
     if (next === decoded) return false;
     decoded = next;
@@ -184,7 +189,7 @@ function validateSampleUrl(value: unknown, apiKey: string): string {
     url.password ||
     url.hash ||
     url.port ||
-    !/^delivery\.[a-z0-9-]+\.bfl\.ai$/.test(url.hostname)
+    !BFL_DELIVERY_HOST_PATTERN.test(url.hostname)
   )
     invalidResponse();
   return value;

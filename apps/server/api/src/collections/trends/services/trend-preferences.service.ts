@@ -53,6 +53,7 @@ export class TrendPreferencesService {
       const brandId = preferences.brandId ?? null;
       const existing = await this.prisma.trendPreferences.findFirst({
         where: scopedWhere(organizationId, { brandId }),
+        select: { config: true, id: true },
       });
       const storedConfig = this.readObjectRecord(existing?.config);
       const normalizedPreferences: Record<string, unknown> = {

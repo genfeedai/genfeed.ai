@@ -20,6 +20,24 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+const MARKDOWN_IMAGE_PATTERN = /!\[[^\]]*\]\([^)]*\)/g;
+const MARKDOWN_LINK_PATTERN = /\[([^\]]+)\]\([^)]*\)/g;
+const HTML_TAGS_PATTERN = /<[^>]+>/g;
+const MARKDOWN_INLINE_CODE_PATTERN = /`([^`]+)`/g;
+const MARKDOWN_BOLD_PATTERN = /\*\*([^*]+)\*\*/g;
+const MARKDOWN_ITALIC_PATTERN = /\*([^*]+)\*/g;
+const MARKDOWN_UNDERSCORE_EMPHASIS_PATTERN = /_([^_]+)_/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const ENDS_WITH_SENTENCE_PUNCTUATION_PATTERN = /[.!?]$/;
+const TRAILING_PUNCTUATION_PATTERN = /[,;:.\s]+$/;
+const LEADING_FRONTMATTER_PATTERN = /^---\r?\n[\s\S]*?\r?\n---\r?\n/;
+const FENCED_CODE_BLOCKS_PATTERN = /```[\s\S]*?```/g;
+const IMPORT_EXPORT_LINES_PATTERN = /^(?:import|export)\s.*$/gm;
+const PARAGRAPH_BREAK_PATTERN = /\r?\n\s*\r?\n/;
+const FRONTMATTER_BLOCK_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---/;
+const FRONTMATTER_DESCRIPTION_PATTERN = /^description:\s*(.+)$/m;
+const QUOTED_VALUE_PATTERN = /^(['"])([\s\S]*)\1$/;
+
 /** Public origin of the docs site — the origin canonical tags must use. */
 export const DOCS_ORIGIN = 'https://docs.genfeed.ai';
 
@@ -108,14 +126,14 @@ export function listContentRoutes(contentDir: string): ContentRoute[] {
 /** Reduce inline Markdown to the words a search engine should read. */
 function toPlainText(block: string): string {
   return block
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-    .replace(/<[^>]+>/g, '')
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/\*([^*]+)\*/g, '$1')
-    .replace(/_([^_]+)_/g, '$1')
-    .replace(/\s+/g, ' ')
+    .replace(MARKDOWN_IMAGE_PATTERN, '')
+    .replace(MARKDOWN_LINK_PATTERN, '$1')
+    .replace(HTML_TAGS_PATTERN, '')
+    .replace(MARKDOWN_INLINE_CODE_PATTERN, '$1')
+    .replace(MARKDOWN_BOLD_PATTERN, '$1')
+    .replace(MARKDOWN_ITALIC_PATTERN, '$1')
+    .replace(MARKDOWN_UNDERSCORE_EMPHASIS_PATTERN, '$1')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
 }
 
@@ -125,7 +143,10 @@ function toPlainText(block: string): string {
  * nothing. Sentence punctuation is the tell.
  */
 function isLabel(text: string): boolean {
-  return text.endsWith(':') || (text.length < 60 && !/[.!?]$/.test(text));
+  return (
+    text.endsWith(':') ||
+    (text.length < 60 && !ENDS_WITH_SENTENCE_PUNCTUATION_PATTERN.test(text))
+  );
 }
 
 /** Cut to the search-result window on a word boundary. */
@@ -136,7 +157,7 @@ function truncate(text: string): string {
   const clipped = text.slice(0, DESCRIPTION_MAX_LENGTH - 1);
   const lastSpace = clipped.lastIndexOf(' ');
   const body = lastSpace > 0 ? clipped.slice(0, lastSpace) : clipped;
-  return `${body.replace(/[,;:.\s]+$/, '')}…`;
+  return `${body.replace(TRAILING_PUNCTUATION_PATTERN, '')}…`;
 }
 
 /**
@@ -146,12 +167,12 @@ function truncate(text: string): string {
  */
 export function deriveDescription(source: string): string | null {
   const body = source
-    .replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '')
-    .replace(/```[\s\S]*?```/g, '')
-    .replace(/^(?:import|export)\s.*$/gm, '');
+    .replace(LEADING_FRONTMATTER_PATTERN, '')
+    .replace(FENCED_CODE_BLOCKS_PATTERN, '')
+    .replace(IMPORT_EXPORT_LINES_PATTERN, '');
 
   const parts: string[] = [];
-  for (const block of body.split(/\r?\n\s*\r?\n/)) {
+  for (const block of body.split(PARAGRAPH_BREAK_PATTERN)) {
     const trimmed = block.trim();
     const text =
       trimmed === '' || NON_PROSE_BLOCK.test(trimmed)
@@ -183,16 +204,16 @@ export function deriveDescription(source: string): string | null {
  * caller passes nothing — and lets tests assert the real shipped values.
  */
 export function readFrontmatterDescription(source: string): string | null {
-  const block = /^---\r?\n([\s\S]*?)\r?\n---/.exec(source);
+  const block = FRONTMATTER_BLOCK_PATTERN.exec(source);
   if (block === null) {
     return null;
   }
-  const line = /^description:\s*(.+)$/m.exec(block[1] ?? '');
+  const line = FRONTMATTER_DESCRIPTION_PATTERN.exec(block[1] ?? '');
   if (line === null) {
     return null;
   }
   const value = (line[1] ?? '').trim();
-  const unquoted = /^(['"])([\s\S]*)\1$/.exec(value);
+  const unquoted = QUOTED_VALUE_PATTERN.exec(value);
   const text =
     unquoted === null
       ? value

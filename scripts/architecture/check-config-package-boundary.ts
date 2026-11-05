@@ -14,6 +14,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 
+const MODULE_EXTENSION_PATTERN = /\.(?:d\.ts|cts|js|mjs|mts|ts)$/u;
+const LEADING_DOT_SLASH_PATTERN = /^\.\//u;
+const LEADING_DOT_SLASH_OPTIONAL_PATTERN = /^\.\/?/u;
+
 const CONFIG_PACKAGE_JSON = 'packages/config/package.json';
 const CONFIG_SRC_DIR = 'packages/config/src';
 
@@ -72,7 +76,7 @@ function lineForOffset(source: string, offset: number): number {
 }
 
 function toModuleName(subpath: string): string {
-  return subpath.replace(/\.(?:d\.ts|cts|js|mjs|mts|ts)$/u, '');
+  return subpath.replace(MODULE_EXTENSION_PATTERN, '');
 }
 
 function isInternalModuleName(subpath: string): boolean {
@@ -99,7 +103,7 @@ function collectExportTargets(value: unknown): string[] {
  * source module means the published subpath resolves to nothing.
  */
 function sourceModuleForTarget(target: string): string | undefined {
-  const normalized = target.replace(/^\.\//u, '');
+  const normalized = target.replace(LEADING_DOT_SLASH_PATTERN, '');
   if (!normalized.startsWith('dist/')) {
     return undefined;
   }
@@ -139,7 +143,7 @@ function collectManifestViolations(
   const declaredSubpaths = [...exportEntries, ...typesVersionEntries];
 
   for (const [declaredKey, value] of declaredSubpaths) {
-    const subpath = declaredKey.replace(/^\.\/?/u, '');
+    const subpath = declaredKey.replace(LEADING_DOT_SLASH_OPTIONAL_PATTERN, '');
 
     if (subpath.includes('*')) {
       violations.push({

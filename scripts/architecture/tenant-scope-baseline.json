@@ -27,7 +27,7 @@
     {
       "delegate": "adPerformance",
       "file": "apps/server/api/src/collections/ad-performance/services/ad-performance.service.ts",
-      "fingerprint": "e14eb283776f4bf8e29c",
+      "fingerprint": "3ae7bcc9ea0a8a0daf66",
       "method": "findMany",
       "model": "AdPerformance",
       "reason": "missing-is-deleted"
@@ -67,7 +67,7 @@
     {
       "delegate": "botActivity",
       "file": "apps/server/api/src/collections/bot-activities/services/bot-activities.service.ts",
-      "fingerprint": "9f5a806541980fc5b19d",
+      "fingerprint": "dd12527207cf3f343d95",
       "method": "findFirst",
       "model": "BotActivity",
       "reason": "unresolved-where"
@@ -275,7 +275,7 @@
     {
       "delegate": "model",
       "file": "apps/server/api/src/collections/models/services/model-registration.service.ts",
-      "fingerprint": "8bcc81d5d6eb90707cb6",
+      "fingerprint": "f5bc271c0975d4beddba",
       "method": "findFirst",
       "model": "Model",
       "reason": "missing-is-deleted"
@@ -283,7 +283,7 @@
     {
       "delegate": "model",
       "file": "apps/server/api/src/collections/models/services/model-registration.service.ts",
-      "fingerprint": "488334de31cfbb07de3a",
+      "fingerprint": "4d9f5188d4ca2e549905",
       "method": "findFirst",
       "model": "Model",
       "reason": "missing-organization-id"
@@ -379,7 +379,7 @@
     {
       "delegate": "trackedLink",
       "file": "apps/server/api/src/collections/tracked-links/services/tracked-links.service.ts",
-      "fingerprint": "2ec0fa6b8ebc8fd995ed",
+      "fingerprint": "3629da8503d87d7b6373",
       "method": "findFirst",
       "model": "TrackedLink",
       "reason": "missing-organization-id"
@@ -387,7 +387,7 @@
     {
       "delegate": "trackedLink",
       "file": "apps/server/api/src/collections/tracked-links/services/tracked-links.service.ts",
-      "fingerprint": "3629da8503d87d7b6373",
+      "fingerprint": "ee6948974a34eb1987b5",
       "method": "findFirst",
       "model": "TrackedLink",
       "reason": "missing-organization-id"

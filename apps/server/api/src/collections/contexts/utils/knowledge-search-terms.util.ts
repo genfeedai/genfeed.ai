@@ -1,3 +1,10 @@
+const DIGIT_PATTERN = /\p{N}/u;
+const LETTER_PATTERN = /\p{L}/u;
+const JOINED_WORD_PATTERN = /[\p{L}\p{N}][-_.][\p{L}\p{N}]/u;
+const CAMEL_CASE_HUMP_PATTERN = /\p{Ll}\p{Lu}/u;
+const CAPITALIZED_PATTERN = /^\p{Lu}/u;
+const WHITESPACE_RUN_PATTERN = /\s+/u;
+
 /** Terms looked up verbatim in a passage; more would turn an exact match into a loose one. */
 export const MAX_EXACT_TERMS = 8;
 const MAX_TERM_LENGTH = 80;
@@ -50,19 +57,19 @@ const QUOTED = /["“]([^"”]{2,80})["”]/gu;
 const EDGE_PUNCTUATION = /^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu;
 
 function isDistinctive(token: string): boolean {
-  const hasDigit = /\p{N}/u.test(token);
-  const hasLetter = /\p{L}/u.test(token);
+  const hasDigit = DIGIT_PATTERN.test(token);
+  const hasLetter = LETTER_PATTERN.test(token);
   // Product codes and versions: "Zephyr-9", "v2.1", "SKU123".
   if (hasDigit && (hasLetter || token.length >= 4)) return true;
-  if (/[\p{L}\p{N}][-_.][\p{L}\p{N}]/u.test(token)) return true;
+  if (JOINED_WORD_PATTERN.test(token)) return true;
   // CamelCase and ALL-CAPS names: "GenFeed", "NASA".
-  if (/\p{Ll}\p{Lu}/u.test(token)) return true;
+  if (CAMEL_CASE_HUMP_PATTERN.test(token)) return true;
   if (token.length >= 3 && token === token.toUpperCase() && hasLetter)
     return !STOP_WORDS.has(token.toLowerCase());
   // Capitalised names: "Summer", "Zephyr".
   return (
     token.length >= 3 &&
-    /^\p{Lu}/u.test(token) &&
+    CAPITALIZED_PATTERN.test(token) &&
     !STOP_WORDS.has(token.toLowerCase())
   );
 }
@@ -94,7 +101,7 @@ export function extractExactTerms(query: string): string[] {
 
   for (const match of query.matchAll(QUOTED)) add(match[1] ?? '');
   const unquoted = query.replace(QUOTED, ' ');
-  for (const token of unquoted.split(/\s+/u)) {
+  for (const token of unquoted.split(WHITESPACE_RUN_PATTERN)) {
     const trimmed = token.replace(EDGE_PUNCTUATION, '');
     if (trimmed && isDistinctive(trimmed)) add(trimmed);
   }

@@ -1,3 +1,6 @@
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const PHRASE_END_PUNCTUATION_PATTERN = /[.!?,;:]$/;
+
 /** Highlight-relative caption generation for deterministic raw-cut clips. */
 
 const CAPTION_VISUAL_LEAD_SECONDS = 0.04;
@@ -103,7 +106,10 @@ function segmentToWords(segment: TranscriptSegment): TranscriptWord[] {
     return exactWords;
   }
 
-  const tokens = segment.text.trim().split(/\s+/).filter(Boolean);
+  const tokens = segment.text
+    .trim()
+    .split(WHITESPACE_RUN_PATTERN)
+    .filter(Boolean);
   if (tokens.length === 0 || segment.end <= segment.start) {
     return [];
   }
@@ -136,7 +142,7 @@ function wordsToPhrases(words: TranscriptWord[]): CaptionPhrase[] {
     phraseWords.push(word);
     if (
       phraseWords.length >= MAX_CAPTION_PHRASE_WORDS ||
-      /[.!?,;:]$/.test(word.word.trim())
+      PHRASE_END_PUNCTUATION_PATTERN.test(word.word.trim())
     ) {
       flush();
     }

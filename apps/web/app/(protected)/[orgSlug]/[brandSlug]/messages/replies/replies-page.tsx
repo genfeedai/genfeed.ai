@@ -47,6 +47,8 @@ import RepliesReplyComposer from './replies-reply-composer';
 import RepliesWarmupQueue from './replies-warmup-queue';
 import RepliesWarmupTargets from './replies-warmup-targets';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 const EMPTY_ITEMS: InboxItem[] = [];
 const INBOX_SKELETON_KEYS = [
   'inbox-skeleton-1',
@@ -398,7 +400,9 @@ export default function RepliesPage() {
             {platformLabel}
           </Badge>
           {username ? (
-            <Badge variant="outline">@{username.replace(/^@/, '')}</Badge>
+            <Badge variant="outline">
+              @{username.replace(LEADING_AT_SIGN_PATTERN, '')}
+            </Badge>
           ) : null}
           {isActive ? (
             <Badge variant="success">{translate('status.on')}</Badge>
@@ -465,7 +469,7 @@ export default function RepliesPage() {
             return (
               <Card
                 key={item.commentId}
-                label={`@${item.authorUsername.replace(/^@/, '')}`}
+                label={`@${item.authorUsername.replace(LEADING_AT_SIGN_PATTERN, '')}`}
                 description={
                   item.parentPostPreview
                     ? `On: ${item.parentPostPreview}`

@@ -13,6 +13,10 @@ import {
   ValidateIf,
 } from 'class-validator';
 
+const SAFE_IDENTIFIER_PATTERN = /^[A-Za-z0-9_-]+$/;
+const SIX_DIGIT_CODE_PATTERN = /^\d{6}$/;
+const GENFEED_API_KEY_PATTERN = /^gf_(?:live|test)_[A-Za-z0-9_-]+$/;
+
 export class RegisterAgentAuthDto {
   @ApiProperty({ enum: ['identity_assertion', 'service_auth'] })
   @IsIn(['identity_assertion', 'service_auth'])
@@ -52,31 +56,31 @@ export class RegisterAgentAuthDto {
 export class CompleteAgentAuthClaimDto {
   @IsString()
   @MinLength(32)
-  @Matches(/^[A-Za-z0-9_-]+$/)
+  @Matches(SAFE_IDENTIFIER_PATTERN)
   readonly claim_attempt_token!: string;
 
   @IsString()
-  @Matches(/^\d{6}$/)
+  @Matches(SIX_DIGIT_CODE_PATTERN)
   readonly user_code!: string;
 }
 
 export class InspectAgentAuthClaimDto {
   @IsString()
   @MinLength(32)
-  @Matches(/^[A-Za-z0-9_-]+$/)
+  @Matches(SAFE_IDENTIFIER_PATTERN)
   readonly claim_attempt_token!: string;
 }
 
 export class ExchangeAgentAuthClaimDto {
   @IsString()
   @MinLength(32)
-  @Matches(/^[A-Za-z0-9_-]+$/)
+  @Matches(SAFE_IDENTIFIER_PATTERN)
   readonly claim_token!: string;
 }
 
 export class RevokeAgentAuthCredentialDto {
   @IsString()
   @MinLength(32)
-  @Matches(/^gf_(?:live|test)_[A-Za-z0-9_-]+$/)
+  @Matches(GENFEED_API_KEY_PATTERN)
   readonly token!: string;
 }

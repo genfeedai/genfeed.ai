@@ -3,6 +3,9 @@ import path from 'node:path';
 import process from 'node:process';
 import type { ToolsetName } from '../src/registry/toolset-names';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/gu;
+const QUOTED_SURFACE_PATTERN = /'(agent|mcp|workflow)'/gu;
+
 const CATALOG_PATH = 'packages/actions/src/registry/curated-action-catalog.ts';
 
 /**
@@ -114,7 +117,10 @@ export function parseCatalogSource(
     const { nextIndex, raw } = readEntry(lines, index, end);
     index = nextIndex;
 
-    const normalized = raw.join(' ').replace(/\s+/gu, ' ').trim();
+    const normalized = raw
+      .join(' ')
+      .replace(WHITESPACE_RUNS_PATTERN, ' ')
+      .trim();
     const match = normalized.match(ENTRY_PATTERN);
     if (!match) {
       throw new Error(
@@ -126,7 +132,7 @@ export function parseCatalogSource(
     if (!name || surfaceText === undefined) {
       throw new Error(`${fileName}:${entryLine} has an invalid catalog entry`);
     }
-    const surfaces = [...surfaceText.matchAll(/'(agent|mcp|workflow)'/gu)].map(
+    const surfaces = [...surfaceText.matchAll(QUOTED_SURFACE_PATTERN)].map(
       (surface) => surface[1] as CatalogSurface,
     );
     if (surfaces.length === 0 || new Set(surfaces).size !== surfaces.length) {

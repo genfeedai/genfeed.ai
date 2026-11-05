@@ -1911,10 +1911,12 @@ describe('BrandsService', () => {
       expect(linkDelegate.findFirst).toHaveBeenCalledWith({
         orderBy: { createdAt: 'asc' },
         where: { brandId, category: 'LINKEDIN', isDeleted: false },
+        select: { id: true },
       });
       expect(linkDelegate.findFirst).toHaveBeenCalledWith({
         orderBy: { createdAt: 'asc' },
         where: { brandId, category: 'TWITTER', isDeleted: false },
+        select: { id: true },
       });
       expect(delegate.findFirst).toHaveBeenCalledWith({
         select: { id: true },

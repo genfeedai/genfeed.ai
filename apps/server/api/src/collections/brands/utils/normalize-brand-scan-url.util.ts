@@ -1,5 +1,13 @@
 import { BadRequestException } from '@nestjs/common';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+const URL_PATH_START_PATTERN = /[/?#]/;
+const HOST_WITH_PORT_PATTERN =
+  /^(?:[^:/?#@\s]+\.[^:/?#@\s]+|localhost|\[[0-9a-f:.]+\]):[0-9]+$/i;
+const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/i;
+const SENSITIVE_QUERY_PARAM_PATTERN =
+  /(?:token|secret|signature|credential|password|api[-_]?key|authorization|x-amz|x-goog)|^(?:key|sig|auth)$|^(?:awsaccesskeyid|googleaccessid)/i;
+
 export function normalizeBrandScanUrl(input: string): string {
   if (typeof input !== 'string' || !input.trim() || input.length > 2048)
     throw new BadRequestException('Invalid scan input');
@@ -14,13 +22,10 @@ export function normalizeBrandScanUrl(input: string): string {
   let url: URL;
   try {
     let canonical = value;
-    if (!/^https?:\/\//i.test(value)) {
-      const authority = value.split(/[/?#]/)[0] ?? '';
-      const hostPort =
-        /^(?:[^:/?#@\s]+\.[^:/?#@\s]+|localhost|\[[0-9a-f:.]+\]):[0-9]+$/i.test(
-          authority,
-        );
-      if (/^[a-z][a-z\d+.-]*:/i.test(value) && !hostPort)
+    if (!HTTP_PROTOCOL_PREFIX_PATTERN.test(value)) {
+      const authority = value.split(URL_PATH_START_PATTERN)[0] ?? '';
+      const hostPort = HOST_WITH_PORT_PATTERN.test(authority);
+      if (URL_SCHEME_PATTERN.test(value) && !hostPort)
         throw new Error('Unsupported scheme');
       canonical = `https://${value}`;
     }
@@ -37,11 +42,7 @@ export function normalizeBrandScanUrl(input: string): string {
   )
     throw new BadRequestException('Invalid scan URL');
   for (const key of url.searchParams.keys()) {
-    if (
-      /(?:token|secret|signature|credential|password|api[-_]?key|authorization|x-amz|x-goog)|^(?:key|sig|auth)$|^(?:awsaccesskeyid|googleaccessid)/i.test(
-        key,
-      )
-    )
+    if (SENSITIVE_QUERY_PARAM_PATTERN.test(key))
       throw new BadRequestException('Invalid scan URL');
   }
   return url.href;

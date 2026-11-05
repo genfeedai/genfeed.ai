@@ -26,6 +26,8 @@ import { AnalyticsMetric } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+const NON_ALPHANUMERIC_RUN_PATTERN = /[^a-z0-9]+/u;
+
 /**
  * Ids resolved once from the campaign's scalar FKs so that none of the five
  * loaders below re-reads a Mongo-era relation alias. `campaign.brand` /
@@ -719,7 +721,7 @@ export class TriggerEvaluatorService {
   private tokenize(value: string): string[] {
     return value
       .toLowerCase()
-      .split(/[^a-z0-9]+/u)
+      .split(NON_ALPHANUMERIC_RUN_PATTERN)
       .map((token) => token.trim())
       .filter((token) => token.length >= 3);
   }

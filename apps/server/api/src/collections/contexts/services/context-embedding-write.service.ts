@@ -177,6 +177,7 @@ export class ContextEmbeddingWriteService {
         organizationId: input.organizationId,
         sourceAgentMemoryId: input.memoryId,
       },
+      select: { contextBaseId: true, data: true },
     });
     if (superseded.length === 0) return [];
     await softDeleteContextEntries(tx, input.organizationId, {
@@ -431,6 +432,11 @@ export class ContextEmbeddingWriteService {
         isDeleted: false,
         knowledgeEmbeddingManifestId: null,
       },
+      select: {
+        data: true,
+        embeddingGeneration: true,
+        sourceAgentMemoryId: true,
+      },
     });
     if (!entry) return null;
     const pending = await tx.contextEmbeddingJob.findFirst({
@@ -440,6 +446,7 @@ export class ContextEmbeddingWriteService {
         isDeleted: false,
         status: { in: ['PENDING', 'RETRYABLE', 'PROCESSING'] },
       },
+      select: { id: true },
     });
     if (pending) return null;
     const eligible = await tx.$queryRaw<
@@ -682,6 +689,7 @@ export class ContextEmbeddingWriteService {
   ): Promise<void> {
     const memory = await tx.agentMemory.findFirst({
       where: { id: memoryId, organizationId, isDeleted: false },
+      select: { brandId: true, campaignId: true, scope: true, userId: true },
     });
     const user = memory
       ? await tx.user.findFirst({

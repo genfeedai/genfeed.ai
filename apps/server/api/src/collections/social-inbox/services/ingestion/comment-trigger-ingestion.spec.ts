@@ -177,6 +177,7 @@ describe('queueSocialCommentTrigger', () => {
           isDeleted: false,
           organizationId: input.organizationId,
         },
+        select: { automationState: true, metadata: true },
       },
     );
     expect(

@@ -4,6 +4,9 @@ import { globSync } from 'glob';
 import ts from 'typescript';
 import { parseSourceFile } from './architecture/parse-source-file';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const CARD_PADDING_CLASS_PATTERN = /(^|:)p-(3|4|5|6|7|8|9|10|11|12|\[)/;
+
 const logger = {
   error: (message: string) => console.error(`[CheckNoNestedCards] ${message}`),
   log: (message: string) => console.log(`[CheckNoNestedCards] ${message}`),
@@ -310,7 +313,7 @@ function hasNestedCardChrome(className: string): boolean {
     return false;
   }
 
-  const classTokens = className.split(/\s+/).filter(Boolean);
+  const classTokens = className.split(WHITESPACE_RUN_PATTERN).filter(Boolean);
   const hasRounded = classTokens.some(
     (classToken) =>
       classToken.includes('rounded') && !classToken.includes('rounded-full'),
@@ -330,7 +333,7 @@ function hasNestedCardChrome(className: string): boolean {
       classToken.includes(':shadow-'),
   );
   const hasPanelPadding = classTokens.some((classToken) =>
-    /(^|:)p-(3|4|5|6|7|8|9|10|11|12|\[)/.test(classToken),
+    CARD_PADDING_CLASS_PATTERN.test(classToken),
   );
 
   return hasRounded && hasBorder && hasBackgroundOrShadow && hasPanelPadding;

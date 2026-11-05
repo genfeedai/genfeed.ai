@@ -1,6 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, Matches, MaxLength } from 'class-validator';
 
+const SAFE_IDENTIFIER_PATTERN = /^[A-Za-z0-9_-]+$/;
+
 export class ImportAccountVoiceDto {
   @ApiProperty({
     description: 'ElevenLabs voice ID from the connected account',
@@ -8,6 +10,6 @@ export class ImportAccountVoiceDto {
   })
   @IsString()
   @MaxLength(128)
-  @Matches(/^[A-Za-z0-9_-]+$/)
+  @Matches(SAFE_IDENTIFIER_PATTERN)
   readonly externalVoiceId!: string;
 }

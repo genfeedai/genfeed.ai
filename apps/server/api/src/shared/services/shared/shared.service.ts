@@ -18,6 +18,8 @@ import {
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 interface MediaDocumentOwnership {
   brandId?: string;
   organizationId?: string;
@@ -72,7 +74,7 @@ const resolveMetadataLabel = (input: MediaDocumentsInput): string => {
   }
 
   const normalizedPrompt = (input.generationPrompt ?? '')
-    .replace(/\s+/g, ' ')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
 
   if (!normalizedPrompt) {

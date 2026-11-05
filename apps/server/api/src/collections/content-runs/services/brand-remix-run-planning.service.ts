@@ -51,6 +51,8 @@ import {
   Injectable,
 } from '@nestjs/common';
 
+const TRAILING_SENTENCE_PUNCTUATION_PATTERN = /[.!?]+$/;
+
 @Injectable()
 export class BrandRemixRunPlanningService {
   constructor(
@@ -157,8 +159,10 @@ export class BrandRemixRunPlanningService {
           ? 'avatar'
           : source.recommendedOutputKind;
     const hookPattern =
-      source.snapshot.pattern.hook?.replace(/[.!?]+$/, '') ??
-      'performance-led hook';
+      source.snapshot.pattern.hook?.replace(
+        TRAILING_SENTENCE_PUNCTUATION_PATTERN,
+        '',
+      ) ?? 'performance-led hook';
     const defaultReferences = this.mergeDefaultReferences([], context.brandKit);
     const objective =
       outputKind === 'avatar'

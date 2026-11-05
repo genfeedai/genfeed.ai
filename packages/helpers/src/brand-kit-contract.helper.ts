@@ -18,6 +18,9 @@ import {
   type IScrapedBrandData,
 } from '@genfeedai/contracts/interfaces';
 
+const VIDEO_PLAYBACK_ATTRIBUTES_PATTERN = /\b(?:autoplay|playsinline)\b/;
+const VIDEO_STATE_ATTRIBUTES_PATTERN = /\b(?:muted|loop)\b/;
+
 interface BrandKitAssetSource {
   id?: string;
   url?: string;
@@ -536,8 +539,8 @@ export function isBrandKitGuidanceNoise(value: string): boolean {
 
   const lower = text.toLowerCase();
   return (
-    /\b(?:autoplay|playsinline)\b/.test(lower) &&
-    /\b(?:muted|loop)\b/.test(lower)
+    VIDEO_PLAYBACK_ATTRIBUTES_PATTERN.test(lower) &&
+    VIDEO_STATE_ATTRIBUTES_PATTERN.test(lower)
   );
 }
 

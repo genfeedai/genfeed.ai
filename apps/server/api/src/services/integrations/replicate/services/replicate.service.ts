@@ -26,6 +26,9 @@ import type { ZodType } from 'zod';
 
 import type { ReplicateStructuredTextParams } from '../dto/replicate-structured-text.dto';
 
+const VIDEO_EXTENSION_PATTERN = /\.(mp4|mov|webm|mkv|ogv)$/i;
+const DESTINATION_KEYWORD_PATTERN = /destination/i;
+
 function readPositiveInteger(value: unknown): number | undefined {
   if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
     return undefined;
@@ -265,7 +268,7 @@ export class ReplicateService {
           MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE &&
         typeof input.video === 'string' &&
         input.video.startsWith('https://') &&
-        !/\.(mp4|mov|webm|mkv|ogv)$/i.test(new URL(input.video).pathname)
+        !VIDEO_EXTENSION_PATTERN.test(new URL(input.video).pathname)
       ) {
         // Keep a real filename when the provider resolves the source container.
         // Private stored keys can be extensionless; a named provider file
@@ -371,8 +374,8 @@ export class ReplicateService {
 
         const destinationMissing =
           status === 404 ||
-          /destination/i.test(message) ||
-          /destination/i.test(detail);
+          DESTINATION_KEYWORD_PATTERN.test(message) ||
+          DESTINATION_KEYWORD_PATTERN.test(detail);
 
         if (destinationMissing) {
           const [destOwner, destModel] = String(destination).split('/');

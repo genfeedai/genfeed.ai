@@ -37,6 +37,8 @@ import {
   Injectable,
 } from '@nestjs/common';
 
+const NON_ALPHANUMERIC_RUN_PATTERN = /[^a-z0-9]+/i;
+
 interface CreateAgentMemoryPayload {
   campaignId?: string;
   content: string;
@@ -375,7 +377,7 @@ export class AgentMemoriesService extends BaseService<
     const normalizedQuery = options.query?.toLowerCase() ?? '';
     const queryTerms = new Set(
       normalizedQuery
-        .split(/[^a-z0-9]+/i)
+        .split(NON_ALPHANUMERIC_RUN_PATTERN)
         .map((term) => term.trim())
         .filter((term) => term.length >= 3),
     );

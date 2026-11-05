@@ -13,6 +13,8 @@ import { KnowledgeSpacesService } from '@services/content/knowledge-spaces.servi
 import { logger } from '@services/core/logger.service';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+const UNSAFE_ID_CHAR_PATTERN = /[^A-Za-z0-9_-]/;
+
 export const KNOWLEDGE_LIBRARY_PAGE_SIZE = 25;
 /** How often the list re-reads while a capture is still being processed. */
 export const KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS = 4_000;
@@ -78,7 +80,7 @@ export function useKnowledgeLibrary({
     typeof selectedSourceId === 'string' &&
     selectedSourceId.length > 0 &&
     selectedSourceId.length <= 128 &&
-    !/[^A-Za-z0-9_-]/.test(selectedSourceId);
+    !UNSAFE_ID_CHAR_PATTERN.test(selectedSourceId);
 
   const load = useCallback(
     async (isBackground = false) => {

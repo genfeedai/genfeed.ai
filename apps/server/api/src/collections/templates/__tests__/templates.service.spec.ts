@@ -152,6 +152,7 @@ describe('TemplatesService persistence', () => {
         organizationId: 'org-1',
         purpose: 'prompt',
       },
+      select: { id: true },
     });
   });
 

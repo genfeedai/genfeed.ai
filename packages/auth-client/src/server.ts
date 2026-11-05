@@ -6,6 +6,9 @@ import { BETTER_AUTH_BASE_PATH, getApiOrigin } from './config';
 
 export { isBetterAuthEnabled, readBetterAuthEnabledFromEnv } from './config';
 
+const HYPHENS_PATTERN = /-/g;
+const UNDERSCORES_PATTERN = /_/g;
+
 interface BetterAuthTokenResponse {
   token?: string;
 }
@@ -88,8 +91,8 @@ function getTokenExpiry(token: string): number {
 
   try {
     const normalizedPayload = payload
-      .replace(/-/g, '+')
-      .replace(/_/g, '/')
+      .replace(HYPHENS_PATTERN, '+')
+      .replace(UNDERSCORES_PATTERN, '/')
       .padEnd(Math.ceil(payload.length / 4) * 4, '=');
     const parsed = JSON.parse(atob(normalizedPayload)) as { exp?: number };
 

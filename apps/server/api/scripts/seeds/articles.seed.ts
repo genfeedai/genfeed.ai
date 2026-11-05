@@ -55,6 +55,8 @@ import {
 } from './data/launch-articles';
 import { SEO_ARTICLES } from './data/seo-articles';
 
+const EDGE_BRACKETS_PATTERN = /^\[|\]$/g;
+
 const SEEDED_ARTICLES = [...SEO_ARTICLES, ...HELP_ARTICLES] as const;
 
 const logger = new Logger('ArticlesSeed');
@@ -424,7 +426,10 @@ export function isLocalDatabaseUrl(databaseUrl?: string): boolean {
   }
 
   try {
-    const hostname = new URL(databaseUrl).hostname.replace(/^\[|\]$/g, '');
+    const hostname = new URL(databaseUrl).hostname.replace(
+      EDGE_BRACKETS_PATTERN,
+      '',
+    );
     return ['0.0.0.0', '127.0.0.1', '::1', 'localhost'].includes(hostname);
   } catch {
     return false;

@@ -13,6 +13,8 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/youtube-authorized-signals.contract';
 import { readString } from '@genfeedai/utils/data/extract.util';
 
+const ISO8601_DURATION_PATTERN = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
+
 export const YOUTUBE_SCOPE = 'https://www.googleapis.com/auth/youtube';
 export const YOUTUBE_FORCE_SSL_SCOPE =
   'https://www.googleapis.com/auth/youtube.force-ssl';
@@ -171,7 +173,7 @@ export function parseIsoDurationSeconds(value: unknown): number | undefined {
     return undefined;
   }
 
-  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  const match = duration.match(ISO8601_DURATION_PATTERN);
   if (!match) {
     return undefined;
   }

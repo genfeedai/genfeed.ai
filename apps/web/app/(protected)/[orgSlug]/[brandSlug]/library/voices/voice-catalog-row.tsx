@@ -9,10 +9,12 @@ import { Trash2 } from 'lucide-react';
 import { useMemo } from 'react';
 import type { VoiceCatalogRowProps } from '@/features/library/props/voice-catalog-row.props';
 
+const HYPHENS_PATTERN = /-/g;
+
 // The API now returns SCREAMING_SNAKE VoiceProvider labels, while older rows and
 // links still carry the lower-cased product spelling — normalize before matching.
 function getProviderLabel(provider?: string): string {
-  switch (provider?.toUpperCase().replace(/-/g, '_')) {
+  switch (provider?.toUpperCase().replace(HYPHENS_PATTERN, '_')) {
     case 'ELEVENLABS':
       return 'ElevenLabs';
     case 'HEYGEN':

@@ -33,6 +33,17 @@ import {
   MCP_SERVER_NAME,
 } from './server-identity';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+const AMPERSANDS_PATTERN = /&/g;
+const LESS_THAN_SIGNS_PATTERN = /</g;
+const GREATER_THAN_SIGNS_PATTERN = />/g;
+const DOUBLE_QUOTES_PATTERN = /"/g;
+const SINGLE_QUOTES_PATTERN = /'/g;
+const TRAILING_SLASH_PATTERN = /\/$/;
+const LINE_SEPARATORS_PATTERN = /\u2028/g;
+const PARAGRAPH_SEPARATORS_PATTERN = /\u2029/g;
+const POSTHOG_PROJECT_KEY_PATTERN = /^phc_[A-Za-z0-9]+$/;
+
 const DEFAULT_APP_URL = 'https://app.genfeed.ai';
 const DEFAULT_API_URL = 'https://api.genfeed.ai';
 const DEFAULT_DOCS_URL = 'https://docs.genfeed.ai';
@@ -111,7 +122,10 @@ const DEFAULT_SETUP_TAB_ID: SetupTabId = 'claude-code';
  * shared by URL. Returns null for any other path.
  */
 export function resolveSetupPageTab(pathname: string): SetupTabId | null {
-  const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  const path =
+    pathname.length > 1
+      ? pathname.replace(TRAILING_SLASHES_PATTERN, '')
+      : pathname;
   if (path === '/' || path === '/docs') {
     return DEFAULT_SETUP_TAB_ID;
   }
@@ -120,15 +134,15 @@ export function resolveSetupPageTab(pathname: string): SetupTabId | null {
 
 function escapeHtml(value: string): string {
   return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(AMPERSANDS_PATTERN, '&amp;')
+    .replace(LESS_THAN_SIGNS_PATTERN, '&lt;')
+    .replace(GREATER_THAN_SIGNS_PATTERN, '&gt;')
+    .replace(DOUBLE_QUOTES_PATTERN, '&quot;')
+    .replace(SINGLE_QUOTES_PATTERN, '&#39;');
 }
 
 function trimTrailingSlash(value: string): string {
-  return value.replace(/\/$/, '');
+  return value.replace(TRAILING_SLASH_PATTERN, '');
 }
 
 /**
@@ -152,9 +166,9 @@ function trimTrailingSlash(value: string): string {
  */
 export function toInlineScriptStringLiteral(value: string): string {
   return JSON.stringify(value)
-    .replace(/</g, '\\u003C')
-    .replace(/\u2028/g, '\\u2028')
-    .replace(/\u2029/g, '\\u2029');
+    .replace(LESS_THAN_SIGNS_PATTERN, '\\u003C')
+    .replace(LINE_SEPARATORS_PATTERN, '\\u2028')
+    .replace(PARAGRAPH_SEPARATORS_PATTERN, '\\u2029');
 }
 
 function readEnv(name: string): string | undefined {
@@ -163,7 +177,7 @@ function readEnv(name: string): string | undefined {
 
 function renderPostHogSnippet(): string {
   const projectToken = readEnv('POSTHOG_PROJECT_API_KEY');
-  if (!projectToken || !/^phc_[A-Za-z0-9]+$/.test(projectToken)) {
+  if (!projectToken || !POSTHOG_PROJECT_KEY_PATTERN.test(projectToken)) {
     return '';
   }
 

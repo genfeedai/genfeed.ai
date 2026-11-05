@@ -5,6 +5,11 @@ import {
   type ExecutorOutput,
 } from '../base-executor';
 
+const AMPERSANDS_PATTERN = /&/g;
+const LESS_THAN_SIGNS_PATTERN = /</g;
+const GREATER_THAN_SIGNS_PATTERN = />/g;
+const DOUBLE_QUOTES_PATTERN = /"/g;
+
 export type ReportDeliveryChannel = 'notification' | 'email' | 'both';
 
 export interface ReportDeliveryResult {
@@ -184,10 +189,10 @@ export class ReportDeliveryExecutor extends BaseExecutor {
 
 function escapeHtml(value: string): string {
   return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(AMPERSANDS_PATTERN, '&amp;')
+    .replace(LESS_THAN_SIGNS_PATTERN, '&lt;')
+    .replace(GREATER_THAN_SIGNS_PATTERN, '&gt;')
+    .replace(DOUBLE_QUOTES_PATTERN, '&quot;');
 }
 
 export function createReportDeliveryExecutor(options: {

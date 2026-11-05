@@ -18,6 +18,8 @@ import { VoiceCloneDropzone } from './VoiceCloneDropzone';
 import { VoiceCloneExistingVoiceSelector } from './VoiceCloneExistingVoiceSelector';
 import { VoiceCloneProgress } from './VoiceCloneProgress';
 
+const FILE_EXTENSION_PATTERN = /\.[^.]+$/;
+
 interface VoiceCloneCardProps {
   action: AgentUiAction;
   apiService: AgentApiService;
@@ -287,7 +289,10 @@ export function VoiceCloneCard({
 
     try {
       const formData = new FormData();
-      formData.append('name', file.name.replace(/\.[^.]+$/, '') || 'My Voice');
+      formData.append(
+        'name',
+        file.name.replace(FILE_EXTENSION_PATTERN, '') || 'My Voice',
+      );
       formData.append('provider', VoiceProvider.ELEVENLABS);
       formData.append('file', file);
       const voice = await apiService.cloneVoice(formData);

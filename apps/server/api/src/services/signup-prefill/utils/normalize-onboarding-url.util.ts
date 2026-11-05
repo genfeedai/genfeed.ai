@@ -1,5 +1,11 @@
 import { BadRequestException } from '@nestjs/common';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+const URL_PATH_START_PATTERN = /[/?#]/;
+const HOST_WITH_PORT_PATTERN =
+  /^(?:[^:/?#@\s]+\.[^:/?#@\s]+|localhost|\[[0-9a-f:.]+\]):[0-9]+$/i;
+const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/i;
+
 /** Preserve public page paths and queries; fragments are never fetched. */
 export function normalizeOnboardingUrl(input: unknown): string {
   if (typeof input !== 'string' || !input.trim() || input.length > 2048)
@@ -15,13 +21,10 @@ export function normalizeOnboardingUrl(input: unknown): string {
   let url: URL;
   try {
     let canonical = value;
-    if (!/^https?:\/\//i.test(value)) {
-      const authority = value.split(/[/?#]/)[0] ?? '';
-      const hasHostPort =
-        /^(?:[^:/?#@\s]+\.[^:/?#@\s]+|localhost|\[[0-9a-f:.]+\]):[0-9]+$/i.test(
-          authority,
-        );
-      if (/^[a-z][a-z\d+.-]*:/i.test(value) && !hasHostPort)
+    if (!HTTP_PROTOCOL_PREFIX_PATTERN.test(value)) {
+      const authority = value.split(URL_PATH_START_PATTERN)[0] ?? '';
+      const hasHostPort = HOST_WITH_PORT_PATTERN.test(authority);
+      if (URL_SCHEME_PATTERN.test(value) && !hasHostPort)
         throw new BadRequestException('Invalid scan URL');
       canonical = `https://${value}`;
     }

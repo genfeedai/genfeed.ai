@@ -25,6 +25,8 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 /**
  * Trial notices go through the product-email path: the "billing.credits" or
  * "lifecycle.onboarding" preference (the latter also honours the marketing
@@ -224,6 +226,6 @@ export class FreeTrialEmailsService {
   private appUrl(): string {
     return (
       this.config.get('GENFEEDAI_APP_URL') ?? 'https://app.genfeed.ai'
-    ).replace(/\/+$/, '');
+    ).replace(TRAILING_SLASHES_PATTERN, '');
   }
 }

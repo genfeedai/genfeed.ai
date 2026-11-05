@@ -7,6 +7,9 @@ import {
   lineOf,
 } from './core';
 
+const IMPORTANT_OR_NEGATIVE_PREFIX_PATTERN = /^[!-]+/;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 /**
  * A shared component owns its look: callers pick a `variant` or `size` and do
  * not restyle it with `className`. Layout (width, flex, margin, position,
@@ -41,7 +44,9 @@ export function utilityOf(token: string): string {
       lastColon = index;
     }
   }
-  return token.slice(lastColon + 1).replace(/^[!-]+/, '');
+  return token
+    .slice(lastColon + 1)
+    .replace(IMPORTANT_OR_NEGATIVE_PREFIX_PATTERN, '');
 }
 
 export function ownedClasses(
@@ -52,7 +57,7 @@ export function ownedClasses(
     ? [...OWNED_UTILITIES, ...SIZE_UTILITIES]
     : OWNED_UTILITIES;
   return classString
-    .split(/\s+/)
+    .split(WHITESPACE_RUN_PATTERN)
     .filter((token) => token.length > 0)
     .filter((token) => {
       const utility = utilityOf(token);

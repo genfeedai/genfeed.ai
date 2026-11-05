@@ -14,6 +14,9 @@ import { Slider } from '@genfeedai/ui/primitives/slider';
 import { memo, useCallback, useEffect, useMemo } from 'react';
 import { NegativePromptSelector } from './NegativePromptSelector';
 
+const UNDERSCORES_PATTERN = /_/g;
+const WORD_INITIALS_PATTERN = /\b\w/g;
+
 /**
  * JSON Schema property definition
  * These come from Replicate model schemas
@@ -192,7 +195,9 @@ function parseEnumValue(
  */
 function formatLabel(key: string, title?: string): string {
   if (title) return title;
-  return key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  return key
+    .replace(UNDERSCORES_PATTERN, ' ')
+    .replace(WORD_INITIALS_PATTERN, (c) => c.toUpperCase());
 }
 
 /**

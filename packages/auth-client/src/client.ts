@@ -9,6 +9,9 @@ import { createAuthClient, type ReactAuthClient } from 'better-auth/react';
 
 import { BETTER_AUTH_BASE_PATH, getApiOrigin } from './config';
 
+const HYPHENS_PATTERN = /-/g;
+const UNDERSCORES_PATTERN = /_/g;
+
 /**
  * Singleton Better Auth browser client (epic #735). Mounted against the Phase 1
  * handler at `${origin}/v1/auth/*`.
@@ -126,8 +129,8 @@ function getJwtAwareExpiry(token: string): number {
 
   try {
     const normalizedPayload = payload
-      .replace(/-/g, '+')
-      .replace(/_/g, '/')
+      .replace(HYPHENS_PATTERN, '+')
+      .replace(UNDERSCORES_PATTERN, '/')
       .padEnd(Math.ceil(payload.length / 4) * 4, '=');
     const decodedPayload = atob(normalizedPayload);
     const parsed = JSON.parse(decodedPayload) as { exp?: number };

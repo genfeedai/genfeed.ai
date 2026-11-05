@@ -37,6 +37,11 @@ import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 
+const PAGE_OR_ROUTE_SUFFIX_PATTERN = /\/(page|route)$/;
+const ROUTE_GROUPS_PATTERN = /\/\([^/)]+\)/g;
+const RSC_MANIFEST_ASSIGNMENT_PATTERN = /__RSC_MANIFEST\["([^"]+)"\]\s*=\s*/;
+const TRAILING_SEMICOLON_PATTERN = /;$/;
+
 interface BuildManifest {
   pages: Record<string, string[]>;
   polyfillFiles?: string[];
@@ -176,8 +181,8 @@ async function sumGzip(dist: string, chunks: string[]): Promise<number> {
  */
 export function toRoute(entry: string): string {
   const route = entry
-    .replace(/\/(page|route)$/, '')
-    .replace(/\/\([^/)]+\)/g, '');
+    .replace(PAGE_OR_ROUTE_SUFFIX_PATTERN, '')
+    .replace(ROUTE_GROUPS_PATTERN, '');
   return route === '' ? '/' : route;
 }
 
@@ -194,7 +199,7 @@ const CLIENT_MANIFEST_FILE = 'page_client-reference-manifest.js';
 export function parseClientReferenceManifest(
   source: string,
 ): { chunks: string[]; entry: string } | null {
-  const key = source.match(/__RSC_MANIFEST\["([^"]+)"\]\s*=\s*/);
+  const key = source.match(RSC_MANIFEST_ASSIGNMENT_PATTERN);
   if (!key || key.index === undefined) {
     return null;
   }
@@ -202,7 +207,7 @@ export function parseClientReferenceManifest(
   const body = source
     .slice(key.index + key[0].length)
     .trim()
-    .replace(/;$/, '');
+    .replace(TRAILING_SEMICOLON_PATTERN, '');
   const manifest = JSON.parse(body) as ClientReferenceManifest;
   const chunks = Object.values(manifest.entryJSFiles ?? {}).flat();
 

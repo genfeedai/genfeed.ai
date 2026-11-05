@@ -40,6 +40,8 @@ import { useForm } from 'react-hook-form';
 import { useFocusFirstInput } from '@/hooks/ui/use-focus-first-input/use-focus-first-input';
 import { useFormSubmitWithState } from '@/hooks/utils/use-form-submit/use-form-submit';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 const ARTICLE_COUNT_OPTIONS = [
   { label: '1 Article', value: '1' },
   { label: '2 Articles', value: '2' },
@@ -169,7 +171,9 @@ export default function ModalArticle({
         const result: Article = await service.post({
           content: formData.content!,
           label: formData.label!,
-          slug: formData.label?.toLowerCase().replace(/\s+/g, '-'), // Simple slug generation
+          slug: formData.label
+            ?.toLowerCase()
+            .replace(WHITESPACE_RUNS_PATTERN, '-'), // Simple slug generation
           summary: formData.content?.substring(0, 200), // Use first 200 chars as summary
         });
 

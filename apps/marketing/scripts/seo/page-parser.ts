@@ -1,3 +1,12 @@
+const HTML_ENTITIES_PATTERN = /&(#x?[0-9a-f]+|[a-z]+);/gi;
+const HEX_DIGITS_PATTERN = /^[0-9a-f]+$/i;
+const DIGITS_ONLY_PATTERN = /^[0-9]+$/;
+const HTML_TAGS_PATTERN = /<[^>]*>/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const HTML_TITLE_PATTERN = /<title[^>]*>([\s\S]*?)<\/title>/i;
+const HTML_BODY_PATTERN = /<body\b[^>]*>([\s\S]*?)<\/body>/i;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 /**
  * Dependency-free HTML → SEO fact extraction.
  *
@@ -44,11 +53,13 @@ const HTML_ENTITIES: Record<string, string> = {
 const MAX_CODE_POINT = 0x10ffff;
 
 export function decodeEntities(text: string): string {
-  return text.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, entity: string) => {
+  return text.replace(HTML_ENTITIES_PATTERN, (match, entity: string) => {
     if (entity.startsWith('#')) {
       const isHex = entity[1] === 'x' || entity[1] === 'X';
       const digits = isHex ? entity.slice(2) : entity.slice(1);
-      const isWellFormed = (isHex ? /^[0-9a-f]+$/i : /^[0-9]+$/).test(digits);
+      const isWellFormed = (
+        isHex ? HEX_DIGITS_PATTERN : DIGITS_ONLY_PATTERN
+      ).test(digits);
       const codePoint = Number.parseInt(digits, isHex ? 16 : 10);
       // The character class also admits hex digits in a decimal entity, and any
       // digit run can exceed the Unicode range. Both would make fromCodePoint
@@ -66,8 +77,8 @@ export function decodeEntities(text: string): string {
 
 /** Collapse a fragment of markup down to its visible text. */
 export function toText(html: string): string {
-  return decodeEntities(html.replace(/<[^>]*>/g, ' '))
-    .replace(/\s+/g, ' ')
+  return decodeEntities(html.replace(HTML_TAGS_PATTERN, ' '))
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
 }
 
@@ -97,7 +108,7 @@ function matchAllTags(html: string, tagName: string): string[] {
 }
 
 export function parsePage(html: string): PageFacts {
-  const titleMatch = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html);
+  const titleMatch = HTML_TITLE_PATTERN.exec(html);
   const title = titleMatch ? toText(titleMatch[1] ?? '') : null;
 
   const openGraph: Record<string, string> = {};
@@ -158,10 +169,11 @@ export function parsePage(html: string): PageFacts {
     scriptMatch = scriptPattern.exec(html);
   }
 
-  const bodyMatch = /<body\b[^>]*>([\s\S]*?)<\/body>/i.exec(html);
+  const bodyMatch = HTML_BODY_PATTERN.exec(html);
   const bodyHtml = bodyMatch ? (bodyMatch[1] ?? '') : html;
   const visibleText = toText(bodyHtml.replace(VOID_BLOCK_TAGS, ' '));
-  const wordCount = visibleText === '' ? 0 : visibleText.split(/\s+/).length;
+  const wordCount =
+    visibleText === '' ? 0 : visibleText.split(WHITESPACE_RUN_PATTERN).length;
 
   const imagesWithoutAlt = matchAllTags(bodyHtml, 'img').filter((tag) => {
     const attributes = parseAttributes(tag);

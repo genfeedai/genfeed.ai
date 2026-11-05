@@ -6,6 +6,8 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { isValidTimezone } from '@helpers/formatting/timezone/timezone.helper';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 const MAX_PAGE_CONTEXT_FIELD_LENGTH = 4_000;
 const MAX_PAGE_CONTEXT_ARTIFACT_REFERENCES = 20;
 const MAX_SOCIAL_CONTEXT_BODY_LENGTH = 1_000;
@@ -17,7 +19,7 @@ const SAFE_RESEARCH_REFERENCE_ID = /^[A-Za-z0-9._~-]{1,160}$/;
 const SAFE_TIMEZONE = /^[A-Za-z0-9_+/-]{1,64}$/;
 
 function clampPageContextField(value?: string): string | null {
-  const normalized = value?.replace(/\s+/g, ' ').trim();
+  const normalized = value?.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
 
   if (!normalized) {
     return null;
@@ -29,7 +31,7 @@ function clampPageContextField(value?: string): string | null {
 }
 
 function clampSocialContextBody(value: string): string {
-  const normalized = value.replace(/\s+/g, ' ').trim();
+  const normalized = value.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
   return normalized.length <= MAX_SOCIAL_CONTEXT_BODY_LENGTH
     ? normalized
     : `${normalized.slice(0, MAX_SOCIAL_CONTEXT_BODY_LENGTH)}...`;

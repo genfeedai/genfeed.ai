@@ -5,6 +5,8 @@ import { NATIVE_HOST_NAME } from '@genfeedai/contracts/constants';
 import { emptyHostConfig, type HostPaths, readHostConfig, writeHostConfig } from './config';
 import { extensionOrigin, resolveAllowedExtensionIds } from './extension-identity';
 
+const SINGLE_QUOTES_PATTERN = /'/gu;
+
 export const SUPPORTED_BROWSERS = ['chrome', 'chromium', 'brave', 'edge'] as const;
 export type BrowserId = (typeof SUPPORTED_BROWSERS)[number];
 
@@ -107,7 +109,7 @@ export function resolveLauncherTarget(
 }
 
 function shellQuote(value: string): string {
-  return `'${value.replace(/'/gu, `'\\''`)}'`;
+  return `'${value.replace(SINGLE_QUOTES_PATTERN, `'\\''`)}'`;
 }
 
 /**

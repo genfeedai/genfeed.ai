@@ -2,6 +2,9 @@ import { Storage } from '@plasmohq/storage';
 import { apiEndpoint } from '~services/environment.service';
 import { logger } from '~utils/logger.util';
 
+const HYPHENS_PATTERN = /-/g;
+const UNDERSCORES_PATTERN = /_/g;
+
 // The credential stays on this device: chrome.storage.sync would replicate it
 // to the user's Google account and every other signed-in browser.
 const storage = new Storage({ area: 'local' });
@@ -115,7 +118,9 @@ class AuthService {
     const parts = token.split('.');
     if (parts.length !== 3) return false;
     try {
-      const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const payload = parts[1]
+        .replace(HYPHENS_PATTERN, '+')
+        .replace(UNDERSCORES_PATTERN, '/');
       const claims = JSON.parse(atob(payload)) as { exp?: unknown };
       // This is only a refresh hint. Identity and workspace always come from
       // the authenticated API, never from locally decoded JWT claims.

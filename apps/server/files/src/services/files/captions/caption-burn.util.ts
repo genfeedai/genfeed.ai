@@ -6,6 +6,15 @@ import type {
   ICaptionBurnStyle,
 } from '@genfeedai/contracts/interfaces';
 
+const SRT_TIME_SEPARATOR_PATTERN = /[,.]/;
+const BLANK_LINE_PATTERN = /\r?\n\r?\n/;
+const LINE_BREAK_PATTERN = /\r?\n/;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const HTML_TAGS_PATTERN = /<[^>]+>/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const SINGLE_QUOTES_PATTERN = /'/g;
+const SPACES_PATTERN = / /g;
+
 export interface CaptionCue {
   endMs: number;
   startMs: number;
@@ -122,7 +131,7 @@ export function resolveCaptionBurnStyle(
 
 function parseSrtTime(time: string): number {
   const [hour, minute, rest = '0,0'] = time.trim().split(':');
-  const [second, milli = '0'] = rest.split(/[,.]/);
+  const [second, milli = '0'] = rest.split(SRT_TIME_SEPARATOR_PATTERN);
   return (
     Number(hour) * 3_600_000 +
     Number(minute) * 60_000 +
@@ -133,9 +142,11 @@ function parseSrtTime(time: string): number {
 
 export function parseSrtCues(srt: string): CaptionCue[] {
   const cues: CaptionCue[] = [];
-  for (const block of srt.trim().split(/\r?\n\r?\n/)) {
-    const lines = block.split(/\r?\n/).filter((line) => line.trim() !== '');
-    if (lines.length > 0 && /^\d+$/.test(lines[0])) lines.shift();
+  for (const block of srt.trim().split(BLANK_LINE_PATTERN)) {
+    const lines = block
+      .split(LINE_BREAK_PATTERN)
+      .filter((line) => line.trim() !== '');
+    if (lines.length > 0 && DIGITS_ONLY_PATTERN.test(lines[0])) lines.shift();
     const timeLine = lines.shift();
     if (!timeLine?.includes('-->')) continue;
     const [start, end] = timeLine.split('-->');
@@ -143,8 +154,8 @@ export function parseSrtCues(srt: string): CaptionCue[] {
     const endMs = parseSrtTime(end);
     const text = lines
       .join(' ')
-      .replace(/<[^>]+>/g, '')
-      .replace(/\s+/g, ' ')
+      .replace(HTML_TAGS_PATTERN, '')
+      .replace(WHITESPACE_RUNS_PATTERN, ' ')
       .trim();
     if (!text || !Number.isFinite(startMs) || !Number.isFinite(endMs)) continue;
     if (endMs <= startMs) continue;
@@ -292,7 +303,9 @@ function buildActiveWordLine(options: ActiveWordLineOptions): string[] {
     const startMs = enable.startMs + (duration * spokenChars) / groupLength;
     spokenChars += word.length;
     const endMs = enable.startMs + (duration * spokenChars) / groupLength;
-    const text = escapeDrawtextValue(word.replace(/'/g, '\u2019'));
+    const text = escapeDrawtextValue(
+      word.replace(SINGLE_QUOTES_PATTERN, '\u2019'),
+    );
     const position = `x=${Math.round(x)}:y=${options.y}`;
     const common = `fontfile='${options.fontFile}':text='${text}':expansion=none:fontsize=${fontSize}:${position}${options.outline}`;
     const spoken = `gte(t,${seconds(startMs)})*lt(t,${seconds(endMs)})`;
@@ -307,7 +320,7 @@ function buildActiveWordLine(options: ActiveWordLineOptions): string[] {
 }
 
 function charCount(lines: string[]): number {
-  return lines.join('').replace(/ /g, '').length;
+  return lines.join('').replace(SPACES_PATTERN, '').length;
 }
 
 function seconds(ms: number): string {
@@ -407,7 +420,7 @@ export function buildCaptionBurnFilterScript(options: {
         continue;
       }
       filters.push(
-        `drawtext=fontfile='${fontFile}':text='${escapeDrawtextValue(line.replace(/'/g, '\u2019'))}':expansion=none:fontcolor=${ffmpegColor(style.fontColor)}:fontsize=${fontSize}:x=(w-text_w)/2:y=${y}${outline}:${enable}`,
+        `drawtext=fontfile='${fontFile}':text='${escapeDrawtextValue(line.replace(SINGLE_QUOTES_PATTERN, '\u2019'))}':expansion=none:fontcolor=${ffmpegColor(style.fontColor)}:fontsize=${fontSize}:x=(w-text_w)/2:y=${y}${outline}:${enable}`,
       );
     }
   }

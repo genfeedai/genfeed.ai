@@ -3,6 +3,19 @@ import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
+const CONTRACT_AFTER_DIRECTIVE_PATTERN =
+  /^--\s*genfeed-contract-after:\s*(\S+)\s*$/;
+const BLOCK_COMMENTS_PATTERN = /\/\*[\s\S]*?\*\//g;
+const LINE_COMMENTS_PATTERN = /\/\/[^\n]*/g;
+const PRISMA_MODEL_BLOCKS_PATTERN = /^\s*model\s+(\w+)\s*\{([\s\S]*?)^\s*\}/gm;
+const PRISMA_IGNORE_MODEL_PATTERN = /@@ignore\b/;
+const PRISMA_MAP_TABLE_PATTERN = /@@map\("([^"]+)"\)/;
+const PRISMA_FIELD_LINES_PATTERN = /^\s*(\w+)\s+(\w+)(\?|\[\])?([^\n]*)/gm;
+const PRISMA_IGNORED_OR_RELATION_FIELD_PATTERN = /@ignore\b|@relation\b/;
+const PRISMA_MAP_COLUMN_PATTERN = /@map\("([^"]+)"\)/;
+const PRISMA_ENUM_BLOCKS_PATTERN = /^\s*enum\s+(\w+)\s*\{([\s\S]*?)^\s*\}/gm;
+const GIT_SHA_PATTERN = /^[0-9a-f]{40}$/;
+
 const MIGRATIONS = 'packages/prisma/prisma/migrations/';
 const SCHEMA = 'packages/prisma/prisma/schema.prisma';
 const RELEASE = /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
@@ -218,7 +231,7 @@ export function destructiveOperations(sql) {
     }
   }
   const markers = comments.flatMap((comment) => {
-    const match = comment.match(/^--\s*genfeed-contract-after:\s*(\S+)\s*$/);
+    const match = comment.match(CONTRACT_AFTER_DIRECTIVE_PATTERN);
     return match ? [match[1]] : [];
   });
   return { operations, markers };
@@ -227,20 +240,16 @@ export function destructiveOperations(sql) {
 export function prismaTables(schema) {
   const tables = new Map();
   const clean = schema
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\/\/[^\n]*/g, '');
-  for (const model of clean.matchAll(
-    /^\s*model\s+(\w+)\s*\{([\s\S]*?)^\s*\}/gm,
-  )) {
+    .replace(BLOCK_COMMENTS_PATTERN, '')
+    .replace(LINE_COMMENTS_PATTERN, '');
+  for (const model of clean.matchAll(PRISMA_MODEL_BLOCKS_PATTERN)) {
     const body = model[2];
-    if (/@@ignore\b/.test(body)) continue;
-    const table = body.match(/@@map\("([^"]+)"\)/)?.[1] ?? model[1];
+    if (PRISMA_IGNORE_MODEL_PATTERN.test(body)) continue;
+    const table = body.match(PRISMA_MAP_TABLE_PATTERN)?.[1] ?? model[1];
     const fields = new Map();
-    for (const field of body.matchAll(
-      /^\s*(\w+)\s+(\w+)(\?|\[\])?([^\n]*)/gm,
-    )) {
-      if (/@ignore\b|@relation\b/.test(field[4])) continue;
-      fields.set(field[4].match(/@map\("([^"]+)"\)/)?.[1] ?? field[1], {
+    for (const field of body.matchAll(PRISMA_FIELD_LINES_PATTERN)) {
+      if (PRISMA_IGNORED_OR_RELATION_FIELD_PATTERN.test(field[4])) continue;
+      fields.set(field[4].match(PRISMA_MAP_COLUMN_PATTERN)?.[1] ?? field[1], {
         isOptional: field[3] === '?',
       });
     }
@@ -257,12 +266,10 @@ export function prismaTables(schema) {
 export function prismaEnums(schema) {
   const enums = new Set();
   const clean = schema
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\/\/[^\n]*/g, '');
-  for (const block of clean.matchAll(
-    /^\s*enum\s+(\w+)\s*\{([\s\S]*?)^\s*\}/gm,
-  )) {
-    enums.add(block[2].match(/@@map\("([^"]+)"\)/)?.[1] ?? block[1]);
+    .replace(BLOCK_COMMENTS_PATTERN, '')
+    .replace(LINE_COMMENTS_PATTERN, '');
+  for (const block of clean.matchAll(PRISMA_ENUM_BLOCKS_PATTERN)) {
+    enums.add(block[2].match(PRISMA_MAP_TABLE_PATTERN)?.[1] ?? block[1]);
   }
   return enums;
 }
@@ -318,7 +325,7 @@ export function checkMigrations({
 }) {
   const runGit = (args) => git('git', args, { cwd, encoding: 'utf8' }).trim();
   const baseSha = runGit(['rev-parse', '--verify', `${base}^{commit}`]);
-  if (!/^[0-9a-f]{40}$/.test(baseSha))
+  if (!GIT_SHA_PATTERN.test(baseSha))
     throw new Error('Invalid migration diff base');
   const changed = runGit([
     'diff',

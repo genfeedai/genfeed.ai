@@ -1,6 +1,6 @@
 {
   "text": {
-    "digest": "sha256:4c5615664a5ec14ec3b9a60a0aa3f6e30868d49dcc1c2fef1c61b9ebf7a996cc",
+    "digest": "sha256:f0810ac5ae189453c9c92c09fcd6bd6b7a263f74aeed5a266a516f818702fffa",
     "files": [
       {
         "digest": "sha256:e3c711a4a276d6975eb473cf40c4644730d84b0eae7ae8665da980c66fd63c64",
@@ -11,7 +11,7 @@
         "path": "apps/server/api/src/collections/evaluations/services/evaluation-result.projection.ts"
       },
       {
-        "digest": "sha256:66abbb993caaa3811f41f8c6989158d6578a439e5b0f4d6e44b6d576ecc34f9f",
+        "digest": "sha256:822489ef95ed87df621479d25ca704ee59b302fa41132b394d0bfa77719f382a",
         "path": "apps/server/api/src/collections/evaluations/services/evaluations-operations.service.ts"
       },
       {
@@ -19,7 +19,7 @@
         "path": "apps/server/api/src/constants/default-text-model.constant.ts"
       },
       {
-        "digest": "sha256:21d492fa49e024dccb420f799c7bbd79056831e8a8ac89e0fb48b344f73dbd24",
+        "digest": "sha256:7d2a69609f1e5043c3243e7ca46cae8d5de286b049127ae446c374910682260e",
         "path": "apps/server/api/src/services/content-quality/content-quality-scorer.prompts.ts"
       },
       {
@@ -31,7 +31,7 @@
         "path": "packages/harness/src/persuasion/viral-psychology.ts"
       },
       {
-        "digest": "sha256:94bb2caf03ae0bcca42e900fe274b8c0564464e3ccebac7b6bd47910a3c1188d",
+        "digest": "sha256:428c7822f435893a791941bf7e5590bfc428fd7cdad276be0c45ca73a9b1c281",
         "path": "scripts/content-eval/scorers/rubrics.ts"
       }
     ],

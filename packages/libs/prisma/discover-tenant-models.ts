@@ -1,3 +1,5 @@
+const SCHEMA_MODEL_FIELDS_PATTERN = /^\s*([A-Za-z_]\w*)\s+\S+/gmu;
+
 /**
  * Shared tenant-model inventory for the compile-time tenant-scope ratchet and
  * the runtime Prisma query guard. A model is tenant-scoped when it carries
@@ -79,7 +81,7 @@ function parseSchemaModelFields(schema: string): SchemaModelFields[] {
       continue;
     }
 
-    const fieldNames = [...body.matchAll(/^\s*([A-Za-z_]\w*)\s+\S+/gmu)].map(
+    const fieldNames = [...body.matchAll(SCHEMA_MODEL_FIELDS_PATTERN)].map(
       (fieldMatch) => fieldMatch[1] ?? '',
     );
 

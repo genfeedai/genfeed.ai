@@ -4,6 +4,8 @@ import { Avatar } from '@ui/primitives/avatar';
 import { useTranslations } from 'next-intl';
 import type { ReviewHistoryPanelProps } from '@/features/posts/props/review-history-panel.props';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 export default function ReviewHistoryPanel({
   browserTimezone,
   reviewEvents,
@@ -61,7 +63,11 @@ export default function ReviewHistoryPanel({
                   </span>
                   {event.reviewer.handle ? (
                     <span className="ml-1">
-                      @{event.reviewer.handle.replace(/^@/, '')}
+                      @
+                      {event.reviewer.handle.replace(
+                        LEADING_AT_SIGN_PATTERN,
+                        '',
+                      )}
                     </span>
                   ) : null}
                 </p>

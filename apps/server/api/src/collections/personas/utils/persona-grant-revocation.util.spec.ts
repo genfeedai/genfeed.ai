@@ -70,6 +70,13 @@ describe('revokePersonaGrantsForRelocation', () => {
         personaId: { in: ['persona-1', 'persona-2'] },
         revokedAt: null,
       },
+      select: {
+        availabilityMode: true,
+        availableBrandIds: true,
+        id: true,
+        personaId: true,
+        recipientOrganizationId: true,
+      },
     });
     expect(tx.personaGrant.updateMany).toHaveBeenCalledWith({
       data: { revokedAt: expect.any(Date), revokedByUserId: 'user-1' },

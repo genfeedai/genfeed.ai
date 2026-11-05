@@ -10,6 +10,8 @@ import {
 } from '@api/collections/brands/utils/brand-relocation-cascade.util';
 import type { Prisma } from '@genfeedai/prisma';
 
+const CAMEL_CASE_BOUNDARY_PATTERN = /([a-z])([A-Z])/g;
+
 export interface BrandRelocationMovingResource {
   resource: string;
   label: string;
@@ -24,7 +26,9 @@ function toMovingResource(
     return null;
   }
   const labels = RELOCATION_RESOURCE_LABELS[resource];
-  const words = resource.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
+  const words = resource
+    .replace(CAMEL_CASE_BOUNDARY_PATTERN, '$1 $2')
+    .toLowerCase();
   const label = labels
     ? count === 1
       ? labels.singular

@@ -12,11 +12,13 @@ import {
 } from '@nestjs/common';
 import { IsIn, IsString, Matches, MaxLength } from 'class-validator';
 
+const MD5_HEX_PATTERN = /^[a-f0-9]{32}$/;
+
 export class ResolveAgentReportReviewDto {
   @IsString() @MaxLength(200) organizationId!: string;
   @IsString() @MaxLength(200) remoteUserId!: string;
   @IsString() @MaxLength(200) channelId!: string;
-  @Matches(/^[a-f0-9]{32}$/) token!: string;
+  @Matches(MD5_HEX_PATTERN) token!: string;
   @IsIn(['approve', 'reject']) decision!: 'approve' | 'reject';
 }
 @Controller('internal/agent-reports')

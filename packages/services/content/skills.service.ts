@@ -12,6 +12,10 @@ import {
 } from '@services/core/base.service';
 import type { AxiosResponse } from 'axios';
 
+const SKILL_VERSION_HASH_PATTERN = /^sha256:skill-v1:[a-f0-9]{64}$/;
+const POSITIVE_INTEGER_PATTERN = /^[1-9][0-9]*$/;
+const PATH_SEPARATOR_CHAR_PATTERN = /[\\/?#]/;
+
 export type SkillSource = 'built_in' | 'custom' | 'customized' | 'imported';
 export type SkillStatus = 'disabled' | 'draft' | 'published';
 export type SkillModality = 'audio' | 'image' | 'multi' | 'text' | 'video';
@@ -285,7 +289,7 @@ function versionMetadata(
     row.id !== `sv1_${skillId}_${versionNumber}` ||
     typeof attributes.contentHash !== 'string' ||
     attributes.contentHash.length !== 80 ||
-    !/^sha256:skill-v1:[a-f0-9]{64}$/.test(attributes.contentHash) ||
+    !SKILL_VERSION_HASH_PATTERN.test(attributes.contentHash) ||
     typeof attributes.createdAt !== 'string'
   )
     return versionReadInvalid();
@@ -457,7 +461,7 @@ export class SkillsService extends BaseService<
       if (
         typeof versionId !== 'string' ||
         !versionId.startsWith(prefix) ||
-        !/^[1-9][0-9]*$/.test(versionId.slice(prefix.length))
+        !POSITIVE_INTEGER_PATTERN.test(versionId.slice(prefix.length))
       )
         versionReadInvalid();
       const requestedNumber = versionInteger(
@@ -493,7 +497,7 @@ export class SkillsService extends BaseService<
         typeof imported.id !== 'string' ||
         !imported.id ||
         imported.id !== imported.id.trim() ||
-        /[\\/?#]/.test(imported.id) ||
+        PATH_SEPARATOR_CHAR_PATTERN.test(imported.id) ||
         [...imported.id].some(
           (character) =>
             character.charCodeAt(0) <= 32 ||

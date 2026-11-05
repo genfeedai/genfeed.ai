@@ -8,6 +8,9 @@ import {
 } from '../core';
 import { collectConstantClassStrings, collectStrings } from '../restyle';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const UI_PACKAGE_PATH_PATTERN = /^packages\/ui\//;
+
 /**
  * A notice (an error, a warning, a confirmation or a quiet aside inside a
  * page) is `@ui/primitives/alert`: pick a `variant` and `size`, and put the
@@ -53,7 +56,7 @@ function classTokens(
   return new Set(
     strings
       .join(' ')
-      .split(/\s+/)
+      .split(WHITESPACE_RUN_PATTERN)
       .filter((token) => token.length > 0 && !token.includes(':')),
   );
 }
@@ -93,7 +96,7 @@ function isPaddedBlock(tokens: Set<string>): boolean {
 }
 
 function scanNotices(source: HandBuiltSource): HandBuiltFinding[] {
-  if (/^packages\/ui\//.test(source.file)) {
+  if (UI_PACKAGE_PATH_PATTERN.test(source.file)) {
     return [];
   }
   const findings: HandBuiltFinding[] = [];

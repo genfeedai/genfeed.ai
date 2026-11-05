@@ -51,6 +51,8 @@ import {
   WORKFLOW_NODE_TRANSFER_TYPE,
 } from '../lib/paletteTransfer';
 
+const REGEX_SPECIAL_CHARS_PATTERN = /[.*+?^${}()|[\]\\]/g;
+
 // Icon mapping
 const ICONS: Record<string, typeof Image> = {
   ArrowLeftFromLine,
@@ -99,7 +101,7 @@ const CATEGORY_LABELS: Record<NodeCategory, string> = {
 };
 
 function escapeSearchPattern(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return value.replace(REGEX_SPECIAL_CHARS_PATTERN, '\\$&');
 }
 
 const CATEGORY_COLORS: Record<

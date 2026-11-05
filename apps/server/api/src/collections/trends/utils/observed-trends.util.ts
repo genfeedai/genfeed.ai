@@ -7,6 +7,8 @@ import type {
   TrendMediaExample,
 } from '@genfeedai/contracts/interfaces';
 
+const LEADING_HASH_PATTERN = /^#/;
+
 /** Observed counts within the eligible corpus, never platform-wide estimates. */
 export function observedHashtags(
   videos: TrendingVideoDocument[],
@@ -17,7 +19,9 @@ export function observedHashtags(
     if (!video.platform) continue;
     const uniqueTags = new Set(
       (video.hashtags ?? [])
-        .map((tag) => tag.replace(/^#/, '').trim().toLowerCase())
+        .map((tag) =>
+          tag.replace(LEADING_HASH_PATTERN, '').trim().toLowerCase(),
+        )
         .filter(Boolean),
     );
     for (const hashtag of uniqueTags) {

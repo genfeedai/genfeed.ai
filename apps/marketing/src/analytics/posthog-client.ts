@@ -9,6 +9,10 @@ import {
 } from './analytics-events';
 import { runWhenIdle } from './run-when-idle';
 
+const POSTHOG_PROJECT_KEY_PATTERN = /^phc_[A-Za-z0-9]+$/;
+const URL_OR_PATH_VALUE_PATTERN = /^(?:https?:\/\/|\/)/i;
+const SENSITIVE_QUERY_PARAM_PATTERN = /^(?:ref|previewToken)$/i;
+
 /**
  * Gated PostHog client for the marketing website (genfeed.ai).
  *
@@ -58,7 +62,7 @@ const pendingEvents: PendingEvent[] = [];
 
 /** True only when a valid PostHog project token was baked into this build. */
 export function isWebsiteAnalyticsEnabled(): boolean {
-  return /^phc_[A-Za-z0-9]+$/.test(POSTHOG_KEY ?? '');
+  return POSTHOG_PROJECT_KEY_PATTERN.test(POSTHOG_KEY ?? '');
 }
 
 /**
@@ -129,7 +133,7 @@ const MAX_PROPERTY_DEPTH = 6;
 
 function scrubWebsiteAnalyticsValue(value: unknown, depth = 0): unknown {
   if (typeof value === 'string') {
-    if (!/^(?:https?:\/\/|\/)/i.test(value)) {
+    if (!URL_OR_PATH_VALUE_PATTERN.test(value)) {
       return SENSITIVE_QUERY_PATTERN.test(value) ? undefined : value;
     }
     try {
@@ -137,7 +141,7 @@ function scrubWebsiteAnalyticsValue(value: unknown, depth = 0): unknown {
       let changed = false;
       for (const key of Array.from(url.searchParams.keys())) {
         if (
-          /^(?:ref|previewToken)$/i.test(key) ||
+          SENSITIVE_QUERY_PARAM_PATTERN.test(key) ||
           url.searchParams
             .getAll(key)
             .some((item) => SENSITIVE_QUERY_PATTERN.test(item))
@@ -169,7 +173,7 @@ function scrubWebsiteAnalyticsValue(value: unknown, depth = 0): unknown {
   }
   const scrubbed: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(value)) {
-    if (/^(?:ref|previewToken)$/i.test(key)) continue;
+    if (SENSITIVE_QUERY_PARAM_PATTERN.test(key)) continue;
     const safeValue = scrubWebsiteAnalyticsValue(item, depth + 1);
     if (safeValue !== undefined) scrubbed[key] = safeValue;
   }

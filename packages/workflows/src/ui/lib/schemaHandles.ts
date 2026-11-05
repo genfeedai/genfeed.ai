@@ -1,5 +1,8 @@
 import type { HandleDefinition, HandleType } from '@genfeedai/contracts/types';
 
+const UNDERSCORES_PATTERN = /_/g;
+const WORD_INITIALS_PATTERN = /\b\w/g;
+
 /**
  * Schema fields that should be exposed as connectable handles.
  * These are inputs that commonly accept connections from other nodes.
@@ -116,7 +119,9 @@ export function generateHandlesFromSchema(
     // Generate a display label from field name or schema title
     const label =
       prop.title ||
-      fieldName.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      fieldName
+        .replace(UNDERSCORES_PATTERN, ' ')
+        .replace(WORD_INITIALS_PATTERN, (c) => c.toUpperCase());
 
     dynamicHandles.push({
       fromSchema: true,

@@ -34,6 +34,10 @@ import {
   scriptKindFor,
 } from '../../architecture/parse-source-file';
 
+const RENDER_WORD_PATTERN = /\brender\b/;
+const HEADER_WORD_PATTERN = /\bheader\b/;
+const TEST_FILE_PATTERN = /\.(test|spec)\./;
+
 export type TableColumnRule = 'action' | 'date';
 
 export type TableColumnViolation = {
@@ -174,7 +178,8 @@ export function detectTableColumnViolations(
   filePath: string,
   source: string,
 ): TableColumnViolation[] {
-  if (!/\brender\b/.test(source) || !/\bheader\b/.test(source)) return [];
+  if (!RENDER_WORD_PATTERN.test(source) || !HEADER_WORD_PATTERN.test(source))
+    return [];
 
   const sourceFile = parseSourceFile(
     filePath,
@@ -237,7 +242,7 @@ export function runTableColumnsGuard(options: {
     globSync(FILE_GLOBS, { cwd: rootDir, ignore: FILE_IGNORE, nodir: true });
 
   return files
-    .filter((file) => file.endsWith('.tsx') && !/\.(test|spec)\./.test(file))
+    .filter((file) => file.endsWith('.tsx') && !TEST_FILE_PATTERN.test(file))
     .flatMap((file) =>
       detectTableColumnViolations(
         file,

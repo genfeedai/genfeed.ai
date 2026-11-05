@@ -17,6 +17,10 @@ import {
 import { discordWebhookUrl } from '@libs/security/discord-webhook-url';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const LINE_BREAK_CHAR_PATTERN = /[\r\n]/;
+const CHAT_ID_PATTERN = /^-?\d{1,20}$/;
+const EMAIL_PATTERN = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
+
 const DISCORD_CHANNEL_TEST_FAILURES: Record<DiscordChannelTestFailure, string> =
   {
     bot_not_configured:
@@ -97,7 +101,7 @@ export class SystemNotificationDestinationsService {
       typeof label !== 'string' ||
       !label.trim() ||
       label.length > 80 ||
-      /[\r\n]/.test(label) ||
+      LINE_BREAK_CHAR_PATTERN.test(label) ||
       !['discord', 'telegram', 'email'].includes(String(provider)) ||
       typeof isEnabled !== 'boolean' ||
       !Array.isArray(eventTypes) ||
@@ -136,8 +140,8 @@ export class SystemNotificationDestinationsService {
         !storedAddress ||
         storedAddress.length > 320 ||
         (provider === 'telegram'
-          ? !/^-?\d{1,20}$/.test(storedAddress)
-          : !/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(storedAddress))
+          ? !CHAT_ID_PATTERN.test(storedAddress)
+          : !EMAIL_PATTERN.test(storedAddress))
       )
         throw new BadRequestException('Enter a valid chat ID or email address');
       webhookEncrypted = null;

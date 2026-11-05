@@ -38,6 +38,13 @@ export async function revokePersonaGrantsForRelocation(
       personaId: { in: personas.map(({ id }) => id) },
       revokedAt: null,
     },
+    select: {
+      availabilityMode: true,
+      availableBrandIds: true,
+      id: true,
+      personaId: true,
+      recipientOrganizationId: true,
+    },
   });
   if (grants.length === 0) {
     return 0;

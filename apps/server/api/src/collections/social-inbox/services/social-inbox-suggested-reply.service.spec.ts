@@ -143,6 +143,14 @@ describe('Social inbox suggested reply', () => {
         organizationId: 'other-org',
         isDeleted: false,
       },
+      select: {
+        brandId: true,
+        conversationType: true,
+        participantHandle: true,
+        participantName: true,
+        platform: true,
+        sourceContentTitle: true,
+      },
     });
     expect(prisma.socialMessage.findMany).not.toHaveBeenCalled();
     expect(generation.generateReply).not.toHaveBeenCalled();

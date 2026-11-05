@@ -18,6 +18,8 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 interface AdminPostsTableProps {
   posts: IPost[];
   isLoading?: boolean;
@@ -47,7 +49,10 @@ const STATUS_PRESENTATION: Record<
 function getPostTitle(post: IPost, untitled: string): string {
   const label = post.label?.trim();
   if (label) return label;
-  const copy = stripHtmlToPlainText(post.description).replace(/\s+/g, ' ');
+  const copy = stripHtmlToPlainText(post.description).replace(
+    WHITESPACE_RUNS_PATTERN,
+    ' ',
+  );
   return copy || untitled;
 }
 

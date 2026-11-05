@@ -4,6 +4,11 @@ import {
   type TextActionRejection,
 } from './text-action-text.helper';
 
+const POST_TAGS_PATTERN = /<\/?post>/giu;
+const NON_WORD_CHARS_PATTERN = /[^\p{L}\p{N}\s]/gu;
+const WHITESPACE_RUNS_PATTERN = /\s+/gu;
+const TRAILING_SEPARATORS_PATTERN = /[\s,;:\-–—]+$/u;
+
 /** A line holding only this separates the variants in the model answer and in the saved artifact. */
 const VARIANT_SEPARATOR = /^[ \t]*-{3,}[ \t]*$/mu;
 const VARIANT_JOINER = '\n---\n';
@@ -14,7 +19,7 @@ const SENTENCE_END = /[.!?](?=\s|$)/gu;
 
 function cleanVariant(value: string): string {
   return value
-    .replace(/<\/?post>/giu, '')
+    .replace(POST_TAGS_PATTERN, '')
     .trim()
     .replace(LEADING_LIST_MARKER, '')
     .replace(WRAPPING_QUOTES, '')
@@ -44,8 +49,8 @@ export function joinReplyVariants(variants: readonly string[]): string {
 function comparisonKey(value: string): string {
   return value
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, '')
-    .replace(/\s+/gu, ' ')
+    .replace(NON_WORD_CHARS_PATTERN, '')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
 }
 
@@ -84,7 +89,7 @@ export function truncateToChannelLimit(
   }
   const lastSpace = candidate.lastIndexOf(' ');
   let cut = lastSpace > 0 ? candidate.slice(0, lastSpace) : candidate;
-  cut = cut.replace(/[\s,;:\-–—]+$/u, '');
+  cut = cut.replace(TRAILING_SEPARATORS_PATTERN, '');
   while (cut.length > 0 && !fits(`${cut}${ELLIPSIS}`)) {
     cut = cut.slice(0, -1);
   }

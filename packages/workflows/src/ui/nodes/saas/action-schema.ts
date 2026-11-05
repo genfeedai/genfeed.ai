@@ -7,6 +7,10 @@ import type {
   VisualNodeDefinition,
 } from '@genfeedai/contracts/types';
 
+const CAMEL_CASE_BOUNDARY_PATTERN = /([a-z0-9])([A-Z])/g;
+const SEPARATOR_RUNS_PATTERN = /[_-]+/g;
+const WORD_INITIALS_PATTERN = /\b\w/g;
+
 export interface ActionSchemaProperty {
   anyOf?: ActionSchemaProperty[];
   default?: unknown;
@@ -32,9 +36,9 @@ function isSchemaRecord(value: unknown): value is Record<string, unknown> {
 function formatFieldLabel(field: string, title?: string): string {
   if (title) return title;
   return field
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/[_-]+/g, ' ')
-    .replace(/\b\w/g, (character) => character.toUpperCase());
+    .replace(CAMEL_CASE_BOUNDARY_PATTERN, '$1 $2')
+    .replace(SEPARATOR_RUNS_PATTERN, ' ')
+    .replace(WORD_INITIALS_PATTERN, (character) => character.toUpperCase());
 }
 
 export function unwrapActionSchemaProperty(

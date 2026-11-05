@@ -1,3 +1,6 @@
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+const API_VERSION_SUFFIX_PATTERN = /\/v\d+$/;
+
 /**
  * Normalize the configured Genfeed API base URL so it always targets the API's
  * `/v1` global prefix exactly once.
@@ -11,11 +14,11 @@
  * segment, so it stays correct if an environment ever bakes the prefix in.
  */
 export function resolveApiBaseUrl(rawUrl: string | undefined): string {
-  const trimmed = (rawUrl ?? '').trim().replace(/\/+$/, '');
+  const trimmed = (rawUrl ?? '').trim().replace(TRAILING_SLASHES_PATTERN, '');
 
   if (!trimmed) {
     return '';
   }
 
-  return /\/v\d+$/.test(trimmed) ? trimmed : `${trimmed}/v1`;
+  return API_VERSION_SUFFIX_PATTERN.test(trimmed) ? trimmed : `${trimmed}/v1`;
 }

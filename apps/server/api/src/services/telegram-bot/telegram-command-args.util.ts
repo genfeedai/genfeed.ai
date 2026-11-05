@@ -7,6 +7,8 @@
 
 import type { Context } from 'grammy';
 
+const WHITESPACE_CHAR_PATTERN = /\s/;
+
 export function extractCommandArgs(ctx: Context): string {
   const messageText =
     'message' in ctx && ctx.message && 'text' in ctx.message
@@ -17,7 +19,7 @@ export function extractCommandArgs(ctx: Context): string {
     return '';
   }
 
-  const firstWhitespace = messageText.search(/\s/);
+  const firstWhitespace = messageText.search(WHITESPACE_CHAR_PATTERN);
   if (firstWhitespace === -1) {
     return '';
   }

@@ -1,13 +1,16 @@
+const RGBA_FUNCTION_PATTERN = /rgba?\(([^)]+)\)/;
+const RGBA_SEPARATORS_PATTERN = /[\s,/]+/;
+
 export type Rgba = [number, number, number, number];
 
 /** Reads a computed `rgb()` / `rgba()` colour; null when it is any other form. */
 export function parseRgba(value: string): Rgba | null {
-  const match = value.match(/rgba?\(([^)]+)\)/);
+  const match = value.match(RGBA_FUNCTION_PATTERN);
   if (!match) {
     return null;
   }
   const [red, green, blue, alpha = 1] = match[1]
-    .split(/[\s,/]+/)
+    .split(RGBA_SEPARATORS_PATTERN)
     .filter(Boolean)
     .map(Number);
   const channels: Rgba = [red, green, blue, alpha];

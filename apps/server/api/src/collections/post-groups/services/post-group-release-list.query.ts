@@ -9,6 +9,8 @@ import {
 } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 
+const LIKE_WILDCARD_CHARS_PATTERN = /[\\%_]/g;
+
 /**
  * SQL for the release list (Calendar, Publish list, home, publishing overview).
  *
@@ -60,7 +62,7 @@ function allOf(conditions: readonly Prisma.Sql[]): Prisma.Sql {
 
 /** Escapes LIKE metacharacters so a search term always matches literally. */
 export function toContainsPattern(search: string): string {
-  return `%${search.replace(/[\\%_]/g, '\\$&')}%`;
+  return `%${search.replace(LIKE_WILDCARD_CHARS_PATTERN, '\\$&')}%`;
 }
 
 export function resolveReleaseListSort(

@@ -24,6 +24,11 @@ import {
 } from './lifecycle.js';
 import { configureEnvironment } from './wizard.js';
 
+const RELEASE_TAG_PATTERN = /^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+const TRAILING_SLASH_PATTERN = /\/$/;
+const CHECKSUM_LINE_PATTERN = /^([a-fA-F0-9]{64})\s+/;
+const LINE_BREAK_PATTERN = /\r?\n/;
+
 const REPOSITORY = 'genfeedai/genfeed.ai';
 const RELEASE_API_URL = `https://api.github.com/repos/${REPOSITORY}/releases/latest`;
 const DEFAULT_DOWNLOAD_BASE_URL = `https://github.com/${REPOSITORY}/releases/download`;
@@ -69,7 +74,7 @@ export function normalizeReleaseTag(value: string): string {
   const trimmed = value.trim();
   const releaseTag = trimmed.startsWith('v') ? trimmed : `v${trimmed}`;
 
-  if (!/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(releaseTag)) {
+  if (!RELEASE_TAG_PATTERN.test(releaseTag)) {
     throw new Error(
       `Invalid release "${value}". Expected vX.Y.Z (for example, v0.5.0).`,
     );
@@ -88,7 +93,7 @@ export function getReleaseAssetUrls(
     DEFAULT_DOWNLOAD_BASE_URL,
 ): ReleaseAssetUrls {
   const normalizedTag = normalizeReleaseTag(releaseTag);
-  const baseUrl = downloadBaseUrl.replace(/\/$/, '');
+  const baseUrl = downloadBaseUrl.replace(TRAILING_SLASH_PATTERN, '');
 
   return {
     archive: `${baseUrl}/${normalizedTag}/${RELEASE_ARCHIVE_NAME}`,
@@ -171,7 +176,7 @@ export async function verifyReleaseChecksum(
   checksumPath: string,
 ): Promise<void> {
   const checksumContent = await readFile(checksumPath, 'utf8');
-  const match = checksumContent.match(/^([a-fA-F0-9]{64})\s+/);
+  const match = checksumContent.match(CHECKSUM_LINE_PATTERN);
 
   if (!match) {
     throw new Error('Release checksum file is malformed.');
@@ -341,7 +346,7 @@ async function isAppContainerRunning(
     const parsed: unknown = content.startsWith('[')
       ? JSON.parse(content)
       : content
-          .split(/\r?\n/)
+          .split(LINE_BREAK_PATTERN)
           .filter(Boolean)
           .map((line) => JSON.parse(line));
     if (!Array.isArray(parsed))

@@ -1,6 +1,8 @@
 import { isValidPostLength } from '@api/collections/posts/services/post-generation-text.util';
 import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
 
+const PARAGRAPH_BREAKS_PATTERN = /\n{2,}/u;
+
 const RUN_CONTEXT_MARKER = 'Already written in this run';
 const MAX_CONTEXT_ENTRIES = 12;
 const MAX_CONTEXT_ENTRY_CHARACTERS = 280;
@@ -73,7 +75,7 @@ export function withRunContext(prompt: string, previous: string[]): string {
 /** The thread's posts: blank-line separated, as the thread prompt asks. */
 export function splitThreadText(text: string): string[] {
   return text
-    .split(/\n{2,}/u)
+    .split(PARAGRAPH_BREAKS_PATTERN)
     .map((part) => part.trim())
     .filter(Boolean);
 }

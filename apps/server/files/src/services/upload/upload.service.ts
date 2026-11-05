@@ -34,6 +34,8 @@ import {
 } from '@nestjs/common';
 import sharp from 'sharp';
 
+const BASE64_DATA_URL_PREFIX_PATTERN = /^data:[^;]+;base64,/;
+
 type UploadSource =
   | { type: 'file'; path: string }
   | { type: 'url'; url: string }
@@ -487,7 +489,10 @@ export class UploadService {
         return this.prepareUrlUpload(source, key, url);
       case 'base64':
         return this.prepareBinaryUpload(
-          Buffer.from(source.data.replace(/^data:[^;]+;base64,/, ''), 'base64'),
+          Buffer.from(
+            source.data.replace(BASE64_DATA_URL_PREFIX_PATTERN, ''),
+            'base64',
+          ),
           source.contentType,
         );
       case 'buffer':

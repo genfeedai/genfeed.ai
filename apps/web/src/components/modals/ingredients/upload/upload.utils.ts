@@ -1,6 +1,11 @@
 import type { FileUploadStatus } from '@genfeedai/contracts/interfaces/modals/file-upload-status.interface';
 import type { Dispatch, SetStateAction } from 'react';
 
+const FILE_EXTENSION_PATTERN = /\.[^.]+$/;
+const HEIC_EXTENSION_PATTERN = /\.(heic|heif)$/i;
+const HEIC_MIME_PATTERN = /^image\/hei[cf]$/i;
+const HEIC_FILE_EXTENSION_PATTERN = /\.hei[cf]$/i;
+
 type FileStatusUpdater = Dispatch<
   SetStateAction<Map<string, FileUploadStatus>>
 >;
@@ -89,10 +94,10 @@ export function getDimensionText(width?: number, height?: number): string {
 
 /** Upload declarations only: byte validation and conversion belong to the server. */
 export function normalizeUploadFile(file: File, isLibraryImage: boolean): File {
-  const name = file.name.replace(/\.[^.]+$/, (extension) =>
+  const name = file.name.replace(FILE_EXTENSION_PATTERN, (extension) =>
     extension.toLowerCase(),
   );
-  const suffix = /\.(heic|heif)$/i.exec(file.name)?.[1]?.toLowerCase();
+  const suffix = HEIC_EXTENSION_PATTERN.exec(file.name)?.[1]?.toLowerCase();
   const type = file.type || (isLibraryImage && suffix ? `image/${suffix}` : '');
   return name === file.name && type === file.type
     ? file
@@ -100,5 +105,8 @@ export function normalizeUploadFile(file: File, isLibraryImage: boolean): File {
 }
 
 export function isHeicUpload(file: File): boolean {
-  return /^image\/hei[cf]$/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
+  return (
+    HEIC_MIME_PATTERN.test(file.type) ||
+    HEIC_FILE_EXTENSION_PATTERN.test(file.name)
+  );
 }

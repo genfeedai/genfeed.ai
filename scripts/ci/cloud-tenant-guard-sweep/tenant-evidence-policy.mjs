@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
 
+const PRISMA_MODEL_LINES_PATTERN = /^model ([A-Za-z_][A-Za-z0-9_]*) \{/gm;
+
 export const TENANT_EVIDENCE_OPERATIONS = [
   'aggregate',
   'count',
@@ -24,9 +26,7 @@ export function schemaModels() {
       'utf8',
     );
     tenantModels = new Set(
-      [...schema.matchAll(/^model ([A-Za-z_][A-Za-z0-9_]*) \{/gm)].map(
-        (match) => match[1],
-      ),
+      [...schema.matchAll(PRISMA_MODEL_LINES_PATTERN)].map((match) => match[1]),
     );
     if (!tenantModels.size) {
       tenantModels = undefined;

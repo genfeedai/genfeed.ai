@@ -13,6 +13,11 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import ffmpegPath from 'ffmpeg-static';
 
+const BLANK_LINE_PATTERN = /\r?\n\r?\n/;
+const LINE_BREAK_PATTERN = /\r?\n/;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 @Injectable()
 export class FilesCaptionsService extends FilesService {
   constructor(
@@ -115,17 +120,19 @@ export class FilesCaptionsService extends FilesService {
   }
 
   public filterCaptions(srtContent: string): Word[] {
-    const blocks = srtContent.trim().split(/\r?\n\r?\n/);
+    const blocks = srtContent.trim().split(BLANK_LINE_PATTERN);
     const words: Word[] = [];
 
     blocks.forEach((block) => {
-      const lines = block.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      const lines = block
+        .split(LINE_BREAK_PATTERN)
+        .filter((l) => l.trim().length > 0);
       if (lines.length < 2) {
         return;
       }
 
       // Remove index line if present
-      if (/^\d+$/.test(lines[0])) {
+      if (DIGITS_ONLY_PATTERN.test(lines[0])) {
         lines.shift();
       }
 
@@ -137,7 +144,7 @@ export class FilesCaptionsService extends FilesService {
       const endMs = this.parseTimeToMs(end);
 
       // Split caption into words
-      const wordArr = textLine.split(/\s+/).filter(Boolean);
+      const wordArr = textLine.split(WHITESPACE_RUN_PATTERN).filter(Boolean);
       const wordCount = wordArr.length;
       const wordDuration = wordCount > 0 ? (endMs - startMs) / wordCount : 0;
 
@@ -157,16 +164,18 @@ export class FilesCaptionsService extends FilesService {
   }
 
   public filterCaptionsByWord(srtContent: string): Word[] {
-    const blocks = srtContent.trim().split(/\r?\n\r?\n/);
+    const blocks = srtContent.trim().split(BLANK_LINE_PATTERN);
     const words: Word[] = [];
 
     blocks.forEach((block) => {
-      const lines = block.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      const lines = block
+        .split(LINE_BREAK_PATTERN)
+        .filter((l) => l.trim().length > 0);
       if (lines.length < 2) {
         return;
       }
 
-      if (/^\d+$/.test(lines[0])) {
+      if (DIGITS_ONLY_PATTERN.test(lines[0])) {
         lines.shift();
       }
 
@@ -175,7 +184,9 @@ export class FilesCaptionsService extends FilesService {
       const [start, end] = timeLine?.split(' --> ').map((t) => t.trim()) || [];
       const startMs = this.parseTimeToMs(start);
       const endMs = this.parseTimeToMs(end);
-      const wordsArr = textLine.split(/\s+/).filter((w) => w.length > 0);
+      const wordsArr = textLine
+        .split(WHITESPACE_RUN_PATTERN)
+        .filter((w) => w.length > 0);
       const duration = (endMs - startMs) / wordsArr.length;
 
       wordsArr.forEach((word, index) => {

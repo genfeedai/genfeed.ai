@@ -20,6 +20,8 @@ import type {
   HarnessVoiceProfile,
 } from '@genfeedai/harness';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 type BrandSource = Pick<
   Brand,
   | 'id'
@@ -53,7 +55,7 @@ const trimLine = (
   value: string,
   maxLength = MAX_BRIEF_SOURCE_LENGTH,
 ): string => {
-  const normalized = value.replace(/\s+/g, ' ').trim();
+  const normalized = value.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
   if (normalized.length <= maxLength) {
     return normalized;
   }

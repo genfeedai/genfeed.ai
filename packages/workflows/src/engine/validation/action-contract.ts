@@ -6,6 +6,9 @@ import Ajv, {
 } from 'ajv';
 import addFormats from 'ajv-formats';
 
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const IDENTIFIER_PATTERN = /^[A-Za-z_$][\w$]*$/;
+
 export type ActionContractJsonSchema = Readonly<Record<string, unknown>>;
 
 export interface ActionContractDefinition {
@@ -364,7 +367,7 @@ function jsonPointerToPath(pointer: string): string {
     .map((segment) => segment.replaceAll('~1', '/').replaceAll('~0', '~'))
     .reduce(
       (path, segment) =>
-        /^\d+$/.test(segment)
+        DIGITS_ONLY_PATTERN.test(segment)
           ? `${path}[${segment}]`
           : `${path}${propertyPath(segment)}`,
       '$',
@@ -372,7 +375,7 @@ function jsonPointerToPath(pointer: string): string {
 }
 
 function propertyPath(property: string): string {
-  return /^[A-Za-z_$][\w$]*$/.test(property)
+  return IDENTIFIER_PATTERN.test(property)
     ? `.${property}`
     : `[${JSON.stringify(property)}]`;
 }

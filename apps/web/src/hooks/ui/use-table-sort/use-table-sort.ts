@@ -4,6 +4,8 @@ import type { TableSortDirection } from '@genfeedai/props/ui/display/table.props
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 
+const LEADING_HYPHEN_PATTERN = /^-/;
+
 interface UseTableSortOptions {
   /** Keys the list endpoint can order by. Anything else in the URL is ignored. */
   allowedKeys: readonly string[];
@@ -36,7 +38,7 @@ export function useTableSort({
   const { sortKey, sortDirection } = useMemo(() => {
     const raw = new URLSearchParams(searchParamsString).get('sort') ?? '';
     const direction: TableSortDirection = raw.startsWith('-') ? 'desc' : 'asc';
-    const key = raw.replace(/^-/, '');
+    const key = raw.replace(LEADING_HYPHEN_PATTERN, '');
     return {
       sortDirection: direction,
       sortKey: allowedKeysId.split('\u0000').includes(key) ? key : undefined,

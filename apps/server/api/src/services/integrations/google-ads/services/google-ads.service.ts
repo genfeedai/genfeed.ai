@@ -26,6 +26,7 @@ import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable } from '@nestjs/common';
 import { isAxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
+import { normalizeGoogleAdsCustomerId } from './google-ads-customer-id.util';
 
 /**
  * True only when Google's token endpoint definitively rejected the stored
@@ -75,7 +76,8 @@ export class GoogleAdsService {
       'developer-token': developerToken || '',
     };
     if (loginCustomerId) {
-      headers['login-customer-id'] = loginCustomerId.replace(/-/g, '');
+      headers['login-customer-id'] =
+        normalizeGoogleAdsCustomerId(loginCustomerId);
     }
     return headers;
   }
@@ -86,7 +88,7 @@ export class GoogleAdsService {
     query: string,
     loginCustomerId?: string,
   ): Promise<T[]> {
-    const url = `${this.BASE_URL}/${this.API_VERSION}/customers/${customerId.replace(/-/g, '')}/googleAds:searchStream`;
+    const url = `${this.BASE_URL}/${this.API_VERSION}/customers/${normalizeGoogleAdsCustomerId(customerId)}/googleAds:searchStream`;
     let lastError: Error | undefined;
 
     for (let attempt = 0; attempt < this.MAX_RETRIES; attempt++) {
@@ -134,7 +136,7 @@ export class GoogleAdsService {
     mutateOperations: Array<Record<string, unknown>>,
     loginCustomerId?: string,
   ): Promise<{ mutateOperationResponses?: Array<Record<string, unknown>> }> {
-    const url = `${this.BASE_URL}/${this.API_VERSION}/customers/${customerId.replace(/-/g, '')}/googleAds:mutate`;
+    const url = `${this.BASE_URL}/${this.API_VERSION}/customers/${normalizeGoogleAdsCustomerId(customerId)}/googleAds:mutate`;
 
     const response = await firstValueFrom(
       this.httpService.post<{
@@ -384,7 +386,7 @@ export class GoogleAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const normalizedCustomerId = customerId.replace(/-/g, '');
+      const normalizedCustomerId = normalizeGoogleAdsCustomerId(customerId);
       const campaignResource = `customers/${normalizedCustomerId}/campaigns/${campaignId}`;
       const mutateOperations: Array<Record<string, unknown>> = [];
 
@@ -569,7 +571,7 @@ export class GoogleAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const normalizedCustomerId = customerId.replace(/-/g, '');
+      const normalizedCustomerId = normalizeGoogleAdsCustomerId(customerId);
       const campaignResource = `customers/${normalizedCustomerId}/campaigns/${input.campaignId}`;
       const mutateResponse = await this.executeMutate(
         accessToken,
@@ -745,7 +747,7 @@ export class GoogleAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const normalizedCustomerId = customerId.replace(/-/g, '');
+      const normalizedCustomerId = normalizeGoogleAdsCustomerId(customerId);
       const adGroupResource = `customers/${normalizedCustomerId}/adGroups/${input.adGroupId}`;
       const mutateResponse = await this.executeMutate(
         accessToken,

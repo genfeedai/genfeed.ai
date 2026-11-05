@@ -1,5 +1,7 @@
 import { GenfeedError } from '@/utils/errors';
 
+const WHITESPACE_CHAR_PATTERN = /\s/;
+
 export interface ParsedSlashCommand {
   args: string[];
   name: string;
@@ -22,7 +24,7 @@ function tokenize(value: string): string[] {
 
     if (character === '"' || character === "'") {
       quote = character;
-    } else if (/\s/.test(character)) {
+    } else if (WHITESPACE_CHAR_PATTERN.test(character)) {
       if (current) {
         tokens.push(current);
         current = '';

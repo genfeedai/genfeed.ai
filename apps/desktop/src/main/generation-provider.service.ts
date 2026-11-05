@@ -9,6 +9,10 @@ import type {
 import { sleep } from '@genfeedai/helpers/async/sleep';
 import type { DesktopConfigService } from './config.service';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+const IMAGE_URL_EXTENSION_PATTERN = /\.(avif|gif|jpe?g|png|webp)(\?|#|$)/i;
+
 const PROVIDER_CONFIG_KEY = 'desktop.generation.provider';
 const MAX_GENERATED_ASSET_BYTES = 50 * 1024 * 1024;
 const LOCAL_PROVIDER_TIMEOUT_ERROR =
@@ -170,7 +174,7 @@ const parseProviderConfig = (
 const normalizeProviderConfig = (
   config: IDesktopGenerationProviderConfig,
 ): IDesktopGenerationProviderConfig => {
-  const baseUrl = config.baseUrl.trim().replace(/\/+$/, '');
+  const baseUrl = config.baseUrl.trim().replace(TRAILING_SLASHES_PATTERN, '');
   const model = config.model.trim();
 
   if (!baseUrl) {
@@ -350,7 +354,7 @@ const extractFirstImageUrl = (payload: unknown): string => {
 
   const visit = (value: unknown): void => {
     if (typeof value === 'string') {
-      if (/^https?:\/\//i.test(value)) {
+      if (HTTP_PROTOCOL_PREFIX_PATTERN.test(value)) {
         urls.push(value);
       }
       return;
@@ -378,9 +382,7 @@ const extractFirstImageUrl = (payload: unknown): string => {
 
   visit(payload);
 
-  const imageUrl = urls.find((url) =>
-    /\.(avif|gif|jpe?g|png|webp)(\?|#|$)/i.test(url),
-  );
+  const imageUrl = urls.find((url) => IMAGE_URL_EXTENSION_PATTERN.test(url));
 
   if (imageUrl) {
     return imageUrl;
@@ -476,7 +478,8 @@ export class DesktopGenerationProviderService {
       apiKey:
         config.apiKey ??
         (existingConfig &&
-        existingConfig.baseUrl === config.baseUrl.trim().replace(/\/+$/, '') &&
+        existingConfig.baseUrl ===
+          config.baseUrl.trim().replace(TRAILING_SLASHES_PATTERN, '') &&
         existingConfig.model === config.model.trim() &&
         existingConfig.provider === config.provider
           ? existingConfig.apiKey

@@ -1,5 +1,7 @@
 import Joi from 'joi';
 
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+
 const DEFAULT_FFMPEG_MAX_CONCURRENCY = '4';
 
 const positiveSafeIntegerString = Joi.string()
@@ -8,7 +10,7 @@ const positiveSafeIntegerString = Joi.string()
     const parsedValue = Number(value);
 
     if (
-      !/^\d+$/.test(value) ||
+      !DIGITS_ONLY_PATTERN.test(value) ||
       !Number.isSafeInteger(parsedValue) ||
       parsedValue < 1
     ) {

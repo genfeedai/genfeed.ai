@@ -11,6 +11,9 @@ import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { BENCH_REVISION } from './schema';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const TRAILING_COMMAS_PATTERN = /,(?=[)\]}])/g;
+
 export function findBenchCheckout(): string | null {
   try {
     const commonDir = execFileSync(
@@ -50,5 +53,7 @@ export function readBenchFileAtRevision(
  * formatter adds when it wraps carry no meaning in the schema.
  */
 export function normalizeSource(source: string): string {
-  return source.replace(/\s+/g, '').replace(/,(?=[)\]}])/g, '');
+  return source
+    .replace(WHITESPACE_RUNS_PATTERN, '')
+    .replace(TRAILING_COMMAS_PATTERN, '');
 }

@@ -2,6 +2,12 @@ import { replaceMarkup } from '@api/shared/utils/string/strip-markup.util';
 import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
 import { parseTweet } from 'twitter-text';
 
+const LEADING_JSON_FENCE_PATTERN = /^```json\s*/i;
+const LEADING_CODE_FENCE_PATTERN = /^```\s*/i;
+const TRAILING_CODE_FENCE_PATTERN = /\s*```$/i;
+const PARAGRAPH_BREAK_PATTERN = /\n\n+/;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 function stripHtmlTags(html: string): string {
   return replaceMarkup(html, '');
 }
@@ -79,9 +85,9 @@ function extractPostGenerationCandidates(
   try {
     const trimmedContent = content
       .trim()
-      .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/i, '')
-      .replace(/\s*```$/i, '')
+      .replace(LEADING_JSON_FENCE_PATTERN, '')
+      .replace(LEADING_CODE_FENCE_PATTERN, '')
+      .replace(TRAILING_CODE_FENCE_PATTERN, '')
       .trim();
 
     const parsed = JSON.parse(trimmedContent);
@@ -120,7 +126,10 @@ function extractPostGenerationCandidates(
 
     return hasValidLine
       ? lineCandidates
-      : removeStructuralSeparators(content.split(/\n\n+/), cleanPost);
+      : removeStructuralSeparators(
+          content.split(PARAGRAPH_BREAK_PATTERN),
+          cleanPost,
+        );
   }
 
   return [];
@@ -162,7 +171,9 @@ export function extractPostGenerationLabel(
     return '';
   }
 
-  const normalized = replaceMarkup(postText, ' ').trim().replace(/\s+/g, ' ');
+  const normalized = replaceMarkup(postText, ' ')
+    .trim()
+    .replace(WHITESPACE_RUNS_PATTERN, ' ');
 
   if (normalized.length <= maxLength) {
     return normalized;

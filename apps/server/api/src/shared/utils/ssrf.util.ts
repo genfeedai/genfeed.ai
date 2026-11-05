@@ -1,5 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 
+const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+
 /**
  * Hostnames that must never be fetched server-side, regardless of range
  * checks (cloud metadata endpoints, loopback aliases).
@@ -31,9 +33,7 @@ export function assertHostNotPrivate(hostname: string): void {
     throw new BadRequestException('URL points to a blocked address');
   }
 
-  const ipv4Match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(
-    lowerHost,
-  );
+  const ipv4Match = IPV4_PATTERN.exec(lowerHost);
   if (ipv4Match) {
     const [, a, b] = ipv4Match.map(Number);
     if (

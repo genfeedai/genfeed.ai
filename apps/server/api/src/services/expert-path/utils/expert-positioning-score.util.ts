@@ -10,6 +10,9 @@ import type {
   IExpertPositioningScore,
 } from '@genfeedai/contracts/interfaces';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const SENTENCE_TERMINATORS_PATTERN = /[.!?]+/;
+
 /**
  * Deterministic port of the public `expert-validator` rubric. Each dimension
  * is scored 0-10 from observable signals in the expert's own answers (story
@@ -63,11 +66,13 @@ function readAnswer(
 }
 
 function countWords(text: string): number {
-  return text ? text.split(/\s+/).filter(Boolean).length : 0;
+  return text ? text.split(WHITESPACE_RUN_PATTERN).filter(Boolean).length : 0;
 }
 
 function countSentences(text: string): number {
-  return text.split(/[.!?]+/).filter((part) => part.trim().length > 0).length;
+  return text
+    .split(SENTENCE_TERMINATORS_PATTERN)
+    .filter((part) => part.trim().length > 0).length;
 }
 
 function countMatches(text: string, pattern: RegExp): number {

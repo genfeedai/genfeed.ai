@@ -1,6 +1,9 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
+const GLOB_SPECIAL_CHARS_PATTERN = /[.+^${}()|[\]\\]/g;
+const SOURCE_FILE_PATTERN = /\.(ts|tsx|js|jsx)$/;
+
 const logger = {
   error: (message: string) =>
     console.error(`[CheckAppUiBoundaries] ${message}`),
@@ -115,7 +118,10 @@ function shouldSkipPath(relativePath: string): boolean {
   return EXCLUDE_GLOBS.some((pattern) => {
     const normalizedPattern = pattern.replaceAll('**/', '');
     const trimmedPattern = normalizedPattern.replaceAll('/**', '');
-    const escapedPattern = trimmedPattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+    const escapedPattern = trimmedPattern.replace(
+      GLOB_SPECIAL_CHARS_PATTERN,
+      '\\$&',
+    );
     const regex = new RegExp(
       escapedPattern.replaceAll('*', '.*').replaceAll('?', '.'),
     );
@@ -125,7 +131,7 @@ function shouldSkipPath(relativePath: string): boolean {
 }
 
 function isSourceFile(fileName: string): boolean {
-  return /\.(ts|tsx|js|jsx)$/.test(fileName);
+  return SOURCE_FILE_PATTERN.test(fileName);
 }
 
 function collectSourceFiles(dirPath: string): string[] {

@@ -12,6 +12,8 @@ import type {
 import { Platform, SocialConversationType } from '@genfeedai/contracts';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 const YOUTUBE_POST_FAILURE_MESSAGE_LIMIT = 240;
 const REDACTED_DIAGNOSIS = '[redacted]';
 
@@ -178,7 +180,7 @@ function diagnoseYoutubePostFailure(
     }
     message = message.split(value).join(REDACTED_DIAGNOSIS);
   }
-  const compact = message.replace(/\s+/g, ' ').trim();
+  const compact = message.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
   const hasDetail =
     compact.split(REDACTED_DIAGNOSIS).join('').trim().length > 0;
   return {

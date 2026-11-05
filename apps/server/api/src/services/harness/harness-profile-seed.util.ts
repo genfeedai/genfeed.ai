@@ -1,3 +1,5 @@
+const TODO_PREFIX_PATTERN = /^TODO\b/i;
+
 /**
  * Pure mapping from private/OSS harness pack seeds into harness-profile payloads.
  * Used by seed scripts and unit tests — no Nest / Prisma imports.
@@ -56,7 +58,7 @@ function isUsableExample(value: string): boolean {
     return false;
   }
   // Skip placeholder TODOs so seeds never pollute production profiles.
-  if (/^TODO\b/i.test(trimmed)) {
+  if (TODO_PREFIX_PATTERN.test(trimmed)) {
     return false;
   }
   return true;

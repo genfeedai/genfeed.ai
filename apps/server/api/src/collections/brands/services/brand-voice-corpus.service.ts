@@ -18,6 +18,8 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 /**
  * Rows read per origin before selection. Covers a full history import (300
  * posts per account) across a few connected accounts while bounding the read.
@@ -28,7 +30,10 @@ const PUBLISHED_POST_FETCH_LIMIT = 300;
 const RETWEET_PREFIX_PATTERN = /^RT @/u;
 
 function normalizeHandle(value: string | null | undefined): string {
-  return (value ?? '').trim().replace(/^@/, '').toLowerCase();
+  return (value ?? '')
+    .trim()
+    .replace(LEADING_AT_SIGN_PATTERN, '')
+    .toLowerCase();
 }
 
 /**

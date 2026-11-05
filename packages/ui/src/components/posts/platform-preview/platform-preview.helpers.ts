@@ -6,6 +6,8 @@ import type {
 } from '@genfeedai/props/components/platform-preview.props';
 import { DEFAULT_PLATFORM_PREVIEW_AUTHOR_NAME } from '@ui/posts/platform-preview/PlatformPreview.data';
 
+const HTTP_URL_PATTERN = /https?:\/\/[^\s]+/;
+
 export function formatHandle(handle?: string): string | undefined {
   const normalizedHandle = handle?.trim();
   if (!normalizedHandle) {
@@ -51,5 +53,5 @@ export function getPreviewStatus(
 }
 
 export function extractFirstUrl(text: string): string | null {
-  return text.match(/https?:\/\/[^\s]+/)?.[0] ?? null;
+  return text.match(HTTP_URL_PATTERN)?.[0] ?? null;
 }

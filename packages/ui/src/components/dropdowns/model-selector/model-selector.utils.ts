@@ -17,6 +17,13 @@ import type {
 } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import { Film, Images, Layers, Volume2, Wand2, Zap } from 'lucide-react';
 
+const SEPARATOR_RUN_PATTERN = /[-_\s]+/;
+const DECIMAL_NUMBER_PATTERN = /^\d+(?:\.\d+)?$/;
+const TRAILING_PARENTHETICAL_PATTERN = /\s*\(([^)]+)\)\s*$/;
+const MODEL_FAMILY_VERSION_PATTERN = /^(.+?)-(\d+(?:\.\d+)?)(?:-(.+))?$/i;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const VERSION_LABEL_PATTERN = /^v?\d+(?:\.\d+)*$/i;
+
 const KNOWN_VARIANT_SUFFIXES = new Set([
   'avatar',
   'balanced',
@@ -47,7 +54,7 @@ const KNOWN_VARIANT_SUFFIXES = new Set([
 
 function titleCaseToken(value: string): string {
   return value
-    .split(/[-_\s]+/)
+    .split(SEPARATOR_RUN_PATTERN)
     .reduce<string[]>((acc, token) => {
       if (token) {
         acc.push(
@@ -71,7 +78,7 @@ function humanizeSlug(slug: string): string {
     .reduce<string[]>((acc, token) => {
       if (token) {
         acc.push(
-          /^\d+(?:\.\d+)?$/.test(token)
+          DECIMAL_NUMBER_PATTERN.test(token)
             ? formatVersion(token)
             : titleCaseToken(token),
         );
@@ -87,7 +94,7 @@ function getModelSlug(modelKey: string): string {
 }
 
 function getFallbackFamilyLabel(label: string): string {
-  return label.replace(/\s*\(([^)]+)\)\s*$/, '').trim() || label;
+  return label.replace(TRAILING_PARENTHETICAL_PATTERN, '').trim() || label;
 }
 
 /**
@@ -105,7 +112,7 @@ export function parseModelFamilyAndVariant(
   const brandSlug = extractBrandFromKey(model.key);
   const modelSlug = getModelSlug(model.key);
 
-  const versionMatch = modelSlug.match(/^(.+?)-(\d+(?:\.\d+)?)(?:-(.+))?$/i);
+  const versionMatch = modelSlug.match(MODEL_FAMILY_VERSION_PATTERN);
   if (versionMatch) {
     const [, baseSlug, version, suffix] = versionMatch;
     return {
@@ -407,7 +414,9 @@ function getSharedLabelPrefix(
   labels: readonly string[],
   fallback: string,
 ): string {
-  const [first, ...rest] = labels.map((label) => label.split(/\s+/));
+  const [first, ...rest] = labels.map((label) =>
+    label.split(WHITESPACE_RUN_PATTERN),
+  );
   const shared: string[] = [];
 
   for (const [index, word] of (first ?? []).entries()) {
@@ -416,7 +425,7 @@ function getSharedLabelPrefix(
   }
 
   // A trailing version number belongs to a variant, not to the family name.
-  while (shared.length > 0 && /^v?\d+(?:\.\d+)*$/i.test(shared.at(-1) ?? '')) {
+  while (shared.length > 0 && VERSION_LABEL_PATTERN.test(shared.at(-1) ?? '')) {
     shared.pop();
   }
 

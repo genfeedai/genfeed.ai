@@ -1,3 +1,7 @@
+const ACME_INC_PATTERN = /Acme Inc\.?/gi;
+const ACME_WORD_PATTERN = /\bAcme\b/gi;
+const BOLDCRAFT_STUDIO_PATTERN = /BoldCraft Studio/gi;
+
 /**
  * Swap catalog placeholder brand names for the live brand label so interview
  * chips/examples never show fictional "Acme Inc" when we already know the brand.
@@ -19,9 +23,9 @@ export function personalizeBrandInterviewExamples(
   return examples.map((example) => {
     let next = example
       .replaceAll('{{brandName}}', brandName)
-      .replace(/Acme Inc\.?/gi, brandName)
-      .replace(/\bAcme\b/gi, brandName)
-      .replace(/BoldCraft Studio/gi, brandName);
+      .replace(ACME_INC_PATTERN, brandName)
+      .replace(ACME_WORD_PATTERN, brandName)
+      .replace(BOLDCRAFT_STUDIO_PATTERN, brandName);
 
     if (description) {
       next = next.replaceAll('{{description}}', description);

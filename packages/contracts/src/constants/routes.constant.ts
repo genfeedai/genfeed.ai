@@ -1,3 +1,6 @@
+const LEADING_SLASH_PATTERN = /^\//;
+const QUERY_OR_HASH_PATTERN = /[?#]/u;
+
 export const APP_ROUTES = {
   ROOT: '/',
   CONNECT: '/connect',
@@ -495,7 +498,7 @@ export function createBrandAppRoute(
 export const RESERVED_APP_ROOT_SEGMENTS: ReadonlySet<string> = new Set(
   [
     ...Object.values(APP_ROUTE_PREFIXES).map(
-      (prefix) => prefix.replace(/^\//, '').split('/')[0] ?? '',
+      (prefix) => prefix.replace(LEADING_SLASH_PATTERN, '').split('/')[0] ?? '',
     ),
     APP_ROUTES.CONNECT.replace(/^\//, ''),
     APP_ROUTES.LOGIN.replace(/^\//, ''),
@@ -680,7 +683,7 @@ const BRAND_ONLY_SETTINGS_PREFIXES = [
 ] as const;
 
 export function isBrandOnlySettingsPath(pathname: string): boolean {
-  const path = pathname.split(/[?#]/u)[0] ?? pathname;
+  const path = pathname.split(QUERY_OR_HASH_PATTERN)[0] ?? pathname;
 
   return BRAND_ONLY_SETTINGS_PREFIXES.some(
     (prefix) => path === prefix || path.startsWith(`${prefix}/`),

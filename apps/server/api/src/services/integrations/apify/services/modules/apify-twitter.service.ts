@@ -11,6 +11,8 @@ import type { SocialSourceResearchContext } from '@api/services/source-collector
 import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { Injectable } from '@nestjs/common';
 
+const LEADING_HASH_PATTERN = /^#/;
+
 /**
  * ApifyTwitterService
  *
@@ -286,7 +288,9 @@ export class ApifyTwitterService {
           mentions: trend.tweetVolume || 0,
           metadata: {
             countryCode: trend.countryCode,
-            hashtags: isHashtag ? [trend.name.replace(/^#/, '')] : [],
+            hashtags: isHashtag
+              ? [trend.name.replace(LEADING_HASH_PATTERN, '')]
+              : [],
             rank: trend.rank || index + 1,
             source: 'apify' as const,
             trendType: isHashtag ? ('hashtag' as const) : ('topic' as const),

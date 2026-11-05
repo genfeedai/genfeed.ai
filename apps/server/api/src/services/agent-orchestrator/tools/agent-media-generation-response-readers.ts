@@ -4,6 +4,9 @@ import {
   type JsonApiResult,
 } from '@genfeedai/contracts/interfaces';
 
+const INGREDIENTS_PATH_SUFFIX_PATTERN = /\/ingredients\/?$/;
+const LEADING_SLASHES_PATTERN = /^\/+/;
+
 const LOCAL_ASSET_PATH_PREFIX = '/local/';
 const PRIVATE_ASSET_QUERY_PARAMETER_PATTERN =
   /^(?:awsaccesskeyid|signature|x-amz-(?:credential|security-token|signature))$/i;
@@ -97,8 +100,11 @@ export function readMediaAssetUrl(
     return undefined;
   }
 
-  const cdnBaseUrl = ingredientsEndpoint.replace(/\/ingredients\/?$/, '');
-  return `${cdnBaseUrl}/${s3Key.replace(/^\/+/, '')}`;
+  const cdnBaseUrl = ingredientsEndpoint.replace(
+    INGREDIENTS_PATH_SUFFIX_PATTERN,
+    '',
+  );
+  return `${cdnBaseUrl}/${s3Key.replace(LEADING_SLASHES_PATTERN, '')}`;
 }
 
 export function readUsableCdnAssetUrl(
@@ -124,8 +130,11 @@ export function readUsableCdnAssetUrl(
   if (!s3Key) {
     return undefined;
   }
-  const cdnBaseUrl = ingredientsEndpoint.replace(/\/ingredients\/?$/, '');
-  const derivedUrl = `${cdnBaseUrl}/${s3Key.replace(/^\/+/, '')}`;
+  const cdnBaseUrl = ingredientsEndpoint.replace(
+    INGREDIENTS_PATH_SUFFIX_PATTERN,
+    '',
+  );
+  const derivedUrl = `${cdnBaseUrl}/${s3Key.replace(LEADING_SLASHES_PATTERN, '')}`;
   return isUsableAssetUrl(derivedUrl, ingredientsEndpoint)
     ? derivedUrl
     : undefined;

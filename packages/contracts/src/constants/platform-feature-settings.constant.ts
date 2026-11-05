@@ -15,6 +15,11 @@ import {
   resolvePlatformFlags,
 } from './feature-flags.constant';
 
+const LINE_BREAK_CHAR_PATTERN = /[\r\n]/;
+const SNOWFLAKE_ID_PATTERN = /^\d{17,20}$/;
+const HTTPS_URL_PATTERN = /^https:\/\/[^\s]+$/;
+const EMAIL_PATTERN = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
+
 /** Every rollout mode a decision point can take. */
 export const TYPED_DECISION_MODES: readonly TypedDecisionMode[] = [
   'off',
@@ -189,7 +194,7 @@ function pickRuntimeString<T extends string | null>(
   const text = typeof value === 'string' ? value.trim() : '';
   return text &&
     text.length <= 320 &&
-    !/[\r\n]/.test(text) &&
+    !LINE_BREAK_CHAR_PATTERN.test(text) &&
     (!pattern || pattern.test(text))
     ? text
     : fallback;
@@ -202,7 +207,9 @@ function pickRuntimeString<T extends string | null>(
 function pickModelKey(value: unknown, fallback: string | null): string | null {
   if (value === undefined) return fallback;
   const text = typeof value === 'string' ? value.trim() : '';
-  return text && text.length <= 200 && !/[\r\n]/.test(text) ? text : null;
+  return text && text.length <= 200 && !LINE_BREAK_CHAR_PATTERN.test(text)
+    ? text
+    : null;
 }
 
 function pickTimestamp(value: unknown): string | null {
@@ -376,37 +383,37 @@ export function parsePlatformFeatureSettings(
     discordChannelIdDeployments: pickRuntimeString(
       row.discordChannelIdDeployments,
       defaults.discordChannelIdDeployments,
-      /^\d{17,20}$/,
+      SNOWFLAKE_ID_PATTERN,
     ),
     discordChannelIdPosts: pickRuntimeString(
       row.discordChannelIdPosts,
       defaults.discordChannelIdPosts,
-      /^\d{17,20}$/,
+      SNOWFLAKE_ID_PATTERN,
     ),
     discordChannelIdStudio: pickRuntimeString(
       row.discordChannelIdStudio,
       defaults.discordChannelIdStudio,
-      /^\d{17,20}$/,
+      SNOWFLAKE_ID_PATTERN,
     ),
     discordChannelIdUsers: pickRuntimeString(
       row.discordChannelIdUsers,
       defaults.discordChannelIdUsers,
-      /^\d{17,20}$/,
+      SNOWFLAKE_ID_PATTERN,
     ),
     discordChannelIdModels: pickRuntimeString(
       row.discordChannelIdModels,
       defaults.discordChannelIdModels,
-      /^\d{17,20}$/,
+      SNOWFLAKE_ID_PATTERN,
     ),
     discordChannelIdBilling: pickRuntimeString(
       row.discordChannelIdBilling,
       defaults.discordChannelIdBilling,
-      /^\d{17,20}$/,
+      SNOWFLAKE_ID_PATTERN,
     ),
     discordBotAvatarUrl: pickRuntimeString(
       row.discordBotAvatarUrl,
       defaults.discordBotAvatarUrl,
-      /^https:\/\/[^\s]+$/,
+      HTTPS_URL_PATTERN,
     ),
     discordWebhookNamePrefix: pickRuntimeString(
       row.discordWebhookNamePrefix,
@@ -426,7 +433,7 @@ export function parsePlatformFeatureSettings(
     emailReplyToAddress: pickRuntimeString(
       row.emailReplyToAddress,
       defaults.emailReplyToAddress,
-      /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/,
+      EMAIL_PATTERN,
     ),
     agentAutoRoutingDecisionMode: pickOption(
       row.agentAutoRoutingDecisionMode,

@@ -21,6 +21,9 @@ import type {
   ClaimState,
 } from '@/features/auth/props/agent-auth-claim-content.props';
 
+const SIX_DIGIT_CODE_PATTERN = /^\d{6}$/;
+const NON_DIGITS_PATTERN = /\D/g;
+
 export default function AgentAuthClaimContent() {
   const translate = useTranslations('common.agentAuth.claim');
   const searchParams = useSearchParams();
@@ -103,7 +106,7 @@ export default function AgentAuthClaimContent() {
   }, [claimAttemptToken, hasValidRequest, isSignedIn, translate]);
 
   async function completeClaim(): Promise<void> {
-    if (!claimAttemptToken || !/^\d{6}$/.test(userCode)) {
+    if (!claimAttemptToken || !SIX_DIGIT_CODE_PATTERN.test(userCode)) {
       setClaimState({
         error: translate('errors.codeRequired'),
         isComplete: false,
@@ -267,7 +270,9 @@ export default function AgentAuthClaimContent() {
                   value={userCode}
                   onChange={(event) =>
                     setUserCode(
-                      event.target.value.replace(/\D/g, '').slice(0, 6),
+                      event.target.value
+                        .replace(NON_DIGITS_PATTERN, '')
+                        .slice(0, 6),
                     )
                   }
                 />

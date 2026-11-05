@@ -1,3 +1,5 @@
+const WHITESPACE_OR_HYPHEN_RUNS_PATTERN = /[\s-]+/g;
+
 /**
  * Font family. Values match Prisma `FontFamily`.
  * @see packages/prisma/prisma/schema.prisma `enum FontFamily`
@@ -113,6 +115,6 @@ export function resolveFontFamily(
   const normalized = value
     .trim()
     .toUpperCase()
-    .replace(/[\s-]+/g, '_');
+    .replace(WHITESPACE_OR_HYPHEN_RUNS_PATTERN, '_');
   return Object.values(FontFamily).find((font) => font === normalized);
 }

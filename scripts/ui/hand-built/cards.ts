@@ -34,6 +34,12 @@ import { globSync } from 'glob';
 import ts from 'typescript';
 import { parseSourceFile } from '../../architecture/parse-source-file';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const PADDING_CLASS_PATTERN = /^p-[\d.]+$/;
+const PADDING_X_CLASS_PATTERN = /^px-[\d.]+$/;
+const PADDING_Y_CLASS_PATTERN = /^py-[\d.]+$/;
+const CLASSNAME_WORD_PATTERN = /classname/i;
+
 export type CardsGuardRule =
   | 'hand-built-card'
   | 'card-restyle'
@@ -123,17 +129,18 @@ function tokensOf(attribute: ts.JsxAttribute): string[] {
   }
   const fragments: string[] = [];
   collectFragments(attribute.initializer, fragments);
-  return fragments.join(' ').split(/\s+/).filter(Boolean);
+  return fragments.join(' ').split(WHITESPACE_RUN_PATTERN).filter(Boolean);
 }
 
 function hasPanelPadding(tokens: string[]): boolean {
   const plain = tokens.filter((token) => !token.includes(':'));
   return (
     plain.some(
-      (token) => /^p-[\d.]+$/.test(token) && Number(token.slice(2)) >= 2,
+      (token) =>
+        PADDING_CLASS_PATTERN.test(token) && Number(token.slice(2)) >= 2,
     ) ||
-    (plain.some((token) => /^px-[\d.]+$/.test(token)) &&
-      plain.some((token) => /^py-[\d.]+$/.test(token)))
+    (plain.some((token) => PADDING_X_CLASS_PATTERN.test(token)) &&
+      plain.some((token) => PADDING_Y_CLASS_PATTERN.test(token)))
   );
 }
 
@@ -251,7 +258,7 @@ function scanContent(
   relativePath: string,
   content: string,
 ): CardsGuardViolation[] {
-  if (!/classname/i.test(content)) {
+  if (!CLASSNAME_WORD_PATTERN.test(content)) {
     return [];
   }
   const sourceFile = parseSourceFile(

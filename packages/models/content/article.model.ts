@@ -3,6 +3,8 @@ import { User } from '@models/auth/user.model';
 import { Tag } from '@models/content/tag.model';
 import { Brand } from '@models/organization/brand.model';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 export class Article extends BaseArticle {
   constructor(partial: Partial<Article>) {
     super(partial);
@@ -24,7 +26,7 @@ export class Article extends BaseArticle {
     if (!this.content) {
       return 0;
     }
-    return this.content.split(/\s+/).length;
+    return this.content.split(WHITESPACE_RUN_PATTERN).length;
   }
 
   get readingTime(): number {

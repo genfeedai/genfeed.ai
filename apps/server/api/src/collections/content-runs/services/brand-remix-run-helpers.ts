@@ -18,6 +18,13 @@ import { CredentialPlatform, Prisma } from '@genfeedai/prisma';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import type { ZodError, ZodType } from 'zod';
 
+const VIDEO_EXTENSION_PATTERN = /\.(?:m4v|mov|mp4|webm)$/i;
+const VIDEO_URL_EXTENSION_PATTERN = /\.(?:m4v|mov|mp4|webm)(?:$|[?#])/i;
+const TRANSFORMATION_WORD_PATTERN =
+  /\b(after|before|but|instead|new|old|then|transform)\b/;
+const HOW_TO_WORD_PATTERN = /\b(how|step|steps|tip|tips|way|ways)\b/;
+const NUMBER_OR_PERCENT_PATTERN = /\b\d+(?:[.,]\d+)?%?\b/;
+
 export function assertCurrentRemixQuoteAccepted(
   config: BrandRemixRunConfig,
   request: unknown,
@@ -274,9 +281,9 @@ export function remixIsVideoMedia(kind: unknown, urls: string[] = []): boolean {
   }
   return urls.some((value) => {
     try {
-      return /\.(?:m4v|mov|mp4|webm)$/i.test(new URL(value).pathname);
+      return VIDEO_EXTENSION_PATTERN.test(new URL(value).pathname);
     } catch {
-      return /\.(?:m4v|mov|mp4|webm)(?:$|[?#])/i.test(value);
+      return VIDEO_URL_EXTENSION_PATTERN.test(value);
     }
   });
 }
@@ -286,12 +293,9 @@ export function remixPatternFromText(
   mediaKind?: string,
 ): BrandRemixSourceSnapshot['pattern'] {
   const normalized = text.toLowerCase();
-  const usesTransformation =
-    /\b(after|before|but|instead|new|old|then|transform)\b/.test(normalized);
-  const usesInstruction = /\b(how|step|steps|tip|tips|way|ways)\b/.test(
-    normalized,
-  );
-  const usesSpecificResult = /\b\d+(?:[.,]\d+)?%?\b/.test(normalized);
+  const usesTransformation = TRANSFORMATION_WORD_PATTERN.test(normalized);
+  const usesInstruction = HOW_TO_WORD_PATTERN.test(normalized);
+  const usesSpecificResult = NUMBER_OR_PERCENT_PATTERN.test(normalized);
   const usesQuestion = text.includes('?');
   const hook = usesQuestion
     ? 'Question-led curiosity hook.'

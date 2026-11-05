@@ -120,6 +120,7 @@ describe('WorkflowNodeContinuationService', () => {
         provider: 'fal',
         status: WorkflowNodeContinuationStatus.WAITING_PROVIDER,
       },
+      select: { id: true, providerResult: true, status: true, updatedAt: true },
     });
     expect(workflowNodeContinuation.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({

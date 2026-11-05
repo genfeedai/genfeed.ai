@@ -9,6 +9,8 @@ import {
   ValidateIf,
 } from 'class-validator';
 
+const NON_WHITESPACE_CHAR_PATTERN = /\S/;
+
 export class BackfillContextEmbeddingsDto {
   @ApiProperty({ minimum: 1, maximum: 200 })
   @IsInt()
@@ -22,7 +24,7 @@ export class BackfillContextEmbeddingsDto {
       value !== undefined,
   )
   @IsString()
-  @Matches(/\S/)
+  @Matches(NON_WHITESPACE_CHAR_PATTERN)
   @MaxLength(200)
   cursor?: string;
 }

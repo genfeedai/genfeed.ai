@@ -7,6 +7,9 @@ import {
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 
+const NEWLINE_RUN_PATTERN = /\n+/;
+const LIST_MARKER_PREFIX_PATTERN = /^[-*•\d.)\s]+/;
+
 interface StreamStateLike {
   acceptedReceipt?: { acceptedAt: string };
   activeToolCalls: AgentToolCall[];
@@ -68,8 +71,8 @@ function summarizeToolName(toolName: string): string {
 
 function summarizeReasoning(reasoning: string): string | undefined {
   const cleaned = reasoning
-    .split(/\n+/)
-    .map((line) => line.replace(/^[-*•\d.)\s]+/, '').trim())
+    .split(NEWLINE_RUN_PATTERN)
+    .map((line) => line.replace(LIST_MARKER_PREFIX_PATTERN, '').trim())
     .find(Boolean);
 
   if (!cleaned) {

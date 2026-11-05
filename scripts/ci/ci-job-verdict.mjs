@@ -1,6 +1,9 @@
 import { performance } from 'node:perf_hooks';
 import { pathToFileURL } from 'node:url';
 
+const LINK_HEADER_ENTRY_PATTERN =
+  /^<([^>]+)>;\s*rel="(next|prev|first|last)"$/u;
+
 const SHA = /^[0-9a-f]{40}$/u;
 const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
 const WORKFLOWS = new Map([
@@ -168,9 +171,7 @@ function nextLink(headers) {
   if (link === '') return null;
   const parts = link
     .split(',')
-    .map((part) =>
-      part.trim().match(/^<([^>]+)>;\s*rel="(next|prev|first|last)"$/u),
-    );
+    .map((part) => part.trim().match(LINK_HEADER_ENTRY_PATTERN));
   requireValue(parts.every(Boolean), 'Invalid pagination link shape');
   const next = parts.filter((part) => part[2] === 'next');
   requireValue(next.length <= 1, 'Invalid pagination next link');
