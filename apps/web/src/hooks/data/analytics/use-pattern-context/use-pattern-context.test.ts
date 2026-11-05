@@ -1,4 +1,8 @@
 import { paginatedResponse } from '@app-tests/paginated-response';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,6 +16,11 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
     isReady: true,
     organizationId: 'org-1',
   }),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -44,7 +53,9 @@ describe('usePatternContext', () => {
   });
 
   it('loads patterns from the Nest creative-patterns collection', async () => {
-    const { result } = renderHook(() => usePatternContext());
+    const { result } = renderHook(() => usePatternContext(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -61,12 +72,14 @@ describe('usePatternContext', () => {
   });
 
   it('passes filters to the collection service', async () => {
-    renderHook(() =>
-      usePatternContext({
-        patternType: 'hook_formula',
-        platform: 'instagram',
-        scope: 'public',
-      }),
+    renderHook(
+      () =>
+        usePatternContext({
+          patternType: 'hook_formula',
+          platform: 'instagram',
+          scope: 'public',
+        }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => {
@@ -88,7 +101,7 @@ describe('usePatternContext', () => {
   it('requests the page it is given and reloads when the page changes', async () => {
     const { rerender } = renderHook(
       ({ page }: { page: number }) => usePatternContext(undefined, page),
-      { initialProps: { page: 2 } },
+      { initialProps: { page: 2 }, wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => {
@@ -113,7 +126,9 @@ describe('usePatternContext', () => {
   it('captures the error message when the fetch fails', async () => {
     findAllMock.mockRejectedValue(new Error('network down'));
 
-    const { result } = renderHook(() => usePatternContext());
+    const { result } = renderHook(() => usePatternContext(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -125,7 +140,9 @@ describe('usePatternContext', () => {
   it('uses a fallback message for non-error rejections', async () => {
     findAllMock.mockRejectedValue('boom');
 
-    const { result } = renderHook(() => usePatternContext());
+    const { result } = renderHook(() => usePatternContext(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -145,12 +162,34 @@ describe('usePatternContext', () => {
         }),
     );
 
-    const { result, unmount } = renderHook(() => usePatternContext());
+    const { result, unmount } = renderHook(() => usePatternContext(), {
+      wrapper: queryClientWrapper(),
+    });
 
     unmount();
     rejectFind?.(abortError);
     await Promise.resolve();
 
     expect(result.current.error).toBeNull();
+  });
+
+  it('paints the cached patterns at once when the page is opened again', async () => {
+    const client = createTestQueryClient();
+    const first = renderHook(() => usePatternContext(), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() =>
+      expect(first.result.current.patterns).toEqual([{ label: 'Hook' }]),
+    );
+    first.unmount();
+
+    findAllMock.mockReturnValue(new Promise(() => undefined));
+    const { result } = renderHook(() => usePatternContext(), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.patterns).toEqual([{ label: 'Hook' }]);
+    expect(result.current.pageTotals).toEqual({ totalDocs: 51, totalPages: 4 });
   });
 });
