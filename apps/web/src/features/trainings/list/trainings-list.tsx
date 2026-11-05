@@ -15,12 +15,18 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Cpu, Lock } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { buildTrainingsTableActions } from './components/TrainingsTableActions';
 import { buildTrainingsTableColumns } from './components/TrainingsTableColumns';
 import { useTrainingsList } from './useTrainingsList';
+
+const TrainingSidebarActivity = dynamic(
+  () => import('./components/TrainingSidebarActivity'),
+  { ssr: false },
+);
 
 const TRAINING_UPGRADE_TIER_LABEL = 'Scale';
 
@@ -151,16 +157,6 @@ export default function TrainingsList({
           },
           { id: 'steps', label: trainingT('steps'), value: training.steps },
           {
-            id: 'sources',
-            label: trainingT('sources'),
-            value: training.totalSources,
-          },
-          {
-            id: 'generated',
-            label: trainingT('generatedImages'),
-            value: training.totalGeneratedImages,
-          },
-          {
             editor: {
               ariaLabel: fieldsT('active'),
               isChecked: training.isActive !== false,
@@ -177,6 +173,9 @@ export default function TrainingsList({
         getSubtitle: (training) => training.externalId,
         getTitle: (training) => training.label,
         kind: 'model',
+        renderExtra: (training) => (
+          <TrainingSidebarActivity training={training} />
+        ),
       }),
     [brands, saveTraining, scope, fieldsT, trainingT],
   );

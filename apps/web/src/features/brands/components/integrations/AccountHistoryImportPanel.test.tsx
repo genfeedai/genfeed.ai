@@ -1,14 +1,30 @@
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
   CredentialPlatform,
   SocialSourceHistoryImportStatus,
 } from '@genfeedai/contracts';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { QueryClient } from '@tanstack/react-query';
+import {
+  fireEvent,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AccountHistoryImportPanel from '@/features/brands/components/integrations/AccountHistoryImportPanel';
 
 const listOwnAccountSources = vi.fn();
 const scheduleHistoryImport = vi.fn();
 const socialSourcesService = { listOwnAccountSources, scheduleHistoryImport };
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => socialSourcesService,
@@ -20,6 +36,13 @@ vi.mock('next-intl', async () => {
   );
   return { useTranslations: translateFromCatalog };
 });
+
+function render(
+  ui: ReactElement,
+  client: QueryClient = createTestQueryClient(),
+) {
+  return rtlRender(ui, { wrapper: queryClientWrapper(client) });
+}
 
 const connection = {
   credentialId: 'credential-1',
@@ -92,5 +115,38 @@ describe('AccountHistoryImportPanel', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Import queued.',
     );
+  });
+
+  it('paints the cached last import at once when the panel opens again', async () => {
+    listOwnAccountSources.mockResolvedValue([
+      {
+        credentialId: 'credential-1',
+        id: 'source-1',
+        metadata: {
+          historyImport: {
+            completedAt: '2026-09-26T04:21:19.000Z',
+            importedCount: 100,
+            status: SocialSourceHistoryImportStatus.COMPLETED,
+            windowDays: 90,
+          },
+        },
+      },
+    ]);
+    const client = createTestQueryClient();
+    const { unmount } = render(
+      <AccountHistoryImportPanel brandId="brand-1" connection={connection} />,
+      client,
+    );
+    expect(await screen.findByText(/Imported 100 posts/)).toBeInTheDocument();
+    unmount();
+
+    listOwnAccountSources.mockReturnValue(new Promise(() => undefined));
+    render(
+      <AccountHistoryImportPanel brandId="brand-1" connection={connection} />,
+      client,
+    );
+
+    expect(screen.queryByText('Loading connected accounts…')).toBeNull();
+    expect(screen.getByText(/Imported 100 posts/)).toBeInTheDocument();
   });
 });

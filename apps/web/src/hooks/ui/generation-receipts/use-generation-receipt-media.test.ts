@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,6 +14,10 @@ const mocks = vi.hoisted(() => {
   const getToken = async () => 'token';
   return { findByIds, getInstance, getToken };
 });
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getToken,
 }));
@@ -32,8 +40,9 @@ describe('useGenerationReceiptMedia', () => {
       batch.map((id) => ingredient(id, id === 'id-3')),
     );
 
-    const { result } = renderHook(() =>
-      useGenerationReceiptMedia([...ids, 'id-0']),
+    const { result } = renderHook(
+      () => useGenerationReceiptMedia([...ids, 'id-0']),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => expect(result.current.size).toBe(50));
@@ -47,14 +56,18 @@ describe('useGenerationReceiptMedia', () => {
   });
 
   it('requests nothing for a page without media receipts', () => {
-    const { result } = renderHook(() => useGenerationReceiptMedia([]));
+    const { result } = renderHook(() => useGenerationReceiptMedia([]), {
+      wrapper: queryClientWrapper(),
+    });
     expect(result.current.size).toBe(0);
     expect(mocks.findByIds).not.toHaveBeenCalled();
   });
 
   it('leaves rows without previews when the outputs cannot be read', async () => {
     mocks.findByIds.mockRejectedValue(new Error('offline'));
-    const { result } = renderHook(() => useGenerationReceiptMedia(['id-1']));
+    const { result } = renderHook(() => useGenerationReceiptMedia(['id-1']), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(mocks.findByIds).toHaveBeenCalled());
     expect(result.current.size).toBe(0);
   });
@@ -69,7 +82,7 @@ describe('useGenerationReceiptMedia', () => {
     mocks.findByIds.mockResolvedValueOnce([ingredient('id-2')]);
     const { result, rerender } = renderHook(
       ({ ids }) => useGenerationReceiptMedia(ids),
-      { initialProps: { ids: ['id-1'] } },
+      { initialProps: { ids: ['id-1'] }, wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledTimes(1));
     rerender({ ids: ['id-2'] });
@@ -77,5 +90,22 @@ describe('useGenerationReceiptMedia', () => {
     resolve([ingredient('id-1')]);
     await Promise.resolve();
     expect(result.current.has('id-1')).toBe(false);
+  });
+
+  it('paints the cached thumbnails at once when the page is opened again', async () => {
+    mocks.findByIds.mockResolvedValue([ingredient('id-1')]);
+    const client = createTestQueryClient();
+    const first = renderHook(() => useGenerationReceiptMedia(['id-1']), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() => expect(first.result.current.has('id-1')).toBe(true));
+    first.unmount();
+
+    mocks.findByIds.mockReturnValue(new Promise(() => undefined));
+    const { result } = renderHook(() => useGenerationReceiptMedia(['id-1']), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(result.current.get('id-1')).toEqual(ingredient('id-1'));
   });
 });

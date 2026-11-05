@@ -3,12 +3,13 @@ import {
   metadataWithScopeSchema,
 } from '@genfeedai/client/schemas';
 import { AssetScope, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
-import type { IMetadata } from '@genfeedai/contracts/interfaces';
+import type { IFolder, IMetadata } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedQuery } from '@genfeedai/hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { ModalMetadataProps } from '@genfeedai/props/modals/modal.props';
 import { FoldersService } from '@genfeedai/services/content/folders.service';
@@ -24,7 +25,7 @@ import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { type ChangeEvent, useEffect, useState } from 'react';
+import { type ChangeEvent, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { useFocusFirstInput } from '@/hooks/ui/use-focus-first-input/use-focus-first-input';
 import { useModalAutoOpen } from '@/hooks/ui/use-modal-auto-open/use-modal-auto-open';
@@ -44,15 +45,31 @@ export default function ModalMetadata({
     IngredientsService.getInstance(token),
   );
 
-  const getFoldersService = useAuthedService((token: string) =>
-    FoldersService.getInstance(token),
+  // A reopened modal offers the cached folders at once and refreshes them in
+  // the background.
+  const foldersQuery = useAuthedQuery<FoldersService, IFolder[]>({
+    queryFn: async (service, signal) => {
+      try {
+        return await service.findAll({}, signal);
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('Failed to load folders', error);
+        }
+        throw error;
+      }
+    },
+    queryKey: ['metadata-folder-options'],
+    service: (token: string) => FoldersService.getInstance(token),
+  });
+  const isLoadingFolders = foldersQuery.isLoading;
+  const folderRecords = foldersQuery.data;
+  const folders = useMemo(
+    () => [
+      { label: 'No folder', value: '' },
+      ...(folderRecords ?? []).map((f) => ({ label: f.label, value: f.id })),
+    ],
+    [folderRecords],
   );
-
-  const [folders, setFolders] = useState<
-    Array<{ value: string; label: string }>
-  >([]);
-
-  const [isLoadingFolders, setIsLoadingFolders] = useState(false);
 
   const form = useForm<MetadataWithScopeSchema>({
     defaultValues: {
@@ -128,38 +145,6 @@ export default function ModalMetadata({
       setValue('folder', folder?.id);
     }
   }, [metadata, scope, folder, setValue]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadFolders = async () => {
-      setIsLoadingFolders(true);
-      try {
-        const service = await getFoldersService();
-        const data = await service.findAll();
-        const folderOptions = [
-          { label: 'No folder', value: '' },
-          ...data.map((f) => ({ label: f.label, value: f.id })),
-        ];
-
-        if (isMounted) {
-          setFolders(folderOptions);
-          setIsLoadingFolders(false);
-        }
-      } catch (error) {
-        logger.error('Failed to load folders', error);
-        if (isMounted) {
-          setIsLoadingFolders(false);
-        }
-      }
-    };
-
-    loadFolders();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [getFoldersService]); // getFoldersService is stable via ref pattern, safe to include
 
   const updateModalMetadata = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,

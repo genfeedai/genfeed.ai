@@ -9,19 +9,16 @@ import type {
 import type { GenerationSetupValues } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import { buildStudioLookPayload } from '@genfeedai/helpers/studio-look.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { StudioLooksService } from '@services/content/studio-looks.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
+import { type QueryKey, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-interface StudioLooksSnapshot {
-  error: string | null;
-  isLoading: boolean;
-  looks: readonly IStudioLook[];
-  scopeKey: string;
-  epoch: number;
-}
+const EMPTY_LOOKS: readonly IStudioLook[] = [];
+const LOAD_ERROR = 'Saved Looks could not be loaded.';
 
 interface StudioLooksMutationState {
   deletingId: string | null;
@@ -52,6 +49,13 @@ export {
   presetToGenerationSetupValues,
 } from '@genfeedai/helpers/studio-look.helper';
 
+/**
+ * The saved Looks for one asset type. The list is cached per organization,
+ * brand, asset type, session and API, so reopening Studio paints the last
+ * Looks at once and refreshes them in the background; another scope never
+ * sees them, and a superseded read is cancelled. Saves and deletes write into
+ * that cache, and only while their scope is still the current one.
+ */
 export function useStudioLooks(
   type: StudioPlaygroundType,
 ): UseStudioLooksReturn {
@@ -78,13 +82,6 @@ export function useStudioLooks(
     [owner],
   );
 
-  const [snapshot, setSnapshot] = useState<StudioLooksSnapshot>({
-    error: null,
-    isLoading: false,
-    looks: [],
-    scopeKey: '',
-    epoch: -1,
-  });
   const [mutation, setMutation] = useState<StudioLooksMutationState>({
     deletingId: null,
     error: null,
@@ -104,83 +101,50 @@ export function useStudioLooks(
     };
   }, []);
 
-  useEffect(() => {
-    if (!isCurrentOwner()) return;
-    if (!scopeKey || !assetType || !brandId || !organizationId) {
-      setSnapshot({
-        error: null,
-        isLoading: false,
-        looks: [],
-        scopeKey,
-        epoch: owner.epoch,
-      });
-      return;
-    }
-
-    const controller = new AbortController();
-    let isCancelled = false;
-    const canApply = () =>
-      !isCancelled && !controller.signal.aborted && isCurrentOwner();
-
-    setSnapshot({
-      error: null,
-      isLoading: true,
-      looks: [],
-      scopeKey,
-      epoch: owner.epoch,
-    });
-    setMutation({
-      deletingId: null,
-      error: null,
-      isSaving: false,
-      scopeKey,
-      epoch: owner.epoch,
-    });
-
-    void (async () => {
-      try {
-        const service = await getStudioLooksService();
-        if (!canApply()) return;
-        const looks = await service.findForAssetType(
-          assetType,
-          controller.signal,
-        );
-        if (canApply()) {
-          setSnapshot({
-            error: null,
-            isLoading: false,
-            looks,
-            scopeKey,
-            epoch: owner.epoch,
-          });
-        }
-      } catch (error) {
-        if (canApply()) {
-          logger.error('Failed to load Studio Looks', error);
-          setSnapshot({
-            error: 'Saved Looks could not be loaded.',
-            isLoading: false,
-            looks: [],
-            scopeKey,
-            epoch: owner.epoch,
-          });
-        }
+  const queryClient = useQueryClient();
+  const apiEndpoint = EnvironmentService.apiEndpoint;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the API endpoint is read through a getter and can change between renders.
+  const looksQueryKey = useMemo<QueryKey>(
+    () => [
+      'studio-looks',
+      organizationId,
+      brandId,
+      assetType,
+      sessionId ?? null,
+      apiEndpoint,
+    ],
+    [apiEndpoint, assetType, brandId, organizationId, sessionId],
+  );
+  const looksQuery = useAuthedQuery<StudioLooksService, IStudioLook[]>({
+    enabled: Boolean(assetType && brandId && organizationId),
+    queryFn: async (service, signal) => {
+      // A read superseded while it waited for its token never reaches the API.
+      signal.throwIfAborted();
+      if (!assetType) {
+        return [];
       }
-    })();
+      try {
+        return await service.findForAssetType(assetType, signal);
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('Failed to load Studio Looks', error);
+        }
+        throw error;
+      }
+    },
+    queryKey: looksQueryKey,
+    service: (token: string) => StudioLooksService.getInstance(token),
+  });
 
-    return () => {
-      isCancelled = true;
-      controller.abort();
-    };
-  }, [
-    assetType,
-    brandId,
-    getStudioLooksService,
-    isCurrentOwner,
-    organizationId,
-    owner,
-    scopeKey,
-  ]);
+  const updateCachedLooks = useCallback(
+    (update: (looks: IStudioLook[]) => IStudioLook[]) => {
+      queryClient.setQueriesData<IStudioLook[]>(
+        { queryKey: looksQueryKey },
+        (current) => (current ? update(current) : current),
+      );
+    },
+    [looksQueryKey, queryClient],
+  );
 
   const saveLook = useCallback(
     async (label: string, values: GenerationSetupValues) => {
@@ -200,16 +164,7 @@ export function useStudioLooks(
         if (!isCurrentOwner()) return false;
         const created = await service.post(payload);
         if (!isCurrentOwner()) return false;
-        setSnapshot((current) =>
-          isCurrentOwner() &&
-          current.scopeKey === scopeKey &&
-          current.epoch === owner.epoch
-            ? {
-                ...current,
-                looks: [created, ...current.looks],
-              }
-            : current,
-        );
+        updateCachedLooks((looks) => [created, ...looks]);
         setMutation({
           deletingId: null,
           error: null,
@@ -231,7 +186,14 @@ export function useStudioLooks(
         return false;
       }
     },
-    [assetType, getStudioLooksService, isCurrentOwner, owner, scopeKey],
+    [
+      assetType,
+      getStudioLooksService,
+      isCurrentOwner,
+      owner,
+      scopeKey,
+      updateCachedLooks,
+    ],
   );
 
   const deleteLook = useCallback(
@@ -251,16 +213,7 @@ export function useStudioLooks(
         if (!isCurrentOwner()) return false;
         await service.removeLook(id);
         if (!isCurrentOwner()) return false;
-        setSnapshot((current) =>
-          isCurrentOwner() &&
-          current.scopeKey === scopeKey &&
-          current.epoch === owner.epoch
-            ? {
-                ...current,
-                looks: current.looks.filter((look) => look.id !== id),
-              }
-            : current,
-        );
+        updateCachedLooks((looks) => looks.filter((look) => look.id !== id));
         setMutation({
           deletingId: null,
           error: null,
@@ -282,14 +235,14 @@ export function useStudioLooks(
         return false;
       }
     },
-    [getStudioLooksService, isCurrentOwner, owner, scopeKey],
+    [getStudioLooksService, isCurrentOwner, owner, scopeKey, updateCachedLooks],
   );
 
+  const looks = assetType ? (looksQuery.data ?? EMPTY_LOOKS) : EMPTY_LOOKS;
+  const loadError = assetType && looksQuery.isError ? LOAD_ERROR : null;
+  const isLoading = Boolean(assetType) && looksQuery.isLoading;
+
   return useMemo(() => {
-    const currentSnapshot =
-      snapshot.scopeKey === scopeKey && snapshot.epoch === owner.epoch
-        ? snapshot
-        : { error: null, isLoading: Boolean(scopeKey), looks: [] };
     const currentMutation =
       mutation.scopeKey === scopeKey && mutation.epoch === owner.epoch
         ? mutation
@@ -298,11 +251,20 @@ export function useStudioLooks(
     return {
       deleteLook,
       deletingId: currentMutation.deletingId,
-      error: currentMutation.error ?? currentSnapshot.error,
-      isLoading: currentSnapshot.isLoading,
+      error: currentMutation.error ?? loadError,
+      isLoading,
       isSaving: currentMutation.isSaving,
-      looks: currentSnapshot.looks,
+      looks,
       saveLook,
     };
-  }, [deleteLook, mutation, owner, saveLook, scopeKey, snapshot]);
+  }, [
+    deleteLook,
+    isLoading,
+    loadError,
+    looks,
+    mutation,
+    owner,
+    saveLook,
+    scopeKey,
+  ]);
 }

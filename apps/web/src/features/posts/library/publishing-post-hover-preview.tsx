@@ -3,15 +3,16 @@
 import type { IPost, IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers';
 import type { PlatformPreviewTarget } from '@genfeedai/props/components/platform-preview.props';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { PostsService } from '@services/content/posts.service';
+import { isServiceOperationError } from '@services/core/operation-error';
 import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from '@ui/primitives/hover-card';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import { buildTargetPreview } from '@/components/previews/preview.helpers';
 import type { TargetPreviewCredential } from '@/props/ui/previews.props';
 
@@ -22,28 +23,25 @@ function LoadedPostPreview({
   postId: string;
   fallback?: PlatformPreviewTarget;
 }) {
-  const getPostsService = useAuthedService((token: string) =>
-    PostsService.getInstance(token),
-  );
-  const [post, setPost] = useState<IPost | null>(null);
-  const [isError, setIsError] = useState(false);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setPost(null);
-    setIsError(false);
-    void (async () => {
+  // Shares the post detail page's key and shape (a missing post is null), so
+  // a post previewed here opens instantly and a reopened preview paints the
+  // cached post at once.
+  const postQuery = useAuthedQuery<PostsService, IPost | null>({
+    queryFn: async (service, signal) => {
       try {
-        const service = await getPostsService();
-        if (controller.signal.aborted) return;
-        const result = await service.findOne(postId, {}, controller.signal);
-        if (!controller.signal.aborted) setPost(result);
-      } catch {
-        if (!controller.signal.aborted) setIsError(true);
+        return await service.findOne(postId, {}, signal);
+      } catch (error: unknown) {
+        if (isServiceOperationError(error) && error.status === 404) {
+          return null;
+        }
+        throw error;
       }
-    })();
-    return () => controller.abort();
-  }, [getPostsService, postId]);
+    },
+    queryKey: ['post-detail', postId],
+    service: (token: string) => PostsService.getInstance(token),
+  });
+  const post = postQuery.data ?? null;
+  const isError = postQuery.isError || postQuery.data === null;
 
   return (
     <>

@@ -1,3 +1,8 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import type { QueryClient } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useIngredientDetail } from './use-ingredient-detail';
@@ -31,6 +36,10 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: mocks.brandId, credentials: [] }),
+}));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
@@ -99,10 +108,13 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-function renderDetail(id = 'image-1') {
+function renderDetail(
+  id = 'image-1',
+  client: QueryClient = createTestQueryClient(),
+) {
   return renderHook(
     ({ currentId }) => useIngredientDetail({ type: 'images', id: currentId }),
-    { initialProps: { currentId: id } },
+    { initialProps: { currentId: id }, wrapper: queryClientWrapper(client) },
   );
 }
 
@@ -129,8 +141,12 @@ describe('useIngredientDetail loading', () => {
       { label: 'Updated' },
     );
     expect(mocks.getMetadataService).toHaveBeenCalledTimes(1);
-    expect(mocks.service.findOne).toHaveBeenCalledWith('image-1');
-    expect(result.current.ingredient).toEqual(updated);
+    expect(mocks.service.findOne).toHaveBeenCalledWith(
+      'image-1',
+      {},
+      expect.any(AbortSignal),
+    );
+    await waitFor(() => expect(result.current.ingredient).toEqual(updated));
   });
 
   it('loads the ingredient and children and caches the result', async () => {
@@ -148,18 +164,20 @@ describe('useIngredientDetail loading', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     mocks.service.findOne.mockResolvedValue({
       id: 'image-1',
-      label: 'Updated',
+      metadataLabel: 'Updated',
     });
     mocks.service.findAll.mockResolvedValue([{ id: 'child-2' }]);
     await act(async () => {
       await result.current.findIngredient();
     });
-    expect(result.current.ingredient?.label).toBe('Updated');
+    await waitFor(() =>
+      expect(result.current.ingredient?.metadataLabel).toBe('Updated'),
+    );
     expect(result.current.childIngredients).toEqual([{ id: 'child-2' }]);
     expect(result.current.isUsingCache).toBe(false);
     expect(
       mocks.caches.get('ingredients:detail:')?.get('ingredient:images:image-1'),
-    ).toMatchObject({ label: 'Updated' });
+    ).toMatchObject({ metadataLabel: 'Updated' });
   });
 
   it('uses cached data when the request fails', async () => {
@@ -205,13 +223,15 @@ describe('useIngredientDetail loading', () => {
     rerender({ currentId: 'image-1' });
     mocks.service.findOne.mockResolvedValue({
       id: 'image-1',
-      label: 'Refreshed',
+      metadataLabel: 'Refreshed',
     });
     await act(async () => {
       await result.current.findIngredient();
     });
+    await waitFor(() =>
+      expect(result.current.ingredient?.metadataLabel).toBe('Refreshed'),
+    );
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.ingredient?.label).toBe('Refreshed');
   });
 
   it('opens a child with an admin page, and inspects any other child in the sidebar', async () => {
@@ -295,13 +315,18 @@ describe('useIngredientDetail loading', () => {
     await waitFor(() => expect(mocks.service.findOne).toHaveBeenCalledTimes(2));
     rerender({ currentId: 'image-2' });
     await waitFor(() =>
-      expect(mocks.service.findOne).toHaveBeenCalledWith('image-2'),
+      expect(mocks.service.findOne).toHaveBeenCalledWith(
+        'image-2',
+        {},
+        expect.any(AbortSignal),
+      ),
     );
     await act(async () => {
       old.resolve({ id: 'old-refresh' });
       await refresh;
     });
-    expect(result.current.ingredient?.id).toBe('image-1');
+    // The next asset never shows the previous one, nor its late refresh.
+    expect(result.current.ingredient).toBeNull();
     expect(result.current.isLoading).toBe(true);
     await act(async () => {
       current.resolve({ id: 'image-2' });
@@ -341,7 +366,11 @@ describe('useIngredientDetail loading', () => {
       .mockResolvedValue({ id: 'image-2' });
     const { result, rerender } = renderDetail();
     await waitFor(() =>
-      expect(mocks.service.findOne).toHaveBeenCalledWith('image-1'),
+      expect(mocks.service.findOne).toHaveBeenCalledWith(
+        'image-1',
+        {},
+        expect.any(AbortSignal),
+      ),
     );
     rerender({ currentId: 'image-2' });
     await waitFor(() => expect(result.current.ingredient?.id).toBe('image-2'));
@@ -368,5 +397,24 @@ describe('useIngredientDetail loading', () => {
       old.resolve([{ id: 'old-child' }]);
     });
     expect(result.current.childIngredients).toEqual([{ id: 'new-child' }]);
+  });
+
+  it('paints the cached ingredient and children at once when reopened', async () => {
+    const client = createTestQueryClient();
+    const first = renderDetail('image-1', client);
+    await waitFor(() =>
+      expect(first.result.current.childIngredients).toEqual([
+        { id: 'child-1' },
+      ]),
+    );
+    first.unmount();
+
+    mocks.service.findOne.mockReturnValue(new Promise(() => undefined));
+    mocks.service.findAll.mockReturnValue(new Promise(() => undefined));
+    const { result } = renderDetail('image-1', client);
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.ingredient).toEqual({ id: 'image-1' });
+    expect(result.current.childIngredients).toEqual([{ id: 'child-1' }]);
   });
 });
