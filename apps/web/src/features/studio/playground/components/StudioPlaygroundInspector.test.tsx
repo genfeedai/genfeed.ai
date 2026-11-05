@@ -1,5 +1,9 @@
 import { queryClientWrapper } from '@app-tests/query-client.harness';
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
   ContextSidebarHeaderOutlet,
   ContextSidebarProvider,
 } from '@genfeedai/contexts/ui/context-sidebar-context';
@@ -23,6 +27,10 @@ import type { ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StudioPlaygroundJob } from '@/features/studio/playground/types';
 import StudioPlaygroundInspector from './StudioPlaygroundInspector';
+
+function render(ui: ReactElement, client = createTestQueryClient()) {
+  return rtlRender(ui, { wrapper: queryClientWrapper(client) });
+}
 
 const mocks = vi.hoisted(() => {
   const findChildren = vi.fn();
@@ -1501,5 +1509,137 @@ describe('StudioPlaygroundInspector', () => {
     expect(screen.getByTestId('studio-playground-inspector')).toHaveTextContent(
       prompt,
     );
+  });
+  describe('return visits', () => {
+    const harnessReceipt = {
+      id: 'ing-1',
+      brandId: 'brand-1',
+      generationHarness: {
+        originalPrompt: 'A founder',
+        enhancedPrompt: 'A founder beside a window.',
+        status: 'applied',
+        source: 'brand',
+        brandId: 'brand-1',
+        appliedPacks: [],
+      },
+    };
+
+    function renderInspector(
+      job: StudioPlaygroundJob,
+      client: ReturnType<typeof createTestQueryClient>,
+    ) {
+      return render(
+        <StudioPlaygroundInspector
+          job={job}
+          onRemix={vi.fn()}
+          onUseInPost={vi.fn()}
+          onSelect={vi.fn()}
+          onVary={vi.fn()}
+          runJobs={[job]}
+        />,
+        client,
+      );
+    }
+
+    async function openUsedIn() {
+      await userEvent.click(
+        screen.getByRole('button', { name: 'View: Recipe' }),
+      );
+      await userEvent.click(
+        screen.getByRole('menuitemradio', { name: 'Used in' }),
+      );
+    }
+
+    it('paints the cached receipt and posts at once when the asset is reopened', async () => {
+      const client = createTestQueryClient();
+      mocks.findOne.mockResolvedValue(harnessReceipt);
+      mocks.getPosts.mockResolvedValue([
+        { id: 'post-1', label: 'Launch carousel' } as IPost,
+      ]);
+      const first = renderInspector(recipeJob, client);
+      expect(
+        await screen.findByText('A founder beside a window.'),
+      ).toBeVisible();
+      await openUsedIn();
+      expect(
+        await screen.findByRole('link', { name: 'Launch carousel' }),
+      ).toBeVisible();
+      first.unmount();
+
+      const pending = new Promise<never>(() => {});
+      mocks.findOne.mockReturnValue(pending);
+      mocks.getPosts.mockReturnValue(pending);
+      mocks.findChildren.mockReturnValue(pending);
+      renderInspector(recipeJob, client);
+
+      expect(screen.getByText('A founder beside a window.')).toBeVisible();
+      expect(
+        screen.queryByText(
+          'Could not load the submitted prompt. Reopen this asset to retry.',
+        ),
+      ).toBeNull();
+      await openUsedIn();
+      expect(
+        screen.getByRole('link', { name: 'Launch carousel' }),
+      ).toBeVisible();
+      expect(screen.queryByText('Loading…')).toBeNull();
+    });
+
+    it('never paints one asset’s cached receipt or posts for another asset', async () => {
+      const client = createTestQueryClient();
+      mocks.findOne.mockResolvedValue(harnessReceipt);
+      mocks.getPosts.mockResolvedValue([
+        { id: 'post-1', label: 'Launch carousel' } as IPost,
+      ]);
+      const first = renderInspector(recipeJob, client);
+      expect(
+        await screen.findByText('A founder beside a window.'),
+      ).toBeVisible();
+      first.unmount();
+
+      const pending = new Promise<never>(() => {});
+      mocks.findOne.mockReturnValue(pending);
+      mocks.getPosts.mockReturnValue(pending);
+      mocks.findChildren.mockReturnValue(pending);
+      renderInspector(
+        { ...recipeJob, id: 'job-2', ingredientId: 'ing-2' },
+        client,
+      );
+
+      expect(screen.queryByText('A founder beside a window.')).toBeNull();
+      await openUsedIn();
+      expect(screen.getByText('Loading…')).toBeVisible();
+      expect(
+        screen.queryByRole('link', { name: 'Launch carousel' }),
+      ).toBeNull();
+    });
+
+    it('keeps the cached receipt when its background refresh fails', async () => {
+      const client = createTestQueryClient();
+      mocks.findOne.mockResolvedValue(harnessReceipt);
+      const first = renderInspector(recipeJob, client);
+      expect(
+        await screen.findByText('A founder beside a window.'),
+      ).toBeVisible();
+      first.unmount();
+
+      mocks.findOne.mockRejectedValue(new Error('offline'));
+      renderInspector(recipeJob, client);
+
+      await waitFor(() =>
+        expect(
+          client.getQueryCache().find({
+            exact: false,
+            queryKey: ['studio-inspector-receipt', 'image', 'ing-1'],
+          })?.state.status,
+        ).toBe('error'),
+      );
+      expect(screen.getByText('A founder beside a window.')).toBeVisible();
+      expect(
+        screen.queryByText(
+          'Could not load the submitted prompt. Reopen this asset to retry.',
+        ),
+      ).toBeNull();
+    });
   });
 });
