@@ -1,4 +1,15 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import type { QueryClient } from '@tanstack/react-query';
+import {
+  fireEvent,
+  render as renderWithoutClient,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import InstagramAccountSelector from '@/features/auth/components/modals/brands/instagram/InstagramAccountSelector';
 
@@ -12,6 +23,11 @@ const mockServicesService: {
   postSelectAccount: ReturnType<typeof vi.fn>;
 } = vi.hoisted(() => ({
   postSelectAccount: vi.fn(),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -44,6 +60,10 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
+
+function render(ui: ReactElement, client?: QueryClient) {
+  return renderWithoutClient(ui, { wrapper: queryClientWrapper(client) });
+}
 
 describe('InstagramAccountSelector', () => {
   const credentialId = 'credential-pending-123';
@@ -350,5 +370,66 @@ describe('InstagramAccountSelector', () => {
     });
     expect(onConnected).not.toHaveBeenCalled();
     expect(confirmButton).not.toBeDisabled();
+  });
+
+  it('lists the cached candidates at once when the picker reopens', async () => {
+    mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
+      candidateAccounts,
+    );
+    const client = createTestQueryClient();
+    const first = render(
+      <InstagramAccountSelector
+        credentialId={credentialId}
+        onConnected={vi.fn()}
+      />,
+      client,
+    );
+    await screen.findByText('Genfeed AI');
+    first.unmount();
+
+    mockCredentialsService.findCredentialInstagramPages.mockReturnValue(
+      new Promise(() => {}),
+    );
+    render(
+      <InstagramAccountSelector
+        credentialId={credentialId}
+        onConnected={vi.fn()}
+      />,
+      client,
+    );
+
+    expect(screen.getByText('Genfeed AI')).toBeInTheDocument();
+    expect(screen.getByText('Genfeed Studio')).toBeInTheDocument();
+    expect(screen.queryByText('Loading accounts…')).not.toBeInTheDocument();
+  });
+
+  it("never lists one credential's cached candidates for another", async () => {
+    mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
+      candidateAccounts,
+    );
+    const client = createTestQueryClient();
+    const first = render(
+      <InstagramAccountSelector
+        credentialId={credentialId}
+        onConnected={vi.fn()}
+      />,
+      client,
+    );
+    await screen.findByText('Genfeed AI');
+    first.unmount();
+
+    mockCredentialsService.findCredentialInstagramPages.mockReturnValue(
+      new Promise(() => {}),
+    );
+    render(
+      <InstagramAccountSelector
+        credentialId="credential-pending-456"
+        onConnected={vi.fn()}
+      />,
+      client,
+    );
+
+    expect(screen.getByText('Loading accounts…')).toBeInTheDocument();
+    expect(screen.queryByText('Genfeed AI')).not.toBeInTheDocument();
   });
 });

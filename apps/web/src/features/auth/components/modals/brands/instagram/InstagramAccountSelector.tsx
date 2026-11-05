@@ -7,6 +7,7 @@ import type { CredentialInstagram } from '@genfeedai/models/auth/credential.mode
 import { logger } from '@genfeedai/services/core/logger.service';
 import { ServicesService } from '@genfeedai/services/external/services.service';
 import { CredentialsService } from '@genfeedai/services/organization/credentials.service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -17,6 +18,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { InstagramAccountSelectorProps } from '@/features/auth/props/instagram-account-selector.props';
 
 export type { InstagramAccountSelectorProps } from '@/features/auth/props/instagram-account-selector.props';
+
+const EMPTY_ACCOUNTS: CredentialInstagram[] = [];
 
 /**
  * Lets the operator resolve an ambiguous Instagram connection — several
@@ -38,84 +41,61 @@ export default function InstagramAccountSelector({
   const translate = useTranslations(
     'common.oauth.platformCallback.selectAccount',
   );
-  const getCredentialsService = useAuthedService((token: string) =>
-    CredentialsService.getInstance(token),
-  );
   const getServicesService = useAuthedService(
     (token: string) => new ServicesService('instagram', token),
   );
 
-  const [availableAccounts, setAvailableAccounts] = useState<
-    CredentialInstagram[]
-  >([]);
   const [selectedAccount, setSelectedAccount] =
     useState<CredentialInstagram | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [retryToken, setRetryToken] = useState(0);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
-  // `translate` and `onError` churn identity every render (a fresh
-  // `next-intl` translator, and callers rarely memoize an inline handler).
-  // Reading them through a ref keeps the fetch effect keyed on the values
-  // that actually identify "which credential's pages to load" instead of
-  // re-running on every parent render.
-  const translateRef = useRef(translate);
-  translateRef.current = translate;
-  const onErrorRef = useRef(onError);
-  onErrorRef.current = onError;
-
-  // getCredentialsService is intentionally left out of the deps below: the
-  // real useAuthedService stabilizes it across renders (a volatile factory
-  // is read through a ref), so it never meaningfully changes, and keying
-  // this effect on it would let an unrelated re-render (selecting an
-  // account, say) re-trigger the fetch and reset the loading state.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: retryToken is a deliberate re-run trigger (not read inside the effect); getCredentialsService is deliberately omitted (see comment above).
-  useEffect(() => {
-    const controller = new AbortController();
-    const url = `GET /credentials/${credentialId}/instagram/pages`;
-
-    setIsLoading(true);
-    setError(null);
-
-    void (async () => {
+  // Cached per credential: going back and reopening the picker lists the
+  // candidates at once while they refresh. The pick is still validated
+  // server-side against this credential's token.
+  const accountsQuery = useAuthedQuery({
+    queryFn: async (service, signal) => {
+      const url = `GET /credentials/${credentialId}/instagram/pages`;
       try {
-        const service = await getCredentialsService();
         const data = await service.findCredentialInstagramPages(
           credentialId,
-          controller.signal,
+          signal,
         );
-
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        setAvailableAccounts(data);
         logger.info(`${url} success`, data);
+        return data;
       } catch (fetchError) {
-        if (controller.signal.aborted) {
-          return;
+        if (!signal.aborted) {
+          logger.error(`${url} failed`, fetchError);
         }
-
-        logger.error(`${url} failed`, fetchError);
-        const message = translateRef.current('error');
-        setError(message);
-        onErrorRef.current?.(message);
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
+        throw fetchError;
       }
-    })();
+    },
+    queryKey: ['instagram-credential-pages', credentialId],
+    service: (token: string) => CredentialsService.getInstance(token),
+  });
+  const availableAccounts = accountsQuery.data ?? EMPTY_ACCOUNTS;
+  const isLoading = accountsQuery.isLoading;
+  // A failed background refresh keeps the cached candidates on screen.
+  const hasLoadError = Boolean(accountsQuery.error) && !accountsQuery.data;
+  const loadErrorMessage = translate('error');
+  const error = confirmError ?? (hasLoadError ? loadErrorMessage : null);
 
-    return () => {
-      controller.abort();
-    };
-  }, [credentialId, retryToken]);
+  // `onError` churns identity on every render (callers rarely memoize an
+  // inline handler), so it is read through a ref.
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
+  const loadError = hasLoadError ? accountsQuery.error : null;
+
+  useEffect(() => {
+    if (loadError) {
+      onErrorRef.current?.(loadErrorMessage);
+    }
+  }, [loadError, loadErrorMessage]);
 
   const retry = () => {
     setSelectedAccount(null);
-    setRetryToken((token) => token + 1);
+    setConfirmError(null);
+    void accountsQuery.refetch();
   };
 
   const handleConfirm = async () => {
@@ -124,7 +104,7 @@ export default function InstagramAccountSelector({
     }
 
     setIsConnecting(true);
-    setError(null);
+    setConfirmError(null);
     const url = `POST /services/instagram/${credentialId}/select-account`;
 
     try {
@@ -139,7 +119,7 @@ export default function InstagramAccountSelector({
     } catch (confirmError) {
       logger.error(`${url} failed`, confirmError);
       const message = translate('confirmError');
-      setError(message);
+      setConfirmError(message);
       onError?.(message);
     } finally {
       setIsConnecting(false);
