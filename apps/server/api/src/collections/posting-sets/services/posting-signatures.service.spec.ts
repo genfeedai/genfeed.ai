@@ -51,7 +51,17 @@ describe('PostingSignaturesService', () => {
     postingSignature.create.mockImplementation(async ({ data }) =>
       makeRow({ ...data, id: 'sig-1' }),
     );
-    postingSignature.findFirst.mockResolvedValue(makeRow());
+    // Behaves like the table: only a live row of the queried organization is found.
+    postingSignature.findFirst.mockImplementation(
+      async ({ where }: { where: Record<string, unknown> }) => {
+        const row = makeRow();
+        return where.id === row.id &&
+          where.organizationId === row.organizationId &&
+          where.isDeleted === false
+          ? row
+          : null;
+      },
+    );
     postingSignature.findMany.mockResolvedValue([makeRow()]);
     postingSignature.count.mockResolvedValue(1);
     postingSignature.update.mockImplementation(async ({ data }) =>
@@ -82,17 +92,13 @@ describe('PostingSignaturesService', () => {
     expect(created.organizationId).toBe('org-1');
   });
 
-  it('reads through organization + isDeleted scope', async () => {
-    await service.findOneScoped('sig-1', context);
-
-    expect(postingSignature.findFirst).toHaveBeenCalledWith({
-      where: scopedWhere('org-1', { id: 'sig-1' }),
-    });
+  it("reads the organization's live signature", async () => {
+    await expect(
+      service.findOneScoped('sig-1', context),
+    ).resolves.toMatchObject({ id: 'sig-1', organizationId: 'org-1' });
   });
 
   it("does not return another organization's signature", async () => {
-    postingSignature.findFirst.mockResolvedValue(null);
-
     await expect(
       service.findOneScoped('sig-1', {
         ...context,

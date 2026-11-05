@@ -34,38 +34,49 @@ describe('TasksPlanningController', () => {
   });
 
   it('delegates planning-thread orchestration with authenticated scope', async () => {
-    const planThread = {
+    // Echoes the scope it was given into the thread it opens.
+    taskPlanningService.openPlanningThread.mockImplementation(
+      async (
+        taskId: string,
+        organizationId: string,
+        workspaceUserId: string,
+      ) => ({
+        created: true,
+        seeded: true,
+        threadId: `${organizationId}/${workspaceUserId}/${taskId}`,
+      }),
+    );
+
+    await expect(controller.openPlanThread(user, 'task-1')).resolves.toEqual({
       created: true,
       seeded: true,
-      threadId: 'thread-1',
-    };
-    taskPlanningService.openPlanningThread.mockResolvedValue(planThread);
-
-    await expect(controller.openPlanThread(user, 'task-1')).resolves.toEqual(
-      planThread,
-    );
-    expect(taskPlanningService.openPlanningThread).toHaveBeenCalledWith(
-      'task-1',
-      'org-1',
-      userId,
-    );
+      threadId: `org-1/${userId}/task-1`,
+    });
   });
 
   it('delegates follow-up creation and preserves the collection envelope', async () => {
-    const tasks = [
-      { id: 'child-1', title: 'First child' },
-      { id: 'child-2', title: 'Second child' },
-    ] as TaskDocument[];
-    taskPlanningService.createFollowUpTasks.mockResolvedValue(tasks);
+    // Echoes the scope it was given into the children it creates.
+    taskPlanningService.createFollowUpTasks.mockImplementation(
+      async (
+        parentId: string,
+        organizationId: string,
+        workspaceUserId: string,
+      ) =>
+        [
+          { id: 'child-1', organizationId, parentId, userId: workspaceUserId },
+          { id: 'child-2', organizationId, parentId, userId: workspaceUserId },
+        ] as unknown as TaskDocument[],
+    );
 
     await expect(
       controller.createChildren(request, user, 'task-1'),
-    ).resolves.toEqual({ data: tasks, meta: { total: 2 } });
-    expect(taskPlanningService.createFollowUpTasks).toHaveBeenCalledWith(
-      'task-1',
-      'org-1',
-      userId,
-    );
+    ).resolves.toEqual({
+      data: [
+        { id: 'child-1', organizationId: 'org-1', parentId: 'task-1', userId },
+        { id: 'child-2', organizationId: 'org-1', parentId: 'task-1', userId },
+      ],
+      meta: { total: 2 },
+    });
   });
 
   it.each([
