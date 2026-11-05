@@ -389,11 +389,17 @@ export class CampaignExecutorService implements OnModuleInit {
   ): Promise<CampaignReplyWorkflowState> {
     const state = this.readWorkflowState(action.input);
     if (state.outcome) return state;
-    const { campaign, target } = await this.loadWorkflowRecords(state);
-    const credentialRecord = await this.findCampaignCredential({
-      credentialId: this.requiredString(state.credentialId, 'credentialId'),
-      organizationId: state.organizationId,
-    });
+    const credentialId = this.requiredString(
+      state.credentialId,
+      'credentialId',
+    );
+    const [{ campaign, target }, credentialRecord] = await Promise.all([
+      this.loadWorkflowRecords(state),
+      this.findCampaignCredential({
+        credentialId,
+        organizationId: state.organizationId,
+      }),
+    ]);
     const credential = credentialRecord
       ? toReplyBotCredentialData(
           credentialRecord as unknown as Record<string, unknown>,

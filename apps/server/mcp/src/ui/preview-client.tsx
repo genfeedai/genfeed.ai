@@ -88,24 +88,37 @@ function record(value: unknown): Record<string, unknown> {
 function text(value: unknown): string {
   return typeof value === 'string' ? value : '';
 }
-function safeUrl(value: unknown): string | undefined {
+function parseSafeUrl(value: unknown): URL | undefined {
   try {
     const url = new URL(text(value));
     return ['http:', 'https:'].includes(url.protocol) &&
       !url.username &&
       !url.password
-      ? url.href
+      ? url
       : undefined;
   } catch {
     return undefined;
   }
 }
+function safeUrl(value: unknown): string | undefined {
+  return parseSafeUrl(value)?.href;
+}
 function mediaUrl(
   value: unknown,
   origins: readonly string[],
 ): string | undefined {
-  const url = safeUrl(value);
-  return url && origins.includes(new URL(url).origin) ? url : undefined;
+  const url = parseSafeUrl(value);
+  return url && origins.includes(url.origin) ? url.href : undefined;
+}
+/** A safe avatar on a bridge media origin or a known account-avatar CDN. */
+function trustedAvatarUrl(
+  value: unknown,
+  origins: readonly string[],
+): string | undefined {
+  const url = parseSafeUrl(value);
+  return url && (origins.includes(url.origin) || isAccountAvatarOrigin(url))
+    ? url.href
+    : undefined;
 }
 function card(value: unknown): McpCard | undefined {
   const row = record(value);
@@ -395,13 +408,7 @@ function BrandList({
     <Card padding={CardPadding.SM} className="brands col-span-full min-w-0">
       <ul className="flex flex-col divide-y divide-border">
         {items.map((item) => {
-          const avatar = safeUrl(item.avatarUrl);
-          const avatarUrl =
-            avatar &&
-            (mediaUrl(avatar, bridge.origins) ||
-              isAccountAvatarOrigin(new URL(avatar)))
-              ? avatar
-              : undefined;
+          const avatarUrl = trustedAvatarUrl(item.avatarUrl, bridge.origins);
           const handle = item.facts
             ?.find((fact) => fact.label === 'Handle')
             ?.value.replace(LEADING_AT_SIGN_PATTERN, '');
@@ -619,12 +626,7 @@ function SummaryCard({
   resolvedDecision,
   when,
 }: SummaryCardProps) {
-  const avatar = safeUrl(item.avatarUrl);
-  const avatarUrl =
-    avatar &&
-    (mediaUrl(avatar, bridge.origins) || isAccountAvatarOrigin(new URL(avatar)))
-      ? avatar
-      : undefined;
+  const avatarUrl = trustedAvatarUrl(item.avatarUrl, bridge.origins);
   const hasIdentity = Boolean(
     item.actions?.some((action) => action.kind === 'select_brand') ||
       item.avatarUrl ||
@@ -817,13 +819,10 @@ function CardPreview({
       />
     );
   if (current.kind === 'post') {
-    const avatar = safeUrl(current.author?.avatarUrl);
-    const avatarUrl =
-      avatar &&
-      (mediaUrl(avatar, bridge.origins) ||
-        isAccountAvatarOrigin(new URL(avatar)))
-        ? avatar
-        : undefined;
+    const avatarUrl = trustedAvatarUrl(
+      current.author?.avatarUrl,
+      bridge.origins,
+    );
     const media =
       current.media ??
       (current.mediaUrl && current.mediaKind

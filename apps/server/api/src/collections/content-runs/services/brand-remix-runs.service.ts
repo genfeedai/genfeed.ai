@@ -244,15 +244,14 @@ export class BrandRemixRunsService {
     }
 
     const brandId = this.persistence.requireBrandId(run);
-    const brandContext = await this.planning.resolveBrandContext(
-      organizationId,
-      brandId,
-    );
-    const sanitized = await this.planning.sanitizePersistedDraft(
-      organizationId,
-      brandId,
-      config.draft,
-    );
+    const [brandContext, sanitized] = await Promise.all([
+      this.planning.resolveBrandContext(organizationId, brandId),
+      this.planning.sanitizePersistedDraft(
+        organizationId,
+        brandId,
+        config.draft,
+      ),
+    ]);
     const removedIds = new Set(
       config.draft.references
         .filter(

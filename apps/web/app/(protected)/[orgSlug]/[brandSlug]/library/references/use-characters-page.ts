@@ -205,8 +205,10 @@ export function useCharactersPage(): CharactersPageState {
     cleanupSocket();
 
     try {
-      const personasService = await getPersonasService();
-      const imagesService = await getImagesService();
+      const [personasService, imagesService] = await Promise.all([
+        getPersonasService(),
+        getImagesService(),
+      ]);
       const composed = await personasService.composeSheetPrompt({
         description: trimmed,
         isNonHumanoid,

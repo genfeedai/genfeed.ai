@@ -279,12 +279,10 @@ export class SignupPrefillService {
   ): string | undefined {
     const name = companyName?.trim();
     if (this.profileLabel(websiteUrl) === undefined) return name;
-    const hostName = new URL(websiteUrl).hostname
-      .replace(WWW_PREFIX_PATTERN, '')
-      .split('.')[0];
+    const host = new URL(websiteUrl).hostname.replace(WWW_PREFIX_PATTERN, '');
     const platformNames = new Set([
-      hostName,
-      new URL(websiteUrl).hostname.replace(WWW_PREFIX_PATTERN, ''),
+      host.split('.')[0],
+      host,
       'linktree',
       'beacons',
       'youtube',

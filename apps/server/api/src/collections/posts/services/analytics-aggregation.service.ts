@@ -207,15 +207,16 @@ export class AnalyticsAggregationService {
       },
     };
 
-    const postCount = await this.postsService.count(organizationId, {
-      ...(brandId ? { brandId } : {}),
-    });
-
     // Authoritative brand count for the organization — org-scoped and
     // soft-delete-aware so the "Total Brands" metric matches the brand switcher.
-    const totalBrands = await this.prisma.brand.count({
-      where: scopedWhere(organizationId, {}),
-    });
+    const [postCount, totalBrands] = await Promise.all([
+      this.postsService.count(organizationId, {
+        ...(brandId ? { brandId } : {}),
+      }),
+      this.prisma.brand.count({
+        where: scopedWhere(organizationId, {}),
+      }),
+    ]);
 
     // Prisma label (`INSTAGRAM`) in, domain id (`instagram`) out
     // (genfeedai/genfeed.ai#5424).

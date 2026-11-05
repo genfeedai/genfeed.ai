@@ -117,20 +117,21 @@ export class ActivitiesService extends BaseService<
       ids.add(activity.entityId);
       idsByOrganization.set(organizationId, ids);
     }
-    const ingredients = [];
     // One batch per organization, including the self-hosted null scope.
-    for (const [organizationId, ids] of idsByOrganization) {
-      ingredients.push(
-        ...(await this.prisma.ingredient.findMany({
-          select: GENERATION_INGREDIENT_SELECT,
-          where: {
-            organizationId,
-            isDeleted: false,
-            id: { in: [...ids] },
-          },
-        })),
-      );
-    }
+    const ingredients = (
+      await Promise.all(
+        [...idsByOrganization].map(([organizationId, ids]) =>
+          this.prisma.ingredient.findMany({
+            select: GENERATION_INGREDIENT_SELECT,
+            where: {
+              organizationId,
+              isDeleted: false,
+              id: { in: [...ids] },
+            },
+          }),
+        ),
+      )
+    ).flat();
     const byId = new Map(
       ingredients.map((ingredient) => [ingredient.id, ingredient]),
     );

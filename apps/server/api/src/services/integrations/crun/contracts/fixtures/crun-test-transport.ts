@@ -145,12 +145,14 @@ export async function createCrunTestTransport(videoBytes?: Buffer) {
         : input instanceof URL
           ? input.toString()
           : input.url;
-    const target =
+    const requestedUrl = new URL(requested);
+    const isRerouted =
       requested.startsWith('https://api.crun.ai/') ||
-      new URL(requested).origin === mediaOrigin
-        ? `${base}${new URL(requested).pathname}${new URL(requested).search}`
-        : requested;
-    if (new URL(target).origin !== base)
+      requestedUrl.origin === mediaOrigin;
+    const target = isRerouted
+      ? `${base}${requestedUrl.pathname}${requestedUrl.search}`
+      : requested;
+    if (!isRerouted && requestedUrl.origin !== base)
       throw new Error('Fixture forbids non-owned network requests');
     return new Promise<Response>((resolve, reject) => {
       const source = input instanceof Request ? input : undefined;

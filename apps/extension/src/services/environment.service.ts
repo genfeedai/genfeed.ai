@@ -64,21 +64,22 @@ function getOrigin(url: string): string {
  */
 export const authCookieOrigins = Array.from(new Set([getOrigin(appDomain)]));
 
+const authCookieHostnames = new Set(
+  authCookieOrigins.flatMap((origin) => {
+    try {
+      return [new URL(origin).hostname];
+    } catch {
+      return [];
+    }
+  }),
+);
+
 export function isGenfeedAuthUrl(url: string): boolean {
-  let hostname: string;
   try {
-    hostname = new URL(url).hostname;
+    return authCookieHostnames.has(new URL(url).hostname);
   } catch {
     return false;
   }
-
-  return authCookieOrigins.some((origin) => {
-    try {
-      return new URL(origin).hostname === hostname;
-    } catch {
-      return false;
-    }
-  });
 }
 
 export const cookieDomain = (() => {

@@ -215,18 +215,16 @@ export class AgentOrchestratorContextService {
       );
 
     const replyStyle = orgSettings?.agentReplyStyle;
-    const brandContext = await this.loadTurnBrandContext(
-      request,
-      context,
-      policy,
-      thread?.systemPrompt,
-    );
-    const { resolvedSkills, skillPromptSuffix } = await this.resolveTurnSkills(
-      request,
-      context,
-      policy,
-      strategy?.skillSlugs,
-    );
+    const [brandContext, { resolvedSkills, skillPromptSuffix }] =
+      await Promise.all([
+        this.loadTurnBrandContext(
+          request,
+          context,
+          policy,
+          thread?.systemPrompt,
+        ),
+        this.resolveTurnSkills(request, context, policy, strategy?.skillSlugs),
+      ]);
     const systemPrompt = this.composeTurnSystemPrompt({
       agentTypeConfig,
       brandContext,

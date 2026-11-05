@@ -76,6 +76,7 @@ type SendResponse = (response?: Record<string, unknown>) => void;
 
 // API base URL — includes /v1 suffix; sourced from environment.service.ts apiEndpoint
 const API_BASE = apiEndpoint;
+const API_ORIGIN = URL.canParse(API_BASE) ? new URL(API_BASE).origin : null;
 
 initializeErrorTracking('background');
 initializePublicationCapture();
@@ -1033,7 +1034,7 @@ async function fetchBlobAsDataUrl(
 
     const workspace = await requireWorkspace();
     const response =
-      new URL(url).origin === new URL(API_BASE).origin
+      new URL(url).origin === API_ORIGIN
         ? await scopedWorkspaceRequest(url, {}, workspace)
         : await fetch(url, { credentials: 'omit' });
     assertWorkspace(workspace);

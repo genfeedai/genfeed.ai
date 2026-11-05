@@ -200,7 +200,7 @@ const SLUG_RE = /^[a-zA-Z0-9][a-zA-Z0-9-]*$/;
 
 function createSafeRedirectUrl(req: NextRequest, pathname: string): URL {
   const url = new URL(pathname, req.url);
-  const requestOrigin = req.nextUrl.origin ?? new URL(req.url).origin;
+  const requestOrigin = req.nextUrl.origin;
   // Guard: the resolved URL must share the same origin as the incoming request.
   // This prevents slugs like `//attacker.example` from becoming cross-origin
   // redirects via the `new URL(pathname, base)` constructor.
@@ -508,7 +508,7 @@ function resolveRefererWorkspaceSlugs(
 
   try {
     const parsed = new URL(referer);
-    const requestOrigin = req.nextUrl.origin ?? new URL(req.url).origin;
+    const requestOrigin = req.nextUrl.origin;
     if (parsed.origin !== requestOrigin) {
       return null;
     }

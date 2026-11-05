@@ -63,20 +63,20 @@ const NEWSLETTER_HOSTS =
 const PODCAST_HOSTS =
   /(^|\.)(podcasts\.apple\.com|overcast\.fm|pocketcasts\.com|castbox\.fm|podbean\.com|buzzsprout\.com|libsyn\.com|transistor\.fm|simplecast\.com|captivate\.fm|megaphone\.fm|podcasts\.google\.com|anchor\.fm|podcasters\.spotify\.com)$/i;
 
-function hostnameOf(url: string): string {
+function hostAndPathOf(url: string): { host: string; path: string } {
   try {
-    return new URL(url).hostname.toLowerCase().replace(WWW_PREFIX_PATTERN, '');
+    const { hostname, pathname } = new URL(url);
+    return {
+      host: hostname.toLowerCase().replace(WWW_PREFIX_PATTERN, ''),
+      path: pathname,
+    };
   } catch {
-    return '';
+    return { host: '', path: '' };
   }
 }
 
-function pathnameOf(url: string): string {
-  try {
-    return new URL(url).pathname;
-  } catch {
-    return '';
-  }
+function hostnameOf(url: string): string {
+  return hostAndPathOf(url).host;
 }
 
 function isHttpUrl(url: string): boolean {
@@ -175,10 +175,8 @@ export function classifySourceKind(raw: RawSourceCapture): ImportedSourceKind {
     return 'social';
   }
   if (raw.host === 'youtube') return 'video';
-  const url = pageUrlOf(raw);
-  const host = hostnameOf(url);
-  const path = pathnameOf(url);
   if (raw.scope === 'media') return raw.media[0]?.kind ?? 'page';
+  const { host, path } = hostAndPathOf(pageUrlOf(raw));
   const hints = raw.typeHints.join(' ');
   if (
     PODCAST_KEYWORD_PATTERN.test(hints) ||

@@ -255,14 +255,10 @@ export class BotGatewayService {
     }
 
     // Get user's brands and credits
-    const brands = await this.userResolverService.getUserBrands(
-      resolvedUser.organizationId,
-    );
-
-    const { balance } = await this.generationService.checkCredits(
-      resolvedUser.organizationId,
-      0,
-    );
+    const [brands, { balance }] = await Promise.all([
+      this.userResolverService.getUserBrands(resolvedUser.organizationId),
+      this.generationService.checkCredits(resolvedUser.organizationId, 0),
+    ]);
 
     const currentBrand = brands.find((b) => b.id === resolvedUser.brandId);
     const brandList = brands

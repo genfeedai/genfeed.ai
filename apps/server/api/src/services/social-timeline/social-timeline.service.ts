@@ -97,26 +97,30 @@ export class SocialTimelineService implements OnModuleInit {
   }
 
   async read(scope: TimelineScope): Promise<SocialTimelineResponse> {
-    const credentials = await this.prisma.credential.findMany({
-      where: scopedWhere(scope.organizationId, {
-        brandId: scope.brandId,
+    const [credentials, sources] = await Promise.all([
+      this.prisma.credential.findMany({
+        where: scopedWhere(scope.organizationId, {
+          brandId: scope.brandId,
+        }),
+        orderBy: { createdAt: 'asc' },
       }),
-      orderBy: { createdAt: 'asc' },
-    });
-    const sources = await this.prisma.socialSource.findMany({
-      where: scopedWhere(scope.organizationId, {
-        brandId: scope.brandId,
-        sourceType: SocialSourceType.TIMELINE,
-        isActive: true,
-      }),
-      include: {
-        posts: {
-          where: scopedWhere(scope.organizationId, { brandId: scope.brandId }),
-          orderBy: { publishedAt: 'desc' },
-          take: 100,
+      this.prisma.socialSource.findMany({
+        where: scopedWhere(scope.organizationId, {
+          brandId: scope.brandId,
+          sourceType: SocialSourceType.TIMELINE,
+          isActive: true,
+        }),
+        include: {
+          posts: {
+            where: scopedWhere(scope.organizationId, {
+              brandId: scope.brandId,
+            }),
+            orderBy: { publishedAt: 'desc' },
+            take: 100,
+          },
         },
-      },
-    });
+      }),
+    ]);
     return {
       accounts: credentials.flatMap((credential) => {
         const platform = fromPrismaCredentialPlatform(credential.platform);

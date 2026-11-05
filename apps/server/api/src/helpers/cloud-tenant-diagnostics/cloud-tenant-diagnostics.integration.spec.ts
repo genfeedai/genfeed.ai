@@ -15,7 +15,6 @@ import { RequestTimeout } from '@api/helpers/decorators/request-timeout/request-
 import { PerformanceInterceptor } from '@api/helpers/interceptors/performance/performance.interceptor';
 import { TimeoutInterceptor } from '@api/interceptors/timeout.interceptor';
 import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { TenantIsolationError } from '@libs/prisma/tenant-guard';
 import { createTenantGuardExtension } from '@libs/prisma/tenant-guard.extension';
@@ -204,18 +203,13 @@ describe('real miniature Nest request lifecycle', () => {
         },
       );
       app.useGlobalGuards(new DeferredGuard());
-      const logger = {
-        debug: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-      } as unknown as LoggerService;
       const config = {
         get: (key: string) => (key === 'NODE_ENV' ? 'test' : undefined),
       } as unknown as ConfigService;
       app.useGlobalInterceptors(
         new TimeoutInterceptor(new Reflector()),
         new RepeatBoundary(),
-        new PerformanceInterceptor(logger, config),
+        new PerformanceInterceptor(config),
       );
       await app.listen(0, '127.0.0.1');
       const server = app.getHttpServer();
@@ -411,15 +405,10 @@ describe('real miniature Nest request lifecycle', () => {
           (typeof bound === 'function' ? bound : next)();
         },
       );
-      const logger = {
-        debug: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-      } as unknown as LoggerService;
       const config = {
         get: (key: string) => (key === 'NODE_ENV' ? 'test' : undefined),
       } as unknown as ConfigService;
-      app.useGlobalInterceptors(new PerformanceInterceptor(logger, config));
+      app.useGlobalInterceptors(new PerformanceInterceptor(config));
       await app.listen(0, '127.0.0.1');
       const server = app.getHttpServer();
       const port = server.address().port as number;

@@ -44,6 +44,7 @@ async function main() {
     setupServiceShell(app, {
       redirectPaths: ['/', '/docs'],
       redirectTarget: '/v1/health',
+      wideEventSink: logger,
     });
 
     app.setGlobalPrefix('v1');

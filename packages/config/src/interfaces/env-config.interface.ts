@@ -13,7 +13,6 @@ export interface IEnvConfig {
   TZ?: string;
   VERSION?: string;
   SERVICE_NAME?: string;
-  API_METRICS_LOGGING?: 'true' | 'false';
   API_SENTRY_PERFORMANCE_METRICS?: 'true' | 'false';
   GENFEED_CLOUD?: string;
   TRUST_PROXY?: string;

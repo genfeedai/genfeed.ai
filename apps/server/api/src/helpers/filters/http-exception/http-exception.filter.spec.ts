@@ -1,6 +1,8 @@
 import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
 import { ClientClosedRequestException } from '@api/helpers/exceptions/client-closed-request/client-closed-request.exception';
 import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
+import { runWithWideEvent } from '@libs/logger/wide-event/wide-event.context';
+import { startWideEvent } from '@libs/logger/wide-event/wide-event.lifecycle';
 import { type ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 
 const jsonApiSerializerMock = {
@@ -25,6 +27,22 @@ vi.mock('@sentry/nestjs', () => ({
 type FilterInstance = {
   catch(exception: HttpException, host: ArgumentsHost): void;
 };
+/** Runs a filter inside a request's wide event and returns the event. */
+function catchWithWideEvent(
+  filter: FilterInstance,
+  exception: HttpException,
+  host: ArgumentsHost,
+) {
+  const { event } = startWideEvent({
+    identity: { service: 'api' },
+    kind: 'http',
+    requestId: 'req-1',
+    trace: { spanId: 'span-1', traceId: 'trace-1' },
+  });
+  runWithWideEvent(event, () => filter.catch(exception, host));
+  return event;
+}
+
 type FilterConstructor = new (
   loggerService: unknown,
   configService: unknown,
@@ -111,10 +129,12 @@ describe('HttpExceptionFilter', () => {
   it('should handle HttpException with string message', () => {
     const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
 
-    filter.catch(exception, mockArgumentsHost);
+    const event = catchWithWideEvent(filter, exception, mockArgumentsHost);
 
-    expect(mockLoggerService.warn).toHaveBeenCalled();
-    expect(mockLoggerService.error).not.toHaveBeenCalled();
+    expect(event.error).toMatchObject({
+      message: 'Test error',
+      status: HttpStatus.BAD_REQUEST,
+    });
     expect(Sentry.captureException).not.toHaveBeenCalled();
     expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
     expect(mockResponse.json).toHaveBeenCalledWith(
@@ -429,37 +449,33 @@ describe('HttpExceptionFilter', () => {
   });
 
   describe('Logging Behavior', () => {
-    it('should log 4xx errors locally at warn without a stack trace or Sentry in production', () => {
+    it('records 4xx errors on the wide event without paging Sentry in production', () => {
       // Production environment setup is already done in beforeEach
       const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
 
-      filter.catch(exception, mockArgumentsHost);
+      const event = catchWithWideEvent(filter, exception, mockArgumentsHost);
 
-      // 4xx must not pass the exception (stack trace) and must not hit .error().
-      expect(mockLoggerService.warn).toHaveBeenCalledWith(
-        'HTTP client error occurred',
-        expect.objectContaining({
-          status: HttpStatus.BAD_REQUEST,
-          url: '/test',
-        }),
-      );
-      expect(mockLoggerService.error).not.toHaveBeenCalled();
+      expect(event.error).toMatchObject({
+        message: 'Test error',
+        status: HttpStatus.BAD_REQUEST,
+        type: 'HttpException',
+      });
       expect(Sentry.captureException).not.toHaveBeenCalled();
-      expect(mockLoggerService.log).not.toHaveBeenCalled();
     });
 
     it('answers a client-closed download with its stage and no Sentry event (API-GENFEED-AI-91)', () => {
-      filter.catch(
+      const event = catchWithWideEvent(
+        filter,
         new ClientClosedRequestException('awaiting-upstream'),
         mockArgumentsHost,
       );
 
       expect(Sentry.captureException).not.toHaveBeenCalled();
-      expect(mockLoggerService.error).not.toHaveBeenCalled();
+      expect(event.error).toMatchObject({ status: 499 });
       expect(mockResponse.status).toHaveBeenCalledWith(499);
     });
 
-    it('should log errors in development environment', () => {
+    it('records 5xx errors on the wide event in development', () => {
       // Create a new filter with development environment
       mockConfigService.get = vi.fn((key: string) => {
         if (key === 'SENTRY_ENVIRONMENT') {
@@ -480,17 +496,13 @@ describe('HttpExceptionFilter', () => {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
 
-      devFilter.catch(exception, mockArgumentsHost);
+      const event = catchWithWideEvent(devFilter, exception, mockArgumentsHost);
 
-      expect(mockLoggerService.error).toHaveBeenCalledWith(
-        'HTTP exception occurred',
-        exception,
-        expect.objectContaining({
-          operation: 'catch',
-          service: 'HttpExceptionFilter',
-          status: HttpStatus.INTERNAL_SERVER_ERROR,
-        }),
-      );
+      expect(event.error).toMatchObject({
+        message: 'Development error',
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+      });
+      expect(Sentry.captureException).not.toHaveBeenCalled();
     });
   });
 

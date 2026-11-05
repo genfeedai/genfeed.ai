@@ -185,21 +185,23 @@ export class BillingAccountsService {
     if (!callerRole) {
       return this.getOwnOrganizationView(scope, account, organizationId);
     }
-    const links = await this.prisma.billingAccountOrganization.findMany({
-      where: billingAccountScopedWhere(scope, {
-        status: BillingAccountOrganizationStatus.LINKED,
+    const [links, wallet, usageByOrg, subscription] = await Promise.all([
+      this.prisma.billingAccountOrganization.findMany({
+        where: billingAccountScopedWhere(scope, {
+          status: BillingAccountOrganizationStatus.LINKED,
+        }),
+        include: { organization: true },
       }),
-      include: { organization: true },
-    });
-    const wallet = await this.prisma.creditBalance.findFirst({
-      where: billingAccountScopedWhere(scope, {}),
-    });
+      this.prisma.creditBalance.findFirst({
+        where: billingAccountScopedWhere(scope, {}),
+      }),
+      this.usageByOrganization(scope),
+      this.prisma.subscription.findFirst({
+        where: billingAccountScopedWhere(scope, {}),
+      }),
+    ]);
     const settled = wallet?.balance ?? 0;
     const held = wallet?.heldAmount ?? 0;
-    const usageByOrg = await this.usageByOrganization(scope);
-    const subscription = await this.prisma.subscription.findFirst({
-      where: billingAccountScopedWhere(scope, {}),
-    });
     const status = parseBillingAccountStatus(account.status);
     const linkedOrganizations: IBillingAccountOrganizationLink[] = links.map(
       (link) => ({

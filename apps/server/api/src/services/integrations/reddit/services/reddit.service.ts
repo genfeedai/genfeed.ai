@@ -95,12 +95,10 @@ export class RedditService {
       return [];
     }
 
-    const accessToken = await this.getAppAccessToken();
-    const subreddit = await this.resolveScopedSubreddit(
-      organizationId,
-      brandId,
-      settings,
-    );
+    const [accessToken, subreddit] = await Promise.all([
+      this.getAppAccessToken(),
+      this.resolveScopedSubreddit(organizationId, brandId, settings),
+    ]);
     const listingLimit = Math.max(1, Math.min(100, limit));
 
     const listings = subreddit
