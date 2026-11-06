@@ -21,8 +21,8 @@ export type CampaignDiscoveryConfig = {
 };
 
 export type CampaignAiConfig = {
-  tone?: ReplyTone | string;
-  length?: ReplyLength | string;
+  tone?: ReplyTone;
+  length?: ReplyLength;
   customInstructions?: string;
   context?: string;
   ctaLink?: string;
@@ -71,7 +71,7 @@ export interface OutreachCampaignDocument
     'config' | 'status' | 'campaignType' | 'isActive' | 'platform'
   > {
   aiConfig?: CampaignAiConfig;
-  campaignType?: CampaignType | string;
+  campaignType?: CampaignType;
   completedAt?: Date | null;
   config?: Record<string, unknown>;
   credentialId: string | null;
@@ -80,11 +80,11 @@ export interface OutreachCampaignDocument
   dmConfig?: CampaignDmConfig;
   isActive?: boolean;
   label?: string;
-  platform?: CampaignPlatform | string;
+  platform?: CampaignPlatform;
   rateLimits?: CampaignRateLimits;
   schedule?: CampaignSchedule;
   startedAt?: Date | null;
-  status: CampaignStatus | string;
+  status: CampaignStatus;
   totalReplies?: number;
   totalSuccessful?: number;
   [key: string]: unknown;

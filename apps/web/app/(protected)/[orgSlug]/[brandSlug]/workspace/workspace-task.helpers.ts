@@ -2,12 +2,14 @@
 
 import { useTaskStatusLabels } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-status.constants';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { VideoContinuityQaReport } from '@genfeedai/contracts/interfaces';
+import type {
+  TaskStatus,
+  VideoContinuityQaReport,
+} from '@genfeedai/contracts/interfaces';
 import {
   isTaskInWorkspaceInboxQueue,
   isUnreadWorkspaceInboxTask,
   Task,
-  type TaskStatus,
 } from '@services/management/tasks.service';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';

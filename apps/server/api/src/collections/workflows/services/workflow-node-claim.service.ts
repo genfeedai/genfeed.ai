@@ -4,6 +4,7 @@ import {
   WORKFLOW_NODE_CLAIM_LEASE_MS,
 } from '@api/collections/workflows/services/workflow-executor.constants';
 import { retryTransactionStart } from '@api/collections/workflows/utils/serializable-retry.util';
+import type { NodeClaimStatus } from '@api/collections/workflows/utils/workflow-node-idempotency.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -28,7 +29,7 @@ export type DurableNodeClaimOutcome =
   | { action: 'claimed'; lease: WorkflowNodeClaimLease }
   | {
       action: 'skip';
-      status: 'completed' | 'failed' | 'running';
+      status: NodeClaimStatus;
       output?: unknown;
       error?: string;
     };
@@ -206,7 +207,7 @@ export class WorkflowNodeClaimService {
     organizationId: string;
     executionId: string;
     nodeId: string;
-    status: 'completed' | 'failed';
+    status: Exclude<NodeClaimStatus, 'running'>;
     output?: unknown;
     error?: string;
     leaseOwnerId?: string;

@@ -1,9 +1,8 @@
+import type { TaskPriority, TaskStatus } from '@genfeedai/contracts/interfaces';
 import '@testing-library/jest-dom/vitest';
 import {
   Task,
   type TaskLinkedEntityModel,
-  type TaskPriority,
-  type TaskStatus,
 } from '@services/management/tasks.service';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';

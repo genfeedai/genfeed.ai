@@ -178,17 +178,17 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // authorization and cross-tenant behavior are unchanged.
     {
       file: 'apps/server/api/src/collections/models/services/models.service.ts',
-      line: 597,
+      line: 598,
     },
     // #6120: superadmin registry approve.
     {
       file: 'apps/server/api/src/collections/models/services/models.service.ts',
-      line: 783,
+      line: 784,
     },
     // #6120: superadmin registry reject.
     {
       file: 'apps/server/api/src/collections/models/services/models.service.ts',
-      line: 881,
+      line: 882,
     },
     // #6120: skill rows addressed by an already-authorized id or owner;
     // personal and system skills have no organization and grants cross

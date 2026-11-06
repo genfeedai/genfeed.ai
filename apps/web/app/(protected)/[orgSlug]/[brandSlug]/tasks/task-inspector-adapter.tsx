@@ -1,6 +1,7 @@
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { TaskPriority, TaskStatus } from '@genfeedai/contracts/interfaces';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -9,12 +10,7 @@ import {
   type TaskComment,
   TaskCommentsService,
 } from '@services/management/task-comments.service';
-import {
-  type Task,
-  type TaskPriority,
-  type TaskStatus,
-  TasksService,
-} from '@services/management/tasks.service';
+import { type Task, TasksService } from '@services/management/tasks.service';
 import { Button } from '@ui/primitives/button';
 import { Cpu, ExternalLink, User } from 'lucide-react';
 import Link from 'next/link';

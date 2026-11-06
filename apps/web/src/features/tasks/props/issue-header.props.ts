@@ -1,8 +1,4 @@
-import type {
-  TaskPriority,
-  TaskStatus,
-} from '@services/management/tasks.service';
-
+import type { TaskPriority, TaskStatus } from '@genfeedai/contracts/interfaces';
 export type IssueHeaderProps = {
   identifier: string;
   status: TaskStatus;

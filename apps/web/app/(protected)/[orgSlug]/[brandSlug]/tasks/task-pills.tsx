@@ -1,9 +1,6 @@
 'use client';
 
-import type {
-  TaskPriority,
-  TaskStatus,
-} from '@services/management/tasks.service';
+import type { TaskPriority, TaskStatus } from '@genfeedai/contracts/interfaces';
 import { Badge } from '@ui/primitives/badge';
 import {
   Select,

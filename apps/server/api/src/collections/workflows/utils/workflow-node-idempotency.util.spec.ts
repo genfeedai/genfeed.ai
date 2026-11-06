@@ -52,15 +52,6 @@ describe('workflow-node-idempotency (#2359)', () => {
     });
   });
 
-  it('pending prior claim is treated as free to claim again', () => {
-    expect(
-      resolveNodeClaimDecision({
-        nodeId: 'n1',
-        status: 'pending',
-      }),
-    ).toEqual({ action: 'claim' });
-  });
-
   it('missing claim is free to claim', () => {
     expect(resolveNodeClaimDecision(undefined)).toEqual({ action: 'claim' });
   });
