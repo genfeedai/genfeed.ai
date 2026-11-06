@@ -232,6 +232,9 @@ describe('OnboardingGuard', () => {
       expect(replaceMock).toHaveBeenCalledWith('/onboarding/brand');
     });
 
+    expect(
+      screen.getByRole('status', { name: 'Loading your workspace' }),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Child')).not.toBeInTheDocument();
   });
 
