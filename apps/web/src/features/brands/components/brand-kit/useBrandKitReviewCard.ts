@@ -108,7 +108,12 @@ export function useBrandKitReviewCard({
     IBrandOsDraftHandoff | null
   >({
     enabled: loadClaimedBrandOsDraft && Boolean(brandId),
-    queryFn: (service) => service.getClaimedBrandOsDraft(brandId),
+    // A handoff without a draft has nothing to review: it counts as none, so
+    // seeding the review during render never reads a missing draft.
+    queryFn: async (service) => {
+      const handoff = await service.getClaimedBrandOsDraft(brandId);
+      return handoff?.draft?.fields ? handoff : null;
+    },
     queryKey: claimedBrandOsDraftQueryKey(brandId),
     service: createBrandsService,
   });
