@@ -3,7 +3,10 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  BaseService,
+  type PrismaFindAllInput,
+} from '@api/shared/services/base/base.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -32,15 +35,13 @@ class TestController extends BaseCRUDController<
   unknown,
   BaseQueryDto
 > {
-  buildFindAllQuery(user: User, query: BaseQueryDto) {
-    return [
-      {
-        match: {
-          isDeleted: query.isDeleted ?? false,
-          userId: user.userId as string,
-        },
+  buildFindAllQuery(user: User, query: BaseQueryDto): PrismaFindAllInput {
+    return {
+      where: {
+        isDeleted: query.isDeleted ?? false,
+        userId: user.userId,
       },
-    ];
+    };
   }
 }
 
@@ -225,14 +226,12 @@ describe('BaseCRUDController', () => {
       const result = await controller.findAll(mockRequest, mockUser, query);
 
       expect(service.findAll).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            match: expect.objectContaining({
-              isDeleted: false,
-              userId: MOCK_USER_ID,
-            }),
-          }),
-        ]),
+        {
+          where: {
+            isDeleted: false,
+            userId: MOCK_USER_ID,
+          },
+        },
         expect.objectContaining({
           limit: 10,
           page: 1,
@@ -285,7 +284,7 @@ describe('BaseCRUDController', () => {
       await controller.findAll(mockRequest, mockUser, query);
 
       expect(service.findAll).toHaveBeenCalledWith(
-        expect.any(Array),
+        expect.objectContaining({ where: expect.any(Object) }),
         expect.objectContaining({
           limit: 10,
           page: 1,
@@ -718,7 +717,7 @@ describe('BaseCRUDController', () => {
       });
       vi.spyOn(controller, 'buildFindAllQuery').mockReturnValue({
         where: { isDeleted: false, organizationId: FOREIGN_ORG_ID },
-      } as never);
+      });
 
       await inTenant(async () => {
         await controller.findAll(
@@ -740,7 +739,7 @@ describe('BaseCRUDController', () => {
       });
       vi.spyOn(controller, 'buildFindAllQuery').mockReturnValue({
         where: { isDeleted: false, organizationId: MOCK_ORG_ID },
-      } as never);
+      });
 
       await inTenant(() =>
         controller.findAll(mockRequest, superAdminUser, {} as BaseQueryDto),
@@ -751,18 +750,16 @@ describe('BaseCRUDController', () => {
   });
 
   describe('protected methods', () => {
-    it('should build aggregation query correctly', () => {
+    it('should build the Prisma findAll query correctly', () => {
       const inputQuery = { search: 'test' } as unknown as BaseQueryDto;
       const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
-      expect(query).toEqual([
-        {
-          match: {
-            isDeleted: false,
-            userId: MOCK_USER_ID,
-          },
+      expect(query).toEqual({
+        where: {
+          isDeleted: false,
+          userId: MOCK_USER_ID,
         },
-      ]);
+      });
     });
   });
 

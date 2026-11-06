@@ -1,6 +1,8 @@
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { TelegramBotService } from '@api/services/telegram-bot/telegram-bot.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { ConfigService } from '@libs/config/config.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { Bot } from 'grammy';
 
 vi.mock('grammy', () => ({
@@ -65,8 +67,8 @@ describe('TelegramBotService', () => {
     mockPrisma = { brand: { findFirst: vi.fn() } };
 
     service = new TelegramBotService(
-      mockConfigService,
-      mockLoggerService,
+      mockConfigService as unknown as ConfigService,
+      mockLoggerService as unknown as LoggerService,
       mockSystemWorkflowRunner as unknown as SystemWorkflowRunnerService,
       mockPrisma as unknown as PrismaService,
     );

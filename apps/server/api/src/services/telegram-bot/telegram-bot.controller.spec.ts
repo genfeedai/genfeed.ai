@@ -121,9 +121,13 @@ describe('TelegramBotController', () => {
   describe('getStatus', () => {
     it('should return the status from TelegramBotService', () => {
       const mockStatus = {
-        botUsername: 'GenfeedBot',
-        mode: 'webhook',
+        activeConversations: 2,
+        allowedUsers: 1,
+        connectedChats: 1,
+        engineReady: true,
+        hasDefaultContext: true,
         running: true,
+        workflowsLoaded: 3,
       };
       telegramBotServiceMock.getStatus.mockReturnValue(mockStatus);
 
@@ -132,14 +136,19 @@ describe('TelegramBotController', () => {
       expect(telegramBotServiceMock.getStatus).toHaveBeenCalledTimes(1);
     });
 
-    it('should return polling mode status', () => {
+    it('should report a stopped bot', () => {
       telegramBotServiceMock.getStatus.mockReturnValue({
-        mode: 'polling',
-        running: true,
+        activeConversations: 0,
+        allowedUsers: 0,
+        connectedChats: 0,
+        engineReady: false,
+        hasDefaultContext: false,
+        running: false,
+        workflowsLoaded: 0,
       });
 
       const result = controller.getStatus();
-      expect((result as { mode: string }).mode).toBe('polling');
+      expect(result).toHaveProperty('running', false);
     });
 
     it('should propagate errors thrown by getStatus', () => {

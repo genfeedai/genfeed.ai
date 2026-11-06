@@ -166,7 +166,10 @@ export class E2ETestApp {
   /**
    * Seed data into a collection
    */
-  async seedCollection<T>(collectionName: string, documents: T[]) {
+  async seedCollection<T extends Record<string, unknown>>(
+    collectionName: string,
+    documents: T[],
+  ) {
     await this.dbHelper.seedCollection(collectionName, documents);
   }
 
