@@ -5,6 +5,7 @@ import { ApiKeyCategory } from '@genfeedai/contracts';
 import {
   PARTNER_API_KEY_KIND,
   PARTNER_API_KEY_PERMISSION_LEVELS,
+  readApiKeyAllowedBrandIds,
   resolveApiKeyPermissionScopes,
 } from '@genfeedai/contracts/constants';
 import type {
@@ -15,6 +16,7 @@ import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface AdminPartnerApiKeyInput {
+  allowedBrandIds?: string[];
   defaultBrandId?: string;
   description?: string;
   expiresInDays?: number;
@@ -62,6 +64,7 @@ export class AdminOrganizationApiKeysService {
       : undefined;
 
     const { apiKey, plainKey } = await this.apiKeysService.createWithKey({
+      allowedBrandIds: input.allowedBrandIds,
       category: ApiKeyCategory.GENFEEDAI,
       defaultBrandId: input.defaultBrandId,
       description: input.description,
@@ -77,6 +80,7 @@ export class AdminOrganizationApiKeysService {
     });
 
     return {
+      allowedBrandIds: readApiKeyAllowedBrandIds(apiKey.metadata) ?? null,
       apiKeyId: apiKey.id,
       defaultBrandId: apiKey.defaultBrandId ?? null,
       expiresAt: apiKey.expiresAt

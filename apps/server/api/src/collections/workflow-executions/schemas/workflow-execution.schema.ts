@@ -5,7 +5,7 @@ import type { WorkflowExecution as PrismaWorkflowExecution } from '@genfeedai/pr
 export type WorkflowNodeResult = {
   nodeId: string;
   nodeType: string;
-  status: WorkflowExecutionStatus | string;
+  status: WorkflowExecutionStatus;
   input?: Record<string, unknown>;
   output?: Record<string, unknown>;
   error?: string;

@@ -1,7 +1,5 @@
-import type {
-  NewsletterSourceRef,
-  NewsletterStatus,
-} from '@genfeedai/client/models';
+import type { NewsletterSourceRef } from '@genfeedai/client/models';
+import type { NewsletterStatus } from '@genfeedai/contracts/interfaces';
 
 export class Newsletter {
   public id!: string;

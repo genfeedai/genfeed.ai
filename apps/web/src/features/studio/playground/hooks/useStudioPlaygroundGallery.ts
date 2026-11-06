@@ -83,6 +83,9 @@ export function useStudioPlaygroundGallery({
       sessionId ?? null,
       apiEndpoint,
     ],
+    // A failed read shows the "couldn't load" alert with its own Retry at
+    // once; a silent automatic retry would hold the history on loading.
+    retry: false,
     service: (token: string) => IngredientsService.getInstance(token),
   });
 

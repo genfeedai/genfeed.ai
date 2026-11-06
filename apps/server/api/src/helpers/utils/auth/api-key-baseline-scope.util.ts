@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { API_KEY_POST_READ_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { isReadOnlyToolName } from '@genfeedai/actions';
 import { hasExplicitApiKeyAdminScope } from '@genfeedai/contracts';
 import { API_KEY_PERMISSION_GROUPS } from '@genfeedai/contracts/constants';
@@ -71,6 +72,15 @@ export function hasApiKeyBaselineAccess(
 }
 
 /**
+ * Read tools whose data has its own permission (#9129): the MCP connector
+ * reaches them through `/agent-tools`, so they need the same scopes as the
+ * matching REST route (`GET /posts`).
+ */
+const AGENT_TOOL_READ_SCOPES: Readonly<Record<string, readonly string[]>> = {
+  get_posts: API_KEY_POST_READ_SCOPES,
+};
+
+/**
  * `POST /agent-tools/:name/execute` dispatches read and write tools alike, so
  * the route takes the read baseline and each tool is held to the baseline its
  * own effect needs: a tool not known to be read-only needs a write scope.
@@ -81,6 +91,17 @@ export function assertApiKeyAgentToolBaselineAccess(
 ): void {
   if (user.isApiKey !== true) {
     return;
+  }
+  const toolScopes = AGENT_TOOL_READ_SCOPES[toolName];
+  if (toolScopes) {
+    if (toolScopes.some((scope) => user.scopes?.includes(scope))) {
+      return;
+    }
+    throw new ForbiddenException({
+      code: 'API_KEY_SCOPE_REQUIRED',
+      detail: `The ${toolName} tool requires ${toolScopes[0]}.`,
+      title: 'Insufficient API key scope',
+    });
   }
   const access: ApiKeyRouteAccess = isReadOnlyToolName(toolName)
     ? 'read'

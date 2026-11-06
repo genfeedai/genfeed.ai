@@ -3,23 +3,14 @@ import type {
   IBrandAgentConfig,
   IWorkspaceInboxRead,
   IWorkspaceInboxReadState,
+  TaskPriority,
+  TaskReviewState,
+  TaskStatus,
 } from '@genfeedai/contracts/interfaces';
 import {
   BaseService,
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
-
-export type TaskStatus =
-  | 'backlog'
-  | 'blocked'
-  | 'cancelled'
-  | 'done'
-  | 'failed'
-  | 'in_progress'
-  | 'in_review'
-  | 'todo';
-
-export type TaskPriority = 'critical' | 'high' | 'low' | 'medium';
 
 export type TaskLinkedEntityModel =
   | 'Article'
@@ -41,13 +32,6 @@ export type TaskOutputType =
   | 'newsletter'
   | 'post'
   | 'video';
-
-export type TaskReviewState =
-  | 'approved'
-  | 'changes_requested'
-  | 'dismissed'
-  | 'none'
-  | 'pending_approval';
 
 export interface TaskLinkedEntity {
   entityId: string;

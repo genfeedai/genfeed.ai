@@ -12,9 +12,16 @@ import { IsBoolean, IsOptional } from 'class-validator';
  * `PartialType` wraps every inherited field in `@IsOptional()`, which also
  * accepts JSON `null`. The three reach fields are taken out of the base and
  * re-declared with `@IsOmittable()`, so `null` is a 400 on update too (#7137).
+ * The brand allowlist is left out entirely: it is fixed when the key is made,
+ * so a key holder can never widen the brands it reaches (#9130).
  */
 export class UpdateApiKeyDto extends PartialType(
-  OmitType(CreateApiKeyDto, ['allowedIps', 'expiresAt', 'scopes'] as const),
+  OmitType(CreateApiKeyDto, [
+    'allowedBrandIds',
+    'allowedIps',
+    'expiresAt',
+    'scopes',
+  ] as const),
 ) {
   @ApiKeyAllowedIpsField()
   @ApiProperty({

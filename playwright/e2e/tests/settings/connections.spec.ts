@@ -246,6 +246,8 @@ test.describe('Settings Connections & Sub-Pages', () => {
         'images:delete',
         'prompts:read',
         'articles:read',
+        'posts:read',
+        'credentials:read',
         'brands:read',
         'analytics:read',
         'credits:read',

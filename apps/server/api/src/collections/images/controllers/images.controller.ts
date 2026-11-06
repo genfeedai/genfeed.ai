@@ -13,6 +13,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { brandRestrictionWhere } from '@api/helpers/utils/auth/api-key-brand-restriction.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
@@ -219,7 +220,10 @@ export class ImagesController {
           IngredientCategory.IMAGE,
         ),
         OR: [
-          { organizationId: readScope.organizationId },
+          {
+            organizationId: readScope.organizationId,
+            ...brandRestrictionWhere(user),
+          },
           { isDefault: true, organizationId: null },
         ],
       },
@@ -287,6 +291,7 @@ export class ImagesController {
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,
         ),
+        ...brandRestrictionWhere(user),
       }),
     );
 

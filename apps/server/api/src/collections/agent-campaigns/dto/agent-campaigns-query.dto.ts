@@ -1,7 +1,11 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import {
+  AGENT_CAMPAIGN_STATUSES,
+  type AgentCampaignStatus,
+} from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional } from 'class-validator';
+import { IsIn, IsOptional } from 'class-validator';
 
 export class AgentCampaignsQueryDto extends BaseQueryDto {
   @IsEntityId()
@@ -12,12 +16,12 @@ export class AgentCampaignsQueryDto extends BaseQueryDto {
   })
   brandId?: string;
 
-  @IsEnum(['draft', 'active', 'paused', 'completed'])
+  @IsIn(AGENT_CAMPAIGN_STATUSES)
   @IsOptional()
   @ApiProperty({
     description: 'Filter by campaign status',
-    enum: ['draft', 'active', 'paused', 'completed'],
+    enum: AGENT_CAMPAIGN_STATUSES,
     required: false,
   })
-  status?: 'draft' | 'active' | 'paused' | 'completed';
+  status?: AgentCampaignStatus;
 }

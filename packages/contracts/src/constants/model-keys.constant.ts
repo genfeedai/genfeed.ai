@@ -138,6 +138,12 @@ export const MODEL_KEYS = {
   FAL_GPT_IMAGE_2_6_FLARE: 'fal-ai/gpt-image-2.6-flare',
   FAL_GPT_IMAGE_2_6_SUNBURST: 'fal-ai/gpt-image-2.6-sunburst',
   FAL_KLING_VIDEO_V3_PRO: 'fal-ai/kling-video/v3/pro',
+  FAL_KLING_VIDEO_V3_PRO_IMAGE_TO_VIDEO:
+    'fal-ai/kling-video/v3/pro/image-to-video',
+  FAL_KLING_VIDEO_V3_STANDARD_TEXT_TO_VIDEO:
+    'fal-ai/kling-video/v3/standard/text-to-video',
+  FAL_KLING_VIDEO_V3_STANDARD_IMAGE_TO_VIDEO:
+    'fal-ai/kling-video/v3/standard/image-to-video',
   FAL_PIXVERSE_V6: 'fal-ai/pixverse/v6',
   FAL_SEEDANCE_2_0: 'fal-ai/seedance-2.0',
   FAL_GOOGLE_GEMINI_OMNI_FLASH: 'fal/google/gemini-omni-flash',

@@ -1,12 +1,5 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-
-export type NewsletterStatus =
-  | 'proposed'
-  | 'draft'
-  | 'ready_for_review'
-  | 'approved'
-  | 'published'
-  | 'archived';
+import type { NewsletterStatus } from '@genfeedai/contracts/interfaces';
 
 export type NewsletterSourceType = 'url' | 'manual' | 'kb' | 'newsletter';
 

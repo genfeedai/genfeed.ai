@@ -1,9 +1,9 @@
 import { NewsletterSourceRefDto } from '@api/collections/newsletters/dto/newsletter-source-ref.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   NEWSLETTER_STATUSES,
   type NewsletterStatus,
-} from '@api/collections/newsletters/newsletter.constants';
-import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+} from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

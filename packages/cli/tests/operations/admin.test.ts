@@ -466,6 +466,7 @@ describe('operations/admin', () => {
     it('mints a partner key in the given organization and returns the plain key', async () => {
       adminPost.mockResolvedValue({
         data: {
+          allowedBrandIds: null,
           apiKeyId: 'key-1',
           defaultBrandId: null,
           expiresAt: null,
@@ -492,7 +493,7 @@ describe('operations/admin', () => {
       });
     });
 
-    it.each(['images', 'images=admin', 'analytics=write', 'posts=read'])(
+    it.each(['images', 'images=admin', 'analytics=write', 'posts=write'])(
       'rejects the partner key level %s',
       (pair) => {
         expect(() => parsePartnerKeyLevels([pair])).toThrow(/Invalid --level/);

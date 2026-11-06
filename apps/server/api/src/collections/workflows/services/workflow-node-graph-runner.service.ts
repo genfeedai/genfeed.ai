@@ -20,6 +20,7 @@ import { prepopulateInitialWorkflowLockedNodes } from '@api/collections/workflow
 import {
   claimNodeOnce,
   completeNodeClaim,
+  type NodeClaimRecord,
 } from '@api/collections/workflows/utils/workflow-node-idempotency.util';
 import { workflowGenerationOperationId } from '@api/helpers/utils/credits/workflow-generation-evidence.util';
 import { getActionDefinition } from '@genfeedai/actions';
@@ -80,15 +81,7 @@ export class WorkflowNodeGraphRunnerService {
    * Claims are released when the graph pass settles; durable node claims and
    * persisted node results own retry/resume idempotency across graph passes.
    */
-  private readonly nodeClaims = new Map<
-    string,
-    {
-      nodeId: string;
-      status: 'completed' | 'failed' | 'running' | 'pending';
-      output?: unknown;
-      error?: string;
-    }
-  >();
+  private readonly nodeClaims = new Map<string, NodeClaimRecord>();
 
   constructor(
     private readonly engineAdapter: WorkflowEngineAdapterService,

@@ -102,6 +102,22 @@ describe('Studio history recovery with the real bounded loader', () => {
     ).toBe(true);
   });
 
+  it('shows the load error after one failed read, with no silent retry', async () => {
+    // Any read after the failed one would never answer.
+    mocks.findAllPage
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockReturnValue(new Promise(() => {}));
+    const client = createTestQueryClient();
+    // The app's client retries a failed read once by default.
+    client.setDefaultOptions({ queries: { retry: 1, retryDelay: 0 } });
+    const { result } = renderHook(() => useStudioPlaygroundGallery(scope), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    await waitFor(() => expect(result.current.galleryError).toBe('load'));
+    expect(result.current.isLoadingGallery).toBe(false);
+  });
+
   it('keeps load error visible during retry, then clears it only on success', async () => {
     const retry = deferred<ReturnType<typeof page>>();
     let calls = 0;

@@ -163,7 +163,7 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       await client.query(`
         CREATE TABLE organizations (id text PRIMARY KEY, "isDeleted" boolean DEFAULT false);
         CREATE TABLE users (id text PRIMARY KEY, "isDeleted" boolean NOT NULL DEFAULT false);
-        CREATE TABLE api_keys (id text PRIMARY KEY, "userId" text NOT NULL REFERENCES users(id), "organizationId" text NOT NULL REFERENCES organizations(id), scopes text[] NOT NULL, "isRevoked" boolean NOT NULL DEFAULT false, "expiresAt" TIMESTAMP(3));
+        CREATE TABLE api_keys (id text PRIMARY KEY, "userId" text NOT NULL REFERENCES users(id), "organizationId" text NOT NULL REFERENCES organizations(id), scopes text[] NOT NULL, "isRevoked" boolean NOT NULL DEFAULT false, "expiresAt" TIMESTAMP(3), metadata jsonb);
         CREATE TABLE agent_memories (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id),
          "userId" text, "brandId" text, "campaignId" text, scope text, content text, type text, kind text, "contentType" text,
          platform text, summary text, tags text[], "sourceType" text, "sourceUrl" text, "sourceContentId" text, "sourceMessageId" text,

@@ -2,10 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { WorkflowInitiatingActor } from '@api/authorization/brand-access/workflow-actor.util';
 import { TaskFeedbackMemoryAdapterService } from '@api/collections/agent-memories/services/task-feedback-memory-adapter.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import {
-  type TaskDocument,
-  type TaskStatus,
-} from '@api/collections/tasks/schemas/task.schema';
+import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import type { TaskConditionalPatch } from '@api/collections/tasks/services/task-persistence.util';
 import type { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
@@ -13,6 +10,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { scopedWhere } from '@api/index';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { TaskStatus } from '@genfeedai/contracts/interfaces';
 import {
   buildWorkspaceTaskRealtimeSnapshot,
   serializeWorkspaceTaskProgress,

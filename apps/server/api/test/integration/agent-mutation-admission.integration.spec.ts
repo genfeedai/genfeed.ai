@@ -98,6 +98,9 @@ describe('atomic agent mutation admission with PostgreSQL', () => {
         sourceActionId,
         scopeVersion: 1,
         status: 'pending',
+        summary: 'Generate 1 post',
+        brandId: null,
+        items: [],
         expiresAt: new Date(Date.now() + 60_000).toISOString(),
       },
     };
@@ -241,6 +244,9 @@ describe('atomic agent mutation admission with PostgreSQL', () => {
         sourceActionId,
         scopeVersion: 1,
         status: 'pending',
+        summary: 'Generate 1 post',
+        brandId: null,
+        items: [],
         expiresAt: new Date(Date.now() + 60_000).toISOString(),
       },
     };
@@ -363,6 +369,9 @@ describe('atomic agent mutation admission with PostgreSQL', () => {
         sourceActionId,
         scopeVersion: 1,
         status: 'pending',
+        summary: 'Generate 1 post',
+        brandId: null,
+        items: [],
         expiresAt: new Date(Date.now() + 60_000).toISOString(),
       },
     };

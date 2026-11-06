@@ -1,26 +1,19 @@
 import { PageQueryDto } from '@api/helpers/dto/page-query.dto';
+import {
+  INVITATION_STATUSES,
+  type InvitationStatus,
+} from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString } from 'class-validator';
-
-export const INVITATION_STATUS_VALUES = [
-  'accepted',
-  'delivered',
-  'delivery-failed',
-  'expired',
-  'pending',
-  'revoked',
-] as const;
-
-export type InvitationStatusFilter = (typeof INVITATION_STATUS_VALUES)[number];
 
 export class InvitationsQueryDto extends PageQueryDto {
   @IsOptional()
   @IsString()
-  @IsIn(INVITATION_STATUS_VALUES)
+  @IsIn(INVITATION_STATUSES)
   @ApiProperty({
     description: 'Filter invitations by status',
-    enum: INVITATION_STATUS_VALUES,
+    enum: INVITATION_STATUSES,
     required: false,
   })
-  status?: InvitationStatusFilter;
+  status?: InvitationStatus;
 }

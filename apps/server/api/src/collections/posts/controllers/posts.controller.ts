@@ -26,7 +26,10 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { assertApiKeyPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import {
+  API_KEY_POST_READ_SCOPES,
+  assertApiKeyPublishingScope,
+} from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -316,6 +319,7 @@ export class PostsController extends BaseCRUDController<
   }
 
   @Get()
+  @RequiredScopes(...API_KEY_POST_READ_SCOPES)
   // No @RolesDecorator here: the posts list backs normal-user surfaces (e.g. the
   // brand calendar). `buildFindAllQuery` already scopes results to the caller via
   // `buildOwnershipFilter` (own/org posts) or, for superadmins passing explicit
@@ -350,6 +354,7 @@ export class PostsController extends BaseCRUDController<
   }
 
   @Get(':postId')
+  @RequiredScopes(...API_KEY_POST_READ_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
     @Req() request: Request,

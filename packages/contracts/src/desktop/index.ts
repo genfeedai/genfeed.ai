@@ -927,12 +927,15 @@ export interface IDesktopMessage {
   role: 'assistant' | 'user';
 }
 
+/** `DesktopThread.status`: whether the thread waits on an assistant reply. */
+export type DesktopThreadStatus = 'awaiting-response' | 'idle';
+
 export interface IDesktopThread {
   createdAt: string;
   id: string;
   messages: IDesktopMessage[];
   projectId?: string;
-  status?: 'awaiting-response' | 'idle';
+  status?: DesktopThreadStatus;
   title: string;
   updatedAt: string;
   workspaceId?: string;
