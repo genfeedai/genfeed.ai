@@ -251,11 +251,17 @@ test('test-only files are neutral unless the suite runs them', () => {
     true,
   );
   assert.equal(
-    isNeutralPath(SUITE, 'packages/storage/__tests__/s3-storage.provider.test.ts'),
+    isNeutralPath(
+      SUITE,
+      'packages/storage/__tests__/s3-storage.provider.test.ts',
+    ),
     true,
   );
   assert.equal(
-    isNeutralPath(SUITE, 'scripts/architecture/mock-interaction-specs.baseline.ts'),
+    isNeutralPath(
+      SUITE,
+      'scripts/architecture/mock-interaction-specs.baseline.ts',
+    ),
     true,
   );
   assert.equal(
@@ -267,11 +273,17 @@ test('test-only files are neutral unless the suite runs them', () => {
     false,
   );
   assert.equal(
-    isNeutralPath(LEARNING, 'apps/server/api/src/endpoints/posts/posts.service.spec.ts'),
+    isNeutralPath(
+      LEARNING,
+      'apps/server/api/src/endpoints/posts/posts.service.spec.ts',
+    ),
     true,
   );
   assert.equal(
-    isNeutralPath(LEARNING, 'scripts/architecture/spec-typecheck-baseline.json'),
+    isNeutralPath(
+      LEARNING,
+      'scripts/architecture/spec-typecheck-baseline.json',
+    ),
     true,
   );
   assert.equal(
@@ -289,11 +301,17 @@ test('test-only files are neutral unless the suite runs them', () => {
     false,
   );
   assert.equal(
-    isNeutralPath(LEARNING, 'apps/server/api/test/helpers/migration-deploy-diagnostics.ts'),
+    isNeutralPath(
+      LEARNING,
+      'apps/server/api/test/helpers/migration-deploy-diagnostics.ts',
+    ),
     false,
   );
   assert.equal(
-    isNeutralPath(LEARNING, 'apps/server/api/src/endpoints/posts/posts.service.ts'),
+    isNeutralPath(
+      LEARNING,
+      'apps/server/api/src/endpoints/posts/posts.service.ts',
+    ),
     false,
   );
 });
