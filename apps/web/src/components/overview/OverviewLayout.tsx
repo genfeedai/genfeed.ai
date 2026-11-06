@@ -36,7 +36,7 @@ export function OverviewActionCard({ card }: { card: OverviewCard }) {
   return (
     <Link
       aria-label={card.cta}
-      className="block h-full rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="block h-full rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       href={card.href || '#'}
     >
       {tile}

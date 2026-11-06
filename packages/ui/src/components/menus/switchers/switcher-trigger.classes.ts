@@ -36,7 +36,7 @@ export const SWITCHER_COMPOSITE_CLEAR_CLASSNAME = [
   'flex h-8 w-7 flex-shrink-0 items-center justify-center rounded-r-md border-l',
   'text-muted-foreground transition-[opacity,color,background-color,border-color] duration-150',
   'hover:bg-foreground/5 hover:text-foreground',
-  'focus-visible:outline-none focus-visible:ring-0',
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
   'disabled:cursor-not-allowed disabled:opacity-50',
   'border-foreground/10',
   '[@media(hover:hover)]:border-transparent',

@@ -52,7 +52,7 @@ export function BrandSelector(): ReactElement {
           title={label}
           className={cn(
             SWITCHER_TRIGGER_CLASSNAME,
-            'px-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+            'px-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
           )}
         >

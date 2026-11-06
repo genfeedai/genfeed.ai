@@ -41,7 +41,7 @@ export default function TagColorPicker({
             ariaLabel={swatch.name}
             aria-pressed={isSelected}
             className={cn(
-              'flex size-5 shrink-0 items-center justify-center rounded-full ring-offset-1 ring-offset-background transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              'flex size-5 shrink-0 items-center justify-center rounded-full ring-offset-1 ring-offset-background transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               isSelected
                 ? 'ring-2 ring-foreground'
                 : 'hover:ring-2 ring-foreground/40',

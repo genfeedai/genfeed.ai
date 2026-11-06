@@ -77,7 +77,7 @@ function TableCellContent<T>({
   const primary = nameLink ? (
     <Link
       aria-label={nameLink.label}
-      className="no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       href={nameLink.href}
     >
       {content}
@@ -681,7 +681,7 @@ export default function AppTable<T>({
                         coverLink && 'relative cursor-pointer',
                         !coverLink &&
                           onActivateRow &&
-                          'cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50 focus-visible:ring-inset',
+                          'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                         getRowClassName?.(item),
                       )}
                       onClick={

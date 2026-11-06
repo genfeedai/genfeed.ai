@@ -124,6 +124,7 @@ export {
   fieldControlTriggerClassName,
   overlayMenuSurfaceClassName,
 } from './field-control';
+export { focusRingClassName, focusRingInsetClassName } from './focus-ring';
 export { Form, type FormProps } from './form';
 export { Input, type InputProps } from './input';
 export { Kbd, type KbdProps } from './kbd';

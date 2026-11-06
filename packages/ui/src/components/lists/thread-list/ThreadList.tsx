@@ -157,7 +157,7 @@ export function ThreadListRow({
     >
       <Link
         className={cn(
-          'flex items-start gap-2.5 rounded-lg px-2.5 py-2 outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'flex items-start gap-2.5 rounded-lg px-2.5 py-2 outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           hasActions && 'pr-10',
         )}
         href={href}

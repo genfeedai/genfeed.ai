@@ -297,18 +297,6 @@ body {
   box-shadow: none;
 }
 
-/* Form focus styling utility */
-/* One focus shape for the whole product. `--focus-ring` is a 2px gap in the
-   canvas colour followed by a 2px ring, so the ring stays visible on top of a
-   filled control instead of blending into it. */
-.form-focus {
-  &:focus {
-    outline: none;
-    box-shadow: var(--focus-ring);
-    border-color: hsl(var(--ring));
-  }
-}
-
 /* One interaction duration (200ms) and an explicit property allowlist. `all`
    animated layout on every button press, while opacity/transform stay available
    to components that deliberately opt into those compositor transitions. */

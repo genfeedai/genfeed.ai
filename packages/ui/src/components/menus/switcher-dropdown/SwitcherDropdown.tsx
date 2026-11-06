@@ -213,7 +213,7 @@ export default function SwitcherDropdown({
                     close();
                     action.onAction();
                   }}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground/60 transition-colors duration-150 hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground/60 transition-colors duration-150 hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   {ActionIcon ? (
                     <ActionIcon className="size-3.5 flex-shrink-0" />
@@ -315,7 +315,7 @@ function SwitcherItem({
 
 const TRAILING_ACTION_CLASSNAME = cn(
   'flex size-7 flex-shrink-0 items-center justify-center rounded text-muted-foreground transition-colors duration-150',
-  'group-hover:text-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+  'group-hover:text-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
 );
 
 function TrailingActionControl({

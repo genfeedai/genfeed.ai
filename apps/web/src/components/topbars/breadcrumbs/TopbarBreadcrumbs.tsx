@@ -56,7 +56,7 @@ export default function TopbarBreadcrumbs({
   const linkClass = cn(
     segmentClass,
     'transition-colors duration-150 hover:text-foreground/80',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:rounded-sm',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:rounded-sm',
   );
 
   return (
@@ -68,7 +68,7 @@ export default function TopbarBreadcrumbs({
           onClick={exitNestedGroup}
           className={cn(
             'font-medium text-foreground/50 transition-colors duration-150 hover:text-foreground/80',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:rounded-sm',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:rounded-sm',
           )}
         >
           {groupLabel}

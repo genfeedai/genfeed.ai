@@ -142,7 +142,7 @@ export default function AgentConnectDialog({
                     : undefined
                 }
                 aria-pressed={client ? family?.name === option.name : undefined}
-                className="h-auto min-h-10 w-full justify-start gap-2 rounded-md px-2 py-2 text-left whitespace-normal aria-pressed:bg-foreground/10 focus-visible:outline-offset-[-2px]"
+                className="h-auto min-h-10 w-full justify-start gap-2 rounded-md px-2 py-2 text-left whitespace-normal aria-pressed:bg-foreground/10"
                 key={option.name}
                 onClick={() => {
                   if (family?.name !== option.name)
@@ -203,13 +203,13 @@ export default function AgentConnectDialog({
                 ) : null}
                 <TabsContent
                   aria-label={`Set up ${client.name}`}
-                  className="space-y-5 focus-visible:ring-inset focus-visible:ring-offset-0"
+                  className="space-y-5 focus-visible:ring-inset"
                   key={client.slug}
                   value={client.slug}
                 >
                   <Accordion type="multiple" defaultValue={['install']}>
                     <AccordionItem value="install">
-                      <AccordionTrigger className="text-left text-sm hover:no-underline focus-visible:outline-offset-[-2px]">
+                      <AccordionTrigger className="text-left text-sm hover:no-underline">
                         1. Add Genfeed
                       </AccordionTrigger>
                       <AccordionContent className="space-y-4">
@@ -261,7 +261,7 @@ export default function AgentConnectDialog({
                     </AccordionItem>
                     {client.slug === 'hermes' ? (
                       <AccordionItem value="cli-setup">
-                        <AccordionTrigger className="text-left text-sm hover:no-underline focus-visible:outline-offset-[-2px]">
+                        <AccordionTrigger className="text-left text-sm hover:no-underline">
                           CLI setup
                         </AccordionTrigger>
                         <AccordionContent className="space-y-4">
@@ -276,7 +276,7 @@ export default function AgentConnectDialog({
                     ) : null}
                     {client.chatPrompt ? (
                       <AccordionItem value="chat-prompt">
-                        <AccordionTrigger className="text-left text-sm hover:no-underline focus-visible:outline-offset-[-2px]">
+                        <AccordionTrigger className="text-left text-sm hover:no-underline">
                           Connection prompt
                         </AccordionTrigger>
                         <AccordionContent>
@@ -288,7 +288,7 @@ export default function AgentConnectDialog({
                       </AccordionItem>
                     ) : null}
                     <AccordionItem value="approval">
-                      <AccordionTrigger className="text-left text-sm hover:no-underline focus-visible:outline-offset-[-2px]">
+                      <AccordionTrigger className="text-left text-sm hover:no-underline">
                         2. Approve and check the connection
                       </AccordionTrigger>
                       <AccordionContent>
@@ -302,7 +302,7 @@ export default function AgentConnectDialog({
                     </AccordionItem>
                     {client.skillsCommand ? (
                       <AccordionItem value="skills">
-                        <AccordionTrigger className="text-left text-sm hover:no-underline focus-visible:outline-offset-[-2px]">
+                        <AccordionTrigger className="text-left text-sm hover:no-underline">
                           Skills-only alternative
                         </AccordionTrigger>
                         <AccordionContent className="space-y-4">
@@ -318,7 +318,7 @@ export default function AgentConnectDialog({
                     ) : null}
                     {client.setupPrompt ? (
                       <AccordionItem value="setup-prompt">
-                        <AccordionTrigger className="text-left text-sm hover:no-underline focus-visible:outline-offset-[-2px]">
+                        <AccordionTrigger className="text-left text-sm hover:no-underline">
                           Setup prompt
                         </AccordionTrigger>
                         <AccordionContent className="space-y-4">

@@ -252,7 +252,7 @@ export default function NotificationInboxPanel({
                       if (!item.readAt) read.mutate([item.id]);
                       onNavigate?.();
                     }}
-                    className="flex min-w-0 flex-1 items-start gap-2.5 py-3 pr-3 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                    className="flex min-w-0 flex-1 items-start gap-2.5 py-3 pr-3 outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   >
                     {body}
                   </Link>

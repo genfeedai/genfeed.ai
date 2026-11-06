@@ -23,7 +23,7 @@ describe('Calendar', () => {
     expect(renderedClasses).toContain('text-muted-foreground');
     expect(renderedClasses).toContain('bg-primary');
     expect(renderedClasses).toContain('text-primary-foreground');
-    expect(renderedClasses).toContain('focus:ring-ring');
+    expect(renderedClasses).toContain('focus-visible:ring-ring');
     expect(renderedClasses).not.toMatch(
       /\b(?:bg|border|ring|text)-(?:black|white)(?:\b|\/|\[)/,
     );

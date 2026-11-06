@@ -5,6 +5,7 @@ import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import { ChevronDown } from 'lucide-react';
 import type { ComponentPropsWithRef } from 'react';
 import { useMounted } from '../lib/hooks';
+import { focusRingInsetClassName } from './focus-ring';
 
 function Accordion({
   ref,
@@ -52,6 +53,7 @@ function AccordionTrigger({
         ref={ref}
         className={cn(
           'flex flex-1 items-center justify-between py-4 font-medium transition-colors hover:underline [&[data-state=open]>svg]:rotate-180',
+          focusRingInsetClassName,
           className,
         )}
         {...props}

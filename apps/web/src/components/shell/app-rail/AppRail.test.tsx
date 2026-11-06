@@ -657,8 +657,8 @@ describe('AppRail', () => {
     expect(workspace).toHaveAccessibleDescription('Command center.');
     expect(workspace).toHaveClass(
       'focus-visible:ring-2',
-      'focus-visible:ring-ring/60',
-      'focus-visible:ring-offset-gray-100',
+      'focus-visible:ring-ring',
+      'focus-visible:ring-offset-background',
       'rounded-lg',
       'text-foreground',
     );

@@ -43,6 +43,6 @@ describe('shared Light/Dark semantic chrome contract', () => {
     expect(source).toContain('hover:bg-accent');
     expect(source).toContain('text-muted-foreground');
     expect(source).toContain('bg-primary text-primary-foreground');
-    expect(source).toContain('focus:ring-ring');
+    expect(source).toContain('focus-visible:ring-ring');
   });
 });

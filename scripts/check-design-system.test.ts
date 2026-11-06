@@ -199,6 +199,23 @@ describe('packages/ui design-system guards', () => {
     );
   });
 
+  it('flags focus rings that fork the one focus treatment', () => {
+    const findings = findPackageUiGuardFindings(
+      '<><a className="focus:ring-2 focus-visible:ring-ring/60 focus-visible:ring-1 focus-visible:outline-2" /><b className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-inset focus-visible:ring-0 focus:outline-none" /></>',
+      'apps/web/example.tsx',
+    );
+
+    expect(findings.map((entry) => entry.token)).toEqual([
+      'focus-visible:outline-2',
+      'focus-visible:ring-1',
+      'focus-visible:ring-ring/60',
+      'focus:ring-2',
+    ]);
+    expect(formatDesignSystemRegressions(findings)).toContain(
+      'focusRingClassName',
+    );
+  });
+
   it('keeps the control-height rule inside packages/ui', () => {
     expect(
       findPackageUiGuardFindings(

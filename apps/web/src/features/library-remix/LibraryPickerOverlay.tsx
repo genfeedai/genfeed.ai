@@ -76,7 +76,7 @@ function LibrarySourceButton({
   return (
     <Button
       ariaLabel={`Select ${label}`}
-      className="group min-w-0 overflow-hidden text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="group min-w-0 overflow-hidden text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       isDisabled={isValidating}
       onClick={onSelect}
       variant={ButtonVariant.UNSTYLED}
@@ -121,7 +121,7 @@ export default function LibraryPickerOverlay({
           onTabChange={(value) => setCategory(value as LibraryPickerCategory)}
         />
         <Link
-          className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           href={managementHref}
         >
           Manage Library

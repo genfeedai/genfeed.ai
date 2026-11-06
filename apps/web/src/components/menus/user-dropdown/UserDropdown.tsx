@@ -75,7 +75,7 @@ export default function UserDropdown({
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
           textTransform="none"
-          className="shrink-0 cursor-pointer rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="shrink-0 cursor-pointer rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           ariaLabel="Open account menu"
         >
           <Avatar alt={userName} name={userName} size="md" src={imageUrl} />

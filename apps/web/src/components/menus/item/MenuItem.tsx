@@ -87,11 +87,11 @@ export default function MenuItem({
     ? isHorizontalLayout
       ? cn(
           'group relative flex h-8 w-full flex-row items-center gap-2.5 rounded px-2.5 py-1.5 text-left transition-[background-color,color] duration-150',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         )
       : cn(
           'group relative flex w-full flex-col items-center gap-2 p-2 text-center transition-colors duration-200',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         )
     : 'group flex h-8 items-center gap-2.5 rounded px-2.5 py-1.5 text-left transition-[background-color,color] duration-150';
 

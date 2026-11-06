@@ -145,7 +145,7 @@ export default function StudioGenerationSummary({
             <span
               role="group"
               aria-label={label}
-              className="inline-flex rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               // The disabled submit button cannot take focus. This group is the
               // tab stop that reveals the estimate.
               // biome-ignore lint/a11y/noNoninteractiveTabindex: disabled control's reason needs a focusable wrapper

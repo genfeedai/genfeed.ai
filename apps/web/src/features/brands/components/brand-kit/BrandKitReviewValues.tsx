@@ -101,7 +101,7 @@ export function SocialLinkReadout({
             {getPlatformIcon(link.platform, 'size-4')}
           </span>
           <a
-            className="min-w-0 truncate rounded-sm text-foreground outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="min-w-0 truncate rounded-sm text-foreground outline-none hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             href={link.url}
             rel="noopener noreferrer"
             target="_blank"
