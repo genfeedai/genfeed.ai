@@ -1,34 +1,118 @@
+import type { ServerFunnelCaptureService } from '@api/services/analytics/server-funnel-capture.service';
+import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
+import type { WebhookDispatchService } from '@api/services/webhook-client/webhook-dispatch.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { describe, expect, it, vi } from 'vitest';
-import { GenerationEventWebhookService } from './generation-event-webhook.service';
-import type { WebhookDispatchService } from './webhook-dispatch.service';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-function makeService() {
-  const logger = {
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  };
-  const webhookDispatchService = {
-    dispatch: vi.fn().mockResolvedValue(null),
-  };
-  const service = new GenerationEventWebhookService(
-    logger as unknown as LoggerService,
-    webhookDispatchService as unknown as WebhookDispatchService,
-  );
+type Row = Record<string, unknown>;
+type Where = Record<string, unknown>;
 
-  return { logger, service, webhookDispatchService };
+interface Dispatch {
+  options: Record<string, unknown>;
+  organizationId: string;
+  payload: Record<string, unknown>;
+}
+
+interface Wiring {
+  hasFunnel?: boolean;
+}
+
+const occurredAt = new Date('2026-07-07T10:00:00.000Z');
+
+// Prisma filters as Postgres applies them to the ingredient rows.
+const matches = (row: Row, where: Where): boolean =>
+  Object.entries(where).every(([key, condition]) => {
+    if (condition && typeof condition === 'object' && 'in' in condition) {
+      return (condition.in as unknown[]).includes(row[key]);
+    }
+    if (condition && typeof condition === 'object' && 'not' in condition) {
+      return row[key] !== condition.not;
+    }
+    return row[key] === condition;
+  });
+
+/** The fire-and-forget capture chain settles after the emit call returns. */
+async function flushBackgroundWork(): Promise<void> {
+  await new Promise((resolve) => setImmediate(resolve));
 }
 
 describe('GenerationEventWebhookService', () => {
-  const occurredAt = new Date('2026-07-07T10:00:00.000Z');
+  let dispatches: Dispatch[];
+  let captures: Record<string, unknown>[];
+  let warnings: [string, Record<string, unknown>][];
+  let errors: [string, Record<string, unknown>][];
+  let ingredients: Row[];
+  let dispatchFailure: Error | undefined;
+  let isDatabaseDown: boolean;
+
+  const build = ({ hasFunnel = false }: Wiring = {}) => {
+    const ingredient = {
+      count: async ({ where }: { where: Where }) =>
+        ingredients.filter((row) => matches(row, where)).length,
+      findFirst: async ({ where }: { where: Where }) => {
+        if (isDatabaseDown) throw new Error('db down');
+        return ingredients.find((row) => matches(row, where)) ?? null;
+      },
+    };
+    return new GenerationEventWebhookService(
+      {
+        error: (message: string, context: Record<string, unknown>) => {
+          errors.push([message, context]);
+        },
+        log: () => undefined,
+        warn: (message: string, context: Record<string, unknown>) => {
+          warnings.push([message, context]);
+        },
+      } as unknown as LoggerService,
+      {
+        dispatch: async (
+          organizationId: string,
+          payload: Record<string, unknown>,
+          options: Record<string, unknown>,
+        ) => {
+          if (dispatchFailure) throw dispatchFailure;
+          dispatches.push({ options, organizationId, payload });
+          return null;
+        },
+      } as unknown as WebhookDispatchService,
+      hasFunnel ? ({ ingredient } as unknown as PrismaService) : undefined,
+      hasFunnel
+        ? ({
+            capture: async (event: Record<string, unknown>) => {
+              captures.push(event);
+            },
+          } as unknown as ServerFunnelCaptureService)
+        : undefined,
+    );
+  };
+  const seedIngredient = (id: string, fields: Row = {}) => {
+    ingredients.push({
+      category: IngredientCategory.IMAGE,
+      id,
+      isDeleted: false,
+      organizationId: 'org_1',
+      status: IngredientStatus.GENERATED,
+      userId: 'user_1',
+      ...fields,
+    });
+  };
+
+  beforeEach(() => {
+    dispatches = [];
+    captures = [];
+    warnings = [];
+    errors = [];
+    ingredients = [];
+    dispatchFailure = undefined;
+    isDatabaseDown = false;
+  });
 
   it.each(['image', 'video', 'article'] as const)(
     'emits a completed %s generation with a deterministic event id',
     async (kind) => {
-      const { service, webhookDispatchService } = makeService();
-
-      await service.emitGenerationCompleted({
+      await build().emitGenerationCompleted({
         brandId: 'brand_1',
         generationId: 'generation_1',
         kind,
@@ -43,39 +127,41 @@ describe('GenerationEventWebhookService', () => {
         provider: 'genfeedai',
       });
 
-      expect(webhookDispatchService.dispatch).toHaveBeenCalledWith(
-        'org_123',
+      expect(dispatches).toEqual([
         {
-          event: 'generation.completed',
-          eventId: `generation:generation.completed:${kind}:generation_1:completed`,
-          generation: {
-            brandId: 'brand_1',
-            completedAt: '2026-07-07T10:00:00.000Z',
-            error: null,
-            id: 'generation_1',
-            kind,
-            model: 'flux-dev',
-            output: {
-              mimeType: 'image/png',
-              storageKey: 'ingredients/images/generation_1',
-              url: 'https://cdn.genfeed.ai/generation_1.png',
+          options: expect.objectContaining({
+            jobIdPrefix: 'generation-webhook-',
+          }),
+          organizationId: 'org_123',
+          payload: {
+            event: 'generation.completed',
+            eventId: `generation:generation.completed:${kind}:generation_1:completed`,
+            generation: {
+              brandId: 'brand_1',
+              completedAt: '2026-07-07T10:00:00.000Z',
+              error: null,
+              id: 'generation_1',
+              kind,
+              model: 'flux-dev',
+              output: {
+                mimeType: 'image/png',
+                storageKey: 'ingredients/images/generation_1',
+                url: 'https://cdn.genfeed.ai/generation_1.png',
+              },
+              provider: 'genfeedai',
+              status: 'completed',
             },
-            provider: 'genfeedai',
-            status: 'completed',
+            occurredAt: '2026-07-07T10:00:00.000Z',
+            schemaVersion: 1,
+            timestamp: '2026-07-07T10:00:00.000Z',
           },
-          occurredAt: '2026-07-07T10:00:00.000Z',
-          schemaVersion: 1,
-          timestamp: '2026-07-07T10:00:00.000Z',
         },
-        expect.objectContaining({ jobIdPrefix: 'generation-webhook-' }),
-      );
+      ]);
     },
   );
 
   it('normalizes an empty output to null', async () => {
-    const { service, webhookDispatchService } = makeService();
-
-    await service.emitGenerationCompleted({
+    await build().emitGenerationCompleted({
       generationId: 'generation_1',
       kind: 'video',
       occurredAt,
@@ -83,19 +169,13 @@ describe('GenerationEventWebhookService', () => {
       output: { mimeType: null, storageKey: null, url: null },
     });
 
-    expect(webhookDispatchService.dispatch).toHaveBeenCalledWith(
-      'org_123',
-      expect.objectContaining({
-        generation: expect.objectContaining({ output: null }),
-      }),
-      expect.anything(),
-    );
+    expect(dispatches[0]?.payload).toMatchObject({
+      generation: { output: null },
+    });
   });
 
   it('classifies and redacts failure detail', async () => {
-    const { service, webhookDispatchService } = makeService();
-
-    await service.emitGenerationFailed({
+    await build().emitGenerationFailed({
       errorCode: 'provider_503 api_key=raw-code-key',
       errorMessage: 'Provider timeout 503 with api_key=raw-provider-key',
       generationId: 'generation_1',
@@ -105,7 +185,7 @@ describe('GenerationEventWebhookService', () => {
       retryable: true,
     });
 
-    const payload = webhookDispatchService.dispatch.mock.calls[0][1];
+    const payload = dispatches[0]?.payload;
     expect(payload).toMatchObject({
       event: 'generation.failed',
       eventId: 'generation:generation.failed:image:generation_1:failed',
@@ -125,111 +205,63 @@ describe('GenerationEventWebhookService', () => {
   });
 
   it('skips emission when the organization or generation id is missing', async () => {
-    const { logger, service, webhookDispatchService } = makeService();
-
-    await service.emitGenerationCompleted({
+    await build().emitGenerationCompleted({
       generationId: '',
       kind: 'article',
       organizationId: 'org_123',
     });
 
-    expect(webhookDispatchService.dispatch).not.toHaveBeenCalled();
-    expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('skipped generation webhook'),
-      expect.objectContaining({ hasGenerationId: false }),
-    );
+    expect(dispatches).toEqual([]);
+    expect(warnings).toEqual([
+      [
+        'GenerationEventWebhookService skipped generation webhook',
+        { hasGenerationId: false, hasOrganizationId: true, kind: 'article' },
+      ],
+    ]);
   });
 
-  it('never fails the generation when dispatch throws', async () => {
-    const { logger, service, webhookDispatchService } = makeService();
-    webhookDispatchService.dispatch.mockRejectedValue(
-      new Error('Queue unavailable webhook_secret=raw-webhook-secret'),
+  it('never fails the generation when dispatch throws, and redacts the logged error', async () => {
+    dispatchFailure = new Error(
+      'Queue unavailable webhook_secret=raw-webhook-secret',
     );
 
     await expect(
-      service.emitGenerationCompleted({
+      build().emitGenerationCompleted({
         generationId: 'generation_1',
         kind: 'image',
         organizationId: 'org_123',
       }),
     ).resolves.toBeUndefined();
 
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('failed to emit generation event'),
-      expect.objectContaining({
-        error: 'Queue unavailable webhook_secret=[REDACTED]',
-        generationId: 'generation_1',
-      }),
-    );
+    expect(errors).toEqual([
+      [
+        'GenerationEventWebhookService failed to emit generation event',
+        {
+          error: 'Queue unavailable webhook_secret=[REDACTED]',
+          generationId: 'generation_1',
+          kind: 'image',
+        },
+      ],
+    ]);
   });
 
   describe('PostHog activation capture', () => {
-    function makeFunnelService(options?: {
-      ingredient?: { category?: string; userId: string | null } | null;
-      priorGenerationCount?: number;
-    }) {
-      const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-      const prisma = {
-        ingredient: {
-          count: vi.fn().mockResolvedValue(options?.priorGenerationCount ?? 0),
-          findFirst: vi
-            .fn()
-            .mockResolvedValue(
-              options?.ingredient === undefined
-                ? { category: 'IMAGE', userId: 'user_1' }
-                : options.ingredient,
-            ),
-        },
-      };
-      const funnelCaptureService = {
-        capture: vi.fn().mockResolvedValue(undefined),
-      };
-      const service = new GenerationEventWebhookService(
-        logger as unknown as LoggerService,
-        {
-          dispatch: vi.fn().mockResolvedValue(null),
-        } as unknown as WebhookDispatchService,
-        prisma as never,
-        funnelCaptureService as never,
-      );
-
-      return { funnelCaptureService, logger, prisma, service };
-    }
-
-    // The fire-and-forget capture chain resolves on a later microtask than
-    // `emitGenerationCompleted` itself.
-    async function flushMicrotasks(): Promise<void> {
-      await new Promise((resolve) => setImmediate(resolve));
-    }
+    const completed = (generationId: string, kind: 'image' | 'video') => ({
+      generationId,
+      kind,
+      organizationId: 'org_1',
+    });
 
     it("captures generation_completed keyed by the ingredient's user, plus first_successful_generation for the org's first output", async () => {
-      const { funnelCaptureService, prisma, service } = makeFunnelService();
+      seedIngredient('ingredient_1');
+      seedIngredient('elsewhere', { organizationId: 'org_2' });
 
-      await service.emitGenerationCompleted({
-        generationId: 'ingredient_1',
-        kind: 'image',
-        organizationId: 'org_1',
-      });
-      await flushMicrotasks();
-
-      expect(prisma.ingredient.findFirst).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            id: 'ingredient_1',
-            isDeleted: false,
-            organizationId: 'org_1',
-          }),
-        }),
+      await build({ hasFunnel: true }).emitGenerationCompleted(
+        completed('ingredient_1', 'image'),
       );
-      expect(prisma.ingredient.count).toHaveBeenCalledWith({
-        where: expect.objectContaining({
-          category: { in: ['IMAGE', 'VIDEO'] },
-          id: { not: 'ingredient_1' },
-          isDeleted: false,
-          organizationId: 'org_1',
-        }),
-      });
-      expect(funnelCaptureService.capture.mock.calls.map(([c]) => c)).toEqual([
+      await flushBackgroundWork();
+
+      expect(captures).toEqual([
         {
           distinctId: 'user_1',
           event: 'generation_completed',
@@ -252,91 +284,87 @@ describe('GenerationEventWebhookService', () => {
       ]);
     });
 
-    it('skips first_successful_generation when the organization already has a generated output', async () => {
-      const { funnelCaptureService, service } = makeFunnelService({
-        priorGenerationCount: 4,
-      });
+    it.each([
+      [
+        'the organization already has a generated output',
+        { category: IngredientCategory.IMAGE },
+        true,
+      ],
+      [
+        'the output is neither an image nor a video',
+        { category: IngredientCategory.VOICE },
+        false,
+      ],
+    ])(
+      'captures only generation_completed when %s',
+      async (_case, fields, hasEarlierOutput) => {
+        seedIngredient('ingredient_2', fields);
+        seedIngredient('earlier', {
+          isDeleted: !hasEarlierOutput,
+          status: IngredientStatus.VALIDATED,
+        });
 
-      await service.emitGenerationCompleted({
-        generationId: 'ingredient_2',
-        kind: 'video',
-        organizationId: 'org_1',
-      });
-      await flushMicrotasks();
+        await build({ hasFunnel: true }).emitGenerationCompleted(
+          completed('ingredient_2', 'video'),
+        );
+        await flushBackgroundWork();
 
-      expect(funnelCaptureService.capture).toHaveBeenCalledTimes(1);
-      expect(funnelCaptureService.capture).toHaveBeenCalledWith(
-        expect.objectContaining({ event: 'generation_completed' }),
+        expect(captures.map(({ event }) => event)).toEqual([
+          'generation_completed',
+        ]);
+      },
+    );
+
+    it.each([
+      ['the ingredient has no owning user', { userId: null }],
+      [
+        'the ingredient belongs to another organization',
+        { organizationId: 'org_2' },
+      ],
+    ])('does not capture when %s', async (_case, fields) => {
+      seedIngredient('ingredient_3', fields);
+
+      await build({ hasFunnel: true }).emitGenerationCompleted(
+        completed('ingredient_3', 'image'),
       );
-    });
+      await flushBackgroundWork();
 
-    it('captures generation_completed but not first_successful_generation for a non image or video ingredient', async () => {
-      const { funnelCaptureService, prisma, service } = makeFunnelService({
-        ingredient: { category: 'VOICE', userId: 'user_1' },
-      });
-
-      await service.emitGenerationCompleted({
-        generationId: 'ingredient_6',
-        kind: 'image',
-        organizationId: 'org_1',
-      });
-      await flushMicrotasks();
-
-      expect(prisma.ingredient.count).toHaveBeenCalled();
-      expect(funnelCaptureService.capture).toHaveBeenCalledTimes(1);
-      expect(funnelCaptureService.capture).toHaveBeenCalledWith(
-        expect.objectContaining({ event: 'generation_completed' }),
-      );
-    });
-
-    it('does not capture without an owning user, rather than inventing an identity', async () => {
-      const { funnelCaptureService, prisma, service } = makeFunnelService({
-        ingredient: { category: 'IMAGE', userId: null },
-      });
-
-      await service.emitGenerationCompleted({
-        generationId: 'ingredient_3',
-        kind: 'image',
-        organizationId: 'org_1',
-      });
-      await flushMicrotasks();
-
-      expect(prisma.ingredient.count).not.toHaveBeenCalled();
-      expect(funnelCaptureService.capture).not.toHaveBeenCalled();
+      expect(captures).toEqual([]);
     });
 
     it('never fails the generation when the capture lookup throws', async () => {
-      const { funnelCaptureService, logger, prisma, service } =
-        makeFunnelService();
-      prisma.ingredient.findFirst.mockRejectedValue(new Error('db down'));
+      isDatabaseDown = true;
 
       await expect(
-        service.emitGenerationCompleted({
-          generationId: 'ingredient_4',
-          kind: 'image',
-          organizationId: 'org_1',
-        }),
+        build({ hasFunnel: true }).emitGenerationCompleted(
+          completed('ingredient_4', 'image'),
+        ),
       ).resolves.toBeUndefined();
-      await flushMicrotasks();
+      await flushBackgroundWork();
 
-      expect(funnelCaptureService.capture).not.toHaveBeenCalled();
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('generation funnel capture skipped'),
-        expect.objectContaining({ generationId: 'ingredient_4' }),
-      );
+      expect(captures).toEqual([]);
+      expect(warnings).toEqual([
+        [
+          'GenerationEventWebhookService generation funnel capture skipped',
+          {
+            error: 'db down',
+            generationId: 'ingredient_4',
+            organizationId: 'org_1',
+          },
+        ],
+      ]);
     });
 
     it('does not capture a failed generation', async () => {
-      const { funnelCaptureService, service } = makeFunnelService();
+      seedIngredient('ingredient_5');
 
-      await service.emitGenerationFailed({
-        generationId: 'ingredient_5',
-        kind: 'image',
-        organizationId: 'org_1',
-      });
-      await flushMicrotasks();
+      await build({ hasFunnel: true }).emitGenerationFailed(
+        completed('ingredient_5', 'image'),
+      );
+      await flushBackgroundWork();
 
-      expect(funnelCaptureService.capture).not.toHaveBeenCalled();
+      expect(captures).toEqual([]);
+      expect(dispatches).toHaveLength(1);
     });
   });
 });
