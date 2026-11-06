@@ -3,6 +3,7 @@
     "composite": false,
     "declaration": false,
     "declarationMap": false,
+    "lib": ["dom", "dom.iterable", "esnext"],
     "noEmit": true,
     "rootDir": "../..",
     "paths": {

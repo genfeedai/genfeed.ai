@@ -5,8 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     MODELS_DEFAULT: {
-      image: MODEL_KEYS.REPLICATE_FLUX_SCHNELL,
-      video: MODEL_KEYS.REPLICATE_HUNYUAN,
+      image: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
+      video: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
     },
   },
 }));

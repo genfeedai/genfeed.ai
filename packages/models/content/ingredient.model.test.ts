@@ -17,6 +17,8 @@ import type {
 import {
   createBaseEntity,
   createBrand,
+  createIngredientFixture,
+  createMetadataFixture,
   createOrganization,
   createUser,
 } from '@genfeedai/helpers/testing/entity-fixtures';
@@ -186,12 +188,6 @@ const createTag = (partial: Partial<ITag> = {}): ITag => ({
   ...partial,
 });
 
-const createMetadata = (partial: Partial<IMetadata> = {}): IMetadata => ({
-  ...createBaseEntity<IMetadata>(partial),
-  label: 'Test metadata',
-  ...partial,
-});
-
 const createPrompt = (partial: Partial<IPrompt> = {}): IPrompt => ({
   ...createBaseEntity<IPrompt>(partial),
   category: IngredientCategory.IMAGE,
@@ -203,25 +199,6 @@ const createPrompt = (partial: Partial<IPrompt> = {}): IPrompt => ({
   status: 'ready',
   totalVotes: 0,
   userId: 'user_123',
-  ...partial,
-});
-
-const createIngredientFixture = (
-  partial: Partial<IIngredient> = {},
-): IIngredient => ({
-  ...createBaseEntity<IIngredient>(partial),
-  category: IngredientCategory.IMAGE,
-  hasVoted: false,
-  isDefault: false,
-  isFavorite: false,
-  isHighlighted: false,
-  isVoteAnimating: false,
-  organization: createOrganization(),
-  scope: AssetScope.BRAND,
-  status: IngredientStatus.GENERATED,
-  totalChildren: 0,
-  totalVotes: 0,
-  user: createUser(),
   ...partial,
 });
 
@@ -297,7 +274,11 @@ describe('Ingredient', () => {
 
     it('should handle metadata as object', () => {
       const ingredient = createIngredient({
-        metadata: createMetadata({ height: 1080, label: 'Test', width: 1920 }),
+        metadata: createMetadataFixture({
+          height: 1080,
+          label: 'Test',
+          width: 1920,
+        }),
       });
 
       expect(ingredient.metadata).toBeDefined();
@@ -421,90 +402,104 @@ describe('Ingredient', () => {
     it('metadataLabel should return label or truncated id', () => {
       const withLabel = createIngredient({
         id: '12345678901234567890',
-        metadata: createMetadata({ label: 'Custom Label' }),
+        metadata: createMetadataFixture({ label: 'Custom Label' }),
       });
       expect(withLabel.metadataLabel).toBe('Custom Label');
 
       const withoutLabel = createIngredient({
         id: '12345678901234567890',
-        metadata: createMetadata({ label: undefined }),
+        metadata: createMetadataFixture({ label: undefined }),
       });
       expect(withoutLabel.metadataLabel).toBe('12345678');
     });
 
     it('metadataDescription should return description or empty', () => {
       const withDesc = createIngredient({
-        metadata: createMetadata({ description: 'Test description' }),
+        metadata: createMetadataFixture({ description: 'Test description' }),
       });
       expect(withDesc.metadataDescription).toBe('Test description');
 
-      const withoutDesc = createIngredient({ metadata: createMetadata() });
+      const withoutDesc = createIngredient({
+        metadata: createMetadataFixture(),
+      });
       expect(withoutDesc.metadataDescription).toBe('');
     });
 
     it('metadataWidth should return width or default 1080', () => {
       const withWidth = createIngredient({
-        metadata: createMetadata({ width: 1920 }),
+        metadata: createMetadataFixture({ width: 1920 }),
       });
       expect(withWidth.metadataWidth).toBe(1920);
 
-      const withoutWidth = createIngredient({ metadata: createMetadata() });
+      const withoutWidth = createIngredient({
+        metadata: createMetadataFixture(),
+      });
       expect(withoutWidth.metadataWidth).toBe(1080);
     });
 
     it('metadataHeight should return height or default 1920', () => {
       const withHeight = createIngredient({
-        metadata: createMetadata({ height: 1080 }),
+        metadata: createMetadataFixture({ height: 1080 }),
       });
       expect(withHeight.metadataHeight).toBe(1080);
 
-      const withoutHeight = createIngredient({ metadata: createMetadata() });
+      const withoutHeight = createIngredient({
+        metadata: createMetadataFixture(),
+      });
       expect(withoutHeight.metadataHeight).toBe(1920);
     });
 
     it('metadataExtension should return extension or empty', () => {
       const withExt = createIngredient({
-        metadata: createMetadata({ extension: 'mp4' }),
+        metadata: createMetadataFixture({ extension: 'mp4' }),
       });
       expect(withExt.metadataExtension).toBe('mp4');
 
-      const withoutExt = createIngredient({ metadata: createMetadata() });
+      const withoutExt = createIngredient({
+        metadata: createMetadataFixture(),
+      });
       expect(withoutExt.metadataExtension).toBe('');
     });
 
     it('metadataDuration should return duration or default 8', () => {
       const withDuration = createIngredient({
-        metadata: createMetadata({ duration: 15 }),
+        metadata: createMetadataFixture({ duration: 15 }),
       });
       expect(withDuration.metadataDuration).toBe(15);
 
-      const withoutDuration = createIngredient({ metadata: createMetadata() });
+      const withoutDuration = createIngredient({
+        metadata: createMetadataFixture(),
+      });
       expect(withoutDuration.metadataDuration).toBe(8);
     });
 
     it('metadataSize should return size or default 0', () => {
       const withSize = createIngredient({
-        metadata: createMetadata({ size: 1024000 }),
+        metadata: createMetadataFixture({ size: 1024000 }),
       });
       expect(withSize.metadataSize).toBe(1024000);
 
-      const withoutSize = createIngredient({ metadata: createMetadata() });
+      const withoutSize = createIngredient({
+        metadata: createMetadataFixture(),
+      });
       expect(withoutSize.metadataSize).toBe(0);
     });
 
     it('metadataModel should return model or empty', () => {
       const withModel = createIngredient({
-        metadata: createMetadata({ model: 'flux-1.1' }),
+        metadata: createMetadataFixture({ model: 'flux-1.1' }),
       });
       expect(withModel.metadataModel).toBe('flux-1.1');
 
-      const withoutModel = createIngredient({ metadata: createMetadata() });
+      const withoutModel = createIngredient({
+        metadata: createMetadataFixture(),
+      });
       expect(withoutModel.metadataModel).toBe('');
     });
 
     it('metadataModelLabel should return modelLabel, model, or empty', () => {
       const withModelLabel = createIngredient({
-        metadata: createMetadata({
+        metadata: createMetadataFixture({
           model: 'flux-1.1',
           modelLabel: 'Flux 1.1 Pro',
         }),
@@ -512,27 +507,31 @@ describe('Ingredient', () => {
       expect(withModelLabel.metadataModelLabel).toBe('Flux 1.1 Pro');
 
       const withOnlyModel = createIngredient({
-        metadata: createMetadata({ model: 'flux-1.1' }),
+        metadata: createMetadataFixture({ model: 'flux-1.1' }),
       });
       expect(withOnlyModel.metadataModelLabel).toBe('flux-1.1');
 
-      const withoutBoth = createIngredient({ metadata: createMetadata() });
+      const withoutBoth = createIngredient({
+        metadata: createMetadataFixture(),
+      });
       expect(withoutBoth.metadataModelLabel).toBe('');
     });
 
     it('metadataStyle should return style or empty', () => {
       const withStyle = createIngredient({
-        metadata: createMetadata({ style: 'cinematic' }),
+        metadata: createMetadataFixture({ style: 'cinematic' }),
       });
       expect(withStyle.metadataStyle).toBe('cinematic');
 
-      const withoutStyle = createIngredient({ metadata: createMetadata() });
+      const withoutStyle = createIngredient({
+        metadata: createMetadataFixture(),
+      });
       expect(withoutStyle.metadataStyle).toBe('');
     });
 
     it('metadataTags should return tags or empty array', () => {
       const withTags = createIngredient({
-        metadata: createMetadata({
+        metadata: createMetadataFixture({
           tags: [
             createTag({ id: 'nature', label: 'nature' }),
             createTag({ id: 'sunset', label: 'sunset' }),
@@ -541,7 +540,9 @@ describe('Ingredient', () => {
       });
       expect(withTags.metadataTags).toHaveLength(2);
 
-      const withoutTags = createIngredient({ metadata: createMetadata() });
+      const withoutTags = createIngredient({
+        metadata: createMetadataFixture(),
+      });
       expect(withoutTags.metadataTags).toEqual([]);
     });
   });
@@ -589,7 +590,7 @@ describe('Ingredient', () => {
   describe('aspectRatio', () => {
     it('should return aspect-square for square dimensions', () => {
       const ingredient = createIngredient({
-        metadata: createMetadata({ height: 1080, width: 1080 }),
+        metadata: createMetadataFixture({ height: 1080, width: 1080 }),
       });
 
       expect(ingredient.aspectRatio).toBe('aspect-square');
@@ -597,7 +598,7 @@ describe('Ingredient', () => {
 
     it('should return aspect-[16/9] for landscape dimensions', () => {
       const ingredient = createIngredient({
-        metadata: createMetadata({ height: 1080, width: 1920 }),
+        metadata: createMetadataFixture({ height: 1080, width: 1920 }),
       });
 
       expect(ingredient.aspectRatio).toBe('aspect-[16/9]');
@@ -605,7 +606,7 @@ describe('Ingredient', () => {
 
     it('should return aspect-[9/16] for portrait dimensions', () => {
       const ingredient = createIngredient({
-        metadata: createMetadata({ height: 1920, width: 1080 }),
+        metadata: createMetadataFixture({ height: 1920, width: 1080 }),
       });
 
       expect(ingredient.aspectRatio).toBe('aspect-[9/16]');
@@ -615,7 +616,7 @@ describe('Ingredient', () => {
   describe('ingredientFormat', () => {
     it('should return SQUARE for equal dimensions', () => {
       const ingredient = createIngredient({
-        metadata: createMetadata({ height: 1080, width: 1080 }),
+        metadata: createMetadataFixture({ height: 1080, width: 1080 }),
       });
 
       expect(ingredient.ingredientFormat).toBe(IngredientFormat.SQUARE);
@@ -623,7 +624,7 @@ describe('Ingredient', () => {
 
     it('should return LANDSCAPE for width > height', () => {
       const ingredient = createIngredient({
-        metadata: createMetadata({ height: 1080, width: 1920 }),
+        metadata: createMetadataFixture({ height: 1080, width: 1920 }),
       });
 
       expect(ingredient.ingredientFormat).toBe(IngredientFormat.LANDSCAPE);
@@ -631,7 +632,7 @@ describe('Ingredient', () => {
 
     it('should return PORTRAIT for width < height', () => {
       const ingredient = createIngredient({
-        metadata: createMetadata({ height: 1920, width: 1080 }),
+        metadata: createMetadataFixture({ height: 1920, width: 1080 }),
       });
 
       expect(ingredient.ingredientFormat).toBe(IngredientFormat.PORTRAIT);
@@ -676,7 +677,7 @@ describe('Ingredient', () => {
       const ingredient = createIngredient({
         category: IngredientCategory.IMAGE,
         id: 'ing_123',
-        metadata: createMetadata({ height: 1920, width: 1080 }),
+        metadata: createMetadataFixture({ height: 1920, width: 1080 }),
         status: IngredientStatus.PROCESSING,
       });
 
@@ -697,7 +698,7 @@ describe('Ingredient', () => {
       const ingredient = createIngredient({
         category: IngredientCategory.VIDEO,
         id: 'ing_123',
-        metadata: createMetadata({ height: 1080, width: 1920 }),
+        metadata: createMetadataFixture({ height: 1080, width: 1920 }),
         status: IngredientStatus.FAILED,
       });
 
@@ -801,7 +802,7 @@ describe('Ingredient', () => {
     it('should return portrait placeholder for portrait video', () => {
       const ingredient = createIngredient({
         category: IngredientCategory.VIDEO,
-        metadata: createMetadata({ height: 1920, width: 1080 }),
+        metadata: createMetadataFixture({ height: 1920, width: 1080 }),
       });
 
       expect(ingredient.thumbnailUrl).toContain('portrait.jpg');
@@ -810,7 +811,7 @@ describe('Ingredient', () => {
     it('should return landscape placeholder for landscape video', () => {
       const ingredient = createIngredient({
         category: IngredientCategory.VIDEO,
-        metadata: createMetadata({ height: 1080, width: 1920 }),
+        metadata: createMetadataFixture({ height: 1080, width: 1920 }),
       });
 
       expect(ingredient.thumbnailUrl).toContain('landscape.jpg');
@@ -819,7 +820,7 @@ describe('Ingredient', () => {
     it('should return square placeholder for square video', () => {
       const ingredient = createIngredient({
         category: IngredientCategory.VIDEO,
-        metadata: createMetadata({ height: 1080, width: 1080 }),
+        metadata: createMetadataFixture({ height: 1080, width: 1080 }),
       });
 
       expect(ingredient.thumbnailUrl).toContain('square.jpg');

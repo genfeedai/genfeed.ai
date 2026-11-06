@@ -4,6 +4,7 @@ import {
   IngredientStatus,
 } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { createIngredientFixture } from '@genfeedai/helpers/testing/entity-fixtures';
 import * as QuickActionsConfig from '@ui/quick-actions/config/quick-actions.config';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -55,7 +56,7 @@ describe('QuickActionsConfig', () => {
   });
 
   it('should create action configurations correctly', () => {
-    const mockIngredient = { id: '1', label: 'Test' } as Partial<IIngredient>;
+    const mockIngredient = createIngredientFixture({ id: '1' });
     const mockHandler = vi.fn();
     const action = QuickActionsConfig.createPublishAction(
       mockIngredient,
