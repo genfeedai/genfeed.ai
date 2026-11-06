@@ -2,211 +2,345 @@ import { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/me
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
-describe('MediaVendorCostLedgerService', () => {
+type Row = Record<string, unknown>;
+
+interface Continuation {
+  executionId: string;
+  id: string;
+  ingredientId: string;
+  nodeId: string;
+  organizationId: string;
+}
+
+interface CostWhere {
+  costEvidence?: { in: string[] };
+  createdAt?: { gte: Date; lte: Date };
+  idempotencyKey?: string;
+  ingredientId?: string;
+  isDeleted?: boolean;
+  organizationId?: string;
+  workflowExecutionId?: { not: null };
+}
+
+function matchesCost(row: Row, where: CostWhere): boolean {
+  const createdAt = row.createdAt as Date;
+  return (
+    (where.organizationId === undefined ||
+      row.organizationId === where.organizationId) &&
+    (where.isDeleted === undefined || row.isDeleted === where.isDeleted) &&
+    (where.idempotencyKey === undefined ||
+      row.idempotencyKey === where.idempotencyKey) &&
+    (where.ingredientId === undefined ||
+      row.ingredientId === where.ingredientId) &&
+    (where.workflowExecutionId === undefined ||
+      row.workflowExecutionId != null) &&
+    (where.costEvidence === undefined ||
+      where.costEvidence.in.includes(String(row.costEvidence))) &&
+    (where.createdAt === undefined ||
+      (createdAt >= where.createdAt.gte && createdAt <= where.createdAt.lte))
+  );
+}
+
+// The vendor-cost ledger and the workflow tables it reads attribution from.
+function createDatabase() {
+  const db = {
+    continuations: [] as Continuation[],
+    costs: [] as Row[],
+    executions: [{ id: 'run', isDeleted: false, organizationId: 'org' }],
+  };
   const prisma = {
-    workflowExecution: {
-      findFirst: vi.fn().mockResolvedValue({ id: 'execution-1' }),
-    },
-    workflowNodeContinuation: { findFirst: vi.fn().mockResolvedValue(null) },
     mediaVendorCost: {
-      findFirst: vi.fn().mockResolvedValue(null),
-      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-      create: vi.fn().mockResolvedValue(undefined),
-      groupBy: vi.fn().mockResolvedValue([]),
-      upsert: vi.fn().mockResolvedValue(undefined),
+      create: async ({ data }: { data: Row }) => {
+        db.costs.push({ createdAt: new Date(), ...data });
+      },
+      findFirst: async ({ where }: { where: CostWhere }) =>
+        db.costs.find((row) => matchesCost(row, where)) ?? null,
+      groupBy: async ({ where }: { where: CostWhere }) => {
+        const groups = new Map<string, Row[]>();
+        for (const row of db.costs.filter((cost) => matchesCost(cost, where))) {
+          const key = `${row.model}|${row.provider}|${row.isByok}`;
+          groups.set(key, [...(groups.get(key) ?? []), row]);
+        }
+        return [...groups.values()].map((rows) => ({
+          _count: { _all: rows.length },
+          _sum: {
+            units: rows.reduce((sum, row) => sum + Number(row.units), 0),
+            vendorCostMicros: rows.reduce(
+              (sum, row) => sum + Number(row.vendorCostMicros),
+              0,
+            ),
+          },
+          isByok: rows[0].isByok,
+          model: rows[0].model,
+          provider: rows[0].provider,
+        }));
+      },
+      updateMany: async ({ data, where }: { data: Row; where: CostWhere }) => {
+        const hits = db.costs.filter((row) => matchesCost(row, where));
+        for (const row of hits) Object.assign(row, data);
+        return { count: hits.length };
+      },
+      upsert: async ({ create, where }: { create: Row; where: CostWhere }) => {
+        if (!db.costs.some((row) => matchesCost(row, where))) {
+          db.costs.push({ createdAt: new Date(), ...create });
+        }
+      },
+    },
+    workflowExecution: {
+      findFirst: async ({ where }: { where: Row }) =>
+        db.executions.find(
+          (execution) =>
+            execution.id === where.id &&
+            execution.organizationId === where.organizationId &&
+            execution.isDeleted === where.isDeleted,
+        ) ?? null,
+    },
+    workflowNodeContinuation: {
+      findFirst: async ({ where }: { where: Row }) => {
+        const continuation = db.continuations.find(
+          (entry) =>
+            entry.ingredientId === where.ingredientId &&
+            entry.organizationId === where.organizationId,
+        );
+        return continuation
+          ? {
+              executionId: continuation.executionId,
+              id: continuation.id,
+              nodeId: continuation.nodeId,
+            }
+          : null;
+      },
     },
   };
-  const logger = {
-    debug: vi.fn(),
-    error: vi.fn(),
-    log: vi.fn(),
-  };
-
-  let service: MediaVendorCostLedgerService;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    service = new MediaVendorCostLedgerService(
+  return {
+    db,
+    service: new MediaVendorCostLedgerService(
       prisma as unknown as PrismaService,
-      logger as unknown as LoggerService,
-    );
-  });
+      { debug: () => undefined } as unknown as LoggerService,
+    ),
+  };
+}
 
-  it('persists one ledger row per generation', async () => {
-    await service.record({
-      brandId: 'brand-1',
-      category: 'video',
-      ingredientId: 'ing-1',
-      isByok: false,
-      model: 'bytedance/seedance-2.5',
-      organizationId: 'org-1',
-      pricingType: 'per-second',
-      provider: 'replicate',
-      units: 10,
-      vendorCostMicros: 2_400_000,
-    });
+const generation = {
+  brandId: 'brand-1',
+  category: 'video',
+  ingredientId: 'ing-1',
+  isByok: false,
+  model: 'bytedance/seedance-2.5',
+  organizationId: 'org-1',
+  pricingType: 'per-second',
+  provider: 'replicate',
+  units: 10,
+  vendorCostMicros: 2_400_000,
+} as const;
 
-    expect(prisma.mediaVendorCost.upsert).toHaveBeenCalledWith({
-      create: {
+describe('MediaVendorCostLedgerService', () => {
+  it('keeps one ledger row per generation however often it is recorded', async () => {
+    const { db, service } = createDatabase();
+
+    await service.record(generation);
+    await service.record({ ...generation, vendorCostMicros: 9_999_999 });
+
+    expect(db.costs).toEqual([
+      expect.objectContaining({
+        ...generation,
         costEvidence: 'unknown',
-        brandId: 'brand-1',
-        category: 'video',
-        idempotencyKey: 'media:org-1:ing-1',
-        ingredientId: 'ing-1',
-        isByok: false,
-        isDeleted: false,
-        model: 'bytedance/seedance-2.5',
-        organizationId: 'org-1',
-        pricingType: 'per-second',
-        provider: 'replicate',
-        units: 10,
-        vendorCostMicros: 2_400_000,
-      },
-      update: {},
-      where: {
         idempotencyKey: 'media:org-1:ing-1',
         isDeleted: false,
-        organizationId: 'org-1',
-      },
-    });
+      }),
+    ]);
   });
 
-  it('aggregates by org and date range with the tenant filter', async () => {
-    const from = new Date('2026-08-01T00:00:00Z');
-    const to = new Date('2026-08-17T00:00:00Z');
-
-    await service.aggregateByOrgModel({ from, organizationId: 'org-1', to });
-
-    expect(prisma.mediaVendorCost.groupBy).toHaveBeenCalledWith({
-      _count: { _all: true },
-      _sum: { units: true, vendorCostMicros: true },
-      by: ['model', 'provider', 'isByok'],
-      where: {
-        createdAt: { gte: from, lte: to },
-        isDeleted: false,
-        organizationId: 'org-1',
-      },
-    });
-  });
-  it('reconstructs durable callback attribution and deduplicates by output', async () => {
-    prisma.workflowNodeContinuation.findFirst.mockResolvedValue({
-      id: 'operation',
-      executionId: 'run',
-      nodeId: 'node',
-    });
-    await service.record({
-      ingredientId: 'output',
-      organizationId: 'org',
-      category: 'image',
+  it('aggregates live rows of the organization inside the date range', async () => {
+    const { db, service } = createDatabase();
+    const inRange = new Date('2026-08-10T00:00:00Z');
+    const cost = (overrides: Row) => ({
+      createdAt: inRange,
+      isByok: false,
+      isDeleted: false,
+      model: 'seedance',
+      organizationId: 'org-1',
       provider: 'replicate',
+      units: 5,
+      vendorCostMicros: 1_000,
+      ...overrides,
+    });
+    db.costs.push(
+      cost({}),
+      cost({ units: 3, vendorCostMicros: 500 }),
+      cost({ isByok: true, vendorCostMicros: 7_000 }),
+      cost({ createdAt: new Date('2026-07-01T00:00:00Z') }),
+      cost({ organizationId: 'org-2' }),
+      cost({ isDeleted: true }),
+    );
+
+    await expect(
+      service.aggregateByOrgModel({
+        from: new Date('2026-08-01T00:00:00Z'),
+        organizationId: 'org-1',
+        to: new Date('2026-08-17T00:00:00Z'),
+      }),
+    ).resolves.toEqual([
+      {
+        byokGenerationCount: 1,
+        generationCount: 3,
+        model: 'seedance',
+        platformGenerationCount: 2,
+        provider: 'replicate',
+        units: 13,
+        vendorCostMicros: 1_500,
+      },
+    ]);
+  });
+
+  it('attributes a callback cost to its durable workflow operation', async () => {
+    const { db, service } = createDatabase();
+    db.continuations.push({
+      executionId: 'run',
+      id: 'operation',
+      ingredientId: 'output',
+      nodeId: 'node',
+      organizationId: 'org',
+    });
+
+    await service.record({
+      category: 'image',
+      costEvidence: 'observed',
+      ingredientId: 'output',
+      isByok: false,
       model: 'model',
+      organizationId: 'org',
+      provider: 'replicate',
       units: 1,
       vendorCostMicros: 123,
-      isByok: false,
-      costEvidence: 'observed',
     });
-    expect(prisma.workflowNodeContinuation.findFirst).toHaveBeenCalledWith(
+
+    expect(db.costs).toEqual([
       expect.objectContaining({
-        where: {
-          ingredientId: 'output',
-          organizationId: 'org',
-        },
-      }),
-    );
-    expect(prisma.workflowExecution.findFirst).toHaveBeenCalledWith({
-      where: { id: 'run', organizationId: 'org', isDeleted: false },
-      select: { id: true },
-    });
-    expect(prisma.mediaVendorCost.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        create: expect.objectContaining({
-          workflowExecutionId: 'run',
-          workflowNodeId: 'node',
-          workflowOperationId: 'operation',
-          costEvidence: 'observed',
-        }),
-        update: {},
-      }),
-    );
-  });
-  it('settles late evidence using pinned pricing and an atomic unresolved guard', async () => {
-    prisma.workflowNodeContinuation.findFirst.mockResolvedValue({
-      id: 'operation',
-      executionId: 'run',
-      nodeId: 'node',
-    });
-    prisma.mediaVendorCost.findFirst.mockResolvedValue({
-      pricingSnapshot: {
-        providerCostUsd: 0.12,
-        pricingType: 'per-second',
-        isByok: false,
-      },
-      costEvidence: 'unknown',
-    });
-    await service.record({
-      ingredientId: 'output',
-      organizationId: 'org',
-      category: 'video',
-      provider: 'replicate',
-      model: 'model',
-      units: 999,
-      realizedDurationSeconds: 2.5,
-      vendorCostMicros: 9999999,
-      isByok: true,
-      costEvidence: 'calculated',
-    });
-    expect(prisma.mediaVendorCost.updateMany).toHaveBeenCalledWith({
-      where: {
-        organizationId: 'org',
-        isDeleted: false,
+        costEvidence: 'observed',
         idempotencyKey: 'media:org:output',
-        costEvidence: { in: ['pending', 'unknown'] },
-      },
-      data: {
-        costEvidence: 'calculated',
-        vendorCostMicros: 300000,
-        units: 2.5,
-        brandId: null,
-        isByok: false,
-      },
-    });
-  });
-  it('settles a durable workflow intent even after execution deletion without attributing a new row', async () => {
-    prisma.workflowNodeContinuation.findFirst.mockResolvedValue({
-      id: 'continuation',
-      executionId: 'run',
-      nodeId: 'avatar',
-    });
-    prisma.workflowExecution.findFirst.mockResolvedValue(null);
-    prisma.mediaVendorCost.findFirst.mockResolvedValue({
-      costEvidence: 'pending',
-      pricingSnapshot: { isByok: null, billingDisposition: 'pending_charge' },
-    });
-    await service.record({
-      organizationId: 'org-1',
-      ingredientId: 'avatar',
-      category: 'video',
-      provider: 'heygen',
-      model: 'avatar',
-      isByok: true,
-      units: 1,
-      vendorCostMicros: 300000,
-      costEvidence: 'observed',
-    });
-    expect(prisma.mediaVendorCost.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          organizationId: 'org-1',
-          isDeleted: false,
-          idempotencyKey: 'media:org-1:avatar',
-        }),
-        data: expect.objectContaining({
-          isByok: true,
-          vendorCostMicros: 0,
-          costEvidence: 'byok',
-        }),
+        vendorCostMicros: 123,
+        workflowExecutionId: 'run',
+        workflowNodeId: 'node',
+        workflowOperationId: 'operation',
       }),
-    );
-    expect(prisma.mediaVendorCost.upsert).not.toHaveBeenCalled();
+    ]);
+  });
+
+  it('settles late evidence at the pinned price, ignoring the reported cost', async () => {
+    const { db, service } = createDatabase();
+    db.costs.push({
+      brandId: 'brand-1',
+      costEvidence: 'unknown',
+      idempotencyKey: 'media:org:output',
+      ingredientId: 'output',
+      isByok: true,
+      isDeleted: false,
+      organizationId: 'org',
+      pricingSnapshot: {
+        isByok: false,
+        pricingType: 'per-second',
+        providerCostUsd: 0.12,
+      },
+      units: 0,
+      vendorCostMicros: 0,
+      workflowExecutionId: 'run',
+    });
+
+    await service.record({
+      category: 'video',
+      costEvidence: 'calculated',
+      ingredientId: 'output',
+      isByok: true,
+      model: 'model',
+      organizationId: 'org',
+      provider: 'replicate',
+      realizedDurationSeconds: 2.5,
+      units: 999,
+      vendorCostMicros: 9_999_999,
+    });
+
+    expect(db.costs).toEqual([
+      expect.objectContaining({
+        brandId: null,
+        costEvidence: 'calculated',
+        isByok: false,
+        units: 2.5,
+        vendorCostMicros: 300_000,
+      }),
+    ]);
+  });
+
+  it('leaves an already settled intent alone when non-observed evidence arrives late', async () => {
+    const { db, service } = createDatabase();
+    const settled = {
+      costEvidence: 'calculated',
+      idempotencyKey: 'media:org:output',
+      ingredientId: 'output',
+      isDeleted: false,
+      organizationId: 'org',
+      pricingSnapshot: { pricingType: 'per-second', providerCostUsd: 0.12 },
+      units: 2.5,
+      vendorCostMicros: 300_000,
+      workflowExecutionId: 'run',
+    };
+    db.costs.push({ ...settled });
+
+    await service.record({
+      category: 'video',
+      costEvidence: 'calculated',
+      ingredientId: 'output',
+      isByok: false,
+      model: 'model',
+      organizationId: 'org',
+      provider: 'replicate',
+      realizedDurationSeconds: 10,
+      units: 10,
+      vendorCostMicros: 1,
+    });
+
+    expect(db.costs).toEqual([settled]);
+  });
+
+  it('settles a workflow intent as BYOK at zero cost after its execution was deleted, without a new row', async () => {
+    const { db, service } = createDatabase();
+    db.executions = [];
+    db.continuations.push({
+      executionId: 'run',
+      id: 'continuation',
+      ingredientId: 'avatar',
+      nodeId: 'avatar',
+      organizationId: 'org-1',
+    });
+    db.costs.push({
+      costEvidence: 'pending',
+      idempotencyKey: 'media:org-1:avatar',
+      ingredientId: 'avatar',
+      isDeleted: false,
+      organizationId: 'org-1',
+      pricingSnapshot: { billingDisposition: 'pending_charge', isByok: null },
+      vendorCostMicros: 0,
+      workflowExecutionId: 'run',
+    });
+
+    await service.record({
+      category: 'video',
+      costEvidence: 'observed',
+      ingredientId: 'avatar',
+      isByok: true,
+      model: 'avatar',
+      organizationId: 'org-1',
+      provider: 'heygen',
+      units: 1,
+      vendorCostMicros: 300_000,
+    });
+
+    expect(db.costs).toEqual([
+      expect.objectContaining({
+        costEvidence: 'byok',
+        isByok: true,
+        vendorCostMicros: 0,
+      }),
+    ]);
   });
 });
