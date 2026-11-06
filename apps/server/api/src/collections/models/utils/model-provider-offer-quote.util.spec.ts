@@ -162,11 +162,9 @@ describe('Kling v3 routing to fal', () => {
   }
 
   function falKling(id: string, endpoint: keyof typeof falKlingSchemas) {
-    const offer = reviewed(id, 'fal', endpoint);
-    offer.providerInputSchema = falKlingSchemas[
-      endpoint
-    ] as typeof offer.providerInputSchema;
-    return offer;
+    const providerInputSchema: Record<string, unknown> =
+      falKlingSchemas[endpoint];
+    return { ...reviewed(id, 'fal', endpoint), providerInputSchema };
   }
 
   function klingFixture() {
