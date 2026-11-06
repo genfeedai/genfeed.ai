@@ -1,7 +1,3 @@
-import {
-  createTestQueryClient,
-  queryClientWrapper,
-} from '@app-tests/query-client.harness';
 import { CampaignTargetStatus } from '@genfeedai/contracts';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,7 +5,6 @@ import { useOutreachCampaignDetail } from './useOutreachCampaignDetail';
 
 const mocks = vi.hoisted(() => ({
   findOne: vi.fn(),
-  campaignId: 'campaign-1',
   getTargets: vi.fn(),
   notificationsError: vi.fn(),
   notificationsSuccess: vi.fn(),
@@ -38,11 +33,6 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => resolveOutreachCampaignsService,
 }));
 
-vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
-  useAuthIdentity: (await import('@app-tests/query-client.harness'))
-    .useTestViewer,
-}));
-
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/org/brand${path}` }),
 }));
@@ -67,7 +57,7 @@ vi.mock('@services/core/logger.service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  useParams: () => ({ id: mocks.campaignId }),
+  useParams: () => ({ id: 'campaign-1' }),
   useRouter: () => ({ push: mocks.push }),
   useSearchParams: () => mocks.searchParams,
 }));
@@ -78,12 +68,6 @@ vi.mock('next-intl', async () => {
   );
   return { useTranslations: translateFromCatalog };
 });
-
-function renderDetail(client = createTestQueryClient()) {
-  return renderHook(() => useOutreachCampaignDetail(), {
-    wrapper: queryClientWrapper(client),
-  });
-}
 
 describe('useOutreachCampaignDetail — start-campaign reentrancy guard', () => {
   beforeEach(() => {
@@ -119,7 +103,7 @@ describe('useOutreachCampaignDetail — start-campaign reentrancy guard', () => 
         }),
     );
 
-    const { result } = renderDetail();
+    const { result } = renderHook(() => useOutreachCampaignDetail());
 
     await waitFor(() => expect(result.current.campaign).not.toBeNull());
 
@@ -156,7 +140,7 @@ describe('useOutreachCampaignDetail — start-campaign reentrancy guard', () => 
         }),
     );
 
-    const { result } = renderDetail();
+    const { result } = renderHook(() => useOutreachCampaignDetail());
     await waitFor(() => expect(result.current.campaign).not.toBeNull());
 
     expect(result.current.isStartingCampaign).toBe(false);
@@ -204,20 +188,19 @@ describe('useOutreachCampaignDetail — paginated targets', () => {
   });
 
   it('requests only the page in the URL', async () => {
-    const { result } = renderDetail();
+    const { result } = renderHook(() => useOutreachCampaignDetail());
 
     await waitFor(() => expect(result.current.campaign).not.toBeNull());
 
-    expect(mocks.getTargets).toHaveBeenCalledWith(
-      'campaign-1',
-      { limit: 15, page: 3 },
-      expect.any(AbortSignal),
-    );
+    expect(mocks.getTargets).toHaveBeenCalledWith('campaign-1', {
+      limit: 15,
+      page: 3,
+    });
     expect(result.current.targets).toEqual([{ id: 'target-31' }]);
   });
 
   it('derives the KPIs from the campaign-wide counts, not the loaded page', async () => {
-    const { result } = renderDetail();
+    const { result } = renderHook(() => useOutreachCampaignDetail());
 
     await waitFor(() => expect(result.current.campaign).not.toBeNull());
 
@@ -241,98 +224,10 @@ describe('useOutreachCampaignDetail — paginated targets', () => {
       totalPages: 5,
       statusCounts: { [CampaignTargetStatus.PENDING]: 61 },
     });
-    const { result } = renderDetail();
+    const { result } = renderHook(() => useOutreachCampaignDetail());
     expect(result.current.pageTotals).toEqual({ totalDocs: 0, totalPages: 1 });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.pageTotals).toEqual({ totalDocs: 61, totalPages: 5 });
     expect(result.current.targetStats.pending).toBe(61);
-  });
-});
-
-describe('useOutreachCampaignDetail — cached campaign', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.campaignId = 'campaign-1';
-    mocks.findOne.mockResolvedValue({
-      campaignType: 'manual',
-      id: 'campaign-1',
-      label: 'Sequence',
-      platform: 'twitter',
-      status: 'draft',
-    });
-    mocks.getTargets.mockResolvedValue({
-      page: 1,
-      pageSize: 15,
-      statusCounts: { [CampaignTargetStatus.PENDING]: 1 },
-      targets: [{ id: 'target-1' }],
-      total: 1,
-      totalPages: 1,
-    });
-  });
-
-  it('paints the campaign and its targets at once when coming back', async () => {
-    const client = createTestQueryClient();
-    const firstVisit = renderDetail(client);
-    await waitFor(() =>
-      expect(firstVisit.result.current.isLoading).toBe(false),
-    );
-    firstVisit.unmount();
-
-    mocks.findOne.mockReturnValue(new Promise(() => {}));
-    mocks.getTargets.mockReturnValue(new Promise(() => {}));
-    const { result } = renderDetail(client);
-
-    expect(result.current.isLoading).toBe(false);
-    expect(result.current.campaign?.label).toBe('Sequence');
-    expect(result.current.targets).toEqual([{ id: 'target-1' }]);
-    expect(result.current.targetStats.pending).toBe(1);
-  });
-
-  it('never shows one campaign under another campaign id', async () => {
-    const client = createTestQueryClient();
-    const firstVisit = renderDetail(client);
-    await waitFor(() =>
-      expect(firstVisit.result.current.isLoading).toBe(false),
-    );
-    firstVisit.unmount();
-
-    mocks.campaignId = 'campaign-2';
-    mocks.findOne.mockReturnValue(new Promise(() => {}));
-    mocks.getTargets.mockReturnValue(new Promise(() => {}));
-    const { result } = renderDetail(client);
-
-    expect(result.current.isLoading).toBe(true);
-    expect(result.current.campaign).toBeNull();
-    expect(result.current.targets).toEqual([]);
-  });
-
-  it('keeps the campaign on screen when a background refresh fails', async () => {
-    const { result } = renderDetail();
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    mocks.findOne.mockRejectedValue(new Error('offline'));
-    await act(async () => {
-      await result.current.loadCampaign();
-    });
-
-    await waitFor(() => expect(result.current.isRefreshing).toBe(false));
-    expect(result.current.campaign?.label).toBe('Sequence');
-  });
-
-  it('shows the started campaign status from the start response', async () => {
-    mocks.start.mockResolvedValue({
-      campaignType: 'manual',
-      id: 'campaign-1',
-      label: 'Sequence',
-      status: 'active',
-    });
-    const { result } = renderDetail();
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    await act(async () => {
-      await result.current.handleStartCampaign();
-    });
-
-    await waitFor(() => expect(result.current.campaign?.status).toBe('active'));
   });
 });

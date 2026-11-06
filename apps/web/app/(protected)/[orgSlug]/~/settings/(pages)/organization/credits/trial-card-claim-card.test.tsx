@@ -1,17 +1,8 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import {
-  createTestQueryClient,
-  queryClientWrapper,
-} from '@app-tests/query-client.harness';
-import {
-  fireEvent,
-  render as rtlRender,
-  screen,
-  waitFor,
-} from '@testing-library/react';
-import type { ReactElement, ReactNode } from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TrialCardClaimCard from './trial-card-claim-card';
 
@@ -55,11 +46,6 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   }),
 }));
 
-vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
-  useAuthIdentity: (await import('@app-tests/query-client.harness'))
-    .useTestViewer,
-}));
-
 vi.mock('@services/billing/stripe.service', () => ({
   StripeService: { getInstance: vi.fn() },
 }));
@@ -96,10 +82,6 @@ vi.mock('@ui/primitives/button', () => ({
     </button>
   ),
 }));
-
-function render(ui: ReactElement, client = createTestQueryClient()) {
-  return rtlRender(ui, { wrapper: queryClientWrapper(client) });
-}
 
 describe('TrialCardClaimCard', () => {
   let locationState: { href: string; pathname: string };
@@ -152,19 +134,6 @@ describe('TrialCardClaimCard', () => {
     },
   );
 
-  it('offers the card step at once when Credits is reopened', async () => {
-    const client = createTestQueryClient();
-    const firstVisit = render(<TrialCardClaimCard />, client);
-    await screen.findByText('Unlock 75 free credits');
-    firstVisit.unmount();
-
-    getTrialCardStatusMock.mockReturnValue(new Promise(() => {}));
-    render(<TrialCardClaimCard />, client);
-
-    expect(screen.getByText('Unlock 75 free credits')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add card' })).toBeEnabled();
-  });
-
   it('sends the user to Stripe card setup and back to the same page', async () => {
     render(<TrialCardClaimCard />);
 
@@ -212,20 +181,6 @@ describe('TrialCardClaimCard', () => {
       );
       expect(replaceMock).toHaveBeenCalledWith('/acme/~/settings/credits');
       expect(getTrialCardStatusMock).not.toHaveBeenCalled();
-    });
-
-    it('keeps offering the card step on the next visit after a refused claim', async () => {
-      claimTrialCardMock.mockResolvedValue({ outcome: 'card-already-used' });
-      const client = createTestQueryClient();
-      const returnVisit = render(<TrialCardClaimCard />, client);
-      await waitFor(() => expect(replaceMock).toHaveBeenCalled());
-      returnVisit.unmount();
-
-      searchParamsState.value = '';
-      getTrialCardStatusMock.mockReturnValue(new Promise(() => {}));
-      render(<TrialCardClaimCard />, client);
-
-      expect(screen.getByRole('button', { name: 'Add card' })).toBeEnabled();
     });
 
     it('explains a card that another account already used and lets the user retry', async () => {

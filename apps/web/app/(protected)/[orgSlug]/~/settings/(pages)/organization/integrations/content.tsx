@@ -4,22 +4,19 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { IByokProviderStatus } from '@genfeedai/contracts/interfaces';
 import { hasByokAccess } from '@genfeedai/pricing';
-import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
-import { useQueryClient } from '@tanstack/react-query';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import { Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
 import DesktopServerSettings from '@/components/desktop/DesktopServerSettings';
 import type {
@@ -29,13 +26,12 @@ import type {
 import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import ByokProviderCard from '../api-keys/byok-provider-card';
 
-const BYOK_PROVIDERS_KEY = 'organization-byok-providers';
-const EMPTY_PROVIDER_STATUSES: IByokProviderStatus[] = [];
-
 const initialState: IntegrationsState = {
   apiKeyInputs: {},
   apiSecretInputs: {},
   expandedProvider: null,
+  isLoading: true,
+  providerStatuses: [],
   removingProvider: null,
   savingProvider: null,
   validatingProvider: null,
@@ -46,6 +42,10 @@ function integrationsReducer(
   action: IntegrationsAction,
 ): IntegrationsState {
   switch (action.type) {
+    case 'SET_PROVIDER_STATUSES':
+      return { ...state, providerStatuses: action.payload };
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
     case 'SET_EXPANDED_PROVIDER':
       return { ...state, expandedProvider: action.payload };
     case 'SET_API_KEY_INPUT':
@@ -82,6 +82,7 @@ function integrationsReducer(
           [action.payload.provider]: '',
         },
         expandedProvider: null,
+        providerStatuses: action.payload.statuses,
       };
     case 'SAVE_DONE':
       return { ...state, savingProvider: null, validatingProvider: null };
@@ -102,50 +103,46 @@ export default function SettingsIntegrationsPage() {
     !hasOrganizationBillingHint() || hasByokAccess(settings?.subscriptionTier);
   const [state, dispatch] = useReducer(integrationsReducer, initialState);
   const {
+    providerStatuses,
     expandedProvider,
     apiKeyInputs,
     apiSecretInputs,
     savingProvider,
     validatingProvider,
     removingProvider,
+    isLoading,
   } = state;
 
   const getOrganizationsService = useAuthedService(
     useCallback((token: string) => OrganizationsService.getInstance(token), []),
   );
 
-  // Cached per viewer and organization: coming back to Integrations paints
-  // the provider cards at once and refreshes them in the background.
-  const queryClient = useQueryClient();
-  const providersKey = [BYOK_PROVIDERS_KEY, organizationId ?? null] as const;
-  const providersQuery = useAuthedQuery({
-    enabled: Boolean(organizationId) && isReady,
-    queryFn: (service, signal) =>
-      service.getByokAllProviders(organizationId, signal),
-    queryKey: providersKey,
-    service: (token: string) => OrganizationsService.getInstance(token),
-  });
-  const providerStatuses = providersQuery.data ?? EMPTY_PROVIDER_STATUSES;
-  const isLoading = providersQuery.isPending;
-  const loadError = providersQuery.error;
-  const reportedLoadErrorRef = useRef<Error | null>(null);
-
   useEffect(() => {
-    if (!loadError || reportedLoadErrorRef.current === loadError) {
+    if (!organizationId || !isReady) {
       return;
     }
-    reportedLoadErrorRef.current = loadError;
-    logger.error('Failed to fetch BYOK statuses', loadError);
-  }, [loadError]);
+    const controller = new AbortController();
 
-  async function applyProviderStatuses(statuses: IByokProviderStatus[]) {
-    // A read still in flight would land the older statuses over this result.
-    await queryClient.cancelQueries({ queryKey: providersKey });
-    queryClient.setQueriesData<IByokProviderStatus[]>(
-      { queryKey: providersKey },
-      statuses,
-    );
-  }
+    const fetchStatuses = async () => {
+      try {
+        const service = await getOrganizationsService();
+        const statuses = await service.getByokAllProviders(organizationId);
+
+        if (!controller.signal.aborted) {
+          dispatch({ type: 'SET_PROVIDER_STATUSES', payload: statuses });
+          dispatch({ type: 'SET_LOADING', payload: false });
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          logger.error('Failed to fetch BYOK statuses', error);
+          dispatch({ type: 'SET_LOADING', payload: false });
+        }
+      }
+    };
+
+    fetchStatuses();
+    return () => controller.abort();
+  }, [organizationId, isReady, getOrganizationsService]);
 
   const handleValidateAndSave = async (
     provider: string,
@@ -194,8 +191,10 @@ export default function SettingsIntegrationsPage() {
       const providerLabel = providerStatuses.find(
         (p) => p.provider === provider,
       )?.label;
-      await applyProviderStatuses(statuses);
-      dispatch({ type: 'SAVE_SUCCESS', payload: { provider } });
+      dispatch({
+        type: 'SAVE_SUCCESS',
+        payload: { provider, statuses },
+      });
       NotificationsService.getInstance().success(
         `${providerLabel ?? 'Provider'} API key saved`,
       );
@@ -219,7 +218,7 @@ export default function SettingsIntegrationsPage() {
       const providerLabel = providerStatuses.find(
         (p) => p.provider === provider,
       )?.label;
-      await applyProviderStatuses(statuses);
+      dispatch({ type: 'SET_PROVIDER_STATUSES', payload: statuses });
       NotificationsService.getInstance().success(
         `${providerLabel ?? 'Provider'} API key removed`,
       );

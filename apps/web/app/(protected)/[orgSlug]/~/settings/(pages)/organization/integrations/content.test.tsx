@@ -1,15 +1,6 @@
 import '@testing-library/jest-dom/vitest';
-import {
-  createTestQueryClient,
-  queryClientWrapper,
-} from '@app-tests/query-client.harness';
-import {
-  fireEvent,
-  render as rtlRender,
-  screen,
-  waitFor,
-} from '@testing-library/react';
-import type { ReactElement, ReactNode } from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsIntegrationsPage from './content';
 
@@ -63,11 +54,6 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     mocks.authedServices.set(factory, service);
     return service;
   },
-}));
-
-vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
-  useAuthIdentity: (await import('@app-tests/query-client.harness'))
-    .useTestViewer,
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -148,10 +134,6 @@ vi.mock('@/components/desktop/DesktopServerSettings', () => ({
   default: () => <div>Desktop server settings</div>,
 }));
 
-function render(ui: ReactElement, client = createTestQueryClient()) {
-  return rtlRender(ui, { wrapper: queryClientWrapper(client) });
-}
-
 function providerStatuses() {
   return [
     {
@@ -200,6 +182,7 @@ describe('SettingsIntegrationsPage', () => {
     expect(
       screen.queryByText(/server-configured providers by default/),
     ).not.toBeInTheDocument();
+    expect(mocks.getByokAllProviders).toHaveBeenCalledWith('org-1');
   });
 
   it('validates and saves a provider key, then refreshes provider statuses', async () => {
@@ -266,54 +249,5 @@ describe('SettingsIntegrationsPage', () => {
 
     expect(screen.getByText('Desktop providers: card')).toBeInTheDocument();
     expect(mocks.getByokAllProviders).not.toHaveBeenCalled();
-  });
-
-  it('paints the cached provider cards at once when Integrations is reopened', async () => {
-    const client = createTestQueryClient();
-    const firstVisit = render(<SettingsIntegrationsPage />, client);
-    await screen.findByText('OpenAI');
-    firstVisit.unmount();
-
-    mocks.getByokAllProviders.mockReturnValue(new Promise(() => {}));
-    render(<SettingsIntegrationsPage />, client);
-
-    expect(screen.getByText('OpenAI')).toBeInTheDocument();
-    expect(screen.getByText('r8_****1234')).toBeInTheDocument();
-  });
-
-  it('never shows one organization provider keys under another', async () => {
-    const client = createTestQueryClient();
-    const firstVisit = render(<SettingsIntegrationsPage />, client);
-    await screen.findByText('OpenAI');
-    firstVisit.unmount();
-
-    mocks.organizationId = 'org-2';
-    mocks.getByokAllProviders.mockReturnValue(new Promise(() => {}));
-    render(<SettingsIntegrationsPage />, client);
-
-    expect(screen.queryByText('OpenAI')).not.toBeInTheDocument();
-    expect(screen.queryByText('r8_****1234')).not.toBeInTheDocument();
-  });
-
-  it('shows the refreshed key after removing one', async () => {
-    mocks.getByokAllProviders
-      .mockResolvedValueOnce(providerStatuses())
-      .mockResolvedValueOnce(
-        providerStatuses().map((status) =>
-          status.provider === 'replicate'
-            ? { ...status, hasKey: false, maskedKey: null }
-            : status,
-        ),
-      );
-    render(<SettingsIntegrationsPage />);
-
-    await screen.findByText('r8_****1234');
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Remove Replicate key' }),
-    );
-
-    await waitFor(() =>
-      expect(screen.queryByText('r8_****1234')).not.toBeInTheDocument(),
-    );
   });
 });

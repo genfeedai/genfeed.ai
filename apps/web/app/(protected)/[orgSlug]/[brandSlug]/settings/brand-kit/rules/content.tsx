@@ -7,10 +7,8 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { HarnessProfilesService } from '@genfeedai/services/ai/harness-profiles.service';
 import { logger } from '@genfeedai/services/core/logger.service';
-import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
@@ -18,9 +16,8 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import type { SavedProfileRef } from '@/features/settings/props/content-rules.props';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 import ContentRulesDeliveryTab from './content-rules-delivery-tab';
 import ContentRulesExamplesTab from './content-rules-examples-tab';
@@ -64,40 +61,6 @@ function splitLines(value: string): string[] {
     const trimmedLine = line.trim();
     return trimmedLine ? [trimmedLine] : [];
   });
-}
-
-function harnessProfilesQueryKey(brandId: string) {
-  return ['harness-profiles', brandId] as const;
-}
-
-/** The profile this page edits: the one last saved here, else the default active one. */
-function pickEditedProfile(
-  profiles: readonly IHarnessProfile[] | undefined,
-  preferredId: string | undefined,
-): IHarnessProfile | null {
-  if (!profiles) {
-    return null;
-  }
-  return (
-    (preferredId
-      ? profiles.find((item) => item.id === preferredId)
-      : undefined) ??
-    profiles.find((item) => item.isDefault && item.status === 'active') ??
-    profiles[0] ??
-    null
-  );
-}
-
-function withSavedProfile(
-  profiles: IHarnessProfile[] | undefined,
-  saved: IHarnessProfile,
-): IHarnessProfile[] {
-  if (!profiles) {
-    return [saved];
-  }
-  return profiles.some((item) => item.id === saved.id)
-    ? profiles.map((item) => (item.id === saved.id ? saved : item))
-    : [saved, ...profiles];
 }
 
 function createDraft(
@@ -164,79 +127,63 @@ export default function BrandContentRulesPage() {
     HarnessProfilesService.getInstance(token),
   );
 
-  const queryClient = useQueryClient();
-  // The brand's profiles read through React Query, so coming back to the page
-  // paints the cached rules at once and refreshes them in the background.
-  const profilesQuery = useAuthedQuery<
-    HarnessProfilesService,
-    IHarnessProfile[]
-  >({
-    enabled: Boolean(brandId),
-    queryFn: (service) => service.findForBrand(brandId),
-    queryKey: harnessProfilesQueryKey(brandId),
-    service: (token: string) => HarnessProfilesService.getInstance(token),
-  });
-  const profiles = profilesQuery.data;
-  const hasProfiles = profiles !== undefined;
-  const { error: loadError } = profilesQuery;
-
-  // The profile last saved here stays the one edited, even when it is not
-  // the default active one.
-  const [savedProfile, setSavedProfile] = useState<SavedProfileRef | null>(
-    null,
-  );
-  const editedProfile = useMemo(
-    () =>
-      pickEditedProfile(
-        profiles,
-        savedProfile?.brandId === brandId ? savedProfile.id : undefined,
-      ),
-    [brandId, profiles, savedProfile],
-  );
-
-  const brandLabel = brand?.label;
+  const profileRef = useRef<IHarnessProfile | null>(null);
   const [activeTab, setActiveTab] = useState<ContentRulesTabId>('identity');
   const [draft, setDraft] = useState<ICreateHarnessProfilePayload>(() =>
-    createDraft(brandId, brandLabel ?? 'Brand', editedProfile),
+    createDraft('', 'Brand'),
   );
-  const [hasEdits, setHasEdits] = useState(false);
-  // What the draft was last seeded from. A fresh read re-seeds it only while
-  // it is untouched, so a background refresh never wipes what the user is
-  // typing; another brand always re-seeds it.
-  const [draftSource, setDraftSource] = useState({
-    brandId,
-    brandLabel,
-    editedProfile,
-  });
-  if (
-    draftSource.editedProfile !== editedProfile ||
-    draftSource.brandId !== brandId ||
-    draftSource.brandLabel !== brandLabel
-  ) {
-    setDraftSource({ brandId, brandLabel, editedProfile });
-    if (draftSource.brandId !== brandId || !hasEdits) {
-      setDraft(createDraft(brandId, brandLabel ?? 'Brand', editedProfile));
-      setHasEdits(false);
-    }
-  }
+  const [isFetching, setIsFetching] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPromoting, setIsPromoting] = useState(false);
 
-  // A failed background refresh keeps the rules on screen without an alert.
+  const brandLabel = brand?.label;
   useEffect(() => {
-    if (!loadError || hasProfiles) {
+    if (!brandId || brandLabel === undefined) {
+      setIsFetching(false);
       return;
     }
-    logger.error('GET /harness-profiles failed', loadError);
-    toast.error('Unable to load content rules.');
-  }, [hasProfiles, loadError]);
+    const resolvedLabel: string = brandLabel;
+
+    const controller = new AbortController();
+
+    async function loadProfile() {
+      setIsFetching(true);
+      try {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        const service = await getHarnessProfilesService();
+        const profiles = await service.findForBrand(brandId);
+        const activeProfile =
+          profiles.find((item) => item.isDefault && item.status === 'active') ??
+          profiles[0] ??
+          null;
+
+        profileRef.current = activeProfile as IHarnessProfile | null;
+        setDraft(createDraft(brandId, resolvedLabel, activeProfile));
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          logger.error('GET /harness-profiles failed', error);
+          toast.error('Unable to load content rules.');
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsFetching(false);
+        }
+      }
+    }
+
+    void loadProfile();
+
+    return () => controller.abort();
+  }, [brandLabel, brandId, getHarnessProfilesService]);
 
   const updateDraft = useCallback(
     <Key extends keyof IHarnessProfile>(
       key: Key,
       value: IHarnessProfile[Key],
     ) => {
-      setHasEdits(true);
       setDraft((current) => ({ ...current, [key]: value }));
     },
     [],
@@ -247,7 +194,6 @@ export default function BrandContentRulesPage() {
       key: keyof NonNullable<IHarnessProfile['voice']>,
       value: string | string[],
     ) => {
-      setHasEdits(true);
       setDraft((current) => ({
         ...current,
         voice: {
@@ -265,7 +211,6 @@ export default function BrandContentRulesPage() {
       key: string,
       value: string,
     ) => {
-      setHasEdits(true);
       setDraft((current) => ({
         ...current,
         [section]: {
@@ -295,21 +240,12 @@ export default function BrandContentRulesPage() {
         scope: 'brand' as const,
         status: draft.status ?? 'active',
       };
-      const saved: IHarnessProfile = editedProfile?.id
-        ? await service.updateProfile(editedProfile.id, payload)
+      const saved = profileRef.current?.id
+        ? await service.updateProfile(profileRef.current.id, payload)
         : await service.createForBrand(payload);
 
-      // A read still in flight would land the older profiles over this save.
-      await queryClient.cancelQueries({
-        queryKey: harnessProfilesQueryKey(brandId),
-      });
-      queryClient.setQueriesData<IHarnessProfile[]>(
-        { queryKey: harnessProfilesQueryKey(brandId) },
-        (current) => withSavedProfile(current, saved),
-      );
-      setSavedProfile({ brandId, id: saved.id });
+      profileRef.current = saved as IHarnessProfile;
       setDraft(createDraft(brandId, brand?.label ?? 'Brand', saved));
-      setHasEdits(false);
       toast.success('Harness profile saved.');
     } catch (error) {
       logger.error('SAVE /harness-profiles failed', error);
@@ -317,14 +253,7 @@ export default function BrandContentRulesPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [
-    brand?.label,
-    brandId,
-    draft,
-    editedProfile,
-    getHarnessProfilesService,
-    queryClient,
-  ]);
+  }, [brand?.label, brandId, draft, getHarnessProfilesService]);
 
   const handlePromoteWinners = useCallback(async () => {
     if (!brandId) {
@@ -349,7 +278,7 @@ export default function BrandContentRulesPage() {
     }
   }, [brandId, getHarnessProfilesService]);
 
-  if (!hasBrandId || isLoading || profilesQuery.isLoading) {
+  if (!hasBrandId || isLoading || isFetching) {
     return <Loading isFullSize={false} />;
   }
 

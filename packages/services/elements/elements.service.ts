@@ -35,17 +35,13 @@ export class ElementsService {
    * Fetch all element collections in a single request
    * This is more efficient than making 9 separate requests
    */
-  static async findAllElements(
-    token: string,
-    signal?: AbortSignal,
-  ): Promise<ElementsData> {
+  static async findAllElements(token: string): Promise<ElementsData> {
     return await axios
       .get(`${EnvironmentService.apiEndpoint}${API_ENDPOINTS.ELEMENTS}`, {
         headers: {
           ...getRequestOrganizationHeaders(),
           Authorization: `Bearer ${token}`,
         },
-        signal,
       })
       .then((res) => res.data)
       .then((data) => data.data)

@@ -1,21 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import {
-  createTestQueryClient,
-  queryClientWrapper,
-} from '@app-tests/query-client.harness';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandContentRulesPage from './content';
 
 const mocks = vi.hoisted(() => ({
   accounts: vi.fn(),
-  brandDetail: {
-    brand: { id: 'brand-1', label: 'Acme' },
-    brandId: 'brand-1',
-    hasBrandId: true,
-    isLoading: false,
-  },
   control: vi.fn(),
   createForBrand: vi.fn(),
   findForBrand: vi.fn(),
@@ -29,12 +19,12 @@ vi.mock('next-intl', async () => {
 });
 
 vi.mock('@/hooks/pages/use-brand-detail/use-brand-detail', () => ({
-  useBrandDetail: () => mocks.brandDetail,
-}));
-
-vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
-  useAuthIdentity: (await import('@app-tests/query-client.harness'))
-    .useTestViewer,
+  useBrandDetail: () => ({
+    brand: { id: 'brand-1', label: 'Acme' },
+    brandId: 'brand-1',
+    hasBrandId: true,
+    isLoading: false,
+  }),
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -157,18 +147,12 @@ vi.mock('@ui/layout/container/Container', () => ({
 describe('BrandContentRulesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.brandDetail = {
-      brand: { id: 'brand-1', label: 'Acme' },
-      brandId: 'brand-1',
-      hasBrandId: true,
-      isLoading: false,
-    };
     mocks.findForBrand.mockResolvedValue([]);
     mocks.accounts.mockResolvedValue([]);
   });
 
   it('renders the five content rule tabs and defaults to Identity', async () => {
-    render(<BrandContentRulesPage />, { wrapper: queryClientWrapper() });
+    render(<BrandContentRulesPage />);
 
     await screen.findByLabelText('Label');
     expect(screen.queryByText('Brand harness')).not.toBeInTheDocument();
@@ -189,7 +173,7 @@ describe('BrandContentRulesPage', () => {
   });
 
   it('switches tabs without losing edited draft state', async () => {
-    render(<BrandContentRulesPage />, { wrapper: queryClientWrapper() });
+    render(<BrandContentRulesPage />);
 
     await screen.findByLabelText('Label');
     fireEvent.change(screen.getByLabelText('Label'), {
@@ -244,7 +228,7 @@ describe('BrandContentRulesPage', () => {
       },
     ]);
 
-    render(<BrandContentRulesPage />, { wrapper: queryClientWrapper() });
+    render(<BrandContentRulesPage />);
 
     expect(
       await screen.findByText('Positioning scorecard'),
@@ -268,7 +252,7 @@ describe('BrandContentRulesPage', () => {
       },
     ]);
 
-    render(<BrandContentRulesPage />, { wrapper: queryClientWrapper() });
+    render(<BrandContentRulesPage />);
 
     await screen.findByLabelText('Label');
     expect(screen.queryByText('Positioning scorecard')).not.toBeInTheDocument();
@@ -283,7 +267,7 @@ describe('BrandContentRulesPage', () => {
       status: 'active',
     });
 
-    render(<BrandContentRulesPage />, { wrapper: queryClientWrapper() });
+    render(<BrandContentRulesPage />);
 
     await screen.findByLabelText('Label');
     fireEvent.click(screen.getByRole('button', { name: 'Save content rules' }));
@@ -294,14 +278,14 @@ describe('BrandContentRulesPage', () => {
     );
   });
   it('links the brand harness to scoped saved generation receipt inspection', async () => {
-    render(<BrandContentRulesPage />, { wrapper: queryClientWrapper() });
+    render(<BrandContentRulesPage />);
     expect(
       await screen.findByRole('link', { name: 'Generation receipts' }),
     ).toHaveAttribute('href', '/acme/moonrise/settings/agent/receipts');
   });
   it('preserves explicit winner promotion on profile tabs', async () => {
     mocks.promoteWinners.mockResolvedValue({ promoted: 2, skipped: 1 });
-    render(<BrandContentRulesPage />, { wrapper: queryClientWrapper() });
+    render(<BrandContentRulesPage />);
     await screen.findByLabelText('Label');
     fireEvent.click(
       screen.getByRole('button', { name: 'Promote winners to memory' }),
@@ -311,97 +295,6 @@ describe('BrandContentRulesPage', () => {
       brandId: 'brand-1',
       limit: 10,
       platform: 'twitter',
-    });
-  });
-
-  describe('cached content rules', () => {
-    const acmeProfile = {
-      id: 'profile-1',
-      isDefault: true,
-      label: 'Acme Founder Voice',
-      status: 'active',
-    };
-
-    it('paints the cached rules at once when coming back', async () => {
-      mocks.findForBrand.mockResolvedValue([acmeProfile]);
-      const client = createTestQueryClient();
-      const firstVisit = render(<BrandContentRulesPage />, {
-        wrapper: queryClientWrapper(client),
-      });
-      expect(await screen.findByLabelText('Label')).toHaveValue(
-        'Acme Founder Voice',
-      );
-      firstVisit.unmount();
-
-      mocks.findForBrand.mockReturnValue(new Promise(() => {}));
-      render(<BrandContentRulesPage />, {
-        wrapper: queryClientWrapper(client),
-      });
-
-      expect(screen.getByLabelText('Label')).toHaveValue('Acme Founder Voice');
-    });
-
-    it('never shows one brand’s cached rules for another brand', async () => {
-      mocks.findForBrand.mockResolvedValue([acmeProfile]);
-      const client = createTestQueryClient();
-      const firstVisit = render(<BrandContentRulesPage />, {
-        wrapper: queryClientWrapper(client),
-      });
-      await screen.findByLabelText('Label');
-      firstVisit.unmount();
-
-      mocks.brandDetail = {
-        brand: { id: 'brand-2', label: 'Moonrise' },
-        brandId: 'brand-2',
-        hasBrandId: true,
-        isLoading: false,
-      };
-      mocks.findForBrand.mockReturnValue(new Promise(() => {}));
-      render(<BrandContentRulesPage />, {
-        wrapper: queryClientWrapper(client),
-      });
-
-      expect(screen.queryByLabelText('Label')).not.toBeInTheDocument();
-      expect(screen.queryByText('Acme Founder Voice')).not.toBeInTheDocument();
-    });
-
-    it('keeps what the user typed when a background refresh lands', async () => {
-      mocks.findForBrand.mockResolvedValue([acmeProfile]);
-      const client = createTestQueryClient();
-      render(<BrandContentRulesPage />, {
-        wrapper: queryClientWrapper(client),
-      });
-      await screen.findByLabelText('Label');
-      fireEvent.change(screen.getByLabelText('Label'), {
-        target: { value: 'Typed label' },
-      });
-
-      mocks.findForBrand.mockResolvedValue([
-        { ...acmeProfile, label: 'Renamed elsewhere' },
-      ]);
-      await client.invalidateQueries({ queryKey: ['harness-profiles'] });
-
-      await waitFor(() =>
-        expect(screen.getByLabelText('Label')).toHaveValue('Typed label'),
-      );
-    });
-
-    it('takes a background refresh into an untouched form', async () => {
-      mocks.findForBrand.mockResolvedValue([acmeProfile]);
-      const client = createTestQueryClient();
-      render(<BrandContentRulesPage />, {
-        wrapper: queryClientWrapper(client),
-      });
-      await screen.findByLabelText('Label');
-
-      mocks.findForBrand.mockResolvedValue([
-        { ...acmeProfile, label: 'Renamed elsewhere' },
-      ]);
-      await client.invalidateQueries({ queryKey: ['harness-profiles'] });
-
-      await waitFor(() =>
-        expect(screen.getByLabelText('Label')).toHaveValue('Renamed elsewhere'),
-      );
     });
   });
 });

@@ -1,8 +1,3 @@
-import {
-  createTestQueryClient,
-  queryClientWrapper,
-} from '@app-tests/query-client.harness';
-import type { QueryClient } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -21,10 +16,6 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getMembers,
 }));
-vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
-  useAuthIdentity: (await import('@app-tests/query-client.harness'))
-    .useTestViewer,
-}));
 vi.mock('@services/organization/members.service', () => ({
   MembersService: {},
 }));
@@ -32,15 +23,8 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: mocks.organizationId }),
 }));
 
-let queryClient: QueryClient;
-
 function wrapper({ children }: { children: ReactNode }) {
-  const QueryClientWrapper = queryClientWrapper(queryClient);
-  return (
-    <QueryClientWrapper>
-      <InstalledAppsProvider>{children}</InstalledAppsProvider>
-    </QueryClientWrapper>
-  );
+  return <InstalledAppsProvider>{children}</InstalledAppsProvider>;
 }
 
 function deferred<T>() {
@@ -55,7 +39,6 @@ function deferred<T>() {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  queryClient = createTestQueryClient();
   mocks.organizationId = 'org-1';
   mocks.getMembers.mockResolvedValue(mocks);
   mocks.findMyApps.mockResolvedValue(['playground']);
@@ -87,9 +70,7 @@ describe('InstalledAppsProvider (#5502)', () => {
 
     await act(async () => pending.resolve(['playground', 'turbo']));
     await expect(saved).resolves.toBe(true);
-    await waitFor(() =>
-      expect(result.current.installedAppIds).toEqual(['playground', 'turbo']),
-    );
+    expect(result.current.installedAppIds).toEqual(['playground', 'turbo']);
     expect(result.current.pendingAppIds).toEqual([]);
   });
 
@@ -158,46 +139,5 @@ describe('InstalledAppsProvider (#5502)', () => {
     await act(async () => stale.resolve(['playground', 'turbo']));
     await expect(saved).resolves.toBe(false);
     expect(result.current.installedAppIds).toEqual(['discovery']);
-  });
-  it('paints the cached installations at once on a return visit', async () => {
-    const firstVisit = renderHook(useInstalledApps, { wrapper });
-    await waitFor(() => expect(firstVisit.result.current.status).toBe('ready'));
-    firstVisit.unmount();
-
-    mocks.findMyApps.mockReturnValue(new Promise<never>(() => undefined));
-    const { result } = renderHook(useInstalledApps, { wrapper });
-
-    expect(result.current.status).toBe('ready');
-    expect(result.current.installedAppIds).toEqual(['playground']);
-  });
-
-  it("never shows one organization's installations in another", async () => {
-    const firstOrganization = renderHook(useInstalledApps, { wrapper });
-    await waitFor(() =>
-      expect(firstOrganization.result.current.status).toBe('ready'),
-    );
-    firstOrganization.unmount();
-
-    mocks.organizationId = 'org-2';
-    mocks.findMyApps.mockReturnValue(new Promise<never>(() => undefined));
-    const { result } = renderHook(useInstalledApps, { wrapper });
-
-    expect(result.current.status).toBe('loading');
-    expect(result.current.installedAppIds).toEqual([]);
-  });
-
-  it('keeps a confirmed installation when the list is read again', async () => {
-    mocks.installApp.mockResolvedValue(['playground', 'turbo']);
-    const firstVisit = renderHook(useInstalledApps, { wrapper });
-    await waitFor(() => expect(firstVisit.result.current.status).toBe('ready'));
-    await act(async () => {
-      await firstVisit.result.current.install('turbo');
-    });
-    firstVisit.unmount();
-
-    mocks.findMyApps.mockReturnValue(new Promise<never>(() => undefined));
-    const { result } = renderHook(useInstalledApps, { wrapper });
-
-    expect(result.current.installedAppIds).toEqual(['playground', 'turbo']);
   });
 });

@@ -3,7 +3,6 @@
 import { BrandInterviewStatus } from '@genfeedai/contracts';
 import type {
   BrandInterviewAnswerValue,
-  IBrandInterviewAnswerResult,
   IBrandInterviewProgress,
   IBrandInterviewQuestion,
   IBrandInterviewStep,
@@ -13,11 +12,8 @@ import {
   BrandInterviewService,
   type IActiveBrandInterview,
 } from '@genfeedai/services/social/brand-interview.service';
-import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type BrandInterviewUiStatus = 'idle' | 'in_progress' | 'complete';
 
@@ -36,166 +32,100 @@ export interface UseBrandInterviewReturn {
   skipQuestion: () => Promise<void>;
 }
 
-/** Where one brand's interview stands, as this hook shows it. */
-interface BrandInterviewSession {
-  answeredFields: Record<string, BrandInterviewAnswerValue>;
-  completenessScore: number;
-  currentQuestion: IBrandInterviewQuestion | null;
-  interviewId: string;
-  progress: IBrandInterviewProgress | null;
-  steps: IBrandInterviewStep[];
-}
-
-/** An interview finished on this page, for the brand it belongs to. */
-interface CompletedBrandInterview {
-  brandId: string;
-  session: BrandInterviewSession;
-  viewerKey: string;
-}
-
-const EMPTY_ANSWERED_FIELDS: Record<string, BrandInterviewAnswerValue> = {};
-const EMPTY_STEPS: IBrandInterviewStep[] = [];
-
-function brandInterviewQueryKey(brandId: string | null | undefined) {
-  return ['brand-interview', 'active', brandId ?? null] as const;
-}
-
-function createInterviewService(token: string): BrandInterviewService {
-  return BrandInterviewService.getInstance(token);
-}
-
-function toActiveSession(
-  active: IActiveBrandInterview | null,
-): BrandInterviewSession | null {
-  if (!active || active.status !== BrandInterviewStatus.IN_PROGRESS) {
-    return null;
-  }
-  return {
-    answeredFields: active.answeredFields ?? {},
-    completenessScore: active.completenessScore,
-    currentQuestion: active.currentQuestion,
-    interviewId: active.id,
-    progress: {
-      answeredFields: active.answeredCount,
-      percentComplete:
-        active.totalCount > 0
-          ? Math.round((active.answeredCount / active.totalCount) * 100)
-          : 100,
-      totalFields: active.totalCount,
-    },
-    steps: active.steps ?? [],
-  };
-}
-
-function toAnswerSession(
-  result: IBrandInterviewAnswerResult,
-): BrandInterviewSession {
-  return {
-    answeredFields: result.answeredFields ?? {},
-    completenessScore: result.completenessScore,
-    currentQuestion: result.nextQuestion,
-    interviewId: result.interviewId,
-    progress: result.progress,
-    steps: result.steps ?? [],
-  };
-}
-
-function isAbortError(error: unknown): boolean {
-  return error instanceof Error && error.name === 'AbortError';
-}
-
-/**
- * Runs one brand's interview. The active session is cached per viewer and
- * brand, so coming back to the interview paints the current question at once
- * and refreshes it in the background. Each answer or skip writes the new
- * state into the cache. A finished interview is shown here until the page is
- * left; the cache then holds no active session, as the API does.
- */
 export function useBrandInterview(
   brandId: string | null | undefined,
 ): UseBrandInterviewReturn {
-  const queryClient = useQueryClient();
-  const { orgId, userId } = useAuthIdentity();
-  // A finished interview belongs to the viewer who finished it.
-  const viewerKey = `${userId ?? ''}:${orgId ?? ''}`;
-  const getInterviewService = useAuthedService(createInterviewService);
-  const [completed, setCompleted] = useState<CompletedBrandInterview | null>(
+  const [status, setStatus] = useState<BrandInterviewUiStatus>('idle');
+  const [interviewId, setInterviewId] = useState<string | null>(null);
+  const [currentQuestion, setCurrentQuestion] =
+    useState<IBrandInterviewQuestion | null>(null);
+  const [progress, setProgress] = useState<IBrandInterviewProgress | null>(
     null,
   );
-  const [isMutating, setIsMutating] = useState(false);
+  const [completenessScore, setCompletenessScore] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [steps, setSteps] = useState<IBrandInterviewStep[]>([]);
+  const [answeredFields, setAnsweredFields] = useState<
+    Record<string, BrandInterviewAnswerValue>
+  >({});
 
-  const activeQuery = useAuthedQuery<
-    BrandInterviewService,
-    BrandInterviewSession | null
-  >({
-    enabled: Boolean(brandId),
-    queryFn: async (service, signal) => {
-      if (!brandId) {
-        return null;
-      }
+  const mountedRef = useRef(true);
+
+  const getInterviewService = useAuthedService((token: string) =>
+    BrandInterviewService.getInstance(token),
+  );
+
+  // Resume any active session on mount
+  useEffect(() => {
+    mountedRef.current = true;
+
+    if (!brandId) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const checkActiveSession = async () => {
+      setIsLoading(true);
+
       try {
-        const session = toActiveSession(
-          await service.getActiveInterview(brandId, signal),
-        );
-        if (session) {
-          logger.info('Resumed active brand interview', {
-            id: session.interviewId,
-          });
+        const service = await getInterviewService();
+        const active: IActiveBrandInterview | null =
+          await service.getActiveInterview(brandId, controller.signal);
+
+        if (!mountedRef.current || controller.signal.aborted) {
+          return;
         }
-        return session;
+
+        if (active && active.status === BrandInterviewStatus.IN_PROGRESS) {
+          setInterviewId(active.id);
+          setCurrentQuestion(active.currentQuestion);
+          setCompletenessScore(active.completenessScore);
+          setSteps(active.steps ?? []);
+          setAnsweredFields(active.answeredFields ?? {});
+          setProgress({
+            answeredFields: active.answeredCount,
+            percentComplete:
+              active.totalCount > 0
+                ? Math.round((active.answeredCount / active.totalCount) * 100)
+                : 100,
+            totalFields: active.totalCount,
+          });
+          setStatus('in_progress');
+          logger.info('Resumed active brand interview', { id: active.id });
+        }
       } catch (err: unknown) {
-        if (!isAbortError(err)) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        const e = err as Error;
+
+        if (e?.name !== 'AbortError') {
           logger.error('Failed to check active interview session', err);
         }
-        throw err;
+      } finally {
+        if (mountedRef.current && !controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
-    },
-    queryKey: brandInterviewQueryKey(brandId),
-    service: createInterviewService,
-  });
+    };
 
-  const completedSession =
-    completed &&
-    completed.brandId === brandId &&
-    completed.viewerKey === viewerKey
-      ? completed.session
-      : null;
-  const activeSession = activeQuery.data ?? null;
-  const session = completedSession ?? activeSession;
-  const status: BrandInterviewUiStatus = completedSession
-    ? 'complete'
-    : activeSession
-      ? 'in_progress'
-      : 'idle';
+    checkActiveSession();
 
-  /**
-   * Writes the interview's new state: an unfinished one into the cache, a
-   * finished one onto this page while the cache drops the active session.
-   */
-  const applySession = useCallback(
-    async (next: BrandInterviewSession, isComplete: boolean) => {
-      if (!brandId) {
-        return;
-      }
-      const queryKey = brandInterviewQueryKey(brandId);
-      // A refresh still in flight must not land over the newer state.
-      await queryClient.cancelQueries({ queryKey });
-      queryClient.setQueriesData<BrandInterviewSession | null>(
-        { queryKey },
-        isComplete ? null : next,
-      );
-      setCompleted(isComplete ? { brandId, session: next, viewerKey } : null);
-    },
-    [brandId, queryClient, viewerKey],
-  );
+    return () => {
+      mountedRef.current = false;
+      controller.abort();
+    };
+  }, [brandId, getInterviewService]);
 
   const startInterview = useCallback(async () => {
     if (!brandId) {
       return;
     }
 
-    setIsMutating(true);
+    setIsLoading(true);
     setError(null);
 
     const controller = new AbortController();
@@ -206,33 +136,43 @@ export function useBrandInterview(
         signal: controller.signal,
       });
 
-      await applySession(
-        {
-          answeredFields: result.answeredFields ?? {},
-          completenessScore: result.completenessScore,
-          currentQuestion: result.currentQuestion,
-          interviewId: result.interviewId,
-          progress: result.progress,
-          steps: result.steps ?? [],
-        },
-        result.status === BrandInterviewStatus.COMPLETED,
+      if (!mountedRef.current) {
+        return;
+      }
+
+      setInterviewId(result.interviewId);
+      setCurrentQuestion(result.currentQuestion);
+      setProgress(result.progress);
+      setCompletenessScore(result.completenessScore);
+      setSteps(result.steps ?? []);
+      setAnsweredFields(result.answeredFields ?? {});
+      setStatus(
+        result.status === BrandInterviewStatus.COMPLETED
+          ? 'complete'
+          : 'in_progress',
       );
 
       logger.info('Started brand interview', {
-        creditsCharged: result.creditsCharged,
         id: result.interviewId,
+        creditsCharged: result.creditsCharged,
       });
     } catch (err: unknown) {
-      if (!isAbortError(err)) {
+      if (!mountedRef.current) {
+        return;
+      }
+
+      const e = err as Error;
+
+      if (e?.name !== 'AbortError') {
         logger.error('Failed to start interview', err);
         setError('Failed to start the interview. Please try again.');
       }
     } finally {
-      setIsMutating(false);
+      if (mountedRef.current) {
+        setIsLoading(false);
+      }
     }
-  }, [applySession, brandId, getInterviewService]);
-
-  const interviewId = session?.interviewId ?? null;
+  }, [brandId, getInterviewService]);
 
   const submitAnswer = useCallback(
     async (answer: string, fieldKey?: string) => {
@@ -240,7 +180,7 @@ export function useBrandInterview(
         return;
       }
 
-      setIsMutating(true);
+      setIsLoading(true);
       setError(null);
 
       try {
@@ -249,22 +189,39 @@ export function useBrandInterview(
           fieldKey,
         });
 
-        await applySession(toAnswerSession(result), result.isComplete);
+        if (!mountedRef.current) {
+          return;
+        }
+
+        setCurrentQuestion(result.nextQuestion);
+        setProgress(result.progress);
+        setCompletenessScore(result.completenessScore);
+        setSteps(result.steps ?? []);
+        setAnsweredFields(result.answeredFields ?? {});
+        setStatus(result.isComplete ? 'complete' : 'in_progress');
 
         logger.info('Submitted interview answer', {
           id: result.interviewId,
           isComplete: result.isComplete,
         });
       } catch (err: unknown) {
-        if (!isAbortError(err)) {
+        if (!mountedRef.current) {
+          return;
+        }
+
+        const e = err as Error;
+
+        if (e?.name !== 'AbortError') {
           logger.error('Failed to submit interview answer', err);
           setError('Failed to submit your answer. Please try again.');
         }
       } finally {
-        setIsMutating(false);
+        if (mountedRef.current) {
+          setIsLoading(false);
+        }
       }
     },
-    [applySession, getInterviewService, interviewId],
+    [interviewId, getInterviewService],
   );
 
   const skipQuestion = useCallback(async () => {
@@ -272,41 +229,58 @@ export function useBrandInterview(
       return;
     }
 
-    setIsMutating(true);
+    setIsLoading(true);
     setError(null);
 
     try {
       const service = await getInterviewService();
       const result = await service.skipQuestion(interviewId);
 
-      await applySession(toAnswerSession(result), result.isComplete);
+      if (!mountedRef.current) {
+        return;
+      }
+
+      setCurrentQuestion(result.nextQuestion);
+      setProgress(result.progress);
+      setCompletenessScore(result.completenessScore);
+      setSteps(result.steps ?? []);
+      setAnsweredFields(result.answeredFields ?? {});
+      setStatus(result.isComplete ? 'complete' : 'in_progress');
 
       logger.info('Skipped interview question', {
         id: result.interviewId,
         isComplete: result.isComplete,
       });
     } catch (err: unknown) {
-      if (!isAbortError(err)) {
+      if (!mountedRef.current) {
+        return;
+      }
+
+      const e = err as Error;
+
+      if (e?.name !== 'AbortError') {
         logger.error('Failed to skip interview question', err);
         setError('Failed to skip the question. Please try again.');
       }
     } finally {
-      setIsMutating(false);
+      if (mountedRef.current) {
+        setIsLoading(false);
+      }
     }
-  }, [applySession, getInterviewService, interviewId]);
+  }, [interviewId, getInterviewService]);
 
   return {
-    answeredFields: session?.answeredFields ?? EMPTY_ANSWERED_FIELDS,
-    completenessScore: session?.completenessScore ?? 0,
-    currentQuestion: session?.currentQuestion ?? null,
+    answeredFields,
+    completenessScore,
+    currentQuestion,
     error,
     interviewId,
-    isLoading: activeQuery.isLoading || isMutating,
-    progress: session?.progress ?? null,
+    isLoading,
+    progress,
     skipQuestion,
     startInterview,
     status,
-    steps: session?.steps ?? EMPTY_STEPS,
+    steps,
     submitAnswer,
   };
 }

@@ -1,20 +1,9 @@
-import { queryClientWrapper } from '@app-tests/query-client.harness';
 import type { ModalProps } from '@genfeedai/props/modals/modal.props';
 import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
-import { render as renderInDom, screen } from '@testing-library/react';
-import type { PropsWithChildren, ReactElement } from 'react';
+import { render, screen } from '@testing-library/react';
+import type { PropsWithChildren } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import ModalAvatar from '@/components/modals/ingredients/avatar/ModalAvatar';
-
-vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
-  useAuthIdentity: (await import('@app-tests/query-client.harness'))
-    .useTestViewer,
-}));
-
-/** Each spec gets its own query cache, like a fresh page load. */
-function render(ui: ReactElement) {
-  return renderInDom(ui, { wrapper: queryClientWrapper() });
-}
 
 // Mock dependencies
 vi.mock('@ui/modals/modal/Modal', () => ({

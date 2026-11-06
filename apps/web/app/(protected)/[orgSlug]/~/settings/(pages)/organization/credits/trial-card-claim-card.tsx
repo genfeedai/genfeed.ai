@@ -5,12 +5,10 @@ import type {
   TrialClaimOutcome,
   TrialClaimStatus,
 } from '@genfeedai/contracts/interfaces/billing';
-import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { StripeService } from '@services/billing/stripe.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Text } from '@ui/typography/text';
@@ -19,8 +17,6 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TrialCardClaimCardProps } from '@/features/settings/props/trial-card-claim-card.props';
-
-const TRIAL_CARD_STATUS_KEY = ['trial-card-status'] as const;
 
 const OUTCOME_MESSAGE_KEYS: Record<
   Exclude<TrialClaimOutcome, 'already-claimed' | 'granted'>,
@@ -43,6 +39,7 @@ export default function TrialCardClaimCard({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [status, setStatus] = useState<TrialClaimStatus | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
 
@@ -64,36 +61,26 @@ export default function TrialCardClaimCard({
       ? searchParams.get('session_id')
       : null;
 
-  // Cached per viewer: coming back to Credits shows the card step at once and
-  // re-checks it in the background. On the return from Stripe the claim
-  // decides the status instead, so the read waits.
-  const queryClient = useQueryClient();
-  const statusQuery = useAuthedQuery<StripeService, TrialClaimStatus>({
-    enabled: !returnedSessionId,
-    queryFn: async (service, signal) => {
+  useEffect(() => {
+    if (returnedSessionId) {
+      return;
+    }
+    const controller = new AbortController();
+    void (async () => {
       try {
-        const result = await service.getTrialCardStatus(signal);
-        return result.status;
+        const service = await getStripeService();
+        const result = await service.getTrialCardStatus(controller.signal);
+        if (!controller.signal.aborted) {
+          setStatus(result.status);
+        }
       } catch (error) {
-        if (!signal.aborted) {
+        if (!controller.signal.aborted) {
           logger.error('Failed to load trial credit status', { error });
         }
-        throw error;
       }
-    },
-    queryKey: TRIAL_CARD_STATUS_KEY,
-    service: (token: string) => StripeService.getInstance(token),
-  });
-  const status = statusQuery.data ?? null;
-  const setStatus = useCallback(
-    (nextStatus: TrialClaimStatus) => {
-      queryClient.setQueriesData<TrialClaimStatus>(
-        { queryKey: TRIAL_CARD_STATUS_KEY },
-        nextStatus,
-      );
-    },
-    [queryClient],
-  );
+    })();
+    return () => controller.abort();
+  }, [getStripeService, returnedSessionId]);
 
   useEffect(() => {
     if (!returnedSessionId) {
@@ -142,7 +129,7 @@ export default function TrialCardClaimCard({
       }
     })();
     return () => controller.abort();
-  }, [getStripeService, pathname, returnedSessionId, router, setStatus]);
+  }, [getStripeService, pathname, returnedSessionId, router]);
 
   const handleStart = useCallback(async () => {
     setIsStarting(true);

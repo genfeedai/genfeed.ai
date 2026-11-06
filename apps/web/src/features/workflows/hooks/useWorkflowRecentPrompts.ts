@@ -1,8 +1,9 @@
 'use client';
 
-import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { PromptsService } from '@services/content/prompts.service';
 import { logger } from '@services/core/logger.service';
+import { useEffect, useState } from 'react';
 
 const RECENT_PROMPT_LIMIT = 50;
 
@@ -17,29 +18,43 @@ interface WorkflowRecentPromptsSnapshot {
   prompts: readonly WorkflowRecentPrompt[];
 }
 
-const EMPTY_PROMPTS: readonly WorkflowRecentPrompt[] = [];
+const IDLE_SNAPSHOT: WorkflowRecentPromptsSnapshot = {
+  hasError: false,
+  isLoading: false,
+  prompts: [],
+};
 
 /**
  * The caller's own earlier prompts, newest first, with duplicates folded so a
  * prompt reused across generations is listed once.
- *
- * Cached per viewer, so reopening the prompt picker lists them at once and
- * refreshes them in the background.
  */
 export function useWorkflowRecentPrompts(
   isEnabled: boolean,
 ): WorkflowRecentPromptsSnapshot {
-  const promptsQuery = useAuthedQuery<
-    PromptsService,
-    readonly WorkflowRecentPrompt[]
-  >({
-    enabled: isEnabled,
-    queryFn: async (service, signal) => {
+  const getPromptsService = useAuthedService((token: string) =>
+    PromptsService.getInstance(token),
+  );
+  const [snapshot, setSnapshot] =
+    useState<WorkflowRecentPromptsSnapshot>(IDLE_SNAPSHOT);
+
+  useEffect(() => {
+    if (!isEnabled) {
+      return;
+    }
+
+    const controller = new AbortController();
+    setSnapshot({ hasError: false, isLoading: true, prompts: [] });
+
+    void (async () => {
       try {
+        const service = await getPromptsService();
         const rows = await service.findAll(
           { limit: RECENT_PROMPT_LIMIT, sort: 'createdAt: -1' },
-          signal,
+          controller.signal,
         );
+        if (controller.signal.aborted) {
+          return;
+        }
         const seen = new Set<string>();
         const prompts: WorkflowRecentPrompt[] = [];
         for (const row of rows) {
@@ -50,23 +65,18 @@ export function useWorkflowRecentPrompts(
           seen.add(text);
           prompts.push({ id: row.id, text });
         }
-        return prompts;
+        setSnapshot({ hasError: false, isLoading: false, prompts });
       } catch (error) {
-        if (!signal.aborted) {
-          logger.error('Failed to load recent workflow prompts', { error });
+        if (controller.signal.aborted) {
+          return;
         }
-        throw error;
+        logger.error('Failed to load recent workflow prompts', { error });
+        setSnapshot({ hasError: true, isLoading: false, prompts: [] });
       }
-    },
-    queryKey: ['workflow-recent-prompts', { limit: RECENT_PROMPT_LIMIT }],
-    service: (token: string) => PromptsService.getInstance(token),
-  });
+    })();
 
-  const prompts = promptsQuery.data;
-  return {
-    // A failed background refresh keeps the prompts already listed.
-    hasError: promptsQuery.isError && prompts === undefined,
-    isLoading: promptsQuery.isLoading,
-    prompts: prompts ?? EMPTY_PROMPTS,
-  };
+    return () => controller.abort();
+  }, [getPromptsService, isEnabled]);
+
+  return snapshot;
 }
