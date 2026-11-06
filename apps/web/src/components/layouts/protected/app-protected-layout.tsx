@@ -36,6 +36,8 @@ import AppProtectedRail from '@/components/shell/AppProtectedRail';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { InstalledAppsProvider } from '@/components/shell/installed-apps.provider';
 import { RailPreferencesProvider } from '@/components/shell/rail-preferences.provider';
+import WorkspaceContentSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceContentSkeleton';
+import WorkspaceFrameSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceFrameSkeleton';
 import {
   WorkspaceNavPanelProvider,
   WorkspaceNavPanelTarget,
@@ -60,18 +62,18 @@ import AssetGateGuard from './asset-gate-guard';
 import GlobalTaskComposer from './GlobalTaskComposer';
 import ImpersonationBanner from './impersonation-banner';
 import {
+  isProtectedAppsRoute,
   isProtectedEditorCanvasRoute,
   isProtectedWorkspaceRoute,
-  useAppProtectedLayout,
-} from './useAppProtectedLayout';
+} from './protected-route-kind';
+import { useAppProtectedLayout } from './useAppProtectedLayout';
 
 const TRAILING_SLASH_PATTERN = /\/$/;
-const APPS_SEGMENT_PATTERN = /\/~\/apps(\/|$)/;
 
 const LazyUniversalWorkspaceShell = dynamic(
   () => import('@/components/workspace-shell/UniversalWorkspaceShell'),
   {
-    loading: () => null,
+    loading: () => <WorkspaceContentSkeleton />,
   },
 );
 
@@ -238,7 +240,7 @@ function AppLayoutWithDynamicMenu({
   );
   const activeNavPanel = libraryNavPanel ?? messagesNavPanel;
 
-  const isAppsRoute = APPS_SEGMENT_PATTERN.test(sidebarPathname ?? '');
+  const isAppsRoute = isProtectedAppsRoute(sidebarPathname ?? '');
   const menuComponent = useMemo(() => {
     // Editor/workflow canvas routes suppress the Automation/module sidebar so
     // the surface can own the left rail (nodes palette, graph chrome) instead
@@ -571,10 +573,14 @@ function AppProtectedLayoutContent({
   );
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
   const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
+  const translatePending = useTranslations('pages.organizationRouting.pending');
 
   return (
     <WorkspaceNavPanelProvider>
       <ProtectedProviders
+        authPendingFallback={
+          <WorkspaceFrameSkeleton label={translatePending('loading')} />
+        }
         renderModal={renderAppGlobalModal}
         includeAssetSelectionProvider={!isEditorCanvasRoute}
         includeApiStatusCheck={false}
@@ -601,8 +607,14 @@ function AppProtectedLayoutContent({
 export default function AppProtectedLayout(
   props: Parameters<typeof AppProtectedLayoutContent>[0],
 ) {
+  const translatePending = useTranslations('pages.organizationRouting.pending');
+
+  // The loading frame, not a blank page, if the shell suspends on first mount
+  // (a lazy chunk still downloading right after the organization confirms).
   return (
-    <Suspense fallback={null}>
+    <Suspense
+      fallback={<WorkspaceFrameSkeleton label={translatePending('loading')} />}
+    >
       <AppProtectedLayoutContent {...props} />
     </Suspense>
   );

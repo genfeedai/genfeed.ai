@@ -71,36 +71,15 @@ import {
   isPersonalSettingsPage as computeIsPersonalSettingsPage,
   resolveSettingsScope,
 } from './app-protected-layout.settings-scope';
+import {
+  isProtectedConversationRoute,
+  isProtectedEditorCanvasRoute,
+  isProtectedWorkspaceRoute,
+} from './protected-route-kind';
 import { usePageHelp } from './use-page-help';
 import { useOpenTaskComposer } from './useOpenTaskComposer';
 
-const EDITOR_CANVAS_PATH_PATTERN = /^\/editor\/[^/]+$/;
-const WORKFLOW_EDITOR_PATH_PATTERN = /^\/automation\/workflows\/([^/]+)$/;
-const AGENT_PATH_PATTERN = /^\/agent(?:\/|$)/;
 const CLIPPER_OR_STORYBOARD_PATH_PATTERN = /^\/(clipper|storyboard)(?:\/|$)/;
-
-const AUTOMATION_WORKFLOW_RESERVED = new Set([
-  'executions',
-  'new',
-  'templates',
-]);
-
-export function isProtectedEditorCanvasRoute(pathname: string): boolean {
-  return (
-    EDITOR_CANVAS_PATH_PATTERN.test(pathname) ||
-    pathname === APP_ROUTES.AUTOMATION.WORKFLOWS_NEW ||
-    (WORKFLOW_EDITOR_PATH_PATTERN.test(pathname) &&
-      !AUTOMATION_WORKFLOW_RESERVED.has(pathname.split('/')[3] ?? ''))
-  );
-}
-
-export function isProtectedWorkspaceRoute(pathname: string): boolean {
-  return (
-    pathname === APP_ROUTES.WORKSPACE.ROOT ||
-    pathname === APP_ROUTES.WORKSPACE.OVERVIEW ||
-    pathname.startsWith(`${APP_ROUTE_PREFIXES.WORKSPACE}/`)
-  );
-}
 
 export function useAppProtectedLayout(
   initialBootstrap?: ProtectedBootstrapData | null,
@@ -125,7 +104,7 @@ export function useAppProtectedLayout(
     [rawPathname],
   );
 
-  const isAgentRoute = AGENT_PATH_PATTERN.test(pathname);
+  const isAgentRoute = isProtectedConversationRoute(pathname);
   const isConversationRoute = isAgentRoute;
   const isAdminRoute =
     pathname === APP_ROUTES.ADMIN.ROOT ||

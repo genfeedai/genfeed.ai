@@ -16,6 +16,11 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     selectedBrand: { organization: { slug: 'acme', accountType: 'CREATOR' } },
@@ -105,6 +110,23 @@ describe('OnboardingGuard', () => {
     );
     expect(result.current).toEqual({ canRender: false, redirectTarget: null });
     expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it('holds the page body as a placeholder while access state loads', () => {
+    pathnameMock.mockReturnValue('/settings/personal');
+    useCurrentUserMock.mockReturnValue({ currentUser: null, isLoading: true });
+    useAccessStateMock.mockReturnValue({ accessState: null, isLoading: true });
+
+    render(
+      <OnboardingGuard>
+        <div>Child</div>
+      </OnboardingGuard>,
+    );
+
+    expect(
+      screen.getByRole('status', { name: 'Loading your workspace' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Child')).not.toBeInTheDocument();
   });
 
   it('renders the onboarding page when access state never hydrates', async () => {

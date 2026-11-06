@@ -41,7 +41,7 @@ describe('RoutedOrganizationBoundary', () => {
     contextState.status = 'loading';
   });
 
-  it('shows a loader instead of tenant content while route reconciliation is pending', () => {
+  it('shows the app frame, not a splash, while route reconciliation is pending', () => {
     render(
       <RoutedOrganizationBoundary>
         <span>Tenant content</span>
@@ -49,17 +49,16 @@ describe('RoutedOrganizationBoundary', () => {
     );
 
     expect(screen.queryByText('Tenant content')).not.toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Loading your workspace',
-    );
-    expect(screen.getByTestId('organization-route-pending')).toHaveClass(
-      'min-h-dvh',
-      'bg-background',
-    );
-    expect(document.querySelector('.genfeed-spinner')).toBeTruthy();
+    expect(
+      screen.getByRole('status', { name: 'Loading your workspace' }),
+    ).toBeInTheDocument();
+    // The wait is announced, not printed: no splash copy on screen.
+    expect(
+      screen.queryByText('Loading your workspace'),
+    ).not.toBeInTheDocument();
   });
 
-  it('shows a switching loader without mounting tenant content', () => {
+  it('announces a switch without mounting tenant content', () => {
     contextState.status = 'switching';
 
     render(
@@ -69,11 +68,11 @@ describe('RoutedOrganizationBoundary', () => {
     );
 
     expect(screen.queryByText('Tenant content')).not.toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Switching organization',
-    );
     expect(
-      screen.queryByText('Loading your workspace'),
+      screen.getByRole('status', { name: 'Switching organization' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'Loading your workspace' }),
     ).not.toBeInTheDocument();
   });
 
