@@ -429,13 +429,11 @@ function UserPromptCard({
 
   return (
     // Inset is the recessed step above the card plane: on the dark canvas a
-    // bg-card prompt disappears into the page. Tighter than a card, as a
-    // chat bubble.
+    // bg-card prompt disappears into the page.
     <Card
       variant={CardVariant.INSET}
-      padding={CardPadding.NONE}
+      padding={CardPadding.SM}
       gap={CardGap.NONE}
-      className="px-4 py-2.5"
       data-testid="agent-user-prompt"
     >
       <div className="text-sm leading-6 text-foreground">{children}</div>
