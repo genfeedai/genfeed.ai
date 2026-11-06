@@ -24,6 +24,7 @@ import {
   CreditReservationStatus,
   KNOWLEDGE_CAPTURE_TRANSCRIPT_CREDIT,
   KNOWLEDGE_TRANSCRIPT_GENERATION_LEASE_MS,
+  KnowledgeCaptureRequestStatus,
   KnowledgeProcessingState,
   KnowledgeSourceKind,
   KnowledgeTranscriptState,
@@ -400,9 +401,12 @@ export class KnowledgeTranscriptIngestService {
           isDeleted: false,
           organizationId: input.organizationId,
           sourceId: input.sourceId,
-          status: 'queued',
+          status: KnowledgeCaptureRequestStatus.QUEUED,
         },
-        data: { reservationId, status: 'completed' },
+        data: {
+          reservationId,
+          status: KnowledgeCaptureRequestStatus.COMPLETED,
+        },
       });
       return resolution;
     } catch (error: unknown) {

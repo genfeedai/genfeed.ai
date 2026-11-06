@@ -65,6 +65,13 @@ export enum KnowledgeSourceSyncState {
   FAILED = 'FAILED',
 }
 
+/** Lifecycle of one capture request (`knowledge_capture_requests.status`). */
+export enum KnowledgeCaptureRequestStatus {
+  QUEUED = 'queued',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}
+
 export enum KnowledgeRefreshRunStatus {
   QUEUED = 'QUEUED',
   PROCESSING = 'PROCESSING',

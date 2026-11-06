@@ -2,6 +2,7 @@ import type {
   CredentialPlatform,
   PostCategory,
   PostFormat,
+  PostStatus,
   PostVisibility,
   ReviewDecision,
   SourcePostVariationPlatform,
@@ -44,7 +45,7 @@ export interface IPost extends IBaseEntity {
   label?: string;
   description?: string;
   tags?: ITag[];
-  status: string;
+  status: PostStatus;
   targetExecutionState: TargetExecutionState;
   targetSettings?: Record<string, unknown> | null;
   visibility?: PostVisibility;
