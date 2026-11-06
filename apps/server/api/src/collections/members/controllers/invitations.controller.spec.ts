@@ -3,95 +3,91 @@ import type { InvitationService } from '@api/collections/members/services/invita
 import { GoneException } from '@nestjs/common';
 import type { Response } from 'express';
 
-const acceptResult = {
-  invitation: {
-    acceptedAt: new Date('2026-06-23T12:00:00.000Z'),
-    createdAt: new Date('2026-06-22T12:00:00.000Z'),
-    email: 'new@example.com',
-    expiresAt: new Date('2026-06-30T12:00:00.000Z'),
-    id: 'inv_123',
-    invitedByUserId: 'user_123',
-    organizationId: 'org_123',
-    revokedAt: null,
-    roleId: 'role_user',
-    roleKey: 'user',
-    status: 'accepted' as const,
-    updatedAt: new Date('2026-06-23T12:00:00.000Z'),
-  },
-  memberId: 'member_123',
-  organizationId: 'org_123',
-  redirectUrl: 'https://app.test/login?invitation=accepted&org=org_123',
-  userId: 'user_123',
-};
+type Invitation = { organizationId: string; status: string };
 
-const invitationService = {
-  acceptInvitation: vi.fn(),
-  resolveInvitationOutcomeRedirectUrl: vi.fn(
-    (outcome: string) => `https://app.test/login?invitation=${outcome}`,
-  ),
-} as unknown as InvitationService;
+/**
+ * Invitations by token. Accepting a pending one marks it accepted; any other
+ * status is gone with the service's message for it.
+ */
+function buildController(invitations: Record<string, Invitation>) {
+  const goneMessages: Record<string, string> = {
+    accepted: 'Invitation has already been accepted',
+    expired: 'Invitation has expired',
+    revoked: 'Invitation has been revoked',
+  };
+  const service = {
+    acceptInvitation: async (token: string) => {
+      const invitation = invitations[token];
+      if (invitation.status !== 'pending') {
+        throw new GoneException(goneMessages[invitation.status]);
+      }
+      invitation.status = 'accepted';
+      return {
+        redirectUrl: `https://app.test/login?invitation=accepted&org=${invitation.organizationId}`,
+      };
+    },
+    resolveInvitationOutcomeRedirectUrl: (outcome: string) =>
+      `https://app.test/login?invitation=${outcome}`,
+  };
+  return new InvitationsController(service as unknown as InvitationService);
+}
 
-function buildController() {
-  return new InvitationsController(invitationService);
+/** An express response that keeps the redirects it was asked for. */
+function recordingResponse() {
+  const redirects: { status: number; url: string }[] = [];
+  const response = {
+    redirect: (status: number, url: string) => redirects.push({ status, url }),
+  } as unknown as Response;
+  return { redirects, response };
 }
 
 describe('InvitationsController', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('accepts an invitation and redirects to the resolved URL', async () => {
-    const controller = buildController();
-    vi.mocked(invitationService.acceptInvitation).mockResolvedValue(
-      acceptResult,
-    );
-    const response = {
-      redirect: vi.fn(),
-    } as unknown as Response;
+    const invitations = {
+      'token-123': { organizationId: 'org_123', status: 'pending' },
+    };
+    const { redirects, response } = recordingResponse();
 
-    await controller.acceptInvitationRedirect('token-123', response);
-
-    expect(invitationService.acceptInvitation).toHaveBeenCalledWith(
+    await buildController(invitations).acceptInvitationRedirect(
       'token-123',
+      response,
     );
-    expect(response.redirect).toHaveBeenCalledWith(
-      303,
-      acceptResult.redirectUrl,
-    );
+
+    expect(invitations['token-123'].status).toBe('accepted');
+    expect(redirects).toEqual([
+      {
+        status: 303,
+        url: 'https://app.test/login?invitation=accepted&org=org_123',
+      },
+    ]);
   });
 
   it('redirects blank tokens to a recoverable invalid state', async () => {
-    const controller = buildController();
-    const response = { redirect: vi.fn() } as unknown as Response;
+    const { redirects, response } = recordingResponse();
 
-    await controller.acceptInvitationRedirect('   ', response);
+    await buildController({}).acceptInvitationRedirect('   ', response);
 
-    expect(invitationService.acceptInvitation).not.toHaveBeenCalled();
-    expect(response.redirect).toHaveBeenCalledWith(
-      303,
-      'https://app.test/login?invitation=invalid',
-    );
+    expect(redirects).toEqual([
+      { status: 303, url: 'https://app.test/login?invitation=invalid' },
+    ]);
   });
 
   it.each([
-    ['Invitation has already been accepted', 'already-accepted'],
-    ['Invitation has expired', 'expired'],
-    ['Invitation has been revoked', 'revoked'],
+    ['accepted', 'already-accepted'],
+    ['expired', 'expired'],
+    ['revoked', 'revoked'],
   ])(
-    'redirects %s errors to the %s recovery state',
-    async (message, outcome) => {
-      const controller = buildController();
-      const response = { redirect: vi.fn() } as unknown as Response;
-      vi.mocked(invitationService.acceptInvitation).mockRejectedValue(
-        new GoneException(message),
-      );
+    'redirects an invitation that is %s to the %s recovery state',
+    async (status, outcome) => {
+      const { redirects, response } = recordingResponse();
 
-      await controller.acceptInvitationRedirect('token-123', response);
+      await buildController({
+        'token-123': { organizationId: 'org_123', status },
+      }).acceptInvitationRedirect('token-123', response);
 
-      expect(response.redirect).toHaveBeenCalledWith(
-        303,
-        `https://app.test/login?invitation=${outcome}`,
-      );
+      expect(redirects).toEqual([
+        { status: 303, url: `https://app.test/login?invitation=${outcome}` },
+      ]);
     },
   );
 });
