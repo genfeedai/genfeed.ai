@@ -1,606 +1,608 @@
-import { ClipperProjectsService } from '@api/collections/clipper-projects/clipper-projects.service';
-import { ClipperAvatarBillingService } from '@api/collections/clipper-projects/services/clipper-avatar-billing.service';
-import { ClipperLibraryLinkService } from '@api/collections/clipper-projects/services/clipper-library-link.service';
-import { ClipperResultsService } from '@api/collections/clipper-results/clipper-results.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
-import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/workflows/services/workflow-node-continuation-coordinator.service';
+import type { ClipperProjectsService } from '@api/collections/clipper-projects/clipper-projects.service';
+import type { ClipperAvatarBillingService } from '@api/collections/clipper-projects/services/clipper-avatar-billing.service';
+import type { ClipperLibraryLinkService } from '@api/collections/clipper-projects/services/clipper-library-link.service';
+import type { ClipperResultsService } from '@api/collections/clipper-results/clipper-results.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
+import type { WorkflowNodeContinuationCoordinatorService } from '@api/collections/workflows/services/workflow-node-continuation-coordinator.service';
 import { HeygenWebhookService } from '@api/endpoints/webhooks/heygen/webhooks.heygen.service';
-import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
-import { MicroservicesService } from '@api/services/microservices/microservices.service';
-import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
-import { testId } from '@helpers/testing/test-id.helper';
+import type { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import type { MicroservicesService } from '@api/services/microservices/microservices.service';
 import type { HeygenWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-function createMockDeps() {
-  const logger = {
-    debug: vi.fn(),
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  };
+type Row = Record<string, unknown>;
 
-  const metadataService = {
-    findOne: vi.fn(),
-    findOneSelect: delegateFindOneSelect(),
-    patch: vi.fn(),
-  };
-
-  const ingredientsService = {
-    findOne: vi.fn(),
-    findOneSelect: delegateFindOneSelect(),
-  };
-
-  const clipperAvatarBilling = {
-    release: vi.fn().mockResolvedValue(undefined),
-    settle: vi.fn().mockResolvedValue(undefined),
-  };
-
-  const clipperLibraryLinkService = {
-    linkReadyClip: vi.fn().mockResolvedValue({
-      clipperResultId: 'clip-1',
-      ingredientId: 'ingredient-1',
-      status: 'linked',
-    }),
-  };
-
-  const clipperProjectsService = {
-    patch: vi.fn(),
-    reconcileTerminalState: vi.fn(),
-  };
-
-  const clipperResultsService = {
-    findByProject: vi.fn(),
-    findOne: vi.fn(),
-    findOneSelect: delegateFindOneSelect(),
-    patch: vi.fn(),
-  };
-
-  const microservicesService = {
-    notifyWebhook: vi.fn().mockResolvedValue(undefined),
-  };
-
-  const webhooksService = {
-    handleFailedGenerationForIngredient: vi.fn().mockResolvedValue(undefined),
-    processMediaForIngredient: vi.fn().mockResolvedValue(undefined),
-  };
-  const continuationCoordinator = {
-    completeProviderAction: vi.fn().mockResolvedValue('queued'),
-    failProviderAction: vi.fn().mockResolvedValue('queued'),
-  };
-  const continuations = {
-    findIngredientCallbackTarget: vi.fn().mockResolvedValue(null),
-  };
-
-  return {
-    clipperAvatarBilling,
-    clipperLibraryLinkService,
-    clipperProjectsService,
-    clipperResultsService,
-    ingredientsService,
-    logger,
-    metadataService,
-    microservicesService,
-    webhooksService,
-    continuationCoordinator,
-    continuations,
-  };
+interface Continuation {
+  error?: string;
+  identity: { ingredientId: string; organizationId: string };
+  outcome: 'completed' | 'failed';
+  providerResult: Record<string, unknown>;
 }
 
+interface MediaProcessed {
+  durationSeconds?: number;
+  externalId?: string;
+  ingredientId: string;
+  kind: string;
+  url: string;
+}
+
+const CLIP_URL = 'https://cdn.heygen.com/clip.mp4';
+const AVATAR_URL = 'https://cdn.heygen.com/avatar.mp4';
+const FAILURE = { code: 'TIMEOUT', message: 'Generation timed out' };
+
+// The log prefix carries the traced caller name, which varies by runtime.
+const logged = (message: string) =>
+  expect.stringMatching(new RegExp(`^HeygenWebhookService .*${message}$`));
+
+const byFields = (where: Row) => (row: Row) =>
+  Object.entries(where).every(([key, value]) => row[key] === value);
+
 describe('HeygenWebhookService', () => {
+  // The rows a callback can target and every effect it can have.
+  let clipResults: Row[];
+  let metadata: Row[];
+  let ingredients: Row[];
+  let continuationTargets: Row[];
+  let notifications: { body: Row; eventType: string; provider: string }[];
+  let clipHolds: {
+    clipperResultId: string;
+    outcome: string;
+    seconds?: number;
+  }[];
+  let libraryLinks: Row[];
+  let reconciledProjects: [string, string | undefined][];
+  let mediaProcessed: MediaProcessed[];
+  let failedGenerations: [string, string][];
+  let continuations: Continuation[];
+  let warnings: string[];
+  let errors: string[];
+  let isNotifierDown: boolean;
+  let isMetadataStoreDown: boolean;
   let service: HeygenWebhookService;
-  let deps: ReturnType<typeof createMockDeps>;
 
-  beforeEach(async () => {
-    deps = createMockDeps();
+  const table = (rows: () => Row[]) => ({
+    findOne: async (where: Row) => {
+      if (isMetadataStoreDown && rows() === metadata) {
+        throw new Error('Database connection lost');
+      }
+      const found = rows().find(byFields(where));
+      return found ? { ...found } : null;
+    },
+    patch: async (id: string, data: Row) => {
+      const found = rows().find((row) => row.id === id);
+      if (!found) throw new Error(`Row ${id} not found`);
+      return Object.assign(found, data);
+    },
+  });
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        HeygenWebhookService,
-        {
-          provide: ClipperAvatarBillingService,
-          useValue: deps.clipperAvatarBilling,
+  beforeEach(() => {
+    clipResults = [];
+    metadata = [];
+    ingredients = [];
+    continuationTargets = [];
+    notifications = [];
+    clipHolds = [];
+    libraryLinks = [];
+    reconciledProjects = [];
+    mediaProcessed = [];
+    failedGenerations = [];
+    continuations = [];
+    warnings = [];
+    errors = [];
+    isNotifierDown = false;
+    isMetadataStoreDown = false;
+
+    service = new HeygenWebhookService(
+      {
+        release: async (clipperResultId: string) => {
+          clipHolds.push({ clipperResultId, outcome: 'released' });
         },
-        {
-          provide: ClipperLibraryLinkService,
-          useValue: deps.clipperLibraryLinkService,
+        settle: async (
+          clipperResultId: string,
+          _organizationId: string,
+          seconds?: number,
+        ) => {
+          clipHolds.push({ clipperResultId, outcome: 'settled', seconds });
         },
-        {
-          provide: ClipperProjectsService,
-          useValue: deps.clipperProjectsService,
+      } as unknown as ClipperAvatarBillingService,
+      {
+        linkReadyClip: async (link: Row) => {
+          libraryLinks.push(link);
         },
-        {
-          provide: ClipperResultsService,
-          useValue: deps.clipperResultsService,
+      } as unknown as ClipperLibraryLinkService,
+      {
+        reconcileTerminalState: async (
+          projectId: string,
+          organizationId?: string,
+        ) => {
+          reconciledProjects.push([projectId, organizationId]);
         },
-        { provide: IngredientsService, useValue: deps.ingredientsService },
-        { provide: LoggerService, useValue: deps.logger },
-        { provide: MetadataService, useValue: deps.metadataService },
-        {
-          provide: MicroservicesService,
-          useValue: deps.microservicesService,
+      } as unknown as ClipperProjectsService,
+      table(() => clipResults) as unknown as ClipperResultsService,
+      table(() => ingredients) as unknown as IngredientsService,
+      {
+        error: (message: string) => {
+          errors.push(message);
         },
-        { provide: WebhooksService, useValue: deps.webhooksService },
-        {
-          provide: WorkflowNodeContinuationCoordinatorService,
-          useValue: deps.continuationCoordinator,
+        log: () => undefined,
+        warn: (message: string) => {
+          warnings.push(message);
         },
+      } as unknown as LoggerService,
+      table(() => metadata) as unknown as MetadataService,
+      {
+        notifyWebhook: async (
+          provider: string,
+          eventType: string,
+          body: Row,
+        ) => {
+          if (isNotifierDown) {
+            throw new Error('Request failed with status code 404');
+          }
+          notifications.push({ body, eventType, provider });
+        },
+      } as unknown as MicroservicesService,
+      {
+        handleFailedGenerationForIngredient: async (
+          ingredientId: string,
+          error: string,
+        ) => {
+          failedGenerations.push([ingredientId, error]);
+        },
+        processMediaForIngredient: async (
+          ingredientId: string,
+          kind: string,
+          url: string,
+          externalId?: string,
+          _unused?: unknown,
+          durationSeconds?: number,
+        ) => {
+          mediaProcessed.push({
+            durationSeconds,
+            externalId,
+            ingredientId,
+            kind,
+            url,
+          });
+        },
+      } as unknown as WebhooksService,
+      {
+        completeProviderAction: async (
+          action: Omit<Continuation, 'outcome'>,
+        ) => {
+          continuations.push({ ...action, outcome: 'completed' });
+          return 'queued';
+        },
+        failProviderAction: async (action: Omit<Continuation, 'outcome'>) => {
+          continuations.push({ ...action, outcome: 'failed' });
+          return 'queued';
+        },
+      } as unknown as WorkflowNodeContinuationCoordinatorService,
+      {
+        findIngredientCallbackTarget: async ({
+          ingredientId,
+        }: {
+          ingredientId: string;
+        }) =>
+          continuationTargets.find(
+            (target) => target.ingredientId === ingredientId,
+          ) ?? null,
+      } as unknown as WorkflowNodeContinuationService,
+    );
+  });
+
+  // An avatar render whose callback id is the metadata row.
+  const seedRender = (ingredient: Row = {}) => {
+    metadata.push({ id: 'metadata-1' });
+    ingredients.push({
+      id: 'ingredient-1',
+      metadataId: 'metadata-1',
+      organizationId: 'org-1',
+      ...ingredient,
+    });
+  };
+  const seedClip = (fields: Row = {}) => {
+    clipResults.push({
+      id: 'clip-1',
+      organizationId: 'org-1',
+      projectId: 'project-1',
+      status: 'processing',
+      ...fields,
+    });
+  };
+  const metadataRow = () => metadata[0];
+  const clip = () => clipResults[0];
+
+  describe('request validation', () => {
+    it.each([
+      ['an array', []],
+      ['null', null],
+      ['a string', 'invalid'],
+      ['a number', 42],
+      ['a boolean', false],
+    ])('rejects %s body before notifying anyone', async (_case, body) => {
+      await expect(
+        service.handleCallback(body as unknown as HeygenWebhookPayload),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(notifications).toEqual([]);
+    });
+
+    it('notifies listeners and stops when the event names no callback id', async () => {
+      seedRender();
+
+      await service.handleCallback({ event_data: {}, event_type: 'x' });
+
+      expect(notifications).toEqual([
+        expect.objectContaining({ eventType: 'x', provider: 'heygen' }),
+      ]);
+      expect(warnings).toEqual([logged('no callback_id provided')]);
+      expect(metadataRow()).toEqual({ id: 'metadata-1' });
+    });
+  });
+
+  describe('listener notification', () => {
+    it.each([
+      ['the event type', 'video_completed', 'video_completed'],
+      ['"unknown" without one', undefined, 'unknown'],
+    ])('forwards the callback under %s', async (_case, eventType, notified) => {
+      seedRender();
+
+      await service.handleCallback({
+        callback_id: 'metadata-1',
+        event_data: {},
+        event_type: eventType,
+      });
+
+      expect(notifications).toEqual([
         {
-          provide: WorkflowNodeContinuationService,
-          useValue: deps.continuations,
+          body: expect.objectContaining({
+            callback_id: 'metadata-1',
+            metadata: expect.objectContaining({ callbackId: 'metadata-1' }),
+          }),
+          eventType: notified,
+          provider: 'heygen',
+        },
+      ]);
+    });
+
+    it('still finalizes the render when the notification call fails', async () => {
+      seedRender();
+      isNotifierDown = true;
+
+      await service.handleCallback({
+        callback_id: 'metadata-1',
+        event_data: { video_id: 'video-1' },
+        event_type: 'video_completed',
+      });
+
+      expect(warnings).toEqual([logged('notification failed, continuing')]);
+      expect(metadataRow()).toMatchObject({ externalId: 'video-1' });
+    });
+  });
+
+  describe('avatar renders', () => {
+    it.each([
+      ['the metadata id', 'metadata-1'],
+      ['the ingredient id', 'ingredient-1'],
+    ])(
+      'finalizes a successful render addressed by %s',
+      async (_case, callbackId) => {
+        seedRender();
+
+        await service.handleCallback({
+          callback_id: callbackId,
+          event_data: {
+            duration: 12.5,
+            url: AVATAR_URL,
+            video_id: 'provider-video-42',
+          },
+          event_type: 'avatar_video.success',
+        });
+
+        expect(mediaProcessed).toEqual([
+          {
+            durationSeconds: 12.5,
+            externalId: 'provider-video-42',
+            ingredientId: 'ingredient-1',
+            kind: 'avatar',
+            url: AVATAR_URL,
+          },
+        ]);
+        expect(metadataRow()).toEqual({
+          externalId: 'provider-video-42',
+          id: 'metadata-1',
+          result: AVATAR_URL,
+        });
+        expect(continuations).toEqual([
+          {
+            identity: { ingredientId: 'ingredient-1', organizationId: 'org-1' },
+            outcome: 'completed',
+            provider: 'heygen',
+            providerResult: {
+              externalId: 'provider-video-42',
+              url: AVATAR_URL,
+            },
+          },
+        ]);
+      },
+    );
+
+    it.each([
+      ['no duration', {}],
+      ['a zero duration', { duration: 0 }],
+      ['a non-finite duration', { duration: Number.POSITIVE_INFINITY }],
+    ])(
+      'settles a render at its estimate when HeyGen reports %s',
+      async (_case, duration) => {
+        seedRender();
+
+        await service.handleCallback({
+          callback_id: 'metadata-1',
+          event_data: { url: AVATAR_URL, ...duration },
+          event_type: 'avatar_video.success',
+        });
+
+        expect(mediaProcessed).toEqual([
+          expect.objectContaining({ durationSeconds: undefined }),
+        ]);
+      },
+    );
+
+    it.each([
+      'avatar_video.fail',
+      'avatar_video.failed',
+      'avatar_video.failure',
+    ])(
+      'fails the generation and its workflow step on %s',
+      async (eventType) => {
+        seedRender();
+
+        await service.handleCallback({
+          callback_id: 'metadata-1',
+          event_data: { ...FAILURE, video_id: 'provider-video-9' },
+          event_type: eventType,
+        });
+
+        const error = JSON.stringify({
+          ...FAILURE,
+          video_id: 'provider-video-9',
+        });
+        expect(failedGenerations).toEqual([['ingredient-1', error]]);
+        expect(metadataRow()).toEqual({
+          error,
+          externalId: 'provider-video-9',
+          id: 'metadata-1',
+          result: error,
+        });
+        expect(continuations).toEqual([
+          {
+            error,
+            identity: { ingredientId: 'ingredient-1', organizationId: 'org-1' },
+            outcome: 'failed',
+            provider: 'heygen',
+            providerResult: { externalId: 'provider-video-9' },
+          },
+        ]);
+        expect(mediaProcessed).toEqual([]);
+      },
+    );
+
+    it.each([
+      [
+        'a video url on a non-avatar event',
+        {
+          event_data: { video_url: AVATAR_URL },
+          event_type: 'video_completed',
+        },
+        AVATAR_URL,
+      ],
+      [
+        'the raw event data otherwise',
+        { event_data: { status: 'ready' }, event_type: 'avatar_created' },
+        JSON.stringify({ status: 'ready' }),
+      ],
+    ])('stores %s as the result only', async (_case, event, result) => {
+      seedRender();
+
+      await service.handleCallback({ callback_id: 'metadata-1', ...event });
+
+      expect(metadataRow()).toEqual({ id: 'metadata-1', result });
+      expect(mediaProcessed).toEqual([]);
+      expect(failedGenerations).toEqual([]);
+      expect(continuations).toEqual([]);
+    });
+
+    it('finalizes without workflow continuation when the ingredient has no organization', async () => {
+      seedRender({ organizationId: undefined });
+
+      await service.handleCallback({
+        callback_id: 'metadata-1',
+        event_data: { url: AVATAR_URL },
+        event_type: 'avatar_video.success',
+      });
+
+      expect(mediaProcessed).toHaveLength(1);
+      expect(continuations).toEqual([]);
+    });
+
+    it('refuses a callback from a HeyGen video that does not own the ingredient', async () => {
+      seedRender();
+      continuationTargets.push({
+        externalId: 'provider-video-original',
+        ingredientId: 'ingredient-1',
+      });
+
+      await expect(
+        service.handleCallback({
+          callback_id: 'metadata-1',
+          event_data: { url: AVATAR_URL, video_id: 'provider-video-other' },
+          event_type: 'avatar_video.success',
+        }),
+      ).rejects.toThrow(
+        'HeyGen callback provider-video-other does not own ingredient ingredient-1',
+      );
+      expect(metadataRow()).toEqual({ id: 'metadata-1' });
+      expect(mediaProcessed).toEqual([]);
+      expect(continuations).toEqual([]);
+    });
+
+    it('accepts the callback from the HeyGen video that owns the ingredient', async () => {
+      seedRender();
+      continuationTargets.push({
+        externalId: 'provider-video-42',
+        ingredientId: 'ingredient-1',
+      });
+
+      await service.handleCallback({
+        callback_id: 'metadata-1',
+        event_data: { url: AVATAR_URL, video_id: 'provider-video-42' },
+        event_type: 'avatar_video.success',
+      });
+
+      expect(continuations).toEqual([
+        expect.objectContaining({ outcome: 'completed' }),
+      ]);
+    });
+
+    it.each([
+      ['no metadata or ingredient matches', () => undefined],
+      [
+        'the metadata has no ingredient',
+        () => {
+          metadata.push({ id: 'metadata-1' });
         },
       ],
-    }).compile();
+    ])('skips the callback when %s', async (_case, seed) => {
+      seed();
 
-    service = module.get<HeygenWebhookService>(HeygenWebhookService);
-    deps.ingredientsService.findOne.mockResolvedValue({
-      id: 'ingredient-1',
-      metadataId: testId('metadata'),
+      await service.handleCallback({
+        callback_id: 'metadata-1',
+        event_data: { url: AVATAR_URL },
+        event_type: 'avatar_video.success',
+      });
+
+      expect(warnings).toEqual([logged('callback target not found')]);
+      expect(mediaProcessed).toEqual([]);
     });
-  });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
+    it('logs and rethrows when the metadata store is down', async () => {
+      seedRender();
+      isMetadataStoreDown = true;
 
-  it.each([
-    ['array', []],
-    ['null', null],
-    ['string', 'invalid'],
-    ['number', 42],
-    ['boolean', false],
-  ])('should reject a %s body', async (_type, body) => {
-    await expect(
-      service.handleCallback(body as unknown as HeygenWebhookPayload),
-    ).rejects.toThrow(BadRequestException);
-
-    expect(deps.microservicesService.notifyWebhook).not.toHaveBeenCalled();
-  });
-
-  it('should notify webhook on every callback', async () => {
-    const body: HeygenWebhookPayload = {
-      callback_id: testId('metadata'),
-      event_data: {},
-      event_type: 'video_completed',
-    };
-
-    deps.metadataService.findOne.mockResolvedValue({
-      id: body.callback_id,
-    });
-    deps.metadataService.patch.mockResolvedValue({});
-    deps.clipperResultsService.findOne.mockResolvedValue(null);
-
-    await service.handleCallback(body);
-
-    expect(deps.microservicesService.notifyWebhook).toHaveBeenCalledWith(
-      'heygen',
-      'video_completed',
-      expect.objectContaining({
-        metadata: expect.objectContaining({
-          callbackId: body.callback_id,
+      await expect(
+        service.handleCallback({
+          callback_id: 'metadata-1',
+          event_data: {},
+          event_type: 'video_completed',
         }),
-      }),
-    );
-  });
-
-  it('should keep processing the callback when the notification call fails', async () => {
-    const body: HeygenWebhookPayload = {
-      callback_id: testId('metadata'),
-      event_data: { video_id: 'video-1' },
-      event_type: 'video_completed',
-    };
-
-    deps.microservicesService.notifyWebhook.mockRejectedValueOnce(
-      new Error('Request failed with status code 404'),
-    );
-    deps.metadataService.findOne.mockResolvedValue({ id: body.callback_id });
-    deps.metadataService.patch.mockResolvedValue({});
-    deps.clipperResultsService.findOne.mockResolvedValue(null);
-
-    await expect(service.handleCallback(body)).resolves.not.toThrow();
-
-    expect(deps.metadataService.patch).toHaveBeenCalled();
-  });
-
-  it('should use "unknown" as event_type when not provided', async () => {
-    const body: HeygenWebhookPayload = {
-      callback_id: testId('metadata'),
-      event_data: {},
-    };
-
-    deps.metadataService.findOne.mockResolvedValue({ id: body.callback_id });
-    deps.metadataService.patch.mockResolvedValue({});
-    deps.clipperResultsService.findOne.mockResolvedValue(null);
-
-    await service.handleCallback(body);
-
-    expect(deps.microservicesService.notifyWebhook).toHaveBeenCalledWith(
-      'heygen',
-      'unknown',
-      expect.anything(),
-    );
-  });
-
-  it('should return early and warn when no callback_id is provided', async () => {
-    const body: HeygenWebhookPayload = {
-      event_data: {},
-      event_type: 'video_completed',
-    };
-
-    await service.handleCallback(body);
-
-    expect(deps.logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('no callback_id'),
-    );
-    expect(deps.clipperResultsService.findOne).not.toHaveBeenCalled();
-    expect(deps.metadataService.findOne).not.toHaveBeenCalled();
-  });
-
-  it('should return early when metadata is not found', async () => {
-    const body: HeygenWebhookPayload = {
-      callback_id: testId('metadata'),
-      event_data: {},
-      event_type: 'video_completed',
-    };
-
-    deps.metadataService.findOne.mockResolvedValue(null);
-    deps.clipperResultsService.findOne.mockResolvedValue(null);
-    deps.ingredientsService.findOne.mockResolvedValue(null);
-
-    await service.handleCallback(body);
-
-    expect(deps.logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('callback target not found'),
-      expect.objectContaining({
-        callbackId: body.callback_id,
-        hasIngredient: false,
-        hasMetadata: false,
-      }),
-    );
-    expect(deps.metadataService.patch).not.toHaveBeenCalled();
-  });
-
-  it('should store video_url as result for video_completed events', async () => {
-    const metadataId = testId('metadata');
-    const body: HeygenWebhookPayload = {
-      callback_id: metadataId,
-      event_data: { video_url: 'https://cdn.heygen.com/video.mp4' },
-      event_type: 'video_completed',
-    };
-
-    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
-    deps.metadataService.patch.mockResolvedValue({});
-    deps.clipperResultsService.findOne.mockResolvedValue(null);
-
-    await service.handleCallback(body);
-
-    expect(deps.metadataService.patch).toHaveBeenCalledWith(metadataId, {
-      result: 'https://cdn.heygen.com/video.mp4',
+      ).rejects.toThrow('Database connection lost');
+      expect(errors).toEqual([logged('failed')]);
     });
   });
 
-  it.each(['avatar_video.fail', 'avatar_video.failed', 'avatar_video.failure'])(
-    'stores failure event data for %s',
-    async (eventType) => {
-      const metadataId = testId('metadata');
-      const eventData = { code: 'TIMEOUT', message: 'Generation timed out' };
-      const body: HeygenWebhookPayload = {
-        callback_id: metadataId,
-        event_data: eventData,
-        event_type: eventType,
-      };
+  describe('clipper clips', () => {
+    it.each([
+      ['the reported duration', { duration: 7.4 }, 7.4],
+      ['its estimate without a duration', {}, undefined],
+    ])(
+      'completes a clip, settles its hold at %s, links it and reconciles the project',
+      async (_case, duration, seconds) => {
+        seedClip();
 
-      deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
-      deps.metadataService.patch.mockResolvedValue({});
-      deps.clipperResultsService.findOne.mockResolvedValue(null);
+        await service.handleCallback({
+          event_data: {
+            callback_id: 'clip-1',
+            url: CLIP_URL,
+            video_id: 'provider-job-1',
+            ...duration,
+          },
+          event_type: 'avatar_video.success',
+        });
 
-      await service.handleCallback(body);
-
-      expect(deps.metadataService.patch).toHaveBeenCalledWith(
-        metadataId,
-        expect.objectContaining({
-          error: JSON.stringify(eventData),
-        }),
-      );
-    },
-  );
-
-  it('should stringify event_data as result for non-video events', async () => {
-    const metadataId = testId('metadata');
-    const eventData = { status: 'ready' };
-    const body: HeygenWebhookPayload = {
-      callback_id: metadataId,
-      event_data: eventData,
-      event_type: 'avatar_created',
-    };
-
-    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
-    deps.metadataService.patch.mockResolvedValue({});
-    deps.clipperResultsService.findOne.mockResolvedValue(null);
-
-    await service.handleCallback(body);
-
-    expect(deps.metadataService.patch).toHaveBeenCalledWith(metadataId, {
-      result: JSON.stringify(eventData),
-    });
-  });
-
-  it('should rethrow errors from metadataService.findOne', async () => {
-    const body: HeygenWebhookPayload = {
-      callback_id: testId('metadata'),
-      event_data: {},
-      event_type: 'video_completed',
-    };
-
-    const dbError = new Error('Database connection lost');
-    deps.metadataService.findOne.mockRejectedValue(dbError);
-    deps.clipperResultsService.findOne.mockResolvedValue(null);
-
-    await expect(service.handleCallback(body)).rejects.toThrow(
-      'Database connection lost',
-    );
-    expect(deps.logger.error).toHaveBeenCalled();
-  });
-
-  it('should rethrow errors from metadataService.patch', async () => {
-    const metadataId = testId('metadata');
-    const body: HeygenWebhookPayload = {
-      callback_id: metadataId,
-      event_data: {},
-      event_type: 'video_completed',
-    };
-
-    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
-    deps.metadataService.patch.mockRejectedValue(new Error('Write failed'));
-    deps.clipperResultsService.findOne.mockResolvedValue(null);
-
-    await expect(service.handleCallback(body)).rejects.toThrow('Write failed');
-  });
-
-  it('should update a clip result and complete the parent project when the final clip succeeds', async () => {
-    const clipperResultId = testId('metadata');
-    const projectId = testId('metadata');
-    const body: HeygenWebhookPayload = {
-      event_data: {
-        callback_id: clipperResultId,
-        duration: 7.4,
-        url: 'https://cdn.heygen.com/clip.mp4',
-        video_id: 'provider-job-1',
-      },
-      event_type: 'avatar_video.success',
-    };
-
-    deps.clipperResultsService.findOne.mockResolvedValue({
-      id: clipperResultId,
-      organizationId: 'org-1',
-      projectId,
-    });
-    deps.clipperResultsService.findByProject.mockResolvedValue([
-      { status: 'completed' },
-      { status: 'failed' },
-    ]);
-    deps.clipperResultsService.patch.mockResolvedValue({});
-    deps.clipperProjectsService.reconcileTerminalState.mockResolvedValue({});
-
-    await service.handleCallback(body);
-
-    expect(deps.clipperResultsService.patch).toHaveBeenCalledWith(
-      clipperResultId,
-      {
-        providerJobId: 'provider-job-1',
-        status: 'completed',
-        videoUrl: 'https://cdn.heygen.com/clip.mp4',
+        expect(clip()).toMatchObject({
+          providerJobId: 'provider-job-1',
+          status: 'completed',
+          videoUrl: CLIP_URL,
+        });
+        expect(clipHolds).toEqual([
+          { clipperResultId: 'clip-1', outcome: 'settled', seconds },
+        ]);
+        expect(libraryLinks).toEqual([
+          { clipperResultId: 'clip-1', organizationId: 'org-1' },
+        ]);
+        expect(reconciledProjects).toEqual([['project-1', 'org-1']]);
       },
     );
-    expect(deps.clipperLibraryLinkService.linkReadyClip).toHaveBeenCalledWith({
-      clipperResultId,
-      organizationId: 'org-1',
-    });
-    // The clip's hold settles to the seconds HeyGen rendered.
-    expect(deps.clipperAvatarBilling.settle).toHaveBeenCalledWith(
-      clipperResultId,
-      'org-1',
-      7.4,
-    );
-    expect(deps.clipperAvatarBilling.release).not.toHaveBeenCalled();
-    expect(
-      deps.clipperProjectsService.reconcileTerminalState,
-    ).toHaveBeenCalledWith(projectId, 'org-1');
-  });
 
-  it('settles a clip at its estimate when HeyGen reports no duration', async () => {
-    const clipperResultId = testId('metadata');
-    deps.clipperResultsService.findOne.mockResolvedValue({
-      id: clipperResultId,
-      organizationId: 'org-1',
-      projectId: testId('metadata'),
-    });
+    it('fails a clip, returns its hold and reconciles the project', async () => {
+      seedClip();
 
-    await service.handleCallback({
-      event_data: {
-        callback_id: clipperResultId,
-        url: 'https://cdn.heygen.com/clip.mp4',
-        video_id: 'provider-job-1',
-      },
-      event_type: 'avatar_video.success',
-    });
+      await service.handleCallback({
+        event_data: { callback_id: 'clip-1', video_id: 'provider-job-1' },
+        event_type: 'avatar_video.failed',
+      });
 
-    expect(deps.clipperAvatarBilling.settle).toHaveBeenCalledWith(
-      clipperResultId,
-      'org-1',
-      undefined,
-    );
-  });
-
-  it('returns the clip hold when HeyGen reports the clip failed', async () => {
-    const clipperResultId = testId('metadata');
-    deps.clipperResultsService.findOne.mockResolvedValue({
-      id: clipperResultId,
-      organizationId: 'org-1',
-      projectId: testId('metadata'),
-    });
-
-    await service.handleCallback({
-      event_data: {
-        callback_id: clipperResultId,
-        error: 'Generation timed out',
-        video_id: 'provider-job-1',
-      },
-      event_type: 'avatar_video.failed',
-    });
-
-    expect(deps.clipperAvatarBilling.release).toHaveBeenCalledWith(
-      clipperResultId,
-      'org-1',
-    );
-    expect(deps.clipperAvatarBilling.settle).not.toHaveBeenCalled();
-  });
-
-  it('should fail the parent project when the final clip fails', async () => {
-    const clipperResultId = testId('metadata');
-    const projectId = testId('metadata');
-    const body: HeygenWebhookPayload = {
-      event_data: {
-        callback_id: clipperResultId,
-        error: 'Generation timed out',
-        video_id: 'provider-job-1',
-      },
-      event_type: 'avatar_video.failed',
-    };
-
-    deps.clipperResultsService.findOne.mockResolvedValue({
-      id: clipperResultId,
-      projectId,
-    });
-    deps.clipperResultsService.findByProject.mockResolvedValue([
-      { status: 'failed' },
-    ]);
-    deps.clipperResultsService.patch.mockResolvedValue({});
-    deps.clipperProjectsService.reconcileTerminalState.mockResolvedValue({});
-
-    await service.handleCallback(body);
-
-    expect(deps.clipperResultsService.patch).toHaveBeenCalledWith(
-      clipperResultId,
-      {
+      expect(clip()).toMatchObject({
         providerJobId: 'provider-job-1',
         status: 'failed',
-      },
-    );
-    expect(
-      deps.clipperProjectsService.reconcileTerminalState,
-    ).toHaveBeenCalledWith(projectId, undefined);
-  });
-
-  it('should continue to process legacy metadata-backed avatar success callbacks', async () => {
-    const metadataId = testId('metadata');
-    const body: HeygenWebhookPayload = {
-      callback_id: metadataId,
-      event_data: {
-        callback_id: metadataId,
-        url: 'https://cdn.heygen.com/avatar.mp4',
-      },
-      event_type: 'avatar_video.success',
-    };
-
-    deps.clipperResultsService.findOne.mockResolvedValue(null);
-    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
-    deps.ingredientsService.findOne.mockResolvedValue({
-      id: 'ingredient-legacy',
-      metadataId,
-    });
-    deps.metadataService.patch.mockResolvedValue({});
-
-    await service.handleCallback(body);
-
-    expect(deps.webhooksService.processMediaForIngredient).toHaveBeenCalledWith(
-      'ingredient-legacy',
-      'avatar',
-      'https://cdn.heygen.com/avatar.mp4',
-      undefined,
-      undefined,
-      undefined,
-    );
-  });
-
-  it('passes the clip duration HeyGen reports to settlement', async () => {
-    const ingredientId = testId('ingredient');
-    const metadataId = testId('linkedMetadata');
-    deps.clipperResultsService.findOne.mockResolvedValue(null);
-    deps.metadataService.findOne
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: metadataId });
-    deps.ingredientsService.findOne.mockResolvedValue({
-      id: ingredientId,
-      metadataId,
-    });
-    deps.metadataService.patch.mockResolvedValue({});
-
-    await service.handleCallback({
-      callback_id: ingredientId,
-      event_data: {
-        callback_id: ingredientId,
-        duration: 12.5,
-        url: 'https://cdn.heygen.com/avatar.mp4',
-        video_id: 'provider-video-43',
-      },
-      event_type: 'avatar_video.success',
+      });
+      expect(clipHolds).toEqual([
+        { clipperResultId: 'clip-1', outcome: 'released' },
+      ]);
+      expect(libraryLinks).toEqual([]);
+      expect(reconciledProjects).toEqual([['project-1', 'org-1']]);
     });
 
-    expect(deps.webhooksService.processMediaForIngredient).toHaveBeenCalledWith(
-      ingredientId,
-      'avatar',
-      'https://cdn.heygen.com/avatar.mp4',
-      'provider-video-43',
-      undefined,
-      12.5,
-    );
-  });
+    it.each([
+      ['a successful', { url: CLIP_URL }, 'avatar_video.success', 'completed'],
+      ['a failed', {}, 'avatar_video.failed', 'failed'],
+    ])(
+      'records %s clip without billing when the clip has no organization',
+      async (_case, eventData, eventType, status) => {
+        seedClip({ organizationId: undefined });
 
-  it('should resolve ingredient-backed avatar success callbacks when callback_id is the ingredient id', async () => {
-    const ingredientId = testId('ingredient');
-    const metadataId = testId('linkedMetadata');
-    const body: HeygenWebhookPayload = {
-      callback_id: ingredientId,
-      event_data: {
-        callback_id: ingredientId,
-        url: 'https://cdn.heygen.com/avatar.mp4',
-        video_id: 'provider-video-42',
+        await service.handleCallback({
+          event_data: { callback_id: 'clip-1', ...eventData },
+          event_type: eventType,
+        });
+
+        expect(clip()?.status).toBe(status);
+        expect(clipHolds).toEqual([]);
+        expect(libraryLinks).toEqual([]);
+        expect(reconciledProjects).toEqual([['project-1', undefined]]);
       },
-      event_type: 'avatar_video.success',
-    };
+    );
 
-    deps.clipperResultsService.findOne.mockResolvedValue(null);
-    deps.metadataService.findOne
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: metadataId });
-    deps.ingredientsService.findOne.mockResolvedValue({
-      id: ingredientId,
-      metadataId,
+    it('leaves a clip untouched on a non-terminal event', async () => {
+      seedClip();
+
+      await service.handleCallback({
+        event_data: { callback_id: 'clip-1' },
+        event_type: 'avatar_video.processing',
+      });
+
+      expect(clip()?.status).toBe('processing');
+      expect(clipHolds).toEqual([]);
+      expect(reconciledProjects).toEqual([]);
     });
-    deps.metadataService.patch.mockResolvedValue({});
 
-    await service.handleCallback(body);
+    it('skips a clip result that has lost its project', async () => {
+      seedClip({ projectId: undefined });
 
-    expect(deps.webhooksService.processMediaForIngredient).toHaveBeenCalledWith(
-      ingredientId,
-      'avatar',
-      'https://cdn.heygen.com/avatar.mp4',
-      'provider-video-42',
-      undefined,
-      undefined,
-    );
-    expect(deps.metadataService.patch).toHaveBeenCalledWith(
-      metadataId,
-      expect.objectContaining({
-        externalId: 'provider-video-42',
-        result: 'https://cdn.heygen.com/avatar.mp4',
-      }),
-    );
+      await service.handleCallback({
+        event_data: { callback_id: 'clip-1', url: CLIP_URL },
+        event_type: 'avatar_video.success',
+      });
+
+      expect(warnings).toEqual([logged('clip result missing project id')]);
+      expect(clip()?.status).toBe('processing');
+      expect(clipHolds).toEqual([]);
+    });
   });
 });
