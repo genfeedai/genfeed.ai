@@ -22,20 +22,23 @@ describe('Authorized bot livestream operations (#6176)', () => {
     brandId: targetBrandId,
   };
   function setup() {
-    const capture = vi.fn();
-    const read = vi.fn(() =>
+    // Tenant context observed each time a session operation actually executes.
+    const executions: ReturnType<typeof getTenantContext>[] = [];
+    // Every bot lookup's where clause, to check the tenant filter.
+    const lookups: Record<string, unknown>[] = [];
+    const read = () =>
       lazyTenantResult(
         {
           id: 'session-target',
           organizationId: targetOrganizationId,
           status: 'stopped',
         },
-        capture,
-      ),
-    );
-    const findOne = vi.fn(async (where: Record<string, unknown>) =>
-      where.organizationId === sessionOrganizationId ? null : bot,
-    );
+        (context) => executions.push(context),
+      );
+    const findOne = async (where: Record<string, unknown>) => {
+      lookups.push(where);
+      return where.organizationId === sessionOrganizationId ? null : bot;
+    };
     const controller = Object.create(
       BotsController.prototype,
     ) as BotsController;
@@ -52,7 +55,7 @@ describe('Authorized bot livestream operations (#6176)', () => {
       },
       botsRestreamChatService: { ingestChatActions: read },
     });
-    return { controller, capture, findOne };
+    return { controller, executions, lookups };
   }
   describe.each([
     'get',
@@ -87,7 +90,7 @@ describe('Authorized bot livestream operations (#6176)', () => {
       }
     }
     it('runs the session operation in the authorized bot organization', async () => {
-      const { controller, capture } = setup();
+      const { controller, executions } = setup();
       await runWithTenantContext(
         { organizationId: sessionOrganizationId },
         async () => {
@@ -97,23 +100,20 @@ describe('Authorized bot livestream operations (#6176)', () => {
           });
         },
       );
-      expect(capture).toHaveBeenCalledWith({
-        organizationId: targetOrganizationId,
-      });
+      expect(executions).toEqual([{ organizationId: targetOrganizationId }]);
     });
     it('keeps foreign bots inaccessible to members', async () => {
-      const { controller, capture, findOne } = setup();
+      const { controller, executions, lookups } = setup();
       await expect(invoke(controller, memberUser)).rejects.toMatchObject({
         status: 404,
       });
-      expect(findOne).toHaveBeenCalledWith(
+      expect(lookups).toEqual([
         expect.objectContaining({
           organizationId: sessionOrganizationId,
           isDeleted: false,
         }),
-        expect.any(Array),
-      );
-      expect(capture).not.toHaveBeenCalled();
+      ]);
+      expect(executions).toEqual([]);
     });
   });
 });

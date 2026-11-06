@@ -106,3 +106,84 @@ export function installMockFetch(): ReturnType<typeof vi.fn> {
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
 }
+
+export type FakeResourceRow = Record<string, unknown> & { id: string };
+
+export interface FakeJsonApiResource {
+  /** The rows the fake server currently holds. */
+  rows: FakeResourceRow[];
+}
+
+function toResourceObject(
+  row: FakeResourceRow,
+  type: string,
+): { attributes: Record<string, unknown>; id: string; type: string } {
+  const { id, ...attributes } = row;
+  return { attributes, id, type };
+}
+
+/**
+ * Install an in-memory JSON:API resource as a service's axios instance, so a
+ * spec asserts what the server ends up holding and what the service returns
+ * instead of which HTTP calls it made. Supports the collection routes
+ * (`get('')` filtered by `params`, `post('')`) and the member routes
+ * (`get('/id')`, `patch('/id')`, `delete('/id')`).
+ */
+export function installFakeJsonApiResource(
+  service: unknown,
+  options: { rows?: FakeResourceRow[]; type: string },
+): FakeJsonApiResource {
+  const resource: FakeJsonApiResource = { rows: [...(options.rows ?? [])] };
+  let nextId = resource.rows.length + 1;
+  const memberId = (path: string): string => path.replace(/^\//, '');
+  const findRow = (path: string): FakeResourceRow => {
+    const row = resource.rows.find((item) => item.id === memberId(path));
+    if (!row) {
+      throw new Error(`404: ${options.type} ${memberId(path)} not found`);
+    }
+    return row;
+  };
+  const single = (row: FakeResourceRow) => ({
+    data: { data: toResourceObject(row, options.type) },
+  });
+
+  (service as { instance: unknown }).instance = {
+    delete: async (path: string) => {
+      const row = findRow(path);
+      resource.rows = resource.rows.filter((item) => item !== row);
+      return single(row);
+    },
+    get: async (
+      path: string,
+      config: { params?: Record<string, unknown> } = {},
+    ) => {
+      if (path !== '') {
+        return single(findRow(path));
+      }
+      const filters = Object.entries(config.params ?? {});
+      const rows = resource.rows.filter((row) =>
+        filters.every(([key, value]) => row[key] === value),
+      );
+      return {
+        data: { data: rows.map((row) => toResourceObject(row, options.type)) },
+      };
+    },
+    patch: async (path: string, body: Record<string, unknown>) => {
+      const row = findRow(path);
+      Object.assign(row, body);
+      return single(row);
+    },
+    post: async (path: string, body: Record<string, unknown>) => {
+      if (path !== '') {
+        throw new Error(`Unsupported POST ${path}`);
+      }
+      const row: FakeResourceRow = {
+        ...body,
+        id: `${options.type}-${nextId++}`,
+      };
+      resource.rows.push(row);
+      return single(row);
+    },
+  };
+  return resource;
+}
