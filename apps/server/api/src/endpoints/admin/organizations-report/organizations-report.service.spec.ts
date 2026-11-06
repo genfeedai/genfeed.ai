@@ -1,97 +1,132 @@
 import { OrganizationsReportService } from '@api/endpoints/admin/organizations-report/organizations-report.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { Test } from '@nestjs/testing';
-import { vi } from 'vitest';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+
+type OrganizationRow = {
+  _count: { members: number };
+  accountType: string | null;
+  category: string;
+  createdAt: Date;
+  id: string;
+  isDeleted: boolean;
+  label: string;
+  onboardingCompleted: boolean;
+  settings: { subscriptionTier: string } | null;
+  slug: string;
+  user: { email: string | null };
+};
+
+function organization(
+  id: string,
+  createdAt: string,
+  overrides: Partial<OrganizationRow> = {},
+): OrganizationRow {
+  return {
+    _count: { members: 1 },
+    accountType: null,
+    category: 'BUSINESS',
+    createdAt: new Date(createdAt),
+    id,
+    isDeleted: false,
+    label: id,
+    onboardingCompleted: true,
+    settings: null,
+    slug: id,
+    user: { email: `${id}@example.test` },
+    ...overrides,
+  };
+}
+
+/** The organizations table, ordered by `createdAt` then `id`. */
+function buildService(rows: OrganizationRow[]) {
+  const visible = (where: { isDeleted?: boolean }) =>
+    rows.filter(
+      (row) =>
+        where.isDeleted === undefined || row.isDeleted === where.isDeleted,
+    );
+  const prisma = {
+    organization: {
+      count: async ({ where }: { where: { isDeleted?: boolean } }) =>
+        visible(where).length,
+      findMany: async (args: {
+        skip: number;
+        take: number;
+        where: { isDeleted?: boolean };
+      }) =>
+        visible(args.where)
+          .sort(
+            (a, b) =>
+              Number(a.createdAt) - Number(b.createdAt) ||
+              a.id.localeCompare(b.id),
+          )
+          .slice(args.skip, args.skip + args.take),
+    },
+  };
+  return new OrganizationsReportService(prisma as unknown as PrismaService);
+}
 
 describe('OrganizationsReportService', () => {
-  const findMany = vi.fn();
-  const count = vi.fn();
-  let service: OrganizationsReportService;
-
-  beforeEach(async () => {
-    findMany.mockReset();
-    count.mockReset();
-    count.mockResolvedValue(0);
-    const module = await Test.createTestingModule({
-      providers: [
-        OrganizationsReportService,
-        {
-          provide: PrismaService,
-          useValue: { organization: { count, findMany } },
-        },
-      ],
-    }).compile();
-    service = module.get(OrganizationsReportService);
-  });
+  const rows = () => [
+    organization('org-c', '2026-03-01T00:00:00.000Z'),
+    organization('org-gone', '2026-01-15T00:00:00.000Z', { isDeleted: true }),
+    organization('org-b', '2026-02-01T00:00:00.000Z'),
+    organization('org-a2', '2026-01-01T00:00:00.000Z'),
+    organization('org-a1', '2026-01-01T00:00:00.000Z'),
+  ];
 
   it('pages non-deleted organizations in the database, oldest first', async () => {
-    findMany.mockResolvedValue([]);
-    count.mockResolvedValue(45);
-
-    const report = await service.getReport({ limit: 20, page: 2, skip: 20 });
-
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-        skip: 20,
-        take: 20,
-        where: { isDeleted: false },
-      }),
-    );
-    expect(count).toHaveBeenCalledWith({ where: { isDeleted: false } });
-    expect(report.pagination).toEqual({
-      limit: 20,
+    const report = await buildService(rows()).getReport({
+      limit: 2,
       page: 2,
-      pages: 3,
-      total: 45,
+      skip: 2,
+    });
+
+    expect(report.organizations.map((row) => row.id)).toEqual([
+      'org-b',
+      'org-c',
+    ]);
+    expect(report.pagination).toEqual({
+      limit: 2,
+      page: 2,
+      pages: 2,
+      total: 4,
     });
   });
 
   it('includes soft-deleted organizations when asked', async () => {
-    findMany.mockResolvedValue([]);
-
-    await service.getReport({ limit: 20, page: 1, skip: 0 }, true);
-
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: {} }),
-    );
-    expect(count).toHaveBeenCalledWith({ where: {} });
-  });
-
-  it('maps owner, tier, category and member count per organization', async () => {
-    findMany.mockResolvedValue([
-      {
-        _count: { members: 3 },
-        accountType: null,
-        category: 'BUSINESS',
-        createdAt: new Date('2026-01-02T03:04:05.000Z'),
-        id: 'org_1',
-        isDeleted: false,
-        label: 'Acme',
-        onboardingCompleted: true,
-        settings: { subscriptionTier: 'pro' },
-        slug: 'acme',
-        user: { email: 'owner@acme.test' },
-      },
-      {
-        _count: { members: 0 },
-        accountType: 'AGENCY',
-        category: 'BUSINESS',
-        createdAt: new Date('2026-02-02T00:00:00.000Z'),
-        id: 'org_2',
-        isDeleted: true,
-        label: 'Gone',
-        onboardingCompleted: false,
-        settings: null,
-        slug: 'gone',
-        user: { email: null },
-      },
-    ]);
-
-    const report = await service.getReport(
+    const report = await buildService(rows()).getReport(
       { limit: 20, page: 1, skip: 0 },
       true,
     );
+
+    expect(report.organizations.map((row) => row.id)).toEqual([
+      'org-a1',
+      'org-a2',
+      'org-gone',
+      'org-b',
+      'org-c',
+    ]);
+    expect(report.pagination.total).toBe(5);
+  });
+
+  it('maps owner, tier, category and member count per organization', async () => {
+    const report = await buildService([
+      organization('org_1', '2026-01-02T03:04:05.000Z', {
+        _count: { members: 3 },
+        label: 'Acme',
+        settings: { subscriptionTier: 'pro' },
+        slug: 'acme',
+        user: { email: 'owner@acme.test' },
+      }),
+      organization('org_2', '2026-02-02T00:00:00.000Z', {
+        _count: { members: 0 },
+        accountType: 'AGENCY',
+        isDeleted: true,
+        label: 'Gone',
+        onboardingCompleted: false,
+        slug: 'gone',
+        user: { email: null },
+      }),
+    ]).getReport({ limit: 20, page: 1, skip: 0 }, true);
 
     expect(report.organizations).toEqual([
       {

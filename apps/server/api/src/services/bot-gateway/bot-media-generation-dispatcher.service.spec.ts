@@ -1,54 +1,54 @@
-import { AgentGenerationGatewayService } from '@api/services/agent-generation-gateway/agent-generation-gateway.service';
+import type { AgentGenerationGatewayService } from '@api/services/agent-generation-gateway/agent-generation-gateway.service';
 import { BotMediaGenerationDispatcherService } from '@api/services/bot-gateway/bot-media-generation-dispatcher.service';
 import { ActivitySource, BotCommandType } from '@genfeedai/contracts';
 import {
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
+
+const user = {
+  brandId: 'brand-1',
+  credentialId: 'credential-1',
+  organizationId: 'org-1',
+  userId: 'user-1',
+};
+const onPlaceholderCreated = async () => undefined;
+
+/**
+ * The shared generation gateway, recording every image and video dispatch and
+ * answering with a JSON:API ingredient (or `emptyResponse` with no data).
+ */
+function buildService(options: { emptyResponse?: boolean } = {}) {
+  const dispatched: { kind: 'image' | 'video'; request: unknown }[] = [];
+  const respond = (kind: 'image' | 'video', request: unknown) => {
+    dispatched.push({ kind, request });
+    return Promise.resolve(
+      options.emptyResponse
+        ? { data: null }
+        : { data: { attributes: {}, id: `${kind}-1`, type: `${kind}s` } },
+    );
+  };
+  const gateway = {
+    generateImage: (request: unknown) => respond('image', request),
+    generateVideo: (request: unknown) => respond('video', request),
+  };
+  return {
+    dispatched,
+    service: new BotMediaGenerationDispatcherService(
+      gateway as unknown as AgentGenerationGatewayService,
+    ),
+  };
+}
+
+const attribution = {
+  description: 'Bot media generation',
+  source: ActivitySource.BOT_GENERATION,
+};
 
 describe('BotMediaGenerationDispatcherService', () => {
-  const user = {
-    brandId: 'brand-1',
-    credentialId: 'credential-1',
-    organizationId: 'org-1',
-    userId: 'user-1',
-  };
-  const onPlaceholderCreated = vi.fn().mockResolvedValue(undefined);
-
-  let service: BotMediaGenerationDispatcherService;
-  let generationGateway: vi.Mocked<
-    Pick<AgentGenerationGatewayService, 'generateImage' | 'generateVideo'>
-  >;
-
-  beforeEach(async () => {
-    generationGateway = {
-      generateImage: vi.fn().mockResolvedValue({
-        data: { attributes: {}, id: 'image-1', type: 'images' },
-      }),
-      generateVideo: vi.fn().mockResolvedValue({
-        data: { attributes: {}, id: 'video-1', type: 'videos' },
-      }),
-    };
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        BotMediaGenerationDispatcherService,
-        {
-          provide: AgentGenerationGatewayService,
-          useValue: generationGateway,
-        },
-      ],
-    }).compile();
-
-    service = module.get(BotMediaGenerationDispatcherService);
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('dispatches image generation through the shared generation gateway', async () => {
+    const { dispatched, service } = buildService();
+
     await expect(
       service.generate({
         command: BotCommandType.PROMPT_IMAGE,
@@ -58,30 +58,33 @@ describe('BotMediaGenerationDispatcherService', () => {
       }),
     ).resolves.toEqual({ ingredientId: 'image-1' });
 
-    expect(generationGateway.generateImage).toHaveBeenCalledWith({
-      body: {
-        brandId: 'brand-1',
-        brandingMode: 'brand',
-        isBrandingEnabled: true,
-        outputs: 1,
-        text: 'a product launch',
-        waitForCompletion: false,
+    expect(dispatched).toEqual([
+      {
+        kind: 'image',
+        request: {
+          body: {
+            brandId: 'brand-1',
+            brandingMode: 'brand',
+            isBrandingEnabled: true,
+            outputs: 1,
+            text: 'a product launch',
+            waitForCompletion: false,
+          },
+          creditsAttribution: attribution,
+          onPlaceholderCreated,
+          principal: {
+            brandId: 'brand-1',
+            organizationId: 'org-1',
+            userId: 'user-1',
+          },
+        },
       },
-      creditsAttribution: {
-        description: 'Bot media generation',
-        source: ActivitySource.BOT_GENERATION,
-      },
-      onPlaceholderCreated,
-      principal: {
-        brandId: 'brand-1',
-        organizationId: 'org-1',
-        userId: 'user-1',
-      },
-    });
-    expect(generationGateway.generateVideo).not.toHaveBeenCalled();
+    ]);
   });
 
   it('dispatches video generation through the shared generation gateway', async () => {
+    const { dispatched, service } = buildService();
+
     await expect(
       service.generate({
         command: BotCommandType.PROMPT_VIDEO,
@@ -91,20 +94,19 @@ describe('BotMediaGenerationDispatcherService', () => {
       }),
     ).resolves.toEqual({ ingredientId: 'video-1' });
 
-    expect(generationGateway.generateVideo).toHaveBeenCalledWith(
-      expect.objectContaining({
-        creditsAttribution: {
-          description: 'Bot media generation',
-          source: ActivitySource.BOT_GENERATION,
-        },
-        onPlaceholderCreated,
-      }),
-    );
-    expect(generationGateway.generateImage).not.toHaveBeenCalled();
+    expect(dispatched).toEqual([
+      {
+        kind: 'video',
+        request: expect.objectContaining({
+          creditsAttribution: attribution,
+          onPlaceholderCreated,
+        }),
+      },
+    ]);
   });
 
   it('rejects a generation response without a durable ingredient id', async () => {
-    generationGateway.generateImage.mockResolvedValueOnce({ data: null });
+    const { service } = buildService({ emptyResponse: true });
 
     await expect(
       service.generate({
@@ -117,6 +119,8 @@ describe('BotMediaGenerationDispatcherService', () => {
   });
 
   it('rejects commands outside the media-generation boundary', async () => {
+    const { dispatched, service } = buildService();
+
     await expect(
       service.generate({
         command: BotCommandType.STATUS,
@@ -125,8 +129,6 @@ describe('BotMediaGenerationDispatcherService', () => {
         user,
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
-
-    expect(generationGateway.generateImage).not.toHaveBeenCalled();
-    expect(generationGateway.generateVideo).not.toHaveBeenCalled();
+    expect(dispatched).toEqual([]);
   });
 });
