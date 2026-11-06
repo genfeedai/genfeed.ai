@@ -616,9 +616,11 @@ function inlineSamples(html: string): string {
           ? 'image/png'
           : 'image/jpeg';
     const data = readFileSync(join(imageDir, file)).toString('base64');
+    // Whole attribute values, so one sample URL never rewrites another that
+    // merely starts with it.
     result = result.replaceAll(
-      sampleUrls[index],
-      `data:${mime};base64,${data}`,
+      `src="${sampleUrls[index]}"`,
+      `src="data:${mime};base64,${data}"`,
     );
   });
   return result;
