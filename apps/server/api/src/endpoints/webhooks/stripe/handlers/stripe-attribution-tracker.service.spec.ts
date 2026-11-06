@@ -1,25 +1,17 @@
-import { UsersService } from '@api/collections/users/services/users.service';
+import type { UsersService } from '@api/collections/users/services/users.service';
 import { StripeAttributionTrackerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-attribution-tracker.service';
-import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
-import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
-import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
-import type { ISubscriptionOssReadModel } from '@genfeedai/contracts/interfaces/billing';
-import { SUBSCRIPTION_ATTRIBUTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type {
+  StripeCheckoutSession,
+  StripeService,
+} from '@api/services/integrations/stripe/services/stripe.service';
+import type {
+  ISubscriptionAttributionsService,
+  ISubscriptionOssReadModel,
+} from '@genfeedai/contracts/interfaces/billing';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('StripeAttributionTrackerService', () => {
-  let tracker: StripeAttributionTrackerService;
-
-  const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-  const stripeService = { getSubscription: vi.fn() };
-  const usersService = {
-    findOne: vi.fn(),
-    findOneSelect: delegateFindOneSelect(),
-  };
-  const subscriptionAttributionsService = { trackSubscription: vi.fn() };
-
   const subscription = {
     cancelAtPeriodEnd: false,
     id: 'sub_db_1',
@@ -30,109 +22,141 @@ describe('StripeAttributionTrackerService', () => {
     userId: 'user_1',
   } satisfies ISubscriptionOssReadModel;
 
-  beforeEach(async () => {
-    vi.clearAllMocks();
+  let stripeSubscriptions: Map<string, Record<string, unknown>>;
+  let users: Map<string, { email: string }>;
+  let attributions: Array<{
+    input: Record<string, unknown>;
+    organizationId: string;
+  }>;
+  let errors: string[];
+  let tracker: StripeAttributionTrackerService;
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        StripeAttributionTrackerService,
-        { provide: LoggerService, useValue: loggerService },
-        { provide: StripeService, useValue: stripeService },
-        { provide: UsersService, useValue: usersService },
+  beforeEach(() => {
+    stripeSubscriptions = new Map([
+      [
+        'sub_stripe_1',
         {
-          provide: SUBSCRIPTION_ATTRIBUTIONS_SERVICE,
-          useValue: subscriptionAttributionsService,
+          customer: 'cus_123',
+          items: {
+            data: [
+              { price: { currency: 'usd', id: 'price_1', unit_amount: 4900 } },
+            ],
+          },
         },
       ],
-    }).compile();
+    ]);
+    users = new Map([['user_1', { email: 'account@example.com' }]]);
+    attributions = [];
+    errors = [];
 
-    tracker = module.get(StripeAttributionTrackerService);
+    tracker = new StripeAttributionTrackerService(
+      {
+        error: (message: string) => {
+          errors.push(message);
+        },
+        log: () => {},
+        warn: () => {},
+      } as unknown as LoggerService,
+      {
+        getSubscription: async (id: string) => {
+          const found = stripeSubscriptions.get(id);
+          if (!found) {
+            throw new Error(`No such subscription: ${id}`);
+          }
+          return found;
+        },
+      } as unknown as StripeService,
+      {
+        findOneSelect: async (where: { id: string }) =>
+          users.get(where.id) ?? null,
+      } as unknown as UsersService,
+      {
+        trackSubscription: async (
+          input: Record<string, unknown>,
+          organizationId: string,
+        ) => {
+          attributions.push({ input, organizationId });
+        },
+      } as unknown as ISubscriptionAttributionsService,
+    );
   });
 
-  it('records attribution with amount, plan, and UTM metadata from the session', async () => {
-    stripeService.getSubscription.mockResolvedValue({
+  function session(overrides: Record<string, unknown>): StripeCheckoutSession {
+    return {
       customer: 'cus_123',
-      items: {
-        data: [
-          {
-            price: { currency: 'usd', id: 'price_1', unit_amount: 4900 },
-          },
-        ],
-      },
-    });
-    usersService.findOne.mockResolvedValue({ email: 'ada@example.com' });
+      id: 'cs_1',
+      metadata: {},
+      subscription: 'sub_stripe_1',
+      ...overrides,
+    } as unknown as StripeCheckoutSession;
+  }
 
+  it('records attribution with amount, plan, and UTM metadata from the session', async () => {
     await tracker.trackSubscriptionAttributionFromSession(
-      {
-        customer: 'cus_123',
+      session({
         customer_details: { email: 'ada@example.com' },
-        id: 'cs_1',
         metadata: {
           sourcePlatform: 'youtube',
           utm_campaign: 'launch',
           utm_source: 'newsletter',
         },
-        subscription: 'sub_stripe_1',
-      } as unknown as StripeCheckoutSession,
+      }),
       subscription,
       'test',
     );
 
-    expect(
-      subscriptionAttributionsService.trackSubscription,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        amount: 4900,
-        currency: 'USD',
-        email: 'ada@example.com',
-        plan: 'price_1',
-        sourcePlatform: 'youtube',
-        stripeCustomerId: 'cus_123',
-        stripeSubscriptionId: 'sub_stripe_1',
-        userId: 'user_1',
-        utm: { campaign: 'launch', source: 'newsletter' },
-      }),
-      'org_1',
+    expect(attributions).toEqual([
+      {
+        input: expect.objectContaining({
+          amount: 4900,
+          currency: 'USD',
+          email: 'ada@example.com',
+          plan: 'price_1',
+          sessionId: 'cs_1',
+          sourcePlatform: 'youtube',
+          stripeCustomerId: 'cus_123',
+          stripeSubscriptionId: 'sub_stripe_1',
+          userId: 'user_1',
+          utm: { campaign: 'launch', source: 'newsletter' },
+        }),
+        organizationId: 'org_1',
+      },
+    ]);
+  });
+
+  it('falls back to the account email when checkout captured none', async () => {
+    await tracker.trackSubscriptionAttributionFromSession(
+      session({}),
+      subscription,
+      'test',
     );
-    expect(usersService.findOne).toHaveBeenCalledWith({
-      id: 'user_1',
-    });
+
+    expect(attributions[0]?.input.email).toBe('account@example.com');
   });
 
   it('returns early when the session carries no subscription', async () => {
     await tracker.trackSubscriptionAttributionFromSession(
-      {
-        customer: 'cus_123',
-        id: 'cs_1',
-        metadata: {},
-      } as unknown as StripeCheckoutSession,
+      session({ subscription: undefined }),
       subscription,
       'test',
     );
 
-    expect(stripeService.getSubscription).not.toHaveBeenCalled();
-    expect(
-      subscriptionAttributionsService.trackSubscription,
-    ).not.toHaveBeenCalled();
+    expect(attributions).toEqual([]);
+    expect(errors).toEqual([]);
   });
 
   it('logs and swallows tracking failures', async () => {
-    stripeService.getSubscription.mockRejectedValue(new Error('boom'));
+    stripeSubscriptions.clear();
 
-    await tracker.trackSubscriptionAttributionFromSession(
-      {
-        customer: 'cus_123',
-        id: 'cs_1',
-        metadata: {},
-        subscription: 'sub_stripe_1',
-      } as unknown as StripeCheckoutSession,
-      subscription,
-      'test',
-    );
+    await expect(
+      tracker.trackSubscriptionAttributionFromSession(
+        session({}),
+        subscription,
+        'test',
+      ),
+    ).resolves.toBeUndefined();
 
-    expect(loggerService.error).toHaveBeenCalledWith(
-      expect.stringContaining('failed to record subscription attribution'),
-      expect.any(Error),
-    );
+    expect(attributions).toEqual([]);
+    expect(errors).toEqual(['test failed to record subscription attribution']);
   });
 });

@@ -1,129 +1,183 @@
 import { JobLifecyclePublisherService } from '@files/services/job-lifecycle-publisher.service';
-import { RedisService } from '@libs/redis/redis.service';
+import type { RedisService } from '@libs/redis/redis.service';
+import type { Queue } from 'bullmq';
 
-const mockQueueEventsInstances: Array<{
-  close: ReturnType<typeof vi.fn>;
-  on: ReturnType<typeof vi.fn>;
-}> = [];
+type Listener = (args: Record<string, unknown>) => void;
+
+const queueEvents = vi.hoisted(() => ({
+  instances: [] as Array<{
+    emit: (event: string, args: Record<string, unknown>) => void;
+    isClosed: boolean;
+    name: string;
+  }>,
+}));
 
 vi.mock('bullmq', () => {
-  class MockQueue {
-    public name: string;
-    public opts: { connection: { host: string; port: number } };
+  class FakeQueueEvents {
+    private readonly listeners = new Map<string, Listener>();
+    public isClosed = false;
 
-    constructor(
-      name: string,
-      opts?: { connection?: { host: string; port: number } },
-    ) {
-      this.name = name;
-      this.opts = {
-        connection: opts?.connection ?? { host: 'localhost', port: 6379 },
-      };
+    constructor(public readonly name: string) {
+      queueEvents.instances.push(this);
+    }
+
+    on(event: string, listener: Listener) {
+      this.listeners.set(event, listener);
+      return this;
+    }
+
+    emit(event: string, args: Record<string, unknown>) {
+      this.listeners.get(event)?.(args);
+    }
+
+    async close() {
+      this.isClosed = true;
     }
   }
 
-  class MockQueueEvents {
-    public on = vi.fn();
-    public close = vi.fn().mockResolvedValue(undefined);
-
-    constructor(_name: string, _opts: unknown) {
-      mockQueueEventsInstances.push({ close: this.close, on: this.on });
-    }
-  }
-
-  return {
-    Queue: MockQueue,
-    QueueEvents: MockQueueEvents,
-  };
+  return { Queue: class {}, QueueEvents: FakeQueueEvents };
 });
 
 describe('JobLifecyclePublisherService', () => {
+  let published: Array<{ channel: string; payload: Record<string, unknown> }>;
+  let isRedisDown: boolean;
   let service: JobLifecyclePublisherService;
-  let mockRedisService: Pick<RedisService, 'publish'>;
 
-  const mockConnection = {
-    host: 'localhost',
-    port: 6379,
+  const queue = (name: string) =>
+    ({
+      name,
+      opts: { connection: { host: 'localhost', port: 6379 } },
+    }) as unknown as Queue;
+
+  const queueNamed = (name: string) => {
+    const found = queueEvents.instances.find((events) => events.name === name);
+    if (!found) {
+      throw new Error(`No queue events for ${name}`);
+    }
+    return found;
   };
 
-  const createMockQueue = (name: string) => ({
-    name,
-    opts: { connection: mockConnection },
-  });
-
   beforeEach(() => {
-    vi.clearAllMocks();
-    mockQueueEventsInstances.length = 0;
-
-    mockRedisService = {
-      publish: vi.fn().mockResolvedValue(1),
-    };
+    queueEvents.instances.length = 0;
+    published = [];
+    isRedisDown = false;
 
     service = new JobLifecyclePublisherService(
-      mockRedisService as RedisService,
-      createMockQueue('task-processing') as never,
-      createMockQueue('video-processing') as never,
-      createMockQueue('image-processing') as never,
-      createMockQueue('file-processing') as never,
+      {
+        publish: async (channel: string, message: string) => {
+          if (isRedisDown) {
+            throw new Error('redis unavailable');
+          }
+          published.push({ channel, payload: JSON.parse(message) });
+          return 1;
+        },
+      } as unknown as RedisService,
+      queue('task-processing'),
+      queue('video-processing'),
+      queue('image-processing'),
+      queue('file-processing'),
     );
   });
 
-  it('should setup QueueEvents listeners on module init', () => {
+  it.each([
+    ['waiting', { jobId: 'job-1' }, { status: 'waiting' }],
+    [
+      'active',
+      { jobId: 'job-1', prev: 'waiting' },
+      { prev: 'waiting', status: 'active' },
+    ],
+    [
+      'completed',
+      { jobId: 'job-1', returnvalue: '{"ok":true}' },
+      { returnvalue: '{"ok":true}', status: 'completed' },
+    ],
+    [
+      'failed',
+      { failedReason: 'timeout', jobId: 'job-1' },
+      { failedReason: 'timeout', status: 'failed' },
+    ],
+    [
+      'progress',
+      { data: 40, jobId: 'job-1' },
+      { progress: 40, status: 'progress' },
+    ],
+    ['stalled', { jobId: 'job-1' }, { status: 'stalled' }],
+    ['removed', { jobId: 'job-1' }, { status: 'removed' }],
+  ])(
+    'publishes a %s video job event to the video lifecycle channel',
+    async (event, args, expected) => {
+      service.onModuleInit();
+
+      queueNamed('video-processing').emit(event, args);
+
+      await vi.waitFor(() => expect(published).toHaveLength(1));
+      expect(published[0]).toEqual({
+        channel: 'job-lifecycle:video',
+        payload: {
+          jobId: 'job-1',
+          queueType: 'video',
+          timestamp: expect.any(String),
+          ...expected,
+        },
+      });
+    },
+  );
+
+  it.each([
+    ['task-processing', 'job-lifecycle:task'],
+    ['image-processing', 'job-lifecycle:image'],
+    ['file-processing', 'job-lifecycle:file'],
+  ])('routes %s events to %s', async (queueName, channel) => {
     service.onModuleInit();
 
-    expect(mockQueueEventsInstances).toHaveLength(4);
-    for (const queueEvents of mockQueueEventsInstances) {
-      expect(queueEvents.on).toHaveBeenCalledTimes(7);
-      expect(queueEvents.on).toHaveBeenCalledWith(
-        'waiting',
-        expect.any(Function),
-      );
-      expect(queueEvents.on).toHaveBeenCalledWith(
-        'active',
-        expect.any(Function),
-      );
-      expect(queueEvents.on).toHaveBeenCalledWith(
-        'completed',
-        expect.any(Function),
-      );
-      expect(queueEvents.on).toHaveBeenCalledWith(
-        'failed',
-        expect.any(Function),
-      );
-      expect(queueEvents.on).toHaveBeenCalledWith(
-        'progress',
-        expect.any(Function),
-      );
-      expect(queueEvents.on).toHaveBeenCalledWith(
-        'stalled',
-        expect.any(Function),
-      );
-      expect(queueEvents.on).toHaveBeenCalledWith(
-        'removed',
-        expect.any(Function),
-      );
-    }
+    queueNamed(queueName).emit('waiting', { jobId: 'job-2' });
+
+    await vi.waitFor(() => expect(published).toHaveLength(1));
+    expect(published[0]?.channel).toBe(channel);
   });
 
-  it('should publish serialized job status to Redis', async () => {
+  it('merges additional data into the published payload', async () => {
     await service.publishJobEvent('task', 'job-123', 'completed', {
       assetId: 'asset-789',
       userId: 'user-456',
     });
 
-    expect(mockRedisService.publish).toHaveBeenCalledWith(
-      'job-lifecycle:task',
-      expect.stringContaining('"jobId":"job-123"'),
-    );
+    expect(published).toEqual([
+      {
+        channel: 'job-lifecycle:task',
+        payload: {
+          assetId: 'asset-789',
+          jobId: 'job-123',
+          queueType: 'task',
+          status: 'completed',
+          timestamp: expect.any(String),
+          userId: 'user-456',
+        },
+      },
+    ]);
   });
 
-  it('should close queue event listeners on module destroy', async () => {
+  it('swallows a Redis publish failure', async () => {
+    isRedisDown = true;
+
+    await expect(
+      service.publishJobEvent('task', 'job-123', 'failed'),
+    ).resolves.toBeUndefined();
+    expect(published).toEqual([]);
+  });
+
+  it('closes every queue listener on module destroy', async () => {
     service.onModuleInit();
 
     await service.onModuleDestroy();
 
-    for (const queueEvents of mockQueueEventsInstances) {
-      expect(queueEvents.close).toHaveBeenCalledTimes(1);
-    }
+    expect(
+      queueEvents.instances.map(({ isClosed, name }) => ({ isClosed, name })),
+    ).toEqual([
+      { isClosed: true, name: 'task-processing' },
+      { isClosed: true, name: 'video-processing' },
+      { isClosed: true, name: 'image-processing' },
+      { isClosed: true, name: 'file-processing' },
+    ]);
   });
 });
