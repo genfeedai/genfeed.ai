@@ -119,7 +119,6 @@ describe('ProfilesController', () => {
       const createDto: CreateProfileDto = {
         description: 'Formal style',
         label: 'Professional Tone',
-        tone: 'professional',
       };
 
       mockProfilesService.create.mockResolvedValue(mockProfile);
@@ -220,6 +219,7 @@ describe('ProfilesController', () => {
   describe('applyProfile', () => {
     it('should apply profile to prompt', async () => {
       const dto: ApplyProfileDto = {
+        contentType: 'article',
         profileId: profileId,
         prompt: 'Original prompt',
       };
@@ -299,6 +299,7 @@ describe('ProfilesController', () => {
     it('should analyze content tone', async () => {
       const dto: AnalyzeToneDto = {
         content: 'Test content',
+        contentType: 'article',
         profileId: profileId,
       };
 

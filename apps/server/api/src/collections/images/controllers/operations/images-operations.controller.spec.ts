@@ -100,6 +100,7 @@ import { FailedGenerationService } from '@api/shared/services/failed-generation/
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { createModelDocumentFixture } from '@api-test/fixtures/model-document.fixture';
 import {
   IngredientCategory,
   IngredientStatus,
@@ -728,10 +729,11 @@ describe('ImagesOperationsController', () => {
     });
 
     it('should throw error when prompt is missing', async () => {
-      const dto: CreateImageDto = {
+      // A request without its required prompt text, as an untrusted client could send.
+      const dto = {
         height: 1080,
         width: 1920,
-      };
+      } as CreateImageDto;
 
       await expect(
         controller.create(mockRequest, dto, mockUser),
@@ -985,7 +987,9 @@ describe('ImagesOperationsController', () => {
         },
       } as unknown as Request;
 
-      modelsService.findOne.mockResolvedValue({ cost: 10, key: 'leonardoai' });
+      modelsService.findOne.mockResolvedValue(
+        createModelDocumentFixture({ cost: 10, key: 'leonardoai' }),
+      );
       creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
         true,
       );
@@ -1019,7 +1023,9 @@ describe('ImagesOperationsController', () => {
         },
       } as unknown as Request;
 
-      modelsService.findOne.mockResolvedValue({ cost: 10, key: 'leonardoai' });
+      modelsService.findOne.mockResolvedValue(
+        createModelDocumentFixture({ cost: 10, key: 'leonardoai' }),
+      );
       creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
         false,
       );

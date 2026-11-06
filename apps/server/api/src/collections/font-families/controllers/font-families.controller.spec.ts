@@ -99,8 +99,7 @@ describe('FontFamiliesController', () => {
   describe('create', () => {
     it('should create a font family', async () => {
       const createDto: CreateFontFamilyDto = {
-        category: 'sans-serif',
-        family: 'Roboto',
+        key: 'roboto',
         label: 'Roboto',
       };
 

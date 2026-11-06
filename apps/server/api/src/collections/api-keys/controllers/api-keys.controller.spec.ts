@@ -41,22 +41,28 @@ describe('ApiKeysController', () => {
   } as unknown as User;
 
   const mockApiKey: ApiKey = {
-    _id: apiKeyId,
     allowedIps: [],
     category: ApiKeyCategory.GENFEEDAI,
     createdAt: new Date(),
+    defaultBrandId: null,
     description: 'A test API key',
     expiresAt: new Date(Date.now() + 86400000),
-    hashedKey: 'hashed_key_value',
+    id: apiKeyId,
     isRevoked: false,
     key: 'hashed_key_value',
+    keyFingerprint: null,
     label: 'Test API Key',
-    organization: organizationId,
+    lastUsedAt: null,
+    lastUsedIp: null,
+    metadata: null,
+    organizationId,
+    rateLimit: null,
+    revokedAt: null,
     scopes: ['read', 'write'],
     updatedAt: new Date(),
     usageCount: 0,
-    user: userId,
-  } as ApiKey;
+    userId,
+  };
 
   const mockApiKeysService = {
     create: vi.fn(),

@@ -157,22 +157,22 @@ describe('OutreachCampaignsService', () => {
       userId: 'user-owned',
     });
 
-    await service.createScoped(
-      {
-        brand: 'brand-attacker',
-        campaignType: CampaignType.MANUAL,
-        credential: 'credential-owned',
-        label: 'Campaign',
-        organization: 'org-attacker',
-        platform: CampaignPlatform.TWITTER,
-        user: 'user-attacker',
-      },
-      {
-        brandId: 'brand-owned',
-        organizationId: 'org-owned',
-        userId: 'user-owned',
-      },
-    );
+    // Tenant ids in the body are not part of the DTO; the session scope wins.
+    const spoofedBody = {
+      brandId: 'brand-attacker',
+      campaignType: CampaignType.MANUAL,
+      credentialId: 'credential-owned',
+      label: 'Campaign',
+      organizationId: 'org-attacker',
+      platform: CampaignPlatform.TWITTER,
+      userId: 'user-attacker',
+    };
+
+    await service.createScoped(spoofedBody, {
+      brandId: 'brand-owned',
+      organizationId: 'org-owned',
+      userId: 'user-owned',
+    });
 
     expect(prisma.credential.findFirst).toHaveBeenCalledWith({
       where: expect.objectContaining({
@@ -447,7 +447,7 @@ describe('OutreachCampaignsService', () => {
       service.createScoped(
         {
           campaignType: CampaignType.MANUAL,
-          credential: 'foreign-credential',
+          credentialId: 'foreign-credential',
           label: 'Campaign',
           platform: CampaignPlatform.TWITTER,
         },
