@@ -1,188 +1,223 @@
 vi.mock('@api/helpers/utils/response/response.util', () => ({
-  serializeSingle: vi.fn(
-    (_request: unknown, _serializer: unknown, data: unknown) => data,
-  ),
+  serializeSingle: (_request: unknown, _serializer: unknown, data: unknown) =>
+    data,
 }));
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { SnapchatService } from '@api/services/integrations/snapchat/services/snapchat.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { SnapchatService } from '@api/services/integrations/snapchat/services/snapchat.service';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { Request } from 'express';
+import { describe, expect, it, vi } from 'vitest';
 import { SnapchatController } from './snapchat.controller';
 
-vi.mock('@api/services/integrations/snapchat/services/snapchat.service');
-vi.mock('@libs/logger/logger.service');
 vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
   AutoSwagger: () => () => undefined,
 }));
 
+interface StoredCredential {
+  accessToken?: string;
+  brandId: string;
+  id: string;
+  isConnected: boolean;
+  oauthState: string | null;
+  organizationId: string;
+  platform: string;
+  refreshToken?: string;
+  userId: string;
+}
+
+/** Snapchat's OAuth server: the codes it accepts and the tokens it issues. */
+const SNAPCHAT_TOKENS: Record<
+  string,
+  { accessToken?: string; refreshToken?: string }
+> = {
+  'auth-code-123': {
+    accessToken: 'snap-access-token',
+    refreshToken: 'snap-refresh-token',
+  },
+  'code-without-token': {},
+};
+
+function setup() {
+  const brands = [
+    { id: 'brand-id', organizationId: 'organization-id', userId: 'user-id' },
+  ];
+  const credentials: StoredCredential[] = [];
+
+  const brandsService = {
+    findOne: async (filter: { id: string; organizationId: string }) =>
+      brands.find(
+        (brand) =>
+          brand.id === filter.id &&
+          brand.organizationId === filter.organizationId,
+      ) ?? null,
+  } as unknown as BrandsService;
+
+  const credentialsService = {
+    beginOAuthForBrand: async (
+      brand: { id: string; organizationId: string },
+      userId: string,
+      platform: string,
+    ) => {
+      const credential: StoredCredential = {
+        brandId: brand.id,
+        id: `credential-${credentials.length + 1}`,
+        isConnected: false,
+        oauthState: `state-${credentials.length + 1}`,
+        organizationId: brand.organizationId,
+        platform,
+        userId,
+      };
+      credentials.push(credential);
+      return { credential, state: credential.oauthState };
+    },
+    findPendingOAuthCredential: async (state: string, platform: string) =>
+      credentials.find(
+        (credential) =>
+          credential.oauthState === state && credential.platform === platform,
+      ) ?? null,
+    patch: async (id: string, update: Partial<StoredCredential>) => {
+      const credential = credentials.find((item) => item.id === id);
+      if (!credential) throw new Error(`no credential ${id}`);
+      Object.assign(credential, update);
+      return { ...credential };
+    },
+  } as unknown as CredentialsService;
+
+  const snapchatService = {
+    exchangeCodeForToken: async (code: string) => {
+      const tokens = SNAPCHAT_TOKENS[code];
+      if (!tokens) throw new Error('Invalid code');
+      return tokens;
+    },
+    generateAuthUrl: (state: string) =>
+      `https://accounts.snapchat.com/oauth2/authorize?state=${state}`,
+  } as unknown as SnapchatService;
+
+  const logger = {
+    error: () => undefined,
+    log: () => undefined,
+    warn: () => undefined,
+  } as unknown as LoggerService;
+
+  const controller = new SnapchatController(
+    snapchatService,
+    logger,
+    brandsService,
+    credentialsService,
+  );
+  return { controller, credentials };
+}
+
+const request = {} as Request;
+const user = {
+  organizationId: 'organization-id',
+  userId: 'user-id',
+} as unknown as User;
+
 describe('SnapchatController', () => {
-  let controller: SnapchatController;
-
-  const mockSnapchatService = {
-    exchangeCodeForToken: vi.fn(),
-    generateAuthUrl: vi.fn(),
-  };
-
-  const mockLoggerService = {
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  };
-  const mockBrandsService = {
-    findOne: vi.fn().mockResolvedValue({
-      id: 'brand-id',
-      organizationId: 'organization-id',
-      userId: 'user-id',
-    }),
-  };
-  const mockCredentialsService = {
-    beginOAuthForBrand: vi.fn().mockResolvedValue({
-      credential: { id: 'credential-id' },
-      state: 'opaque-oauth-state',
-    }),
-    findPendingOAuthCredential: vi.fn().mockResolvedValue({
-      brandId: 'brand-id',
-      id: 'credential-id',
-      organizationId: 'organization-id',
-      userId: 'user-id',
-    }),
-    patch: vi.fn().mockResolvedValue({
-      id: 'credential-id',
-      isConnected: true,
-    }),
-  };
-  const user = {
-    organizationId: 'organization-id',
-    userId: 'user-id',
-  } as unknown as User;
-
-  beforeEach(async () => {
-    vi.clearAllMocks();
-
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [SnapchatController],
-      providers: [
-        { provide: SnapchatService, useValue: mockSnapchatService },
-        { provide: LoggerService, useValue: mockLoggerService },
-        { provide: BrandsService, useValue: mockBrandsService },
-        { provide: CredentialsService, useValue: mockCredentialsService },
-      ],
-    }).compile();
-
-    controller = module.get<SnapchatController>(SnapchatController);
-  });
-
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('connect()', () => {
-    it('should return auth URL from service', () => {
-      mockSnapchatService.generateAuthUrl.mockReturnValue(
-        'https://accounts.snapchat.com/oauth2/authorize?state=abc',
-      );
+    it('opens a pending credential and returns the auth URL carrying its server-issued state', async () => {
+      const { controller, credentials } = setup();
 
-      const result = controller.connect({} as never, user, {
+      const result = await controller.connect(request, user, {
         brandId: 'brand-id',
       });
 
-      return expect(result).resolves.toEqual({
-        url: 'https://accounts.snapchat.com/oauth2/authorize?state=abc',
+      expect(result).toEqual({
+        url: 'https://accounts.snapchat.com/oauth2/authorize?state=state-1',
       });
+      expect(credentials).toEqual([
+        expect.objectContaining({
+          brandId: 'brand-id',
+          isConnected: false,
+          oauthState: 'state-1',
+          platform: 'snapchat',
+          userId: 'user-id',
+        }),
+      ]);
     });
 
-    it('should pass server-issued state to generateAuthUrl', async () => {
-      mockSnapchatService.generateAuthUrl.mockReturnValue(
-        'https://snap.com/auth',
-      );
+    it('refuses a brand outside the caller organization', async () => {
+      const { controller, credentials } = setup();
 
-      await controller.connect({} as never, user, { brandId: 'brand-id' });
-
-      expect(mockSnapchatService.generateAuthUrl).toHaveBeenCalledWith(
-        'opaque-oauth-state',
-      );
-    });
-
-    it('should log auth url request', async () => {
-      mockSnapchatService.generateAuthUrl.mockReturnValue(
-        'https://snap.com/auth',
-      );
-
-      await controller.connect({} as never, user, { brandId: 'brand-id' });
-
-      expect(mockLoggerService.log).toHaveBeenCalledWith('Snapchat auth url');
+      await expect(
+        controller.connect(
+          request,
+          { ...user, organizationId: 'other-org' } as User,
+          { brandId: 'brand-id' },
+        ),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(credentials).toEqual([]);
     });
   });
 
   describe('verify()', () => {
-    it('should persist token data from service', async () => {
-      const tokenResult = {
-        accessToken: 'snap-access-token',
-        refreshToken: 'snap-refresh-token',
-      };
-      mockSnapchatService.exchangeCodeForToken.mockResolvedValue(tokenResult);
+    it('stores the exchanged tokens on the pending credential and clears its state', async () => {
+      const { controller, credentials } = setup();
+      await controller.connect(request, user, { brandId: 'brand-id' });
 
-      const result = await controller.verify({} as never, {
+      const result = await controller.verify(request, {
         code: 'auth-code-123',
-        state: 'opaque-oauth-state',
+        state: 'state-1',
       });
 
-      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
-        'credential-id',
-        expect.objectContaining({
-          accessToken: 'snap-access-token',
-          oauthState: null,
-          refreshToken: 'snap-refresh-token',
-        }),
-      );
-      expect(result).toEqual({ id: 'credential-id', isConnected: true });
+      expect(result).toMatchObject({
+        accessToken: 'snap-access-token',
+        id: 'credential-1',
+        isConnected: true,
+        oauthState: null,
+        refreshToken: 'snap-refresh-token',
+      });
+      expect(credentials[0]).toMatchObject({
+        accessToken: 'snap-access-token',
+        isConnected: true,
+        oauthState: null,
+      });
     });
 
-    it('should pass code to exchangeCodeForToken', async () => {
-      mockSnapchatService.exchangeCodeForToken.mockResolvedValue({
-        accessToken: 'token',
-      });
-
-      await controller.verify({} as never, {
-        code: 'my-code',
-        state: 'opaque-oauth-state',
-      });
-
-      expect(mockSnapchatService.exchangeCodeForToken).toHaveBeenCalledWith(
-        'my-code',
-      );
-    });
-
-    it('should log exchange token request', async () => {
-      mockSnapchatService.exchangeCodeForToken.mockResolvedValue({
-        accessToken: 'token',
-      });
-
-      await controller.verify({} as never, {
-        code: 'code',
-        state: 'opaque-oauth-state',
-      });
-
-      expect(mockLoggerService.log).toHaveBeenCalledWith(
-        'Snapchat exchange token',
-      );
-    });
-
-    it('should propagate errors from service', async () => {
-      mockSnapchatService.exchangeCodeForToken.mockRejectedValue(
-        new Error('Invalid code'),
-      );
+    it('rejects a state that no pending credential carries', async () => {
+      const { controller } = setup();
 
       await expect(
-        controller.verify({} as never, {
-          code: 'bad-code',
-          state: 'opaque-oauth-state',
+        controller.verify(request, { code: 'auth-code-123', state: 'forged' }),
+      ).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('rejects a callback missing its code or state', async () => {
+      const { controller } = setup();
+
+      await expect(
+        controller.verify(request, { state: 'state-1' }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('fails with 502 and leaves the credential pending when Snapchat returns no access token', async () => {
+      const { controller, credentials } = setup();
+      await controller.connect(request, user, { brandId: 'brand-id' });
+
+      await expect(
+        controller.verify(request, {
+          code: 'code-without-token',
+          state: 'state-1',
         }),
+      ).rejects.toMatchObject({ status: 502 });
+      expect(credentials[0]).toMatchObject({
+        isConnected: false,
+        oauthState: 'state-1',
+      });
+    });
+
+    it('propagates a rejected code and leaves the credential pending', async () => {
+      const { controller, credentials } = setup();
+      await controller.connect(request, user, { brandId: 'brand-id' });
+
+      await expect(
+        controller.verify(request, { code: 'bad-code', state: 'state-1' }),
       ).rejects.toThrow('Invalid code');
+      expect(credentials[0]).toMatchObject({ isConnected: false });
     });
   });
 });

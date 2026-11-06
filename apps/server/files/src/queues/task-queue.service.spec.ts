@@ -2,202 +2,178 @@ import {
   type TaskJobData,
   TaskQueueService,
 } from '@files/queues/task-queue.service';
-import { FILE_QUEUE_NAMES as QUEUE_NAMES } from '@genfeedai/contracts/queue';
-import { getQueueToken } from '@nestjs/bullmq';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { Queue } from 'bullmq';
 
-function createMockQueue() {
-  return {
-    add: vi.fn().mockResolvedValue({ id: 'test-job-id' }),
-    clean: vi.fn(),
-    getJob: vi.fn(),
-    getJobCounts: vi.fn(),
+interface FakeJob {
+  data: TaskJobData;
+  finishedOn?: number;
+  id: string;
+  name: string;
+  opts: Record<string, unknown>;
+  state: 'active' | 'completed' | 'failed' | 'waiting';
+}
+
+/**
+ * In-memory BullMQ queue: jobs keep their name, data and options, `clean`
+ * drops finished jobs older than the grace period, and counts are read off
+ * the stored jobs.
+ */
+function createQueue(now: () => number) {
+  const jobs: FakeJob[] = [];
+  const queue = {
+    add: async (name: string, data: TaskJobData, opts: { jobId: string }) => {
+      const job: FakeJob = {
+        data,
+        id: opts.jobId,
+        name,
+        opts,
+        state: 'waiting',
+      };
+      jobs.push(job);
+      return job;
+    },
+    clean: async (grace: number, _limit: number, state: FakeJob['state']) => {
+      const stale = jobs.filter(
+        (job) =>
+          job.state === state &&
+          job.finishedOn !== undefined &&
+          now() - job.finishedOn > grace,
+      );
+      for (const job of stale) jobs.splice(jobs.indexOf(job), 1);
+      return stale.map((job) => job.id);
+    },
+    getJob: async (id: string) => jobs.find((job) => job.id === id),
+    getJobCounts: async () =>
+      Object.fromEntries(
+        (['active', 'completed', 'failed', 'waiting'] as const).map((state) => [
+          state,
+          jobs.filter((job) => job.state === state).length,
+        ]),
+      ),
   };
+  return { jobs, queue: queue as unknown as Queue<TaskJobData> };
+}
+
+const jobData = (config: TaskJobData['config']): TaskJobData => ({
+  assetId: 'asset-abc',
+  config,
+  organizationId: 'org-789',
+  taskId: 'task-123',
+  userId: 'user-456',
+});
+
+const HOUR = 3_600_000;
+
+const storedJob = (
+  id: string,
+  state: FakeJob['state'],
+  finishedOn?: number,
+): FakeJob => ({
+  data: jobData({}),
+  finishedOn,
+  id,
+  name: 'clip-media',
+  opts: {},
+  state,
+});
+const NOW = 10 * HOUR;
+
+function setup() {
+  const { jobs, queue } = createQueue(() => NOW);
+  return { jobs, service: new TaskQueueService(queue) };
 }
 
 describe('TaskQueueService', () => {
-  let service: TaskQueueService;
-  let mockQueue: ReturnType<typeof createMockQueue>;
+  it.each([
+    [
+      'addTransformJob',
+      'transform-media',
+      2000,
+      { aspectRatio: '9:16', orientation: 'portrait' },
+    ],
+    ['addUpscaleJob', 'upscale-media', 3000, { resolution: '4k' }],
+    [
+      'addCaptionJob',
+      'caption-media',
+      2000,
+      { captionContent: 'Launch day', captionLanguage: 'en' },
+    ],
+    ['addResizeJob', 'resize-media', 2000, { height: 1080, width: 1920 }],
+    ['addClipJob', 'clip-media', 2500, { count: 3, duration: 10 }],
+  ] as const)(
+    '%s queues a %s job with three attempts and exponential backoff',
+    async (method, name, delay, config) => {
+      const { jobs, service } = setup();
+      const data = jobData(config);
 
-  beforeEach(async () => {
-    mockQueue = createMockQueue();
+      const job = await service[method](data);
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TaskQueueService,
+      expect(jobs).toEqual([
         {
-          provide: getQueueToken(QUEUE_NAMES.TASK_PROCESSING),
-          useValue: mockQueue,
+          data,
+          id: job.id,
+          name,
+          opts: expect.objectContaining({
+            attempts: 3,
+            backoff: { delay, type: 'exponential' },
+            priority: 5,
+          }),
+          state: 'waiting',
         },
-      ],
-    }).compile();
+      ]);
+    },
+  );
 
-    service = module.get<TaskQueueService>(TaskQueueService);
+  it('keeps a priority the caller asked for', async () => {
+    const { jobs, service } = setup();
+
+    await service.addResizeJob({
+      ...jobData({ height: 1080, width: 1920 }),
+      priority: 1,
+    });
+
+    expect(jobs[0].opts).toMatchObject({ priority: 1 });
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('gives every queued job its own id and finds it again', async () => {
+    const { service } = setup();
+
+    const first = await service.addClipJob(jobData({ count: 1 }));
+    const second = await service.addClipJob(jobData({ count: 2 }));
+
+    expect(first.id).not.toBe(second.id);
+    await expect(service.getJob(String(second.id))).resolves.toMatchObject({
+      data: { config: { count: 2 } },
+    });
+    await expect(service.getJob('missing')).resolves.toBeUndefined();
   });
 
-  describe('addTransformJob', () => {
-    it('should queue a transform job with correct params', async () => {
-      const jobData: TaskJobData = {
-        assetId: 'asset-abc',
-        config: { aspectRatio: '9:16', orientation: 'portrait' },
-        organizationId: 'org-789',
-        taskId: 'task-123',
-        userId: 'user-456',
-      };
+  it('counts jobs by state', async () => {
+    const { jobs, service } = setup();
+    await service.addClipJob(jobData({ count: 1 }));
+    await service.addClipJob(jobData({ count: 2 }));
+    jobs[1].state = 'failed';
 
-      const result = await service.addTransformJob(jobData);
-
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        'transform-media',
-        jobData,
-        expect.objectContaining({
-          attempts: 3,
-          backoff: {
-            delay: 2000,
-            type: 'exponential',
-          },
-          priority: 5,
-        }),
-      );
-      expect(result.id).toBe('test-job-id');
+    await expect(service.getJobCounts()).resolves.toEqual({
+      active: 0,
+      completed: 0,
+      failed: 1,
+      waiting: 1,
     });
   });
 
-  describe('addUpscaleJob', () => {
-    it('should queue an upscale job with correct params', async () => {
-      const jobData: TaskJobData = {
-        assetId: 'asset-abc',
-        config: { resolution: '4k' },
-        organizationId: 'org-789',
-        taskId: 'task-123',
-        userId: 'user-456',
-      };
+  it('cleans completed jobs past the grace period and failed jobs past twice that', async () => {
+    const { jobs, service } = setup();
+    jobs.push(
+      storedJob('job-0', 'completed', NOW - 2 * HOUR),
+      storedJob('job-1', 'completed', NOW - HOUR / 2),
+      storedJob('job-2', 'failed', NOW - 3 * HOUR),
+      storedJob('job-3', 'failed', NOW - 1.5 * HOUR),
+      storedJob('job-4', 'waiting'),
+    );
 
-      const result = await service.addUpscaleJob(jobData);
+    await service.clean(HOUR);
 
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        'upscale-media',
-        jobData,
-        expect.objectContaining({
-          attempts: 3,
-          priority: 5,
-        }),
-      );
-      expect(result.id).toBe('test-job-id');
-    });
-  });
-
-  describe('addCaptionJob', () => {
-    it('should queue a caption job with correct params', async () => {
-      const jobData: TaskJobData = {
-        assetId: 'asset-abc',
-        config: { captionContent: 'Launch day', captionLanguage: 'en' },
-        organizationId: 'org-789',
-        taskId: 'task-123',
-        userId: 'user-456',
-      };
-
-      const result = await service.addCaptionJob(jobData);
-
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        'caption-media',
-        jobData,
-        expect.objectContaining({
-          attempts: 3,
-          priority: 5,
-        }),
-      );
-      expect(result.id).toBe('test-job-id');
-    });
-  });
-
-  describe('addResizeJob', () => {
-    it('should queue a resize job with correct params', async () => {
-      const jobData: TaskJobData = {
-        assetId: 'asset-abc',
-        config: { height: 1080, width: 1920 },
-        organizationId: 'org-789',
-        taskId: 'task-123',
-        userId: 'user-456',
-      };
-
-      const result = await service.addResizeJob(jobData);
-
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        'resize-media',
-        jobData,
-        expect.objectContaining({
-          attempts: 3,
-          priority: 5,
-        }),
-      );
-      expect(result.id).toBe('test-job-id');
-    });
-  });
-
-  describe('addClipJob', () => {
-    it('should queue a clip job with correct params', async () => {
-      const jobData: TaskJobData = {
-        assetId: 'asset-abc',
-        config: { count: 3, duration: 10 },
-        organizationId: 'org-789',
-        taskId: 'task-123',
-        userId: 'user-456',
-      };
-
-      const result = await service.addClipJob(jobData);
-
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        'clip-media',
-        jobData,
-        expect.objectContaining({
-          attempts: 3,
-          priority: 5,
-        }),
-      );
-      expect(result.id).toBe('test-job-id');
-    });
-  });
-
-  describe('getJob', () => {
-    it('should retrieve a job by ID', async () => {
-      const mockJob = { data: {}, id: 'test-job-id' };
-      mockQueue.getJob.mockResolvedValue(mockJob);
-
-      const result = await service.getJob('test-job-id');
-
-      expect(mockQueue.getJob).toHaveBeenCalledWith('test-job-id');
-      expect(result).toEqual(mockJob);
-    });
-  });
-
-  describe('getJobCounts', () => {
-    it('should retrieve job counts', async () => {
-      const mockCounts = {
-        active: 2,
-        completed: 100,
-        failed: 3,
-        waiting: 5,
-      };
-      mockQueue.getJobCounts.mockResolvedValue(mockCounts);
-
-      const result = await service.getJobCounts();
-
-      expect(mockQueue.getJobCounts).toHaveBeenCalled();
-      expect(result).toEqual(mockCounts);
-    });
-  });
-
-  describe('clean', () => {
-    it('should clean completed and failed jobs', async () => {
-      await service.clean(3600000);
-
-      expect(mockQueue.clean).toHaveBeenCalledWith(3600000, 0, 'completed');
-      expect(mockQueue.clean).toHaveBeenCalledWith(7200000, 0, 'failed');
-    });
+    expect(jobs.map((job) => job.id)).toEqual(['job-1', 'job-3', 'job-4']);
   });
 });

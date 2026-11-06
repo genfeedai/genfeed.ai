@@ -1,203 +1,223 @@
 import { CustomersService } from '@api/collections/customers/services/customers.service';
-import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
+import type { CacheService } from '@api/services/cache/cache.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
+
+interface CustomerRow {
+  id: string;
+  isDeleted: boolean;
+  organizationId: string;
+  stripeCustomerId: string;
+}
+
+type Where = Record<string, unknown>;
+
+const matches = (row: CustomerRow, where: Where) =>
+  Object.entries(where).every(
+    ([key, value]) => row[key as keyof CustomerRow] === value,
+  );
+
+function uniqueViolation(): Prisma.PrismaClientKnownRequestError {
+  return new Prisma.PrismaClientKnownRequestError(
+    'Unique constraint failed on the fields: (`organizationId`)',
+    { clientVersion: 'test', code: 'P2002' },
+  );
+}
+
+/**
+ * In-memory customers table that enforces the partial unique index
+ * `customers_organizationId_active_key` (one active row per organization) and
+ * runs every query through the CLOUD tenant guard. `beforeCreate` lets a test
+ * commit a concurrent writer's insert just before this one lands.
+ */
+function setup(rows: CustomerRow[] = []) {
+  const hooks = {
+    beforeCreate: (): void => undefined,
+    failCreate: undefined as Error | undefined,
+  };
+  const guard = (operation: string, args: unknown) =>
+    assertTenantScopedQuery({
+      args,
+      isCloud: true,
+      model: 'Customer',
+      operation,
+      tenantModelNames: new Set(['Customer']),
+    });
+  const insert = (data: Omit<CustomerRow, 'id' | 'isDeleted'>) => {
+    if (
+      rows.some(
+        (row) => !row.isDeleted && row.organizationId === data.organizationId,
+      )
+    ) {
+      throw uniqueViolation();
+    }
+    const row = {
+      id: `cust_row_${rows.length + 1}`,
+      isDeleted: false,
+      ...data,
+    };
+    rows.push(row);
+    return row;
+  };
+  const customer = {
+    create: async (args: { data: Omit<CustomerRow, 'id' | 'isDeleted'> }) => {
+      guard('create', args);
+      if (hooks.failCreate) throw hooks.failCreate;
+      hooks.beforeCreate();
+      return { ...insert(args.data) };
+    },
+    findFirst: async (args: { where: Where }) => {
+      guard('findFirst', args);
+      const row = rows.find((item) => matches(item, args.where));
+      return row ? { ...row } : null;
+    },
+    update: async (args: { data: Partial<CustomerRow>; where: Where }) => {
+      guard('update', args);
+      const row = rows.find((item) => matches(item, args.where));
+      if (!row) throw new Error('Record to update not found.');
+      Object.assign(row, args.data);
+      return { ...row };
+    },
+  };
+  let isLocked = false;
+  const cacheService = {
+    generateKey: (namespace: string, ...parts: string[]) =>
+      `${namespace}:${parts.join(':')}`,
+    withLock: async <T>(_key: string, work: () => Promise<T>) => {
+      if (isLocked) return null;
+      isLocked = true;
+      try {
+        return await work();
+      } finally {
+        isLocked = false;
+      }
+    },
+  } as unknown as CacheService;
+  const logger = {
+    debug: () => undefined,
+    error: () => undefined,
+    log: () => undefined,
+    warn: () => undefined,
+  } as unknown as LoggerService;
+  const service = new CustomersService(
+    { customer } as unknown as PrismaService,
+    logger,
+    cacheService,
+  );
+  const inTenant = <T>(work: () => Promise<T>) =>
+    runWithTenantContext({ organizationId: 'org_1' }, work);
+  return { hooks, inTenant, insert, rows, service };
+}
+
+const row = (overrides: Partial<CustomerRow> = {}): CustomerRow => ({
+  id: 'cust_row_1',
+  isDeleted: false,
+  organizationId: 'org_1',
+  stripeCustomerId: 'cus_1',
+  ...overrides,
+});
 
 describe('CustomersService.upsertForOrganization', () => {
-  const logger = {
-    debug: vi.fn(),
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  };
-
-  function makeService() {
-    const customer = {
-      create: vi.fn(),
-      findFirst: vi.fn(),
-      update: vi.fn(),
-    };
-    let locked = false;
-    const cacheService = {
-      generateKey: vi.fn(
-        (namespace: string, ...parts: string[]) =>
-          `${namespace}:${parts.join(':')}`,
-      ),
-      withLock: vi.fn(
-        async (_key: string, callback: () => Promise<unknown>) => {
-          if (locked) {
-            return null;
-          }
-          locked = true;
-          try {
-            return await callback();
-          } finally {
-            locked = false;
-          }
-        },
-      ),
-    };
-    return {
-      cacheService,
-      customer,
-      service: new CustomersService(
-        { customer } as never,
-        logger as never,
-        cacheService as never,
-      ),
-    };
-  }
-
-  function uniqueViolation(): Prisma.PrismaClientKnownRequestError {
-    return new Prisma.PrismaClientKnownRequestError(
-      'Unique constraint failed on the fields: (`organizationId`)',
-      { clientVersion: 'test', code: 'P2002' },
-    );
-  }
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('returns the existing row untouched when it already carries the Stripe id', async () => {
-    const { customer, service } = makeService();
-    customer.findFirst.mockResolvedValue({
-      id: 'cust_row_1',
-      stripeCustomerId: 'cus_1',
-    });
+    const existing = row();
+    const { inTenant, rows, service } = setup([existing]);
 
-    const result = await service.upsertForOrganization('org_1', 'cus_1');
+    const result = await inTenant(() =>
+      service.upsertForOrganization('org_1', 'cus_1'),
+    );
 
     expect(result.id).toBe('cust_row_1');
-    expect(customer.create).not.toHaveBeenCalled();
-    expect(customer.update).not.toHaveBeenCalled();
+    expect(rows).toEqual([row()]);
   });
 
   it('rebinds the existing row when the Stripe id changed', async () => {
-    const { customer, service } = makeService();
-    customer.findFirst.mockResolvedValue({
-      id: 'cust_row_1',
-      stripeCustomerId: 'cus_stale',
-    });
-    customer.update.mockResolvedValue({
-      id: 'cust_row_1',
-      stripeCustomerId: 'cus_fresh',
-    });
+    const { inTenant, rows, service } = setup([
+      row({ stripeCustomerId: 'cus_stale' }),
+    ]);
 
-    const result = await runWithTenantContext({ organizationId: 'org_1' }, () =>
+    const result = await inTenant(() =>
       service.upsertForOrganization('org_1', 'cus_fresh'),
     );
 
-    expectCloudGuardPasses('Customer', 'update', customer.update);
-    expect(customer.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ stripeCustomerId: 'cus_fresh' }),
-        where: { id: 'cust_row_1', isDeleted: false, organizationId: 'org_1' },
-      }),
-    );
     expect(result.stripeCustomerId).toBe('cus_fresh');
-    expect(customer.create).not.toHaveBeenCalled();
+    expect(rows).toEqual([row({ stripeCustomerId: 'cus_fresh' })]);
   });
 
-  it('creates the single org row when none exists', async () => {
-    const { customer, service } = makeService();
-    customer.findFirst.mockResolvedValue(null);
-    customer.create.mockResolvedValue({
-      id: 'cust_row_new',
+  it('creates the single org row when none exists, ignoring a removed one and other organizations', async () => {
+    const { inTenant, rows, service } = setup([
+      row({ id: 'cust_row_removed', isDeleted: true }),
+      row({ id: 'cust_row_other', organizationId: 'org_2' }),
+    ]);
+
+    const result = await inTenant(() =>
+      service.upsertForOrganization('org_1', 'cus_new'),
+    );
+
+    expect(result).toMatchObject({
+      organizationId: 'org_1',
       stripeCustomerId: 'cus_new',
     });
-
-    const result = await service.upsertForOrganization('org_1', 'cus_new');
-
-    expect(customer.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          organizationId: 'org_1',
-          stripeCustomerId: 'cus_new',
-        }),
-      }),
-    );
-    expect(result.id).toBe('cust_row_new');
+    expect(rows.filter((item) => !item.isDeleted)).toHaveLength(2);
   });
 
   it('converges on the winning row when a concurrent insert wins the race', async () => {
-    // Partial unique index `customers_organizationId_active_key`: the losing
-    // insert re-reads the winner's row and patches it instead of failing.
-    const { customer, service } = makeService();
-    customer.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
-      id: 'cust_row_winner',
-      stripeCustomerId: 'cus_winner',
-    });
-    customer.create.mockRejectedValue(uniqueViolation());
-    customer.update.mockResolvedValue({
-      id: 'cust_row_winner',
+    const { hooks, inTenant, insert, rows, service } = setup();
+    hooks.beforeCreate = () => {
+      hooks.beforeCreate = () => undefined;
+      insert({ organizationId: 'org_1', stripeCustomerId: 'cus_winner' });
+    };
+
+    const result = await inTenant(() =>
+      service.upsertForOrganization('org_1', 'cus_loser'),
+    );
+
+    expect(result).toMatchObject({
+      id: 'cust_row_1',
       stripeCustomerId: 'cus_loser',
     });
-
-    const result = await service.upsertForOrganization('org_1', 'cus_loser');
-
-    expect(customer.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ stripeCustomerId: 'cus_loser' }),
-        where: {
-          id: 'cust_row_winner',
-          isDeleted: false,
-          organizationId: 'org_1',
-        },
-      }),
-    );
-    expect(result.id).toBe('cust_row_winner');
+    expect(rows).toEqual([row({ stripeCustomerId: 'cus_loser' })]);
   });
 
   it('rethrows non-unique-violation insert failures', async () => {
-    const { customer, service } = makeService();
-    customer.findFirst.mockResolvedValue(null);
-    customer.create.mockRejectedValue(new Error('db down'));
+    const { hooks, inTenant, rows, service } = setup();
+    hooks.failCreate = new Error('db down');
 
     await expect(
-      service.upsertForOrganization('org_1', 'cus_new'),
+      inTenant(() => service.upsertForOrganization('org_1', 'cus_new')),
     ).rejects.toThrow('db down');
+    expect(rows).toEqual([]);
   });
 
   it('serializes concurrent provisioning and reuses the winning Stripe customer', async () => {
-    const { customer, service } = makeService();
-    let persistedCustomer: {
-      id: string;
-      organizationId: string;
-      stripeCustomerId: string;
-    } | null = null;
-    customer.findFirst.mockImplementation(async () => persistedCustomer);
-    customer.create.mockImplementation(
-      async ({
-        data,
-      }: {
-        data: { organizationId: string; stripeCustomerId: string };
-      }) => {
-        persistedCustomer = { id: 'cust_row_1', ...data };
-        return persistedCustomer;
-      },
-    );
-    const createStripeCustomer = vi.fn(async (billingEmail: string) => {
+    const { inTenant, rows, service } = setup();
+    const stripeCustomersCreated: string[] = [];
+    const createStripeCustomer = async (billingEmail: string) => {
       await new Promise((resolve) => setTimeout(resolve, 10));
+      stripeCustomersCreated.push(billingEmail);
       return billingEmail === 'first@acme.test' ? 'cus_first' : 'cus_second';
-    });
+    };
 
-    const [first, second] = await Promise.all([
-      service.provisionForOrganization(
-        'org_1',
-        async (current) =>
-          current ?? (await createStripeCustomer('first@acme.test')),
-      ),
-      service.provisionForOrganization(
-        'org_1',
-        async (current) =>
-          current ?? (await createStripeCustomer('second@acme.test')),
-      ),
-    ]);
+    const [first, second] = await inTenant(() =>
+      Promise.all([
+        service.provisionForOrganization(
+          'org_1',
+          async (current) =>
+            current ?? (await createStripeCustomer('first@acme.test')),
+        ),
+        service.provisionForOrganization(
+          'org_1',
+          async (current) =>
+            current ?? (await createStripeCustomer('second@acme.test')),
+        ),
+      ]),
+    );
 
-    expect(createStripeCustomer).toHaveBeenCalledTimes(1);
+    expect(stripeCustomersCreated).toEqual(['first@acme.test']);
     expect(first.stripeCustomerId).toBe('cus_first');
     expect(second.stripeCustomerId).toBe('cus_first');
-    expect(customer.create).toHaveBeenCalledTimes(1);
+    expect(rows).toEqual([row({ stripeCustomerId: 'cus_first' })]);
   });
 });

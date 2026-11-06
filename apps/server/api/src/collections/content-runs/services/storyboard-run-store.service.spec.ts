@@ -174,6 +174,21 @@ describe('Storyboard compare-and-swap storage', () => {
     expect(row.config).toMatchObject({ revision: 2 });
   });
 
+  it('does not save a run deleted after its snapshot was read', async () => {
+    const { row, store } = setup();
+    const { config: previous } = await store.read('org-1', 'brand-1', 'run-1');
+    row.isDeleted = true;
+
+    await expect(
+      store.save('org-1', 'brand-1', 'run-1', previous, {
+        ...previous,
+        revision: 2,
+      }),
+    ).rejects.toThrow('changed during this save');
+    expect(row.config).toEqual(config);
+    expect(row.status).toBeUndefined();
+  });
+
   it('cannot reuse a captured snapshot for another tenant or run', async () => {
     const { row, store } = setup();
     const { config: previous } = await store.read('org-1', 'brand-1', 'run-1');
