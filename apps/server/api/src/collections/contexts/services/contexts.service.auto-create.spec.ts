@@ -39,33 +39,37 @@ describe('ContextsService.autoCreateFromAccount', () => {
         scheduledDate: null,
       },
     ];
+    const embeddingRequests: unknown[] = [];
+    const writes: ContextEmbeddingWriteInput[] = [];
     const prisma = {
-      $executeRaw: vi.fn().mockResolvedValue(1),
-      brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand-1' }) },
+      $executeRaw: async () => 1,
+      brand: { findFirst: async () => ({ id: 'brand-1' }) },
       contextBase: {
-        create: vi.fn().mockResolvedValue(createdBase),
-        findFirst: vi.fn().mockResolvedValue(createdBase),
+        create: async () => createdBase,
+        findFirst: async () => createdBase,
       },
       contextEntry: {
-        create: vi.fn().mockResolvedValue({
-          data: {},
-          id: 'entry-1',
-          organizationId: 'org-1',
-        }),
+        create: async () => {
+          throw new Error(
+            'entries must be admitted through the durable writer',
+          );
+        },
       },
-      post: { findMany: vi.fn().mockResolvedValue(posts) },
+      post: { findMany: async () => posts },
     };
-    const embeddings = vi.fn().mockResolvedValue({
-      data: [{ embedding: new Array(1024).fill(0.1), index: 0 }],
-    });
+    const embeddings = async (request: unknown) => {
+      embeddingRequests.push(request);
+      return { data: [{ embedding: new Array(1024).fill(0.1), index: 0 }] };
+    };
     const writer = {
-      write: vi
-        .fn()
-        .mockImplementation(async (input: ContextEmbeddingWriteInput) => ({
-          id: 'entry',
-          organizationId: input.organizationId,
+      write: async (input: ContextEmbeddingWriteInput) => {
+        writes.push(input);
+        return {
           data: { content: input.dto.content, metadata: input.dto.metadata },
-        })),
+          id: `entry-${writes.length}`,
+          organizationId: input.organizationId,
+        };
+      },
     };
     const principal = {
       origin: 'ACTOR' as const,
@@ -79,14 +83,14 @@ describe('ContextsService.autoCreateFromAccount', () => {
     const service = new ContextsService(
       prisma as unknown as PrismaService,
       {
-        debug: vi.fn(),
-        error: vi.fn(),
-        log: vi.fn(),
-        warn: vi.fn(),
+        debug: () => undefined,
+        error: () => undefined,
+        log: () => undefined,
+        warn: () => undefined,
       } as unknown as LoggerService,
       new ContextEmbeddingProviderService(
         {
-          getDefaultModel: vi.fn().mockResolvedValue('bge'),
+          getDefaultModel: async () => 'bge',
         } as unknown as RouterService,
         { embeddings } as unknown as OpenRouterService,
       ),
@@ -105,18 +109,16 @@ describe('ContextsService.autoCreateFromAccount', () => {
       principal,
     );
 
-    expect(prisma.post.findMany).toHaveBeenCalled();
-    expect(writer.write.mock.calls.length).toBeGreaterThan(1);
-    expect(embeddings).not.toHaveBeenCalled();
-    expect(prisma.contextEntry.create).not.toHaveBeenCalled();
-    expect(writer.write).toHaveBeenCalledWith(
+    expect(writes.length).toBeGreaterThan(1);
+    expect(writes).toContainEqual(
       expect.objectContaining({
         contextBaseId: 'ctx-1',
-        principal,
         dto: expect.objectContaining({
           metadata: expect.objectContaining({ source: 'social-post' }),
         }),
+        principal,
       }),
     );
+    expect(embeddingRequests).toEqual([]);
   });
 });
