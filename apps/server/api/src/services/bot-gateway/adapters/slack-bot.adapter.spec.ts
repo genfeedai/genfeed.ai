@@ -213,7 +213,7 @@ describe('SlackBotAdapter', () => {
 
     it('returns message response with text blocks', () => {
       const result = adapter.buildImmediateResponse(
-        'custom' as BotResponseType,
+        BotResponseType.CHANNEL_MESSAGE,
         'Hello!',
       );
       expect(result).toMatchObject({

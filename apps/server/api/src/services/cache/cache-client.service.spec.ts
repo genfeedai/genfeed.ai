@@ -67,7 +67,7 @@ describe('CacheClientService', () => {
    */
   function getClientHandler(event: string): (...args: unknown[]) => void {
     const registration = mockRedisClient.on.mock.calls.find(
-      (call: [string, (...args: unknown[]) => void]) => call[0] === event,
+      ([eventName]) => eventName === event,
     );
     if (!registration) {
       throw new Error(`No "${event}" handler registered on the Redis client`);
@@ -76,7 +76,7 @@ describe('CacheClientService', () => {
   }
 
   it('should register error, connect and ready event handlers on construction', () => {
-    const calls = mockRedisClient.on.mock.calls.map((c: [string]) => c[0]);
+    const calls = mockRedisClient.on.mock.calls.map(([eventName]) => eventName);
     expect(calls).toContain('error');
     expect(calls).toContain('connect');
     expect(calls).toContain('ready');

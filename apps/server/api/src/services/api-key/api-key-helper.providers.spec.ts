@@ -31,7 +31,7 @@ describe('ApiKeyHelperService', () => {
     });
 
     it('should return ELEVENLABS_API_KEY for elevenlabs provider', () => {
-      configService.get.mockImplementation((key: string) =>
+      configService.get.mockImplementation((key) =>
         key === 'ELEVENLABS_API_KEY' ? 'elevenlabs-api-key' : undefined,
       );
 

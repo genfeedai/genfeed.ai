@@ -43,10 +43,13 @@ describe('ErrorResponse util', () => {
         title: 'Conflict',
       });
     } catch (ex: unknown) {
-      expect(ex.getStatus()).toBe(HttpStatus.CONFLICT);
-      const response = ex.getResponse();
-      expect(response.title).toBe('Conflict');
-      expect(response.detail).toBe('Already exists');
+      expect(ex).toBeInstanceOf(HttpException);
+      const httpException = ex as HttpException;
+      expect(httpException.getStatus()).toBe(HttpStatus.CONFLICT);
+      expect(httpException.getResponse()).toMatchObject({
+        detail: 'Already exists',
+        title: 'Conflict',
+      });
     }
   });
 

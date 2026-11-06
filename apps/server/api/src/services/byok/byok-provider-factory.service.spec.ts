@@ -53,7 +53,7 @@ describe('ByokProviderFactoryService', () => {
 
   it('falls back to managed source when BYOK is missing and GENFEED_API_KEY is configured', async () => {
     vi.mocked(mockByokService.resolveApiKey).mockResolvedValue(undefined);
-    vi.mocked(mockConfigService.get).mockImplementation((key: string) => {
+    vi.mocked(mockConfigService.get).mockImplementation((key) => {
       if (key === 'GENFEED_API_KEY') return 'gf_live_managed';
       if (key === 'GENFEED_MANAGED_INFERENCE_URL') return '';
       if (key === 'GENFEEDAI_API_URL') return 'https://api.genfeed.ai';
@@ -72,7 +72,7 @@ describe('ByokProviderFactoryService', () => {
 
   it('uses explicit managed inference URL when configured', async () => {
     vi.mocked(mockByokService.resolveApiKey).mockResolvedValue(undefined);
-    vi.mocked(mockConfigService.get).mockImplementation((key: string) => {
+    vi.mocked(mockConfigService.get).mockImplementation((key) => {
       if (key === 'GENFEED_API_KEY') return 'gf_live_managed';
       if (key === 'GENFEED_MANAGED_INFERENCE_URL') {
         return 'https://edge.test/managed';

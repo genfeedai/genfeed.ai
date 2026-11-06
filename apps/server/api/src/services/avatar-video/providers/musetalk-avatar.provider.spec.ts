@@ -8,6 +8,7 @@ describe('MusetalkAvatarProvider', () => {
 
   const mockInput: AvatarVideoJobInput = {
     avatarId: 'avatar-musetalk-01',
+    callbackId: 'clip-1',
     language: 'en',
     organizationId: 'org-123',
     script: 'Hello world',
@@ -51,6 +52,7 @@ describe('MusetalkAvatarProvider', () => {
     it('throws regardless of the input provided', async () => {
       const minimalInput: AvatarVideoJobInput = {
         avatarId: 'any',
+        callbackId: 'any',
         organizationId: 'any',
         script: '',
         userId: 'any',
