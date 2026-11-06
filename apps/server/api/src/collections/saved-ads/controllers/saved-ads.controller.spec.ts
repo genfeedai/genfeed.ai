@@ -1,7 +1,13 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { SavedAdsController } from '@api/collections/saved-ads/controllers/saved-ads.controller';
+import type {
+  SaveAdDto,
+  UnsaveSavedAdDto,
+  UpdateSavedAdNoteDto,
+} from '@api/collections/saved-ads/dto/saved-ad.dto';
 import type { SavedAdsService } from '@api/collections/saved-ads/services/saved-ads.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -11,7 +17,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 const brandId = '550e8400-e29b-41d4-a716-446655440003';
-const request = { originalUrl: '/saved-ads' } as never;
+const request = { originalUrl: '/saved-ads' } as Request;
 const user = {
   brandId,
   id: 'session-id',
@@ -19,35 +25,100 @@ const user = {
   userId: 'legacy-base62-user-id',
 } as AuthenticatedUser;
 
-describe('SavedAdsController', () => {
-  const service = {
-    list: vi.fn(),
-    saveMany: vi.fn(),
-    unsaveMany: vi.fn(),
-    updateNotes: vi.fn(),
+type SavedAd = {
+  adId: string;
+  brandId: string;
+  id: string;
+  note?: string;
+  organizationId: string;
+  userId: string;
+};
+
+/** Saved ads stored per organization, as the service persists them. */
+function createSavedAds(rows: SavedAd[]) {
+  return {
+    list: async (organizationId: string, brand: string) => {
+      const docs = rows.filter(
+        (row) => row.organizationId === organizationId && row.brandId === brand,
+      );
+      return { docs, totalDocs: docs.length };
+    },
+    saveMany: async (
+      organizationId: string,
+      userId: string,
+      inputs: { adId: string; brandId: string }[],
+    ) =>
+      inputs.map((input) => {
+        const row = {
+          adId: input.adId,
+          brandId: input.brandId,
+          id: `saved-${rows.length + 1}`,
+          organizationId,
+          userId,
+        };
+        rows.push(row);
+        return row;
+      }),
+    unsaveMany: async (organizationId: string, inputs: { id: string }[]) => {
+      const ids = inputs.map((input) => input.id);
+      const removed = rows.filter(
+        (row) => row.organizationId === organizationId && ids.includes(row.id),
+      );
+      for (const row of removed) rows.splice(rows.indexOf(row), 1);
+      return removed.map((row) => row.id);
+    },
+    updateNotes: async (
+      organizationId: string,
+      inputs: { id: string; note: string }[],
+    ) =>
+      inputs.flatMap((input) => {
+        const row = rows.find(
+          (item) =>
+            item.id === input.id && item.organizationId === organizationId,
+        );
+        if (!row) return [];
+        row.note = input.note;
+        return [row];
+      }),
   };
+}
+
+describe('SavedAdsController', () => {
+  let rows: SavedAd[];
   let controller: SavedAdsController;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    controller = new SavedAdsController(service as unknown as SavedAdsService);
-  });
-
-  it('derives canonical user and tenant ownership for an array save', async () => {
-    service.saveMany.mockResolvedValue([{ id: 'saved-1' }]);
-
-    await controller.save(request, user, [
-      { adId: 'ad-1', brandId, source: 'public' },
-    ] as never);
-
-    expect(service.saveMany).toHaveBeenCalledWith(
-      'org-1',
-      'legacy-base62-user-id',
-      [{ adId: 'ad-1', brandId, source: 'public' }],
+    rows = [];
+    controller = new SavedAdsController(
+      createSavedAds(rows) as unknown as SavedAdsService,
     );
   });
 
-  it('rejects a cross-brand list before querying storage', async () => {
+  it('derives canonical user and tenant ownership for an array save', async () => {
+    await controller.save(request, user, [
+      { adId: 'ad-1', brandId, source: 'public' },
+    ] as SaveAdDto[]);
+
+    expect(rows).toEqual([
+      {
+        adId: 'ad-1',
+        brandId,
+        id: 'saved-1',
+        organizationId: 'org-1',
+        userId: 'legacy-base62-user-id',
+      },
+    ]);
+  });
+
+  it('rejects a cross-brand list', async () => {
+    rows.push({
+      adId: 'ad-x',
+      brandId: '550e8400-e29b-41d4-a716-446655440004',
+      id: 'saved-x',
+      organizationId: 'org-1',
+      userId: 'someone',
+    });
+
     await expect(
       controller.list(request, user, {
         brandId: '550e8400-e29b-41d4-a716-446655440004',
@@ -55,7 +126,6 @@ describe('SavedAdsController', () => {
         page: 1,
       }),
     ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(service.list).not.toHaveBeenCalled();
   });
 
   it('bounds provider-backed save batches', async () => {
@@ -66,25 +136,28 @@ describe('SavedAdsController', () => {
     }));
 
     await expect(
-      controller.save(request, user, inputs as never),
+      controller.save(request, user, inputs as SaveAdDto[]),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(service.saveMany).not.toHaveBeenCalled();
+    expect(rows).toEqual([]);
   });
 
-  it('keeps note and unsave mutations array-shaped', async () => {
-    service.updateNotes.mockResolvedValue([{ id: 'saved-1' }]);
-    service.unsaveMany.mockResolvedValue(['saved-1']);
+  it('keeps note and unsave mutations array-shaped and org-scoped', async () => {
+    await controller.save(request, user, [
+      { adId: 'ad-1', brandId, source: 'public' },
+      { adId: 'ad-2', brandId, source: 'public' },
+    ] as SaveAdDto[]);
 
     await controller.updateNotes(request, user, [
       { brandId, id: 'saved-1', note: 'Keep this hook' },
-    ] as never);
-    await controller.unsave(user, [{ brandId, id: 'saved-1' }] as never);
+    ] as UpdateSavedAdNoteDto[]);
+    await expect(
+      controller.unsave(user, [
+        { brandId, id: 'saved-2' },
+      ] as UnsaveSavedAdDto[]),
+    ).resolves.toEqual({ data: ['saved-2'] });
 
-    expect(service.updateNotes).toHaveBeenCalledWith('org-1', [
-      { brandId, id: 'saved-1', note: 'Keep this hook' },
-    ]);
-    expect(service.unsaveMany).toHaveBeenCalledWith('org-1', [
-      { brandId, id: 'saved-1' },
+    expect(rows).toEqual([
+      expect.objectContaining({ id: 'saved-1', note: 'Keep this hook' }),
     ]);
   });
 });

@@ -6,7 +6,7 @@ import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-b
 import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { ModelCategory } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Focused unit tests for the shared `runTextGenerationStep` prologue that backs
@@ -16,26 +16,49 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * failure message when the model returns no text.
  */
 
-function makeService() {
-  const config = { get: vi.fn() };
+/**
+ * The models catalog (lookups recorded, since only charging reads it), a
+ * prompt builder and the text model, each recording what it was asked.
+ */
+function makeService(options: { completion?: string } = {}) {
+  const modelLookups: unknown[] = [];
+  const builtPrompts: {
+    model: string;
+    options: unknown;
+    organizationId: string;
+  }[] = [];
+  const completions: { input: unknown; model: string }[] = [];
   const models = {
-    findOne: vi.fn().mockResolvedValue({ cost: 5, pricingType: 'flat' }),
+    findOne: async (query: unknown) => {
+      modelLookups.push(query);
+      return { cost: 5, pricingType: 'flat' };
+    },
   };
   const replicate = {
-    generateTextCompletionSync: vi.fn().mockResolvedValue('AI OUTPUT'),
+    generateTextCompletionSync: async (model: string, input: unknown) => {
+      completions.push({ input, model });
+      return options.completion ?? 'AI OUTPUT';
+    },
   };
   const promptBuilder = {
-    buildPrompt: vi.fn().mockResolvedValue({ input: { prompt: 'built' } }),
+    buildPrompt: async (
+      model: string,
+      promptOptions: unknown,
+      organizationId: string,
+    ) => {
+      builtPrompts.push({ model, options: promptOptions, organizationId });
+      return { input: { prompt: 'built' } };
+    },
   };
 
   const service = new ArticleTextGenerationService(
-    runtimeSettingsMock(config as unknown as ConfigService),
+    runtimeSettingsMock({ get: () => undefined } as unknown as ConfigService),
     models as unknown as ModelsService,
     replicate as unknown as ReplicateService,
     promptBuilder as unknown as PromptBuilderService,
   );
 
-  return { service, models, promptBuilder, replicate };
+  return { builtPrompts, completions, modelLookups, service };
 }
 
 const baseParams: RunTextGenerationStepParams = {
@@ -52,56 +75,55 @@ const baseParams: RunTextGenerationStepParams = {
 };
 
 describe('ArticleTextGenerationService.runTextGenerationStep', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('builds the prompt, runs the model, and returns the raw response', async () => {
-    const { service, promptBuilder, replicate } = makeService();
+    const { builtPrompts, completions, service } = makeService();
 
     const output = await service.runTextGenerationStep(baseParams);
 
     expect(output).toBe('AI OUTPUT');
-    expect(promptBuilder.buildPrompt).toHaveBeenCalledWith(
-      'test-model',
-      expect.objectContaining({
-        brand: { label: 'brand-x' },
-        prompt: expect.stringContaining('BASE PROMPT'),
-        temperature: 0.8,
-      }),
-      'org-1',
-    );
-    expect(replicate.generateTextCompletionSync).toHaveBeenCalledWith(
-      'test-model',
-      { prompt: 'built' },
-      undefined,
-    );
+    expect(builtPrompts).toEqual([
+      {
+        model: 'test-model',
+        options: expect.objectContaining({
+          brand: { label: 'brand-x' },
+          prompt: expect.stringContaining('BASE PROMPT'),
+          temperature: 0.8,
+        }),
+        organizationId: 'org-1',
+      },
+    ]);
+    expect(completions).toEqual([
+      { input: { prompt: 'built' }, model: 'test-model' },
+    ]);
   });
 
-  it('meters a charge only when an onBilling callback is supplied', async () => {
+  it('meters one charge when an onBilling callback is supplied', async () => {
     const { service } = makeService();
-    const onBilling = vi.fn();
+    const charges: unknown[] = [];
 
-    await service.runTextGenerationStep({ ...baseParams, onBilling });
+    await service.runTextGenerationStep({
+      ...baseParams,
+      onBilling: (charge) => {
+        charges.push(charge);
+      },
+    });
 
-    expect(onBilling).toHaveBeenCalledTimes(1);
-    expect(onBilling).toHaveBeenCalledWith(
+    expect(charges).toEqual([
       expect.objectContaining({ amount: 5, modelKey: 'test-model' }),
-    );
+    ]);
   });
 
   it('never computes a charge when onBilling is omitted (enhance path)', async () => {
-    const { service, models } = makeService();
+    const { modelLookups, service } = makeService();
 
     await service.runTextGenerationStep(baseParams);
 
-    // calculateTextGenerationCharge() is the only caller of modelsService.findOne
-    expect(models.findOne).not.toHaveBeenCalled();
+    // calculateTextGenerationCharge() is the only reader of the models catalog.
+    expect(modelLookups).toEqual([]);
   });
 
   it('throws the caller-supplied failure message when the model returns no text', async () => {
-    const { service, replicate } = makeService();
-    replicate.generateTextCompletionSync.mockResolvedValueOnce('');
+    const { service } = makeService({ completion: '' });
 
     await expect(
       service.runTextGenerationStep({
