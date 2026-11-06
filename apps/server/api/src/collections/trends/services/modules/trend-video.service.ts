@@ -113,7 +113,7 @@ export class TrendVideoService {
     const docs = await this.prisma.trendingVideo.findMany({
       orderBy: { createdAt: 'desc' },
       take: limit * 5,
-      where: { isDeleted: false },
+      where: { isCurrent: true, isDeleted: false },
       select: { data: true, id: true },
     });
 
@@ -132,7 +132,6 @@ export class TrendVideoService {
         id: doc.id,
       }))
       .filter((v) => {
-        if (!v.isCurrent) return false;
         if (
           since !== null &&
           (!v.publishedAt ||
@@ -213,15 +212,21 @@ export class TrendVideoService {
               Date.now() + this.TREND_SIGNAL_DOCUMENT_TTL_SECONDS * 1000,
             );
 
-            // Existing records match on externalId + platform inside the JSON `data`
-            // blob, so index the table once for the whole batch instead of re-scanning
-            // it on every iteration.
+            // One indexed read for the whole batch: the rows whose promoted
+            // platform + external id match a fetched video.
+            const fetchedVideoIds = videos.flatMap((video) =>
+              typeof video.externalId === 'string' ? [video.externalId] : [],
+            );
             const existingVideoDocs =
-              videos.length > 0
+              fetchedVideoIds.length > 0
                 ? await this.prisma.trendingVideo.findMany({
                     orderBy: { createdAt: 'desc' },
-                    take: 1000,
-                    where: { isDeleted: false },
+                    select: { data: true, id: true },
+                    where: {
+                      isDeleted: false,
+                      lookupKey: { in: fetchedVideoIds },
+                      platform,
+                    },
                   })
                 : [];
             const existingVideoIds = this.indexTrendDocsByKey(
@@ -394,7 +399,7 @@ export class TrendVideoService {
     const docs = await this.prisma.trendingHashtag.findMany({
       orderBy: { createdAt: 'desc' },
       take: limit * 5,
-      where: { isDeleted: false },
+      where: { isCurrent: true, isDeleted: false },
       select: { data: true, id: true },
     });
 
@@ -410,7 +415,6 @@ export class TrendVideoService {
         id: doc.id,
       }))
       .filter((h) => {
-        if (!h.isCurrent) return false;
         if (h.expiresAt && new Date(h.expiresAt) <= now) return false;
         if (platform && h.platform !== platform) return false;
         return true;
@@ -471,12 +475,22 @@ export class TrendVideoService {
               Date.now() + this.TREND_SIGNAL_DOCUMENT_TTL_SECONDS * 1000,
             );
 
-            // One indexed read for the whole batch instead of one full scan per item.
+            // One indexed read for the whole batch: the rows whose promoted
+            // platform + hashtag match a fetched hashtag.
+            const fetchedHashtags = hashtags.flatMap((hashtag) => {
+              const value = (hashtag as unknown as Record<string, unknown>)
+                .hashtag;
+              return typeof value === 'string' ? [value] : [];
+            });
             const existingHashtagDocs =
               await this.prisma.trendingHashtag.findMany({
                 orderBy: { createdAt: 'desc' },
-                take: 1000,
-                where: { isDeleted: false },
+                select: { data: true, id: true },
+                where: {
+                  isDeleted: false,
+                  lookupKey: { in: fetchedHashtags },
+                  platform,
+                },
               });
             const existingHashtagIds = this.indexTrendDocsByKey(
               existingHashtagDocs,
@@ -568,7 +582,7 @@ export class TrendVideoService {
     const docs = await this.prisma.trendingSound.findMany({
       orderBy: { createdAt: 'desc' },
       take: limit * 5,
-      where: { isDeleted: false },
+      where: { isCurrent: true, isDeleted: false },
       select: { data: true, id: true },
     });
 
@@ -578,11 +592,7 @@ export class TrendVideoService {
         usageCountScope: 'observed',
         id: doc.id,
       }))
-      .filter((s) => {
-        if (!s.isCurrent) return false;
-        if (s.expiresAt && new Date(s.expiresAt) <= now) return false;
-        return true;
-      })
+      .filter((s) => !s.expiresAt || new Date(s.expiresAt) > now)
       .sort(
         (a, b) =>
           (b.usageCount ?? 0) - (a.usageCount ?? 0) ||
@@ -629,11 +639,17 @@ export class TrendVideoService {
               Date.now() + this.TREND_SIGNAL_DOCUMENT_TTL_SECONDS * 1000,
             );
 
-            // One indexed read for the whole batch instead of one full scan per item.
+            // One indexed read for the whole batch: the rows whose promoted
+            // sound id matches a fetched sound.
+            const fetchedSoundIds = sounds.flatMap((sound) => {
+              const value = (sound as unknown as Record<string, unknown>)
+                .soundId;
+              return typeof value === 'string' ? [value] : [];
+            });
             const existingSoundDocs = await this.prisma.trendingSound.findMany({
               orderBy: { createdAt: 'desc' },
-              take: 1000,
-              where: { isDeleted: false },
+              select: { data: true, id: true },
+              where: { isDeleted: false, lookupKey: { in: fetchedSoundIds } },
             });
             const existingSoundIds = this.indexTrendDocsByKey(
               existingSoundDocs,
@@ -727,6 +743,7 @@ export class TrendVideoService {
       take: limit * 5,
       where: {
         createdAt: { gte: sinceDate },
+        isCurrent: true,
         isDeleted: false,
       },
       select: { data: true, id: true },
@@ -737,7 +754,6 @@ export class TrendVideoService {
         ...(doc.data as unknown as TrendingVideoDocument),
         id: doc.id,
       }))
-      .filter((v) => v.isCurrent)
       .sort(
         (a, b) =>
           (b.velocity ?? 0) - (a.velocity ?? 0) ||
@@ -784,53 +800,36 @@ export class TrendVideoService {
    * Since isCurrent/expiresAt live in the JSON `data` blob, we fetch current records,
    * filter expired ones in memory, and update them individually.
    */
-  private async markExpiredAsHistoricalForModel(
+  private markExpiredAsHistoricalForModel(
     modelType: 'video' | 'hashtag' | 'sound',
   ): Promise<number> {
-    const now = new Date();
-
-    const fetchFn = {
-      hashtag: () =>
-        this.prisma.trendingHashtag.findMany({ where: { isDeleted: false } }),
-      sound: () =>
-        this.prisma.trendingSound.findMany({ where: { isDeleted: false } }),
-      video: () =>
-        this.prisma.trendingVideo.findMany({ where: { isDeleted: false } }),
-    }[modelType];
-
-    const docs = await fetchFn();
-    const expired = docs.filter((doc) => {
-      const d = doc.data as unknown as Record<string, unknown>;
-      return (
-        d.isCurrent === true &&
-        d.expiresAt != null &&
-        new Date(d.expiresAt as string) <= now
-      );
-    });
-
-    for (const doc of expired) {
-      const d = doc.data as unknown as Record<string, unknown>;
-      const updatedData = { ...d, isCurrent: false };
-
-      if (modelType === 'video') {
-        await this.prisma.trendingVideo.update({
-          data: { data: updatedData as Prisma.InputJsonValue },
-          where: { id: doc.id },
-        });
-      } else if (modelType === 'hashtag') {
-        await this.prisma.trendingHashtag.update({
-          data: { data: updatedData as Prisma.InputJsonValue },
-          where: { id: doc.id },
-        });
-      } else {
-        await this.prisma.trendingSound.update({
-          data: { data: updatedData as Prisma.InputJsonValue },
-          where: { id: doc.id },
-        });
-      }
-    }
-
-    return expired.length;
+    // One UPDATE per table. `isCurrent` and `expiresAt` are columns copied
+    // from `data` by a trigger, so the sweep never loads a row; flipping the
+    // JSON flag re-fires the trigger, which clears the column.
+    const sweeps = {
+      hashtag: () => this.prisma.$executeRaw`
+        UPDATE "trending_hashtags"
+        SET "data" = jsonb_set("data", '{isCurrent}', 'false'::jsonb),
+          "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "isDeleted" = false
+          AND "isCurrent" = true
+          AND "expiresAt" <= CURRENT_TIMESTAMP`,
+      sound: () => this.prisma.$executeRaw`
+        UPDATE "trending_sounds"
+        SET "data" = jsonb_set("data", '{isCurrent}', 'false'::jsonb),
+          "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "isDeleted" = false
+          AND "isCurrent" = true
+          AND "expiresAt" <= CURRENT_TIMESTAMP`,
+      video: () => this.prisma.$executeRaw`
+        UPDATE "trending_videos"
+        SET "data" = jsonb_set("data", '{isCurrent}', 'false'::jsonb),
+          "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "isDeleted" = false
+          AND "isCurrent" = true
+          AND "expiresAt" <= CURRENT_TIMESTAMP`,
+    };
+    return sweeps[modelType]();
   }
 
   // ==================== Trend Turnover Analytics ====================

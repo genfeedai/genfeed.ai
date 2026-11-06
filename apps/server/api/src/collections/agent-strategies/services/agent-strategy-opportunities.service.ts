@@ -63,9 +63,19 @@ export class AgentStrategyOpportunitiesService {
     record: Record<string, unknown>,
   ): AgentStrategyOpportunityDocument {
     const data = this.isPlainObject(record.data) ? record.data : {};
+    // The promoted columns are copies of `data` keys for filtering; the
+    // document reads every field from `data`, so a key `data` lacks stays absent.
+    const {
+      priorityScore: _priorityScore,
+      sourceRef: _sourceRef,
+      sourceType: _sourceType,
+      status: _status,
+      topic: _topic,
+      ...columns
+    } = record;
 
     return {
-      ...(record as unknown as AgentStrategyOpportunityDocument),
+      ...(columns as unknown as AgentStrategyOpportunityDocument),
       brand:
         typeof record.brandId === 'string' || record.brandId === null
           ? (record.brandId as string | null)
@@ -103,16 +113,23 @@ export class AgentStrategyOpportunitiesService {
       statuses?: AgentStrategyOpportunityStatus[];
     } = {},
   ): Promise<AgentStrategyOpportunityDocument[]> {
-    const statusFilters = options.statuses?.map((status) => ({
-      data: { equals: status, path: ['status'] },
-    }));
     // tenant-scope-ignore: organizationId is pinned below; isDeleted is omitted only when the caller explicitly requests tombstones
     const records = await this.prisma.agentStrategyOpportunity.findMany({
       where: {
         organizationId,
         strategyId,
         ...(options.includeDeleted ? {} : { isDeleted: false }),
-        ...(statusFilters?.length ? { OR: statusFilters } : {}),
+        ...(options.statuses?.length
+          ? { status: { in: options.statuses } }
+          : {}),
+        ...(options.isConversationQueue
+          ? { sourceType: CONVERSATION_OPPORTUNITY_SOURCE_TYPE }
+          : {
+              OR: [
+                { sourceType: null },
+                { sourceType: { not: CONVERSATION_OPPORTUNITY_SOURCE_TYPE } },
+              ],
+            }),
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -120,11 +137,6 @@ export class AgentStrategyOpportunitiesService {
     return records
       .map((record) =>
         this.normalizeOpportunity(record as unknown as Record<string, unknown>),
-      )
-      .filter(
-        (opportunity) =>
-          (opportunity.sourceType === CONVERSATION_OPPORTUNITY_SOURCE_TYPE) ===
-          Boolean(options.isConversationQueue),
       )
       .sort((left, right) => {
         const priorityDelta =
@@ -146,11 +158,10 @@ export class AgentStrategyOpportunitiesService {
 
   /**
    * One page of the strategy's open opportunities, highest `priorityScore`
-   * first (newest, then id, break ties). The score lives in the `data` JSON
-   * column, which Prisma cannot `orderBy`, so the page of ids is ranked and
+   * first (newest, then id, break ties). A missing or non-numeric score is a
+   * NULL column and ranks as 0, matching the autopilot's in-memory ordering;
+   * Prisma cannot `orderBy` a COALESCE, so the page of ids is ranked and
    * windowed in SQL (`LIMIT`/`OFFSET`) and only that page of rows is hydrated.
-   * A missing or non-numeric score ranks as 0, matching the autopilot's
-   * in-memory ordering.
    */
   async listOpenPageByStrategy(
     strategyId: string,
@@ -159,39 +170,37 @@ export class AgentStrategyOpportunitiesService {
   ): Promise<PaginatedResult<AgentStrategyOpportunityDocument>> {
     const { limit, page } = paging;
 
-    const [rankedIds, [{ count: totalDocs }]] = await Promise.all([
-      // sql-risk-audit: ignore raw-sql-review -- Tenant, strategy and soft-delete filters are in the WHERE clause, the read is bounded by LIMIT, and Prisma cannot ORDER BY a JSON path.
+    const [rankedIds, totalDocs] = await Promise.all([
+      // sql-risk-audit: ignore raw-sql-review -- Tenant, strategy and soft-delete filters are in the WHERE clause, the read is bounded by LIMIT, and Prisma cannot ORDER BY a COALESCE.
       this.prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
         SELECT "id"
         FROM "agent_strategy_opportunities"
         WHERE "organizationId" = ${organizationId}
           AND "strategyId" = ${strategyId}
           AND "isDeleted" = false
-          AND ("data" ->> 'status') = ANY(${OPEN_OPPORTUNITY_STATUSES}::text[])
-          AND ("data" ->> 'sourceType') IS DISTINCT FROM ${CONVERSATION_OPPORTUNITY_SOURCE_TYPE}
+          AND "status" = ANY(${OPEN_OPPORTUNITY_STATUSES}::text[])
+          AND "sourceType" IS DISTINCT FROM ${CONVERSATION_OPPORTUNITY_SOURCE_TYPE}
         ORDER BY
-          COALESCE(
-            CASE
-              WHEN jsonb_typeof("data" -> 'priorityScore') = 'number'
-                THEN ("data" ->> 'priorityScore')::double precision
-            END,
-            0
-          ) DESC,
+          COALESCE("priorityScore", 0) DESC,
           "createdAt" DESC,
           "id" ASC
         LIMIT ${limit}
         OFFSET ${(page - 1) * limit}
       `),
-      // sql-risk-audit: ignore raw-sql-review -- Same tenant, strategy and soft-delete filters as the ranked read above; the count matches its rows. Prisma's JSON NOT filter drops rows with no sourceType, so the exclusion is SQL.
-      this.prisma.$queryRaw<Array<{ count: number }>>(Prisma.sql`
-        SELECT COUNT(*)::int AS "count"
-        FROM "agent_strategy_opportunities"
-        WHERE "organizationId" = ${organizationId}
-          AND "strategyId" = ${strategyId}
-          AND "isDeleted" = false
-          AND ("data" ->> 'status') = ANY(${OPEN_OPPORTUNITY_STATUSES}::text[])
-          AND ("data" ->> 'sourceType') IS DISTINCT FROM ${CONVERSATION_OPPORTUNITY_SOURCE_TYPE}
-      `),
+      this.prisma.agentStrategyOpportunity.count({
+        where: scopedWhere(organizationId, {
+          AND: [
+            {
+              OR: [
+                { sourceType: null },
+                { sourceType: { not: CONVERSATION_OPPORTUNITY_SOURCE_TYPE } },
+              ],
+            },
+          ],
+          status: { in: OPEN_OPPORTUNITY_STATUSES },
+          strategyId,
+        }),
+      }),
     ]);
 
     const ids = rankedIds.map((row) => row.id);
@@ -260,10 +269,7 @@ export class AgentStrategyOpportunitiesService {
 
     const currentStatus = existing.data.status as string;
     const result = await this.prisma.agentStrategyOpportunity.updateMany({
-      where: scopedWhere(organizationId, {
-        id,
-        data: { equals: currentStatus, path: ['status'] },
-      }),
+      where: scopedWhere(organizationId, { id, status: currentStatus }),
       data: {
         data: this.toJsonValue({ ...existing.data, ...patch, status }),
       },
@@ -285,13 +291,9 @@ export class AgentStrategyOpportunitiesService {
       await transaction.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`;
       const existing = await transaction.agentStrategyOpportunity.findFirst({
         where: scopedWhere(input.organizationId, {
-          AND: [
-            { data: { equals: input.sourceType, path: ['sourceType'] } },
-            { data: { equals: input.topic, path: ['topic'] } },
-            ...(input.sourceRef
-              ? [{ data: { equals: input.sourceRef, path: ['sourceRef'] } }]
-              : []),
-          ],
+          sourceType: input.sourceType,
+          topic: input.topic,
+          ...(input.sourceRef ? { sourceRef: input.sourceRef } : {}),
           strategyId: input.strategyId,
         }),
       });
@@ -344,10 +346,7 @@ export class AgentStrategyOpportunitiesService {
     )
       return false;
     const result = await this.prisma.agentStrategyOpportunity.updateMany({
-      where: scopedWhere(organizationId, {
-        id,
-        data: { equals: 'queued', path: ['status'] },
-      }),
+      where: scopedWhere(organizationId, { id, status: 'queued' }),
       data: {
         data: this.toJsonValue({ ...existing.data, status: 'generating' }),
       },

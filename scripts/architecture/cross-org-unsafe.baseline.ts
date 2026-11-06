@@ -210,7 +210,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin purge of synthetic trend rows.
     {
       file: 'apps/server/api/src/collections/trends/services/modules/trend-query.service.ts',
-      line: 118,
+      line: 111,
     },
     // #6120: superadmin pricing report over the platform model registry.
     {

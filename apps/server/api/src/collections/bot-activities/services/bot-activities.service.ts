@@ -117,10 +117,22 @@ export class BotActivitiesService extends BaseService<
     for (const key of BOT_ACTIVITY_IDENTITY_KEYS) {
       delete data[key];
     }
+    // The promoted columns are copies of `data` keys for filtering; the
+    // document reads them from `data`, so a key `data` lacks stays absent.
+    const {
+      botType: _botType,
+      dmSent: _dmSent,
+      isIntentNeedsReview: _isIntentNeedsReview,
+      isManuallyPosted: _isManuallyPosted,
+      replyTweetId: _replyTweetId,
+      status: _status,
+      triggerTweetId: _triggerTweetId,
+      ...columns
+    } = activity as unknown as Record<string, unknown>;
 
     return {
       ...(data as Partial<BotActivityDocument>),
-      ...activity,
+      ...(columns as unknown as BotActivityDocument),
       data,
     };
   }
@@ -169,10 +181,8 @@ export class BotActivitiesService extends BaseService<
     const existing = await this.prisma.botActivity.findFirst({
       orderBy: { createdAt: 'desc' },
       where: scopedWhere(organizationId, {
-        AND: [
-          { data: { equals: triggerTweetId, path: ['triggerTweetId'] } },
-          { data: { equals: true, path: ['isIntentNeedsReview'] } },
-        ],
+        isIntentNeedsReview: true,
+        triggerTweetId,
       }),
     });
 
@@ -183,8 +193,8 @@ export class BotActivitiesService extends BaseService<
 
   /**
    * Find activities with filters, paginated in SQL. `status` and `botType`
-   * live in the `data` JSON column, so they are JSON-path filters in the
-   * `where` rather than an in-memory pass over every row.
+   * are columns promoted from `data`, so they filter in the `where` rather
+   * than in an in-memory pass over every row.
    */
   async findWithFilters(
     organizationId: string,
@@ -211,15 +221,11 @@ export class BotActivitiesService extends BaseService<
       where.createdAt = createdAt;
     }
 
-    const jsonFilters: Prisma.BotActivityWhereInput[] = [];
     if (query.botType) {
-      jsonFilters.push({ data: { equals: query.botType, path: ['botType'] } });
+      where.botType = query.botType;
     }
     if (query.status) {
-      jsonFilters.push({ data: { equals: query.status, path: ['status'] } });
-    }
-    if (jsonFilters.length > 0) {
-      where.AND = jsonFilters;
+      where.status = query.status;
     }
 
     const page = query.page ?? 1;
@@ -284,7 +290,7 @@ export class BotActivitiesService extends BaseService<
     const countWhere = (extra: Prisma.BotActivityWhereInput): Promise<number> =>
       this.delegate.count({ where: { ...where, ...extra } });
     const countStatus = (status: BotActivityStatus): Promise<number> =>
-      countWhere({ data: { equals: status, path: ['status'] } });
+      countWhere({ status });
 
     const [total, completed, failed, pending, skipped, totalReplies, totalDms] =
       await Promise.all([
@@ -293,8 +299,8 @@ export class BotActivitiesService extends BaseService<
         countStatus(BotActivityStatus.FAILED),
         countStatus(BotActivityStatus.PENDING),
         countStatus(BotActivityStatus.SKIPPED),
-        countWhere({ data: { not: Prisma.AnyNull, path: ['replyTweetId'] } }),
-        countWhere({ data: { equals: true, path: ['dmSent'] } }),
+        countWhere({ replyTweetId: { not: null } }),
+        countWhere({ dmSent: true }),
       ]);
 
     return {
@@ -465,10 +471,8 @@ export class BotActivitiesService extends BaseService<
   ): Prisma.BotActivityWhereInput {
     return scopedWhere(organizationId, {
       ...(brandId ? { brandId } : {}),
-      AND: [
-        { data: { equals: BotActivityStatus.COMPLETED, path: ['status'] } },
-        { data: { equals: true, path: ['isManuallyPosted'] } },
-      ],
+      isManuallyPosted: true,
+      status: BotActivityStatus.COMPLETED,
       ...extra,
     });
   }
@@ -481,7 +485,7 @@ export class BotActivitiesService extends BaseService<
     return this.delegate.count({
       where: scopedWhere(organizationId, {
         ...(brandId ? { brandId } : {}),
-        data: { equals: BotActivityStatus.AWAITING_APPROVAL, path: ['status'] },
+        status: BotActivityStatus.AWAITING_APPROVAL,
       }),
     });
   }

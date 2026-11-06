@@ -130,15 +130,9 @@ describe('Durable storyboard creation', () => {
           organizationId: 'org-1',
           brandId: 'brand-1',
           isDeleted: false,
-          AND: expect.arrayContaining([
-            { config: { path: ['createdByUserId'], equals: 'user-1' } },
-            {
-              config: {
-                path: ['clientRequestId'],
-                equals: input.clientRequestId,
-              },
-            },
-          ]),
+          clientRequestId: input.clientRequestId,
+          contract: 'storyboard-run',
+          createdByUserId: 'user-1',
         }),
       }),
     );
@@ -270,7 +264,7 @@ describe('Storyboard run list', () => {
             },
           ],
           brandId: 'brand-1',
-          config: { equals: 'storyboard-run', path: ['contract'] },
+          contract: 'storyboard-run',
           isDeleted: false,
           organizationId: 'org-1',
         },

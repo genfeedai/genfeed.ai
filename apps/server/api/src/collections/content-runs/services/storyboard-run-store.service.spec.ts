@@ -48,17 +48,32 @@ function configMatches(config: unknown, where: ConfigWhere): boolean {
   return isDeepStrictEqual(config, where.equals);
 }
 
+/** Columns the database trigger copies out of `config` on every write. */
+const PROMOTED_CONFIG_COLUMNS = new Set([
+  'clientRequestId',
+  'contract',
+  'createdByUserId',
+  'phase',
+  'revision',
+  'skillSlug',
+]);
+
 function rowMatches(row: ContentRunRow, where: Record<string, unknown>) {
-  return Object.entries(where).every(([key, value]) =>
-    key === 'config'
-      ? configMatches(row.config, value as ConfigWhere)
-      : row[key as keyof ContentRunRow] === value,
-  );
+  return Object.entries(where).every(([key, value]) => {
+    if (key === 'config') {
+      return configMatches(row.config, value as ConfigWhere);
+    }
+    if (PROMOTED_CONFIG_COLUMNS.has(key)) {
+      return (row.config as Record<string, unknown>)[key] === value;
+    }
+    return row[key as keyof ContentRunRow] === value;
+  });
 }
 
 /**
- * In-memory content_runs table with Prisma's JSON `equals` semantics, so the
- * compare-and-swap is decided by what is stored. `afterUpdate` lets a test
+ * In-memory content_runs table with Prisma's JSON `equals` semantics and the
+ * promoted `config` columns, so the compare-and-swap is decided by what is
+ * stored. `afterUpdate` lets a test
  * commit a concurrent editor's change right after a save lands.
  */
 function setup(storedConfig: unknown = config) {

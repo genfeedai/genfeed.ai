@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PrismaClient } from '@genfeedai/prisma';
@@ -24,6 +25,35 @@ if (connectionString) {
       'Agent strategy opportunity proof needs a disposable local database',
     );
   }
+}
+
+function migrationSql(name: string): string {
+  return readFileSync(
+    new URL(
+      `../../../../../../../packages/prisma/prisma/migrations/${name}/migration.sql`,
+      import.meta.url,
+    ),
+    'utf8',
+  );
+}
+
+/**
+ * The scratch table plus the real promotion migrations, so the `status`,
+ * `sourceType` and `priorityScore` columns the service reads are filled by the
+ * same trigger as production.
+ */
+async function createOpportunitiesTable(
+  pool: Pool,
+  schema: string,
+): Promise<void> {
+  await pool.query(`CREATE SCHEMA "${schema}"; SET search_path TO "${schema}";
+    CREATE TABLE agent_strategy_opportunities (
+      id text PRIMARY KEY, "strategyId" text NOT NULL, "organizationId" text NOT NULL, "brandId" text,
+      data jsonb NOT NULL DEFAULT '{}', "isDeleted" boolean NOT NULL DEFAULT false,
+      "createdAt" timestamp(3) NOT NULL DEFAULT now(), "updatedAt" timestamp(3) NOT NULL
+    );
+    ${migrationSql('20261106200000_jsonb_promotion_helpers')}
+    ${migrationSql('20261106200100_agent_strategy_opportunity_data_columns')}`);
 }
 
 const ORG = 'org-1';
@@ -65,12 +95,7 @@ describe.skipIf(!connectionString)(
     beforeEach(async () => {
       schema = `opportunities_${randomUUID().replaceAll('-', '')}`;
       pool = new Pool({ connectionString });
-      await pool.query(`CREATE SCHEMA "${schema}"`);
-      await pool.query(`CREATE TABLE "${schema}".agent_strategy_opportunities (
-        id text PRIMARY KEY, "strategyId" text NOT NULL, "organizationId" text NOT NULL, "brandId" text,
-        data jsonb NOT NULL DEFAULT '{}', "isDeleted" boolean NOT NULL DEFAULT false,
-        "createdAt" timestamp(3) NOT NULL DEFAULT now(), "updatedAt" timestamp(3) NOT NULL
-      )`);
+      await createOpportunitiesTable(pool, schema);
       prisma = new PrismaClient({
         adapter: new PrismaPg(
           { connectionString, options: `-c search_path="${schema}",public` },
@@ -227,12 +252,7 @@ describe.skipIf(!connectionString)(
     beforeEach(async () => {
       schema = `opportunities_${randomUUID().replaceAll('-', '')}`;
       pool = new Pool({ connectionString });
-      await pool.query(`CREATE SCHEMA "${schema}"`);
-      await pool.query(`CREATE TABLE "${schema}".agent_strategy_opportunities (
-        id text PRIMARY KEY, "strategyId" text NOT NULL, "organizationId" text NOT NULL, "brandId" text,
-        data jsonb NOT NULL DEFAULT '{}', "isDeleted" boolean NOT NULL DEFAULT false,
-        "createdAt" timestamp(3) NOT NULL DEFAULT now(), "updatedAt" timestamp(3) NOT NULL
-      )`);
+      await createOpportunitiesTable(pool, schema);
       prisma = new PrismaClient({
         adapter: new PrismaPg(
           { connectionString, options: `-c search_path="${schema}",public` },

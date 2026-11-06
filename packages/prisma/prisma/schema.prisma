@@ -5120,6 +5120,16 @@ model AgentStrategyOpportunity {
   brandId        String?
   brand          Brand?        @relation(fields: [brandId], references: [id])
   data           Json          @default("{}")
+
+  /// Keys copied out of `data` so the opportunity queue never reads or detoasts
+  /// it. The `promote_agent_strategy_opportunity_data` trigger recomputes them on
+  /// every insert and on every update of `data`; never write them directly.
+  status        String?
+  sourceType    String?
+  topic         String?
+  sourceRef     String?
+  priorityScore Float?
+
   isDeleted      Boolean       @default(false)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -5569,6 +5579,8 @@ model WorkflowExecution {
   dispatchId     String?
   campaignId     String?
   isSystemAction Boolean @default(false)
+  /// The campaign rotation target a campaign run was dispatched for.
+  contentRotationTargetKey String?
 
   @@unique([organizationId, idempotencyKey], map: "workflow_executions_org_idempotency_key")
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
@@ -5718,6 +5730,17 @@ model ContentRun {
   brand          Brand?       @relation(fields: [brandId], references: [id])
   config         Json         @default("{}")
   status         String?
+
+  /// Keys copied out of `config` so run lookups never read or detoast it. The
+  /// `promote_content_run_config` trigger recomputes them on every insert and on
+  /// every update of `config`; never write them directly.
+  contract        String?
+  clientRequestId String?
+  createdByUserId String?
+  skillSlug       String?
+  phase           String?
+  revision        Float?
+
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -5888,6 +5911,18 @@ model BotActivity {
   monitoredAccountId String?
   monitoredAccount   MonitoredAccount? @relation(fields: [monitoredAccountId], references: [id])
   data               Json              @default("{}")
+
+  /// Keys copied out of `data` so reply-bot filters and counts never read or
+  /// detoast it. The `promote_bot_activity_data` trigger recomputes them on every
+  /// insert and on every update of `data`; never write them directly.
+  status              String?
+  botType             String?
+  triggerTweetId      String?
+  replyTweetId        String?
+  dmSent              Boolean @default(false)
+  isManuallyPosted    Boolean @default(false)
+  isIntentNeedsReview Boolean @default(false)
+
   isDeleted          Boolean           @default(false)
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
@@ -6754,31 +6789,52 @@ model Trend {
 }
 
 model TrendingHashtag {
-  id        String   @id @default(cuid())
-  data      Json     @default("{}")
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(cuid())
+  data      Json      @default("{}")
+  /// Copied from `data` by the `trending_hashtag_data_promotion` trigger on
+  /// every write: never set these directly. `lookupKey` is the hashtag
+  /// (the refresh dedupe key), NULL past 512 characters.
+  isCurrent Boolean   @default(false)
+  expiresAt DateTime?
+  platform  String?
+  lookupKey String?
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@map("trending_hashtags")
 }
 
 model TrendingSound {
-  id        String   @id @default(cuid())
-  data      Json     @default("{}")
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(cuid())
+  data      Json      @default("{}")
+  /// Copied from `data` by the `trending_sound_data_promotion` trigger on
+  /// every write: never set these directly. `lookupKey` is the sound id
+  /// (the refresh dedupe key), NULL past 512 characters.
+  isCurrent Boolean   @default(false)
+  expiresAt DateTime?
+  platform  String?
+  lookupKey String?
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@map("trending_sounds")
 }
 
 model TrendingVideo {
-  id        String   @id @default(cuid())
-  data      Json     @default("{}")
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(cuid())
+  data      Json      @default("{}")
+  /// Copied from `data` by the `trending_video_data_promotion` trigger on
+  /// every write: never set these directly. `lookupKey` is the external video id
+  /// (the refresh dedupe key), NULL past 512 characters.
+  isCurrent Boolean   @default(false)
+  expiresAt DateTime?
+  platform  String?
+  lookupKey String?
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@map("trending_videos")
 }

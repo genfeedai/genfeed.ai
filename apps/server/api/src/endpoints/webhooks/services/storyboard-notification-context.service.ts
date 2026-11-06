@@ -50,7 +50,7 @@ export class StoryboardNotificationContextService {
           organization: { select: { slug: true } },
         },
         where: scopedWhere(organizationId, {
-          config: { equals: STORYBOARD_RUN_CONTRACT, path: ['contract'] },
+          contract: STORYBOARD_RUN_CONTRACT,
           id: runId,
         }),
       });

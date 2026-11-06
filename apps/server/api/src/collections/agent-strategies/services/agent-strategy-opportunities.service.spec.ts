@@ -3,6 +3,7 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('AgentStrategyOpportunitiesService', () => {
+  const count = vi.fn();
   const create = vi.fn();
   const findFirst = vi.fn();
   const findMany = vi.fn();
@@ -15,6 +16,7 @@ describe('AgentStrategyOpportunitiesService', () => {
   const service = new AgentStrategyOpportunitiesService(
     {
       agentStrategyOpportunity: {
+        count,
         create,
         findFirst,
         findMany,
@@ -57,9 +59,8 @@ describe('AgentStrategyOpportunitiesService', () => {
     });
 
     it('ranks and windows ids in SQL, then hydrates only that page in rank order', async () => {
-      queryRaw
-        .mockResolvedValueOnce([{ id: 'b' }, { id: 'a' }])
-        .mockResolvedValueOnce([{ count: 23 }]);
+      queryRaw.mockResolvedValueOnce([{ id: 'b' }, { id: 'a' }]);
+      count.mockResolvedValueOnce(23);
       findMany.mockResolvedValue([row('a', 10), row('b', 90)]);
 
       const result = await service.listOpenPageByStrategy(
@@ -77,14 +78,27 @@ describe('AgentStrategyOpportunitiesService', () => {
       expect(statement.values).toEqual(
         expect.arrayContaining(['org-1', 'strategy-1', 2, 4]),
       );
-      const [countStatement] = queryRaw.mock.calls[1] as [
-        { sql: string; values: unknown[] },
-      ];
-      expect(countStatement.sql).toContain('COUNT(*)');
-      expect(countStatement.values).toEqual(
-        expect.arrayContaining(['org-1', 'strategy-1', 'conversation']),
-      );
+      expect(statement.sql).toContain('"priorityScore"');
+      expect(statement.sql).not.toContain('"data"');
       expect(statement.values).toContain('conversation');
+      expect(count).toHaveBeenCalledWith({
+        where: {
+          AND: [
+            {
+              OR: [
+                { sourceType: null },
+                { sourceType: { not: 'conversation' } },
+              ],
+            },
+          ],
+          isDeleted: false,
+          organizationId: 'org-1',
+          status: {
+            in: ['approved', 'generating', 'held', 'queued', 'revising'],
+          },
+          strategyId: 'strategy-1',
+        },
+      });
       expect(findMany).toHaveBeenCalledWith({
         take: 2,
         where: {
@@ -109,7 +123,8 @@ describe('AgentStrategyOpportunitiesService', () => {
     });
 
     it('skips the hydrate read when the page is empty', async () => {
-      queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([{ count: 3 }]);
+      queryRaw.mockResolvedValueOnce([]);
+      count.mockResolvedValueOnce(3);
 
       const result = await service.listOpenPageByStrategy(
         'strategy-1',
@@ -134,11 +149,9 @@ describe('AgentStrategyOpportunitiesService', () => {
       orderBy: { createdAt: 'desc' },
       where: {
         isDeleted: false,
-        OR: [
-          { data: { equals: 'approved', path: ['status'] } },
-          { data: { equals: 'queued', path: ['status'] } },
-        ],
+        OR: [{ sourceType: null }, { sourceType: { not: 'conversation' } }],
         organizationId: 'org-1',
+        status: { in: ['approved', 'queued'] },
         strategyId: 'strategy-1',
       },
     });
@@ -170,14 +183,12 @@ describe('AgentStrategyOpportunitiesService', () => {
     expect(result.id).toBe('opportunity-1');
     expect(findFirst).toHaveBeenCalledWith({
       where: {
-        AND: [
-          { data: { equals: 'trend', path: ['sourceType'] } },
-          { data: { equals: 'AI', path: ['topic'] } },
-          { data: { equals: 'trend-1', path: ['sourceRef'] } },
-        ],
         isDeleted: false,
         organizationId: 'org-1',
+        sourceRef: 'trend-1',
+        sourceType: 'trend',
         strategyId: 'strategy-1',
+        topic: 'AI',
       },
     });
     expect(create).not.toHaveBeenCalled();
@@ -220,7 +231,7 @@ describe('AgentStrategyOpportunitiesService', () => {
           id: 'opportunity',
           organizationId: 'org',
           isDeleted: false,
-          data: { equals: 'queued', path: ['status'] },
+          status: 'queued',
         },
       }),
     );

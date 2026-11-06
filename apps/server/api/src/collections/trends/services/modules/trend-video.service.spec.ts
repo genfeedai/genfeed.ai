@@ -380,6 +380,27 @@ describe('TrendVideoService', () => {
       expect(mockLoggerService.error).not.toHaveBeenCalled();
     });
 
+    it('looks up only the fetched ids on the refreshed platform', async () => {
+      mockApifyService.getTikTokVideos.mockResolvedValue([
+        { externalId: 'a', title: 'A' },
+        { title: 'no id' },
+        { externalId: 'b', title: 'B' },
+      ]);
+      mockPrisma.trendingVideo.findMany.mockResolvedValue([]);
+
+      await service.fetchAndCacheViralVideos('tiktok', 3);
+
+      expect(mockPrisma.trendingVideo.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            isDeleted: false,
+            lookupKey: { in: ['a', 'b'] },
+            platform: 'tiktok',
+          },
+        }),
+      );
+    });
+
     it('creates a new video when no existing record matches', async () => {
       mockApifyService.getTikTokVideos.mockResolvedValue([
         { externalId: 'a', title: 'A' },

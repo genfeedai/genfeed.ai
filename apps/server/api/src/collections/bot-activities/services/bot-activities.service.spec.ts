@@ -154,10 +154,7 @@ describe('BotActivitiesService', () => {
       });
 
       const { where } = findMany.mock.calls[0][0];
-      expect(where.AND).toEqual([
-        { data: { equals: 'reply', path: ['botType'] } },
-        { data: { equals: 'completed', path: ['status'] } },
-      ]);
+      expect(where).toMatchObject({ botType: 'reply', status: 'completed' });
       expect(where.createdAt).toEqual({
         gte: new Date('2026-01-01T00:00:00.000Z'),
         lte: new Date('2026-02-01T00:00:00.000Z'),
@@ -168,11 +165,10 @@ describe('BotActivitiesService', () => {
   describe('getStats', () => {
     it('counts in the database instead of loading rows', async () => {
       count.mockImplementation(
-        ({ where }: { where: { data?: { path: string[] } } }) => {
-          const path = where.data?.path?.[0];
-          if (path === 'status') return Promise.resolve(2);
-          if (path === 'replyTweetId') return Promise.resolve(5);
-          if (path === 'dmSent') return Promise.resolve(3);
+        ({ where }: { where: Record<string, unknown> }) => {
+          if ('status' in where) return Promise.resolve(2);
+          if ('replyTweetId' in where) return Promise.resolve(5);
+          if ('dmSent' in where) return Promise.resolve(3);
           return Promise.resolve(10);
         },
       );
@@ -199,8 +195,8 @@ describe('BotActivitiesService', () => {
       });
       expect(count).toHaveBeenCalledWith({
         where: expect.objectContaining({
-          data: { equals: 'completed', path: ['status'] },
           organizationId: 'org-1',
+          status: 'completed',
         }),
       });
     });

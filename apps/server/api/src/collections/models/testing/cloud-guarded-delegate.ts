@@ -40,6 +40,11 @@ function matchesField(actual: unknown, expected: unknown): boolean {
     }
     return value === expected.equals;
   }
+  if ('gt' in expected) {
+    return actual instanceof Date && expected.gt instanceof Date
+      ? actual > expected.gt
+      : false;
+  }
   if ('not' in expected) {
     return actual !== expected.not;
   }

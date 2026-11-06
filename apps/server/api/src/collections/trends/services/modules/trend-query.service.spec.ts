@@ -10,30 +10,82 @@ type PrismaMock = {
   };
 };
 
-const future = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-const past = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+const future = new Date(Date.now() + 60 * 60 * 1000);
+const past = new Date(Date.now() - 60 * 60 * 1000);
+
+type TrendRow = {
+  brandId: string | null;
+  createdAt: Date;
+  data: Record<string, unknown>;
+  expiresAt: Date | null;
+  id: string;
+  isCurrent: boolean | null;
+  isDeleted: boolean;
+  organizationId: string | null;
+  platform: string | null;
+  topic: string | null;
+  updatedAt: Date;
+  viralityScore: number | null;
+};
+
+type TrendColumns = Partial<
+  Pick<
+    TrendRow,
+    'expiresAt' | 'isCurrent' | 'platform' | 'topic' | 'viralityScore'
+  >
+>;
 
 const makeDoc = (
   id: string,
-  data: Record<string, unknown>,
-  top: Record<string, unknown> = {},
-) => ({
-  brandId: null,
-  createdAt: new Date('2026-01-01T00:00:00.000Z'),
-  data: {
+  columns: TrendColumns & { metadata?: Record<string, unknown> } = {},
+  top: Partial<TrendRow> = {},
+): TrendRow => {
+  const { metadata, ...overrides } = columns;
+  return {
+    brandId: null,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    data: metadata ? { growthRate: 1, metadata } : { growthRate: 1 },
     expiresAt: future,
+    id,
     isCurrent: true,
+    isDeleted: false,
+    organizationId: null,
     platform: 'tiktok',
-    topic: data.topic ?? 'topic',
+    topic: 'topic',
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     viralityScore: 50,
-    ...data,
-  },
-  id,
-  isDeleted: false,
-  organizationId: null,
-  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-  ...top,
-});
+    ...overrides,
+    ...top,
+  };
+};
+
+type Where = Record<string, unknown>;
+
+/** Applies the column predicates the trend queries send to Postgres. */
+function matches(row: TrendRow, where: Where): boolean {
+  return Object.entries(where).every(([key, value]) => {
+    if (key === 'AND') {
+      return (value as Where[]).every((branch) => matches(row, branch));
+    }
+    if (key === 'OR') {
+      return (value as Where[]).some((branch) => matches(row, branch));
+    }
+    const column = row[key as keyof TrendRow];
+    if (value !== null && typeof value === 'object' && 'gt' in value) {
+      return column instanceof Date && column > (value.gt as Date);
+    }
+    return column === value;
+  });
+}
+
+function serve(rows: TrendRow[]) {
+  return ({ where }: { where: Where }) =>
+    Promise.resolve(
+      rows
+        .filter((row) => matches(row, where))
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+    );
+}
 
 describe('TrendQueryService', () => {
   let service: TrendQueryService;
@@ -70,7 +122,7 @@ describe('TrendQueryService', () => {
     it.each(['findActiveTrends', 'findLastGoodTrends'] as const)(
       'excludes seeds from %s without deleting them',
       async (method) => {
-        prisma.trend.findMany.mockResolvedValue([seed, observed]);
+        prisma.trend.findMany.mockImplementation(serve([seed, observed]));
         const result = await service[method]({
           brandId: null,
           organizationId: null,
@@ -90,26 +142,36 @@ describe('TrendQueryService', () => {
 
   describe('findActiveTrends', () => {
     it('drops non-current and expired docs and sorts by virality desc', async () => {
-      prisma.trend.findMany.mockResolvedValue([
-        makeDoc('low', { viralityScore: 10 }),
-        makeDoc('expired', { expiresAt: past, viralityScore: 99 }),
-        makeDoc('stale', { isCurrent: false, viralityScore: 99 }),
-        makeDoc('high', { viralityScore: 90 }),
-      ]);
+      prisma.trend.findMany.mockImplementation(
+        serve([
+          makeDoc('low', { viralityScore: 10 }),
+          makeDoc('expired', { expiresAt: past, viralityScore: 99 }),
+          makeDoc('stale', { isCurrent: false, viralityScore: 99 }),
+          makeDoc('legacy', { isCurrent: null, viralityScore: 99 }),
+          makeDoc('high', { viralityScore: 90 }),
+          makeDoc('open-ended', { expiresAt: null, viralityScore: 20 }),
+        ]),
+      );
 
       const result = await service.findActiveTrends({
         brandId: null,
         organizationId: null,
       });
 
-      expect(result.map((t) => String(t.id))).toEqual(['high', 'low']);
+      expect(result.map((t) => String(t.id))).toEqual([
+        'high',
+        'open-ended',
+        'low',
+      ]);
     });
 
     it('filters by platform when supplied', async () => {
-      prisma.trend.findMany.mockResolvedValue([
-        makeDoc('a', { platform: 'tiktok' }),
-        makeDoc('b', { platform: 'youtube' }),
-      ]);
+      prisma.trend.findMany.mockImplementation(
+        serve([
+          makeDoc('a', { platform: 'tiktok' }),
+          makeDoc('b', { platform: 'youtube' }),
+        ]),
+      );
 
       const result = await service.findActiveTrends({
         brandId: null,
@@ -123,18 +185,20 @@ describe('TrendQueryService', () => {
 
   describe('findLastGoodTrends', () => {
     it('keeps expired/non-current docs and breaks virality ties by recency', async () => {
-      prisma.trend.findMany.mockResolvedValue([
-        makeDoc(
-          'older',
-          { expiresAt: past, isCurrent: false, viralityScore: 70 },
-          { createdAt: new Date('2026-01-01T00:00:00.000Z') },
-        ),
-        makeDoc(
-          'newer',
-          { expiresAt: past, isCurrent: false, viralityScore: 70 },
-          { createdAt: new Date('2026-02-01T00:00:00.000Z') },
-        ),
-      ]);
+      prisma.trend.findMany.mockImplementation(
+        serve([
+          makeDoc(
+            'older',
+            { expiresAt: past, isCurrent: false, viralityScore: 70 },
+            { createdAt: new Date('2026-01-01T00:00:00.000Z') },
+          ),
+          makeDoc(
+            'newer',
+            { expiresAt: past, isCurrent: false, viralityScore: 70 },
+            { createdAt: new Date('2026-02-01T00:00:00.000Z') },
+          ),
+        ]),
+      );
 
       const result = await service.findLastGoodTrends({
         brandId: null,
@@ -201,67 +265,41 @@ describe('TrendQueryService', () => {
   });
 
   describe('countActiveGlobalTrends', () => {
-    it('pushes current and expiry predicates into the database query', async () => {
-      prisma.trend.findMany.mockResolvedValue(
-        [
-          makeDoc('real', {}).data,
-          makeDoc('synthetic', {
-            metadata: { prelaunchCorpus: true },
-          }).data,
-        ].map((data) => ({ data })),
+    it('counts current, unexpired, observed global trends', async () => {
+      prisma.trend.findMany.mockImplementation(
+        serve([
+          makeDoc('real'),
+          makeDoc('synthetic', { metadata: { prelaunchCorpus: true } }),
+          makeDoc('expired', { expiresAt: past }),
+          makeDoc('open-ended', { expiresAt: null }),
+          makeDoc('stale', { isCurrent: false }),
+          makeDoc('tenant', {}, { organizationId: 'org-1' }),
+        ]),
       );
 
-      await expect(service.countActiveGlobalTrends()).resolves.toBe(1);
-      expect(prisma.trend.findMany).toHaveBeenCalledWith({
-        select: { data: true },
-        where: {
-          AND: [
-            { data: { equals: true, path: ['isCurrent'] } },
-            { data: { gt: expect.any(String), path: ['expiresAt'] } },
-          ],
-          isDeleted: false,
-          organizationId: null,
-        },
-      });
+      // `real` and `open-ended`: a trend without an expiry never expires.
+      await expect(service.countActiveGlobalTrends()).resolves.toBe(2);
     });
   });
 
   describe('synthetic prelaunch exclusion', () => {
     it('filters prelaunch corpus rows out of active trend queries', async () => {
-      prisma.trend.findMany.mockResolvedValue([
-        {
-          brandId: null,
-          createdAt: new Date(),
-          data: {
-            expiresAt: new Date(Date.now() + 60_000).toISOString(),
-            isCurrent: true,
+      prisma.trend.findMany.mockImplementation(
+        serve([
+          makeDoc('prelaunch-1', {
             metadata: { prelaunchCorpus: true, source: 'public-reference' },
             platform: 'twitter',
             topic: 'AI agent workflow demos',
             viralityScore: 90,
-          },
-          id: 'prelaunch-1',
-          isDeleted: false,
-          organizationId: null,
-          updatedAt: new Date(),
-        },
-        {
-          brandId: null,
-          createdAt: new Date(),
-          data: {
-            expiresAt: new Date(Date.now() + 60_000).toISOString(),
-            isCurrent: true,
+          }),
+          makeDoc('real-1', {
             metadata: { source: 'apify' },
             platform: 'twitter',
             topic: '#RealSignal',
             viralityScore: 70,
-          },
-          id: 'real-1',
-          isDeleted: false,
-          organizationId: null,
-          updatedAt: new Date(),
-        },
-      ]);
+          }),
+        ]),
+      );
 
       const result = await service.findActiveTrends({
         brandId: null,
