@@ -3,12 +3,18 @@ import type { AnchorHTMLAttributes, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import YoutubeLongFormContent from './youtube-long-form-content';
 
-const mocks = vi.hoisted(() => ({
-  authenticatedCreate: vi.fn(),
-  capture: vi.fn(),
+type TransformRequest = {
+  channel: 'authenticated' | 'public';
+  outputType: string;
+  youtubeUrl: string;
+};
+
+// Fake backends: which entry each transform request reached, and which
+// source artifacts were promoted to the Library.
+const backend = vi.hoisted(() => ({
   isSignedIn: false,
-  promote: vi.fn(),
-  publicCreate: vi.fn(),
+  promoted: [] as string[],
+  requests: [] as TransformRequest[],
 }));
 
 vi.mock('next/link', () => ({
@@ -29,14 +35,29 @@ vi.mock('@web-components/PageLayout', () => ({
 
 // The session is read on submit; a token means a signed-in visitor.
 vi.mock('@genfeedai/auth-client', () => ({
-  getSignedInBetterAuthToken: async () => (mocks.isSignedIn ? 'jwt' : null),
+  getSignedInBetterAuthToken: async () => (backend.isSignedIn ? 'jwt' : null),
 }));
 
 vi.mock('@services/content/youtube-long-form.service', () => ({
   YoutubeLongFormService: {
     getInstance: () => ({
-      create: mocks.authenticatedCreate,
-      promoteSourceToLibrary: mocks.promote,
+      create: async (youtubeUrl: string, outputType: string) => {
+        backend.requests.push({
+          channel: 'authenticated',
+          outputType,
+          youtubeUrl,
+        });
+        return {
+          ...baseResult,
+          contentId: 'article-1',
+          id: 'article-1',
+          sourceArtifactId: 'artifact-1',
+        };
+      },
+      promoteSourceToLibrary: async (artifactId: string) => {
+        backend.promoted.push(artifactId);
+        return { ingredientId: 'ingredient-1' };
+      },
     }),
   },
 }));
@@ -49,12 +70,18 @@ vi.mock('@services/core/environment.service', () => ({
 
 vi.mock('../../../../src/api/load-public-service', () => ({
   loadPublicService: async () => ({
-    createPublicYoutubeLongForm: mocks.publicCreate,
+    createPublicYoutubeLongForm: async (
+      youtubeUrl: string,
+      outputType: string,
+    ) => {
+      backend.requests.push({ channel: 'public', outputType, youtubeUrl });
+      return baseResult;
+    },
   }),
 }));
 
 vi.mock('../../../../src/analytics/posthog-client', () => ({
-  captureWebsiteAnalyticsEvent: mocks.capture,
+  captureWebsiteAnalyticsEvent: () => undefined,
 }));
 
 const baseResult = {
@@ -79,16 +106,9 @@ function submit(): void {
 
 describe('YoutubeLongFormContent', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.isSignedIn = false;
-    mocks.publicCreate.mockResolvedValue(baseResult);
-    mocks.authenticatedCreate.mockResolvedValue({
-      ...baseResult,
-      contentId: 'article-1',
-      id: 'article-1',
-      sourceArtifactId: 'artifact-1',
-    });
-    mocks.promote.mockResolvedValue({ ingredientId: 'ingredient-1' });
+    backend.isSignedIn = false;
+    backend.promoted = [];
+    backend.requests = [];
   });
 
   it('keeps the free preview on the public workflow entry', async () => {
@@ -96,32 +116,38 @@ describe('YoutubeLongFormContent', () => {
     submit();
 
     expect(await screen.findByText('Long-form body')).toBeInTheDocument();
-    expect(mocks.publicCreate).toHaveBeenCalledWith(
-      baseResult.youtubeUrl,
-      'article',
-    );
-    expect(mocks.authenticatedCreate).not.toHaveBeenCalled();
+    expect(backend.requests).toEqual([
+      {
+        channel: 'public',
+        outputType: 'article',
+        youtubeUrl: baseResult.youtubeUrl,
+      },
+    ]);
     expect(
       screen.getByRole('link', { name: 'Sign in to save future results' }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/login');
   });
 
   it('persists an authenticated output and promotes its source explicitly', async () => {
-    mocks.isSignedIn = true;
+    backend.isSignedIn = true;
     render(<YoutubeLongFormContent />);
     submit();
 
     const save = await screen.findByRole('button', {
       name: 'Save YouTube source to Library',
     });
-    expect(mocks.authenticatedCreate).toHaveBeenCalledWith(
-      baseResult.youtubeUrl,
-      'article',
-    );
+    expect(backend.requests).toEqual([
+      {
+        channel: 'authenticated',
+        outputType: 'article',
+        youtubeUrl: baseResult.youtubeUrl,
+      },
+    ]);
+    expect(backend.promoted).toEqual([]);
 
     fireEvent.click(save);
     await waitFor(() => {
-      expect(mocks.promote).toHaveBeenCalledWith('artifact-1');
+      expect(backend.promoted).toEqual(['artifact-1']);
     });
     expect(
       screen.getByRole('button', { name: 'Save YouTube source to Library' }),

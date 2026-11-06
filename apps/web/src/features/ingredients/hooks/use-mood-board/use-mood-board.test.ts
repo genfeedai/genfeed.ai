@@ -2,43 +2,64 @@ import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockGetByBrand = vi.fn();
-const mockPatch = vi.fn();
-const mockGetService = vi.fn();
-const mockUseBrand = vi.fn();
-const mockUseAuthIdentity = vi.fn();
+type LayoutItem = {
+  assetId: string;
+  position: { x: number; y: number };
+  width: number;
+};
+type StoredBoard = { brandId: string; id: string; layout: LayoutItem[] };
+
+// In-memory mood-boards API: one board per brand. `reads` logs each fetch.
+const api = vi.hoisted(() => ({
+  boards: [] as StoredBoard[],
+  brandId: 'brand-1' as string | undefined,
+  isSignedIn: true,
+  reads: [] as string[],
+}));
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => mockUseBrand(),
+  useBrand: () => ({ brandId: api.brandId }),
 }));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
-  useAuthIdentity: () => mockUseAuthIdentity(),
+  useAuthIdentity: () => ({ isSignedIn: api.isSignedIn }),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => mockGetService,
+  useAuthedService: () => async () => ({
+    getByBrand: async (brandId: string) => {
+      api.reads.push(brandId);
+      const board = api.boards.find((item) => item.brandId === brandId);
+      return board ? { id: board.id, layout: board.layout } : undefined;
+    },
+    patch: async (id: string, body: { layout: LayoutItem[] }) => {
+      const board = api.boards.find((item) => item.id === id);
+      if (!board) throw new Error(`404: board ${id}`);
+      board.layout = body.layout;
+      return { id: board.id, layout: board.layout };
+    },
+  }),
 }));
 
 vi.mock('@genfeedai/services/content/mood-boards.service', () => ({
-  MoodBoardsService: { getInstance: vi.fn() },
+  MoodBoardsService: { getInstance: () => ({}) },
 }));
 
 import { useMoodBoard } from './use-mood-board';
 
-const BOARD = { id: 'board-1', layout: [] };
+const LAYOUT: LayoutItem[] = [
+  { assetId: 'item-1', position: { x: 0, y: 0 }, width: 1 },
+];
 
 describe('useMoodBoard', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mockGetByBrand.mockResolvedValue(BOARD);
-    mockPatch.mockResolvedValue(BOARD);
-    mockGetService.mockResolvedValue({
-      getByBrand: mockGetByBrand,
-      patch: mockPatch,
-    });
-    mockUseBrand.mockReturnValue({ brandId: 'brand-1' });
-    mockUseAuthIdentity.mockReturnValue({ isSignedIn: true });
+    api.boards = [
+      { brandId: 'brand-1', id: 'board-1', layout: [] },
+      { brandId: 'brand-2', id: 'board-2', layout: LAYOUT },
+    ];
+    api.brandId = 'brand-1';
+    api.isSignedIn = true;
+    api.reads = [];
   });
 
   it('loads the mood board for the current brand', async () => {
@@ -47,82 +68,84 @@ describe('useMoodBoard', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.board).toEqual({ id: 'board-1', layout: [] });
     });
-
-    expect(mockGetByBrand).toHaveBeenCalledWith('brand-1');
-    expect(result.current.board).toEqual(BOARD);
+    expect(result.current.isLoading).toBe(false);
   });
 
   it('does not fetch when signed out', () => {
-    mockUseAuthIdentity.mockReturnValue({ isSignedIn: false });
+    api.isSignedIn = false;
 
-    renderHook(() => useMoodBoard(), { wrapper: createQueryWrapper() });
+    const { result } = renderHook(() => useMoodBoard(), {
+      wrapper: createQueryWrapper(),
+    });
 
-    expect(mockGetService).not.toHaveBeenCalled();
+    expect(result.current.board).toBeUndefined();
+    expect(api.reads).toEqual([]);
   });
 
   it('does not fetch without a brand id', () => {
-    mockUseBrand.mockReturnValue({ brandId: undefined });
+    api.brandId = undefined;
 
-    renderHook(() => useMoodBoard(), { wrapper: createQueryWrapper() });
+    const { result } = renderHook(() => useMoodBoard(), {
+      wrapper: createQueryWrapper(),
+    });
 
-    expect(mockGetService).not.toHaveBeenCalled();
+    expect(result.current.board).toBeUndefined();
+    expect(api.reads).toEqual([]);
   });
 
   it('saves a layout patch for the loaded board', async () => {
     const { result } = renderHook(() => useMoodBoard(), {
       wrapper: createQueryWrapper(),
     });
-
     await waitFor(() => {
-      expect(result.current.board).toEqual(BOARD);
+      expect(result.current.board).toEqual({ id: 'board-1', layout: [] });
     });
-
-    const layout = [{ assetId: 'item-1', position: { x: 0, y: 0 }, width: 1 }];
 
     await act(async () => {
-      await result.current.save(layout);
+      await result.current.save(LAYOUT);
     });
 
-    expect(mockPatch).toHaveBeenCalledWith('board-1', { layout });
+    expect(api.boards[0].layout).toEqual(LAYOUT);
+    await waitFor(() => {
+      expect(result.current.board).toEqual({ id: 'board-1', layout: LAYOUT });
+    });
+    expect(api.boards[1].layout).toEqual(LAYOUT);
   });
 
   it('skips saving when no board is loaded', async () => {
-    mockGetByBrand.mockResolvedValue(undefined);
-
+    api.boards = [];
     const { result } = renderHook(() => useMoodBoard(), {
       wrapper: createQueryWrapper(),
     });
-
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
     await act(async () => {
-      await result.current.save([]);
+      await result.current.save(LAYOUT);
     });
 
-    expect(mockPatch).not.toHaveBeenCalled();
+    expect(result.current.board).toBeUndefined();
+    expect(api.boards).toEqual([]);
   });
 
-  it('refresh triggers a refetch', async () => {
+  it('refresh picks up a board changed on the server', async () => {
     const { result } = renderHook(() => useMoodBoard(), {
       wrapper: createQueryWrapper(),
     });
-
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.board).toEqual({ id: 'board-1', layout: [] });
     });
 
-    mockGetByBrand.mockClear();
-
+    api.boards[0].layout = LAYOUT;
     act(() => {
       result.current.refresh();
     });
 
     await waitFor(() => {
-      expect(mockGetByBrand).toHaveBeenCalled();
+      expect(result.current.board).toEqual({ id: 'board-1', layout: LAYOUT });
     });
   });
 });

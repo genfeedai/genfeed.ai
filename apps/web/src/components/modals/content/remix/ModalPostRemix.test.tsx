@@ -4,15 +4,34 @@ import type { ModalProps } from '@genfeedai/props/modals/modal.props';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ChangeEvent, PropsWithChildren } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { Textarea } from '@ui/primitives/textarea';
 import ModalPostRemix from '@/components/modals/content/remix/ModalPostRemix';
 
-const closeModal = vi.fn();
+type Remix = { description: string; label?: string };
+
+/** What the caller observes: each submitted remix and each close. */
+function createCaller() {
+  const caller = { closes: 0, remixes: [] as Remix[] };
+  return {
+    caller,
+    onClose: () => {
+      caller.closes += 1;
+    },
+    onSubmit: async (description: string, label?: string) => {
+      caller.remixes.push({ description, label });
+    },
+  };
+}
+
+// Modal ids the dialog helper was asked to close.
+const dialogs = vi.hoisted(() => ({ closed: [] as unknown[] }));
 
 vi.mock('@genfeedai/helpers/ui/modal/modal.helper', () => ({
-  closeModal: (...args: unknown[]) => closeModal(...args),
+  closeModal: (id: unknown) => {
+    dialogs.closed.push(id);
+  },
 }));
 
 vi.mock('@ui/modals/modal/Modal', () => ({
@@ -66,20 +85,22 @@ describe('ModalPostRemix', () => {
     totalViews: 200,
   } as IPost;
 
-  const baseProps = {
-    onSubmit: vi.fn().mockResolvedValue(undefined),
-    post,
-  };
+  beforeEach(() => {
+    dialogs.closed = [];
+  });
 
-  it('should render without crashing', () => {
-    render(<ModalPostRemix {...baseProps} />);
-    expect(screen.getByTestId('modal')).toBeInTheDocument();
+  it('opens prefilled with the original post', () => {
+    const { onSubmit } = createCaller();
+    render(<ModalPostRemix post={post} onSubmit={onSubmit} />);
+    expect(screen.getByLabelText('Label')).toHaveValue('Remix: Test post');
+    expect(screen.getByTestId('rich-text-editor')).toHaveValue(
+      'Test description',
+    );
   });
 
   it('submits the remix label and description, then closes', async () => {
     const user = userEvent.setup();
-    const onSubmit = vi.fn().mockResolvedValue(undefined);
-    const onClose = vi.fn();
+    const { caller, onClose, onSubmit } = createCaller();
 
     render(
       <ModalPostRemix post={post} onSubmit={onSubmit} onClose={onClose} />,
@@ -95,15 +116,16 @@ describe('ModalPostRemix', () => {
     await user.type(screen.getByTestId('rich-text-editor'), 'New caption');
     await user.click(screen.getByRole('button', { name: 'Create Remix' }));
 
-    expect(onSubmit).toHaveBeenCalledWith('New caption', 'Night remix');
-    expect(closeModal).toHaveBeenCalled();
-    expect(onClose).toHaveBeenCalled();
+    expect(caller.remixes).toEqual([
+      { description: 'New caption', label: 'Night remix' },
+    ]);
+    expect(dialogs.closed).toHaveLength(1);
+    expect(caller.closes).toBe(1);
   });
 
   it('does not submit a blank description and cancel only closes', async () => {
     const user = userEvent.setup();
-    const onSubmit = vi.fn().mockResolvedValue(undefined);
-    const onClose = vi.fn();
+    const { caller, onClose, onSubmit } = createCaller();
 
     render(
       <ModalPostRemix
@@ -117,7 +139,7 @@ describe('ModalPostRemix', () => {
     expect(screen.queryByText(/Original post has/)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(onSubmit).not.toHaveBeenCalled();
-    expect(onClose).toHaveBeenCalled();
+    expect(caller.remixes).toEqual([]);
+    expect(caller.closes).toBe(1);
   });
 });

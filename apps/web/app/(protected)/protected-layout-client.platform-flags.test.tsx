@@ -9,14 +9,8 @@ const platformState = vi.hoisted(() => ({
   isReady: false,
   isUnavailable: false,
 }));
-const routeGate = vi.hoisted(() => vi.fn());
-const notifyChanged = vi.hoisted(() => vi.fn());
-const receiveFlags = vi.hoisted(() => vi.fn());
-const bootSpies = vi.hoisted(() => ({
-  apiAuthBridge: vi.fn(),
-  organizationProvider: vi.fn(),
-  sessionKeepAlive: vi.fn(),
-}));
+// Times the shell asked the platform-flags sync to re-read after an outage.
+const flagsSync = vi.hoisted(() => ({ retries: 0 }));
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -29,26 +23,23 @@ vi.mock('@/lib/platform-flags/use-platform-flags', () => ({
   usePlatformFlags: () => platformState,
 }));
 vi.mock('@/lib/platform-flags/platform-flags-sync', () => ({
-  notifyPlatformFlagsChanged: notifyChanged,
+  notifyPlatformFlagsChanged: () => {
+    flagsSync.retries += 1;
+  },
 }));
 vi.mock('@/hooks/auth/use-auth-user', () => ({
   useAuthUser: () => ({ user: null }),
 }));
-vi.mock('@/lib/analytics', () => ({ identifyAnalyticsUser: vi.fn() }));
+vi.mock('@/lib/analytics', () => ({ identifyAnalyticsUser: () => undefined }));
 vi.mock('@/lib/workspace-shell/workspace-shell-telemetry', () => ({
-  captureWorkspaceShellSession: vi.fn(),
+  captureWorkspaceShellSession: () => undefined,
 }));
+// Boot pieces render a marker so the tests can see what is mounted.
 vi.mock('@genfeedai/auth-client', () => ({
-  SessionKeepAlive: () => {
-    bootSpies.sessionKeepAlive();
-    return null;
-  },
+  SessionKeepAlive: () => <span>Session keep-alive</span>,
 }));
 vi.mock('./api-auth-bridge', () => ({
-  default: () => {
-    bootSpies.apiAuthBridge();
-    return null;
-  },
+  default: () => <span>API auth bridge</span>,
 }));
 vi.mock('@/hooks/feature-flags/provider', () => ({
   FeatureFlagProvider: ({
@@ -57,28 +48,28 @@ vi.mock('@/hooks/feature-flags/provider', () => ({
   }: {
     children: ReactNode;
     defaults: unknown;
-  }) => {
-    receiveFlags(defaults);
-    return children;
-  },
+  }) => (
+    <section aria-label="Feature flags">
+      <output>{JSON.stringify(defaults)}</output>
+      {children}
+    </section>
+  ),
 }));
 vi.mock(
   '@genfeedai/contexts/user/organization-context/organization-context',
   () => ({
-    RoutedOrganizationProvider: ({ children }: { children: ReactNode }) => {
-      bootSpies.organizationProvider();
-      return children;
-    },
+    RoutedOrganizationProvider: ({ children }: { children: ReactNode }) => (
+      <section aria-label="Organization scope">{children}</section>
+    ),
   }),
 );
 vi.mock('./routed-organization-boundary', () => ({
   default: ({ children }: { children: ReactNode }) => children,
 }));
 vi.mock('./platform-module-route-gate', () => ({
-  default: ({ children }: { children: ReactNode }) => {
-    routeGate();
-    return children;
-  },
+  default: ({ children }: { children: ReactNode }) => (
+    <section aria-label="Module route gate">{children}</section>
+  ),
 }));
 vi.mock('@/components/layouts/protected/app-protected-layout', () => ({
   default: ({ children }: { children: ReactNode }) => children,
@@ -108,7 +99,7 @@ vi.mock('@ui/error/ErrorFallback', () => ({
 
 describe('protected shell platform flags recovery', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    flagsSync.retries = 0;
     platformState.isReady = false;
     platformState.isUnavailable = false;
   });
@@ -122,8 +113,12 @@ describe('protected shell platform flags recovery', () => {
 
     expect(screen.getByRole('status')).toBeInTheDocument();
     expect(screen.queryByText('Workspace')).not.toBeInTheDocument();
-    expect(routeGate).not.toHaveBeenCalled();
-    expect(receiveFlags).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('region', { name: 'Module route gate' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', { name: 'Feature flags' }),
+    ).not.toBeInTheDocument();
   });
 
   it('starts session, auth bridge and organization boot while flags load', () => {
@@ -134,9 +129,11 @@ describe('protected shell platform flags recovery', () => {
     );
 
     expect(screen.getByRole('status')).toBeInTheDocument();
-    expect(bootSpies.sessionKeepAlive).toHaveBeenCalled();
-    expect(bootSpies.apiAuthBridge).toHaveBeenCalled();
-    expect(bootSpies.organizationProvider).toHaveBeenCalled();
+    expect(screen.getByText('Session keep-alive')).toBeInTheDocument();
+    expect(screen.getByText('API auth bridge')).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: 'Organization scope' }),
+    ).toBeInTheDocument();
   });
 
   it('offers retry after an outage and mounts the shell after recovery', () => {
@@ -150,9 +147,11 @@ describe('protected shell platform flags recovery', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Workspace settings unavailable',
     );
-    expect(routeGate).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('region', { name: 'Module route gate' }),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    expect(notifyChanged).toHaveBeenCalledOnce();
+    expect(flagsSync.retries).toBe(1);
 
     platformState.isReady = true;
     platformState.isUnavailable = false;
@@ -164,7 +163,11 @@ describe('protected shell platform flags recovery', () => {
 
     expect(screen.getByText('Workspace')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(routeGate).toHaveBeenCalled();
-    expect(receiveFlags).toHaveBeenCalledWith({ studio: false });
+    expect(
+      screen.getByRole('region', { name: 'Module route gate' }),
+    ).toHaveTextContent('Workspace');
+    expect(
+      screen.getByRole('region', { name: 'Feature flags' }),
+    ).toHaveTextContent('{"studio":false}');
   });
 });

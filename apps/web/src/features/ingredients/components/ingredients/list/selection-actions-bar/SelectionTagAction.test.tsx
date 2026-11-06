@@ -2,13 +2,20 @@ import { TagBulkAction, TagScope } from '@genfeedai/contracts';
 import { LIBRARY_BULK_TAG_LIMIT } from '@genfeedai/contracts/constants';
 import type { IIngredient, ITag } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useEffect, useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SelectionTagAction from './SelectionTagAction';
 
-const { applyTag, createTag, notifications } = vi.hoisted(() => ({
-  applyTag: vi.fn(),
-  createTag: vi.fn(),
-  notifications: { error: vi.fn(), success: vi.fn() },
+/**
+ * In-memory library: the brand's tags, the selected assets' tags (pushed to
+ * the rendered harness on every write), and the toasts the user saw.
+ */
+const library = vi.hoisted(() => ({
+  assetTags: {} as Record<string, ITag[]>,
+  failCreate: false,
+  notified: [] as string[],
+  render: (): void => undefined,
+  tags: [] as ITag[],
 }));
 
 vi.mock('next-intl', async () => {
@@ -21,11 +28,18 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@genfeedai/services/core/notifications.service', () => ({
-  NotificationsService: { getInstance: () => notifications },
+  NotificationsService: {
+    getInstance: () => ({
+      error: (message: string) => {
+        library.notified.push(message);
+      },
+      success: () => undefined,
+    }),
+  },
 }));
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({
-  logger: { error: vi.fn() },
+  logger: { error: () => undefined },
 }));
 
 const launch = {
@@ -45,15 +59,36 @@ const episode = {
 
 vi.mock('@/components/tags/library-tag-picker/use-library-tags', () => ({
   useLibraryTags: () => ({
-    createTag,
+    createTag: async (label: string) => {
+      if (library.failCreate) throw new Error('boom');
+      const created = { ...library.tags[0], id: `tag-${label}`, label } as ITag;
+      library.tags = [...library.tags, created];
+      return created;
+    },
     isLoading: false,
-    refresh: vi.fn(),
-    tags: [launch, episode],
+    refresh: () => undefined,
+    tags: library.tags,
   }),
 }));
 
 vi.mock('@/components/tags/library-tag-picker/use-library-tag-writes', () => ({
-  useLibraryTagWrites: () => ({ applyTag, isWriting: false }),
+  useLibraryTagWrites: () => ({
+    applyTag: async (action: string, tag: ITag, ids: string[]) => {
+      for (const id of ids) {
+        const current = library.assetTags[id] ?? [];
+        library.assetTags[id] =
+          action === TagBulkAction.REMOVE
+            ? current.filter((item) => item.id !== tag.id)
+            : [...current.filter((item) => item.id !== tag.id), tag];
+      }
+      library.render();
+      return {
+        changedIds: ids,
+        result: { changed: ids.length, failed: 0, skipped: 0 },
+      };
+    },
+    isWriting: false,
+  }),
 }));
 
 vi.mock('@/components/tags/library-tag-picker/LibraryTagPicker', () => ({
@@ -96,33 +131,55 @@ function assets(count: number, tags: Record<number, ITag[]> = {}) {
   );
 }
 
+/** Renders the action over the library's current asset tags. */
+function SelectionHarness({ selection }: { selection: IIngredient[] }) {
+  const [, setVersion] = useState(0);
+  useEffect(() => {
+    library.assetTags = Object.fromEntries(
+      selection.map((asset) => [asset.id, asset.tags ?? []]),
+    );
+    library.render = () => setVersion((version) => version + 1);
+  }, [selection]);
+  const current = selection.map(
+    (asset) =>
+      ({
+        ...asset,
+        tags: library.assetTags[asset.id] ?? asset.tags,
+      }) as IIngredient,
+  );
+  return <SelectionTagAction selectedIngredients={current} />;
+}
+
+const tagState = (label: string) =>
+  screen
+    .getByRole('button', { name: `pick ${label}` })
+    .getAttribute('data-state');
+
 describe('SelectionTagAction', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    applyTag.mockResolvedValue({
-      changedIds: [],
-      result: { changed: 0, failed: 0, skipped: 0 },
-    });
+    library.assetTags = {};
+    library.failCreate = false;
+    library.notified = [];
+    library.render = () => undefined;
+    library.tags = [launch, episode];
   });
 
-  it('adds a tag to every selected asset in one action', () => {
-    render(<SelectionTagAction selectedIngredients={assets(3)} />);
+  it('adds a tag to every selected asset in one action', async () => {
+    render(<SelectionHarness selection={assets(3)} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'pick Launch' }));
 
-    expect(applyTag).toHaveBeenCalledTimes(1);
-    expect(applyTag).toHaveBeenCalledWith(TagBulkAction.ADD, launch, [
-      'asset-0',
-      'asset-1',
-      'asset-2',
-    ]);
+    await waitFor(() => expect(tagState('Launch')).toBe('all'));
+    expect(library.assetTags).toEqual({
+      'asset-0': [launch],
+      'asset-1': [launch],
+      'asset-2': [launch],
+    });
   });
 
-  it('marks a tag every selected asset carries, and removes it from all of them', () => {
+  it('marks a tag every selected asset carries, and removes it from all of them', async () => {
     render(
-      <SelectionTagAction
-        selectedIngredients={assets(2, { 0: [launch], 1: [launch] })}
-      />,
+      <SelectionHarness selection={assets(2, { 0: [launch], 1: [launch] })} />,
     );
 
     expect(screen.getByRole('button', { name: 'pick Launch' })).toHaveAttribute(
@@ -132,16 +189,12 @@ describe('SelectionTagAction', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'pick Launch' }));
 
-    expect(applyTag).toHaveBeenCalledWith(TagBulkAction.REMOVE, launch, [
-      'asset-0',
-      'asset-1',
-    ]);
+    await waitFor(() => expect(tagState('Launch')).toBe('none'));
+    expect(library.assetTags).toEqual({ 'asset-0': [], 'asset-1': [] });
   });
 
-  it('marks a tag on only some assets, and adds it to the rest when picked', () => {
-    render(
-      <SelectionTagAction selectedIngredients={assets(3, { 0: [launch] })} />,
-    );
+  it('marks a tag on only some assets, and adds it to the rest when picked', async () => {
+    render(<SelectionHarness selection={assets(3, { 0: [launch] })} />);
 
     expect(screen.getByRole('button', { name: 'pick Launch' })).toHaveAttribute(
       'data-state',
@@ -154,40 +207,31 @@ describe('SelectionTagAction', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'pick Launch' }));
 
-    expect(applyTag).toHaveBeenCalledWith(
-      TagBulkAction.ADD,
-      launch,
-      expect.arrayContaining(['asset-0', 'asset-1', 'asset-2']),
-    );
+    await waitFor(() => expect(tagState('Launch')).toBe('all'));
+    expect(tagState('S1E12')).toBe('none');
   });
 
   it('creates a tag and applies it to the whole selection', async () => {
-    const created = { ...launch, id: 'tag-spring', label: 'Spring drop' };
-    createTag.mockResolvedValue(created);
-    render(<SelectionTagAction selectedIngredients={assets(2)} />);
+    render(<SelectionHarness selection={assets(2)} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'create tag' }));
 
-    await waitFor(() =>
-      expect(applyTag).toHaveBeenCalledWith(TagBulkAction.ADD, created, [
-        'asset-0',
-        'asset-1',
-      ]),
-    );
+    await waitFor(() => expect(tagState('Spring drop')).toBe('all'));
+    expect(library.assetTags['asset-1']).toEqual([
+      expect.objectContaining({ label: 'Spring drop' }),
+    ]);
   });
 
   it('reports a tag it could not create instead of tagging anything', async () => {
-    createTag.mockRejectedValue(new Error('boom'));
-    render(<SelectionTagAction selectedIngredients={assets(2)} />);
+    library.failCreate = true;
+    render(<SelectionHarness selection={assets(2)} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'create tag' }));
 
     await waitFor(() =>
-      expect(notifications.error).toHaveBeenCalledWith(
-        'The tag could not be created.',
-      ),
+      expect(library.notified).toEqual(['The tag could not be created.']),
     );
-    expect(applyTag).not.toHaveBeenCalled();
+    expect(library.assetTags).toEqual({ 'asset-0': [], 'asset-1': [] });
   });
 
   it('tags exactly the limit of assets', () => {
