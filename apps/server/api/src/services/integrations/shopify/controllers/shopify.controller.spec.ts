@@ -1,201 +1,277 @@
 vi.mock('@api/helpers/utils/response/response.util', () => ({
-  serializeSingle: vi.fn(
-    (_request: unknown, _serializer: unknown, data: unknown) => data,
-  ),
+  serializeSingle: (_request: unknown, _serializer: unknown, data: unknown) =>
+    data,
 }));
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ShopifyService } from '@api/services/integrations/shopify/services/shopify.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { ShopifyService } from '@api/services/integrations/shopify/services/shopify.service';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { Request } from 'express';
+import { describe, expect, it, vi } from 'vitest';
 import { ShopifyController } from './shopify.controller';
 
 vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
   AutoSwagger: () => () => undefined,
 }));
 
-describe('ShopifyController', () => {
-  let controller: ShopifyController;
+interface StoredCredential {
+  accessToken?: string;
+  account?: { handle: string; id: string; name: string };
+  brandId: string;
+  externalHandle: string;
+  id: string;
+  isConnected: boolean;
+  oauthState: string | null;
+  organizationId: string;
+  platform: string;
+  userId: string;
+}
 
-  const mockShopifyService = {
-    createProduct: vi.fn(),
-    exchangeCodeForToken: vi.fn(),
-    generateAuthUrl: vi.fn(),
-  };
+interface ProductRequest {
+  accessToken: string;
+  bodyHtml: string;
+  images: string[];
+  shop: string;
+  tags?: string[];
+  title: string;
+  variants?: Array<{ price: string; title?: string }>;
+}
 
-  const mockLoggerService = {
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  };
-  const mockBrandsService = {
-    findOne: vi.fn().mockResolvedValue({
-      id: 'brand-id',
-      organizationId: 'organization-id',
-      userId: 'user-id',
-    }),
-  };
-  const mockCredentialsService = {
-    beginOAuthForBrand: vi.fn().mockResolvedValue({
-      credential: { id: 'credential-id' },
-      state: 'opaque-oauth-state',
-    }),
-    findPendingOAuthCredential: vi.fn().mockResolvedValue({
-      brandId: 'brand-id',
-      externalHandle: 'myshop.myshopify.com',
-      id: 'credential-id',
-      organizationId: 'organization-id',
-      userId: 'user-id',
-    }),
-    connectAccount: vi.fn().mockResolvedValue({
-      id: 'credential-id',
-      isConnected: true,
-    }),
-    patch: vi.fn().mockResolvedValue({
-      id: 'credential-id',
-      isConnected: true,
-    }),
-  };
-  const user = {
-    organizationId: 'organization-id',
-    userId: 'user-id',
-  } as unknown as User;
+/** Shopify's OAuth server: the code each shop accepts and the token it issues. */
+const SHOPIFY_TOKENS: Record<string, { accessToken?: string }> = {
+  'myshop.myshopify.com:auth-code': { accessToken: 'shpua_abc123' },
+  'myshop.myshopify.com:code-without-token': {},
+};
 
-  beforeEach(async () => {
-    vi.clearAllMocks();
+function setup() {
+  const brands = [
+    { id: 'brand-id', organizationId: 'organization-id', userId: 'user-id' },
+  ];
+  const credentials: StoredCredential[] = [];
+  const products: ProductRequest[] = [];
+  let isShopifyDown = false;
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [ShopifyController],
-      providers: [
-        { provide: ShopifyService, useValue: mockShopifyService },
-        { provide: LoggerService, useValue: mockLoggerService },
-        { provide: BrandsService, useValue: mockBrandsService },
-        { provide: CredentialsService, useValue: mockCredentialsService },
-      ],
-    }).compile();
+  const brandsService = {
+    findOne: async (filter: { id: string; organizationId: string }) =>
+      brands.find(
+        (brand) =>
+          brand.id === filter.id &&
+          brand.organizationId === filter.organizationId,
+      ) ?? null,
+  } as unknown as BrandsService;
 
-    controller = module.get<ShopifyController>(ShopifyController);
-  });
-
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
-  describe('connect()', () => {
-    it('should return auth URL from service', async () => {
-      mockShopifyService.generateAuthUrl.mockReturnValue(
-        'https://myshop.myshopify.com/admin/oauth/authorize',
+  const credentialsService = {
+    beginOAuthForBrand: async (
+      brand: { id: string; organizationId: string },
+      userId: string,
+      platform: string,
+      fields: { externalHandle: string },
+    ) => {
+      const credential: StoredCredential = {
+        brandId: brand.id,
+        externalHandle: fields.externalHandle,
+        id: `credential-${credentials.length + 1}`,
+        isConnected: false,
+        oauthState: `state-${credentials.length + 1}`,
+        organizationId: brand.organizationId,
+        platform,
+        userId,
+      };
+      credentials.push(credential);
+      return { credential, state: credential.oauthState };
+    },
+    connectAccount: async (
+      id: string,
+      organizationId: string,
+      account: StoredCredential['account'],
+      tokens: { accessToken: string },
+    ) => {
+      const credential = credentials.find(
+        (item) => item.id === id && item.organizationId === organizationId,
       );
+      if (!credential) throw new Error(`no credential ${id}`);
+      Object.assign(credential, {
+        account,
+        accessToken: tokens.accessToken,
+        isConnected: true,
+        oauthState: null,
+      });
+      return { ...credential };
+    },
+    findPendingOAuthCredential: async (state: string, platform: string) =>
+      credentials.find(
+        (credential) =>
+          credential.oauthState === state && credential.platform === platform,
+      ) ?? null,
+  } as unknown as CredentialsService;
 
-      const result = await controller.connect({} as never, user, {
+  const shopifyService = {
+    createProduct: async (
+      shop: string,
+      accessToken: string,
+      title: string,
+      bodyHtml: string,
+      images: string[],
+      variants?: ProductRequest['variants'],
+      tags?: string[],
+    ) => {
+      if (isShopifyDown) throw new Error('Shopify API error');
+      products.push({
+        accessToken,
+        bodyHtml,
+        images,
+        shop,
+        tags,
+        title,
+        variants,
+      });
+      return { id: 12345, title };
+    },
+    exchangeCodeForToken: async (shop: string, code: string) => {
+      const tokens = SHOPIFY_TOKENS[`${shop}:${code}`];
+      if (!tokens) throw new Error('Invalid code');
+      return tokens;
+    },
+    generateAuthUrl: (shop: string, state: string) =>
+      `https://${shop}/admin/oauth/authorize?state=${state}`,
+  } as unknown as ShopifyService;
+
+  const logger = {
+    error: () => undefined,
+    log: () => undefined,
+    warn: () => undefined,
+  } as unknown as LoggerService;
+
+  const controller = new ShopifyController(
+    shopifyService,
+    logger,
+    brandsService,
+    credentialsService,
+  );
+  return {
+    controller,
+    credentials,
+    products,
+    setShopifyDown: () => {
+      isShopifyDown = true;
+    },
+  };
+}
+
+const request = {} as Request;
+const user = {
+  organizationId: 'organization-id',
+  userId: 'user-id',
+} as unknown as User;
+
+describe('ShopifyController', () => {
+  describe('connect()', () => {
+    it('opens a pending credential for the normalized shop and returns its auth URL', async () => {
+      const { controller, credentials } = setup();
+
+      const result = await controller.connect(request, user, {
         brandId: 'brand-id',
-        shop: 'myshop.myshopify.com',
+        shop: 'MYSHOP.myshopify.com',
       });
 
       expect(result).toEqual({
-        url: 'https://myshop.myshopify.com/admin/oauth/authorize',
+        url: 'https://myshop.myshopify.com/admin/oauth/authorize?state=state-1',
       });
+      expect(credentials).toEqual([
+        expect.objectContaining({
+          brandId: 'brand-id',
+          externalHandle: 'myshop.myshopify.com',
+          isConnected: false,
+          oauthState: 'state-1',
+          platform: 'shopify',
+        }),
+      ]);
     });
 
-    it('should pass normalized shop and server-issued state', async () => {
-      mockShopifyService.generateAuthUrl.mockReturnValue(
-        'https://shopify.com/auth',
-      );
+    it('rejects a shop domain outside myshopify.com', async () => {
+      const { controller, credentials } = setup();
 
-      await controller.connect({} as never, user, {
-        brandId: 'brand-id',
-        shop: 'SHOP.myshopify.com',
-      });
-
-      expect(mockShopifyService.generateAuthUrl).toHaveBeenCalledWith(
-        'shop.myshopify.com',
-        'opaque-oauth-state',
-      );
-    });
-
-    it('should log auth url request', async () => {
-      mockShopifyService.generateAuthUrl.mockReturnValue(
-        'https://shopify.com/auth',
-      );
-
-      await controller.connect({} as never, user, {
-        brandId: 'brand-id',
-        shop: 'shop.myshopify.com',
-      });
-
-      expect(mockLoggerService.log).toHaveBeenCalledWith('Shopify auth url');
-    });
-
-    it('should reject an invalid shop domain', async () => {
       await expect(
-        controller.connect({} as never, user, {
+        controller.connect(request, user, {
           brandId: 'brand-id',
           shop: 'internal.example.com',
         }),
       ).rejects.toThrow(/myshopify/);
+      expect(credentials).toEqual([]);
+    });
+
+    it('refuses a brand outside the caller organization', async () => {
+      const { controller, credentials } = setup();
+
+      await expect(
+        controller.connect(
+          request,
+          { ...user, organizationId: 'other-org' } as User,
+          { brandId: 'brand-id', shop: 'myshop.myshopify.com' },
+        ),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(credentials).toEqual([]);
     });
   });
 
   describe('verify()', () => {
-    it('should persist token data from service', async () => {
-      const tokenResult = { accessToken: 'shpua_abc123' };
-      mockShopifyService.exchangeCodeForToken.mockResolvedValue(tokenResult);
-
-      const result = await controller.verify({} as never, {
-        code: 'auth-code',
-        state: 'opaque-oauth-state',
+    it('connects the pending credential with the token for the shop it was opened for', async () => {
+      const { controller, credentials } = setup();
+      await controller.connect(request, user, {
+        brandId: 'brand-id',
+        shop: 'myshop.myshopify.com',
       });
 
-      expect(mockCredentialsService.connectAccount).toHaveBeenCalledWith(
-        'credential-id',
-        'organization-id',
-        {
+      const result = await controller.verify(request, {
+        code: 'auth-code',
+        state: 'state-1',
+      });
+
+      expect(result).toMatchObject({
+        accessToken: 'shpua_abc123',
+        account: {
           handle: 'myshop.myshopify.com',
           id: 'myshop.myshopify.com',
           name: 'myshop.myshopify.com',
         },
-        { accessToken: 'shpua_abc123' },
-      );
-      expect(result).toEqual({ id: 'credential-id', isConnected: true });
+        id: 'credential-1',
+        isConnected: true,
+      });
+      expect(credentials[0]).toMatchObject({
+        isConnected: true,
+        oauthState: null,
+      });
     });
 
-    it('should use the shop bound to the pending credential', async () => {
-      mockShopifyService.exchangeCodeForToken.mockResolvedValue({
-        accessToken: 'token',
-      });
+    it('rejects a state that no pending credential carries', async () => {
+      const { controller } = setup();
 
-      await controller.verify({} as never, {
-        code: 'my-code',
-        state: 'opaque-oauth-state',
-      });
-
-      expect(mockShopifyService.exchangeCodeForToken).toHaveBeenCalledWith(
-        'myshop.myshopify.com',
-        'my-code',
-      );
+      await expect(
+        controller.verify(request, { code: 'auth-code', state: 'forged' }),
+      ).rejects.toMatchObject({ status: 404 });
     });
 
-    it('should log exchange token request', async () => {
-      mockShopifyService.exchangeCodeForToken.mockResolvedValue({
-        accessToken: 'token',
+    it('fails with 502 and leaves the credential pending when Shopify returns no token', async () => {
+      const { controller, credentials } = setup();
+      await controller.connect(request, user, {
+        brandId: 'brand-id',
+        shop: 'myshop.myshopify.com',
       });
 
-      await controller.verify({} as never, {
-        code: 'code',
-        state: 'opaque-oauth-state',
-      });
-
-      expect(mockLoggerService.log).toHaveBeenCalledWith(
-        'Shopify exchange token',
-      );
+      await expect(
+        controller.verify(request, {
+          code: 'code-without-token',
+          state: 'state-1',
+        }),
+      ).rejects.toMatchObject({ status: 502 });
+      expect(credentials[0]).toMatchObject({ isConnected: false });
     });
   });
 
   describe('createProduct()', () => {
-    const productBody = {
+    const productBody: ProductRequest = {
       accessToken: 'shpua_token',
       bodyHtml: '<p>Product description</p>',
       images: ['https://example.com/img.jpg'],
@@ -205,49 +281,25 @@ describe('ShopifyController', () => {
       variants: [{ price: '29.99', title: 'Default' }],
     };
 
-    it('should return created product from service', async () => {
-      const product = { id: 12345, title: 'AI Generated Product' };
-      mockShopifyService.createProduct.mockResolvedValue(product);
+    it('creates the product in the shop and returns it', async () => {
+      const { controller, products } = setup();
 
       const result = await controller.createProduct(productBody);
 
-      expect(result).toEqual({ data: product });
+      expect(result).toEqual({
+        data: { id: 12345, title: 'AI Generated Product' },
+      });
+      expect(products).toEqual([productBody]);
     });
 
-    it('should pass all args to createProduct service', async () => {
-      mockShopifyService.createProduct.mockResolvedValue({});
-
-      await controller.createProduct(productBody);
-
-      expect(mockShopifyService.createProduct).toHaveBeenCalledWith(
-        productBody.shop,
-        productBody.accessToken,
-        productBody.title,
-        productBody.bodyHtml,
-        productBody.images,
-        productBody.variants,
-        productBody.tags,
-      );
-    });
-
-    it('should log create product request', async () => {
-      mockShopifyService.createProduct.mockResolvedValue({});
-
-      await controller.createProduct(productBody);
-
-      expect(mockLoggerService.log).toHaveBeenCalledWith(
-        'Shopify create product',
-      );
-    });
-
-    it('should propagate service errors', async () => {
-      mockShopifyService.createProduct.mockRejectedValue(
-        new Error('Shopify API error'),
-      );
+    it('propagates Shopify errors', async () => {
+      const { controller, products, setShopifyDown } = setup();
+      setShopifyDown();
 
       await expect(controller.createProduct(productBody)).rejects.toThrow(
         'Shopify API error',
       );
+      expect(products).toEqual([]);
     });
   });
 });

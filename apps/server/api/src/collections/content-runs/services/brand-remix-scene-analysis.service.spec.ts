@@ -134,29 +134,83 @@ describe('scene analysis recovery', () => {
     { attempt: 1, state: 'pending' },
     { attempt: 1, state: 'pending' },
   );
-  const store = { fence: vi.fn(), save: vi.fn(), read: vi.fn() };
-  const source = { prepare: vi.fn() };
-  const billing = { reserve: vi.fn(), settle: vi.fn(), release: vi.fn() };
-  const whisper = { transcribeUrl: vi.fn() };
+  /**
+   * What crossed each boundary in order: credit ledger entries, transcription
+   * requests, and the fence options each step ran under.
+   */
+  let ledger: string[];
+  let transcriptions: string[];
+  let fences: unknown[];
   let service: BrandRemixSceneAnalysisService;
+
   beforeEach(() => {
-    vi.clearAllMocks();
-    store.fence.mockImplementation(async () => ({ config, brandId: 'brand' }));
-    store.read.mockImplementation(async () => ({ config, brandId: 'brand' }));
-    store.save.mockImplementation(async (_org, _run, _old, next) => {
-      config = brandRemixRunConfigSchema.parse(next);
-    });
-    source.prepare.mockResolvedValue({
-      sourceAssetId: 'video',
-      url: 'https://cdn.test/video.mp4',
-      durationSeconds: 12,
-      sizeBytes: 1000,
-    });
-    whisper.transcribeUrl.mockResolvedValue({
-      text: 'Original source words',
-      srt: '1\n00:00:00,000 --> 00:00:01,000\nOriginal',
-      language: 'en',
-    });
+    ledger = [];
+    transcriptions = [];
+    fences = [];
+    const store = {
+      fence: async (
+        _org: string,
+        _run: string,
+        _op: string,
+        options: unknown,
+      ) => {
+        fences.push(options);
+        return { brandId: 'brand', config };
+      },
+      read: async () => ({ brandId: 'brand', config }),
+      save: async (
+        _org: string,
+        _run: string,
+        _previous: unknown,
+        next: unknown,
+      ) => {
+        config = brandRemixRunConfigSchema.parse(next);
+      },
+    };
+    const source = {
+      prepare: async () => ({
+        durationSeconds: 12,
+        sizeBytes: 1000,
+        sourceAssetId: 'video',
+        url: 'https://cdn.test/video.mp4',
+      }),
+    };
+    const billing = {
+      release: async (
+        _o: string,
+        _r: string,
+        _op: string,
+        line: { key: string },
+      ) => {
+        ledger.push(`release:${line.key}`);
+      },
+      reserve: async (
+        _o: string,
+        _r: string,
+        _op: string,
+        line: { key: string },
+      ) => {
+        ledger.push(`reserve:${line.key}`);
+      },
+      settle: async (
+        _o: string,
+        _r: string,
+        _op: string,
+        line: { key: string },
+      ) => {
+        ledger.push(`settle:${line.key}`);
+      },
+    };
+    const whisper = {
+      transcribeUrl: async (url: string) => {
+        transcriptions.push(url);
+        return {
+          language: 'en',
+          srt: '1\n00:00:00,000 --> 00:00:01,000\nOriginal',
+          text: 'Original source words',
+        };
+      },
+    };
     service = new BrandRemixSceneAnalysisService(
       {} as BrandRemixRunPlanningService,
       store as unknown as BrandRemixSceneStoreService,
@@ -167,23 +221,27 @@ describe('scene analysis recovery', () => {
       {} as OpenRouterService,
     );
   });
+
   it('reruns an uncertain transcription under the same accepted line and keeps the paid transcript', async () => {
     config = fixture(
       { attempt: 1, state: 'uncertain' },
       { attempt: 1, state: 'pending' },
     );
+
     await expect(service.step('org', 'run', 'op')).resolves.toBe(false);
-    const line = expect.objectContaining({ key: 'run-transcription-1' });
-    expect(billing.reserve).toHaveBeenCalledWith('org', 'run', 'op', line);
-    expect(billing.settle).toHaveBeenCalledWith('org', 'run', 'op', line);
-    expect(store.fence).toHaveBeenCalledWith('org', 'run', 'op', {
-      allowCancelled: true,
-    });
+
+    expect(ledger).toEqual([
+      'reserve:run-transcription-1',
+      'settle:run-transcription-1',
+    ]);
+    expect(transcriptions).toEqual(['https://cdn.test/video.mp4']);
+    expect(fences).toContainEqual({ allowCancelled: true });
     expect(config.scenePipeline?.analysis?.transcription.state).toBe('ready');
     expect(config.scenePipeline?.analysis?.transcript).toBe(
       'Original source words',
     );
   });
+
   it('waits on a live claim instead of calling the platform twice', async () => {
     config = fixture(
       {
@@ -193,20 +251,23 @@ describe('scene analysis recovery', () => {
       },
       { attempt: 1, state: 'pending' },
     );
+
     await expect(service.step('org', 'run', 'op')).rejects.toThrow(
       'still running',
     );
-    expect(whisper.transcribeUrl).not.toHaveBeenCalled();
-    expect(billing.reserve).not.toHaveBeenCalled();
+    expect(transcriptions).toEqual([]);
+    expect(ledger).toEqual([]);
   });
+
   it('requires a new quote after a definitively failed analysis', async () => {
     config = fixture(
       { attempt: 1, state: 'ready' },
       { attempt: 1, state: 'failed' },
     );
+
     await expect(service.step('org', 'run', 'op')).rejects.toThrow(
       'new analysis quote',
     );
-    expect(billing.reserve).not.toHaveBeenCalled();
+    expect(ledger).toEqual([]);
   });
 });
