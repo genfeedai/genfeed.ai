@@ -6,7 +6,22 @@ import type { BotActivity } from '@genfeedai/prisma';
 
 export type { BotActivity } from '@genfeedai/prisma';
 
-export interface BotActivityDocument extends Omit<BotActivity, 'data'> {
+/**
+ * The document reads its fields from `data`; the promoted filter columns are
+ * copies of those keys and are not part of it.
+ */
+export interface BotActivityDocument
+  extends Omit<
+    BotActivity,
+    | 'botType'
+    | 'data'
+    | 'dmSent'
+    | 'isIntentNeedsReview'
+    | 'isManuallyPosted'
+    | 'replyTweetId'
+    | 'status'
+    | 'triggerTweetId'
+  > {
   botType?: string;
   completedAt?: Date | null;
   data?: Record<string, unknown>;
