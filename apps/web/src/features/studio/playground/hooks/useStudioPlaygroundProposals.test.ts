@@ -26,8 +26,13 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn() },
 }));
 
-function draft(id: string) {
-  return { id, prompt: `Prompt ${id}`, title: `Draft ${id}` };
+function draft(title: string) {
+  return {
+    aspectRatio: '1:1' as const,
+    prompt: `Prompt ${title}`,
+    title,
+    why: `Why ${title}`,
+  };
 }
 
 describe('useStudioPlaygroundProposals', () => {
@@ -43,10 +48,10 @@ describe('useStudioPlaygroundProposals', () => {
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.proposals.map((proposal) => proposal.id)).toEqual([
-      'a',
-      'b',
-      'c',
+    expect(result.current.proposals).toEqual([
+      draft('a'),
+      draft('b'),
+      draft('c'),
     ]);
   });
 
