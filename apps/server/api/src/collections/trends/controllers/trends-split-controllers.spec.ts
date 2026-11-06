@@ -1,6 +1,8 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { TrendsController } from '@api/collections/trends/controllers/trends.controller';
 import { TrendsAnalyticsController } from '@api/collections/trends/controllers/trends-analytics.controller';
 import { TrendsDiscoveryController } from '@api/collections/trends/controllers/trends-discovery.controller';
+import type { TrendsService } from '@api/collections/trends/services/trends.service';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { Timeframe } from '@genfeedai/contracts';
 import { RequestMethod } from '@nestjs/common';
@@ -10,24 +12,42 @@ import {
   PATH_METADATA,
 } from '@nestjs/common/constants';
 
+type TrendRead = [method: string, ...args: unknown[]];
+
 describe('Trends split controllers', () => {
+  const user = {
+    brandId: 'brand-active',
+    organizationId: 'org-1',
+  } as unknown as User;
+
+  let reads: TrendRead[];
+  let responses: Record<string, unknown>;
+
+  const read =
+    (method: string) =>
+    async (...args: unknown[]): Promise<unknown> => {
+      reads.push([method, ...args]);
+      return responses[method] ?? [];
+    };
+
   const trendsService = {
-    getTrendingHashtags: vi.fn(),
-    getTrendingSounds: vi.fn(),
-    getTrendTimeline: vi.fn(),
-    getTurnoverStats: vi.fn(),
-    getViralLeaderboard: vi.fn(),
-    getViralVideos: vi.fn(),
-    getBrandViralVideos: vi.fn(),
-    getBrandTrendingHashtags: vi.fn(),
-    getBrandTrendingSounds: vi.fn(),
+    getBrandTrendingHashtags: read('getBrandTrendingHashtags'),
+    getBrandTrendingSounds: read('getBrandTrendingSounds'),
+    getBrandViralVideos: read('getBrandViralVideos'),
+    getTrendingHashtags: read('getTrendingHashtags'),
+    getTrendingSounds: read('getTrendingSounds'),
+    getTrendTimeline: read('getTrendTimeline'),
+    getTurnoverStats: read('getTurnoverStats'),
+    getViralLeaderboard: read('getViralLeaderboard'),
+    getViralVideos: read('getViralVideos'),
   };
   const analyticsController = new TrendsAnalyticsController(
-    trendsService as never,
+    trendsService as unknown as TrendsService,
   );
 
-  afterEach(() => {
-    vi.clearAllMocks();
+  beforeEach(() => {
+    reads = [];
+    responses = {};
   });
 
   it.each([
@@ -85,25 +105,24 @@ describe('Trends split controllers', () => {
   });
 
   it('preserves viral-video summary behavior', async () => {
-    trendsService.getBrandViralVideos.mockResolvedValue([
+    responses.getBrandViralVideos = [
       { platform: 'tiktok', viralScore: 81 },
       { platform: 'youtube', viralScore: Number.NaN },
-    ]);
+    ];
 
     const result = await analyticsController.getViralVideos(
-      { limit: 12, timeframe: Timeframe.H24, brandId: 'brand-active' },
-      { organizationId: 'org-1', brandId: 'brand-active' } as never,
+      { brandId: 'brand-active', limit: 12, timeframe: Timeframe.H24 },
+      user,
     );
 
-    expect(trendsService.getBrandViralVideos).toHaveBeenCalledWith(
-      'org-1',
-      'brand-active',
-      {
-        limit: 12,
-        platform: undefined,
-        timeframe: Timeframe.H24,
-      },
-    );
+    expect(reads).toEqual([
+      [
+        'getBrandViralVideos',
+        'org-1',
+        'brand-active',
+        { limit: 12, platform: undefined, timeframe: Timeframe.H24 },
+      ],
+    ]);
     expect(result.summary).toEqual({
       avgViralScore: 41,
       platforms: ['tiktok', 'youtube'],
@@ -115,62 +134,58 @@ describe('Trends split controllers', () => {
     await expect(
       analyticsController.getViralVideos(
         { brandId: 'brand-sibling', relevance: 'brand' },
-        { organizationId: 'org-1', brandId: 'brand-active' } as never,
+        user,
       ),
     ).rejects.toThrow('Select an authorized brand');
-    expect(trendsService.getBrandViralVideos).not.toHaveBeenCalled();
+    expect(reads).toEqual([]);
   });
 
   it('scopes hashtags and sounds to the selected authorized brand by default', async () => {
-    trendsService.getBrandTrendingHashtags.mockResolvedValue([]);
-    trendsService.getBrandTrendingSounds.mockResolvedValue([]);
-    const user = { organizationId: 'org-1', brandId: 'brand-active' } as never;
-    const query = { timeframe: Timeframe.H24, limit: 12 } satisfies Parameters<
+    const query = { limit: 12, timeframe: Timeframe.H24 } satisfies Parameters<
       TrendsAnalyticsController['getTrendingHashtags']
     >[0];
+
     await analyticsController.getTrendingHashtags(query, user);
     await analyticsController.getTrendingSounds(query, user);
-    for (const read of [
-      trendsService.getBrandTrendingHashtags,
-      trendsService.getBrandTrendingSounds,
-    ]) {
-      expect(read).toHaveBeenCalledWith('org-1', 'brand-active', {
-        timeframe: Timeframe.H24,
-        limit: 12,
-        platform: undefined,
-      });
-    }
-    for (const read of [
-      analyticsController.getTrendingHashtags.bind(analyticsController),
-      analyticsController.getTrendingSounds.bind(analyticsController),
-    ]) {
-      await expect(
-        read({ ...query, brandId: 'sibling' }, user),
-      ).rejects.toThrow('Select an authorized brand');
-    }
-    expect(trendsService.getTrendingHashtags).not.toHaveBeenCalled();
-    expect(trendsService.getTrendingSounds).not.toHaveBeenCalled();
+
+    const scope = { limit: 12, platform: undefined, timeframe: Timeframe.H24 };
+    expect(reads).toEqual([
+      ['getBrandTrendingHashtags', 'org-1', 'brand-active', scope],
+      ['getBrandTrendingSounds', 'org-1', 'brand-active', scope],
+    ]);
   });
 
+  it.each([
+    ['hashtags', 'getTrendingHashtags'],
+    ['sounds', 'getTrendingSounds'],
+  ] as const)(
+    'refuses %s for a sibling brand without reading anything',
+    async (_kind, method) => {
+      await expect(
+        analyticsController[method](
+          { brandId: 'sibling', limit: 12, timeframe: Timeframe.H24 },
+          user,
+        ),
+      ).rejects.toThrow('Select an authorized brand');
+      expect(reads).toEqual([]);
+    },
+  );
+
   it('reads the global hashtag and sound market only when explicitly selected', async () => {
-    trendsService.getTrendingHashtags.mockResolvedValue([]);
-    trendsService.getTrendingSounds.mockResolvedValue([]);
-    const user = { organizationId: 'org-1', brandId: 'brand-active' } as never;
-    const query = { timeframe: Timeframe.D7, relevance: 'market' } as const;
+    const query = { relevance: 'market', timeframe: Timeframe.D7 } as const;
+
     await analyticsController.getTrendingHashtags(query, user);
     await analyticsController.getTrendingSounds(query, user);
-    for (const read of [
-      trendsService.getTrendingHashtags,
-      trendsService.getTrendingSounds,
-    ]) {
-      expect(read).toHaveBeenCalledWith({
-        timeframe: Timeframe.D7,
-        limit: undefined,
-        platform: undefined,
-      });
-    }
-    expect(trendsService.getBrandTrendingHashtags).not.toHaveBeenCalled();
-    expect(trendsService.getBrandTrendingSounds).not.toHaveBeenCalled();
+
+    const market = {
+      limit: undefined,
+      platform: undefined,
+      timeframe: Timeframe.D7,
+    };
+    expect(reads).toEqual([
+      ['getTrendingHashtags', market],
+      ['getTrendingSounds', market],
+    ]);
   });
 
   it('preserves turnover aggregation and supported-day parsing', async () => {
@@ -193,13 +208,17 @@ describe('Trends split controllers', () => {
       },
     ];
     const timeline = [{ alive: 10, appeared: 15, date: '2026-07-27', died: 5 }];
-    trendsService.getTurnoverStats.mockResolvedValue(byPlatform);
-    trendsService.getTrendTimeline.mockResolvedValue(timeline);
+    responses.getTurnoverStats = byPlatform;
+    responses.getTrendTimeline = timeline;
 
     const result = await analyticsController.getTurnoverStats('7');
 
-    expect(trendsService.getTurnoverStats).toHaveBeenCalledWith(7);
-    expect(trendsService.getTrendTimeline).toHaveBeenCalledWith(7);
+    expect(reads).toEqual(
+      expect.arrayContaining([
+        ['getTurnoverStats', 7],
+        ['getTrendTimeline', 7],
+      ]),
+    );
     expect(result).toEqual({
       byPlatform,
       days: 7,
@@ -215,10 +234,8 @@ describe('Trends split controllers', () => {
   });
 
   it('defaults unsupported turnover windows to 30 days', async () => {
-    trendsService.getTrendTimeline.mockResolvedValue([]);
-
     await analyticsController.getTurnoverTimeline('14');
 
-    expect(trendsService.getTrendTimeline).toHaveBeenCalledWith(30);
+    expect(reads).toEqual([['getTrendTimeline', 30]]);
   });
 });
