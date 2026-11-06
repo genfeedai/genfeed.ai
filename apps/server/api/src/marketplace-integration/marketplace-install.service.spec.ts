@@ -1,66 +1,120 @@
+import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import type { SkillsService } from '@api/collections/skills/services/skills.service';
+import type { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
 import { ListingType, PromptCategory } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+interface ListingDownload {
+  downloadData: Record<string, unknown>;
+  title: string;
+  type: string;
+}
+
+interface Workspace {
+  prompts: Array<Record<string, unknown> & { id: string }>;
+  skills: Array<{ input: Record<string, unknown>; organizationId: string }>;
+  workflows: Array<{
+    input: Record<string, unknown>;
+    organizationId: string;
+    userId: string;
+  }>;
+}
 
 describe('MarketplaceInstallService', () => {
-  let service: MarketplaceInstallService;
-  let logger: {
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-  };
-  let apiClient: { getListingDownloadData: ReturnType<typeof vi.fn> };
-  let workflowsService: { createWorkflow: ReturnType<typeof vi.fn> };
-  let promptsService: { create: ReturnType<typeof vi.fn> };
-  let skillsService: { createSkill: ReturnType<typeof vi.fn> };
-
   const userId = 'user-1';
   const orgId = 'org-1';
   const listingId = 'listing-1';
 
+  let listings: Map<string, ListingDownload>;
+  let workspace: Workspace;
+  let errors: string[];
+  let service: MarketplaceInstallService;
+
+  function publish(listing: ListingDownload): void {
+    listings.set(listingId, listing);
+  }
+
   beforeEach(() => {
-    vi.clearAllMocks();
-    logger = { error: vi.fn(), log: vi.fn() };
-    apiClient = { getListingDownloadData: vi.fn() };
-    workflowsService = { createWorkflow: vi.fn() };
-    promptsService = { create: vi.fn() };
-    skillsService = { createSkill: vi.fn() };
+    listings = new Map();
+    workspace = { prompts: [], skills: [], workflows: [] };
+    errors = [];
 
     service = new MarketplaceInstallService(
-      logger as unknown as LoggerService,
-      apiClient as unknown as MarketplaceApiClient,
-      workflowsService as never,
-      promptsService as never,
-      skillsService as never,
+      {
+        error: (message: string) => {
+          errors.push(message);
+        },
+        log: () => undefined,
+      } as unknown as LoggerService,
+      {
+        getListingDownloadData: async (id: string) => listings.get(id) ?? null,
+      } as unknown as MarketplaceApiClient,
+      {
+        createWorkflow: async (
+          creatorId: string,
+          organizationId: string,
+          input: Record<string, unknown>,
+        ) => {
+          workspace.workflows.push({
+            input,
+            organizationId,
+            userId: creatorId,
+          });
+          return {
+            id: `wf-${workspace.workflows.length}`,
+            label: input.label,
+          };
+        },
+      } as unknown as WorkflowsService,
+      {
+        create: async (input: Record<string, unknown>) => {
+          const prompt = { ...input, id: `p-${workspace.prompts.length + 1}` };
+          workspace.prompts.push(prompt);
+          return prompt;
+        },
+      } as unknown as PromptsService,
+      {
+        createSkill: async (
+          organizationId: string,
+          input: Record<string, unknown>,
+        ) => {
+          workspace.skills.push({ input, organizationId });
+          return { id: `s-${workspace.skills.length}` };
+        },
+      } as unknown as SkillsService,
     );
   });
 
   it('throws NotFoundException when the listing download data is missing', async () => {
-    apiClient.getListingDownloadData.mockResolvedValue(null);
     await expect(
       service.installToWorkspace(listingId, userId, orgId),
     ).rejects.toBeInstanceOf(NotFoundException);
     // @HandleErrors logs before re-throwing
-    expect(logger.error).toHaveBeenCalled();
+    expect(errors).toHaveLength(1);
+    expect(workspace).toEqual({ prompts: [], skills: [], workflows: [] });
   });
 
   it('throws BadRequestException for an unsupported listing type', async () => {
-    apiClient.getListingDownloadData.mockResolvedValue({
+    publish({
       downloadData: {},
       title: 'Mystery',
       type: 'something-unsupported',
     });
+
     await expect(
       service.installToWorkspace(listingId, userId, orgId),
     ).rejects.toBeInstanceOf(BadRequestException);
+    expect(workspace).toEqual({ prompts: [], skills: [], workflows: [] });
   });
 
   describe('workflow install', () => {
     it('creates a workflow from the marketplace download data', async () => {
-      apiClient.getListingDownloadData.mockResolvedValue({
+      publish({
         downloadData: {
           edges: [{ id: 'e1' }],
           name: 'Imported Flow',
@@ -68,10 +122,6 @@ describe('MarketplaceInstallService', () => {
         },
         title: 'Flow Listing',
         type: ListingType.WORKFLOW,
-      });
-      workflowsService.createWorkflow.mockResolvedValue({
-        id: { toString: () => 'wf-1' },
-        label: 'Imported Flow',
       });
 
       const result = await service.installToWorkspace(listingId, userId, orgId);
@@ -81,38 +131,36 @@ describe('MarketplaceInstallService', () => {
         resourceType: 'workflow',
         title: 'Imported Flow',
       });
-      expect(workflowsService.createWorkflow).toHaveBeenCalledWith(
-        userId,
-        orgId,
-        expect.objectContaining({
-          edges: [{ id: 'e1' }],
-          label: 'Imported Flow',
-          metadata: expect.objectContaining({
-            createdFrom: 'marketplace',
-            sourceListingId: listingId,
-          }),
-          nodes: [{ id: 'n1' }],
-        }),
-      );
+      expect(workspace.workflows).toEqual([
+        {
+          input: {
+            edges: [{ id: 'e1' }],
+            label: 'Imported Flow',
+            metadata: {
+              createdFrom: 'marketplace',
+              sourceListingId: listingId,
+              sourceType: 'marketplace-listing',
+            },
+            nodes: [{ id: 'n1' }],
+            trigger: 'manual',
+          },
+          organizationId: orgId,
+          userId,
+        },
+      ]);
     });
 
     it('defaults missing nodes/edges/name and falls back to the listing title', async () => {
-      apiClient.getListingDownloadData.mockResolvedValue({
+      publish({
         downloadData: {},
         title: 'Fallback Title',
         type: ListingType.WORKFLOW,
-      });
-      workflowsService.createWorkflow.mockResolvedValue({
-        id: { toString: () => 'wf-2' },
-        label: '',
       });
 
       const result = await service.installToWorkspace(listingId, userId, orgId);
 
       expect(result.title).toBe('Fallback Title');
-      expect(workflowsService.createWorkflow).toHaveBeenCalledWith(
-        userId,
-        orgId,
+      expect(workspace.workflows[0]?.input).toEqual(
         expect.objectContaining({
           edges: [],
           label: 'Fallback Title',
@@ -123,71 +171,54 @@ describe('MarketplaceInstallService', () => {
   });
 
   describe('prompt / preset install', () => {
-    it('maps a known prompt category and creates a favorite prompt', async () => {
-      apiClient.getListingDownloadData.mockResolvedValue({
-        downloadData: {
-          category: 'video-generation',
-          template: 'Make a video',
-        },
-        title: 'Video Prompt',
-        type: ListingType.PROMPT,
-      });
-      promptsService.create.mockResolvedValue({
-        id: { toString: () => 'p-1' },
-      });
+    it.each([
+      ['video-generation', PromptCategory.PRESET_DESCRIPTION_VIDEO],
+      ['image-generation', PromptCategory.PRESET_DESCRIPTION_IMAGE],
+      ['music-generation', PromptCategory.PRESET_DESCRIPTION_MUSIC],
+      ['unknown', PromptCategory.PRESET_DESCRIPTION_IMAGE],
+    ])(
+      'stores a %s prompt as a favorite owned by the installing user',
+      async (category, expected) => {
+        publish({
+          downloadData: { category, template: 'Make something' },
+          title: 'A Prompt',
+          type: ListingType.PROMPT,
+        });
 
-      const result = await service.installToWorkspace(listingId, userId, orgId);
-
-      expect(result).toEqual({
-        resourceId: 'p-1',
-        resourceType: 'prompt',
-        title: 'Video Prompt',
-      });
-      expect(promptsService.create).toHaveBeenCalledWith({
-        category: PromptCategory.PRESET_DESCRIPTION_VIDEO,
-        isFavorite: true,
-        organizationId: orgId,
-        original: 'Make a video',
-        userId,
-      });
-    });
-
-    it('persists the installing user so the prompt stays listable and org-scoped', async () => {
-      apiClient.getListingDownloadData.mockResolvedValue({
-        downloadData: {
-          category: 'image-generation',
-          template: 'Make an image',
-        },
-        title: 'Image Prompt',
-        type: ListingType.PROMPT,
-      });
-      promptsService.create.mockResolvedValue({
-        id: { toString: () => 'p-3' },
-      });
-
-      await service.installToWorkspace(listingId, userId, orgId);
-
-      expect(promptsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          organizationId: orgId,
+        const result = await service.installToWorkspace(
+          listingId,
           userId,
-        }),
-      );
-    });
+          orgId,
+        );
 
-    it('falls back to the image category and title template for unknown categories', async () => {
-      apiClient.getListingDownloadData.mockResolvedValue({
+        expect(result).toEqual({
+          resourceId: 'p-1',
+          resourceType: 'prompt',
+          title: 'A Prompt',
+        });
+        expect(workspace.prompts).toEqual([
+          {
+            category: expected,
+            id: 'p-1',
+            isFavorite: true,
+            organizationId: orgId,
+            original: 'Make something',
+            userId,
+          },
+        ]);
+      },
+    );
+
+    it('uses the title as the template for a preset without one', async () => {
+      publish({
         downloadData: {},
         title: 'Preset Title',
         type: ListingType.PRESET,
       });
-      promptsService.create.mockResolvedValue({
-        id: { toString: () => 'p-2' },
-      });
 
       await service.installToWorkspace(listingId, userId, orgId);
 
-      expect(promptsService.create).toHaveBeenCalledWith(
+      expect(workspace.prompts[0]).toEqual(
         expect.objectContaining({
           category: PromptCategory.PRESET_DESCRIPTION_IMAGE,
           original: 'Preset Title',
@@ -198,7 +229,7 @@ describe('MarketplaceInstallService', () => {
 
   describe('skill install', () => {
     it('creates a skill using the provided slug and files', async () => {
-      apiClient.getListingDownloadData.mockResolvedValue({
+      publish({
         downloadData: {
           description: 'A skill',
           files: [{ content: 'x', path: 'a.md' }],
@@ -206,9 +237,6 @@ describe('MarketplaceInstallService', () => {
         },
         title: 'Skill Title',
         type: ListingType.SKILL,
-      });
-      skillsService.createSkill.mockResolvedValue({
-        id: { toString: () => 's-1' },
       });
 
       const result = await service.installToWorkspace(listingId, userId, orgId);
@@ -218,31 +246,31 @@ describe('MarketplaceInstallService', () => {
         resourceType: 'skill',
         title: 'Skill Title',
       });
-      expect(skillsService.createSkill).toHaveBeenCalledWith(
-        orgId,
-        expect.objectContaining({
-          slug: 'my-skill',
-          sourceListingId: listingId,
-          title: 'Skill Title',
-        }),
-      );
+      expect(workspace.skills).toEqual([
+        {
+          input: {
+            description: 'A skill',
+            files: [{ content: 'x', path: 'a.md' }],
+            slug: 'my-skill',
+            sourceListingId: listingId,
+            title: 'Skill Title',
+          },
+          organizationId: orgId,
+        },
+      ]);
     });
 
     it('derives a slug from the title when none is provided', async () => {
-      apiClient.getListingDownloadData.mockResolvedValue({
+      publish({
         downloadData: {},
         title: 'My Cool Skill',
         type: ListingType.SKILL,
       });
-      skillsService.createSkill.mockResolvedValue({
-        id: { toString: () => 's-2' },
-      });
 
       await service.installToWorkspace(listingId, userId, orgId);
 
-      expect(skillsService.createSkill).toHaveBeenCalledWith(
-        orgId,
-        expect.objectContaining({ slug: 'my-cool-skill' }),
+      expect(workspace.skills[0]?.input).toEqual(
+        expect.objectContaining({ files: [], slug: 'my-cool-skill' }),
       );
     });
   });

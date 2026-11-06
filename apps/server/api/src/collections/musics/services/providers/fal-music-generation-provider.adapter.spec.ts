@@ -1,11 +1,22 @@
 import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import type { MusicGenerationProviderRequest } from '@api/collections/musics/services/music-generation.types';
 import { FalMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/fal-music-generation-provider.adapter';
+import type { FalService } from '@api/services/integrations/fal/services/fal.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { BadRequestException } from '@nestjs/common';
 
+interface FalRun {
+  apiKey: string | undefined;
+  endpoint: string;
+  input: Record<string, unknown>;
+}
+
 describe('FalMusicGenerationProviderAdapter', () => {
+  let runs: FalRun[];
+  let falResponse: Record<string, unknown>;
+  let adapter: FalMusicGenerationProviderAdapter;
+
   const buildRequest = (
     overrides: Partial<MusicGenerationProviderRequest> = {},
   ): MusicGenerationProviderRequest => ({
@@ -23,12 +34,28 @@ describe('FalMusicGenerationProviderAdapter', () => {
     ...overrides,
   });
 
+  beforeEach(() => {
+    runs = [];
+    falResponse = { url: 'https://fal.example.com/a.mp3' };
+    adapter = new FalMusicGenerationProviderAdapter({
+      run: async (
+        endpoint: string,
+        input: Record<string, unknown>,
+        apiKey?: string,
+      ) => {
+        runs.push({ apiKey, endpoint, input });
+        return falResponse;
+      },
+    } as unknown as FalService);
+  });
+
   describe('supports', () => {
-    it('claims fal-hosted music models', () => {
-      const adapter = new FalMusicGenerationProviderAdapter({} as never);
-      expect(adapter.supports(MODEL_KEYS.FAL_ELEVENLABS_MUSIC)).toBe(true);
-      expect(adapter.supports(MODEL_KEYS.FAL_LYRIA3_PRO)).toBe(true);
-      expect(adapter.supports('meta/musicgen')).toBe(false);
+    it.each([
+      [MODEL_KEYS.FAL_ELEVENLABS_MUSIC, true],
+      [MODEL_KEYS.FAL_LYRIA3_PRO, true],
+      ['meta/musicgen', false],
+    ])('answers %s with %s', (model, expected) => {
+      expect(adapter.supports(model)).toBe(expected);
     });
   });
 
@@ -43,200 +70,102 @@ describe('FalMusicGenerationProviderAdapter', () => {
     ])(
       'rejects an endpoint of %s with a 400 before calling fal',
       async (_label, modelEndpoint) => {
-        const falService = { run: vi.fn() };
-        const adapter = new FalMusicGenerationProviderAdapter(
-          falService as never,
-        );
-
         await expect(
           adapter.generate(
             buildRequest({ modelEndpoint: modelEndpoint as unknown as string }),
           ),
         ).rejects.toBeInstanceOf(BadRequestException);
-        expect(falService.run).not.toHaveBeenCalled();
+        expect(runs).toEqual([]);
       },
     );
 
     it('still dispatches a valid endpoint with a different case', async () => {
-      const falService = {
-        run: vi
-          .fn()
-          .mockResolvedValue({ url: 'https://fal.example.com/a.mp3' }),
-      };
-      const adapter = new FalMusicGenerationProviderAdapter(
-        falService as never,
-      );
-
       await adapter.generate(
         buildRequest({ modelEndpoint: 'FAL/elevenlabs/music' }),
       );
 
-      expect(falService.run).toHaveBeenCalledWith(
-        'elevenlabs/music',
-        expect.objectContaining({ prompt: 'upbeat electronic music' }),
-        undefined,
-      );
+      expect(runs).toEqual([
+        expect.objectContaining({
+          apiKey: undefined,
+          endpoint: 'elevenlabs/music',
+          input: expect.objectContaining({
+            prompt: 'upbeat electronic music',
+          }),
+        }),
+      ]);
     });
   });
 
-  describe('generate — organization key', () => {
-    it("runs on the organization's own key when one is supplied", async () => {
-      const falService = {
-        run: vi
-          .fn()
-          .mockResolvedValue({ url: 'https://fal.example.com/a.mp3' }),
-      };
-      const adapter = new FalMusicGenerationProviderAdapter(
-        falService as never,
-      );
+  it("runs on the organization's own key when one is supplied", async () => {
+    await adapter.generate(buildRequest({ apiKeyOverride: 'byok-key' }));
 
-      await adapter.generate(buildRequest({ apiKeyOverride: 'byok-key' }));
-
-      expect(falService.run).toHaveBeenCalledWith(
-        MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
-        expect.any(Object),
-        'byok-key',
-      );
-    });
+    expect(runs).toEqual([
+      expect.objectContaining({
+        apiKey: 'byok-key',
+        endpoint: MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+      }),
+    ]);
   });
 
   describe('generate — Eleven Music', () => {
     it('builds music_length_ms from duration and returns the audio URL', async () => {
-      const falService = {
-        run: vi.fn().mockResolvedValue({
-          audio: { url: 'https://fal.example.com/track.mp3' },
-        }),
-      };
-      const adapter = new FalMusicGenerationProviderAdapter(
-        falService as never,
-      );
+      falResponse = { audio: { url: 'https://fal.example.com/track.mp3' } };
 
       const result = await adapter.generate(buildRequest({ duration: 30 }));
 
-      expect(falService.run).toHaveBeenCalledWith(
-        MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
-        expect.objectContaining({
-          force_instrumental: false,
-          music_length_ms: 30_000,
-          prompt: 'upbeat electronic music',
-        }),
-        undefined,
-      );
+      expect(runs).toEqual([
+        {
+          apiKey: undefined,
+          endpoint: MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+          input: expect.objectContaining({
+            force_instrumental: false,
+            music_length_ms: 30_000,
+            prompt: 'upbeat electronic music',
+          }),
+        },
+      ]);
       expect(result.outputUrl).toBe('https://fal.example.com/track.mp3');
       expect(result.externalId).toEqual(expect.any(String));
     });
 
     it('clamps duration below the model minimum (10s)', async () => {
-      const falService = {
-        run: vi
-          .fn()
-          .mockResolvedValue({ url: 'https://fal.example.com/a.mp3' }),
-      };
-      const adapter = new FalMusicGenerationProviderAdapter(
-        falService as never,
-      );
-
       await adapter.generate(buildRequest({ duration: 4 }));
 
-      expect(falService.run).toHaveBeenCalledWith(
-        MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
-        expect.objectContaining({ music_length_ms: 10_000 }),
-        undefined,
-      );
+      expect(runs[0]?.input.music_length_ms).toBe(10_000);
     });
 
-    it('passes through the instrumental flag from the DTO', async () => {
-      const falService = {
-        run: vi
-          .fn()
-          .mockResolvedValue({ url: 'https://fal.example.com/a.mp3' }),
-      };
-      const adapter = new FalMusicGenerationProviderAdapter(
-        falService as never,
-      );
-
+    it.each([
+      [
+        'passes through the instrumental flag',
+        { instrumental: true, text: 'music' },
+        { force_instrumental: true, prompt: 'upbeat electronic music' },
+      ],
+      [
+        'folds explicit lyrics into the prompt (no dedicated fal field)',
+        { lyrics: 'Verse one\nChorus', text: 'music' },
+        { prompt: expect.stringContaining('Verse one\nChorus') },
+      ],
+      [
+        'drops lyrics when instrumental is requested',
+        { instrumental: true, lyrics: 'Verse one', text: 'music' },
+        { prompt: 'upbeat electronic music' },
+      ],
+    ])('%s', async (_case, dto, expectedInput) => {
       await adapter.generate(
         buildRequest({
-          createMusicDto: Object.assign(new CreateMusicDto(), {
-            instrumental: true,
-            text: 'music',
-          }),
+          createMusicDto: Object.assign(new CreateMusicDto(), dto),
         }),
       );
 
-      expect(falService.run).toHaveBeenCalledWith(
-        MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
-        expect.objectContaining({ force_instrumental: true }),
-        undefined,
-      );
-    });
-
-    it('folds explicit lyrics into the prompt (no dedicated fal field)', async () => {
-      const falService = {
-        run: vi
-          .fn()
-          .mockResolvedValue({ url: 'https://fal.example.com/a.mp3' }),
-      };
-      const adapter = new FalMusicGenerationProviderAdapter(
-        falService as never,
-      );
-
-      await adapter.generate(
-        buildRequest({
-          createMusicDto: Object.assign(new CreateMusicDto(), {
-            lyrics: 'Verse one\nChorus',
-            text: 'music',
-          }),
-        }),
-      );
-
-      expect(falService.run).toHaveBeenCalledWith(
-        MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
-        expect.objectContaining({
-          prompt: expect.stringContaining('Verse one\nChorus'),
-        }),
-        undefined,
-      );
-    });
-
-    it('drops lyrics when instrumental is requested', async () => {
-      const falService = {
-        run: vi
-          .fn()
-          .mockResolvedValue({ url: 'https://fal.example.com/a.mp3' }),
-      };
-      const adapter = new FalMusicGenerationProviderAdapter(
-        falService as never,
-      );
-
-      await adapter.generate(
-        buildRequest({
-          createMusicDto: Object.assign(new CreateMusicDto(), {
-            instrumental: true,
-            lyrics: 'Verse one',
-            text: 'music',
-          }),
-        }),
-      );
-
-      expect(falService.run).toHaveBeenCalledWith(
-        MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
-        expect.objectContaining({ prompt: 'upbeat electronic music' }),
-        undefined,
-      );
+      expect(runs[0]?.input).toEqual(expect.objectContaining(expectedInput));
     });
   });
 
   describe('generate — Lyria 3 Pro', () => {
     it('sends only prompt — Lyria has no duration/seed/instrumental input fields', async () => {
-      const falService = {
-        run: vi.fn().mockResolvedValue({
-          audio_file: { url: 'https://fal.example.com/lyria.mp3' },
-        }),
+      falResponse = {
+        audio_file: { url: 'https://fal.example.com/lyria.mp3' },
       };
-      const adapter = new FalMusicGenerationProviderAdapter(
-        falService as never,
-      );
 
       const result = await adapter.generate(
         buildRequest({
@@ -247,26 +176,17 @@ describe('FalMusicGenerationProviderAdapter', () => {
         }),
       );
 
-      expect(falService.run).toHaveBeenCalledWith(
-        MODEL_KEYS.FAL_LYRIA3_PRO,
+      expect(runs).toEqual([
         {
-          prompt: 'upbeat electronic music',
+          apiKey: undefined,
+          endpoint: MODEL_KEYS.FAL_LYRIA3_PRO,
+          input: { prompt: 'upbeat electronic music' },
         },
-        undefined,
-      );
+      ]);
       expect(result.outputUrl).toBe('https://fal.example.com/lyria.mp3');
     });
 
     it('folds an instrumental hint into the prompt text instead of sending an unsupported field', async () => {
-      const falService = {
-        run: vi
-          .fn()
-          .mockResolvedValue({ url: 'https://fal.example.com/lyria.mp3' }),
-      };
-      const adapter = new FalMusicGenerationProviderAdapter(
-        falService as never,
-      );
-
       await adapter.generate(
         buildRequest({
           createMusicDto: Object.assign(new CreateMusicDto(), {
@@ -279,26 +199,17 @@ describe('FalMusicGenerationProviderAdapter', () => {
         }),
       );
 
-      expect(falService.run).toHaveBeenCalledWith(
-        MODEL_KEYS.FAL_LYRIA3_PRO,
-        {
-          prompt: 'ambient soundscape (instrumental, no vocals or lyrics)',
-        },
-        undefined,
-      );
+      expect(runs[0]?.input).toEqual({
+        prompt: 'ambient soundscape (instrumental, no vocals or lyrics)',
+      });
     });
   });
 
-  describe('generate — failures', () => {
-    it('throws when fal returns no audio URL', async () => {
-      const falService = { run: vi.fn().mockResolvedValue({}) };
-      const adapter = new FalMusicGenerationProviderAdapter(
-        falService as never,
-      );
+  it('throws when fal returns no audio URL', async () => {
+    falResponse = {};
 
-      await expect(adapter.generate(buildRequest())).rejects.toThrow(
-        /returned no audio/,
-      );
-    });
+    await expect(adapter.generate(buildRequest())).rejects.toThrow(
+      /returned no audio/,
+    );
   });
 });
