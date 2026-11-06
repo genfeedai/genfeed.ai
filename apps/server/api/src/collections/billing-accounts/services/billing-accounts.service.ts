@@ -770,10 +770,17 @@ export class BillingAccountsService {
                   },
                 }),
             );
-            await tx.creditBalance.update({
-              data: { organizationId: remaining?.organizationId ?? null },
-              where: scopedWhere(input.organizationId, { id: wallet.id }),
-            });
+            // Handing the wallet to the sibling writes the sibling's
+            // organizationId, which the CLOUD guard rejects under the
+            // detached organization's tenant; OWNER role proven above.
+            await crossOrgUnsafe(
+              async () =>
+                // tenant-scope-ignore: hands the shared wallet to a sibling org on the same billing account
+                await tx.creditBalance.update({
+                  data: { organizationId: remaining?.organizationId ?? null },
+                  where: scopedWhere(input.organizationId, { id: wallet.id }),
+                }),
+            );
           }
 
           await tx.creditBalance.create({
