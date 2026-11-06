@@ -1,282 +1,227 @@
+import { runWithWorkflowAccounting } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ActivitySource } from '@genfeedai/contracts';
 import type { QueuedCreditChargeData } from '@genfeedai/contracts/queue';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
-import { Queue } from 'bullmq';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Queue } from 'bullmq';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+interface StoredJob {
+  attemptsMade: number;
+  data: QueuedCreditChargeData;
+  id: string;
+  name: string;
+  opts: Record<string, unknown>;
+  state: 'waiting' | 'failed';
+}
+
+const charge = (
+  fields: Partial<QueuedCreditChargeData> = {},
+): QueuedCreditChargeData => ({
+  amount: 100,
+  description: 'Test deduction',
+  idempotencyKey: 'charge-1',
+  organizationId: 'org-123',
+  source: ActivitySource.VIDEO_GENERATION,
+  type: 'deduct-credits',
+  userId: 'user-456',
+  ...fields,
+});
+
+const accepted = {
+  acceptedGeneration: { externalId: 'provider-id', ingredientId: 'asset' },
+};
 
 describe('CreditDeductionQueueService', () => {
+  let jobs: StoredJob[];
+  let isRedisDown: boolean;
   let service: CreditDeductionQueueService;
-  let queue: Queue;
-  let logger: LoggerService;
+
+  const job = (id: string) => jobs.find((stored) => stored.id === id);
 
   beforeEach(() => {
-    vi.useFakeTimers();
+    jobs = [];
+    isRedisDown = false;
 
-    queue = {
-      add: vi.fn(),
-      getJob: vi.fn().mockResolvedValue(undefined),
+    // The credit-deduction queue held in memory. BullMQ keeps one job per id.
+    const queue = {
+      add: async (
+        name: string,
+        data: QueuedCreditChargeData,
+        opts: Record<string, unknown>,
+      ) => {
+        if (isRedisDown) throw new Error('Redis connection lost');
+        const stored: StoredJob = {
+          attemptsMade: 0,
+          data,
+          id: String(opts.jobId),
+          name,
+          opts,
+          state: 'waiting',
+        };
+        jobs.push(stored);
+        return stored;
+      },
+      getJob: async (id: string) => {
+        const stored = job(id);
+        return (
+          stored && {
+            getState: async () => stored.state,
+            retry: async (
+              _state: string,
+              { resetAttemptsMade }: { resetAttemptsMade: boolean },
+            ) => {
+              stored.state = 'waiting';
+              stored.attemptsMade = resetAttemptsMade ? 0 : stored.attemptsMade;
+            },
+          }
+        );
+      },
     } as unknown as Queue;
 
-    logger = {
-      error: vi.fn(),
-      log: vi.fn(),
-    } as unknown as LoggerService;
-
-    service = new CreditDeductionQueueService(queue, logger);
+    service = new CreditDeductionQueueService(queue, {
+      error: () => undefined,
+      log: () => undefined,
+    } as unknown as LoggerService);
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
+  it.each([
+    ['queueDeduction', 'deduct-credits', 'credit-deduct-org-123-charge-1'],
+    ['queueByokUsage', 'record-byok-usage', 'byok-usage-org-123-charge-1'],
+  ] as const)(
+    '%s queues the charge under an id derived from its idempotency key',
+    async (method, name, jobId) => {
+      const data = charge({ type: name });
 
-  it.each(['deduct-credits', 'record-byok-usage'] as const)(
-    'retains accepted %s jobs with the seven day retry window',
-    async (type) => {
-      const data: QueuedCreditChargeData = {
-        type,
-        amount: 5,
-        description: 'Interpolation',
-        organizationId: 'org',
-        source: ActivitySource.VIDEO_GENERATION,
-        idempotencyKey: 'interpolation-asset',
-        acceptedGeneration: {
-          ingredientId: 'asset',
-          externalId: 'provider-id',
+      await service[method](data);
+
+      expect(jobs).toEqual([
+        {
+          attemptsMade: 0,
+          data,
+          id: jobId,
+          name,
+          opts: { jobId },
+          state: 'waiting',
         },
-      };
-      if (type === 'deduct-credits') await service.queueDeduction(data);
-      else await service.queueByokUsage(data);
-      expect(queue.add).toHaveBeenCalledWith(
-        type,
-        data,
-        expect.objectContaining({
-          attempts: 20_160,
-          backoff: { delay: 30_000, type: 'fixed' },
-          removeOnFail: false,
-        }),
+      ]);
+    },
+  );
+
+  it.each([
+    ['queueDeduction', 'deduct-credits'],
+    ['queueByokUsage', 'record-byok-usage'],
+  ] as const)(
+    '%s retains accepted generation charges with the seven day retry window',
+    async (method, name) => {
+      await service[method](charge({ ...accepted, type: name }));
+
+      expect(jobs[0]?.opts).toMatchObject({
+        attempts: 20_160,
+        backoff: { delay: 30_000, type: 'fixed' },
+        removeOnFail: false,
+      });
+    },
+  );
+
+  it.each([
+    [
+      'fleet-voice-clone-job-1',
+      'credit-deduct-org-123-fleet-voice-clone-job-1',
+    ],
+    [
+      'generation:composer-generation-execution-1',
+      'credit-deduct-org-123-generation-composer-generation-execution-1',
+    ],
+  ])(
+    'keeps the job id deterministic and BullMQ-safe for %s',
+    async (idempotencyKey, jobId) => {
+      await service.queueDeduction(charge({ idempotencyKey }));
+
+      expect(jobs.map(({ id }) => id)).toEqual([jobId]);
+    },
+  );
+
+  it('gives two charges for one org in the same millisecond distinct jobs', async () => {
+    await service.queueDeduction(charge({ idempotencyKey: 'charge-a' }));
+    await service.queueDeduction(charge({ idempotencyKey: 'charge-b' }));
+
+    expect(jobs.map(({ id }) => id)).toEqual([
+      'credit-deduct-org-123-charge-a',
+      'credit-deduct-org-123-charge-b',
+    ]);
+  });
+
+  it('queues a replayed charge only once', async () => {
+    await service.queueDeduction(charge());
+    await service.queueDeduction(charge({ amount: 999 }));
+
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]?.data.amount).toBe(100);
+  });
+
+  it('revives a failed idempotent settlement when completion is reconciled again', async () => {
+    await service.queueDeduction(
+      charge({ idempotencyKey: 'media-generation-settle:hold' }),
+    );
+    Object.assign(jobs[0] as StoredJob, { attemptsMade: 7, state: 'failed' });
+
+    await service.queueDeduction(
+      charge({ idempotencyKey: 'media-generation-settle:hold' }),
+    );
+
+    expect(jobs).toEqual([
+      expect.objectContaining({
+        attemptsMade: 0,
+        id: 'credit-deduct-org-123-media-generation-settle-hold',
+        state: 'waiting',
+      }),
+    ]);
+  });
+
+  it.each(['queueDeduction', 'queueByokUsage'] as const)(
+    'refuses %s without an idempotency key instead of deriving a time based job id',
+    async (method) => {
+      const { idempotencyKey: _key, ...keyless } = charge();
+
+      // @ts-expect-error The key is required by the type; this proves the runtime guard too.
+      await expect(service[method](keyless)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(jobs).toEqual([]);
+    },
+  );
+
+  it.each(['queueDeduction', 'queueByokUsage'] as const)(
+    '%s surfaces a queue outage to the caller',
+    async (method) => {
+      isRedisDown = true;
+
+      await expect(service[method](charge())).rejects.toThrow(
+        'Redis connection lost',
       );
     },
   );
 
-  it('revives a failed idempotent settlement when completion is reconciled again', async () => {
-    const failed = {
-      getState: vi.fn().mockResolvedValue('failed'),
-      retry: vi.fn().mockResolvedValue(undefined),
-    };
-    vi.mocked(queue.getJob).mockResolvedValue(failed as never);
-    await service.queueDeduction({
-      amount: 4,
-      description: 'Completed generation',
-      organizationId: 'org',
-      source: ActivitySource.VIDEO_GENERATION,
-      type: 'deduct-credits',
-      reservationId: 'hold',
-      idempotencyKey: 'media-generation-settle:hold',
-    });
-    expect(failed.retry).toHaveBeenCalledWith('failed', {
-      resetAttemptsMade: true,
-    });
-    expect(queue.add).not.toHaveBeenCalled();
-  });
-
-  describe('instantiation', () => {
-    it('should be defined', () => {
-      expect(service).toBeDefined();
-    });
-  });
-
-  describe('queueDeduction', () => {
-    it('should queue credit deduction job successfully', async () => {
-      const jobData: QueuedCreditChargeData = {
-        amount: 100,
-        description: 'Test deduction',
-        idempotencyKey: 'charge-1',
-        organizationId: 'org-123',
-        source: ActivitySource.VIDEO_GENERATION,
-        type: 'deduct-credits',
-        userId: 'user-456',
+  it.each([
+    ['the same organization', 'org-123', true],
+    ['another organization', 'org-other', false],
+  ])(
+    'attributes the charge to the running workflow of %s',
+    async (_case, organizationId, isAttributed) => {
+      const scope = {
+        organizationId,
+        workflowExecutionId: 'execution-1',
+        workflowNodeId: 'node-1',
+        workflowOperationId: 'operation-1',
       };
 
-      await service.queueDeduction(jobData);
-
-      expect(queue.add).toHaveBeenCalledWith(
-        'deduct-credits',
-        jobData,
-        expect.objectContaining({ jobId: 'credit-deduct-org-123-charge-1' }),
-      );
-      expect(logger.log).toHaveBeenCalled();
-    });
-
-    it('should handle queue errors gracefully', async () => {
-      const jobData: QueuedCreditChargeData = {
-        amount: 100,
-        description: 'Test deduction',
-        idempotencyKey: 'charge-1',
-        organizationId: 'org-123',
-        source: ActivitySource.VIDEO_GENERATION,
-        type: 'deduct-credits',
-        userId: 'user-456',
-      };
-
-      vi.mocked(queue.add).mockRejectedValue(new Error('Queue full'));
-
-      await expect(service.queueDeduction(jobData)).rejects.toThrow(
-        'Queue full',
-      );
-    });
-
-    it('gives two charges for one org in the same millisecond distinct job ids', async () => {
-      vi.setSystemTime(new Date('2026-10-03T00:00:00.000Z'));
-      const base = {
-        amount: 100,
-        description: 'Test',
-        organizationId: 'org-123',
-        source: ActivitySource.VIDEO_GENERATION,
-        type: 'deduct-credits',
-        userId: 'user-456',
-      } as const;
-
-      await service.queueDeduction({ ...base, idempotencyKey: 'charge-a' });
-      await service.queueDeduction({ ...base, idempotencyKey: 'charge-b' });
-
-      const jobIds = vi
-        .mocked(queue.add)
-        .mock.calls.map((call) => call[2]?.jobId);
-      expect(jobIds).toEqual([
-        'credit-deduct-org-123-charge-a',
-        'credit-deduct-org-123-charge-b',
-      ]);
-      expect(jobIds.join()).not.toContain(String(Date.now()));
-    });
-
-    it.each(['queueDeduction', 'queueByokUsage'] as const)(
-      'refuses %s without an idempotency key instead of deriving a time based job id',
-      async (method) => {
-        const keyless = {
-          amount: 100,
-          description: 'Test',
-          organizationId: 'org-123',
-          source: ActivitySource.VIDEO_GENERATION,
-          type: 'deduct-credits',
-          userId: 'user-456',
-        } as const;
-
-        // @ts-expect-error The key is required by the type; this proves the runtime guard too.
-        await expect(service[method](keyless)).rejects.toThrow(
-          BadRequestException,
-        );
-        expect(queue.add).not.toHaveBeenCalled();
-      },
-    );
-
-    it('should use a deterministic job ID when an idempotency key is supplied', async () => {
-      const jobData: QueuedCreditChargeData = {
-        amount: 18,
-        description: 'Fleet voice clone compute',
-        idempotencyKey: 'fleet-voice-clone-job-1',
-        organizationId: 'org-123',
-        source: ActivitySource.VIDEO_GENERATION,
-        type: 'deduct-credits',
-        userId: 'user-456',
-      };
-
-      await service.queueDeduction(jobData);
-
-      expect(queue.add).toHaveBeenCalledWith(
-        'deduct-credits',
-        jobData,
-        expect.objectContaining({
-          jobId: 'credit-deduct-org-123-fleet-voice-clone-job-1',
-        }),
-      );
-    });
-
-    it('strips colons from idempotency keys so BullMQ accepts the job id', async () => {
-      const jobData: QueuedCreditChargeData = {
-        amount: 2,
-        description: 'Composer image generation',
-        idempotencyKey: 'generation:composer-generation-execution-1',
-        organizationId: 'org-123',
-        source: ActivitySource.IMAGE_GENERATION,
-        type: 'deduct-credits',
-        userId: 'user-456',
-      };
-
-      await service.queueDeduction(jobData);
-
-      expect(queue.add).toHaveBeenCalledWith(
-        'deduct-credits',
-        jobData,
-        expect.objectContaining({
-          jobId:
-            'credit-deduct-org-123-generation-composer-generation-execution-1',
-        }),
-      );
-    });
-
-    it('should queue BYOK usage job successfully', async () => {
-      const jobData: QueuedCreditChargeData = {
-        amount: 50,
-        description: 'BYOK usage',
-        idempotencyKey: 'byok-1',
-        organizationId: 'org-789',
-        source: ActivitySource.SCRIPT,
-        type: 'record-byok-usage',
-      };
-
-      vi.mocked(queue.add).mockResolvedValue(undefined as never);
-
-      await service.queueByokUsage(jobData);
-
-      expect(queue.add).toHaveBeenCalledWith(
-        'record-byok-usage',
-        jobData,
-        expect.objectContaining({ jobId: 'byok-usage-org-789-byok-1' }),
-      );
-      expect(logger.log).toHaveBeenCalled();
-    });
-
-    it('should handle BYOK queue errors', async () => {
-      const jobData: QueuedCreditChargeData = {
-        amount: 50,
-        description: 'BYOK usage',
-        idempotencyKey: 'byok-1',
-        organizationId: 'org-789',
-        source: ActivitySource.SCRIPT,
-        type: 'record-byok-usage',
-      };
-
-      vi.mocked(queue.add).mockRejectedValue(
-        new Error('Redis connection lost'),
+      await runWithWorkflowAccounting(scope, () =>
+        service.queueDeduction(charge()),
       );
 
-      await expect(service.queueByokUsage(jobData)).rejects.toThrow(
-        'Redis connection lost',
-      );
-    });
-
-    it('uses a deterministic BYOK job ID when an idempotency key is supplied', async () => {
-      const jobData: QueuedCreditChargeData = {
-        amount: 7,
-        description: 'Bot media generation',
-        idempotencyKey: 'bot-media-image-1',
-        organizationId: 'org-789',
-        source: ActivitySource.BOT_GENERATION,
-        type: 'record-byok-usage',
-        userId: 'user-1',
-      };
-
-      await service.queueByokUsage(jobData);
-
-      expect(queue.add).toHaveBeenCalledWith(
-        'record-byok-usage',
-        jobData,
-        expect.objectContaining({
-          jobId: 'byok-usage-org-789-bot-media-image-1',
-        }),
-      );
-    });
-  });
+      expect('workflowAccounting' in (jobs[0]?.data ?? {})).toBe(isAttributed);
+    },
+  );
 });
