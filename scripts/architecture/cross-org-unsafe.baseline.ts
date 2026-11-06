@@ -301,35 +301,35 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin content-learning account inventory and health.
     {
       file: 'apps/server/api/src/collections/content-learning/controllers/content-learning-admin.controller.ts',
-      line: 91,
+      line: 92,
     },
     // #8168: superadmin prompt slot outcome report reads the organizations
     // named in the query, one organizationId-scoped query per organization.
     {
       file: 'apps/server/api/src/collections/content-learning/controllers/content-learning-admin.controller.ts',
-      line: 185,
+      line: 186,
     },
     // #6120: platform emergency pause locates any organization's learning
     // account.
     {
       file: 'apps/server/api/src/collections/content-learning/services/learning-account.service.ts',
-      line: 956,
+      line: 957,
     },
     // #6120: superadmin dataset assembly across consenting organizations, each
     // fenced by learningOrgFence.
     {
       file: 'apps/server/api/src/collections/content-learning/services/learning-dataset.service.ts',
-      line: 229,
+      line: 230,
     },
     // #6120: invalidation walks cross-tenant derived learning lineage, fenced.
     {
       file: 'apps/server/api/src/collections/content-learning/services/learning-dependency.service.ts',
-      line: 181,
+      line: 182,
     },
     // #6120: read-only pin lookups across contributing organizations.
     {
       file: 'apps/server/api/src/collections/content-learning/services/learning-dependency.service.ts',
-      line: 756,
+      line: 757,
     },
     // #6120: the actor's own userId-scoped memberships in other organizations
     // (grantable organizations).
