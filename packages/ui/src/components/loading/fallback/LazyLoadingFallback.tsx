@@ -1,6 +1,7 @@
 import { ComponentSize, IngredientFormat } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { LazyLoadingFallbackProps } from '@genfeedai/props/ui/feedback/lazy-loading-fallback.props';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Loading from '@ui/loading/default/Loading';
 import { Skeleton } from '@ui/primitives/skeleton';
@@ -23,12 +24,12 @@ export default function LazyLoadingFallback({
   if (variant === 'grid') {
     return (
       <div className="container min-h-[calc(100vh-334px)] h-auto p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <CollectionGrid maxColumns={3}>
           {Array.from({ length: 6 }).map((_, index) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: Fixed layout slots have positional identity and no item state.
             <SkeletonCard key={index} />
           ))}
-        </div>
+        </CollectionGrid>
       </div>
     );
   }

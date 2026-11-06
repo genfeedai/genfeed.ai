@@ -7,6 +7,8 @@ import {
 
 /** Card grid whose columns follow the collection's width, not the viewport. */
 export default function CollectionGrid({
+  as: Grid = 'div',
+  'aria-label': ariaLabel,
   maxColumns = 4,
   density = 'card',
   className,
@@ -15,7 +17,8 @@ export default function CollectionGrid({
 }: CollectionGridProps) {
   return (
     <div className="@container" data-testid={dataTestId}>
-      <div
+      <Grid
+        aria-label={ariaLabel}
         className={cn(
           'grid',
           COLLECTION_GRID_COLUMN_CLASSES[maxColumns],
@@ -24,7 +27,7 @@ export default function CollectionGrid({
         )}
       >
         {children}
-      </div>
+      </Grid>
     </div>
   );
 }

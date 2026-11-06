@@ -13,6 +13,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { useQueryClient } from '@tanstack/react-query';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
@@ -265,7 +266,7 @@ export default function SettingsIntegrationsPage() {
       ) : null}
 
       {isReady && !isLoading ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <CollectionGrid maxColumns={3}>
           {providerStatuses.map((providerStatus) => (
             <ByokProviderCard
               key={providerStatus.provider}
@@ -309,7 +310,7 @@ export default function SettingsIntegrationsPage() {
               onRemoveKey={() => handleRemoveKey(providerStatus.provider)}
             />
           ))}
-        </div>
+        </CollectionGrid>
       ) : null}
     </div>
   );

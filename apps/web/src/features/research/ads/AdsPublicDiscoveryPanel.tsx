@@ -12,6 +12,7 @@ import { publicAdYouTubeEmbedUrl } from '@genfeedai/integrations/ads';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdsResearchService } from '@services/ads/ads-research.service';
 import Card from '@ui/card/Card';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
@@ -312,7 +313,7 @@ export default function AdsPublicDiscoveryPanel({
                     {translate('fundedBy', { name: advertiser.fundingEntity })}
                   </p>
                 ) : null}
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <CollectionGrid density="tile">
                   {advertiser.samples.map((sample) => (
                     <div
                       key={sample.id}
@@ -429,7 +430,7 @@ export default function AdsPublicDiscoveryPanel({
                       ) : null}
                     </div>
                   ))}
-                </div>
+                </CollectionGrid>
               </div>
             ))}
           </div>
