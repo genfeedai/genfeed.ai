@@ -13,311 +13,324 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import type { RouterService } from '@api/services/router/router.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { MockSql } from '@api/shared/testing/prisma-mock';
 import type { LoggerService } from '@libs/logger/logger.service';
 
-type ContextRow = {
-  id: string;
-  organizationId: string;
-  isDeleted: boolean;
-  contextBaseId?: string;
-  data?: Record<string, unknown>;
-};
+type Row = Record<string, unknown> & { id: string };
+type Where = Record<string, unknown>;
+
+interface Tables {
+  contextBase: Row[];
+  contextEmbeddingJob: Row[];
+  contextEntry: Row[];
+}
 
 /**
- * Coverage for the `findOrThrow` adoption (DRY/slop audit §2.J) in the
- * contexts service. `findOne`, `update`, `remove`, and `removeEntry` route
- * their org-scoped "fetch or 404" through the shared helper; these lock in the
- * tenant scoping, soft-delete filtering, and the canonical JSON:API 404 shape
- * (the resource-only form, without an identifier).
+ * Prisma `where` over scalars, `AND`, `{ in }`, JSON `{ path, equals }` and
+ * `{ path, string_contains, mode: 'insensitive' }`, and the embedding job's
+ * `contextEntry: { is }` relation.
  */
-describe('ContextsService — findOrThrow tenant scoping', () => {
-  function storeDelegate(rows: ContextRow[]) {
-    const matches = (
-      where: Record<string, unknown>,
-      row: ContextRow,
-    ): boolean =>
-      (where.id === undefined || where.id === row.id) &&
-      (where.organizationId === undefined ||
-        where.organizationId === row.organizationId) &&
-      (where.contextBaseId === undefined ||
-        where.contextBaseId === row.contextBaseId) &&
-      (where.isDeleted === undefined || where.isDeleted === row.isDeleted);
-
-    return {
-      findFirst: vi.fn(({ where }: { where: Record<string, unknown> }) =>
-        Promise.resolve(rows.find((row) => matches(where, row)) ?? null),
-      ),
-      findUnique: vi.fn(({ where }: { where: { id: string } }) =>
-        Promise.resolve(rows.find((row) => row.id === where.id) ?? null),
-      ),
-      update: vi.fn(
-        ({ where, data }: { where: { id: string }; data: unknown }) =>
-          Promise.resolve({
-            ...rows.find((row) => row.id === where.id),
-            ...(data as Record<string, unknown>),
-          }),
-      ),
-      updateMany: vi.fn(() => Promise.resolve({ count: 1 })),
-    };
-  }
-
-  function buildService(options: {
-    contextBases?: ContextRow[];
-    contextEntries?: ContextRow[];
-  }) {
-    const contextBase = storeDelegate(options.contextBases ?? []);
-    const contextEntry = storeDelegate(options.contextEntries ?? []);
-
-    const tx = {
-      contextBase,
-      contextEntry,
-      contextEmbeddingJob: {
-        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-      },
-      $queryRaw: vi.fn().mockResolvedValue([]),
-      $executeRaw: vi.fn().mockResolvedValue(1),
-    };
-    const prisma = {
-      ...tx,
-      $transaction: vi.fn().mockImplementation(async (work) => work(tx)),
-    };
-    const service = new ContextsService(
-      prisma as unknown as PrismaService,
-      {
-        debug: vi.fn(),
-        error: vi.fn(),
-        log: vi.fn(),
-        warn: vi.fn(),
-      } as unknown as LoggerService,
-      new ContextEmbeddingProviderService(
-        {} as unknown as RouterService,
-        {} as unknown as OpenRouterService,
-      ),
-      {} as unknown as ContextEmbeddingWriteService,
-    );
-
-    return { contextBase, contextEntry, service };
-  }
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('findOne: authorized access returns the normalized context base', async () => {
-    const { service, contextBase } = buildService({
-      contextBases: [
-        {
-          data: { label: 'Voice' },
-          id: 'ctx-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-        },
-      ],
-    });
-
-    const result = await service.findOne('ctx-1', 'org-1');
-
-    expect(contextBase.findFirst).toHaveBeenCalledWith({
-      where: { id: 'ctx-1', isDeleted: false, organizationId: 'org-1' },
-    });
-    expect(result).toMatchObject({ id: 'ctx-1', organizationId: 'org-1' });
-  });
-
-  it('findOne: wrong-organization access 404s', async () => {
-    const { service } = buildService({
-      contextBases: [
-        {
-          id: 'ctx-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-        },
-      ],
-    });
-
-    await expect(service.findOne('ctx-1', 'org-2')).rejects.toThrow(
-      NotFoundException,
-    );
-  });
-
-  it('findOne: soft-deleted rows 404', async () => {
-    const { service } = buildService({
-      contextBases: [
-        {
-          id: 'ctx-1',
-          isDeleted: true,
-          organizationId: 'org-1',
-        },
-      ],
-    });
-
-    await expect(service.findOne('ctx-1', 'org-1')).rejects.toThrow(
-      NotFoundException,
-    );
-  });
-
-  it('findOne: preserves the canonical JSON:API 404 shape (no identifier form)', async () => {
-    const { service } = buildService({ contextBases: [] });
-
-    try {
-      await service.findOne('missing', 'org-1');
-      throw new Error('expected NotFoundException');
-    } catch (error) {
-      expect(error).toBeInstanceOf(NotFoundException);
-      const exception = error as NotFoundException;
-      expect(exception.getStatus()).toBe(404);
-      expect(exception.getResponse()).toEqual({
-        detail: 'Context base not found',
-        title: 'Resource Not Found',
-      });
+function matches(tables: Tables, row: Row, where: Where): boolean {
+  return Object.entries(where).every(([key, value]) => {
+    if (key === 'AND') {
+      return (value as Where[]).every((clause) => matches(tables, row, clause));
     }
+    if (key === 'contextEntry') {
+      const entry = tables.contextEntry.find(
+        (item) => item.id === row.contextEntryId,
+      );
+      return !!entry && matches(tables, entry, (value as { is: Where }).is);
+    }
+    if (value !== null && typeof value === 'object') {
+      const filter = value as Record<string, unknown>;
+      if ('in' in filter) return (filter.in as unknown[]).includes(row[key]);
+      if ('path' in filter) {
+        const field = (row[key] as Record<string, unknown> | undefined)?.[
+          (filter.path as string[])[0]
+        ];
+        if ('equals' in filter) return field === filter.equals;
+        return String(field ?? '')
+          .toLowerCase()
+          .includes(String(filter.string_contains).toLowerCase());
+      }
+    }
+    return row[key] === value;
+  });
+}
+
+/** Prisma `data` with scalar sets and `{ increment }`. */
+function apply(row: Row, data: Record<string, unknown>): void {
+  for (const [key, value] of Object.entries(data)) {
+    row[key] =
+      value !== null && typeof value === 'object' && 'increment' in value
+        ? ((row[key] as number | undefined) ?? 0) +
+          (value as { increment: number }).increment
+        : value;
+  }
+}
+
+/**
+ * In-memory context bases, entries and embedding jobs behind a transactional
+ * Prisma client. The entry-count raw update is applied to the base it names.
+ */
+function buildService(seed: Partial<Tables> = {}) {
+  const tables: Tables = {
+    contextBase: seed.contextBase ?? [],
+    contextEmbeddingJob: seed.contextEmbeddingJob ?? [],
+    contextEntry: seed.contextEntry ?? [],
+  };
+  const delegate = (rows: Row[]) => ({
+    count: async ({ where }: { where: Where }) =>
+      rows.filter((row) => matches(tables, row, where)).length,
+    findFirst: async ({ where }: { where: Where }) =>
+      rows.find((row) => matches(tables, row, where)) ?? null,
+    findMany: async ({
+      skip,
+      take,
+      where,
+    }: {
+      skip: number;
+      take: number;
+      where: Where;
+    }) =>
+      rows
+        .filter((row) => matches(tables, row, where))
+        .sort((a, b) => (b.createdAt as number) - (a.createdAt as number))
+        .slice(skip, skip + take),
+    update: async ({
+      data,
+      where,
+    }: {
+      data: Record<string, unknown>;
+      where: Where;
+    }) => {
+      const row = rows.find((item) => matches(tables, item, where));
+      if (!row) throw new Error('Record to update not found.');
+      apply(row, data);
+      return { ...row };
+    },
+    updateMany: async ({
+      data,
+      where,
+    }: {
+      data: Record<string, unknown>;
+      where: Where;
+    }) => {
+      const hit = rows.filter((row) => matches(tables, row, where));
+      for (const row of hit) apply(row, data);
+      return { count: hit.length };
+    },
+  });
+  const tx = {
+    $executeRaw: async (query: MockSql) => {
+      const [baseId, organizationId] = query.values;
+      const base = tables.contextBase.find(
+        (row) =>
+          row.id === baseId &&
+          row.organizationId === organizationId &&
+          row.isDeleted === false,
+      );
+      if (base && query.sql.includes('entryCount')) {
+        const data = base.data as Record<string, number>;
+        base.data = {
+          ...data,
+          entryCount: Math.max(0, (data.entryCount ?? 0) - 1),
+        };
+      }
+      return base ? 1 : 0;
+    },
+    $queryRaw: async () => [],
+    contextBase: delegate(tables.contextBase),
+    contextEmbeddingJob: delegate(tables.contextEmbeddingJob),
+    contextEntry: delegate(tables.contextEntry),
+  };
+  const prisma = {
+    ...tx,
+    $transaction: async (work: (client: typeof tx) => Promise<unknown>) =>
+      work(tx),
+  };
+  const silent = () => undefined;
+  const service = new ContextsService(
+    prisma as unknown as PrismaService,
+    {
+      debug: silent,
+      error: silent,
+      log: silent,
+      warn: silent,
+    } as unknown as LoggerService,
+    new ContextEmbeddingProviderService(
+      {} as unknown as RouterService,
+      {} as unknown as OpenRouterService,
+    ),
+    {} as unknown as ContextEmbeddingWriteService,
+  );
+  return { service, tables };
+}
+
+const base = (overrides: Partial<Row> = {}): Row => ({
+  createdAt: 1,
+  data: { label: 'Voice' },
+  id: 'ctx-1',
+  isDeleted: false,
+  organizationId: 'org-1',
+  ...overrides,
+});
+
+const entry = (overrides: Partial<Row> = {}): Row => ({
+  contextBaseId: 'ctx-1',
+  embeddingGeneration: 0,
+  id: 'entry-1',
+  isDeleted: false,
+  organizationId: 'org-1',
+  ...overrides,
+});
+
+const job = (overrides: Partial<Row> = {}): Row => ({
+  contextEntryId: 'entry-1',
+  id: 'job-1',
+  isDeleted: false,
+  leaseToken: 'lease',
+  organizationId: 'org-1',
+  status: 'PENDING',
+  ...overrides,
+});
+
+async function notFound(work: Promise<unknown>) {
+  const failure = await work.catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(NotFoundException);
+  return (failure as NotFoundException).getResponse();
+}
+
+describe('ContextsService — tenant-scoped fetch or 404', () => {
+  it('findOne returns the context base of the caller organization', async () => {
+    const { service } = buildService({ contextBase: [base()] });
+
+    await expect(service.findOne('ctx-1', 'org-1')).resolves.toMatchObject({
+      id: 'ctx-1',
+      organizationId: 'org-1',
+    });
   });
 
-  it('remove: authorized access soft-deletes the base and its entries', async () => {
-    const { service, contextBase, contextEntry } = buildService({
-      contextBases: [
-        {
-          id: 'ctx-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-        },
+  it.each([
+    ['in another organization', base(), 'org-2'],
+    ['soft-deleted', base({ isDeleted: true }), 'org-1'],
+  ])('findOne 404s for a base that is %s', async (_name, row, org) => {
+    const { service } = buildService({ contextBase: [row] });
+
+    await notFound(service.findOne('ctx-1', org));
+  });
+
+  it('findOne keeps the canonical JSON:API 404 shape (no identifier form)', async () => {
+    const { service } = buildService();
+
+    await expect(
+      notFound(service.findOne('missing', 'org-1')),
+    ).resolves.toEqual({
+      detail: 'Context base not found',
+      title: 'Resource Not Found',
+    });
+  });
+
+  it('remove soft-deletes the base and its live entries and cancels their pending embeddings', async () => {
+    const { service, tables } = buildService({
+      contextBase: [base()],
+      contextEmbeddingJob: [
+        job(),
+        job({ id: 'job-done', status: 'COMPLETED' }),
+      ],
+      contextEntry: [
+        entry(),
+        entry({ id: 'entry-other-base', contextBaseId: 'ctx-2' }),
       ],
     });
 
     await service.remove('ctx-1', 'org-1');
 
-    expect(contextBase.update).toHaveBeenCalledWith({
-      data: { isDeleted: true },
-      where: { id: 'ctx-1', isDeleted: false, organizationId: 'org-1' },
-    });
-    expect(contextEntry.updateMany).toHaveBeenCalledWith({
-      data: { isDeleted: true, embeddingGeneration: { increment: 1 } },
-      where: {
-        contextBaseId: 'ctx-1',
-        isDeleted: false,
-        organizationId: 'org-1',
-      },
-    });
+    expect(tables.contextBase[0].isDeleted).toBe(true);
+    expect(tables.contextEntry).toEqual([
+      expect.objectContaining({
+        embeddingGeneration: 1,
+        id: 'entry-1',
+        isDeleted: true,
+      }),
+      expect.objectContaining({ id: 'entry-other-base', isDeleted: false }),
+    ]);
+    expect(tables.contextEmbeddingJob).toEqual([
+      expect.objectContaining({
+        id: 'job-1',
+        leaseToken: null,
+        safeFailureCode: 'SOURCE_RETIRED',
+        status: 'CANCELLED',
+      }),
+      expect.objectContaining({ id: 'job-done', status: 'COMPLETED' }),
+    ]);
   });
 
-  it('remove: wrong-organization access 404s and never writes', async () => {
-    const { service, contextBase, contextEntry } = buildService({
-      contextBases: [
-        {
-          id: 'ctx-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-        },
-      ],
+  it('remove 404s for another organization and changes nothing', async () => {
+    const { service, tables } = buildService({
+      contextBase: [base()],
+      contextEntry: [entry()],
     });
 
-    await expect(service.remove('ctx-1', 'org-2')).rejects.toThrow(
-      NotFoundException,
-    );
-    expect(contextBase.update).not.toHaveBeenCalled();
-    expect(contextEntry.updateMany).not.toHaveBeenCalled();
+    await notFound(service.remove('ctx-1', 'org-2'));
+    expect(tables.contextBase[0].isDeleted).toBe(false);
+    expect(tables.contextEntry[0].isDeleted).toBe(false);
   });
 
-  it('removeEntry: authorized access soft-deletes the scoped entry', async () => {
-    const { service, contextEntry } = buildService({
-      contextBases: [
-        {
-          data: { entryCount: 5 },
-          id: 'ctx-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-        },
-      ],
-      contextEntries: [
-        {
-          contextBaseId: 'ctx-1',
-          id: 'entry-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-        },
-      ],
+  it('removeEntry soft-deletes the entry, cancels its embedding and decrements the count', async () => {
+    const { service, tables } = buildService({
+      contextBase: [base({ data: { entryCount: 5 } })],
+      contextEmbeddingJob: [job()],
+      contextEntry: [entry(), entry({ id: 'entry-2' })],
     });
 
     await service.removeEntry('ctx-1', 'entry-1', 'org-1');
 
-    expect(contextEntry.findFirst).toHaveBeenCalledWith({
-      where: {
-        contextBaseId: 'ctx-1',
+    expect(tables.contextEntry).toEqual([
+      expect.objectContaining({
+        embeddingGeneration: 1,
         id: 'entry-1',
-        isDeleted: false,
-        organizationId: 'org-1',
-      },
-    });
-    expect(contextEntry.update).toHaveBeenCalledWith({
-      data: { isDeleted: true, embeddingGeneration: { increment: 1 } },
-      where: { id: 'entry-1', isDeleted: false, organizationId: 'org-1' },
-    });
+        isDeleted: true,
+      }),
+      expect.objectContaining({ id: 'entry-2', isDeleted: false }),
+    ]);
+    expect(tables.contextEmbeddingJob[0].status).toBe('CANCELLED');
+    expect(tables.contextBase[0].data).toEqual({ entryCount: 4 });
   });
 
-  it('removeEntry: wrong-organization access 404s with the Entry resource', async () => {
-    const { service, contextEntry } = buildService({
-      contextEntries: [
-        {
-          contextBaseId: 'ctx-1',
-          id: 'entry-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-        },
-      ],
+  it('removeEntry 404s with the Entry resource for another organization and changes nothing', async () => {
+    const { service, tables } = buildService({
+      contextBase: [base({ data: { entryCount: 5 } })],
+      contextEntry: [entry()],
     });
 
-    try {
-      await service.removeEntry('ctx-1', 'entry-1', 'org-2');
-      throw new Error('expected NotFoundException');
-    } catch (error) {
-      expect(error).toBeInstanceOf(NotFoundException);
-      expect((error as NotFoundException).getResponse()).toEqual({
-        detail: 'Entry not found',
-        title: 'Resource Not Found',
-      });
-    }
-    expect(contextEntry.update).not.toHaveBeenCalled();
+    await expect(
+      notFound(service.removeEntry('ctx-1', 'entry-1', 'org-2')),
+    ).resolves.toEqual({
+      detail: 'Entry not found',
+      title: 'Resource Not Found',
+    });
+    expect(tables.contextEntry[0].isDeleted).toBe(false);
+    expect(tables.contextBase[0].data).toEqual({ entryCount: 5 });
   });
 });
 
-describe('ContextsService.findAll pagination', () => {
-  function buildService() {
-    const contextBase = {
-      count: vi.fn().mockResolvedValue(45),
-      findMany: vi.fn().mockResolvedValue([
-        { data: { label: 'B' }, id: 'ctx-2', isDeleted: false },
-        { data: { label: 'A' }, id: 'ctx-1', isDeleted: false },
-      ]),
-    };
-    const service = new ContextsService(
-      { contextBase } as unknown as PrismaService,
-      {
-        debug: vi.fn(),
-        error: vi.fn(),
-        log: vi.fn(),
-        warn: vi.fn(),
-      } as unknown as LoggerService,
-      new ContextEmbeddingProviderService(
-        {} as unknown as RouterService,
-        {} as unknown as OpenRouterService,
-      ),
-      {} as unknown as ContextEmbeddingWriteService,
-    );
-    return { contextBase, service };
-  }
+describe('ContextsService.findAll', () => {
+  const pageOfBases = Array.from({ length: 45 }, (_, index) =>
+    base({ createdAt: index, id: `ctx-${index}` }),
+  );
 
-  it('pages with skip/take and counts the same where clause', async () => {
-    const { contextBase, service } = buildService();
+  it('pages newest first and counts every matching base', async () => {
+    const { service } = buildService({
+      contextBase: [
+        ...pageOfBases,
+        base({ id: 'ctx-deleted', isDeleted: true }),
+        base({ id: 'ctx-other-org', organizationId: 'org-2' }),
+      ],
+    });
 
     const result = await service.findAll('org-1', {}, { limit: 20, page: 3 });
 
-    const where = { isDeleted: false, organizationId: 'org-1' };
-    expect(contextBase.findMany).toHaveBeenCalledWith({
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      skip: 40,
-      take: 20,
-      where,
-    });
-    expect(contextBase.count).toHaveBeenCalledWith({ where });
     expect(result).toMatchObject({
       hasNextPage: false,
       limit: 20,
@@ -325,13 +338,44 @@ describe('ContextsService.findAll pagination', () => {
       totalDocs: 45,
       totalPages: 3,
     });
-    expect(result.docs).toHaveLength(2);
+    expect(result.docs).toEqual([
+      expect.objectContaining({ id: 'ctx-4' }),
+      expect.objectContaining({ id: 'ctx-3' }),
+      expect.objectContaining({ id: 'ctx-2' }),
+      expect.objectContaining({ id: 'ctx-1' }),
+      expect.objectContaining({ id: 'ctx-0' }),
+    ]);
   });
 
-  it('pushes category, active, search and brand filters into the query', async () => {
-    const { contextBase, service } = buildService();
+  it('filters by category, active flag, label search and source brand', async () => {
+    const match = {
+      category: 'content_library',
+      isActive: true,
+      label: 'Brand Voice',
+    };
+    const { service } = buildService({
+      contextBase: [
+        base({ data: match, id: 'hit', sourceBrandId: 'brand-1' }),
+        base({
+          data: { ...match, category: 'other' },
+          id: 'wrong-category',
+          sourceBrandId: 'brand-1',
+        }),
+        base({
+          data: { ...match, isActive: false },
+          id: 'inactive',
+          sourceBrandId: 'brand-1',
+        }),
+        base({
+          data: { ...match, label: 'Pricing' },
+          id: 'no-search-hit',
+          sourceBrandId: 'brand-1',
+        }),
+        base({ data: match, id: 'other-brand', sourceBrandId: 'brand-2' }),
+      ],
+    });
 
-    await service.findAll(
+    const result = await service.findAll(
       'org-1',
       {
         category: 'content_library',
@@ -342,25 +386,6 @@ describe('ContextsService.findAll pagination', () => {
       { limit: 10, page: 1 },
     );
 
-    const where = {
-      AND: [
-        { data: { equals: 'content_library', path: ['category'] } },
-        { data: { equals: true, path: ['isActive'] } },
-        {
-          data: {
-            mode: 'insensitive',
-            path: ['label'],
-            string_contains: 'voice',
-          },
-        },
-      ],
-      isDeleted: false,
-      organizationId: 'org-1',
-      sourceBrandId: 'brand-1',
-    };
-    expect(contextBase.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ skip: 0, take: 10, where }),
-    );
-    expect(contextBase.count).toHaveBeenCalledWith({ where });
+    expect(result).toMatchObject({ docs: [{ id: 'hit' }], totalDocs: 1 });
   });
 });

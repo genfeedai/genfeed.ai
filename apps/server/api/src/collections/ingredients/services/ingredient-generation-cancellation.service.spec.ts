@@ -1,265 +1,290 @@
 import { GENERATION_CANCELLED_BY_USER } from '@api/collections/ingredients/constants/generation-cancellation.constants';
+import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import type { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
-import { LoggerService } from '@libs/logger/logger.service';
-import { IngredientGenerationCancellationService } from './ingredient-generation-cancellation.service';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+interface Ingredient {
+  category: IngredientCategory;
+  generationBilling?: Record<string, unknown>;
+  generationError?: string;
+  id: string;
+  isDeleted: boolean;
+  isGenerationFailureConfirmed?: boolean;
+  metadata?: Record<string, unknown>;
+  organizationId: string;
+  status: IngredientStatus;
+}
+
+interface IngredientWhere {
+  id: string;
+  isDeleted: boolean;
+  organizationId: string;
+  status?: IngredientStatus;
+}
+
+const QUOTE_GROUP = {
+  kind: 'quote-group',
+  outputIndex: 0,
+  reservationId: 'hold-1',
+};
+
+// The cancellation detaches from the abort listener; let it finish.
+const settle = () => new Promise((resolve) => setImmediate(resolve));
 
 describe('IngredientGenerationCancellationService', () => {
-  const ingredientsService = {
-    findOne: vi.fn(),
-    patch: vi.fn(),
-    patchAll: vi.fn(),
-  };
-  const failedGenerationService = {
-    handleFailedGeneration: vi.fn().mockResolvedValue(undefined),
-    notifyFailedGeneration: vi.fn().mockResolvedValue(undefined),
-  };
-  const loggerService = {
-    warn: vi.fn(),
-  } as unknown as LoggerService;
-  const replicateService = {
-    cancelPrediction: vi.fn().mockResolvedValue(undefined),
-    getPrediction: vi.fn().mockResolvedValue({ status: 'processing' }),
-  };
+  let rows: Map<string, Ingredient>;
+  let predictions: Map<string, string>;
+  let isReplicateDown: boolean;
+  let completesDuringCancel: string | undefined;
+  let notifications: Record<string, unknown>[];
+  let warnings: string[];
+  let service: IngredientGenerationCancellationService;
 
-  const service = new IngredientGenerationCancellationService(
-    failedGenerationService as never,
-    ingredientsService as never,
-    loggerService,
-    replicateService as never,
-  );
+  const processing = (id: string, fields: Partial<Ingredient> = {}) => {
+    rows.set(id, {
+      category: IngredientCategory.IMAGE,
+      id,
+      isDeleted: false,
+      metadata: { externalId: 'pred-1', externalProvider: 'replicate' },
+      organizationId: 'org-1',
+      status: IngredientStatus.PROCESSING,
+      ...fields,
+    });
+    predictions.set('pred-1', 'processing');
+  };
+  const cancel = (id = 'ing-1', organizationId = 'org-1') =>
+    service.cancelProcessingIngredient({
+      id,
+      organizationId,
+      userId: 'user-1',
+    });
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    failedGenerationService.handleFailedGeneration.mockResolvedValue(undefined);
-    replicateService.cancelPrediction.mockResolvedValue(undefined);
-    ingredientsService.patchAll.mockResolvedValue({ modifiedCount: 1 });
-  });
+    rows = new Map();
+    predictions = new Map();
+    isReplicateDown = false;
+    completesDuringCancel = undefined;
+    notifications = [];
+    warnings = [];
 
-  it('throws when the ingredient is missing', async () => {
-    ingredientsService.findOne.mockResolvedValue(null);
-
-    await expect(
-      service.cancelProcessingIngredient({
-        id: 'ing-1',
-        organizationId: 'org-1',
-      }),
-    ).rejects.toBeInstanceOf(NotFoundException);
-  });
-
-  it('is a no-op when the ingredient is already terminal', async () => {
-    const generated = {
-      category: IngredientCategory.IMAGE,
-      id: 'ing-1',
-      status: IngredientStatus.GENERATED,
-    };
-    ingredientsService.findOne.mockResolvedValue(generated);
-
-    await expect(
-      service.cancelProcessingIngredient({
-        id: 'ing-1',
-        organizationId: 'org-1',
-      }),
-    ).resolves.toBe(generated);
-
-    expect(replicateService.cancelPrediction).not.toHaveBeenCalled();
-    expect(
-      failedGenerationService.handleFailedGeneration,
-    ).not.toHaveBeenCalled();
-  });
-
-  it('cancels the Replicate prediction and marks the placeholder failed', async () => {
-    const processing = {
-      category: IngredientCategory.IMAGE,
-      id: 'ing-1',
-      metadata: {
-        externalId: 'pred-99_0',
-        externalProvider: 'replicate',
-      },
-      status: IngredientStatus.PROCESSING,
-    };
-    const cancelled = {
-      ...processing,
-      generationError: GENERATION_CANCELLED_BY_USER,
-      status: IngredientStatus.FAILED,
-    };
-    ingredientsService.findOne
-      .mockResolvedValueOnce(processing)
-      .mockResolvedValueOnce(cancelled);
-
-    await expect(
-      service.cancelProcessingIngredient({
-        id: 'ing-1',
-        organizationId: 'org-1',
-        userId: 'user-1',
-      }),
-    ).resolves.toEqual(cancelled);
-
-    expect(replicateService.cancelPrediction).toHaveBeenCalledWith('pred-99');
-    expect(failedGenerationService.notifyFailedGeneration).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ingredientId: 'ing-1',
-        websocketMessage: GENERATION_CANCELLED_BY_USER,
-        websocketUrl: '/images/ing-1',
-      }),
-    );
-  });
-
-  it('still marks cancelled when the provider cancel call fails', async () => {
-    ingredientsService.findOne.mockResolvedValue({
-      category: IngredientCategory.VIDEO,
-      id: 'vid-1',
-      metadata: {
-        externalId: 'pred-1',
-        externalProvider: 'replicate',
-      },
-      status: IngredientStatus.PROCESSING,
-    });
-    replicateService.cancelPrediction.mockRejectedValueOnce(
-      new Error('already ended'),
-    );
-
-    await service.cancelProcessingIngredient({
-      id: 'vid-1',
-      organizationId: 'org-1',
-    });
-
-    expect(failedGenerationService.notifyFailedGeneration).toHaveBeenCalled();
-    expect(loggerService.warn).toHaveBeenCalled();
-  });
-
-  it.each(['network-outage', 'provider-still-processing'])(
-    'retains funded processing and permits late completion when cancellation is %s',
-    async (outcome) => {
-      const processing = {
-        id: 'image-1',
-        category: IngredientCategory.IMAGE,
-        status: IngredientStatus.PROCESSING,
-        generationBilling: {
-          kind: 'quote-group',
-          reservationId: 'hold-1',
-          outputIndex: 0,
-        },
-        metadata: { externalId: 'prediction-1', externalProvider: 'replicate' },
-      };
-      ingredientsService.findOne.mockResolvedValue(processing);
-      if (outcome === 'network-outage')
-        replicateService.cancelPrediction.mockRejectedValueOnce(
-          new Error('network unavailable'),
-        );
-      else
-        replicateService.getPrediction.mockResolvedValueOnce({
-          status: 'processing',
-        });
-      await expect(
-        service.cancelProcessingIngredient({
-          id: 'image-1',
-          organizationId: 'org-1',
+    const matches = (row: Ingredient, where: IngredientWhere) =>
+      row.id === where.id &&
+      row.organizationId === where.organizationId &&
+      row.isDeleted === where.isDeleted &&
+      (where.status === undefined || row.status === where.status);
+    const prisma = {
+      $transaction: async (work: (tx: unknown) => Promise<void>) =>
+        work({
+          creditReservation: { findFirst: async () => null },
+          ingredient: {
+            findFirst: async ({ where }: { where: IngredientWhere }) =>
+              [...rows.values()].find((row) => matches(row, where)) ?? null,
+          },
         }),
-      ).resolves.toBe(processing);
-      expect(ingredientsService.patchAll).not.toHaveBeenCalled();
-      expect(
-        failedGenerationService.handleFailedGeneration,
-      ).not.toHaveBeenCalled();
+    };
+    const ingredientsService = {
+      findOne: async (where: IngredientWhere) => {
+        const row = [...rows.values()].find((r) => matches(r, where));
+        return row ? { ...row } : null;
+      },
+      patchAll: async (where: IngredientWhere, data: Partial<Ingredient>) => {
+        const claimed = [...rows.values()].filter((r) => matches(r, where));
+        for (const row of claimed) {
+          Object.assign(row, data);
+        }
+        return { modifiedCount: claimed.length };
+      },
+      prisma,
+    } as unknown as IngredientsService;
+    // Replicate: a cancel stops the prediction unless the provider is down.
+    const replicate = {
+      cancelPrediction: async (id: string) => {
+        if (isReplicateDown) {
+          throw new Error('network unavailable');
+        }
+        if (completesDuringCancel) {
+          Object.assign(rows.get(completesDuringCancel) ?? {}, {
+            status: IngredientStatus.GENERATED,
+          });
+          return;
+        }
+        if (predictions.get(id) === 'processing') {
+          predictions.set(id, 'canceled');
+        }
+      },
+      getPrediction: async (id: string) => ({ status: predictions.get(id) }),
+    } as unknown as ReplicateService;
+    const failedGeneration = {
+      notifyFailedGeneration: async (payload: Record<string, unknown>) => {
+        notifications.push(payload);
+      },
+    } as unknown as FailedGenerationService;
+    const logger = {
+      warn: (message: string) => {
+        warnings.push(message);
+      },
+    } as unknown as LoggerService;
+
+    service = new IngredientGenerationCancellationService(
+      failedGeneration,
+      ingredientsService,
+      logger,
+      replicate,
+    );
+  });
+
+  it.each([
+    ['an unknown ingredient', 'ing-missing', 'org-1'],
+    ['another organization ingredient', 'ing-1', 'org-2'],
+  ])('refuses %s', async (_case, id, organizationId) => {
+    processing('ing-1');
+
+    await expect(cancel(id, organizationId)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(rows.get('ing-1')?.status).toBe(IngredientStatus.PROCESSING);
+  });
+
+  it('leaves a finished ingredient and its prediction alone', async () => {
+    processing('ing-1', { status: IngredientStatus.GENERATED });
+
+    await expect(cancel()).resolves.toMatchObject({
+      status: IngredientStatus.GENERATED,
+    });
+    expect(predictions.get('pred-1')).toBe('processing');
+    expect(notifications).toEqual([]);
+  });
+
+  it.each([
+    [IngredientCategory.IMAGE, '/images/ing-1'],
+    [IngredientCategory.VIDEO, '/videos/ing-1'],
+    [IngredientCategory.MUSIC, '/musics/ing-1'],
+  ])(
+    'cancels a batch %s prediction, fails the placeholder and tells its page',
+    async (category, websocketUrl) => {
+      processing('ing-1', {
+        category,
+        metadata: { externalId: 'pred-1_0', externalProvider: 'replicate' },
+      });
+
+      await expect(cancel()).resolves.toMatchObject({
+        generationError: GENERATION_CANCELLED_BY_USER,
+        status: IngredientStatus.FAILED,
+      });
+      expect(predictions.get('pred-1')).toBe('canceled');
+      expect(notifications).toEqual([
+        {
+          ingredientId: 'ing-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+          websocketMessage: GENERATION_CANCELLED_BY_USER,
+          websocketMethod: 'publishMediaFailed',
+          websocketUrl,
+        },
+      ]);
     },
   );
 
-  it('preserves a completed output when completion wins during provider cancellation', async () => {
-    const processing = {
-      id: 'image-1',
-      category: IngredientCategory.IMAGE,
-      status: IngredientStatus.PROCESSING,
-      metadata: { externalId: 'prediction-1', externalProvider: 'replicate' },
-    };
-    const completed = { ...processing, status: IngredientStatus.GENERATED };
-    // The old unconditional failure path would overwrite the completed row.
-    failedGenerationService.handleFailedGeneration.mockImplementationOnce(
-      async () => {
-        ingredientsService.findOne.mockReset().mockResolvedValue({
-          ...processing,
-          status: IngredientStatus.FAILED,
-          generationError: GENERATION_CANCELLED_BY_USER,
-        });
-      },
-    );
-    ingredientsService.findOne
-      .mockResolvedValueOnce(processing)
-      .mockResolvedValueOnce(completed);
-    ingredientsService.patchAll.mockResolvedValueOnce({ modifiedCount: 0 });
+  it('still fails an unfunded placeholder when the provider cancel call fails', async () => {
+    processing('ing-1');
+    isReplicateDown = true;
 
-    await expect(
-      service.cancelProcessingIngredient({
-        id: 'image-1',
-        organizationId: 'org-1',
-      }),
-    ).resolves.toEqual(completed);
+    await expect(cancel()).resolves.toMatchObject({
+      status: IngredientStatus.FAILED,
+    });
+    expect(notifications).toHaveLength(1);
+    expect(warnings).toEqual([
+      'Provider cancellation is unconfirmed; retain funded generation for completion',
+    ]);
+  });
 
-    expect(ingredientsService.patchAll).toHaveBeenCalledWith(
-      {
-        id: 'image-1',
-        organizationId: 'org-1',
-        isDeleted: false,
+  it('fails a funded output once the provider confirms the cancel', async () => {
+    processing('ing-1', { generationBilling: QUOTE_GROUP });
+
+    await expect(cancel()).resolves.toMatchObject({
+      generationError: GENERATION_CANCELLED_BY_USER,
+      isGenerationFailureConfirmed: true,
+      status: IngredientStatus.FAILED,
+    });
+    expect(notifications).toHaveLength(1);
+  });
+
+  it.each([
+    ['the provider is unreachable', true, 'processing'],
+    ['the provider reports the prediction succeeded', false, 'succeeded'],
+  ])(
+    'keeps a funded output processing for late completion when %s',
+    async (_case, isDown, providerStatus) => {
+      processing('ing-1', { generationBilling: QUOTE_GROUP });
+      isReplicateDown = isDown;
+      predictions.set('pred-1', providerStatus);
+
+      await expect(cancel()).resolves.toMatchObject({
         status: IngredientStatus.PROCESSING,
-      },
-      {
-        generationError: GENERATION_CANCELLED_BY_USER,
-        status: IngredientStatus.FAILED,
-      },
-    );
-    expect(
-      failedGenerationService.handleFailedGeneration,
-    ).not.toHaveBeenCalled();
-    expect(
-      failedGenerationService.notifyFailedGeneration,
-    ).not.toHaveBeenCalled();
+      });
+      expect(rows.get('ing-1')).toMatchObject({
+        status: IngredientStatus.PROCESSING,
+      });
+      expect(notifications).toEqual([]);
+    },
+  );
+
+  it('keeps a completed output when completion wins during the provider cancel', async () => {
+    processing('ing-1');
+    completesDuringCancel = 'ing-1';
+
+    await expect(cancel()).resolves.toMatchObject({
+      status: IngredientStatus.GENERATED,
+    });
+    expect(rows.get('ing-1')).not.toHaveProperty('generationError');
+    expect(notifications).toEqual([]);
   });
 
-  it('publishes cancellation only for the request that claims the processing output', async () => {
-    const processing = {
-      id: 'image-1',
-      category: IngredientCategory.IMAGE,
-      status: IngredientStatus.PROCESSING,
-      metadata: { externalId: 'prediction-1', externalProvider: 'replicate' },
-    };
-    ingredientsService.findOne.mockResolvedValue(processing);
-    ingredientsService.patchAll
-      .mockResolvedValueOnce({ modifiedCount: 1 })
-      .mockResolvedValueOnce({ modifiedCount: 0 });
+  it('tells the page once when two cancels race for the same output', async () => {
+    processing('ing-1');
 
-    await Promise.all(
-      [1, 2].map(() =>
-        service.cancelProcessingIngredient({
-          id: 'image-1',
-          organizationId: 'org-1',
-        }),
-      ),
-    );
+    await Promise.all([cancel(), cancel()]);
 
-    expect(
-      failedGenerationService.notifyFailedGeneration,
-    ).toHaveBeenCalledOnce();
-    expect(
-      failedGenerationService.handleFailedGeneration,
-    ).not.toHaveBeenCalled();
+    expect(rows.get('ing-1')?.status).toBe(IngredientStatus.FAILED);
+    expect(notifications).toHaveLength(1);
   });
 
-  it('cancels immediately when the abort signal has already fired', () => {
+  it('cancels a live generation as soon as its signal aborts', async () => {
+    processing('ing-1');
     const abort = new AbortController();
-    abort.abort();
-    vi.spyOn(service, 'cancelProcessingIngredient').mockResolvedValue(
-      {} as never,
-    );
 
     service.bindCancelOnAbort({
       abortSignal: abort.signal,
       id: 'ing-1',
       organizationId: 'org-1',
     });
+    await settle();
+    expect(rows.get('ing-1')?.status).toBe(IngredientStatus.PROCESSING);
 
-    expect(service.cancelProcessingIngredient).toHaveBeenCalledWith({
+    abort.abort();
+    await settle();
+
+    expect(rows.get('ing-1')?.status).toBe(IngredientStatus.FAILED);
+    expect(predictions.get('pred-1')).toBe('canceled');
+  });
+
+  it('cancels at once when the signal has already aborted', async () => {
+    processing('ing-1');
+    const abort = new AbortController();
+    abort.abort();
+
+    service.bindCancelOnAbort({
       abortSignal: abort.signal,
       id: 'ing-1',
       organizationId: 'org-1',
     });
+    await settle();
+
+    expect(rows.get('ing-1')?.status).toBe(IngredientStatus.FAILED);
   });
 });

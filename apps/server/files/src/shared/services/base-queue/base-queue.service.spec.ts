@@ -8,10 +8,20 @@ import {
   FILE_JOB_TYPES as JOB_TYPES,
 } from '@genfeedai/contracts/queue';
 import type { Job, Queue } from 'bullmq';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface TestJobData extends BaseJobDataWithPriority {
   fileId: string;
   ingredientId?: string;
+}
+
+interface StoredJob {
+  data: TestJobData;
+  finishedOn?: number;
+  id: string;
+  name: string;
+  opts: Record<string, unknown>;
+  state: 'waiting' | 'delayed' | 'active' | 'completed' | 'failed';
 }
 
 class TestQueueService extends BaseQueueService<TestJobData> {
@@ -23,11 +33,11 @@ class TestQueueService extends BaseQueueService<TestJobData> {
     },
   };
 
-  async addDownload(data: TestJobData): Promise<Job<TestJobData>> {
+  addDownload(data: TestJobData): Promise<Job<TestJobData>> {
     return this.addJob(JOB_TYPES.DOWNLOAD_FILE, data, 'download', data.fileId);
   }
 
-  async addWithId(data: TestJobData, jobId: string): Promise<Job<TestJobData>> {
+  addWithId(data: TestJobData, jobId: string): Promise<Job<TestJobData>> {
     return this.addJob(
       JOB_TYPES.DOWNLOAD_FILE,
       data,
@@ -37,7 +47,7 @@ class TestQueueService extends BaseQueueService<TestJobData> {
     );
   }
 
-  async addDelayedDownload(
+  addDelayedDownload(
     data: TestJobData,
     delayMs: number,
   ): Promise<Job<TestJobData>> {
@@ -51,197 +61,204 @@ class TestQueueService extends BaseQueueService<TestJobData> {
   }
 }
 
+class UnconfiguredQueueService extends BaseQueueService<TestJobData> {
+  addUpload(data: TestJobData): Promise<Job<TestJobData>> {
+    return this.addJob(JOB_TYPES.UPLOAD_TO_S3, data, 'upload');
+  }
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const NOW = new Date('2026-11-06T12:00:00.000Z').getTime();
+const HOUR = 3_600_000;
+
 describe('BaseQueueService', () => {
+  let jobs: StoredJob[];
+  let isPaused: boolean;
+  let queue: Queue<TestJobData>;
   let service: TestQueueService;
 
-  const mockJob = { id: 'job-1' } as unknown as Job<TestJobData>;
-
-  const mockQueue = {
-    add: vi.fn().mockResolvedValue(mockJob),
-    clean: vi.fn().mockResolvedValue(undefined),
-    getJob: vi.fn(),
-    getJobCounts: vi.fn(),
-    pause: vi.fn().mockResolvedValue(undefined),
-    resume: vi.fn().mockResolvedValue(undefined),
-  } as unknown as Queue<TestJobData>;
+  const job = (index: number) => jobs[index];
+  const seedFinished = (
+    id: string,
+    state: 'completed' | 'failed',
+    age: number,
+  ) => {
+    jobs.push({
+      data: { fileId: id },
+      finishedOn: NOW - age,
+      id,
+      name: JOB_TYPES.DOWNLOAD_FILE,
+      opts: {},
+      state,
+    });
+  };
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    service = new TestQueueService(mockQueue, TestQueueService.name);
+    vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
+    jobs = [];
+    isPaused = false;
+
+    // A BullMQ queue held in memory: jobs keep their options and state.
+    queue = {
+      add: async (
+        name: string,
+        data: TestJobData,
+        opts: Record<string, unknown>,
+      ) => {
+        const stored: StoredJob = {
+          data,
+          id: String(opts.jobId),
+          name,
+          opts,
+          state: opts.delay ? 'delayed' : 'waiting',
+        };
+        jobs.push(stored);
+        return stored;
+      },
+      clean: async (grace: number, _limit: number, state: string) => {
+        jobs = jobs.filter(
+          (stored) =>
+            stored.state !== state ||
+            (stored.finishedOn ?? NOW) > Date.now() - grace,
+        );
+        return [];
+      },
+      getJob: async (id: string) => jobs.find((stored) => stored.id === id),
+      getJobCounts: async () => {
+        const counts: Record<string, number> = {};
+        for (const stored of jobs) {
+          counts[stored.state] = (counts[stored.state] ?? 0) + 1;
+        }
+        return counts;
+      },
+      pause: async () => {
+        isPaused = true;
+      },
+      resume: async () => {
+        isPaused = false;
+      },
+    } as unknown as Queue<TestJobData>;
+    service = new TestQueueService(queue, TestQueueService.name);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('addJob', () => {
-    it('assigns distinct opaque IDs instead of queue-local counters', async () => {
-      await service.addDownload({ fileId: 'file-1' });
-      await service.addDownload({ fileId: 'file-1' });
+    it('queues the job with its configured retry policy and priority', async () => {
+      const added = await service.addDownload({ fileId: 'file-1' });
 
-      const calls = vi.mocked(mockQueue.add).mock.calls;
-      const firstId = calls[0]?.[2]?.jobId;
-      const secondId = calls[1]?.[2]?.jobId;
-      expect(firstId).toMatch(/^[0-9a-f-]{36}$/);
-      expect(secondId).toMatch(/^[0-9a-f-]{36}$/);
-      expect(secondId).not.toBe(firstId);
+      expect(jobs).toEqual([
+        {
+          data: { fileId: 'file-1' },
+          id: added.id,
+          name: JOB_TYPES.DOWNLOAD_FILE,
+          opts: {
+            attempts: 5,
+            backoff: { delay: 1000, type: 'exponential' },
+            jobId: added.id,
+            priority: JOB_PRIORITY.HIGH,
+          },
+          state: 'waiting',
+        },
+      ]);
     });
 
-    it('preserves caller-provided IDs for idempotent jobs', async () => {
+    it('assigns distinct opaque ids instead of queue-local counters', async () => {
+      await service.addDownload({ fileId: 'file-1' });
+      await service.addDownload({ fileId: 'file-1' });
+
+      expect(job(0)?.id).toMatch(UUID);
+      expect(job(1)?.id).toMatch(UUID);
+      expect(job(1)?.id).not.toBe(job(0)?.id);
+    });
+
+    it('keeps a caller-provided id for idempotent jobs', async () => {
       await service.addWithId({ fileId: 'file-1' }, 'video-stitch-output-1');
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        JOB_TYPES.DOWNLOAD_FILE,
-        expect.any(Object),
-        expect.objectContaining({ jobId: 'video-stitch-output-1' }),
-      );
-    });
-    it('should call queue.add with job type and data', async () => {
-      await service.addDownload({ fileId: 'file-1' });
 
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        JOB_TYPES.DOWNLOAD_FILE,
-        expect.objectContaining({ fileId: 'file-1' }),
-        expect.any(Object),
-      );
+      expect(job(0)?.id).toBe('video-stitch-output-1');
     });
 
-    it('should use configured attempts from jobConfigs', async () => {
-      await service.addDownload({ fileId: 'file-1' });
+    it('lets the job data raise or lower its priority', async () => {
+      await service.addDownload({
+        fileId: 'file-1',
+        priority: JOB_PRIORITY.LOW,
+      });
 
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(Object),
-        expect.objectContaining({ attempts: 5 }),
-      );
+      expect(job(0)?.opts.priority).toBe(JOB_PRIORITY.LOW);
     });
 
-    it('should fall back to DEFAULT_JOB_CONFIG for unknown job types', async () => {
-      // We call an unconfigured job type via a different subclass behaviour — simulate by calling with UPLOAD_TO_S3
-      class MinimalService extends BaseQueueService<TestJobData> {
-        async addUpload(data: TestJobData) {
-          return this.addJob(JOB_TYPES.UPLOAD_TO_S3, data, 'upload');
-        }
-      }
+    it('falls back to the default policy for an unconfigured job type', async () => {
+      await new UnconfiguredQueueService(queue, 'Unconfigured').addUpload({
+        fileId: 'file-2',
+      });
 
-      const minimal = new MinimalService(mockQueue, 'Minimal');
-      await minimal.addUpload({ fileId: 'f-2' });
-
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        JOB_TYPES.UPLOAD_TO_S3,
-        expect.any(Object),
-        expect.objectContaining({ attempts: DEFAULT_JOB_CONFIG.attempts }),
-      );
-    });
-
-    it('should use data.priority when provided', async () => {
-      await service.addDownload({ fileId: 'hi', priority: JOB_PRIORITY.LOW });
-
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(Object),
-        expect.objectContaining({ priority: JOB_PRIORITY.LOW }),
-      );
-    });
-
-    it('should return the created job', async () => {
-      const result = await service.addDownload({ fileId: 'ret-1' });
-      expect(result).toBe(mockJob);
+      expect(job(0)).toMatchObject({
+        name: JOB_TYPES.UPLOAD_TO_S3,
+        opts: {
+          attempts: DEFAULT_JOB_CONFIG.attempts,
+          backoff: { delay: DEFAULT_JOB_CONFIG.delay, type: 'exponential' },
+          priority: DEFAULT_JOB_CONFIG.defaultPriority,
+        },
+      });
     });
   });
 
-  describe('addJobWithDelay', () => {
-    it('assigns an opaque ID to delayed jobs too', async () => {
-      await service.addDelayedDownload({ fileId: 'file-1' }, 1000);
-      expect(vi.mocked(mockQueue.add).mock.calls[0]?.[2]?.jobId).toMatch(
-        /^[0-9a-f-]{36}$/,
-      );
+  it('delays a job with an opaque id and the configured attempts', async () => {
+    await service.addDelayedDownload({ fileId: 'file-1' }, 5000);
+
+    expect(job(0)).toMatchObject({
+      opts: { attempts: 5, delay: 5000 },
+      state: 'delayed',
     });
-    it('should pass delay to queue.add options', async () => {
-      await service.addDelayedDownload({ fileId: 'delayed-1' }, 5000);
+    expect(job(0)?.id).toMatch(UUID);
+  });
 
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(Object),
-        expect.objectContaining({ delay: 5000 }),
-      );
+  it('finds a queued job by id', async () => {
+    const added = await service.addDownload({ fileId: 'file-1' });
+
+    await expect(service.getJob(added.id ?? '')).resolves.toMatchObject({
+      data: { fileId: 'file-1' },
     });
+    await expect(service.getJob('unknown')).resolves.toBeUndefined();
+  });
 
-    it('should still use configured attempts', async () => {
-      await service.addDelayedDownload({ fileId: 'delayed-2' }, 3000);
+  it('counts jobs by state', async () => {
+    await service.addDownload({ fileId: 'file-1' });
+    await service.addDelayedDownload({ fileId: 'file-2' }, 1000);
+    seedFinished('done', 'completed', 0);
 
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(Object),
-        expect.objectContaining({ attempts: 5 }),
-      );
+    await expect(service.getJobCounts()).resolves.toEqual({
+      completed: 1,
+      delayed: 1,
+      waiting: 1,
     });
   });
 
-  describe('getJob', () => {
-    it('should call queue.getJob', async () => {
-      mockQueue.getJob = vi.fn().mockResolvedValue(mockJob);
+  it.each([
+    [undefined, ['recent-done', 'failed-90m', 'pending']],
+    [HOUR / 2, ['recent-done', 'pending']],
+  ])(
+    'cleans finished jobs past the grace period (%s ms)',
+    async (grace, kept) => {
+      seedFinished('old-done', 'completed', 2 * HOUR);
+      seedFinished('recent-done', 'completed', HOUR / 4);
+      seedFinished('failed-90m', 'failed', 1.5 * HOUR);
+      seedFinished('old-failed', 'failed', 3 * HOUR);
+      await service.addWithId({ fileId: 'file-1' }, 'pending');
 
-      const result = await service.getJob('job-1');
+      await service.clean(grace);
 
-      expect(mockQueue.getJob).toHaveBeenCalledWith('job-1');
-      expect(result).toBe(mockJob);
-    });
+      expect(jobs.map(({ id }) => id)).toEqual(kept);
+    },
+  );
 
-    it('should return undefined when job not found', async () => {
-      mockQueue.getJob = vi.fn().mockResolvedValue(undefined);
+  it('pauses and resumes the queue', async () => {
+    await service.pause();
+    const wasPaused = isPaused;
+    await service.resume();
 
-      const result = await service.getJob('unknown');
-      expect(result).toBeUndefined();
-    });
-  });
-
-  describe('getJobCounts', () => {
-    it('should delegate to queue.getJobCounts', () => {
-      const counts = { active: 1, completed: 5, failed: 0, waiting: 2 };
-      mockQueue.getJobCounts = vi.fn().mockReturnValue(counts);
-
-      const result = service.getJobCounts();
-
-      expect(mockQueue.getJobCounts).toHaveBeenCalled();
-      expect(result).toEqual(counts);
-    });
-  });
-
-  describe('clean', () => {
-    it('should clean completed and failed jobs', async () => {
-      await service.clean();
-
-      expect(mockQueue.clean).toHaveBeenCalledWith(
-        expect.any(Number),
-        0,
-        'completed',
-      );
-      expect(mockQueue.clean).toHaveBeenCalledWith(
-        expect.any(Number),
-        0,
-        'failed',
-      );
-    });
-
-    it('should use default grace of 1 hour for completed jobs', async () => {
-      await service.clean();
-
-      const completedCall = (
-        mockQueue.clean as ReturnType<typeof vi.fn>
-      ).mock.calls.find((c: unknown[]) => c[2] === 'completed');
-      expect(completedCall?.[0]).toBe(3_600_000);
-    });
-  });
-
-  describe('pause and resume', () => {
-    it('should call queue.pause', async () => {
-      await service.pause();
-      expect(mockQueue.pause).toHaveBeenCalled();
-    });
-
-    it('should call queue.resume', async () => {
-      await service.resume();
-      expect(mockQueue.resume).toHaveBeenCalled();
-    });
+    expect([wasPaused, isPaused]).toEqual([true, false]);
   });
 });

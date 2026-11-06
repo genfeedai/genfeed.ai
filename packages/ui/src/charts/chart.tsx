@@ -168,7 +168,7 @@ export function ChartTooltipContent({
       {...props}
     >
       {!hideLabel && resolvedLabel ? (
-        <div className="mb-2 font-medium text-[11px] text-muted-foreground uppercase tracking-[0.12em]">
+        <div className="mb-2 font-medium text-2xs text-muted-foreground uppercase tracking-[0.12em]">
           {resolvedLabel}
         </div>
       ) : null}
@@ -243,7 +243,7 @@ export function ChartLegendContent({
         return (
           <div
             key={resolvePayloadKey(item)}
-            className="inline-flex items-center gap-2 rounded-md border border-border bg-hover px-2 py-1 text-[11px] text-muted-foreground"
+            className="inline-flex items-center gap-2 rounded-md border border-border bg-hover px-2 py-1 text-2xs text-muted-foreground"
           >
             {Icon ? (
               <Icon className="size-3.5 text-foreground" />

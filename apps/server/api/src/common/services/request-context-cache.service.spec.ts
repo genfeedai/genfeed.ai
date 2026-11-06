@@ -1,167 +1,181 @@
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { RedisService } from '@libs/redis/redis.service';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { RedisService } from '@libs/redis/redis.service';
 
 describe('RequestContextCacheService', () => {
+  // A small Redis: string keys plus the per-user key sets. SCAN returns one
+  // key per page so multi-page scans are exercised.
+  let strings: Map<string, string>;
+  let sets: Map<string, Set<string>>;
+  let failing: { scan?: Error; smembers?: Error };
+  let isRedisConnected: boolean;
+  let logs: Array<{ level: string; message: string }>;
   let service: RequestContextCacheService;
 
-  const mockSMembers = vi.fn();
-  const mockUnlink = vi.fn();
-  const mockScan = vi.fn();
+  const globToRegExp = (pattern: string) =>
+    new RegExp(
+      `^${pattern
+        .split('*')
+        .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
+        .join('.*')}$`,
+    );
 
-  const mockPublisher = {
-    scan: mockScan,
-    smembers: mockSMembers,
-    unlink: mockUnlink,
+  const publisher = {
+    scan: async (cursor: string, _match: string, pattern: string) => {
+      if (failing.scan) throw failing.scan;
+      const matching = [...strings.keys()].filter((key) =>
+        globToRegExp(pattern).test(key),
+      );
+      const index = Number(cursor);
+      const next = index + 1 < matching.length ? String(index + 1) : '0';
+      return [next, matching.slice(index, index + 1)];
+    },
+    smembers: async (key: string) => {
+      if (failing.smembers) throw failing.smembers;
+      return [...(sets.get(key) ?? [])];
+    },
+    unlink: async (...args: Array<string | string[]>) => {
+      const keys = args.flat();
+      for (const key of keys) {
+        strings.delete(key);
+        sets.delete(key);
+      }
+      return keys.length;
+    },
   };
 
-  const mockRedisService = {
-    getPublisher: vi.fn().mockReturnValue(mockPublisher),
-  };
+  beforeEach(() => {
+    strings = new Map([
+      ['rc:user_abc:org1', '{}'],
+      ['rc:user_abc:org2', '{}'],
+      ['rc:user1:org_xyz', '{}'],
+      ['rc:user2:org_xyz:brand1', '{}'],
+      ['rc:user3:org_other', '{}'],
+    ]);
+    sets = new Map([
+      ['rc:keys:user_abc', new Set(['rc:user_abc:org1', 'rc:user_abc:org2'])],
+      ['rc:keys:user_empty', new Set()],
+    ]);
+    failing = {};
+    isRedisConnected = true;
+    logs = [];
 
-  const mockLogger = {
-    debug: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-  };
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        RequestContextCacheService,
-        {
-          provide: RedisService,
-          useValue: mockRedisService,
-        },
-        {
-          provide: LoggerService,
-          useValue: mockLogger,
-        },
-      ],
-    }).compile();
-
-    service = module.get<RequestContextCacheService>(
-      RequestContextCacheService,
+    const record = (level: string) => (message: string) => {
+      logs.push({ level, message });
+    };
+    service = new RequestContextCacheService(
+      {
+        getPublisher: () => (isRedisConnected ? publisher : null),
+      } as unknown as RedisService,
+      {
+        debug: record('debug'),
+        error: record('error'),
+        warn: record('warn'),
+      } as unknown as LoggerService,
     );
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('invalidateForUser', () => {
-    it('should do nothing when publisher is unavailable', async () => {
-      mockRedisService.getPublisher.mockReturnValueOnce(null);
+    it('evicts every cached context of the user and the key set itself', async () => {
+      await service.invalidateForUser('user_abc');
 
-      await service.invalidateForUser('user_123');
-
-      expect(mockSMembers).not.toHaveBeenCalled();
-      expect(mockUnlink).not.toHaveBeenCalled();
-    });
-
-    it('should unlink all cached keys and the set key when keys exist', async () => {
-      const userId = 'user_abc';
-      const cachedKeys = ['rc:user_abc:org1', 'rc:user_abc:org2'];
-      mockSMembers.mockResolvedValue(cachedKeys);
-      mockUnlink.mockResolvedValue(3);
-
-      await service.invalidateForUser(userId);
-
-      expect(mockSMembers).toHaveBeenCalledWith('rc:keys:user_abc');
-      expect(mockUnlink).toHaveBeenCalledWith([
-        ...cachedKeys,
-        'rc:keys:user_abc',
+      expect([...strings.keys()]).toEqual([
+        'rc:user1:org_xyz',
+        'rc:user2:org_xyz:brand1',
+        'rc:user3:org_other',
       ]);
-      expect(mockLogger.debug).toHaveBeenCalled();
+      expect(sets.has('rc:keys:user_abc')).toBe(false);
+      expect(logs).toEqual([
+        {
+          level: 'debug',
+          message: 'Invalidated 2 context key(s) for user user_abc',
+        },
+      ]);
     });
 
-    it('should unlink only the set key when no cached keys exist', async () => {
-      const userId = 'user_empty';
-      mockSMembers.mockResolvedValue([]);
-      mockUnlink.mockResolvedValue(1);
+    it('drops an empty key set without touching other contexts', async () => {
+      await service.invalidateForUser('user_empty');
 
-      await service.invalidateForUser(userId);
-
-      expect(mockUnlink).toHaveBeenCalledWith('rc:keys:user_empty');
+      expect(sets.has('rc:keys:user_empty')).toBe(false);
+      expect(strings.size).toBe(5);
     });
 
-    it('should log an error when smembers throws', async () => {
-      const userId = 'user_error';
-      const error = new Error('Redis connection lost');
-      mockSMembers.mockRejectedValue(error);
+    it('does nothing when Redis is unavailable', async () => {
+      isRedisConnected = false;
 
-      await service.invalidateForUser(userId);
+      await service.invalidateForUser('user_abc');
 
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining(userId),
-        error,
-        expect.any(Object),
-      );
+      expect(sets.has('rc:keys:user_abc')).toBe(true);
+      expect(strings.size).toBe(5);
+    });
+
+    it('logs and swallows a Redis failure', async () => {
+      failing.smembers = new Error('Redis connection lost');
+
+      await expect(
+        service.invalidateForUser('user_abc'),
+      ).resolves.toBeUndefined();
+
+      expect(logs).toEqual([
+        {
+          level: 'error',
+          message: 'Failed to invalidate context for user user_abc',
+        },
+      ]);
     });
   });
 
   describe('invalidateForOrganization', () => {
-    it('should do nothing when publisher is unavailable', async () => {
-      mockRedisService.getPublisher.mockReturnValueOnce(null);
+    it('evicts every context of the organization across scan pages', async () => {
+      await service.invalidateForOrganization('org_xyz');
 
-      await service.invalidateForOrganization('org_123');
-
-      expect(mockScan).not.toHaveBeenCalled();
-      expect(mockUnlink).not.toHaveBeenCalled();
+      expect([...strings.keys()]).toEqual([
+        'rc:user_abc:org1',
+        'rc:user_abc:org2',
+        'rc:user3:org_other',
+      ]);
+      expect(logs).toEqual([
+        {
+          level: 'debug',
+          message: 'Invalidated 2 context key(s) for organization org_xyz',
+        },
+      ]);
     });
 
-    it('should scan and unlink all keys matching the org pattern', async () => {
-      const orgId = 'org_xyz';
-      const matchedKeys = ['rc:user1:org_xyz', 'rc:user2:org_xyz:brand1'];
+    it('reports zero when no context matches', async () => {
+      await service.invalidateForOrganization('org_empty');
 
-      mockScan.mockResolvedValueOnce(['0', matchedKeys]);
-      mockUnlink.mockResolvedValue(2);
-
-      await service.invalidateForOrganization(orgId);
-
-      expect(mockScan).toHaveBeenCalledWith(
-        '0',
-        'MATCH',
-        `rc:*:${orgId}*`,
-        'COUNT',
-        100,
-      );
-      expect(mockUnlink).toHaveBeenCalledWith(matchedKeys);
-      expect(mockLogger.debug).toHaveBeenCalled();
+      expect(strings.size).toBe(5);
+      expect(logs).toEqual([
+        {
+          level: 'debug',
+          message: 'Invalidated 0 context key(s) for organization org_empty',
+        },
+      ]);
     });
 
-    it('should skip unlink when no matching keys are found', async () => {
-      const orgId = 'org_empty';
+    it('does nothing when Redis is unavailable', async () => {
+      isRedisConnected = false;
 
-      mockScan.mockResolvedValueOnce(['0', []]);
+      await service.invalidateForOrganization('org_xyz');
 
-      await service.invalidateForOrganization(orgId);
-
-      expect(mockUnlink).not.toHaveBeenCalled();
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.stringContaining('0'),
-        expect.any(Object),
-      );
+      expect(strings.size).toBe(5);
     });
 
-    it('should log an error when scan throws', async () => {
-      const orgId = 'org_error';
-      const error = new Error('SCAN failed');
+    it('logs and swallows a scan failure', async () => {
+      failing.scan = new Error('SCAN failed');
 
-      mockScan.mockRejectedValueOnce(error);
+      await expect(
+        service.invalidateForOrganization('org_xyz'),
+      ).resolves.toBeUndefined();
 
-      await service.invalidateForOrganization(orgId);
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining(orgId),
-        error,
-        expect.any(Object),
-      );
+      expect(strings.size).toBe(5);
+      expect(logs).toEqual([
+        {
+          level: 'error',
+          message: 'Failed to invalidate context for organization org_xyz',
+        },
+      ]);
     });
   });
 });

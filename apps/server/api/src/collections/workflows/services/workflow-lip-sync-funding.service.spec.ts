@@ -14,19 +14,18 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivitySource, ByokProvider } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { ICreditReservation } from '@genfeedai/contracts/interfaces/billing';
+import type { QueuedCreditChargeData } from '@genfeedai/contracts/queue';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-const POOL = {
-  creditsConfig: {
-    amount: 65,
-    reservationId: 'pool-1',
-    settlement: 'completion' as const,
-  },
-  user: { id: 'user-1', organizationId: 'org-1' },
-};
+type Row = Record<string, unknown>;
+
+interface PoolRequest {
+  creditsConfig: { amount: number; reservationId: string; settlement: string };
+  user: { id: string; organizationId: string };
+}
 
 function lipSyncSnapshot(seconds: number) {
   const quote = quoteModelBillablePricing(
@@ -45,87 +44,141 @@ function lipSyncSnapshot(seconds: number) {
   return quote.snapshot;
 }
 
+// The priced tariffs, each quoted at a duration.
+const TARIFFS: Record<string, (seconds: number) => unknown> = {
+  [MODEL_KEYS.HEYGEN_AVATAR]: photoAnimationSnapshot,
+  'sync/lipsync-2': lipSyncSnapshot,
+};
+
+const input = {
+  audioIngredientId: 'voice-1',
+  brandId: 'brand-1',
+  organizationId: 'org-1',
+  userId: 'user-1',
+};
+
 describe('WorkflowLipSyncFundingService', () => {
-  const holdForService = vi.fn();
-  const bindOutput = vi.fn();
-  const releaseOutput = vi.fn();
-  const releasePool = vi.fn();
-  const quoteSnapshotByKey = vi.fn();
-  const findFirst = vi.fn();
-  const resolveOrganizationConnection = vi.fn();
-  const lookupApiKey = vi.fn();
-  const generationBilling = {
-    bindOutput,
-    holdForService,
-    releaseOutput,
-    releasePool,
-  } as unknown as GenerationBillingService;
-  const modelQuotes = {
-    quoteSnapshotByKey,
-  } as unknown as ModelCreditQuoteService;
-  const prisma = { ingredient: { findFirst } } as unknown as PrismaService;
-  const logger = { error: vi.fn() } as unknown as LoggerService;
-  const heygen = {
-    resolveOrganizationConnection,
-  } as unknown as HeyGenService;
-  const byok = { lookupApiKey } as unknown as ByokService;
-  const service = new WorkflowLipSyncFundingService(
-    new AvatarVideoBillingService(
-      {} as CreditsUtilsService,
-      generationBilling,
-      modelQuotes,
-      logger,
-      {} as AvatarVideoModelService,
-      byok,
-      heygen,
-      prisma,
-      {} as never,
-      {} as never,
-    ),
-    generationBilling,
-    modelQuotes,
-    heygen,
-    byok,
-    prisma,
-    logger,
-  );
-  const input = {
-    audioIngredientId: 'voice-1',
-    brandId: 'brand-1',
-    organizationId: 'org-1',
-    userId: 'user-1',
-  };
+  // The saved voices, the connected keys, and the wallet's holds.
+  let voices: Row[];
+  let heygenConnection: { apiKey: string; binding: { kind: string } };
+  let replicateKeys: Record<string, { apiKey: string }>;
+  let pools: Row[];
+  let boundOutputs: Row[];
+  let releasedOutputs: string[];
+  let releasedPools: string[];
+  let errors: string[];
+  let isWalletDown: boolean;
+  let prisma: PrismaService;
+  let service: WorkflowLipSyncFundingService;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    holdForService.mockResolvedValue(POOL);
-    findFirst.mockResolvedValue({ metadata: { duration: 4.2 } });
-    resolveOrganizationConnection.mockResolvedValue({
+    voices = [
+      {
+        id: 'voice-1',
+        isDeleted: false,
+        metadata: { duration: 4.2 },
+        organizationId: 'org-1',
+      },
+    ];
+    heygenConnection = {
       apiKey: 'platform-key',
-      binding: { kind: 'platform', organizationId: 'org-1' },
-    });
-    lookupApiKey.mockResolvedValue(undefined);
+      binding: { kind: 'platform' },
+    };
+    replicateKeys = {};
+    pools = [];
+    boundOutputs = [];
+    releasedOutputs = [];
+    releasedPools = [];
+    errors = [];
+    isWalletDown = false;
+
+    prisma = {
+      ingredient: {
+        findFirst: async ({ where }: { where: Row }) =>
+          voices.find(
+            (voice) =>
+              voice.id === where.id &&
+              voice.organizationId === where.organizationId &&
+              voice.isDeleted === where.isDeleted,
+          ) ?? null,
+      },
+    } as unknown as PrismaService;
+    const generationBilling = {
+      bindOutput: async (request: PoolRequest, binding: Row) => {
+        boundOutputs.push({
+          ...binding,
+          pool: request.creditsConfig.reservationId,
+        });
+      },
+      holdForService: async (hold: Row): Promise<PoolRequest> => {
+        pools.push(hold);
+        return {
+          creditsConfig: {
+            amount: Number(hold.credits),
+            reservationId: `pool-${pools.length}`,
+            settlement: 'completion',
+          },
+          user: { id: String(hold.userId), organizationId: 'org-1' },
+        };
+      },
+      releaseOutput: async (ingredientId: string) => {
+        if (isWalletDown) throw new Error('wallet unavailable');
+        releasedOutputs.push(ingredientId);
+      },
+      releasePool: async (request: PoolRequest) => {
+        releasedPools.push(request.creditsConfig.reservationId);
+      },
+    } as unknown as GenerationBillingService;
+    const modelQuotes = {
+      quoteSnapshotByKey: async (
+        key: string,
+        { duration }: { duration: number },
+      ) => {
+        const tariff = TARIFFS[key];
+        if (!tariff) throw new Error('Pricing is unavailable');
+        return tariff(duration);
+      },
+    } as unknown as ModelCreditQuoteService;
+    const logger = {
+      error: (message: string) => {
+        errors.push(message);
+      },
+    } as unknown as LoggerService;
+    const heygen = {
+      resolveOrganizationConnection: async () => heygenConnection,
+    } as unknown as HeyGenService;
+    const byok = {
+      lookupApiKey: async (_organizationId: string, provider: string) =>
+        replicateKeys[provider],
+    } as unknown as ByokService;
+
+    service = new WorkflowLipSyncFundingService(
+      new AvatarVideoBillingService(
+        {} as CreditsUtilsService,
+        generationBilling,
+        modelQuotes,
+        logger,
+        {} as AvatarVideoModelService,
+        byok,
+        heygen,
+        prisma,
+        {} as never,
+        {} as never,
+      ),
+      generationBilling,
+      modelQuotes,
+      heygen,
+      byok,
+      prisma,
+      logger,
+    );
   });
 
   describe('photo animation', () => {
-    beforeEach(() => {
-      quoteSnapshotByKey.mockResolvedValue(photoAnimationSnapshot(5));
-    });
-
-    it('holds heygen/avatar at the measured voice length on the platform key', async () => {
+    it('holds heygen/avatar at the measured voice length, rounded up, on the platform key', async () => {
       const funding = await service.fundPhotoAnimation(input);
 
-      expect(resolveOrganizationConnection).toHaveBeenCalledTimes(1);
-      expect(resolveOrganizationConnection).toHaveBeenCalledWith('org-1');
-      expect(findFirst).toHaveBeenCalledWith({
-        select: { metadata: { select: { duration: true } } },
-        where: { id: 'voice-1', isDeleted: false, organizationId: 'org-1' },
-      });
-      expect(quoteSnapshotByKey).toHaveBeenCalledWith(
-        MODEL_KEYS.HEYGEN_AVATAR,
-        { duration: 5 },
-      );
-      expect(holdForService).toHaveBeenCalledWith(
+      expect(pools).toEqual([
         expect.objectContaining({
           brandId: 'brand-1',
           credits: 65,
@@ -133,53 +186,59 @@ describe('WorkflowLipSyncFundingService', () => {
           source: ActivitySource.VIDEO_GENERATION,
           userId: 'user-1',
         }),
-      );
+      ]);
       expect(funding).toMatchObject({ apiKey: 'platform-key', isByok: false });
     });
 
-    it('binds the output with the frozen quote that the HeyGen duration settles', async () => {
+    it('binds the output with the frozen quote, which settles to the clip HeyGen returns', async () => {
       const funding = await service.fundPhotoAnimation(input);
 
       await funding.bind('output-1');
 
-      expect(bindOutput).toHaveBeenCalledWith(POOL, {
-        credits: 65,
-        ingredientId: 'output-1',
-        metadata: {
-          avatarDurationQuote: {
-            estimatedSeconds: 5,
-            snapshot: photoAnimationSnapshot(5),
+      expect(boundOutputs).toEqual([
+        {
+          credits: 65,
+          ingredientId: 'output-1',
+          metadata: {
+            avatarDurationQuote: {
+              estimatedSeconds: 5,
+              snapshot: photoAnimationSnapshot(5),
+            },
           },
+          pool: 'pool-1',
+          submissionIntentProvider: ByokProvider.HEYGEN,
         },
-        submissionIntentProvider: ByokProvider.HEYGEN,
-      });
-      // The webhook's 3-second clip settles the 5-second hold at 3 seconds.
-      const queueDeduction = vi.fn();
-      const bound = bindOutput.mock.calls[0]?.[1] as {
-        credits: number;
-        metadata: Record<string, unknown>;
-      };
+      ]);
+
+      // HeyGen's 3-second clip settles the 5-second hold at 3 seconds.
+      const settlements: QueuedCreditChargeData[] = [];
       await queueHoldSettlement(
         {
-          logger: { log: vi.fn(), warn: vi.fn() } as unknown as LoggerService,
+          logger: {
+            log: () => undefined,
+            warn: () => undefined,
+          } as unknown as LoggerService,
           prisma,
-          queue: { queueDeduction } as unknown as CreditDeductionQueueService,
+          queue: {
+            queueDeduction: async (charge: QueuedCreditChargeData) => {
+              settlements.push(charge);
+            },
+          } as unknown as CreditDeductionQueueService,
         },
         {
-          amount: bound.credits,
+          amount: boundOutputs[0]?.credits,
           id: 'hold-1',
-          metadata: bound.metadata,
+          metadata: boundOutputs[0]?.metadata,
         } as unknown as ICreditReservation,
         { ingredientId: 'output-1', organizationId: 'org-1', userId: 'user-1' },
         { durationSeconds: 3 },
       );
-      expect(queueDeduction).toHaveBeenCalledTimes(1);
-      expect(queueDeduction).toHaveBeenCalledWith(
+      expect(settlements).toEqual([
         expect.objectContaining({
           amount: photoAnimationSnapshot(3).credits,
           reservationId: 'hold-1',
         }),
-      );
+      ]);
     });
 
     it('releases the output hold on rejection and the pool after dispatch', async () => {
@@ -188,15 +247,23 @@ describe('WorkflowLipSyncFundingService', () => {
       await funding.reject('output-1');
       await funding.releasePool();
 
-      expect(releaseOutput).toHaveBeenCalledWith('output-1', 'org-1');
-      expect(releasePool).toHaveBeenCalledWith(POOL);
+      expect(releasedOutputs).toEqual(['output-1']);
+      expect(releasedPools).toEqual(['pool-1']);
+    });
+
+    it('logs a failed output release without failing the node', async () => {
+      const funding = await service.fundPhotoAnimation(input);
+      isWalletDown = true;
+
+      await expect(funding.reject('output-1')).resolves.toBeUndefined();
+
+      expect(errors).toEqual([
+        'AvatarVideoBillingService generation hold release failed',
+      ]);
     });
 
     it('holds nothing and dispatches with the customer key on a BYOK HeyGen connection', async () => {
-      resolveOrganizationConnection.mockResolvedValue({
-        apiKey: 'customer-key',
-        binding: { kind: 'byok', organizationId: 'org-1' },
-      });
+      heygenConnection = { apiKey: 'customer-key', binding: { kind: 'byok' } };
 
       const funding = await service.fundPhotoAnimation(input);
       await funding.bind('output-1');
@@ -204,86 +271,112 @@ describe('WorkflowLipSyncFundingService', () => {
       await funding.releasePool();
 
       expect(funding).toMatchObject({ apiKey: 'customer-key', isByok: true });
-      expect(holdForService).not.toHaveBeenCalled();
-      expect(quoteSnapshotByKey).not.toHaveBeenCalled();
-      expect(bindOutput).not.toHaveBeenCalled();
-      expect(releaseOutput).not.toHaveBeenCalled();
-      expect(releasePool).not.toHaveBeenCalled();
+      expect(pools).toEqual([]);
+      expect(boundOutputs).toEqual([]);
+      expect(releasedOutputs).toEqual([]);
+      expect(releasedPools).toEqual([]);
     });
 
-    it('refuses a voice with no measured length before holding', async () => {
-      findFirst.mockResolvedValue({ metadata: { duration: null } });
+    it.each([
+      ['has no measured length', { metadata: { duration: null } }],
+      ['belongs to another organization', { organizationId: 'org-2' }],
+    ])('refuses a voice that %s before holding', async (_case, fields) => {
+      voices[0] = { ...voices[0], ...fields };
 
       await expect(service.fundPhotoAnimation(input)).rejects.toBeInstanceOf(
         BadRequestException,
       );
-      expect(holdForService).not.toHaveBeenCalled();
+      expect(pools).toEqual([]);
     });
   });
 
   describe('video lip-sync', () => {
-    beforeEach(() => {
-      quoteSnapshotByKey.mockResolvedValue(lipSyncSnapshot(5));
-    });
+    const lipSync = { ...input, model: 'sync/lipsync-2' };
 
-    it('holds the lip-sync tariff at the measured voice length and binds a per-second quote', async () => {
-      const funding = await service.fundVideoLipSync({
-        ...input,
-        model: 'sync/lipsync-2',
-      });
+    it('holds the lip-sync tariff at the measured length and binds a per-second quote', async () => {
+      const funding = await service.fundVideoLipSync(lipSync);
       await funding.bind('output-1');
 
-      expect(lookupApiKey).toHaveBeenCalledWith(
-        'org-1',
-        ByokProvider.REPLICATE,
-      );
-      expect(quoteSnapshotByKey).toHaveBeenCalledWith('sync/lipsync-2', {
-        duration: 5,
-        organizationId: 'org-1',
-      });
-      const credits = lipSyncSnapshot(5).credits;
-      expect(holdForService).toHaveBeenCalledWith(
-        expect.objectContaining({ credits, organizationId: 'org-1' }),
-      );
-      expect(bindOutput).toHaveBeenCalledWith(POOL, {
-        credits,
-        ingredientId: 'output-1',
-        metadata: {
-          avatarDurationQuote: {
-            estimatedSeconds: 5,
-            snapshot: lipSyncSnapshot(5),
+      expect(pools).toEqual([
+        expect.objectContaining({
+          credits: lipSyncSnapshot(5).credits,
+          description: 'Workflow lip-sync video generation - sync/lipsync-2',
+          organizationId: 'org-1',
+        }),
+      ]);
+      expect(boundOutputs).toEqual([
+        {
+          credits: lipSyncSnapshot(5).credits,
+          ingredientId: 'output-1',
+          metadata: {
+            avatarDurationQuote: {
+              estimatedSeconds: 5,
+              snapshot: lipSyncSnapshot(5),
+            },
           },
+          pool: 'pool-1',
+          submissionIntentProvider: ByokProvider.REPLICATE,
         },
-        submissionIntentProvider: ByokProvider.REPLICATE,
-      });
+      ]);
       // The platform Replicate key dispatches.
       expect(funding.apiKey).toBeUndefined();
       expect(funding.isByok).toBe(false);
     });
 
-    it('dispatches on the customer Replicate key without a platform hold', async () => {
-      lookupApiKey.mockResolvedValue({ apiKey: 'replicate-customer-key' });
+    it('releases the output hold on rejection and the pool after dispatch', async () => {
+      const funding = await service.fundVideoLipSync(lipSync);
 
-      const funding = await service.fundVideoLipSync({
-        ...input,
-        model: 'sync/lipsync-2',
-      });
+      await funding.reject('output-1');
+      await funding.releasePool();
+
+      expect(releasedOutputs).toEqual(['output-1']);
+      expect(releasedPools).toEqual(['pool-1']);
+    });
+
+    it('logs a failed output release without failing the node', async () => {
+      const funding = await service.fundVideoLipSync(lipSync);
+      isWalletDown = true;
+
+      await expect(funding.reject('output-1')).resolves.toBeUndefined();
+
+      expect(errors).toEqual([
+        'WorkflowLipSyncFundingService output hold release failed',
+      ]);
+    });
+
+    it('dispatches on the customer Replicate key without a platform hold', async () => {
+      replicateKeys[ByokProvider.REPLICATE] = {
+        apiKey: 'replicate-customer-key',
+      };
+
+      const funding = await service.fundVideoLipSync(lipSync);
+      await funding.bind('output-1');
+      await funding.releasePool();
 
       expect(funding).toMatchObject({
         apiKey: 'replicate-customer-key',
         isByok: true,
       });
-      expect(quoteSnapshotByKey).not.toHaveBeenCalled();
-      expect(holdForService).not.toHaveBeenCalled();
+      expect(pools).toEqual([]);
+      expect(boundOutputs).toEqual([]);
     });
 
-    it('refuses an unpriced lip-sync model before holding or dispatching', async () => {
-      quoteSnapshotByKey.mockRejectedValue(new Error('Pricing is unavailable'));
-
+    it.each([
+      [
+        'an unpriced model',
+        { model: 'unknown/model' },
+        'Pricing is unavailable',
+      ],
+      [
+        'a voice with no measured length',
+        { audioIngredientId: 'voice-missing' },
+        'Add a saved narration with a known length to price this lip-sync.',
+      ],
+    ])('refuses %s before holding', async (_case, fields, message) => {
       await expect(
-        service.fundVideoLipSync({ ...input, model: 'sync/lipsync-2' }),
-      ).rejects.toThrow('Pricing is unavailable');
-      expect(holdForService).not.toHaveBeenCalled();
+        service.fundVideoLipSync({ ...lipSync, ...fields }),
+      ).rejects.toThrow(message);
+      expect(pools).toEqual([]);
     });
   });
 });

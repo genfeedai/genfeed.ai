@@ -4,31 +4,56 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
+type Announcement = Record<string, unknown> & { kind: 'done' | 'failure' };
 
 /**
  * A ui-action run's result reaches the client as the turn channel's own
  * `agent:done` / `agent:error`, tagged with the thread's event position.
  */
-function setup(handle: () => Promise<AgentChatResult>) {
-  const uiActionService = { handleThreadUiAction: vi.fn(handle) };
-  const streamEffects = {
-    publishUiActionDone: vi.fn(),
-    publishUiActionFailure: vi.fn(),
-  };
-  const threadEventRecorder = {
-    readRunTerminalSequence: vi.fn().mockResolvedValue(12),
-    recordRunFailed: vi.fn(),
+function setup(
+  handle: () => Promise<AgentChatResult>,
+  { isThreadLogDown = false } = {},
+) {
+  const world = {
+    // What the client sees on the turn channel.
+    channel: [] as Announcement[],
+    // The thread's persisted run log and terminal positions.
+    failedRuns: [] as unknown[],
+    terminalSequences: new Map([['org:thread-1:exec-1', 12]]),
   };
   const dependencies: unknown[] = Array.from({ length: 18 }, () => ({}));
-  dependencies[12] = uiActionService;
-  dependencies[13] = streamEffects;
-  dependencies[14] = threadEventRecorder;
+  dependencies[12] = { handleThreadUiAction: handle };
+  dependencies[13] = {
+    publishUiActionDone: (input: Record<string, unknown>) => {
+      world.channel.push({ kind: 'done', ...input });
+    },
+    publishUiActionFailure: (input: Record<string, unknown>) => {
+      world.channel.push({ kind: 'failure', ...input });
+    },
+  };
+  dependencies[14] = {
+    readRunTerminalSequence: async (input: {
+      organizationId: string;
+      runId: string;
+      threadId: string;
+    }) =>
+      world.terminalSequences.get(
+        `${input.organizationId}:${input.threadId}:${input.runId}`,
+      ),
+    recordRunFailed: async (input: unknown) => {
+      if (isThreadLogDown) {
+        throw new Error('Thread not found');
+      }
+      world.failedRuns.push(input);
+    },
+  };
   const service = Reflect.construct(
     AgentTurnWorkflowExecutionService,
     dependencies,
   ) as AgentTurnWorkflowExecutionService;
-  return { service, streamEffects, threadEventRecorder, uiActionService };
+  return { service, world };
 }
 
 const context = {
@@ -56,35 +81,33 @@ const result: AgentChatResult = {
 };
 
 describe('AgentTurnWorkflowExecutionService.executeUiAction', () => {
+  const uiAction = { action: 'confirm_generate_media', sourceId: 'proposal-1' };
+
   it('announces the run result on the turn channel with the thread position', async () => {
-    const { service, streamEffects, threadEventRecorder } = setup(
-      async () => result,
-    );
+    const { service, world } = setup(async () => result);
 
     await expect(service.executeUiAction(request, context)).resolves.toBe(
       result,
     );
 
-    expect(threadEventRecorder.readRunTerminalSequence).toHaveBeenCalledWith({
-      organizationId: 'org',
-      runId: 'exec-1',
-      threadId: 'thread-1',
-    });
-    expect(streamEffects.publishUiActionDone).toHaveBeenCalledWith({
-      context,
-      result,
-      sequence: 12,
-      threadId: 'thread-1',
-      uiAction: { action: 'confirm_generate_media', sourceId: 'proposal-1' },
-    });
-    expect(streamEffects.publishUiActionFailure).not.toHaveBeenCalled();
+    expect(world.channel).toEqual([
+      {
+        context,
+        kind: 'done',
+        result,
+        sequence: 12,
+        threadId: 'thread-1',
+        uiAction,
+      },
+    ]);
+    expect(world.failedRuns).toEqual([]);
   });
 
   it('records and announces a sanitized failure, then rethrows', async () => {
     const failure = new BadRequestException(
       'This plan has already been approved.',
     );
-    const { service, streamEffects, threadEventRecorder } = setup(async () => {
+    const { service, world } = setup(async () => {
       throw failure;
     });
 
@@ -92,24 +115,28 @@ describe('AgentTurnWorkflowExecutionService.executeUiAction', () => {
       failure,
     );
 
-    expect(threadEventRecorder.recordRunFailed).toHaveBeenCalledWith({
-      context,
-      error: 'This plan has already been approved.',
-      runId: 'exec-1',
-      threadId: 'thread-1',
-    });
-    expect(streamEffects.publishUiActionFailure).toHaveBeenCalledWith({
-      context,
-      error: 'This plan has already been approved.',
-      sequence: 12,
-      threadId: 'thread-1',
-      uiAction: { action: 'confirm_generate_media', sourceId: 'proposal-1' },
-    });
-    expect(streamEffects.publishUiActionDone).not.toHaveBeenCalled();
+    expect(world.failedRuns).toEqual([
+      {
+        context,
+        error: 'This plan has already been approved.',
+        runId: 'exec-1',
+        threadId: 'thread-1',
+      },
+    ]);
+    expect(world.channel).toEqual([
+      {
+        context,
+        error: 'This plan has already been approved.',
+        kind: 'failure',
+        sequence: 12,
+        threadId: 'thread-1',
+        uiAction,
+      },
+    ]);
   });
 
   it('never announces the text of an unexpected error', async () => {
-    const { service, streamEffects } = setup(async () => {
+    const { service, world } = setup(async () => {
       throw new Error('connect ECONNREFUSED 10.0.0.7:5432');
     });
 
@@ -117,15 +144,16 @@ describe('AgentTurnWorkflowExecutionService.executeUiAction', () => {
       'ECONNREFUSED',
     );
 
-    expect(streamEffects.publishUiActionFailure).toHaveBeenCalledWith(
+    expect(world.channel).toEqual([
       expect.objectContaining({
         error: 'The action failed before it finished.',
+        kind: 'failure',
       }),
-    );
+    ]);
   });
 
   it('keeps a deliberate server error message the card formats', async () => {
-    const { service, streamEffects } = setup(async () => {
+    const { service, world } = setup(async () => {
       throw new InternalServerErrorException(
         'Generation failed with status 422: invalid version',
       );
@@ -133,27 +161,32 @@ describe('AgentTurnWorkflowExecutionService.executeUiAction', () => {
 
     await expect(service.executeUiAction(request, context)).rejects.toThrow();
 
-    expect(streamEffects.publishUiActionFailure).toHaveBeenCalledWith(
+    expect(world.channel).toEqual([
       expect.objectContaining({
         error: 'Generation failed with status 422: invalid version',
+        kind: 'failure',
       }),
-    );
+    ]);
   });
 
   it('still announces a failure the thread log cannot take', async () => {
-    const { service, streamEffects, threadEventRecorder } = setup(async () => {
-      throw new BadRequestException('Thread not found or inaccessible.');
-    });
-    threadEventRecorder.recordRunFailed.mockRejectedValue(
-      new Error('Thread not found'),
+    const { service, world } = setup(
+      async () => {
+        throw new BadRequestException('Thread not found or inaccessible.');
+      },
+      { isThreadLogDown: true },
     );
 
     await expect(service.executeUiAction(request, context)).rejects.toThrow(
       'Thread not found or inaccessible.',
     );
 
-    expect(streamEffects.publishUiActionFailure).toHaveBeenCalledWith(
-      expect.objectContaining({ error: 'Thread not found or inaccessible.' }),
-    );
+    expect(world.failedRuns).toEqual([]);
+    expect(world.channel).toEqual([
+      expect.objectContaining({
+        error: 'Thread not found or inaccessible.',
+        kind: 'failure',
+      }),
+    ]);
   });
 });

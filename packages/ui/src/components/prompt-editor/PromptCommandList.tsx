@@ -141,7 +141,7 @@ export function PromptCommandList({
       {items.map((item, index) => (
         <Fragment key={item.name}>
           {item.group && item.group !== items[index - 1]?.group ? (
-            <span className="block px-3 pb-1 pt-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="block px-3 pb-1 pt-2.5 text-2xs font-medium uppercase tracking-wide text-muted-foreground">
               {item.group}
             </span>
           ) : null}

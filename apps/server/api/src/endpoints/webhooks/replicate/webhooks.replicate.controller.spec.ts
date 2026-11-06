@@ -1,526 +1,424 @@
 import { createHmac } from 'node:crypto';
-import { AssetsService } from '@api/collections/assets/services/assets.service';
-import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
-import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
+import type { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+import type { TrainingsService } from '@api/collections/trainings/services/trainings.service';
+import type { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
 import { ReplicateWebhookController } from '@api/endpoints/webhooks/replicate/webhooks.replicate.controller';
-import { ReplicateWebhookVerificationService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.verification.service';
-import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
-import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { TrainingStatus } from '@genfeedai/contracts';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import type { ReplicateWebhookVerificationService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.verification.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { IngredientStatus, TrainingStatus } from '@genfeedai/contracts';
+import type { ConfigService } from '@libs/config/config.service';
+import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
-import { validateWebhook } from 'replicate';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-vi.mock('replicate', () => ({
-  validateWebhook: vi.fn().mockResolvedValue(true),
-}));
+type Row = Record<string, unknown>;
 
-vi.mock('@libs/utils/caller/caller.util', () => ({
-  CallerUtil: {
-    getCallerName: vi.fn().mockReturnValue('replicate callback'),
-  },
-}));
+const KEY = Buffer.from('local-callback-test-key');
+const SECRET = `whsec_${KEY.toString('base64')}`;
+const TIMESTAMP = '1700000000';
+
+/** A delivery signed with the endpoint secret, exactly as Replicate signs it. */
+function signed(
+  rawBody: string,
+  { deliveryId = 'msg_abc', key = KEY, sentBytes = rawBody } = {},
+): RawBodyRequest<Request> {
+  const signature = createHmac('sha256', key)
+    .update(`${deliveryId}.${TIMESTAMP}.${rawBody}`)
+    .digest('base64');
+  return {
+    headers: {
+      'webhook-id': deliveryId,
+      'webhook-signature': `v1,${signature}`,
+      'webhook-timestamp': TIMESTAMP,
+    },
+    rawBody: Buffer.from(sentBytes),
+  } as unknown as RawBodyRequest<Request>;
+}
+const signedJson = (body: Row, options = {}) =>
+  signed(JSON.stringify(body), options);
+
+/** Lets the setImmediate processing run after the 200 is returned. */
+const flushAsyncProcessing = () =>
+  new Promise((resolve) => setImmediate(resolve));
 
 describe('ReplicateWebhookController', () => {
+  let configuredSecret: string | undefined;
+  // Replicate's own record of each prediction or training, by id; null when
+  // the record cannot be read.
+  let replicateRecords: Map<string, Row | null>;
+  let seenDeliveries: Set<string>;
+  let trainings: Row[];
+  // Effects of each delivery.
+  let verifiedAs: [unknown, string][];
+  let deferred: unknown[];
+  let completed: [Row, string | undefined][];
+  let failed: [Row, string | undefined][];
+  let trainingStatuses: unknown[][];
+  let registered: Row[];
+  let errors: unknown[][];
   let controller: ReplicateWebhookController;
-  let configService: ConfigService;
-  let modelRegistrationService: { createFromTraining: vi.Mock };
-  let loggerService: vi.Mocked<LoggerService>;
-  let generationWebhookHandler: {
-    handleCompleted: vi.Mock;
-    handleFailed: vi.Mock;
-  };
-  let trainingsService: { findOne: vi.Mock; patch: vi.Mock };
-  let verificationService: {
-    deferUntrustedDelivery: vi.Mock;
-    isReplay: vi.Mock;
-    resolveTrustedPayload: vi.Mock;
-  };
 
-  let mockRequest: Request;
-
-  /** Lets the `setImmediate` async-processing callback run before asserting. */
-  const flushAsyncProcessing = () =>
-    new Promise((resolve) => setImmediate(resolve));
-
-  beforeEach(async () => {
-    mockRequest = {
-      body: {},
-      headers: { 'webhook-id': 'msg_abc' },
-      ip: '127.0.0.1',
-      rawBody: Buffer.from('{}'),
-    } as unknown as Request;
-
-    vi.mocked(validateWebhook).mockResolvedValue(true);
-    verificationService = {
-      deferUntrustedDelivery: vi.fn().mockResolvedValue(undefined),
-      isReplay: vi.fn().mockResolvedValue(false),
-      resolveTrustedPayload: vi.fn(async (payload: unknown) => payload),
-    };
-
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [ReplicateWebhookController],
-      providers: [
-        {
-          provide: ConfigService,
-          useValue: {
-            // Signing secret required — endpoint fails closed without it.
-            get: vi.fn().mockReturnValue('test-replicate-signing-secret'),
-            isProduction: false,
-          },
-        },
-        {
-          provide: LoggerService,
-          useValue: {
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
-          },
-        },
-        {
-          provide: ModelsService,
-          useValue: {
-            findOne: vi.fn(),
-          },
-        },
-        {
-          provide: WebhooksService,
-          useValue: {
-            handleFailedGeneration: vi.fn(),
-            processAssetFromWebhook: vi.fn(),
-            processMediaFromWebhook: vi.fn(),
-          },
-        },
-        {
-          provide: TrainingsService,
-          useValue: {
-            findOne: vi.fn().mockResolvedValue(null),
-            patch: vi.fn(),
-          },
-        },
-        {
-          provide: AssetsService,
-          useValue: {
-            findOne: vi.fn().mockResolvedValue(null),
-            patch: vi.fn(),
-          },
-        },
-        {
-          provide: NotificationsPublisherService,
-          useValue: {
-            publishAssetStatus: vi.fn(),
-            publishTrainingStatus: vi.fn(),
-          },
-        },
-        {
-          provide: ModelRegistrationService,
-          useValue: {
-            createFromTraining: vi.fn(),
-          },
-        },
-        {
-          provide: ReplicateGenerationWebhookHandler,
-          useValue: {
-            handleCompleted: vi.fn(),
-            handleFailed: vi.fn(),
-          },
-        },
-        {
-          provide: ReplicateWebhookVerificationService,
-          useValue: verificationService,
-        },
-      ],
-    })
-      .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
-
-    controller = module.get<ReplicateWebhookController>(
-      ReplicateWebhookController,
+  const deliver = (
+    body: Row,
+    request = signedJson(body),
+    continuation?: string,
+  ) =>
+    controller.handleCallback(
+      request,
+      body as unknown as ReplicateWebhookPayload,
+      continuation,
     );
-    loggerService = module.get(LoggerService);
-    configService = module.get(ConfigService);
-    modelRegistrationService = module.get(ModelRegistrationService);
-    generationWebhookHandler = module.get(ReplicateGenerationWebhookHandler);
-    trainingsService = module.get(TrainingsService);
+  const training = () => trainings[0] as Row;
+
+  beforeEach(() => {
+    configuredSecret = SECRET;
+    replicateRecords = new Map();
+    seenDeliveries = new Set();
+    trainings = [];
+    verifiedAs = [];
+    deferred = [];
+    completed = [];
+    failed = [];
+    trainingStatuses = [];
+    registered = [];
+    errors = [];
+
+    controller = new ReplicateWebhookController(
+      { get: () => configuredSecret } as unknown as ConfigService,
+      {
+        error: (...entry: unknown[]) => {
+          errors.push(entry);
+        },
+        log: () => undefined,
+        warn: () => undefined,
+      } as unknown as LoggerService,
+      {
+        findOne: async ({ externalId }: Row) =>
+          trainings.find((row) => row.externalId === externalId) ?? null,
+        patch: async (id: string, data: Row) =>
+          Object.assign(trainings.find((row) => row.id === id) as Row, data),
+      } as unknown as TrainingsService,
+      {
+        publishTrainingStatus: async (...args: unknown[]) => {
+          trainingStatuses.push(args);
+        },
+      } as unknown as NotificationsPublisherService,
+      {
+        createFromTraining: async (row: Row) => {
+          registered.push({ ...row });
+        },
+      } as unknown as ModelRegistrationService,
+      {
+        handleCompleted: async (payload: Row, continuation?: string) => {
+          completed.push([payload, continuation]);
+        },
+        handleFailed: async (payload: Row, continuation?: string) => {
+          failed.push([payload, continuation]);
+        },
+      } as unknown as ReplicateGenerationWebhookHandler,
+      {
+        deferUntrustedDelivery: async (payload: Row) => {
+          deferred.push(payload);
+        },
+        isReplay: async (deliveryId: string) => {
+          if (seenDeliveries.has(deliveryId)) return true;
+          seenDeliveries.add(deliveryId);
+          return false;
+        },
+        resolveTrustedPayload: async (payload: Row, kind: string) => {
+          verifiedAs.push([payload.id, kind]);
+          return replicateRecords.has(String(payload.id))
+            ? replicateRecords.get(String(payload.id))
+            : payload;
+        },
+      } as unknown as ReplicateWebhookVerificationService,
+    );
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  describe('signature', () => {
+    it.each([
+      [
+        'pretty JSON',
+        '{\n  "id": "pred_raw",\n  "status": "succeeded"\n}',
+        { id: 'pred_raw', status: 'succeeded' },
+      ],
+      [
+        'escaped Unicode',
+        '{"id":"pred_raw","status":"succeeded","note":"\\u0061"}',
+        { id: 'pred_raw', note: 'a', status: 'succeeded' },
+      ],
+      [
+        'exponent notation',
+        '{"id":"pred_raw","status":"succeeded","metric":1e+3}',
+        { id: 'pred_raw', metric: 1000, status: 'succeeded' },
+      ],
+      [
+        'a UTF-8 BOM',
+        '﻿{"id":"pred_raw","status":"succeeded"}',
+        { id: 'pred_raw', status: 'succeeded' },
+      ],
+    ])(
+      'authenticates the original bytes for %s',
+      async (_case, rawBody, body) => {
+        await expect(
+          deliver(body, signed(rawBody, { deliveryId: 'msg_raw' })),
+        ).resolves.toEqual({
+          detail: 'Webhook processed',
+        });
+        await flushAsyncProcessing();
+
+        expect(seenDeliveries.has('msg_raw')).toBe(true);
+      },
+    );
+
+    it.each([
+      [
+        'altered captured bytes',
+        signed('{ "id": "pred_raw", "status": "succeeded" }', {
+          sentBytes: '{ "id": "pred_raw", "status": "succeeded" } ',
+        }),
+      ],
+      [
+        'a signature made with another key',
+        signedJson(
+          { id: 'pred_raw', status: 'succeeded' },
+          { key: Buffer.from('attacker-key') },
+        ),
+      ],
+      [
+        'no captured body bytes',
+        {
+          headers: { 'webhook-id': 'msg_abc' },
+        } as unknown as RawBodyRequest<Request>,
+      ],
+    ])(
+      'rejects %s with 401 before replay checks or downstream work',
+      async (_case, request) => {
+        await expect(
+          deliver({ id: 'pred_raw', status: 'succeeded' }, request),
+        ).rejects.toMatchObject({ status: 401 });
+        await flushAsyncProcessing();
+
+        expect(seenDeliveries.size).toBe(0);
+        expect(verifiedAs).toEqual([]);
+      },
+    );
+
+    it.each([
+      ['not configured', undefined],
+      ['blank', '   '],
+    ])('fails closed when the signing secret is %s', async (_case, secret) => {
+      configuredSecret = secret;
+
+      await expect(
+        deliver({ id: 'pred_456', status: 'succeeded' }),
+      ).rejects.toMatchObject({
+        status: 401,
+      });
+
+      expect(seenDeliveries.size).toBe(0);
+      expect(errors).toContainEqual([
+        expect.stringContaining(
+          'REPLICATE_WEBHOOK_SIGNING_SECRET is not configured',
+        ),
+      ]);
+    });
   });
 
-  describe('handleCallback', () => {
-    it('should handle callback successfully and return webhook processed', async () => {
+  describe('predictions', () => {
+    it('hands a trusted completed prediction to the generation handler with its continuation', async () => {
       const body = {
         id: 'pred_123',
+        model: 'owner/model',
         output: ['result.png'],
         status: 'succeeded',
       };
 
-      const result = await controller.handleCallback(mockRequest, body);
+      await expect(
+        deliver(body, signedJson(body), 'continuation-1'),
+      ).resolves.toEqual({
+        detail: 'Webhook processed',
+      });
+      await flushAsyncProcessing();
 
-      expect(loggerService.log).toHaveBeenCalledWith(
-        expect.stringContaining('replicate callback received'),
-        body,
-      );
-      expect(result).toEqual({ detail: 'Webhook processed' });
+      expect(verifiedAs).toEqual([['pred_123', 'prediction']]);
+      expect(completed).toEqual([[body, 'continuation-1']]);
     });
 
-    it('should suppress a replayed delivery without processing it', async () => {
-      verificationService.isReplay.mockResolvedValue(true);
+    it('suppresses a replayed delivery without processing it again', async () => {
       const body = {
         id: 'pred_replay',
-        output: ['https://replicate.delivery/pbxt/out.png'],
+        model: 'owner/model',
         status: 'succeeded',
       };
 
-      const result = await controller.handleCallback(mockRequest, body);
+      await deliver(body);
+      await flushAsyncProcessing();
+      await expect(deliver(body)).resolves.toEqual({
+        detail: 'Webhook already processed',
+      });
       await flushAsyncProcessing();
 
-      expect(verificationService.isReplay).toHaveBeenCalledWith('msg_abc');
-      expect(result).toEqual({ detail: 'Webhook already processed' });
-      expect(verificationService.resolveTrustedPayload).not.toHaveBeenCalled();
-      expect(generationWebhookHandler.handleCompleted).not.toHaveBeenCalled();
+      expect(completed).toHaveLength(1);
     });
 
-    it('should act on the re-fetched payload, not the signed body', async () => {
-      // A forged body claiming success for a prediction that actually failed.
+    it('acts on Replicate’s own record, not the signed body', async () => {
+      // A signed body claiming success for a prediction that actually failed.
       const body = {
         id: 'pred_forged',
         model: 'owner/model',
         output: ['https://evil.example.com/forged.png'],
         status: 'succeeded',
       };
-
-      verificationService.resolveTrustedPayload.mockResolvedValue({
+      replicateRecords.set('pred_forged', {
         ...body,
         output: null,
         status: 'failed',
       });
 
-      await controller.handleCallback(mockRequest, body);
+      await deliver(body);
       await flushAsyncProcessing();
 
-      expect(verificationService.resolveTrustedPayload).toHaveBeenCalledWith(
-        body,
-        'prediction',
-      );
-      expect(generationWebhookHandler.handleCompleted).not.toHaveBeenCalled();
-      expect(generationWebhookHandler.handleFailed).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'pred_forged', status: 'failed' }),
-        undefined,
-      );
+      expect(completed).toEqual([]);
+      expect(failed).toEqual([
+        [
+          expect.objectContaining({ id: 'pred_forged', status: 'failed' }),
+          undefined,
+        ],
+      ]);
     });
 
-    it('should fail the generation of a canceled prediction instead of leaving it processing', async () => {
+    it('fails the generation of a canceled prediction instead of leaving it processing', async () => {
       const body = {
         id: 'pred_canceled',
         model: 'owner/model',
         status: 'canceled',
       };
-      verificationService.resolveTrustedPayload.mockResolvedValue(body);
 
-      await controller.handleCallback(mockRequest, body);
+      await deliver(body);
       await flushAsyncProcessing();
 
-      expect(generationWebhookHandler.handleCompleted).not.toHaveBeenCalled();
-      expect(generationWebhookHandler.handleFailed).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'pred_canceled', status: 'canceled' }),
-        undefined,
-      );
+      expect(failed).toEqual([[body, undefined]]);
     });
 
-    it('should not dispatch a payload whose prediction cannot be trusted', async () => {
+    it('defers a delivery whose prediction cannot be read from Replicate', async () => {
       const body = {
         id: 'pred_untrusted',
         model: 'owner/model',
-        output: ['https://evil.example.com/forged.png'],
         status: 'succeeded',
       };
-      verificationService.resolveTrustedPayload.mockResolvedValue(null);
+      replicateRecords.set('pred_untrusted', null);
 
-      await controller.handleCallback(mockRequest, body);
+      await deliver(body);
       await flushAsyncProcessing();
 
-      expect(trainingsService.findOne).toHaveBeenCalledOnce();
-      expect(generationWebhookHandler.handleCompleted).not.toHaveBeenCalled();
-      expect(generationWebhookHandler.handleFailed).not.toHaveBeenCalled();
-      expect(verificationService.deferUntrustedDelivery).toHaveBeenCalledWith(
-        body,
-      );
+      expect(deferred).toEqual([body]);
+      expect([completed, failed]).toEqual([[], []]);
     });
 
-    it.each([
-      {
-        label: 'pretty JSON',
-        rawBody: '{\n  "id": "pred_raw",\n  "status": "succeeded"\n}',
-        body: { id: 'pred_raw', status: 'succeeded' },
-      },
-      {
-        label: 'escaped Unicode',
-        rawBody: '{"id":"pred_raw","status":"succeeded","note":"\\u0061"}',
-        body: { id: 'pred_raw', status: 'succeeded', note: 'a' },
-      },
-      {
-        label: 'exponent notation',
-        rawBody: '{"id":"pred_raw","status":"succeeded","metric":1e+3}',
-        body: { id: 'pred_raw', status: 'succeeded', metric: 1000 },
-      },
-      {
-        label: 'UTF-8 BOM',
-        rawBody: '\uFEFF{"id":"pred_raw","status":"succeeded"}',
-        body: { id: 'pred_raw', status: 'succeeded' },
-      },
-    ])(
-      'authenticates the original bytes for $label',
-      async ({ rawBody, body }) => {
-        const actual =
-          await vi.importActual<typeof import('replicate')>('replicate');
-        vi.mocked(validateWebhook).mockImplementationOnce(
-          actual.validateWebhook,
-        );
-        const key = Buffer.from('local-callback-test-key');
-        const secret = `whsec_${key.toString('base64')}`;
-        vi.spyOn(configService, 'get').mockReturnValue(secret);
-        const timestamp = '1700000000';
-        const signature = createHmac('sha256', key)
-          .update(`msg_raw.${timestamp}.${rawBody}`)
-          .digest('base64');
-        const request = Object.assign(mockRequest, {
-          body,
-          headers: {
-            'webhook-id': 'msg_raw',
-            'webhook-signature': `v1,${signature}`,
-            'webhook-timestamp': timestamp,
-          },
-          rawBody: Buffer.from(rawBody),
-        });
-
-        await expect(controller.handleCallback(request, body)).resolves.toEqual(
-          {
-            detail: 'Webhook processed',
-          },
-        );
-        await flushAsyncProcessing();
-        expect(verificationService.isReplay).toHaveBeenCalledWith('msg_raw');
-      },
-    );
-
-    it('rejects altered captured bytes before replay or downstream work', async () => {
-      const actual =
-        await vi.importActual<typeof import('replicate')>('replicate');
-      vi.mocked(validateWebhook).mockImplementationOnce(actual.validateWebhook);
-      const key = Buffer.from('local-callback-test-key');
-      vi.spyOn(configService, 'get').mockReturnValue(
-        `whsec_${key.toString('base64')}`,
-      );
-      const rawBody = '{ "id": "pred_raw", "status": "succeeded" }';
-      const timestamp = '1700000000';
-      const signature = createHmac('sha256', key)
-        .update(`msg_raw.${timestamp}.${rawBody}`)
-        .digest('base64');
-      const body = { id: 'pred_raw', status: 'succeeded' };
-      const request = Object.assign(mockRequest, {
-        body,
-        headers: {
-          'webhook-id': 'msg_raw',
-          'webhook-signature': `v1,${signature}`,
-          'webhook-timestamp': timestamp,
-        },
-        rawBody: Buffer.from(`${rawBody} `),
-      });
-
-      await expect(
-        controller.handleCallback(request, body),
-      ).rejects.toMatchObject({
-        status: 401,
-      });
-      expect(verificationService.isReplay).not.toHaveBeenCalled();
-      expect(trainingsService.findOne).not.toHaveBeenCalled();
-      expect(verificationService.resolveTrustedPayload).not.toHaveBeenCalled();
-    });
-
-    it('fails closed when original body bytes were not captured', async () => {
-      const request = mockRequest;
-      Reflect.deleteProperty(request, 'rawBody');
-
-      await expect(
-        controller.handleCallback(request, {
-          id: 'pred_raw',
-          status: 'succeeded',
-        }),
-      ).rejects.toMatchObject({ status: 401 });
-      expect(validateWebhook).not.toHaveBeenCalled();
-      expect(verificationService.isReplay).not.toHaveBeenCalled();
-      expect(trainingsService.findOne).not.toHaveBeenCalled();
-    });
-
-    it('selects training verification from the persisted row and reuses it', async () => {
-      const body = { id: 'train_123', status: 'succeeded' };
-      const training = { config: {}, id: 'training_db', userId: 'user_123' };
-      trainingsService.findOne
-        .mockResolvedValueOnce(training)
-        .mockResolvedValue(null);
-      trainingsService.patch.mockResolvedValue(training);
-      verificationService.resolveTrustedPayload.mockImplementationOnce(
-        async (_payload, resourceKind) =>
-          resourceKind === 'training'
-            ? { ...body, output: { version: 'owner/trained:version' } }
-            : null,
-      );
-
-      await controller.handleCallback(mockRequest, body);
-      await flushAsyncProcessing();
-
-      expect(trainingsService.findOne).toHaveBeenCalledExactlyOnceWith({
-        externalId: 'train_123',
-      });
-      expect(verificationService.resolveTrustedPayload).toHaveBeenCalledWith(
-        body,
-        'training',
-      );
-      expect(trainingsService.patch).toHaveBeenCalledWith(
-        'training_db',
-        expect.objectContaining({
-          config: expect.objectContaining({
-            trainedModelVersion: 'owner/trained:version',
-          }),
-          stage: 'READY',
-        }),
-      );
-      expect(
-        modelRegistrationService.createFromTraining,
-      ).toHaveBeenCalledExactlyOnceWith(training);
-      expect(generationWebhookHandler.handleCompleted).not.toHaveBeenCalled();
-    });
-
-    it('defers untrusted training state without training completion writes', async () => {
-      const body = { id: 'train_untrusted', status: 'succeeded' };
-      trainingsService.findOne.mockResolvedValue({ id: 'training_db' });
-      verificationService.resolveTrustedPayload.mockResolvedValue(null);
-
-      await controller.handleCallback(mockRequest, body);
-      await flushAsyncProcessing();
-
-      expect(verificationService.resolveTrustedPayload).toHaveBeenCalledWith(
-        body,
-        'training',
-      );
-      expect(verificationService.deferUntrustedDelivery).toHaveBeenCalledWith(
-        body,
-      );
-      expect(trainingsService.findOne).toHaveBeenCalledOnce();
-      expect(trainingsService.patch).not.toHaveBeenCalled();
-      expect(
-        modelRegistrationService.createFromTraining,
-      ).not.toHaveBeenCalled();
-      expect(generationWebhookHandler.handleCompleted).not.toHaveBeenCalled();
-    });
-
-    it('uses the authoritative failed training status instead of signed success', async () => {
-      const body = { id: 'train_failed', status: 'succeeded' };
-      trainingsService.findOne.mockResolvedValue({
-        config: {},
-        id: 'training_db',
-        userId: 'user_123',
-      });
-      verificationService.resolveTrustedPayload.mockResolvedValue({
-        ...body,
-        error: 'remote failure',
-        status: 'failed',
-      });
-
-      await controller.handleCallback(mockRequest, body);
-      await flushAsyncProcessing();
-
-      expect(trainingsService.patch).toHaveBeenCalledWith(
-        'training_db',
-        expect.objectContaining({
-          config: expect.objectContaining({
-            error: 'remote failure',
-            status: TrainingStatus.FAILED,
-          }),
-          stage: 'FAILED',
-        }),
-      );
-      expect(
-        modelRegistrationService.createFromTraining,
-      ).not.toHaveBeenCalled();
-      expect(generationWebhookHandler.handleFailed).not.toHaveBeenCalled();
-    });
-
-    it('ignores an untrusted resource-kind field when no training row exists', async () => {
+    it('ignores a signed resource-kind claim when no training row exists', async () => {
       const body = {
         id: 'pred_123',
         resourceKind: 'training',
         status: 'succeeded',
       };
 
-      await controller.handleCallback(mockRequest, body);
+      await deliver(body);
       await flushAsyncProcessing();
 
-      expect(verificationService.resolveTrustedPayload).toHaveBeenCalledWith(
-        body,
-        'prediction',
-      );
-      expect(trainingsService.patch).not.toHaveBeenCalled();
+      expect(verifiedAs).toEqual([['pred_123', 'prediction']]);
+    });
+  });
+
+  describe('trainings', () => {
+    beforeEach(() => {
+      trainings = [
+        {
+          config: { steps: 1000 },
+          externalId: 'train_123',
+          id: 'training_db',
+          stage: 'TRAINING',
+          userId: 'user_123',
+        },
+      ];
     });
 
-    it('should reject when the signing secret is not configured', async () => {
-      const body = {
-        id: 'pred_456',
-        output: ['result.png'],
-        status: 'succeeded',
-      };
+    it('verifies against the training record, marks it ready and registers the model', async () => {
+      const body = { id: 'train_123', status: 'succeeded' };
+      replicateRecords.set('train_123', {
+        ...body,
+        output: { version: 'owner/trained:version' },
+      });
 
-      vi.spyOn(configService, 'get').mockReturnValue(undefined);
+      await deliver(body);
+      await flushAsyncProcessing();
 
-      await expect(
-        controller.handleCallback(mockRequest, body),
-      ).rejects.toThrow();
-
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'REPLICATE_WEBHOOK_SIGNING_SECRET is not configured',
-        ),
-      );
-      expect(verificationService.isReplay).not.toHaveBeenCalled();
-      expect(verificationService.resolveTrustedPayload).not.toHaveBeenCalled();
+      expect(verifiedAs).toEqual([['train_123', 'training']]);
+      expect(training()).toMatchObject({
+        config: {
+          model: 'owner/trained:version',
+          status: TrainingStatus.COMPLETED,
+          steps: 1000,
+          trainedModelVersion: 'owner/trained:version',
+        },
+        stage: 'READY',
+      });
+      expect(registered).toEqual([
+        expect.objectContaining({ id: 'training_db', stage: 'READY' }),
+      ]);
+      expect(trainingStatuses).toEqual([
+        [
+          'training_db',
+          IngredientStatus.GENERATED,
+          'user_123',
+          expect.objectContaining({ status: TrainingStatus.COMPLETED }),
+        ],
+      ]);
+      expect(completed).toEqual([]);
     });
 
-    it('should reject when the signing secret is blank', async () => {
-      const body = {
-        id: 'pred_blank_secret',
-        output: ['result.png'],
-        status: 'succeeded',
-      };
+    it('defers untrusted training state without completion writes', async () => {
+      replicateRecords.set('train_123', null);
 
-      vi.spyOn(configService, 'get').mockReturnValue('   ');
+      await deliver({ id: 'train_123', status: 'succeeded' });
+      await flushAsyncProcessing();
 
-      await expect(
-        controller.handleCallback(mockRequest, body),
-      ).rejects.toThrow();
-
-      expect(verificationService.isReplay).not.toHaveBeenCalled();
+      expect(deferred).toEqual([{ id: 'train_123', status: 'succeeded' }]);
+      expect(training().stage).toBe('TRAINING');
+      expect(registered).toEqual([]);
     });
 
-    it('should rethrow error when validation fails', async () => {
-      const body = { error: 'Model failed', id: 'pred_err', status: 'failed' };
+    it('uses the authoritative failed training status instead of signed success', async () => {
+      const body = { id: 'train_123', status: 'succeeded' };
+      replicateRecords.set('train_123', {
+        ...body,
+        error: 'remote failure',
+        status: 'failed',
+      });
 
-      // Make validateWebhook return false so the controller throws UNAUTHORIZED
-      const replicate = await import('replicate');
-      (replicate.validateWebhook as vi.Mock).mockResolvedValue(false);
+      await deliver(body);
+      await flushAsyncProcessing();
 
-      await expect(
-        controller.handleCallback(mockRequest, body),
-      ).rejects.toThrow();
-
-      expect(loggerService.error).toHaveBeenCalled();
+      expect(training()).toMatchObject({
+        config: {
+          error: 'remote failure',
+          status: TrainingStatus.FAILED,
+          steps: 1000,
+        },
+        stage: 'FAILED',
+      });
+      expect(trainingStatuses).toEqual([
+        [
+          'training_db',
+          IngredientStatus.FAILED,
+          'user_123',
+          expect.objectContaining({ error: 'remote failure' }),
+        ],
+      ]);
+      expect(registered).toEqual([]);
+      expect(failed).toEqual([]);
     });
   });
 });

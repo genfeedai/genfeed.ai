@@ -1,186 +1,285 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
+import type { PersonasService } from '@api/collections/personas/services/personas.service';
 import { VideoExtensionExecutionService } from '@api/collections/videos/services/video-extension-execution.service';
 import { PLAYGROUND_FABRICATED_EXTEND_WORKFLOW_ID } from '@api/collections/workflows/services/playground-extend-workflow-definition';
+import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import type { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { SharedService } from '@api/shared/services/shared/shared.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
-import { describe, expect, it, vi } from 'vitest';
+import type { ConfigService } from '@libs/config/config.service';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 const sourceHash = 'a'.repeat(64);
 const frameHash = 'b'.repeat(64);
-function fixture() {
-  const source = { id: 'source', brandId: 'brand', s3Key: 'videos/source.mp4' };
-  const frame = { id: 'frame', s3Key: 'images/frame.jpg' };
-  const prisma = {
-    ingredient: {
-      findFirst: vi
-        .fn()
-        .mockResolvedValueOnce(source)
-        .mockResolvedValueOnce(frame),
-    },
-    model: {
-      findFirst: vi.fn().mockResolvedValue({
-        key: 'google/veo-3.1',
-        provider: 'replicate',
-        endpoint: 'google/veo-3.1',
-      }),
-    },
-  };
-  const access = { assert: vi.fn().mockResolvedValue(undefined) };
-  const personas = {
-    resolveCharacterReferences: vi.fn().mockResolvedValue(undefined),
-  };
-  const files = {
-    getPresignedDownloadUrlForObjectKey: vi
-      .fn()
-      .mockResolvedValue('https://stored/video'),
-    fingerprintMedia: vi
-      .fn()
-      .mockResolvedValueOnce({ assetHash: sourceHash, sizeBytes: 100 })
-      .mockResolvedValueOnce({ assetHash: sourceHash, sizeBytes: 100 })
-      .mockResolvedValueOnce({ assetHash: frameHash, sizeBytes: 10 }),
-    probeMediaFromUrl: vi
-      .fn()
-      .mockResolvedValue({ sizeBytes: 100, durationSeconds: 5 }),
-    generateThumbnail: vi.fn().mockResolvedValue('https://stored/thumbnail'),
-  };
-  const shared = {
-    createMediaDocumentsInternal: vi
-      .fn()
-      .mockResolvedValue({ ingredientData: { id: 'frame' } }),
-  };
-  const media = {
-    processMediaForIngredient: vi.fn().mockResolvedValue(undefined),
-  };
-  const runner = {
-    enqueueWorkflow: vi
-      .fn()
-      .mockResolvedValue({ executionId: 'execution', status: 'PENDING' }),
-  };
-  const user = {
-    id: 'actor',
-    userId: 'actor',
-    organizationId: 'org',
-    apiKeyId: 'key',
-    isApiKey: true,
-    scopes: ['videos:create'],
-  } as AuthenticatedUser;
-  const service = new VideoExtensionExecutionService(
-    prisma as never,
-    access as never,
-    personas as never,
-    files as never,
-    shared as never,
-    media as never,
-    { ingredientsEndpoint: 'https://assets' } as never,
-    runner as never,
-  );
-  return {
-    prisma,
-    access,
-    personas,
-    files,
-    shared,
-    media,
-    runner,
-    run: () =>
-      service.enqueue(user, 'source', {
-        model: 'google/veo-3.1',
-        duration: 8,
-        prompt: 'Continue forward',
-      }),
-  };
-}
+
+type IngredientRow = Record<string, unknown> & { id: string };
+type StoredObject = {
+  assetHash: string;
+  durationSeconds: number;
+  sizeBytes: number;
+};
+type Execution = {
+  frameStatusAtEnqueue: unknown;
+  input: Record<string, unknown>;
+  options: unknown;
+};
+type Where = Record<string, unknown>;
+
+const matches = (row: IngredientRow, where: Where) =>
+  Object.entries(where).every(([key, expected]) => {
+    if (expected && typeof expected === 'object' && 'in' in expected) {
+      return (expected as { in: unknown[] }).in.includes(row[key]);
+    }
+    return row[key] === expected;
+  });
+
 describe('video continuation execution preparation', () => {
-  it('persists and finalizes an independent last-frame asset before queuing the canonical graph', async () => {
-    const f = fixture();
-    expect(await f.run()).toMatchObject({ executionId: 'execution' });
-    expect(f.shared.createMediaDocumentsInternal).toHaveBeenCalledWith(
-      expect.objectContaining({
-        category: IngredientCategory.IMAGE,
-        parentId: 'source',
-        sourceIds: ['source'],
-        brandId: 'brand',
-        organizationId: 'org',
-        userId: 'actor',
-      }),
-    );
-    expect(f.media.processMediaForIngredient).toHaveBeenCalledWith(
-      'frame',
-      IngredientCategory.IMAGE,
-      'https://stored/thumbnail',
-    );
-    expect(f.runner.enqueueWorkflow).toHaveBeenCalledWith(
-      expect.objectContaining({
-        canonicalId: PLAYGROUND_FABRICATED_EXTEND_WORKFLOW_ID,
-        apiKeyId: 'key',
-        actorScopes: ['videos:create'],
-        inputValues: expect.objectContaining({
-          sourceVideo: { video: 'https://assets/videos/source' },
-          image: 'https://assets/images/frame',
-          parentIngredientId: 'source',
-          frameIngredientId: 'frame',
-          sourceEvidence: expect.objectContaining({
-            sourceVersion: sourceHash,
-            frame: expect.objectContaining({
-              assetId: 'frame',
-              sourceVersion: frameHash,
-            }),
-          }),
-        }),
-      }),
-      { dispatchClass: 'interactive' },
-    );
-    expect(
-      f.media.processMediaForIngredient.mock.invocationCallOrder[0],
-    ).toBeLessThan(f.runner.enqueueWorkflow.mock.invocationCallOrder[0]);
-    expect(f.prisma.ingredient.findFirst).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          organizationId: 'org',
+  let executions: Execution[];
+  let ingredients: Map<string, IngredientRow>;
+  // When true, the frame finalizer reports success but stores no object.
+  let isFrameObjectLost: boolean;
+  let isFrameProcessingDown: boolean;
+  let objects: Map<string, StoredObject>;
+  // Runs after the source probe, before the second fingerprint.
+  let onProbe: (() => void) | undefined;
+  let revoked: Set<string>;
+  let thumbnails: string[];
+  let service: VideoExtensionExecutionService;
+
+  const user = {
+    apiKeyId: 'key',
+    id: 'actor',
+    isApiKey: true,
+    organizationId: 'org',
+    scopes: ['videos:create'],
+    userId: 'actor',
+  } as AuthenticatedUser;
+  const urlFor = (key: string) => `https://stored/${key}`;
+  const objectAt = (url: string) => {
+    const object = objects.get(url.replace('https://stored/', ''));
+    if (!object) {
+      throw new Error(`no object at ${url}`);
+    }
+    return object;
+  };
+  const run = () =>
+    service.enqueue(user, 'source', {
+      duration: 8,
+      model: 'google/veo-3.1',
+      prompt: 'Continue forward',
+    });
+
+  beforeEach(() => {
+    executions = [];
+    ingredients = new Map([
+      [
+        'source',
+        {
           brandId: 'brand',
-          category: IngredientCategory.IMAGE,
-          parentId: 'source',
-          status: {
-            in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
+          category: IngredientCategory.VIDEO,
+          id: 'source',
+          isDeleted: false,
+          organizationId: 'org',
+          s3Key: 'videos/source.mp4',
+          status: IngredientStatus.GENERATED,
+        },
+      ],
+    ]);
+    isFrameObjectLost = false;
+    isFrameProcessingDown = false;
+    objects = new Map([
+      [
+        'videos/source.mp4',
+        { assetHash: sourceHash, durationSeconds: 5, sizeBytes: 100 },
+      ],
+    ]);
+    onProbe = undefined;
+    revoked = new Set();
+    thumbnails = [];
+
+    service = new VideoExtensionExecutionService(
+      {
+        ingredient: {
+          findFirst: async ({ where }: { where: Where }) =>
+            [...ingredients.values()].find((row) => matches(row, where)) ??
+            null,
+          updateMany: async ({
+            data,
+            where,
+          }: {
+            data: Record<string, unknown>;
+            where: Where;
+          }) => {
+            const hits = [...ingredients.values()].filter((row) =>
+              matches(row, where),
+            );
+            for (const row of hits) {
+              Object.assign(row, data);
+            }
+            return { count: hits.length };
           },
-        }),
-      }),
+        },
+        model: {
+          findFirst: async () => ({
+            endpoint: 'google/veo-3.1',
+            key: 'google/veo-3.1',
+            provider: 'replicate',
+          }),
+        },
+      } as unknown as PrismaService,
+      {
+        assert: async () => {
+          if (revoked.has('brand')) {
+            throw new Error('Access revoked');
+          }
+        },
+      } as unknown as BrandAccessService,
+      {
+        resolveCharacterReferences: async () => {
+          if (revoked.has('character')) {
+            throw new Error('Access revoked');
+          }
+        },
+      } as unknown as PersonasService,
+      {
+        fingerprintMedia: async (url: string) => {
+          const { assetHash, sizeBytes } = objectAt(url);
+          return { assetHash, sizeBytes };
+        },
+        generateThumbnail: async (url: string) => {
+          thumbnails.push(url);
+          return 'https://stored/thumbnail';
+        },
+        getPresignedDownloadUrlForObjectKey: async (key: string) => urlFor(key),
+        probeMediaFromUrl: async (url: string) => {
+          const { durationSeconds, sizeBytes } = objectAt(url);
+          onProbe?.();
+          return { durationSeconds, sizeBytes };
+        },
+      } as unknown as FilesClientService,
+      {
+        createMediaDocumentsInternal: async (
+          input: Record<string, unknown>,
+        ) => {
+          ingredients.set('frame', { ...input, id: 'frame', isDeleted: false });
+          return { ingredientData: { id: 'frame' } };
+        },
+      } as unknown as SharedService,
+      {
+        processMediaForIngredient: async (id: string) => {
+          if (isFrameProcessingDown) {
+            throw new Error('frame upload failed');
+          }
+          const frame = ingredients.get(id) as IngredientRow;
+          frame.status = IngredientStatus.GENERATED;
+          if (!isFrameObjectLost) {
+            frame.s3Key = 'images/frame.jpg';
+            objects.set('images/frame.jpg', {
+              assetHash: frameHash,
+              durationSeconds: 0,
+              sizeBytes: 10,
+            });
+          }
+        },
+      } as unknown as WebhooksService,
+      { ingredientsEndpoint: 'https://assets' } as unknown as ConfigService,
+      {
+        enqueueWorkflow: async (
+          input: Record<string, unknown>,
+          options: unknown,
+        ) => {
+          executions.push({
+            frameStatusAtEnqueue: ingredients.get('frame')?.status,
+            input,
+            options,
+          });
+          return { executionId: 'execution', status: 'PENDING' };
+        },
+      } as unknown as SystemWorkflowRunnerService,
     );
   });
+
+  it('persists and finalizes an independent last-frame asset before queuing the canonical graph', async () => {
+    await expect(run()).resolves.toMatchObject({ executionId: 'execution' });
+
+    expect(ingredients.get('frame')).toMatchObject({
+      brandId: 'brand',
+      category: IngredientCategory.IMAGE,
+      organizationId: 'org',
+      parentId: 'source',
+      s3Key: 'images/frame.jpg',
+      sourceIds: ['source'],
+      status: IngredientStatus.GENERATED,
+      userId: 'actor',
+    });
+    expect(executions).toEqual([
+      {
+        // The frame is finalized before the graph is queued.
+        frameStatusAtEnqueue: IngredientStatus.GENERATED,
+        input: expect.objectContaining({
+          actorScopes: ['videos:create'],
+          apiKeyId: 'key',
+          canonicalId: PLAYGROUND_FABRICATED_EXTEND_WORKFLOW_ID,
+          inputValues: expect.objectContaining({
+            frameIngredientId: 'frame',
+            image: 'https://assets/images/frame',
+            parentIngredientId: 'source',
+            sourceEvidence: expect.objectContaining({
+              frame: expect.objectContaining({
+                assetId: 'frame',
+                sourceVersion: frameHash,
+              }),
+              sourceVersion: sourceHash,
+            }),
+            sourceVideo: { video: 'https://assets/videos/source' },
+          }),
+        }),
+        options: { dispatchClass: 'interactive' },
+      },
+    ]);
+  });
+
   it.each(['brand', 'character'])(
     'refuses revoked %s access before files or output effects',
     async (kind) => {
-      const f = fixture();
-      (kind === 'brand'
-        ? f.access.assert
-        : f.personas.resolveCharacterReferences
-      ).mockRejectedValueOnce(new Error('Access revoked'));
-      await expect(f.run()).rejects.toThrow('Access revoked');
-      expect(f.files.generateThumbnail).not.toHaveBeenCalled();
-      expect(f.shared.createMediaDocumentsInternal).not.toHaveBeenCalled();
-      expect(f.runner.enqueueWorkflow).not.toHaveBeenCalled();
+      revoked.add(kind);
+
+      await expect(run()).rejects.toThrow('Access revoked');
+      expect(thumbnails).toEqual([]);
+      expect(ingredients.has('frame')).toBe(false);
+      expect(executions).toEqual([]);
     },
   );
+
   it('refuses bytes that change during probing without creating a frame or execution', async () => {
-    const f = fixture();
-    f.files.fingerprintMedia
-      .mockReset()
-      .mockResolvedValueOnce({ assetHash: sourceHash, sizeBytes: 100 })
-      .mockResolvedValueOnce({ assetHash: frameHash, sizeBytes: 100 });
-    await expect(f.run()).rejects.toThrow('source changed');
-    expect(f.shared.createMediaDocumentsInternal).not.toHaveBeenCalled();
-    expect(f.runner.enqueueWorkflow).not.toHaveBeenCalled();
+    onProbe = () => {
+      objects.set('videos/source.mp4', {
+        assetHash: frameHash,
+        durationSeconds: 5,
+        sizeBytes: 100,
+      });
+    };
+
+    await expect(run()).rejects.toThrow('source changed');
+    expect(ingredients.has('frame')).toBe(false);
+    expect(executions).toEqual([]);
   });
+
   it('never dispatches when the last frame has no persisted storage object', async () => {
-    const f = fixture();
-    f.prisma.ingredient.findFirst
-      .mockReset()
-      .mockResolvedValueOnce({
-        id: 'source',
-        brandId: 'brand',
-        s3Key: 'videos/source.mp4',
-      })
-      .mockResolvedValueOnce(null);
-    await expect(f.run()).rejects.toThrow('last frame has not been stored');
-    expect(f.runner.enqueueWorkflow).not.toHaveBeenCalled();
+    isFrameObjectLost = true;
+
+    await expect(run()).rejects.toThrow('last frame has not been stored');
+    expect(executions).toEqual([]);
+  });
+
+  it('marks the last frame failed and dispatches nothing when finalizing it fails', async () => {
+    isFrameProcessingDown = true;
+
+    await expect(run()).rejects.toThrow('frame upload failed');
+    expect(ingredients.get('frame')?.status).toBe(IngredientStatus.FAILED);
+    expect(executions).toEqual([]);
   });
 });

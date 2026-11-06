@@ -3,272 +3,200 @@ import type { YoutubeJobData } from '@files/shared/interfaces/job.interface';
 import {
   FILE_JOB_PRIORITY as JOB_PRIORITY,
   FILE_JOB_TYPES as JOB_TYPES,
-  FILE_QUEUE_NAMES as QUEUE_NAMES,
 } from '@genfeedai/contracts/queue';
-import { getQueueToken } from '@nestjs/bullmq';
-import { Test, type TestingModule } from '@nestjs/testing';
-import type { Mock } from 'vitest';
+import type { Queue } from 'bullmq';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+interface StoredJob {
+  data: YoutubeJobData;
+  finishedOn?: number;
+  id: string;
+  name: string;
+  opts: Record<string, unknown>;
+  state: 'waiting' | 'active' | 'completed' | 'failed';
+}
+
+const NOW = new Date('2026-11-06T12:00:00.000Z').getTime();
+const HOUR = 3_600_000;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+const upload: YoutubeJobData = {
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  credential: {
+    accessToken: 'access-token',
+    clientId: 'client-id',
+    clientSecret: 'client-secret',
+    redirectUri: 'https://app.genfeed.ai/oauth/youtube',
+    refreshToken: 'refresh-token',
+  },
+  description: 'Test description',
+  id: 'job-data-001',
+  ingredientId: 'ingredient-456',
+  isUnlisted: false,
+  metadata: { websocketUrl: '/youtube/ingredient-456' },
+  organizationId: 'org-789',
+  postId: 'post-123',
+  status: 'public',
+  tags: ['test', 'video'],
+  title: 'Test Video',
+  type: JOB_TYPES.UPLOAD_YOUTUBE,
+  userId: 'user-abc',
+};
 
 describe('YoutubeQueueService', () => {
+  let jobs: StoredJob[];
   let service: YoutubeQueueService;
-  let mockQueue: {
-    add: Mock;
-    getJob: Mock;
-    getJobCounts: Mock;
-    clean: Mock;
+
+  const seedFinished = (
+    id: string,
+    state: 'completed' | 'failed',
+    age: number,
+  ) => {
+    jobs.push({
+      data: upload,
+      finishedOn: NOW - age,
+      id,
+      name: JOB_TYPES.UPLOAD_YOUTUBE,
+      opts: {},
+      state,
+    });
   };
 
-  const mockJobData: YoutubeJobData = {
-    createdAt: new Date('2026-01-01T00:00:00.000Z'),
-    credential: {
-      accessToken: 'access-token',
-      clientId: 'client-id',
-      clientSecret: 'client-secret',
-      redirectUri: 'https://app.genfeed.ai/oauth/youtube',
-      refreshToken: 'refresh-token',
+  beforeEach(() => {
+    vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
+    jobs = [];
+
+    // The YouTube processing queue held in memory.
+    const queue = {
+      add: async (
+        name: string,
+        data: YoutubeJobData,
+        opts: Record<string, unknown>,
+      ) => {
+        const stored: StoredJob = {
+          data,
+          id: String(opts.jobId),
+          name,
+          opts,
+          state: 'waiting',
+        };
+        jobs.push(stored);
+        return stored;
+      },
+      clean: async (grace: number, _limit: number, state: string) => {
+        jobs = jobs.filter(
+          (stored) =>
+            stored.state !== state ||
+            (stored.finishedOn ?? NOW) > Date.now() - grace,
+        );
+        return [];
+      },
+      getJob: async (id: string) => jobs.find((stored) => stored.id === id),
+      getJobCounts: async () => {
+        const counts: Record<string, number> = {};
+        for (const stored of jobs) {
+          counts[stored.state] = (counts[stored.state] ?? 0) + 1;
+        }
+        return counts;
+      },
+    } as unknown as Queue<YoutubeJobData>;
+
+    service = new YoutubeQueueService(queue);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it.each([
+    [
+      'an unlisted upload',
+      'addUploadUnlistedJob',
+      JOB_TYPES.UPLOAD_YOUTUBE_UNLISTED,
+    ],
+    ['a public upload', 'addUploadJob', JOB_TYPES.UPLOAD_YOUTUBE],
+  ] as const)(
+    'queues %s at high priority with three exponential retries',
+    async (_case, method, name) => {
+      const added = await service[method](upload);
+
+      expect(jobs).toEqual([
+        {
+          data: upload,
+          id: added.id,
+          name,
+          opts: {
+            attempts: 3,
+            backoff: { delay: 2000, type: 'exponential' },
+            jobId: added.id,
+            priority: JOB_PRIORITY.HIGH,
+          },
+          state: 'waiting',
+        },
+      ]);
+      expect(added.id).toMatch(UUID);
     },
-    description: 'Test description',
-    id: 'job-data-001',
-    ingredientId: 'ingredient-456',
-    isUnlisted: false,
-    metadata: { websocketUrl: '/youtube/ingredient-456' },
-    organizationId: 'org-789',
-    postId: 'post-123',
-    status: 'public',
-    tags: ['test', 'video'],
-    title: 'Test Video',
-    type: JOB_TYPES.UPLOAD_YOUTUBE,
-    userId: 'user-abc',
-  };
+  );
 
-  const mockJob = {
-    data: mockJobData,
-    id: 'job-001',
-    name: JOB_TYPES.UPLOAD_YOUTUBE,
-  };
+  it.each([['addUploadUnlistedJob'], ['addUploadJob']] as const)(
+    'lets the post lower the priority (%s)',
+    async (method) => {
+      await service[method]({ ...upload, priority: JOB_PRIORITY.LOW });
 
-  beforeEach(async () => {
-    mockQueue = {
-      add: vi.fn().mockResolvedValue(mockJob),
-      clean: vi.fn().mockResolvedValue(undefined),
-      getJob: vi.fn().mockResolvedValue(mockJob),
-      getJobCounts: vi.fn().mockResolvedValue({
-        active: 2,
-        completed: 100,
-        failed: 3,
-        waiting: 5,
-      }),
-    };
+      expect(jobs[0]?.opts.priority).toBe(JOB_PRIORITY.LOW);
+    },
+  );
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        YoutubeQueueService,
-        {
-          provide: getQueueToken(QUEUE_NAMES.YOUTUBE_PROCESSING),
-          useValue: mockQueue,
-        },
-      ],
-    }).compile();
+  it('gives every upload of the same post its own job', async () => {
+    const first = await service.addUploadJob(upload);
+    const second = await service.addUploadJob(upload);
 
-    service = module.get<YoutubeQueueService>(YoutubeQueueService);
-
-    vi.clearAllMocks();
+    expect(second.id).not.toBe(first.id);
+    expect(jobs).toHaveLength(2);
   });
 
-  describe('initialization', () => {
-    it('should be defined', () => {
-      expect(service).toBeDefined();
+  it('finds a queued upload by id', async () => {
+    const added = await service.addUploadJob(upload);
+
+    await expect(service.getJob(added.id ?? '')).resolves.toMatchObject({
+      data: { postId: 'post-123' },
+    });
+    await expect(service.getJob('non-existent')).resolves.toBeUndefined();
+  });
+
+  it('counts uploads by state', async () => {
+    await service.addUploadJob(upload);
+    seedFinished('done', 'completed', 0);
+    seedFinished('broken', 'failed', 0);
+
+    await expect(service.getJobCounts()).resolves.toEqual({
+      completed: 1,
+      failed: 1,
+      waiting: 1,
     });
   });
 
-  describe('addUploadUnlistedJob', () => {
-    it('should add unlisted upload job with high priority', async () => {
-      const result = await service.addUploadUnlistedJob(mockJobData);
-
-      expect(result).toEqual(mockJob);
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        JOB_TYPES.UPLOAD_YOUTUBE_UNLISTED,
-        mockJobData,
-        {
-          attempts: 3,
-          jobId: expect.any(String),
-          backoff: {
-            delay: 2000,
-            type: 'exponential',
-          },
-          priority: JOB_PRIORITY.HIGH,
-        },
-      );
-    });
-
-    it('should use custom priority when provided', async () => {
-      const dataWithPriority = {
-        ...mockJobData,
-        priority: JOB_PRIORITY.LOW,
-      };
-
-      await service.addUploadUnlistedJob(dataWithPriority);
-
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        JOB_TYPES.UPLOAD_YOUTUBE_UNLISTED,
-        dataWithPriority,
-        {
-          attempts: 3,
-          jobId: expect.any(String),
-          backoff: {
-            delay: 2000,
-            type: 'exponential',
-          },
-          priority: JOB_PRIORITY.LOW,
-        },
-      );
-    });
-
-    it('should configure exponential backoff with 2000ms delay', async () => {
-      await service.addUploadUnlistedJob(mockJobData);
-
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(Object),
-        expect.objectContaining({
-          backoff: {
-            delay: 2000,
-            type: 'exponential',
-          },
-        }),
-      );
-    });
-
-    it('should configure 3 retry attempts', async () => {
-      await service.addUploadUnlistedJob(mockJobData);
-
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(Object),
-        expect.objectContaining({
-          attempts: 3,
-          jobId: expect.any(String),
-        }),
-      );
-    });
-
-    it('should return the created job', async () => {
-      const result = await service.addUploadUnlistedJob(mockJobData);
-
-      expect(result.id).toBe('job-001');
-      expect(result.data).toEqual(mockJobData);
-    });
-  });
-
-  describe('addUploadJob', () => {
-    it('should add upload job with high priority', async () => {
-      const result = await service.addUploadJob(mockJobData);
-
-      expect(result).toEqual(mockJob);
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        JOB_TYPES.UPLOAD_YOUTUBE,
-        mockJobData,
-        {
-          attempts: 3,
-          jobId: expect.any(String),
-          backoff: {
-            delay: 2000,
-            type: 'exponential',
-          },
-          priority: JOB_PRIORITY.HIGH,
-        },
-      );
-    });
-
-    it('should use custom priority when provided', async () => {
-      const dataWithPriority = {
-        ...mockJobData,
-        priority: JOB_PRIORITY.LOW,
-      };
-
-      await service.addUploadJob(dataWithPriority);
-
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        JOB_TYPES.UPLOAD_YOUTUBE,
-        dataWithPriority,
-        expect.objectContaining({
-          priority: JOB_PRIORITY.LOW,
-        }),
-      );
-    });
-
-    it('should configure same retry settings as unlisted', async () => {
-      await service.addUploadJob(mockJobData);
-
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(Object),
-        expect.objectContaining({
-          attempts: 3,
-          jobId: expect.any(String),
-          backoff: {
-            delay: 2000,
-            type: 'exponential',
-          },
-        }),
-      );
-    });
-  });
-
-  describe('getJob', () => {
-    it('should retrieve job by ID', async () => {
-      const result = await service.getJob('job-001');
-
-      expect(result).toEqual(mockJob);
-      expect(mockQueue.getJob).toHaveBeenCalledWith('job-001');
-    });
-
-    it('should return undefined for non-existent job', async () => {
-      mockQueue.getJob.mockResolvedValue(undefined);
-
-      const result = await service.getJob('non-existent');
-
-      expect(result).toBeUndefined();
-    });
-  });
-
-  describe('getJobCounts', () => {
-    it('should return job counts', async () => {
-      const result = await service.getJobCounts();
-
-      expect(result).toEqual({
-        active: 2,
-        completed: 100,
-        failed: 3,
-        waiting: 5,
+  it.each([
+    [undefined, ['recent-done', 'failed-90m', 'pending']],
+    [HOUR / 2, ['recent-done', 'pending']],
+  ])(
+    'cleans finished uploads past the grace, failures after twice as long (%s ms)',
+    async (grace, kept) => {
+      seedFinished('old-done', 'completed', 2 * HOUR);
+      seedFinished('recent-done', 'completed', HOUR / 4);
+      seedFinished('failed-90m', 'failed', 1.5 * HOUR);
+      seedFinished('old-failed', 'failed', 3 * HOUR);
+      jobs.push({
+        data: upload,
+        id: 'pending',
+        name: JOB_TYPES.UPLOAD_YOUTUBE,
+        opts: {},
+        state: 'waiting',
       });
-      expect(mockQueue.getJobCounts).toHaveBeenCalled();
-    });
-  });
 
-  describe('clean', () => {
-    it('should clean completed and failed jobs with default grace period', async () => {
-      await service.clean();
+      await service.clean(grace);
 
-      // Default grace is 3600000 (1 hour)
-      expect(mockQueue.clean).toHaveBeenCalledWith(3600000, 0, 'completed');
-      expect(mockQueue.clean).toHaveBeenCalledWith(7200000, 0, 'failed');
-    });
-
-    it('should clean with custom grace period', async () => {
-      const customGrace = 1800000; // 30 minutes
-
-      await service.clean(customGrace);
-
-      expect(mockQueue.clean).toHaveBeenCalledWith(1800000, 0, 'completed');
-      expect(mockQueue.clean).toHaveBeenCalledWith(3600000, 0, 'failed');
-    });
-
-    it('should clean failed jobs with double the grace period', async () => {
-      await service.clean(1000);
-
-      expect(mockQueue.clean).toHaveBeenNthCalledWith(1, 1000, 0, 'completed');
-      expect(mockQueue.clean).toHaveBeenNthCalledWith(2, 2000, 0, 'failed');
-    });
-  });
+      expect(jobs.map(({ id }) => id)).toEqual(kept);
+    },
+  );
 });

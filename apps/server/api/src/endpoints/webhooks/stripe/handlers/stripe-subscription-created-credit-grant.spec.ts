@@ -11,7 +11,7 @@
  *
  * This composes the real handler with the real reconciler so the two halves of
  * that contract are exercised together: only the ledger and the identity
- * resolver are mocked. A future case mismatch on either side fails here.
+ * resolver are faked. A future case mismatch on either side fails here.
  */
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -27,17 +27,18 @@ import { SubscriptionPlan } from '@genfeedai/contracts';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('subscription.created credit grant (#4824)', () => {
   let handler: StripeSubscriptionWebhookHandler;
+  // Credit ledger rows written for the organization.
+  let grants: unknown[][];
+  // Initial grants `invoice.paid` already recorded, by ledger reference id.
+  let recordedGrants: Set<string>;
+  // Billing identities the handler resolved.
+  let resolutions: unknown[];
+  let logs: Array<{ detail?: unknown; level: string; message: string }>;
 
-  const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-  const creditsUtilsService = {
-    addOrganizationCreditsWithExpiration: vi.fn(),
-    getOrganizationCreditsBalance: vi.fn(async () => 5_900),
-    resetOrganizationCredits: vi.fn(),
-  };
   const dbSubscription = {
     cancelAtPeriodEnd: false,
     id: 'sub_db_1',
@@ -49,24 +50,16 @@ describe('subscription.created credit grant (#4824)', () => {
     stripeSubscriptionId: 'sub_stripe_1',
     userId: 'user_1',
   };
-  const supportService = {
-    hasSubscriptionCreditGrant: vi.fn(async () => false),
-    isUniqueConstraintError: () => false,
-    recordCreditsActivity: vi.fn(),
-    softwareItem: selectSoftwareSubscriptionItem,
-    resolveSubscriptionPlan: vi.fn(() => SubscriptionPlan.MONTHLY),
-    notifyOperatorOfBillingEvent: vi.fn(),
-    resolveTierFromPriceId: vi.fn(() => null),
-    setHasEverHadCredits: vi.fn(),
-    updateOrganizationTierAndModels: vi.fn(),
-  };
-  const billingService = {
-    persist: vi.fn(async () => dbSubscription),
-    resolve: vi.fn(async () => ({
-      billingAccountId: 'ba_1',
-      subscription: dbSubscription,
-    })),
-  };
+  const noop = () => undefined;
+  const logAt =
+    (level: string) =>
+    (message: string, detail?: unknown): void => {
+      logs.push({ detail, level, message });
+    };
+  const outcomes = () =>
+    logs.map(
+      ({ detail }) => (detail as { outcome?: string } | undefined)?.outcome,
+    );
 
   /** Shaped as the Stripe SDK delivers it: `status` is lowercase. */
   function stripeSubscription(status: string): StripeSubscription {
@@ -88,35 +81,74 @@ describe('subscription.created credit grant (#4824)', () => {
   }
 
   beforeEach(async () => {
-    vi.clearAllMocks();
-    supportService.hasSubscriptionCreditGrant.mockResolvedValue(false);
-    supportService.resolveTierFromPriceId.mockReturnValue(null);
-    billingService.resolve.mockResolvedValue({
-      billingAccountId: 'ba_1',
-      subscription: dbSubscription,
-    });
-    billingService.persist.mockResolvedValue(dbSubscription);
+    grants = [];
+    recordedGrants = new Set();
+    resolutions = [];
+    logs = [];
 
     const module = await Test.createTestingModule({
       providers: [
         StripeSubscriptionWebhookHandler,
         StripeSubscriptionCreditReconcilerService,
-        { provide: LoggerService, useValue: loggerService },
-        { provide: CreditsUtilsService, useValue: creditsUtilsService },
-        { provide: StripeWebhookSupportService, useValue: supportService },
-        { provide: StripeWebhookBillingService, useValue: billingService },
+        {
+          provide: LoggerService,
+          useValue: {
+            error: logAt('error'),
+            log: logAt('log'),
+            warn: logAt('warn'),
+          },
+        },
+        {
+          provide: CreditsUtilsService,
+          useValue: {
+            addOrganizationCreditsWithExpiration: async (
+              ...args: unknown[]
+            ) => {
+              grants.push(args);
+            },
+            getOrganizationCreditsBalance: async () => 5_900,
+            resetOrganizationCredits: noop,
+          },
+        },
+        {
+          provide: StripeWebhookSupportService,
+          useValue: {
+            hasSubscriptionCreditGrant: async (
+              _organizationId: string,
+              lookup: { reference: { referenceId: string } },
+            ) => recordedGrants.has(lookup.reference.referenceId),
+            isUniqueConstraintError: () => false,
+            notifyOperatorOfBillingEvent: noop,
+            recordCreditsActivity: noop,
+            resolveSubscriptionPlan: () => SubscriptionPlan.MONTHLY,
+            resolveTierFromPriceId: () => null,
+            setHasEverHadCredits: noop,
+            softwareItem: selectSoftwareSubscriptionItem,
+            updateOrganizationTierAndModels: noop,
+          },
+        },
+        {
+          provide: StripeWebhookBillingService,
+          useValue: {
+            persist: async () => dbSubscription,
+            resolve: async (input: unknown) => {
+              resolutions.push(input);
+              return { billingAccountId: 'ba_1', subscription: dbSubscription };
+            },
+          },
+        },
         {
           provide: SUBSCRIPTIONS_SERVICE,
-          useValue: { syncSubscriptionState: vi.fn() },
+          useValue: { syncSubscriptionState: noop },
         },
         {
           provide: SubscriptionCreditGrantService,
           useValue: {
-            logUnresolvedGrant: vi.fn(),
-            resolvePlanCredits: vi.fn(async () => 5_900),
+            logUnresolvedGrant: noop,
+            resolvePlanCredits: async () => 5_900,
           },
         },
-        { provide: UsersService, useValue: { findOne: vi.fn() } },
+        { provide: UsersService, useValue: { findOne: async () => null } },
         { provide: LifecycleEmailService, useValue: {} },
       ],
     }).compile();
@@ -132,42 +164,39 @@ describe('subscription.created credit grant (#4824)', () => {
         'test',
       );
 
-      expect(
-        creditsUtilsService.addOrganizationCreditsWithExpiration,
-      ).toHaveBeenCalledExactlyOnceWith(
-        'org_1',
-        5_900,
-        SubscriptionPlan.MONTHLY,
-        expect.any(String),
-        expect.any(Date),
-        expect.objectContaining({
-          billingAccountId: 'ba_1',
-          referenceId: 'stripe-subscription:sub_stripe_1',
-          referenceType: 'stripe-subscription:initial-grant',
-        }),
-      );
-      expect(loggerService.log).not.toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ outcome: 'ineligible_status' }),
-      );
-      expect(loggerService.error).not.toHaveBeenCalled();
+      expect(grants).toEqual([
+        [
+          'org_1',
+          5_900,
+          SubscriptionPlan.MONTHLY,
+          expect.any(String),
+          expect.any(Date),
+          expect.objectContaining({
+            billingAccountId: 'ba_1',
+            referenceId: 'stripe-subscription:sub_stripe_1',
+            referenceType: 'stripe-subscription:initial-grant',
+          }),
+        ],
+      ]);
+      expect(outcomes()).not.toContain('ineligible_status');
+      expect(logs.filter(({ level }) => level === 'error')).toEqual([]);
     },
   );
 
   it('does not grant twice when invoice.paid already recorded the initial grant', async () => {
-    supportService.hasSubscriptionCreditGrant.mockResolvedValue(true);
+    recordedGrants.add('stripe-subscription:sub_stripe_1');
 
     await handler.handleSubscriptionCreated(
       stripeSubscription('active'),
       'test',
     );
 
-    expect(
-      creditsUtilsService.addOrganizationCreditsWithExpiration,
-    ).not.toHaveBeenCalled();
-    expect(loggerService.log).toHaveBeenCalledWith(
-      expect.stringContaining('reconciliation skipped'),
-      expect.objectContaining({ outcome: 'existing_grant' }),
+    expect(grants).toEqual([]);
+    expect(logs).toContainEqual(
+      expect.objectContaining({
+        detail: expect.objectContaining({ outcome: 'existing_grant' }),
+        message: expect.stringContaining('reconciliation skipped'),
+      }),
     );
   });
 
@@ -177,18 +206,22 @@ describe('subscription.created credit grant (#4824)', () => {
       'test',
     );
 
-    expect(
-      creditsUtilsService.addOrganizationCreditsWithExpiration,
-    ).not.toHaveBeenCalled();
-    expect(loggerService.log).toHaveBeenCalledWith(
-      expect.stringContaining('reconciliation skipped'),
-      expect.objectContaining({ outcome: 'ineligible_status' }),
+    expect(grants).toEqual([]);
+    expect(logs).toContainEqual(
+      expect.objectContaining({
+        detail: expect.objectContaining({ outcome: 'ineligible_status' }),
+        message: expect.stringContaining('reconciliation skipped'),
+      }),
     );
   });
+
   it('does not resolve billing identity or grant credits for a service-only subscription', async () => {
     const service = stripeSubscription('active');
     service.metadata = { billing_scope: 'service' };
+
     await handler.handleSubscriptionCreated(service, 'test');
-    expect(billingService.resolve).not.toHaveBeenCalled();
+
+    expect(resolutions).toEqual([]);
+    expect(grants).toEqual([]);
   });
 });

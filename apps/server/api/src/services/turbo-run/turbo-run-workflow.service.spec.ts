@@ -1,4 +1,9 @@
+import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import type { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
 import { TurboRunAlreadyOwnedException } from '@api/services/turbo-run/turbo-run-already-owned.exception';
+import type { TurboRunCreditsService } from '@api/services/turbo-run/turbo-run-credits.service';
+import type { TurboRunStreamService } from '@api/services/turbo-run/turbo-run-stream.service';
 import {
   TurboRunWorkflowService,
   turboRunJobId,
@@ -7,83 +12,170 @@ import {
   TURBO_RUN_ACTION_IDS,
   TURBO_RUN_WORKFLOW_ID,
 } from '@api/services/turbo-run/turbo-run-workflow-definition';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
-import { LoggerService } from '@libs/logger/logger.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 /** The identity a queued run carries from the agent thread into the worker. */
 const REQUEST = {
-  turboRunId: 'run-1',
   organizationId: 'organization-1',
   runId: 'run-1',
   threadId: 'thread-1',
+  turboRunId: 'run-1',
   userId: 'user-1',
 };
 
+type ActionHandler = (payload: {
+  input: Record<string, unknown>;
+}) => Promise<unknown>;
+
+interface StoredRun {
+  config: Record<string, unknown>;
+  id: string;
+  isDeleted: boolean;
+  organizationId: string;
+}
+
+interface QueuedJob {
+  jobId: string;
+  options: Record<string, unknown>;
+  workflow: Record<string, unknown>;
+}
+
 describe('TurboRunWorkflowService', () => {
-  const actions = new Map<
-    string,
-    (payload: { input: Record<string, unknown> }) => Promise<unknown>
-  >();
-  let turboRuns: { processTurboRun: ReturnType<typeof vi.fn> };
-  let credits: { settleTurboRunCredits: ReturnType<typeof vi.fn> };
-  let logger: LoggerService;
-  let prisma: {
-    turboRun: {
-      findFirst: ReturnType<typeof vi.fn>;
-      updateMany: ReturnType<typeof vi.fn>;
-    };
-  };
-  let queue: { queueSystemWorkflow: ReturnType<typeof vi.fn> };
+  let actions: Map<string, ActionHandler>;
   let registeredWorkflowIds: string[];
-  let streams: { buildProcessOptions: ReturnType<typeof vi.fn> };
+  let runs: StoredRun[];
+  let queued: QueuedJob[];
+  let processed: Array<{
+    organizationId: string;
+    streamOptions: unknown;
+    turboRunId: string;
+  }>;
+  let processOutcome: Record<string, unknown> | Error;
+  let streamRequests: Array<Record<string, unknown>>;
+  let settlements: Array<Record<string, unknown>>;
+  let settlementFailure: Error | undefined;
+  let errors: string[];
   let service: TurboRunWorkflowService;
 
-  const streamOptions = { onTurboRunStarted: vi.fn() };
+  const streamOptions = { onTurboRunStarted: () => undefined };
+
+  function matches(run: StoredRun, where: Record<string, unknown>): boolean {
+    return (
+      run.id === where.id &&
+      run.organizationId === where.organizationId &&
+      run.isDeleted === where.isDeleted
+    );
+  }
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    actions.clear();
+    actions = new Map();
     registeredWorkflowIds = [];
-    turboRuns = {
-      processTurboRun: vi.fn().mockResolvedValue({ completed: 2 }),
-    };
-    credits = { settleTurboRunCredits: vi.fn().mockResolvedValue(undefined) };
-    logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never;
-    prisma = {
-      turboRun: {
-        findFirst: vi.fn().mockResolvedValue({ config: { seeded: true } }),
-        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    runs = [
+      {
+        config: { seeded: true },
+        id: 'run-1',
+        isDeleted: false,
+        organizationId: 'organization-1',
       },
-    };
-    queue = { queueSystemWorkflow: vi.fn().mockResolvedValue('job-1') };
-    streams = { buildProcessOptions: vi.fn().mockReturnValue(streamOptions) };
-
-    const runner = {
-      registerAction: vi.fn((actionId: string, handler: never) => {
-        actions.set(actionId, handler);
-      }),
-      registerWorkflow: vi.fn((definition: { canonicalId: string }) => {
-        registeredWorkflowIds.push(definition.canonicalId);
-      }),
-    };
+    ];
+    queued = [];
+    processed = [];
+    processOutcome = { completed: 2 };
+    streamRequests = [];
+    settlements = [];
+    settlementFailure = undefined;
+    errors = [];
 
     service = new TurboRunWorkflowService(
-      turboRuns as never,
-      credits as never,
-      logger,
-      prisma as never,
-      queue as never,
-      runner as never,
-      streams as never,
+      {
+        processTurboRun: async (
+          turboRunId: string,
+          organizationId: string,
+          options: unknown,
+        ) => {
+          processed.push({
+            organizationId,
+            streamOptions: options,
+            turboRunId,
+          });
+          if (processOutcome instanceof Error) {
+            throw processOutcome;
+          }
+          return processOutcome;
+        },
+      } as unknown as TurboRunService,
+      {
+        settleTurboRunCredits: async (input: Record<string, unknown>) => {
+          if (settlementFailure) {
+            throw settlementFailure;
+          }
+          settlements.push(input);
+        },
+      } as unknown as TurboRunCreditsService,
+      {
+        error: (message: string) => {
+          errors.push(message);
+        },
+        log: () => undefined,
+        warn: () => undefined,
+      } as unknown as LoggerService,
+      {
+        turboRun: {
+          findFirst: async ({ where }: { where: Record<string, unknown> }) =>
+            runs.find((run) => matches(run, where)) ?? null,
+          updateMany: async ({
+            data,
+            where,
+          }: {
+            data: { config: Record<string, unknown> };
+            where: Record<string, unknown>;
+          }) => {
+            const matching = runs.filter((run) => matches(run, where));
+            for (const run of matching) {
+              run.config = data.config;
+            }
+            return { count: matching.length };
+          },
+        },
+      } as unknown as PrismaService,
+      {
+        queueSystemWorkflow: async (
+          workflow: Record<string, unknown>,
+          jobId: string,
+          options: Record<string, unknown>,
+        ) => {
+          queued.push({ jobId, options, workflow });
+          return 'job-1';
+        },
+      } as unknown as WorkflowExecutionQueueService,
+      {
+        registerAction: (actionId: string, handler: ActionHandler) => {
+          actions.set(actionId, handler);
+        },
+        registerWorkflow: (definition: { canonicalId: string }) => {
+          registeredWorkflowIds.push(definition.canonicalId);
+        },
+      } as unknown as SystemWorkflowRunnerService,
+      {
+        buildProcessOptions: (input: Record<string, unknown>) => {
+          streamRequests.push(input);
+          return streamOptions;
+        },
+      } as unknown as TurboRunStreamService,
     );
     service.onModuleInit();
   });
 
-  const run = (actionId: string): Promise<unknown> => {
+  const run = (
+    actionId: string,
+    request: Record<string, unknown> = REQUEST,
+  ): Promise<unknown> => {
     const handler = actions.get(actionId);
     if (!handler) throw new Error(`No handler registered for ${actionId}`);
-    return handler({ input: { request: REQUEST } });
+    return handler({ input: { request } });
   };
 
   it('registers every run action alongside the run workflow graph', () => {
@@ -94,77 +186,59 @@ describe('TurboRunWorkflowService', () => {
         TURBO_RUN_ACTION_IDS.SETTLE,
       ]),
     );
-    expect(registeredWorkflowIds).toContain(TURBO_RUN_WORKFLOW_ID);
+    expect(registeredWorkflowIds).toEqual([TURBO_RUN_WORKFLOW_ID]);
   });
 
-  it('queues the run under a deterministic job id so a retry replaces it', async () => {
-    await service.queueTurboRun(
-      REQUEST,
-      SystemWorkflowDispatchClass.INTERACTIVE,
-    );
+  it.each([
+    SystemWorkflowDispatchClass.INTERACTIVE,
+    SystemWorkflowDispatchClass.BACKGROUND,
+  ])(
+    'queues the run under a deterministic job id with the %s dispatch class',
+    async (dispatchClass) => {
+      await expect(service.queueTurboRun(REQUEST, dispatchClass)).resolves.toBe(
+        'job-1',
+      );
 
-    expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
-      expect.objectContaining({
-        canonicalId: TURBO_RUN_WORKFLOW_ID,
-        inputValues: {
-          request: expect.objectContaining({
-            turboRunId: 'run-1',
-            threadId: 'thread-1',
+      expect(queued).toEqual([
+        {
+          jobId: turboRunJobId('run-1'),
+          options: { attempts: 1, dispatchClass },
+          workflow: expect.objectContaining({
+            canonicalId: TURBO_RUN_WORKFLOW_ID,
+            inputValues: {
+              request: expect.objectContaining({
+                threadId: 'thread-1',
+                turboRunId: 'run-1',
+                userId: 'user-1',
+              }),
+            },
+            organizationId: 'organization-1',
+            source: 'turbo-run',
             userId: 'user-1',
           }),
         },
-        organizationId: 'organization-1',
-        source: 'turbo-run',
-        userId: 'user-1',
-      }),
-      turboRunJobId('run-1'),
-      {
-        attempts: 1,
-        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
-      },
-    );
-  });
+      ]);
+    },
+  );
 
-  it('threads a background dispatchClass from a caller like the reconcile cron', async () => {
-    await service.queueTurboRun(
-      REQUEST,
-      SystemWorkflowDispatchClass.BACKGROUND,
-    );
+  it('stamps the queued time on the owning organization’s run', async () => {
+    await expect(run(TURBO_RUN_ACTION_IDS.MARK_QUEUED)).resolves.toEqual({
+      queued: true,
+    });
 
-    expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.objectContaining({
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
-      }),
-    );
-  });
-
-  it('scopes the queued-at stamp to the owning organization', async () => {
-    await run(TURBO_RUN_ACTION_IDS.MARK_QUEUED);
-
-    expect(prisma.turboRun.updateMany).toHaveBeenCalledWith({
-      data: {
-        config: expect.objectContaining({
-          queuedAt: expect.any(String),
-          seeded: true,
-        }),
-      },
-      where: expect.objectContaining({
-        id: 'run-1',
-        isDeleted: false,
-        organizationId: 'organization-1',
-      }),
+    expect(runs[0]?.config).toEqual({
+      queuedAt: expect.any(String),
+      seeded: true,
     });
   });
 
   it('leaves a run outside the organization untouched', async () => {
-    prisma.turboRun.findFirst.mockResolvedValue(null);
+    runs = [{ ...(runs[0] as StoredRun), organizationId: 'organization-2' }];
 
     await expect(run(TURBO_RUN_ACTION_IDS.MARK_QUEUED)).resolves.toEqual({
       queued: false,
     });
-    expect(prisma.turboRun.updateMany).not.toHaveBeenCalled();
+    expect(runs[0]?.config).toEqual({ seeded: true });
   });
 
   it('rebuilds the thread stream from job data and processes with it', async () => {
@@ -173,37 +247,37 @@ describe('TurboRunWorkflowService', () => {
       ownedElsewhere: false,
     });
 
-    expect(streams.buildProcessOptions).toHaveBeenCalledWith({
-      turboRunId: 'run-1',
-      runId: 'run-1',
-      threadId: 'thread-1',
-      userId: 'user-1',
-    });
-    expect(turboRuns.processTurboRun).toHaveBeenCalledWith(
-      'run-1',
-      'organization-1',
-      streamOptions,
-    );
+    expect(streamRequests).toEqual([
+      {
+        runId: 'run-1',
+        threadId: 'thread-1',
+        turboRunId: 'run-1',
+        userId: 'user-1',
+      },
+    ]);
+    expect(processed).toEqual([
+      { organizationId: 'organization-1', streamOptions, turboRunId: 'run-1' },
+    ]);
   });
 
   it('processes silently when the run has no thread to stream into', async () => {
-    const handler = actions.get(TURBO_RUN_ACTION_IDS.PROCESS);
-    await handler?.({
-      input: { request: { ...REQUEST, threadId: undefined } },
+    await run(TURBO_RUN_ACTION_IDS.PROCESS, {
+      ...REQUEST,
+      threadId: undefined,
     });
 
-    expect(streams.buildProcessOptions).not.toHaveBeenCalled();
-    expect(turboRuns.processTurboRun).toHaveBeenCalledWith(
-      'run-1',
-      'organization-1',
-      undefined,
-    );
+    expect(streamRequests).toEqual([]);
+    expect(processed).toEqual([
+      {
+        organizationId: 'organization-1',
+        streamOptions: undefined,
+        turboRunId: 'run-1',
+      },
+    ]);
   });
 
   it('yields to the worker that already owns the run instead of failing the run', async () => {
-    turboRuns.processTurboRun.mockRejectedValue(
-      new TurboRunAlreadyOwnedException('run-1', 'PROCESSING'),
-    );
+    processOutcome = new TurboRunAlreadyOwnedException('run-1', 'PROCESSING');
 
     await expect(run(TURBO_RUN_ACTION_IDS.PROCESS)).resolves.toEqual({
       ownedElsewhere: true,
@@ -211,9 +285,7 @@ describe('TurboRunWorkflowService', () => {
   });
 
   it('propagates a real processing failure so the execution records it', async () => {
-    turboRuns.processTurboRun.mockRejectedValue(
-      new Error('generation exploded'),
-    );
+    processOutcome = new Error('generation exploded');
 
     await expect(run(TURBO_RUN_ACTION_IDS.PROCESS)).rejects.toThrow(
       'generation exploded',
@@ -225,21 +297,22 @@ describe('TurboRunWorkflowService', () => {
       settled: true,
     });
 
-    expect(credits.settleTurboRunCredits).toHaveBeenCalledWith({
-      turboRunId: 'run-1',
-      organizationId: 'organization-1',
-      userId: 'user-1',
-    });
+    expect(settlements).toEqual([
+      {
+        organizationId: 'organization-1',
+        turboRunId: 'run-1',
+        userId: 'user-1',
+      },
+    ]);
   });
 
   it('reports an unsettled run instead of throwing away a finished run', async () => {
-    credits.settleTurboRunCredits.mockRejectedValue(
-      new Error('ledger offline'),
-    );
+    settlementFailure = new Error('ledger offline');
 
     await expect(run(TURBO_RUN_ACTION_IDS.SETTLE)).resolves.toEqual({
       settled: false,
     });
-    expect(logger.error).toHaveBeenCalled();
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('settlement failed');
   });
 });

@@ -1,9 +1,11 @@
-import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
+import type { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
+import type { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service';
 import { AgentType } from '@genfeedai/contracts';
 import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/contracts/constants';
-import { LoggerService } from '@libs/logger/logger.service';
-import { describe, expect, it, vi } from 'vitest';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { ModuleRef } from '@nestjs/core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockedAgentOrchestratorToken } = vi.hoisted(() => ({
   mockedAgentOrchestratorToken: Symbol('AgentOrchestratorService'),
@@ -13,89 +15,93 @@ vi.mock('@api/services/agent-orchestrator/agent-orchestrator.service', () => ({
   AgentOrchestratorService: mockedAgentOrchestratorToken,
 }));
 
+interface ChatTurn {
+  context: Record<string, unknown>;
+  request: Record<string, unknown>;
+}
+
+interface BrandContext {
+  brandId: string;
+  brandName: string;
+  defaultModel?: string;
+  layersUsed: string[];
+}
+
 describe('AgentSpawnService', () => {
-  it('hydrates the orchestrator from ModuleRef on module init', async () => {
-    const orchestratorService = {
-      chat: vi.fn(),
+  const parentContext = { organizationId: 'org-1', userId: 'user-1' };
+
+  let brandContext: BrandContext;
+  let contextRequests: Array<Record<string, unknown>>;
+  let turns: ChatTurn[];
+  let lookups: Array<{ options: unknown; token: unknown }>;
+  let service: AgentSpawnService;
+
+  beforeEach(async () => {
+    brandContext = {
+      brandId: 'brand-1',
+      brandName: 'Brand',
+      layersUsed: ['brandIdentity'],
+    };
+    contextRequests = [];
+    turns = [];
+    lookups = [];
+
+    const orchestrator = {
+      chat: async (
+        request: Record<string, unknown>,
+        context: Record<string, unknown>,
+      ) => {
+        turns.push({ context, request });
+        return {
+          clientRequestId: 'client-request-1',
+          contextId: 'context-1',
+          contextVersion: 1,
+          executionId: 'execution-123',
+          queuedAt: '2026-08-29T00:00:00.000Z',
+          status: 'queued',
+          threadId: 'thread-123',
+        };
+      },
     };
     const moduleRef = {
-      get: vi.fn().mockReturnValue(orchestratorService),
+      get: (token: unknown, options: unknown) => {
+        lookups.push({ options, token });
+        return token === mockedAgentOrchestratorToken ? orchestrator : null;
+      },
     };
 
-    const service = new AgentSpawnService(
-      { log: vi.fn() } as unknown as LoggerService,
-      {} as AgentContextAssemblyService,
-      {} as never,
-      moduleRef as never,
-    );
-
-    await service.onModuleInit();
-
-    expect(moduleRef.get).toHaveBeenCalledWith(mockedAgentOrchestratorToken, {
-      strict: false,
-    });
-    expect(
-      (service as unknown as { orchestratorService?: unknown })
-        .orchestratorService,
-    ).toBe(orchestratorService);
-  });
-
-  it('returns the spawned sub-agent threadId in tool result data', async () => {
-    const chat = vi.fn().mockResolvedValue({
-      clientRequestId: 'client-request-1',
-      contextId: 'context-1',
-      contextVersion: 1,
-      executionId: 'execution-123',
-      queuedAt: '2026-08-29T00:00:00.000Z',
-      status: 'queued',
-      threadId: 'thread-123',
-    });
-
-    const service = new AgentSpawnService(
-      { log: vi.fn() } as unknown as LoggerService,
+    service = new AgentSpawnService(
+      { log: () => undefined } as unknown as LoggerService,
       {
-        assembleContext: vi.fn().mockResolvedValue({
-          brandId: 'brand-1',
-          brandName: 'Brand',
-          layersUsed: ['brandIdentity'],
-        }),
-        buildSystemPrompt: vi.fn().mockReturnValue('spawn-prompt'),
+        assembleContext: async (input: Record<string, unknown>) => {
+          contextRequests.push(input);
+          return brandContext;
+        },
+        buildSystemPrompt: (base: string, context: BrandContext) =>
+          `${base}\n[brand:${context.brandName}]`,
       } as unknown as AgentContextAssemblyService,
       {
-        getDefaultModelKey: vi
-          .fn()
-          .mockResolvedValue(DEFAULT_AGENT_CHAT_MODEL_KEY),
-      } as never,
-      { get: vi.fn() } as never,
+        getDefaultModelKey: async () => DEFAULT_AGENT_CHAT_MODEL_KEY,
+      } as unknown as AgentChatModelRegistryService,
+      moduleRef as unknown as ModuleRef,
     );
+    await service.onModuleInit();
+  });
 
-    (
-      service as unknown as {
-        orchestratorService: { chat: typeof chat };
-      }
-    ).orchestratorService = { chat };
+  it('resolves the orchestrator non-strictly on module init', () => {
+    expect(lookups).toEqual([
+      { options: { strict: false }, token: mockedAgentOrchestratorToken },
+    ]);
+  });
 
+  it('queues the task as a sub-agent turn and returns its thread', async () => {
     const result = await service.spawnSubAgent({
       agentType: AgentType.X_CONTENT,
       credentialId: 'credential-1',
-      parentContext: {
-        organizationId: 'org-1',
-        userId: 'user-1',
-      },
+      parentContext,
       task: 'Draft an X thread',
     });
 
-    expect(chat).toHaveBeenCalledWith(
-      expect.objectContaining({
-        agentType: AgentType.X_CONTENT,
-        content: 'Draft an X thread',
-        model: DEFAULT_AGENT_CHAT_MODEL_KEY,
-      }),
-      expect.objectContaining({
-        organizationId: 'org-1',
-        userId: 'user-1',
-      }),
-    );
     expect(result).toEqual({
       creditsUsed: 0,
       data: {
@@ -106,56 +112,31 @@ describe('AgentSpawnService', () => {
       },
       success: true,
     });
+    expect(turns).toEqual([
+      {
+        context: parentContext,
+        request: expect.objectContaining({
+          agentType: AgentType.X_CONTENT,
+          content: 'Draft an X thread',
+          model: DEFAULT_AGENT_CHAT_MODEL_KEY,
+          source: 'agent',
+          systemPromptOverride: expect.stringContaining('[brand:Brand]'),
+        }),
+      },
+    ]);
   });
 
   it('assembles brand context with brandMemory + performancePatterns + recentPosts enabled (#3019)', async () => {
-    const chat = vi.fn().mockResolvedValue({
-      clientRequestId: 'client-request-1',
-      contextId: 'context-1',
-      contextVersion: 1,
-      executionId: 'execution-123',
-      queuedAt: '2026-08-29T00:00:00.000Z',
-      status: 'queued',
-      threadId: 'thread-123',
-    });
-    const assembleContext = vi.fn().mockResolvedValue({
-      brandId: 'brand-1',
-      brandName: 'Brand',
-      layersUsed: ['brandIdentity'],
-    });
-
-    const service = new AgentSpawnService(
-      { log: vi.fn() } as unknown as LoggerService,
-      {
-        assembleContext,
-        buildSystemPrompt: vi.fn().mockReturnValue('spawn-prompt'),
-      } as unknown as AgentContextAssemblyService,
-      {
-        getDefaultModelKey: vi
-          .fn()
-          .mockResolvedValue(DEFAULT_AGENT_CHAT_MODEL_KEY),
-      } as never,
-      { get: vi.fn() } as never,
-    );
-
-    (
-      service as unknown as {
-        orchestratorService: { chat: typeof chat };
-      }
-    ).orchestratorService = { chat };
-
     await service.spawnSubAgent({
       agentType: AgentType.X_CONTENT,
       credentialId: 'credential-1',
-      parentContext: {
-        organizationId: 'org-1',
-        userId: 'user-1',
-      },
+      parentContext,
       task: 'Draft an X thread',
     });
 
-    expect(assembleContext).toHaveBeenCalledWith(
+    expect(contextRequests).toEqual([
       expect.objectContaining({
+        credentialId: 'credential-1',
         layers: {
           brandGuidance: true,
           brandIdentity: true,
@@ -164,61 +145,25 @@ describe('AgentSpawnService', () => {
           ragContext: true,
           recentPosts: true,
         },
+        organizationId: 'org-1',
         query: 'Draft an X thread',
+        userId: 'user-1',
       }),
-    );
+    ]);
   });
 
   it('uses the brand default model when the brand context provides one', async () => {
-    const chat = vi.fn().mockResolvedValue({
-      clientRequestId: 'client-request-1',
-      contextId: 'context-1',
-      contextVersion: 1,
-      executionId: 'execution-123',
-      queuedAt: '2026-08-29T00:00:00.000Z',
-      status: 'queued',
-      threadId: 'thread-123',
-    });
-
-    const service = new AgentSpawnService(
-      { log: vi.fn() } as unknown as LoggerService,
-      {
-        assembleContext: vi.fn().mockResolvedValue({
-          brandId: 'brand-1',
-          brandName: 'Brand',
-          defaultModel: 'anthropic/claude-sonnet-5',
-          layersUsed: ['brandIdentity'],
-        }),
-        buildSystemPrompt: vi.fn().mockReturnValue('spawn-prompt'),
-      } as unknown as AgentContextAssemblyService,
-      {
-        getDefaultModelKey: vi
-          .fn()
-          .mockResolvedValue(DEFAULT_AGENT_CHAT_MODEL_KEY),
-      } as never,
-      { get: vi.fn() } as never,
-    );
-
-    (
-      service as unknown as {
-        orchestratorService: { chat: typeof chat };
-      }
-    ).orchestratorService = { chat };
+    brandContext = {
+      ...brandContext,
+      defaultModel: 'anthropic/claude-sonnet-5',
+    };
 
     await service.spawnSubAgent({
       agentType: AgentType.X_CONTENT,
-      parentContext: {
-        organizationId: 'org-1',
-        userId: 'user-1',
-      },
+      parentContext,
       task: 'Draft an X thread',
     });
 
-    expect(chat).toHaveBeenCalledWith(
-      expect.objectContaining({
-        model: 'anthropic/claude-sonnet-5',
-      }),
-      expect.any(Object),
-    );
+    expect(turns[0]?.request.model).toBe('anthropic/claude-sonnet-5');
   });
 });

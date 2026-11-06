@@ -13,6 +13,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -107,10 +108,7 @@ export default function StoryboardSlideshowBoard({
           />
         </div>
       </Card>
-      <ul
-        aria-label={translate('title')}
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-      >
+      <CollectionGrid aria-label={translate('title')} as="ul" maxColumns={3}>
         {slides.map((slide, index) => {
           const url = slide.stillAssetId
             ? slideImages[slide.stillAssetId]
@@ -255,7 +253,7 @@ export default function StoryboardSlideshowBoard({
             </li>
           );
         })}
-      </ul>
+      </CollectionGrid>
       <Button
         className="self-center"
         label={translate('addSlide')}

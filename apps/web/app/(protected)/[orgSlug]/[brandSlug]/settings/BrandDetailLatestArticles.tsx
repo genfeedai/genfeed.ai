@@ -4,6 +4,7 @@ import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { BrandDetailLatestArticlesProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import NextLink from 'next/link';
@@ -32,7 +33,7 @@ export default function BrandDetailLatestArticles({
       createHref={`${EnvironmentService.apps.app}${href(WRITE_ARTICLE_AGENT_HREF)}`}
     >
       {articles && articles.length > 0 ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <CollectionGrid maxColumns={3}>
           {articles.map((article) => (
             <div
               key={article.id}
@@ -76,7 +77,7 @@ export default function BrandDetailLatestArticles({
               </div>
             </div>
           ))}
-        </div>
+        </CollectionGrid>
       ) : null}
     </BrandDetailLatestContentCard>
   );

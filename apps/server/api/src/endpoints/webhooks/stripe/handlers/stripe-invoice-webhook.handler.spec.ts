@@ -1,770 +1,672 @@
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { UsersService } from '@api/collections/users/services/users.service';
-import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
-import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { UsersService } from '@api/collections/users/services/users.service';
+import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import type { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
-import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
+import type { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
-import { StripeWebhookBillingService } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.service';
+import type { StripeWebhookBillingService } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.service';
+import type { StripeInvoice } from '@api/services/integrations/stripe/services/stripe.service';
 import {
+  ActivityKey,
   BillingRevenueSource,
   SubscriptionPlan,
   SubscriptionStatus,
   SubscriptionTier,
 } from '@genfeedai/contracts';
-import {
-  type ISubscriptionOssReadModel,
-  SUBSCRIPTIONS_SERVICE,
+import type {
+  ISubscriptionOssReadModel,
+  ISubscriptionsService,
 } from '@genfeedai/contracts/interfaces/billing';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
-import type Stripe from 'stripe';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+type Row = Record<string, unknown>;
+
+interface Grant {
+  amount: number;
+  billingAccountId: string;
+  metadata: Row;
+  organizationId: string;
+  plan: string;
+  referenceId: string;
+  referenceType: string;
+}
+
+interface GrantOptions {
+  billingAccountId: string;
+  metadata: Row;
+  referenceId: string;
+  referenceType: string;
+}
+
+const INVOICE_GRANT = {
+  referenceId: 'stripe-invoice:in_123',
+  referenceType: 'stripe-invoice:subscription-grant',
+};
+const INITIAL_GRANT = {
+  referenceId: 'stripe-subscription:sub_stripe_1',
+  referenceType: 'stripe-subscription:initial-grant',
+};
+
+// What each Stripe price grants per billing period.
+const PLAN_CREDITS: Record<string, number> = {
+  price_pro: 5_900,
+  price_scale: 60_000,
+  price_scale_yearly: 70_800,
+};
+const PRICE_TIERS: Record<string, SubscriptionTier> = {
+  price_scale: SubscriptionTier.SCALE,
+  price_scale_yearly: SubscriptionTier.SCALE,
+};
+
+const invoice = (fields: Row = {}): StripeInvoice =>
+  ({
+    billing_reason: 'subscription_cycle',
+    id: 'in_123',
+    metadata: {},
+    object: 'invoice',
+    parent: { subscription_details: { subscription: 'sub_stripe_1' } },
+    ...fields,
+  }) as unknown as StripeInvoice;
 
 describe('StripeInvoiceWebhookHandler', () => {
+  // The subscription and user rows, the credit ledger, and everything else an
+  // invoice event leaves behind.
+  let subscriptions: ISubscriptionOssReadModel[];
+  let users: Row[];
+  let grants: Grant[];
+  let activities: Row[];
+  let revenue: Row[];
+  let fees: Row[];
+  let operatorNotices: Row[];
+  let synced: ISubscriptionOssReadModel[];
+  let invalidatedUsers: string[];
+  let creditFlags: string[];
+  let resolutions: Row[];
+  let warnings: string[];
+  let errors: string[];
+  let isLedgerDown: boolean;
+  let hasRacingGrant: boolean;
   let handler: StripeInvoiceWebhookHandler;
 
-  const configService = { get: vi.fn().mockReturnValue(undefined) };
-  const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-  const subscriptionsService = {
-    findByOrganizationId: vi.fn(),
-    findByStripeCustomerId: vi.fn(),
-    findOne: vi.fn(),
-    patch: vi.fn(),
-    syncSubscriptionState: vi.fn(),
-  };
-  const creditsUtilsService = {
-    addOrganizationCreditsWithExpiration: vi.fn(),
-    getOrganizationCreditsBalance: vi.fn().mockResolvedValue(35_000),
-    resetOrganizationCredits: vi.fn(),
-  };
-  const usersService = { findOne: vi.fn(), patch: vi.fn() };
-  const accessBootstrapCacheService = { invalidateForUser: vi.fn() };
-  const supportService = {
-    hasSubscriptionCreditGrant: vi.fn().mockResolvedValue(false),
-    isUniqueConstraintError: vi.fn().mockReturnValue(false),
-    markOnboardingComplete: vi.fn(),
-    recordCreditsActivity: vi.fn(),
-    recordProcessingFee: vi.fn(),
-    recordRevenueEvent: vi.fn(),
-    notifyOperatorOfBillingEvent: vi.fn(),
-    resolveTierFromPriceId: vi.fn().mockReturnValue(null),
-    setHasEverHadCredits: vi.fn(),
-  };
-  const creditGrantService = {
-    logUnresolvedGrant: vi.fn(),
-    resolvePlanCredits: vi.fn().mockResolvedValue(5_900),
-  };
-  const billingService = { resolve: vi.fn(), persist: vi.fn() };
-
-  function stripeResponse<T extends object>(resource: T): Stripe.Response<T> {
-    return {
-      ...resource,
-      lastResponse: {
-        headers: {},
-        requestId: 'req_test',
-        statusCode: 200,
-      },
-    };
-  }
-
-  function invoiceWith(
-    overrides: Record<string, unknown>,
-  ): Stripe.Response<Stripe.Invoice> {
-    const invoice = {
-      billing_reason: 'subscription_cycle',
-      id: 'in_123',
-      metadata: {},
-      object: 'invoice',
-      ...overrides,
-    } as Stripe.Invoice;
-
-    return stripeResponse(invoice);
-  }
-
-  const monthlySubscription = {
-    cancelAtPeriodEnd: false,
-    id: 'sub_db_1',
-    isDeleted: false,
-    organizationId: 'org_1',
-    plan: SubscriptionPlan.MONTHLY,
-    status: 'active',
-    stripeSubscriptionId: 'sub_stripe_1',
-    userId: 'user_1',
-  } satisfies ISubscriptionOssReadModel;
-
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    configService.get.mockReturnValue(undefined);
-    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(35_000);
-    subscriptionsService.findOne.mockResolvedValue(monthlySubscription);
-    subscriptionsService.patch.mockResolvedValue(monthlySubscription);
-    subscriptionsService.findByOrganizationId.mockResolvedValue(null);
-    subscriptionsService.findByStripeCustomerId.mockResolvedValue(null);
-    billingService.resolve.mockResolvedValue({
-      billingAccountId: 'ba_1',
-      subscription: monthlySubscription,
+  const subscription = () => subscriptions[0];
+  const seedSubscription = (
+    fields: Partial<ISubscriptionOssReadModel> = {},
+  ) => {
+    subscriptions.push({
+      cancelAtPeriodEnd: false,
+      id: 'sub_db_1',
+      isDeleted: false,
+      organizationId: 'org_1',
+      plan: SubscriptionPlan.MONTHLY,
+      status: 'active',
+      stripePriceId: 'price_pro',
       stripeSubscriptionId: 'sub_stripe_1',
+      userId: 'user_1',
+      ...fields,
     });
-    billingService.persist.mockImplementation(async (identity, patch) => ({
-      ...identity.subscription,
-      ...patch,
-    }));
-    supportService.resolveTierFromPriceId.mockReturnValue(null);
-    creditGrantService.resolvePlanCredits.mockResolvedValue(5_900);
-    supportService.hasSubscriptionCreditGrant.mockResolvedValue(false);
-    supportService.isUniqueConstraintError.mockReturnValue(false);
+  };
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        StripeInvoiceWebhookHandler,
-        StripeSubscriptionCreditReconcilerService,
-        { provide: ConfigService, useValue: configService },
-        { provide: LoggerService, useValue: loggerService },
-        { provide: SUBSCRIPTIONS_SERVICE, useValue: subscriptionsService },
-        { provide: CreditsUtilsService, useValue: creditsUtilsService },
-        { provide: UsersService, useValue: usersService },
-        {
-          provide: AccessBootstrapCacheService,
-          useValue: accessBootstrapCacheService,
-        },
-        { provide: StripeWebhookSupportService, useValue: supportService },
-        {
-          provide: SubscriptionCreditGrantService,
-          useValue: creditGrantService,
-        },
-        {
-          provide: StripeWebhookBillingService,
-          useValue: billingService,
-        },
-      ],
-    }).compile();
+  // The ledger keeps one grant per reference, as its unique index does.
+  const grant = (
+    organizationId: string,
+    amount: number,
+    plan: string,
+    options: GrantOptions,
+  ) => {
+    if (isLedgerDown) throw new Error('ledger unavailable');
+    if (hasRacingGrant) {
+      hasRacingGrant = false;
+      grants.push({ ...options, amount, organizationId, plan });
+    }
+    if (grants.some((row) => row.referenceId === options.referenceId)) {
+      throw Object.assign(new Error('Unique constraint failed'), {
+        code: 'P2002',
+      });
+    }
+    grants.push({ ...options, amount, organizationId, plan });
+  };
 
-    handler = module.get(StripeInvoiceWebhookHandler);
+  beforeEach(() => {
+    subscriptions = [];
+    users = [];
+    grants = [];
+    activities = [];
+    revenue = [];
+    fees = [];
+    operatorNotices = [];
+    synced = [];
+    invalidatedUsers = [];
+    creditFlags = [];
+    resolutions = [];
+    warnings = [];
+    errors = [];
+    isLedgerDown = false;
+    hasRacingGrant = false;
+    seedSubscription();
+
+    const logger = {
+      error: (message: string) => {
+        errors.push(message);
+      },
+      log: () => undefined,
+      warn: (message: string) => {
+        warnings.push(message);
+      },
+    } as unknown as LoggerService;
+    const credits = {
+      addOrganizationCreditsWithExpiration: async (
+        organizationId: string,
+        amount: number,
+        plan: string,
+        _description: string,
+        _expiresAt: Date,
+        options: GrantOptions,
+      ) => grant(organizationId, amount, plan, options),
+      getOrganizationCreditsBalance: async () =>
+        grants.reduce((sum, row) => sum + row.amount, 0),
+      resetOrganizationCredits: async (
+        organizationId: string,
+        amount: number,
+        plan: string,
+        _description: string,
+        options: GrantOptions,
+      ) => grant(organizationId, amount, plan, options),
+    } as unknown as CreditsUtilsService;
+    const support = {
+      hasSubscriptionCreditGrant: async (
+        _organizationId: string,
+        lookup: { reference: { referenceId: string } },
+      ) =>
+        grants.some((row) => row.referenceId === lookup.reference.referenceId),
+      isUniqueConstraintError: (error: unknown) =>
+        (error as { code?: string })?.code === 'P2002',
+      markOnboardingComplete: async (user: Row) => {
+        Object.assign(users.find((row) => row.id === user.id) ?? {}, {
+          isOnboardingCompleted: true,
+        });
+      },
+      notifyOperatorOfBillingEvent: async (notice: Row) => {
+        operatorNotices.push(notice);
+      },
+      recordCreditsActivity: async (activity: Row) => {
+        activities.push(activity);
+      },
+      recordProcessingFee: async (fee: Row) => {
+        fees.push(fee);
+      },
+      recordRevenueEvent: async (event: Row) => {
+        revenue.push(event);
+      },
+      resolveTierFromPriceId: (priceId: string) => PRICE_TIERS[priceId] ?? null,
+      setHasEverHadCredits: async (organizationId: string) => {
+        creditFlags.push(organizationId);
+      },
+    } as unknown as StripeWebhookSupportService;
+    const reconciler = new StripeSubscriptionCreditReconcilerService(
+      logger,
+      credits,
+      {
+        logUnresolvedGrant: () => undefined,
+        resolvePlanCredits: async (_plan: string, priceId?: string | null) =>
+          PLAN_CREDITS[priceId ?? ''] ?? null,
+      } as unknown as SubscriptionCreditGrantService,
+      support,
+    );
+
+    handler = new StripeInvoiceWebhookHandler(
+      logger,
+      {
+        findOne: async (where: { stripeSubscriptionId: string }) =>
+          subscriptions.find(
+            (row) => row.stripeSubscriptionId === where.stripeSubscriptionId,
+          ) ?? null,
+        patch: async (id: string, data: Partial<ISubscriptionOssReadModel>) =>
+          Object.assign(subscriptions.find((row) => row.id === id) ?? {}, data),
+        syncSubscriptionState: async (row: ISubscriptionOssReadModel) => {
+          synced.push(row);
+        },
+      } as unknown as ISubscriptionsService,
+      {
+        findOne: async (where: { id: string }) =>
+          users.find((row) => row.id === where.id) ?? null,
+      } as unknown as UsersService,
+      {
+        invalidateForUser: async (userId: string) => {
+          invalidatedUsers.push(userId);
+        },
+      } as unknown as AccessBootstrapCacheService,
+      support,
+      reconciler,
+      {
+        persist: async (
+          identity: { subscription: ISubscriptionOssReadModel },
+          patch: Partial<ISubscriptionOssReadModel>,
+        ) => ({
+          ...Object.assign(
+            subscriptions.find((row) => row.id === identity.subscription.id) ??
+              {},
+            patch,
+          ),
+        }),
+        // Canonical identity: the subscription row the Stripe id belongs to.
+        resolve: async (input: Row) => {
+          resolutions.push(input);
+          const row = subscriptions.find(
+            (candidate) =>
+              candidate.stripeSubscriptionId === input.stripeSubscriptionId,
+          );
+          if (!row) throw new StripeWebhookBillingError('identity_missing');
+          return {
+            billingAccountId: 'ba_1',
+            stripeSubscriptionId: input.stripeSubscriptionId,
+            subscription: { ...row },
+          };
+        },
+      } as unknown as StripeWebhookBillingService,
+    );
   });
 
   describe('handleInvoicePaid', () => {
-    it('ignores forward-compatible non-subscription billing reasons', async () => {
-      await handler.handleInvoicePaid(
-        invoiceWith({ billing_reason: 'future_reason' }),
-        'test',
-      );
+    it.each([
+      [
+        'a monthly plan as a rolling grant',
+        {},
+        { amount: 5_900, plan: 'monthly' },
+      ],
+      [
+        'a monthly Scale plan at its own allocation',
+        { stripePriceId: 'price_scale' },
+        { amount: 60_000, plan: 'monthly' },
+      ],
+      [
+        'a yearly plan as a reset',
+        { plan: SubscriptionPlan.YEARLY, stripePriceId: 'price_scale_yearly' },
+        { amount: 70_800, plan: 'yearly' },
+      ],
+    ])('grants %s once per invoice', async (_case, fields, granted) => {
+      subscriptions = [];
+      seedSubscription(fields);
 
-      expect(subscriptionsService.findOne).not.toHaveBeenCalled();
-      expect(subscriptionsService.patch).not.toHaveBeenCalled();
-      expect(
-        creditsUtilsService.resetOrganizationCredits,
-      ).not.toHaveBeenCalled();
-    });
+      await handler.handleInvoicePaid(invoice(), 'test');
+      await handler.handleInvoicePaid(invoice(), 'test');
 
-    it('allocates monthly credits on a subscription_cycle invoice', async () => {
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          parent: {
-            subscription_details: { subscription: 'sub_stripe_1' },
-          },
-        }),
-        'test',
-      );
-
-      expect(billingService.resolve).toHaveBeenCalledWith({
-        customer: undefined,
-        metadata: undefined,
-        stripeSubscriptionId: 'sub_stripe_1',
-      });
-      expect(
-        creditsUtilsService.addOrganizationCreditsWithExpiration,
-      ).toHaveBeenCalledWith(
-        'org_1',
-        5_900,
-        'monthly',
-        expect.stringContaining('monthly'),
-        expect.any(Date),
+      expect(grants).toEqual([
         expect.objectContaining({
+          ...granted,
+          ...INVOICE_GRANT,
           billingAccountId: 'ba_1',
-          referenceId: 'stripe-invoice:in_123',
-          referenceType: 'stripe-invoice:subscription-grant',
+          organizationId: 'org_1',
         }),
-      );
-      expect(supportService.setHasEverHadCredits).toHaveBeenCalledWith(
-        'org_1',
-        'test',
-      );
+      ]);
+      expect(activities).toHaveLength(1);
+      expect(creditFlags).toEqual(['org_1']);
     });
 
-    it('records the invoice net of tax in the revenue ledger, using the Scale product tier as the plan label', async () => {
-      billingService.resolve.mockResolvedValue({
-        billingAccountId: 'ba_1',
-        stripeSubscriptionId: 'sub_stripe_1',
-        subscription: {
-          ...monthlySubscription,
-          stripePriceId: 'price_scale',
-        },
-      });
-      supportService.resolveTierFromPriceId.mockReturnValue(
-        SubscriptionTier.SCALE,
-      );
+    it('activates the subscription and syncs its state', async () => {
+      subscriptions[0] = { ...subscriptions[0], status: 'past_due' };
 
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          amount_paid: 4_900,
-          currency: 'usd',
-          parent: {
-            subscription_details: { subscription: 'sub_stripe_1' },
-          },
-          status_transitions: { paid_at: 1_790_000_000 },
-          total_taxes: [{ amount: 400 }],
-        }),
-        'test',
-      );
+      await handler.handleInvoicePaid(invoice(), 'test');
 
-      expect(supportService.resolveTierFromPriceId).toHaveBeenCalledWith(
-        'price_scale',
-      );
-      expect(supportService.recordRevenueEvent).toHaveBeenCalledWith({
-        amountMinor: 4_500,
-        currency: 'usd',
-        occurredAt: new Date(1_790_000_000 * 1000),
-        organizationId: 'org_1',
-        planLabel: 'Scale',
-        source: BillingRevenueSource.SUBSCRIPTION_INVOICE,
-        stripeObjectId: 'in_123',
-        userId: 'user_1',
-      });
-    });
-
-    it('records the invoice using the Scale product tier as the plan label, never the billing interval', async () => {
-      billingService.resolve.mockResolvedValue({
-        billingAccountId: 'ba_1',
-        stripeSubscriptionId: 'sub_stripe_1',
-        subscription: {
-          ...monthlySubscription,
-          plan: SubscriptionPlan.MONTHLY,
-          stripePriceId: 'price_scale',
-        },
-      });
-      supportService.resolveTierFromPriceId.mockReturnValue(
-        SubscriptionTier.SCALE,
-      );
-
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          amount_paid: 60_000,
-          currency: 'usd',
-          parent: {
-            subscription_details: { subscription: 'sub_stripe_1' },
-          },
-        }),
-        'test',
-      );
-
-      expect(supportService.recordRevenueEvent).toHaveBeenCalledWith(
-        expect.objectContaining({ planLabel: 'Scale' }),
-      );
-    });
-
-    it('records the invoice with no plan label when the subscription has no price id', async () => {
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          amount_paid: 4_900,
-          currency: 'usd',
-          parent: {
-            subscription_details: { subscription: 'sub_stripe_1' },
-          },
-        }),
-        'test',
-      );
-
-      expect(supportService.resolveTierFromPriceId).not.toHaveBeenCalled();
-      expect(supportService.recordRevenueEvent).toHaveBeenCalledWith(
-        expect.objectContaining({ planLabel: undefined }),
-      );
-    });
-
-    it('records the invoice with no plan label when the price id resolves to no tier', async () => {
-      billingService.resolve.mockResolvedValue({
-        billingAccountId: 'ba_1',
-        stripeSubscriptionId: 'sub_stripe_1',
-        subscription: {
-          ...monthlySubscription,
-          stripePriceId: 'price_unknown',
-        },
-      });
-      supportService.resolveTierFromPriceId.mockReturnValue(null);
-
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          amount_paid: 4_900,
-          currency: 'usd',
-          parent: {
-            subscription_details: { subscription: 'sub_stripe_1' },
-          },
-        }),
-        'test',
-      );
-
-      expect(supportService.resolveTierFromPriceId).toHaveBeenCalledWith(
-        'price_unknown',
-      );
-      expect(supportService.recordRevenueEvent).toHaveBeenCalledWith(
-        expect.objectContaining({ planLabel: undefined }),
-      );
-    });
-
-    it('warns and skips a subscription_cycle invoice that carries no subscription id', async () => {
-      await expect(
-        handler.handleInvoicePaid(
-          invoiceWith({ billing_reason: 'subscription_cycle' }),
-          'test',
-        ),
-      ).resolves.toBeUndefined();
-
-      expect(loggerService.warn).toHaveBeenCalledExactlyOnceWith(
-        expect.stringContaining('invoice carries no subscription id'),
-        { billingReason: 'subscription_cycle', invoiceId: 'in_123' },
-      );
-      expect(billingService.resolve).not.toHaveBeenCalled();
-      expect(billingService.persist).not.toHaveBeenCalled();
-      expect(
-        creditsUtilsService.addOrganizationCreditsWithExpiration,
-      ).not.toHaveBeenCalled();
-      expect(loggerService.error).not.toHaveBeenCalled();
-    });
-
-    it('treats null invoice period boundaries as absent', async () => {
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          parent: {
-            subscription_details: { subscription: 'sub_stripe_1' },
-          },
-          period_end: null,
-          period_start: null,
-        }),
-        'test',
-      );
-
-      expect(billingService.persist).toHaveBeenCalledTimes(1);
-      const options =
-        creditsUtilsService.addOrganizationCreditsWithExpiration.mock
-          .calls[0][5];
-      expect(options.metadata).not.toHaveProperty('periodEnd');
-      expect(options.metadata).not.toHaveProperty('periodStart');
-      expect(loggerService.warn).not.toHaveBeenCalled();
-    });
-
-    it('resets credits for yearly subscriptions', async () => {
-      billingService.resolve.mockResolvedValue({
-        stripeSubscriptionId: 'sub_stripe_1',
-        subscription: {
-          ...monthlySubscription,
-          plan: SubscriptionPlan.YEARLY,
-        },
-      });
-      subscriptionsService.patch.mockResolvedValue({
-        ...monthlySubscription,
-        plan: SubscriptionPlan.YEARLY,
-      });
-      creditGrantService.resolvePlanCredits.mockResolvedValue(70_800);
-
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          parent: {
-            subscription_details: { subscription: 'sub_stripe_1' },
-          },
-        }),
-        'test',
-      );
-
-      expect(creditsUtilsService.resetOrganizationCredits).toHaveBeenCalledWith(
-        'org_1',
-        70_800,
-        'yearly',
-        expect.stringContaining('yearly'),
+      expect(subscription()?.status).toBe(SubscriptionStatus.ACTIVE);
+      expect(synced).toEqual([
         expect.objectContaining({
-          referenceId: 'stripe-invoice:in_123',
-          referenceType: 'stripe-invoice:subscription-grant',
+          id: 'sub_db_1',
+          status: SubscriptionStatus.ACTIVE,
         }),
-      );
+      ]);
     });
 
-    it('grants the verified Pro allocation for a monthly subscription', async () => {
-      billingService.resolve.mockResolvedValue({
-        stripeSubscriptionId: 'sub_stripe_1',
-        subscription: {
-          ...monthlySubscription,
-          stripePriceId: 'price_scale',
-        },
-      });
-      creditGrantService.resolvePlanCredits.mockResolvedValue(5_900);
+    it('records a credit activity for the organization grant', async () => {
+      await handler.handleInvoicePaid(invoice(), 'test');
 
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          parent: { subscription_details: { subscription: 'sub_stripe_1' } },
-        }),
-        'test',
-      );
-
-      expect(
-        creditsUtilsService.addOrganizationCreditsWithExpiration,
-      ).toHaveBeenCalledWith(
-        'org_1',
-        5_900,
-        'monthly',
-        expect.stringContaining('monthly'),
-        expect.any(Date),
+      expect(activities).toEqual([
         expect.objectContaining({
-          referenceId: 'stripe-invoice:in_123',
-          referenceType: 'stripe-invoice:subscription-grant',
+          key: ActivityKey.CREDITS_ADD,
+          organizationId: 'org_1',
+          userId: 'user_1',
+          value: '5900',
         }),
-      );
+      ]);
     });
 
-    it('grants the verified Scale allocation for a monthly subscription', async () => {
-      billingService.resolve.mockResolvedValue({
-        stripeSubscriptionId: 'sub_stripe_1',
-        subscription: {
-          ...monthlySubscription,
-          stripePriceId: 'price_scale',
+    it.each([
+      [
+        'the stated period',
+        { period_end: 1_790_086_400, period_start: 1_790_000_000 },
+        {
+          periodEnd: '2026-09-22T14:13:20.000Z',
+          periodStart: '2026-09-21T14:13:20.000Z',
         },
-      });
-      creditGrantService.resolvePlanCredits.mockResolvedValue(60_000);
+      ],
+      [
+        'no period for null boundaries',
+        { period_end: null, period_start: null },
+        {},
+      ],
+    ])('stamps the grant with %s', async (_case, period, stamped) => {
+      await handler.handleInvoicePaid(invoice(period), 'test');
 
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          parent: { subscription_details: { subscription: 'sub_stripe_1' } },
-        }),
-        'test',
-      );
-
-      expect(
-        creditsUtilsService.addOrganizationCreditsWithExpiration,
-      ).toHaveBeenCalledWith(
-        'org_1',
-        60_000,
-        'monthly',
-        expect.stringContaining('monthly'),
-        expect.any(Date),
-        expect.objectContaining({
-          referenceId: 'stripe-invoice:in_123',
-          referenceType: 'stripe-invoice:subscription-grant',
-        }),
-      );
+      const { periodEnd, periodStart } = grants[0]?.metadata ?? {};
+      expect({ periodEnd, periodStart }).toEqual(stamped);
+      expect(warnings).toEqual([]);
     });
 
-    it('grants the verified yearly allocation for a yearly Scale subscription', async () => {
-      billingService.resolve.mockResolvedValue({
-        stripeSubscriptionId: 'sub_stripe_1',
-        subscription: {
-          ...monthlySubscription,
-          plan: SubscriptionPlan.YEARLY,
-          stripePriceId: 'price_scale_yearly',
-        },
-      });
-      creditGrantService.resolvePlanCredits.mockResolvedValue(70_800);
+    it.each([
+      ['the Scale tier label for a known price', 'price_scale', 'Scale'],
+      ['no label for an unknown price', 'price_unknown', undefined],
+      ['no label without a price', null, undefined],
+    ])(
+      'records revenue net of tax with %s',
+      async (_case, stripePriceId, planLabel) => {
+        subscriptions[0] = { ...subscriptions[0], stripePriceId };
 
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          parent: { subscription_details: { subscription: 'sub_stripe_1' } },
-        }),
-        'test',
-      );
-
-      expect(creditsUtilsService.resetOrganizationCredits).toHaveBeenCalledWith(
-        'org_1',
-        70_800,
-        'yearly',
-        expect.stringContaining('yearly'),
-        expect.objectContaining({
-          referenceId: 'stripe-invoice:in_123',
-          referenceType: 'stripe-invoice:subscription-grant',
-        }),
-      );
-    });
-
-    it('propagates missing billing identity without nested logs or writes', async () => {
-      billingService.resolve.mockRejectedValueOnce(
-        new StripeWebhookBillingError('identity_missing'),
-      );
-      await expect(
-        handler.handleInvoicePaid(
-          invoiceWith({
-            parent: {
-              subscription_details: { subscription: 'sub_stripe_1' },
-            },
+        await handler.handleInvoicePaid(
+          invoice({
+            amount_paid: 4_900,
+            currency: 'usd',
+            status_transitions: { paid_at: 1_790_000_000 },
+            total_taxes: [{ amount: 400 }],
           }),
           'test',
-        ),
-      ).rejects.toMatchObject({ code: 'identity_missing' });
-      expect(billingService.persist).not.toHaveBeenCalled();
-      expect(
-        creditsUtilsService.addOrganizationCreditsWithExpiration,
-      ).not.toHaveBeenCalled();
-      expect(loggerService.warn).not.toHaveBeenCalled();
-      expect(loggerService.error).not.toHaveBeenCalled();
+        );
+
+        expect(revenue).toEqual([
+          {
+            amountMinor: 4_500,
+            currency: 'usd',
+            occurredAt: new Date(1_790_000_000 * 1000),
+            organizationId: 'org_1',
+            planLabel,
+            source: BillingRevenueSource.SUBSCRIPTION_INVOICE,
+            stripeObjectId: 'in_123',
+            userId: 'user_1',
+          },
+        ]);
+        expect(fees).toEqual([
+          {
+            occurredAt: new Date(1_790_000_000 * 1000),
+            organizationId: 'org_1',
+            payment: { invoiceId: 'in_123' },
+            revenueObjectId: 'in_123',
+            userId: 'user_1',
+          },
+        ]);
+      },
+    );
+
+    it('labels revenue by product tier, never the billing interval', async () => {
+      subscriptions[0] = {
+        ...subscriptions[0],
+        plan: SubscriptionPlan.YEARLY,
+        stripePriceId: 'price_scale_yearly',
+      };
+
+      await handler.handleInvoicePaid(invoice({ amount_paid: 60_000 }), 'test');
+
+      expect(revenue).toEqual([
+        expect.objectContaining({ amountMinor: 60_000, planLabel: 'Scale' }),
+      ]);
     });
 
-    it('passes expanded customer and subscription metadata to canonical resolution', async () => {
+    it('resolves identity from the expanded customer and subscription metadata', async () => {
       const metadata = {
-        billing_account_type: 'billing_account',
         billing_account_id: 'ba_1',
+        billing_account_type: 'billing_account',
         billing_organization_id: 'org_1',
       };
+
       await handler.handleInvoicePaid(
-        invoiceWith({
+        invoice({
           customer: { id: 'cus_1' },
           parent: {
-            subscription_details: { subscription: 'sub_stripe_1', metadata },
+            subscription_details: { metadata, subscription: 'sub_stripe_1' },
           },
         }),
         'test',
       );
-      expect(billingService.resolve).toHaveBeenCalledWith({
-        customer: { id: 'cus_1' },
-        metadata,
-        stripeSubscriptionId: 'sub_stripe_1',
+
+      expect(resolutions).toEqual([
+        {
+          customer: { id: 'cus_1' },
+          metadata,
+          stripeSubscriptionId: 'sub_stripe_1',
+        },
+      ]);
+    });
+
+    describe('first subscription invoice', () => {
+      it('grants the initial allocation and completes onboarding', async () => {
+        users.push({ id: 'user_1', isOnboardingCompleted: false });
+
+        await handler.handleInvoicePaid(
+          invoice({ billing_reason: 'subscription_create' }),
+          'test',
+        );
+
+        expect(grants).toEqual([
+          expect.objectContaining({ amount: 5_900, ...INITIAL_GRANT }),
+        ]);
+        expect(users[0]).toEqual({ id: 'user_1', isOnboardingCompleted: true });
+        expect(invalidatedUsers).toEqual(['user_1']);
+      });
+
+      it('leaves an onboarded user as they are', async () => {
+        users.push({ id: 'user_1', isOnboardingCompleted: true });
+
+        await handler.handleInvoicePaid(
+          invoice({ billing_reason: 'subscription_create' }),
+          'test',
+        );
+
+        expect(invalidatedUsers).toEqual([]);
+      });
+
+      it('still processes the invoice when the subscription has no user', async () => {
+        subscriptions[0] = { ...subscriptions[0], userId: '' };
+
+        await handler.handleInvoicePaid(
+          invoice({ billing_reason: 'subscription_create' }),
+          'test',
+        );
+
+        expect(grants).toHaveLength(1);
+        expect(errors).toEqual([
+          'test invoice subscription is missing a user id',
+        ]);
       });
     });
 
-    it('marks onboarding complete on the first subscription invoice', async () => {
-      usersService.findOne.mockResolvedValue({
-        id: 'user_1',
-        isOnboardingCompleted: false,
-      });
-
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          billing_reason: 'subscription_create',
+    it.each([
+      [
+        'a non-subscription billing reason',
+        invoice({ billing_reason: 'manual' }),
+      ],
+      [
+        'a service-scoped subscription',
+        invoice({
           parent: {
-            subscription_details: { subscription: 'sub_stripe_1' },
+            subscription_details: {
+              metadata: { billing_scope: 'service' },
+              subscription: 'sub_stripe_1',
+            },
           },
         }),
-        'test',
-      );
+      ],
+    ])('ignores an invoice for %s', async (_case, paid) => {
+      await handler.handleInvoicePaid(paid, 'test');
 
-      expect(usersService.findOne).toHaveBeenCalledWith({
-        id: 'user_1',
-      });
-      expect(supportService.markOnboardingComplete).toHaveBeenCalledWith({
-        id: 'user_1',
-        isOnboardingCompleted: false,
-      });
-      expect(
-        accessBootstrapCacheService.invalidateForUser,
-      ).toHaveBeenCalledWith('user_1');
-      expect(
-        creditsUtilsService.addOrganizationCreditsWithExpiration,
-      ).toHaveBeenCalledWith(
-        'org_1',
-        5_900,
-        'monthly',
-        expect.stringContaining('monthly'),
-        expect.any(Date),
-        expect.objectContaining({
-          referenceId: 'stripe-subscription:sub_stripe_1',
-          referenceType: 'stripe-subscription:initial-grant',
-        }),
-      );
+      expect(resolutions).toEqual([]);
+      expect(grants).toEqual([]);
+      expect(revenue).toEqual([]);
     });
 
-    it('propagates credit reconciliation failures for Stripe retry', async () => {
-      const ledgerError = new Error('ledger unavailable');
-      creditsUtilsService.addOrganizationCreditsWithExpiration.mockRejectedValueOnce(
-        ledgerError,
-      );
+    it('acknowledges an invoice without a subscription id, since a retry cannot add one', async () => {
+      await expect(
+        handler.handleInvoicePaid(invoice({ parent: undefined }), 'test'),
+      ).resolves.toBeUndefined();
+
+      expect(warnings).toEqual([
+        'test invoice carries no subscription id, skipping',
+      ]);
+      expect(resolutions).toEqual([]);
+      expect(grants).toEqual([]);
+      expect(errors).toEqual([]);
+    });
+
+    it.each([
+      ['a missing invoice id', { id: undefined }, 'invalid_payload'],
+      ['a non-numeric period', { period_end: 'soon' }, 'invalid_payload'],
+    ])(
+      'rejects %s for Stripe to redeliver, without writes',
+      async (_case, fields, code) => {
+        await expect(
+          handler.handleInvoicePaid(invoice(fields), 'test'),
+        ).rejects.toMatchObject({ code });
+
+        expect(grants).toEqual([]);
+        expect(errors).toEqual([]);
+      },
+    );
+
+    it('propagates missing billing identity without logging or writing', async () => {
+      subscriptions = [];
 
       await expect(
-        handler.handleInvoicePaid(
-          invoiceWith({
-            parent: {
-              subscription_details: { subscription: 'sub_stripe_1' },
-            },
-          }),
-          'test',
-        ),
-      ).rejects.toBe(ledgerError);
+        handler.handleInvoicePaid(invoice(), 'test'),
+      ).rejects.toMatchObject({ code: 'identity_missing' });
 
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('failed to handle invoice paid'),
-        { category: 'reconciliation_failed' },
-      );
+      expect(grants).toEqual([]);
+      expect(synced).toEqual([]);
+      expect(warnings).toEqual([]);
+      expect(errors).toEqual([]);
     });
 
-    it('#1398: skips a duplicate monthly grant when the invoice reference already exists', async () => {
-      supportService.hasSubscriptionCreditGrant.mockResolvedValue(true);
+    it('fails the delivery for Stripe to retry when the ledger is down', async () => {
+      isLedgerDown = true;
 
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          parent: {
-            subscription_details: { subscription: 'sub_stripe_1' },
-          },
-        }),
-        'test',
-      );
+      await expect(
+        handler.handleInvoicePaid(invoice(), 'test'),
+      ).rejects.toThrow('ledger unavailable');
 
-      expect(supportService.hasSubscriptionCreditGrant).toHaveBeenCalledWith(
-        'org_1',
-        {
-          reference: {
-            referenceId: 'stripe-invoice:in_123',
-            referenceType: 'stripe-invoice:subscription-grant',
-          },
-        },
-      );
-      expect(
-        creditsUtilsService.addOrganizationCreditsWithExpiration,
-      ).not.toHaveBeenCalled();
-      expect(
-        creditsUtilsService.resetOrganizationCredits,
-      ).not.toHaveBeenCalled();
-      expect(supportService.recordCreditsActivity).not.toHaveBeenCalled();
+      expect(errors).toEqual(['test failed to handle invoice paid']);
+      expect(revenue).toEqual([]);
     });
 
-    it('#1398: skips a duplicate yearly grant when the invoice reference already exists', async () => {
-      billingService.resolve.mockResolvedValue({
-        stripeSubscriptionId: 'sub_stripe_1',
-        subscription: {
-          ...monthlySubscription,
-          plan: SubscriptionPlan.YEARLY,
-        },
-      });
-      creditGrantService.resolvePlanCredits.mockResolvedValue(70_800);
-      supportService.hasSubscriptionCreditGrant.mockResolvedValue(true);
-
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          parent: {
-            subscription_details: { subscription: 'sub_stripe_1' },
-          },
-        }),
-        'test',
-      );
-
-      expect(
-        creditsUtilsService.resetOrganizationCredits,
-      ).not.toHaveBeenCalled();
-      expect(
-        creditsUtilsService.addOrganizationCreditsWithExpiration,
-      ).not.toHaveBeenCalled();
-    });
-
-    it('#1398: treats a P2002 unique-constraint race on the monthly grant as a no-op, not an error', async () => {
-      const uniqueConstraintError = { code: 'P2002' };
-      creditsUtilsService.addOrganizationCreditsWithExpiration.mockRejectedValue(
-        uniqueConstraintError,
-      );
-      supportService.isUniqueConstraintError.mockReturnValue(true);
-
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          parent: {
-            subscription_details: { subscription: 'sub_stripe_1' },
-          },
-        }),
-        'test',
-      );
-
-      expect(supportService.isUniqueConstraintError).toHaveBeenCalledWith(
-        uniqueConstraintError,
-      );
-      // handleInvoicePaid's outer catch only logs — it must not fire here,
-      // proving the P2002 was swallowed locally as a duplicate no-op.
-      expect(loggerService.error).not.toHaveBeenCalled();
-      expect(supportService.recordCreditsActivity).not.toHaveBeenCalled();
-    });
-
-    it('#1398: treats a P2002 unique-constraint race on the yearly grant as a no-op, not an error', async () => {
-      billingService.resolve.mockResolvedValue({
-        stripeSubscriptionId: 'sub_stripe_1',
-        subscription: {
-          ...monthlySubscription,
-          plan: SubscriptionPlan.YEARLY,
-        },
-      });
-      creditGrantService.resolvePlanCredits.mockResolvedValue(70_800);
-      const uniqueConstraintError = { code: 'P2002' };
-      creditsUtilsService.resetOrganizationCredits.mockRejectedValue(
-        uniqueConstraintError,
-      );
-      supportService.isUniqueConstraintError.mockReturnValue(true);
-
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          parent: {
-            subscription_details: { subscription: 'sub_stripe_1' },
-          },
-        }),
-        'test',
-      );
-
-      expect(creditsUtilsService.resetOrganizationCredits).toHaveBeenCalledWith(
-        'org_1',
-        70_800,
+    it.each([
+      ['monthly', {}],
+      [
         'yearly',
-        expect.stringContaining('yearly'),
-        expect.objectContaining({
-          referenceId: 'stripe-invoice:in_123',
-          referenceType: 'stripe-invoice:subscription-grant',
-        }),
-      );
-      expect(supportService.isUniqueConstraintError).toHaveBeenCalledWith(
-        uniqueConstraintError,
-      );
-      // handleInvoicePaid's outer catch only logs — it must not fire here,
-      // proving the P2002 was swallowed locally as a duplicate no-op.
-      expect(loggerService.error).not.toHaveBeenCalled();
-      expect(supportService.recordCreditsActivity).not.toHaveBeenCalled();
+        { plan: SubscriptionPlan.YEARLY, stripePriceId: 'price_scale_yearly' },
+      ],
+    ])(
+      'treats a concurrent delivery that granted the %s credits first as done',
+      async (_case, fields) => {
+        subscriptions = [];
+        seedSubscription(fields);
+        hasRacingGrant = true;
+
+        await handler.handleInvoicePaid(invoice(), 'test');
+
+        expect(grants).toHaveLength(1);
+        expect(activities).toEqual([]);
+        expect(errors).toEqual([]);
+        expect(revenue).toHaveLength(1);
+      },
+    );
+
+    it('grants nothing for a price with no known allocation', async () => {
+      subscriptions[0] = {
+        ...subscriptions[0],
+        stripePriceId: 'price_unknown',
+      };
+
+      await handler.handleInvoicePaid(invoice(), 'test');
+
+      expect(grants).toEqual([]);
+      expect(subscription()?.status).toBe(SubscriptionStatus.ACTIVE);
     });
   });
 
   describe('handleInvoicePaymentFailed', () => {
-    it('reads the subscription id from the v22 parent path and marks past_due', async () => {
-      await handler.handleInvoicePaymentFailed(
-        invoiceWith({
-          billing_reason: 'subscription_cycle',
+    it.each([
+      ['the parent path', invoice()],
+      [
+        'the legacy subscription field',
+        invoice({ parent: undefined, subscription: 'sub_stripe_1' }),
+      ],
+    ])(
+      'marks the subscription found through %s past due',
+      async (_case, failed) => {
+        await handler.handleInvoicePaymentFailed(failed, 'test');
+
+        expect(subscription()?.status).toBe(SubscriptionStatus.PAST_DUE);
+      },
+    );
+
+    it.each([
+      ['which attempt it was', 2, 2, 'in_123:2'],
+      ['the first attempt without a count', undefined, 1, 'in_123:1'],
+    ])(
+      'tells the operator the amount and %s',
+      async (_case, attemptCount, attempt, stripeObjectId) => {
+        await handler.handleInvoicePaymentFailed(
+          invoice({
+            amount_due: 49_900,
+            attempt_count: attemptCount,
+            currency: 'usd',
+          }),
+          'test',
+        );
+
+        expect(operatorNotices).toEqual([
+          {
+            amountMinor: 49_900,
+            attemptCount: attempt,
+            currency: 'usd',
+            kind: 'payment_failed',
+            organizationId: 'org_1',
+            stripeObjectId,
+          },
+        ]);
+      },
+    );
+
+    it.each([
+      ['carries no subscription id', invoice({ parent: undefined })],
+      [
+        'names an unknown subscription',
+        invoice({
+          parent: { subscription_details: { subscription: 'sub_unknown' } },
+        }),
+      ],
+      [
+        'belongs to a service-scoped subscription',
+        invoice({
           parent: {
-            subscription_details: { subscription: 'sub_stripe_1' },
+            subscription_details: {
+              metadata: { billing_scope: 'service' },
+              subscription: 'sub_stripe_1',
+            },
           },
         }),
-        'test',
-      );
+      ],
+    ])('changes nothing when the invoice %s', async (_case, failed) => {
+      await handler.handleInvoicePaymentFailed(failed, 'test');
 
-      expect(subscriptionsService.findOne).toHaveBeenCalledWith({
-        stripeSubscriptionId: 'sub_stripe_1',
-      });
-      expect(subscriptionsService.patch).toHaveBeenCalledWith('sub_db_1', {
-        status: SubscriptionStatus.PAST_DUE,
-      });
+      expect(subscription()?.status).toBe('active');
+      expect(operatorNotices).toEqual([]);
     });
 
-    it('does not query subscriptions when the invoice carries no subscription id', async () => {
-      await handler.handleInvoicePaymentFailed(invoiceWith({}), 'test');
+    it('marks an organizationless subscription past due without an operator notice', async () => {
+      subscriptions[0] = { ...subscriptions[0], organizationId: '' };
 
-      expect(subscriptionsService.findOne).not.toHaveBeenCalled();
-    });
+      await handler.handleInvoicePaymentFailed(invoice(), 'test');
 
-    it('announces the failed payment with the amount and which attempt it was', async () => {
-      await handler.handleInvoicePaymentFailed(
-        invoiceWith({
-          amount_due: 49_900,
-          attempt_count: 2,
-          currency: 'usd',
-          parent: {
-            subscription_details: { subscription: 'sub_stripe_1' },
-          },
-        }),
-        'test',
-      );
-
-      expect(supportService.notifyOperatorOfBillingEvent).toHaveBeenCalledWith({
-        amountMinor: 49_900,
-        attemptCount: 2,
-        currency: 'usd',
-        kind: 'payment_failed',
-        organizationId: 'org_1',
-        stripeObjectId: 'in_123:2',
-      });
+      expect(subscription()?.status).toBe(SubscriptionStatus.PAST_DUE);
+      expect(operatorNotices).toEqual([]);
     });
   });
 });

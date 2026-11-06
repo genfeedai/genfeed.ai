@@ -7,7 +7,6 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
 import {
   ReplyBotActionType,
   ReplyBotPlatform,
@@ -15,46 +14,89 @@ import {
 } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
+
+type Row = Record<string, unknown> & {
+  config: Record<string, unknown>;
+  id: string;
+  isDeleted: boolean;
+  organizationId: string;
+};
+type Where = Record<string, unknown>;
 
 describe('ReplyBotConfigsService persistence', () => {
-  const replyBotConfig = {
-    create: vi.fn(),
-    findFirst: vi.fn(),
-    update: vi.fn(),
-  };
+  let rows: Map<string, Row>;
   let service: ReplyBotConfigsService;
 
+  // Every query passes the real CLOUD tenant guard, as in production.
+  const guard = (operation: string, args: unknown) =>
+    assertTenantScopedQuery({
+      args,
+      isCloud: true,
+      model: 'ReplyBotConfig',
+      operation,
+      tenantModelNames: new Set(['ReplyBotConfig']),
+    });
+  const matches = (row: Row, where: Where) =>
+    Object.entries(where).every(([key, value]) => row[key] === value);
+
   beforeEach(() => {
-    vi.clearAllMocks();
-    replyBotConfig.create.mockImplementation(({ data }) =>
-      Promise.resolve({
-        ...data,
-        createdAt: new Date(),
-        id: 'bot-1',
-        isDeleted: false,
-        updatedAt: new Date(),
-      }),
-    );
-    replyBotConfig.update.mockImplementation(({ data }) =>
-      Promise.resolve({
-        ...data,
-        createdAt: new Date(),
-        id: 'bot-1',
-        isDeleted: false,
-        updatedAt: new Date(),
-      }),
-    );
+    rows = new Map();
+    let nextId = 1;
 
     service = new ReplyBotConfigsService(
-      { replyBotConfig } as unknown as PrismaService,
       {
-        debug: vi.fn(),
-        error: vi.fn(),
-        log: vi.fn(),
-        warn: vi.fn(),
+        isCloudTenantGuard: true,
+        replyBotConfig: {
+          create: async (args: { data: Record<string, unknown> }) => {
+            guard('create', args);
+            const row = {
+              ...args.data,
+              createdAt: new Date(),
+              id: `bot-${nextId++}`,
+              isDeleted: false,
+              updatedAt: new Date(),
+            } as unknown as Row;
+            rows.set(row.id, row);
+            return row;
+          },
+          findFirst: async (args: { where: Where }) => {
+            guard('findFirst', args);
+            return (
+              [...rows.values()].find((row) => matches(row, args.where)) ?? null
+            );
+          },
+          update: async (args: {
+            data: Record<string, unknown>;
+            where: Where;
+          }) => {
+            guard('update', args);
+            const row = [...rows.values()].find((entry) =>
+              matches(entry, args.where),
+            );
+            if (!row) throw new Error('Record to update not found');
+            Object.assign(row, args.data, { updatedAt: new Date() });
+            return row;
+          },
+        },
+      } as unknown as PrismaService,
+      {
+        debug: () => {},
+        error: () => {},
+        log: () => {},
+        warn: () => {},
       } as unknown as LoggerService,
     );
   });
+
+  const seed = (row: Partial<Row> & { id: string }) => {
+    rows.set(row.id, {
+      config: {},
+      isDeleted: false,
+      organizationId: 'org-1',
+      ...row,
+    } as Row);
+  };
 
   it('writes real scalar columns and packs domain settings into config', async () => {
     await service.create(
@@ -72,25 +114,24 @@ describe('ReplyBotConfigsService persistence', () => {
       [],
     );
 
-    expect(replyBotConfig.create).toHaveBeenCalledWith({
-      data: {
-        actionType: ReplyBotActionType.REPLY_ONLY,
-        brandId: 'brand-1',
-        config: expect.objectContaining({
-          credentialId: 'credential-1',
-          name: 'Replies',
-          platform: ReplyBotPlatform.TWITTER,
-          rateLimits: expect.objectContaining({
-            maxRepliesPerDay: 50,
-            maxRepliesPerHour: 10,
-          }),
+    expect(rows.get('bot-1')).toMatchObject({
+      actionType: ReplyBotActionType.REPLY_ONLY,
+      brandId: 'brand-1',
+      config: expect.objectContaining({
+        credentialId: 'credential-1',
+        name: 'Replies',
+        platform: ReplyBotPlatform.TWITTER,
+        rateLimits: expect.objectContaining({
+          maxRepliesPerDay: 50,
+          maxRepliesPerHour: 10,
         }),
-        isActive: true,
-        organizationId: 'org-1',
-        type: ReplyBotType.REPLY_GUY,
-        userId: 'user-1',
-      },
+      }),
+      isActive: true,
+      organizationId: 'org-1',
+      type: ReplyBotType.REPLY_GUY,
+      userId: 'user-1',
     });
+    expect(rows.get('bot-1')).not.toHaveProperty('name');
   });
 
   it('creates bots paused by default', async () => {
@@ -105,57 +146,28 @@ describe('ReplyBotConfigsService persistence', () => {
       [],
     );
 
-    expect(replyBotConfig.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ isActive: false }),
-    });
+    expect(rows.get('bot-1')?.isActive).toBe(false);
   });
 
-  it('merges config-backed patches and keeps scalar fields out of JSON', async () => {
-    replyBotConfig.findFirst.mockResolvedValue({
+  it('merges config-backed patches inside the request tenant and keeps scalars out of JSON', async () => {
+    seed({
       config: { credentialId: 'credential-1', name: 'Old name' },
       id: 'bot-1',
-      organizationId: 'org-1',
-    });
-
-    await service.patch('bot-1', { isActive: true, name: 'New name' }, []);
-
-    expect(replyBotConfig.update).toHaveBeenCalledWith({
-      data: {
-        config: { credentialId: 'credential-1', name: 'New name' },
-        isActive: true,
-      },
-      where: { id: 'bot-1' },
-    });
-  });
-
-  it('scopes the patch pre-read by the request tenant in CLOUD mode', async () => {
-    replyBotConfig.findFirst.mockResolvedValue({
-      config: { credentialId: 'credential-1', name: 'Old name' },
-      id: 'bot-1',
-      organizationId: 'org-1',
+      isActive: false,
     });
 
     await runWithTenantContext({ organizationId: 'org-1' }, () =>
       service.patch('bot-1', { isActive: true, name: 'New name' }, []),
     );
 
-    expect(replyBotConfig.findFirst).toHaveBeenCalledWith({
-      where: { id: 'bot-1', isDeleted: false, organizationId: 'org-1' },
-      select: { config: true, organizationId: true },
+    expect(rows.get('bot-1')).toMatchObject({
+      config: { credentialId: 'credential-1', name: 'New name' },
+      isActive: true,
     });
-    expectCloudGuardPasses(
-      'ReplyBotConfig',
-      'findFirst',
-      replyBotConfig.findFirst,
-    );
   });
 
-  it('scopes counter reads and writes by the organization', async () => {
-    replyBotConfig.findFirst.mockResolvedValue({
-      config: {},
-      id: 'bot-1',
-      organizationId: 'org-1',
-    });
+  it('counts replies, DMs, skips and failures on the bot of the organization', async () => {
+    seed({ config: {}, id: 'bot-1' });
 
     await runWithTenantContext({ organizationId: 'org-1' }, async () => {
       await service.incrementReplyCounters('bot-1', 'org-1');
@@ -164,12 +176,26 @@ describe('ReplyBotConfigsService persistence', () => {
       await service.incrementFailedCounter('bot-1', 'org-1');
     });
 
-    expect(replyBotConfig.update).toHaveBeenCalledTimes(4);
-    expectCloudGuardPasses(
-      'ReplyBotConfig',
-      'findFirst',
-      replyBotConfig.findFirst,
+    expect(rows.get('bot-1')?.config).toMatchObject({
+      lastActivityAt: expect.any(String),
+      rateLimits: expect.objectContaining({
+        currentDayCount: 1,
+        currentHourCount: 1,
+      }),
+      totalDmsSent: 1,
+      totalFailed: 1,
+      totalRepliesSent: 1,
+      totalSkipped: 1,
+    });
+  });
+
+  it("leaves another organization's bot untouched", async () => {
+    seed({ config: {}, id: 'bot-1', organizationId: 'org-2' });
+
+    await runWithTenantContext({ organizationId: 'org-1' }, () =>
+      service.incrementReplyCounters('bot-1', 'org-1'),
     );
-    expectCloudGuardPasses('ReplyBotConfig', 'update', replyBotConfig.update);
+
+    expect(rows.get('bot-1')?.config).toEqual({});
   });
 });

@@ -9,7 +9,7 @@ import {
   AgentPublishDecision,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 const STRATEGY = {
   brandId: 'brand-1',
@@ -28,39 +28,63 @@ function policy(
   };
 }
 
-function makeDeps() {
-  const resolveForTarget = vi
-    .fn()
-    .mockResolvedValue(policy(AgentPublishDecision.PERMITTED));
+interface PublishHarness {
+  decisions: ResolvedAutonomousPostPolicy[];
+  deps: AutopilotThreadPublishDependencies;
+  evaluations: number;
+  locks: unknown[];
+  patches: Array<{ id: string; update: Record<string, unknown> }>;
+}
+
+function makeHarness(
+  decisions: ResolvedAutonomousPostPolicy[] = [
+    policy(AgentPublishDecision.PERMITTED),
+  ],
+): PublishHarness {
+  const harness: PublishHarness = {
+    decisions,
+    deps: {} as AutopilotThreadPublishDependencies,
+    evaluations: 0,
+    locks: [],
+    patches: [],
+  };
+  const resolveForTarget = async () => {
+    const index = Math.min(harness.evaluations, decisions.length - 1);
+    harness.evaluations += 1;
+    return decisions[index] as ResolvedAutonomousPostPolicy;
+  };
   // A brand with caps: the policy is evaluated again under the lock.
-  const scheduleWithinPostCaps = vi.fn(
-    async (
-      _scope: unknown,
-      preview: ResolvedAutonomousPostPolicy,
-      evaluate: () => Promise<ResolvedAutonomousPostPolicy>,
-      schedule: () => Promise<unknown>,
-    ) => {
-      if (preview.result.decision !== AgentPublishDecision.PERMITTED)
-        return { policy: preview };
-      const decided = await evaluate();
-      return decided.result.decision === AgentPublishDecision.PERMITTED
-        ? { policy: decided, scheduled: await schedule() }
-        : { policy: decided };
-    },
-  );
-  const patch = vi.fn().mockResolvedValue({ id: 'draft-1' });
-  const deps = {
+  const scheduleWithinPostCaps = async (
+    scope: unknown,
+    preview: ResolvedAutonomousPostPolicy,
+    evaluate: () => Promise<ResolvedAutonomousPostPolicy>,
+    schedule: () => Promise<unknown>,
+  ) => {
+    harness.locks.push(scope);
+    if (preview.result.decision !== AgentPublishDecision.PERMITTED)
+      return { policy: preview };
+    const decided = await evaluate();
+    return decided.result.decision === AgentPublishDecision.PERMITTED
+      ? { policy: decided, scheduled: await schedule() }
+      : { policy: decided };
+  };
+  harness.deps = {
     autonomousPublishPolicy: { resolveForTarget, scheduleWithinPostCaps },
     postAccountFanoutService: {
-      resolveDefaultTarget: vi.fn().mockResolvedValue({
+      resolveDefaultTarget: async () => ({
         caption: 'One\n\nTwo',
         credentialId: 'credential-1',
         platform: 'twitter',
       }),
     },
-    postsService: { patch },
+    postsService: {
+      patch: async (id: string, update: Record<string, unknown>) => {
+        harness.patches.push({ id, update });
+        return { id };
+      },
+    },
   } as unknown as AutopilotThreadPublishDependencies;
-  return { deps, patch, resolveForTarget, scheduleWithinPostCaps };
+  return harness;
 }
 
 const INPUT = {
@@ -74,60 +98,55 @@ const INPUT = {
 
 describe('publishAutopilotThread post caps (#7458)', () => {
   it('counts the Policy post caps and schedules the root under one brand lock', async () => {
-    const { deps, patch, resolveForTarget, scheduleWithinPostCaps } =
-      makeDeps();
+    const harness = makeHarness();
 
-    const result = await publishAutopilotThread(deps, INPUT);
+    const result = await publishAutopilotThread(harness.deps, INPUT);
 
     expect(result).toEqual({ postIds: ['draft-1'], scheduled: true });
-    expect(scheduleWithinPostCaps).toHaveBeenCalledWith(
+    expect(harness.locks).toEqual([
       { brandId: 'brand-1', organizationId: 'org-1' },
-      expect.anything(),
-      expect.any(Function),
-      expect.any(Function),
-    );
+    ]);
     // Once before the lock, once under it.
-    expect(resolveForTarget).toHaveBeenCalledTimes(2);
-    expect(patch).toHaveBeenCalledWith(
-      'draft-1',
-      expect.objectContaining({
-        targetExecutionState: TargetExecutionState.SCHEDULED,
-      }),
-    );
+    expect(harness.evaluations).toBe(2);
+    expect(harness.patches).toEqual([
+      {
+        id: 'draft-1',
+        update: expect.objectContaining({
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+        }),
+      },
+    ]);
   });
 
   it('keeps the thread a draft when the lock shows the last slot is gone', async () => {
-    const { deps, patch, resolveForTarget } = makeDeps();
-    resolveForTarget
-      .mockResolvedValueOnce(policy(AgentPublishDecision.PERMITTED))
-      .mockResolvedValueOnce(
-        policy(AgentPublishDecision.DENIED, 'The daily cap is reached.'),
-      );
+    const harness = makeHarness([
+      policy(AgentPublishDecision.PERMITTED),
+      policy(AgentPublishDecision.DENIED, 'The daily cap is reached.'),
+    ]);
 
-    const result = await publishAutopilotThread(deps, INPUT);
+    const result = await publishAutopilotThread(harness.deps, INPUT);
 
     expect(result).toEqual({
       policyReason: 'The daily cap is reached.',
       postIds: [],
       scheduled: false,
     });
-    expect(patch).not.toHaveBeenCalled();
+    expect(harness.patches).toEqual([]);
   });
 
   it('reports a denial from the first evaluation without evaluating again', async () => {
-    const { deps, patch, resolveForTarget } = makeDeps();
-    resolveForTarget.mockResolvedValue(
+    const harness = makeHarness([
       policy(AgentPublishDecision.DENIED, 'Approval is required.'),
-    );
+    ]);
 
-    const result = await publishAutopilotThread(deps, INPUT);
+    const result = await publishAutopilotThread(harness.deps, INPUT);
 
     expect(result).toEqual({
       policyReason: 'Approval is required.',
       postIds: [],
       scheduled: false,
     });
-    expect(patch).not.toHaveBeenCalled();
-    expect(resolveForTarget).toHaveBeenCalledTimes(1);
+    expect(harness.patches).toEqual([]);
+    expect(harness.evaluations).toBe(1);
   });
 });

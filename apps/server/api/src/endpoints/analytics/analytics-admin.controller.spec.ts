@@ -1,26 +1,17 @@
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  getIsSuperAdmin: (user: { isSuperAdmin?: boolean }) =>
-    Boolean(user.isSuperAdmin),
-}));
-
-vi.mock('@api/helpers/utils/response/response.util', () => ({
-  serializeSingle: vi.fn(
-    (_request: unknown, _serializer: unknown, data: unknown) => data,
-  ),
-}));
-
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AnalyticsAdminController } from '@api/endpoints/analytics/analytics-admin.controller';
-import { AnalyticsAdminSummaryService } from '@api/endpoints/analytics/analytics-admin-summary.service';
-import { ANALYTICS_MISSING_ORGANIZATION_MESSAGE } from '@api/endpoints/analytics/analytics-tenant-scope';
+import type { AnalyticsAdminSummaryService } from '@api/endpoints/analytics/analytics-admin-summary.service';
 import {
+  ANALYTICS_MISSING_ORGANIZATION_MESSAGE,
+  ANALYTICS_TENANT_FORBIDDEN,
+} from '@api/endpoints/analytics/analytics-tenant-scope';
+import type {
   AdminBrandsQueryDto,
   AdminOrgsQueryDto,
   LeaderboardQueryDto,
 } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
-import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
+import type { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import {
   AnalyticSerializer,
   AnalyticsBrandLeaderboardSerializer,
@@ -28,225 +19,256 @@ import {
   AnalyticsOrgLeaderboardSerializer,
   AnalyticsOrgStatsSerializer,
 } from '@genfeedai/serializers';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
 import type { Request } from 'express';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
+  getIsSuperAdmin: (user: { isSuperAdmin?: boolean }) =>
+    Boolean(user.isSuperAdmin),
+}));
+
+vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@api/helpers/utils/response/response.util')
+    >();
+  return {
+    ...actual,
+    serializeSingle: (_req: unknown, serializer: unknown, data: unknown) => ({
+      data,
+      serializer,
+    }),
+  };
+});
+
+interface Brand {
+  engagement: number;
+  id: string;
+  label: string;
+  organizationId: string;
+}
+
+interface Organization {
+  engagement: number;
+  id: string;
+  label: string;
+}
+
+const BRANDS: Brand[] = [
+  { engagement: 90, id: 'brand-a', label: 'Alpha', organizationId: 'org-1' },
+  { engagement: 70, id: 'brand-b', label: 'Bravo', organizationId: 'org-2' },
+  { engagement: 50, id: 'brand-c', label: 'Charlie', organizationId: 'org-2' },
+  { engagement: 30, id: 'brand-d', label: 'Delta', organizationId: 'org-3' },
+];
+const ORGANIZATIONS: Organization[] = [
+  { engagement: 90, id: 'org-1', label: 'One' },
+  { engagement: 120, id: 'org-2', label: 'Two' },
+  { engagement: 30, id: 'org-3', label: 'Three' },
+];
+
+const request = (query: Record<string, unknown> = {}) =>
+  ({ originalUrl: '/api/analytics', query }) as unknown as Request;
+const superAdmin = {
+  id: 'user-1',
+  isSuperAdmin: true,
+  organizationId: 'org-1',
+} as User;
+const member = { id: 'user-2', organizationId: 'org-2' } as User;
+const idsOf = (rows: { id: string }[]) => rows.map((row) => row.id);
 
 describe('AnalyticsAdminController', () => {
-  const loggerService = { log: vi.fn() };
-  const summaryService = { getSummary: vi.fn() };
-  const leaderboardService = {
-    getBrandsLeaderboard: vi.fn(),
-    getBrandsWithStats: vi.fn(),
-    getOrganizationsLeaderboard: vi.fn(),
-    getOrganizationsWithStats: vi.fn(),
-  };
-  const controller = new AnalyticsAdminController(
-    loggerService as unknown as LoggerService,
-    summaryService as unknown as AnalyticsAdminSummaryService,
-    leaderboardService as unknown as EntityLeaderboardService,
-  );
-  const request = {
-    originalUrl: '/api/analytics',
-    query: {},
-    user: { id: 'user-1' },
-  } as unknown as Request;
-  const superAdmin = {
-    id: 'user-1',
-    isSuperAdmin: true,
-    organizationId: 'org-1',
-  } as User;
+  let controller: AnalyticsAdminController;
 
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
+  beforeEach(() => {
+    const byEngagement = <T extends { engagement: number }>(rows: T[]) =>
+      [...rows].sort((a, b) => b.engagement - a.engagement);
+    const page = <T>(rows: T[], pageNumber = 1, limit = 20) =>
+      rows.slice((pageNumber - 1) * limit, pageNumber * limit);
+    const brandsOf = (organizationId?: string) =>
+      BRANDS.filter(
+        (brand) => !organizationId || brand.organizationId === organizationId,
+      );
 
-  it('delegates the admin summary and preserves its serializer boundary', async () => {
-    const summary = { totalUsers: 8 };
-    const query = { limit: 25, page: 2 } as BaseQueryDto;
-    summaryService.getSummary.mockResolvedValue(summary);
+    const summaryService = {
+      getSummary: async (query: BaseQueryDto) => ({
+        page: query.page,
+        totalBrands: BRANDS.length,
+        totalOrganizations: ORGANIZATIONS.length,
+      }),
+    } as unknown as AnalyticsAdminSummaryService;
+    const leaderboards = {
+      getBrandsLeaderboard: async (
+        _start: string,
+        _end: string,
+        _sort: string,
+        limit: number,
+        organizationId?: string,
+      ) => byEngagement(brandsOf(organizationId)).slice(0, limit),
+      getBrandsWithStats: async (
+        _start: string,
+        _end: string,
+        pageNumber: number,
+        limit: number,
+        _sort: string,
+        organizationId?: string,
+        search?: string,
+        brandId?: string,
+      ) =>
+        page(
+          byEngagement(brandsOf(organizationId)).filter(
+            (brand) =>
+              (!brandId || brand.id === brandId) &&
+              (!search || brand.label.includes(search)),
+          ),
+          pageNumber,
+          limit,
+        ),
+      getOrganizationsLeaderboard: async (
+        _start: string,
+        _end: string,
+        _sort: string,
+        limit: number,
+      ) => byEngagement(ORGANIZATIONS).slice(0, limit),
+      getOrganizationsWithStats: async (
+        _start: string,
+        _end: string,
+        pageNumber: number,
+        limit: number,
+        _sort: string,
+        search?: string,
+        organizationId?: string,
+      ) =>
+        page(
+          byEngagement(ORGANIZATIONS).filter(
+            (organization) =>
+              (!organizationId || organization.id === organizationId) &&
+              (!search || organization.label.includes(search)),
+          ),
+          pageNumber,
+          limit,
+        ),
+    } as unknown as EntityLeaderboardService;
+    const logger = { log: () => undefined } as unknown as LoggerService;
 
-    await expect(controller.findAll(request, query)).resolves.toBe(summary);
-    expect(summaryService.getSummary).toHaveBeenCalledWith(query);
-    expect(serializeSingle).toHaveBeenCalledWith(
-      request,
-      AnalyticSerializer,
-      summary,
+    controller = new AnalyticsAdminController(
+      logger,
+      summaryService,
+      leaderboards,
     );
   });
 
-  it('delegates the organization leaderboard and stats contracts', async () => {
-    const leaderboardQuery = {
-      endDate: '2025-01-31',
-      limit: 10,
-      sort: 'engagement',
-      startDate: '2025-01-01',
-    } as LeaderboardQueryDto;
-    const statsQuery = {
-      ...leaderboardQuery,
-      limit: 20,
-      page: 2,
-    } as AdminOrgsQueryDto;
-    leaderboardService.getOrganizationsLeaderboard.mockResolvedValue([]);
-    leaderboardService.getOrganizationsWithStats.mockResolvedValue({
-      data: [],
-    });
-
-    await controller.getOrganizationsLeaderboard(request, leaderboardQuery);
-    await controller.getOrganizationsWithStats(request, statsQuery);
-
-    expect(leaderboardService.getOrganizationsLeaderboard).toHaveBeenCalledWith(
-      '2025-01-01',
-      '2025-01-31',
-      'engagement',
-      10,
-    );
-    expect(serializeSingle).toHaveBeenCalledWith(
-      request,
-      AnalyticsOrgLeaderboardSerializer,
-      [],
-    );
-    expect(leaderboardService.getOrganizationsWithStats).toHaveBeenCalledWith(
-      '2025-01-01',
-      '2025-01-31',
-      2,
-      20,
-      'engagement',
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      { emailClass: undefined, usage: undefined },
-    );
-    expect(serializeSingle).toHaveBeenCalledWith(
-      request,
-      AnalyticsOrgStatsSerializer,
-      { data: [] },
-    );
-  });
-
-  it('narrows superadmin brand analytics to the requested organization', async () => {
-    const scopedRequest = {
-      ...request,
-      query: { organizationId: 'org-2' },
-    } as unknown as Request;
-    const statsQuery = {
-      limit: 20,
-      organizationId: 'org-2',
-      page: 1,
-      sort: 'engagement',
-    } as AdminBrandsQueryDto;
-    leaderboardService.getBrandsWithStats.mockResolvedValue({ data: [] });
-
-    await controller.getBrandsWithStats(superAdmin, scopedRequest, statsQuery);
-
-    expect(leaderboardService.getBrandsWithStats).toHaveBeenCalledWith(
-      undefined,
-      undefined,
-      1,
-      20,
-      'engagement',
-      'org-2',
-      undefined,
-      undefined,
-    );
-  });
-
-  it('keeps brand analytics scoped to a non-admin organization', async () => {
-    const user = { id: 'user-2', organizationId: 'org-2' } as User;
-    const leaderboardQuery = {
-      endDate: '2025-01-31',
-      limit: 5,
-      sort: 'engagement',
-      startDate: '2025-01-01',
-    } as LeaderboardQueryDto;
-    const statsQuery = {
-      ...leaderboardQuery,
-      limit: 15,
-      page: 2,
-    } as AdminBrandsQueryDto;
-    leaderboardService.getBrandsLeaderboard.mockResolvedValue([]);
-    leaderboardService.getBrandsWithStats.mockResolvedValue({ data: [] });
-
-    await controller.getBrandsLeaderboard(user, request, leaderboardQuery);
-    await controller.getBrandsWithStats(user, request, statsQuery);
-
-    expect(leaderboardService.getBrandsLeaderboard).toHaveBeenCalledWith(
-      '2025-01-01',
-      '2025-01-31',
-      'engagement',
-      5,
-      'org-2',
-    );
-    expect(serializeSingle).toHaveBeenCalledWith(
-      request,
-      AnalyticsBrandLeaderboardSerializer,
-      [],
-    );
-    expect(leaderboardService.getBrandsWithStats).toHaveBeenCalledWith(
-      '2025-01-01',
-      '2025-01-31',
-      2,
-      15,
-      'engagement',
-      'org-2',
-      undefined,
-      undefined,
-    );
-    expect(serializeSingle).toHaveBeenCalledWith(
-      request,
-      AnalyticsBrandStatsSerializer,
-      { data: [] },
-    );
-  });
-
-  it('passes the selected brand through to brand analytics', async () => {
-    const user = { id: 'user-2', organizationId: 'org-2' } as User;
-    const statsQuery = {
-      brandId: 'brand-9',
-      limit: 20,
-      page: 1,
-      sort: 'engagement',
-    } as AdminBrandsQueryDto;
-    leaderboardService.getBrandsWithStats.mockResolvedValue({ data: [] });
-
-    await controller.getBrandsWithStats(user, request, statsQuery);
-
-    expect(leaderboardService.getBrandsWithStats).toHaveBeenCalledWith(
-      undefined,
-      undefined,
-      1,
-      20,
-      'engagement',
-      'org-2',
-      undefined,
-      'brand-9',
-    );
-  });
-
-  it('keeps super-admin brand analytics unscoped', async () => {
-    const query = { limit: 10, sort: 'engagement' } as LeaderboardQueryDto;
-    leaderboardService.getBrandsLeaderboard.mockResolvedValue([]);
-
-    await controller.getBrandsLeaderboard(superAdmin, request, query);
-
-    expect(leaderboardService.getBrandsLeaderboard).toHaveBeenCalledWith(
-      undefined,
-      undefined,
-      'engagement',
-      10,
-      undefined,
-    );
-  });
-
-  it('preserves the missing-organization error for brand analytics', async () => {
-    const query = { limit: 10, sort: 'engagement' } as LeaderboardQueryDto;
-
+  it('serializes the platform summary for superadmins', async () => {
     await expect(
-      controller.getBrandsLeaderboard({ id: 'user-3' } as User, request, query),
-    ).rejects.toEqual(
+      controller.findAll(request(), { page: 2 } as BaseQueryDto),
+    ).resolves.toEqual({
+      data: { page: 2, totalBrands: 4, totalOrganizations: 3 },
+      serializer: AnalyticSerializer,
+    });
+  });
+
+  it('ranks every organization on the leaderboard', async () => {
+    await expect(
+      controller.getOrganizationsLeaderboard(request(), {
+        limit: 2,
+      } as LeaderboardQueryDto),
+    ).resolves.toEqual({
+      data: [
+        expect.objectContaining({ id: 'org-2' }),
+        expect.objectContaining({ id: 'org-1' }),
+      ],
+      serializer: AnalyticsOrgLeaderboardSerializer,
+    });
+  });
+
+  it.each([
+    [{ limit: 2, page: 2 }, ['org-3']],
+    [{ search: 'T' }, ['org-2', 'org-3']],
+    [{ organizationId: 'org-1' }, ['org-1']],
+  ])('pages organization stats (%o)', async (query, expected) => {
+    const result = (await controller.getOrganizationsWithStats(
+      request(),
+      query as AdminOrgsQueryDto,
+    )) as { data: Organization[]; serializer: unknown };
+
+    expect(idsOf(result.data)).toEqual(expected);
+    expect(result.serializer).toBe(AnalyticsOrgStatsSerializer);
+  });
+
+  it.each([
+    [
+      'a superadmin across every organization',
+      superAdmin,
+      {},
+      ['brand-a', 'brand-b', 'brand-c', 'brand-d'],
+    ],
+    [
+      'a superadmin who names an organization',
+      superAdmin,
+      { organizationId: 'org-2' },
+      ['brand-b', 'brand-c'],
+    ],
+    ['a member to their own organization', member, {}, ['brand-b', 'brand-c']],
+    [
+      'a member who names their own organization',
+      member,
+      { organizationId: 'org-2' },
+      ['brand-b', 'brand-c'],
+    ],
+  ])('ranks brands for %s', async (_case, user, query, expected) => {
+    const result = (await controller.getBrandsLeaderboard(
+      user,
+      request(query),
+      { limit: 10 } as LeaderboardQueryDto,
+    )) as { data: Brand[]; serializer: unknown };
+
+    expect(idsOf(result.data)).toEqual(expected);
+    expect(result.serializer).toBe(AnalyticsBrandLeaderboardSerializer);
+  });
+
+  it.each([
+    [{ limit: 1, page: 2 }, ['brand-c']],
+    [{ brandId: 'brand-c' }, ['brand-c']],
+    [{ brandId: 'brand-a' }, []],
+    [{ search: 'Bra' }, ['brand-b']],
+  ])(
+    'pages brand stats inside a member organization (%o)',
+    async (query, expected) => {
+      const result = (await controller.getBrandsWithStats(
+        member,
+        request(),
+        query as AdminBrandsQueryDto,
+      )) as { data: Brand[]; serializer: unknown };
+
+      expect(idsOf(result.data)).toEqual(expected);
+      expect(result.serializer).toBe(AnalyticsBrandStatsSerializer);
+    },
+  );
+
+  it.each([
+    [
+      'a member without an organization',
+      { id: 'user-3' } as User,
+      {},
       new ForbiddenException(ANALYTICS_MISSING_ORGANIZATION_MESSAGE),
-    );
-    expect(leaderboardService.getBrandsLeaderboard).not.toHaveBeenCalled();
+    ],
+    [
+      'a member who names another organization',
+      member,
+      { organizationId: 'org-1' },
+      new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN),
+    ],
+  ])('refuses brand analytics to %s', async (_case, user, query, error) => {
+    await expect(
+      controller.getBrandsWithStats(user, request(query), {
+        limit: 10,
+      } as AdminBrandsQueryDto),
+    ).rejects.toEqual(error);
+    await expect(
+      controller.getBrandsLeaderboard(user, request(query), {
+        limit: 10,
+      } as LeaderboardQueryDto),
+    ).rejects.toEqual(error);
   });
 });

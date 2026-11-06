@@ -1,8 +1,3 @@
-import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { BrandMemorySyncService } from './brand-memory-sync.service';
-
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -10,265 +5,354 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+import type { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
+import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+interface Measurement {
+  brandId: string;
+  comments: number;
+  contentType: string | null;
+  createdAt: Date;
+  data: Record<string, unknown>;
+  engagementRate: number;
+  id: string;
+  isDeleted: boolean;
+  likes: number;
+  measuredAt: Date;
+  organizationId: string;
+  platform: string | null;
+  postId: string;
+  saves: number;
+  shares: number;
+  views: number;
+}
+
+interface Range {
+  gt?: number;
+  gte?: Date;
+  lt?: Date;
+  lte?: Date;
+}
+
+interface Insight {
+  category: string;
+  insight: string;
+  source: string;
+}
+
+const NOW = new Date('2026-09-24T12:00:00Z');
+const DAY = 24 * 60 * 60 * 1000;
+
+const inRange = (value: number | Date, range: Range) =>
+  (range.gt === undefined || Number(value) > range.gt) &&
+  (range.gte === undefined || value >= range.gte) &&
+  (range.lt === undefined || value < range.lt) &&
+  (range.lte === undefined || value <= range.lte);
+
+// Prisma filters on content_performance as Postgres applies them.
+const matches = (row: Measurement, where: Record<string, unknown>) =>
+  Object.entries(where).every(([key, condition]) => {
+    const value = row[key as keyof Measurement];
+    return condition && typeof condition === 'object'
+      ? inRange(value as number | Date, condition as Range)
+      : value === condition;
+  });
+
+const newestFirst = (left: Measurement, right: Measurement) =>
+  right.measuredAt.getTime() - left.measuredAt.getTime() ||
+  right.id.localeCompare(left.id);
+
 describe('BrandMemorySyncService measured performance', () => {
-  const contentPerformance = { findFirst: vi.fn(), findMany: vi.fn() };
-  const memory = {
-    addInsight: vi.fn(),
-    logEntry: vi.fn(),
-    updateMetrics: vi.fn(),
+  let rows: Measurement[];
+  let entries: Map<string, { content: string; timestamp: Date }>;
+  let insights: Map<string, Insight>;
+  let metrics: Record<string, unknown> | undefined;
+  let service: BrandMemorySyncService;
+
+  const measure = (
+    postId: string,
+    fields: Partial<Measurement> = {},
+  ): Measurement => {
+    const row: Measurement = {
+      brandId: 'brand-1',
+      comments: 0,
+      contentType: 'image',
+      createdAt: NOW,
+      data: {},
+      engagementRate: 2,
+      id: `analytics-sync:${postId}:${rows.length}`,
+      isDeleted: false,
+      likes: 0,
+      measuredAt: new Date('2026-09-23T09:00:00Z'),
+      organizationId: 'org-1',
+      platform: 'instagram',
+      postId,
+      saves: 0,
+      shares: 0,
+      views: 100,
+      ...fields,
+    };
+    rows.push(row);
+    return row;
   };
-  const logger = { warn: vi.fn() };
-  const service = new BrandMemorySyncService(
-    { contentPerformance } as unknown as PrismaService,
-    memory as unknown as BrandMemoryService,
-    logger as unknown as LoggerService,
-  );
+  const measurePeers = (peers: Partial<Measurement>[]) => {
+    for (const [index, fields] of peers.entries()) {
+      measure(`post-${index}`, fields);
+    }
+  };
+  const daysAgo = (days: number) => new Date(NOW.getTime() - days * DAY);
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-09-24T12:00:00Z'));
-  });
-  afterEach(() => vi.useRealTimers());
+    vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
+    rows = [];
+    entries = new Map();
+    insights = new Map();
+    metrics = undefined;
 
-  it('uses typed metrics and measurement time instead of stale JSON', async () => {
-    const measuredAt = new Date('2026-09-23T09:00:00Z');
-    const latest = {
-      id: 'analytics-sync:source-1',
-      postId: 'post-1',
-      measuredAt,
-      createdAt: new Date(),
-      likes: 20,
-      comments: 3,
-      shares: 2,
-      saves: 1,
-      views: 230,
-      engagementRate: 13,
-      platform: 'instagram',
-      contentType: 'image',
-      data: { likes: 0, engagementRate: 0, clicks: 4 },
-    };
-    contentPerformance.findFirst.mockResolvedValue(latest);
-    contentPerformance.findMany.mockResolvedValue([latest]);
-    await service.syncPostPerformance('org-1', 'brand-1', 'post-1');
-    expect(contentPerformance.findFirst).toHaveBeenCalledWith({
-      orderBy: [{ measuredAt: 'desc' }, { id: 'desc' }],
-      where: {
-        organizationId: 'org-1',
-        brandId: 'brand-1',
-        postId: 'post-1',
-        isDeleted: false,
+    const contentPerformance = {
+      findFirst: async ({ where }: { where: Record<string, unknown> }) =>
+        rows.filter((row) => matches(row, where)).sort(newestFirst)[0] ?? null,
+      findMany: async ({
+        take,
+        where,
+      }: {
+        take: number;
+        where: Record<string, unknown>;
+      }) => {
+        const latestPerPost = new Map<string, Measurement>();
+        for (const row of rows
+          .filter((candidate) => matches(candidate, where))
+          .sort(newestFirst)) {
+          if (!latestPerPost.has(row.postId)) {
+            latestPerPost.set(row.postId, row);
+          }
+        }
+        return [...latestPerPost.values()].slice(0, take);
       },
-    });
-    expect(memory.logEntry).toHaveBeenCalledWith(
-      'org-1',
-      'brand-1',
-      expect.objectContaining({
-        content:
-          'Post post-1 on instagram reached 30 engagements with 13.00% engagement rate.',
-        key: 'post_performance:post-1',
-        timestamp: measuredAt,
-      }),
+    };
+    // Brand memory keeps one entry per key and one replay-keyed insight per
+    // source, as the brand-memory service does for the day.
+    const memory = {
+      addInsight: async (_org: string, _brand: string, insight: Insight) => {
+        insights.set(insight.source, insight);
+      },
+      logEntry: async (
+        _org: string,
+        _brand: string,
+        entry: { content: string; key: string; timestamp: Date },
+      ) => {
+        entries.set(entry.key, {
+          content: entry.content,
+          timestamp: entry.timestamp,
+        });
+      },
+      updateMetrics: async (
+        _org: string,
+        _brand: string,
+        update: Record<string, unknown>,
+      ) => {
+        metrics = update;
+      },
+    };
+
+    service = new BrandMemorySyncService(
+      { contentPerformance } as unknown as PrismaService,
+      memory as unknown as BrandMemoryService,
+      { warn: () => undefined } as unknown as LoggerService,
     );
-    expect(memory.updateMetrics).toHaveBeenCalledWith('org-1', 'brand-1', {
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('records the latest typed measurement instead of stale JSON', async () => {
+    measure('post-1', {
+      likes: 1,
+      measuredAt: new Date('2026-09-23T08:00:00Z'),
+    });
+    measure('post-1', {
+      comments: 3,
+      data: { clicks: 4, engagementRate: 0, likes: 0 },
+      engagementRate: 13,
+      likes: 20,
+      saves: 1,
+      shares: 2,
+      views: 230,
+    });
+    measure('post-1', { likes: 900, organizationId: 'org-2' });
+    measure('post-1', { brandId: 'brand-2', likes: 900 });
+
+    await service.syncPostPerformance('org-1', 'brand-1', 'post-1');
+
+    expect([...entries]).toEqual([
+      [
+        'post_performance:post-1',
+        {
+          content:
+            'Post post-1 on instagram reached 30 engagements with 13.00% engagement rate.',
+          timestamp: new Date('2026-09-23T09:00:00Z'),
+        },
+      ],
+    ]);
+    expect(metrics).toEqual({
       avgEngagementRate: 13,
       postsPublished: 1,
       topPerformingFormat: 'image',
       totalEngagement: 30,
     });
-    expect(memory.addInsight).not.toHaveBeenCalled();
+    expect(insights.size).toBe(0);
   });
 
   it('aggregates the day across posts and never invents a rate without views', async () => {
     const measuredAt = new Date('2026-09-23T00:00:00Z');
-    const unviewed = {
-      id: 'analytics-sync:x',
-      postId: 'post-x',
-      measuredAt,
-      createdAt: measuredAt,
-      likes: 4,
+    measure('post-x', {
       comments: 1,
-      shares: 0,
-      saves: 0,
-      views: 0,
-      engagementRate: 0,
-      platform: null,
       contentType: 'text',
-      data: {},
-    };
-    contentPerformance.findFirst.mockResolvedValue(unviewed);
-    contentPerformance.findMany.mockResolvedValue([
-      unviewed,
-      {
-        ...unviewed,
-        postId: 'post-y',
-        views: 100,
-        likes: 8,
-        engagementRate: 8,
-        contentType: 'video',
-      },
-    ]);
+      engagementRate: 0,
+      likes: 4,
+      measuredAt,
+      platform: null,
+      views: 0,
+    });
+    measure('post-y', {
+      comments: 1,
+      contentType: 'video',
+      engagementRate: 8,
+      likes: 8,
+      measuredAt,
+    });
+    measure('post-z', {
+      engagementRate: 50,
+      likes: 500,
+      measuredAt: new Date('2026-09-22T12:00:00Z'),
+    });
+
     await service.syncPostPerformance('org-1', 'brand-1', 'post-x');
-    expect(memory.logEntry).toHaveBeenCalledWith(
-      'org-1',
-      'brand-1',
-      expect.objectContaining({
-        content: 'Post post-x reached 5 engagements with no reported views.',
-      }),
+
+    expect(entries.get('post_performance:post-x')?.content).toBe(
+      'Post post-x reached 5 engagements with no reported views.',
     );
-    expect(memory.updateMetrics).toHaveBeenCalledWith('org-1', 'brand-1', {
+    expect(metrics).toEqual({
       avgEngagementRate: 8,
       postsPublished: 2,
       topPerformingFormat: 'video',
       totalEngagement: 14,
     });
-    expect(contentPerformance.findMany).toHaveBeenCalledTimes(1);
-    expect(contentPerformance.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        distinct: ['postId'],
-        where: expect.objectContaining({
-          brandId: 'brand-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-        }),
-      }),
-    );
   });
 
-  it('emits one replay-keyed insight for a post that beats the brand baseline', async () => {
-    const measuredAt = new Date('2026-09-23T00:00:00Z');
-    const winner = {
-      id: 'analytics-sync:w',
-      postId: 'post-w',
-      measuredAt,
-      createdAt: measuredAt,
-      likes: 90,
-      comments: 10,
-      shares: 0,
-      saves: 0,
-      views: 1000,
-      engagementRate: 10,
-      platform: 'instagram',
-      contentType: 'image',
-      data: { hookUsed: 'Show the craft before the pitch' },
-    };
-    const peers = ['a', 'b', 'c'].map((id) => ({
-      ...winner,
-      id: `analytics-sync:${id}`,
-      postId: `post-${id}`,
-      engagementRate: 2,
-      data: {},
-    }));
-    contentPerformance.findFirst.mockResolvedValue(winner);
-    contentPerformance.findMany.mockResolvedValue([winner, ...peers]);
-    await service.syncPostPerformance('org-1', 'brand-1', 'post-w');
-    await service.syncPostPerformance('org-1', 'brand-1', 'post-w');
-    expect(memory.addInsight).toHaveBeenCalledTimes(2);
-    for (const call of memory.addInsight.mock.calls) {
-      expect(call).toEqual([
-        'org-1',
-        'brand-1',
-        expect.objectContaining({
+  describe('winning posts', () => {
+    const seedWinner = () =>
+      measure('post-w', {
+        comments: 10,
+        data: { hookUsed: 'Show the craft before the pitch' },
+        engagementRate: 10,
+        likes: 90,
+        views: 1000,
+      });
+
+    it('keeps one entry and one insight when a winning post is replayed', async () => {
+      seedWinner();
+      measure('post-a');
+      measure('post-b');
+      measure('post-c');
+
+      await service.syncPostPerformance('org-1', 'brand-1', 'post-w');
+      await service.syncPostPerformance('org-1', 'brand-1', 'post-w');
+
+      expect(entries.size).toBe(1);
+      expect([...insights.values()]).toEqual([
+        {
           category: 'performance',
+          confidence: 0.3,
+          createdAt: NOW,
           insight:
             'Winning post on instagram: 10.00% engagement versus a 2.00% baseline across 3 recent posts (5.00x). Hook: "Show the craft before the pitch"',
           source: 'analytics-winner:post-w',
-        }),
-      ]);
-    }
-    expect(contentPerformance.findMany).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ views: { gt: 0 } }),
-      }),
-    );
-  });
-
-  it('makes no winner claim without enough baseline posts', async () => {
-    const measuredAt = new Date('2026-09-23T00:00:00Z');
-    const row = {
-      id: 'analytics-sync:w',
-      postId: 'post-w',
-      measuredAt,
-      createdAt: measuredAt,
-      likes: 90,
-      comments: 10,
-      shares: 0,
-      saves: 0,
-      views: 1000,
-      engagementRate: 10,
-      platform: 'instagram',
-      contentType: 'image',
-      data: {},
-    };
-    contentPerformance.findFirst.mockResolvedValue(row);
-    contentPerformance.findMany.mockResolvedValue([
-      row,
-      { ...row, postId: 'post-a', engagementRate: 1 },
-    ]);
-    await service.syncPostPerformance('org-1', 'brand-1', 'post-w');
-    expect(memory.addInsight).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    { rate: 6, type: 'spike' },
-    { rate: 0, type: 'drop' },
-  ])(
-    'emits a $type insight keyed to the measurement period',
-    async ({ rate, type }) => {
-      contentPerformance.findMany.mockImplementation(({ where }) =>
-        Promise.resolve([
-          {
-            engagementRate: 'lte' in where.measuredAt ? rate : 2,
-            views: 100,
-            data: { engagementRate: 99 },
-          },
-        ]),
-      );
-      await expect(
-        service.detectThresholdAlerts('org-1', 'brand-1'),
-      ).resolves.toEqual([
-        {
-          baselineAverage: 2,
-          recentAverage: rate,
-          ratio: rate / 2,
-          metric: 'engagementRate',
-          type,
         },
       ]);
-      await service.detectThresholdAlerts('org-1', 'brand-1');
-      expect(memory.addInsight).toHaveBeenCalledTimes(2);
-      for (const call of memory.addInsight.mock.calls) {
-        expect(call).toEqual([
-          'org-1',
-          'brand-1',
-          expect.objectContaining({
-            category: 'performance',
-            source: 'analytics-threshold:engagementRate:2026-09-24',
-          }),
-        ]);
-      }
-      expect(contentPerformance.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            organizationId: 'org-1',
-            brandId: 'brand-1',
-            isDeleted: false,
-            measuredAt: expect.any(Object),
-            views: { gt: 0 },
-          }),
-          distinct: ['postId'],
-        }),
-      );
-    },
-  );
+    });
 
-  it('does not turn missing recent evidence into a drop', async () => {
-    contentPerformance.findMany
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{ engagementRate: 2, views: 100 }]);
-    await expect(
-      service.detectThresholdAlerts('org-1', 'brand-1'),
-    ).resolves.toEqual([]);
-    expect(memory.addInsight).not.toHaveBeenCalled();
+    it.each([
+      ['only one baseline post', [{}]],
+      [
+        'baseline posts without views',
+        [{ views: 0 }, { views: 0 }, { views: 0 }],
+      ],
+      [
+        'baseline posts outside the ten-day window',
+        [
+          { measuredAt: daysAgo(12) },
+          { measuredAt: daysAgo(12) },
+          { measuredAt: daysAgo(12) },
+        ],
+      ],
+    ])('makes no winner claim from %s', async (_case, peers) => {
+      seedWinner();
+      measurePeers(peers);
+
+      await service.syncPostPerformance('org-1', 'brand-1', 'post-w');
+
+      expect(insights.size).toBe(0);
+    });
+  });
+
+  describe('threshold alerts', () => {
+    it.each([
+      [6, 'spike'],
+      [0.5, 'drop'],
+    ])(
+      'records a rate of %s against a 2%% baseline once per day as a %s',
+      async (rate, type) => {
+        measure('recent', {
+          data: { engagementRate: 99 },
+          engagementRate: rate,
+          measuredAt: daysAgo(1),
+        });
+        measure('baseline', { engagementRate: 2, measuredAt: daysAgo(5) });
+
+        await expect(
+          service.detectThresholdAlerts('org-1', 'brand-1'),
+        ).resolves.toEqual([
+          {
+            baselineAverage: 2,
+            metric: 'engagementRate',
+            ratio: rate / 2,
+            recentAverage: rate,
+            type,
+          },
+        ]);
+        await service.detectThresholdAlerts('org-1', 'brand-1');
+
+        expect([...insights.keys()]).toEqual([
+          'analytics-threshold:engagementRate:2026-09-24',
+        ]);
+      },
+    );
+
+    it('does not turn missing recent evidence into a drop', async () => {
+      measure('baseline', { engagementRate: 2, measuredAt: daysAgo(5) });
+
+      await expect(
+        service.detectThresholdAlerts('org-1', 'brand-1'),
+      ).resolves.toEqual([]);
+      expect(insights.size).toBe(0);
+    });
+
+    it('ignores recent posts that reported no views', async () => {
+      measure('recent', {
+        engagementRate: 0,
+        measuredAt: daysAgo(1),
+        views: 0,
+      });
+      measure('baseline', { engagementRate: 2, measuredAt: daysAgo(5) });
+
+      await expect(
+        service.detectThresholdAlerts('org-1', 'brand-1'),
+      ).resolves.toEqual([]);
+    });
   });
 });

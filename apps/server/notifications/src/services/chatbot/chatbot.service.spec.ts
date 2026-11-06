@@ -1,167 +1,136 @@
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, type TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@notifications/config/config.service';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { ConfigService } from '@notifications/config/config.service';
 import { ChatBotService } from '@notifications/services/chatbot/chatbot.service';
-import { GenFeedService } from '@notifications/services/genfeed/genfeed.service';
-import axios from 'axios';
-import type { Mocked } from 'vitest';
+import type { GenFeedService } from '@notifications/services/genfeed/genfeed.service';
 
-vi.mock('axios');
-const mockedAxios = axios as Mocked<typeof axios>;
+// Outbound chat requests, as the platforms receive them.
+const network = vi.hoisted(() => ({
+  failure: null as Error | null,
+  requests: [] as Array<{
+    body: unknown;
+    headers: Record<string, string>;
+    url: string;
+  }>,
+}));
+
+vi.mock('axios', () => ({
+  default: {
+    post: async (
+      url: string,
+      body: unknown,
+      config: { headers: Record<string, string> },
+    ) => {
+      if (network.failure) throw network.failure;
+      network.requests.push({ body, headers: config.headers, url });
+      return { data: {} };
+    },
+  },
+}));
 
 describe('ChatBotService', () => {
+  let prompts: unknown[];
+  let isGenerationDown: boolean;
   let service: ChatBotService;
-  let genFeedService: Mocked<GenFeedService>;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ChatBotService,
-        {
-          provide: ConfigService,
-          useValue: {
-            get: vi.fn((key: string) => {
-              const map: Record<string, string> = {
-                TWITCH_CLIENT_ID: 'client',
-              };
-              return map[key];
-            }),
-          },
-        },
-        {
-          provide: LoggerService,
-          useValue: { error: vi.fn(), log: vi.fn() },
-        },
-        {
-          provide: GenFeedService,
-          useValue: {
-            generateResponse: vi.fn().mockResolvedValue('hi'),
-          },
-        },
-      ],
-    }).compile();
+  beforeEach(() => {
+    network.failure = null;
+    network.requests.length = 0;
+    prompts = [];
+    isGenerationDown = false;
 
-    service = module.get(ChatBotService);
-    genFeedService = module.get(GenFeedService);
+    service = new ChatBotService(
+      {
+        get: (key: string) =>
+          key === 'TWITCH_CLIENT_ID' ? 'client' : undefined,
+      } as unknown as ConfigService,
+      { error: () => {}, log: () => {} } as unknown as LoggerService,
+      {
+        generateResponse: async (request: { prompt: string }) => {
+          if (isGenerationDown) throw new Error('api down');
+          prompts.push(request);
+          return `reply to ${request.prompt}`;
+        },
+      } as unknown as GenFeedService,
+    );
   });
 
-  it('generates a response using GenFeedService', async () => {
-    const res = await service.generateResponse('hello');
-    expect(res).toBe('hi');
-    expect(genFeedService.generateResponse).toHaveBeenCalledWith({
-      prompt: 'hello',
-      type: 'chat',
-    });
+  it('generates a chat response', async () => {
+    await expect(service.generateResponse('hello')).resolves.toBe(
+      'reply to hello',
+    );
+    expect(prompts).toEqual([{ prompt: 'hello', type: 'chat' }]);
   });
 
   it('rethrows generation failures', async () => {
-    genFeedService.generateResponse.mockRejectedValue(new Error('api down'));
+    isGenerationDown = true;
 
     await expect(service.generateResponse('hello')).rejects.toThrow('api down');
   });
 
-  describe('sendToTwitchChat', () => {
-    it('posts the message to the Twitch helix API', async () => {
-      mockedAxios.post.mockResolvedValue({ data: {} });
+  it.each([
+    [undefined, 'broadcaster-1'],
+    ['bot-7', 'bot-7'],
+  ])(
+    'posts to Twitch helix with sender %s resolved to %s',
+    async (senderId, expectedSender) => {
+      await service.sendToTwitchChat('tok', 'broadcaster-1', 'gm', senderId);
 
-      await service.sendToTwitchChat('token-1', 'caster-1', 'hi chat');
-
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        'https://api.twitch.tv/helix/chat/messages?broadcaster_id=caster-1&sender_id=caster-1',
-        { message: 'hi chat' },
+      expect(network.requests).toEqual([
         {
+          body: { message: 'gm' },
           headers: {
-            Authorization: 'Bearer token-1',
+            Authorization: 'Bearer tok',
             'Client-Id': 'client',
             'Content-Type': 'application/json',
           },
+          url: `https://api.twitch.tv/helix/chat/messages?broadcaster_id=broadcaster-1&sender_id=${expectedSender}`,
         },
-      );
-    });
+      ]);
+    },
+  );
 
-    it('uses an explicit sender id when provided', async () => {
-      mockedAxios.post.mockResolvedValue({ data: {} });
+  it('posts to the YouTube live chat API', async () => {
+    await service.sendToYouTubeChat('tok', 'live-1', 'gm');
 
-      await service.sendToTwitchChat(
-        'token-1',
-        'caster-1',
-        'hi chat',
-        'sender-2',
-      );
-
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining('sender_id=sender-2'),
-        expect.any(Object),
-        expect.any(Object),
-      );
-    });
-
-    it('rethrows twitch API failures', async () => {
-      mockedAxios.post.mockRejectedValue(new Error('twitch down'));
-
-      await expect(
-        service.sendToTwitchChat('token-1', 'caster-1', 'hi chat'),
-      ).rejects.toThrow('twitch down');
-    });
-  });
-
-  describe('sendToYouTubeChat', () => {
-    it('posts the message to the YouTube live chat API', async () => {
-      mockedAxios.post.mockResolvedValue({ data: {} });
-
-      await service.sendToYouTubeChat('token-1', 'live-1', 'hi chat');
-
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        'https://www.googleapis.com/youtube/v3/liveChat/messages?part=snippet',
-        {
+    expect(network.requests).toEqual([
+      {
+        body: {
           snippet: {
             liveChatId: 'live-1',
-            textMessageDetails: { messageText: 'hi chat' },
+            textMessageDetails: { messageText: 'gm' },
             type: 'textMessageEvent',
           },
         },
-        { headers: { Authorization: 'Bearer token-1' } },
-      );
-    });
-
-    it('rethrows youtube API failures', async () => {
-      mockedAxios.post.mockRejectedValue(new Error('yt down'));
-
-      await expect(
-        service.sendToYouTubeChat('token-1', 'live-1', 'hi chat'),
-      ).rejects.toThrow('yt down');
-    });
+        headers: { Authorization: 'Bearer tok' },
+        url: 'https://www.googleapis.com/youtube/v3/liveChat/messages?part=snippet',
+      },
+    ]);
   });
 
-  describe('handleChat', () => {
-    it('routes twitch chats through sendToTwitchChat', async () => {
-      mockedAxios.post.mockResolvedValue({ data: {} });
+  it.each([
+    ['Twitch', () => service.sendToTwitchChat('tok', 'b-1', 'gm')],
+    ['YouTube', () => service.sendToYouTubeChat('tok', 'live-1', 'gm')],
+  ])('rethrows %s API failures', async (_platform, send) => {
+    network.failure = new Error('rate limited');
 
-      await service.handleChat('twitch', 'token-1', 'caster-1', 'prompt');
+    await expect(send()).rejects.toThrow('rate limited');
+  });
 
-      expect(genFeedService.generateResponse).toHaveBeenCalledWith({
-        prompt: 'prompt',
-        type: 'chat',
-      });
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining('twitch.tv'),
-        { message: 'hi' },
-        expect.any(Object),
-      );
-    });
+  it.each([
+    [
+      'twitch' as const,
+      'https://api.twitch.tv/helix/chat/messages?broadcaster_id=chan-1&sender_id=chan-1',
+    ],
+    [
+      'youtube' as const,
+      'https://www.googleapis.com/youtube/v3/liveChat/messages?part=snippet',
+    ],
+  ])('answers a %s chat on that platform', async (platform, url) => {
+    await service.handleChat(platform, 'tok', 'chan-1', 'hello');
 
-    it('routes youtube chats through sendToYouTubeChat', async () => {
-      mockedAxios.post.mockResolvedValue({ data: {} });
-
-      await service.handleChat('youtube', 'token-1', 'live-1', 'prompt');
-
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining('googleapis.com'),
-        expect.objectContaining({
-          snippet: expect.objectContaining({ liveChatId: 'live-1' }),
-        }),
-        expect.any(Object),
-      );
-    });
+    expect(network.requests).toEqual([expect.objectContaining({ url })]);
+    expect(JSON.stringify(network.requests[0]?.body)).toContain(
+      'reply to hello',
+    );
   });
 });

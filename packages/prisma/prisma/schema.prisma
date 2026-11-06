@@ -2306,8 +2306,8 @@ model McpOAuthAuthCode {
   // The user ticked "switch between my organizations" at consent, so the
   // session key may move among the user's live memberships.
   canSwitchOrganizations Boolean @default(false)
-  // Brand picked at consent; becomes the session key's defaultBrandId.
-  // Null = no default brand (organization-wide reads only).
+  // Brand picked at consent: the session key's only allowed brand and its
+  // defaultBrandId. Null = every brand in the organization.
   defaultBrandId      String?
   expiresAt           DateTime
   usedAt              DateTime?

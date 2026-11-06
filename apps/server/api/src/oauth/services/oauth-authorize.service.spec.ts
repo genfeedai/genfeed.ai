@@ -310,7 +310,7 @@ describe('OAuthAuthorizeService', () => {
     );
   });
 
-  it('carries the consented brand onto the session key', async () => {
+  it('limits the session key to the brand picked at consent', async () => {
     const { apiKeysService, prisma, service } = buildHarness();
     const authorization = await service.decideAuthorization(
       makeUser(),
@@ -329,10 +329,45 @@ describe('OAuthAuthorizeService', () => {
       redirect_uri: redirectUri,
       resource,
     });
-    expect(apiKeysService.createWithKey).toHaveBeenCalledWith(
-      expect.objectContaining({ defaultBrandId: 'brand-1' }),
-      'mcp',
+    const [[keyInput]] = vi.mocked(apiKeysService.createWithKey).mock.calls;
+    expect(keyInput).toMatchObject({
+      allowedBrandIds: ['brand-1'],
+      defaultBrandId: 'brand-1',
+    });
+  });
+
+  it('reaches every brand when no brand is picked at consent', async () => {
+    const { apiKeysService, service } = buildHarness();
+    const authorization = await service.decideAuthorization(
+      makeUser(),
+      decision(),
     );
+    await service.exchangeToken({
+      client_id: clientId,
+      code: new URL(authorization.redirectUrl).searchParams.get(
+        'code',
+      ) as string,
+      code_verifier: verifier,
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri,
+      resource,
+    });
+    const [[keyInput]] = vi.mocked(apiKeysService.createWithKey).mock.calls;
+    expect(keyInput).not.toHaveProperty('allowedBrandIds');
+    expect(keyInput.defaultBrandId).toBeUndefined();
+  });
+
+  it('rejects a brand limit combined with organization switching', async () => {
+    const { organizations, service } = buildHarness();
+    organizations.push(makeOrganization('org-2'));
+    await expect(
+      service.decideAuthorization(
+        makeUser(),
+        decision({ allowOrganizationSwitching: true, brandId: 'brand-1' }),
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({ error: 'invalid_request' }),
+    });
   });
 
   it('leaves the key without a default brand when none is chosen', async () => {
@@ -857,6 +892,14 @@ describe('Membership admin scope', () => {
       scope: undefined,
     });
     expect(scopes).not.toContain('admin');
+  });
+
+  it('keeps a connection limited to one brand below admin even for an owner', async () => {
+    const scopes = await mintScopes(ownerHarness('owner'), {
+      brandId: 'brand-1',
+      scope: undefined,
+    });
+    expect(scopes).toEqual([...API_KEY_SCOPE_PRESETS.mcp]);
   });
 
   it('never grants admin on the Claude connector resource', async () => {

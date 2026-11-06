@@ -255,6 +255,89 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
     expect(agentMessagesService.addMessage).not.toHaveBeenCalled();
   });
 
+  it('fails the turn when the planner sends a JSON plan with nothing in it', async () => {
+    agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
+    llmDispatcher.chatCompletion.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content:
+              '{"title":"Launch video","summary":"Plan drafted","explanation":" ","content":"","steps":[{"step":""}]}',
+          },
+        },
+      ],
+      model: 'test-model',
+    });
+
+    await expect(
+      service.tryHandlePlanModeTurn(baseParams as never, host),
+    ).rejects.toMatchObject({
+      attempts: 2,
+      name: 'AgentPlannerEmptyPlanError',
+    });
+
+    expect(threadEventRecorder.recordPlanUpserted).not.toHaveBeenCalled();
+    expect(agentMessagesService.addMessage).not.toHaveBeenCalled();
+  });
+
+  it('proposes the second draw when the first plan comes back empty', async () => {
+    agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
+    llmDispatcher.chatCompletion
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: '{"summary":"Plan drafted"}' } }],
+        model: 'test-model',
+      })
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content:
+                '{"summary":"Plan drafted","content":"Draft three hooks"}',
+            },
+          },
+        ],
+        model: 'test-model',
+      });
+
+    const result = await service.tryHandlePlanModeTurn(
+      baseParams as never,
+      host,
+    );
+
+    expect(result?.message.metadata?.proposedPlan).toMatchObject({
+      content: 'Draft three hooks',
+      status: 'awaiting_approval',
+    });
+  });
+
+  it('proposes a plan that lists only steps as those steps, not raw JSON', async () => {
+    agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
+    llmDispatcher.chatCompletion.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content:
+              '{"summary":"Checking pending drafts","steps":[{"step":"Fetch the review queue","status":"pending"},"Draft replies",{"step":" "}]}',
+          },
+        },
+      ],
+      model: 'test-model',
+    });
+
+    const result = await service.tryHandlePlanModeTurn(
+      baseParams as never,
+      host,
+    );
+
+    expect(result?.message.metadata?.proposedPlan).toMatchObject({
+      content: '1. Fetch the review queue\n2. Draft replies',
+      steps: [
+        { status: 'pending', step: 'Fetch the review queue' },
+        { status: 'pending', step: 'Draft replies' },
+      ],
+    });
+  });
+
   it('leaves output budget for a visible plan on reasoning models', async () => {
     agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
     llmDispatcher.chatCompletion.mockImplementation(

@@ -1,28 +1,38 @@
 vi.mock('@api/helpers/utils/response/response.util', () => ({
-  serializeSingle: vi.fn((_request, _serializer, data) => ({ data })),
+  serializeSingle: (
+    _request: unknown,
+    _serializer: unknown,
+    data: unknown,
+  ) => ({
+    data,
+  }),
 }));
 
-vi.mock('@libs/utils/encryption/encryption.util', () => ({
-  EncryptionUtil: { decrypt: vi.fn((value: string) => value) },
-}));
-
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { XAdsController } from '@api/services/integrations/x-ads/controllers/x-ads.controller';
-import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
-import { XAdsOAuthService } from '@api/services/integrations/x-ads/services/x-ads-oauth.service';
+import type { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
+import type { XAdsOAuthService } from '@api/services/integrations/x-ads/services/x-ads-oauth.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   HttpException,
   HttpStatus,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { Request } from 'express';
 
-const recordedAccountFixtures = {
+interface AdAccount {
+  approvalStatus: string;
+  currency: string;
+  id: string;
+  name: string;
+  timezone: string;
+}
+
+const recordedAccountFixtures: Record<string, AdAccount[]> = {
   multiple: [
     {
       approvalStatus: 'ACCEPTED',
@@ -49,286 +59,381 @@ const recordedAccountFixtures = {
     },
   ],
   zero: [],
-} as const;
+};
 
-describe('XAdsController', () => {
-  let brandsService: { findOne: ReturnType<typeof vi.fn> };
-  let controller: XAdsController;
-  let credentialsService: {
-    attachOAuth1RequestToken: ReturnType<typeof vi.fn>;
-    beginOAuthForBrand: ReturnType<typeof vi.fn>;
-    connectAccount: ReturnType<typeof vi.fn>;
-    findPendingOAuth1Credential: ReturnType<typeof vi.fn>;
+interface CredentialRow {
+  account?: { handle: string; id: string; name: string };
+  brandId: string;
+  id: string;
+  isConnected: boolean;
+  organizationId: string;
+  platform: string;
+  secrets: Record<string, unknown>;
+  userId: string;
+}
+
+const user = {
+  id: 'user-1',
+  organizationId: 'org-1',
+  userId: 'user-1',
+} as unknown as User;
+const request = {} as Request;
+
+/**
+ * The organization's brands and credentials, and X's OAuth 1.0a and Ads
+ * account endpoints. X issues one request token per auth link and exchanges
+ * it only with its own secret and the verifier it handed the user.
+ */
+function setup({
+  accounts = recordedAccountFixtures.one,
+  authLinkError = null as Error | null,
+  exchangeError = null as Error | null,
+} = {}) {
+  const brands = [
+    { id: 'brand-1', isDeleted: false, organizationId: 'org-1' },
+    { id: 'brand-deleted', isDeleted: true, organizationId: 'org-1' },
+    { id: 'brand-other', isDeleted: false, organizationId: 'org-2' },
+  ];
+  const credentials: CredentialRow[] = [];
+  const issuedTokens = new Map([['request-token', 'request-token-secret']]);
+  const brandsService = {
+    findOne: async (where: {
+      id: string;
+      isDeleted: boolean;
+      organizationId: string;
+    }) =>
+      brands.find(
+        (brand) =>
+          brand.id === where.id &&
+          brand.isDeleted === where.isDeleted &&
+          brand.organizationId === where.organizationId,
+      ) ?? null,
   };
-  let xAdsOAuthService: {
-    exchangeRequestToken: ReturnType<typeof vi.fn>;
-    generateAuthLink: ReturnType<typeof vi.fn>;
+  const credentialsService = {
+    attachOAuth1RequestToken: async (
+      id: string,
+      platform: string,
+      owner: { organizationId: string; userId: string },
+      oauthToken: string,
+      oauthTokenSecret: string,
+    ) => {
+      const row = credentials.find(
+        (item) =>
+          item.id === id &&
+          item.platform === platform &&
+          item.organizationId === owner.organizationId,
+      );
+      if (!row) throw new Error('credential not found');
+      row.secrets = {
+        oauthToken: EncryptionUtil.encrypt(oauthToken),
+        oauthTokenHash: `hash:${oauthToken}`,
+        oauthTokenSecret: EncryptionUtil.encrypt(oauthTokenSecret),
+      };
+      return row;
+    },
+    beginOAuthForBrand: async (
+      brand: { id: string; organizationId: string },
+      userId: string,
+      platform: string,
+    ) => {
+      const credential: CredentialRow = {
+        brandId: brand.id,
+        id: `credential-${credentials.length + 1}`,
+        isConnected: false,
+        organizationId: brand.organizationId,
+        platform,
+        secrets: {},
+        userId,
+      };
+      credentials.push(credential);
+      return { credential, state: 'opaque-state' };
+    },
+    connectAccount: async (
+      id: string,
+      organizationId: string,
+      account: CredentialRow['account'],
+      secrets: Record<string, unknown>,
+    ) => {
+      const row = credentials.find(
+        (item) => item.id === id && item.organizationId === organizationId,
+      );
+      if (!row) throw new Error('credential not found');
+      Object.assign(row, { account, isConnected: true, secrets });
+      return { id: row.id, isConnected: true };
+    },
+    findPendingOAuth1Credential: async (
+      oauthToken: string,
+      platform: string,
+      owner: { organizationId: string; userId: string },
+    ) => {
+      const row = credentials.find(
+        (item) =>
+          item.secrets.oauthTokenHash === `hash:${oauthToken}` &&
+          item.platform === platform &&
+          item.organizationId === owner.organizationId &&
+          item.userId === owner.userId,
+      );
+      return row
+        ? { id: row.id, ...row.secrets, organizationId: row.organizationId }
+        : null;
+    },
   };
-  let xAdsService: { getAdAccounts: ReturnType<typeof vi.fn> };
-
-  const user = {
-    id: 'user-1',
-    organizationId: 'org-1',
-    userId: 'user-1',
-  } as never;
-
-  beforeEach(async () => {
-    vi.mocked(EncryptionUtil.decrypt).mockImplementation(
-      (value: string) => value,
-    );
-    brandsService = {
-      findOne: vi.fn().mockResolvedValue({ id: 'brand-1' }),
-    };
-    credentialsService = {
-      attachOAuth1RequestToken: vi
-        .fn()
-        .mockResolvedValue({ id: 'credential-1' }),
-      beginOAuthForBrand: vi.fn().mockResolvedValue({
-        credential: { id: 'credential-1' },
-        state: 'opaque-state',
-      }),
-      connectAccount: vi.fn().mockResolvedValue({ id: 'credential-1' }),
-      findPendingOAuth1Credential: vi.fn().mockResolvedValue({
-        id: 'credential-1',
-        organizationId: 'org-1',
-        oauthToken: 'request-token',
-        oauthTokenSecret: 'request-token-secret',
-      }),
-    };
-    xAdsOAuthService = {
-      exchangeRequestToken: vi.fn().mockResolvedValue({
+  const xAdsOAuthService = {
+    exchangeRequestToken: async (
+      token: string,
+      secret: string,
+      verifier: string,
+    ) => {
+      if (exchangeError) throw exchangeError;
+      if (issuedTokens.get(token) !== secret || verifier !== 'oauth-verifier') {
+        throw new Error('401 from X');
+      }
+      return {
         accessToken: 'access-token',
         accessTokenSecret: 'access-token-secret',
         screenName: 'ads-operator',
         userId: 'x-user-1',
-      }),
-      generateAuthLink: vi.fn().mockResolvedValue({
+      };
+    },
+    generateAuthLink: async () => {
+      if (authLinkError) throw authLinkError;
+      return {
         oauthToken: 'request-token',
         oauthTokenSecret: 'request-token-secret',
         url: 'https://api.x.com/oauth/authorize?oauth_token=request-token',
-      }),
-    };
-    xAdsService = {
-      getAdAccounts: vi.fn().mockResolvedValue(recordedAccountFixtures.one),
-    };
+      };
+    },
+  };
+  const xAdsService = {
+    getAdAccounts: async (tokens: {
+      accessToken: string;
+      accessTokenSecret: string;
+    }) =>
+      tokens.accessToken === 'access-token' &&
+      tokens.accessTokenSecret === 'access-token-secret'
+        ? accounts
+        : [],
+  };
+  const silent = () => undefined;
+  const controller = new XAdsController(
+    brandsService as unknown as BrandsService,
+    credentialsService as unknown as CredentialsService,
+    { error: silent, log: silent, warn: silent } as unknown as LoggerService,
+    xAdsOAuthService as unknown as XAdsOAuthService,
+    xAdsService as unknown as XAdsService,
+  );
+  return { controller, credentials };
+}
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [XAdsController],
-      providers: [
-        { provide: BrandsService, useValue: brandsService },
-        { provide: CredentialsService, useValue: credentialsService },
-        {
-          provide: LoggerService,
-          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
+/** Starts the connect flow so a pending X Ads credential holds the request token. */
+async function connected(options: Parameters<typeof setup>[0] = {}) {
+  const harness = setup(options);
+  await harness.controller.connect(request, user, { brandId: 'brand-1' });
+  return harness;
+}
+
+const verifyBody = {
+  oauthToken: 'request-token',
+  oauthVerifier: 'oauth-verifier',
+};
+
+const statusOf = (failure: unknown) => (failure as HttpException).getStatus();
+
+describe('XAdsController', () => {
+  describe('connect', () => {
+    it('returns the X auth link and stores the request token encrypted on a pending X Ads credential', async () => {
+      const { controller, credentials } = setup();
+
+      const result = await controller.connect(request, user, {
+        brandId: 'brand-1',
+      });
+
+      expect(result).toEqual({
+        data: {
+          url: 'https://api.x.com/oauth/authorize?oauth_token=request-token',
         },
-        { provide: XAdsOAuthService, useValue: xAdsOAuthService },
-        { provide: XAdsService, useValue: xAdsService },
+      });
+      expect(credentials).toEqual([
+        expect.objectContaining({
+          brandId: 'brand-1',
+          isConnected: false,
+          organizationId: 'org-1',
+          platform: CredentialPlatform.X_ADS,
+          userId: 'user-1',
+        }),
+      ]);
+      expect(credentials[0].secrets.oauthToken).not.toBe('request-token');
+      expect(
+        EncryptionUtil.decrypt(
+          credentials[0].secrets.oauthTokenSecret as string,
+        ),
+      ).toBe('request-token-secret');
+    });
+
+    it.each([
+      ['deleted', 'brand-deleted'],
+      ['in another organization', 'brand-other'],
+    ])('refuses a brand that is %s', async (_name, brandId) => {
+      const { controller, credentials } = setup();
+
+      const failure = await controller
+        .connect(request, user, { brandId })
+        .catch((error: unknown) => error);
+
+      expect(statusOf(failure)).toBe(HttpStatus.FORBIDDEN);
+      expect(credentials).toEqual([]);
+    });
+
+    it('preserves a typed unavailable response when OAuth is not configured, leaving no pending row', async () => {
+      const { controller, credentials } = setup({
+        authLinkError: new ServiceUnavailableException(
+          'X Ads OAuth is not configured',
+        ),
+      });
+
+      const failure = await controller
+        .connect(request, user, { brandId: 'brand-1' })
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(ServiceUnavailableException);
+      expect(statusOf(failure)).toBe(HttpStatus.SERVICE_UNAVAILABLE);
+      expect(credentials).toEqual([]);
+    });
+
+    it('keeps unexpected OAuth initialization errors behind the generic response', async () => {
+      const { controller } = setup({
+        authLinkError: new Error('provider details'),
+      });
+
+      const failure = await controller
+        .connect(request, user, { brandId: 'brand-1' })
+        .catch((error: unknown) => error);
+
+      expect(statusOf(failure)).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+      expect(
+        JSON.stringify((failure as HttpException).getResponse()),
+      ).not.toContain('provider details');
+    });
+  });
+
+  describe('verify', () => {
+    it('connects the pending credential to the X Ads account and clears the request token', async () => {
+      const { controller, credentials } = await connected();
+
+      const result = await controller.verify(request, user, verifyBody);
+
+      expect(result).toEqual({
+        data: { id: 'credential-1', isConnected: true },
+      });
+      expect(credentials[0]).toMatchObject({
+        account: {
+          handle: 'Primary X Ads account',
+          id: 'account-1',
+          name: 'Primary X Ads account',
+        },
+        isConnected: true,
+        secrets: {
+          accessToken: 'access-token',
+          accessTokenSecret: 'access-token-secret',
+          oauthToken: null,
+          oauthTokenHash: null,
+          oauthTokenSecret: null,
+        },
+      });
+    });
+
+    it.each([
+      ['an unknown request token', user, 'organic-x-request-token'],
+      [
+        'another organization',
+        { ...user, organizationId: 'org-2' } as User,
+        'request-token',
       ],
-    })
-      .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      [
+        'another user',
+        { ...user, id: 'user-2', userId: 'user-2' } as User,
+        'request-token',
+      ],
+    ])(
+      'never resolves a pending credential for %s',
+      async (_name, caller, oauthToken) => {
+        const { controller, credentials } = await connected();
 
-    controller = module.get(XAdsController);
-  });
+        const failure = await controller
+          .verify(request, caller, { ...verifyBody, oauthToken })
+          .catch((error: unknown) => error);
 
-  it('scopes OAuth brand ownership to an active row in the caller organization', async () => {
-    await controller.connect({} as never, user, { brandId: 'brand-1' });
-
-    expect(brandsService.findOne).toHaveBeenCalledWith({
-      id: 'brand-1',
-      isDeleted: false,
-      organizationId: 'org-1',
-    });
-    expect(credentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
-      { id: 'brand-1' },
-      'user-1',
-      CredentialPlatform.X_ADS,
-      { isConnected: false },
+        expect(statusOf(failure)).toBe(HttpStatus.BAD_REQUEST);
+        expect(credentials[0].isConnected).toBe(false);
+      },
     );
-    expect(credentialsService.attachOAuth1RequestToken).toHaveBeenCalledWith(
-      'credential-1',
-      CredentialPlatform.X_ADS,
-      { organizationId: 'org-1', userId: 'user-1' },
-      'request-token',
-      'request-token-secret',
-    );
-  });
 
-  it('preserves a typed unavailable response when OAuth is not configured', async () => {
-    xAdsOAuthService.generateAuthLink.mockImplementation(() => {
-      throw new ServiceUnavailableException('X Ads OAuth is not configured');
+    it('rejects a callback without the OAuth 1.0a parameters', async () => {
+      const { controller } = await connected();
+
+      const failure = await controller
+        .verify(request, user, { oauthToken: 'request-token' })
+        .catch((error: unknown) => error);
+
+      expect(statusOf(failure)).toBe(HttpStatus.BAD_REQUEST);
     });
 
-    const failure = await controller
-      .connect({} as never, user, { brandId: 'brand-1' })
-      .then(
-        () => null,
-        (error: unknown) => error,
-      );
+    it('fails verification without connecting when X returns no ad account', async () => {
+      const { controller, credentials } = await connected({
+        accounts: recordedAccountFixtures.zero,
+      });
 
-    expect(failure).toBeInstanceOf(ServiceUnavailableException);
-    expect((failure as HttpException).getStatus()).toBe(
-      HttpStatus.SERVICE_UNAVAILABLE,
-    );
-    expect(credentialsService.beginOAuthForBrand).not.toHaveBeenCalled();
-  });
+      const failure = await controller
+        .verify(request, user, verifyBody)
+        .catch((error: unknown) => error);
 
-  it('keeps unexpected OAuth initialization errors behind the generic response', async () => {
-    xAdsOAuthService.generateAuthLink.mockImplementation(() => {
-      throw new Error('provider details');
+      expect(statusOf(failure)).toBe(HttpStatus.BAD_GATEWAY);
+      expect(credentials[0].isConnected).toBe(false);
     });
 
-    const failure = await controller
-      .connect({} as never, user, { brandId: 'brand-1' })
-      .then(
-        () => null,
-        (error: unknown) => error,
-      );
+    it('selects multiple X Ads accounts deterministically by account id', async () => {
+      const { controller, credentials } = await connected({
+        accounts: recordedAccountFixtures.multiple,
+      });
 
-    expect(failure).toBeInstanceOf(HttpException);
-    expect((failure as HttpException).getStatus()).toBe(
-      HttpStatus.INTERNAL_SERVER_ERROR,
-    );
-  });
+      await controller.verify(request, user, verifyBody);
 
-  it('verifies only the pending X Ads request token in the caller scope', async () => {
-    await controller.verify({} as never, user, {
-      oauthToken: 'request-token',
-      oauthVerifier: 'oauth-verifier',
-    });
-
-    expect(credentialsService.findPendingOAuth1Credential).toHaveBeenCalledWith(
-      'request-token',
-      CredentialPlatform.X_ADS,
-      { organizationId: 'org-1', userId: 'user-1' },
-    );
-    expect(xAdsOAuthService.exchangeRequestToken).toHaveBeenCalledWith(
-      'request-token',
-      'request-token-secret',
-      'oauth-verifier',
-    );
-    expect(xAdsService.getAdAccounts).toHaveBeenCalledWith({
-      accessToken: 'access-token',
-      accessTokenSecret: 'access-token-secret',
-    });
-    expect(credentialsService.connectAccount).toHaveBeenCalledWith(
-      'credential-1',
-      'org-1',
-      expect.objectContaining({
-        id: 'account-1',
-      }),
-      expect.objectContaining({
-        accessToken: 'access-token',
-        accessTokenSecret: 'access-token-secret',
-        oauthToken: null,
-        oauthTokenHash: null,
-        oauthTokenSecret: null,
-      }),
-    );
-  });
-
-  it('never resolves an organic X credential for an X Ads callback', async () => {
-    credentialsService.findPendingOAuth1Credential.mockResolvedValue(null);
-
-    await expect(
-      controller.verify({} as never, user, {
-        oauthToken: 'organic-x-request-token',
-        oauthVerifier: 'oauth-verifier',
-      }),
-    ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
-
-    expect(credentialsService.findPendingOAuth1Credential).toHaveBeenCalledWith(
-      'organic-x-request-token',
-      CredentialPlatform.X_ADS,
-      expect.any(Object),
-    );
-    expect(xAdsOAuthService.exchangeRequestToken).not.toHaveBeenCalled();
-  });
-
-  it('fails verification without connecting when X returns no ad account', async () => {
-    xAdsService.getAdAccounts.mockResolvedValue(recordedAccountFixtures.zero);
-
-    const failure = await controller
-      .verify({} as never, user, {
-        oauthToken: 'request-token',
-        oauthVerifier: 'oauth-verifier',
-      })
-      .then(
-        () => null,
-        (error: unknown) => error,
-      );
-
-    expect(failure).toBeInstanceOf(HttpException);
-    expect((failure as HttpException).getStatus()).toBe(HttpStatus.BAD_GATEWAY);
-    expect(credentialsService.connectAccount).not.toHaveBeenCalled();
-  });
-
-  it('selects multiple X Ads accounts deterministically by account id', async () => {
-    xAdsService.getAdAccounts.mockResolvedValue(
-      recordedAccountFixtures.multiple,
-    );
-
-    await controller.verify({} as never, user, {
-      oauthToken: 'request-token',
-      oauthVerifier: 'oauth-verifier',
-    });
-
-    expect(credentialsService.connectAccount).toHaveBeenCalledWith(
-      'credential-1',
-      'org-1',
-      expect.objectContaining({
+      expect(credentials[0].account).toEqual({
         handle: 'First by id',
         id: 'account-a',
         name: 'First by id',
-      }),
-      expect.any(Object),
-    );
-  });
-
-  it('maps request-token decryption failure without leaking ciphertext details', async () => {
-    vi.mocked(EncryptionUtil.decrypt).mockImplementationOnce(() => {
-      throw new Error('ciphertext payload details');
+      });
     });
 
-    const failure = await controller
-      .verify({} as never, user, {
-        oauthToken: 'request-token',
-        oauthVerifier: 'oauth-verifier',
-      })
-      .then(
-        () => null,
-        (error: unknown) => error,
-      );
+    it('maps request-token decryption failure without leaking ciphertext details', async () => {
+      const { controller, credentials } = await connected();
+      credentials[0].secrets.oauthTokenSecret = 'corrupted ciphertext payload';
 
-    expect(failure).toBeInstanceOf(HttpException);
-    expect((failure as HttpException).getStatus()).toBe(HttpStatus.BAD_GATEWAY);
-    expect(
-      JSON.stringify((failure as HttpException).getResponse()),
-    ).not.toContain('ciphertext payload details');
-    expect(xAdsOAuthService.exchangeRequestToken).not.toHaveBeenCalled();
-  });
+      const failure = await controller
+        .verify(request, user, verifyBody)
+        .catch((error: unknown) => error);
 
-  it('maps raw provider verification errors to a stable client response', async () => {
-    xAdsOAuthService.exchangeRequestToken.mockRejectedValue(
-      new Error('provider request headers and token details'),
-    );
+      expect(statusOf(failure)).toBe(HttpStatus.BAD_GATEWAY);
+      expect(
+        JSON.stringify((failure as HttpException).getResponse()),
+      ).not.toContain('ciphertext');
+      expect(credentials[0].isConnected).toBe(false);
+    });
 
-    const failure = await controller
-      .verify({} as never, user, {
-        oauthToken: 'request-token',
-        oauthVerifier: 'oauth-verifier',
-      })
-      .then(
-        () => null,
-        (error: unknown) => error,
-      );
+    it('maps raw provider verification errors to a stable client response', async () => {
+      const { controller, credentials } = await connected({
+        exchangeError: new Error('provider request headers and token details'),
+      });
 
-    expect(failure).toBeInstanceOf(HttpException);
-    expect((failure as HttpException).getStatus()).toBe(HttpStatus.BAD_GATEWAY);
-    expect(
-      JSON.stringify((failure as HttpException).getResponse()),
-    ).not.toContain('provider request headers and token details');
-    expect(credentialsService.connectAccount).not.toHaveBeenCalled();
+      const failure = await controller
+        .verify(request, user, verifyBody)
+        .catch((error: unknown) => error);
+
+      expect(statusOf(failure)).toBe(HttpStatus.BAD_GATEWAY);
+      expect(
+        JSON.stringify((failure as HttpException).getResponse()),
+      ).not.toContain('provider request headers and token details');
+      expect(credentials[0].isConnected).toBe(false);
+    });
   });
 });

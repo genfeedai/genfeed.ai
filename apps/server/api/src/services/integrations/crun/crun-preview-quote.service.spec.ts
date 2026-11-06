@@ -9,28 +9,79 @@ const intent = {
   brandId: 'brand',
   outputs: 4,
 };
+
+type TaskRow = {
+  brandId: string;
+  ingredientId: string;
+  inputMetadata: { intentHash?: string };
+  isDeleted: boolean;
+  organizationId: string;
+  outputIndex: number;
+  quoteId: string;
+  userId: string;
+};
+
 function fixture() {
+  const tasksTable: TaskRow[] = [];
+  const cacheLog: unknown[][] = [];
+  const providerWork: string[] = [];
+  const characterChecks: unknown[] = [];
+  const authorizedIngredients = { count: 4 };
   const input = {
     normalize: vi.fn().mockReturnValue(intent),
-    prepare: vi.fn(),
+    prepare: vi.fn(async () => {
+      providerWork.push('prepare');
+    }),
   };
-  const quote = { quote: vi.fn() };
+  const quote = {
+    quote: vi.fn(async () => {
+      providerWork.push('quote');
+    }),
+  };
   const cache = {
-    get: vi.fn().mockResolvedValue(null),
-    set: vi.fn(),
-    getdel: vi.fn(),
+    get: vi.fn(async (key: string): Promise<{ intentHash: string } | null> => {
+      cacheLog.push(['get', key]);
+      return null;
+    }),
+    set: vi.fn(async (key: string) => {
+      cacheLog.push(['set', key]);
+    }),
+    getdel: vi.fn(async (key: string) => {
+      cacheLog.push(['getdel', key]);
+      return null;
+    }),
   };
-  const tasks = {
-    resolveCredential: vi.fn(),
+  const tasks = { resolveCredential: vi.fn() };
+  const models = {
+    findOne: vi.fn(async () => {
+      providerWork.push('model');
+      return null;
+    }),
   };
-  const models = { findOne: vi.fn() };
   const prisma = {
-    crunGenerationTask: { findMany: vi.fn().mockResolvedValue([]) },
-    ingredient: { count: vi.fn().mockResolvedValue(4) },
+    crunGenerationTask: {
+      findMany: vi.fn(async ({ where }: { where: Partial<TaskRow> }) =>
+        tasksTable
+          .filter((row) =>
+            Object.entries(where).every(
+              ([key, value]) => row[key as keyof TaskRow] === value,
+            ),
+          )
+          .sort((a, b) => a.outputIndex - b.outputIndex),
+      ),
+    },
+    ingredient: { count: vi.fn(async () => authorizedIngredients.count) },
   };
   const config = { get: vi.fn() };
+  const revokedReferences = new Set<string>();
   const personas = {
-    resolveCharacterReferences: vi.fn().mockResolvedValue(undefined),
+    resolveCharacterReferences: vi.fn(
+      async (request: { ingredientIds: string[] }) => {
+        characterChecks.push(request);
+        if (request.ingredientIds.some((id) => revokedReferences.has(id)))
+          throw new NotFoundException('Reference image');
+      },
+    ),
   };
   const service = new CrunPreviewQuoteService(
     input as never,
@@ -42,19 +93,39 @@ function fixture() {
     config as never,
     personas as never,
   );
-  return { personas, service, input, quote, cache, tasks, models, prisma };
+  return {
+    authorizedIngredients,
+    cache,
+    cacheLog,
+    characterChecks,
+    providerWork,
+    revokedReferences,
+    service,
+    tasksTable,
+  };
 }
-function rows(hash = quoteSnapshotHash(intent)) {
+
+function rows(
+  hash: string | undefined = quoteSnapshotHash(intent),
+  owner: Partial<TaskRow> = {},
+): TaskRow[] {
   return Array.from({ length: 4 }, (_, outputIndex) => ({
+    brandId: 'brand',
     ingredientId: `ingredient-${outputIndex}`,
-    outputIndex,
     inputMetadata: { intentHash: hash },
+    isDeleted: false,
+    organizationId: 'org',
+    outputIndex,
+    quoteId: 'quote',
+    userId: 'user',
+    ...owner,
   }));
 }
+
 describe('Crun frozen quote consumption', () => {
   it('replays every ordered owned output after Redis expiry without admission/provider work', async () => {
     const f = fixture();
-    f.prisma.crunGenerationTask.findMany.mockResolvedValue(rows());
+    f.tasksTable.push(...rows().reverse());
     await expect(
       f.service.consume(intent, 'quote', user as never),
     ).resolves.toEqual({
@@ -66,50 +137,56 @@ describe('Crun frozen quote consumption', () => {
         'ingredient-3',
       ],
     });
-    expect(f.cache.get).not.toHaveBeenCalled();
-    expect(f.input.prepare).not.toHaveBeenCalled();
-    expect(f.quote.quote).not.toHaveBeenCalled();
-    expect(f.prisma.crunGenerationTask.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          organizationId: 'org',
-          userId: 'user',
-          brandId: 'brand',
-          quoteId: 'quote',
-          isDeleted: false,
-        },
-      }),
-    );
+    expect(f.cacheLog).toEqual([]);
+    expect(f.providerWork).toEqual([]);
   });
+
+  it.each([
+    ['another user', { userId: 'someone-else' }],
+    ['another brand', { brandId: 'other-brand' }],
+    ['another organization', { organizationId: 'other-org' }],
+    ['deleted rows', { isDeleted: true }],
+  ])('never replays outputs owned by %s', async (_label, owner) => {
+    const f = fixture();
+    f.tasksTable.push(...rows(quoteSnapshotHash(intent), owner));
+
+    await expect(
+      f.service.consume(intent, 'quote', user as never),
+    ).rejects.toMatchObject({ response: { code: 'CRUN_QUOTE_STALE' } });
+  });
+
   it.each(['different', undefined])(
     'denies mismatching or legacy absent durable intent hash: %s',
     async (hash) => {
       const f = fixture();
       const records = rows();
-      records[0].inputMetadata.intentHash = hash as string;
-      f.prisma.crunGenerationTask.findMany.mockResolvedValue(records);
+      records[0].inputMetadata.intentHash = hash;
+      f.tasksTable.push(...records);
       await expect(
         f.service.consume(intent, 'quote', user as never),
       ).rejects.toMatchObject({ response: { code: 'CRUN_QUOTE_STALE' } });
-      expect(f.cache.get).not.toHaveBeenCalled();
+      expect(f.cacheLog).toEqual([]);
     },
   );
+
   it('returns in-progress for partial durable rows rather than consuming again', async () => {
     const f = fixture();
-    f.prisma.crunGenerationTask.findMany.mockResolvedValue(rows().slice(0, 3));
+    f.tasksTable.push(...rows().slice(0, 3));
     await expect(
       f.service.consume(intent, 'quote', user as never),
     ).rejects.toMatchObject({ response: { code: 'CRUN_QUOTE_IN_PROGRESS' } });
-    expect(f.cache.getdel).not.toHaveBeenCalled();
+    expect(f.cacheLog).not.toContainEqual(['getdel', expect.any(String)]);
   });
+
   it('denies replay when an output is no longer authorized', async () => {
     const f = fixture();
-    f.prisma.crunGenerationTask.findMany.mockResolvedValue(rows());
-    f.prisma.ingredient.count.mockResolvedValue(3);
+    f.tasksTable.push(...rows());
+    f.authorizedIngredients.count = 3;
     await expect(
       f.service.consume(intent, 'quote', user as never),
     ).rejects.toMatchObject({ response: { code: 'CRUN_QUOTE_STALE' } });
   });
+
   it('distinguishes a consumed token without durable rows from an expired token', async () => {
     const f = fixture();
     f.cache.get
@@ -121,33 +198,34 @@ describe('Crun frozen quote consumption', () => {
     await expect(
       f.service.consume(intent, 'quote', user as never),
     ).rejects.toMatchObject({ response: { code: 'CRUN_QUOTE_STALE' } });
-    expect(f.cache.getdel).not.toHaveBeenCalled();
+    expect(f.cacheLog).not.toContainEqual(['getdel', expect.any(String)]);
   });
 });
 
 describe('Crun quote character admission on consume (#6040)', () => {
+  const captured = {
+    brandId: 'brand',
+    intent: { ...intent, references: ['avatar-1'] },
+    organizationId: 'org',
+    snapshot: { providerQuote: {} },
+  };
+
   it('re-admits the quoted characters and refuses once access was revoked', async () => {
     const f = fixture();
-    f.personas.resolveCharacterReferences.mockRejectedValue(
-      new NotFoundException('Reference image'),
-    );
-    const captured = {
-      brandId: 'brand',
-      intent: { ...intent, references: ['avatar-1'] },
-      organizationId: 'org',
-      snapshot: { providerQuote: {} },
-    };
+    f.revokedReferences.add('avatar-1');
 
     await expect(
       f.service.assertCurrent(captured as never),
     ).rejects.toBeInstanceOf(NotFoundException);
 
-    expect(f.personas.resolveCharacterReferences).toHaveBeenCalledWith({
-      brandId: 'brand',
-      ingredientIds: ['avatar-1'],
-      organizationId: 'org',
-      path: 'image',
-    });
-    expect(f.models.findOne).not.toHaveBeenCalled();
+    expect(f.characterChecks).toEqual([
+      {
+        brandId: 'brand',
+        ingredientIds: ['avatar-1'],
+        organizationId: 'org',
+        path: 'image',
+      },
+    ]);
+    expect(f.providerWork).toEqual([]);
   });
 });

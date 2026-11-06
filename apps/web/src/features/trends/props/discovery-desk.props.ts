@@ -70,6 +70,8 @@ export interface DeskLightTableViewProps {
 
 export interface DeskLightCardProps {
   isPreviewActive: boolean;
+  /** Any card on the desk is selected, so every checkbox stays visible. */
+  isSelectionActive: boolean;
   onPreviewChange: (key: string | null) => void;
   isCursored: boolean;
   isSelected: boolean;
@@ -96,7 +98,12 @@ export interface UseDeskKeyboardOptions {
 export interface DeskMediaPreviewProps {
   item: DiscoveryDeskItem;
   isActive: boolean;
+  /** Keep the signal's own shape (masonry tiles) instead of a 16:9 frame. */
+  isNativeAspect?: boolean;
   className?: string;
+  /** Extra classes on the poster image, e.g. the shared masonry hover motion. */
+  mediaClassName?: string;
+  onThumbnailError?: () => void;
 }
 
 export interface DiscoveryOverviewPageProps {

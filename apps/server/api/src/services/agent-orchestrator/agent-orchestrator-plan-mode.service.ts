@@ -33,10 +33,12 @@ import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils
 import { buildPersistedAgentResponseMetadata } from '@api/services/agent-orchestrator/utils/agent-persisted-response-metadata.util';
 import {
   countTrailingPlanQuestions,
+  isEmptyPlannerAnswer,
   MAX_PLAN_QUESTION_ROUNDS,
   PLAN_QUESTION_METADATA_KEY,
   parsePlanQuestion,
   parsePlanResponse,
+  readPlanBody,
 } from '@api/services/agent-orchestrator/utils/agent-plan-question.util';
 import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import {
@@ -89,7 +91,7 @@ const PLAN_MODE_INSTRUCTION =
  * input-request card as `request_input` by answering with a `question` instead
  * of a plan. The answer arrives as the next turn and the planner runs again.
  */
-/** Draws the planner gets when a model answers with no text. */
+/** Draws the planner gets when a model answers with nothing to plan. */
 const MAX_PLANNING_ATTEMPTS = 2;
 // A blank first answer means the model spent its whole output cap on
 // reasoning, so the same request would blank again. The second draw gets
@@ -306,11 +308,12 @@ export class AgentOrchestratorPlanModeService {
       organizationId: params.context.organizationId,
       pricer: this.agentChatModelRegistry,
       requestedModel: dispatchedModel,
-      // A blank completion would persist a plan with nothing to review and
-      // still ask for approval. Failing inside the round releases the hold,
-      // so an empty answer is not billed. A reasoning model can spend its
-      // whole budget thinking and return no text, so one blank reply is
-      // retried with more output room and less reasoning before the turn fails.
+      // A blank completion, or a JSON plan whose content, rationale and steps
+      // are all empty, would persist a plan with nothing to review and still
+      // ask for approval. Failing inside the round releases the hold, so an
+      // empty answer is not billed. A reasoning model can spend its whole
+      // budget thinking and return no text, so one empty reply is retried with
+      // more output room and less reasoning before the turn fails.
       run: async () => {
         let lastFinishReason: string | null = null;
         let lastModel = chatParams.model;
@@ -335,12 +338,12 @@ export class AgentOrchestratorPlanModeService {
           const planText = sanitizeAgentOutputText(
             choice?.message.content || '',
           );
-          if (planText.trim()) {
+          if (!isEmptyPlannerAnswer(planText)) {
             return response;
           }
           lastFinishReason = choice?.finish_reason ?? null;
           lastModel = response.model ?? chatParams.model;
-          this.logger.warn('Planner returned no text', {
+          this.logger.warn('Planner returned an empty plan', {
             attempt,
             executionId: params.context.executionId,
             finishReason: lastFinishReason,
@@ -779,20 +782,14 @@ export class AgentOrchestratorPlanModeService {
     };
   } {
     const { candidate, parsed } = parsePlanResponse(params.assistantContent);
-    // A question the planner was no longer allowed to ask is shown in the plan
-    // as an open point instead of raw JSON.
-    const openQuestion = parsePlanQuestion(parsed);
-
-    const content =
-      typeof parsed?.content === 'string' && parsed.content.trim()
-        ? parsed.content.trim()
-        : openQuestion
-          ? `Open question: ${openQuestion.prompt}`
-          : candidate;
-    const explanation =
-      typeof parsed?.explanation === 'string' && parsed.explanation.trim()
-        ? parsed.explanation.trim()
-        : undefined;
+    // A JSON plan reads as its content, open question, steps or rationale,
+    // never as its raw JSON. A reply cut off inside its JSON has no parsed
+    // body and is reviewed as the text it is. The planning round already
+    // refused a JSON plan with nothing in it.
+    const body = parsed ? readPlanBody(parsed) : null;
+    const content = body?.content ?? candidate;
+    const explanation = body?.explanation;
+    const steps = body && body.steps.length > 0 ? body.steps : undefined;
     const summary =
       typeof parsed?.summary === 'string' && parsed.summary.trim()
         ? parsed.summary.trim()
@@ -803,9 +800,6 @@ export class AgentOrchestratorPlanModeService {
         : params.seedTitle.trim()
           ? buildFallbackThreadTitle(params.prompt)
           : null;
-    const steps = Array.isArray(parsed?.steps)
-      ? (parsed?.steps as Record<string, unknown>[])
-      : undefined;
 
     const createdAtMs = Date.now();
     const createdAt = new Date(createdAtMs).toISOString();
