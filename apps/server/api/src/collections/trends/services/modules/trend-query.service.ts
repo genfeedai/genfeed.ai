@@ -64,9 +64,7 @@ export class TrendQueryService {
       return null;
     }
 
-    if (
-      this.isUnobservedTrendData(doc.data as unknown as Record<string, unknown>)
-    ) {
+    if (this.isUnobservedTrend(doc)) {
       return null;
     }
 
@@ -89,23 +87,18 @@ export class TrendQueryService {
     const now = new Date();
     // tenant-scope-ignore: platform trends: organizationId null with the tenant proof from withPlatformTenantArm; isDeleted is false
     const activeGlobalTrends = await this.prisma.trend.findMany({
-      select: { data: true },
+      select: { data: true, platform: true },
       where: withPlatformTenantArm({
-        AND: [
-          { data: { equals: true, path: ['isCurrent'] } },
-          { data: { gt: now.toISOString(), path: ['expiresAt'] } },
-        ],
+        // A trend without an expiry never expires.
+        AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
+        isCurrent: true,
         isDeleted: false,
         organizationId: null,
       }),
     });
 
-    return activeGlobalTrends.filter(
-      (doc) =>
-        !this.isUnobservedTrendData(
-          doc.data as unknown as Record<string, unknown>,
-        ),
-    ).length;
+    return activeGlobalTrends.filter((doc) => !this.isUnobservedTrend(doc))
+      .length;
   }
 
   /**
@@ -161,11 +154,15 @@ export class TrendQueryService {
     } as unknown as TrendDocument);
   }
 
-  private isUnobservedTrendData(data: Record<string, unknown> | null): boolean {
+  private isUnobservedTrend(doc: {
+    data: unknown;
+    platform: string | null;
+  }): boolean {
+    const data = doc.data as Record<string, unknown> | null;
     if (this.isSyntheticTrendData(data)) return true;
     const metadata = data?.metadata;
     return (
-      data?.platform === 'linkedin' &&
+      doc.platform === 'linkedin' &&
       !!metadata &&
       typeof metadata === 'object' &&
       'source' in metadata &&
@@ -215,28 +212,21 @@ export class TrendQueryService {
         brandId: filter.brandId,
         isDeleted: false,
         organizationId: filter.organizationId,
+        ...(filter.platform ? { platform: filter.platform } : {}),
+        // A trend without an expiry never expires.
+        ...(options.activeOnly
+          ? {
+              AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
+              isCurrent: true,
+            }
+          : {}),
       }),
     });
 
     return docs
-      .filter((doc) => {
-        const d = doc.data as unknown as Record<string, unknown>;
-        if (this.isUnobservedTrendData(d)) {
-          return false;
-        }
-        if (options.activeOnly) {
-          if (d.isCurrent !== true) return false;
-          if (d.expiresAt && new Date(d.expiresAt as string) <= now) {
-            return false;
-          }
-        }
-        if (filter.platform && d.platform !== filter.platform) return false;
-        return true;
-      })
+      .filter((doc) => !this.isUnobservedTrend(doc))
       .sort((a, b) => {
-        const ad = a.data as unknown as Record<string, number>;
-        const bd = b.data as unknown as Record<string, number>;
-        const viralityDelta = (bd.viralityScore ?? 0) - (ad.viralityScore ?? 0);
+        const viralityDelta = (b.viralityScore ?? 0) - (a.viralityScore ?? 0);
         if (options.activeOnly) {
           return viralityDelta;
         }
