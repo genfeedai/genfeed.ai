@@ -6789,31 +6789,52 @@ model Trend {
 }
 
 model TrendingHashtag {
-  id        String   @id @default(cuid())
-  data      Json     @default("{}")
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(cuid())
+  data      Json      @default("{}")
+  /// Copied from `data` by the `trending_hashtag_data_promotion` trigger on
+  /// every write: never set these directly. `lookupKey` is the hashtag
+  /// (the refresh dedupe key), NULL past 512 characters.
+  isCurrent Boolean   @default(false)
+  expiresAt DateTime?
+  platform  String?
+  lookupKey String?
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@map("trending_hashtags")
 }
 
 model TrendingSound {
-  id        String   @id @default(cuid())
-  data      Json     @default("{}")
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(cuid())
+  data      Json      @default("{}")
+  /// Copied from `data` by the `trending_sound_data_promotion` trigger on
+  /// every write: never set these directly. `lookupKey` is the sound id
+  /// (the refresh dedupe key), NULL past 512 characters.
+  isCurrent Boolean   @default(false)
+  expiresAt DateTime?
+  platform  String?
+  lookupKey String?
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@map("trending_sounds")
 }
 
 model TrendingVideo {
-  id        String   @id @default(cuid())
-  data      Json     @default("{}")
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(cuid())
+  data      Json      @default("{}")
+  /// Copied from `data` by the `trending_video_data_promotion` trigger on
+  /// every write: never set these directly. `lookupKey` is the external video id
+  /// (the refresh dedupe key), NULL past 512 characters.
+  isCurrent Boolean   @default(false)
+  expiresAt DateTime?
+  platform  String?
+  lookupKey String?
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@map("trending_videos")
 }
