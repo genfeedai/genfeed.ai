@@ -407,7 +407,7 @@ export class AgentStrategyAutopilotPerformanceService {
       allocationChanges,
       bestPlatformFormatPairs: snapshot.bestPlatformFormatPairs,
       bestPostingWindows: snapshot.bestPostingWindows,
-      brandId: getStrategyBrandId(strategy) ?? '',
+      brandId: getStrategyBrandId(strategy) ?? null,
       clicks: snapshot.clicks,
       costPerVisit: snapshot.costPerVisit,
       creditsSpent: snapshot.creditsSpent,

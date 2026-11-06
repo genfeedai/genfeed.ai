@@ -1,79 +1,123 @@
-vi.mock('@api/helpers/utils/response/response.util', () => ({
-  serializeSingle: vi.fn((_request, _serializer, value) => ({ data: value })),
-}));
-
 import { PublicYoutubeClipperController } from '@api/endpoints/public/controllers/youtube-clipper/public-youtube-clipper.controller';
 import type { PublicYoutubeClipperService } from '@api/endpoints/public/services/public-youtube-clipper.service';
-import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import {
   RATE_LIMIT_KEY,
   type RateLimitOptions,
 } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { PublicYoutubeClipperToolSerializer } from '@genfeedai/serializers';
 import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
 import type { Request } from 'express';
 
+type Service = PublicYoutubeClipperService;
+type Session = Awaited<ReturnType<Service['read']>>;
+
+const request = { originalUrl: '/public/youtube-clipper' } as Request;
+const TOKEN = 'a'.repeat(43);
+
+/**
+ * The public clipper over an in-memory session store. A session is reachable
+ * only by its opaque preview token; creating one with a used idempotency key
+ * returns the same session; a preview request marks the chosen moment.
+ */
+function clipper() {
+  const sessions = new Map<string, Session>();
+  const byKey = new Map<string, string>();
+  const service = {
+    create: async (youtubeUrl: string, idempotencyKey?: string) => {
+      const existing = idempotencyKey && byKey.get(idempotencyKey);
+      if (existing) {
+        return sessions.get(existing) as Session;
+      }
+      const token = sessions.size === 0 ? TOKEN : `${TOKEN}-${sessions.size}`;
+      const session = {
+        expiresAt: '2026-08-26T12:00:00.000Z',
+        id: `session-${sessions.size + 1}`,
+        preview: { status: 'available' },
+        previewToken: token,
+        progress: 0,
+        recommendations: [],
+        sourceUrl: youtubeUrl,
+        status: 'queued',
+        transcript: [],
+      } as unknown as Session;
+      sessions.set(token, session);
+      if (idempotencyKey) {
+        byKey.set(idempotencyKey, token);
+      }
+      return session;
+    },
+    read: async (token: string) => {
+      const session = sessions.get(token);
+      if (!session) {
+        throw new Error('not found');
+      }
+      return session;
+    },
+    requestPreview: async (token: string, recommendationId: string) => {
+      const session = await service.read(token);
+      const updated = {
+        ...session,
+        preview: { recommendationId, status: 'queued' },
+      } as unknown as Session;
+      sessions.set(token, updated);
+      return updated;
+    },
+  };
+  return new PublicYoutubeClipperController(service as unknown as Service);
+}
+
 describe('PublicYoutubeClipperController', () => {
-  const request = { originalUrl: '/public/youtube-clipper' } as Request;
-  const session = {
-    expiresAt: '2026-08-26T12:00:00.000Z',
-    id: 'session-1',
-    preview: { status: 'available' },
-    previewToken: 'a'.repeat(43),
-    progress: 0,
-    recommendations: [],
-    status: 'queued',
-    transcript: [],
-  } as const;
+  it('creates a session, reads it back by its token and queues a preview', async () => {
+    const controller = clipper();
 
-  it('creates, reads, and requests a preview through opaque path capabilities', async () => {
-    const service = {
-      create: vi.fn().mockResolvedValue(session),
-      read: vi.fn().mockResolvedValue(session),
-      requestPreview: vi.fn().mockResolvedValue(session),
-    };
-    const controller = new PublicYoutubeClipperController(
-      service as unknown as PublicYoutubeClipperService,
-    );
-
-    await controller.create(request, 'request-key-1', {
+    const created = await controller.create(request, 'request-key-1', {
       youtubeUrl: 'https://youtu.be/abc12345',
     });
-    await controller.read(request, session.previewToken);
-    await controller.preview(request, session.previewToken, {
+    const replayed = await controller.create(request, 'request-key-1', {
+      youtubeUrl: 'https://youtu.be/abc12345',
+    });
+    const read = await controller.read(request, TOKEN);
+    const previewed = await controller.preview(request, TOKEN, {
       recommendationId: 'moment-1',
     });
 
-    expect(service.create).toHaveBeenCalledWith(
-      'https://youtu.be/abc12345',
-      'request-key-1',
-    );
-    expect(service.read).toHaveBeenCalledWith(session.previewToken);
-    expect(service.requestPreview).toHaveBeenCalledWith(
-      session.previewToken,
-      'moment-1',
-    );
-    expect(serializeSingle).toHaveBeenCalledWith(
-      request,
-      PublicYoutubeClipperToolSerializer,
-      session,
+    expect(created.data).toMatchObject({
+      attributes: { previewToken: TOKEN, status: 'queued' },
+      id: 'session-1',
+    });
+    expect(replayed.data).toEqual(created.data);
+    expect(read.data).toEqual(created.data);
+    expect(previewed.data).toMatchObject({
+      attributes: {
+        preview: { recommendationId: 'moment-1', status: 'queued' },
+      },
+      id: 'session-1',
+    });
+  });
+
+  it('cannot read a session without its token', async () => {
+    const controller = clipper();
+    await controller.create(request, undefined, {
+      youtubeUrl: 'https://youtu.be/abc12345',
+    });
+
+    await expect(controller.read(request, 'b'.repeat(43))).rejects.toThrow(
+      'not found',
     );
   });
 
-  it('keeps each public action IP-limited', () => {
-    const cases = [
-      [PublicYoutubeClipperController.prototype.create, 3, 3_600_000],
-      [PublicYoutubeClipperController.prototype.read, 60, 60_000],
-      [PublicYoutubeClipperController.prototype.preview, 1, 3_600_000],
-    ] as const;
-
-    for (const [handler, limit, windowMs] of cases) {
+  it.each([
+    ['create', PublicYoutubeClipperController.prototype.create, 3, 3_600_000],
+    ['read', PublicYoutubeClipperController.prototype.read, 60, 60_000],
+    ['preview', PublicYoutubeClipperController.prototype.preview, 1, 3_600_000],
+  ] as const)(
+    'keeps %s public and IP-limited',
+    (_name, handler, limit, windowMs) => {
       expect(Reflect.getMetadata(IS_PUBLIC_KEY, handler)).toBe(true);
       expect(Reflect.getMetadata(RATE_LIMIT_KEY, handler)).toEqual({
         limit,
         scope: 'ip',
         windowMs,
       } satisfies RateLimitOptions);
-    }
-  });
+    },
+  );
 });

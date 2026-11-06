@@ -5298,6 +5298,139 @@ export async function mockAdminStats(page: Page): Promise<void> {
   });
 }
 
+export interface AdminBotsScopeRequest {
+  brandId: string | null;
+  organizationId: string | null;
+}
+
+const ADMIN_SCOPE_ORGANIZATIONS = [
+  { id: 'org-e2e-alpha', label: 'Alpha Studio', slug: 'alpha-studio' },
+  { id: 'org-e2e-beta', label: 'Beta Media', slug: 'beta-media' },
+];
+
+const ADMIN_SCOPE_BRANDS: Record<
+  string,
+  Array<{ id: string; label: string }>
+> = {
+  'org-e2e-alpha': [{ id: 'brand-e2e-alpha-1', label: 'Alpha Coffee' }],
+  'org-e2e-beta': [
+    { id: 'brand-e2e-beta-1', label: 'Beta Running' },
+    { id: 'brand-e2e-beta-2', label: 'Beta Outdoors' },
+  ],
+};
+
+function adminBotLabelForScope(scope: AdminBotsScopeRequest): string {
+  if (scope.brandId) return `Bot of ${scope.brandId}`;
+  if (scope.organizationId) return `Bot of ${scope.organizationId}`;
+  return 'Bot of the operator';
+}
+
+/**
+ * The admin Bots list and its Filters scope: two organizations, their brands,
+ * and a bot list that answers each organization / brand scope with one bot
+ * named after it (`Bot of org-e2e-beta`, `Bot of brand-e2e-beta-2`). Returns
+ * every bot list read, in order, so a test observes the request the Filters
+ * pick actually sent.
+ */
+export async function mockAdminBotsScope(
+  page: Page,
+): Promise<AdminBotsScopeRequest[]> {
+  const botListReads: AdminBotsScopeRequest[] = [];
+  const timestamp = '2026-11-01T00:00:00.000Z';
+
+  await routeApiPattern(page, '/organizations*', async (route) => {
+    const url = new URL(route.request().url());
+    if (
+      route.request().method() !== 'GET' ||
+      !url.pathname.endsWith('/organizations')
+    ) {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      body: JSON.stringify(
+        buildJsonApiCollection(
+          'organizations',
+          ADMIN_SCOPE_ORGANIZATIONS.map((organization) => ({
+            attributes: organization,
+            id: organization.id,
+          })),
+        ),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  await routeApiPattern(page, '/brands*', async (route) => {
+    const url = new URL(route.request().url());
+    const organizationId = url.searchParams.get('organizationId');
+    if (
+      route.request().method() !== 'GET' ||
+      !url.pathname.endsWith('/brands') ||
+      !organizationId
+    ) {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      body: JSON.stringify(
+        buildJsonApiCollection(
+          'brands',
+          (ADMIN_SCOPE_BRANDS[organizationId] ?? []).map((brand) => ({
+            attributes: { ...brand, organizationId },
+            id: brand.id,
+          })),
+        ),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  await routeApiPattern(page, '/bots*', async (route) => {
+    const url = new URL(route.request().url());
+    if (route.request().method() !== 'GET' || !url.pathname.endsWith('/bots')) {
+      await route.fallback();
+      return;
+    }
+    const scope: AdminBotsScopeRequest = {
+      brandId: url.searchParams.get('brandId'),
+      organizationId: url.searchParams.get('organizationId'),
+    };
+    botListReads.push(scope);
+    const id = `bot-${scope.brandId ?? scope.organizationId ?? 'operator'}`;
+    await route.fulfill({
+      body: JSON.stringify(
+        buildJsonApiCollection('bots', [
+          {
+            attributes: {
+              brandId: scope.brandId ?? undefined,
+              category: 'engagement',
+              createdAt: timestamp,
+              engagementsCount: 0,
+              label: adminBotLabelForScope(scope),
+              messagesCount: 0,
+              organizationId: scope.organizationId ?? undefined,
+              platforms: [],
+              scope: scope.brandId ? 'brand' : 'organization',
+              settings: {},
+              status: 'ACTIVE',
+              targets: [],
+              updatedAt: timestamp,
+            },
+            id,
+          },
+        ]),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  return botListReads;
+}
+
 /**
  * Mock for admin users list
  */

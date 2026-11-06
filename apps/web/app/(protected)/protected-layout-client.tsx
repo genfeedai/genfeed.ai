@@ -8,6 +8,7 @@ import { ErrorFallback } from '@ui/error/ErrorFallback';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
+import DesktopRuntimeKeepAlive from '@/components/desktop/DesktopRuntimeKeepAlive';
 import AppProtectedLayout from '@/components/layouts/protected/app-protected-layout';
 import { useAuthUser } from '@/hooks/auth/use-auth-user';
 import { FeatureFlagProvider } from '@/hooks/feature-flags/provider';
@@ -86,6 +87,8 @@ export default function ProtectedLayoutClient({
         SessionKeepAlive for the nanostores STORE_UNMOUNT_DELAY details.
       */}
       <SessionKeepAlive />
+      {/* Same contract for the desktop runtime store: read the bridge once. */}
+      <DesktopRuntimeKeepAlive />
       <ApiAuthBridge />
       {/*
         Session, token and organization reconciliation do not read platform

@@ -529,22 +529,6 @@
       "workspace": "api"
     },
     {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/server/api/src/collections/evaluations/controllers/evaluations.controller.spec.ts",
-      "fingerprint": "4b8097a65850b02da92b",
-      "message": "Type '{}' is missing the following properties from type 'EvaluateContentDto': contentType, contentId",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 2,
-      "file": "apps/server/api/src/collections/evaluations/controllers/evaluations.controller.spec.ts",
-      "fingerprint": "aec67aaddb89ed00098f",
-      "message": "Type '{ evaluationType: EvaluationType.PRE_PUBLICATION; }' is missing the following properties from type 'EvaluateContentDto': contentType, contentId",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/evaluations/services/evaluations-operations.service.spec.ts",
@@ -3310,14 +3294,6 @@
       "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/HighlightReviewCard.test.tsx",
       "fingerprint": "5e97808d43679b6a0c3f",
       "message": "Module '\"./HighlightReviewCard\"' has no exported member 'IHighlight'. Did you mean to use 'import IHighlight from \"./HighlightReviewCard\"' instead?",
-      "workspace": "web"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/library/captions/captions-list.test.tsx",
-      "fingerprint": "f34b1f018c7f9cf302f5",
-      "message": "Conversion of type '{ createdAt: string; format: \"srt\"; id: string; label: string; }' to type 'Caption' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ createdAt: string; format: \"srt\"; id: string; label: string; }' is missing the following properties from type 'Caption': ingredient, user, language, isDeleted, updatedAt",
       "workspace": "web"
     },
     {

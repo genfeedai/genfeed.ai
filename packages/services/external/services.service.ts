@@ -1,7 +1,9 @@
 import type {
+  ApiKeyConnectPayload,
   ICredential,
   ICredentialOAuth,
 } from '@genfeedai/contracts/interfaces';
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import {
   Credential,
   CredentialOAuth,
@@ -10,6 +12,13 @@ import {
   BaseService,
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
+import type { AxiosRequestConfig } from 'axios';
+
+// A refused key-based connect is a 400 (a 500 when the server cannot say
+// why); the form explains both in place.
+const API_KEY_CONNECT_REQUEST: AxiosRequestConfig & IHttpRequestOptions = {
+  handledErrorStatuses: [400, 500],
+};
 
 export interface OAuthConnectReadinessResponse {
   status: 'available' | 'unavailable';
@@ -42,16 +51,16 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
   }
 
   /**
-   * Connect a platform that authenticates with a site URL + API key (Ghost):
-   * the server verifies the key and stores the credential, no redirect.
+   * Connect a platform that authenticates with an API key (Ghost, dev.to,
+   * Beehiiv): the server verifies the key and stores the credential, no
+   * redirect. A refusal is a 400 whose `code` the connect form explains, so
+   * the dev-only error modal stays out of its way.
    */
-  public async postConnectWithApiKey(body: {
-    apiKey: string;
-    brandId: string;
-    ghostUrl: string;
-  }): Promise<ICredential> {
+  public async postConnectWithApiKey(
+    body: ApiKeyConnectPayload,
+  ): Promise<ICredential> {
     return await this.instance
-      .post<JsonApiResponseDocument>(`connect`, body)
+      .post<JsonApiResponseDocument>(`connect`, body, API_KEY_CONNECT_REQUEST)
       .then((res) => res.data)
       .then(
         (res) =>

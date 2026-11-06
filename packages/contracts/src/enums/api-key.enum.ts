@@ -31,6 +31,10 @@ export enum ApiKeyScope {
   CREDITS_READ = 'credits:read',
   CREDITS_PROVISION = 'credits:provision',
   MANAGED_INFERENCE_EXECUTE = 'managed-inference:execute',
+  /** Read posts, their schedule and their outcome. */
+  POSTS_READ = 'posts:read',
+  /** Read connected social accounts and their health. */
+  CREDENTIALS_READ = 'credentials:read',
   POSTS_DRAFT = 'posts:draft',
   POSTS_SCHEDULE = 'posts:schedule',
   POSTS_APPROVE = 'posts:approve',

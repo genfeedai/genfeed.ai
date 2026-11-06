@@ -112,6 +112,7 @@ interface CreditsGrantOptions {
 }
 
 interface PartnerKeyCreateOptions {
+  allowedBrand?: string[];
   brand?: string;
   description?: string;
   expiresInDays?: number;
@@ -1218,6 +1219,10 @@ function createPartnerKeyCommand(): Command {
           'Override the levels, e.g. images=write brands=read (none, read or write)'
         )
         .option('--brand <brandId>', 'Default brand for generation calls')
+        .option(
+          '--allowed-brand <brandId...>',
+          'Limit the key to these brands (default: every brand in the organization)'
+        )
         .option('--description <text>', 'What the key is for')
         .option('--expires-in-days <days>', 'Expire the key after N days', Number)
         .option('--yes', 'Mint the key')
@@ -1240,10 +1245,17 @@ function createPartnerKeyCommand(): Command {
                 )
               );
               if (options.brand) print(formatLabel('Default brand', options.brand));
+              print(
+                formatLabel(
+                  'Brands',
+                  options.allowedBrand ? options.allowedBrand.join(', ') : 'every brand'
+                )
+              );
               print(formatWarning('Re-run with --yes to mint the key. It is shown once.'));
               return;
             }
             const minted = await mintPartnerApiKey(options.org, {
+              allowedBrandIds: options.allowedBrand,
               defaultBrandId: options.brand,
               description: options.description,
               expiresInDays: options.expiresInDays,
@@ -1257,6 +1269,9 @@ function createPartnerKeyCommand(): Command {
             print(formatSuccess(`Minted partner key ${minted.apiKeyId}`));
             print(formatLabel('Scopes', minted.scopes.join(', ')));
             print(formatLabel('Owner', minted.userId));
+            if (minted.allowedBrandIds) {
+              print(formatLabel('Brands', minted.allowedBrandIds.join(', ')));
+            }
             if (minted.expiresAt) print(formatLabel('Expires', minted.expiresAt));
             print(formatLabel('Key', minted.key));
             print(formatWarning('Store this key now. It will not be shown again.'));

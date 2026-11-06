@@ -2,11 +2,15 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
-import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type {
+  IIngredient,
+  IPaginatedResponse,
+} from '@genfeedai/contracts/interfaces';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { getErrorStatus } from '@utils/error/json-api-status.util';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   buildLibraryArtifactReference,
   type LibraryArtifactReference,
@@ -63,8 +67,36 @@ export interface UseLibraryPickerResult {
   readonly state: LibraryPickerState;
 }
 
+type IngredientsServiceFor = (
+  category: LibraryPickerCategory,
+) => IngredientsService;
+
+/** The "Load more" pages appended to one cached first page. */
+interface LibraryPickerMorePages {
+  /** A failed "Load more", with its HTTP status when there was one. */
+  readonly failure: { readonly status: number | undefined } | null;
+  /** The first page these follow; a different first page drops them. */
+  readonly firstPage: IPaginatedResponse<IIngredient>;
+  readonly items: readonly IIngredient[];
+  readonly page: number;
+  readonly totalPages: number;
+  readonly total: number;
+}
+
+const PICKABLE_STATUSES = [
+  IngredientStatus.UPLOADED,
+  IngredientStatus.GENERATED,
+  IngredientStatus.VALIDATED,
+];
+
+const EMPTY_ITEMS: readonly IIngredient[] = [];
+
 function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === 'AbortError';
+}
+
+function isPermissionStatus(status: number | undefined): boolean {
+  return status === 401 || status === 403;
 }
 
 function getCategoryConfig(category: LibraryPickerCategory) {
@@ -74,6 +106,26 @@ function getCategoryConfig(category: LibraryPickerCategory) {
   );
 }
 
+/** Each media type reads its own endpoint, so the service is per category. */
+function createIngredientsServices(token: string): IngredientsServiceFor {
+  return (category) => IngredientsService.getInstance(category, token);
+}
+
+function mergeItems(
+  first: readonly IIngredient[],
+  more: readonly IIngredient[],
+): readonly IIngredient[] {
+  return Array.from(
+    new Map([...first, ...more].map((item) => [item.id, item])).values(),
+  );
+}
+
+/**
+ * The composer's Library picker: one media type of the effective brand, a
+ * page at a time. The first page is cached per organization, brand and media
+ * type, so reopening the picker paints its sources at once and refreshes them
+ * in the background; "Load more" appends the next pages locally.
+ */
 export function useLibraryPicker(params: {
   readonly onSelect: (
     reference: LibraryArtifactReference,
@@ -83,114 +135,214 @@ export function useLibraryPicker(params: {
   const { onSelect } = params;
   const { brandId, isReady, organizationId } = useBrand();
   const [category, setCategory] = useState<LibraryPickerCategory>('images');
-  const [page, setPage] = useState(1);
-  const [reloadVersion, setReloadVersion] = useState(0);
+  const [morePages, setMorePages] = useState<LibraryPickerMorePages | null>(
+    null,
+  );
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isValidatingId, setIsValidatingId] = useState<string | null>(null);
   const [selectionFailure, setSelectionFailure] =
     useState<LibraryPickerSelectionFailure | null>(null);
-  const [state, setState] = useState<LibraryPickerState>({
-    hasMore: false,
-    items: [],
-    status: 'loading',
-    total: 0,
-  });
+  const loadMoreControllerRef = useRef<AbortController | null>(null);
   const categoryConfig = useMemo(() => getCategoryConfig(category), [category]);
-  const getIngredientsService = useAuthedService((token: string) =>
-    IngredientsService.getInstance(categoryConfig.key, token),
-  );
+  const getIngredientsServices = useAuthedService(createIngredientsServices);
+  const hasScope = Boolean(brandId && organizationId);
 
-  const loadPage = useCallback(
-    async (nextPage: number, append: boolean, signal?: AbortSignal) => {
-      if (!isReady) {
-        return;
-      }
-      if (!brandId || !organizationId) {
-        setState({
+  const firstPageQuery = useAuthedQuery<
+    IngredientsServiceFor,
+    IPaginatedResponse<IIngredient>
+  >({
+    enabled: isReady && hasScope,
+    queryFn: (servicesFor, signal) =>
+      servicesFor(category).findAllPage(
+        {
+          brand: brandId,
+          lightweight: true,
+          limit: LIBRARY_PICKER_PAGE_SIZE,
+          page: 1,
+          sort: 'createdAt: -1',
+          status: PICKABLE_STATUSES,
+        },
+        signal,
+      ),
+    queryKey: [
+      'library-picker',
+      organizationId ?? null,
+      brandId ?? null,
+      category,
+    ],
+    service: createIngredientsServices,
+  });
+  const firstPage = firstPageQuery.data;
+  const { refetch } = firstPageQuery;
+
+  // A new brand or media type never receives a "Load more" still in flight.
+  const scopeIdentity = `${organizationId}\u0001${brandId}\u0001${category}`;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scopeIdentity marks a new list to load more of
+  useEffect(() => {
+    loadMoreControllerRef.current?.abort();
+    loadMoreControllerRef.current = null;
+    setIsLoadingMore(false);
+    setSelectionFailure(null);
+  }, [scopeIdentity]);
+
+  // Appended pages belong to the first page they followed: a refreshed or
+  // different first page starts over from page one.
+  const appended =
+    morePages && firstPage && morePages.firstPage === firstPage
+      ? morePages
+      : null;
+
+  const state = useMemo<LibraryPickerState>(() => {
+    if (!isReady) {
+      return {
+        hasMore: false,
+        items: EMPTY_ITEMS,
+        status: 'loading',
+        total: 0,
+      };
+    }
+    if (!hasScope) {
+      return {
+        hasMore: false,
+        items: EMPTY_ITEMS,
+        status: 'permission-denied',
+        total: 0,
+      };
+    }
+    if (!firstPage) {
+      // Only a read with nothing to show replaces the grid with its failure.
+      if (firstPageQuery.isError) {
+        return {
           hasMore: false,
-          items: [],
-          status: 'permission-denied',
+          items: EMPTY_ITEMS,
+          status: isPermissionStatus(getErrorStatus(firstPageQuery.error))
+            ? 'permission-denied'
+            : 'error',
           total: 0,
-        });
-        return;
+        };
       }
+      return {
+        hasMore: false,
+        items: EMPTY_ITEMS,
+        status: 'loading',
+        total: 0,
+      };
+    }
 
-      if (append) {
-        setIsLoadingMore(true);
-      } else {
-        setState((current) => ({ ...current, status: 'loading' }));
-      }
+    const items = appended
+      ? mergeItems(firstPage.items, appended.items)
+      : firstPage.items;
+    if (appended?.failure) {
+      return {
+        hasMore: false,
+        items,
+        status: isPermissionStatus(appended.failure.status)
+          ? 'permission-denied'
+          : 'error',
+        total: appended.total,
+      };
+    }
+    const page = appended?.page ?? 1;
+    const totalPages = appended?.totalPages ?? firstPage.totalPages;
+    return {
+      hasMore: page < totalPages,
+      items,
+      status: items.length > 0 ? 'ready' : 'empty',
+      total: appended?.total ?? firstPage.total,
+    };
+  }, [
+    appended,
+    firstPage,
+    firstPageQuery.error,
+    firstPageQuery.isError,
+    hasScope,
+    isReady,
+  ]);
 
+  const loadMore = useCallback(() => {
+    if (
+      !firstPage ||
+      !state.hasMore ||
+      isLoadingMore ||
+      loadMoreControllerRef.current
+    ) {
+      return;
+    }
+
+    const base = firstPage;
+    const nextPage = (appended?.page ?? 1) + 1;
+    const controller = new AbortController();
+    loadMoreControllerRef.current = controller;
+    setIsLoadingMore(true);
+
+    async function load(): Promise<void> {
       try {
-        const service = (await getIngredientsService()) as IngredientsService;
-        const result = await service.findAllPage(
+        const servicesFor = await getIngredientsServices();
+        const result = await servicesFor(category).findAllPage(
           {
             brand: brandId,
             lightweight: true,
             limit: LIBRARY_PICKER_PAGE_SIZE,
             page: nextPage,
             sort: 'createdAt: -1',
-            status: [
-              IngredientStatus.UPLOADED,
-              IngredientStatus.GENERATED,
-              IngredientStatus.VALIDATED,
-            ],
+            status: PICKABLE_STATUSES,
           },
-          signal,
+          controller.signal,
         );
-        if (signal?.aborted) {
+        if (controller.signal.aborted) {
           return;
         }
-
-        const { items, total, totalPages } = result;
-        setState((current) => {
-          const nextItems = append
-            ? Array.from(
-                new Map(
-                  [...current.items, ...items].map((item) => [item.id, item]),
-                ).values(),
-              )
-            : items;
-
-          return {
-            hasMore: nextPage < totalPages,
-            items: nextItems,
-            status: nextItems.length > 0 ? 'ready' : 'empty',
-            total,
-          };
-        });
-        setPage(nextPage);
+        setMorePages((current) => ({
+          failure: null,
+          firstPage: base,
+          items: mergeItems(
+            current?.firstPage === base ? current.items : EMPTY_ITEMS,
+            result.items,
+          ),
+          page: nextPage,
+          total: result.total,
+          totalPages: result.totalPages,
+        }));
       } catch (error) {
-        if (isAbortError(error)) {
+        if (controller.signal.aborted || isAbortError(error)) {
           return;
         }
-
-        const status = getErrorStatus(error);
-        setState((current) => ({
-          hasMore: false,
-          items: append ? current.items : [],
-          status:
-            status === 401 || status === 403 ? 'permission-denied' : 'error',
-          total: append ? current.total : 0,
+        setMorePages((current) => ({
+          failure: { status: getErrorStatus(error) },
+          firstPage: base,
+          items: current?.firstPage === base ? current.items : EMPTY_ITEMS,
+          page: current?.firstPage === base ? current.page : 1,
+          total: current?.firstPage === base ? current.total : base.total,
+          totalPages:
+            current?.firstPage === base ? current.totalPages : base.totalPages,
         }));
       } finally {
-        if (!signal?.aborted) {
+        if (loadMoreControllerRef.current === controller) {
+          loadMoreControllerRef.current = null;
           setIsLoadingMore(false);
         }
       }
-    },
-    [brandId, getIngredientsService, isReady, organizationId],
-  );
+    }
 
-  useEffect(() => {
-    void reloadVersion;
-    const abortController = new AbortController();
-    setPage(1);
+    void load();
+  }, [
+    appended?.page,
+    brandId,
+    category,
+    firstPage,
+    getIngredientsServices,
+    isLoadingMore,
+    state.hasMore,
+  ]);
+
+  const retry = useCallback(() => {
+    loadMoreControllerRef.current?.abort();
+    loadMoreControllerRef.current = null;
+    setIsLoadingMore(false);
+    setMorePages(null);
     setSelectionFailure(null);
-    void loadPage(1, false, abortController.signal);
-
-    return () => abortController.abort();
-  }, [loadPage, reloadVersion]);
+    void refetch();
+  }, [refetch]);
 
   const select = useCallback(
     async (ingredient: IIngredient) => {
@@ -201,8 +353,8 @@ export function useLibraryPicker(params: {
       setIsValidatingId(ingredient.id);
       setSelectionFailure(null);
       try {
-        const service = (await getIngredientsService()) as IngredientsService;
-        const confirmed = await service.findOne(ingredient.id);
+        const servicesFor = await getIngredientsServices();
+        const confirmed = await servicesFor(category).findOne(ingredient.id);
         if (!confirmed || confirmed.category !== categoryConfig.category) {
           setSelectionFailure('stale');
           return;
@@ -238,7 +390,7 @@ export function useLibraryPicker(params: {
         setSelectionFailure(
           status === 404
             ? 'stale'
-            : status === 401 || status === 403
+            : isPermissionStatus(status)
               ? 'unauthorized'
               : 'error',
         );
@@ -248,8 +400,9 @@ export function useLibraryPicker(params: {
     },
     [
       brandId,
+      category,
       categoryConfig.category,
-      getIngredientsService,
+      getIngredientsServices,
       isValidatingId,
       organizationId,
       onSelect,
@@ -260,12 +413,8 @@ export function useLibraryPicker(params: {
     category,
     isLoadingMore,
     isValidatingId,
-    loadMore: () => {
-      if (!isLoadingMore && state.hasMore) {
-        void loadPage(page + 1, true);
-      }
-    },
-    retry: () => setReloadVersion((version) => version + 1),
+    loadMore,
+    retry,
     select,
     selectionFailure,
     setCategory,

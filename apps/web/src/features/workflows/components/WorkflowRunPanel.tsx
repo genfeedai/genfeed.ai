@@ -199,7 +199,7 @@ export function WorkflowRunPanel({
   };
 
   return (
-    <aside className="absolute top-0 right-0 bottom-0 flex w-96 flex-col border-l border-border bg-card shadow-xl">
+    <aside className="flex h-full w-80 shrink-0 flex-col border-l border-border bg-card">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="font-semibold">Run workflow</h2>
         <Button

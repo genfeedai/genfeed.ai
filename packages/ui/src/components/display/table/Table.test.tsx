@@ -124,10 +124,20 @@ describe('Table', () => {
     expect(group).toHaveClass(
       '[@media(hover:hover)]:absolute',
       'opacity-100',
-      'pointer-events-auto',
       '[@media(hover:hover)]:opacity-0',
       '[@media(hover:hover)]:group-hover:opacity-100',
       '[@media(hover:hover)]:group-focus-within:opacity-100',
+    );
+    // The fade over the row's right end never takes a click: that belongs to
+    // the cell under it. Only the actions take the pointer, once revealed.
+    expect(group).toHaveClass('[@media(hover:hover)]:pointer-events-none');
+    expect(group).not.toHaveClass(
+      '[@media(hover:hover)]:group-hover:pointer-events-auto',
+    );
+    expect(group?.firstElementChild).toHaveClass(
+      'pointer-events-auto',
+      '[@media(hover:hover)]:pointer-events-none',
+      '[@media(hover:hover)]:group-hover:pointer-events-auto',
     );
     // Motion policy: the group shows and hides instantly, never slides in.
     expect(group?.className).not.toMatch(/translate-x|transition/);

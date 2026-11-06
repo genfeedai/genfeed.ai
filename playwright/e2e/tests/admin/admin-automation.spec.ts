@@ -1,6 +1,10 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { mockWorkflowCrud } from '../../fixtures/api-mocks.fixture';
+import {
+  mockAdminBotsScope,
+  mockWorkflowCrud,
+} from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { chooseFilterOption } from '../../utils/filter-menu';
 import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 
 /**
@@ -36,6 +40,37 @@ test.describe('Admin Automation', () => {
     await expect(adminPage.getByText('No bots yet')).toHaveCount(0);
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();
+  });
+
+  // #9454: the URL-to-request mapping has a unit test; this walks the Filters
+  // menu itself and observes the bot list request it sends.
+  test('Filters scopes the bot list to the picked organization, then brand', async ({
+    adminPage,
+  }) => {
+    const botListReads = await mockAdminBotsScope(adminPage);
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.AUTOMATION.BOTS);
+    const main = adminPage.getByRole('main');
+    const table = main.getByRole('table');
+    await expect(table.getByText('Bot of the operator')).toBeVisible();
+
+    await chooseFilterOption(adminPage, 'Organization', /Beta Media$/, main);
+
+    await expect(adminPage).toHaveURL(/[?&]organization=org-e2e-beta(&|$)/);
+    await expect(table.getByText('Bot of org-e2e-beta')).toBeVisible();
+    expect(botListReads).toContainEqual({
+      brandId: null,
+      organizationId: 'org-e2e-beta',
+    });
+
+    await chooseFilterOption(adminPage, 'Brand', /Beta Outdoors$/, main);
+
+    await expect(adminPage).toHaveURL(/[?&]brand=brand-e2e-beta-2(&|$)/);
+    await expect(table.getByText('Bot of brand-e2e-beta-2')).toBeVisible();
+    await expect(table.getByText('Bot of org-e2e-beta')).toHaveCount(0);
+    expect(botListReads.at(-1)).toEqual({
+      brandId: 'brand-e2e-beta-2',
+      organizationId: 'org-e2e-beta',
+    });
   });
 
   test('workflows list stays interactive', async ({ adminPage }) => {

@@ -1,4 +1,5 @@
 import {
+  ApiKeyAllowedBrandIdsField,
   ApiKeyAllowedIpsField,
   ApiKeyExpiresAtField,
   ApiKeyScopesField,
@@ -101,4 +102,14 @@ export class CreateApiKeyDto {
   @IsOptional()
   @IsEntityId()
   readonly defaultBrandId?: string;
+
+  @ApiProperty({
+    description:
+      'Limit the key to these brands of its organization (#9130). Omit for every brand, new ones included. A request naming any other brand gets 404. Fixed at creation; rotation keeps it.',
+    isArray: true,
+    required: false,
+    type: String,
+  })
+  @ApiKeyAllowedBrandIdsField()
+  readonly allowedBrandIds?: string[];
 }

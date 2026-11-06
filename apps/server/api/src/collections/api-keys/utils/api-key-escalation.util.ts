@@ -1,8 +1,12 @@
 import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
-import { SELF_SERVICE_API_KEY_SCOPES } from '@genfeedai/contracts/constants';
+import {
+  readApiKeyAllowedBrandIds,
+  SELF_SERVICE_API_KEY_SCOPES,
+} from '@genfeedai/contracts/constants';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 export type RequestedApiKeyReach = {
+  allowedBrandIds?: readonly string[] | null;
   allowedIps?: readonly string[] | null;
   expiresAt?: string | null;
   scopes?: readonly string[] | null;
@@ -18,7 +22,8 @@ function deny(detail: string): never {
 /**
  * A key authenticating a request may manage other keys (the CLI does), but
  * never with more reach than it has itself: scopes must be a subset of its
- * own, and an IP allowlist or expiry on the caller must carry over.
+ * own, and an IP allowlist, brand allowlist or expiry on the caller must
+ * carry over.
  *
  * The DTOs reject JSON `null` on these fields (`@IsOmittable()`, #7137), so a
  * request normally arrives with a value or `undefined`. The `null` handling
@@ -27,7 +32,10 @@ function deny(detail: string): never {
  * update `undefined` is "unchanged" and `null` is an attempt to clear.
  */
 export function assertKeyWithinCaller(
-  callerKey: Pick<ApiKeyDocument, 'allowedIps' | 'expiresAt' | 'scopes'> | null,
+  callerKey: Pick<
+    ApiKeyDocument,
+    'allowedIps' | 'expiresAt' | 'metadata' | 'scopes'
+  > | null,
   requested: RequestedApiKeyReach,
   isCreate: boolean,
 ): void {
@@ -56,6 +64,22 @@ export function assertKeyWithinCaller(
     if (isOmitted(requested.allowedIps) ? isCreate : !isNarrowed) {
       deny(
         'An IP-restricted API key can only manage keys restricted to a subset of its IPs.',
+      );
+    }
+  }
+
+  // The brand allowlist is fixed at creation, so only a new key can carry one.
+  const callerBrandIds = readApiKeyAllowedBrandIds(callerKey.metadata);
+  if (isCreate && callerBrandIds) {
+    const isNarrowed =
+      Array.isArray(requested.allowedBrandIds) &&
+      requested.allowedBrandIds.length > 0 &&
+      requested.allowedBrandIds.every((brandId) =>
+        callerBrandIds.includes(brandId),
+      );
+    if (!isNarrowed) {
+      deny(
+        'A brand-restricted API key can only create keys restricted to a subset of its brands.',
       );
     }
   }

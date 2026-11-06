@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { queryClientWrapper } from '@app-tests/query-client.harness';
 import { VoiceProvider } from '@genfeedai/contracts';
 import type {
   HeyGenAvatarRef,
@@ -100,6 +101,11 @@ const voiceRef = {
   ownership: 'public' as const,
   connection: avatarRef.connection,
 };
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getCatalogService,
@@ -378,6 +384,7 @@ function renderComposer() {
       onOpenChange={mocks.onOpenChange}
       onTaskCreated={mocks.onTaskCreated}
     />,
+    { wrapper: queryClientWrapper() },
   );
 }
 

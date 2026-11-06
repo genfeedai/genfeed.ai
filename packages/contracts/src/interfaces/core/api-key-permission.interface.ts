@@ -24,6 +24,8 @@ export interface IApiKeyPermissionGroup {
 
 /** What a platform admin gets back after minting a partner key. */
 export interface IAdminPartnerApiKeyResult {
+  /** Brands the key is limited to; `null` reaches every brand (#9130). */
+  allowedBrandIds: string[] | null;
   apiKeyId: string;
   defaultBrandId: string | null;
   expiresAt: string | null;

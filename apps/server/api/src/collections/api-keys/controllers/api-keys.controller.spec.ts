@@ -67,6 +67,16 @@ describe('ApiKeysController', () => {
     findOneSelect: delegateFindOneSelect(),
     patch: vi.fn(),
     resolveActionOrigin: vi.fn().mockReturnValue(ActionOrigin.API),
+    resolveLiveAllowedBrandIds: async (
+      _organizationId: string,
+      brandIds: readonly string[],
+    ) => brandIds.filter((brandId) => brandId !== 'deleted-brand'),
+    resolveValidDefaultBrandId: async (
+      _organizationId: string,
+      brandId: string | null | undefined,
+    ) => brandId ?? undefined,
+    resolveRotationBrandReach:
+      ApiKeysService.prototype.resolveRotationBrandReach,
     remove: vi.fn(),
     revoke: vi.fn(),
     rotateWithKey: vi.fn(),
@@ -530,6 +540,40 @@ describe('ApiKeysController', () => {
           metadata: { purpose: 'desktop' },
         }),
       );
+    });
+
+    it('keeps the live brand limit and default brand on a replacement key', async () => {
+      mockApiKeysService.findOne.mockResolvedValue({
+        ...mockApiKey,
+        defaultBrandId: 'brand-own',
+        metadata: { allowedBrandIds: ['brand-own', 'deleted-brand'] },
+      });
+      mockApiKeysService.rotateWithKey.mockResolvedValue({
+        apiKey: mockApiKey,
+        plainKey: 'plain_rotated_api_key_12345',
+      });
+
+      await controller.rotate(mockRequest, mockUser, apiKeyId);
+
+      expect(service.rotateWithKey).toHaveBeenCalledWith(
+        apiKeyId,
+        expect.objectContaining({
+          allowedBrandIds: ['brand-own'],
+          defaultBrandId: 'brand-own',
+          metadata: {},
+        }),
+      );
+    });
+
+    it('refuses to rotate a key whose every allowed brand was deleted', async () => {
+      mockApiKeysService.findOne.mockResolvedValue({
+        ...mockApiKey,
+        metadata: { allowedBrandIds: ['deleted-brand'] },
+      });
+
+      await expect(
+        controller.rotate(mockRequest, mockUser, apiKeyId),
+      ).rejects.toThrow('Every brand this API key was limited to');
     });
 
     it('should throw NotFoundException when rotating a missing key', async () => {
