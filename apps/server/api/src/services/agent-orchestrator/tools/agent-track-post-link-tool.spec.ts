@@ -7,7 +7,15 @@ import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tool
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { testId } from '@helpers/testing/test-id.helper';
+import { ForbiddenException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+
+type TrackedLink = {
+  brandId: string;
+  organizationId: string;
+  url: string;
+  userId: string;
+};
 
 const ctx: ToolExecutionContext = {
   brandId: testId('brand'),
@@ -15,17 +23,34 @@ const ctx: ToolExecutionContext = {
   userId: testId('user'),
 };
 const input = { brandId: testId('brand'), url: 'https://youtu.be/abc' };
+
 async function fixture() {
+  // Brands the scope service treats as owned, keyed by brand id -> org id.
+  const brandOwners = new Map([[testId('brand'), testId('org')]]);
+  const tracked: TrackedLink[] = [];
   const tracking = {
-    trackLink: vi.fn().mockResolvedValue({
-      postId: testId('post'),
-      created: false,
-      analyticsAvailability: 'eligible',
-    }),
+    trackLink: async (
+      link: { brandId: string; url: string },
+      owner: { brandId: string; organizationId: string; userId: string },
+    ) => {
+      tracked.push({ ...owner, url: link.url });
+      return {
+        analyticsAvailability: 'eligible',
+        created: false,
+        postId: `post-for-${link.url}`,
+      };
+    },
   };
   const scope = {
-    assertBrandAuthorized: vi.fn().mockResolvedValue(undefined),
-    assertResourceBrand: vi.fn(),
+    assertBrandAuthorized: async (
+      brandId: string,
+      params: { organizationId: string },
+    ) => {
+      if (brandOwners.get(brandId) !== params.organizationId) {
+        throw new ForbiddenException('Brand is unavailable');
+      }
+    },
+    assertResourceBrand: () => undefined,
   };
   const module = await Test.createTestingModule({
     providers: [
@@ -38,37 +63,48 @@ async function fixture() {
       { provide: PostLinkTrackingService, useValue: tracking },
     ],
   }).compile();
-  return { handler: module.get(AgentAnalyticsToolHandler), tracking, scope };
+  return {
+    brandOwners,
+    handler: module.get(AgentAnalyticsToolHandler),
+    tracked,
+  };
 }
+
 describe('track_post_link agent action', () => {
-  it('authorizes the brand and uses the same free idempotent importer', async () => {
+  it('imports the link for the authorized brand through the free idempotent importer', async () => {
     const f = await fixture();
     expect(await f.handler.trackPostLink(input, ctx)).toMatchObject({
       success: true,
       creditsUsed: 0,
-      data: { postId: testId('post'), created: false },
+      data: { postId: 'post-for-https://youtu.be/abc', created: false },
     });
-    expect(f.scope.assertBrandAuthorized).toHaveBeenCalledWith(input.brandId, {
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
-    });
-    expect(f.tracking.trackLink).toHaveBeenCalledWith(input, ctx);
+    expect(f.tracked).toEqual([
+      {
+        brandId: testId('brand'),
+        organizationId: testId('org'),
+        url: 'https://youtu.be/abc',
+        userId: testId('user'),
+      },
+    ]);
   });
+
   it('rejects a foreign context brand before import', async () => {
     const f = await fixture();
     await expect(
       f.handler.trackPostLink(input, { ...ctx, brandId: testId('other') }),
     ).rejects.toThrow('brand context');
-    expect(f.tracking.trackLink).not.toHaveBeenCalled();
+    expect(f.tracked).toEqual([]);
   });
+
   it('rejects a brand not owned by this organization', async () => {
     const f = await fixture();
-    f.scope.assertBrandAuthorized.mockRejectedValue(new Error('unavailable'));
+    f.brandOwners.set(testId('brand'), testId('other-org'));
     await expect(f.handler.trackPostLink(input, ctx)).rejects.toThrow(
       'unavailable',
     );
-    expect(f.tracking.trackLink).not.toHaveBeenCalled();
+    expect(f.tracked).toEqual([]);
   });
+
   it.each(['organizationId', 'userId', 'credentialId', 'source'])(
     'rejects forged %s',
     async (field) => {
@@ -76,7 +112,7 @@ describe('track_post_link agent action', () => {
       await expect(
         f.handler.trackPostLink({ ...input, [field]: 'forged' }, ctx),
       ).rejects.toThrow();
-      expect(f.tracking.trackLink).not.toHaveBeenCalled();
+      expect(f.tracked).toEqual([]);
     },
   );
 });

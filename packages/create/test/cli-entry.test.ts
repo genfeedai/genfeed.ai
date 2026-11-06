@@ -1,17 +1,33 @@
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+// What the CLI did that a user could observe: the commands it launched and
+// the lines it printed, in order.
+const observed = vi.hoisted(() => ({
+  commands: [] as string[],
+  errors: [] as string[],
+}));
+
 const childProcessMock = vi.hoisted(() => ({
-  spawn: vi.fn(),
-  spawnSync: vi.fn(),
+  spawn: (command: string) => {
+    observed.commands.push(command);
+    throw new Error(`unexpected spawn of ${command}`);
+  },
+  // Every probed binary (tar, docker, ...) is missing.
+  spawnSync: (command: string) => {
+    observed.commands.push(command);
+    return { status: 1 };
+  },
 }));
 
 const consolaMock = vi.hoisted(() => ({
-  error: vi.fn(),
-  info: vi.fn(),
-  start: vi.fn(),
-  success: vi.fn(),
-  warn: vi.fn(),
+  error: (message: string) => {
+    observed.errors.push(message);
+  },
+  info: () => undefined,
+  start: () => undefined,
+  success: () => undefined,
+  warn: () => undefined,
 }));
 
 vi.mock('node:child_process', () => childProcessMock);
@@ -35,7 +51,8 @@ describe('CLI entry point', () => {
     vi.resetModules();
     originalArgv = [...process.argv];
     originalExitCode = process.exitCode;
-    childProcessMock.spawnSync.mockReturnValue({ status: 1 });
+    observed.commands = [];
+    observed.errors = [];
     stubNodeVersion('24.0.0');
   });
 
@@ -46,7 +63,6 @@ describe('CLI entry point', () => {
       configurable: true,
       value: originalVersions,
     });
-    vi.clearAllMocks();
   });
 
   it('runs main, reports the failure, and sets a non-zero exit code', async () => {
@@ -57,7 +73,7 @@ describe('CLI entry point', () => {
     await vi.waitFor(() => {
       expect(process.exitCode).toBe(1);
     });
-    expect(consolaMock.error).toHaveBeenCalledWith(
+    expect(observed.errors).toContain(
       'tar is required to extract the Genfeed.ai release bundle.',
     );
   });
@@ -71,10 +87,10 @@ describe('CLI entry point', () => {
     await vi.waitFor(() => {
       expect(process.exitCode).toBe(1);
     });
-    expect(consolaMock.error).toHaveBeenCalledWith(
+    expect(observed.errors).toEqual([
       expect.stringContaining('Node.js 24 or newer is required'),
-    );
-    expect(childProcessMock.spawnSync).not.toHaveBeenCalled();
+    ]);
+    expect(observed.commands).toEqual([]);
   });
 
   it('stays inert when the process has no script argument', async () => {
@@ -83,7 +99,7 @@ describe('CLI entry point', () => {
     await import('../src/index.js');
     await new Promise((resolvePromise) => setImmediate(resolvePromise));
 
-    expect(consolaMock.error).not.toHaveBeenCalled();
+    expect(observed.errors).toEqual([]);
     expect(process.exitCode).toBe(originalExitCode);
   });
 
@@ -93,7 +109,7 @@ describe('CLI entry point', () => {
     await import('../src/index.js');
     await new Promise((resolvePromise) => setImmediate(resolvePromise));
 
-    expect(consolaMock.error).not.toHaveBeenCalled();
+    expect(observed.errors).toEqual([]);
     expect(process.exitCode).toBe(originalExitCode);
   });
 });

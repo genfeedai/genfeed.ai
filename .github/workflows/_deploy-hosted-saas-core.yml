@@ -465,7 +465,7 @@ jobs:
             --security-groups "$SG" \
             --timeout-seconds 300 \
             --container-name migrate \
-            --command-arg sh --command-arg -c --command-arg "$check_script"
+            --command-arg=sh --command-arg=-c --command-arg="$check_script"
 
       - name: Print status-columns check logs on failure
         if: ${{ failure() && steps.status-columns-check.outcome == 'failure' }}

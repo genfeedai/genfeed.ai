@@ -25,7 +25,7 @@ it('hydrates from stable unknown and deduplicates bridge reads across consumers'
     localProvider: null,
   };
   let resolve!: (value: IDesktopRuntimeContext) => void;
-  const detach = vi.fn();
+  const listeners = new Set<(context: unknown) => void>();
   const rpc = vi.fn(
     () =>
       new Promise<IDesktopRuntimeContext>((done) => {
@@ -35,7 +35,13 @@ it('hydrates from stable unknown and deduplicates bridge reads across consumers'
   Object.defineProperty(window, 'genfeedDesktop', {
     configurable: true,
     value: {
-      app: { getRuntimeContext: rpc, onDidChangeRuntimeContext: () => detach },
+      app: {
+        getRuntimeContext: rpc,
+        onDidChangeRuntimeContext: (listener: (context: unknown) => void) => {
+          listeners.add(listener);
+          return () => listeners.delete(listener);
+        },
+      },
     },
   });
   const tree = (
@@ -48,17 +54,20 @@ it('hydrates from stable unknown and deduplicates bridge reads across consumers'
   container.innerHTML = renderToString(tree);
   document.body.append(container);
   expect(container.textContent).toBe('loadingloading');
-  const onRecoverableError = vi.fn();
+  const recoverableErrors: unknown[] = [];
   let root!: ReturnType<typeof hydrateRoot>;
   await act(async () => {
-    root = hydrateRoot(container, tree, { onRecoverableError });
+    root = hydrateRoot(container, tree, {
+      onRecoverableError: (error) => recoverableErrors.push(error),
+    });
   });
   expect(rpc).toHaveBeenCalledTimes(1);
   await act(async () => resolve(context));
   expect(container.textContent).toBe('readyready');
-  expect(onRecoverableError).not.toHaveBeenCalled();
+  expect(recoverableErrors).toEqual([]);
+  expect(listeners.size).toBe(1);
   await act(async () => root.unmount());
-  expect(detach).toHaveBeenCalledTimes(1);
+  expect(listeners.size).toBe(0);
   container.remove();
   Reflect.deleteProperty(window, 'genfeedDesktop');
 });
