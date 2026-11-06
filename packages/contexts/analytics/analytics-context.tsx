@@ -7,8 +7,8 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { AnalyticsContextType } from '@genfeedai/contracts/interfaces/analytics/analytics-context.interface';
 import type { DateRange } from '@genfeedai/contracts/interfaces/utils/date.interface';
+import { getTrailingUtcDays } from '@genfeedai/helpers/utils/date-range.util';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
-import { subDays } from 'date-fns';
 import {
   createContext,
   type ReactNode,
@@ -52,14 +52,8 @@ export function AnalyticsProvider({
   restoredFilters,
   syncWithBrandContext = false,
 }: AnalyticsProviderProps) {
-  const yesterday = subDays(new Date(), 1);
-
   const [dateRange, setDateRangeState] = useState<DateRange>(
-    () =>
-      restoredDateRange ?? {
-        endDate: yesterday,
-        startDate: subDays(yesterday, 6),
-      },
+    () => restoredDateRange ?? getTrailingUtcDays(7),
   );
   const [filters, setFilters] = useState<AnalyticsQueryFilters>(
     () => restoredFilters ?? {},
