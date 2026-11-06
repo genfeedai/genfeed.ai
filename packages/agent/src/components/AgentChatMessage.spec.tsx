@@ -127,25 +127,6 @@ describe('AgentChatMessage', () => {
     vi.useRealTimers();
   });
 
-  it('aligns assistant text and padded user-card text to one content rail', () => {
-    const assistant = render(
-      <AgentChatMessage message={buildMessage('assistant', 'Aligned reply')} />,
-    );
-    const assistantSurface = assistant.container.querySelector(
-      '[data-message-role="assistant"]',
-    );
-    expect(assistantSurface).not.toHaveClass('px-0.5');
-
-    assistant.unmount();
-    const user = render(
-      <AgentChatMessage message={buildMessage('user', 'Aligned prompt')} />,
-    );
-    expect(
-      user.container.querySelector('[data-message-role="user"]'),
-    ).toHaveClass('-mx-3');
-    expect(user.getByTestId('agent-user-prompt')).toBeTruthy();
-  });
-
   it('shows the verified sources behind an assistant answer', () => {
     render(
       <AgentChatMessage
@@ -367,7 +348,7 @@ describe('AgentChatMessage', () => {
     expect(screen.queryByText('You')).not.toBeInTheDocument();
   });
 
-  it('renders user messages as a sticky highlighted card, not a You label or bubble', () => {
+  it('renders the user message as a compact bubble on the right that scrolls with the transcript', () => {
     const { container } = render(
       <AgentChatMessage message={buildMessage('user', 'User prompt')} />,
     );
@@ -376,28 +357,31 @@ describe('AgentChatMessage', () => {
       '[data-message-role="user"][data-message-surface="prompt"]',
     );
 
-    expect(surface).toBeTruthy();
-    const card = screen.getByTestId('agent-user-prompt');
-    expect(card).toHaveClass('bg-tertiary');
-    expect(card).toHaveClass('rounded-card');
-    expect(card).not.toHaveClass('rounded-xl');
-    expect(surface).toContainElement(card);
-    expect(surface?.parentElement).toHaveClass('sticky');
-    expect(surface?.parentElement).toHaveClass('bg-background');
-    expect(surface?.parentElement).not.toHaveClass('justify-end');
-    expect(surface?.parentElement).toHaveClass('justify-start');
+    expect(surface).toHaveClass('w-fit');
+    const bubble = screen.getByTestId('agent-user-prompt');
+    expect(bubble).toHaveClass('bg-tertiary');
+    expect(surface).toContainElement(bubble);
+    expect(surface?.parentElement).toHaveClass('items-end');
+    expect(container.querySelector('.sticky')).toBeNull();
   });
 
-  it('keeps the user timestamp in document flow instead of pinning it with the prompt', () => {
-    const { container } = render(
-      <AgentChatMessage message={buildMessage('user', 'Pinned prompt')} />,
-    );
+  it('shows the time right under its own message', () => {
+    const message = buildMessage('user', 'Timed prompt');
+    const { container } = render(<AgentChatMessage message={message} />);
 
-    const sticky = container.querySelector('.sticky');
     const time = container.querySelector('time');
-    expect(sticky).toBeTruthy();
-    expect(time).toBeTruthy();
-    expect(sticky?.contains(time)).toBe(false);
+    expect(time).toHaveAttribute('dateTime', message.createdAt);
+    expect(container.firstElementChild).toContainElement(time);
+  });
+
+  it('shows the time under a text reply too', () => {
+    const message = buildMessage('assistant', 'Here is the plan.');
+    const { container } = render(<AgentChatMessage message={message} />);
+
+    expect(container.querySelector('time')).toHaveAttribute(
+      'dateTime',
+      message.createdAt,
+    );
   });
 
   it('keeps user prompt actions below the card and reveals them on hover or focus', () => {

@@ -321,7 +321,8 @@ export function AgentChatContainer({
   return (
     <div className="relative flex h-full min-h-0 min-w-0 flex-col">
       {/*
-        One column: the transcript scrolls, and the prompt bar is the footer.
+        One column: the transcript scrolls, and the prompt bar is its footer,
+        outside the scroll, so it never moves with the messages.
         A shell portal (dock or overlay) is the only case that lifts the bar
         out of this column.
       */}
@@ -405,7 +406,6 @@ export function AgentChatContainer({
             isBusy={container.isBusy}
             isCreatingFollowUpTasks={container.isCreatingFollowUpTasks}
             isGenerating={container.isGenerating}
-            isWideLayout={isWideLayout}
             isReadOnly={isReadOnly}
             isStreamingActive={container.isStreamingActive}
             isSubmittingInputRequest={container.isSubmittingInputRequest}

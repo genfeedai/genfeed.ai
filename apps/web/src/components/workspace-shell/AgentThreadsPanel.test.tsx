@@ -386,6 +386,28 @@ describe('AgentThreadsPanel', () => {
       );
     });
 
+    it('reads Approved at once, before the run records the approval', async () => {
+      getMessages
+        .mockResolvedValueOnce([planMessage])
+        .mockResolvedValueOnce([planMessage]);
+      const user = userEvent.setup();
+      renderPanel();
+
+      await user.click(screen.getByRole('link', { name: /Pick a hook/ }));
+      const decision = await screen.findByRole('group', {
+        name: 'Plan decision',
+      });
+      await user.click(
+        within(decision).getByRole('button', { name: 'Approve' }),
+      );
+
+      const plan = await screen.findByRole('region', { name: 'Plan' });
+      await waitFor(() =>
+        expect(within(plan).getByText('Approved')).toBeVisible(),
+      );
+      expect(within(plan).queryByText('Awaiting review')).toBeNull();
+    });
+
     it('sends a plan back with the changes asked for', async () => {
       getMessages.mockResolvedValueOnce([planMessage]);
       const user = userEvent.setup();
