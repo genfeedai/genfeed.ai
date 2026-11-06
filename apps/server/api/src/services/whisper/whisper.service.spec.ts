@@ -33,10 +33,14 @@ vi.mock('node:fs', () => ({
   writeFileSync: vi.fn(),
 }));
 
-function createMockLogger() {
+type Download = { guard: unknown; hasDeadline: boolean; url: string };
+
+function createMockLogger(errors: unknown[][]) {
   return {
     debug: vi.fn(),
-    error: vi.fn(),
+    error: vi.fn((...args: unknown[]) => {
+      errors.push(args);
+    }),
     log: vi.fn(),
     warn: vi.fn(),
   };
@@ -52,21 +56,38 @@ describe('WhisperService', () => {
   let fileQueueMock: Record<string, ReturnType<typeof vi.fn>>;
   let logger: ReturnType<typeof createMockLogger>;
   let mediaUrlMock: { buildUrlFromAbsolute: ReturnType<typeof vi.fn> };
+  let downloads: Download[];
+  let transcriptions: Record<string, unknown>[];
+  let loggedErrors: unknown[][];
+  const recordDownload = (url: string, init?: RequestInit, guard?: unknown) => {
+    downloads.push({
+      guard,
+      hasDeadline: init?.signal instanceof AbortSignal,
+      url,
+    });
+  };
 
   beforeEach(async () => {
     isIssuerEnabled = false;
     cdnUrl = 'https://cdn.genfeed.ai';
     ingredientsEndpoint = 'https://api.test.com';
-    safeFetchMock
-      .mockReset()
-      .mockImplementation(async () => new Response(Buffer.from('video-data')));
+    downloads = [];
+    transcriptions = [];
+    loggedErrors = [];
+    safeFetchMock.mockReset().mockImplementation(async (url, init, guard) => {
+      recordDownload(String(url), init, guard);
+      return new Response(Buffer.from('video-data'));
+    });
     mediaIssuer.issueServerPublish.mockReset();
     replicateMock = {
-      transcribeAudio: vi.fn().mockResolvedValue({
-        duration: 5,
-        language: 'en',
-        segments: [{ end: 5, start: 0, text: 'Hello world' }],
-        text: 'Hello world',
+      transcribeAudio: vi.fn(async (input: Record<string, unknown>) => {
+        transcriptions.push(input);
+        return {
+          duration: 5,
+          language: 'en',
+          segments: [{ end: 5, start: 0, text: 'Hello world' }],
+          text: 'Hello world',
+        };
       }),
     };
     fileQueueMock = {
@@ -76,7 +97,7 @@ describe('WhisperService', () => {
         url: 'https://cdn.example.com/audio.mp3',
       }),
     };
-    logger = createMockLogger();
+    logger = createMockLogger(loggedErrors);
     mediaUrlMock = {
       buildUrlFromAbsolute: vi.fn((url: string) => url),
     };
@@ -127,13 +148,15 @@ describe('WhisperService', () => {
 
       const result = await service.transcribeAudio(file);
       expect(result).toBe('Hello world');
-      expect(replicateMock.transcribeAudio).toHaveBeenCalledWith({
-        audio: {
-          data: file.buffer,
-          filename: 'test.mp3',
-          type: 'buffer',
+      expect(transcriptions).toEqual([
+        {
+          audio: {
+            data: file.buffer,
+            filename: 'test.mp3',
+            type: 'buffer',
+          },
         },
-      });
+      ]);
     });
 
     it('should use default filename when originalname is empty', async () => {
@@ -143,13 +166,15 @@ describe('WhisperService', () => {
       } as UploadedAudioFile;
 
       await service.transcribeAudio(file);
-      expect(replicateMock.transcribeAudio).toHaveBeenCalledWith({
-        audio: {
-          data: file.buffer,
-          filename: 'audio.mp3',
-          type: 'buffer',
+      expect(transcriptions).toEqual([
+        {
+          audio: {
+            data: file.buffer,
+            filename: 'audio.mp3',
+            type: 'buffer',
+          },
         },
-      });
+      ]);
     });
 
     it('should propagate errors from replicate service', async () => {
@@ -165,7 +190,7 @@ describe('WhisperService', () => {
       await expect(service.transcribeAudio(file)).rejects.toThrow(
         'Replicate API error',
       );
-      expect(logger.error).toHaveBeenCalled();
+      expect(loggedErrors).toHaveLength(1);
     });
   });
 
@@ -217,9 +242,9 @@ describe('WhisperService', () => {
 
     it('should pass language parameter', async () => {
       await service.transcribeUrl('https://example.com/audio.mp3', 'fr');
-      expect(replicateMock.transcribeAudio).toHaveBeenCalledWith(
+      expect(transcriptions).toEqual([
         expect.objectContaining({ language: 'fr' }),
-      );
+      ]);
     });
 
     it('should propagate HTTP errors', async () => {
@@ -234,28 +259,30 @@ describe('WhisperService', () => {
   describe('generateCaptions', () => {
     it('downloads a fresh organization-bound grant instead of a supplied source when activated', async () => {
       isIssuerEnabled = true;
-      mediaIssuer.issueServerPublish.mockResolvedValue(
-        new Map([
-          [
-            'ingredient-123',
-            'https://cdn.genfeed.ai/opaque-original?Signature=fresh',
-          ],
-        ]),
+      mediaIssuer.issueServerPublish.mockImplementation(
+        async (organizationId: string, ids: string[]) =>
+          new Map(
+            ids.map((id) => [
+              id,
+              `https://cdn.genfeed.ai/opaque-original?Signature=${organizationId}`,
+            ]),
+          ),
+      );
+      mediaUrlMock.buildUrlFromAbsolute.mockImplementation(
+        (url: string) => `${url}&resigned=true`,
       );
       await service.generateCaptions(
         'ingredient-123',
         { s3Key: 'foreign/caller-key.mp4' },
         'org-1',
       );
-      expect(mediaIssuer.issueServerPublish).toHaveBeenCalledWith('org-1', [
-        'ingredient-123',
-      ]);
-      expect(safeFetchMock).toHaveBeenCalledWith(
-        'https://cdn.genfeed.ai/opaque-original?Signature=fresh',
-        expect.objectContaining({ signal: expect.any(AbortSignal) }),
-        expect.any(Object),
-      );
-      expect(mediaUrlMock.buildUrlFromAbsolute).not.toHaveBeenCalled();
+      // The issued grant is downloaded exactly as issued: not re-signed, and
+      // never the caller-supplied key.
+      expect(downloads[0]).toEqual({
+        guard: expect.any(Object),
+        hasDeadline: true,
+        url: 'https://cdn.genfeed.ai/opaque-original?Signature=org-1',
+      });
     });
 
     it('requires organization proof and never falls back to an ID-derived URL when activated', async () => {
@@ -263,12 +290,11 @@ describe('WhisperService', () => {
       await expect(service.generateCaptions('ingredient-123')).rejects.toThrow(
         'organization-bound',
       );
-      expect(safeFetchMock).not.toHaveBeenCalled();
       mediaIssuer.issueServerPublish.mockResolvedValue(new Map());
       await expect(
         service.generateCaptions('ingredient-123', undefined, 'org-1'),
       ).rejects.toThrow('unavailable');
-      expect(safeFetchMock).not.toHaveBeenCalled();
+      expect(downloads).toEqual([]);
     });
 
     it('uses the same single-entry SRT fallback when no segments exist', async () => {
@@ -314,11 +340,11 @@ describe('WhisperService', () => {
         s3Key: 'ingredients/videos/ingredient-123.mp4',
       });
 
-      expect(safeFetchMock).toHaveBeenCalledWith(
-        'https://cdn.genfeed.ai/ingredients/videos/ingredient-123.mp4',
-        expect.objectContaining({ signal: expect.any(AbortSignal) }),
-        expect.any(Object),
-      );
+      expect(downloads[0]).toEqual({
+        guard: expect.any(Object),
+        hasDeadline: true,
+        url: 'https://cdn.genfeed.ai/ingredients/videos/ingredient-123.mp4',
+      });
     });
 
     it('downloads through a signed URL when the deployment signs media', async () => {
@@ -330,11 +356,11 @@ describe('WhisperService', () => {
         s3Key: 'ingredients/videos/ingredient-123.mp4',
       });
 
-      expect(safeFetchMock).toHaveBeenCalledWith(
-        'https://cdn.genfeed.ai/ingredients/videos/ingredient-123.mp4?Signature=signed',
-        expect.objectContaining({ signal: expect.any(AbortSignal) }),
-        expect.any(Object),
-      );
+      expect(downloads[0]).toEqual({
+        guard: expect.any(Object),
+        hasDeadline: true,
+        url: 'https://cdn.genfeed.ai/ingredients/videos/ingredient-123.mp4?Signature=signed',
+      });
     });
   });
 
@@ -342,69 +368,75 @@ describe('WhisperService', () => {
     it('uses the canonical guarded transport for untrusted transcription media', async () => {
       const audioUrl = 'https://external.example/audio.mp3?token=opaque';
       await service.transcribeUrl(audioUrl);
-      expect(safeFetchMock).toHaveBeenCalledWith(
-        audioUrl,
-        expect.objectContaining({ signal: expect.any(AbortSignal) }),
-        expect.objectContaining({ allowPrivateNetwork: false }),
-      );
+      expect(downloads).toEqual([
+        {
+          guard: { allowPrivateNetwork: false },
+          hasDeadline: true,
+          url: audioUrl,
+        },
+      ]);
     });
 
     it('does not grant external media the configured CDN private-network exception', async () => {
       await service.transcribeUrl('http://127.0.0.1:3010/private.mp3');
-      expect(safeFetchMock).toHaveBeenCalledWith(
-        'http://127.0.0.1:3010/private.mp3',
-        expect.anything(),
-        expect.objectContaining({ allowPrivateNetwork: false }),
-      );
+      expect(downloads).toEqual([
+        {
+          guard: { allowPrivateNetwork: false },
+          hasDeadline: true,
+          url: 'http://127.0.0.1:3010/private.mp3',
+        },
+      ]);
     });
 
     it('restricts the configured CDN exception and redirects to its exact origin', async () => {
       await service.generateCaptions('ingredient-123', {
         s3Key: 'media/video.mp4',
       });
-      expect(safeFetchMock).toHaveBeenCalledWith(
-        'https://cdn.genfeed.ai/media/video.mp4',
-        expect.anything(),
-        expect.objectContaining({
+      expect(downloads[0]).toEqual({
+        guard: {
           allowPrivateNetwork: true,
           allowedOrigins: ['https://cdn.genfeed.ai'],
-        }),
-      );
+        },
+        hasDeadline: true,
+        url: 'https://cdn.genfeed.ai/media/video.mp4',
+      });
     });
 
     it('preserves configured private CDN delivery without allowing a different port', async () => {
       cdnUrl = 'http://127.0.0.1:9000';
       await service.transcribeUrl(`${cdnUrl}/audio.mp3`);
-      expect(safeFetchMock).toHaveBeenLastCalledWith(
-        `${cdnUrl}/audio.mp3`,
-        expect.anything(),
-        { allowPrivateNetwork: true, allowedOrigins: [cdnUrl] },
-      );
       await service.transcribeUrl('http://127.0.0.1:9001/audio.mp3');
-      expect(safeFetchMock).toHaveBeenLastCalledWith(
-        'http://127.0.0.1:9001/audio.mp3',
-        expect.anything(),
-        { allowPrivateNetwork: false },
-      );
+      expect(downloads).toEqual([
+        {
+          guard: { allowPrivateNetwork: true, allowedOrigins: [cdnUrl] },
+          hasDeadline: true,
+          url: `${cdnUrl}/audio.mp3`,
+        },
+        {
+          guard: { allowPrivateNetwork: false },
+          hasDeadline: true,
+          url: 'http://127.0.0.1:9001/audio.mp3',
+        },
+      ]);
     });
 
     it('allows the ingredients origin only for the internally constructed fallback', async () => {
       ingredientsEndpoint = 'http://localhost:3010/v1/ingredients';
       await service.generateCaptions('ingredient-123');
-      expect(safeFetchMock).toHaveBeenCalledWith(
-        `${ingredientsEndpoint}/videos/ingredient-123`,
-        expect.anything(),
-        {
+      await service.transcribeUrl('http://localhost:3010/private.mp3');
+      expect(downloads[0]).toEqual({
+        guard: {
           allowPrivateNetwork: true,
           allowedOrigins: ['http://localhost:3010'],
         },
-      );
-      await service.transcribeUrl('http://localhost:3010/private.mp3');
-      expect(safeFetchMock).toHaveBeenLastCalledWith(
-        'http://localhost:3010/private.mp3',
-        expect.anything(),
-        { allowPrivateNetwork: false },
-      );
+        hasDeadline: true,
+        url: `${ingredientsEndpoint}/videos/ingredient-123`,
+      });
+      expect(downloads.at(-1)).toEqual({
+        guard: { allowPrivateNetwork: false },
+        hasDeadline: true,
+        url: 'http://localhost:3010/private.mp3',
+      });
     });
 
     it('rejects guarded destinations before conversion or transcription', async () => {
@@ -415,22 +447,28 @@ describe('WhisperService', () => {
         }),
       ).rejects.toThrow('Blocked destination');
       expect(fileQueueMock.processVideo).not.toHaveBeenCalled();
-      expect(replicateMock.transcribeAudio).not.toHaveBeenCalled();
+      expect(transcriptions).toEqual([]);
     });
 
     it('guards converted audio and does not transcribe if that download fails', async () => {
       safeFetchMock
-        .mockResolvedValueOnce(new Response('video'))
-        .mockRejectedValueOnce(new Error('Blocked converted audio'));
+        .mockImplementationOnce(async (url, init, guard) => {
+          recordDownload(String(url), init, guard);
+          return new Response('video');
+        })
+        .mockImplementationOnce(async (url, init, guard) => {
+          recordDownload(String(url), init, guard);
+          throw new Error('Blocked converted audio');
+        });
       await expect(service.generateCaptions('ingredient-123')).rejects.toThrow(
         'Blocked converted audio',
       );
-      expect(safeFetchMock).toHaveBeenLastCalledWith(
-        'https://cdn.example.com/audio.mp3',
-        expect.anything(),
-        { allowPrivateNetwork: false },
-      );
-      expect(replicateMock.transcribeAudio).not.toHaveBeenCalled();
+      expect(downloads.at(-1)).toEqual({
+        guard: { allowPrivateNetwork: false },
+        hasDeadline: true,
+        url: 'https://cdn.example.com/audio.mp3',
+      });
+      expect(transcriptions).toEqual([]);
     });
 
     it('preserves read errors while attempting cancellation and releasing the reader', async () => {
@@ -449,7 +487,7 @@ describe('WhisperService', () => {
       ).rejects.toThrow('stream interrupted');
       expect(reader.cancel).toHaveBeenCalledOnce();
       expect(reader.releaseLock).toHaveBeenCalledOnce();
-      expect(replicateMock.transcribeAudio).not.toHaveBeenCalled();
+      expect(transcriptions).toEqual([]);
     });
 
     it('rejects declared oversized media before transcription and cancels its body', async () => {
@@ -464,7 +502,7 @@ describe('WhisperService', () => {
         service.transcribeUrl('https://external.example/audio.mp3'),
       ).rejects.toThrow('size limit');
       expect(cancel).toHaveBeenCalledOnce();
-      expect(replicateMock.transcribeAudio).not.toHaveBeenCalled();
+      expect(transcriptions).toEqual([]);
     });
 
     it('bounds streamed media without trusting content-length and releases its reader', async () => {
@@ -486,7 +524,7 @@ describe('WhisperService', () => {
       ).rejects.toThrow('size limit');
       expect(reader.cancel).toHaveBeenCalledOnce();
       expect(reader.releaseLock).toHaveBeenCalledOnce();
-      expect(replicateMock.transcribeAudio).not.toHaveBeenCalled();
+      expect(transcriptions).toEqual([]);
     });
 
     it('retains its deadline while consuming a stalled response body', async () => {
@@ -518,7 +556,7 @@ describe('WhisperService', () => {
       await vi.advanceTimersByTimeAsync(60_001);
       await failure;
       expect(cancel).toHaveBeenCalledOnce();
-      expect(replicateMock.transcribeAudio).not.toHaveBeenCalled();
+      expect(transcriptions).toEqual([]);
     });
 
     it('times out stalled response headers before any provider call', async () => {
@@ -538,7 +576,7 @@ describe('WhisperService', () => {
       ).rejects.toThrow('timeout');
       await vi.advanceTimersByTimeAsync(60_001);
       await failure;
-      expect(replicateMock.transcribeAudio).not.toHaveBeenCalled();
+      expect(transcriptions).toEqual([]);
     });
   });
 });

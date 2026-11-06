@@ -1,6 +1,9 @@
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn(
-    (_request: unknown, _serializer: unknown, data: unknown) => data,
+    (_request: unknown, serializer: unknown, data: unknown) => ({
+      data,
+      serializer,
+    }),
   ),
 }));
 
@@ -10,18 +13,100 @@ import type { AnalyticsService } from '@api/endpoints/analytics/analytics.servic
 import { AnalyticsWinnersController } from '@api/endpoints/analytics/analytics-winners.controller';
 import type { WinnerPostsQueryDto } from '@api/endpoints/analytics/dto/winner-posts-query.dto';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { AnalyticsWinnerPostSerializer } from '@genfeedai/serializers';
 import { ForbiddenException } from '@nestjs/common';
 import type { Request } from 'express';
 
-describe('AnalyticsWinnersController (#5502)', () => {
-  const analyticsService = { assertBrandInScope: vi.fn() };
-  const winnerClassificationService = { findWinners: vi.fn() };
-  const controller = new AnalyticsWinnersController(
+type Post = {
+  brandId: string;
+  organizationId: string;
+  platform: string;
+  postId: string;
+  publishedAt: Date;
+};
+
+const posts: Post[] = [
+  {
+    brandId: 'brand-1',
+    organizationId: 'org-1',
+    platform: 'instagram',
+    postId: 'in-window',
+    publishedAt: new Date('2026-10-05T12:00:00Z'),
+  },
+  {
+    brandId: 'brand-2',
+    organizationId: 'org-1',
+    platform: 'instagram',
+    postId: 'sibling-brand',
+    publishedAt: new Date('2026-10-05T12:00:00Z'),
+  },
+  {
+    brandId: 'brand-1',
+    organizationId: 'org-1',
+    platform: 'instagram',
+    postId: 'before-window',
+    publishedAt: new Date('2026-09-20T12:00:00Z'),
+  },
+  {
+    brandId: 'brand-9',
+    organizationId: 'org-2',
+    platform: 'instagram',
+    postId: 'other-org',
+    publishedAt: new Date('2026-10-05T12:00:00Z'),
+  },
+];
+
+/**
+ * Brands per organization for the scope check, and winning posts filtered by
+ * tenant, brand, platform and publication window as the classifier reads them.
+ */
+function buildController() {
+  const brands = [
+    { id: 'brand-1', organizationId: 'org-1' },
+    { id: 'brand-2', organizationId: 'org-1' },
+  ];
+  const analyticsService = {
+    assertBrandInScope: async (
+      brandId: string | undefined,
+      organizationId: string,
+    ) => {
+      if (
+        brandId &&
+        !brands.some(
+          (brand) =>
+            brand.id === brandId && brand.organizationId === organizationId,
+        )
+      ) {
+        throw new NotFoundException('Brand', brandId);
+      }
+    },
+  };
+  const winners = {
+    findWinners: async (query: {
+      brandId?: string;
+      organizationId: string;
+      platform?: string;
+      publishedFrom: Date;
+      publishedTo: Date;
+    }) =>
+      posts
+        .filter(
+          (post) =>
+            post.organizationId === query.organizationId &&
+            (!query.brandId || post.brandId === query.brandId) &&
+            (!query.platform || post.platform === query.platform) &&
+            post.publishedAt >= query.publishedFrom &&
+            post.publishedAt <= query.publishedTo,
+        )
+        .map((post) => ({ evidence: [], postId: post.postId })),
+  };
+  return new AnalyticsWinnersController(
     analyticsService as unknown as AnalyticsService,
-    winnerClassificationService as unknown as WinnerClassificationService,
+    winners as unknown as WinnerClassificationService,
   );
+}
+
+describe('AnalyticsWinnersController (#5502)', () => {
   const request = { query: {} } as unknown as Request;
   const user = { id: 'user-1', organizationId: 'org-1' } as User;
   const query = {
@@ -32,73 +117,41 @@ describe('AnalyticsWinnersController (#5502)', () => {
     startDate: '2026-10-01',
   } as WinnerPostsQueryDto;
 
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('reads winners for an in-scope brand and serializes them', async () => {
-    const winners = [{ evidence: [], postId: 'post-1' }];
-    analyticsService.assertBrandInScope.mockResolvedValue(undefined);
-    winnerClassificationService.findWinners.mockResolvedValue(winners);
-
-    await expect(controller.findWinners(user, request, query)).resolves.toBe(
-      winners,
-    );
-    expect(analyticsService.assertBrandInScope).toHaveBeenCalledWith(
-      'brand-1',
-      'org-1',
-    );
-    expect(winnerClassificationService.findWinners).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandId: 'brand-1',
-        limit: 10,
-        organizationId: 'org-1',
-        platform: 'instagram',
-        publishedFrom: expect.any(Date),
-        publishedTo: expect.any(Date),
-      }),
-    );
-    expect(serializeSingle).toHaveBeenCalledWith(
-      request,
-      AnalyticsWinnerPostSerializer,
-      winners,
-    );
+  it('reads winners for an in-scope brand in the window and serializes them', async () => {
+    await expect(
+      buildController().findWinners(user, request, query),
+    ).resolves.toEqual({
+      data: [{ evidence: [], postId: 'in-window' }],
+      serializer: AnalyticsWinnerPostSerializer,
+    });
   });
 
   it('reads every brand in the organization when no brand is named', async () => {
-    winnerClassificationService.findWinners.mockResolvedValue([]);
     const { brandId: _brandId, ...organizationQuery } = query;
 
-    await controller.findWinners(
-      user,
-      request,
-      organizationQuery as WinnerPostsQueryDto,
-    );
-
-    expect(analyticsService.assertBrandInScope).toHaveBeenCalledWith(
-      undefined,
-      'org-1',
-    );
-    expect(winnerClassificationService.findWinners).toHaveBeenCalledWith(
-      expect.objectContaining({ brandId: undefined, organizationId: 'org-1' }),
-    );
+    await expect(
+      buildController().findWinners(
+        user,
+        request,
+        organizationQuery as WinnerPostsQueryDto,
+      ),
+    ).resolves.toMatchObject({
+      data: [{ postId: 'in-window' }, { postId: 'sibling-brand' }],
+    });
   });
 
   it('refuses a brand outside the caller organization', async () => {
-    analyticsService.assertBrandInScope.mockRejectedValue(
-      new NotFoundException('Brand', 'brand-1'),
-    );
-
     await expect(
-      controller.findWinners(user, request, query),
+      buildController().findWinners(user, request, {
+        ...query,
+        brandId: 'brand-9',
+      }),
     ).rejects.toBeInstanceOf(NotFoundException);
-    expect(winnerClassificationService.findWinners).not.toHaveBeenCalled();
   });
 
   it('refuses a request without an organization', async () => {
     await expect(
-      controller.findWinners({ id: 'user-1' } as User, request, query),
+      buildController().findWinners({ id: 'user-1' } as User, request, query),
     ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(winnerClassificationService.findWinners).not.toHaveBeenCalled();
   });
 });
