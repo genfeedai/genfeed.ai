@@ -2,12 +2,18 @@
 
 import { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
 import { AgentChatMessage } from '@genfeedai/agent/components/AgentChatMessage';
+import {
+  AgentPlanCard,
+  type AgentPlanDecision,
+} from '@genfeedai/agent/components/AgentPlanCard';
 import { getThreadStatusMeta } from '@genfeedai/agent/components/agent-thread-list.helpers';
 import {
   AGENT_CONVERSATION_SCROLL_CLASS,
   AGENT_CONVERSATION_TRACK_CLASS,
 } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type { AgentChatMessage as AgentChatMessageModel } from '@genfeedai/agent/models/agent-chat.model';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { deriveLatestProposedPlan } from '@genfeedai/agent/utils/resolve-latest-proposed-plan.util';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
@@ -48,11 +54,24 @@ export default function AgentThreadLightView({
   const [hasLoadFailed, setHasLoadFailed] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [hasSteerFailed, setHasSteerFailed] = useState(false);
+  const [isDeciding, setIsDeciding] = useState(false);
+  const [hasDecisionFailed, setHasDecisionFailed] = useState(false);
+  // The plan this view just approved or sent back. Its card stops offering a
+  // decision at once, before the reloaded messages show the plan's new state.
+  const [decidedPlanId, setDecidedPlanId] = useState<string | null>(null);
+  const updateThread = useAgentChatStore((state) => state.updateThread);
 
   const status = getThreadStatusMeta(thread);
   const assets = useMemo(
     () => collectThreadAssets(thread, messages),
     [messages, thread],
+  );
+  const latestPlan = useMemo(
+    () =>
+      deriveLatestProposedPlan(
+        messages.map((message) => message.metadata?.proposedPlan),
+      ),
+    [messages],
   );
 
   const loadMessages = useCallback(
@@ -110,6 +129,69 @@ export default function AgentThreadLightView({
     },
     [apiService, loadMessages, thread.contextVersion, thread.id],
   );
+
+  // A plan is approved in its own thread, so the decision is the same ui
+  // action the full thread sends. The thread moves to Working in the shared
+  // store, which the queue and the master's cards both read.
+  const decidePlan = useCallback(
+    async (
+      action: 'approve_plan' | 'revise_plan',
+      payload: Record<string, unknown>,
+    ): Promise<boolean> => {
+      if (!latestPlan) {
+        return false;
+      }
+      setIsDeciding(true);
+      setHasDecisionFailed(false);
+      try {
+        await apiService.respondToUiAction(
+          thread.id,
+          action,
+          { planId: latestPlan.id, ...payload },
+          undefined,
+          {
+            brandId: thread.brandId ?? null,
+            expectedContextVersion: thread.contextVersion,
+          },
+        );
+        setDecidedPlanId(latestPlan.id);
+        updateThread(thread.id, {
+          attentionState: 'running',
+          pendingInputCount: 0,
+          runStatus: 'queued',
+          runtimeState: 'running',
+        });
+        void loadMessages(new AbortController().signal);
+        return true;
+      } catch {
+        setHasDecisionFailed(true);
+        return false;
+      } finally {
+        setIsDeciding(false);
+      }
+    },
+    [
+      apiService,
+      latestPlan,
+      loadMessages,
+      thread.brandId,
+      thread.contextVersion,
+      thread.id,
+      updateThread,
+    ],
+  );
+
+  const planDecision: AgentPlanDecision | undefined =
+    latestPlan && !isResolved && latestPlan.id !== decidedPlanId
+      ? {
+          isBusy: isDeciding,
+          onApprove: async () => {
+            await decidePlan('approve_plan', {});
+          },
+          onRequestChanges: (revisionNote) =>
+            decidePlan('revise_plan', { revisionNote }),
+        }
+      : undefined;
 
   const title = thread.title?.trim() || translate('untitled');
   const toggleLabel = translate(isResolved ? 'reopen' : 'resolve');
@@ -207,6 +289,14 @@ export default function AgentThreadLightView({
               />
             ))
           )}
+          {latestPlan ? (
+            <AgentPlanCard decision={planDecision} plan={latestPlan} />
+          ) : null}
+          {hasDecisionFailed ? (
+            <p className="text-sm text-destructive" role="alert">
+              {translate('planDecisionFailed')}
+            </p>
+          ) : null}
         </div>
       </div>
 

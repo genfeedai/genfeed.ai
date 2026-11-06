@@ -1265,11 +1265,16 @@ function UniversalWorkspaceShellContent({
 
   // What `AgentOutputShell` renders on a split page: the same conversation,
   // thread list and context as the dock, hosted in the page's own columns.
+  const getFullThreadHref = useCallback(
+    (threadId: string) =>
+      orgHref(buildAgentThreadHref(threadId, { isFull: true })),
+    [orgHref],
+  );
   const openFullThreadFromPage = useCallback(
     (threadId: string) => {
-      push(orgHref(buildAgentThreadHref(threadId, { isFull: true })));
+      push(getFullThreadHref(threadId));
     },
-    [orgHref, push],
+    [getFullThreadHref, push],
   );
   const agentOutputHost = useMemo<AgentOutputHostValue | null>(() => {
     if (!isAgentOutputSurface) {
@@ -1288,6 +1293,7 @@ function UniversalWorkspaceShellContent({
       threadsPanel: (
         <AgentThreadsPanel
           apiService={agentApiService}
+          getThreadHref={getFullThreadHref}
           isLoading={dockThreads.isThreadListLoading}
           onOpenFullThread={openFullThreadFromPage}
           threads={threads}
@@ -1300,6 +1306,7 @@ function UniversalWorkspaceShellContent({
     contextSidebar,
     dockThreads.isThreadListLoading,
     dockThreads.startThread,
+    getFullThreadHref,
     handleOpenFullConversation,
     isAgentOutputSurface,
     isOutputContextOpen,

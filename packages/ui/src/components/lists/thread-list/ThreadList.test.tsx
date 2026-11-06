@@ -149,6 +149,31 @@ describe('ThreadListRow', () => {
     ).toBeVisible();
   });
 
+  it('opens in place on a plain click and keeps the link for a new tab', async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    render(
+      <ul>
+        <ThreadListRow
+          href="/acme/~/agent/t1"
+          onSelect={onSelect}
+          status="running"
+          statusLabel="Running"
+          title="Weekly recap"
+        />
+      </ul>,
+    );
+
+    const link = screen.getByRole('link', { name: /Weekly recap/ });
+    expect(link).toHaveAttribute('href', '/acme/~/agent/t1');
+    expect(within(link).getByRole('img', { name: 'Running' })).toBeVisible();
+
+    await user.click(link);
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(window.location.pathname).not.toBe('/acme/~/agent/t1');
+  });
+
   it('has no menu when there are no actions', () => {
     render(
       <ul>
