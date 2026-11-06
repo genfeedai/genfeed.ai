@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { BrandInterviewStatus } from '@genfeedai/contracts';
 import { renderHook, waitFor } from '@testing-library/react';
 import { act } from 'react';
@@ -11,6 +15,11 @@ const mockGetInterviewService = vi.fn();
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({
@@ -52,7 +61,9 @@ describe('useBrandInterview', () => {
   });
 
   it('stays idle without a brand id', () => {
-    const { result } = renderHook(() => useBrandInterview(null));
+    const { result } = renderHook(() => useBrandInterview(null), {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(result.current.status).toBe('idle');
     expect(result.current.isLoading).toBe(false);
@@ -60,7 +71,9 @@ describe('useBrandInterview', () => {
   });
 
   it('stays idle when there is no active session', async () => {
-    const { result } = renderHook(() => useBrandInterview('brand-1'));
+    const { result } = renderHook(() => useBrandInterview('brand-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -86,7 +99,9 @@ describe('useBrandInterview', () => {
       totalCount: 4,
     });
 
-    const { result } = renderHook(() => useBrandInterview('brand-1'));
+    const { result } = renderHook(() => useBrandInterview('brand-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.status).toBe('in_progress');
@@ -115,7 +130,9 @@ describe('useBrandInterview', () => {
       totalCount: 0,
     });
 
-    const { result } = renderHook(() => useBrandInterview('brand-1'));
+    const { result } = renderHook(() => useBrandInterview('brand-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.status).toBe('in_progress');
@@ -127,7 +144,9 @@ describe('useBrandInterview', () => {
   it('survives a failed active-session check', async () => {
     mockGetActiveInterview.mockRejectedValue(new Error('boom'));
 
-    const { result } = renderHook(() => useBrandInterview('brand-1'));
+    const { result } = renderHook(() => useBrandInterview('brand-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -149,7 +168,9 @@ describe('useBrandInterview', () => {
       steps: [],
     });
 
-    const { result } = renderHook(() => useBrandInterview('brand-1'));
+    const { result } = renderHook(() => useBrandInterview('brand-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -179,7 +200,9 @@ describe('useBrandInterview', () => {
       steps: [],
     });
 
-    const { result } = renderHook(() => useBrandInterview('brand-1'));
+    const { result } = renderHook(() => useBrandInterview('brand-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -193,7 +216,9 @@ describe('useBrandInterview', () => {
   });
 
   it('does not start without a brand id', async () => {
-    const { result } = renderHook(() => useBrandInterview(undefined));
+    const { result } = renderHook(() => useBrandInterview(undefined), {
+      wrapper: queryClientWrapper(),
+    });
 
     await act(async () => {
       await result.current.startInterview();
@@ -205,7 +230,9 @@ describe('useBrandInterview', () => {
   it('sets an error message when starting fails', async () => {
     mockStartInterview.mockRejectedValue(new Error('boom'));
 
-    const { result } = renderHook(() => useBrandInterview('brand-1'));
+    const { result } = renderHook(() => useBrandInterview('brand-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -243,7 +270,9 @@ describe('useBrandInterview', () => {
       steps: [],
     });
 
-    const { result } = renderHook(() => useBrandInterview('brand-1'));
+    const { result } = renderHook(() => useBrandInterview('brand-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.interviewId).toBe('interview-1');
@@ -262,7 +291,9 @@ describe('useBrandInterview', () => {
   });
 
   it('ignores submissions before an interview exists', async () => {
-    const { result } = renderHook(() => useBrandInterview('brand-1'));
+    const { result } = renderHook(() => useBrandInterview('brand-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -288,7 +319,9 @@ describe('useBrandInterview', () => {
     });
     mockSubmitAnswer.mockRejectedValue(new Error('boom'));
 
-    const { result } = renderHook(() => useBrandInterview('brand-1'));
+    const { result } = renderHook(() => useBrandInterview('brand-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.interviewId).toBe('interview-1');
@@ -324,7 +357,9 @@ describe('useBrandInterview', () => {
       steps: [],
     });
 
-    const { result } = renderHook(() => useBrandInterview('brand-1'));
+    const { result } = renderHook(() => useBrandInterview('brand-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.interviewId).toBe('interview-1');
@@ -340,7 +375,9 @@ describe('useBrandInterview', () => {
   });
 
   it('ignores skip before an interview exists', async () => {
-    const { result } = renderHook(() => useBrandInterview('brand-1'));
+    const { result } = renderHook(() => useBrandInterview('brand-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -366,7 +403,9 @@ describe('useBrandInterview', () => {
     });
     mockSkipQuestion.mockRejectedValue(new Error('boom'));
 
-    const { result } = renderHook(() => useBrandInterview('brand-1'));
+    const { result } = renderHook(() => useBrandInterview('brand-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.interviewId).toBe('interview-1');
@@ -379,5 +418,125 @@ describe('useBrandInterview', () => {
     expect(result.current.error).toBe(
       'Failed to skip the question. Please try again.',
     );
+  });
+
+  describe('cached session', () => {
+    const activeInterview = {
+      answeredCount: 1,
+      answeredFields: { mission: 'To ship' },
+      completenessScore: 40,
+      currentQuestion: QUESTION,
+      id: 'interview-1',
+      status: BrandInterviewStatus.IN_PROGRESS,
+      steps: [],
+      totalCount: 4,
+    };
+
+    it('resumes the cached session at once when coming back', async () => {
+      mockGetActiveInterview.mockResolvedValue(activeInterview);
+      const client = createTestQueryClient();
+      const firstVisit = renderHook(() => useBrandInterview('brand-1'), {
+        wrapper: queryClientWrapper(client),
+      });
+      await waitFor(() =>
+        expect(firstVisit.result.current.status).toBe('in_progress'),
+      );
+      firstVisit.unmount();
+
+      mockGetActiveInterview.mockReturnValue(new Promise(() => {}));
+      const { result } = renderHook(() => useBrandInterview('brand-1'), {
+        wrapper: queryClientWrapper(client),
+      });
+
+      expect(result.current.status).toBe('in_progress');
+      expect(result.current.currentQuestion).toEqual(QUESTION);
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    it('comes back to the next question after an answer', async () => {
+      mockGetActiveInterview.mockResolvedValue(activeInterview);
+      const nextQuestion = { fieldKey: 'audience', question: 'Who is it for?' };
+      mockSubmitAnswer.mockResolvedValue({
+        answeredFields: { mission: 'To ship' },
+        completenessScore: 55,
+        interviewId: 'interview-1',
+        isComplete: false,
+        nextQuestion,
+        progress: PROGRESS,
+        steps: [],
+      });
+      const client = createTestQueryClient();
+      const firstVisit = renderHook(() => useBrandInterview('brand-1'), {
+        wrapper: queryClientWrapper(client),
+      });
+      await waitFor(() =>
+        expect(firstVisit.result.current.interviewId).toBe('interview-1'),
+      );
+      await act(async () => {
+        await firstVisit.result.current.submitAnswer('To ship', 'mission');
+      });
+      firstVisit.unmount();
+
+      mockGetActiveInterview.mockReturnValue(new Promise(() => {}));
+      const { result } = renderHook(() => useBrandInterview('brand-1'), {
+        wrapper: queryClientWrapper(client),
+      });
+
+      expect(result.current.currentQuestion).toEqual(nextQuestion);
+      expect(result.current.completenessScore).toBe(55);
+    });
+
+    it('comes back idle after the interview was completed', async () => {
+      mockGetActiveInterview.mockResolvedValue(activeInterview);
+      mockSkipQuestion.mockResolvedValue({
+        answeredFields: {},
+        completenessScore: 90,
+        interviewId: 'interview-1',
+        isComplete: true,
+        nextQuestion: null,
+        progress: PROGRESS,
+        steps: [],
+      });
+      const client = createTestQueryClient();
+      const firstVisit = renderHook(() => useBrandInterview('brand-1'), {
+        wrapper: queryClientWrapper(client),
+      });
+      await waitFor(() =>
+        expect(firstVisit.result.current.interviewId).toBe('interview-1'),
+      );
+      await act(async () => {
+        await firstVisit.result.current.skipQuestion();
+      });
+      expect(firstVisit.result.current.status).toBe('complete');
+      firstVisit.unmount();
+
+      mockGetActiveInterview.mockReturnValue(new Promise(() => {}));
+      const { result } = renderHook(() => useBrandInterview('brand-1'), {
+        wrapper: queryClientWrapper(client),
+      });
+
+      expect(result.current.status).toBe('idle');
+      expect(result.current.interviewId).toBeNull();
+    });
+
+    it('never resumes one brand’s session for another brand', async () => {
+      mockGetActiveInterview.mockResolvedValue(activeInterview);
+      const client = createTestQueryClient();
+      const { rerender, result } = renderHook(
+        ({ brandId }) => useBrandInterview(brandId),
+        {
+          initialProps: { brandId: 'brand-1' },
+          wrapper: queryClientWrapper(client),
+        },
+      );
+      await waitFor(() => expect(result.current.status).toBe('in_progress'));
+
+      mockGetActiveInterview.mockReturnValue(new Promise(() => {}));
+      rerender({ brandId: 'brand-2' });
+
+      expect(result.current.status).toBe('idle');
+      expect(result.current.interviewId).toBeNull();
+      expect(result.current.isLoading).toBe(true);
+    });
   });
 });

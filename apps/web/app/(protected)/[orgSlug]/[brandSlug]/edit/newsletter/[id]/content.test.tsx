@@ -1,4 +1,8 @@
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import NewsletterEditorContent from './content';
@@ -53,6 +57,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
   });
   return { useAuthedService: () => getService };
 });
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: 'brand-1', credentials: mocks.credentials }),
@@ -112,7 +121,9 @@ describe('NewsletterEditorContent', () => {
   });
 
   it('loads the issue without duplicating workspace navigation', async () => {
-    render(<NewsletterEditorContent artifactId="newsletter-1" />);
+    render(<NewsletterEditorContent artifactId="newsletter-1" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Issue 1' }),
@@ -129,7 +140,9 @@ describe('NewsletterEditorContent', () => {
   });
 
   it('enables saving only once the issue has been edited', async () => {
-    render(<NewsletterEditorContent artifactId="newsletter-1" />);
+    render(<NewsletterEditorContent artifactId="newsletter-1" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Issue 1' }),
@@ -157,7 +170,9 @@ describe('NewsletterEditorContent', () => {
   });
 
   it('shows the Substack import feed and copy-out when no Beehiiv publication is connected', async () => {
-    render(<NewsletterEditorContent artifactId="newsletter-1" />);
+    render(<NewsletterEditorContent artifactId="newsletter-1" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(await screen.findByText('Import into Substack')).toBeVisible();
     const feedUrl =
@@ -184,7 +199,9 @@ describe('NewsletterEditorContent', () => {
       },
     ];
 
-    render(<NewsletterEditorContent artifactId="newsletter-1" />);
+    render(<NewsletterEditorContent artifactId="newsletter-1" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     fireEvent.click(
       await screen.findByRole('button', { name: 'Deliver to Beehiiv' }),
@@ -205,9 +222,80 @@ describe('NewsletterEditorContent', () => {
   it('explains an issue that could not be loaded', async () => {
     mocks.findOne.mockRejectedValue(new Error('gone'));
 
-    render(<NewsletterEditorContent artifactId="newsletter-1" />);
+    render(<NewsletterEditorContent artifactId="newsletter-1" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(await screen.findByText('Newsletter not found')).toBeVisible();
     expect(mocks.error).toHaveBeenCalledWith('Failed to load newsletter');
+  });
+
+  describe('cached issue', () => {
+    it('paints the cached issue at once when it is reopened', async () => {
+      const client = createTestQueryClient();
+      const firstVisit = render(
+        <NewsletterEditorContent artifactId="newsletter-1" />,
+        { wrapper: queryClientWrapper(client) },
+      );
+      expect(
+        await screen.findByRole('heading', { level: 1, name: 'Issue 1' }),
+      ).toBeVisible();
+      firstVisit.unmount();
+
+      mocks.findOne.mockReturnValue(new Promise(() => {}));
+      mocks.getContext.mockReturnValue(new Promise(() => {}));
+      render(<NewsletterEditorContent artifactId="newsletter-1" />, {
+        wrapper: queryClientWrapper(client),
+      });
+
+      expect(
+        screen.getByRole('heading', { level: 1, name: 'Issue 1' }),
+      ).toBeVisible();
+      expect(screen.getByPlaceholderText('Newsletter label')).toHaveValue(
+        'Issue 1',
+      );
+      expect(screen.queryByText('Loading newsletter…')).not.toBeInTheDocument();
+    });
+
+    it('never shows one issue’s cached copy for another issue', async () => {
+      const client = createTestQueryClient();
+      const firstVisit = render(
+        <NewsletterEditorContent artifactId="newsletter-1" />,
+        { wrapper: queryClientWrapper(client) },
+      );
+      await screen.findByRole('heading', { level: 1, name: 'Issue 1' });
+      firstVisit.unmount();
+
+      mocks.findOne.mockReturnValue(new Promise(() => {}));
+      render(<NewsletterEditorContent artifactId="newsletter-2" />, {
+        wrapper: queryClientWrapper(client),
+      });
+
+      expect(screen.getByText('Loading newsletter…')).toBeVisible();
+      expect(
+        screen.queryByRole('heading', { level: 1, name: 'Issue 1' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps unsaved edits when a background refresh lands', async () => {
+      const client = createTestQueryClient();
+      render(<NewsletterEditorContent artifactId="newsletter-1" />, {
+        wrapper: queryClientWrapper(client),
+      });
+      await screen.findByRole('heading', { level: 1, name: 'Issue 1' });
+      fireEvent.change(screen.getByPlaceholderText('Newsletter label'), {
+        target: { value: 'Typed label' },
+      });
+
+      mocks.findOne.mockResolvedValue({ ...newsletter, label: 'Issue 1b' });
+      await client.invalidateQueries({ queryKey: ['newsletter'] });
+
+      expect(
+        await screen.findByRole('heading', { level: 1, name: 'Issue 1b' }),
+      ).toBeVisible();
+      expect(screen.getByPlaceholderText('Newsletter label')).toHaveValue(
+        'Typed label',
+      );
+    });
   });
 });

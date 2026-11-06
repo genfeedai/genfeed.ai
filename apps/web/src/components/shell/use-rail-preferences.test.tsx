@@ -1,5 +1,10 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import type { QueryClient } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { StrictMode } from 'react';
+import { type ReactNode, StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useRailPreferences } from './use-rail-preferences';
 
@@ -11,7 +16,22 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getUsers,
 }));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 vi.mock('@services/organization/users.service', () => ({ UsersService: {} }));
+
+let queryClient: QueryClient;
+
+function wrapper({ children }: { children: ReactNode }) {
+  const QueryClientWrapper = queryClientWrapper(queryClient);
+  return <QueryClientWrapper>{children}</QueryClientWrapper>;
+}
+
+function strictWrapper({ children }: { children: ReactNode }) {
+  return <StrictMode>{wrapper({ children })}</StrictMode>;
+}
 
 function deferred() {
   let resolve!: (value: { pinnedAppIds: string[] }) => void;
@@ -25,6 +45,7 @@ function deferred() {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  queryClient = createTestQueryClient();
   mocks.getUsers.mockResolvedValue(mocks);
   mocks.findMeSettings.mockResolvedValue({ pinnedAppIds: ['playground'] });
   mocks.patchMeSettings.mockImplementation(async (settings) => settings);
@@ -32,7 +53,9 @@ beforeEach(() => {
 
 describe('rail pin persistence', () => {
   it('performs one write for one toggle under StrictMode', async () => {
-    const { result } = renderHook(useRailPreferences, { wrapper: StrictMode });
+    const { result } = renderHook(useRailPreferences, {
+      wrapper: strictWrapper,
+    });
     await waitFor(() =>
       expect(result.current.pinnedAppIds).toEqual(['playground']),
     );
@@ -44,7 +67,7 @@ describe('rail pin persistence', () => {
   it('rebases edits made during the initial read onto saved preferences', async () => {
     const initial = deferred();
     mocks.findMeSettings.mockReturnValue(initial.promise);
-    const { result } = renderHook(useRailPreferences);
+    const { result } = renderHook(useRailPreferences, { wrapper });
     act(() => result.current.togglePin('discovery'));
     expect(mocks.patchMeSettings).not.toHaveBeenCalled();
     await act(async () => initial.resolve({ pinnedAppIds: ['playground'] }));
@@ -64,7 +87,7 @@ describe('rail pin persistence', () => {
       mocks.patchMeSettings
         .mockReturnValueOnce(first.promise)
         .mockReturnValueOnce(second.promise);
-      const { result } = renderHook(useRailPreferences);
+      const { result } = renderHook(useRailPreferences, { wrapper });
       await waitFor(() =>
         expect(result.current.pinnedAppIds).toEqual(['playground']),
       );
@@ -105,7 +128,7 @@ describe('rail pin persistence', () => {
 
   it('rolls back a final failed save to the last confirmed list', async () => {
     mocks.patchMeSettings.mockRejectedValueOnce(new Error('offline'));
-    const { result } = renderHook(useRailPreferences);
+    const { result } = renderHook(useRailPreferences, { wrapper });
     await waitFor(() =>
       expect(result.current.pinnedAppIds).toEqual(['playground']),
     );
@@ -119,7 +142,9 @@ describe('rail pin persistence', () => {
   it('keeps a failed rail order, reports the failure and resends it on the next change', async () => {
     const onSaveError = vi.fn();
     mocks.patchMeSettings.mockRejectedValueOnce(new Error('offline'));
-    const { result } = renderHook(() => useRailPreferences({ onSaveError }));
+    const { result } = renderHook(() => useRailPreferences({ onSaveError }), {
+      wrapper,
+    });
     await waitFor(() => expect(result.current.isLoaded).toBe(true));
     act(() => result.current.setRailAppOrder(['analytics', 'agent']));
     await waitFor(() =>
@@ -138,7 +163,9 @@ describe('rail pin persistence', () => {
   it('reports a failed pin save too', async () => {
     const onSaveError = vi.fn();
     mocks.patchMeSettings.mockRejectedValueOnce(new Error('offline'));
-    const { result } = renderHook(() => useRailPreferences({ onSaveError }));
+    const { result } = renderHook(() => useRailPreferences({ onSaveError }), {
+      wrapper,
+    });
     await waitFor(() => expect(result.current.isLoaded).toBe(true));
     act(() => result.current.togglePin('discovery'));
     await waitFor(() =>
@@ -148,7 +175,7 @@ describe('rail pin persistence', () => {
 
   it('does not write unknown preferences after an initial read failure', async () => {
     mocks.findMeSettings.mockRejectedValueOnce(new Error('offline'));
-    const { result } = renderHook(useRailPreferences);
+    const { result } = renderHook(useRailPreferences, { wrapper });
     await act(async () => {});
     act(() => result.current.togglePin('discovery'));
     expect(mocks.patchMeSettings).not.toHaveBeenCalled();
@@ -157,7 +184,7 @@ describe('rail pin persistence', () => {
   it('does not start a queued save after unmount', async () => {
     const pending = deferred();
     mocks.patchMeSettings.mockReturnValueOnce(pending.promise);
-    const { result, unmount } = renderHook(useRailPreferences);
+    const { result, unmount } = renderHook(useRailPreferences, { wrapper });
     await waitFor(() =>
       expect(result.current.pinnedAppIds).toEqual(['playground']),
     );
@@ -176,7 +203,7 @@ describe('rail pin persistence', () => {
       pinnedAppIds: ['playground'],
       railAppOrder: ['agent'],
     });
-    const { result } = renderHook(useRailPreferences);
+    const { result } = renderHook(useRailPreferences, { wrapper });
     await waitFor(() => expect(result.current.railAppOrder).toEqual(['agent']));
     act(() =>
       result.current.setRailAppOrder([
@@ -205,7 +232,7 @@ describe('rail pin persistence', () => {
     mocks.patchMeSettings
       .mockReturnValueOnce(first.promise)
       .mockImplementation(async (settings) => settings);
-    const { result } = renderHook(useRailPreferences);
+    const { result } = renderHook(useRailPreferences, { wrapper });
     await waitFor(() =>
       expect(result.current.pinnedAppIds).toEqual(['playground']),
     );
@@ -228,12 +255,13 @@ describe('rail pin persistence', () => {
   });
 
   it('reports loaded after the read, including a failed one', async () => {
-    const { result } = renderHook(useRailPreferences);
+    const { result } = renderHook(useRailPreferences, { wrapper });
     expect(result.current.isLoaded).toBe(false);
     await waitFor(() => expect(result.current.isLoaded).toBe(true));
 
+    queryClient = createTestQueryClient();
     mocks.findMeSettings.mockRejectedValueOnce(new Error('offline'));
-    const failed = renderHook(useRailPreferences);
+    const failed = renderHook(useRailPreferences, { wrapper });
     await waitFor(() => expect(failed.result.current.isLoaded).toBe(true));
     expect(failed.result.current.homeAppId).toBeNull();
   });
@@ -243,7 +271,7 @@ describe('rail pin persistence', () => {
       homeAppId: 'agent',
       pinnedAppIds: [],
     });
-    const { result } = renderHook(useRailPreferences);
+    const { result } = renderHook(useRailPreferences, { wrapper });
     await waitFor(() => expect(result.current.homeAppId).toBe('agent'));
 
     act(() => result.current.setHomeAppId('library'));
@@ -265,14 +293,14 @@ describe('rail pin persistence', () => {
 
   it('ignores a saved home app the catalog does not know', async () => {
     mocks.findMeSettings.mockResolvedValue({ homeAppId: 'studio' });
-    const { result } = renderHook(useRailPreferences);
+    const { result } = renderHook(useRailPreferences, { wrapper });
     await waitFor(() => expect(result.current.isLoaded).toBe(true));
     expect(result.current.homeAppId).toBeNull();
   });
 
   it('hides a core app by toggling it, and shows it again', async () => {
     mocks.findMeSettings.mockResolvedValue({ hiddenAppIds: ['analytics'] });
-    const { result } = renderHook(useRailPreferences);
+    const { result } = renderHook(useRailPreferences, { wrapper });
     await waitFor(() =>
       expect(result.current.hiddenAppIds).toEqual(['analytics']),
     );
@@ -298,7 +326,7 @@ describe('rail pin persistence', () => {
     mocks.findMeSettings.mockResolvedValue({
       hiddenAppIds: ['turbo', 'agent', 'bogus', 'agent'],
     });
-    const { result } = renderHook(useRailPreferences);
+    const { result } = renderHook(useRailPreferences, { wrapper });
     await waitFor(() => expect(result.current.isLoaded).toBe(true));
     expect(result.current.hiddenAppIds).toEqual(['agent']);
   });
@@ -308,7 +336,7 @@ describe('rail pin persistence', () => {
       hiddenAppIds: ['library'],
       railAppOrder: ['agent', 'workspace'],
     });
-    const { result } = renderHook(useRailPreferences);
+    const { result } = renderHook(useRailPreferences, { wrapper });
     await waitFor(() =>
       expect(result.current.hiddenAppIds).toEqual(['library']),
     );
@@ -319,5 +347,66 @@ describe('rail pin persistence', () => {
     await waitFor(() => expect(mocks.patchMeSettings).toHaveBeenCalledTimes(2));
     expect(mocks.patchMeSettings).toHaveBeenCalledWith({ hiddenAppIds: [] });
     expect(mocks.patchMeSettings).toHaveBeenCalledWith({ railAppOrder: [] });
+  });
+  it('paints the cached preferences at once on a return visit', async () => {
+    const firstVisit = renderHook(useRailPreferences, { wrapper });
+    await waitFor(() =>
+      expect(firstVisit.result.current.pinnedAppIds).toEqual(['playground']),
+    );
+    firstVisit.unmount();
+
+    mocks.findMeSettings.mockReturnValue(new Promise<never>(() => undefined));
+    const { result } = renderHook(useRailPreferences, { wrapper });
+
+    expect(result.current.isLoaded).toBe(true);
+    expect(result.current.pinnedAppIds).toEqual(['playground']);
+  });
+
+  it('keeps a saved pin when the rail is opened again', async () => {
+    const firstVisit = renderHook(useRailPreferences, { wrapper });
+    await waitFor(() =>
+      expect(firstVisit.result.current.pinnedAppIds).toEqual(['playground']),
+    );
+    act(() => firstVisit.result.current.togglePin('discovery'));
+    await waitFor(() =>
+      expect(queryClient.getQueriesData({ queryKey: ['me-settings'] })).toEqual(
+        [
+          [
+            expect.anything(),
+            expect.objectContaining({
+              pinnedAppIds: ['playground', 'discovery'],
+            }),
+          ],
+        ],
+      ),
+    );
+    firstVisit.unmount();
+
+    mocks.findMeSettings.mockReturnValue(new Promise<never>(() => undefined));
+    const { result } = renderHook(useRailPreferences, { wrapper });
+
+    expect(result.current.pinnedAppIds).toEqual(['playground', 'discovery']);
+  });
+
+  it('shows a change read from the server without dropping an unsaved edit', async () => {
+    const pending = deferred();
+    mocks.patchMeSettings.mockReturnValueOnce(pending.promise);
+    const { result } = renderHook(useRailPreferences, { wrapper });
+    await waitFor(() =>
+      expect(result.current.pinnedAppIds).toEqual(['playground']),
+    );
+    act(() => result.current.togglePin('discovery'));
+    await waitFor(() => expect(mocks.patchMeSettings).toHaveBeenCalledTimes(1));
+
+    mocks.findMeSettings.mockResolvedValue({
+      homeAppId: 'agent',
+      pinnedAppIds: ['playground'],
+    });
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: ['me-settings'] });
+    });
+
+    await waitFor(() => expect(result.current.homeAppId).toBe('agent'));
+    expect(result.current.pinnedAppIds).toEqual(['playground', 'discovery']);
   });
 });

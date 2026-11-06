@@ -4,11 +4,14 @@ import {
   type IBrandKitApplyResult,
   type IBrandKitAssetImportResponse,
   type IBrandKitDraft,
+  type IBrandOsDraftHandoff,
 } from '@genfeedai/contracts/interfaces';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { BrandKitReviewCardProps } from '@props/pages/brand-detail.props';
 import { logger } from '@services/core/logger.service';
 import { BrandsService } from '@services/social/brands.service';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { BrandKitFieldValues } from '@/features/brands/props/brand-kit-review.props';
@@ -21,6 +24,21 @@ import {
   readApplyValue,
 } from './brand-kit-review.helpers';
 
+/** The claimed draft read the review was last seeded from, per brand. */
+interface ClaimedDraftSeed {
+  brandId: string;
+  /** Undefined until the read has landed. */
+  handoff: IBrandOsDraftHandoff | null | undefined;
+}
+
+function claimedBrandOsDraftQueryKey(brandId: string) {
+  return ['brand-os-claimed-draft', brandId] as const;
+}
+
+function createBrandsService(token: string): BrandsService {
+  return BrandsService.getInstance(token);
+}
+
 export function useBrandKitReviewCard({
   onDraftCreated,
   brandId,
@@ -30,9 +48,8 @@ export function useBrandKitReviewCard({
   onRefreshBrand,
 }: Omit<BrandKitReviewCardProps, 'brand'>) {
   const brandOsTranslate = useTranslations('pages.brandOsSettings');
-  const getBrandsService = useAuthedService((token: string) =>
-    BrandsService.getInstance(token),
-  );
+  const queryClient = useQueryClient();
+  const getBrandsService = useAuthedService(createBrandsService);
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [socialUrls, setSocialUrls] = useState('');
   const [draft, setDraft] = useState<IBrandKitDraft | null>(null);
@@ -53,8 +70,10 @@ export function useBrandKitReviewCard({
   const [isScanning, setIsScanning] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [isImportingAssets, setIsImportingAssets] = useState(false);
-  const claimedDraftLoadRef = useRef<string | null>(null);
-  const isBrandOsDraftRef = useRef(false);
+  // The claimed Brand OS draft the review was seeded from, if it was.
+  const [appliedHandoff, setAppliedHandoff] =
+    useState<IBrandOsDraftHandoff | null>(null);
+  const [hasReviewEdits, setHasReviewEdits] = useState(false);
 
   const initializeDraftReview = useCallback((nextDraft: IBrandKitDraft) => {
     const nextValues: BrandKitFieldValues = {};
@@ -82,46 +101,72 @@ export function useBrandKitReviewCard({
     setAssetImportResult(null);
   }, []);
 
+  // The claimed Brand OS draft reads through React Query, so coming back to
+  // Brand Kit paints it at once and refreshes it in the background.
+  const claimedQuery = useAuthedQuery<
+    BrandsService,
+    IBrandOsDraftHandoff | null
+  >({
+    enabled: loadClaimedBrandOsDraft && Boolean(brandId),
+    // A handoff without a draft has nothing to review: it counts as none, so
+    // seeding the review during render never reads a missing draft.
+    queryFn: async (service) => {
+      const handoff = await service.getClaimedBrandOsDraft(brandId);
+      return handoff?.draft?.fields ? handoff : null;
+    },
+    queryKey: claimedBrandOsDraftQueryKey(brandId),
+    service: createBrandsService,
+  });
+  const claimedHandoff = loadClaimedBrandOsDraft
+    ? claimedQuery.data
+    : undefined;
+  const { error: claimedError } = claimedQuery;
+  const hasClaimedHandoff = claimedHandoff !== undefined;
+
+  // What the review was last seeded from. A fresh read re-seeds it only while
+  // the user has not scanned, edited or applied anything; another brand
+  // always starts over.
+  const [seedSource, setSeedSource] = useState<ClaimedDraftSeed>({
+    brandId,
+    handoff: undefined,
+  });
+  if (seedSource.brandId !== brandId || seedSource.handoff !== claimedHandoff) {
+    const isOtherBrand = seedSource.brandId !== brandId;
+    setSeedSource({ brandId, handoff: claimedHandoff });
+    if (isOtherBrand) {
+      setHasReviewEdits(false);
+    }
+    if (claimedHandoff !== undefined && (isOtherBrand || !hasReviewEdits)) {
+      if (claimedHandoff) {
+        setAppliedHandoff(claimedHandoff);
+        setDraft(claimedHandoff.draft);
+        initializeDraftReview(claimedHandoff.draft);
+      } else if (appliedHandoff) {
+        setAppliedHandoff(null);
+        setDraft(null);
+        setFieldValues({});
+        setSelectedFields(new Set());
+        setSelectedCandidateIds(new Set());
+        setAssetImportResult(null);
+      }
+    }
+  }
+
+  // Report each claimed draft the review shows once.
+  const reportedHandoffRef = useRef<IBrandOsDraftHandoff | null>(null);
   useEffect(() => {
-    if (!loadClaimedBrandOsDraft || claimedDraftLoadRef.current === brandId) {
+    if (!appliedHandoff || reportedHandoffRef.current === appliedHandoff) {
       return;
     }
-    claimedDraftLoadRef.current = brandId;
-    const controller = new AbortController();
-    let hasSettled = false;
-    void getBrandsService()
-      .then((service) =>
-        controller.signal.aborted
-          ? null
-          : service.getClaimedBrandOsDraft(brandId),
-      )
-      .then((handoff) => {
-        if (controller.signal.aborted) return;
-        hasSettled = true;
-        if (!handoff) return;
-        isBrandOsDraftRef.current = true;
-        setDraft(handoff.draft);
-        initializeDraftReview(handoff.draft);
-        onBrandOsDraftLoaded?.();
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
-        hasSettled = true;
-        logger.error('Failed to read claimed Brand OS draft', error);
-      });
-    return () => {
-      controller.abort();
-      if (!hasSettled && claimedDraftLoadRef.current === brandId) {
-        claimedDraftLoadRef.current = null;
-      }
-    };
-  }, [
-    brandId,
-    getBrandsService,
-    initializeDraftReview,
-    loadClaimedBrandOsDraft,
-    onBrandOsDraftLoaded,
-  ]);
+    reportedHandoffRef.current = appliedHandoff;
+    onBrandOsDraftLoaded?.();
+  }, [appliedHandoff, onBrandOsDraftLoaded]);
+
+  useEffect(() => {
+    if (claimedError && !hasClaimedHandoff) {
+      logger.error('Failed to read claimed Brand OS draft', claimedError);
+    }
+  }, [claimedError, hasClaimedHandoff]);
 
   const handleScan = useCallback(async () => {
     const url = websiteUrl.trim();
@@ -134,7 +179,8 @@ export function useBrandKitReviewCard({
     setIsScanning(true);
     setError(null);
     setApplyResult(null);
-    isBrandOsDraftRef.current = false;
+    setHasReviewEdits(true);
+    setAppliedHandoff(null);
 
     try {
       const service = await getBrandsService();
@@ -169,6 +215,7 @@ export function useBrandKitReviewCard({
 
   const handleToggleField = useCallback(
     (key: BrandKitFieldKey, checked: boolean) => {
+      setHasReviewEdits(true);
       setSelectedFields((current) => {
         const next = new Set(current);
 
@@ -185,6 +232,7 @@ export function useBrandKitReviewCard({
   );
 
   const handleToggleCandidate = useCallback((candidateId: string) => {
+    setHasReviewEdits(true);
     setSelectedCandidateIds((current) => {
       const next = new Set(current);
 
@@ -245,6 +293,7 @@ export function useBrandKitReviewCard({
 
   const handleFieldValueChange = useCallback(
     (key: BrandKitFieldKey, value: string) => {
+      setHasReviewEdits(true);
       setFieldValues((current) => ({
         ...current,
         [key]: value,
@@ -283,6 +332,9 @@ export function useBrandKitReviewCard({
 
       setIsApplying(true);
       setError(null);
+      // From here the review is the user's: a background refresh landing while
+      // the apply is in flight must not re-seed the draft being applied.
+      setHasReviewEdits(true);
 
       try {
         const service = await getBrandsService();
@@ -292,8 +344,13 @@ export function useBrandKitReviewCard({
         });
 
         setApplyResult(result);
-        if (isBrandOsDraftRef.current && result.appliedFields.length > 0) {
+        setHasReviewEdits(true);
+        if (appliedHandoff && result.appliedFields.length > 0) {
           onBrandOsDraftAccepted?.();
+          // Accepting changes the claimed draft; the next visit reads it anew.
+          void queryClient.invalidateQueries({
+            queryKey: claimedBrandOsDraftQueryKey(brandId),
+          });
         }
         const nextFields = { ...draft.fields };
         const retainedSelections = new Set<BrandKitFieldKey>();
@@ -346,6 +403,7 @@ export function useBrandKitReviewCard({
       }
     },
     [
+      appliedHandoff,
       brandId,
       draft,
       fieldValues,
@@ -353,6 +411,7 @@ export function useBrandKitReviewCard({
       onBrandOsDraftAccepted,
       onDraftCreated,
       onRefreshBrand,
+      queryClient,
     ],
   );
 
@@ -379,6 +438,6 @@ export function useBrandKitReviewCard({
     handleImportAssets,
     handleFieldValueChange,
     handleApplyKeys,
-    isBrandOsDraft: isBrandOsDraftRef.current,
+    isBrandOsDraft: appliedHandoff !== null,
   };
 }

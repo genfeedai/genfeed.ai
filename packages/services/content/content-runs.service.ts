@@ -696,9 +696,13 @@ export class ContentRunsService extends HTTPBaseService {
     return deserializeLegacyStoryboardRunDocument(response.data);
   }
 
-  async findOne(runId: string): Promise<ContentRunRecord> {
+  async findOne(
+    runId: string,
+    signal?: AbortSignal,
+  ): Promise<ContentRunRecord> {
     const response = await this.instance.get<JsonApiResponseDocument>(
       `/content-runs/${runId}`,
+      { signal },
     );
 
     return deserializeResource<ContentRunRecord>(response.data);
