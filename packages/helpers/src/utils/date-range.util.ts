@@ -1,4 +1,4 @@
-import { subDays } from 'date-fns';
+const DAY_MS = 86_400_000;
 
 type DateRangeInput = {
   endDate?: Date | string | null;
@@ -38,13 +38,33 @@ export function getDateRangeKeys(dateRange: DateRangeInput): {
   };
 }
 
-export function getDefaultDateRange(): { startDate: string; endDate: string } {
-  const yesterday = subDays(new Date(), 1);
-  const sevenDaysAgo = subDays(yesterday, 6);
+/**
+ * The `days` UTC days ending yesterday, each at UTC midnight. The API reads days
+ * by their UTC date, so the range is counted in UTC days: counting in local days
+ * across a daylight-saving change would add or drop a UTC day.
+ */
+export function getTrailingUtcDays(
+  days: number,
+  now: Date = new Date(),
+): { endDate: Date; startDate: Date } {
+  const endTime = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() - 1,
+  );
 
   return {
-    endDate: formatApiDate(yesterday),
-    startDate: formatApiDate(sevenDaysAgo),
+    endDate: new Date(endTime),
+    startDate: new Date(endTime - (days - 1) * DAY_MS),
+  };
+}
+
+export function getDefaultDateRange(): { startDate: string; endDate: string } {
+  const { endDate, startDate } = getTrailingUtcDays(7);
+
+  return {
+    endDate: formatApiDate(endDate),
+    startDate: formatApiDate(startDate),
   };
 }
 

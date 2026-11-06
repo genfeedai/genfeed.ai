@@ -183,6 +183,14 @@ export function useContentCalendarData({
       })),
     [updateCalendar],
   );
+  // Content changed elsewhere (the agent drafted or scheduled a post, an
+  // article was saved): read the window again. The key is built from the
+  // window's dates, so re-setting the same range would not refetch.
+  const { refetch } = calendarQuery;
+  const reload = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
   const setCadences = useCallback(
     (action: SetStateAction<IPostingCadence[]>) =>
       updateCalendar((current) => ({
@@ -201,6 +209,7 @@ export function useContentCalendarData({
     setSlots,
     cadences: data?.cadences ?? EMPTY_CADENCES,
     setCadences,
+    reload,
     // The skeleton shows only while nothing is cached for this window yet.
     isLoading: calendarQuery.isPending,
   };

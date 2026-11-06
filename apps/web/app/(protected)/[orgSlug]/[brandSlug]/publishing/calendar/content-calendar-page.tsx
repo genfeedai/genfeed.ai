@@ -103,6 +103,7 @@ export default function ContentCalendarPage({
     setSlots,
     cadences,
     setCadences,
+    reload,
     isLoading,
   } = useContentCalendarData({
     brandId,
@@ -221,12 +222,9 @@ export default function ContentCalendarPage({
   } = usePostsLayout();
   useEffect(() => {
     if (!embedded) return;
-    setRefresh(
-      () => () =>
-        setDateRange((current) => (current ? { ...current } : current)),
-    );
+    setRefresh(() => reload);
     return () => setRefresh(() => () => {});
-  }, [embedded, setRefresh, setDateRange]);
+  }, [embedded, reload, setRefresh]);
 
   const timezone =
     selectedBrand?.agentConfig?.schedule?.timezone?.trim() || 'UTC';
@@ -404,9 +402,7 @@ export default function ContentCalendarPage({
     <>
       {!embedded ? (
         <LazyModalArticle
-          onConfirm={() =>
-            setDateRange((current) => (current ? { ...current } : current))
-          }
+          onConfirm={reload}
           onCreated={(ids) => {
             const id = Array.isArray(ids) ? ids[0] : ids;
             if (id) push(href(createArtifactEditorRoute('article', id)));
