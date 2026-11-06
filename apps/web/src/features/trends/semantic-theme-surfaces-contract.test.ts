@@ -44,9 +44,11 @@ describe('trends semantic theme surfaces', () => {
     expect(sourcesMenu).toContain('divide-border');
     expect(sourcesMenu).not.toContain('border-white');
     expect(sourcesMenu).not.toContain('divide-white');
-    expect(lightTable).toContain(
-      'aspect-video w-full overflow-hidden bg-black',
-    );
+    // Light-table tiles keep each signal's own shape on the shared masonry;
+    // the media frame lives in DeskMediaPreview, not a fixed 16:9 black box.
+    expect(lightTable).toContain('<OrderedMasonry>');
+    expect(lightTable).not.toContain('border-white');
+    expect(lightTable).not.toContain('aspect-video');
   });
 
   it('uses a semantic checkbox boundary in the follow-source picker', () => {
