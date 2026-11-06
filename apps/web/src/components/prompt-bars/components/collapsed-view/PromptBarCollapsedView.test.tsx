@@ -31,7 +31,7 @@ vi.mock('@ui/prompt-editor/PromptEditor', () => ({
       <div
         aria-label="Prompt"
         data-testid={testId}
-        placeholder={placeholder}
+        aria-placeholder={placeholder}
         role="textbox"
         tabIndex={0}
       >

@@ -18,6 +18,9 @@ export const RESEARCH_COLLECTION_JOB_STATUS = {
   UNRECONCILED: 'unreconciled_start',
 } as const;
 
+export type ResearchCollectionJobStatus =
+  (typeof RESEARCH_COLLECTION_JOB_STATUS)[keyof typeof RESEARCH_COLLECTION_JOB_STATUS];
+
 export interface ResearchCollectionJobRecord {
   actualCostMicroUsd: number | null;
   actorId: string;
@@ -310,7 +313,7 @@ export class ResearchCollectionJobService {
     input: {
       actualCostMicroUsd?: number | null;
       reconciledAt?: Date | null;
-      status: string;
+      status: ResearchCollectionJobStatus;
       terminalReason?: string | null;
     },
   ): Promise<boolean> {
@@ -376,7 +379,7 @@ export class ResearchCollectionJobService {
   private async finishUnrecordedStart(
     job: ResearchCollectionJobRecord,
     now: Date,
-    outcome: { status: string; terminalReason: string },
+    outcome: { status: ResearchCollectionJobStatus; terminalReason: string },
   ): Promise<boolean> {
     const legacyLeaseToken = job.leaseToken === null ? randomUUID() : null;
     const updated = await this.prisma.researchCollectionJob.updateMany({

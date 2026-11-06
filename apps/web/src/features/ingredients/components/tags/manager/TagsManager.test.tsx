@@ -1,4 +1,8 @@
-import { render } from '@testing-library/react';
+import {
+  createIngredientFixture,
+  createTagFixture,
+} from '@genfeedai/helpers/testing/entity-fixtures';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import TagsManager from '@/features/ingredients/components/tags/manager/TagsManager';
 
@@ -28,31 +32,20 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 
-const mockIngredient = {
-  id: 'ingredient_1',
-  tags: [],
-};
-
 describe('TagsManager', () => {
-  it('should render without crashing', () => {
-    const { container } = render(
-      <TagsManager ingredient={mockIngredient} onTagsChange={vi.fn()} />,
+  it("shows the ingredient's tags with an Add Tag action", () => {
+    render(
+      <TagsManager
+        ingredient={createIngredientFixture({
+          id: 'ingredient_1',
+          tags: [createTagFixture({ id: 'tag-1', label: 'Launch' })],
+        })}
+        ingredientCategory="image"
+        onTagsChange={vi.fn()}
+      />,
     );
-    expect(container.firstChild).toBeInTheDocument();
-  });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(
-      <TagsManager ingredient={mockIngredient} onTagsChange={vi.fn()} />,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should apply correct styles and classes', () => {
-    const { container } = render(
-      <TagsManager ingredient={mockIngredient} onTagsChange={vi.fn()} />,
-    );
-    const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
+    expect(screen.getByText('Launch')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Add Tag/ })).toBeInTheDocument();
   });
 });

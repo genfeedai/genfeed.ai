@@ -6,6 +6,7 @@ import {
   PostStatus,
 } from '@genfeedai/contracts';
 import type { ICredential, IPost } from '@genfeedai/contracts/interfaces';
+import { createPostFixture } from '@genfeedai/helpers/testing/entity-fixtures';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePostDetail } from '@/features/posts/hooks/use-post-detail/use-post-detail';
@@ -67,7 +68,7 @@ vi.mock('next/navigation', () => ({
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 
 describe('usePostDetail', () => {
-  const post: IPost = {
+  const post: IPost = createPostFixture({
     category: PostCategory.TEXT,
     children: [],
     credential: {
@@ -78,10 +79,9 @@ describe('usePostDetail', () => {
     id: 'post-1',
     label: 'Draft label',
     platform: CredentialPlatform.TWITTER,
-    publicationDate: null,
     scheduledDate: '2025-01-01',
     status: PostStatus.DRAFT,
-  } as IPost;
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();

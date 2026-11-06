@@ -204,7 +204,7 @@ describe('buildSettingsMenuItems', () => {
   });
 
   it('never mixes scopes: each scope carries a single hrefScope', () => {
-    for (const scope of ['personal', 'organization', 'brand'] as const) {
+    for (const scope of Object.values(SettingsSurface)) {
       const scopes = new Set(
         buildSettingsMenuItems({ scope }).map((item) => item.hrefScope),
       );
@@ -213,7 +213,7 @@ describe('buildSettingsMenuItems', () => {
   });
 
   it('gives every item a label, href, and both icon variants', () => {
-    for (const scope of ['personal', 'organization', 'brand'] as const) {
+    for (const scope of Object.values(SettingsSurface)) {
       for (const item of buildSettingsMenuItems({
         scope,
         isEnterprise: true,

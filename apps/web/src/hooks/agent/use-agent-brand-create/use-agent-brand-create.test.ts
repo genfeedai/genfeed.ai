@@ -4,7 +4,7 @@ import { useAgentBrandCreate } from '@/hooks/agent/use-agent-brand-create/use-ag
 
 const mockPost = vi.fn();
 const mockRefreshBrands = vi.fn();
-const mockGetInstance = vi.fn(() => ({ post: mockPost }));
+const mockGetInstance = vi.fn((_token: string) => ({ post: mockPost }));
 
 vi.mock('@services/social/brands.service', () => ({
   BrandsService: {

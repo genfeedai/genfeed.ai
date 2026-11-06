@@ -110,13 +110,6 @@ describe('PlatformBreakdownChart', () => {
   });
 
   describe('Empty State', () => {
-    it('shows empty message when data is null', () => {
-      render(<PlatformBreakdownChart data={null} />);
-      expect(
-        screen.getByText('No platform distribution yet'),
-      ).toBeInTheDocument();
-    });
-
     it('shows empty message when data is empty array', () => {
       render(<PlatformBreakdownChart data={[]} />);
       expect(

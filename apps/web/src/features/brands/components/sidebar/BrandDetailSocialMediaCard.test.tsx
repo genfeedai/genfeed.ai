@@ -47,7 +47,7 @@ const warmingAccountHealth = {
   label: 'X Account',
   override: { isActive: false },
   platform: CredentialPlatform.TWITTER,
-  riskLevel: 'medium',
+  riskLevel: 'medium' as const,
   score: 56,
   signals: {
     connectedDays: 1,

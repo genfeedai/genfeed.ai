@@ -59,7 +59,7 @@ const agentState = vi.hoisted(() => ({
   seedComposer: vi.fn(),
   threads: [
     {
-      brandId: 'brand-1',
+      brandId: 'brand-1' as string | null,
       contextVersion: 3,
       id: 'thread-1',
     },

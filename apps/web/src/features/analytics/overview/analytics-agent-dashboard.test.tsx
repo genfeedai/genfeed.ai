@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import Module from './analytics-agent-dashboard.tsx';
+import Module from './analytics-agent-dashboard';
 
 describe('analytics-agent-dashboard.tsx', () => {
   it('exports a component', () => {

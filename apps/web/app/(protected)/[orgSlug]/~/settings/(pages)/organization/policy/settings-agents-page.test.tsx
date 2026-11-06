@@ -303,7 +303,7 @@ describe('SettingsAgentsPage', () => {
 
   it('serializes overlapping saves so a slower earlier request can never overwrite a later one', async () => {
     const callOrder: string[] = [];
-    let releaseFirstSave: (() => void) | null = null;
+    let releaseFirstSave: () => void = () => undefined;
     mocks.patchSettings.mockImplementation(
       (
         _organizationId: string,
@@ -338,7 +338,7 @@ describe('SettingsAgentsPage', () => {
     });
     expect(mocks.patchSettings).toHaveBeenCalledTimes(1);
 
-    releaseFirstSave?.();
+    releaseFirstSave();
 
     await waitFor(() => {
       expect(callOrder).toEqual([

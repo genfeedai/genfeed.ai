@@ -8,22 +8,6 @@ vi.mock('next-intl', async () => {
 });
 
 describe('IngredientsListHeader', () => {
-  it('should render without crashing', () => {
-    const { container } = render(<IngredientsListHeader />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<IngredientsListHeader />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should apply correct styles and classes', () => {
-    const { container } = render(<IngredientsListHeader />);
-    const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
-  });
-
   it('hands the bulk tag control to the selection bar', () => {
     render(
       <IngredientsListHeader

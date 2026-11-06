@@ -55,6 +55,7 @@ describe('usePromptBarForm', () => {
         category: IngredientCategory.IMAGE,
         fontFamily: 'roboto',
         format: IngredientFormat.SQUARE,
+        isValid: true,
         height: 512,
         models: ['model-1'],
         text: 'Test prompt',

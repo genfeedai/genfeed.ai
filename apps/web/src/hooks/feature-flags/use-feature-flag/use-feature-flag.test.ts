@@ -10,7 +10,7 @@ import { useFeatureFlag } from '@/hooks/feature-flags/use-feature-flag/use-featu
 const createWrapper =
   (config: Omit<FeatureFlagProviderProps, 'children'>) =>
   ({ children }: { children: ReactNode }): ReactNode =>
-    createElement(FeatureFlagProvider, config, children);
+    createElement(FeatureFlagProvider, { ...config, children });
 
 describe('useFeatureFlag', () => {
   it('returns true when the flag is on', () => {

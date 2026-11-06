@@ -7,10 +7,17 @@ const getPlatformFlagsMock = vi.fn();
 const getInstanceMock = vi.fn(() => ({
   getBootstrap: getBootstrapMock,
 }));
-const cookiesMock = vi.fn(async () => ({
-  get: vi.fn(() => undefined),
-  getAll: vi.fn(() => []),
-}));
+interface CookieStoreStub {
+  get: (name: string) => { value: string } | undefined;
+  getAll: () => Array<{ name: string; value: string }>;
+}
+
+const cookiesMock = vi.fn(
+  async (): Promise<CookieStoreStub> => ({
+    get: vi.fn(() => undefined),
+    getAll: vi.fn(() => []),
+  }),
+);
 const headersMock = vi.fn(async () => new Headers());
 
 vi.mock('@genfeedai/auth-client/server', () => ({

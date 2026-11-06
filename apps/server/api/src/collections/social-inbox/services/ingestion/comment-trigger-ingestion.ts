@@ -6,6 +6,7 @@ import type { InboundSocialMessageInput } from '@api/collections/social-inbox/se
 import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { scopedWhere } from '@api/index';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { SocialMessageWorkflowTriggerStatus } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 
@@ -102,17 +103,24 @@ async function claimCommentTrigger(
       workflowTriggerAttemptedAt: attemptedAt,
       workflowTriggerError: null,
       workflowTriggerJobId: jobId,
-      workflowTriggerStatus: 'enqueueing',
+      workflowTriggerStatus: SocialMessageWorkflowTriggerStatus.ENQUEUEING,
     },
     where: scopedWhere(input.organizationId, {
       conversationId: conversation.id,
       id: message.id,
       OR: [
         { workflowTriggerStatus: null },
-        { workflowTriggerStatus: { in: ['pending', 'failed'] } },
+        {
+          workflowTriggerStatus: {
+            in: [
+              SocialMessageWorkflowTriggerStatus.PENDING,
+              SocialMessageWorkflowTriggerStatus.FAILED,
+            ],
+          },
+        },
         {
           workflowTriggerAttemptedAt: { lt: staleClaimBefore },
-          workflowTriggerStatus: 'enqueueing',
+          workflowTriggerStatus: SocialMessageWorkflowTriggerStatus.ENQUEUEING,
         },
       ],
     }),
@@ -174,13 +182,13 @@ async function finalizeFailedCommentTrigger(
     const finalized = await transaction.socialMessage.updateMany({
       data: {
         workflowTriggerError: errorMessage,
-        workflowTriggerStatus: 'failed',
+        workflowTriggerStatus: SocialMessageWorkflowTriggerStatus.FAILED,
       },
       where: scopedWhere(input.organizationId, {
         conversationId: conversation.id,
         id: message.id,
         workflowTriggerAttemptedAt: attemptedAt,
-        workflowTriggerStatus: 'enqueueing',
+        workflowTriggerStatus: SocialMessageWorkflowTriggerStatus.ENQUEUEING,
       }),
     });
     if (finalized.count === 0) {
@@ -224,13 +232,13 @@ async function finalizeQueuedCommentTrigger(
         workflowTriggerError: null,
         workflowTriggerJobId: queuedJobId,
         workflowTriggerQueuedAt: queuedAt,
-        workflowTriggerStatus: 'queued',
+        workflowTriggerStatus: SocialMessageWorkflowTriggerStatus.QUEUED,
       },
       where: scopedWhere(input.organizationId, {
         conversationId: conversation.id,
         id: message.id,
         workflowTriggerAttemptedAt: attemptedAt,
-        workflowTriggerStatus: 'enqueueing',
+        workflowTriggerStatus: SocialMessageWorkflowTriggerStatus.ENQUEUEING,
       }),
     });
     if (finalized.count === 0) {

@@ -2,13 +2,9 @@ import {
   createTestQueryClient,
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
-import {
-  AssetScope,
-  CredentialPlatform,
-  IngredientCategory,
-  IngredientStatus,
-} from '@genfeedai/contracts';
+import { CredentialPlatform, IngredientCategory } from '@genfeedai/contracts';
 import type { ICredential, IIngredient } from '@genfeedai/contracts/interfaces';
+import { createIngredientFixture } from '@genfeedai/helpers/testing/entity-fixtures';
 import { render as renderView, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
@@ -135,21 +131,7 @@ describe('ModalPostBatch', () => {
   });
 
   it('does not prompt reconnect when a connected Instagram credential has access token expiry', async () => {
-    const ingredient = {
-      category: IngredientCategory.IMAGE,
-      hasVoted: false,
-      id: 'ingredient-1',
-      isDefault: false,
-      isFavorite: false,
-      isHighlighted: false,
-      isVoteAnimating: false,
-      organization: 'org-1',
-      scope: AssetScope.PRIVATE,
-      status: IngredientStatus.COMPLETE,
-      totalChildren: 0,
-      totalVotes: 0,
-      user: 'user-1',
-    } as unknown as IIngredient;
+    const ingredient = createIngredientFixture({ id: 'ingredient-1' });
 
     const credentials = [
       {

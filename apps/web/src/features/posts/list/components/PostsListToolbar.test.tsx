@@ -3,7 +3,7 @@ import { selectFilterOption } from '@app-tests/filter-menu.helpers';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import Module from './PostsListToolbar.tsx';
+import Module from './PostsListToolbar';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');

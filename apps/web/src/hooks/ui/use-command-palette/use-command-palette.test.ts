@@ -1,8 +1,12 @@
+import type {
+  ICommand,
+  ICommandPaletteContext,
+} from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useCommandPalette } from '@/hooks/ui/use-command-palette/use-command-palette';
 
-const mockContext = {
+const mockContext: ICommandPaletteContext = {
   close: vi.fn(),
   executeCommand: vi.fn(),
   open: vi.fn(),
@@ -15,6 +19,7 @@ const mockContext = {
     filteredCommands: [],
     isOpen: false,
     query: '',
+    recentCommands: [],
     selectedIndex: 0,
   },
   toggle: vi.fn(),
@@ -219,9 +224,19 @@ describe('useCommandPalette', () => {
 
     it('reflects commands when registered', () => {
       const mockCommands = [
-        { action: vi.fn(), id: 'cmd-1', name: 'Command 1' },
-        { action: vi.fn(), id: 'cmd-2', name: 'Command 2' },
-      ];
+        {
+          action: vi.fn(),
+          category: 'actions',
+          id: 'cmd-1',
+          label: 'Command 1',
+        },
+        {
+          action: vi.fn(),
+          category: 'actions',
+          id: 'cmd-2',
+          label: 'Command 2',
+        },
+      ] satisfies ICommand[];
 
       mockContextValue = {
         ...mockContext,

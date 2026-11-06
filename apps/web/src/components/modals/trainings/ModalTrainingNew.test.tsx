@@ -109,7 +109,7 @@ vi.mock('react-hook-form', () => ({
 
 describe('ModalTrainingNew', () => {
   const defaultProps = {
-    onConfirm: vi.fn(),
+    onSuccess: vi.fn(),
   };
 
   it('renders training form', () => {

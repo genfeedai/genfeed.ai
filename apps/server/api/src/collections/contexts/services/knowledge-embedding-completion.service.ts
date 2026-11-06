@@ -11,6 +11,7 @@ import { softDeleteKnowledgeChunks } from '@api/collections/contexts/utils/knowl
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
+  KnowledgeCaptureRequestStatus,
   KnowledgeProcessingState,
   KnowledgeRefreshRunStatus,
   KnowledgeRetentionState,
@@ -774,9 +775,9 @@ export class KnowledgeEmbeddingCompletionService {
         organizationId: source.organizationId,
         sourceId: source.id,
         isDeleted: false,
-        status: 'queued',
+        status: KnowledgeCaptureRequestStatus.QUEUED,
       },
-      data: { status: 'completed' },
+      data: { status: KnowledgeCaptureRequestStatus.COMPLETED },
     });
     await tx.knowledgeEmbeddingManifest.updateMany({
       where: {

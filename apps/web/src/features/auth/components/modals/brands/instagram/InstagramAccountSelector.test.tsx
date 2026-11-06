@@ -11,7 +11,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import type { ReactElement } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import InstagramAccountSelector from '@/features/auth/components/modals/brands/instagram/InstagramAccountSelector';
 
 const mockCredentialsService: {
@@ -21,7 +21,7 @@ const mockCredentialsService: {
 }));
 
 const mockServicesService: {
-  postSelectAccount: ReturnType<typeof vi.fn>;
+  postSelectAccount: Mock<(...args: unknown[]) => unknown>;
 } = vi.hoisted(() => ({
   postSelectAccount: vi.fn(),
 }));
@@ -45,9 +45,7 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
 // `new` semantics intact while still routing calls through the shared mock.
 vi.mock('@genfeedai/services/external/services.service', () => ({
   ServicesService: class {
-    postSelectAccount(
-      ...args: Parameters<typeof mockServicesService.postSelectAccount>
-    ) {
+    postSelectAccount(...args: unknown[]) {
       return mockServicesService.postSelectAccount(...args);
     }
   },

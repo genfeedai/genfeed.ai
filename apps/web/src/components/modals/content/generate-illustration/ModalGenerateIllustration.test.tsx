@@ -109,6 +109,7 @@ describe('ModalGenerateIllustration', () => {
       render(
         <ModalGenerateIllustration
           isOpen
+          postId="post-1"
           initialPrompt="test prompt"
           onConfirm={() => undefined}
         />,
@@ -122,6 +123,7 @@ describe('ModalGenerateIllustration', () => {
     const { rerender } = render(
       <ModalGenerateIllustration
         isOpen
+        postId="post-1"
         initialPrompt="test prompt"
         onConfirm={() => undefined}
       />,
@@ -143,6 +145,7 @@ describe('ModalGenerateIllustration', () => {
     rerender(
       <ModalGenerateIllustration
         isOpen
+        postId="post-1"
         initialPrompt="test prompt"
         onConfirm={() => undefined}
       />,
@@ -163,6 +166,7 @@ describe('ModalGenerateIllustration', () => {
     render(
       <ModalGenerateIllustration
         isOpen
+        postId="post-1"
         initialPrompt="test prompt"
         onConfirm={() => undefined}
       />,

@@ -1,14 +1,9 @@
+import { createPromptFormMock } from '@app-tests/prompt-form.harness';
 import { IngredientFormat, ModelCategory } from '@genfeedai/contracts';
+import type { UsePromptBarReferencesOptions } from '@genfeedai/props/studio/prompt-bar.props';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePromptBarReferences } from '@/hooks/prompt-bar/use-prompt-bar-references/use-prompt-bar-references';
-
-const createMockForm = () => ({
-  formState: { isValid: true },
-  getValues: vi.fn(),
-  setValue: vi.fn(),
-  watch: vi.fn(),
-});
 
 const createMockNotificationsService = () => ({
   error: vi.fn(),
@@ -25,15 +20,16 @@ const createMockAsset = (overrides = {}) => ({
   ...overrides,
 });
 
-const createBaseOptions = () => ({
-  currentFormat: IngredientFormat.LANDSCAPE,
-  currentModelCategory: ModelCategory.VIDEO,
-  form: createMockForm(),
-  maxReferenceCount: 1,
-  notificationsService: createMockNotificationsService(),
-  selectedBrand: null,
-  supportsMultipleReferences: false,
-});
+const createBaseOptions = () =>
+  ({
+    currentFormat: IngredientFormat.LANDSCAPE,
+    currentModelCategory: ModelCategory.VIDEO,
+    form: createPromptFormMock(),
+    maxReferenceCount: 1,
+    notificationsService: createMockNotificationsService(),
+    selectedBrand: null,
+    supportsMultipleReferences: false,
+  }) satisfies UsePromptBarReferencesOptions;
 
 describe('usePromptBarReferences', () => {
   beforeEach(() => {

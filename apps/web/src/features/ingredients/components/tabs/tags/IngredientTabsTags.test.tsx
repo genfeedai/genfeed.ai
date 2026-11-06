@@ -1,5 +1,5 @@
 import { IngredientCategory } from '@genfeedai/contracts';
-import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { createIngredientFixture } from '@genfeedai/helpers/testing/entity-fixtures';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -19,11 +19,11 @@ describe('IngredientTabsTags', () => {
     );
   };
 
-  const ingredient = {
+  const ingredient = createIngredientFixture({
     category: IngredientCategory.IMAGE,
     id: 'ingredient-1',
     tags: [],
-  } as IIngredient;
+  });
 
   it('should render without crashing', () => {
     const { container } = renderWithQueryClient(

@@ -36,7 +36,6 @@ export default function ModalTrim({
     maxDuration: 15,
     minDuration: 2,
     videoDuration,
-    videoUrl,
   });
 
   const handleConfirm = () => {

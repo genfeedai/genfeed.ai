@@ -58,7 +58,7 @@ describe('SettingsOrganizationPage', () => {
       isReady: true,
       organizationId: 'org-123',
       selectedBrand: null,
-    } as ReturnType<typeof useBrand>);
+    } as unknown as ReturnType<typeof useBrand>);
   });
 
   it('should render without crashing', () => {

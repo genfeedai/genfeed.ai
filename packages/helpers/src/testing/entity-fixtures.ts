@@ -2,14 +2,23 @@ import {
   AssetScope,
   IngredientCategory,
   IngredientStatus,
+  ModelCategory,
+  ModelLifecycle,
+  ModelProvider,
+  PostCategory,
+  PostStatus,
   TagCategory,
+  TargetExecutionState,
 } from '@genfeedai/contracts';
 import type {
   IBrand,
   IIngredient,
   IMetadata,
+  IModel,
   IOrganization,
   IOrganizationSetting,
+  IPost,
+  IPreset,
   ISetting,
   ITag,
   IUser,
@@ -160,14 +169,65 @@ export const createMetadataFixture = (
 });
 
 /** A complete ingredient tag owned by the default brand. */
-export const createTagFixture = (partial: Partial<ITag> = {}): ITag => ({
-  ...createBaseEntity<ITag>(partial),
-  backgroundColor: '#000000',
+export const createTagFixture = (partial: Partial<ITag> = {}): ITag => {
+  const brand = createBrand();
+  const organization = createOrganization();
+  return {
+    ...createBaseEntity<ITag>(partial),
+    backgroundColor: '#000000',
+    brand,
+    brandId: brand.id,
+    category: TagCategory.INGREDIENT,
+    label: 'Test tag',
+    organization,
+    organizationId: organization.id,
+    textColor: '#ffffff',
+    user: createUser(),
+    ...partial,
+  };
+};
+
+/** An active, available image model. */
+export const createModelFixture = (partial: Partial<IModel> = {}): IModel => ({
+  ...createBaseEntity<IModel>(partial),
+  category: ModelCategory.IMAGE,
+  cost: 0,
+  isActive: true,
+  isDefault: false,
+  key: 'test-model',
+  label: 'Test model',
+  lifecycle: ModelLifecycle.AVAILABLE,
+  provider: ModelProvider.FAL,
+  ...partial,
+});
+
+/** An active image preset. */
+export const createPresetFixture = (
+  partial: Partial<IPreset> = {},
+): IPreset => ({
+  ...createBaseEntity<IPreset>(partial),
+  category: ModelCategory.IMAGE,
+  description: 'Preset description',
+  isActive: true,
+  key: 'test-preset',
+  label: 'Test preset',
+  ...partial,
+});
+
+/**
+ * An unpublished draft post with no ingredients in the default brand. An empty
+ * `publicationDate` is what the app reads as "not published yet".
+ */
+export const createPostFixture = (partial: Partial<IPost> = {}): IPost => ({
+  ...createBaseEntity<IPost>(partial),
   brand: createBrand(),
-  category: TagCategory.INGREDIENT,
-  label: 'Test tag',
+  category: PostCategory.POST,
+  ingredients: [],
   organization: createOrganization(),
-  textColor: '#ffffff',
+  publicationDate: '',
+  status: PostStatus.DRAFT,
+  targetExecutionState: TargetExecutionState.DRAFT,
+  uploadedAt: '2026-01-01T00:00:00.000Z',
   user: createUser(),
   ...partial,
 });

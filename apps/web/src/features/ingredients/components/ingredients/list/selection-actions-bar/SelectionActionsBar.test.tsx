@@ -1,32 +1,30 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import SelectionActionsBar from '@/features/ingredients/components/ingredients/list/selection-actions-bar/SelectionActionsBar';
+import type { SelectionActionsBarProps } from '@/props/content/ingredient.props';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
 
+/** The handlers every selection bar needs; each test overrides what it checks. */
+const requiredProps = {
+  onBulkDelete: vi.fn(),
+  onClear: vi.fn(),
+} satisfies Partial<SelectionActionsBarProps>;
+
 describe('SelectionActionsBar', () => {
-  it('should render without crashing', () => {
-    const { container } = render(<SelectionActionsBar />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
+  it('renders the selection count', () => {
+    render(<SelectionActionsBar {...requiredProps} count={1} />);
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<SelectionActionsBar />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should apply correct styles and classes', () => {
-    const { container } = render(<SelectionActionsBar />);
-    const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
   });
 
   it('shows campaign publish action when enabled', () => {
     render(
       <SelectionActionsBar
+        {...requiredProps}
         count={3}
         canPublishCampaign
         onPublishCampaign={vi.fn()}
@@ -41,6 +39,7 @@ describe('SelectionActionsBar', () => {
   it('disables campaign publish action until at least two assets are selected', () => {
     render(
       <SelectionActionsBar
+        {...requiredProps}
         count={1}
         canPublishCampaign
         onPublishCampaign={vi.fn()}
@@ -57,6 +56,7 @@ describe('SelectionActionsBar', () => {
 
     render(
       <SelectionActionsBar
+        {...requiredProps}
         count={2}
         canPublishCampaign
         onPublishCampaign={onPublishCampaign}
@@ -69,7 +69,7 @@ describe('SelectionActionsBar', () => {
   });
 
   it('anchors the selection count and Clear control on the left', () => {
-    render(<SelectionActionsBar count={3} />);
+    render(<SelectionActionsBar {...requiredProps} count={3} />);
 
     const buttons = screen.getAllByRole('button');
 
@@ -80,7 +80,9 @@ describe('SelectionActionsBar', () => {
   it('triggers the clear handler', () => {
     const onClear = vi.fn();
 
-    render(<SelectionActionsBar count={3} onClear={onClear} />);
+    render(
+      <SelectionActionsBar {...requiredProps} count={3} onClear={onClear} />,
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }));
 
@@ -90,6 +92,7 @@ describe('SelectionActionsBar', () => {
   it('groups constructive actions together and keeps Delete last, never between them', () => {
     render(
       <SelectionActionsBar
+        {...requiredProps}
         count={3}
         canMerge
         canPublishCampaign
@@ -113,6 +116,7 @@ describe('SelectionActionsBar', () => {
   it('renders the bulk tag control among the constructive actions, before Delete', () => {
     render(
       <SelectionActionsBar
+        {...requiredProps}
         count={3}
         onBulkDelete={vi.fn()}
         onClear={vi.fn()}
@@ -134,6 +138,7 @@ describe('SelectionActionsBar', () => {
   it('renders no tag control when none is supplied', () => {
     render(
       <SelectionActionsBar
+        {...requiredProps}
         count={3}
         onBulkDelete={vi.fn()}
         onClear={vi.fn()}
@@ -146,7 +151,7 @@ describe('SelectionActionsBar', () => {
   });
 
   it('does not render Download when no handler is supplied', () => {
-    render(<SelectionActionsBar count={3} />);
+    render(<SelectionActionsBar {...requiredProps} count={3} />);
 
     expect(
       screen.queryByRole('button', { name: /download/i }),
@@ -156,7 +161,13 @@ describe('SelectionActionsBar', () => {
   it('renders Download and triggers its handler when supplied', () => {
     const onDownload = vi.fn();
 
-    render(<SelectionActionsBar count={3} onDownload={onDownload} />);
+    render(
+      <SelectionActionsBar
+        {...requiredProps}
+        count={3}
+        onDownload={onDownload}
+      />,
+    );
 
     fireEvent.click(screen.getByRole('button', { name: /download/i }));
 
@@ -164,7 +175,7 @@ describe('SelectionActionsBar', () => {
   });
 
   it('always renders a Delete action for the current selection', () => {
-    render(<SelectionActionsBar count={3} />);
+    render(<SelectionActionsBar {...requiredProps} count={3} />);
 
     expect(
       screen.getByRole('button', { name: 'Delete selection' }),

@@ -18,14 +18,16 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 vi.mock('@genfeedai/workflows/ui/stores', () => {
-  const useWorkflowStore = vi.fn(
-    (
-      selector: (state: {
-        updateNodeData: typeof mocks.updateNodeData;
-      }) => unknown,
-    ) => selector({ updateNodeData: mocks.updateNodeData }),
+  const useWorkflowStore = Object.assign(
+    vi.fn(
+      (
+        selector: (state: {
+          updateNodeData: typeof mocks.updateNodeData;
+        }) => unknown,
+      ) => selector({ updateNodeData: mocks.updateNodeData }),
+    ),
+    { getState: () => ({ workflowId: mocks.workflowId }) },
   );
-  useWorkflowStore.getState = () => ({ workflowId: mocks.workflowId });
 
   return {
     selectUpdateNodeData: (state: {

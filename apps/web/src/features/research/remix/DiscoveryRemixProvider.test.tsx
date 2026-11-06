@@ -1,7 +1,8 @@
 import { ContentRunStatus } from '@genfeedai/contracts';
-import type {
-  BrandRemixRunView,
-  BrandRemixSourceSelector,
+import {
+  BrandRemixOrganicPlatform,
+  type BrandRemixRunView,
+  type BrandRemixSourceSelector,
 } from '@genfeedai/contracts/api-types/contracts';
 import { act, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -71,7 +72,7 @@ const run: BrandRemixRunView = {
     output: { aspectRatio: '9:16', count: 3, kind: 'video' },
     references: [],
     reviewRequired: true,
-    target: { kind: 'organic', platform: 'tiktok' },
+    target: { kind: 'organic', platform: BrandRemixOrganicPlatform.TIKTOK },
   },
   id: 'run-1',
   phase: 'prefilled',
@@ -83,7 +84,7 @@ const run: BrandRemixRunView = {
     evidence: ['Proof lands before the product reveal.'],
     metrics: { views: 123000 },
     pattern: { hook: 'Proof before promise' },
-    platform: 'tiktok',
+    platform: BrandRemixOrganicPlatform.TIKTOK,
     selector: source,
     sourceId: 'source-reference-1',
     title: 'Proof-led hook',
@@ -190,7 +191,7 @@ describe('DiscoveryRemixProvider', () => {
         intent: { objective: 'Keep the proof and sharpen the product reveal.' },
         target: {
           kind: 'organic',
-          platform: 'tiktok',
+          platform: BrandRemixOrganicPlatform.TIKTOK,
           credentialId: 'destination-1',
         },
       });

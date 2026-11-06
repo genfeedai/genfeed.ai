@@ -1,12 +1,15 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, type Mock, vi } from 'vitest';
 
-import { resolvePublishingContentKindFromId } from './resolve-publishing-content-kind';
+import {
+  type ContentLookup,
+  resolvePublishingContentKindFromId,
+} from './resolve-publishing-content-kind';
 
 function mockLookup(result: 'ok' | 'miss'): {
-  findOne: ReturnType<typeof vi.fn>;
+  findOne: Mock<ContentLookup['findOne']>;
 } {
   return {
-    findOne: vi.fn(async () => {
+    findOne: vi.fn<ContentLookup['findOne']>(async () => {
       if (result === 'ok') {
         return { id: 'x' };
       }

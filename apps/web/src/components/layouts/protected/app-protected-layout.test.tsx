@@ -1577,7 +1577,6 @@ describe('AppProtectedLayout', () => {
         onToggleCollapse={onToggleCollapse}
         isAdminRoute={false}
         isAnalyticsRoute={false}
-        isArtifactsRoute={false}
         isLibraryRoute
         isOrgRoute={false}
         isPublishingRoute={false}
@@ -1658,7 +1657,6 @@ describe('AppProtectedLayout', () => {
         currentApp="library"
         isAdminRoute={false}
         isAnalyticsRoute={false}
-        isArtifactsRoute={false}
         isLibraryRoute
         isOrgRoute={false}
         isPublishingRoute={false}

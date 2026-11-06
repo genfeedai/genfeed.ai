@@ -2,6 +2,7 @@ import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {
   IngredientFormat,
   ModelCategory,
+  ModelLifecycle,
   ModelProvider,
   RouterPriority,
 } from '@genfeedai/contracts';
@@ -111,6 +112,7 @@ describe('PromptBarModelControls', () => {
     isDeleted: false,
     key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
     label: 'Imagen 3',
+    lifecycle: ModelLifecycle.AVAILABLE,
     provider: ModelProvider.REPLICATE,
     updatedAt: '2024-01-01',
   };

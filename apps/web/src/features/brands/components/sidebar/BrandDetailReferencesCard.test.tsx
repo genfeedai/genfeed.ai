@@ -1,12 +1,13 @@
+import { createBrand } from '@genfeedai/helpers/testing/entity-fixtures';
 import type { BrandDetailReferencesCardProps } from '@props/pages/brand-detail.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import BrandDetailReferencesCard from '@/features/brands/components/sidebar/BrandDetailReferencesCard';
 
 describe('BrandDetailReferencesCard', () => {
-  const brand = {
+  const brand: BrandDetailReferencesCardProps['brand'] = createBrand({
     references: [],
-  } as BrandDetailReferencesCardProps['brand'];
+  });
 
   it('should render without crashing', () => {
     const { container } = render(
