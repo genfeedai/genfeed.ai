@@ -30,37 +30,72 @@ const winner = () => ({
   },
 });
 
+type WorkflowRow = Record<string, unknown>;
+
+const stored = (overrides: WorkflowRow = {}): WorkflowRow => ({
+  ...winner(),
+  isDeleted: false,
+  templateInstantiationKey: 'attempt-1',
+  ...overrides,
+});
+
 describe('Seeded template instantiation identity', () => {
-  const findFirst = vi.fn();
-  const brandFindFirst = vi.fn();
-  const syncWorkflowScheduler = vi.fn();
+  let workflows: WorkflowRow[];
+  let lookups: Record<string, unknown>[];
+  let created: Record<string, unknown>[];
+  let scheduled: unknown[][];
+  let executed: unknown[][];
+  let isBrandAuthorized: boolean;
   let service: WorkflowsService;
   beforeEach(() => {
     vi.clearAllMocks();
-    findFirst.mockResolvedValue(null);
-    brandFindFirst.mockResolvedValue({ id: 'brand' });
+    workflows = [];
+    lookups = [];
+    created = [];
+    scheduled = [];
+    executed = [];
+    isBrandAuthorized = true;
+    const findFirst = async ({ where }: { where: Record<string, unknown> }) => {
+      lookups.push(where);
+      return (
+        workflows.find((row) =>
+          Object.entries(where).every(([key, value]) => row[key] === value),
+        ) ?? null
+      );
+    };
     service = new WorkflowsService(
       {
-        brand: { findFirst: brandFindFirst },
+        brand: {
+          findFirst: async () => (isBrandAuthorized ? { id: 'brand' } : null),
+        },
         workflow: { findFirst },
       } as never,
       logger as never,
       {
         get: (token: unknown) =>
           token === WorkflowExecutionQueueService
-            ? { syncWorkflowScheduler }
+            ? {
+                syncWorkflowScheduler: async (...args: unknown[]) => {
+                  scheduled.push(args);
+                },
+              }
             : undefined,
       } as never,
     );
-    vi.spyOn(service, 'create').mockResolvedValue({
-      id: 'created',
-      nodes: [],
-    } as never);
-    vi.spyOn(service, 'executeWorkflow').mockResolvedValue({ mode: 'node' });
+    vi.spyOn(service, 'create').mockImplementation(async (payload) => {
+      created.push(payload as unknown as Record<string, unknown>);
+      return { id: 'created', nodes: [] } as never;
+    });
+    vi.spyOn(service, 'executeWorkflow').mockImplementation(
+      async (...args: unknown[]) => {
+        executed.push(args);
+        return { mode: 'node' } as never;
+      },
+    );
   });
 
   it('replays current edits without a version, scheduler or execution side effect', async () => {
-    findFirst.mockResolvedValue(winner());
+    workflows.push(stored());
     const result = await service.createWorkflow(
       'user',
       'org',
@@ -72,23 +107,34 @@ describe('Seeded template instantiation identity', () => {
       label: 'Edited after creation',
       version: 2,
     });
-    expect(service.create).not.toHaveBeenCalled();
-    expect(syncWorkflowScheduler).not.toHaveBeenCalled();
-    expect(service.executeWorkflow).not.toHaveBeenCalled();
-    expect(findFirst).toHaveBeenCalledWith({
-      include: { currentVersion: true },
-      where: {
-        organizationId: 'org',
-        userId: 'user',
-        templateInstantiationKey: 'attempt-1',
-        isDeleted: false,
-      },
+    expect({ created, executed, scheduled }).toEqual({
+      created: [],
+      executed: [],
+      scheduled: [],
     });
+    expect(lookups[0]).toEqual({
+      organizationId: 'org',
+      userId: 'user',
+      templateInstantiationKey: 'attempt-1',
+      isDeleted: false,
+    });
+  });
+
+  it('creates its own workflow instead of replaying another owner attempt', async () => {
+    workflows.push(
+      stored({ userId: 'another-user' }),
+      stored({ organizationId: 'another-org' }),
+    );
+
+    await expect(
+      service.createWorkflow('user', 'org', request(), 'brand'),
+    ).resolves.toMatchObject({ id: 'created' });
+    expect(created).toHaveLength(1);
   });
 
   it('puts internal identity into the atomic creation payload and only schedules the creator', async () => {
     await service.createWorkflow('user', 'org', request(), 'brand');
-    expect(service.create).toHaveBeenCalledWith(
+    expect(created).toEqual([
       expect.objectContaining({
         templateInstantiationKey: 'attempt-1',
         templateInstantiationRequestHash: hashTemplateInstantiationRequest(
@@ -96,24 +142,22 @@ describe('Seeded template instantiation identity', () => {
           'brand',
         ),
       }),
-    );
-    expect(service.create).toHaveBeenCalledWith(
-      expect.not.objectContaining({ idempotencyKey: expect.anything() }),
-    );
-    expect(syncWorkflowScheduler).toHaveBeenCalledTimes(1);
+    ]);
+    expect(created[0]).not.toHaveProperty('idempotencyKey');
+    expect(scheduled).toHaveLength(1);
   });
 
   it('recovers the concurrent winner outside the failed transaction', async () => {
     const conflict = Object.assign(new Error('unique'), { code: 'P2002' });
-    vi.mocked(service.create).mockRejectedValue(conflict);
-    findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(winner());
+    vi.mocked(service.create).mockImplementation(async () => {
+      // Another request committed the same attempt first.
+      workflows.push(stored());
+      throw conflict;
+    });
     expect(
       await service.createWorkflow('user', 'org', request(), 'brand'),
     ).toMatchObject({ id: 'winner' });
-    expect(syncWorkflowScheduler).not.toHaveBeenCalled();
+    expect(scheduled).toEqual([]);
   });
 
   it.each(['P2002', 'P2034'])(
@@ -128,22 +172,20 @@ describe('Seeded template instantiation identity', () => {
   );
 
   it('checks brand authorization before returning an existing attempt', async () => {
-    brandFindFirst.mockResolvedValue(null);
-    findFirst.mockResolvedValue(winner());
+    isBrandAuthorized = false;
+    workflows.push(stored());
     await expect(
       service.createWorkflow('user', 'org', request(), 'brand'),
     ).rejects.toMatchObject({ status: 400 });
-    expect(findFirst).not.toHaveBeenCalled();
+    expect(lookups).toEqual([]);
   });
 
   it('rejects a key reserved by a deleted workflow', async () => {
-    findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: 'deleted' });
+    workflows.push(stored({ id: 'deleted', isDeleted: true }));
     await expect(
       service.createWorkflow('user', 'org', request(), 'brand'),
     ).rejects.toMatchObject({ status: 409 });
-    expect(service.create).not.toHaveBeenCalled();
+    expect(created).toEqual([]);
   });
 
   it.each([
@@ -165,13 +207,13 @@ describe('Seeded template instantiation identity', () => {
         'brand',
       ),
     ).rejects.toMatchObject({ status: 400 });
-    expect(service.create).not.toHaveBeenCalled();
+    expect(created).toEqual([]);
   });
 
   it.each(['other-brand', undefined])(
     'rejects a changed effective brand %s',
     async (brand) => {
-      findFirst.mockResolvedValue(winner());
+      workflows.push(stored());
       await expect(
         service.createWorkflow('user', 'org', request(), brand),
       ).rejects.toMatchObject({ status: 409 });
@@ -179,10 +221,9 @@ describe('Seeded template instantiation identity', () => {
   );
 
   it('rejects a changed valid seeded template', async () => {
-    findFirst.mockResolvedValue({
-      ...winner(),
-      templateInstantiationRequestHash: 'another-template-hash',
-    });
+    workflows.push(
+      stored({ templateInstantiationRequestHash: 'another-template-hash' }),
+    );
     await expect(
       service.createWorkflow('user', 'org', request(), 'brand'),
     ).rejects.toMatchObject({ status: 409 });

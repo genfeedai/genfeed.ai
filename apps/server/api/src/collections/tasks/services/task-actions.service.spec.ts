@@ -52,8 +52,10 @@ describe('TaskActionsService', () => {
     captureFromTaskReview: ReturnType<typeof vi.fn>;
   };
   let service: TaskActionsService;
+  let memories: Record<string, unknown>[];
 
   beforeEach(() => {
+    memories = [];
     currentTask = { ...baseTask, eventStream: [] };
     tasksService = {
       patch: vi.fn().mockImplementation((_id, data) => {
@@ -73,7 +75,10 @@ describe('TaskActionsService', () => {
       emit: vi.fn().mockResolvedValue(undefined),
     };
     taskFeedbackMemoryAdapter = {
-      captureFromTaskReview: vi.fn().mockResolvedValue(true),
+      captureFromTaskReview: vi.fn(async (input: Record<string, unknown>) => {
+        memories.push(input);
+        return true;
+      }),
     };
 
     service = new TaskActionsService(
@@ -91,9 +96,11 @@ describe('TaskActionsService', () => {
   it('captures approval feedback memory with the reviewer user id', async () => {
     await service.approve(taskId, organizationId, reviewerUserId);
 
-    expect(
-      taskFeedbackMemoryAdapter.captureFromTaskReview,
-    ).toHaveBeenCalledWith(
+    expect(currentTask).toMatchObject({
+      reviewState: 'approved',
+      status: 'done',
+    });
+    expect(memories).toEqual([
       expect.objectContaining({
         decision: 'approved',
         organizationId,
@@ -104,7 +111,7 @@ describe('TaskActionsService', () => {
         }),
         userId: reviewerUserId,
       }),
-    );
+    ]);
   });
 
   it('captures requested-change feedback memory with the reviewer note', async () => {
@@ -115,9 +122,7 @@ describe('TaskActionsService', () => {
       'Tighten the hook.',
     );
 
-    expect(
-      taskFeedbackMemoryAdapter.captureFromTaskReview,
-    ).toHaveBeenCalledWith(
+    expect(memories).toEqual([
       expect.objectContaining({
         decision: 'changes_requested',
         note: 'Tighten the hook.',
@@ -128,15 +133,13 @@ describe('TaskActionsService', () => {
         }),
         userId: reviewerUserId,
       }),
-    );
+    ]);
   });
 
   it('captures kept output feedback memory with the output id', async () => {
     await service.keepOutput(taskId, outputId, organizationId, reviewerUserId);
 
-    expect(
-      taskFeedbackMemoryAdapter.captureFromTaskReview,
-    ).toHaveBeenCalledWith(
+    expect(memories).toEqual([
       expect.objectContaining({
         decision: 'output_kept',
         organizationId,
@@ -146,20 +149,18 @@ describe('TaskActionsService', () => {
         }),
         userId: reviewerUserId,
       }),
-    );
+    ]);
   });
 
   it('falls back to the task assignee when approval actor is omitted', async () => {
     await service.approve(taskId, organizationId);
 
-    expect(
-      taskFeedbackMemoryAdapter.captureFromTaskReview,
-    ).toHaveBeenCalledWith(
+    expect(memories).toEqual([
       expect.objectContaining({
         decision: 'approved',
         userId: assigneeUserId,
       }),
-    );
+    ]);
   });
 
   it('omits feedback memory user id when optional actor and assignee are missing', async () => {
@@ -169,14 +170,15 @@ describe('TaskActionsService', () => {
     await service.keepOutput(taskId, outputId, organizationId);
     await service.trashOutput(taskId, outputId, organizationId);
 
-    const captureInputs =
-      taskFeedbackMemoryAdapter.captureFromTaskReview.mock.calls.map(
-        ([input]) => input,
-      );
-
-    expect(captureInputs).toHaveLength(3);
-    for (const input of captureInputs) {
-      expect(input).not.toHaveProperty('userId');
-    }
+    expect(memories).toEqual([
+      expect.not.objectContaining({ userId: expect.anything() }),
+      expect.not.objectContaining({ userId: expect.anything() }),
+      expect.not.objectContaining({ userId: expect.anything() }),
+    ]);
+    expect(memories.map((memory) => 'userId' in memory)).toEqual([
+      false,
+      false,
+      false,
+    ]);
   });
 });
