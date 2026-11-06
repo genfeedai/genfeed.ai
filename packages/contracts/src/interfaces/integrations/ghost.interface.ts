@@ -58,6 +58,18 @@ export interface GhostConnectPayload {
   brandId: string;
 }
 
+/**
+ * Body of a key-based connect (`POST /services/{ghost,devto,beehiiv}/connect`).
+ * `ghostUrl` is Ghost's site address; `publicationId` picks a Beehiiv
+ * publication (the first one when absent).
+ */
+export interface ApiKeyConnectPayload {
+  apiKey: string;
+  brandId: string;
+  ghostUrl?: string;
+  publicationId?: string;
+}
+
 export interface GhostCreatePostPayload {
   ghostUrl: string;
   apiKey: string;

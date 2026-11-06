@@ -1,4 +1,5 @@
 import { paginatedResponse } from '@app-tests/paginated-response';
+import { queryClientWrapper } from '@app-tests/query-client.harness';
 import { IngredientCategory } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -20,10 +21,16 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: 'brand-1' }),
 }));
 
-vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({
-    findAllPage: async () => paginatedResponse([]),
-  }),
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => {
+    const findAllPage = async () => paginatedResponse([]);
+    return { assets: { findAllPage }, musics: { findAllPage } };
+  },
 }));
 
 vi.mock('@/hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
@@ -106,6 +113,7 @@ function renderGallery(
       title="Pick media"
       {...overrides}
     />,
+    { wrapper: queryClientWrapper() },
   );
   return outcome;
 }

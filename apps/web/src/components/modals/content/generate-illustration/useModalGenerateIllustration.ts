@@ -11,6 +11,7 @@ import {
 import { VIDEO_FORMAT_DIMENSIONS } from '@genfeedai/contracts/constants';
 import type { IImage, IModel } from '@genfeedai/contracts/interfaces';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedQuery } from '@genfeedai/hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type { ModalGenerateIllustrationProps } from '@genfeedai/props/modals/modal.props';
@@ -24,6 +25,15 @@ import { useModalAutoOpen } from '@/hooks/ui/use-modal-auto-open/use-modal-auto-
 import { useGenerationListener } from '@/hooks/utils/use-generation-listener/use-generation-listener';
 
 const HTML_TAGS_PATTERN = /<[^>]+>/g;
+const EMPTY_MODELS: IModel[] = [];
+const IMAGE_MODELS_QUERY = {
+  category: ModelCategory.IMAGE,
+  isActive: true,
+} as const;
+
+function createModelsService(token: string): ModelsService {
+  return ModelsService.getInstance(token);
+}
 const EXCESS_BLANK_LINES_PATTERN = /\n{3,}/g;
 
 /**
@@ -119,13 +129,35 @@ export function useModalGenerateIllustration({
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(
     null,
   );
-  const [models, setModels] = useState<IModel[]>([]);
+  // Cached per viewer: reopening the modal has its model (and cost) at once
+  // and refreshes the catalog in the background.
+  const modelsQuery = useAuthedQuery({
+    enabled: Boolean(isOpen),
+    queryFn: (service, signal) =>
+      service.findAllPages(IMAGE_MODELS_QUERY, signal),
+    queryKey: ['active-models', IMAGE_MODELS_QUERY],
+    service: createModelsService,
+  });
+  const models = modelsQuery.data ?? EMPTY_MODELS;
+  const modelsError = modelsQuery.error;
+  useEffect(() => {
+    if (modelsError) {
+      logger.error('Failed to load models', modelsError);
+    }
+  }, [modelsError]);
 
-  const [defaultModelKey, setDefaultModelKey] = useState<string>(
-    EnvironmentService.MODELS_DEFAULT.image,
+  // The first active default model, or the environment default while the
+  // catalog has not loaded (or failed to).
+  const defaultModel = useMemo(
+    () =>
+      models.find(
+        (m: IModel) =>
+          m.isDefault || m.key === EnvironmentService.MODELS_DEFAULT.image,
+      ) ?? models[0],
+    [models],
   );
-
-  const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const defaultModelKey =
+    defaultModel?.key ?? EnvironmentService.MODELS_DEFAULT.image;
 
   // Refs for callbacks to prevent re-renders
   const onConfirmRef = useRef(onConfirm);
@@ -137,10 +169,6 @@ export function useModalGenerateIllustration({
 
   const getImagesService = useAuthedService((token: string) =>
     ImagesService.getInstance(token),
-  );
-
-  const getModelsService = useAuthedService((token: string) =>
-    ModelsService.getInstance(token),
   );
 
   /**
@@ -202,44 +230,6 @@ export function useModalGenerateIllustration({
 
   const format = useMemo(() => getFormatForPlatform(platform), [platform]);
   const dimensions = useMemo(() => VIDEO_FORMAT_DIMENSIONS[format], [format]);
-
-  // Load models when modal opens
-  useEffect(() => {
-    if (isOpen && models.length === 0 && !isLoadingModels) {
-      const loadModels = async () => {
-        setIsLoadingModels(true);
-        try {
-          const service = await getModelsService();
-          const allModels = await service.findAllPages({
-            category: ModelCategory.IMAGE,
-            isActive: true,
-          });
-
-          setModels(allModels);
-
-          // Set default model (first active model or default from env)
-          const defaultModel =
-            allModels.find(
-              (m: IModel) =>
-                m.isDefault ||
-                m.key === EnvironmentService.MODELS_DEFAULT.image,
-            ) || allModels[0];
-
-          if (defaultModel) {
-            setDefaultModelKey(defaultModel.key);
-          }
-        } catch (err) {
-          logger.error('Failed to load models', err);
-          // Fallback to default model if loading fails
-          setDefaultModelKey(EnvironmentService.MODELS_DEFAULT.image);
-        } finally {
-          setIsLoadingModels(false);
-        }
-      };
-
-      loadModels();
-    }
-  }, [isOpen, models.length, isLoadingModels, getModelsService]);
 
   // Track previous open state to detect modal open transitions
   const prevIsOpenRef = useRef(isOpen);
@@ -364,10 +354,6 @@ export function useModalGenerateIllustration({
     };
     return labels[format];
   }, [format]);
-
-  const defaultModel = useMemo(() => {
-    return models.find((m) => m.key === defaultModelKey);
-  }, [models, defaultModelKey]);
 
   const _modelCost = useMemo(() => {
     return defaultModel?.cost || 0;

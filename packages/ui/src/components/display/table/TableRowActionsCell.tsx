@@ -52,103 +52,112 @@ export function TableRowActionsCell<T>({
       {/* Instant show/hide: the motion policy forbids animating controls. */}
       <div
         className={cn(
-          'flex items-center justify-end gap-1 px-2',
+          'flex items-center justify-end px-2',
           '[@media(hover:hover)]:absolute [@media(hover:hover)]:inset-y-0 [@media(hover:hover)]:right-0 [@media(hover:hover)]:isolate [@media(hover:hover)]:pl-12',
           // Fade: the card at rest, plus the row's hover tint while hovered,
           // so the cluster blends into the row it sits on.
           '[@media(hover:hover)]:bg-[linear-gradient(to_right,transparent,hsl(var(--card))_2.5rem)]',
           "before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:content-[''] group-hover:before:bg-[linear-gradient(to_right,transparent,hsl(var(--accent)/0.6)_2.5rem)]",
-          hoverRevealClassName(),
+          // The fade is only paint. A click on it belongs to the row cell
+          // underneath, so only the actions themselves take the pointer.
+          '[@media(hover:hover)]:pointer-events-none',
+          hoverRevealClassName({ isInteractive: false }),
         )}
         data-table-row-actions
       >
-        {keyListItems(actions, (action) =>
-          typeof action.tooltip === 'function'
-            ? action.tooltip(item)
-            : action.tooltip,
-        ).reduce<ReactNode[]>((acc, { item: action, key }) => {
-          const isVisible = action.isVisible ? action.isVisible(item) : true;
-          if (!isVisible) {
-            return acc;
-          }
-          const actionHref =
-            typeof action.href === 'function' ? action.href(item) : action.href;
-          // A link action with nowhere to go for this row is omitted rather
-          // than rendered dead.
-          if (action.href !== undefined && actionHref === undefined) {
-            return acc;
-          }
-          const iconContent =
-            typeof action.icon === 'function' ? action.icon(item) : action.icon;
-          const tooltipText =
+        <div className={cn('flex items-center gap-1', hoverRevealClassName())}>
+          {keyListItems(actions, (action) =>
             typeof action.tooltip === 'function'
               ? action.tooltip(item)
-              : action.tooltip;
-          const actionAriaLabel =
-            typeof action.ariaLabel === 'function'
-              ? action.ariaLabel(item)
-              : (action.ariaLabel ?? tooltipText);
-          const isActionDisabled = action.isDisabled?.(item) ?? false;
-          const actionClassName = cn(
-            // 44px touch target where the pointer cannot hover; compact icon
-            // control otherwise. Cap glyph size so bare lucide icons don't
-            // render at 24px.
-            'inline-flex size-8 items-center justify-center p-0 [@media(hover:none)]:size-11 [&_svg]:size-3.5',
-            ACTION_TONE_CLASS_NAMES[action.tone ?? 'default'],
-            action.className,
-            action.getClassName?.(item),
-          );
+              : action.tooltip,
+          ).reduce<ReactNode[]>((acc, { item: action, key }) => {
+            const isVisible = action.isVisible ? action.isVisible(item) : true;
+            if (!isVisible) {
+              return acc;
+            }
+            const actionHref =
+              typeof action.href === 'function'
+                ? action.href(item)
+                : action.href;
+            // A link action with nowhere to go for this row is omitted rather
+            // than rendered dead.
+            if (action.href !== undefined && actionHref === undefined) {
+              return acc;
+            }
+            const iconContent =
+              typeof action.icon === 'function'
+                ? action.icon(item)
+                : action.icon;
+            const tooltipText =
+              typeof action.tooltip === 'function'
+                ? action.tooltip(item)
+                : action.tooltip;
+            const actionAriaLabel =
+              typeof action.ariaLabel === 'function'
+                ? action.ariaLabel(item)
+                : (action.ariaLabel ?? tooltipText);
+            const isActionDisabled = action.isDisabled?.(item) ?? false;
+            const actionClassName = cn(
+              // 44px touch target where the pointer cannot hover; compact icon
+              // control otherwise. Cap glyph size so bare lucide icons don't
+              // render at 24px.
+              'inline-flex size-8 items-center justify-center p-0 [@media(hover:none)]:size-11 [&_svg]:size-3.5',
+              ACTION_TONE_CLASS_NAMES[action.tone ?? 'default'],
+              action.className,
+              action.getClassName?.(item),
+            );
 
-          acc.push(
-            actionHref !== undefined && !isActionDisabled ? (
-              <Button
-                key={key}
-                asChild
-                ariaLabel={actionAriaLabel}
-                tooltip={tooltipText}
-                tooltipPosition={action.tooltipPosition || 'top'}
-                data-testid="action-button"
-                variant={ButtonVariant.GHOST}
-                size={ButtonSize.ICON}
-                className={actionClassName}
-              >
-                {action.isExternal ? (
-                  <a
-                    href={actionHref}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                    onClick={() => onActionClick(action, item)}
-                  >
-                    {iconContent}
-                  </a>
-                ) : (
-                  <Link
-                    href={actionHref}
-                    onClick={() => onActionClick(action, item)}
-                  >
-                    {iconContent}
-                  </Link>
-                )}
-              </Button>
-            ) : (
-              <Button
-                key={key}
-                icon={iconContent}
-                ariaLabel={actionAriaLabel}
-                onClick={() => onActionClick(action, item)}
-                isDisabled={isActionDisabled}
-                tooltip={tooltipText}
-                tooltipPosition={action.tooltipPosition || 'top'}
-                data-testid="action-button"
-                variant={ButtonVariant.GHOST}
-                size={ButtonSize.ICON}
-                className={actionClassName}
-              />
-            ),
-          );
-          return acc;
-        }, [])}
-        {renderRowActions?.(item)}
+            acc.push(
+              actionHref !== undefined && !isActionDisabled ? (
+                <Button
+                  key={key}
+                  asChild
+                  ariaLabel={actionAriaLabel}
+                  tooltip={tooltipText}
+                  tooltipPosition={action.tooltipPosition || 'top'}
+                  data-testid="action-button"
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.ICON}
+                  className={actionClassName}
+                >
+                  {action.isExternal ? (
+                    <a
+                      href={actionHref}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                      onClick={() => onActionClick(action, item)}
+                    >
+                      {iconContent}
+                    </a>
+                  ) : (
+                    <Link
+                      href={actionHref}
+                      onClick={() => onActionClick(action, item)}
+                    >
+                      {iconContent}
+                    </Link>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  key={key}
+                  icon={iconContent}
+                  ariaLabel={actionAriaLabel}
+                  onClick={() => onActionClick(action, item)}
+                  isDisabled={isActionDisabled}
+                  tooltip={tooltipText}
+                  tooltipPosition={action.tooltipPosition || 'top'}
+                  data-testid="action-button"
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.ICON}
+                  className={actionClassName}
+                />
+              ),
+            );
+            return acc;
+          }, [])}
+          {renderRowActions?.(item)}
+        </div>
       </div>
     </td>
   );

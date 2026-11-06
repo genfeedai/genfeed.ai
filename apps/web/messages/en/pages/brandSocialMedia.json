@@ -35,17 +35,50 @@
   "empty": "No social accounts connected yet.",
   "emptyAccountsTitle": "No accounts connected yet",
   "expires": " · expires {time}",
-  "ghostConnect": {
-    "apiKeyHelp": "Ghost Admin → Settings → Integrations → Add custom integration. Paste the Admin API key (id:secret).",
-    "apiKeyLabel": "Admin API key",
-    "apiKeyPlaceholder": "64f0c0…:9a1b…",
-    "connectError": "Could not connect Ghost. Check the site URL and Admin API key.",
-    "connected": "Ghost connected",
-    "description": "Paste your Ghost site URL and Admin API key. Articles from this brand publish to this site.",
-    "submit": "Connect Ghost",
-    "title": "Connect Ghost",
-    "urlLabel": "Site URL",
-    "urlPlaceholder": "https://yourblog.com"
+  "apiKeyConnect": {
+    "beehiiv": {
+      "apiKeyHelp": "Create an API key in your Beehiiv workspace settings and paste it here.",
+      "apiKeyLabel": "API key",
+      "apiKeyPlaceholder": "Paste your Beehiiv API key",
+      "connected": "Beehiiv connected",
+      "description": "Paste a Beehiiv API key. Articles from this brand publish to this publication.",
+      "publicationIdHelp": "Starts with pub_. Leave empty to use your first publication.",
+      "publicationIdLabel": "Publication ID (optional)",
+      "publicationIdPlaceholder": "pub_…",
+      "submit": "Connect Beehiiv",
+      "title": "Connect Beehiiv"
+    },
+    "connectError": "Could not connect. Try again in a moment.",
+    "devto": {
+      "apiKeyHelp": "Generate a key on dev.to under Settings → Extensions, then paste it here.",
+      "apiKeyLabel": "API key",
+      "apiKeyPlaceholder": "Paste your dev.to API key",
+      "connected": "dev.to connected",
+      "description": "Paste a dev.to API key. Articles from this brand publish to this author.",
+      "submit": "Connect dev.to",
+      "title": "Connect dev.to"
+    },
+    "errors": {
+      "apiNotFound": "That address answered, but not as a Ghost site. Enter the address you open Ghost Admin at, without /ghost.",
+      "httpsRequired": "Use the https:// address of your site.",
+      "invalidKeyFormat": "That is not an Admin API key. Ghost shows it as id:secret under Settings → Integrations.",
+      "invalidUrl": "That site URL is not valid. Enter its public address, for example https://yourblog.com.",
+      "keyRejected": "The key was rejected. Check that you copied all of it and that it has not been revoked.",
+      "publicationNotFound": "This key sees no matching publication. Check the publication ID, or leave it empty to use your first one.",
+      "siteRedirected": "That address redirects somewhere else. Enter the address your site finally opens at, including www if it uses it.",
+      "siteUnreachable": "Could not reach that site. Check the address for typos and that the site is online."
+    },
+    "ghost": {
+      "apiKeyHelp": "Ghost Admin → Settings → Integrations → Add custom integration. Paste the Admin API key (id:secret).",
+      "apiKeyLabel": "Admin API key",
+      "apiKeyPlaceholder": "64f0c0…:9a1b…",
+      "connected": "Ghost connected",
+      "description": "Paste your Ghost site URL and Admin API key. Articles from this brand publish to this site.",
+      "submit": "Connect Ghost",
+      "title": "Connect Ghost",
+      "urlLabel": "Site URL",
+      "urlPlaceholder": "https://yourblog.com"
+    }
   },
   "health": {
     "accountAgeFailed": "Platform account-age check failed. Missing or stale evidence is tracked separately.",

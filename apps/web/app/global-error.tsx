@@ -19,8 +19,11 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    // Same opt-out as the root layout: browser page translation rewrites text
+    // nodes React owns, and the next update throws removeChild/insertBefore.
+    <html lang="en" translate="no" suppressHydrationWarning>
       <head>
+        <meta content="notranslate" name="google" />
         <ThemeDocumentBootstrapScript />
       </head>
       <body className="gf-app gf-studio-app bg-background text-foreground">

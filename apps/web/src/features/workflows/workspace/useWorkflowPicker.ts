@@ -1,89 +1,91 @@
 'use client';
 
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { logger } from '@services/core/logger.service';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type SetStateAction, useCallback, useMemo, useState } from 'react';
 import {
   createWorkflowApiService,
   type WorkflowSummary,
 } from '@/features/workflows/services/workflow-api';
 
 const WORKFLOW_PICKER_PAGE_SIZE = 12;
+const WORKFLOW_PICKER_SORT = 'updatedAt: -1';
+const EMPTY_WORKFLOWS: WorkflowSummary[] = [];
 
 interface UseWorkflowPickerOptions {
   readonly activeBrandId?: string | null;
 }
 
+/**
+ * One server page of the brand's authorized workflows, searched on the page.
+ *
+ * Cached per brand and page, so reopening the picker paints the last list at
+ * once and refreshes it in the background. Another brand never sees it, and a
+ * brand change starts again at page 1. A failed background refresh keeps the
+ * list on screen; the error only replaces it when there is nothing to show.
+ */
 export function useWorkflowPicker({ activeBrandId }: UseWorkflowPickerOptions) {
-  const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
-  const [page, setPage] = useState(1);
+  const brandId = activeBrandId ?? null;
+  const [pageState, setPageState] = useState({ brandId, page: 1 });
+  const page = pageState.brandId === brandId ? pageState.page : 1;
+  const setPage = useCallback(
+    (next: SetStateAction<number>) => {
+      setPageState((current) => {
+        const currentPage = current.brandId === brandId ? current.page : 1;
+        return {
+          brandId,
+          page: typeof next === 'function' ? next(currentPage) : next,
+        };
+      });
+    },
+    [brandId],
+  );
   const [search, setSearch] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadKey, setReloadKey] = useState(0);
-  const getService = useAuthedService(createWorkflowApiService);
 
-  useEffect(() => {
-    void reloadKey;
-    if (!activeBrandId) {
-      setError(null);
-      setIsLoading(false);
-      setWorkflows([]);
-      return;
-    }
-
-    const controller = new AbortController();
-
-    const load = async (): Promise<void> => {
-      setIsLoading(true);
-      setError(null);
-
+  const workflowsQuery = useAuthedQuery({
+    enabled: Boolean(brandId),
+    queryFn: async (service) => {
+      if (!brandId) {
+        throw new Error('workflow_picker_brand_required');
+      }
       try {
-        const service = await getService();
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        const data = await service.list({
-          brandId: activeBrandId,
+        return await service.list({
+          brandId,
           limit: WORKFLOW_PICKER_PAGE_SIZE,
           page,
-          sort: 'updatedAt: -1',
+          sort: WORKFLOW_PICKER_SORT,
         });
-        if (!controller.signal.aborted) {
-          setWorkflows(data);
-        }
       } catch (cause) {
-        if (controller.signal.aborted) {
-          return;
-        }
         logger.error('Failed to load workflow picker', { cause, page });
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : 'Failed to load authorized workflows',
-        );
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
+        throw cause;
       }
-    };
-
-    void load();
-    return () => controller.abort();
-  }, [activeBrandId, getService, page, reloadKey]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: brand changes must reset server pagination before the next request.
-  useEffect(() => {
-    setPage(1);
-  }, [activeBrandId]);
+    },
+    queryKey: [
+      'workflow-picker',
+      brandId,
+      { limit: WORKFLOW_PICKER_PAGE_SIZE, page, sort: WORKFLOW_PICKER_SORT },
+    ],
+    service: createWorkflowApiService,
+  });
+  const workflows =
+    brandId && workflowsQuery.data ? workflowsQuery.data : EMPTY_WORKFLOWS;
+  // A retry after a failed first read shows the spinner again; a background
+  // refresh behind cached rows does not.
+  const isLoading =
+    Boolean(brandId) &&
+    !workflowsQuery.data &&
+    (workflowsQuery.isPending || workflowsQuery.isFetching);
+  const loadError = workflowsQuery.error;
+  const error =
+    brandId && loadError && !workflowsQuery.data
+      ? loadError.message || 'Failed to load authorized workflows'
+      : null;
 
   const visibleWorkflows = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
     return workflows.filter((workflow) => {
-      if (activeBrandId && workflow.brandId !== activeBrandId) {
+      if (brandId && workflow.brandId !== brandId) {
         return false;
       }
 
@@ -95,11 +97,12 @@ export function useWorkflowPicker({ activeBrandId }: UseWorkflowPickerOptions) {
         .toLowerCase()
         .includes(normalizedSearch);
     });
-  }, [activeBrandId, search, workflows]);
+  }, [brandId, search, workflows]);
 
+  const { refetch } = workflowsQuery;
   const retry = useCallback(() => {
-    setReloadKey((current) => current + 1);
-  }, []);
+    void refetch();
+  }, [refetch]);
 
   return {
     error,

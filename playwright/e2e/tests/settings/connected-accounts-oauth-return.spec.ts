@@ -4,6 +4,7 @@ import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { generateMockBrand } from '../../utils/api-interceptor';
 import { brandPath } from '../../utils/app-chrome';
+import { exactUrlPattern } from '../../utils/exact-url';
 
 const CONNECTED_ACCOUNTS_ROUTE = brandPath(
   APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
@@ -82,9 +83,12 @@ test.describe('Connected accounts after the OAuth redirect', () => {
       { timeout: 60000, waitUntil: 'domcontentloaded' },
     );
 
-    await expect(authenticatedPage).toHaveURL(/settings\/connected-accounts/, {
-      timeout: 30000,
-    });
+    // The callback returns to the stored route exactly (renamed to
+    // /settings/accounts in #9387).
+    await expect(authenticatedPage).toHaveURL(
+      exactUrlPattern(CONNECTED_ACCOUNTS_ROUTE, authenticatedPage.url()),
+      { timeout: 30000 },
+    );
     const table = authenticatedPage.getByRole('table', {
       name: 'Connected accounts',
     });

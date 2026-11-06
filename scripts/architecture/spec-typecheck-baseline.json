@@ -529,22 +529,6 @@
       "workspace": "api"
     },
     {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/server/api/src/collections/evaluations/controllers/evaluations.controller.spec.ts",
-      "fingerprint": "4b8097a65850b02da92b",
-      "message": "Type '{}' is missing the following properties from type 'EvaluateContentDto': contentType, contentId",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 2,
-      "file": "apps/server/api/src/collections/evaluations/controllers/evaluations.controller.spec.ts",
-      "fingerprint": "aec67aaddb89ed00098f",
-      "message": "Type '{ evaluationType: EvaluationType.PRE_PUBLICATION; }' is missing the following properties from type 'EvaluateContentDto': contentType, contentId",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/evaluations/services/evaluations-operations.service.spec.ts",
@@ -4025,14 +4009,6 @@
       "workspace": "web"
     },
     {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/library/captions/captions-list.test.tsx",
-      "fingerprint": "f34b1f018c7f9cf302f5",
-      "message": "Conversion of type '{ createdAt: string; format: \"srt\"; id: string; label: string; }' to type 'Caption' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ createdAt: string; format: \"srt\"; id: string; label: string; }' is missing the following properties from type 'Caption': ingredient, user, language, isDeleted, updatedAt",
-      "workspace": "web"
-    },
-    {
       "code": 5097,
       "count": 1,
       "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/library/library-credit-notice.test.tsx",
@@ -4110,38 +4086,6 @@
       "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/posts/[id]/resolve-publishing-content-kind.test.ts",
       "fingerprint": "ff77c43090a4486c0458",
       "message": "Type '{ findOne: Mock<Procedure | Constructable>; }' is not assignable to type 'ContentLookup'.   Types of property 'findOne' are incompatible.     Type 'Mock<Procedure | Constructable>' is not assignable to type '(id: string, query?: Record<string, unknown> | undefined, signal?: AbortSignal | undefined) => Promise<unknown>'.       Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '(id: string, query?: Record<string, unknown> | undefined, signal?: AbortSignal | undefined) => Promise<unknown>'.         Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' provides no match for the signature '(id: string, query?: Record<string, unknown> | undefined, signal?: AbortSignal | undefined): Promise<unknown>'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/publishing/content.test.tsx",
-      "fingerprint": "4c65247b978f593cf15c",
-      "message": "Type 'null' is not assignable to type '{ agentConfig: { autoPublish: { confidenceThreshold: number; enabled: boolean; }; schedule: { cronExpression: string; enabled: boolean; timezone: string; }; }; }'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2353,
-      "count": 3,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/publishing/content.test.tsx",
-      "fingerprint": "46a29ab5575b96446896",
-      "message": "Object literal may only specify known properties, and 'isApprovalRequired' does not exist in type '{ confidenceThreshold: number; enabled: boolean; }'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/publishing/content.test.tsx",
-      "fingerprint": "1b8ff404bd7dd7c70558",
-      "message": "Type '{}' is missing the following properties from type '{ autoPublish: { confidenceThreshold: number; enabled: boolean; }; schedule: { cronExpression: string; enabled: boolean; timezone: string; }; }': autoPublish, schedule",
-      "workspace": "web"
-    },
-    {
-      "code": 2739,
-      "count": 4,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/publishing/content.test.tsx",
-      "fingerprint": "57c781dc31baf8ecb75f",
-      "message": "Type '{}' is missing the following properties from type '{ autoPublish: { confidenceThreshold: number; enabled: boolean; }; schedule: { cronExpression: string; enabled: boolean; timezone: string; }; }': autoPublish, schedule",
       "workspace": "web"
     },
     {

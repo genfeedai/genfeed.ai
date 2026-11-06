@@ -85,7 +85,10 @@ test.describe('Workflows', () => {
     await expect(
       editorActions.getByRole('button', { name: 'Publish' }),
     ).toBeVisible();
-    await editorActions
+    // The "..." menu sits in the bar's overflow slot, first in the right
+    // cluster, not in the editor's actions cluster.
+    await authenticatedPage
+      .getByTestId('section-topbar-icon-actions')
       .getByRole('button', { name: 'Workflow actions' })
       .focus();
     await authenticatedPage.keyboard.press('Enter');

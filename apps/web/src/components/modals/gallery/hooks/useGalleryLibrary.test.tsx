@@ -1,4 +1,8 @@
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
   IngredientCategory,
   IngredientOrigin,
   IngredientStatus,
@@ -24,7 +28,11 @@ const mocks = vi.hoisted(() => {
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: 'brand-1' }),
 }));
-vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
 vi.mock('@genfeedai/services/core/notifications.service', () => ({
@@ -61,7 +69,9 @@ describe('useGalleryLibrary', () => {
 
   it("lists the brand's finished assets of one type, newest first", async () => {
     mocks.findAllPage.mockResolvedValue(page(['clip-1', 'clip-2']));
-    const { result } = renderHook(() => useGalleryLibrary(props));
+    const { result } = renderHook(() => useGalleryLibrary(props), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.items.map((item) => item.id)).toEqual([
@@ -83,7 +93,9 @@ describe('useGalleryLibrary', () => {
   });
 
   it('narrows the list by search, origin and starred', async () => {
-    const { result } = renderHook(() => useGalleryLibrary(props));
+    const { result } = renderHook(() => useGalleryLibrary(props), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     act(() => {
@@ -107,7 +119,9 @@ describe('useGalleryLibrary', () => {
     mocks.findAllPage
       .mockResolvedValueOnce(page(['a', 'b'], 'cursor-2'))
       .mockResolvedValueOnce(page(['b', 'c']));
-    const { result } = renderHook(() => useGalleryLibrary(props));
+    const { result } = renderHook(() => useGalleryLibrary(props), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.hasMore).toBe(true));
 
     await act(() => result.current.loadMore());
@@ -126,7 +140,7 @@ describe('useGalleryLibrary', () => {
   it('starts from the whole Library when reopened', async () => {
     const { result, rerender } = renderHook(
       ({ isOpen }) => useGalleryLibrary({ ...props, isOpen }),
-      { initialProps: { isOpen: true } },
+      { initialProps: { isOpen: true }, wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     act(() => {
@@ -142,10 +156,89 @@ describe('useGalleryLibrary', () => {
 
   it('tells the user when the Library cannot load', async () => {
     mocks.findAllPage.mockRejectedValueOnce(new Error('offline'));
-    const { result } = renderHook(() => useGalleryLibrary(props));
+    const { result } = renderHook(() => useGalleryLibrary(props), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.items).toEqual([]);
     expect(mocks.error).toHaveBeenCalledWith('Failed to load the Library');
+  });
+
+  it('paints the cached grid on reopen without a loading state', async () => {
+    mocks.findAllPage.mockResolvedValueOnce(page(['clip-1']));
+    const client = createTestQueryClient();
+    const first = renderHook(() => useGalleryLibrary(props), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() => expect(first.result.current.items).toHaveLength(1));
+    first.unmount();
+
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(() => useGalleryLibrary(props), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.items.map((item) => item.id)).toEqual(['clip-1']);
+  });
+
+  it('never paints one category cached for another', async () => {
+    mocks.findAllPage.mockResolvedValueOnce(page(['clip-1']));
+    const client = createTestQueryClient();
+    const first = renderHook(() => useGalleryLibrary(props), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() => expect(first.result.current.items).toHaveLength(1));
+    first.unmount();
+
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(
+      () => useGalleryLibrary({ ...props, category: IngredientCategory.IMAGE }),
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.items).toEqual([]);
+  });
+
+  it('keeps the tiles on screen while a new search loads', async () => {
+    mocks.findAllPage.mockResolvedValueOnce(page(['clip-1'], 'cursor-2'));
+    const { result } = renderHook(() => useGalleryLibrary(props), {
+      wrapper: queryClientWrapper(),
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
+    act(() => result.current.onSearchChange('founder'));
+
+    await waitFor(() =>
+      expect(mocks.findAllPage.mock.lastCall?.[0]).toMatchObject({
+        search: 'founder',
+      }),
+    );
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.items.map((item) => item.id)).toEqual(['clip-1']);
+    expect(result.current.hasMore).toBe(false);
+  });
+
+  it('re-reads the open grid after an upload and keeps its tiles meanwhile', async () => {
+    mocks.findAllPage
+      .mockResolvedValueOnce(page(['clip-1']))
+      .mockResolvedValueOnce(page(['uploaded', 'clip-1']));
+    const { result } = renderHook(() => useGalleryLibrary(props), {
+      wrapper: queryClientWrapper(),
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    act(() => result.current.onRefresh());
+
+    expect(result.current.isLoading).toBe(false);
+    await waitFor(() =>
+      expect(result.current.items.map((item) => item.id)).toEqual([
+        'uploaded',
+        'clip-1',
+      ]),
+    );
   });
 });

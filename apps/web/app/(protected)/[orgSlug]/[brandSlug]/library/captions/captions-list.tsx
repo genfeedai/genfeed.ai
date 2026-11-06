@@ -10,7 +10,8 @@ import type {
   IQueryParams,
 } from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import type { Caption } from '@models/content/caption.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { CaptionsService } from '@services/content/captions.service';
@@ -24,12 +25,12 @@ import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
-/** Columns the captions endpoint can order by. */
 const EMPTY_CAPTIONS: Caption[] = [];
 
+/** Columns the captions endpoint can order by. */
 const CAPTION_SORT_KEYS = ['format', 'createdAt'];
 
 function CaptionsListContent() {
@@ -43,15 +44,56 @@ function CaptionsListContent() {
     allowedKeys: CAPTION_SORT_KEYS,
   });
 
-  const getCaptionsService = useAuthedService(
-    useCallback((token: string) => CaptionsService.getInstance(token), []),
-  );
+  const { orgId, userId } = useAuthIdentity();
 
-  const [captionsPage, setCaptionsPage] =
-    useState<IPaginatedResponse<Caption> | null>(null);
+  // Captions belong to the signed-in member in their organization. Each
+  // page, search and sort is cached, so returning paints the last list at
+  // once and refreshes it in the background; a new page, search or sort
+  // keeps the current rows on screen while it loads.
+  const scopeKey = ['library-captions', orgId ?? null, userId ?? null];
+  const captionsQuery = useAuthedQuery<
+    CaptionsService,
+    IPaginatedResponse<Caption>
+  >({
+    keepPreviousDataWithin: scopeKey,
+    queryFn: async (service, signal) => {
+      const query: IQueryParams = {
+        limit: ITEMS_PER_PAGE,
+        page: currentPage,
+        ...(search ? { search } : {}),
+        ...(sort ? { sort } : {}),
+      };
+      try {
+        return await service.findAllPage(query, signal);
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('GET /captions failed', error);
+        }
+        throw error;
+      }
+    },
+    queryKey: [...scopeKey, { page: currentPage, search, sort: sort ?? null }],
+    service: (token: string) => CaptionsService.getInstance(token),
+  });
+
+  const captionsPage = captionsQuery.data;
   const captions = captionsPage?.items ?? EMPTY_CAPTIONS;
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const hasCaptions = captionsPage !== undefined;
+  const queryError = captionsQuery.error;
+  // An error replaces the list only when there is nothing to show; a retry
+  // brings the loading rows back while it runs.
+  const loadError =
+    queryError && !hasCaptions && !captionsQuery.isFetching
+      ? 'Captions could not be loaded.'
+      : null;
+  const isLoading = !hasCaptions && !loadError;
+  const { refetch } = captionsQuery;
+
+  useEffect(() => {
+    if (queryError && !hasCaptions) {
+      notificationsService.error('Failed to load captions');
+    }
+  }, [hasCaptions, notificationsService, queryError]);
 
   const columns: TableColumn<Caption>[] = [
     { header: 'Label', key: 'label' },
@@ -86,52 +128,6 @@ function CaptionsListContent() {
     kind: 'record',
   });
 
-  // Only the latest request may fill the list, so a slow response for an
-  // earlier sort or search cannot replace the current one.
-  const requestRef = useRef<AbortController | null>(null);
-
-  const findAllCaptions = useCallback(async () => {
-    requestRef.current?.abort();
-    const request = new AbortController();
-    requestRef.current = request;
-    setCaptionsPage(null);
-    setIsLoading(true);
-    setLoadError(null);
-
-    try {
-      const service = await getCaptionsService();
-      const query: IQueryParams = {
-        limit: ITEMS_PER_PAGE,
-        page: currentPage,
-        ...(search ? { search } : {}),
-        ...(sort ? { sort } : {}),
-      };
-
-      const data = await service.findAllPage(query, request.signal);
-      if (request.signal.aborted) {
-        return;
-      }
-      setCaptionsPage(data);
-      setIsLoading(false);
-      setLoadError(null);
-      logger.info('GET /captions success', data.items);
-    } catch (error) {
-      if (request.signal.aborted) {
-        return;
-      }
-      logger.error('GET /captions failed', error);
-      notificationsService.error('Failed to load captions');
-      setCaptionsPage(null);
-      setIsLoading(false);
-      setLoadError('Captions could not be loaded.');
-    }
-  }, [currentPage, getCaptionsService, notificationsService, search, sort]);
-
-  useEffect(() => {
-    void findAllCaptions();
-    return () => requestRef.current?.abort();
-  }, [findAllCaptions]);
-
   return (
     <>
       {loadError ? (
@@ -142,7 +138,7 @@ function CaptionsListContent() {
               label="Retry"
               variant={ButtonVariant.SECONDARY}
               onClick={() => {
-                void findAllCaptions();
+                void refetch();
               }}
             />
           </AlertActions>

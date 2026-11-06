@@ -14,7 +14,6 @@ import type {
   IQueryParams,
   IVideo,
 } from '@genfeedai/contracts/interfaces';
-import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type {
   GalleryLoadedPage,
   GalleryTab,
@@ -25,9 +24,30 @@ import { AssetsService } from '@genfeedai/services/content/assets.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { MusicsService } from '@genfeedai/services/ingredients/musics.service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const EMPTY_ITEMS: never[] = [];
+
+/** What the gallery pages itself: music tracks or the brand's references. */
+type GalleryResource = 'brand-references' | 'music';
+
+interface GalleryPageRequest {
+  page: number;
+  tab: GalleryTab;
+}
+
+interface GalleryServices {
+  assets: AssetsService;
+  musics: MusicsService;
+}
+
+function createGalleryServices(token: string): GalleryServices {
+  return {
+    assets: AssetsService.getInstance(token),
+    musics: MusicsService.getInstance(token),
+  };
+}
 
 export function useModalGallery({
   category,
@@ -43,19 +63,8 @@ export function useModalGallery({
   const [selectedItemsData, setSelectedItemsData] = useState<
     (IVideo | IMusic | IImage)[]
   >([]);
-  const [loadedPage, setLoadedPage] = useState<GalleryLoadedPage | null>(null);
-  const requestRef = useRef<AbortController | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<GalleryTab>('media');
   const [localFormat, setLocalFormat] = useState<IngredientFormat>(format);
-  const items =
-    loadedPage?.tab === 'media' ? loadedPage.data.items : EMPTY_ITEMS;
-  const references =
-    loadedPage?.tab === 'references' ? loadedPage.data.items : EMPTY_ITEMS;
-  const currentPage = loadedPage?.tab === activeTab ? loadedPage.data.page : 1;
-  const totalPages =
-    loadedPage?.tab === activeTab ? loadedPage.data.totalPages : 1;
-  const isLoadingReferences = isLoading && activeTab === 'references';
   // Images and videos list through the Library grid, which loads itself; the
   // gallery pages only music tracks and brand references.
   const isLibraryTab =
@@ -82,14 +91,6 @@ export function useModalGallery({
     [],
   );
 
-  const getMusicsService = useAuthedService((token: string) =>
-    MusicsService.getInstance(token),
-  );
-
-  const getAssetsService = useAuthedService((token: string) =>
-    AssetsService.getInstance(token),
-  );
-
   const notifySelectionLimit = () => {
     if (Number.isFinite(selectionLimit)) {
       notificationsService.error(
@@ -100,79 +101,94 @@ export function useModalGallery({
     }
   };
 
-  const loadPage = useCallback(
-    async (page = 1) => {
-      requestRef.current?.abort();
-      if (isLibraryTab) {
-        return;
+  // The page belongs to the tab it was picked on: another tab starts at one.
+  const [pageRequest, setPageRequest] = useState<GalleryPageRequest>({
+    page: 1,
+    tab: 'media',
+  });
+  const page = pageRequest.tab === activeTab ? pageRequest.page : 1;
+  const resource: GalleryResource =
+    activeTab === 'references' ? 'brand-references' : 'music';
+  const scopeKey = ['modal-gallery', resource, brandId ?? null] as const;
+
+  // Music tracks and brand references are cached per brand and page, so a
+  // reopened picker paints its last list at once and refreshes it in the
+  // background; another page keeps the current rows until it lands.
+  const pageQuery = useAuthedQuery<GalleryServices, GalleryLoadedPage>({
+    enabled: isOpen && !isLibraryTab,
+    keepPreviousDataWithin: scopeKey,
+    queryFn: async (services, signal) => {
+      const query: IQueryParams = { page, sort: 'createdAt: -1' };
+      if (resource === 'brand-references') {
+        return {
+          data: await services.assets.findAllPage(
+            {
+              ...query,
+              category: AssetCategory.REFERENCE,
+              lightweight: true,
+              parent: brandId,
+              parentModel: 'Brand',
+            },
+            signal,
+          ),
+          tab: 'references',
+        };
       }
-
-      const controller = new AbortController();
-      requestRef.current = controller;
-      const { signal } = controller;
-      setIsLoading(true);
-
-      try {
-        const query: IQueryParams = { page, sort: 'createdAt: -1' };
-        let nextPage: GalleryLoadedPage;
-
-        if (activeTab === 'references') {
-          const service = await getAssetsService();
-          if (signal.aborted) return;
-          nextPage = {
-            tab: 'references',
-            data: await service.findAllPage(
-              {
-                ...query,
-                category: AssetCategory.REFERENCE,
-                lightweight: true,
-                parent: brandId,
-                parentModel: 'Brand',
-              },
-              signal,
-            ),
-          };
-        } else {
-          const service = await getMusicsService();
-          if (signal.aborted) return;
-          nextPage = {
-            tab: 'media',
-            data: await service.findAllPage(
-              {
-                ...query,
-                ...(brandId && { brand: brandId }),
-                status: [
-                  IngredientStatus.GENERATED,
-                  IngredientStatus.VALIDATED,
-                ],
-              },
-              signal,
-            ),
-          };
-        }
-
-        if (!signal.aborted) setLoadedPage(nextPage);
-      } catch (error) {
-        if (signal.aborted) return;
-        logger.error('Failed to load gallery page', error);
-        notificationsService.error(
-          activeTab === 'references'
-            ? 'Failed to load brand references. Some files may be too large.'
-            : 'Failed to load music',
-        );
-        setLoadedPage(null);
-      } finally {
-        if (!signal.aborted) setIsLoading(false);
-      }
+      return {
+        data: await services.musics.findAllPage(
+          {
+            ...query,
+            ...(brandId && { brand: brandId }),
+            status: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
+          },
+          signal,
+        ),
+        tab: 'media',
+      };
     },
-    [
-      activeTab,
-      brandId,
-      getAssetsService,
-      getMusicsService,
-      isLibraryTab,
-      notificationsService,
-    ],
+    queryKey: [...scopeKey, { page }],
+    service: createGalleryServices,
+  });
+
+  // A closed picker shows nothing; the cache paints it again on reopen.
+  const loadedPage = isOpen && !isLibraryTab ? pageQuery.data : undefined;
+  const items =
+    loadedPage?.tab === 'media' ? loadedPage.data.items : EMPTY_ITEMS;
+  const references =
+    loadedPage?.tab === 'references' ? loadedPage.data.items : EMPTY_ITEMS;
+  // While the next page loads, the pager already shows the one asked for.
+  const currentPage =
+    loadedPage?.tab !== activeTab
+      ? 1
+      : pageQuery.isPlaceholderData
+        ? page
+        : loadedPage.data.page;
+  const totalPages =
+    loadedPage?.tab === activeTab ? loadedPage.data.totalPages : 1;
+  const isLoading = isOpen && !isLibraryTab && pageQuery.isLoading;
+  const isLoadingReferences = isLoading && activeTab === 'references';
+
+  // Only a read with nothing to show says so; a failed background refresh
+  // keeps the list on screen.
+  const pageError = pageQuery.error;
+  const hasPageData = pageQuery.data !== undefined;
+  useEffect(() => {
+    if (!pageError || hasPageData) {
+      return;
+    }
+    logger.error('Failed to load gallery page', pageError);
+    notificationsService.error(
+      resource === 'brand-references'
+        ? 'Failed to load brand references. Some files may be too large.'
+        : 'Failed to load music',
+    );
+  }, [hasPageData, notificationsService, pageError, resource]);
+
+  const loadPage = useCallback(
+    async (nextPage = 1) => {
+      setPageRequest({ page: nextPage, tab: activeTab });
+    },
+    [activeTab],
   );
 
   // Sync format prop to local state whenever format changes (not just on open)
@@ -183,19 +199,11 @@ export function useModalGallery({
   }, [format]);
 
   useEffect(() => {
-    if (!isOpen) return;
-    setLoadedPage(null);
-    void loadPage(1);
-    return () => requestRef.current?.abort();
-  }, [isOpen, loadPage]);
-
-  useEffect(() => {
     if (!isOpen) {
-      setLoadedPage(null);
       setActiveTab('media');
+      setPageRequest({ page: 1, tab: 'media' });
       setSelectedItems([]);
       setSelectedItemsData([]);
-      setIsLoading(true);
     }
   }, [isOpen]);
 

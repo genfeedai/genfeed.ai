@@ -415,6 +415,64 @@ jobs:
               --since 30m --format short | tail -n 300 || true
           done
 
+      # Read-only gate for 20261105210000_publish_status_checks: that migration
+      # pins four status columns with CHECKs, and its VALIDATE step fails the
+      # deploy on any out-of-set row. This runs the same migrate image with a
+      # single SELECT-only DO block (no writes) and fails BEFORE the snapshot
+      # and the migrate task when a row is out of set, so a bad row stops the
+      # deploy with the database untouched. Remove once the CHECKs are live.
+      - name: Check publish status columns hold only enum values (read-only)
+        id: status-columns-check
+        working-directory: ops/${{ env.TF_DIR }}
+        run: |
+          set -euo pipefail
+          CLUSTER=$(tofu output -raw cluster_name)
+          TASK_DEFINITION=$(tofu output -raw migrate_task_definition_arn)
+          SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
+          SG=$(tofu output -raw task_security_group)
+          # A command override replaces the definition's whole command, so the
+          # script is one `sh -c` argument. The heredoc is quoted: no expansion.
+          IFS= read -r -d '' check_script <<'SCRIPT' || true
+          cat <<'SQL' | bun x prisma db execute --stdin
+          DO $$
+          DECLARE bad text;
+          BEGIN
+            SELECT string_agg(col || '=' || coalesce(value, 'NULL') || ' x' || n, ', ') INTO bad FROM (
+              SELECT 'posts.targetExecutionState' AS col, "targetExecutionState"::text AS value, count(*) AS n FROM "posts"
+                WHERE "targetExecutionState"::text NOT IN ('draft','scheduled','paused','cancelled','publishing','published','failed','skipped') GROUP BY 2
+              UNION ALL
+              SELECT 'post_groups.status', "status"::text, count(*) FROM "post_groups"
+                WHERE "status"::text NOT IN ('draft','scheduled','paused','cancelled','publishing','published','failed','partially-published') GROUP BY 2
+              UNION ALL
+              SELECT 'post_provider_publish_receipts.status', "status"::text, count(*) FROM "post_provider_publish_receipts"
+                WHERE "status"::text NOT IN ('attempting','accepted','uncertain','released') GROUP BY 2
+              UNION ALL
+              SELECT 'notification_deliveries.status', "status"::text, count(*) FROM "notification_deliveries"
+                WHERE "status"::text NOT IN ('pending','processing','retry_pending','delivered','skipped','failed') GROUP BY 2
+            ) t;
+            IF bad IS NOT NULL THEN
+              RAISE EXCEPTION 'out-of-set status rows: %', bad;
+            END IF;
+          END
+          $$;
+          SQL
+          SCRIPT
+          bun "${GITHUB_WORKSPACE}/ops/scripts/deploy/hosted-saas/ecs-run-task-and-wait.ts" \
+            --phase status-columns-check \
+            --cluster "$CLUSTER" \
+            --task-definition "$TASK_DEFINITION" \
+            --subnets "$SUBNETS" \
+            --security-groups "$SG" \
+            --timeout-seconds 300 \
+            --container-name migrate \
+            --command-arg sh --command-arg -c --command-arg "$check_script"
+
+      - name: Print status-columns check logs on failure
+        if: ${{ failure() && steps.status-columns-check.outcome == 'failure' }}
+        run: |
+          aws logs tail "/ecs/${TF_VAR_project}-production/migrate" \
+            --since 30m --format short | tail -n 100 || true
+
       - name: Snapshot RDS before migrations (fail-closed)
         env:
           RDS_INSTANCE_ID: ${{ vars.RDS_INSTANCE_ID }}

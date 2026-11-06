@@ -44,7 +44,7 @@ for (const viewport of [
     await expect(
       canvas.getByRole('heading', { level: 1, name: 'Responsive draft' }),
     ).toBeVisible();
-    // The first editable region is the post editor; the prompt bar has its own.
+    // The first editable region is the post editor.
     const editor = canvas.locator('[contenteditable="true"]').first();
     await expect(editor).toBeVisible();
     const editorBounds = await editor.boundingBox();
@@ -54,21 +54,19 @@ for (const viewport of [
       (editorBounds?.x ?? 0) + (editorBounds?.width ?? 0),
     ).toBeLessThanOrEqual(viewport.width);
 
-    // #6807: one docked prompt bar writes and rewrites; its input is labelled.
-    const prompt = canvas.getByRole('textbox', {
+    // #9382: the prompt bar became one compact row of AI actions under the
+    // editor; it must stay usable and inside the viewport.
+    const actions = canvas.getByRole('region', {
       exact: true,
-      name: 'Ask AI to write or rewrite',
+      name: 'AI actions',
     });
-    await expect(prompt).toBeVisible();
-    const promptBounds = await prompt.boundingBox();
-    expect(promptBounds?.width).toBeGreaterThanOrEqual(120);
+    await expect(actions).toBeVisible();
     await expect(
-      canvas.getByRole('button', { name: 'Rewrite', exact: true }),
-    ).toBeDisabled();
-    await prompt.fill('QA layout check');
-    await expect(
-      canvas.getByRole('button', { name: 'Rewrite', exact: true }),
+      actions.getByRole('button', { exact: true, name: 'Shorten' }),
     ).toBeEnabled();
+    await expect(
+      actions.getByRole('combobox', { exact: true, name: 'Tone' }),
+    ).toBeVisible();
     for (const control of await canvas
       .locator('button, [role="combobox"]')
       .all()) {
@@ -83,14 +81,6 @@ for (const viewport of [
     await page.screenshot({
       path: testInfo.outputPath('post-editor-controls.png'),
     });
-    // Use the editor's select-all command: fill('') can send Delete before
-    // ProseMirror has synchronized Playwright's DOM-only selection.
-    await prompt.press('ControlOrMeta+A');
-    await prompt.press('Backspace');
-    await expect(prompt).toHaveText('');
-    await expect(
-      canvas.getByRole('button', { name: 'Rewrite', exact: true }),
-    ).toBeDisabled();
     await expectNoErrorOverlay(page);
   });
 }

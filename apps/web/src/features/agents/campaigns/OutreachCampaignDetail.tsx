@@ -205,7 +205,7 @@ export default function OutreachCampaignDetail() {
       icon={Rocket}
       refresh={
         <ButtonRefresh
-          onClick={() => loadCampaign(true)}
+          onClick={() => void loadCampaign()}
           isRefreshing={isRefreshing}
         />
       }

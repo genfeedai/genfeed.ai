@@ -1,22 +1,12 @@
-import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { EvaluationType, IngredientCategory } from '@genfeedai/contracts';
+import { EvaluationType } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsOptional } from 'class-validator';
 
+/**
+ * Body of `POST /evaluations/{posts,images,videos,articles}/:id`. The route
+ * names the content, so the body only picks the evaluation type.
+ */
 export class EvaluateContentDto {
-  @ApiProperty({
-    description: 'Content type to evaluate',
-    enum: [...Object.values(IngredientCategory), 'article'],
-  })
-  @IsEnum([...Object.values(IngredientCategory), 'article'])
-  contentType!: IngredientCategory | 'article';
-
-  @ApiProperty({
-    description: 'Content ID to evaluate',
-  })
-  @IsEntityId()
-  contentId!: string;
-
   @ApiProperty({
     default: EvaluationType.PRE_PUBLICATION,
     description: 'Evaluation type',

@@ -1,4 +1,8 @@
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { PostStatus } from '@genfeedai/contracts';
 import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import type { Post } from '@models/content/post.model';
@@ -37,12 +41,22 @@ const analyticsFixture = {
 } as unknown as IAnalytics;
 
 const brandsServiceMock = {
-  findBrandAnalytics: vi.fn(async () => analyticsFixture),
-  findBrandAnalyticsTimeSeries: vi.fn(async () => []),
+  findBrandAnalytics: vi.fn(async (): Promise<IAnalytics> => analyticsFixture),
+  findBrandAnalyticsTimeSeries: vi.fn(async (): Promise<unknown[]> => []),
   findBrandCredentials: vi.fn(async () => []),
-  findBrandPosts: vi.fn(async () => [brandPost]),
-  findOne: vi.fn(async () => ({ label: 'Acme' })),
+  findBrandPosts: vi.fn(async (): Promise<Post[]> => [brandPost]),
+  findOne: vi.fn(async (): Promise<{ label: string }> => ({ label: 'Acme' })),
 };
+
+function never<T>(): Promise<T> {
+  return new Promise<T>(() => undefined);
+}
+
+function renderOverview(brandId = 'brand-1', client = createTestQueryClient()) {
+  return render(<AnalyticsBrandOverview brandId={brandId} />, {
+    wrapper: queryClientWrapper(client),
+  });
+}
 
 vi.mock('next/image', () => ({
   default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
@@ -71,14 +85,14 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
   }),
 }));
 
-// `useAuthedService` returns a `useCallback`-stable resolver; minting a new
-// async function per render invalidates consumer callbacks and re-fires their
-// effects on every commit.
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
-  const resolveService = async () => brandsServiceMock;
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
-  return { useAuthedService: () => resolveService };
-});
+vi.mock('@services/social/brands.service', () => ({
+  BrandsService: { getInstance: () => brandsServiceMock },
+}));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
@@ -115,15 +129,62 @@ vi.mock('@ui/display/table/Table', () => ({
 describe('AnalyticsBrandOverview', () => {
   beforeEach(() => {
     pushMock.mockReset();
-    brandsServiceMock.findBrandAnalytics.mockClear();
-    brandsServiceMock.findBrandAnalyticsTimeSeries.mockClear();
+    brandsServiceMock.findBrandAnalytics
+      .mockReset()
+      .mockResolvedValue(analyticsFixture);
+    brandsServiceMock.findBrandAnalyticsTimeSeries
+      .mockReset()
+      .mockResolvedValue([]);
     brandsServiceMock.findBrandCredentials.mockClear();
-    brandsServiceMock.findBrandPosts.mockClear();
-    brandsServiceMock.findOne.mockClear();
+    brandsServiceMock.findBrandPosts.mockReset().mockResolvedValue([brandPost]);
+    brandsServiceMock.findOne.mockReset().mockResolvedValue({ label: 'Acme' });
+  });
+
+  it('paints the cached brand analytics at once when the page is opened again', async () => {
+    const client = createTestQueryClient();
+    const first = renderOverview('brand-1', client);
+    await screen.findByRole('button', { name: /open analytics brand row/i });
+    await screen.findByText('Acme Analytics');
+    first.unmount();
+
+    brandsServiceMock.findBrandAnalytics.mockReturnValue(never());
+    brandsServiceMock.findBrandPosts.mockReturnValue(never());
+    brandsServiceMock.findOne.mockReturnValue(never());
+    renderOverview('brand-1', client);
+
+    expect(
+      screen.getByRole('button', { name: /open analytics brand row/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Acme Analytics')).toBeInTheDocument();
+    expect(screen.getAllByTestId('metric-card')[0]).not.toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+  });
+
+  it('never shows another brand the analytics cached for this one', async () => {
+    const client = createTestQueryClient();
+    const first = renderOverview('brand-1', client);
+    await screen.findByRole('button', { name: /open analytics brand row/i });
+    first.unmount();
+
+    brandsServiceMock.findBrandAnalytics.mockReturnValue(never());
+    brandsServiceMock.findBrandPosts.mockReturnValue(never());
+    brandsServiceMock.findOne.mockReturnValue(never());
+    renderOverview('brand-2', client);
+
+    expect(
+      screen.queryByRole('button', { name: /open analytics brand row/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Brand Analytics')).toBeInTheDocument();
+    expect(screen.getAllByTestId('metric-card')[0]).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
   });
 
   it('opens the shared post detail overlay from the recent posts table', async () => {
-    render(<AnalyticsBrandOverview brandId="brand-1" />);
+    renderOverview();
 
     await waitFor(() => {
       expect(
@@ -141,7 +202,7 @@ describe('AnalyticsBrandOverview', () => {
   });
 
   it('shows no zero placeholders before the first fetch resolves', async () => {
-    render(<AnalyticsBrandOverview brandId="brand-1" />);
+    renderOverview();
 
     // First paint is already the loading state: every KPI tile is busy, so no
     // "0" tiles flip to a skeleton and then to the data.
@@ -158,7 +219,7 @@ describe('AnalyticsBrandOverview', () => {
   });
 
   it('keeps analytics section titles outside their framed bodies', () => {
-    render(<AnalyticsBrandOverview brandId="brand-1" />);
+    renderOverview();
 
     for (const name of [
       'Platform Comparison',

@@ -14,10 +14,12 @@ import type {
   ContentRunVariant,
 } from '@genfeedai/contracts/interfaces';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ContentRunRecord } from '@services/content/content-runs.service';
 import { ContentRunsService } from '@services/content/content-runs.service';
+import { useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/dashboard/MetricCardGrid';
@@ -39,13 +41,11 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import Link from 'next/link';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 
 export interface ContentRunDetailPageProps {
   runId: string;
 }
-
-type LoadState = 'idle' | 'loading' | 'ready' | 'error';
 
 type TimelineStep = {
   description: string;
@@ -520,39 +520,22 @@ function NavigationPanel({
 export default function ContentRunDetailPage({
   runId,
 }: ContentRunDetailPageProps) {
-  const [run, setRun] = useState<ContentRunRecord | null>(null);
   const [isRemixing, setIsRemixing] = useState(false);
   const [remixError, setRemixError] = useState<string | null>(null);
-  const [state, setState] = useState<LoadState>('idle');
   const getContentRunsService = useAuthedService((token: string) =>
     ContentRunsService.getInstance(token),
   );
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadRun() {
-      setState('loading');
-      try {
-        const service = await getContentRunsService();
-        const data = await service.findOne(runId);
-        if (isMounted) {
-          setRun(data);
-          setState('ready');
-        }
-      } catch {
-        if (isMounted) {
-          setState('error');
-        }
-      }
-    }
-
-    loadRun();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [getContentRunsService, runId]);
+  // Cached per viewer and run: coming back to a run paints it at once and
+  // refreshes it in the background.
+  const queryClient = useQueryClient();
+  const runKey = ['content-run', runId] as const;
+  const runQuery = useAuthedQuery({
+    enabled: Boolean(runId),
+    queryFn: (service, signal) => service.findOne(runId, signal),
+    queryKey: runKey,
+    service: (token: string) => ContentRunsService.getInstance(token),
+  });
+  const run = runQuery.data ?? null;
 
   const handleCreateRemixPack = async () => {
     setIsRemixing(true);
@@ -560,7 +543,13 @@ export default function ContentRunDetailPage({
 
     try {
       const service = await getContentRunsService();
-      setRun(await service.createRemixPack(runId));
+      const updated = await service.createRemixPack(runId);
+      // A read still in flight would land the older run after this write.
+      await queryClient.cancelQueries({ queryKey: runKey });
+      queryClient.setQueriesData<ContentRunRecord>(
+        { queryKey: runKey },
+        updated,
+      );
     } catch {
       setRemixError('Remix pack could not be created.');
     } finally {
@@ -568,7 +557,9 @@ export default function ContentRunDetailPage({
     }
   };
 
-  if (state === 'loading' || state === 'idle') {
+  // A failed background refresh keeps the run on screen; the error replaces
+  // it only when nothing was loaded.
+  if (!run && runQuery.isPending) {
     return (
       <Container>
         <Card padding={CardPadding.XL}>
@@ -578,7 +569,7 @@ export default function ContentRunDetailPage({
     );
   }
 
-  if (state === 'error' || !run) {
+  if (!run) {
     return (
       <Container>
         <Alert variant="destructive">Content run could not be loaded.</Alert>
