@@ -16,17 +16,40 @@ vi.mock('node:fs', () => ({ ...fsMock, default: fsMock }));
 
 import * as fs from 'node:fs';
 
+type PortraitRender = {
+  dimensions: { height: number; width: number };
+  input: string;
+  output: string;
+};
+
 describe('FilesPortraitBlurService', () => {
   let service: FilesPortraitBlurService;
-  let ffmpegService: { createPortraitWithBlur: Mock };
-  let loggerService: { error: Mock; log: Mock };
+  // Fake ffmpeg: records each portrait render it ran, or fails the next one.
+  let renders: PortraitRender[];
+  let ffmpegFailure: Error | null;
+  let loggedErrors: unknown[];
 
   beforeEach(async () => {
     (fs.existsSync as Mock).mockReturnValue(true);
-    ffmpegService = {
-      createPortraitWithBlur: vi.fn().mockResolvedValue(undefined),
+    renders = [];
+    ffmpegFailure = null;
+    loggedErrors = [];
+    const ffmpegService = {
+      createPortraitWithBlur: async (
+        input: string,
+        output: string,
+        dimensions: PortraitRender['dimensions'],
+      ) => {
+        if (ffmpegFailure) throw ffmpegFailure;
+        renders.push({ dimensions, input, output });
+      },
     };
-    loggerService = { error: vi.fn(), log: vi.fn() };
+    const loggerService = {
+      error: (...args: unknown[]) => {
+        loggedErrors.push(args);
+      },
+      log: () => undefined,
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -61,33 +84,31 @@ describe('FilesPortraitBlurService', () => {
         { height: 1920, width: 1080 },
       );
 
-      expect(ffmpegService.createPortraitWithBlur).toHaveBeenCalledWith(
-        expect.stringContaining('source.mp4'),
-        expect.stringContaining('portrait-blur.mp4'),
-        { height: 1920, width: 1080 },
-      );
+      expect(renders).toEqual([
+        {
+          dimensions: { height: 1920, width: 1080 },
+          input: expect.stringContaining('source.mp4'),
+          output: result,
+        },
+      ]);
       expect(result).toContain('portrait-blur.mp4');
     });
 
     it('defaults to 1080x1920 dimensions', async () => {
       await service.landscapeToPortrait('videos', 'ingredient-1', 'source.mp4');
 
-      expect(ffmpegService.createPortraitWithBlur).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        { height: 1920, width: 1080 },
-      );
+      expect(renders).toEqual([
+        expect.objectContaining({ dimensions: { height: 1920, width: 1080 } }),
+      ]);
     });
 
     it('logs and rethrows when ffmpeg fails', async () => {
-      ffmpegService.createPortraitWithBlur.mockRejectedValueOnce(
-        new Error('blur failed'),
-      );
+      ffmpegFailure = new Error('blur failed');
 
       await expect(
         service.landscapeToPortrait('videos', 'ingredient-1', 'source.mp4'),
       ).rejects.toThrow('blur failed');
-      expect(loggerService.error).toHaveBeenCalled();
+      expect(loggedErrors).toHaveLength(1);
     });
   });
 
@@ -98,11 +119,13 @@ describe('FilesPortraitBlurService', () => {
         'ingredient-1',
       );
 
-      expect(ffmpegService.createPortraitWithBlur).toHaveBeenCalledWith(
-        expect.stringContaining('input.mp4'),
-        expect.any(String),
-        { height: 1920, width: 1080 },
-      );
+      expect(renders).toEqual([
+        {
+          dimensions: { height: 1920, width: 1080 },
+          input: expect.stringContaining('input.mp4'),
+          output: result,
+        },
+      ]);
       expect(result).toContain('portrait-blur.mp4');
     });
 
@@ -117,11 +140,12 @@ describe('FilesPortraitBlurService', () => {
         },
       );
 
-      expect(ffmpegService.createPortraitWithBlur).toHaveBeenCalledWith(
-        expect.stringContaining('custom.mp4'),
-        expect.any(String),
-        { height: 1080, width: 1920 },
-      );
+      expect(renders).toEqual([
+        expect.objectContaining({
+          dimensions: { height: 1080, width: 1920 },
+          input: expect.stringContaining('custom.mp4'),
+        }),
+      ]);
     });
   });
 });

@@ -1,6 +1,22 @@
-import type { AgentReportReviewToken } from '@api/services/agent-reports/agent-report-binding';
+import type { AgentReportAccessService } from '@api/services/agent-reports/agent-report-access.service';
+import {
+  type AgentReportReviewToken,
+  agentReportTokenKey,
+} from '@api/services/agent-reports/agent-report-binding';
 import { AgentReportReviewService } from '@api/services/agent-reports/agent-report-review.service';
-import { describe, expect, it, vi } from 'vitest';
+import type { CacheService } from '@api/services/cache/cache.service';
+import type { TurboRunReviewService } from '@api/services/turbo-run/turbo-run-review.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { describe, expect, it } from 'vitest';
+
+type ReviewDecision = {
+  decision: 'approve' | 'reject';
+  expected: Record<string, string>;
+  itemIds: string[];
+  organizationId: string;
+  reviewerId: string;
+  turboRunId: string;
+};
 
 const receipt: AgentReportReviewToken = {
   organizationId: 'org',
@@ -19,59 +35,131 @@ const receipt: AgentReportReviewToken = {
   postId: 'post',
   postVersion: '2026-09-24T10:00:00.000Z',
 };
+const TOKEN = 'a'.repeat(32);
+
+/**
+ * In-memory review-token cache, integration bindings, reviewer access and
+ * review queue. `decisions` is what reached the review queue.
+ */
 function fixture() {
+  const tokens = new Map<string, AgentReportReviewToken>([
+    [agentReportTokenKey(TOKEN), receipt],
+  ]);
+  const integration = { bindings: [receipt.binding] };
+  const reviewers = new Set(['canonical-user']);
+  const decisions: ReviewDecision[] = [];
   const cache = {
-    get: vi.fn().mockResolvedValue(receipt),
-    getdel: vi.fn().mockResolvedValueOnce(receipt).mockResolvedValue(null),
+    get: async (key: string) => tokens.get(key) ?? null,
+    getdel: async (key: string) => {
+      const value = tokens.get(key) ?? null;
+      tokens.delete(key);
+      return value;
+    },
   };
   const prisma = {
+    agentStrategy: { findFirst: async () => ({ id: 'strategy' }) },
     orgIntegration: {
-      findFirst: vi.fn().mockResolvedValue({
-        config: { agentReportBindings: [receipt.binding] },
+      findFirst: async () => ({
+        config: { agentReportBindings: integration.bindings },
       }),
     },
-    agentStrategy: { findFirst: vi.fn().mockResolvedValue({ id: 'strategy' }) },
   };
-  const access = { canReview: vi.fn().mockResolvedValue(true) };
-  const review = { approveItems: vi.fn(), rejectItems: vi.fn() };
+  const access = {
+    canReview: async (_organizationId: string, userId: string) =>
+      reviewers.has(userId),
+  };
+  const review = {
+    approveItems: async (
+      turboRunId: string,
+      itemIds: string[],
+      organizationId: string,
+      reviewerId: string,
+      _isDirectPublish: boolean,
+      expected: Record<string, string>,
+    ) => {
+      decisions.push({
+        decision: 'approve',
+        expected,
+        itemIds,
+        organizationId,
+        reviewerId,
+        turboRunId,
+      });
+    },
+    rejectItems: async (
+      turboRunId: string,
+      itemIds: string[],
+      organizationId: string,
+      _reason: string,
+      reviewerId: string,
+      expected: Record<string, string>,
+    ) => {
+      decisions.push({
+        decision: 'reject',
+        expected,
+        itemIds,
+        organizationId,
+        reviewerId,
+        turboRunId,
+      });
+    },
+  };
   const service = new AgentReportReviewService(
-    prisma as never,
-    cache as never,
-    access as never,
-    review as never,
+    prisma as unknown as PrismaService,
+    cache as unknown as CacheService,
+    access as unknown as AgentReportAccessService,
+    review as unknown as TurboRunReviewService,
   );
   return {
-    service,
-    cache,
-    prisma,
-    access,
-    review,
+    decisions,
     input: {
       organizationId: 'org',
       remoteUserId: 'remote',
       channelId: 'chat',
-      token: 'a'.repeat(32),
+      token: TOKEN,
       decision: 'approve' as const,
     },
+    integration,
+    reviewers,
+    service,
+    isTokenUnused: () => tokens.has(agentReportTokenKey(TOKEN)),
   };
 }
+
+const boundDecision = (decision: 'approve' | 'reject'): ReviewDecision => ({
+  decision,
+  expected: { post: receipt.postVersion },
+  itemIds: ['item'],
+  organizationId: 'org',
+  reviewerId: 'canonical-user',
+  turboRunId: 'turboRun',
+});
+
 describe('bound agent report review', () => {
   it('uses canonical bound user and the original post version in normal review, consuming one token', async () => {
     const f = fixture();
-    await f.service.resolve('telegram', f.input);
-    expect(f.review.approveItems).toHaveBeenCalledWith(
-      'turboRun',
-      ['item'],
-      'org',
-      'canonical-user',
-      false,
-      { post: receipt.postVersion },
-    );
-    await expect(
+    // A double tap: both callbacks read the token before either claims it.
+    const [approve, reject] = await Promise.allSettled([
+      f.service.resolve('telegram', f.input),
       f.service.resolve('telegram', { ...f.input, decision: 'reject' }),
-    ).rejects.toThrow('already used');
-    expect(f.review.rejectItems).not.toHaveBeenCalled();
+    ]);
+    expect(approve).toEqual({
+      status: 'fulfilled',
+      value: {
+        message: 'Draft approved through the review queue.',
+        success: true,
+      },
+    });
+    expect(reject).toMatchObject({
+      reason: expect.objectContaining({
+        message: expect.stringContaining('already used'),
+      }),
+      status: 'rejected',
+    });
+    expect(f.decisions).toEqual([boundDecision('approve')]);
+    expect(f.isTokenUnused()).toBe(false);
   });
+
   it.each([
     { organizationId: 'foreign' },
     { remoteUserId: 'intruder' },
@@ -83,48 +171,42 @@ describe('bound agent report review', () => {
       await expect(
         f.service.resolve('telegram', { ...f.input, ...change }),
       ).rejects.toThrow('unavailable');
-      expect(f.cache.getdel).not.toHaveBeenCalled();
-      expect(f.review.approveItems).not.toHaveBeenCalled();
+      expect(f.isTokenUnused()).toBe(true);
+      expect(f.decisions).toEqual([]);
     },
   );
+
   it('denies platform confusion and expired tokens', async () => {
     const f = fixture();
     await expect(f.service.resolve('discord', f.input)).rejects.toThrow(
       'unavailable',
     );
-    f.cache.get.mockResolvedValue(null);
-    await expect(f.service.resolve('telegram', f.input)).rejects.toThrow(
-      'unavailable',
-    );
+    await expect(
+      f.service.resolve('telegram', { ...f.input, token: 'b'.repeat(32) }),
+    ).rejects.toThrow('unavailable');
+    expect(f.decisions).toEqual([]);
   });
+
   it('rechecks opt-in and membership at callback time', async () => {
     const f = fixture();
-    f.prisma.orgIntegration.findFirst.mockResolvedValue({
-      config: { agentReportBindings: [] },
-    });
+    f.integration.bindings = [];
     await expect(f.service.resolve('telegram', f.input)).rejects.toThrow(
       'unavailable',
     );
-    f.prisma.orgIntegration.findFirst.mockResolvedValue({
-      config: { agentReportBindings: [receipt.binding] },
-    });
-    f.access.canReview.mockResolvedValue(false);
+    f.integration.bindings = [receipt.binding];
+    f.reviewers.clear();
     await expect(f.service.resolve('telegram', f.input)).rejects.toThrow(
       'unavailable',
     );
-    expect(f.cache.getdel).not.toHaveBeenCalled();
+    expect(f.isTokenUnused()).toBe(true);
+    expect(f.decisions).toEqual([]);
   });
+
   it('passes rejection through batch review without directly publishing', async () => {
     const f = fixture();
-    await f.service.resolve('telegram', { ...f.input, decision: 'reject' });
-    expect(f.review.rejectItems).toHaveBeenCalledWith(
-      'turboRun',
-      ['item'],
-      'org',
-      'Rejected from agent report',
-      'canonical-user',
-      { post: receipt.postVersion },
-    );
-    expect(f.review.approveItems).not.toHaveBeenCalled();
+    await expect(
+      f.service.resolve('telegram', { ...f.input, decision: 'reject' }),
+    ).resolves.toEqual({ message: 'Draft rejected.', success: true });
+    expect(f.decisions).toEqual([boundDecision('reject')]);
   });
 });

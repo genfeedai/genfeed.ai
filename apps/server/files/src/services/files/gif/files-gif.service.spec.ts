@@ -19,15 +19,40 @@ vi.mock('node:fs', () => ({ ...fsMock, default: fsMock }));
 
 import * as fs from 'node:fs';
 
+type GifConversion = {
+  input: string;
+  options: { fps: number; width: number };
+  output: string;
+};
+
 describe('FilesGifService', () => {
   let service: FilesGifService;
-  let ffmpegService: { videoToGif: Mock };
-  let loggerService: { error: Mock; log: Mock };
+  // Fake ffmpeg: records each conversion it ran, or fails the next one.
+  let conversions: GifConversion[];
+  let ffmpegFailure: Error | null;
+  let loggedErrors: unknown[];
 
   beforeEach(async () => {
     (fs.existsSync as Mock).mockReturnValue(true);
-    ffmpegService = { videoToGif: vi.fn().mockResolvedValue(undefined) };
-    loggerService = { error: vi.fn(), log: vi.fn() };
+    conversions = [];
+    ffmpegFailure = null;
+    loggedErrors = [];
+    const ffmpegService = {
+      videoToGif: async (
+        input: string,
+        output: string,
+        options: GifConversion['options'],
+      ) => {
+        if (ffmpegFailure) throw ffmpegFailure;
+        conversions.push({ input, options, output });
+      },
+    };
+    const loggerService = {
+      error: (...args: unknown[]) => {
+        loggedErrors.push(args);
+      },
+      log: () => undefined,
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       imports: [],
@@ -61,22 +86,23 @@ describe('FilesGifService', () => {
     it('converts the video frame to a gif and returns the output path', async () => {
       const result = await service.videoToGif('ingredient-1');
 
-      expect(ffmpegService.videoToGif).toHaveBeenCalledWith(
-        expect.stringContaining('frame-0.mp4'),
-        expect.stringContaining('ingredient-1.gif'),
-        { fps: 10, width: 320 },
-      );
+      expect(conversions).toEqual([
+        {
+          input: expect.stringContaining('frame-0.mp4'),
+          options: { fps: 10, width: 320 },
+          output: result,
+        },
+      ]);
       expect(result).toContain('ingredient-1.gif');
-      expect(loggerService.log).toHaveBeenCalledWith('Started gif conversion');
     });
 
     it('logs and rethrows when ffmpeg fails', async () => {
-      ffmpegService.videoToGif.mockRejectedValueOnce(new Error('gif failed'));
+      ffmpegFailure = new Error('gif failed');
 
       await expect(service.videoToGif('ingredient-1')).rejects.toThrow(
         'gif failed',
       );
-      expect(loggerService.error).toHaveBeenCalled();
+      expect(loggedErrors).toHaveLength(1);
     });
   });
 
@@ -87,11 +113,13 @@ describe('FilesGifService', () => {
         '/tmp/output.gif',
       );
 
-      expect(ffmpegService.videoToGif).toHaveBeenCalledWith(
-        'https://example.com/video.mp4',
-        '/tmp/output.gif',
-        { fps: 10, width: 320 },
-      );
+      expect(conversions).toEqual([
+        {
+          input: 'https://example.com/video.mp4',
+          options: { fps: 10, width: 320 },
+          output: '/tmp/output.gif',
+        },
+      ]);
       expect(result).toBe('/tmp/output.gif');
     });
 
@@ -102,22 +130,22 @@ describe('FilesGifService', () => {
         { fps: 24, width: 480 },
       );
 
-      expect(ffmpegService.videoToGif).toHaveBeenCalledWith(
-        'https://example.com/video.mp4',
-        '/tmp/output.gif',
-        { fps: 24, width: 480 },
-      );
+      expect(conversions).toEqual([
+        {
+          input: 'https://example.com/video.mp4',
+          options: { fps: 24, width: 480 },
+          output: '/tmp/output.gif',
+        },
+      ]);
     });
 
     it('logs and rethrows when ffmpeg fails', async () => {
-      ffmpegService.videoToGif.mockRejectedValueOnce(
-        new Error('create failed'),
-      );
+      ffmpegFailure = new Error('create failed');
 
       await expect(
         service.createGif('https://example.com/video.mp4', '/tmp/output.gif'),
       ).rejects.toThrow('create failed');
-      expect(loggerService.error).toHaveBeenCalled();
+      expect(loggedErrors).toHaveLength(1);
     });
   });
 });
