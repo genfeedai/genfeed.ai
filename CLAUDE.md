@@ -104,6 +104,12 @@ bun run test --filter=@genfeedai/[name]              # Test one package
   (`getByRole`, `getByLabelText`), not `getByTestId`.
 - Keep logic out of tests: no loops, branches or re-implementation of the code under test. Use
   literal expected values or `it.each` tables.
+- **Same-PR rule for e2e specs.** When a change touches something a Playwright spec asserts
+  (UI copy, scope presets, test ids, fixtures), update that spec in the same PR. Before you
+  push, `grep` `playwright/` for the old string. Never dispatch Playwright Full per PR; it is
+  too slow, and the release run covers it. `scripts/ci/e2e-spec-impact.mjs` (Static Checks)
+  fails a PR that removes copy an untouched spec still asserts. False positive: add the commit
+  trailer `E2E-Spec-Impact: none - <reason>`.
 - A code-changing PR states its finish condition and shows evidence: repro-before and
   pass-after for bugs; a walked flow or read-back value for features. Never loosen a gate
   (i18n, Tests Gate, release suites) to get there.

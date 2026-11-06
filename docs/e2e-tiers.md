@@ -52,6 +52,27 @@ instead of on master. It never runs the `full` tier and is not a dependency of
 `full-suite.yml` or `release.yml`. To smoke a pull request by hand, dispatch the
 workflow with its `pr_number`.
 
+## Same-PR spec rule
+
+A pull request that removes or rewrites UI copy, preset ids or fixture values
+updates the Playwright specs, page objects and fixtures that assert them in the
+same pull request. Playwright Full does not run per PR, so a stale spec would
+otherwise surface on master or in the release gate.
+
+`scripts/ci/e2e-spec-impact.mjs` enforces it inside the existing Static Checks
+job (pull requests only, no extra runner, no browser). It reads the diff of
+`apps/web` and `packages`, collects the string literals and JSX text the PR
+removed and did not re-add in the same file, and searches `playwright/` for
+them. A hit in a spec the PR did not touch fails the check, unless the same text
+still ships elsewhere in the app. It matches visible copy of two or more words
+and kebab or snake case ids quoted exactly, so it catches stale text and
+fixtures but not a single-word label or a restructured layout; the nightly
+Playwright Full run still covers those.
+
+If a match is a false positive, add the commit trailer
+`E2E-Spec-Impact: none - <why the specs are unaffected>` to any commit in the
+pull request.
+
 ## Playwright full-tier quarantines
 
 Machine-readable list: `scripts/playwright-e2e-tiers.manifest.mjs`.
