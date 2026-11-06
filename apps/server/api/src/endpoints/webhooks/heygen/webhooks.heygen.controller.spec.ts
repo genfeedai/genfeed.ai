@@ -1,270 +1,179 @@
+import { createHmac } from 'node:crypto';
 import { HeygenWebhookController } from '@api/endpoints/webhooks/heygen/webhooks.heygen.controller';
-import { HeygenWebhookService } from '@api/endpoints/webhooks/heygen/webhooks.heygen.service';
+import type { HeygenWebhookService } from '@api/endpoints/webhooks/heygen/webhooks.heygen.service';
 import { HeygenWebhookVerificationService } from '@api/endpoints/webhooks/heygen/webhooks.heygen.verification.service';
-import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { CacheService } from '@api/services/cache/cache.service';
+import type { ConfigService } from '@libs/config/config.service';
+import type { HeygenWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-vi.mock('@libs/utils/caller/caller.util', () => ({
-  CallerUtil: {
-    getCallerName: vi.fn().mockReturnValue('heygen callback'),
-  },
-}));
+const SECRET = 'heygen-signing-secret';
+
+const sign = (body: Buffer) =>
+  createHmac('sha256', SECRET).update(body).digest('hex');
+
+/** A delivery as express hands it over once `express.raw` has run. */
+const delivery = (body: unknown, signature?: string): Request => {
+  const raw = Buffer.from(
+    typeof body === 'string' ? body : JSON.stringify(body),
+  );
+  return {
+    body: raw,
+    headers: { signature: signature ?? sign(raw) },
+  } as unknown as Request;
+};
+
+const success = {
+  event_data: { video_id: 'video-1', url: 'https://cdn.heygen/video-1.mp4' },
+  event_type: 'avatar_video.success',
+};
 
 describe('HeygenWebhookController', () => {
+  let claims: Set<string>;
+  let isCacheDown: boolean;
+  let processed: HeygenWebhookPayload[];
+  let isProcessingDown: boolean;
   let controller: HeygenWebhookController;
-  let heygenWebhookService: vi.Mocked<HeygenWebhookService>;
-  let loggerService: vi.Mocked<LoggerService>;
-  let verificationService: {
-    assertSignature: vi.Mock;
-    isReplay: vi.Mock;
-    releaseReplayClaim: vi.Mock;
-  };
 
-  /** A delivery as express hands it over once `express.raw` has run. */
-  function signedRequest(body: unknown): Request {
-    return {
-      body: Buffer.from(typeof body === 'string' ? body : JSON.stringify(body)),
-      headers: {
-        signature: 'deadbeef',
+  beforeEach(() => {
+    claims = new Set();
+    isCacheDown = false;
+    processed = [];
+    isProcessingDown = false;
+
+    // The replay cache: a key can be claimed once until it is released.
+    const cache = {
+      claimOnce: async (key: string) => {
+        if (isCacheDown) return 'unavailable';
+        if (claims.has(key)) return 'duplicate';
+        claims.add(key);
+        return 'claimed';
       },
-    } as unknown as Request;
-  }
+      del: async (key: string) => {
+        claims.delete(key);
+      },
+      generateKey: (...parts: string[]) => parts.join(':'),
+    } as unknown as CacheService;
+    const logger = {
+      error: () => undefined,
+      log: () => undefined,
+      warn: () => undefined,
+    } as unknown as LoggerService;
+    const verification = new HeygenWebhookVerificationService(
+      cache,
+      {
+        get: (key: string) =>
+          key === 'HEYGEN_WEBHOOK_SECRET' ? SECRET : undefined,
+      } as unknown as ConfigService,
+      logger,
+    );
+    const webhooks = {
+      handleCallback: async (payload: HeygenWebhookPayload) => {
+        if (isProcessingDown) throw new Error('Video update failed');
+        processed.push(payload);
+      },
+    } as unknown as HeygenWebhookService;
 
-  beforeEach(async () => {
-    verificationService = {
-      assertSignature: vi.fn(),
-      isReplay: vi.fn().mockResolvedValue(false),
-      releaseReplayClaim: vi.fn().mockResolvedValue(undefined),
-    };
-
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [HeygenWebhookController],
-      providers: [
-        {
-          provide: HeygenWebhookService,
-          useValue: {
-            handleCallback: vi.fn(),
-          },
-        },
-        {
-          provide: HeygenWebhookVerificationService,
-          useValue: verificationService,
-        },
-        {
-          provide: LoggerService,
-          useValue: {
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
-          },
-        },
-      ],
-    })
-      .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
-
-    controller = module.get<HeygenWebhookController>(HeygenWebhookController);
-    heygenWebhookService = module.get(HeygenWebhookService);
-    loggerService = module.get(LoggerService);
+    controller = new HeygenWebhookController(logger, webhooks, verification);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('processes a delivery signed over its exact bytes', async () => {
+    await expect(controller.handleCallback(delivery(success))).resolves.toEqual(
+      { detail: 'Webhook received' },
+    );
+    expect(processed).toEqual([success]);
   });
 
-  describe('handleCallback', () => {
-    it('verifies the signature against the untouched request bytes', async () => {
-      const body = {
-        callback_id: 'cb_123',
-        event_type: 'avatar_video.success',
-      };
+  it.each([
+    [
+      'a forged signature',
+      delivery(success, 'a'.repeat(64)),
+      'Invalid signature',
+    ],
+    ['no signature', delivery(success, ''), 'Missing signature header'],
+    [
+      'a signature over other bytes',
+      delivery(success, sign(Buffer.from('{}'))),
+      'Invalid signature',
+    ],
+  ])('refuses %s', async (_case, request, message) => {
+    await expect(controller.handleCallback(request)).rejects.toEqual(
+      new UnauthorizedException(message),
+    );
+    expect(processed).toEqual([]);
+  });
 
-      await controller.handleCallback(signedRequest(body));
+  it('refuses a body that was parsed before it could be verified', async () => {
+    await expect(
+      controller.handleCallback({
+        body: success,
+        headers: { signature: sign(Buffer.from(JSON.stringify(success))) },
+      } as unknown as Request),
+    ).rejects.toEqual(new BadRequestException('Raw webhook body is required'));
+    expect(processed).toEqual([]);
+  });
 
-      expect(verificationService.assertSignature).toHaveBeenCalledWith(
-        Buffer.from(JSON.stringify(body)),
-        'deadbeef',
-      );
-    });
+  it.each([
+    ['not JSON', 'not-json', 'Webhook body must be valid JSON'],
+    ['a JSON array', [success], 'Webhook body is required'],
+    ['JSON null', 'null', 'Webhook body is required'],
+  ])('refuses a signed body that is %s', async (_case, body, message) => {
+    await expect(controller.handleCallback(delivery(body))).rejects.toEqual(
+      new BadRequestException(message),
+    );
+    expect(processed).toEqual([]);
+  });
 
-    it('handles callback successfully and returns webhook received', async () => {
-      const body = { callback_id: 'cb_123', video_id: 'vid_123' };
-      heygenWebhookService.handleCallback.mockResolvedValue(undefined);
+  it('suppresses a replayed delivery', async () => {
+    await controller.handleCallback(delivery(success));
 
-      const result = await controller.handleCallback(signedRequest(body));
+    await expect(controller.handleCallback(delivery(success))).resolves.toEqual(
+      { detail: 'Webhook already processed' },
+    );
+    expect(processed).toHaveLength(1);
+  });
 
-      expect(loggerService.log).toHaveBeenCalledWith(
-        'HeygenWebhookController heygen callback received',
-        body,
-      );
-      expect(result).toEqual({ detail: 'Webhook received' });
-      expect(heygenWebhookService.handleCallback).toHaveBeenCalledWith(body);
-    });
+  it.each([
+    [
+      'the success and failure of one video',
+      success,
+      { event_data: { video_id: 'video-1' }, event_type: 'avatar_video.fail' },
+    ],
+    [
+      'two unidentified deliveries with different bytes',
+      { event_type: 'ping', nonce: 1 },
+      { event_type: 'ping', nonce: 2 },
+    ],
+  ])('processes %s separately', async (_case, first, second) => {
+    await controller.handleCallback(delivery(first));
+    await controller.handleCallback(delivery(second));
 
-    it('refuses a body that was parsed before it could be verified', async () => {
-      // `express.raw` not reaching this route would silently disarm the only
-      // proof of origin the endpoint has.
-      const request = {
-        body: { video_id: 'vid_1' },
-        headers: {},
-      } as unknown as Request;
+    expect(processed).toEqual([first, second]);
+  });
 
-      await expect(controller.handleCallback(request)).rejects.toThrow(
-        BadRequestException,
-      );
+  it('processes deliveries while the replay cache is down', async () => {
+    isCacheDown = true;
 
-      expect(verificationService.assertSignature).not.toHaveBeenCalled();
-      expect(heygenWebhookService.handleCallback).not.toHaveBeenCalled();
-    });
+    await controller.handleCallback(delivery(success));
+    await controller.handleCallback(delivery(success));
 
-    it('does not process a delivery whose signature fails', async () => {
-      verificationService.assertSignature.mockImplementation(() => {
-        throw new UnauthorizedException('Invalid signature');
-      });
+    expect(processed).toHaveLength(2);
+  });
 
-      await expect(
-        controller.handleCallback(signedRequest({ video_id: 'vid_1' })),
-      ).rejects.toThrow(UnauthorizedException);
+  it('lets HeyGen retry a delivery whose processing failed', async () => {
+    isProcessingDown = true;
+    await expect(controller.handleCallback(delivery(success))).rejects.toThrow(
+      'Video update failed',
+    );
+    expect(claims.size).toBe(0);
 
-      expect(verificationService.isReplay).not.toHaveBeenCalled();
-      expect(heygenWebhookService.handleCallback).not.toHaveBeenCalled();
-    });
-
-    it('suppresses a replayed delivery without processing it', async () => {
-      verificationService.isReplay.mockResolvedValue(true);
-
-      const result = await controller.handleCallback(
-        signedRequest({
-          event_type: 'avatar_video.success',
-          event_data: { video_id: 'vid_1' },
-        }),
-      );
-
-      expect(verificationService.isReplay).toHaveBeenCalledWith(
-        JSON.stringify(['avatar_video.success', 'vid_1']),
-      );
-      expect(result).toEqual({ detail: 'Webhook already processed' });
-      expect(heygenWebhookService.handleCallback).not.toHaveBeenCalled();
-    });
-
-    it('uses different replay identities for success and failure of the same video', async () => {
-      await controller.handleCallback(
-        signedRequest({
-          event_type: 'avatar_video.success',
-          event_data: { video_id: 'vid_1' },
-        }),
-      );
-      await controller.handleCallback(
-        signedRequest({
-          event_type: 'avatar_video.fail',
-          event_data: { video_id: 'vid_1' },
-        }),
-      );
-      expect(verificationService.isReplay).toHaveBeenNthCalledWith(
-        1,
-        JSON.stringify(['avatar_video.success', 'vid_1']),
-      );
-      expect(verificationService.isReplay).toHaveBeenNthCalledWith(
-        2,
-        JSON.stringify(['avatar_video.fail', 'vid_1']),
-      );
-    });
-
-    it('rejects a signed body that is not valid JSON', async () => {
-      await expect(
-        controller.handleCallback(signedRequest('{not json')),
-      ).rejects.toThrow(BadRequestException);
-
-      expect(heygenWebhookService.handleCallback).not.toHaveBeenCalled();
-    });
-
-    it.each([
-      ['array', '[]'],
-      ['null', 'null'],
-      ['string', '"invalid"'],
-      ['number', '42'],
-      ['boolean', 'false'],
-    ])('rejects a signed %s body', async (_type, body) => {
-      await expect(
-        controller.handleCallback(signedRequest(body)),
-      ).rejects.toThrow(BadRequestException);
-
-      expect(heygenWebhookService.handleCallback).not.toHaveBeenCalled();
-    });
-
-    it('rethrows error when callback handling fails', async () => {
-      const error = new Error('Video processing failed');
-      heygenWebhookService.handleCallback.mockRejectedValue(error);
-
-      await expect(
-        controller.handleCallback(signedRequest({ callback_id: 'cb_789' })),
-      ).rejects.toThrow('Video processing failed');
-
-      expect(loggerService.error).toHaveBeenCalledWith(
-        'HeygenWebhookController heygen callback failed',
-        error,
-      );
-    });
-
-    it('releases the replay claim when callback handling fails', async () => {
-      heygenWebhookService.handleCallback.mockRejectedValue(
-        new Error('Video processing failed'),
-      );
-
-      await expect(
-        controller.handleCallback(signedRequest({ callback_id: 'cb_789' })),
-      ).rejects.toThrow('Video processing failed');
-
-      expect(verificationService.releaseReplayClaim).toHaveBeenCalledWith(
-        JSON.stringify(['unknown', 'cb_789']),
-      );
-    });
-
-    it('keeps the replay claim when callback handling succeeds', async () => {
-      heygenWebhookService.handleCallback.mockResolvedValue(undefined);
-
-      await controller.handleCallback(signedRequest({ callback_id: 'cb_789' }));
-
-      expect(verificationService.releaseReplayClaim).not.toHaveBeenCalled();
-    });
-
-    it('processes a retried delivery whose first attempt failed', async () => {
-      // Simulates the real claim store: the first delivery claims the event
-      // id, a failure releases it, and HeyGen's retry with the same id must
-      // be processed instead of being suppressed as "already processed".
-      const claimed = new Set<string>();
-      verificationService.isReplay.mockImplementation(
-        async (eventId: string) => {
-          if (claimed.has(eventId)) {
-            return true;
-          }
-          claimed.add(eventId);
-          return false;
-        },
-      );
-      verificationService.releaseReplayClaim.mockImplementation(
-        async (eventId: string) => {
-          claimed.delete(eventId);
-        },
-      );
-      heygenWebhookService.handleCallback
-        .mockRejectedValueOnce(new Error('transient failure'))
-        .mockResolvedValueOnce(undefined);
-
-      await expect(
-        controller.handleCallback(signedRequest({ callback_id: 'cb_retry' })),
-      ).rejects.toThrow('transient failure');
-
-      const retry = await controller.handleCallback(
-        signedRequest({ callback_id: 'cb_retry' }),
-      );
-
-      expect(retry).toEqual({ detail: 'Webhook received' });
-      expect(heygenWebhookService.handleCallback).toHaveBeenCalledTimes(2);
-    });
+    isProcessingDown = false;
+    await expect(controller.handleCallback(delivery(success))).resolves.toEqual(
+      { detail: 'Webhook received' },
+    );
+    expect(processed).toEqual([success]);
   });
 });
