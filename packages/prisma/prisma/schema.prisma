@@ -5730,6 +5730,17 @@ model ContentRun {
   brand          Brand?       @relation(fields: [brandId], references: [id])
   config         Json         @default("{}")
   status         String?
+
+  /// Keys copied out of `config` so run lookups never read or detoast it. The
+  /// `promote_content_run_config` trigger recomputes them on every insert and on
+  /// every update of `config`; never write them directly.
+  contract        String?
+  clientRequestId String?
+  createdByUserId String?
+  skillSlug       String?
+  phase           String?
+  revision        Float?
+
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt

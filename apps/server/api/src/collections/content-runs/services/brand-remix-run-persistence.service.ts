@@ -67,7 +67,7 @@ export class BrandRemixRunPersistenceService {
       take: query.limit,
       where: scopedWhere(organizationId, {
         brandId,
-        config: { equals: BRAND_REMIX_RUN_CONTRACT, path: ['contract'] },
+        contract: BRAND_REMIX_RUN_CONTRACT,
         ...contentRunTitleSearch(['sourceSnapshot', 'title'], query.search),
       }),
     });
@@ -109,21 +109,9 @@ export class BrandRemixRunPersistenceService {
         status: params.status,
       },
       where: scopedWhere(params.organizationId, {
-        AND: [
-          {
-            config: {
-              equals: params.expectedRevision,
-              path: ['revision'],
-            },
-          },
-          {
-            config: {
-              equals: params.expectedPhase,
-              path: ['phase'],
-            },
-          },
-        ],
         id: params.runId,
+        phase: params.expectedPhase,
+        revision: params.expectedRevision,
       }),
     });
     if (result.count !== 1) {
@@ -153,8 +141,8 @@ export class BrandRemixRunPersistenceService {
               path: ['sourceSnapshot', 'selector'],
             },
           },
-          { config: { equals: 'prefilled', path: ['phase'] } },
         ],
+        phase: 'prefilled',
         brandId,
         status: ContentRunStatus.PENDING,
       }),

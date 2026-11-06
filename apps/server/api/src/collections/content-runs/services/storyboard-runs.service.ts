@@ -158,21 +158,9 @@ export class StoryboardRunsService {
               select: RUN_SELECT,
               where: scopedWhere(organizationId, {
                 brandId,
-                AND: [
-                  {
-                    config: {
-                      path: ['contract'],
-                      equals: STORYBOARD_RUN_CONTRACT,
-                    },
-                  },
-                  {
-                    config: {
-                      path: ['clientRequestId'],
-                      equals: input.clientRequestId,
-                    },
-                  },
-                  { config: { path: ['createdByUserId'], equals: userId } },
-                ],
+                clientRequestId: input.clientRequestId,
+                contract: STORYBOARD_RUN_CONTRACT,
+                createdByUserId: userId,
               }),
             });
             if (existing) {
@@ -303,7 +291,7 @@ export class StoryboardRunsService {
       take: input.limit,
       where: scopedWhere(organizationId, {
         brandId,
-        config: { path: ['contract'], equals: STORYBOARD_RUN_CONTRACT },
+        contract: STORYBOARD_RUN_CONTRACT,
         ...contentRunTitleSearch(['plan', 'title'], input.search),
       }),
     });

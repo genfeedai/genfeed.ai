@@ -322,11 +322,10 @@ export class ContentRunsService {
     const where = scopedWhere(organizationId, {
       brandId,
       ...(status ? { status } : {}),
-      // `skillSlug` lives in the run's stored config, so it is filtered in the
-      // database (not after hydration) to keep skip/take and the count honest.
-      ...(skillSlug
-        ? { config: { equals: skillSlug, path: ['skillSlug'] } }
-        : {}),
+      // `skillSlug` is promoted from the run's stored config, so it is filtered
+      // in the database (not after hydration) to keep skip/take and the count
+      // honest.
+      ...(skillSlug ? { skillSlug } : {}),
       ...(searchFilters.length > 0 ? { AND: searchFilters } : {}),
     });
 
