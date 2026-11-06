@@ -5,8 +5,18 @@ import {
   getDateRangeKeys,
   getDateRangeWithDefaults,
   getDefaultDateRange,
+  getTrailingUtcDays,
 } from '@helpers/utils/date-range.util';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 describe('date-range.util', () => {
   beforeEach(() => {
@@ -182,6 +192,34 @@ describe('date-range.util', () => {
 
       expect(result.startDate).toBe('2024-01-01');
       expect(result.endDate).toBe(defaults.endDate);
+    });
+  });
+
+  describe('after a daylight-saving change west of UTC', () => {
+    const originalTimeZone = process.env.TZ;
+
+    beforeAll(() => {
+      process.env.TZ = 'America/New_York';
+    });
+
+    afterAll(() => {
+      process.env.TZ = originalTimeZone;
+    });
+
+    it('counts the default week in UTC days', () => {
+      vi.setSystemTime(new Date('2026-11-06T00:06:00Z'));
+
+      expect(getDefaultDateRange()).toEqual({
+        endDate: '2026-11-05',
+        startDate: '2026-10-30',
+      });
+    });
+
+    it('returns trailing days at UTC midnight', () => {
+      const range = getTrailingUtcDays(30, new Date('2026-11-06T00:06:00Z'));
+
+      expect(range.startDate.toISOString()).toBe('2026-10-07T00:00:00.000Z');
+      expect(range.endDate.toISOString()).toBe('2026-11-05T00:00:00.000Z');
     });
   });
 });

@@ -126,10 +126,32 @@ export interface ConnectAccountModalProps {
   platformGroups: ConnectAccountPlatformGroup[];
 }
 
-export interface GhostConnectDialogProps {
+/** The connect tile a key form opens for (Ghost, dev.to or Beehiiv). */
+export interface ApiKeyConnectTarget {
+  platform: CredentialPlatform;
+  /**
+   * The stored account being reconnected: Ghost's site URL or Beehiiv's
+   * publication id, filled in so the reconnect updates that account.
+   */
+  reconnectExternalId?: string | null;
+  /** `/v1/services/{servicePath}/connect`; also names the form's messages. */
+  servicePath: string;
+}
+
+/** Which inputs a key form shows beyond the API key itself. */
+export interface ApiKeyConnectFormFields {
+  /** Beehiiv: an optional publication id; the first publication otherwise. */
+  hasPublicationId: boolean;
+  /** Ghost: the site URL the key belongs to. */
+  hasSiteUrl: boolean;
+}
+
+export interface ApiKeyConnectDialogProps {
   brandId: string;
   /** Runs after the credential is stored, to reload the brand's accounts. */
   onConnected: () => void | Promise<void>;
   onOpenChange: (open: boolean) => void;
   open: boolean;
+  /** Kept after close so the form does not change while it animates out. */
+  target: ApiKeyConnectTarget | null;
 }

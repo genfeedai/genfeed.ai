@@ -16,7 +16,7 @@ import type { IngredientContinuationOperation } from '@genfeedai/props/content/m
 import type { ViewOption } from '@genfeedai/props/ui/navigation/view-option.props';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthorizedMediaPreview } from '@hooks/media/use-authorized-media-preview';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -89,6 +89,25 @@ const AUDIO_TYPES = new Set(['music', 'voice']);
 const CREDITS_FORMAT = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 2,
 });
+
+const EMPTY_POSTS: IPost[] = [];
+const EMPTY_CHILDREN: IIngredient[] = [];
+
+interface ReceiptServices {
+  images: ImagesService;
+  videos: VideosService;
+}
+
+function createReceiptServices(token: string): ReceiptServices {
+  return {
+    images: ImagesService.getInstance(token),
+    videos: VideosService.getInstance(token),
+  };
+}
+
+function createIngredientsService(token: string): IngredientsService {
+  return IngredientsService.getInstance(token);
+}
 
 function isInspectorTab(value: string): value is InspectorTab {
   return value === 'history' || value === 'recipe' || value === 'used-in';
@@ -184,16 +203,53 @@ export default function StudioPlaygroundInspector({
     job.status === IngredientStatus.GENERATED ||
     job.status === IngredientStatus.UPLOADED ||
     job.status === IngredientStatus.VALIDATED;
-  const [receiptAsset, setReceiptAsset] = useState<IIngredient | null>(null);
-  const [receiptScope, setReceiptScope] = useState('');
+  // Only image and video generations carry a harness receipt, and the API
+  // reads a single asset through its category route; there is no generic
+  // single-ingredient read.
+  const receiptCategory =
+    job.type === 'image' || job.type === 'image-edit'
+      ? 'image'
+      : job.type === 'video' || job.type === 'avatar'
+        ? 'video'
+        : null;
+  const isReceiptReadEnabled =
+    Boolean(ingredientId) && receiptCategory !== null && !isSourceUnavailable;
+  // Cached per asset and brand: reopening an asset paints its receipt at once
+  // while it refreshes in the background.
+  const receiptQuery = useAuthedQuery<ReceiptServices, IIngredient>({
+    enabled: isReceiptReadEnabled,
+    queryFn: async (services, signal) => {
+      if (!ingredientId || !receiptCategory) {
+        throw new Error('studio_inspector_receipt_unavailable');
+      }
+      const service =
+        receiptCategory === 'image' ? services.images : services.videos;
+      return await service.findOne(ingredientId, undefined, signal);
+    },
+    queryKey: [
+      'studio-inspector-receipt',
+      receiptCategory,
+      ingredientId ?? null,
+      brandId ?? null,
+    ],
+    service: createReceiptServices,
+  });
+  const isOwnReceipt = (asset: IIngredient | undefined): boolean =>
+    asset !== undefined &&
+    asset.id === ingredientId &&
+    asset.brandId === brandId &&
+    (!orgId || !asset.organizationId || asset.organizationId === orgId) &&
+    !asset.isDeleted;
   const currentReceipt =
-    receiptAsset &&
-    receiptScope === previewScope &&
-    receiptAsset.id === ingredientId &&
-    receiptAsset.brandId === brandId &&
-    !receiptAsset.isDeleted
-      ? receiptAsset
+    isReceiptReadEnabled && receiptQuery.data && isOwnReceipt(receiptQuery.data)
+      ? receiptQuery.data
       : null;
+  // A failed background refresh keeps the receipt on screen; the error only
+  // shows when there is nothing valid to show.
+  const receiptError =
+    isReceiptReadEnabled &&
+    !currentReceipt &&
+    (receiptQuery.isError || receiptQuery.data !== undefined);
   // Uploads and imports were never charged; an asset may not carry its origin
   // yet, so only a known reference origin skips the read. A job that only has
   // an ingredient id is priced from the receipt asset once it loads.
@@ -214,9 +270,6 @@ export default function StudioPlaygroundInspector({
         ? (mediaPreview.url ?? '')
         : (resolveStudioAssetUrl(currentReceipt ?? ingredient) ??
           (job.ingredient ? '' : job.url));
-  // Legacy media refreshes through its category read; signed delivery uses the
-  // existing grant endpoint. Neither path starts or retries a generation.
-  const receiptRevision = ingredient?.mediaDelivery ? 0 : previewRevision;
   const continuationJob = currentReceipt
     ? { ...job, ingredient: currentReceipt }
     : job;
@@ -230,139 +283,55 @@ export default function StudioPlaygroundInspector({
     job.type,
     recipe?.isAudioEnabled === true,
   );
-  const [receiptError, setReceiptError] = useState(false);
-  const [storedPosts, setPosts] = useState<IPost[]>([]);
-  const [storedChildren, setChildren] = useState<IIngredient[]>([]);
-  const [relationsScope, setRelationsScope] = useState('');
-  const posts = relationsScope === previewScope ? storedPosts : [];
-  const children = relationsScope === previewScope ? storedChildren : [];
-  const [isLoadingUsedIn, setIsLoadingUsedIn] = useState(false);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const isRelationsReadEnabled = Boolean(ingredientId) && !isSourceUnavailable;
+  // The same per-ingredient caches the library's Posts and Children tabs use.
+  const postsQuery = useAuthedQuery({
+    enabled: isRelationsReadEnabled,
+    queryFn: async (service) => {
+      if (!ingredientId) {
+        throw new Error('studio_inspector_ingredient_required');
+      }
+      return await service.getPosts(ingredientId);
+    },
+    queryKey: ['ingredient-posts', ingredientId ?? null],
+    service: createIngredientsService,
+  });
+  const childrenQuery = useAuthedQuery({
+    enabled: isRelationsReadEnabled,
+    queryFn: async (service) => {
+      if (!ingredientId) {
+        throw new Error('studio_inspector_ingredient_required');
+      }
+      return await service.findChildren(ingredientId);
+    },
+    queryKey: ['ingredient-children', ingredientId ?? null],
+    service: createIngredientsService,
+  });
+  const posts: IPost[] = isRelationsReadEnabled
+    ? (postsQuery.data ?? EMPTY_POSTS)
+    : EMPTY_POSTS;
+  const children: IIngredient[] = isRelationsReadEnabled
+    ? (childrenQuery.data ?? EMPTY_CHILDREN)
+    : EMPTY_CHILDREN;
+  const isLoadingUsedIn = isRelationsReadEnabled && postsQuery.isLoading;
+  const isLoadingHistory = isRelationsReadEnabled && childrenQuery.isLoading;
+  const postsError = postsQuery.error;
+  const childrenError = childrenQuery.error;
+  useEffect(() => {
+    if (postsError) {
+      logger.error('Failed to load Studio inspector posts', postsError);
+    }
+  }, [postsError]);
+  useEffect(() => {
+    if (childrenError) {
+      logger.error('Failed to load Studio inspector history', childrenError);
+    }
+  }, [childrenError]);
   const [tabSelection, setTabSelection] = useState<{
     jobId: string;
     tab: InspectorTab;
   }>({ jobId: job.id, tab: 'recipe' });
   const activeTab = tabSelection.jobId === job.id ? tabSelection.tab : 'recipe';
-
-  const getIngredientsService = useAuthedService((token: string) =>
-    IngredientsService.getInstance(token),
-  );
-  const getImagesService = useAuthedService((token: string) =>
-    ImagesService.getInstance(token),
-  );
-  const getVideosService = useAuthedService((token: string) =>
-    VideosService.getInstance(token),
-  );
-
-  useEffect(() => {
-    if (!ingredientId || isSourceUnavailable) {
-      setPosts([]);
-      setChildren([]);
-      setIsLoadingUsedIn(false);
-      setIsLoadingHistory(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    let isCancelled = false;
-
-    setIsLoadingUsedIn(true);
-    setIsLoadingHistory(true);
-
-    void (async () => {
-      try {
-        const service = await getIngredientsService();
-        const [usedIn, historyChildren] = await Promise.all([
-          service.getPosts(ingredientId),
-          service.findChildren(ingredientId),
-        ]);
-
-        if (isCancelled || controller.signal.aborted) {
-          return;
-        }
-
-        setPosts(usedIn);
-        setChildren(historyChildren);
-        setRelationsScope(previewScope);
-      } catch (error) {
-        if (!isCancelled) {
-          logger.error('Failed to load Studio inspector relations', error);
-          setPosts([]);
-          setChildren([]);
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsLoadingUsedIn(false);
-          setIsLoadingHistory(false);
-        }
-      }
-    })();
-
-    return () => {
-      isCancelled = true;
-      controller.abort();
-    };
-  }, [getIngredientsService, ingredientId, isSourceUnavailable, previewScope]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setReceiptAsset(null);
-    setReceiptError(false);
-    // Only image and video generations carry a harness receipt, and the API
-    // reads a single asset through its category route; there is no generic
-    // single-ingredient read.
-    const getReceiptService =
-      job.type === 'image' || job.type === 'image-edit'
-        ? getImagesService
-        : job.type === 'video' || job.type === 'avatar'
-          ? getVideosService
-          : null;
-    if (!ingredientId || !getReceiptService || isSourceUnavailable)
-      return () => controller.abort();
-    void (async () => {
-      try {
-        const service = await getReceiptService();
-        if (controller.signal.aborted) return;
-        const asset = await service.findOne(
-          ingredientId,
-          undefined,
-          controller.signal,
-        );
-        if (
-          !controller.signal.aborted &&
-          asset.id === ingredientId &&
-          asset.brandId === brandId &&
-          (!orgId || !asset.organizationId || asset.organizationId === orgId) &&
-          !asset.isDeleted
-        ) {
-          setReceiptAsset(asset);
-          setReceiptScope(previewScope);
-          if (receiptRevision > 0) setFailedPreviewScope(null);
-        } else if (!controller.signal.aborted) {
-          setReceiptError(true);
-          if (receiptRevision > 0) setFailedPreviewScope(previewScope);
-        }
-      } catch {
-        if (!controller.signal.aborted) {
-          setReceiptError(true);
-          if (receiptRevision > 0) setFailedPreviewScope(previewScope);
-        }
-      } finally {
-        if (!controller.signal.aborted) setLoadingPreviewScope(null);
-      }
-    })();
-    return () => controller.abort();
-  }, [
-    brandId,
-    getImagesService,
-    getVideosService,
-    ingredientId,
-    job.type,
-    previewScope,
-    receiptRevision,
-    isSourceUnavailable,
-    orgId,
-  ]);
 
   // Report each successful retry once, so the gallery card for the same asset
   // leaves its own "Preview unavailable" state instead of staying stale.
@@ -380,11 +349,28 @@ export default function StudioPlaygroundInspector({
     );
   };
 
+  const previewScopeRef = useRef(previewScope);
+  previewScopeRef.current = previewScope;
+  const { refetch: refetchReceipt } = receiptQuery;
   const handleRetryPreview = () => {
     if (!ingredient || isPreviewLoading || isPreviewUnsupported) return;
     setFailedPreviewScope(null);
-    if (!ingredient.mediaDelivery) setLoadingPreviewScope(previewScope);
     setPreviewAttempt({ scope: previewScope, revision: previewRevision + 1 });
+    // Legacy media refreshes through its category read; signed delivery uses
+    // the existing grant endpoint. Neither path starts or retries a generation.
+    if (ingredient.mediaDelivery || !isReceiptReadEnabled) return;
+    const retryScope = previewScope;
+    setLoadingPreviewScope(retryScope);
+    void refetchReceipt().then((result) => {
+      setLoadingPreviewScope((current) =>
+        current === retryScope ? null : current,
+      );
+      // A retry superseded by another selection never touches its preview.
+      if (previewScopeRef.current !== retryScope) return;
+      setFailedPreviewScope(
+        result.isError || !isOwnReceipt(result.data) ? retryScope : null,
+      );
+    });
   };
 
   // The asset rides the agent's attachment tray; nothing is sent until the

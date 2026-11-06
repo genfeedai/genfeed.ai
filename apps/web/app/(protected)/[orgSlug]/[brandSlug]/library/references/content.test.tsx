@@ -1,4 +1,8 @@
 import { paginatedResponse } from '@app-tests/paginated-response';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 
@@ -133,6 +137,11 @@ vi.mock('@/hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: () => mocks.role,
 }));
 
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => {
     const created = factory('test-token') as { listCharactersPage?: unknown };
@@ -220,6 +229,10 @@ vi.mock('@services/ingredients/images.service', () => ({
   },
 }));
 
+function renderPage() {
+  return render(<LibraryCharactersPage />, { wrapper: queryClientWrapper() });
+}
+
 describe('LibraryCharactersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -255,7 +268,7 @@ describe('LibraryCharactersPage', () => {
       }),
     );
 
-    render(<LibraryCharactersPage />);
+    renderPage();
 
     // #5502: the page is Library References; characters are its first type.
     expect(
@@ -271,7 +284,7 @@ describe('LibraryCharactersPage', () => {
   });
 
   it('adds no footer link and a single creation action', async () => {
-    render(<LibraryCharactersPage />);
+    renderPage();
     await screen.findByText('New character');
     expect(
       screen.queryByRole('link', {
@@ -284,7 +297,7 @@ describe('LibraryCharactersPage', () => {
   });
 
   it('opens the create dialog and generates a sheet from the description', async () => {
-    render(<LibraryCharactersPage />);
+    renderPage();
 
     fireEvent.click(await screen.findByText('New character'));
 
@@ -315,7 +328,7 @@ describe('LibraryCharactersPage', () => {
   });
 
   it('does not create a persona when the candidate is discarded', async () => {
-    render(<LibraryCharactersPage />);
+    renderPage();
 
     fireEvent.click(await screen.findByText('New character'));
     await screen.findByTestId('character-description');
@@ -334,7 +347,7 @@ describe('LibraryCharactersPage', () => {
   });
 
   it('creates a persona from the approved sheet', async () => {
-    render(<LibraryCharactersPage />);
+    renderPage();
 
     fireEvent.click(await screen.findByText('New character'));
     await screen.findByTestId('character-description');
@@ -393,7 +406,7 @@ describe('LibraryCharactersPage', () => {
       mocks.listCharactersPage.mockResolvedValue(
         paginatedResponse([privateCharacter]),
       );
-      render(<LibraryCharactersPage />);
+      renderPage();
 
       expect(await screen.findByText('Ben')).toBeVisible();
       expect(
@@ -409,7 +422,7 @@ describe('LibraryCharactersPage', () => {
       mocks.listCharactersPage.mockResolvedValue(
         paginatedResponse([sharedCharacter, privateCharacter]),
       );
-      render(<LibraryCharactersPage />);
+      renderPage();
 
       expect(
         await screen.findByText('Shared · Podcast · 3 brands'),
@@ -421,7 +434,7 @@ describe('LibraryCharactersPage', () => {
       mocks.listCharactersPage.mockResolvedValue(
         paginatedResponse([sharedCharacter]),
       );
-      render(<LibraryCharactersPage />);
+      renderPage();
 
       await screen.findByText('Shared · Podcast · 3 brands');
       expect(
@@ -434,7 +447,7 @@ describe('LibraryCharactersPage', () => {
       mocks.listCharactersPage.mockResolvedValue(
         paginatedResponse([privateCharacter]),
       );
-      render(<LibraryCharactersPage />);
+      renderPage();
 
       fireEvent.click(
         await screen.findByRole('button', {
@@ -478,7 +491,7 @@ describe('LibraryCharactersPage', () => {
             },
           ]),
         );
-        render(<LibraryCharactersPage />);
+        renderPage();
 
         expect(
           await screen.findByText('Granted by Vincent Shipshit'),
@@ -496,7 +509,7 @@ describe('LibraryCharactersPage', () => {
           paginatedResponse([privateCharacter]),
         );
         mocks.listGrantableOrganizations.mockResolvedValue(organizations);
-        render(<LibraryCharactersPage />);
+        renderPage();
 
         fireEvent.click(
           await screen.findByRole('button', {
@@ -537,7 +550,7 @@ describe('LibraryCharactersPage', () => {
             recipientOrganizationName: 'ShipShit Show',
           },
         ]);
-        render(<LibraryCharactersPage />);
+        renderPage();
 
         fireEvent.click(
           await screen.findByRole('button', {
@@ -558,12 +571,65 @@ describe('LibraryCharactersPage', () => {
         });
       });
 
+      it('paints the cached grants at once when the dialog is reopened', async () => {
+        mocks.role = MemberRole.OWNER;
+        mocks.listCharactersPage.mockResolvedValue(
+          paginatedResponse([privateCharacter]),
+        );
+        mocks.listGrants.mockResolvedValue([
+          {
+            availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
+            availableBrandIds: [],
+            grantedAt: '2026-10-04T00:00:00.000Z',
+            id: 'grant-1',
+            recipientOrganizationId: 'org-2',
+            recipientOrganizationName: 'ShipShit Show',
+          },
+        ]);
+        mocks.listGrantableOrganizations.mockResolvedValue(organizations);
+        const client = createTestQueryClient();
+        const firstVisit = render(<LibraryCharactersPage />, {
+          wrapper: queryClientWrapper(client),
+        });
+        fireEvent.click(
+          await screen.findByRole('button', {
+            name: 'Manage availability for Ben',
+          }),
+        );
+        expect(
+          await screen.findByRole('button', {
+            name: 'Revoke the grant to ShipShit Show',
+          }),
+        ).toBeInTheDocument();
+        firstVisit.unmount();
+
+        mocks.listGrants.mockReturnValue(new Promise(() => {}));
+        mocks.listGrantableOrganizations.mockReturnValue(new Promise(() => {}));
+        render(<LibraryCharactersPage />, {
+          wrapper: queryClientWrapper(client),
+        });
+        fireEvent.click(
+          await screen.findByRole('button', {
+            name: 'Manage availability for Ben',
+          }),
+        );
+
+        expect(
+          screen.getByRole('button', {
+            name: 'Revoke the grant to ShipShit Show',
+          }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('radio', { name: 'ShipShit Show' }),
+        ).toBeInTheDocument();
+      });
+
       it('offers no grant control when the member administers no other organization', async () => {
         mocks.role = MemberRole.OWNER;
         mocks.listCharactersPage.mockResolvedValue(
           paginatedResponse([privateCharacter]),
         );
-        render(<LibraryCharactersPage />);
+        renderPage();
 
         fireEvent.click(
           await screen.findByRole('button', {
@@ -572,9 +638,11 @@ describe('LibraryCharactersPage', () => {
         );
         await screen.findByTestId('character-availability');
 
-        expect(
-          screen.queryByTestId('character-grants'),
-        ).not.toBeInTheDocument();
+        await waitFor(() =>
+          expect(
+            screen.queryByTestId('character-grants'),
+          ).not.toBeInTheDocument(),
+        );
       });
     });
 
@@ -583,7 +651,7 @@ describe('LibraryCharactersPage', () => {
       mocks.listCharactersPage.mockResolvedValue(
         paginatedResponse([sharedCharacter]),
       );
-      render(<LibraryCharactersPage />);
+      renderPage();
 
       fireEvent.click(
         await screen.findByRole('button', {
@@ -604,7 +672,7 @@ describe('LibraryCharactersPage', () => {
       mocks.listCharactersPage.mockResolvedValue(
         paginatedResponse([privateCharacter]),
       );
-      render(<LibraryCharactersPage />);
+      renderPage();
 
       fireEvent.click(
         await screen.findByRole('button', {
@@ -623,7 +691,7 @@ describe('LibraryCharactersPage', () => {
       mocks.listCharactersPage.mockResolvedValue(
         paginatedResponse([sharedCharacter]),
       );
-      render(<LibraryCharactersPage />);
+      renderPage();
 
       fireEvent.click(
         await screen.findByRole('button', {
@@ -650,7 +718,7 @@ describe('LibraryCharactersPage', () => {
 
     it('sends the availability choice when an admin creates from a sheet', async () => {
       mocks.role = MemberRole.ADMIN;
-      render(<LibraryCharactersPage />);
+      renderPage();
 
       fireEvent.click(await screen.findByText('New character'));
       await screen.findByTestId('character-description');
@@ -683,7 +751,7 @@ describe('LibraryCharactersPage', () => {
     });
 
     it('does not offer availability to non-admins creating a character', async () => {
-      render(<LibraryCharactersPage />);
+      renderPage();
 
       fireEvent.click(await screen.findByText('New character'));
       await screen.findByTestId('character-description');
@@ -710,7 +778,7 @@ describe('LibraryCharactersPage', () => {
     };
 
     async function openManageDialog() {
-      render(<LibraryCharactersPage />);
+      renderPage();
       fireEvent.click(
         await screen.findByRole('button', {
           name: 'Manage references for Anna',
@@ -727,7 +795,7 @@ describe('LibraryCharactersPage', () => {
 
     it('shows the ordered reference thumbnails on the row', async () => {
       mocks.listCharactersPage.mockResolvedValue(paginatedResponse([anna]));
-      render(<LibraryCharactersPage />);
+      renderPage();
 
       await screen.findByText('@anna');
       expect(
@@ -852,7 +920,7 @@ describe('LibraryCharactersPage', () => {
           { ...anna, grantedByOrganizationName: 'Acme', isGranted: true },
         ]),
       );
-      render(<LibraryCharactersPage />);
+      renderPage();
 
       await screen.findByText('@anna');
       expect(
@@ -881,7 +949,7 @@ describe('LibraryCharactersPage', () => {
         { totalDocs: 61, totalPages: 5 },
       ),
     );
-    render(<LibraryCharactersPage />);
+    renderPage();
     await waitFor(() =>
       expect(
         screen.getByRole('navigation', { name: 'pagination' }),

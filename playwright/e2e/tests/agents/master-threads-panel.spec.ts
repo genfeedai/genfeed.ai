@@ -513,16 +513,28 @@ test.describe('Agent master thread and Threads panel', () => {
     ]);
 
     // The panel moved it to Resolved: the same state, not a second copy.
+    // Resolved starts collapsed with its count (#9395); open it to see the row.
     await expect(
       panel.getByTestId('agent-threads-panel-group-readyForReview'),
     ).toHaveCount(0);
+    const resolvedToggle = panel.getByTestId(
+      'agent-threads-panel-group-toggle-resolved',
+    );
+    await expect(resolvedToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(resolvedToggle).toHaveText(/^Resolved\s*·\s*1$/);
+    await resolvedToggle.click();
     await expect(
       panel
         .getByTestId('agent-threads-panel-group-resolved')
         .getByTestId(`agent-threads-panel-thread-${REVIEW_ID}`),
     ).toBeVisible();
 
-    // Reopen from the panel row; the card follows.
+    // Reopen from the panel row; the card follows. The row's action shows on
+    // hover (#9395), so point at the row first, as a mouse user does.
+    await panel
+      .getByTestId('agent-threads-panel-group-resolved')
+      .getByTestId(`agent-threads-panel-thread-${REVIEW_ID}`)
+      .hover();
     await panel
       .getByRole('button', {
         name: 'Reopen: Carousel for the speaker drop',

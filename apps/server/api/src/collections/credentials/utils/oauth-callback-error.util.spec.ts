@@ -6,90 +6,164 @@ import {
 } from '@genfeedai/helpers/integrations/external-connection-request.helper';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
-describe('throwIfOAuthCallbackError', () => {
-  const credentialsService = {
-    findPendingOAuthCredential: vi.fn(),
-    patch: vi.fn(),
-  };
+type Store = Parameters<typeof throwIfOAuthCallbackError>[0];
+type PendingCredential = NonNullable<
+  Awaited<ReturnType<Store['findPendingOAuthCredential']>>
+>;
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+interface StoredCredential {
+  id: string;
+  isConnected: boolean;
+  oauthState: string;
+  platform: CredentialPlatform;
+}
 
-  it('returns without querying when the callback has no error code', async () => {
-    await throwIfOAuthCallbackError(
-      credentialsService,
-      { state: 'opaque-state' },
-      CredentialPlatform.TWITTER,
-    );
-
-    expect(
-      credentialsService.findPendingOAuthCredential,
-    ).not.toHaveBeenCalled();
-    expect(credentialsService.patch).not.toHaveBeenCalled();
-  });
-
-  it('persists access_denied onto the pending credential', async () => {
-    credentialsService.findPendingOAuthCredential.mockResolvedValue({
-      id: 'cred-1',
-      isConnected: false,
-    });
-
-    await expect(
-      throwIfOAuthCallbackError(
-        credentialsService,
-        { error: 'access_denied', state: 'opaque-state' },
-        CredentialPlatform.TWITTER,
-      ),
-    ).rejects.toSatisfy((error: unknown) => {
-      return (
-        error instanceof HttpException &&
-        error.getStatus() === HttpStatus.BAD_REQUEST
+/** An in-memory credential table keyed by the pending OAuth state. */
+function credentialStore(rows: StoredCredential[]) {
+  const table = new Map(rows.map((row) => [row.id, { ...row }]));
+  const store: Store = {
+    findPendingOAuthCredential: async (state, platform) => {
+      const row = [...table.values()].find(
+        (item) => item.oauthState === state && item.platform === platform,
       );
-    });
+      // Only the fields the callback reads; the rest of the row is not used.
+      return row ? (row as unknown as PendingCredential) : null;
+    },
+    patch: async (id, update) => {
+      const row = table.get(String(id));
+      if (row) {
+        Object.assign(row, update);
+      }
+      return row as unknown as Awaited<ReturnType<Store['patch']>>;
+    },
+  };
+  return { store, table };
+}
 
-    expect(credentialsService.findPendingOAuthCredential).toHaveBeenCalledWith(
-      'opaque-state',
+function pendingTwitter(overrides: Partial<StoredCredential> = {}) {
+  return {
+    id: 'cred-1',
+    isConnected: false,
+    oauthState: 'opaque-state',
+    platform: CredentialPlatform.TWITTER,
+    ...overrides,
+  };
+}
+
+async function callbackFailure(
+  promise: Promise<void>,
+): Promise<{ status: number; title: string }> {
+  const error = await promise.then(
+    () => null,
+    (reason: unknown) => reason,
+  );
+  if (!(error instanceof HttpException)) {
+    throw new Error('Expected the callback to reject with an HttpException');
+  }
+  const body = error.getResponse() as { title: string };
+  return { status: error.getStatus(), title: body.title };
+}
+
+describe('throwIfOAuthCallbackError', () => {
+  it.each([
+    [{ state: 'opaque-state' }],
+    [{ error: '   ', state: 'opaque-state' }],
+  ])(
+    'leaves the pending credential alone when %j has no error code',
+    async (dto) => {
+      const { store, table } = credentialStore([pendingTwitter()]);
+
+      await expect(
+        throwIfOAuthCallbackError(store, dto, CredentialPlatform.TWITTER),
+      ).resolves.toBeUndefined();
+
+      expect(table.get('cred-1')?.oauthState).toBe('opaque-state');
+    },
+  );
+
+  it.each([
+    [
+      'access_denied',
       CredentialPlatform.TWITTER,
-    );
-    expect(credentialsService.patch).toHaveBeenCalledWith('cred-1', {
-      oauthState: EXTERNAL_CONNECTION_DENIED_STATE,
-    });
-  });
+      EXTERNAL_CONNECTION_DENIED_STATE,
+      'Authorization denied',
+    ],
+    [
+      'server_error',
+      CredentialPlatform.YOUTUBE,
+      EXTERNAL_CONNECTION_FAILED_STATE,
+      'Authorization failed',
+    ],
+  ])(
+    'records %s on the pending %s credential and rejects the callback',
+    async (error, platform, oauthState, title) => {
+      const { store, table } = credentialStore([pendingTwitter({ platform })]);
 
-  it('persists a non-denial provider error as failed', async () => {
-    credentialsService.findPendingOAuthCredential.mockResolvedValue({
-      id: 'cred-1',
-      isConnected: false,
-    });
-
-    await expect(
-      throwIfOAuthCallbackError(
-        credentialsService,
-        { error: 'server_error', state: 'opaque-state' },
-        CredentialPlatform.YOUTUBE,
-      ),
-    ).rejects.toBeInstanceOf(HttpException);
-
-    expect(credentialsService.patch).toHaveBeenCalledWith('cred-1', {
-      oauthState: EXTERNAL_CONNECTION_FAILED_STATE,
-    });
-  });
+      expect(
+        await callbackFailure(
+          throwIfOAuthCallbackError(
+            store,
+            { error, state: 'opaque-state' },
+            platform,
+          ),
+        ),
+      ).toEqual({ status: HttpStatus.BAD_REQUEST, title });
+      expect(table.get('cred-1')?.oauthState).toBe(oauthState);
+    },
+  );
 
   it('does not overwrite an already-connected credential', async () => {
-    credentialsService.findPendingOAuthCredential.mockResolvedValue({
-      id: 'cred-1',
-      isConnected: true,
-    });
+    const { store, table } = credentialStore([
+      pendingTwitter({ isConnected: true }),
+    ]);
 
-    await expect(
-      throwIfOAuthCallbackError(
-        credentialsService,
-        { error: 'access_denied', state: 'opaque-state' },
-        CredentialPlatform.TWITTER,
+    expect(
+      await callbackFailure(
+        throwIfOAuthCallbackError(
+          store,
+          { error: 'access_denied', state: 'opaque-state' },
+          CredentialPlatform.TWITTER,
+        ),
       ),
-    ).rejects.toBeInstanceOf(HttpException);
+    ).toEqual({
+      status: HttpStatus.BAD_REQUEST,
+      title: 'Authorization denied',
+    });
+    expect(table.get('cred-1')).toEqual(pendingTwitter({ isConnected: true }));
+  });
 
-    expect(credentialsService.patch).not.toHaveBeenCalled();
+  it('leaves another platform credential on the same state untouched', async () => {
+    const { store, table } = credentialStore([
+      pendingTwitter({ platform: CredentialPlatform.YOUTUBE }),
+    ]);
+
+    expect(
+      await callbackFailure(
+        throwIfOAuthCallbackError(
+          store,
+          { error: 'access_denied', state: 'opaque-state' },
+          CredentialPlatform.TWITTER,
+        ),
+      ),
+    ).toEqual({
+      status: HttpStatus.BAD_REQUEST,
+      title: 'Authorization denied',
+    });
+    expect(table.get('cred-1')?.oauthState).toBe('opaque-state');
+  });
+
+  it('rejects a provider error that carries no state', async () => {
+    const { store, table } = credentialStore([pendingTwitter()]);
+
+    expect(
+      await callbackFailure(
+        throwIfOAuthCallbackError(
+          store,
+          { error: 'access_denied' },
+          CredentialPlatform.TWITTER,
+        ),
+      ),
+    ).toEqual({ status: HttpStatus.BAD_REQUEST, title: 'Invalid payload' });
+    expect(table.get('cred-1')?.oauthState).toBe('opaque-state');
   });
 });

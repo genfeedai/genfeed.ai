@@ -1,6 +1,12 @@
+import { queryClientWrapper } from '@app-tests/query-client.harness';
 import type { IBrand, IBrandKitDraft } from '@genfeedai/contracts/interfaces';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { HTMLAttributes, ReactNode } from 'react';
+import {
+  fireEvent,
+  render as renderInDom,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import type { HTMLAttributes, ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandKitReviewCard from './BrandKitReviewCard';
 
@@ -30,6 +36,16 @@ vi.mock('next/image', () => ({
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getBrandsService,
 }));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
+/** Each spec gets its own query cache, like a fresh page load. */
+function render(ui: ReactElement) {
+  return renderInDom(ui, { wrapper: queryClientWrapper() });
+}
 
 vi.mock('@services/core/logger.service', () => ({
   logger: {

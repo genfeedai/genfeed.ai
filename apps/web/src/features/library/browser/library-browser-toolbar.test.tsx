@@ -1,3 +1,4 @@
+import { queryClientWrapper } from '@app-tests/query-client.harness';
 import { selectView, viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import {
   IngredientCategory,
@@ -6,14 +7,29 @@ import {
   LibraryShelf,
   TagMatchMode,
 } from '@genfeedai/contracts';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render as renderInDom,
+  screen,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LibraryBrowserToolbar, {
   LibraryBrowserOverflowMenu,
   LibraryBrowserSearch,
 } from './library-browser-toolbar';
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
+/** Each spec gets its own query cache, like a fresh page load. */
+function render(ui: ReactElement) {
+  return renderInDom(ui, { wrapper: queryClientWrapper() });
+}
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');

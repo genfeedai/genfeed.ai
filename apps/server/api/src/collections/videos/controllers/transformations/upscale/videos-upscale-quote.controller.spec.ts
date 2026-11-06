@@ -2,76 +2,74 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { VideosUpscaleQuoteController } from '@api/collections/videos/controllers/transformations/upscale/videos-upscale-quote.controller';
 import type { VideoUpscaleQuoteService } from '@api/collections/videos/services/video-upscale-quote.service';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
-import { testId } from '@helpers/testing/test-id.helper';
 import type { Request } from 'express';
 
-vi.mock('@api/helpers/utils/response/response.util', () => ({
-  serializeSingle: vi.fn(
-    (_request: unknown, _serializer: unknown, data: unknown) => ({ data }),
-  ),
-}));
+const MODEL = MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE;
+const user = { id: 'user-1', organizationId: 'org-1' } as unknown as User;
+const request = {
+  params: { videoId: 'video-1' },
+  query: {},
+} as unknown as Request;
 
-const organizationId = testId('org');
-const videoId = testId('video');
-const user = {
-  id: testId('user'),
-  organizationId,
-  userId: testId('user'),
-} as unknown as User;
-const request = { params: { videoId }, query: {} } as unknown as Request;
+/**
+ * The endpoint over a price list keyed by organization, video, resolution and
+ * frame rate; a quote the list does not hold is an error, so a wrong default
+ * or a lost option fails the call.
+ */
+function controllerPricing(prices: Record<string, number>) {
+  const quoteService = {
+    quote: async (
+      organizationId: string,
+      videoId: string,
+      options: { model: string; targetFps: number; targetResolution: string },
+    ) => {
+      const key = `${organizationId}/${videoId}/${options.model}/${options.targetResolution}@${options.targetFps}`;
+      const price = prices[key];
+      if (price === undefined) {
+        throw new Error(`no price for ${key}`);
+      }
+      return price;
+    },
+  };
+  return new VideosUpscaleQuoteController(
+    quoteService as unknown as VideoUpscaleQuoteService,
+  );
+}
+
+const prices = {
+  [`org-1/video-1/${MODEL}/1080p@30`]: 41,
+  [`org-1/video-1/${MODEL}/4k@60`]: 80,
+};
 
 describe('VideosUpscaleQuoteController', () => {
-  it('quotes the video for the caller organization with the default options', async () => {
-    const quote = vi.fn().mockResolvedValue(41);
-    const controller = new VideosUpscaleQuoteController({
-      quote,
-    } as unknown as VideoUpscaleQuoteService);
+  it.each([
+    ['the default 1080p at 30 fps', {}, 41],
+    ['the chosen 4k at 60 fps', { targetFps: 60, targetResolution: '4k' }, 80],
+  ] as const)(
+    'quotes %s for the caller organization',
+    async (_case, options, credits) => {
+      const response = await controllerPricing(prices).findUpscaleQuote(
+        request,
+        user,
+        'video-1',
+        { model: MODEL, ...options },
+      );
 
-    await expect(
-      controller.findUpscaleQuote(request, user, videoId, {
-        model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
-      }),
-    ).resolves.toEqual({ data: { credits: 41, id: videoId } });
-    expect(quote).toHaveBeenCalledWith(organizationId, videoId, {
-      model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
-      targetFps: 30,
-      targetResolution: '1080p',
-    });
-  });
-
-  it('passes the chosen resolution and frame rate through', async () => {
-    const quote = vi.fn().mockResolvedValue(80);
-    const controller = new VideosUpscaleQuoteController({
-      quote,
-    } as unknown as VideoUpscaleQuoteService);
-
-    await controller.findUpscaleQuote(request, user, videoId, {
-      model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
-      targetFps: 60,
-      targetResolution: '4k',
-    });
-
-    expect(quote).toHaveBeenCalledWith(organizationId, videoId, {
-      model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
-      targetFps: 60,
-      targetResolution: '4k',
-    });
-  });
+      expect(response.data).toMatchObject({
+        attributes: { credits },
+        id: 'video-1',
+      });
+    },
+  );
 
   it('refuses a caller with no organization', async () => {
-    const quote = vi.fn();
-    const controller = new VideosUpscaleQuoteController({
-      quote,
-    } as unknown as VideoUpscaleQuoteService);
-
     await expect(
-      controller.findUpscaleQuote(
+      controllerPricing(prices).findUpscaleQuote(
         request,
-        { id: testId('user') } as unknown as User,
-        videoId,
-        { model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE },
+        { id: 'user-1' } as unknown as User,
+        'video-1',
+        { model: MODEL },
       ),
-    ).rejects.toThrow('organization is required');
-    expect(quote).not.toHaveBeenCalled();
+    ).rejects.toThrow('An organization is required to quote');
   });
 });

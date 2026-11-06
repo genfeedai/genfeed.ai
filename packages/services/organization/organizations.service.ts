@@ -542,9 +542,10 @@ export class OrganizationsService extends BaseService<Organization> {
 
   public async getByokAllProviders(
     orgId: string,
+    signal?: AbortSignal,
   ): Promise<IByokProviderStatus[]> {
     return await this.instance
-      .get(`/${orgId}/settings/byok`)
+      .get(`/${orgId}/settings/byok`, { signal })
       .then((res) => res.data);
   }
 

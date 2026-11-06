@@ -27,6 +27,8 @@ import { Injectable } from '@nestjs/common';
 import jwt from 'jsonwebtoken';
 import { firstValueFrom } from 'rxjs';
 
+const HTTP_SCHEME_PATTERN = /^https?:\/\//i;
+
 @Traced()
 @Injectable()
 export class GhostService {
@@ -250,14 +252,18 @@ export class GhostService {
           },
           httpsAgent: agent,
           maxRedirects: 0,
+          // Connect waits on this call; a site that never answers must fail
+          // as unreachable instead of holding the form open.
+          timeout: PROVIDER_VERIFICATION_REQUEST_TIMEOUT_MS,
         }),
       );
 
       this.loggerService.log(`${url} success`, {
-        siteTitle: response.data.site.title,
+        siteTitle: response.data?.site?.title,
       });
 
-      return response.data.site;
+      // A non-Ghost page answering 200 has no `site`; the caller refuses it.
+      return response.data?.site;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
@@ -311,10 +317,8 @@ export class GhostService {
   private normalizeUrl(ghostUrl: string): string {
     let normalized = trimTrailingCharacter(ghostUrl, '/');
 
-    if (
-      !normalized.startsWith('http://') &&
-      !normalized.startsWith('https://')
-    ) {
+    // The connect form keeps the scheme as typed, so `HTTPS://` counts too.
+    if (!HTTP_SCHEME_PATTERN.test(normalized)) {
       normalized = `https://${normalized}`;
     }
 

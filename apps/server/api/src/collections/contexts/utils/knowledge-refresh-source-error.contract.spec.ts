@@ -28,13 +28,23 @@ describe('knowledge refresh source HTTP contract', () => {
     expect(failure).toBeInstanceOf(KnowledgeSourceUnavailableException);
     if (!(failure instanceof KnowledgeSourceUnavailableException))
       throw new Error('Expected source exception');
+    const logged: string[] = [];
     const logger = {
-      error: vi.fn(),
-      warn: vi.fn(),
-      debug: vi.fn(),
-      log: vi.fn(),
+      debug: () => undefined,
+      error: (message: string) => logged.push(`error: ${message}`),
+      log: () => undefined,
+      warn: () => undefined,
     };
-    const response = { status: vi.fn().mockReturnThis(), json: vi.fn() };
+    const sent: { body?: unknown; status?: number } = {};
+    const response = {
+      json: (body: unknown) => {
+        sent.body = body;
+      },
+      status(code: number) {
+        sent.status = code;
+        return this;
+      },
+    };
     const request = {
       method: 'POST',
       url: '/v1/knowledge-sources/source-1/refresh',
@@ -57,9 +67,11 @@ describe('knowledge refresh source HTTP contract', () => {
             : undefined,
       } as unknown as ConfigService,
     );
+
     filter.catch(failure, host as ArgumentsHost);
-    expect(response.status).toHaveBeenCalledWith(422);
-    expect(response.json).toHaveBeenCalledWith({
+
+    expect(sent.status).toBe(422);
+    expect(sent.body).toEqual({
       errors: [
         expect.objectContaining({
           code: '422',
@@ -69,10 +81,10 @@ describe('knowledge refresh source HTTP contract', () => {
         }),
       ],
     });
-    expect(JSON.stringify(response.json.mock.calls)).not.toMatch(
+    expect(JSON.stringify(sent.body)).not.toMatch(
       /private\.invalid|token=secret|ENOTFOUND/,
     );
-    expect(Sentry.captureException).not.toHaveBeenCalled();
-    expect(logger.error).not.toHaveBeenCalled();
+    expect(vi.mocked(Sentry.captureException).mock.calls).toEqual([]);
+    expect(logged).toEqual([]);
   });
 });

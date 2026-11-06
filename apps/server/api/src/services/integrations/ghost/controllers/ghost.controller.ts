@@ -8,8 +8,19 @@ import {
   returnInternalServerError,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import {
+  classifyApiKeyConnectError,
+  createApiKeyConnectException,
+} from '@api/services/integrations/_shared/api-key-connect-error.util';
 import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import {
+  parseGhostConnectInput,
+  toGhostSiteKey,
+} from '@api/services/integrations/ghost/utils/ghost-connect-input.util';
+import {
+  ApiKeyConnectErrorCode,
+  CredentialPlatform,
+} from '@genfeedai/contracts';
 import type {
   GhostConnectPayload,
   GhostCreatePostPayload,
@@ -49,7 +60,13 @@ export class GhostController {
       ghostUrl: body.ghostUrl,
     });
 
-    if (!body.ghostUrl || !body.apiKey || !body.brandId) {
+    if (
+      typeof body.ghostUrl !== 'string' ||
+      typeof body.apiKey !== 'string' ||
+      !body.ghostUrl ||
+      !body.apiKey ||
+      !body.brandId
+    ) {
       return returnBadRequest({
         detail: 'Missing ghostUrl, apiKey, or brandId',
         title: 'Invalid payload',
@@ -68,47 +85,76 @@ export class GhostController {
       });
     }
 
-    try {
-      // Verify the Ghost credentials by fetching site info
-      const siteInfo = await this.ghostService.getSiteInfo(
-        body.ghostUrl,
-        body.apiKey,
-      );
-
-      // Provision the row first, then let identity reconciliation decide
-      // whether this is a reconnect of a site the brand already has or an
-      // additional one. The site URL is the identity — a brand may run several
-      // Ghost blogs, and two of them can share a title.
-      const pending = await this.credentialsService.createPendingForBrand(
-        brand,
-        user.userId ?? user.id,
-        CredentialPlatform.GHOST,
-        { accessToken: body.apiKey },
-      );
-
-      const credential = await this.credentialsService.updateExternalProfile(
-        pending.id,
-        brand.organizationId,
-        {
-          // A Ghost site URL is an address, not a public @handle.
-          handle: undefined,
-          id: body.ghostUrl,
-          name: siteInfo.title,
-        },
-      );
-
-      return serializeSingle(request, CredentialSerializer, credential);
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      return returnInternalServerError(
-        'Failed to connect Ghost. Verify your URL and Admin API key.',
-      );
+    const input = parseGhostConnectInput(body.ghostUrl, body.apiKey);
+    if (!input.ok) {
+      throw createApiKeyConnectException(input.code);
     }
+
+    let siteTitle: string | undefined;
+    try {
+      // Verify the pair by reading the site: proves the URL is a Ghost site
+      // and that it accepts the key.
+      const siteInfo = await this.ghostService.getSiteInfo(
+        input.ghostUrl,
+        input.apiKey,
+      );
+      siteTitle = siteInfo?.title;
+    } catch (error: unknown) {
+      const code = classifyApiKeyConnectError(error);
+      // The service already logged the failure; only the outcome goes here.
+      this.loggerService.warn(`${url} refused`, { code });
+      throw createApiKeyConnectException(code);
+    }
+    // A site that answers 200 without Ghost's site object (a page that
+    // serves every path, say) has no Ghost Admin API at this address.
+    if (typeof siteTitle !== 'string') {
+      this.loggerService.warn(`${url} refused`, {
+        code: ApiKeyConnectErrorCode.API_NOT_FOUND,
+      });
+      throw createApiKeyConnectException(ApiKeyConnectErrorCode.API_NOT_FOUND);
+    }
+
+    // Sites connected before the address was cleaned up are stored as typed
+    // (`https://myblog.com/`, say). Reuse that spelling when it names the
+    // same site, so reconnecting updates the account instead of adding one.
+    const existingAccounts = await this.credentialsService.findBrandAccounts(
+      brand.organizationId,
+      brand.id,
+      CredentialPlatform.GHOST,
+    );
+    const siteKey = toGhostSiteKey(input.ghostUrl);
+    const siteId =
+      existingAccounts
+        .map((account) => account.externalId)
+        .find(
+          (externalId): externalId is string =>
+            typeof externalId === 'string' &&
+            toGhostSiteKey(externalId) === siteKey,
+        ) ?? input.ghostUrl;
+
+    // Provision the row first, then let identity reconciliation decide
+    // whether this is a reconnect of a site the brand already has or an
+    // additional one. The site URL is the identity — a brand may run several
+    // Ghost blogs, and two of them can share a title.
+    const pending = await this.credentialsService.createPendingForBrand(
+      brand,
+      user.userId ?? user.id,
+      CredentialPlatform.GHOST,
+      { accessToken: input.apiKey },
+    );
+
+    const credential = await this.credentialsService.updateExternalProfile(
+      pending.id,
+      brand.organizationId,
+      {
+        // A Ghost site URL is an address, not a public @handle.
+        handle: undefined,
+        id: siteId,
+        name: siteTitle,
+      },
+    );
+
+    return serializeSingle(request, CredentialSerializer, credential);
   }
 
   /**

@@ -5,6 +5,8 @@ import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-a
 import { TagsService } from '@genfeedai/services/content/tags.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DropdownTagsProps } from '@/props/tags/dropdown-tags.props';
 
@@ -18,6 +20,19 @@ type DropdownTagsHookParams = Pick<
   | 'isLoadingTags'
 >;
 
+const EMPTY_TAGS: ITag[] = [];
+
+function dropdownTagsQueryKey(
+  scope: DropdownTagsProps['scope'],
+  brandId: string | undefined,
+) {
+  return ['dropdown-tags', scope ?? null, brandId ?? null] as const;
+}
+
+function createTagsService(token: string): TagsService {
+  return TagsService.getInstance(token);
+}
+
 export function useDropdownTags({
   selectedTags,
   onChange,
@@ -28,10 +43,6 @@ export function useDropdownTags({
   const { brandId } = useBrand();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [allTags, setAllTags] = useState<ITag[]>(externalTags || []);
-
-  // Don't show loading state if external tags are provided
-  const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -43,156 +54,39 @@ export function useDropdownTags({
     useRight: false,
   });
 
-  const getTagsService = useAuthedService((token: string) =>
-    TagsService.getInstance(token),
-  );
+  const queryClient = useQueryClient();
+  const getTagsService = useAuthedService(createTagsService);
   const notificationsService = NotificationsService.getInstance();
-  const hasLoadedRef = useRef(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const isMountedRef = useRef(true);
-  const previousCacheKeyRef = useRef<string | null>(null);
 
-  // Update allTags when externalTags change (only if valid and different)
+  // The tags read through React Query the first time the dropdown opens (when
+  // no external tags are given), so reopening it, here or on another page,
+  // paints the cached tags at once and refreshes them in the background.
+  const tagsQuery = useAuthedQuery<TagsService, ITag[]>({
+    enabled: isOpen && !externalTags,
+    queryFn: (service, signal) =>
+      service.findAll(
+        { category: scope, ...(brandId ? { brand: brandId } : {}) },
+        signal,
+      ),
+    queryKey: dropdownTagsQueryKey(scope, brandId),
+    service: createTagsService,
+  });
+  const allTags = externalTags ?? tagsQuery.data ?? EMPTY_TAGS;
+  const isLoading = !externalTags && tagsQuery.isLoading;
+  const { error: loadError } = tagsQuery;
+  const hasTags = tagsQuery.data !== undefined;
+
+  // A failed background refresh keeps the tags on screen without an alert.
   useEffect(() => {
-    if (
-      externalTags &&
-      Array.isArray(externalTags) &&
-      externalTags.length >= 0
-    ) {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
-
-      if (isMountedRef.current) {
-        setAllTags(externalTags);
-        setIsLoading(false);
-        hasLoadedRef.current = true;
-      }
-    } else if (externalTags === undefined || externalTags === null) {
-      // Reset hasLoadedRef when externalTags is cleared to allow reloading
-      hasLoadedRef.current = false;
-    }
-  }, [externalTags]);
-
-  // Load tags when dropdown opens (only if no external tags provided)
-  useEffect(() => {
-    if (externalTags) {
+    if (!loadError || hasTags) {
       return;
     }
-
-    if (!isOpen) {
-      return;
-    }
-
-    const currentCacheKey = `${scope ?? 'no-scope'}-${brandId ?? 'no-brand'}`;
-
-    if (
-      previousCacheKeyRef.current !== null &&
-      previousCacheKeyRef.current !== currentCacheKey
-    ) {
-      hasLoadedRef.current = false;
-    }
-
-    previousCacheKeyRef.current = currentCacheKey;
-
-    if (hasLoadedRef.current) {
-      return;
-    }
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    const loadTags = async () => {
-      setIsLoading(true);
-
-      const url = `GET /tags ${scope ? `?category=${scope}` : ''}`;
-      try {
-        if (!isMountedRef.current) {
-          return;
-        }
-
-        const service = await getTagsService();
-        const params: Record<string, string | undefined> = {
-          category: scope,
-        };
-
-        if (brandId) {
-          params.brand = brandId;
-        }
-
-        const tags = await service.findAll(params);
-
-        // Skip data update if this request was superseded (controller aborted)
-        // but always clear loading state for mounted component
-        if (controller.signal.aborted) {
-          setIsLoading(false);
-          return;
-        }
-
-        logger.info(`${url} success`, tags);
-        setAllTags(tags as ITag[]);
-        setIsLoading(false);
-        hasLoadedRef.current = true;
-      } catch (error) {
-        // Don't update state if component unmounted
-        if (!isMountedRef.current) {
-          return;
-        }
-
-        // Always clear loading state for mounted component
-        setIsLoading(false);
-
-        // Skip error handling if request was superseded (controller aborted)
-        // This includes Axios cancel errors (CanceledError) and any other errors
-        // from aborted requests - a new request is already in progress
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        logger.error(`${url} failed`, error);
-        notificationsService.error('Failed to load tags');
-      } finally {
-        // Clear abort controller reference if this was the active request
-        if (abortControllerRef.current === controller) {
-          abortControllerRef.current = null;
-        }
-      }
-    };
-
-    loadTags();
-
-    // Cleanup: abort request if effect re-runs or component unmounts
-    return () => {
-      if (abortControllerRef.current === controller) {
-        controller.abort();
-        abortControllerRef.current = null;
-      }
-    };
-  }, [
-    isOpen,
-    externalTags,
-    scope,
-    brandId,
-    getTagsService,
-    notificationsService.error,
-  ]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    const mountedRef = isMountedRef;
-    return () => {
-      mountedRef.current = false;
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
-    };
-  }, []);
+    logger.error(
+      `GET /tags ${scope ? `?category=${scope}` : ''} failed`,
+      loadError,
+    );
+    notificationsService.error('Failed to load tags');
+  }, [hasTags, loadError, notificationsService, scope]);
 
   // Calculate dropdown position when it opens
   useEffect(() => {
@@ -300,7 +194,14 @@ export function useDropdownTags({
 
       if (newTag.id) {
         onChange([...selectedTags, newTag.id]);
-        setAllTags((prev) => [...prev, newTag]);
+        // A list read before the tag existed would drop it again.
+        await queryClient.cancelQueries({
+          queryKey: dropdownTagsQueryKey(scope, brandId),
+        });
+        queryClient.setQueriesData<ITag[]>(
+          { queryKey: dropdownTagsQueryKey(scope, brandId) },
+          (current) => [...(current ?? []), newTag],
+        );
         setSearchQuery('');
 
         notificationsService.success(`Tag "${newTag.label}" created`);

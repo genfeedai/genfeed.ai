@@ -201,9 +201,10 @@ describe('ContentRunsService', () => {
     });
 
     const service = new ContentRunsService('token');
-    const result = await service.findOne('run-1');
+    const signal = new AbortController().signal;
+    const result = await service.findOne('run-1', signal);
 
-    expect(mockGet).toHaveBeenCalledWith('/content-runs/run-1');
+    expect(mockGet).toHaveBeenCalledWith('/content-runs/run-1', { signal });
     expect(result).toMatchObject({ _id: 'run-1', status: 'completed' });
   });
 

@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it, vi } from 'vitest';
+import GlobalError from './global-error';
+
+vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
 
 describe('app/global-error.tsx', () => {
   it('keeps an exported contract in place', () => {
@@ -30,5 +34,14 @@ describe('app/global-error.tsx', () => {
       'utf8',
     );
     expect(source).toContain('data-testid="error-boundary-fallback"');
+  });
+
+  it('opts the fallback document out of browser page translation', () => {
+    const html = renderToStaticMarkup(
+      <GlobalError error={new Error('Boom')} reset={() => undefined} />,
+    );
+
+    expect(html).toContain('<html lang="en" translate="no">');
+    expect(html).toContain('<meta content="notranslate" name="google"/>');
   });
 });

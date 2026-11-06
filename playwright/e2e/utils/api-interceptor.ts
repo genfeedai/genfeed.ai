@@ -10,6 +10,7 @@ import {
   TargetAnalyticsCollectionState,
 } from '@genfeedai/contracts';
 import {
+  APP_ROUTES,
   DEFAULT_PLATFORM_FLAGS,
   EXPERT_FIRST_SYSTEM_CREDIT_COST,
   NATIVE_SECONDARY_APP_IDS,
@@ -29,6 +30,7 @@ import type {
   ICostReportSummary,
   ICreditsBreakdown,
   IEmailPerformanceReport,
+  IEntityStatsTotals,
   IExpertPathStatus,
   ILibrarySummary,
   IReferralProgram,
@@ -1208,7 +1210,7 @@ function createMockAccountAnalytics(credentialId: string): IAccountAnalytics {
       firstTrackedAt: null,
       isConnected: true,
       label: 'Mock account',
-      manageHref: '/settings/connected-accounts',
+      manageHref: `${APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS}?credential=${credentialId}`,
       platform:
         credentialId === MOCK_X_ACCOUNT_ID ? Platform.TWITTER : Platform.TIKTOK,
     },
@@ -1293,9 +1295,17 @@ async function handleAnalyticsRoutes(route: Route): Promise<void> {
   const { pathname } = new URL(url);
 
   if (pathname.endsWith('/analytics/brands')) {
+    // The API always sends period totals beside the page of brands.
+    const totals: IEntityStatsTotals = {
+      growth: 0,
+      totalEngagement: 0,
+      totalPosts: 0,
+      totalViews: 0,
+    };
     const brands = {
       data: [],
       pagination: { limit: 64, page: 1, total: 0, totalPages: 1 },
+      totals,
     };
     await route.fulfill({
       body: JSON.stringify(
@@ -2617,6 +2627,26 @@ export async function setupApiMocks(
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify(DEFAULT_PLATFORM_FLAGS),
+    });
+  });
+
+  // Agent-written Studio drafts are an LLM call (StudioProposalsResult, not a
+  // JSON:API document). The default is the real shape with no drafts, so the
+  // starter ideas show; specs that need drafts register their own handler.
+  await routeApi('/brands/*/content/studio-proposals', async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.fallback();
+      return;
+    }
+    const body = route.request().postDataJSON() as { surface?: string } | null;
+    await route.fulfill({
+      body: JSON.stringify({
+        isBrandApproved: true,
+        proposals: [],
+        surface: body?.surface ?? 'image',
+      }),
+      contentType: 'application/json',
+      status: 200,
     });
   });
 
