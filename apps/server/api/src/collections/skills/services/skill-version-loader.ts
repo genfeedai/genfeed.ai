@@ -4,7 +4,6 @@ import {
 } from '@api/collections/skills/policy/skill-authorized-version';
 import {
   grantMatchesActor,
-  type SkillCapabilityGrant,
   type SkillGrantRecord,
   skillGrantRecipientClauses,
   toSkillCapabilityGrant,
