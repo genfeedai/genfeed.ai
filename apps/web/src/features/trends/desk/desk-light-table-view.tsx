@@ -179,7 +179,7 @@ function DeskLightCard({
             ) : null}
             <span
               className={cn(
-                'pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-1.5 bg-gradient-to-t from-black/90 via-black/65 to-transparent px-3 pt-14 pb-14 text-white transition-opacity duration-200' /* design-system-allow-content-color -- media overlay */,
+                'pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-1.5 bg-gradient-to-t from-black/90 via-black/60 to-transparent px-3 pt-14 pb-14 text-white transition-opacity duration-200' /* design-system-allow-content-color -- media overlay */,
                 hoverRevealClassName({ isInteractive: false }),
               )}
             >
@@ -188,7 +188,7 @@ function DeskLightCard({
                 <span className="truncate font-medium">{handle}</span>
                 <span
                   className={
-                    'ml-auto text-[10px] font-semibold tracking-wide text-white/70 uppercase' /* design-system-allow-content-color -- media overlay */
+                    'ml-auto text-2xs font-semibold tracking-wide text-white/70 uppercase' /* design-system-allow-content-color -- media overlay */
                   }
                 >
                   {item.source}
