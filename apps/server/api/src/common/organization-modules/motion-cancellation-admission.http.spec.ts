@@ -15,6 +15,14 @@ import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /** Admin → Flags with nothing released: only Playground and Storyboard admit work. */
+interface ProjectWork {
+  body?: unknown;
+  id: string;
+  operation: 'cancel' | 'export' | 'retry';
+  organizationId: string;
+  userId: string;
+}
+
 const UNRELEASED_PLATFORM = {
   getFeatureSettingsState: async () => ({
     isResolved: true,
@@ -29,49 +37,77 @@ vi.mock('@genfeedai/config', async (original) => ({
 
 describe('Motion existing-work cancellation admission', () => {
   let app: INestApplication;
-  let cancel: ReturnType<typeof vi.fn>;
-  let retry: ReturnType<typeof vi.fn>;
-  let renderExport: ReturnType<typeof vi.fn>;
-  let findSettings: ReturnType<typeof vi.fn>;
-  let paidGrant: ReturnType<typeof vi.fn>;
+  let work: ProjectWork[];
+  let reads: { paidGrant: number; settings: number };
+  let isSettingsDown: boolean;
 
   beforeEach(async () => {
-    cancel = vi.fn(async (user, id) => {
-      expect(user.organizationId).toBe('org-1');
-      expect(user.userId).toBe('user-1');
-      if (id !== 'project-1')
-        throw new ForbiddenException('Project access denied');
-      return { id: 'project-1' };
-    });
-    retry = vi.fn();
-    renderExport = vi.fn();
-    findSettings = vi
-      .fn()
-      .mockResolvedValue({ moduleOverrides: { motion: false } });
-    paidGrant = vi.fn().mockResolvedValue(true);
+    work = [];
+    reads = { paidGrant: 0, settings: 0 };
+    isSettingsDown = false;
+
+    const record =
+      (operation: ProjectWork['operation']) =>
+      async (
+        user: { organizationId: string; userId: string },
+        id: string,
+        body?: unknown,
+      ) => {
+        if (id !== 'project-1') {
+          throw new ForbiddenException('Project access denied');
+        }
+        work.push({
+          body,
+          id,
+          operation,
+          organizationId: user.organizationId,
+          userId: user.userId,
+        });
+        return { id };
+      };
+
     const admission = new OrganizationModuleAccessService(
       {
-        organization: { findFirst: vi.fn().mockResolvedValue({ id: 'org-1' }) },
-        organizationSetting: { findUnique: findSettings },
-      } as never,
-      { isSubscriptionGatedFresh: paidGrant } as never,
-      UNRELEASED_PLATFORM as never,
+        organization: { findFirst: async () => ({ id: 'org-1' }) },
+        organizationSetting: {
+          findUnique: async () => {
+            reads.settings += 1;
+            if (isSettingsDown) {
+              throw new Error('settings unavailable');
+            }
+            return { moduleOverrides: { motion: false } };
+          },
+        },
+      } as unknown as ConstructorParameters<
+        typeof OrganizationModuleAccessService
+      >[0],
+      {
+        isSubscriptionGatedFresh: async () => {
+          reads.paidGrant += 1;
+          return true;
+        },
+      } as unknown as ConstructorParameters<
+        typeof OrganizationModuleAccessService
+      >[1],
+      UNRELEASED_PLATFORM as unknown as ConstructorParameters<
+        typeof OrganizationModuleAccessService
+      >[2],
     );
     const fixtureAuth = {
       canActivate(context: ExecutionContext) {
         const req = context.switchToHttp().getRequest<RequestWithContext>();
         req.user = {
-          id: 'user-1',
-          userId: 'user-1',
-          organizationId: 'org-1',
           brandId: 'brand-1',
-        } as never;
+          id: 'user-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        } as unknown as RequestWithContext['user'];
         req.context = {
+          brandId: 'brand-1',
           organizationId: req.headers['x-test-conflicting-context']
             ? 'org-2'
             : 'org-1',
-          brandId: 'brand-1',
-        } as never;
+        } as unknown as RequestWithContext['context'];
         return true;
       },
     };
@@ -80,7 +116,11 @@ describe('Motion existing-work cancellation admission', () => {
       providers: [
         {
           provide: VisualProjectsService,
-          useValue: { cancel, retry, export: renderExport },
+          useValue: {
+            cancel: record('cancel'),
+            export: record('export'),
+            retry: record('retry'),
+          },
         },
         { provide: OrganizationModuleAccessService, useValue: admission },
         { provide: APP_GUARD, useValue: fixtureAuth },
@@ -102,48 +142,59 @@ describe('Motion existing-work cancellation admission', () => {
       .post('/visual-projects/project-1/cancel')
       .send({ revision: 1 })
       .expect(201);
-    expect(cancel).toHaveBeenCalledWith(
-      expect.objectContaining({ organizationId: 'org-1', userId: 'user-1' }),
-      'project-1',
-      { revision: 1 },
-    );
-    expect(findSettings).not.toHaveBeenCalled();
-    expect(paidGrant).not.toHaveBeenCalled();
+
+    expect(work).toEqual([
+      {
+        body: { revision: 1 },
+        id: 'project-1',
+        operation: 'cancel',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+    ]);
+    expect(reads).toEqual({ paidGrant: 0, settings: 0 });
   });
+
   it('keeps cancellation usable when module settings cannot be read', async () => {
-    findSettings.mockRejectedValue(new Error('settings unavailable'));
+    isSettingsDown = true;
+
     await request(app.getHttpServer())
       .post('/visual-projects/project-1/cancel')
       .send({ revision: 1 })
       .expect(201);
-    expect(findSettings).not.toHaveBeenCalled();
+
+    expect(work.map((entry) => entry.operation)).toEqual(['cancel']);
+    expect(reads.settings).toBe(0);
   });
+
   it.each(['retry', 'exports'])(
     'still blocks new %s work and ignores caller-supplied cancel policy',
     async (operation) => {
       await request(app.getHttpServer())
         .post(`/visual-projects/project-1/${operation}`)
-        .send({ operation: 'cancel', moduleId: 'playground' })
+        .send({ moduleId: 'playground', operation: 'cancel' })
         .expect(403);
-      expect(retry).not.toHaveBeenCalled();
-      expect(renderExport).not.toHaveBeenCalled();
-      expect(cancel).not.toHaveBeenCalled();
+
+      expect(work).toEqual([]);
     },
   );
+
   it('requires matching authenticated context before cancellation', async () => {
     await request(app.getHttpServer())
       .post('/visual-projects/project-1/cancel')
       .set('x-test-conflicting-context', '1')
       .send({ revision: 1 })
       .expect(403);
-    expect(cancel).not.toHaveBeenCalled();
+
+    expect(work).toEqual([]);
   });
+
   it('does not bypass the existing project authorization check', async () => {
     await request(app.getHttpServer())
       .post('/visual-projects/foreign-project/cancel')
       .send({ revision: 1 })
       .expect(403);
-    expect(retry).not.toHaveBeenCalled();
-    expect(renderExport).not.toHaveBeenCalled();
+
+    expect(work).toEqual([]);
   });
 });
