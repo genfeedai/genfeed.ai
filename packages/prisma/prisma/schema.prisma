@@ -5120,6 +5120,16 @@ model AgentStrategyOpportunity {
   brandId        String?
   brand          Brand?        @relation(fields: [brandId], references: [id])
   data           Json          @default("{}")
+
+  /// Keys copied out of `data` so the opportunity queue never reads or detoasts
+  /// it. The `promote_agent_strategy_opportunity_data` trigger recomputes them on
+  /// every insert and on every update of `data`; never write them directly.
+  status        String?
+  sourceType    String?
+  topic         String?
+  sourceRef     String?
+  priorityScore Float?
+
   isDeleted      Boolean       @default(false)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
