@@ -14,16 +14,6 @@ interface TemplateCardProps {
   onSelect: () => void;
 }
 
-const PLATFORM_COLORS: Record<string, string> = {
-  facebook: 'border-blue-600/20 hover:border-blue-600/40',
-  instagram: 'border-pink-500/20 hover:border-pink-500/40',
-  linkedin: 'border-blue-500/20 hover:border-blue-500/40',
-  reddit: 'border-orange-500/20 hover:border-orange-500/40',
-  tiktok: 'border-foreground/20 hover:border-foreground/40',
-  twitter: 'border-sky-400/20 hover:border-sky-400/40',
-  youtube: 'border-red-500/20 hover:border-red-500/40',
-};
-
 const PLATFORM_LABELS: Record<string, string> = {
   facebook: 'f',
   instagram: 'IG',
@@ -38,9 +28,6 @@ export function TemplateCard({
   template,
   onSelect,
 }: TemplateCardProps): ReactElement {
-  const borderColor =
-    PLATFORM_COLORS[template.platform] ??
-    'border-border hover:border-primary/40';
   const platformLabel = PLATFORM_LABELS[template.platform] ?? '';
 
   return (
@@ -48,7 +35,7 @@ export function TemplateCard({
       type="button"
       variant={ButtonVariant.UNSTYLED}
       onClick={onSelect}
-      className={`flex flex-col items-start border p-3 text-left transition-colors hover:bg-muted/50 ${borderColor}`}
+      className={`flex flex-col items-start border p-3 text-left transition-colors border-border hover:border-border-strong hover:bg-muted/50`}
     >
       <span className="mb-1.5 flex size-6 items-center justify-center rounded bg-muted text-2xs font-bold text-muted-foreground">
         {platformLabel}

@@ -23,19 +23,19 @@ interface PlatformIconConfig {
 
 const PLATFORM_ICONS: Record<string, PlatformIconConfig> = {
   facebook: {
-    colorClass: 'text-blue-600',
+    colorClass: 'text-platform-facebook',
     Icon: FacebookIcon,
   },
   fanvue: {
-    colorClass: 'text-violet-500',
+    colorClass: 'text-platform-fanvue',
     Icon: Star,
   },
   instagram: {
-    colorClass: 'text-pink-500',
+    colorClass: 'text-platform-instagram',
     Icon: InstagramIcon,
   },
   linkedin: {
-    colorClass: 'text-blue-700',
+    colorClass: 'text-platform-linkedin',
     Icon: LinkedinIcon,
   },
   tiktok: {
@@ -51,7 +51,7 @@ const PLATFORM_ICONS: Record<string, PlatformIconConfig> = {
     Icon: XTwitterIcon,
   },
   youtube: {
-    colorClass: 'text-red-500',
+    colorClass: 'text-platform-youtube',
     Icon: YoutubeIcon,
   },
 };

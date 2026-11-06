@@ -157,7 +157,7 @@ export function AgentCompletionSummaryCard({
 
   const header = (
     <div className="flex min-w-0 items-center gap-2">
-      <CircleCheck className="size-3.5 shrink-0 text-emerald-500" />
+      <CircleCheck className="size-3.5 shrink-0 text-success" />
       <div className="min-w-0 flex-1 basis-32">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="text-sm font-medium text-foreground/90">
@@ -318,9 +318,9 @@ export function AgentCompletionSummaryCard({
           {feedbackState ? (
             <span className="inline-flex items-center gap-1 text-2xs text-muted-foreground/80">
               {feedbackState === 'positive' ? (
-                <CircleCheck className="size-3.5 text-emerald-500" />
+                <CircleCheck className="size-3.5 text-success" />
               ) : (
-                <Frown className="size-3.5 text-amber-500" />
+                <Frown className="size-3.5 text-warning" />
               )}
               Thanks for the feedback.
             </span>

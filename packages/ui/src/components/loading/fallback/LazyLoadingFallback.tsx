@@ -56,7 +56,7 @@ export default function LazyLoadingFallback({
       {isSpinnerEnabled && (
         <div
           className={
-            'absolute inset-0 flex items-center justify-center bg-black/5 dark:bg-black/10' /* design-system-allow-content-color -- media loading scrim */
+            'absolute inset-0 flex items-center justify-center bg-gray-alpha-100' /* design-system-allow-content-color -- media loading scrim */
           }
         >
           <Spinner size={ComponentSize.MD} className="text-foreground/70" />

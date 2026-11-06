@@ -9,6 +9,7 @@ import {
 import path from 'node:path';
 import ts from 'typescript';
 import { PLATFORM_COLORS } from '../packages/contracts/src/constants/platform-colors';
+import { categoricalColorTokens } from '../packages/ui/src/core/categorical';
 import { semanticColorTokens } from '../packages/ui/src/core/colors';
 import {
   elevationTokens,
@@ -60,10 +61,10 @@ const DESIGN_SYSTEM_BASELINE_PATH = path.join(
 );
 
 export type DesignSystemFindingKind =
-  | 'dark-only-palette-text'
   | 'off-contract-focus-ring'
   | 'off-ladder-opacity'
   | 'off-scale-text-size'
+  | 'palette-color'
   | 'raw-chrome-color'
   | 'sub-11-text'
   | 'tight-tracking'
@@ -163,40 +164,20 @@ function collectFiles(dir: string, extensions: Set<string>): string[] {
   return results;
 }
 
+// Raw black/white is guarded everywhere the palette guard runs: chrome uses the
+// ladder and semantic tokens, and media overlays opt out with the marker.
 export const APP_CHROME_COLOR_SURFACES: Array<{
   root: string;
   fileNamePattern?: RegExp;
 }> = [
-  {
-    root: 'apps/web/app/(onboarding)',
-  },
-  {
-    root: 'apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review',
-  },
-  {
-    root: 'apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks',
-  },
-  {
-    fileNamePattern: /^settings-progress.*\.tsx$/u,
-    root: 'apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/personal',
-  },
-  {
-    root: 'apps/web/src/features/workflows/pages/turbo',
-  },
-  {
-    root: 'apps/web/src/features/workflows/pages/library',
-  },
-  {
-    fileNamePattern: /^(activity-chart|overview-page)\.tsx$/u,
-    root: 'apps/web/app/(protected)/admin/overview',
-  },
-  {
-    root: 'apps/web/src/components/workspace-shell',
-  },
-  {
-    root: 'apps/web/src/components/shell',
-  },
-];
+  'apps/web',
+  'apps/marketing',
+  'apps/extension',
+  'packages/agent',
+  'packages/helpers/src',
+  'packages/ui/src',
+  'packages/workflows/src',
+].map((root) => ({ root }));
 
 const APP_CHROME_COLOR_ALLOW_MARKER = 'design-system-allow-content-color';
 
@@ -205,7 +186,8 @@ function isExcludedSourceFile(relativePath: string): boolean {
     relativePath.endsWith('.test.ts') ||
     relativePath.endsWith('.test.tsx') ||
     relativePath.endsWith('.spec.ts') ||
-    relativePath.endsWith('.spec.tsx')
+    relativePath.endsWith('.spec.tsx') ||
+    relativePath.split(path.sep).includes('tests')
   );
 }
 
@@ -277,22 +259,22 @@ function findAppChromeRawColorFindings(): DesignSystemFinding[] {
 }
 
 /**
- * Light palette shades (`text-amber-300`) only read on a dark surface, so
- * used bare they vanish in the light theme. Status text takes a semantic
- * token (text-success, text-warning, text-destructive, text-info); a genuine
- * categorical hue pairs a light-theme shade with a `dark:` one.
+ * Colour enters through four doors (DESIGN.md "Color Entry"): content, platform
+ * identifiers (`*-platform-*`), semantic status (`success` / `warning` /
+ * `destructive` / `info`) and the categorical palette (`*-categorical-*`).
+ * Tailwind's built-in hue and neutral ramps are none of them: they are not
+ * theme-aware, so they either vanish in one theme or need a `dark:` override,
+ * which DESIGN.md also bans. The only `dark:` variants left are image
+ * inversion (`dark:invert`) and the typography plugin's `dark:prose-invert`.
  */
-const DARK_ONLY_PALETTE_TEXT_ROOTS = [
-  'apps/web',
-  'apps/marketing',
-  'apps/extension',
-  'packages/agent',
-  'packages/ui/src',
-];
-const DARK_ONLY_PALETTE_TEXT_PATTERN =
-  /^text-(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(?:50|100|200|300|400)(?:\/(?:\d+|\[[^\]]+\]))?$/u;
+const PALETTE_COLOR_ROOTS = APP_CHROME_COLOR_SURFACES.map(
+  (surface) => surface.root,
+);
+const PALETTE_COLOR_PATTERN =
+  /^(?:bg|text|border(?:-[trblxy])?|ring|ring-offset|outline|fill|stroke|from|via|to|shadow|decoration|divide|accent|caret|placeholder)-(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|zinc|neutral|stone)-\d{2,3}(?:\/(?:\d+|\[[^\]]+\]))?$/u;
+const ALLOWED_DARK_VARIANT_UTILITIES = new Set(['invert', 'prose-invert']);
 
-export function findDarkOnlyPaletteTextTokens(line: string): string[] {
+export function findPaletteColorTokens(line: string): string[] {
   if (line.includes(APP_CHROME_COLOR_ALLOW_MARKER)) {
     return [];
   }
@@ -302,18 +284,21 @@ export function findDarkOnlyPaletteTextTokens(line: string): string[] {
       .replace(LEADING_TOKEN_MODIFIERS_PATTERN, '')
       .replace(TRAILING_TOKEN_PUNCTUATION_PATTERN, '');
     const variants = token.split(':');
-    const baseToken = variants.pop() ?? token;
-    return (
-      !variants.includes('dark') &&
-      DARK_ONLY_PALETTE_TEXT_PATTERN.test(baseToken)
+    const baseToken = (variants.pop() ?? token).replace(
+      LEADING_BANG_PATTERN,
+      '',
     );
+    if (variants.includes('dark')) {
+      return baseToken !== '' && !ALLOWED_DARK_VARIANT_UTILITIES.has(baseToken);
+    }
+    return PALETTE_COLOR_PATTERN.test(baseToken);
   });
 }
 
-function findDarkOnlyPaletteTextFindings(): DesignSystemFinding[] {
+function findPaletteColorFindings(): DesignSystemFinding[] {
   const findings: DesignSystemFinding[] = [];
 
-  for (const root of DARK_ONLY_PALETTE_TEXT_ROOTS) {
+  for (const root of PALETTE_COLOR_ROOTS) {
     const files = collectFiles(
       path.join(rootDir, root),
       new Set(['.ts', '.tsx', '.js', '.jsx']),
@@ -328,10 +313,10 @@ function findDarkOnlyPaletteTextFindings(): DesignSystemFinding[] {
       readFileSync(filePath, 'utf8')
         .split('\n')
         .forEach((line, index) => {
-          for (const token of findDarkOnlyPaletteTextTokens(line)) {
+          for (const token of findPaletteColorTokens(line)) {
             findings.push({
               file: relativePath,
-              kind: 'dark-only-palette-text',
+              kind: 'palette-color',
               line: index + 1,
               source: line.trim(),
               token,
@@ -358,10 +343,10 @@ const NATIVE_CONTROL_NAMES = new Set([
 ]);
 const PACKAGE_UI_EXTENSIONS = new Set(['.js', '.jsx', '.ts', '.tsx']);
 const DESIGN_SYSTEM_FINDING_KINDS: readonly DesignSystemFindingKind[] = [
-  'dark-only-palette-text',
   'off-contract-focus-ring',
   'off-ladder-opacity',
   'off-scale-text-size',
+  'palette-color',
   'raw-chrome-color',
   'sub-11-text',
   'tight-tracking',
@@ -898,7 +883,7 @@ export function serializeDesignSystemBaseline(
 export function scanDesignSystemFindings(): DesignSystemFinding[] {
   return [
     ...findAppChromeRawColorFindings(),
-    ...findDarkOnlyPaletteTextFindings(),
+    ...findPaletteColorFindings(),
     ...findPackageUiGuardFindingsInRepo(),
   ];
 }
@@ -915,8 +900,8 @@ export function formatDesignSystemRegressions(
   return findings
     .map((finding) => {
       const remedy =
-        finding.kind === 'dark-only-palette-text'
-          ? 'use text-success/warning/destructive/info, or pair a light-theme shade with a dark: one'
+        finding.kind === 'palette-color'
+          ? 'use a status token (success/warning/destructive/info), a platform token (*-platform-*), a categorical token (*-categorical-*) or the neutral ladder; no dark: overrides'
           : finding.kind === 'raw-chrome-color'
             ? `use a semantic foreground/background token, or mark genuine content color with ${APP_CHROME_COLOR_ALLOW_MARKER}`
             : finding.kind === 'undersized-control-height'
@@ -1040,6 +1025,15 @@ function checkWebTokenDrift(failures: string[]): void {
   // The neutral ladder, its translucent twin, the two-step canvas, and the
   // elevation stack are all per-theme, so every step is asserted once per theme.
   for (const theme of ['dark', 'light'] as const) {
+    for (const [hue, value] of Object.entries(categoricalColorTokens[theme])) {
+      assertContains(
+        webTokens,
+        `--categorical-${hue}: ${value.hsl};`,
+        failures,
+        'packages/ui/web-tokens.css',
+      );
+    }
+
     for (const [step, value] of Object.entries(neutralScale[theme])) {
       assertContains(
         webTokens,

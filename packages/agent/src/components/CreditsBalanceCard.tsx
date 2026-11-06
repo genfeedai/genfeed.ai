@@ -31,7 +31,7 @@ export function CreditsBalanceCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <DollarSign className="size-5 text-amber-500" />
+        <DollarSign className="size-5 text-muted-foreground" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Credits Balance'}
         </h3>

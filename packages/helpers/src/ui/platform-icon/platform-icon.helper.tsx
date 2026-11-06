@@ -41,7 +41,7 @@ const X_BRAND: IPlatformBadgeConfig = {
   icon: XTwitterIcon,
   iconColor: 'text-foreground',
   label: label(Platform.TWITTER),
-  solidBgColor: 'bg-black',
+  solidBgColor: 'bg-black', // design-system-allow-content-color -- platform brand fill
   textColor: 'text-foreground',
 };
 
@@ -106,7 +106,7 @@ const PLATFORM_BRANDS: Record<string, IPlatformBadgeConfig> = {
     iconColor: 'text-foreground',
     label: label(Platform.GOOGLE_ADS),
     // The mark is multi-coloured, so it sits on a white chip in the solid variant.
-    solidBgColor: 'bg-white',
+    solidBgColor: 'bg-white', // design-system-allow-content-color -- platform brand fill
     textColor: 'text-foreground',
   },
   [Platform.GOOGLE_SEARCH_CONSOLE]: {
@@ -114,7 +114,7 @@ const PLATFORM_BRANDS: Record<string, IPlatformBadgeConfig> = {
     icon: GoogleIcon,
     iconColor: 'text-foreground',
     label: label(Platform.GOOGLE_SEARCH_CONSOLE),
-    solidBgColor: 'bg-white',
+    solidBgColor: 'bg-white', // design-system-allow-content-color -- platform brand fill
     textColor: 'text-foreground',
   },
   [Platform.HACKER_NEWS]: {
@@ -155,7 +155,7 @@ const PLATFORM_BRANDS: Record<string, IPlatformBadgeConfig> = {
     icon: GoogleIcon,
     iconColor: 'text-foreground',
     label: label('google'),
-    solidBgColor: 'bg-white',
+    solidBgColor: 'bg-white', // design-system-allow-content-color -- platform brand fill
     textColor: 'text-foreground',
   },
   meta: {
@@ -245,7 +245,7 @@ const PLATFORM_BRANDS: Record<string, IPlatformBadgeConfig> = {
     // reads as an error next to the other platform marks.
     iconColor: 'text-foreground',
     label: label(Platform.TIKTOK),
-    solidBgColor: 'bg-black',
+    solidBgColor: 'bg-black', // design-system-allow-content-color -- platform brand fill
     textColor: 'text-foreground',
   },
   [Platform.TWITCH]: {

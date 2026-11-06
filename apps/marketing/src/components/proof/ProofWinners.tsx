@@ -63,7 +63,11 @@ function PublishedLinkedInPost({ winner }: { winner: Winner }) {
 
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-xs text-foreground/60 sm:px-7">
         <span className="inline-flex items-center gap-2">
-          <span className="flex size-5 items-center justify-center rounded-full bg-platform-linkedin text-white">
+          <span
+            className={
+              'flex size-5 items-center justify-center rounded-full bg-platform-linkedin text-white' /* design-system-allow-content-color -- glyph on LinkedIn brand fill */
+            }
+          >
             <ThumbsUp className="size-3" />
           </span>
           {proof.reactions}

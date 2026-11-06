@@ -19,7 +19,7 @@ export function TrendingTopicsCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <Flame className="size-5 text-orange-500" />
+        <Flame className="size-5 text-muted-foreground" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Trending Topics'}
         </h3>
@@ -43,7 +43,7 @@ export function TrendingTopicsCard({
               className="flex items-center justify-between rounded bg-muted p-2.5"
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <TrendingUp className="size-3.5 shrink-0 text-orange-500" />
+                <TrendingUp className="size-3.5 shrink-0 text-muted-foreground" />
                 <div className="min-w-0">
                   <span className="block truncate text-xs font-medium text-foreground">
                     {trend.label}

@@ -129,7 +129,7 @@ export function TurboRunCard({
       )}
     >
       <div className="mb-3 flex min-w-0 items-center gap-2">
-        <Layers className="size-5 shrink-0 text-cyan-500" />
+        <Layers className="size-5 shrink-0 text-muted-foreground" />
         <h3 className="min-w-0 truncate text-sm font-semibold">
           {action.title || 'Turbo run Generation'}
         </h3>

@@ -26,7 +26,7 @@ const platformOptions = [
     value: CampaignPlatform.REDDIT,
   },
   {
-    icon: <InstagramIcon className="text-pink-500" />,
+    icon: <InstagramIcon className="text-platform-instagram" />,
     label: 'Instagram',
     value: CampaignPlatform.INSTAGRAM,
   },

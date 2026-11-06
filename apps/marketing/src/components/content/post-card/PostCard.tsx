@@ -30,7 +30,7 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
     {
       date: post.publicationDate,
       icon: CalendarCheck,
-      iconColor: 'text-green-500',
+      iconColor: 'text-success',
       label: 'Published',
     },
   ].reduce<

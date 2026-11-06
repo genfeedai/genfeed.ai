@@ -33,8 +33,8 @@ export default function SettingsProgressRewardsCard({
             key={milestone.days}
             className={cn(
               'py-4 first:pt-0 last:pb-0',
-              milestone.isAchieved && 'text-emerald-700 dark:text-emerald-100',
-              milestone.isNext && 'text-orange-700 dark:text-orange-100',
+              milestone.isAchieved && 'text-success',
+              milestone.isNext && 'text-warning',
             )}
           >
             <div className="flex items-start justify-between gap-3">

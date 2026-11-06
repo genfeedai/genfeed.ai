@@ -784,7 +784,7 @@ export function AgentCliTerminalControls({
                   aria-label={`Close ${session.kind} session`}
                   className={cn(
                     TERMINAL_ICON_CONTROL_CLASS,
-                    'size-7 hover:border-red-400/40 hover:text-destructive',
+                    'size-7 hover:border-destructive/40 hover:text-destructive',
                   )}
                   onClick={(event) => {
                     event.stopPropagation();

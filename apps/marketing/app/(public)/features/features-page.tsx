@@ -132,10 +132,18 @@ export default function FeaturesPage(): React.ReactElement {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                   {/* ui-guard-allow:metric-hand-built -- caption over a poster, not a stat */}
                   <figcaption className="absolute inset-x-0 bottom-0 p-6">
-                    <p className="text-2xs font-bold uppercase tracking-[0.14em] text-white/60">
+                    <p
+                      className={
+                        'text-2xs font-bold uppercase tracking-[0.14em] text-white/60' /* design-system-allow-content-color -- caption over a poster */
+                      }
+                    >
                       {output.format}
                     </p>
-                    <p className="mt-2 text-xl font-semibold text-white">
+                    <p
+                      className={
+                        'mt-2 text-xl font-semibold text-white' /* design-system-allow-content-color -- caption over a poster */
+                      }
+                    >
                       {output.title}
                     </p>
                   </figcaption>

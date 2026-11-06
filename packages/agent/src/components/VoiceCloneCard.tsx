@@ -328,7 +328,7 @@ export function VoiceCloneCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <Mic className="size-5 text-rose-500" />
+        <Mic className="size-5 text-muted-foreground" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Clone Voice'}
         </h3>
@@ -374,7 +374,7 @@ export function VoiceCloneCard({
       )}
 
       {error && (
-        <p className="mt-3 flex items-center gap-1 text-xs text-red-500">
+        <p className="mt-3 flex items-center gap-1 text-xs text-destructive">
           <CircleAlert className="size-4" />
           {error}
         </p>

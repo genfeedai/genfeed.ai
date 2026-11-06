@@ -48,6 +48,17 @@
   --color-info: hsl(var(--info));
   --color-info-foreground: hsl(var(--info-foreground));
 
+  /* Categorical palette (DESIGN.md door 4): kinds of record, never state or
+     chrome. Values live in packages/ui/src/core/categorical.ts. */
+  --color-categorical-amber: hsl(var(--categorical-amber));
+  --color-categorical-blue: hsl(var(--categorical-blue));
+  --color-categorical-cyan: hsl(var(--categorical-cyan));
+  --color-categorical-emerald: hsl(var(--categorical-emerald));
+  --color-categorical-orange: hsl(var(--categorical-orange));
+  --color-categorical-pink: hsl(var(--categorical-pink));
+  --color-categorical-red: hsl(var(--categorical-red));
+  --color-categorical-violet: hsl(var(--categorical-violet));
+
   /* Guarded platform identity tokens. Register each CSS variable with
      Tailwind v4 so bg-platform-* and text-platform-* utilities are emitted. */
   --color-platform-beehiiv: var(--platform-beehiiv);
