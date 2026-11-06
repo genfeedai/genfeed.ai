@@ -195,7 +195,7 @@ describe('CaptionsController', () => {
       deps.ingredientsService.findOne.mockResolvedValue({
         id: ingredientId,
         category: IngredientCategory.VIDEO,
-        status: IngredientStatus.GENERATING,
+        status: IngredientStatus.PROCESSING,
       });
 
       const userId = testId('user');

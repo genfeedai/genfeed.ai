@@ -60,7 +60,7 @@ vi.mock('@genfeedai/contracts', () => ({
   },
 }));
 
-const { AuthDesktopService } = await import('./auth-desktop.service.ts');
+const { AuthDesktopService } = await import('./auth-desktop.service');
 
 const userId = testId('user');
 const organizationId = testId('org');

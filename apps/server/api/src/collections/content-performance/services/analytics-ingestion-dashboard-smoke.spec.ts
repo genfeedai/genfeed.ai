@@ -37,7 +37,7 @@ import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import type { ServerPrisma } from '@api/server.dependencies';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { PostAnalytics } from '@genfeedai/prisma';
+import { type PostAnalytics, PostCategory } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 
@@ -99,7 +99,7 @@ describe('analytics ingestion to dashboard smoke path', () => {
 
   const post: SmokePost = {
     brandId,
-    category: 'video',
+    category: PostCategory.VIDEO,
     description: 'Opening hook: show the before state first.',
     externalId: 'yt-video-123',
     id: postId,

@@ -1,3 +1,4 @@
+import type { Readable } from 'node:stream';
 import { BadRequestException } from '@nestjs/common';
 import { UploadValidationPipe } from './upload-validation.pipe';
 
@@ -26,7 +27,7 @@ function makeFile(
     originalname: 'photo.jpg',
     path: '',
     size: 1024,
-    stream: null as unknown as NodeJS.ReadableStream,
+    stream: null as unknown as Readable,
     ...overrides,
   };
 }
@@ -165,7 +166,7 @@ describe('UploadValidationPipe', () => {
       const file = makeFile({ size: 2048 });
       try {
         pipe.transform(file);
-        fail('should have thrown');
+        expect.unreachable('should have thrown');
       } catch (error: unknown) {
         expect(error).toBeInstanceOf(BadRequestException);
         const response = exceptionMessage(error as BadRequestException);
@@ -180,7 +181,7 @@ describe('UploadValidationPipe', () => {
       const file = makeFile({ mimetype: 'image/gif' });
       try {
         pipe.transform(file);
-        fail('should have thrown');
+        expect.unreachable('should have thrown');
       } catch (error: unknown) {
         expect(error).toBeInstanceOf(BadRequestException);
         const response = exceptionMessage(error as BadRequestException);

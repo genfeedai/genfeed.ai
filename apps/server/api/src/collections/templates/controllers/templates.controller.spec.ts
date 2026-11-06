@@ -17,7 +17,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { AssetScope } from '@genfeedai/contracts';
+import { AssetScope, TemplateCategory } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -42,7 +42,7 @@ describe('TemplatesController', () => {
   const mockTemplate = {
     _id: templateId,
     categories: ['marketing'],
-    category: 'email',
+    category: TemplateCategory.EMAIL,
     createdAt: new Date(),
     description: 'Professional email template',
     label: 'Marketing Email Template',
@@ -117,7 +117,8 @@ describe('TemplatesController', () => {
   describe('create', () => {
     it('should create a template', async () => {
       const dto: CreateTemplateDto = {
-        category: 'email',
+        category: TemplateCategory.EMAIL,
+        content: 'Hello {{name}}',
         description: 'Professional email template',
         label: 'Marketing Email Template',
         purpose: 'content',

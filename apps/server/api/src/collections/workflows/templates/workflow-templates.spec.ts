@@ -121,7 +121,7 @@ describe('WorkflowTemplates', () => {
     expect(actionIds).toContain('attachPostIngredient');
 
     expect(
-      template?.nodes.find((node) => node.id === 'x-post-draft')?.data.config
+      template?.nodes?.find((node) => node.id === 'x-post-draft')?.data.config
         .parameters,
     ).toMatchObject({ platform: 'twitter' });
 

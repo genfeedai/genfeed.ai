@@ -6,6 +6,7 @@ import {
   ActionOrigin,
   ActivityKey,
   WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
+  WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
 import {
   buildHiddenSystemWorkflowMetadata,
@@ -185,8 +186,9 @@ describe('WorkflowExecutionsService', () => {
     const { prisma, service } = makeService();
 
     await service.createExecution('user-1', 'org-1', {
-      trigger: 'scheduled',
+      trigger: WorkflowExecutionTrigger.SCHEDULED,
       workflowId: 'workflow-1',
+      workflowVersionId: 'workflow-version-1',
     });
     await service.startExecution('execution-1', 'org-1');
     await service.completeExecution('execution-1', 'org-1');
