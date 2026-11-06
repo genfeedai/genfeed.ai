@@ -54,6 +54,11 @@ const AVATAR_PRICE = 3;
 /** A platform ElevenLabs speech quote, distinct from any avatar price. */
 const SPEECH_PRICE = 2;
 
+/** The private saved-voice lookup the identity-default specs replace. */
+interface SavedVoiceRefResolver {
+  resolveSavedVoiceRef: (...args: unknown[]) => Promise<unknown>;
+}
+
 describe('AvatarVideoGenerationService', () => {
   const createService = () => {
     const brandsService = {
@@ -1555,7 +1560,10 @@ describe('AvatarVideoGenerationService', () => {
   it('prefers brand identity defaults before organization defaults', async () => {
     const { orgSettingsService, service } = createService();
     const resolveSavedVoiceRef = vi
-      .spyOn(service as never, 'resolveSavedVoiceRef')
+      .spyOn(
+        service as unknown as SavedVoiceRefResolver,
+        'resolveSavedVoiceRef',
+      )
       .mockResolvedValue({
         elevenlabsVoiceId: 'brand-elevenlabs-voice',
       });
@@ -1602,7 +1610,10 @@ describe('AvatarVideoGenerationService', () => {
   it('falls back to organization identity defaults when the brand has none', async () => {
     const { orgSettingsService, service } = createService();
     const resolveSavedVoiceRef = vi
-      .spyOn(service as never, 'resolveSavedVoiceRef')
+      .spyOn(
+        service as unknown as SavedVoiceRefResolver,
+        'resolveSavedVoiceRef',
+      )
       .mockResolvedValue({
         heygenVoiceId: 'org-heygen-voice',
       });

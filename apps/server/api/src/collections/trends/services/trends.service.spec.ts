@@ -2,7 +2,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
-import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
+import type { TrendSourceItem } from '@api/collections/trends/interfaces/trend.interfaces';
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
 import { TrendBrandDigestService } from '@api/collections/trends/services/modules/trend-brand-digest.service';
 import { TrendBrandNicheVideoService } from '@api/collections/trends/services/modules/trend-brand-niche-video.service';
@@ -84,8 +84,8 @@ describe('TrendsService', () => {
     updatedAt: new Date(),
   });
 
-  // A TrendEntity-like object (flattened) for spy returns
-  const mockTrend: Partial<TrendDocument> = {
+  // A flattened trend: the row's columns plus the fields stored in its data JSON.
+  const mockTrend = {
     createdAt: new Date(),
     expiresAt: new Date(Date.now() + 30 * 60 * 1000),
     growthRate: 85,
@@ -227,14 +227,15 @@ describe('TrendsService', () => {
         {
           provide: TrendReferenceCorpusService,
           useValue: {
-            annotateSourceItemsWithReferenceIds: vi.fn(async (items) =>
-              items.map((item) => ({
-                ...item,
-                sourceReferenceId:
-                  item.sourceUrl === 'https://x.com/example/status/1'
-                    ? 'ref-1'
-                    : undefined,
-              })),
+            annotateSourceItemsWithReferenceIds: vi.fn(
+              async (items: TrendSourceItem[]) =>
+                items.map((item) => ({
+                  ...item,
+                  sourceReferenceId:
+                    item.sourceUrl === 'https://x.com/example/status/1'
+                      ? 'ref-1'
+                      : undefined,
+                })),
             ),
             getReferenceCorpus: vi.fn(),
             getCorpusFreshnessHealth: vi.fn(),
