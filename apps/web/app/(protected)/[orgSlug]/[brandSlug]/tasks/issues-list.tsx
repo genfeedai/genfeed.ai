@@ -6,13 +6,20 @@ import {
   EMPTY_PAGE_TOTALS,
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
-import type { TaskPriority, TaskStatus } from '@genfeedai/contracts/interfaces';
+import type {
+  IPagedItems,
+  TaskPriority,
+  TaskStatus,
+} from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { updateCachedQueries } from '@hooks/auth/update-cached-queries/update-cached-queries';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { type Task, TasksService } from '@services/management/tasks.service';
+import { useQueryClient } from '@tanstack/react-query';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
@@ -40,14 +47,7 @@ import { CirclePlus, Columns2, List } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import SearchField from '@/components/content/search-field/SearchField';
@@ -57,6 +57,10 @@ import type {
   ViewMode,
 } from '@/features/tasks/props/issues-list.props';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+import {
+  TASK_DETAIL_QUERY_KEY,
+  TASKS_LIST_QUERY_KEY,
+} from '@/lib/constants/tasks-query-keys';
 import {
   PRIORITY_ORDER,
   STATUS_ORDER,
@@ -129,14 +133,19 @@ function KanbanColumn({
   );
 }
 
+const TASKS_LIST_KEY = TASKS_LIST_QUERY_KEY;
+
+const EMPTY_TASKS: Task[] = [];
+
+function tasksListQueryKey(organizationId: string, brandId: string | null) {
+  return [...TASKS_LIST_KEY, organizationId, brandId] as const;
+}
+
 const initialIssuesListState: IssuesListState = {
   createDescription: '',
   createPriority: 'medium',
   createTitle: '',
   isCreating: false,
-  isLoading: true,
-  issues: [],
-  pageTotals: EMPTY_PAGE_TOTALS,
   showCreateDialog: false,
 };
 
@@ -145,19 +154,6 @@ function issuesListReducer(
   action: IssuesListAction,
 ): IssuesListState {
   switch (action.type) {
-    case 'SET_ISSUES':
-      return {
-        ...state,
-        issues: action.payload?.items ?? [],
-        pageTotals: action.payload
-          ? {
-              totalDocs: action.payload.total,
-              totalPages: action.payload.totalPages,
-            }
-          : EMPTY_PAGE_TOTALS,
-      };
-    case 'SET_LOADING':
-      return { ...state, isLoading: action.payload };
     case 'SET_SHOW_CREATE_DIALOG':
       return { ...state, showCreateDialog: action.payload };
     case 'SET_CREATE_TITLE':
@@ -187,7 +183,9 @@ export default function IssuesList() {
   const tCommon = useTranslations('common.actions');
   const statusLabels = useTaskStatusLabels();
   const priorityLabels = useTaskPriorityLabels();
-  const { brandId } = useBrand();
+  const { brandId: selectedBrandId, organizationId } = useBrand();
+  const brandId = selectedBrandId || null;
+  const queryClient = useQueryClient();
   const { href } = useOrgUrl();
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
@@ -226,26 +224,20 @@ export default function IssuesList() {
     createPriority,
     createTitle,
     isCreating,
-    isLoading,
-    issues,
-    pageTotals,
     showCreateDialog,
   } = state;
-  const controllerRef = useRef<AbortController | null>(null);
-
   const getTasksService = useAuthedService((token) =>
     TasksService.getInstance(token),
   );
 
-  const loadIssues = useCallback(async () => {
-    controllerRef.current?.abort();
-    const controller = new AbortController();
-    controllerRef.current = controller;
-
-    dispatch({ type: 'SET_LOADING', payload: true });
-    try {
-      const service = await getTasksService();
-      const result = await service.findAllPage(
+  // The tasks read through React Query, so coming back to the list paints the
+  // cached rows at once and refreshes them in the background; another page,
+  // search, sort or status keeps the current rows on screen while it loads.
+  const scopeKey = tasksListQueryKey(organizationId, brandId);
+  const tasksQuery = usePagedAuthedQuery<TasksService, Task>({
+    keepPreviousDataWithin: scopeKey,
+    queryFn: (service, signal) =>
+      service.findAllPage(
         {
           ...(statusFilter ? { status: statusFilter } : {}),
           ...(search ? { search } : {}),
@@ -255,22 +247,34 @@ export default function IssuesList() {
           limit: ITEMS_PER_PAGE,
           page: currentPage,
         },
-        controller.signal,
-      );
-      if (!controller.signal.aborted) {
-        dispatch({ type: 'SET_ISSUES', payload: result });
-      }
-    } catch (error) {
-      if (!controller.signal.aborted) {
-        logger.error('Failed to load tasks', error);
-        dispatch({ type: 'SET_ISSUES', payload: null });
-      }
-    } finally {
-      if (!controller.signal.aborted) {
-        dispatch({ type: 'SET_LOADING', payload: false });
-      }
+        signal,
+      ),
+    queryKey: [
+      ...scopeKey,
+      {
+        page: currentPage,
+        search,
+        sort: sort ?? null,
+        status: statusFilter,
+      },
+    ],
+    service: (token: string) => TasksService.getInstance(token),
+  });
+  const issues = tasksQuery.data?.items ?? EMPTY_TASKS;
+  const pageTotals = tasksQuery.data?.totals ?? EMPTY_PAGE_TOTALS;
+  const isLoading = tasksQuery.isPending;
+
+  const { error: loadError } = tasksQuery;
+  useEffect(() => {
+    if (loadError) {
+      logger.error('Failed to load tasks', loadError);
     }
-  }, [brandId, currentPage, getTasksService, search, sort, statusFilter]);
+  }, [loadError]);
+
+  const reloadIssues = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: TASKS_LIST_KEY }),
+    [queryClient],
+  );
 
   const handleCreateIssue = useCallback(async () => {
     if (!createTitle.trim() || isCreating) return;
@@ -284,7 +288,7 @@ export default function IssuesList() {
         title: createTitle.trim(),
       });
       dispatch({ type: 'RESET_CREATE_FORM' });
-      loadIssues();
+      void reloadIssues();
     } catch (error) {
       logger.error('Failed to create task', error);
       dispatch({ type: 'SET_CREATING', payload: false });
@@ -295,16 +299,8 @@ export default function IssuesList() {
     createPriority,
     isCreating,
     getTasksService,
-    loadIssues,
+    reloadIssues,
   ]);
-
-  useEffect(() => {
-    loadIssues();
-
-    return () => {
-      controllerRef.current?.abort();
-    };
-  }, [loadIssues]);
 
   const setUrlParam = useCallback(
     (key: 'status' | 'taskId' | 'view', value: string | null) => {
@@ -369,8 +365,8 @@ export default function IssuesList() {
 
   // The inspector saves through the shared selection; refetch so rows match.
   useEffect(() => {
-    if (selectionRevision > 0) void loadIssues();
-  }, [selectionRevision, loadIssues]);
+    if (selectionRevision > 0) void reloadIssues();
+  }, [selectionRevision, reloadIssues]);
 
   const updateIssue = async (
     issue: Task,
@@ -380,8 +376,32 @@ export default function IssuesList() {
     try {
       const service = await getTasksService();
       const updated = await service.updateTask(issue.id, input);
+      // The pages on screen show the change at once. A cached page nobody
+      // shows may now hold the task under the wrong status filter, order or
+      // total: it is dropped and reads afresh on the next visit.
+      await updateCachedQueries<IPagedItems<Task>>(
+        queryClient,
+        { queryKey: TASKS_LIST_KEY, type: 'active' },
+        (current) => ({
+          ...current,
+          items: current.items.map((item) =>
+            item.id === updated.id ? updated : item,
+          ),
+        }),
+      );
+      queryClient.removeQueries({ queryKey: TASKS_LIST_KEY, type: 'inactive' });
+      // The task's own page shows the new status and its transitions.
+      await updateCachedQueries<Task>(
+        queryClient,
+        {
+          predicate: (query) =>
+            (query.state.data as Task | undefined)?.id === updated.id,
+          queryKey: TASK_DETAIL_QUERY_KEY,
+        },
+        () => updated,
+      );
       if (selection?.selectedTask?.id === issue.id) commitTask?.(updated);
-      else await loadIssues();
+      else await reloadIssues();
     } catch {
       notificationsService.error(translate('updateTaskError'));
     } finally {

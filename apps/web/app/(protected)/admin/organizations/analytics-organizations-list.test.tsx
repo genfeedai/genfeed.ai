@@ -1,13 +1,18 @@
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import type { QueryClient } from '@tanstack/react-query';
+import {
   fireEvent,
-  render,
+  render as renderWithoutClient,
   screen,
   waitFor,
   within,
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsOrganizationsList from './analytics-organizations-list';
 
@@ -70,6 +75,11 @@ vi.mock(
   }),
 );
 
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => async () => ({
     getOrganizationsWithStats: mocks.getOrganizationsWithStats,
@@ -81,6 +91,24 @@ vi.mock('@services/analytics/analytics.service', () => ({
     getInstance: vi.fn(),
   },
 }));
+
+function render(ui: ReactElement, client?: QueryClient) {
+  return renderWithoutClient(ui, { wrapper: queryClientWrapper(client) });
+}
+
+const CACHED_ORG = {
+  createdAt: '2026-04-01T00:00:00.000Z',
+  growth: 0,
+  id: 'org-cached',
+  name: 'Cached Org',
+  status: 'free',
+  totalBrands: 1,
+  totalEngagement: 0,
+  totalGenerations: 0,
+  totalMembers: 1,
+  totalPosts: 0,
+  totalViews: 0,
+};
 
 describe('AnalyticsOrganizationsList shell-first loading', () => {
   beforeEach(() => {
@@ -116,6 +144,77 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
     );
 
     expect(mocks.setFilter).toHaveBeenCalledWith('query', 'acme');
+  });
+
+  it('paints the cached organizations at once when the list is revisited', async () => {
+    mocks.getOrganizationsWithStats.mockResolvedValue({
+      data: [
+        {
+          createdAt: '2026-04-01T00:00:00.000Z',
+          growth: 0,
+          id: 'org-cached',
+          name: 'Cached Org',
+          status: 'free',
+          totalBrands: 1,
+          totalEngagement: 0,
+          totalGenerations: 0,
+          totalMembers: 1,
+          totalPosts: 0,
+          totalViews: 0,
+        },
+      ],
+      pagination: { limit: 10, page: 1, total: 1, totalPages: 1 },
+    });
+    const client = createTestQueryClient();
+    const first = render(<AnalyticsOrganizationsList />, client);
+    expect(
+      await screen.findByRole('link', { name: /Cached Org/ }),
+    ).toBeVisible();
+    first.unmount();
+
+    mocks.getOrganizationsWithStats.mockReturnValue(new Promise(() => {}));
+    render(<AnalyticsOrganizationsList />, client);
+
+    expect(screen.getByRole('link', { name: /Cached Org/ })).toBeVisible();
+    expect(screen.queryByTestId('skeleton-table')).not.toBeInTheDocument();
+  });
+
+  it('shows an error with a retry when the first read fails', async () => {
+    mocks.getOrganizationsWithStats.mockRejectedValue(new Error('offline'));
+
+    render(<AnalyticsOrganizationsList />);
+
+    expect(
+      await screen.findByText(
+        'Failed to load organizations. Please try again.',
+      ),
+    ).toBeVisible();
+    expect(screen.queryByTestId('skeleton-table')).not.toBeInTheDocument();
+
+    mocks.getOrganizationsWithStats.mockResolvedValue({
+      data: [CACHED_ORG],
+      pagination: { limit: 10, page: 1, total: 1, totalPages: 1 },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(
+      await screen.findByRole('link', { name: /Cached Org/ }),
+    ).toBeVisible();
+  });
+
+  it('keeps the footer on the page shown while the next page loads', async () => {
+    mocks.getOrganizationsWithStats.mockResolvedValue({
+      data: [CACHED_ORG],
+      pagination: { limit: 10, page: 1, total: 11, totalPages: 2 },
+    });
+    render(<AnalyticsOrganizationsList />);
+    expect(await screen.findByText('Page 1 of 2')).toBeVisible();
+
+    mocks.getOrganizationsWithStats.mockReturnValue(new Promise(() => {}));
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+
+    expect(await screen.findByText('Page 1 of 2')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
   });
 
   it('renders the organizations table once loading resolves', async () => {

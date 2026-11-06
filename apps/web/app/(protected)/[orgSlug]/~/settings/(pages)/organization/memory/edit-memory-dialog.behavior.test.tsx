@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import type { QueryClient } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import EditMemoryDialog from './edit-memory-dialog';
@@ -23,6 +28,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
     },
   };
 });
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('@services/automation/agent-memories.service', () => ({
   AgentMemoriesService: {
@@ -77,17 +87,21 @@ const revisions = [
   },
 ];
 
-function renderDialog() {
+function renderDialog(
+  client: QueryClient = createTestQueryClient(),
+  openedEntry: typeof entry = entry,
+) {
   const onCorrected = vi.fn();
   const onOpenChange = vi.fn();
-  render(
+  const view = render(
     <EditMemoryDialog
-      entry={entry}
+      entry={openedEntry}
       onCorrected={onCorrected}
       onOpenChange={onOpenChange}
     />,
+    { wrapper: queryClientWrapper(client) },
   );
-  return { onCorrected, onOpenChange };
+  return { onCorrected, onOpenChange, unmount: view.unmount };
 }
 
 describe('EditMemoryDialog behavior', () => {
@@ -179,5 +193,84 @@ describe('EditMemoryDialog behavior', () => {
     );
     expect(onOpenChange).toHaveBeenCalledWith(false);
     expect(onCorrected).toHaveBeenCalled();
+  });
+
+  it('paints the cached history at once when the same memory reopens', async () => {
+    const client = createTestQueryClient();
+    const firstOpen = renderDialog(client);
+    expect(await screen.findByText('Launch is on the 3rd.')).toBeVisible();
+    firstOpen.unmount();
+
+    listRevisionsMock.mockReturnValue(new Promise(() => {}));
+    renderDialog(client);
+
+    expect(screen.getByText('Launch is on the 3rd.')).toBeVisible();
+    expect(screen.getByText('The date was wrong')).toBeVisible();
+  });
+
+  it('never shows one memory’s history under another memory', async () => {
+    const client = createTestQueryClient();
+    const firstOpen = renderDialog(client);
+    expect(await screen.findByText('Launch is on the 3rd.')).toBeVisible();
+    firstOpen.unmount();
+
+    listRevisionsMock.mockReturnValue(new Promise(() => {}));
+    renderDialog(client, {
+      content: 'Our tone is warm.',
+      currentRevisionId: 'revision-9',
+      id: 'memory-2',
+      scope: 'org',
+    });
+
+    expect(screen.queryByText('Launch is on the 3rd.')).not.toBeInTheDocument();
+    expect(screen.queryByText('No earlier revisions')).not.toBeInTheDocument();
+  });
+
+  it('keeps every revision reachable when a new one lands after older pages loaded', async () => {
+    const [current, original] = revisions;
+    const revision = (number: number, content: string) => ({
+      ...current,
+      content,
+      id: `revision-${number}`,
+      isCurrent: false,
+      revision: number,
+    });
+    listRevisionsMock.mockImplementation(
+      async (_id: string, query: { cursor?: string }) =>
+        query.cursor === 'after-3'
+          ? { items: [original], nextCursor: null }
+          : {
+              items: [revision(3, 'Launch is on the 9th.'), current],
+              nextCursor: 'after-3',
+            },
+    );
+    const client = createTestQueryClient();
+    renderDialog(client);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Show older revisions' }),
+    );
+    expect(await screen.findByText('Launch is on the 3rd.')).toBeVisible();
+
+    // Another correction lands; the first page now ends one revision later.
+    listRevisionsMock.mockImplementation(
+      async (_id: string, query: { cursor?: string }) =>
+        query.cursor === 'after-4'
+          ? { items: [current, original], nextCursor: null }
+          : {
+              items: [
+                revision(4, 'Launch is on the 12th.'),
+                revision(3, 'Launch is on the 9th.'),
+              ],
+              nextCursor: 'after-4',
+            },
+    );
+    await client.invalidateQueries();
+    expect(await screen.findByText('Launch is on the 12th.')).toBeVisible();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Show older revisions' }),
+    );
+    expect(await screen.findByText('Launch is on the 7th.')).toBeVisible();
+    expect(screen.getByText('Launch is on the 3rd.')).toBeVisible();
   });
 });

@@ -1,5 +1,6 @@
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IPaginationParams } from '@genfeedai/contracts/interfaces';
+import { updateCachedQueries } from '@hooks/auth/update-cached-queries/update-cached-queries';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -19,6 +20,7 @@ import {
   type WorkflowSummary,
 } from '@/features/workflows/services/workflow-api';
 import { useCloudSession } from '@/hooks/useCloudSession';
+import { TURBO_WORKFLOW_OPTIONS_QUERY_KEY } from '@/lib/constants/workflow-query-keys';
 
 export const WORKFLOW_LIBRARY_PAGE_SIZE = ITEMS_PER_PAGE;
 
@@ -170,6 +172,13 @@ export function useWorkflowLibraryPage({
         await service.remove(id);
         onWorkflowRemoved?.(id);
         setWorkflows((prev) => prev.filter((w) => w.id !== id));
+        // The Turbo picker never offers a deleted workflow, even while its
+        // refresh is pending or has failed.
+        await updateCachedQueries<WorkflowSummary[]>(
+          queryClient,
+          { queryKey: TURBO_WORKFLOW_OPTIONS_QUERY_KEY },
+          (current) => current.filter((w) => w.id !== id),
+        );
       } catch (err) {
         logger.error('Failed to delete workflow', {
           error: err,
@@ -177,7 +186,14 @@ export function useWorkflowLibraryPage({
         });
       }
     },
-    [getService, workflows, relatedWorkflows, onWorkflowRemoved, setWorkflows],
+    [
+      getService,
+      workflows,
+      relatedWorkflows,
+      onWorkflowRemoved,
+      setWorkflows,
+      queryClient,
+    ],
   );
 
   const handleToggleSchedule = useCallback(

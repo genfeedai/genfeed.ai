@@ -1,7 +1,16 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { IEmailPerformanceReport } from '@genfeedai/contracts/interfaces';
-import { render, screen } from '@testing-library/react';
+import type { QueryClient } from '@tanstack/react-query';
+import {
+  render as renderWithoutClient,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { PropsWithChildren } from 'react';
+import type { PropsWithChildren, ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SystemEmailPerformance from './system-email-performance';
 import '@testing-library/jest-dom/vitest';
@@ -16,6 +25,10 @@ const mocks = vi.hoisted(() => ({
   getPerformance: vi.fn(),
   getService: vi.fn(),
 }));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
@@ -25,6 +38,10 @@ vi.mock('@/components/overview/WorkspaceSurface', () => ({
 vi.mock('@ui/display/skeleton/skeleton', () => ({
   SkeletonCard: () => 'Loading report',
 }));
+
+function render(ui: ReactElement, client?: QueryClient) {
+  return renderWithoutClient(ui, { wrapper: queryClientWrapper(client) });
+}
 
 const query = {
   from: '2026-08-01T00:00:00.000Z',
@@ -48,11 +65,17 @@ describe('SystemEmailPerformance', () => {
     mocks.getPerformance.mockResolvedValue(emptyReport);
   });
 
-  it('shows the empty cohort and cancels its request on unmount', async () => {
-    const { unmount } = render(<SystemEmailPerformance query={query} />);
+  it('shows the empty cohort', async () => {
+    render(<SystemEmailPerformance query={query} />);
     expect(
       await screen.findByText('No tracked emails were queued in this period'),
     ).toBeInTheDocument();
+  });
+
+  it('cancels a report still loading when it unmounts', async () => {
+    mocks.getPerformance.mockReturnValue(new Promise(() => {}));
+    const { unmount } = render(<SystemEmailPerformance query={query} />);
+    await waitFor(() => expect(mocks.getPerformance).toHaveBeenCalled());
     const signal = mocks.getPerformance.mock.calls[0][1];
     unmount();
     expect(signal.aborted).toBe(true);
@@ -98,5 +121,36 @@ describe('SystemEmailPerformance', () => {
     expect(screen.getAllByText('% of accepted')).toHaveLength(3);
     expect(screen.getByText('Opens (approx.)')).toBeInTheDocument();
     expect(screen.getByText(/not causal lift/)).toBeInTheDocument();
+  });
+
+  it('paints the cached report at once when the page is revisited', async () => {
+    mocks.getPerformance.mockResolvedValue({
+      ...emptyReport,
+      rows: [
+        {
+          accepted: 10,
+          bounced: 1,
+          clicked: 4,
+          complained: 0,
+          converted: 2,
+          delivered: 8,
+          opened: 6,
+          queued: 12,
+          templateKey: 'custom-template',
+        },
+      ],
+    });
+    const client = createTestQueryClient();
+    const first = render(<SystemEmailPerformance query={query} />, client);
+    expect(await screen.findByText('custom-template')).toBeInTheDocument();
+    first.unmount();
+
+    mocks.getPerformance.mockReturnValue(new Promise(() => {}));
+    render(<SystemEmailPerformance query={query} />, client);
+
+    expect(screen.getByText('custom-template')).toBeInTheDocument();
+    expect(screen.queryByText('Loading report')).not.toBeInTheDocument();
+    // The cached report is stale, so the revisit refreshes it behind it.
+    await waitFor(() => expect(mocks.getPerformance).toHaveBeenCalledTimes(2));
   });
 });

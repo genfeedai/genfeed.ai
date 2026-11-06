@@ -1,8 +1,13 @@
 import { paginatedResponse } from '@app-tests/paginated-response';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import '@testing-library/jest-dom/vitest';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { QueryClient } from '@tanstack/react-query';
 import {
   act,
   fireEvent,
@@ -315,6 +320,12 @@ vi.mock('@genfeedai/config/deployment', () => ({
   isSelfHostedDeployment: () => mocks.isSelfHosted,
 }));
 
+function renderPage(client: QueryClient = createTestQueryClient()) {
+  return render(<SettingsApiKeysPage />, {
+    wrapper: queryClientWrapper(client),
+  });
+}
+
 function providerStatuses() {
   return [
     {
@@ -408,7 +419,7 @@ describe('SettingsApiKeysPage', () => {
       if (mismatch === 'slug') mocks.routeSlug = 'other';
       if (mismatch === 'confirmation') mocks.confirmed = false;
       if (mismatch === 'status') mocks.status = 'reconciling';
-      const view = render(<SettingsApiKeysPage />);
+      const view = renderPage();
       await act(async () => {});
       expect(mocks.findAllApiKeys).not.toHaveBeenCalled();
       expect(
@@ -427,7 +438,7 @@ describe('SettingsApiKeysPage', () => {
   it('only bypasses confirmation for keyless self-hosting', async () => {
     mocks.isSelfHosted = true;
     mocks.confirmed = false;
-    const view = render(<SettingsApiKeysPage />);
+    const view = renderPage();
     await act(async () => {});
     expect(mocks.findAllApiKeys).not.toHaveBeenCalled();
     mocks.authEnabled = false;
@@ -444,7 +455,7 @@ describe('SettingsApiKeysPage', () => {
       mocks.confirmed = false;
       const token = deferred<void>();
       if (phase === 'deferred') mocks.tokenWait = token.promise;
-      const view = render(<SettingsApiKeysPage />);
+      const view = renderPage();
       if (phase === 'loaded') await screen.findByText('MCP Key');
       view.unmount();
       if (phase === 'deferred') await act(async () => token.resolve());
@@ -459,7 +470,7 @@ describe('SettingsApiKeysPage', () => {
   it('does not dispatch after deferred token acquisition outlives the scope', async () => {
     const token = deferred<void>();
     mocks.tokenWait = token.promise;
-    const view = render(<SettingsApiKeysPage />);
+    const view = renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
     mocks.confirmed = false;
     view.rerender(<SettingsApiKeysPage />);
@@ -475,7 +486,7 @@ describe('SettingsApiKeysPage', () => {
       const pending = deferred<IPaginatedResponse<unknown>>();
       if (kind === 'initial')
         mocks.findAllApiKeys.mockReturnValueOnce(pending.promise);
-      const view = render(<SettingsApiKeysPage />);
+      const view = renderPage();
       if (kind === 'refresh') {
         await screen.findByText('MCP Key');
         mocks.findAllApiKeys.mockReturnValueOnce(pending.promise);
@@ -513,7 +524,7 @@ describe('SettingsApiKeysPage', () => {
             ? mocks.rotateApiKey
             : mocks.revokeApiKey;
       method.mockReturnValueOnce(pending.promise);
-      const view = render(<SettingsApiKeysPage />);
+      const view = renderPage();
       await screen.findByText('MCP Key');
       fireEvent.click(screen.getByRole('button', { name: action }));
       await waitFor(() => expect(method).toHaveBeenCalled());
@@ -542,7 +553,7 @@ describe('SettingsApiKeysPage', () => {
   it.each(['Create Key', 'Rotate', 'Revoke'])(
     'does not dispatch %s after token resolution following identity replacement',
     async (action) => {
-      const view = render(<SettingsApiKeysPage />);
+      const view = renderPage();
       await screen.findByText('MCP Key');
       const pending = deferred<void>();
       mocks.tokenWait = pending.promise;
@@ -570,7 +581,7 @@ describe('SettingsApiKeysPage', () => {
             : mocks.revokeApiKey;
       const old = deferred<unknown>();
       method.mockReturnValueOnce(old.promise);
-      const view = render(<SettingsApiKeysPage />);
+      const view = renderPage();
       await screen.findByText('MCP Key');
       fireEvent.click(screen.getByRole('button', { name: action }));
       await waitFor(() => expect(method).toHaveBeenCalledTimes(1));
@@ -608,7 +619,7 @@ describe('SettingsApiKeysPage', () => {
       const pending = deferred<IPaginatedResponse<unknown>>();
       if (kind === 'initial')
         mocks.findAllApiKeys.mockReturnValueOnce(pending.promise);
-      const view = render(<SettingsApiKeysPage />);
+      const view = renderPage();
       if (kind === 'refresh') {
         await screen.findByText('MCP Key');
         mocks.findAllApiKeys.mockReturnValueOnce(pending.promise);
@@ -639,7 +650,7 @@ describe('SettingsApiKeysPage', () => {
       const cancellation = { isCancelled: true, silent: true };
       if (operation === 'initial')
         mocks.findAllApiKeys.mockRejectedValueOnce(cancellation);
-      const view = render(<SettingsApiKeysPage />);
+      const view = renderPage();
       if (operation !== 'initial') {
         await screen.findByText('MCP Key');
         const method =
@@ -663,7 +674,7 @@ describe('SettingsApiKeysPage', () => {
   );
 
   it('loads Genfeed API keys without provider tabs', async () => {
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     expect(await screen.findByText('API keys')).toBeInTheDocument();
     expect(await screen.findByText('MCP Key')).toBeInTheDocument();
@@ -685,7 +696,7 @@ describe('SettingsApiKeysPage', () => {
 
   it('requests the server page named in the URL', async () => {
     mocks.searchParams = new URLSearchParams('page=3');
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     await screen.findByText('MCP Key');
     expect(mocks.findAllApiKeys).toHaveBeenCalledWith(
@@ -695,7 +706,7 @@ describe('SettingsApiKeysPage', () => {
   });
 
   it('switches scope presets and reflects the active preset', async () => {
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     await screen.findByText('MCP Key');
 
@@ -717,7 +728,7 @@ describe('SettingsApiKeysPage', () => {
   });
 
   it('fills the permission editor from the chosen preset', async () => {
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     await screen.findByText('MCP Key');
     const presets = within(screen.getByRole('group', { name: 'Scope preset' }));
@@ -737,7 +748,7 @@ describe('SettingsApiKeysPage', () => {
   });
 
   it('offers Brands at None or Read only, never Write', async () => {
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     await screen.findByText('MCP Key');
     const brands = within(
@@ -750,7 +761,7 @@ describe('SettingsApiKeysPage', () => {
   });
 
   it('creates a key with the scopes of the chosen levels', async () => {
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     await screen.findByText('MCP Key');
     const presets = within(screen.getByRole('group', { name: 'Scope preset' }));
@@ -790,7 +801,7 @@ describe('SettingsApiKeysPage', () => {
   });
 
   it('limits a new key to the one brand chosen', async () => {
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     await screen.findByText('MCP Key');
     fireEvent.change(screen.getByLabelText('Brand access'), {
@@ -808,7 +819,7 @@ describe('SettingsApiKeysPage', () => {
   });
 
   it('creates a key for every brand unless one is chosen', async () => {
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     await screen.findByText('MCP Key');
     expect(screen.getByLabelText('Brand access')).toHaveValue('');
@@ -834,7 +845,7 @@ describe('SettingsApiKeysPage', () => {
         },
       ]),
     );
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     expect(await screen.findByText('Limited to: Zen')).toBeInTheDocument();
   });
@@ -859,7 +870,7 @@ describe('SettingsApiKeysPage', () => {
         ]),
       );
 
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     expect(await screen.findByText('Loading keys...')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
@@ -882,7 +893,7 @@ describe('SettingsApiKeysPage', () => {
 
   it('creates a key from an empty list using the default name', async () => {
     mocks.findAllApiKeys.mockResolvedValue(paginatedResponse([]));
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     expect(
       await screen.findByText('No active Genfeed API keys.'),
@@ -901,7 +912,7 @@ describe('SettingsApiKeysPage', () => {
   });
 
   it('creates a Genfeed API key and shows the plain key once', async () => {
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     await screen.findByText('MCP Key');
     fireEvent.change(screen.getByPlaceholderText('MCP Server'), {
@@ -928,9 +939,36 @@ describe('SettingsApiKeysPage', () => {
     expect(screen.getByText('gf_test_created')).toBeInTheDocument();
   });
 
+  it.each([
+    ['key', { key: 'gf_test_issued_secret' }],
+    ['token', { key: undefined, token: 'gf_test_issued_secret' }],
+  ])(
+    'never keeps a secret issued as %s in the key list cache',
+    async (_field, issued) => {
+      mocks.createApiKey.mockResolvedValue({
+        id: 'key-issued',
+        label: 'Issued key',
+        ...issued,
+      });
+      const client = createTestQueryClient();
+      renderPage(client);
+      await screen.findByText('MCP Key');
+      mocks.findAllApiKeys.mockReturnValue(new Promise(() => undefined));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+
+      expect(
+        await screen.findByText('gf_test_issued_secret'),
+      ).toBeInTheDocument();
+      expect(
+        JSON.stringify(client.getQueriesData({ queryKey: [] })),
+      ).not.toContain('gf_test_issued_secret');
+    },
+  );
+
   it('keeps Create Key enabled while the key list is loading', async () => {
     mocks.findAllApiKeys.mockImplementation(() => new Promise(() => undefined));
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     expect(await screen.findByText('Loading keys...')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create Key' })).toBeEnabled();
@@ -938,7 +976,7 @@ describe('SettingsApiKeysPage', () => {
 
   it('enables Create Key when the Scale org has no keys', async () => {
     mocks.findAllApiKeys.mockResolvedValue(paginatedResponse([]));
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     expect(
       await screen.findByText('No active Genfeed API keys.'),
@@ -951,7 +989,7 @@ describe('SettingsApiKeysPage', () => {
 
   it('shows list-load error UI without disabling Create Key', async () => {
     mocks.findAllApiKeys.mockRejectedValue(new Error('keys unavailable'));
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     expect(
       await screen.findByText("Couldn't load API keys"),
@@ -971,7 +1009,7 @@ describe('SettingsApiKeysPage', () => {
   });
 
   it('rotates and revokes Genfeed API keys', async () => {
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     await screen.findByText('MCP Key');
     fireEvent.click(screen.getByRole('button', { name: 'Rotate' }));
@@ -993,15 +1031,69 @@ describe('SettingsApiKeysPage', () => {
       );
     });
   });
+  it('takes a revoked key off the list even when the refresh fails', async () => {
+    renderPage();
+    await screen.findByText('MCP Key');
+
+    mocks.findAllApiKeys.mockRejectedValue(new Error('offline'));
+    fireEvent.click(screen.getByRole('button', { name: 'Revoke' }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('MCP Key')).not.toBeInTheDocument();
+    });
+  });
+
   it('keeps server page totals with the API keys', async () => {
     mocks.findAllApiKeys.mockResolvedValue(
       paginatedResponse(productApiKeys(), { totalDocs: 61, totalPages: 5 }),
     );
-    render(<SettingsApiKeysPage />);
+    renderPage();
     await screen.findByText('MCP Key');
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
     ).toHaveTextContent('61 keys / 5 pages');
+  });
+
+  it('paints the cached key list at once when coming back', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderPage(client);
+    expect(await screen.findByText('MCP Key')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.findAllApiKeys.mockReturnValue(new Promise(() => undefined));
+    renderPage(client);
+
+    expect(screen.getByText('MCP Key')).toBeInTheDocument();
+    expect(screen.queryByText('Loading keys...')).not.toBeInTheDocument();
+  });
+
+  it('never shows one organization’s keys under another', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderPage(client);
+    expect(await screen.findByText('MCP Key')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.organizationId = mocks.confirmedId = 'org-2';
+    mocks.routeSlug = mocks.confirmedSlug = 'second';
+    mocks.findAllApiKeys.mockReturnValue(new Promise(() => undefined));
+    renderPage(client);
+
+    expect(await screen.findByText('Loading keys...')).toBeInTheDocument();
+    expect(screen.queryByText('MCP Key')).not.toBeInTheDocument();
+  });
+
+  it('never caches a newly issued key: it is gone when coming back', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderPage(client);
+    await screen.findByText('MCP Key');
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+    expect(await screen.findByText('gf_test_created')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    renderPage(client);
+
+    expect(screen.getByText('MCP Key')).toBeInTheDocument();
+    expect(screen.queryByText('gf_test_created')).not.toBeInTheDocument();
   });
 });
 

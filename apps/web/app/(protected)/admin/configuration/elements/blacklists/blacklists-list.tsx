@@ -10,6 +10,8 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
+import { useRefreshScope } from '@hooks/auth/use-refresh-scope/use-refresh-scope';
 import type { ElementBlacklist } from '@models/elements/blacklist.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
@@ -25,41 +27,11 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { LazyModalBlacklist } from '@/components/lazy/modal/LazyModal';
-import type {
-  BlacklistsAction,
-  BlacklistsState,
-} from '@/features/admin/props/blacklists.props';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
-
-function blacklistsReducer(
-  state: BlacklistsState,
-  action: BlacklistsAction,
-): BlacklistsState {
-  switch (action.type) {
-    case 'FETCH_START':
-      return { ...state, isLoading: !action.isRefresh };
-    case 'FETCH_SUCCESS':
-      return { ...state, page: action.page };
-    case 'FETCH_DONE':
-      return { ...state, isLoading: false };
-    case 'UPDATING_ADD': {
-      const next = new Set(state.updatingIds);
-      next.add(action.id);
-      return { ...state, updatingIds: next };
-    }
-    case 'UPDATING_REMOVE': {
-      const next = new Set(state.updatingIds);
-      next.delete(action.id);
-      return { ...state, updatingIds: next };
-    }
-    default:
-      return state;
-  }
-}
 
 const EMPTY_BLACKLISTS: ElementBlacklist[] = [];
 
@@ -93,14 +65,20 @@ function BlacklistsListContent({
     allowedKeys: BLACKLIST_SORT_KEYS,
   });
 
-  const [state, dispatch] = useReducer(blacklistsReducer, undefined, () => ({
-    page: null,
-    isLoading: true,
-    updatingIds: new Set<string>(),
-  }));
-
-  const { page, isLoading, updatingIds } = state;
-  const blacklists = page?.items ?? EMPTY_BLACKLISTS;
+  // Rows with a toggle save in flight.
+  const [updatingIds, setUpdatingIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const markUpdating = (id: string, isUpdating: boolean) =>
+    setUpdatingIds((current) => {
+      const next = new Set(current);
+      if (isUpdating) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
 
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
@@ -187,98 +165,101 @@ function BlacklistsListContent({
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
 
-  // Only the latest request may fill the list, so a slow response for an
-  // earlier sort or search cannot replace the current one.
-  const latestRequestRef = useRef(0);
+  // Cached per scope and page: coming back paints the rows and footer it
+  // already has while they refresh, and another page, search or sort keeps
+  // the current rows on screen while it loads.
+  const scopeKey = [
+    'admin',
+    'blacklists',
+    { adminBrand, adminOrg, scope },
+  ] as const;
+  const blacklistsQuery = usePagedAuthedQuery<
+    BlacklistsService,
+    ElementBlacklist
+  >({
+    keepPreviousDataWithin: scopeKey,
+    queryFn: async (service, signal) => {
+      const query: IQueryParams = {
+        limit: ITEMS_PER_PAGE,
+        page: currentPage,
+        search: filters?.search || undefined,
+        ...(sort ? { sort } : {}),
+        type: filters?.type || undefined,
+      };
 
-  const findAllBlacklists = useCallback(
-    async (isRefresh = false) => {
-      const requestId = ++latestRequestRef.current;
-      dispatch({ type: 'FETCH_START', isRefresh });
-
-      // Notify parent of state changes
-      onRefreshingChangeRef.current?.(isRefresh);
-      onLoadingChangeRef.current?.(!isRefresh);
-
-      try {
-        const service = await getBlacklistsService();
-
-        // Build API query
-        const query: IQueryParams = {
-          limit: ITEMS_PER_PAGE,
-          page: currentPage,
-          search: filters?.search || undefined,
-          ...(sort ? { sort } : {}),
-          type: filters?.type || undefined,
-        };
-
-        if (scope === PageScope.SUPERADMIN) {
-          if (adminOrg) {
-            query.organization = adminOrg;
-          }
-          if (adminBrand) {
-            query.brand = adminBrand;
-          }
+      if (scope === PageScope.SUPERADMIN) {
+        if (adminOrg) {
+          query.organization = adminOrg;
         }
-
-        const data = await service.findAllPage(query);
-        if (requestId !== latestRequestRef.current) {
-          return;
-        }
-        dispatch({ type: 'FETCH_SUCCESS', page: data });
-
-        logger.info('GET /blacklists success', data.items);
-      } catch (error) {
-        if (requestId !== latestRequestRef.current) {
-          return;
-        }
-        logger.error('GET /blacklists failed', error);
-        notificationsService.error('Failed to load blacklists');
-      } finally {
-        if (requestId === latestRequestRef.current) {
-          dispatch({ type: 'FETCH_DONE' });
-          onLoadingChangeRef.current?.(false);
-          onRefreshingChangeRef.current?.(false);
+        if (adminBrand) {
+          query.brand = adminBrand;
         }
       }
-    },
-    [
-      currentPage,
-      filters?.search,
-      sort,
-      filters?.type,
-      getBlacklistsService,
-      notificationsService.error,
-      scope,
-      adminOrg,
-      adminBrand,
-    ],
-  );
 
-  // Fetch data on mount and when search params change
+      try {
+        const data = await service.findAllPage(query, signal);
+        logger.info('GET /blacklists success', data.items);
+        return data;
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('GET /blacklists failed', error);
+        }
+        throw error;
+      }
+    },
+    queryKey: [
+      ...scopeKey,
+      {
+        page: currentPage,
+        search: filters?.search ?? '',
+        type: filters?.type ?? '',
+        sort: sort ?? null,
+      },
+    ],
+    service: (token: string) => BlacklistsService.getInstance(token),
+  });
+  const blacklists = blacklistsQuery.data?.items ?? EMPTY_BLACKLISTS;
+  const { errorUpdatedAt, isError, isFetching, isLoading } = blacklistsQuery;
+  // Cancels a read that started before the change, and re-reads every
+  // cached page, search and sort of this list.
+  const refreshBlacklists = useRefreshScope(scopeKey);
+  const isRefreshing = isFetching && !isLoading;
+
+  // One toast per failed read, not one per render.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    findAllBlacklists();
-  }, [findAllBlacklists]);
+    if (isError) {
+      notificationsService.error('Failed to load blacklists');
+    }
+  }, [errorUpdatedAt, isError, notificationsService]);
+
+  useEffect(() => {
+    onLoadingChangeRef.current?.(isLoading);
+  }, [isLoading]);
+
+  useEffect(() => {
+    onRefreshingChangeRef.current?.(isRefreshing);
+  }, [isRefreshing]);
 
   // Register refresh callback
   useEffect(() => {
     if (onRefresh) {
-      return onRefresh(() => findAllBlacklists(true));
+      return onRefresh(() => refreshBlacklists());
     }
-  }, [onRefresh, findAllBlacklists]);
+  }, [onRefresh, refreshBlacklists]);
 
   const handleToggleDefault = async (blacklist: ElementBlacklist) => {
-    dispatch({ type: 'UPDATING_ADD', id: blacklist.id });
+    markUpdating(blacklist.id, true);
     try {
       const service = await getBlacklistsService();
       await service.patch(blacklist.id, { isDefault: !blacklist.isDefault });
       notificationsService.success('Blacklist updated');
-      findAllBlacklists(true);
+      void refreshBlacklists();
     } catch (error) {
       logger.error('Failed to update blacklist', error);
       notificationsService.error('Failed to update blacklist');
     } finally {
-      dispatch({ type: 'UPDATING_REMOVE', id: blacklist.id });
+      markUpdating(blacklist.id, false);
     }
   };
 
@@ -287,7 +268,7 @@ function BlacklistsListContent({
       const service = await getBlacklistsService();
       await service.delete(blacklist.id);
       notificationsService.success('Blacklist deleted');
-      findAllBlacklists(true);
+      void refreshBlacklists();
     } catch (error) {
       logger.error('Failed to delete blacklist', error);
       notificationsService.error('Failed to delete blacklist');
@@ -296,7 +277,9 @@ function BlacklistsListContent({
 
   const saveBlacklist = useInlineRecordSave<Partial<ElementBlacklist>>({
     errorMessage: 'Failed to update blacklist',
-    onSaved: () => findAllBlacklists(true),
+    onSaved: () => {
+      void refreshBlacklists();
+    },
     save: async (id, patch) => (await getBlacklistsService()).patch(id, patch),
   });
 
@@ -373,18 +356,14 @@ function BlacklistsListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalBlacklist onConfirm={() => findAllBlacklists(true)} />
+        <LazyModalBlacklist onConfirm={() => refreshBlacklists()} />
       )}
 
       <div className="mt-4">
         <AutoPagination
           showTotal
           totalLabel="blacklists"
-          totals={
-            page
-              ? { totalDocs: page.total, totalPages: page.totalPages }
-              : EMPTY_PAGE_TOTALS
-          }
+          totals={blacklistsQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
         />
       </div>
     </>

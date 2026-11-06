@@ -91,9 +91,12 @@ export class TemplateService extends BaseService<IContentTemplate> {
    * Get template by ID
    * Uses standard BaseService.findOne()
    */
-  async getTemplate(id: string): Promise<IContentTemplate> {
+  async getTemplate(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IContentTemplate> {
     try {
-      return await this.findOne(id);
+      return await this.findOne(id, {}, signal);
     } catch (error) {
       return this.handleOperationError('getTemplate', error);
     }

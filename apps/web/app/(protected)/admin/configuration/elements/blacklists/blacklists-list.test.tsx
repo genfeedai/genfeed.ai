@@ -2,19 +2,25 @@ import { paginatedResponse } from '@app-tests/paginated-response';
 import type { IPageTotals } from '@genfeedai/contracts/interfaces';
 
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { PageScope } from '@genfeedai/contracts';
+import type { QueryClient } from '@tanstack/react-query';
 import {
   act,
   fireEvent,
-  render,
+  render as renderWithoutClient,
   screen,
   waitFor,
 } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BlacklistsList from './blacklists-list';
 
 const mocks = vi.hoisted(() => ({
+  urlOrganization: 'org-1',
   deleteBlacklist: vi.fn(),
   findAllPage: vi.fn(),
   getBlacklistsService: vi.fn(),
@@ -31,6 +37,11 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getBlacklistsService,
@@ -198,11 +209,12 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => ({
     get: (key: string) => {
       if (key === 'page') return '2';
-      if (key === 'organization') return 'org-1';
+      if (key === 'organization') return mocks.urlOrganization;
       if (key === 'brand') return 'brand-1';
       return null;
     },
-    toString: () => 'organization=org-1&brand=brand-1&page=2',
+    toString: () =>
+      `organization=${mocks.urlOrganization}&brand=brand-1&page=2`,
   }),
 }));
 
@@ -232,9 +244,14 @@ function mockBlacklists(
   mocks.findAllPage.mockResolvedValue(paginatedResponse(data));
 }
 
+function render(ui: ReactElement, client?: QueryClient) {
+  return renderWithoutClient(ui, { wrapper: queryClientWrapper(client) });
+}
+
 describe('BlacklistsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.urlOrganization = 'org-1';
     mocks.deleteBlacklist.mockResolvedValue({ ok: true });
     mocks.getBlacklistsService.mockResolvedValue({
       delete: mocks.deleteBlacklist,
@@ -281,6 +298,7 @@ describe('BlacklistsList', () => {
         organization: 'org-1',
         page: 2,
       }),
+      expect.any(AbortSignal),
     );
   });
 
@@ -411,5 +429,56 @@ describe('BlacklistsList', () => {
     expect(
       screen.getByRole('button', { name: 'isDefault-blacklist-1 unchecked' }),
     ).toBeDisabled();
+  });
+
+  it('paints the cached blacklists and their own footer total when coming back', async () => {
+    mocks.findAllPage.mockResolvedValue(
+      paginatedResponse([makeBlacklist()], { totalDocs: 14, totalPages: 2 }),
+    );
+    const client = createTestQueryClient();
+    const firstVisit = render(
+      <BlacklistsList scope={PageScope.SUPERADMIN} />,
+      client,
+    );
+    expect(await screen.findByText('Low Quality')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
+    render(<BlacklistsList scope={PageScope.SUPERADMIN} />, client);
+
+    expect(screen.getByText('Low Quality')).toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('14');
+    expect(screen.queryByText('Loading blacklists')).not.toBeInTheDocument();
+  });
+
+  it("never paints one organization's cached blacklists for another", async () => {
+    const client = createTestQueryClient();
+    const firstVisit = render(
+      <BlacklistsList scope={PageScope.SUPERADMIN} />,
+      client,
+    );
+    expect(await screen.findByText('Low Quality')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.urlOrganization = 'org-2';
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
+    render(<BlacklistsList scope={PageScope.SUPERADMIN} />, client);
+
+    expect(screen.getByText('Loading blacklists')).toBeInTheDocument();
+    expect(screen.queryByText('Low Quality')).not.toBeInTheDocument();
+  });
+
+  it('drops one organization’s blacklists when the open list switches organization', async () => {
+    const view = render(<BlacklistsList scope={PageScope.SUPERADMIN} />);
+    expect(await screen.findByText('Low Quality')).toBeInTheDocument();
+
+    mocks.urlOrganization = 'org-2';
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
+    view.rerender(<BlacklistsList scope={PageScope.SUPERADMIN} />);
+
+    expect(await screen.findByText('Loading blacklists')).toBeInTheDocument();
+    expect(screen.queryByText('Low Quality')).not.toBeInTheDocument();
   });
 });

@@ -7,10 +7,12 @@ import type {
   ISystemNotificationDestinationInput,
   ISystemNotificationOverview,
 } from '@genfeedai/contracts/interfaces';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdminSystemNotificationsService } from '@services/admin/system-notifications.service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
@@ -24,7 +26,7 @@ import {
 } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const EVENTS = [
   'user.created',
@@ -43,6 +45,7 @@ const DISCORD_TEST_CHANNELS: readonly DiscordTestChannel[] = [
   'posts',
   'deployments',
 ];
+const SYSTEM_NOTIFICATIONS_QUERY_KEY = ['admin', 'system-notifications'];
 const EMPTY: ISystemNotificationDestinationInput = {
   label: '',
   provider: 'discord',
@@ -57,33 +60,33 @@ export default function SystemNotificationsPanel() {
     AdminSystemNotificationsService.getInstance(token),
   );
   const alerts = NotificationsService.getInstance();
-  const [overview, setOverview] = useState<ISystemNotificationOverview | null>(
-    null,
-  );
   const [draft, setDraft] =
     useState<ISystemNotificationDestinationInput>(EMPTY);
   const [editingId, setEditingId] = useState<string>();
   const [isBusy, setIsBusy] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+  // Cached: coming back to Platform settings paints the destinations and
+  // deliveries at once while they refresh.
+  const overviewQuery = useAuthedQuery({
+    queryFn: (service, signal) => service.overview(signal),
+    queryKey: SYSTEM_NOTIFICATIONS_QUERY_KEY,
+    service: (token: string) =>
+      AdminSystemNotificationsService.getInstance(token),
+  });
+  const overview = overviewQuery.data ?? null;
+  const { errorUpdatedAt, isError, isLoading, refetch } = overviewQuery;
   const discordStatus = overview?.configuration.discord;
-  const load = useCallback(
-    async (signal: AbortSignal) => {
-      try {
-        const result = await (await getService()).overview(signal);
-        if (!signal.aborted) setOverview(result);
-      } catch {
-        if (!signal.aborted) alerts.error(t('loadFailed'));
-      } finally {
-        if (!signal.aborted) setIsLoading(false);
-      }
-    },
-    [getService, alerts, t],
-  );
+  const reload = () => {
+    void refetch();
+  };
+
+  const loadFailedMessage = t('loadFailed');
+
+  // One toast per failed read; a failed refresh keeps the cached overview.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    const controller = new AbortController();
-    void load(controller.signal);
-    return () => controller.abort();
-  }, [load]);
+    if (isError) alerts.error(loadFailedMessage);
+  }, [alerts, errorUpdatedAt, isError, loadFailedMessage]);
 
   async function act(
     operation: (
@@ -93,7 +96,15 @@ export default function SystemNotificationsPanel() {
   ): Promise<boolean> {
     setIsBusy(true);
     try {
-      setOverview(await operation(await getService()));
+      const next = await operation(await getService());
+      // A read already in flight would land after this write and undo it.
+      await queryClient.cancelQueries({
+        queryKey: SYSTEM_NOTIFICATIONS_QUERY_KEY,
+      });
+      queryClient.setQueriesData<ISystemNotificationOverview>(
+        { queryKey: SYSTEM_NOTIFICATIONS_QUERY_KEY },
+        next,
+      );
       if (message) alerts.success(message);
       return true;
     } catch (error) {
@@ -125,10 +136,7 @@ export default function SystemNotificationsPanel() {
       {isLoading ? (
         <p>{t('loading')}</p>
       ) : !overview ? (
-        <Button
-          type="button"
-          onClick={() => void load(new AbortController().signal)}
-        >
+        <Button type="button" onClick={reload}>
           {t('reload')}
         </Button>
       ) : (
@@ -457,7 +465,7 @@ export default function SystemNotificationsPanel() {
             type="button"
             variant={ButtonVariant.SECONDARY}
             disabled={isBusy}
-            onClick={() => void load(new AbortController().signal)}
+            onClick={reload}
           >
             {t('reload')}
           </Button>

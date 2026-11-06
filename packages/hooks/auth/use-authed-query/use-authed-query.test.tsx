@@ -219,4 +219,37 @@ describe('useAuthedQuery', () => {
     view.rerender({ brand: 'brand-2', page: 2 });
     expect(view.result.current.data).toBeUndefined();
   });
+
+  it('drops the previous rows when the viewer changes on a mounted list', async () => {
+    const view = renderHook(
+      () =>
+        useAuthedQuery({
+          keepPreviousDataWithin: ['report'],
+          queryFn: (service: ReportService, signal) => service.read(signal),
+          queryKey: ['report', 'brand-1'],
+          service: (token: string): ReportService => ({
+            read: () =>
+              token === 'token-a'
+                ? Promise.resolve(['secret:token-a'])
+                : new Promise<string[]>(() => {}),
+            token,
+          }),
+        }),
+      { wrapper: wrapperFor(client) },
+    );
+    await waitFor(() =>
+      expect(view.result.current.data).toEqual(['secret:token-a']),
+    );
+
+    identity.current = {
+      getToken: async () => 'token-b',
+      orgId: 'org-a',
+      sessionId: 'session-b',
+      userId: 'user-b',
+    };
+    view.rerender();
+
+    expect(view.result.current.data).toBeUndefined();
+    expect(view.result.current.isLoading).toBe(true);
+  });
 });

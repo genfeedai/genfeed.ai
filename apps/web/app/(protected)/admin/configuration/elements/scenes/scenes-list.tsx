@@ -10,6 +10,8 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
+import { useRefreshScope } from '@hooks/auth/use-refresh-scope/use-refresh-scope';
 import type { ElementScene } from '@models/elements/scene.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
@@ -27,34 +29,12 @@ import {
   Suspense,
   useCallback,
   useEffect,
-  useReducer,
   useRef,
 } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { LazyElementCreateModal } from '@/components/lazy/modal/LazyModal';
-import type {
-  SceneFetchStatus as FetchStatus,
-  ScenesAction,
-  ScenesState,
-} from '@/features/admin/props/scenes.props';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
-
-function scenesReducer(state: ScenesState, action: ScenesAction): ScenesState {
-  switch (action.type) {
-    case 'FETCH_START':
-      return {
-        ...state,
-        fetchStatus: action.isRefresh ? 'refreshing' : 'loading',
-      };
-    case 'FETCH_SUCCESS':
-      return { ...state, page: action.page };
-    case 'FETCH_DONE':
-      return { ...state, fetchStatus: 'idle' };
-    default:
-      return state;
-  }
-}
 
 const EMPTY_SCENES: ElementScene[] = [];
 
@@ -75,18 +55,8 @@ function ScenesListContent({
   });
   const currentPage = Number(searchParams.get('page')) || 1;
 
-  const [state, dispatch] = useReducer(scenesReducer, undefined, () => ({
-    page: null,
-    fetchStatus: 'loading' as FetchStatus,
-  }));
-
-  const { page, fetchStatus } = state;
-  const scenes = page?.items ?? EMPTY_SCENES;
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
-
-  // Derive isLoading from fetchStatus instead of storing it separately
-  const isLoading = fetchStatus === 'loading';
 
   const getScenesService = useAuthedService(
     useCallback((token: string) => ScenesService.getInstance(token), []),
@@ -99,6 +69,66 @@ function ScenesListContent({
     onLoadingChangeRef.current = onLoadingChange;
     onRefreshingChangeRef.current = onRefreshingChange;
   });
+
+  // Cached per scope and page: coming back paints the rows and footer it
+  // already has while they refresh, and another page, search or sort keeps
+  // the current rows on screen while it loads.
+  const scopeKey = [
+    'admin',
+    'scenes',
+    { adminBrand, adminOrg, scope },
+  ] as const;
+  const scenesQuery = usePagedAuthedQuery<ScenesService, ElementScene>({
+    keepPreviousDataWithin: scopeKey,
+    queryFn: async (service, signal) => {
+      const query: IQueryParams = {
+        limit: ITEMS_PER_PAGE,
+        page: currentPage,
+        search: filters?.search || undefined,
+        ...(sort ? { sort } : {}),
+      };
+
+      if (scope === PageScope.SUPERADMIN) {
+        if (adminOrg) {
+          query.organization = adminOrg;
+        }
+        if (adminBrand) {
+          query.brand = adminBrand;
+        }
+      }
+
+      const data = await service.findAllPage(query, signal);
+      logger.info('GET /scenes success', data.items);
+      return data;
+    },
+    queryKey: [
+      ...scopeKey,
+      { page: currentPage, search: filters?.search ?? '', sort: sort ?? null },
+    ],
+    service: (token: string) => ScenesService.getInstance(token),
+  });
+  const scenes = scenesQuery.data?.items ?? EMPTY_SCENES;
+  const { error: loadError, isFetching, isLoading } = scenesQuery;
+  // Cancels a read that started before the change, and re-reads every
+  // cached page, search and sort of this list.
+  const refreshScenes = useRefreshScope(scopeKey);
+  const isRefreshing = isFetching && !isLoading;
+
+  useEffect(() => {
+    if (!loadError) {
+      return;
+    }
+    logger.error('GET /scenes failed', loadError);
+    NotificationsService.getInstance().error('Failed to load scenes');
+  }, [loadError]);
+
+  useEffect(() => {
+    onLoadingChangeRef.current?.(isLoading);
+  }, [isLoading]);
+
+  useEffect(() => {
+    onRefreshingChangeRef.current?.(isRefreshing);
+  }, [isRefreshing]);
 
   const scopeTranslate = useTranslations('ui.elementPlatformFields');
   const columns: TableColumn<ElementScene>[] = [
@@ -126,76 +156,11 @@ function ScenesListContent({
     },
   ];
 
-  // Only the latest request may fill the list, so a slow response for an
-  // earlier sort or search cannot replace the current one.
-  const latestRequestRef = useRef(0);
-
-  const findAllScenes = useCallback(
-    async (isRefreshRequest = false) => {
-      const requestId = ++latestRequestRef.current;
-      dispatch({ type: 'FETCH_START', isRefresh: isRefreshRequest });
-      onRefreshingChangeRef.current?.(isRefreshRequest);
-      onLoadingChangeRef.current?.(!isRefreshRequest);
-
-      try {
-        const service = await getScenesService();
-        const query: IQueryParams = {
-          limit: ITEMS_PER_PAGE,
-          page: currentPage,
-          search: filters?.search || undefined,
-          ...(sort ? { sort } : {}),
-        };
-
-        if (scope === PageScope.SUPERADMIN) {
-          if (adminOrg) {
-            query.organization = adminOrg;
-          }
-          if (adminBrand) {
-            query.brand = adminBrand;
-          }
-        }
-
-        const data = await service.findAllPage(query);
-        if (requestId !== latestRequestRef.current) {
-          return;
-        }
-        dispatch({ type: 'FETCH_SUCCESS', page: data });
-        logger.info('GET /scenes success', data.items);
-      } catch (error) {
-        if (requestId !== latestRequestRef.current) {
-          return;
-        }
-        logger.error('GET /scenes failed', error);
-        notificationsService.error('Failed to load scenes');
-      } finally {
-        if (requestId === latestRequestRef.current) {
-          dispatch({ type: 'FETCH_DONE' });
-          onLoadingChangeRef.current?.(false);
-          onRefreshingChangeRef.current?.(false);
-        }
-      }
-    },
-    [
-      currentPage,
-      filters?.search,
-      sort,
-      getScenesService,
-      notificationsService.error,
-      scope,
-      adminOrg,
-      adminBrand,
-    ],
-  );
-
-  useEffect(() => {
-    findAllScenes();
-  }, [findAllScenes]);
-
   useEffect(() => {
     if (onRefresh) {
-      return onRefresh(() => findAllScenes(true));
+      return onRefresh(() => refreshScenes());
     }
-  }, [onRefresh, findAllScenes]);
+  }, [onRefresh, refreshScenes]);
 
   async function handleDelete(scene: IElementScene | null): Promise<void> {
     if (!scene) {
@@ -206,7 +171,7 @@ function ScenesListContent({
       const service = await getScenesService();
       await service.delete(scene.id);
       notificationsService.success('Scene deleted');
-      findAllScenes(true);
+      void refreshScenes();
     } catch (error) {
       logger.error('Failed to delete scene', error);
       notificationsService.error('Failed to delete scene');
@@ -236,7 +201,9 @@ function ScenesListContent({
 
   const saveScene = useInlineRecordSave<Partial<IElementScene>>({
     errorMessage: 'Failed to update scene',
-    onSaved: () => findAllScenes(true),
+    onSaved: () => {
+      void refreshScenes();
+    },
     save: async (id, patch) => (await getScenesService()).patch(id, patch),
   });
 
@@ -265,7 +232,9 @@ function ScenesListContent({
       {scope === PageScope.SUPERADMIN && (
         <LazyElementCreateModal
           modalId={ModalEnum.SCENE}
-          onConfirm={() => findAllScenes(true)}
+          onConfirm={() => {
+            void refreshScenes();
+          }}
         />
       )}
 
@@ -273,11 +242,7 @@ function ScenesListContent({
         <AutoPagination
           showTotal
           totalLabel="scenes"
-          totals={
-            page
-              ? { totalDocs: page.total, totalPages: page.totalPages }
-              : EMPTY_PAGE_TOTALS
-          }
+          totals={scenesQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
         />
       </div>
     </>
