@@ -191,8 +191,11 @@ export default function ProvidersContent() {
   );
 
   const localToolRows = useMemo(() => {
-    const claude = desktopLocalTools?.claude ?? readiness.localTools.claude;
-    const codex = desktopLocalTools?.codex ?? readiness.localTools.codex;
+    // On the offline desktop only the bridge knows this Mac's CLIs: a failed
+    // probe shows none detected, never the server's cached readiness.
+    const tools = isDesktopLocal ? desktopLocalTools : readiness.localTools;
+    const claude = tools?.claude ?? false;
+    const codex = tools?.codex ?? false;
     const rows = [
       {
         description: 'Recommended for local agent chat and desktop workflows.',

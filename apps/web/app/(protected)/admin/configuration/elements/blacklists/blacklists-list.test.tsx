@@ -469,4 +469,16 @@ describe('BlacklistsList', () => {
     expect(screen.getByText('Loading blacklists')).toBeInTheDocument();
     expect(screen.queryByText('Low Quality')).not.toBeInTheDocument();
   });
+
+  it('drops one organization’s blacklists when the open list switches organization', async () => {
+    const view = render(<BlacklistsList scope={PageScope.SUPERADMIN} />);
+    expect(await screen.findByText('Low Quality')).toBeInTheDocument();
+
+    mocks.urlOrganization = 'org-2';
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
+    view.rerender(<BlacklistsList scope={PageScope.SUPERADMIN} />);
+
+    expect(await screen.findByText('Loading blacklists')).toBeInTheDocument();
+    expect(screen.queryByText('Low Quality')).not.toBeInTheDocument();
+  });
 });

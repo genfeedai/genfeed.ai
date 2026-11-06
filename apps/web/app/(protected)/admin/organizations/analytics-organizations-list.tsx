@@ -33,6 +33,7 @@ import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import TableUserCell from '@ui/display/table/TableUserCell';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
+import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
@@ -173,7 +174,13 @@ export default function AnalyticsOrganizationsList({
     service: (token: string) => AnalyticsService.getInstance(token),
   });
   const data = organizationsQuery.data ?? null;
-  const isLoading = data === null;
+  // A failed background refresh keeps the table; the error replaces it only
+  // when nothing was ever read for this view.
+  const isLoadError = data === null && organizationsQuery.isError;
+  const isLoading = data === null && !isLoadError;
+  // While another page loads the previous page stays on screen, so the footer
+  // describes the response shown, not the page asked for.
+  const isPageLoading = organizationsQuery.isPlaceholderData;
 
   // A new search can leave the page past the last page of the new result set.
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset on search only
@@ -539,6 +546,19 @@ export default function AnalyticsOrganizationsList({
     [getReleaseAccessHref, rowSidebarT, translate],
   );
 
+  if (isLoadError) {
+    return (
+      <Alert variant="destructive" icon={false}>
+        <AlertDescription>{translate('listLoadError')}</AlertDescription>
+        <Button
+          label={translate('listRetry')}
+          variant={ButtonVariant.SECONDARY}
+          onClick={() => void organizationsQuery.refetch()}
+        />
+      </Alert>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <KPISection
@@ -720,26 +740,30 @@ export default function AnalyticsOrganizationsList({
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-foreground/60">
-            Showing {(page - 1) * pagination.limit + 1} -{' '}
-            {Math.min(page * pagination.limit, pagination.total)} of{' '}
+            Showing {(pagination.page - 1) * pagination.limit + 1} -{' '}
+            {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
             {pagination.total}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" aria-busy={isPageLoading}>
             <Button
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
-              isDisabled={page === 1}
-              onClick={() => setPage((prev) => prev - 1)}
+              ariaLabel={translate('previousPage')}
+              isDisabled={isPageLoading || pagination.page === 1}
+              onClick={() => setPage(pagination.page - 1)}
               icon={<ChevronLeft className="size-4" />}
             />
             <span className="text-sm">
-              Page {page} of {pagination.totalPages}
+              Page {pagination.page} of {pagination.totalPages}
             </span>
             <Button
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
-              isDisabled={page === pagination.totalPages}
-              onClick={() => setPage((prev) => prev + 1)}
+              ariaLabel={translate('nextPage')}
+              isDisabled={
+                isPageLoading || pagination.page === pagination.totalPages
+              }
+              onClick={() => setPage(pagination.page + 1)}
               icon={<ChevronRight className="size-4" />}
             />
           </div>

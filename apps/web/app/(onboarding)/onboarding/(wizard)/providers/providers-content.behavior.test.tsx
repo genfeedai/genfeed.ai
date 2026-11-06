@@ -26,7 +26,8 @@ const {
   pushMock,
 } = vi.hoisted(() => ({
   assignMock: vi.fn(),
-  getDesktopBridgeMock: vi.fn(() => null),
+  // The bridge the desktop shell exposes, or null in a browser.
+  getDesktopBridgeMock: vi.fn((): unknown => null),
   getInstallReadinessMock: vi.fn(),
   handleStepCompleteMock: vi.fn(),
   patchSettingsMock: vi.fn(),
@@ -516,6 +517,30 @@ describe('ProvidersContent behavior', () => {
     expect(pushMock).toHaveBeenCalledWith('/desktop/local');
   });
 
+  it('never shows the server readiness as this Mac’s CLIs when local detection fails', async () => {
+    const client = createTestQueryClient();
+    const remoteVisit = render(<ProvidersContent />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(
+      await screen.findByText('Runtime: server defaults are ready'),
+    ).toBeInTheDocument();
+    remoteVisit.unmount();
+
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    getDesktopBridgeMock.mockReturnValue({
+      app: {
+        detectLocalTools: vi.fn().mockRejectedValue(new Error('no bridge')),
+        getBootstrap: vi.fn().mockResolvedValue({ isOfflineMode: true }),
+      },
+    });
+    render(<ProvidersContent />, { wrapper: queryClientWrapper(client) });
+
+    expect(await screen.findByText('Grok CLI')).toBeVisible();
+    expect(screen.getAllByText('Not detected')).toHaveLength(3);
+    expect(screen.queryByText('Detected')).not.toBeInTheDocument();
+  });
+
   it('paints the cached provider readiness at once when the step is revisited', async () => {
     const client = createTestQueryClient();
     const first = render(<ProvidersContent />, {
@@ -535,5 +560,9 @@ describe('ProvidersContent behavior', () => {
     expect(
       screen.queryByText('Checking current access state...'),
     ).not.toBeInTheDocument();
+    // The cached readiness is stale, so the revisit refreshes it behind it.
+    await waitFor(() =>
+      expect(getInstallReadinessMock).toHaveBeenCalledTimes(2),
+    );
   });
 });

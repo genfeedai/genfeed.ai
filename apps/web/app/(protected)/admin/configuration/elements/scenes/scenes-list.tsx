@@ -11,6 +11,7 @@ import type {
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
+import { useRefreshScope } from '@hooks/auth/use-refresh-scope/use-refresh-scope';
 import type { ElementScene } from '@models/elements/scene.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
@@ -107,12 +108,10 @@ function ScenesListContent({
     service: (token: string) => ScenesService.getInstance(token),
   });
   const scenes = scenesQuery.data?.items ?? EMPTY_SCENES;
-  const {
-    error: loadError,
-    isFetching,
-    isLoading,
-    refetch: refreshScenes,
-  } = scenesQuery;
+  const { error: loadError, isFetching, isLoading } = scenesQuery;
+  // Cancels a read that started before the change, and re-reads every
+  // cached page, search and sort of this list.
+  const refreshScenes = useRefreshScope(scopeKey);
   const isRefreshing = isFetching && !isLoading;
 
   useEffect(() => {

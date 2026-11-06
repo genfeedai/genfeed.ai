@@ -35,10 +35,12 @@ export default function TurboProjectItemCard({
   const ingredientId = item.outputIngredientId ?? item.inputIngredientId;
   // The item's media reads through React Query, so reopening a project paints
   // each card's preview at once. A missing preview is optional: a failed read
-  // leaves the card without one.
-  const mediaQuery = useAuthedQuery<IngredientsService, IIngredient>({
+  // leaves the card without one. Ingredients of any category are read by id
+  // through the batch route; `/ingredients/:id` does not exist.
+  const mediaQuery = useAuthedQuery<IngredientsService, IIngredient | null>({
     enabled: Boolean(ingredientId),
-    queryFn: (api, signal) => api.findOne(ingredientId ?? '', {}, signal),
+    queryFn: async (api) =>
+      (await api.findByIds([ingredientId ?? '']))[0] ?? null,
     queryKey: ingredientByIdQueryKey(ingredientId ?? ''),
     service: (token: string) => IngredientsService.getInstance(token),
   });

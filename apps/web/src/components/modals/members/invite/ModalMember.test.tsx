@@ -100,4 +100,23 @@ describe('ModalMember', () => {
 
     expect(await screen.findByText('Failed to load roles')).toBeInTheDocument();
   });
+
+  it('keeps the cached roles usable when a refresh fails', async () => {
+    const client = createTestQueryClient();
+    const firstOpen = renderInviteModal(client);
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toHaveTextContent('Member');
+    });
+    firstOpen.unmount();
+
+    mocks.findRoles.mockRejectedValue(new Error('offline'));
+    renderInviteModal(client);
+    // Let the failed refresh settle.
+    await waitFor(() => expect(mocks.findRoles).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    expect(screen.getByRole('combobox')).toBeEnabled();
+    expect(screen.getByRole('combobox')).toHaveTextContent('Member');
+    expect(screen.queryByText('Failed to load roles')).not.toBeInTheDocument();
+  });
 });

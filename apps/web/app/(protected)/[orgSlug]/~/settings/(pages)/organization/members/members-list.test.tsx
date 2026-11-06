@@ -554,4 +554,20 @@ describe('MembersList seat limit', () => {
     expect(screen.getByText('Loading members')).toBeVisible();
     expect(screen.queryByText('User 0')).not.toBeInTheDocument();
   });
+
+  it('drops one organization’s members when the open list switches organization', async () => {
+    const client = createTestQueryClient();
+    const view = renderMembers({ client, pageCount: 1, tier: 'scale' });
+    expect(await screen.findByText('User 0')).toBeVisible();
+
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    mocks.useBrand.mockReturnValue({
+      organizationId: 'org-456',
+      settings: { subscriptionTier: 'scale' },
+    });
+    view.rerender(<MembersList />);
+
+    expect(await screen.findByText('Loading members')).toBeVisible();
+    expect(screen.queryByText('User 0')).not.toBeInTheDocument();
+  });
 });

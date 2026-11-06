@@ -125,6 +125,11 @@ export default function SummaryContent() {
   const billingState = billingQuery.data ?? null;
   const loading =
     isLoadingReadiness || (isBillingShown && billingQuery.isLoading);
+  // A failed read with nothing cached must not pass for a free account; a
+  // failed background refresh keeps the cached plan.
+  const isBillingUnavailable = billingState === null && billingQuery.isError;
+  const billingValue = (value: () => string) =>
+    loading ? 'Checking...' : isBillingUnavailable ? 'Unavailable' : value();
 
   const workspaceStatus = useMemo(() => {
     if (readiness.workspace.hasOrganization && readiness.workspace.hasBrand) {
@@ -238,29 +243,27 @@ export default function SummaryContent() {
               <div className="flex items-start justify-between gap-4 border-t border-border pt-3 first:border-t-0 first:pt-0">
                 <span className="text-muted-foreground">Subscription</span>
                 <span className="text-right text-foreground">
-                  {loading
-                    ? 'Checking...'
-                    : formatSubscriptionTierLabel(
-                        billingState?.subscriptionTier,
-                      )}
+                  {billingValue(() =>
+                    formatSubscriptionTierLabel(billingState?.subscriptionTier),
+                  )}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4 border-t border-border pt-3">
                 <span className="text-muted-foreground">Status</span>
                 <span className="text-right text-foreground">
-                  {loading
-                    ? 'Checking...'
-                    : formatSubscriptionStatusLabel(
-                        billingState?.subscriptionStatus,
-                      )}
+                  {billingValue(() =>
+                    formatSubscriptionStatusLabel(
+                      billingState?.subscriptionStatus,
+                    ),
+                  )}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4 border-t border-border pt-3">
                 <span className="text-muted-foreground">Credits balance</span>
                 <span className="text-right text-foreground">
-                  {loading
-                    ? 'Checking...'
-                    : (billingState?.creditsBalance ?? 0).toLocaleString()}
+                  {billingValue(() =>
+                    (billingState?.creditsBalance ?? 0).toLocaleString(),
+                  )}
                 </span>
               </div>
             </div>

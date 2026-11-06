@@ -157,6 +157,47 @@ const localStorageMock = (() => {
   };
 })();
 
+const BILLING_READINESS = {
+  access: {
+    byokConfiguredProviders: [],
+    byokEnabled: false,
+    runtimeMode: 'server',
+    selectedMode: 'cloud',
+    serverDefaultsReady: true,
+  },
+  authMode: 'better_auth',
+  billingMode: 'cloud_billing',
+  localTools: {
+    anyDetected: false,
+    claude: false,
+    codex: false,
+    detected: [],
+  },
+  providers: {
+    anyConfigured: true,
+    configured: ['openai'],
+    fal: false,
+    imageGenerationReady: true,
+    openai: true,
+    openrouter: true,
+    replicate: false,
+    textGenerationReady: true,
+  },
+  ui: {
+    showBilling: true,
+    showCloudUpgradeCta: false,
+    showCredits: true,
+    showLocalTools: false,
+    showPricing: true,
+  },
+  workspace: {
+    brandId: 'brand-123',
+    hasBrand: true,
+    hasOrganization: true,
+    organizationId: 'org-123',
+  },
+};
+
 describe('SummaryContent behavior', () => {
   beforeEach(() => {
     assignMock.mockReset();
@@ -269,46 +310,7 @@ describe('SummaryContent behavior', () => {
   });
 
   it('shows the real subscription tier and credit balance when billing is enabled', async () => {
-    getInstallReadinessMock.mockResolvedValue({
-      access: {
-        byokConfiguredProviders: [],
-        byokEnabled: false,
-        runtimeMode: 'server',
-        selectedMode: 'cloud',
-        serverDefaultsReady: true,
-      },
-      authMode: 'better_auth',
-      billingMode: 'cloud_billing',
-      localTools: {
-        anyDetected: false,
-        claude: false,
-        codex: false,
-        detected: [],
-      },
-      providers: {
-        anyConfigured: true,
-        configured: ['openai'],
-        fal: false,
-        imageGenerationReady: true,
-        openai: true,
-        openrouter: true,
-        replicate: false,
-        textGenerationReady: true,
-      },
-      ui: {
-        showBilling: true,
-        showCloudUpgradeCta: false,
-        showCredits: true,
-        showLocalTools: false,
-        showPricing: true,
-      },
-      workspace: {
-        brandId: 'brand-123',
-        hasBrand: true,
-        hasOrganization: true,
-        organizationId: 'org-123',
-      },
-    });
+    getInstallReadinessMock.mockResolvedValue(BILLING_READINESS);
     getBootstrapMock.mockResolvedValue({
       access: {
         brandId: 'brand-123',
@@ -333,6 +335,19 @@ describe('SummaryContent behavior', () => {
     expect(screen.getByText('1,234')).toBeInTheDocument();
     // The saved access choice (cloud) is flagged as current.
     expect(screen.getByText('Current')).toBeInTheDocument();
+  });
+
+  it('says the plan is unavailable when billing cannot be read', async () => {
+    getInstallReadinessMock.mockResolvedValue(BILLING_READINESS);
+    getBootstrapMock.mockRejectedValue(new Error('offline'));
+
+    render(<SummaryContent />, { wrapper: queryClientWrapper() });
+
+    expect(await screen.findByText('Your plan')).toBeInTheDocument();
+    expect(await screen.findAllByText('Unavailable')).toHaveLength(3);
+    expect(
+      screen.queryByText('No active subscription'),
+    ).not.toBeInTheDocument();
   });
 
   it('persists cloud mode and redirects to cloud signup with onboarding context', async () => {

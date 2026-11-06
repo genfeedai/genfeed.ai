@@ -253,6 +253,21 @@ describe('IssueDetail', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows the task when its sub-issues cannot be read', async () => {
+    mocks.findOne.mockResolvedValue(SHIPPING_TASK);
+    mocks.getChildren.mockRejectedValue(new Error('offline'));
+
+    renderIssueDetail({ issueId: 'task-1' });
+
+    expect(
+      await screen.findByRole('heading', {
+        level: 2,
+        name: 'Ship shell-first loading',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Issue not found')).not.toBeInTheDocument();
+  });
+
   it('keeps the task on screen when a background refresh fails', async () => {
     mocks.findOne.mockResolvedValue(SHIPPING_TASK);
     const client = createTestQueryClient();

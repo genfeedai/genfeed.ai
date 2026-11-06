@@ -150,5 +150,7 @@ describe('SystemEmailPerformance', () => {
 
     expect(screen.getByText('custom-template')).toBeInTheDocument();
     expect(screen.queryByText('Loading report')).not.toBeInTheDocument();
+    // The cached report is stale, so the revisit refreshes it behind it.
+    await waitFor(() => expect(mocks.getPerformance).toHaveBeenCalledTimes(2));
   });
 });

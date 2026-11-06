@@ -173,6 +173,32 @@ describe('TemplateDetail shell-first loading', () => {
     expect(screen.queryByText('Video default')).not.toBeInTheDocument();
   });
 
+  it('drops a cached template that was deleted elsewhere and goes back to the list', async () => {
+    mocks.getTemplate.mockResolvedValueOnce(VIDEO_TEMPLATE);
+    const client = createTestQueryClient();
+    const first = render(<TemplateDetail templateId="template-1" />, client);
+    await screen.findByRole('heading', { name: 'Video default' });
+    first.unmount();
+
+    mocks.getTemplate.mockRejectedValue(
+      Object.assign(new Error('Template not found'), {
+        name: 'ServiceOperationError',
+        status: 404,
+      }),
+    );
+    render(<TemplateDetail templateId="template-1" />, client);
+
+    await waitFor(() => {
+      expect(mocks.push).toHaveBeenCalledWith('/admin/content/templates');
+    });
+    expect(mocks.error).toHaveBeenCalledWith('Failed to load template');
+    expect(
+      client.getQueriesData({
+        queryKey: ['admin', 'templates', 'detail', 'template-1'],
+      }),
+    ).toEqual([]);
+  });
+
   it('sends the operator back to the list when the template cannot be read', async () => {
     mocks.getTemplate.mockRejectedValueOnce(new Error('gone'));
 

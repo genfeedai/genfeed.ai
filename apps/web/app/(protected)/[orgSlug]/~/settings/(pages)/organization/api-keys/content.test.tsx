@@ -937,6 +937,33 @@ describe('SettingsApiKeysPage', () => {
     expect(screen.getByText('gf_test_created')).toBeInTheDocument();
   });
 
+  it.each([
+    ['key', { key: 'gf_test_issued_secret' }],
+    ['token', { key: undefined, token: 'gf_test_issued_secret' }],
+  ])(
+    'never keeps a secret issued as %s in the key list cache',
+    async (_field, issued) => {
+      mocks.createApiKey.mockResolvedValue({
+        id: 'key-issued',
+        label: 'Issued key',
+        ...issued,
+      });
+      const client = createTestQueryClient();
+      renderPage(client);
+      await screen.findByText('MCP Key');
+      mocks.findAllApiKeys.mockReturnValue(new Promise(() => undefined));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+
+      expect(
+        await screen.findByText('gf_test_issued_secret'),
+      ).toBeInTheDocument();
+      expect(
+        JSON.stringify(client.getQueriesData({ queryKey: [] })),
+      ).not.toContain('gf_test_issued_secret');
+    },
+  );
+
   it('keeps Create Key enabled while the key list is loading', async () => {
     mocks.findAllApiKeys.mockImplementation(() => new Promise(() => undefined));
     renderPage();

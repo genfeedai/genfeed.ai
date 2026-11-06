@@ -8,6 +8,7 @@ import type { IQueryParams, ISound } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
+import { useRefreshScope } from '@hooks/auth/use-refresh-scope/use-refresh-scope';
 import type { Sound } from '@models/ingredients/sound.model';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -132,13 +133,10 @@ function SoundsListContent({
     service: (token: string) => SoundsService.getInstance(token),
   });
   const sounds = soundsQuery.data?.items ?? EMPTY_SOUNDS;
-  const {
-    errorUpdatedAt,
-    isError,
-    isFetching,
-    isLoading,
-    refetch: refreshSounds,
-  } = soundsQuery;
+  const { errorUpdatedAt, isError, isFetching, isLoading } = soundsQuery;
+  // Cancels a read that started before the change, and re-reads every
+  // cached page, search and sort of this list.
+  const refreshSounds = useRefreshScope(scopeKey);
   const isRefreshing = isFetching && !isLoading;
 
   // One toast per failed read, not one per render.

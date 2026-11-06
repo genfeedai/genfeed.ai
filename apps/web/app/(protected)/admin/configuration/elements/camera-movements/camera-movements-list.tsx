@@ -11,6 +11,7 @@ import type {
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
+import { useRefreshScope } from '@hooks/auth/use-refresh-scope/use-refresh-scope';
 import type { ElementCameraMovement } from '@models/elements/camera-movement.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
@@ -164,13 +165,11 @@ function CameraMovementsListContent({
   });
   const cameraMovements =
     cameraMovementsQuery.data?.items ?? EMPTY_CAMERA_MOVEMENTS;
-  const {
-    errorUpdatedAt,
-    isError,
-    isFetching,
-    isLoading,
-    refetch: refreshCameraMovements,
-  } = cameraMovementsQuery;
+  const { errorUpdatedAt, isError, isFetching, isLoading } =
+    cameraMovementsQuery;
+  // Cancels a read that started before the change, and re-reads every
+  // cached page, search and sort of this list.
+  const refreshCameraMovements = useRefreshScope(scopeKey);
   const isRefreshing = isFetching && !isLoading;
 
   // One toast per failed read, not one per render.

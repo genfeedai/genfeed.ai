@@ -7,6 +7,7 @@ import {
 import type { ISystemNotificationOverview } from '@genfeedai/contracts/interfaces';
 import type { QueryClient } from '@tanstack/react-query';
 import {
+  act,
   fireEvent,
   render as renderWithoutClient,
   screen,
@@ -231,6 +232,43 @@ describe('admin notification destinations', () => {
 
     mocks.overview.mockReturnValue(new Promise(() => {}));
     render(<SystemNotificationsPanel />, client);
+
+    expect(screen.getByText('Renamed alerts · discord')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Signup alerts · discord'),
+    ).not.toBeInTheDocument();
+  });
+  it('keeps a saved destination when an older refresh answers after the save', async () => {
+    mocks.save.mockResolvedValue({
+      ...overview,
+      destinations: [{ ...overview.destinations[0], label: 'Renamed alerts' }],
+    });
+    const client = createTestQueryClient();
+    render(<SystemNotificationsPanel />, client);
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+
+    // A refresh starts before the save and answers after it, with the old name.
+    let answerRefresh: (value: ISystemNotificationOverview) => void = () => {};
+    mocks.overview.mockReturnValue(
+      new Promise<ISystemNotificationOverview>((resolve) => {
+        answerRefresh = resolve;
+      }),
+    );
+    void client.refetchQueries();
+    await waitFor(() => expect(mocks.overview).toHaveBeenCalledTimes(2));
+
+    fireEvent.change(screen.getByLabelText('Name'), {
+      target: { value: 'Renamed alerts' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save destination' }));
+    expect(
+      await screen.findByText('Renamed alerts · discord'),
+    ).toBeInTheDocument();
+    await act(async () => {
+      answerRefresh(overview);
+      // React Query tells the panel on the next tick.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
 
     expect(screen.getByText('Renamed alerts · discord')).toBeInTheDocument();
     expect(

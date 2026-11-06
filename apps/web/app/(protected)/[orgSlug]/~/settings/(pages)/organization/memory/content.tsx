@@ -12,12 +12,12 @@ import type { OrgMemoryEntry } from '@genfeedai/contracts/interfaces/settings/or
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useRefreshScope } from '@hooks/auth/use-refresh-scope/use-refresh-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AgentMemoriesService } from '@services/automation/agent-memories.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { useQueryClient } from '@tanstack/react-query';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
@@ -57,7 +57,6 @@ export default function SettingsOrganizationMemoryPage() {
   });
   const { orgHref } = useOrgUrl();
   const { organizationId } = useBrand();
-  const queryClient = useQueryClient();
   const isBillingEnabled = hasOrganizationBillingHint();
   const canGovern =
     userRole === MemberRole.OWNER || userRole === MemberRole.ADMIN;
@@ -106,13 +105,9 @@ export default function SettingsOrganizationMemoryPage() {
     );
   }, [memoriesError, translate]);
 
-  const refreshEntries = useCallback(
-    () =>
-      queryClient.invalidateQueries({
-        queryKey: organizationMemoriesQueryKey(organizationId),
-      }),
-    [organizationId, queryClient],
-  );
+  // Cancels a read that started before an archive or promote, and re-reads
+  // every cached page and sort.
+  const refreshEntries = useRefreshScope(scopeKey);
 
   const authorLabel = useCallback(
     (entry: OrgMemoryEntry): string =>

@@ -30,7 +30,6 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import type {
   IssueDetailAction,
-  IssueDetailData,
   IssueDetailProps,
   IssueDetailState,
   TaskCommentsServiceFactory,
@@ -85,6 +84,10 @@ function issueDetailQueryKey(issueId: string, useIdentifier: boolean) {
   return ['task-detail', useIdentifier ? 'identifier' : 'id', issueId] as const;
 }
 
+function taskChildrenQueryKey(taskId: string) {
+  return ['task-children', taskId] as const;
+}
+
 /** Shared with the task inspector, which reads the same comments. */
 function taskCommentsQueryKey(taskId: string) {
   return ['task-comments', taskId] as const;
@@ -132,20 +135,27 @@ export default function IssueDetail({
 
   // The task, its sub-issues and its comments read through React Query, so
   // reopening a task paints it at once and refreshes it in the background.
-  const detailQuery = useAuthedQuery<TasksService, IssueDetailData>({
-    queryFn: async (service) => {
-      const issue = useIdentifier
-        ? await service.getByIdentifier(issueId)
-        : await service.findOne(issueId);
-      const children = await service.getChildren(issue.id);
-      return { children, issue };
-    },
+  // Sub-issues read on their own: a failed sub-issue read never hides the task.
+  const detailQuery = useAuthedQuery<TasksService, Task>({
+    queryFn: (service) =>
+      useIdentifier
+        ? service.getByIdentifier(issueId)
+        : service.findOne(issueId),
     queryKey: issueDetailQueryKey(issueId, useIdentifier),
     service: (token: string) => TasksService.getInstance(token),
   });
-  const issue = detailQuery.data?.issue ?? null;
-  const children = detailQuery.data?.children ?? EMPTY_CHILDREN;
+  const issue = detailQuery.data ?? null;
   const taskId = issue?.id ?? '';
+
+  const childrenQuery = useAuthedQuery<TasksService, Task[]>({
+    enabled: Boolean(taskId),
+    queryFn: (service) => service.getChildren(taskId),
+    queryKey: taskChildrenQueryKey(taskId),
+    service: (token: string) => TasksService.getInstance(token),
+  });
+  const children = taskId
+    ? (childrenQuery.data ?? EMPTY_CHILDREN)
+    : EMPTY_CHILDREN;
 
   const commentsQuery = useAuthedQuery<
     TaskCommentsServiceFactory,
@@ -162,9 +172,11 @@ export default function IssueDetail({
   // A failed background refresh keeps the task on screen; the not-found card
   // only replaces it when nothing was ever read.
   const isLoading =
-    detailQuery.isPending || (Boolean(taskId) && commentsQuery.isPending);
+    detailQuery.isPending ||
+    (Boolean(taskId) && (childrenQuery.isPending || commentsQuery.isPending));
 
-  const loadError = detailQuery.error ?? commentsQuery.error;
+  const loadError =
+    detailQuery.error ?? childrenQuery.error ?? commentsQuery.error;
   useEffect(() => {
     if (!loadError) {
       return;
@@ -180,13 +192,13 @@ export default function IssueDetail({
     TaskCommentsService.getInstanceForTask(token, taskId || issueId),
   );
 
-  const updateCachedDetail = useCallback(
-    async (update: (current: IssueDetailData) => IssueDetailData) => {
+  const updateCachedIssue = useCallback(
+    async (updated: Task) => {
       const queryKey = issueDetailQueryKey(issueId, useIdentifier);
       // A read already in flight would land after this write and undo it.
       await queryClient.cancelQueries({ queryKey });
-      queryClient.setQueriesData<IssueDetailData>({ queryKey }, (current) =>
-        current ? update(current) : current,
+      queryClient.setQueriesData<Task>({ queryKey }, (current) =>
+        current ? updated : current,
       );
     },
     [issueId, queryClient, useIdentifier],
@@ -200,7 +212,7 @@ export default function IssueDetail({
         const updated = await issuesService.updateTask(issue.id, {
           status: newStatus,
         });
-        await updateCachedDetail((current) => ({ ...current, issue: updated }));
+        await updateCachedIssue(updated);
       } catch (error) {
         logger.error('Failed to update task status', {
           error,
@@ -210,7 +222,7 @@ export default function IssueDetail({
         notificationsService.error('Failed to update task status');
       }
     },
-    [getTasksService, issue, notificationsService, updateCachedDetail],
+    [getTasksService, issue, notificationsService, updateCachedIssue],
   );
 
   const handleAddComment = useCallback(async () => {

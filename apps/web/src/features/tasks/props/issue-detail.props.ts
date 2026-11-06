@@ -1,11 +1,4 @@
 import type { TaskCommentsService } from '@services/management/task-comments.service';
-import type { Task } from '@services/management/tasks.service';
-
-/** What the task detail page reads and caches for one task. */
-export interface IssueDetailData {
-  children: Task[];
-  issue: Task;
-}
 
 /** Builds the comments service for one task from the same auth token. */
 export type TaskCommentsServiceFactory = (

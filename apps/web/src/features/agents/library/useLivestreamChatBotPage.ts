@@ -14,7 +14,7 @@ import type { LivestreamSession } from '@models/automation/livestream-session.mo
 import { BotsService } from '@services/automation/bots.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { CredentialsService } from '@services/organization/credentials.service';
-import { useQueryClient } from '@tanstack/react-query';
+import { type Query, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 
 export type LivestreamPagePlatform = 'youtube' | 'twitch';
@@ -245,11 +245,15 @@ function isLivestreamBotFor(
   return true;
 }
 
+function livestreamBotsQueryKey(organizationId: string) {
+  return ['livestream-chat-bot', organizationId] as const;
+}
+
 function livestreamBotQueryKey(
   organizationId: string,
   brandId: string | undefined,
 ) {
-  return ['livestream-chat-bot', organizationId, brandId ?? null] as const;
+  return [...livestreamBotsQueryKey(organizationId), brandId ?? null] as const;
 }
 
 function livestreamSessionQueryKey(botId: string) {
@@ -457,6 +461,14 @@ export function useLivestreamChatBotPage(
         { queryKey: livestreamBotQueryKey(organizationId, brandId) },
         savedBot,
       );
+      // A bot with no brand is cached under every brand that read it: those
+      // copies re-read, so another brand never edits the old configuration.
+      const otherBrands = {
+        predicate: (query: Query) => query.queryKey[2] !== (brandId ?? null),
+        queryKey: livestreamBotsQueryKey(organizationId),
+      };
+      await queryClient.cancelQueries(otherBrands);
+      await queryClient.invalidateQueries(otherBrands);
 
       await refreshSession(savedBot.id);
       notificationsService.success('Livestream bot configuration saved');

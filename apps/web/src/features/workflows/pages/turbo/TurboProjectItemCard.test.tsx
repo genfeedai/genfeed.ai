@@ -15,7 +15,7 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@/../tests/next-intl.stub');
   return { useLocale: () => 'en', useTranslations: translateFromCatalog };
 });
-const mocks = vi.hoisted(() => ({ findOne: vi.fn() }));
+const mocks = vi.hoisted(() => ({ findByIds: vi.fn() }));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
   useAuthIdentity: (await import('@app-tests/query-client.harness'))
@@ -23,7 +23,7 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
 }));
 vi.mock('@services/content/ingredients.service', () => ({
   IngredientsService: {
-    getInstance: () => ({ findOne: mocks.findOne }),
+    getInstance: () => ({ findByIds: mocks.findByIds }),
   },
 }));
 vi.mock('@ui/collection/CollectionItemActions', () => ({
@@ -120,12 +120,14 @@ describe('TurboProjectItemCard media', () => {
   } as ITurboProjectItem;
 
   beforeEach(() => {
-    mocks.findOne.mockReset();
-    mocks.findOne.mockResolvedValue({
-      category: 'IMAGE',
-      id: 'ingredient-1',
-      ingredientUrl: 'https://cdn.example.test/ingredient-1.png',
-    });
+    mocks.findByIds.mockReset();
+    mocks.findByIds.mockResolvedValue([
+      {
+        category: 'IMAGE',
+        id: 'ingredient-1',
+        ingredientUrl: 'https://cdn.example.test/ingredient-1.png',
+      },
+    ]);
   });
 
   it('paints the cached preview at once when the project reopens', async () => {
@@ -136,12 +138,33 @@ describe('TurboProjectItemCard media', () => {
     ).toBeInTheDocument();
     firstVisit.unmount();
 
-    mocks.findOne.mockReturnValue(new Promise(() => {}));
+    mocks.findByIds.mockReturnValue(new Promise(() => {}));
     renderCard(vi.fn(), outputItem, client);
 
     expect(
       screen.getByRole('img', { name: 'Morning routine reel' }),
     ).toBeInTheDocument();
+  });
+
+  it('reads the output by id through the batch route', async () => {
+    renderCard(vi.fn(), outputItem);
+
+    expect(
+      await screen.findByRole('img', { name: 'Morning routine reel' }),
+    ).toBeInTheDocument();
+    expect(mocks.findByIds).toHaveBeenCalledWith(['ingredient-1']);
+  });
+
+  it('shows no preview when the output no longer exists', async () => {
+    mocks.findByIds.mockResolvedValue([]);
+    renderCard(vi.fn(), outputItem);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Morning routine reel' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: 'Morning routine reel' }),
+    ).not.toBeInTheDocument();
   });
 
   it('never shows one output’s preview on another item', async () => {
@@ -152,7 +175,7 @@ describe('TurboProjectItemCard media', () => {
     ).toBeInTheDocument();
     firstVisit.unmount();
 
-    mocks.findOne.mockReturnValue(new Promise(() => {}));
+    mocks.findByIds.mockReturnValue(new Promise(() => {}));
     renderCard(
       vi.fn(),
       { ...outputItem, outputIngredientId: 'ingredient-2' },

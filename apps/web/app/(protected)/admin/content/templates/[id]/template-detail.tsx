@@ -6,6 +6,8 @@ import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { TemplateService } from '@services/content/template.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { isServiceOperationError } from '@services/core/operation-error';
+import { useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Badge } from '@ui/primitives/badge';
@@ -31,33 +33,50 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
   const t = useTranslations('pages.adminTemplates');
   const { push } = useRouter();
   const notificationsService = NotificationsService.getInstance();
+  const queryClient = useQueryClient();
 
   // Cached per template: reopening it paints the details at once while they
   // refresh. Under the templates list key, so list changes refresh it too.
+  const detailQueryKey = ['admin', 'templates', 'detail', templateId] as const;
   const templateQuery = useAuthedQuery({
-    queryFn: async (service) => {
-      const data = await service.getTemplate(templateId);
+    queryFn: async (service, signal) => {
+      const data = await service.getTemplate(templateId, signal);
       logger.info('Loaded template', { id: templateId });
       return data;
     },
-    queryKey: ['admin', 'templates', 'detail', templateId],
+    queryKey: detailQueryKey,
     service: (token: string) => TemplateService.getInstance(token),
   });
   const template = templateQuery.data;
-  const hasLoadFailed = templateQuery.isError && template === undefined;
-  const loadError = hasLoadFailed ? templateQuery.error : null;
+  const { error } = templateQuery;
+  // Deleted elsewhere: the cached details must go too.
+  const isGone = isServiceOperationError(error) && error.status === 404;
+  const hasLoadFailed =
+    templateQuery.isError && (template === undefined || isGone);
+  const loadError = hasLoadFailed ? error : null;
   const loadErrorMessage = t('detailLoadError');
 
   // A template that cannot be read sends the operator back to the list; a
   // failed background refresh keeps the cached details on screen.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: detailQueryKey is rebuilt each render from templateId.
   useEffect(() => {
     if (!loadError) {
       return;
     }
     logger.error('Failed to load template', loadError);
+    if (isGone) {
+      queryClient.removeQueries({ queryKey: detailQueryKey });
+    }
     notificationsService.error(loadErrorMessage);
     push(APP_ROUTES.ADMIN.CONTENT.TEMPLATES);
-  }, [loadError, loadErrorMessage, notificationsService, push]);
+  }, [
+    isGone,
+    loadError,
+    loadErrorMessage,
+    notificationsService,
+    push,
+    queryClient,
+  ]);
 
   const isLoading = template === undefined;
   const view = template ? toTemplateView(template) : undefined;
