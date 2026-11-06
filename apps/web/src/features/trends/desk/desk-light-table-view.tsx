@@ -146,29 +146,36 @@ function DeskLightCard({
                 isVideo ? undefined : () => setHasMediaFailed(true)
               }
             />
-            <Badge
+            {/* The wrappers own position and the hover hand-off, so each Badge keeps its own look. */}
+            <span
               className={cn(
                 'pointer-events-none absolute top-2 left-2',
                 hoverConcealClassName(),
               )}
-              icon={getPlatformIcon(item.platform, 'size-3.5')}
-              shape="pill"
-              variant="overlay"
             >
-              {isVideo ? translateCard('videoBadge') : null}
-            </Badge>
-            {velocityLabel ? (
               <Badge
+                icon={getPlatformIcon(item.platform, 'size-3.5')}
+                shape="pill"
+                variant="overlay"
+              >
+                {isVideo ? translateCard('videoBadge') : null}
+              </Badge>
+            </span>
+            {velocityLabel ? (
+              <span
                 className={cn(
                   'pointer-events-none absolute bottom-2 left-2',
                   hoverConcealClassName(),
                 )}
-                icon={<Zap aria-hidden="true" className="size-3" />}
-                shape="pill"
-                variant="overlay"
               >
-                {velocityLabel}
-              </Badge>
+                <Badge
+                  icon={<Zap aria-hidden="true" className="size-3" />}
+                  shape="pill"
+                  variant="overlay"
+                >
+                  {velocityLabel}
+                </Badge>
+              </span>
             ) : null}
             <span
               className={cn(
