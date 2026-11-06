@@ -799,7 +799,7 @@ describe('SettingsApiKeysPage', () => {
   });
 
   it('limits a new key to the one brand chosen', async () => {
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     await screen.findByText('MCP Key');
     fireEvent.change(screen.getByLabelText('Brand access'), {
@@ -817,7 +817,7 @@ describe('SettingsApiKeysPage', () => {
   });
 
   it('creates a key for every brand unless one is chosen', async () => {
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     await screen.findByText('MCP Key');
     expect(screen.getByLabelText('Brand access')).toHaveValue('');
@@ -843,7 +843,7 @@ describe('SettingsApiKeysPage', () => {
         },
       ]),
     );
-    render(<SettingsApiKeysPage />);
+    renderPage();
 
     expect(await screen.findByText('Limited to: Zen')).toBeInTheDocument();
   });
