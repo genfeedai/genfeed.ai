@@ -1,4 +1,3 @@
-import { assertBreakoutPublicationDispatch } from '@api/collections/outliers/services/breakout-publication-fence.util';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
@@ -14,8 +13,21 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
-// The dispatch fence is the unit under integration here: keep its real behavior for an
-// ordinary post and let each breakout case choose the admission outcome.
+/**
+ * Everything that crossed a boundary, in order: the dispatch fence admitting a
+ * post, the post's state writes, and the provider upload job.
+ */
+const run = vi.hoisted(() => ({
+  /**
+   * `undefined` runs the real fence, `'admit'` admits the breakout post, and
+   * an error makes the fence hold it.
+   */
+  fenceOutcome: undefined as Error | 'admit' | undefined,
+  timeline: [] as string[],
+}));
+
+// The dispatch fence is the unit under integration here: keep its real
+// behavior for an ordinary post and let each breakout case choose the outcome.
 vi.mock(
   '@api/collections/outliers/services/breakout-publication-fence.util',
   async (importOriginal) => {
@@ -25,53 +37,59 @@ vi.mock(
       >();
     return {
       ...actual,
-      assertBreakoutPublicationDispatch: vi.fn(
-        actual.assertBreakoutPublicationDispatch,
-      ),
+      assertBreakoutPublicationDispatch: async (
+        ...args: Parameters<typeof actual.assertBreakoutPublicationDispatch>
+      ) => {
+        const [, { organizationId, postId }] = args;
+        run.timeline.push(`admit:${organizationId}/${postId}`);
+        if (run.fenceOutcome === 'admit') return;
+        if (run.fenceOutcome) throw run.fenceOutcome;
+        await actual.assertBreakoutPublicationDispatch(...args);
+      },
     };
   },
 );
 
 const logger = {
-  debug: vi.fn(),
-  error: vi.fn(),
-  log: vi.fn(),
-  warn: vi.fn(),
-};
+  debug: () => undefined,
+  error: () => undefined,
+  log: () => undefined,
+  warn: () => undefined,
+} as unknown as LoggerService;
 
 function makeService(breakoutOutputId: string | null = null) {
-  const calls: string[] = [];
   const post = {
-    findFirst: vi.fn(async () => ({ breakoutOutputId })),
+    findFirst: async () => {
+      run.timeline.push('read:breakout-link');
+      return { breakoutOutputId };
+    },
   };
   const prisma = {
-    $transaction: vi.fn(async (run: (tx: unknown) => Promise<unknown>) =>
-      run({ post }),
-    ),
+    $transaction: async (work: (tx: unknown) => Promise<unknown>) =>
+      work({ post }),
     post,
-  };
+  } as unknown as PrismaService;
   const fileQueue = {
-    uploadYoutube: vi.fn(async () => {
-      calls.push('upload');
+    uploadYoutube: async (job: { postId: string }) => {
+      run.timeline.push(`upload:${job.postId}`);
       return { jobId: 'job-1' };
-    }),
-  };
+    },
+  } as unknown as FileQueueService;
   const service = new PostsService(
-    prisma as unknown as PrismaService,
-    logger as unknown as LoggerService,
-    { completeMissions: vi.fn() } as never,
+    prisma,
+    logger,
+    { completeMissions: async () => undefined } as never,
     undefined,
-    fileQueue as unknown as FileQueueService,
+    fileQueue,
   );
-  const patch = vi
-    .spyOn(service, 'patch')
-    .mockImplementation(async (id: string, dto: unknown) => {
-      calls.push(
-        `patch:${String((dto as { targetExecutionState?: string }).targetExecutionState)}`,
-      );
-      return { id } as unknown as PostDocument;
-    });
-  return { calls, fileQueue, patch, post, prisma, service };
+  // The post row itself is out of scope: record the state written to it.
+  service.patch = async (id: string, dto: unknown) => {
+    run.timeline.push(
+      `patch:${String((dto as { targetExecutionState?: string }).targetExecutionState)}`,
+    );
+    return { id } as unknown as PostDocument;
+  };
+  return { service };
 }
 
 function youtubePost(overrides: Partial<PostDocument> = {}): PostDocument {
@@ -91,72 +109,63 @@ function youtubePost(overrides: Partial<PostDocument> = {}): PostDocument {
 
 describe('PostsService.handleYoutubePost breakout dispatch admission', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    run.fenceOutcome = undefined;
+    run.timeline = [];
   });
 
   it('uploads an ordinary post after the dispatch fence passed it untouched', async () => {
-    const h = makeService(null);
-    await h.service.handleYoutubePost(youtubePost());
-    expect(assertBreakoutPublicationDispatch).toHaveBeenCalledWith(h.prisma, {
-      organizationId: 'org-a',
-      postId: 'post-a',
-    });
+    const { service } = makeService(null);
+
+    await service.handleYoutubePost(youtubePost());
+
     // The ordinary post read nothing but its own breakout link.
-    expect(h.post.findFirst).toHaveBeenCalledOnce();
-    expect(h.calls).toEqual([
+    expect(run.timeline).toEqual([
+      'admit:org-a/post-a',
+      'read:breakout-link',
       `patch:${TargetExecutionState.PUBLISHING}`,
-      'upload',
+      'upload:post-a',
     ]);
-    expect(h.fileQueue.uploadYoutube).toHaveBeenCalledOnce();
   });
 
   it('admits a breakout upload before any state write or job and uploads once admitted', async () => {
-    const h = makeService('output-a');
-    const order: string[] = [];
-    vi.mocked(assertBreakoutPublicationDispatch).mockImplementationOnce(
-      async () => {
-        order.push('admit');
-      },
-    );
-    h.patch.mockImplementationOnce(async (id: string) => {
-      order.push('patch');
-      return { id } as unknown as PostDocument;
-    });
-    h.fileQueue.uploadYoutube.mockImplementationOnce(async () => {
-      order.push('upload');
-      return { jobId: 'job-1' };
-    });
-    await h.service.handleYoutubePost(youtubePost());
-    expect(order).toEqual(['admit', 'patch', 'upload']);
+    const { service } = makeService('output-a');
+    run.fenceOutcome = 'admit';
+
+    await service.handleYoutubePost(youtubePost());
+
+    expect(run.timeline).toEqual([
+      'admit:org-a/post-a',
+      `patch:${TargetExecutionState.PUBLISHING}`,
+      'upload:post-a',
+    ]);
   });
 
   it('holds a breakout upload without writing PUBLISHING or enqueueing the provider job', async () => {
-    const h = makeService('output-a');
-    vi.mocked(assertBreakoutPublicationDispatch).mockRejectedValueOnce(
-      new BusinessLogicException('Breakout publication held: source_changed'),
-    );
-    await expect(h.service.handleYoutubePost(youtubePost())).rejects.toThrow(
+    const { service } = makeService('output-a');
+    run.fenceOutcome = new BusinessLogicException(
       'Breakout publication held: source_changed',
     );
-    expect(h.patch).not.toHaveBeenCalled();
-    expect(h.fileQueue.uploadYoutube).not.toHaveBeenCalled();
+
+    await expect(service.handleYoutubePost(youtubePost())).rejects.toThrow(
+      'Breakout publication held: source_changed',
+    );
+    expect(run.timeline).toEqual(['admit:org-a/post-a']);
   });
 
   it('fails closed on an infrastructure error instead of uploading', async () => {
-    const h = makeService('output-a');
-    vi.mocked(assertBreakoutPublicationDispatch).mockRejectedValueOnce(
-      new Error('database unavailable'),
-    );
-    await expect(h.service.handleYoutubePost(youtubePost())).rejects.toThrow(
+    const { service } = makeService('output-a');
+    run.fenceOutcome = new Error('database unavailable');
+
+    await expect(service.handleYoutubePost(youtubePost())).rejects.toThrow(
       'database unavailable',
     );
-    expect(h.patch).not.toHaveBeenCalled();
-    expect(h.fileQueue.uploadYoutube).not.toHaveBeenCalled();
+    expect(run.timeline).toEqual(['admit:org-a/post-a']);
   });
 
   it('does not admit a post that the upload never targets', async () => {
-    const h = makeService('output-a');
-    await h.service.handleYoutubePost(
+    const { service } = makeService('output-a');
+
+    await service.handleYoutubePost(
       youtubePost({
         credential: {
           id: 'credential-b',
@@ -164,7 +173,7 @@ describe('PostsService.handleYoutubePost breakout dispatch admission', () => {
         },
       } as unknown as Partial<PostDocument>),
     );
-    expect(assertBreakoutPublicationDispatch).not.toHaveBeenCalled();
-    expect(h.fileQueue.uploadYoutube).not.toHaveBeenCalled();
+
+    expect(run.timeline).toEqual([]);
   });
 });
