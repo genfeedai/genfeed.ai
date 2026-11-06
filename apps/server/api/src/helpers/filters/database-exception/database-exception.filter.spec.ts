@@ -17,9 +17,13 @@ vi.mock('jsonapi-serializer', () => ({
   default: jsonApiSerializerMock,
 }));
 
+const sentry = vi.hoisted(() => ({ captured: [] as unknown[] }));
 vi.mock('@sentry/nestjs', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@sentry/nestjs')>()),
-  captureException: vi.fn(),
+  captureException: (exception: unknown) => {
+    sentry.captured.push(exception);
+    return 'event-id';
+  },
 }));
 
 type FilterInstance = {
@@ -32,15 +36,9 @@ type FilterConstructor = new (
 
 describe('DatabaseExceptionFilter', () => {
   let DatabaseExceptionFilterClass: FilterConstructor;
-  let Sentry: typeof import('@sentry/nestjs');
   let filter: FilterInstance;
-  let mockLoggerService: { error: ReturnType<typeof vi.fn> };
-  let mockConfigService: { get: ReturnType<typeof vi.fn> };
-  let mockArgumentsHost: ArgumentsHost;
-  let mockResponse: {
-    json: ReturnType<typeof vi.fn>;
-    status: ReturnType<typeof vi.fn>;
-  };
+  let written: { body?: unknown; status?: number };
+  let host: ArgumentsHost;
 
   beforeAll(async () => {
     const module = await import(
@@ -48,60 +46,62 @@ describe('DatabaseExceptionFilter', () => {
     );
     DatabaseExceptionFilterClass =
       module.DatabaseExceptionFilter as unknown as FilterConstructor;
-    Sentry = await import('@sentry/nestjs');
   });
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    mockLoggerService = { error: vi.fn() };
-    mockConfigService = {
-      get: vi.fn((key: string) =>
-        key === 'SENTRY_ENVIRONMENT' ? 'production' : null,
-      ),
+    sentry.captured.length = 0;
+    written = {};
+    const response = {
+      json: (body: unknown) => {
+        written.body = body;
+        return response;
+      },
+      status: (status: number) => {
+        written.status = status;
+        return response;
+      },
     };
-    mockResponse = {
-      json: vi.fn().mockReturnThis(),
-      status: vi.fn().mockReturnThis(),
-    };
-    mockArgumentsHost = {
-      switchToHttp: vi.fn().mockReturnValue({
-        getRequest: vi.fn().mockReturnValue({
+    host = {
+      switchToHttp: () => ({
+        getRequest: () => ({
           method: 'GET',
           originalUrl: '/test',
           url: '/test',
         }),
-        getResponse: vi.fn().mockReturnValue(mockResponse),
+        getResponse: () => response,
       }),
     } as unknown as ArgumentsHost;
 
     filter = new DatabaseExceptionFilterClass(
-      mockLoggerService,
-      mockConfigService,
+      { error: () => {} },
+      {
+        get: (key: string) =>
+          key === 'SENTRY_ENVIRONMENT' ? 'production' : null,
+      },
     );
   });
 
-  it('handles Prisma duplicate constraint errors', () => {
-    filter.catch(
-      {
-        code: 'P2002',
-        message: 'Unique constraint failed',
-        name: 'PrismaClientKnownRequestError',
-      },
-      mockArgumentsHost,
-    );
+  const prismaError = (code: string, message = 'expected') => ({
+    code,
+    message,
+    name: 'PrismaClientKnownRequestError',
+  });
 
-    expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.CONFLICT);
-    expect(mockResponse.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        errors: expect.arrayContaining([
+  it('answers a duplicate constraint with a JSON:API conflict', () => {
+    filter.catch(prismaError('P2002', 'Unique constraint failed'), host);
+
+    expect(written).toEqual({
+      body: {
+        errors: [
           expect.objectContaining({
             code: String(HttpStatus.CONFLICT),
             detail: 'A record with this value already exists',
             title: 'Duplicate Entry',
           }),
-        ]),
-      }),
-    );
+        ],
+      },
+      status: HttpStatus.CONFLICT,
+    });
   });
 
   it('records the Prisma error code and mapped status on the wide event', () => {
@@ -113,14 +113,7 @@ describe('DatabaseExceptionFilter', () => {
     });
 
     runWithWideEvent(event, () =>
-      filter.catch(
-        {
-          code: 'P2002',
-          message: 'Unique constraint failed',
-          name: 'PrismaClientKnownRequestError',
-        },
-        mockArgumentsHost,
-      ),
+      filter.catch(prismaError('P2002', 'Unique constraint failed'), host),
     );
 
     expect(event.error).toMatchObject({
@@ -130,47 +123,36 @@ describe('DatabaseExceptionFilter', () => {
     });
   });
 
-  it('handles Prisma missing record errors', () => {
-    filter.catch(
-      {
-        code: 'P2025',
-        message: 'Record not found',
-        name: 'PrismaClientKnownRequestError',
-      },
-      mockArgumentsHost,
-    );
+  it.each([
+    ['P2002', HttpStatus.CONFLICT],
+    ['P2025', HttpStatus.NOT_FOUND],
+  ])('maps %s to %i without paging error tracking', (code, status) => {
+    filter.catch(prismaError(code), host);
 
-    expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
+    expect(written.status).toBe(status);
+    expect(sentry.captured).toEqual([]);
   });
 
-  it('does not report expected client-level Prisma errors to Sentry', () => {
-    for (const code of ['P2002', 'P2003', 'P2025']) {
-      filter.catch(
-        { code, message: 'expected', name: 'PrismaClientKnownRequestError' },
-        mockArgumentsHost,
-      );
-    }
+  it('keeps a foreign-key violation out of error tracking', () => {
+    filter.catch(prismaError('P2003'), host);
 
-    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(sentry.captured).toEqual([]);
   });
 
-  it('reports unexpected Prisma errors to Sentry', () => {
-    filter.catch(
-      {
-        message: 'Unknown argument `label`',
-        name: 'PrismaClientValidationError',
-      },
-      mockArgumentsHost,
-    );
+  it('reports an unexpected Prisma error to error tracking', () => {
+    const exception = {
+      message: 'Unknown argument `label`',
+      name: 'PrismaClientValidationError',
+    };
 
-    expect(Sentry.captureException).toHaveBeenCalled();
+    filter.catch(exception, host);
+
+    expect(sentry.captured).toEqual([exception]);
   });
 
-  it('delegates non-Prisma errors to the base filter', () => {
-    filter.catch(new Error('plain error'), mockArgumentsHost);
+  it('answers a non-Prisma error as an internal server error', () => {
+    filter.catch(new Error('plain error'), host);
 
-    expect(mockResponse.status).toHaveBeenCalledWith(
-      HttpStatus.INTERNAL_SERVER_ERROR,
-    );
+    expect(written.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
   });
 });
