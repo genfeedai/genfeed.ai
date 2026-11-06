@@ -4,8 +4,10 @@ import {
   useTaskStatusLabels,
 } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-status.constants';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { updateCachedQueries } from '@hooks/auth/update-cached-queries/update-cached-queries';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useRefreshScope } from '@hooks/auth/use-refresh-scope/use-refresh-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -27,13 +29,24 @@ import Container from '@ui/layout/container/Container';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { ArrowLeft, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import type {
   IssueDetailAction,
   IssueDetailProps,
   IssueDetailState,
   TaskCommentsServiceFactory,
 } from '@/features/tasks/props/issue-detail.props';
+import {
+  TASK_DETAIL_QUERY_KEY,
+  TASKS_LIST_QUERY_KEY,
+} from '@/lib/constants/tasks-query-keys';
 import IssueCommentsCard from './issue-comments-card';
 import IssueHeader from './issue-header';
 import IssueSidebar from './issue-sidebar';
@@ -81,7 +94,11 @@ function createTaskCommentsServices(token: string): TaskCommentsServiceFactory {
 }
 
 function issueDetailQueryKey(issueId: string, useIdentifier: boolean) {
-  return ['task-detail', useIdentifier ? 'identifier' : 'id', issueId] as const;
+  return [
+    ...TASK_DETAIL_QUERY_KEY,
+    useIdentifier ? 'identifier' : 'id',
+    issueId,
+  ] as const;
 }
 
 function taskChildrenQueryKey(taskId: string) {
@@ -166,14 +183,31 @@ export default function IssueDetail({
     queryKey: taskCommentsQueryKey(taskId),
     service: createTaskCommentsServices,
   });
-  const comments = taskId
-    ? (commentsQuery.data ?? EMPTY_COMMENTS)
-    : EMPTY_COMMENTS;
+  // Comments posted while no list could be read stay on screen until a read
+  // that holds them lands; the partial list is never cached as the whole one.
+  const [postedComments, setPostedComments] = useState<
+    { comment: TaskComment; taskId: string }[]
+  >([]);
+  const comments = useMemo(() => {
+    if (!taskId) {
+      return EMPTY_COMMENTS;
+    }
+    const listed = commentsQuery.data ?? EMPTY_COMMENTS;
+    const unlisted = postedComments
+      .filter((posted) => posted.taskId === taskId)
+      .map((posted) => posted.comment)
+      .filter((posted) => !listed.some((comment) => comment.id === posted.id));
+    return unlisted.length > 0 ? [...listed, ...unlisted] : listed;
+  }, [commentsQuery.data, postedComments, taskId]);
   // A failed background refresh keeps the task on screen; the not-found card
-  // only replaces it when nothing was ever read.
+  // only replaces it when nothing was ever read. Sub-issues and comments hold
+  // the page only on their first read: a retry after a failed read (such as
+  // the one posting a comment starts) never swaps the page for the skeleton.
   const isLoading =
     detailQuery.isPending ||
-    (Boolean(taskId) && (childrenQuery.isPending || commentsQuery.isPending));
+    (Boolean(taskId) &&
+      ((childrenQuery.isPending && !childrenQuery.isFetched) ||
+        (commentsQuery.isPending && !commentsQuery.isFetched)));
 
   const loadError =
     detailQuery.error ?? childrenQuery.error ?? commentsQuery.error;
@@ -204,6 +238,8 @@ export default function IssueDetail({
     [issueId, queryClient, useIdentifier],
   );
 
+  const refreshTaskLists = useRefreshScope(TASKS_LIST_QUERY_KEY);
+
   const handleStatusUpdate = useCallback(
     async (newStatus: TaskStatus) => {
       if (!issue) return;
@@ -213,6 +249,8 @@ export default function IssueDetail({
           status: newStatus,
         });
         await updateCachedIssue(updated);
+        // Task lists elsewhere filter and count by status: re-read them.
+        await refreshTaskLists();
       } catch (error) {
         logger.error('Failed to update task status', {
           error,
@@ -222,7 +260,13 @@ export default function IssueDetail({
         notificationsService.error('Failed to update task status');
       }
     },
-    [getTasksService, issue, notificationsService, updateCachedIssue],
+    [
+      getTasksService,
+      issue,
+      notificationsService,
+      refreshTaskLists,
+      updateCachedIssue,
+    ],
   );
 
   const handleAddComment = useCallback(async () => {
@@ -234,12 +278,16 @@ export default function IssueDetail({
     try {
       const commentsService = await getCommentsService();
       const newComment = await commentsService.addComment(commentBody.trim());
-      await queryClient.cancelQueries({
-        queryKey: taskCommentsQueryKey(taskId),
-      });
-      queryClient.setQueriesData<TaskComment[]>(
+      setPostedComments((current) => [
+        ...current,
+        { comment: newComment, taskId },
+      ]);
+      // Appended to a cached list; with none cached (the read failed), the
+      // list reads again and the posted comment shows until it lands.
+      await updateCachedQueries<TaskComment[]>(
+        queryClient,
         { queryKey: taskCommentsQueryKey(taskId) },
-        (current) => (current ? [...current, newComment] : current),
+        (current) => [...current, newComment],
       );
       dispatch({ type: 'SET_COMMENT_BODY', payload: '' });
     } catch (error) {

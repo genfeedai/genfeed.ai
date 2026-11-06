@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IPagedItems } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { updateCachedQueries } from '@hooks/auth/update-cached-queries/update-cached-queries';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -57,6 +58,10 @@ import type {
   ViewMode,
 } from '@/features/tasks/props/issues-list.props';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+import {
+  TASK_DETAIL_QUERY_KEY,
+  TASKS_LIST_QUERY_KEY,
+} from '@/lib/constants/tasks-query-keys';
 import {
   PRIORITY_ORDER,
   STATUS_ORDER,
@@ -129,7 +134,7 @@ function KanbanColumn({
   );
 }
 
-const TASKS_LIST_KEY = ['tasks-list'] as const;
+const TASKS_LIST_KEY = TASKS_LIST_QUERY_KEY;
 
 const EMPTY_TASKS: Task[] = [];
 
@@ -372,19 +377,29 @@ export default function IssuesList() {
     try {
       const service = await getTasksService();
       const updated = await service.updateTask(issue.id, input);
-      // A read already in flight would land after this write and undo it.
-      await queryClient.cancelQueries({ queryKey: TASKS_LIST_KEY });
-      queryClient.setQueriesData<IPagedItems<Task>>(
-        { queryKey: TASKS_LIST_KEY },
-        (current) =>
-          current
-            ? {
-                ...current,
-                items: current.items.map((item) =>
-                  item.id === updated.id ? updated : item,
-                ),
-              }
-            : current,
+      // The pages on screen show the change at once. A cached page nobody
+      // shows may now hold the task under the wrong status filter, order or
+      // total: it is dropped and reads afresh on the next visit.
+      await updateCachedQueries<IPagedItems<Task>>(
+        queryClient,
+        { queryKey: TASKS_LIST_KEY, type: 'active' },
+        (current) => ({
+          ...current,
+          items: current.items.map((item) =>
+            item.id === updated.id ? updated : item,
+          ),
+        }),
+      );
+      queryClient.removeQueries({ queryKey: TASKS_LIST_KEY, type: 'inactive' });
+      // The task's own page shows the new status and its transitions.
+      await updateCachedQueries<Task>(
+        queryClient,
+        {
+          predicate: (query) =>
+            (query.state.data as Task | undefined)?.id === updated.id,
+          queryKey: TASK_DETAIL_QUERY_KEY,
+        },
+        () => updated,
       );
       if (selection?.selectedTask?.id === issue.id) commitTask?.(updated);
       else await reloadIssues();

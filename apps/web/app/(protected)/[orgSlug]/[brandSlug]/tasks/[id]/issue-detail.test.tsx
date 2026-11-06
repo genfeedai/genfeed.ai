@@ -4,7 +4,13 @@ import {
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
 import type { QueryClient } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', async () => {
@@ -98,15 +104,31 @@ vi.mock('./issue-sub-issues-card', () => ({
 
 vi.mock('./issue-comments-card', () => ({
   default: ({
+    commentBody,
     comments,
+    onAddComment,
+    onCommentBodyChange,
   }: {
+    commentBody: string;
     comments: Array<{ body: string; id: string }>;
+    onAddComment: () => Promise<void>;
+    onCommentBodyChange: (body: string) => void;
   }) => (
-    <ul aria-label="Comments">
-      {comments.map((comment) => (
-        <li key={comment.id}>{comment.body}</li>
-      ))}
-    </ul>
+    <div>
+      <ul aria-label="Comments">
+        {comments.map((comment) => (
+          <li key={comment.id}>{comment.body}</li>
+        ))}
+      </ul>
+      <textarea
+        aria-label="New comment"
+        value={commentBody}
+        onChange={(event) => onCommentBodyChange(event.target.value)}
+      />
+      <button type="button" onClick={() => void onAddComment()}>
+        Post comment
+      </button>
+    </div>
   ),
 }));
 
@@ -283,5 +305,32 @@ describe('IssueDetail', () => {
     });
     expect(screen.getByText('Sidebar')).toBeInTheDocument();
     expect(screen.queryByText('Issue not found')).not.toBeInTheDocument();
+  });
+
+  it('keeps a posted comment on screen when the comments could not be read', async () => {
+    mocks.findOne.mockResolvedValue(SHIPPING_TASK);
+    mocks.listComments.mockRejectedValue(new Error('offline'));
+    mocks.addComment.mockResolvedValue({ body: 'Looks good', id: 'comment-1' });
+    renderIssueDetail({ issueId: 'task-1' });
+    await screen.findByText('Sidebar');
+    await waitFor(() => expect(mocks.loggerError).toHaveBeenCalled());
+
+    mocks.listComments.mockReturnValue(new Promise(() => {}));
+    fireEvent.change(screen.getByLabelText('New comment'), {
+      target: { value: 'Looks good' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Post comment' }));
+
+    expect(
+      await within(screen.getByRole('list', { name: 'Comments' })).findByText(
+        'Looks good',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('New comment')).toHaveValue('');
+    expect(
+      screen.queryByTestId('issue-detail-loading'),
+    ).not.toBeInTheDocument();
+    // The full list is read again rather than cached as just this comment.
+    await waitFor(() => expect(mocks.listComments).toHaveBeenCalledTimes(2));
   });
 });
