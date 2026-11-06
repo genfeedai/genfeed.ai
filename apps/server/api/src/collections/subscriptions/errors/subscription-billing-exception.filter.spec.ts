@@ -5,25 +5,41 @@ import { SubscriptionPreviewFailureCode } from '@genfeedai/contracts/interfaces/
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ArgumentsHost } from '@nestjs/common';
-import * as Sentry from '@sentry/nestjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const sentry = vi.hoisted(() => ({
+  captured: [] as Array<{ exception: unknown; hint: unknown }>,
+}));
 vi.mock('@sentry/nestjs', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@sentry/nestjs')>()),
-  captureException: vi.fn(),
+  captureException: (exception: unknown, hint: unknown) => {
+    sentry.captured.push({ exception, hint });
+    return 'event-id';
+  },
 }));
 
-type MockFn = ReturnType<typeof vi.fn>;
+interface WrittenResponse {
+  body?: unknown;
+  headers: Record<string, string>;
+  status?: number;
+}
 
 describe('SubscriptionBillingExceptionFilter', () => {
-  let logger: { error: MockFn; log: MockFn; warn: MockFn };
-  let response: { json: MockFn; setHeader: MockFn; status: MockFn };
+  let logs: Array<{ context: unknown; level: string; message: string }>;
+  let written: WrittenResponse;
   let host: ArgumentsHost;
   let sentryEnvironment: string;
 
   function buildFilter(): SubscriptionBillingExceptionFilter {
     return new SubscriptionBillingExceptionFilter(
-      logger as unknown as LoggerService,
+      {
+        error: (message: string, _error: unknown, context: unknown) => {
+          logs.push({ context, level: 'error', message });
+        },
+        warn: (message: string, context: unknown) => {
+          logs.push({ context, level: 'warn', message });
+        },
+      } as unknown as LoggerService,
       {
         get: (key: string) =>
           key === 'SENTRY_ENVIRONMENT' ? sentryEnvironment : undefined,
@@ -32,11 +48,23 @@ describe('SubscriptionBillingExceptionFilter', () => {
   }
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    sentry.captured.length = 0;
     sentryEnvironment = 'production';
-    logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-    response = { json: vi.fn(), setHeader: vi.fn(), status: vi.fn() };
-    response.status.mockReturnValue(response);
+    logs = [];
+    written = { headers: {} };
+    const response = {
+      json: (body: unknown) => {
+        written.body = body;
+        return response;
+      },
+      setHeader: (name: string, value: string) => {
+        written.headers[name] = value;
+      },
+      status: (status: number) => {
+        written.status = status;
+        return response;
+      },
+    };
     host = {
       switchToHttp: () => ({ getResponse: () => response }),
     } as unknown as ArgumentsHost;
@@ -50,28 +78,33 @@ describe('SubscriptionBillingExceptionFilter', () => {
       host,
     );
 
-    expect(response.setHeader).toHaveBeenCalledWith('Retry-After', '5');
-    expect(response.status).toHaveBeenCalledWith(503);
-    expect(response.json).toHaveBeenCalledWith({
-      errors: [
-        {
-          code: 'billing_provider_unavailable',
-          detail:
-            'The billing provider is temporarily unavailable; retry shortly',
-          meta: { isRetryable: true, maxRetries: 1, retryAfterSeconds: 5 },
-          status: '503',
-          title: 'Subscription preview failed',
-        },
-      ],
+    expect(written).toEqual({
+      body: {
+        errors: [
+          {
+            code: 'billing_provider_unavailable',
+            detail:
+              'The billing provider is temporarily unavailable; retry shortly',
+            meta: { isRetryable: true, maxRetries: 1, retryAfterSeconds: 5 },
+            status: '503',
+            title: 'Subscription preview failed',
+          },
+        ],
+      },
+      headers: { 'Retry-After': '5' },
+      status: 503,
     });
-    expect(logger.warn).toHaveBeenCalledWith(
-      'Subscription preview failed',
-      expect.objectContaining({
-        code: 'billing_provider_unavailable',
-        isRetryable: true,
-      }),
-    );
-    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(logs).toEqual([
+      {
+        context: expect.objectContaining({
+          code: 'billing_provider_unavailable',
+          isRetryable: true,
+        }),
+        level: 'warn',
+        message: 'Subscription preview failed',
+      },
+    ]);
+    expect(sentry.captured).toEqual([]);
   });
 
   it('renders expected client state as its 4xx without paging error tracking', () => {
@@ -82,19 +115,25 @@ describe('SubscriptionBillingExceptionFilter', () => {
       host,
     );
 
-    expect(response.setHeader).not.toHaveBeenCalled();
-    expect(response.status).toHaveBeenCalledWith(404);
-    expect(response.json).toHaveBeenCalledWith({
-      errors: [
-        expect.objectContaining({
-          code: 'subscription_missing',
-          meta: { isRetryable: false, maxRetries: 0, retryAfterSeconds: null },
-          status: '404',
-        }),
-      ],
+    expect(written).toEqual({
+      body: {
+        errors: [
+          expect.objectContaining({
+            code: 'subscription_missing',
+            meta: {
+              isRetryable: false,
+              maxRetries: 0,
+              retryAfterSeconds: null,
+            },
+            status: '404',
+          }),
+        ],
+      },
+      headers: {},
+      status: 404,
     });
-    expect(Sentry.captureException).not.toHaveBeenCalled();
-    expect(logger.error).not.toHaveBeenCalled();
+    expect(logs.map(({ level }) => level)).toEqual(['warn']);
+    expect(sentry.captured).toEqual([]);
   });
 
   it('reports an unclassified fault to error tracking with safe diagnostics only', () => {
@@ -105,21 +144,22 @@ describe('SubscriptionBillingExceptionFilter', () => {
 
     buildFilter().catch(exception, host);
 
-    expect(response.status).toHaveBeenCalledWith(500);
-    expect(Sentry.captureException).toHaveBeenCalledWith(exception, {
-      extra: expect.objectContaining({
-        category: 'unknown',
-        code: 'preview_failed',
-        errorName: 'Error',
-      }),
-    });
-    const [, , loggedContext] = logger.error.mock.calls[0];
-    expect(JSON.stringify(loggedContext)).not.toContain(
-      'provider-secret-token',
-    );
-    expect(JSON.stringify(response.json.mock.calls[0][0])).not.toContain(
-      'provider-secret-token',
-    );
+    expect(written.status).toBe(500);
+    expect(sentry.captured).toEqual([
+      {
+        exception,
+        hint: {
+          extra: expect.objectContaining({
+            category: 'unknown',
+            code: 'preview_failed',
+            errorName: 'Error',
+          }),
+        },
+      },
+    ]);
+    expect(logs.map(({ level }) => level)).toEqual(['error']);
+    expect(JSON.stringify(logs)).not.toContain('provider-secret-token');
+    expect(JSON.stringify(written.body)).not.toContain('provider-secret-token');
   });
 
   it('keeps faults out of error tracking in the development environment', () => {
@@ -130,11 +170,13 @@ describe('SubscriptionBillingExceptionFilter', () => {
       host,
     );
 
-    expect(Sentry.captureException).not.toHaveBeenCalled();
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.any(String),
-      undefined,
-      expect.objectContaining({ code: 'preview_failed' }),
-    );
+    expect(sentry.captured).toEqual([]);
+    expect(logs).toEqual([
+      {
+        context: expect.objectContaining({ code: 'preview_failed' }),
+        level: 'error',
+        message: expect.any(String),
+      },
+    ]);
   });
 });
