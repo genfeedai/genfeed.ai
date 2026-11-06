@@ -6,9 +6,11 @@ import {
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import type { QueryClient } from '@tanstack/react-query';
 import {
+  act,
   fireEvent,
   render as renderWithoutClient,
   screen,
+  waitFor,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
@@ -687,5 +689,36 @@ describe('ConnectGenfeedFlow', () => {
 
     expect(screen.getByRole('radio', { name: /MCP key/ })).toBeInTheDocument();
     expect(screen.queryByText(CREATED_TEST_KEY)).not.toBeInTheDocument();
+  });
+
+  it('never carries a typed value over to the key a refresh falls back to', async () => {
+    mocks.findAll.mockResolvedValue([
+      activeKey(),
+      { ...activeKey(), id: 'key-2', label: 'Second key' },
+    ]);
+    const client = createTestQueryClient();
+    render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+    await userEvent.click(
+      await screen.findByRole('radio', { name: /Second key/ }),
+    );
+    fireEvent.change(
+      screen.getByLabelText('Stored value for the selected key'),
+      { target: { value: STORED_TEST_KEY } },
+    );
+
+    // Revoked elsewhere: the refresh lists only the first key.
+    mocks.findAll.mockResolvedValue([activeKey()]);
+    await act(() => client.invalidateQueries());
+    await waitFor(() =>
+      expect(screen.queryByText('Second key')).not.toBeInTheDocument(),
+    );
+
+    expect(
+      screen.getByLabelText('Stored value for the selected key'),
+    ).toHaveValue('');
+    expect(
+      screen.getByRole('button', { name: 'Verify MCP connection' }),
+    ).toBeDisabled();
   });
 });

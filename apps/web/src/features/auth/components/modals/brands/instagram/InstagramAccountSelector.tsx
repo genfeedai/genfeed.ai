@@ -45,7 +45,7 @@ export default function InstagramAccountSelector({
     (token: string) => new ServicesService('instagram', token),
   );
 
-  const [selectedAccount, setSelectedAccount] =
+  const [pickedAccount, setPickedAccount] =
     useState<CredentialInstagram | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
@@ -74,6 +74,13 @@ export default function InstagramAccountSelector({
     service: (token: string) => CredentialsService.getInstance(token),
   });
   const availableAccounts = accountsQuery.data ?? EMPTY_ACCOUNTS;
+  // A refresh that no longer lists the pick clears it, so Confirm never sends
+  // an account this credential stopped granting.
+  const selectedAccount =
+    pickedAccount &&
+    availableAccounts.some((account) => account.id === pickedAccount.id)
+      ? pickedAccount
+      : null;
   const isLoading = accountsQuery.isLoading;
   // A failed background refresh keeps the cached candidates on screen.
   const hasLoadError = Boolean(accountsQuery.error) && !accountsQuery.data;
@@ -93,7 +100,7 @@ export default function InstagramAccountSelector({
   }, [loadError, loadErrorMessage]);
 
   const retry = () => {
-    setSelectedAccount(null);
+    setPickedAccount(null);
     setConfirmError(null);
     void accountsQuery.refetch();
   };
@@ -191,7 +198,7 @@ export default function InstagramAccountSelector({
               (entry) => entry.id === accountId,
             );
             if (account) {
-              setSelectedAccount(account);
+              setPickedAccount(account);
             }
           }}
           value={selectedAccount?.id}

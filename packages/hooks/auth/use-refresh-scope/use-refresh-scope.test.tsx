@@ -98,7 +98,7 @@ describe('useRefreshScope', () => {
     await waitFor(() => expect(view.result.current.rows).toEqual(['kept']));
   });
 
-  it('re-reads another cached sort when the list comes back to it', async () => {
+  it('drops other cached sorts, so coming back never shows the old rows', async () => {
     const view = renderHook(({ sort }) => useRows(sort), {
       initialProps: { sort: 'name' },
       wrapper: Wrapper,
@@ -115,9 +115,13 @@ describe('useRefreshScope', () => {
     await resolveRead(2, ['b']);
     await act(() => refreshing);
 
+    // Coming back while the re-read is in flight never shows the rows from
+    // before the delete.
     view.rerender({ sort: 'name' });
-    await resolveRead(3, ['a']);
+    await waitFor(() => expect(reads.pending).toHaveLength(4));
+    expect(view.result.current.rows).toEqual(['b']);
 
-    await waitFor(() => expect(view.result.current.rows).toEqual(['a']));
+    await resolveRead(3, ['b']);
+    await waitFor(() => expect(view.result.current.rows).toEqual(['b']));
   });
 });

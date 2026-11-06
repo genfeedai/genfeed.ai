@@ -1029,6 +1029,18 @@ describe('SettingsApiKeysPage', () => {
       );
     });
   });
+  it('takes a revoked key off the list even when the refresh fails', async () => {
+    renderPage();
+    await screen.findByText('MCP Key');
+
+    mocks.findAllApiKeys.mockRejectedValue(new Error('offline'));
+    fireEvent.click(screen.getByRole('button', { name: 'Revoke' }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('MCP Key')).not.toBeInTheDocument();
+    });
+  });
+
   it('keeps server page totals with the API keys', async () => {
     mocks.findAllApiKeys.mockResolvedValue(
       paginatedResponse(productApiKeys(), { totalDocs: 61, totalPages: 5 }),

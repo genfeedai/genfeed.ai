@@ -17,12 +17,15 @@ import {
 import type {
   ApiKeyPermissionLevel,
   ApiKeyPermissionLevels,
+  IPagedItems,
 } from '@genfeedai/contracts/interfaces';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
+import { updateCachedQueries } from '@hooks/auth/update-cached-queries/update-cached-queries';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
+import { useRefreshScope } from '@hooks/auth/use-refresh-scope/use-refresh-scope';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { isCancelledRequest } from '@services/core/operation-error';
@@ -51,6 +54,7 @@ import type {
   ProductApiKeyForm,
   ProductPlainKey,
 } from '@/features/settings/props/api-keys-content.props';
+import { organizationApiKeysQueryKey } from '@/lib/constants/api-keys-query-keys';
 import { isApiKeyLimitReached } from './api-key-create-error';
 import ApiKeyPermissionEditor from './api-key-permission-editor';
 
@@ -147,8 +151,7 @@ function apiKeysQueryKey(
   sessionId: string | null | undefined,
 ) {
   return [
-    'organization-api-keys',
-    organizationId,
+    ...organizationApiKeysQueryKey(organizationId),
     isKeylessSelfHosted ? 'keyless' : 'organization',
     sessionId ?? null,
   ] as const;
@@ -314,16 +317,11 @@ function AuthorizedApiKeysContent({
   }, [loadErrorMessage, productKeysError]);
 
   // A read still in flight (even the first one) is cancelled first, so a list
-  // read before a create or revoke can never land after it.
-  const refreshProductApiKeys = useCallback(async () => {
-    const queryKey = apiKeysQueryKey(
-      organizationId,
-      isKeylessSelfHosted,
-      sessionId,
-    );
-    await queryClient.cancelQueries({ queryKey });
-    await queryClient.invalidateQueries({ queryKey });
-  }, [isKeylessSelfHosted, organizationId, queryClient, sessionId]);
+  // read before a create or revoke can never land after it. The Connect
+  // Genfeed key list shares the prefix and refreshes with it.
+  const refreshProductApiKeys = useRefreshScope(
+    organizationApiKeysQueryKey(organizationId),
+  );
 
   const handleProductFormChange = (
     field: keyof Omit<ProductApiKeyForm, 'permissionLevels'>,
@@ -456,6 +454,16 @@ function AuthorizedApiKeysContent({
       if (!service || !isCurrent()) return;
       await service.revokeApiKey(apiKey.id);
       if (!isCurrent()) return;
+      // Off the cached pages at once: if the refresh fails, the revoked row
+      // must not stay on screen with working Rotate and Revoke buttons.
+      await updateCachedQueries<IPagedItems<ApiKey>>(
+        queryClient,
+        { queryKey: scopeKey },
+        (current) => ({
+          ...current,
+          items: current.items.filter((item) => item.id !== apiKey.id),
+        }),
+      );
       await refreshProductApiKeys();
       if (!isCurrent()) return;
       NotificationsService.getInstance().success(translate('success.revoked'));

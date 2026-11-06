@@ -55,13 +55,16 @@ vi.mock('@services/core/notifications.service', () => ({
 vi.mock('./edit-memory-dialog', () => ({ default: () => null }));
 vi.mock('@ui/display/table/Table', () => ({
   default: ({
+    error,
     items,
     isLoading,
-  }: Pick<TableProps<OrgMemoryEntry>, 'items' | 'isLoading'>) => (
+  }: Pick<TableProps<OrgMemoryEntry>, 'error' | 'items' | 'isLoading'>) => (
     <div>
       {isLoading
         ? 'Loading memories'
-        : items.map((entry) => <span key={entry.id}>{entry.summary}</span>)}
+        : error && items.length === 0
+          ? error.title
+          : items.map((entry) => <span key={entry.id}>{entry.summary}</span>)}
     </div>
   ),
 }));
@@ -139,5 +142,17 @@ describe('organization memory pagination', () => {
 
     expect(screen.getByText('Loading memories')).toBeVisible();
     expect(screen.queryByText('Brand voice')).not.toBeInTheDocument();
+  });
+
+  it('shows the load error, not the skeleton, when the first read fails', async () => {
+    listOrganization.mockRejectedValue(new Error('down'));
+    render(<SettingsOrganizationMemoryPage />, {
+      wrapper: queryClientWrapper(),
+    });
+
+    expect(
+      await screen.findByText('Could not load organization memory'),
+    ).toBeVisible();
+    expect(screen.queryByText('Loading memories')).not.toBeInTheDocument();
   });
 });

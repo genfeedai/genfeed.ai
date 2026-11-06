@@ -1,13 +1,18 @@
 'use client';
 
 import type { OnboardingAccessMode } from '@genfeedai/contracts/interfaces';
-import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { updateCachedQueries } from '@hooks/auth/update-cached-queries/update-cached-queries';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import {
+  isViewerQueryKey,
+  useAuthedQuery,
+} from '@hooks/auth/use-authed-query/use-authed-query';
 import { logger } from '@services/core/logger.service';
 import {
   type InstallReadinessResponse,
   OnboardingService,
 } from '@services/onboarding/onboarding.service';
-import { useQueryClient } from '@tanstack/react-query';
+import { type Query, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
 /** Shared by the Providers and Summary onboarding steps. */
@@ -63,8 +68,13 @@ export const EMPTY_INSTALL_READINESS: InstallReadinessResponse = {
  */
 export function useInstallReadiness({ enabled = true } = {}) {
   const queryClient = useQueryClient();
+  const { orgId, userId } = useAuthIdentity();
   const query = useAuthedQuery({
     enabled,
+    // Provider keys can change in another tab: entering a step or coming back
+    // to the window re-checks, while the cached readiness stays on screen.
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
     queryFn: async (service) => {
       try {
         return await service.getInstallReadiness();
@@ -79,22 +89,24 @@ export function useInstallReadiness({ enabled = true } = {}) {
 
   const markAccessModeSaved = useCallback(
     async (selectedMode: OnboardingAccessMode) => {
-      // A read already in flight would land after this write and undo it.
-      await queryClient.cancelQueries({
+      // Only the saving viewer's entry: another account's cached readiness
+      // keeps its own saved choice.
+      const filters = {
+        predicate: (cached: Query) =>
+          isViewerQueryKey(cached.queryKey, userId, orgId),
         queryKey: INSTALL_READINESS_QUERY_KEY,
-      });
-      queryClient.setQueriesData<InstallReadinessResponse>(
-        { queryKey: INSTALL_READINESS_QUERY_KEY },
-        (current) =>
-          current
-            ? { ...current, access: { ...current.access, selectedMode } }
-            : current,
+      };
+      await updateCachedQueries<InstallReadinessResponse>(
+        queryClient,
+        filters,
+        (current) => ({
+          ...current,
+          access: { ...current.access, selectedMode },
+        }),
       );
-      void queryClient.invalidateQueries({
-        queryKey: INSTALL_READINESS_QUERY_KEY,
-      });
+      void queryClient.invalidateQueries(filters);
     },
-    [queryClient],
+    [orgId, queryClient, userId],
   );
 
   return {

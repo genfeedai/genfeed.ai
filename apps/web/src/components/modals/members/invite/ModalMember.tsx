@@ -23,7 +23,7 @@ import {
   hasErrorDetail,
 } from '@utils/error/error-handler.util';
 import { isAxiosError } from '@utils/error/json-api-status.util';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useOrganizationRoles } from '@/hooks/data/organization/use-organization-roles/use-organization-roles';
 import { useFocusFirstInput } from '@/hooks/ui/use-focus-first-input/use-focus-first-input';
@@ -105,11 +105,27 @@ export default function ModalMember({
   }, [rolesLoadError]);
 
   // Pick the default role once roles are known, unless one is already chosen.
+  // A refresh that drops the chosen role clears it, so the invite never sends
+  // a deleted role; the operator picks again rather than getting another role
+  // silently.
+  const hasDefaultedRoleRef = useRef(false);
+  const loadedRoles = rolesQuery.data;
   useEffect(() => {
-    if (!member && defaultRoleId && !form.getValues('roleId')) {
-      form.setValue('roleId', defaultRoleId);
+    if (member) {
+      return;
     }
-  }, [defaultRoleId, form, member]);
+    const roleId = form.getValues('roleId');
+    if (!roleId) {
+      if (defaultRoleId && !hasDefaultedRoleRef.current) {
+        hasDefaultedRoleRef.current = true;
+        form.setValue('roleId', defaultRoleId);
+      }
+      return;
+    }
+    if (loadedRoles && !loadedRoles.some((role) => role.id === roleId)) {
+      form.setValue('roleId', '', { shouldValidate: true });
+    }
+  }, [defaultRoleId, form, loadedRoles, member]);
 
   useEffect(() => {
     if (member && organizationId) {

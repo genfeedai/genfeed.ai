@@ -19,9 +19,15 @@ import {
   getUpgradeTierForLimit,
 } from '@genfeedai/pricing';
 import { openModal } from '@helpers/ui/modal/modal.helper';
-import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { updateCachedQueries } from '@hooks/auth/update-cached-queries/update-cached-queries';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import {
+  isViewerQueryKey,
+  useAuthedQuery,
+} from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
+import { useRefreshScope } from '@hooks/auth/use-refresh-scope/use-refresh-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Member } from '@models/organization/member.model';
 import { Member as MemberModel } from '@models/organization/member.model';
@@ -132,6 +138,7 @@ function MembersListContent() {
   const translate = useTranslations('common.settings.members');
   const rowSidebarT = useTranslations('ui.rowSidebar');
   const queryClient = useQueryClient();
+  const { orgId, userId } = useAuthIdentity();
 
   // Roles are read once a member is opened for editing; the invite dialog
   // shares the same cached list.
@@ -200,17 +207,15 @@ function MembersListContent() {
     NotificationsService.getInstance().error('Failed to load members');
   }, [membersError]);
 
+  // Cancels reads that started before an invite or edit, so the re-read
+  // always reflects it, across every cached page, search and sort.
+  const refreshMemberRows = useRefreshScope(membersScopeKey);
+  const refreshInvitations = useRefreshScope(
+    memberInvitationsQueryKey(organizationId),
+  );
   const refreshMembers = useCallback(
-    () =>
-      Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: organizationMembersQueryKey(organizationId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: memberInvitationsQueryKey(organizationId),
-        }),
-      ]),
-    [organizationId, queryClient],
+    () => Promise.all([refreshMemberRows(), refreshInvitations()]),
+    [refreshInvitations, refreshMemberRows],
   );
 
   const [updatingInvitationIds, setUpdatingInvitationIds] = useState<
@@ -294,23 +299,22 @@ function MembersListContent() {
         rolesError={rolesError}
         onLoadRoles={loadRoles}
         onUpdated={async (updated) => {
-          // A read already in flight would land after this write and undo it.
-          await queryClient.cancelQueries({
-            queryKey: organizationMembersQueryKey(organizationId),
-          });
-          queryClient.setQueriesData<IPagedItems<Member>>(
-            { queryKey: organizationMembersQueryKey(organizationId) },
-            (current) =>
-              current
-                ? {
-                    ...current,
-                    items: current.items.map((item) =>
-                      item.id === updated.id
-                        ? new MemberModel({ ...item, ...updated })
-                        : item,
-                    ),
-                  }
-                : current,
+          // Only this viewer's cache: another account may have signed in.
+          await updateCachedQueries<IPagedItems<Member>>(
+            queryClient,
+            {
+              predicate: (query) =>
+                isViewerQueryKey(query.queryKey, userId, orgId),
+              queryKey: membersScopeKey,
+            },
+            (current) => ({
+              ...current,
+              items: current.items.map((item) =>
+                item.id === updated.id
+                  ? new MemberModel({ ...item, ...updated })
+                  : item,
+              ),
+            }),
           );
         }}
       />

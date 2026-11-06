@@ -123,8 +123,8 @@ export default function SummaryContent() {
     service: (token: string) => AuthService.getInstance(token),
   });
   const billingState = billingQuery.data ?? null;
-  const loading =
-    isLoadingReadiness || (isBillingShown && billingQuery.isLoading);
+  const isLoadingBilling = isBillingShown && billingQuery.isLoading;
+  const loading = isLoadingReadiness || isLoadingBilling;
   // A failed read with nothing cached must not pass for a free account; a
   // failed background refresh keeps the cached plan.
   const isBillingUnavailable = billingState === null && billingQuery.isError;
@@ -139,8 +139,10 @@ export default function SummaryContent() {
     return 'Still bootstrapping';
   }, [readiness.workspace.hasBrand, readiness.workspace.hasOrganization]);
 
+  // The install labels wait on readiness only: a cached readiness stays on
+  // screen while just the plan is loading.
   const localToolsLabel = useMemo(() => {
-    if (loading) {
+    if (isLoadingReadiness) {
       return 'Checking...';
     }
 
@@ -149,10 +151,10 @@ export default function SummaryContent() {
     }
 
     return 'None detected';
-  }, [loading, readiness.localTools]);
+  }, [isLoadingReadiness, readiness.localTools]);
 
   const providersLabel = useMemo(() => {
-    if (loading) {
+    if (isLoadingReadiness) {
       return 'Checking...';
     }
 
@@ -161,15 +163,15 @@ export default function SummaryContent() {
     }
 
     return 'None configured';
-  }, [loading, readiness.providers]);
+  }, [isLoadingReadiness, readiness.providers]);
 
   const accessModeLabel = useMemo(() => {
-    if (loading) {
+    if (isLoadingReadiness) {
       return 'Checking...';
     }
 
     return formatSelectedAccessLabel(readiness);
-  }, [loading, readiness]);
+  }, [isLoadingReadiness, readiness]);
 
   const persistAccessMode = async (accessMode: OnboardingAccessMode) => {
     if (!currentUser) {

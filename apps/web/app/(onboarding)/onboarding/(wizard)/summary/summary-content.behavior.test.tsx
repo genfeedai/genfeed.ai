@@ -350,6 +350,17 @@ describe('SummaryContent behavior', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows the install summary while only the plan is still loading', async () => {
+    getInstallReadinessMock.mockResolvedValue(BILLING_READINESS);
+    getBootstrapMock.mockReturnValue(new Promise(() => {}));
+
+    render(<SummaryContent />, { wrapper: queryClientWrapper() });
+
+    expect(await screen.findByText('openai')).toBeInTheDocument();
+    expect(screen.getByText('None detected')).toBeInTheDocument();
+    expect(screen.getAllByText('Checking...')).toHaveLength(3);
+  });
+
   it('persists cloud mode and redirects to cloud signup with onboarding context', async () => {
     render(<SummaryContent />, { wrapper: queryClientWrapper() });
 
@@ -403,6 +414,32 @@ describe('SummaryContent behavior', () => {
     expect(screen.getByText('Codex CLI')).toBeInTheDocument();
     expect(screen.getByText('openai')).toBeInTheDocument();
     expect(screen.queryByText('Checking...')).not.toBeInTheDocument();
+  });
+
+  it('re-checks readiness on a revisit inside the cache window', async () => {
+    const client = createTestQueryClient();
+    client.setDefaultOptions({
+      queries: { ...client.getDefaultOptions().queries, staleTime: 30_000 },
+    });
+    const first = render(<SummaryContent />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(await screen.findByText('Codex CLI')).toBeInTheDocument();
+    first.unmount();
+
+    // A provider key was removed in another tab.
+    getInstallReadinessMock.mockResolvedValue({
+      ...BILLING_READINESS,
+      providers: {
+        ...BILLING_READINESS.providers,
+        anyConfigured: false,
+        configured: [],
+      },
+      ui: { ...BILLING_READINESS.ui, showBilling: false },
+    });
+    render(<SummaryContent />, { wrapper: queryClientWrapper(client) });
+
+    expect(await screen.findByText('None configured')).toBeInTheDocument();
   });
 
   it('shows a choice saved here as current when the step is revisited', async () => {

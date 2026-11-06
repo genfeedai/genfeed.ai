@@ -4,6 +4,7 @@ import {
 } from '@app-tests/query-client.harness';
 import type { QueryClient } from '@tanstack/react-query';
 import {
+  act,
   fireEvent,
   render as renderWithoutClient,
   screen,
@@ -229,6 +230,34 @@ describe('InstagramAccountSelector', () => {
 
     const confirmButton = await screen.findByText('Use this account');
     expect(confirmButton).toBeDisabled();
+  });
+
+  it('clears a pick that a refresh no longer lists', async () => {
+    mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
+      candidateAccounts,
+    );
+    const client = createTestQueryClient();
+    render(
+      <InstagramAccountSelector
+        credentialId={credentialId}
+        onConnected={vi.fn()}
+      />,
+      client,
+    );
+    fireEvent.click(
+      await screen.findByRole('radio', { name: /Genfeed Studio/ }),
+    );
+    expect(screen.getByText('Use this account')).toBeEnabled();
+
+    mockCredentialsService.findCredentialInstagramPages.mockResolvedValue([
+      candidateAccounts[0],
+    ]);
+    await act(() => client.invalidateQueries());
+
+    await waitFor(() =>
+      expect(screen.queryByText('Genfeed Studio')).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText('Use this account')).toBeDisabled();
   });
 
   it('offers Cancel beside the confirm action when the right account is not listed', async () => {

@@ -20,6 +20,7 @@ import {
   formatCompactNumberIntl,
   formatPercentageSimple,
 } from '@helpers/formatting/format/format.helper';
+import { updateCachedQueries } from '@hooks/auth/update-cached-queries/update-cached-queries';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import {
@@ -230,23 +231,17 @@ export default function AnalyticsOrganizationsList({
   // The stage follows the sidebar: sending an invitation moves the badge in the row.
   const handleConciergeChange = useCallback(
     async (organizationId: string, stage: IWarmupAccount['status']) => {
-      // A read already in flight would land after this write and undo it.
-      await queryClient.cancelQueries({
-        queryKey: ANALYTICS_ORGANIZATIONS_KEY,
-      });
-      queryClient.setQueriesData<IPaginatedOrgsResponse>(
+      await updateCachedQueries<IPaginatedOrgsResponse>(
+        queryClient,
         { queryKey: ANALYTICS_ORGANIZATIONS_KEY },
-        (current) =>
-          current
-            ? {
-                ...current,
-                data: current.data.map((org) =>
-                  org.id === organizationId && org.concierge
-                    ? { ...org, concierge: { ...org.concierge, status: stage } }
-                    : org,
-                ),
-              }
-            : current,
+        (current) => ({
+          ...current,
+          data: current.data.map((org) =>
+            org.id === organizationId && org.concierge
+              ? { ...org, concierge: { ...org.concierge, status: stage } }
+              : org,
+          ),
+        }),
       );
     },
     [queryClient],

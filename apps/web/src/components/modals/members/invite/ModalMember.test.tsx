@@ -119,4 +119,20 @@ describe('ModalMember', () => {
     expect(screen.getByRole('combobox')).toHaveTextContent('Member');
     expect(screen.queryByText('Failed to load roles')).not.toBeInTheDocument();
   });
+
+  it('clears a chosen role that a refresh no longer lists', async () => {
+    const client = createTestQueryClient();
+    renderInviteModal(client);
+    await waitFor(() => {
+      expect(screen.getByLabelText('roleId')).toHaveValue('role-user');
+    });
+
+    // The member role was deleted elsewhere; only Admin is left.
+    mocks.findRoles.mockResolvedValue([ROLES[0]]);
+    await act(() => client.invalidateQueries());
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('roleId')).toHaveValue('');
+    });
+  });
 });

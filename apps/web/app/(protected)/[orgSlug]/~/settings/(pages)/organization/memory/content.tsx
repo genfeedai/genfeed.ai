@@ -343,7 +343,7 @@ export default function SettingsOrganizationMemoryPage() {
             : undefined
         }
         getRowKey={(entry) => entry.id}
-        isLoading={entries === null}
+        isLoading={entries === null && !loadError}
         items={entries ?? []}
         label={translate('table')}
         rowSidebar={rowSidebar}

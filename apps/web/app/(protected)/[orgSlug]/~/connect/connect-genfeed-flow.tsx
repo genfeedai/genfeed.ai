@@ -19,7 +19,12 @@ import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { hasApiAccess } from '@genfeedai/pricing';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
-import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { updateCachedQueries } from '@hooks/auth/update-cached-queries/update-cached-queries';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import {
+  isViewerQueryKey,
+  useAuthedQuery,
+} from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
@@ -55,6 +60,7 @@ import {
   type ConnectGenfeedStep,
   captureAnalyticsEvent,
 } from '@/lib/analytics';
+import { organizationApiKeysQueryKey } from '@/lib/constants/api-keys-query-keys';
 import type { VerifiedMcpConnection } from '@/props/home/operational-home.props';
 
 const CLIENTS = [
@@ -86,7 +92,6 @@ const DRAFT_POST_AGENT_HREF = buildAgentPromptHref(
 );
 
 /** The org's keys as the manual-key step lists them (not the paged settings list). */
-const CONNECT_GENFEED_API_KEYS_KEY = 'connect-genfeed-api-keys';
 
 const EMPTY_API_KEYS: ApiKey[] = [];
 
@@ -114,9 +119,11 @@ export default function ConnectGenfeedFlow() {
   const [authMethod, setAuthMethod] =
     useState<ConnectGenfeedAuthMethod>('oauth');
   const [chosenKeyId, setChosenKeyId] = useState('');
-  const [createdPlainKey, setCreatedPlainKey] = useState('');
-  const [verificationSecret, setVerificationSecret] = useState('');
-  const [verification, setVerification] =
+  const [createdPlainKeyState, setCreatedPlainKey] = useState('');
+  const [verificationSecretState, setVerificationSecret] = useState('');
+  // The key the copy-once value and its verification belong to.
+  const [secretKeyId, setSecretKeyId] = useState('');
+  const [verificationState, setVerification] =
     useState<ConnectGenfeedVerificationResult | null>(null);
   const [isCreatingKey, setIsCreatingKey] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -145,16 +152,21 @@ export default function ConnectGenfeedFlow() {
   );
   const firstBrandSlug = getBrandSlug(brands[0]);
   const queryClient = useQueryClient();
+  const { orgId, userId } = useAuthIdentity();
   const getApiKeysService = useAuthedService(
     useCallback((token: string) => ApiKeysService.getInstance(token), []),
   );
 
   // Cached: switching back to the manual-key step lists the org's keys at once
   // while they refresh. Copy-once secrets never enter this cache.
+  const connectApiKeysQueryKey = [
+    ...organizationApiKeysQueryKey(organizationId ?? ''),
+    'connect',
+  ];
   const apiKeysQuery = useAuthedQuery({
     enabled: Boolean(organizationId) && isReady && authMethod === 'manual-key',
     queryFn: (service, signal) => service.findAll({ limit: 100 }, signal),
-    queryKey: [CONNECT_GENFEED_API_KEYS_KEY, organizationId],
+    queryKey: connectApiKeysQueryKey,
     service: (token: string) => ApiKeysService.getInstance(token),
   });
   const apiKeys = apiKeysQuery.data ?? EMPTY_API_KEYS;
@@ -168,6 +180,14 @@ export default function ConnectGenfeedFlow() {
       ? chosenKeyId
       : (apiKeys.find(hasRequiredMcpScopes)?.id ?? '');
   const selectedKey = apiKeys.find((apiKey) => apiKey.id === selectedKeyId);
+  // A refresh that drops the picked key falls back to another one: the value
+  // typed for the old key is never shown, or sent, with the new one.
+  const isSecretForSelectedKey = secretKeyId === selectedKeyId;
+  const createdPlainKey = isSecretForSelectedKey ? createdPlainKeyState : '';
+  const verificationSecret = isSecretForSelectedKey
+    ? verificationSecretState
+    : '';
+  const verification = isSecretForSelectedKey ? verificationState : null;
 
   const trackStep = useCallback(
     (step: ConnectGenfeedStep, outcome?: 'failure' | 'success') => {
@@ -256,6 +276,7 @@ export default function ConnectGenfeedFlow() {
 
   const handleSelectKey = (apiKey: ApiKey) => {
     setChosenKeyId(apiKey.id);
+    setSecretKeyId(apiKey.id);
     setCreatedPlainKey('');
     setVerificationSecret('');
     setVerification(null);
@@ -294,18 +315,25 @@ export default function ConnectGenfeedFlow() {
       });
       setCreatedPlainKey(plainKey);
       setVerificationSecret(plainKey);
+      setSecretKeyId(apiKey.id);
       setChosenKeyId(apiKey.id);
-      // A read already in flight would land after this write and undo it.
-      await queryClient.cancelQueries({
-        queryKey: [CONNECT_GENFEED_API_KEYS_KEY, organizationId],
-      });
-      queryClient.setQueriesData<ApiKey[]>(
-        { queryKey: [CONNECT_GENFEED_API_KEYS_KEY, organizationId] },
-        (current = []) => [
+      // Only this viewer's cache: another account may have signed in since.
+      await updateCachedQueries<ApiKey[]>(
+        queryClient,
+        {
+          predicate: (query) => isViewerQueryKey(query.queryKey, userId, orgId),
+          queryKey: connectApiKeysQueryKey,
+        },
+        (current) => [
           listItem,
           ...current.filter((item) => item.id !== listItem.id),
         ],
       );
+      // Settings -> API keys reads afresh next time instead of missing it.
+      queryClient.removeQueries({
+        queryKey: organizationApiKeysQueryKey(organizationId ?? ''),
+        type: 'inactive',
+      });
       trackStep('key_created', 'success');
       NotificationsService.getInstance().success('Scoped MCP key created');
     } catch (error) {
@@ -331,6 +359,7 @@ export default function ConnectGenfeedFlow() {
   };
 
   const handleVerify = async () => {
+    setSecretKeyId(selectedKeyId);
     const secret = verificationSecret.trim();
     if (!selectedKey || !secret) {
       setVerification({
@@ -765,9 +794,10 @@ export default function ConnectGenfeedFlow() {
                   <Input
                     autoComplete="off"
                     id="connect-genfeed-key"
-                    onChange={(event) =>
-                      setVerificationSecret(event.target.value)
-                    }
+                    onChange={(event) => {
+                      setSecretKeyId(selectedKeyId);
+                      setVerificationSecret(event.target.value);
+                    }}
                     placeholder="gf_live_..."
                     type="password"
                     value={verificationSecret}
