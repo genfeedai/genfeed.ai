@@ -9,7 +9,10 @@ import type {
 import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tokens';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
-import type { PipelineStep } from '@api/services/content-orchestration/pipeline.interfaces';
+import type {
+  PipelineConfigV2,
+  PipelineStep,
+} from '@api/services/content-orchestration/pipeline.interfaces';
 import { StepExecutorService } from '@api/services/content-orchestration/step-executor.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PersonaPublisherService } from '@api/services/persona-content/persona-publisher.service';
@@ -623,29 +626,27 @@ describe('ContentOrchestrationService', () => {
   describe('Sentry performance tracing', () => {
     it('generateAndPublish should invoke Sentry.startSpan for each step', async () => {
       const Sentry = await import('@sentry/nestjs');
-      const startSpan = Sentry.startSpan as ReturnType<typeof vi.fn>;
+      const startSpan = vi.mocked(Sentry.startSpan);
       startSpan.mockClear();
 
-      const singleStepConfig = {
+      const singleStepConfig: PipelineConfigV2 = {
         brandId: 'test-object-id',
         organizationId: 'test-object-id',
         personaId: 'test-object-id',
         prompt: 'Sentry tracing test',
-        steps: [{ model: 'fal', type: 'text-to-image' as const }],
+        steps: [{ model: ImageTaskModel.FAL, type: 'text-to-image' }],
         userId: 'test-object-id',
       };
 
       await service.generateAndPublish(singleStepConfig);
 
-      const spanNames = startSpan.mock.calls.map(
-        (c: [{ name: string }, unknown]) => c[0].name,
-      );
+      const spanNames = startSpan.mock.calls.map(([options]) => options.name);
       expect(spanNames).toContain('content.pipeline.step.text-to-image');
     });
 
     it('generateAndPublish should include publish span when credentials exist', async () => {
       const Sentry = await import('@sentry/nestjs');
-      const startSpan = Sentry.startSpan as ReturnType<typeof vi.fn>;
+      const startSpan = vi.mocked(Sentry.startSpan);
       startSpan.mockClear();
 
       await service.generateAndPublish({
@@ -654,20 +655,18 @@ describe('ContentOrchestrationService', () => {
         personaId: 'test-object-id',
         prompt: 'Sentry publish tracing',
         publishMode: 'final',
-        steps: [{ model: 'fal', type: 'text-to-image' as const }],
+        steps: [{ model: ImageTaskModel.FAL, type: 'text-to-image' }],
         userId: 'test-object-id',
       });
 
-      const spanNames = startSpan.mock.calls.map(
-        (c: [{ name: string }, unknown]) => c[0].name,
-      );
+      const spanNames = startSpan.mock.calls.map(([options]) => options.name);
       expect(spanNames).toContain('content.pipeline.step.text-to-image');
       expect(spanNames).toContain('content.pipeline.publish');
     });
 
     it('step span should include pipeline attributes', async () => {
       const Sentry = await import('@sentry/nestjs');
-      const startSpan = Sentry.startSpan as ReturnType<typeof vi.fn>;
+      const startSpan = vi.mocked(Sentry.startSpan);
       startSpan.mockClear();
 
       await service.generateAndPublish({
@@ -675,13 +674,12 @@ describe('ContentOrchestrationService', () => {
         organizationId: 'test-object-id',
         personaId: 'test-object-id',
         prompt: 'Attributes test',
-        steps: [{ model: 'fal', type: 'text-to-image' as const }],
+        steps: [{ model: ImageTaskModel.FAL, type: 'text-to-image' }],
         userId: 'test-object-id',
       });
 
       const stepCall = startSpan.mock.calls.find(
-        (c: [{ name: string }, unknown]) =>
-          c[0].name === 'content.pipeline.step.text-to-image',
+        ([options]) => options.name === 'content.pipeline.step.text-to-image',
       );
       expect(stepCall).toBeDefined();
       expect(stepCall?.[0].attributes).toMatchObject({

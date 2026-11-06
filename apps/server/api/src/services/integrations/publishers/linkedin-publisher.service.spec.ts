@@ -519,10 +519,7 @@ describe('LinkedInPublisherService', () => {
     it('should build correct LinkedIn URL using activity URN', () => {
       const externalId = 'urn:li:activity:1234567890';
 
-      const result = service.buildPostUrl(
-        externalId,
-        mockCredential as unknown as CredentialEntity,
-      );
+      const result = service.buildPostUrl(externalId, mockCredential);
 
       expect(result).toBe(`https://www.linkedin.com/feed/update/${externalId}`);
     });
@@ -530,10 +527,7 @@ describe('LinkedInPublisherService', () => {
     it('should handle any external ID format', () => {
       const externalId = 'custom-id-format';
 
-      const result = service.buildPostUrl(
-        externalId,
-        mockCredential as unknown as CredentialEntity,
-      );
+      const result = service.buildPostUrl(externalId, mockCredential);
 
       expect(result).toBe(`https://www.linkedin.com/feed/update/${externalId}`);
     });
@@ -669,7 +663,7 @@ describe('LinkedInPublisherService', () => {
       const context = createPublishContext(mockImagePost);
       const singleChild = [mockChildren[0]];
 
-      linkedInService.postComment.mockResolvedValue({ commentId: null });
+      linkedInService.postComment.mockResolvedValue({ commentId: '' });
       postsService.patch.mockResolvedValue({} as unknown as PostDocument);
 
       await service.publishThreadChildren(
