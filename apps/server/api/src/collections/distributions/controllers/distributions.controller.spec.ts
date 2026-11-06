@@ -1,13 +1,13 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { DistributionsController } from '@api/collections/distributions/controllers/distributions.controller';
 import type { DistributionsService } from '@api/collections/distributions/services/distributions.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { TelegramDistributionService } from '@api/services/distribution/telegram/telegram-distribution.service';
 import {
   DistributionContentType,
   DistributionPlatform,
   PublishStatus,
 } from '@genfeedai/contracts';
-import { NotFoundException } from '@nestjs/common';
 import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -71,7 +71,7 @@ describe('DistributionsController', () => {
       cancelScheduled: async (id: string, organizationId: string) => {
         const row = ownRow(id, organizationId);
         if (row?.status !== PublishStatus.SCHEDULED) {
-          throw new NotFoundException('Scheduled distribution not found');
+          throw new NotFoundException('Scheduled distribution');
         }
         row.status = PublishStatus.CANCELLED;
         return row;
