@@ -303,7 +303,7 @@ export class ReplicateGenerationWebhookHandler {
         payload,
         targetIngredient?.metadataId ?? undefined,
       );
-      if (!workflowOutputUrl) {
+      if (!isAllowedReplicateOutputUrl(workflowOutputUrl)) {
         this.loggerService.warn(
           'Replicate workflow callback has no allowed output URL',
           { continuationId: workflowContinuationId, predictionId: payload.id },

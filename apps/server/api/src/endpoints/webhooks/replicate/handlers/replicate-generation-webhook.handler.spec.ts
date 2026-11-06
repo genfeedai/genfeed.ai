@@ -404,6 +404,18 @@ describe('ReplicateGenerationWebhookHandler', () => {
       ]);
     });
 
+    it('refuses to fetch a continuation output on a foreign host, leaving the step open', async () => {
+      seedContinuation();
+
+      await handler.handleCompleted(succeeded(FOREIGN_URL), 'continuation-1');
+
+      expect(finalizedIngredients).toEqual([]);
+      expect(continuations).toEqual([]);
+      expect(warnings).toEqual([
+        'Replicate workflow callback has no allowed output URL',
+      ]);
+    });
+
     it('keeps several outputs for recovery instead of completing the step from one', async () => {
       seedContinuation();
       const returned = [ALLOWED_URL, SECOND_URL];
