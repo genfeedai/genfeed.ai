@@ -224,6 +224,20 @@ describe('claimed Brand OS draft lifecycle', () => {
       'New description',
     );
   });
+  it('shows no draft and does not throw when the handoff has no draft', async () => {
+    mocks.getClaimedBrandOsDraft.mockResolvedValue({});
+    const { result } = renderHook(() => useBrandKitReviewCard(props), {
+      wrapper: queryClientWrapper(),
+    });
+    await waitFor(() =>
+      expect(mocks.getClaimedBrandOsDraft).toHaveBeenCalledOnce(),
+    );
+    await act(async () => {
+      await new Promise((done) => setTimeout(done, 0));
+    });
+
+    expect(result.current.draft).toBeNull();
+  });
   it('never shows one brand’s cached handoff for another brand', async () => {
     mocks.getClaimedBrandOsDraft.mockResolvedValue({
       draft: draft('brand-1', 60),

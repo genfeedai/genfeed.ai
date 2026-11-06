@@ -132,7 +132,8 @@ export function useBrandKitReviewCard({
       setHasReviewEdits(false);
     }
     if (claimedHandoff !== undefined && (isOtherBrand || !hasReviewEdits)) {
-      if (claimedHandoff) {
+      // A handoff without a draft cannot seed the review; treat it as none.
+      if (claimedHandoff?.draft) {
         setAppliedHandoff(claimedHandoff);
         setDraft(claimedHandoff.draft);
         initializeDraftReview(claimedHandoff.draft);
