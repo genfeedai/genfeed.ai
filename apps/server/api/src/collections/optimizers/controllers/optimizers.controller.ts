@@ -257,7 +257,7 @@ export class OptimizersController {
   async getBestPostingTimes(
     @Req() request: Request,
     @Query('platform') platform: string,
-    @Query('timezone') timezone: string,
+    @Query('timezone') timezone: string | undefined,
     @CurrentUser() user: User,
   ) {
     const organization = user.organizationId;
@@ -291,7 +291,7 @@ export class OptimizersController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getOptimizationHistory(
     @Req() req: Request,
-    @Query('limit') limit: string,
+    @Query('limit') limit: string | undefined,
     @CurrentUser() user: User,
   ) {
     const organization = user.organizationId;

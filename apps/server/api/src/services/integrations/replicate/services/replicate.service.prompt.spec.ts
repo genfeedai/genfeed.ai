@@ -14,12 +14,16 @@ import { ReplicateService } from '@api/services/integrations/replicate/services/
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type Replicate from 'replicate';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 describe('ReplicateService', () => {
   let service: ReplicateService;
-  let mockLoggerService: vi.Mocked<LoggerService>;
-  let mockConfigService: Partial<ConfigService> & { get: vi.Mock };
+  let mockLoggerService: Record<
+    'debug' | 'error' | 'log' | 'verbose' | 'warn',
+    Mock
+  >;
+  let mockConfigService: { get: Mock<(key?: string) => string> };
 
   beforeEach(async () => {
     mockConfigService = {
@@ -71,7 +75,9 @@ describe('ReplicateService', () => {
   describe('runTraining', () => {
     it('calls trainings.create with parsed owner/model/version and returns id', async () => {
       const trainingsCreate = vi.fn().mockResolvedValue({ id: 'train_123' });
-      service.client = { trainings: { create: trainingsCreate } };
+      service.client = {
+        trainings: { create: trainingsCreate },
+      } as unknown as Replicate;
 
       const destination = 'genfeedai/model-name';
       const input = {
@@ -109,7 +115,7 @@ describe('ReplicateService', () => {
       service.client = {
         models: { create: modelsCreate },
         trainings: { create: trainingsCreate },
-      };
+      } as unknown as Replicate;
 
       const destination = 'genfeedai/model-name';
       const input = {

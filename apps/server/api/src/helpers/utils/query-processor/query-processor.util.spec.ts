@@ -72,8 +72,8 @@ describe('QueryProcessor', () => {
 
       expect(result).toHaveProperty('OR');
       expect(result?.OR).toHaveLength(2);
-      expect(result?.OR?.[0]).toHaveProperty('name');
-      expect(result?.OR?.[1]).toHaveProperty('description');
+      expect(result).toHaveProperty(['OR', 0, 'name']);
+      expect(result).toHaveProperty(['OR', 1, 'description']);
     });
 
     it('should create simple regex search for single field', () => {
@@ -104,8 +104,7 @@ describe('QueryProcessor', () => {
       const result = QueryProcessor.processDateRangeQuery(startDate);
 
       expect(result).toHaveProperty('createdAt');
-      expect(result?.createdAt).toHaveProperty('gte');
-      expect(result?.createdAt?.gte).toBeInstanceOf(Date);
+      expect(result).toHaveProperty('createdAt.gte', expect.any(Date));
     });
 
     it('should create date range query with end date', () => {
@@ -113,8 +112,7 @@ describe('QueryProcessor', () => {
       const result = QueryProcessor.processDateRangeQuery(undefined, endDate);
 
       expect(result).toHaveProperty('createdAt');
-      expect(result?.createdAt).toHaveProperty('lte');
-      expect(result?.createdAt?.lte).toBeInstanceOf(Date);
+      expect(result).toHaveProperty('createdAt.lte', expect.any(Date));
     });
 
     it('should create date range query with both dates', () => {
@@ -208,9 +206,8 @@ describe('QueryProcessor', () => {
         customLabels,
       );
 
-      expect(result.customLabels).toBeDefined();
-      expect(result.customLabels.totalDocs).toBe('count');
-      expect(result.customLabels.docs).toBe('data'); // default value
+      expect(result).toHaveProperty('customLabels.totalDocs', 'count');
+      expect(result).toHaveProperty('customLabels.docs', 'data'); // default value
     });
   });
 });

@@ -35,7 +35,7 @@ describe('AgentRuntimeSessionService', () => {
     isDeleted: false,
     data: {
       sessionBinding: {
-        status: 'active',
+        status: 'running',
         lastSeenAt: new Date().toISOString(),
       },
     },
@@ -86,7 +86,7 @@ describe('AgentRuntimeSessionService', () => {
 
       const result = await service.upsertBinding({
         organizationId,
-        status: 'active',
+        status: 'running',
         threadId,
       });
 
@@ -111,7 +111,7 @@ describe('AgentRuntimeSessionService', () => {
 
       const result = await service.upsertBinding({
         organizationId,
-        status: 'active',
+        status: 'running',
         threadId,
       });
 
@@ -122,7 +122,7 @@ describe('AgentRuntimeSessionService', () => {
             organizationId,
             threadId,
             data: expect.objectContaining({
-              sessionBinding: expect.objectContaining({ status: 'active' }),
+              sessionBinding: expect.objectContaining({ status: 'running' }),
             }),
           }),
         }),
@@ -191,7 +191,7 @@ describe('AgentRuntimeSessionService', () => {
         data: {
           sessionBinding: {
             model: 'gpt-4o',
-            status: 'active',
+            status: 'running',
             lastSeenAt: new Date().toISOString(),
           },
         },
@@ -200,7 +200,7 @@ describe('AgentRuntimeSessionService', () => {
       await service.upsertBinding({
         model: 'gpt-4o',
         organizationId,
-        status: 'active',
+        status: 'running',
         threadId,
       });
 
@@ -223,7 +223,7 @@ describe('AgentRuntimeSessionService', () => {
       await service.upsertBinding({
         organizationId,
         resumeCursor,
-        status: 'active',
+        status: 'running',
         threadId,
       });
 
@@ -244,7 +244,7 @@ describe('AgentRuntimeSessionService', () => {
 
       const result = await service.upsertBinding({
         organizationId,
-        status: 'active',
+        status: 'running',
         threadId,
       });
 
@@ -257,7 +257,7 @@ describe('AgentRuntimeSessionService', () => {
       );
 
       await expect(
-        service.upsertBinding({ organizationId, status: 'active', threadId }),
+        service.upsertBinding({ organizationId, status: 'running', threadId }),
       ).rejects.toThrow('DB error');
     });
   });

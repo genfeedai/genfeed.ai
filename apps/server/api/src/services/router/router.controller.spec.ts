@@ -9,7 +9,7 @@ import type {
 } from '@api/services/router/interfaces/router.interfaces';
 import { RouterController } from '@api/services/router/router.controller';
 import { RouterService } from '@api/services/router/router.service';
-import { ModelCategory } from '@genfeedai/contracts';
+import { ModelCategory, RouterPriority } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -112,7 +112,7 @@ describe('RouterController', () => {
       it('should select optimal model for image generation', async () => {
         const selectModelDto: SelectModelDto = {
           category: ModelCategory.IMAGE,
-          prioritize: 'quality',
+          prioritize: RouterPriority.QUALITY,
           prompt: 'Create a photorealistic image of a sunset over mountains',
         };
 
@@ -139,7 +139,7 @@ describe('RouterController', () => {
       it('should select model prioritizing speed', async () => {
         const selectModelDto: SelectModelDto = {
           category: ModelCategory.IMAGE,
-          prioritize: 'speed',
+          prioritize: RouterPriority.SPEED,
           prompt: 'Quick sketch of a cat',
         };
 
@@ -160,7 +160,7 @@ describe('RouterController', () => {
       it('should select model prioritizing cost', async () => {
         const selectModelDto: SelectModelDto = {
           category: ModelCategory.IMAGE,
-          prioritize: 'cost',
+          prioritize: RouterPriority.COST,
           prompt: 'Simple cartoon',
         };
 
@@ -439,7 +439,7 @@ describe('RouterController', () => {
       it('should handle complex prompts with quality indicators', async () => {
         const selectModelDto: SelectModelDto = {
           category: ModelCategory.IMAGE,
-          prioritize: 'quality',
+          prioritize: RouterPriority.QUALITY,
           prompt:
             'Create a photorealistic 8K image of a futuristic cityscape at sunset with neon lights, flying cars, and detailed architecture in the style of Blade Runner',
         };
@@ -744,7 +744,7 @@ describe('RouterController', () => {
           dimensions: { height: 1080, width: 1920 },
           duration: 30,
           outputs: 2,
-          prioritize: 'quality',
+          prioritize: RouterPriority.QUALITY,
           prompt: 'A complex prompt',
           speech: 'Narration text',
         };
@@ -758,7 +758,7 @@ describe('RouterController', () => {
           dimensions: { height: 1080, width: 1920 },
           duration: 30,
           outputs: 2,
-          prioritize: 'quality',
+          prioritize: RouterPriority.QUALITY,
           prompt: 'A complex prompt',
           speech: 'Narration text',
         });

@@ -195,7 +195,7 @@ describe('RedditPublisherService', () => {
     it('should fail validation when subreddit is not configured', () => {
       const context = createPublishContext(
         mockTextPost,
-        mockCredentialNoSubreddit as unknown as CredentialEntity,
+        mockCredentialNoSubreddit as unknown as typeof mockCredential,
       );
       const mediaInfo: MediaInfo = {
         hasIngredients: false,
@@ -482,7 +482,7 @@ describe('RedditPublisherService', () => {
       it('should return failed result when subreddit not configured', async () => {
         const context = createPublishContext(
           mockTextPost,
-          mockCredentialNoSubreddit as unknown as CredentialEntity,
+          mockCredentialNoSubreddit as unknown as typeof mockCredential,
         );
 
         const result = await service.publish(context);
@@ -522,7 +522,7 @@ describe('RedditPublisherService', () => {
 
       const result = service.buildPostUrl(
         externalId,
-        mockCredential as unknown as CredentialEntity,
+        mockCredential as unknown as typeof mockCredential,
       );
 
       expect(result).toBe(
@@ -535,7 +535,7 @@ describe('RedditPublisherService', () => {
 
       const result = service.buildPostUrl(
         externalId,
-        mockCredentialNoSubreddit as unknown as CredentialEntity,
+        mockCredentialNoSubreddit as unknown as typeof mockCredential,
       );
 
       expect(result).toBe(
@@ -673,7 +673,7 @@ describe('RedditPublisherService', () => {
       const context = createPublishContext(mockTextPost);
       const singleChild = [mockChildren[0]];
 
-      redditService.postComment.mockResolvedValue({ commentId: null });
+      redditService.postComment.mockResolvedValue({ commentId: '' });
       postsService.patch.mockResolvedValue({} as unknown as PostDocument);
 
       await service.publishThreadChildren(
