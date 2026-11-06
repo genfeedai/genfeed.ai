@@ -1,10 +1,15 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PostingSignaturesController } from '@api/collections/posting-sets/controllers/posting-signatures.controller';
+import type { CreatePostingSignatureDto } from '@api/collections/posting-sets/dto/create-posting-signature.dto';
+import type { PostingSignaturesQueryDto } from '@api/collections/posting-sets/dto/posting-signatures-query.dto';
+import type { UpdatePostingSignatureDto } from '@api/collections/posting-sets/dto/update-posting-signature.dto';
 import type { PostingSignaturesService } from '@api/collections/posting-sets/services/posting-signatures.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { ApiKeyScope, CredentialPlatform } from '@genfeedai/contracts';
+import type { IPostingSetScope } from '@genfeedai/contracts/interfaces';
 import { ForbiddenException } from '@nestjs/common';
-
-const MUTATION_SCOPES = [ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_SCHEDULE];
+import type { Request } from 'express';
 
 vi.mock('@genfeedai/serializers', async (importOriginal) => {
   const actual =
@@ -24,28 +29,82 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
+type Signature = Record<string, unknown> & { id: string };
+
+const inScope = (row: Signature, scope: IPostingSetScope) =>
+  !row.isDeleted &&
+  row.organizationId === scope.organizationId &&
+  row.brandId === scope.brandId;
+
+/** Posting signatures stored per tenant scope, as the scoped service keeps them. */
+function createSignatures(rows: Signature[]) {
+  const findScoped = (id: string, scope: IPostingSetScope) => {
+    const row = rows.find((item) => item.id === id && inScope(item, scope));
+    if (!row) throw new NotFoundException('Posting signature', id);
+    return row;
+  };
+  return {
+    createScoped: async (
+      body: Record<string, unknown>,
+      scope: IPostingSetScope,
+    ) => {
+      const row = {
+        ...body,
+        ...scope,
+        id: `sig-${rows.length + 1}`,
+        isDeleted: false,
+      };
+      rows.push(row);
+      return row;
+    },
+    findAllScoped: async (scope: IPostingSetScope) =>
+      rows.filter((row) => inScope(row, scope)),
+    findOneScoped: async (id: string, scope: IPostingSetScope) =>
+      findScoped(id, scope),
+    removeScoped: async (id: string, scope: IPostingSetScope) => {
+      findScoped(id, scope).isDeleted = true;
+    },
+    updateScoped: async (
+      id: string,
+      body: Record<string, unknown>,
+      scope: IPostingSetScope,
+    ) => Object.assign(findScoped(id, scope), body),
+  };
+}
+
 describe('PostingSignaturesController', () => {
-  const request = {} as never;
+  const request = {} as Request;
   const user = {
     brandId: 'brand-1',
     id: 'user-1',
     isSuperAdmin: false,
     organizationId: 'org-1',
     userId: 'user-1',
-  } as never;
-  const service = {
-    createScoped: vi.fn(),
-    findAllScoped: vi.fn(),
-    findOneScoped: vi.fn(),
-    removeScoped: vi.fn(),
-    updateScoped: vi.fn(),
-  };
-  const controller = new PostingSignaturesController(
-    service as unknown as PostingSignaturesService,
-  );
+  } as unknown as User;
+  const brandQuery = { brandId: 'brand-1' } as PostingSignaturesQueryDto;
+  let rows: Signature[];
+  let controller: PostingSignaturesController;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rows = [
+      {
+        brandId: 'brand-1',
+        id: 'sig-own',
+        isDeleted: false,
+        label: 'X footer',
+        organizationId: 'org-1',
+      },
+      {
+        brandId: 'brand-2',
+        id: 'sig-foreign',
+        isDeleted: false,
+        label: 'Other footer',
+        organizationId: 'org-2',
+      },
+    ];
+    controller = new PostingSignaturesController(
+      createSignatures(rows) as unknown as PostingSignaturesService,
+    );
   });
 
   it('stamps tenant scope onto signature create', async () => {
@@ -53,16 +112,19 @@ describe('PostingSignaturesController', () => {
       body: 'Built with Genfeed.',
       label: 'X footer',
       platforms: [CredentialPlatform.TWITTER],
-    };
-    service.createScoped.mockResolvedValue({ id: 'sig-1' });
+    } as CreatePostingSignatureDto;
 
-    await controller.create(request, user, body);
+    const response = await controller.create(request, user, body);
 
-    expect(service.createScoped).toHaveBeenCalledWith(body, {
-      brandId: 'brand-1',
-      organizationId: 'org-1',
-      userId: 'user-1',
+    expect(response).toEqual({
+      data: expect.objectContaining({
+        body: 'Built with Genfeed.',
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
     });
+    expect(rows).toHaveLength(3);
   });
 
   it('rejects a cross-tenant organization override before mutation', async () => {
@@ -70,43 +132,41 @@ describe('PostingSignaturesController', () => {
       controller.update(
         request,
         user,
-        { organizationId: 'org-2' } as never,
-        'sig-1',
-        { label: 'Hijacked' } as never,
+        { organizationId: 'org-2' } as PostingSignaturesQueryDto,
+        'sig-foreign',
+        { label: 'Hijacked' } as UpdatePostingSignatureDto,
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
 
-    expect(service.updateScoped).not.toHaveBeenCalled();
+    expect(rows[1].label).toBe('Other footer');
   });
 
-  it('declares posting write scopes on every mutation route', () => {
-    for (const handler of [
-      PostingSignaturesController.prototype.create,
-      PostingSignaturesController.prototype.update,
-      PostingSignaturesController.prototype.remove,
-    ]) {
-      expect(Reflect.getMetadata(API_KEY_SCOPES_KEY, handler)).toEqual(
-        MUTATION_SCOPES,
-      );
-    }
+  it.each([
+    ['create', PostingSignaturesController.prototype.create],
+    ['update', PostingSignaturesController.prototype.update],
+    ['remove', PostingSignaturesController.prototype.remove],
+  ])('declares posting write scopes on %s', (_name, handler) => {
+    expect(Reflect.getMetadata(API_KEY_SCOPES_KEY, handler)).toEqual([
+      ApiKeyScope.POSTS_DRAFT,
+      ApiKeyScope.POSTS_SCHEDULE,
+    ]);
   });
 
-  it('passes tenant scope through signature read and remove', async () => {
-    const query = { brandId: 'brand-1' } as never;
-    service.findOneScoped.mockResolvedValue({ id: 'sig-1' });
+  it('reads and removes only signatures in the caller scope', async () => {
+    await expect(
+      controller.findOne(request, user, brandQuery, 'sig-own'),
+    ).resolves.toEqual({ data: expect.objectContaining({ id: 'sig-own' }) });
+    await expect(
+      controller.findOne(request, user, brandQuery, 'sig-foreign'),
+    ).rejects.toBeInstanceOf(NotFoundException);
 
-    await controller.findOne(request, user, query, 'sig-1');
-    await controller.remove(user, query, 'sig-1');
+    await expect(
+      controller.remove(user, brandQuery, 'sig-own'),
+    ).resolves.toEqual({ success: true });
 
-    expect(service.findOneScoped).toHaveBeenCalledWith('sig-1', {
-      brandId: 'brand-1',
-      organizationId: 'org-1',
-      userId: 'user-1',
-    });
-    expect(service.removeScoped).toHaveBeenCalledWith('sig-1', {
-      brandId: 'brand-1',
-      organizationId: 'org-1',
-      userId: 'user-1',
-    });
+    expect(rows.map((row) => row.isDeleted)).toEqual([true, false]);
+    await expect(
+      controller.findOne(request, user, brandQuery, 'sig-own'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

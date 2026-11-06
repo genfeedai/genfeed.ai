@@ -165,15 +165,74 @@ describe('DeskLightTableView', () => {
     expect(screen.queryByText('Untitled')).toBeNull();
   });
 
-  it('lays cards out on the container-query ladder, up to four columns', () => {
+  it('packs cards on the Library ordered masonry instead of a fixed grid', () => {
     renderView();
 
     const wrapper = screen.getByTestId('desk-light-table-grid');
-    const grid = wrapper.firstElementChild as HTMLElement;
 
-    expect(wrapper).toHaveClass('@container');
-    expect(grid).toHaveClass('@[80rem]:grid-cols-4', 'gap-4');
-    expect(grid.className).not.toMatch(/(^|\s)(sm|md|lg|xl):grid-cols/);
+    expect(
+      wrapper.querySelector('[data-masonry-layout="ordered"]'),
+    ).toContainElement(getCard());
+  });
+
+  it('shows a post without media as a text tile, not an empty media frame', () => {
+    renderView({
+      items: [
+        buildItem({
+          key: 'trend:text',
+          text: 'Your AI studio. Your servers. Your rules.',
+          title: undefined,
+          velocity: 0,
+        }),
+      ],
+    });
+
+    const card = within(screen.getByTestId('desk-light-card-trend:text'));
+    expect(
+      card.getByText('Your AI studio. Your servers. Your rules.'),
+    ).toBeVisible();
+    expect(card.queryByRole('img')).toBeNull();
+    expect(card.queryByText('0/h')).toBeNull();
+  });
+
+  it('shows an image post as media with its caption', () => {
+    renderView({
+      items: [
+        buildItem({
+          contentType: 'image',
+          key: 'trend:image',
+          thumbnailUrl: 'https://cdn.example.com/board.jpg',
+          title: 'Brand board',
+        }),
+      ],
+    });
+
+    const card = within(screen.getByTestId('desk-light-card-trend:image'));
+    expect(card.getByRole('img', { name: 'Brand board' })).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/board.jpg',
+    );
+    expect(card.getByText('Brand board')).toBeInTheDocument();
+  });
+
+  it('falls back to a text tile when an image post fails to load', () => {
+    renderView({
+      items: [
+        buildItem({
+          contentType: 'image',
+          key: 'trend:broken',
+          text: 'Broken preview copy',
+          thumbnailUrl: 'https://cdn.example.com/missing.jpg',
+          title: 'Broken preview',
+        }),
+      ],
+    });
+
+    const card = within(screen.getByTestId('desk-light-card-trend:broken'));
+    fireEvent.error(card.getByRole('img', { name: 'Broken preview' }));
+
+    expect(card.queryByRole('img')).toBeNull();
+    expect(card.getByText('Broken preview copy')).toBeVisible();
   });
 
   it('renders each card on the shared Card surface, without glass or lift', () => {

@@ -1,16 +1,23 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
-import { getDeskMediaSource } from '@/features/trends/desk/desk-media-source';
+import {
+  getDeskMediaAspectRatio,
+  getDeskMediaSource,
+} from '@/features/trends/desk/desk-media-source';
 import type { DeskMediaPreviewProps } from '@/features/trends/props/discovery-desk.props';
 
 export default function DeskMediaPreview({
   item,
   isActive,
-  className = '',
+  isNativeAspect = false,
+  className,
+  mediaClassName,
+  onThumbnailError,
 }: DeskMediaPreviewProps) {
   const { directUrl, embedUrl, thumbnail } = getDeskMediaSource(item);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -18,6 +25,7 @@ export default function DeskMediaPreview({
   const [isInViewport, setIsInViewport] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
   const [failedThumbnail, setFailedThumbnail] = useState<string | null>(null);
+  const [naturalAspect, setNaturalAspect] = useState<string | null>(null);
   const [failedPlayback, setFailedPlayback] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
@@ -58,20 +66,40 @@ export default function DeskMediaPreview({
 
   const isPlaying =
     isActive && isReady && isVisible && isInViewport && Boolean(playbackUrl);
+  // A masonry tile keeps the signal's own shape: video by platform, an image
+  // by its pixels once loaded (4:5 until then, the common feed ratio).
+  const aspectRatio = isNativeAspect
+    ? (getDeskMediaAspectRatio(item) ?? naturalAspect ?? '4 / 5')
+    : undefined;
   return (
     <div
       ref={containerRef}
-      className={`relative aspect-video w-full overflow-hidden rounded-lg bg-muted ${className}`}
+      className={cn(
+        'relative w-full overflow-hidden rounded-lg bg-muted',
+        !isNativeAspect && 'aspect-video',
+        className,
+      )}
+      style={aspectRatio ? { aspectRatio } : undefined}
     >
       {thumbnail && failedThumbnail !== thumbnail ? (
         <Image
           alt={item.title || item.text || ''}
-          className="object-cover"
+          className={cn('object-cover', mediaClassName)}
+          data-motion={mediaClassName ? 'allow' : undefined}
           fill
           sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 100vw"
           src={thumbnail}
           unoptimized
-          onError={() => setFailedThumbnail(thumbnail)}
+          onError={() => {
+            setFailedThumbnail(thumbnail);
+            onThumbnailError?.();
+          }}
+          onLoad={(event) => {
+            const { naturalHeight, naturalWidth } = event.currentTarget;
+            if (naturalWidth > 0 && naturalHeight > 0) {
+              setNaturalAspect(`${naturalWidth} / ${naturalHeight}`);
+            }
+          }}
         />
       ) : (
         <div className="flex size-full items-center justify-center text-muted-foreground">

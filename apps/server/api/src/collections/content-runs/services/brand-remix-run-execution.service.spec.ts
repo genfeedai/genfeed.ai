@@ -23,9 +23,17 @@ type CapturedWorkflowAction = (request: {
 const createdAt = new Date('2026-08-20T10:00:00.000Z');
 
 describe('BrandRemixRunExecutionService', () => {
+  // In-memory content_runs rows; reads match the tenant-scoped where.
+  const contentRunRows: Record<string, unknown>[] = [];
   const contentRun = {
     create: vi.fn(),
-    findFirst: vi.fn(),
+    findFirst: async ({ where }: { where: Record<string, unknown> }) =>
+      contentRunRows.find(
+        (row) =>
+          row.id === where.id &&
+          row.organizationId === where.organizationId &&
+          row.isDeleted === where.isDeleted,
+      ) ?? null,
     updateMany: vi.fn(),
   };
   const prisma = {
@@ -35,7 +43,15 @@ describe('BrandRemixRunExecutionService', () => {
     ingredient: { findMany: vi.fn(), updateMany: vi.fn() },
     sourcePost: { findFirst: vi.fn() },
   } as unknown as PrismaService;
-  const imageGenerationService = { generateImage: vi.fn() };
+  // Provider image generations and workflow runs, recorded as they happen.
+  const generatedImages: unknown[] = [];
+  const workflowRuns: unknown[] = [];
+  const registeredWorkflows: unknown[] = [];
+  const imageGenerationService = {
+    generateImage: async (...args: unknown[]) => {
+      generatedImages.push(args);
+    },
+  };
   const brandsService = {
     findOne: vi.fn(),
     resolveBrandKitAssets: vi.fn(),
@@ -52,14 +68,25 @@ describe('BrandRemixRunExecutionService', () => {
     registerAction: vi.fn((id: string, action: CapturedWorkflowAction) => {
       actions.set(id, action);
     }),
-    registerWorkflow: vi.fn(),
-    runWorkflow: vi.fn(),
+    registerWorkflow: (definition: unknown) => {
+      registeredWorkflows.push(definition);
+    },
+    runWorkflow: async (
+      request: Parameters<typeof runBrandRemixGenerateWorkflow>[0]['request'],
+    ) => {
+      workflowRuns.push(request);
+      return runBrandRemixGenerateWorkflow({ actions, request });
+    },
   };
   let execution: BrandRemixRunExecutionService;
 
   beforeEach(() => {
     vi.resetAllMocks();
     actions.clear();
+    contentRunRows.length = 0;
+    generatedImages.length = 0;
+    workflowRuns.length = 0;
+    registeredWorkflows.length = 0;
     systemWorkflowRunner.registerAction.mockImplementation(
       (id: string, action: CapturedWorkflowAction) => {
         actions.set(id, action);
@@ -116,9 +143,6 @@ describe('BrandRemixRunExecutionService', () => {
     });
     execution = graph.execution;
     execution.onModuleInit();
-    systemWorkflowRunner.runWorkflow.mockImplementation(async (request) =>
-      runBrandRemixGenerateWorkflow({ actions, request }),
-    );
   });
 
   it('registers every brand-remix.generate action exactly once', () => {
@@ -126,7 +150,7 @@ describe('BrandRemixRunExecutionService', () => {
       (id) => id.startsWith('brand-remix.generate.'),
     );
     expect([...actions.keys()].sort()).toEqual([...generateIds].sort());
-    expect(systemWorkflowRunner.registerWorkflow).toHaveBeenCalledTimes(3);
+    expect(registeredWorkflows).toHaveLength(3);
   });
 
   it('returns the live claim without redispatching while the generation lease is active', async () => {
@@ -188,7 +212,7 @@ describe('BrandRemixRunExecutionService', () => {
       },
       version: 1,
     });
-    contentRun.findFirst.mockResolvedValue({
+    contentRunRows.push({
       brandId: 'brand-1',
       config,
       createdAt,
@@ -224,19 +248,14 @@ describe('BrandRemixRunExecutionService', () => {
       { expectedRevision: 1 },
     );
 
-    expect(systemWorkflowRunner.runWorkflow).toHaveBeenCalledWith(
+    expect(workflowRuns).toEqual([
       expect.objectContaining({
         canonicalId: 'brand-remix.generate',
         source: 'BrandRemixRunsService.start',
       }),
-    );
+    ]);
     expect(result.generationClaim?.id).toBe('run-1:generate:1');
-    expect(imageGenerationService.generateImage).not.toHaveBeenCalled();
-    expect(contentRun.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 'run-1', isDeleted: false, organizationId: 'org-1' },
-      }),
-    );
+    expect(generatedImages).toEqual([]);
   });
 
   it('fails reserve-credits on mixed BYOK before any provider dispatch', async () => {
@@ -283,7 +302,7 @@ describe('BrandRemixRunExecutionService', () => {
         },
       }),
     ).rejects.toThrow(/mixed BYOK billing modes/);
-    expect(imageGenerationService.generateImage).not.toHaveBeenCalled();
+    expect(generatedImages).toEqual([]);
   });
 
   it('fails reserve-credits when aggregate credits are unavailable', async () => {
@@ -352,6 +371,6 @@ describe('BrandRemixRunExecutionService', () => {
       },
       status: 402,
     });
-    expect(imageGenerationService.generateImage).not.toHaveBeenCalled();
+    expect(generatedImages).toEqual([]);
   });
 });
