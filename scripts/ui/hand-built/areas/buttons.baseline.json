@@ -341,9 +341,6 @@
     "apps/web/src/components/workspace-shell/AgentDockHistory.tsx": {
       "button-restyle": 1
     },
-    "apps/web/src/components/workspace-shell/AgentThreadsPanel.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/src/components/workspace-shell/use-conversation-scope-controls.tsx": {
       "button-restyle": 2
     },

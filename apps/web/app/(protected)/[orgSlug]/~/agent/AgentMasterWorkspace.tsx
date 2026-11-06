@@ -143,6 +143,7 @@ export default function AgentMasterWorkspace({
           <AgentThreadsPanel
             apiService={agentApiService}
             brandId={brandId || null}
+            getThreadHref={buildThreadHref}
             hasMoreResolved={hasMoreResolved}
             isLoading={isLoading}
             isLoadingMoreResolved={isLoadingMoreResolved}
@@ -169,6 +170,7 @@ export default function AgentMasterWorkspace({
     [
       agentApiService,
       brandId,
+      buildThreadHref,
       hasMoreResolved,
       host?.contextPanel,
       isLoading,
