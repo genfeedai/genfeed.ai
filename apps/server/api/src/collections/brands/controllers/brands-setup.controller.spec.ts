@@ -5,42 +5,99 @@ import type { BrandWebsitePreviewService } from '@api/collections/brands/service
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
+interface BrandRow {
+  id: string;
+  isDeleted: boolean;
+  organizationId: string;
+  userId: string;
+}
+
 describe('BrandsSetupController', () => {
   const brandId = 'cmbrand000000000000000001';
+  const organizationId = 'cmorganization000000000000001';
   const mockUser = {
     id: 'user-123',
-    organizationId: 'cmorganization000000000000001',
+    organizationId,
     userId: 'cmuser0000000000000000001',
   } as unknown as User;
 
-  let brandSetupService: {
-    addReferenceImages: ReturnType<typeof vi.fn>;
-    setupBrand: ReturnType<typeof vi.fn>;
-  };
-  let brandWebsitePreviewService: {
-    previewWebsite: ReturnType<typeof vi.fn>;
-  };
-  let brandsService: { findOne: ReturnType<typeof vi.fn> };
+  let brands: BrandRow[];
+  let setupRuns: Array<{ brandId: string; dto: unknown; user: User }>;
+  let referenceImageRuns: Array<{
+    brandId: string;
+    images: unknown;
+    user: User;
+  }>;
+  let previewedUrls: string[];
+  let logs: Array<{ context: unknown; message: string }>;
   let controller: BrandsSetupController;
-  let loggerService: {
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-  };
+
+  // Emulates the database `where`, `OR` included, so a scope that is too
+  // broad (e.g. userId-or-org) would resolve a foreign row.
+  const matchesWhere = (
+    row: BrandRow,
+    where: Record<string, unknown>,
+  ): boolean =>
+    Object.entries(where).every(([key, value]) =>
+      key === 'OR'
+        ? (value as Record<string, unknown>[]).some((branch) =>
+            matchesWhere(row, branch),
+          )
+        : key === 'AND'
+          ? (value as Record<string, unknown>[]).every((branch) =>
+              matchesWhere(row, branch),
+            )
+          : (row as unknown as Record<string, unknown>)[key] === value,
+    );
 
   beforeEach(() => {
-    brandSetupService = {
-      addReferenceImages: vi.fn(),
-      setupBrand: vi.fn(),
+    brands = [
+      {
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+        userId: mockUser.userId,
+      },
+    ];
+    setupRuns = [];
+    referenceImageRuns = [];
+    previewedUrls = [];
+    logs = [];
+
+    const brandsService = {
+      findOne: async (where: Record<string, unknown>) =>
+        brands.find((row) => matchesWhere(row, where)) ?? null,
     };
-    brandWebsitePreviewService = {
-      previewWebsite: vi.fn(),
+    const brandSetupService = {
+      addReferenceImages: async (id: string, images: unknown, user: User) => {
+        referenceImageRuns.push({ brandId: id, images, user });
+        return { count: 0, success: true };
+      },
+      setupBrand: async (id: string, dto: unknown, user: User) => {
+        setupRuns.push({ brandId: id, dto, user });
+        return { brandId: id, success: true };
+      },
     };
-    brandsService = {
-      findOne: vi.fn().mockResolvedValue({ id: brandId }),
+    const brandWebsitePreviewService = {
+      previewWebsite: async (websiteUrl: string) => {
+        previewedUrls.push(websiteUrl);
+        return {
+          data: {
+            label: 'Acme',
+            slug: 'acme',
+            sourceUrl: websiteUrl,
+            websiteUrl,
+          },
+        };
+      },
     };
-    loggerService = {
-      error: vi.fn(),
-      log: vi.fn(),
+    const loggerService = {
+      error: (message: string, context: unknown) => {
+        logs.push({ context, message });
+      },
+      log: (message: string, context: unknown) => {
+        logs.push({ context, message });
+      },
     };
 
     controller = new BrandsSetupController(
@@ -51,74 +108,47 @@ describe('BrandsSetupController', () => {
     );
   });
 
-  it('delegates website preview mapping to the preview service', async () => {
-    const preview = {
+  it('returns the website preview for the requested URL', async () => {
+    await expect(
+      controller.previewWebsite({ websiteUrl: 'https://acme.com' }),
+    ).resolves.toEqual({
       data: {
         label: 'Acme',
         slug: 'acme',
         sourceUrl: 'https://acme.com',
         websiteUrl: 'https://acme.com',
       },
-    };
-    brandWebsitePreviewService.previewWebsite.mockResolvedValue(preview);
+    });
 
-    await expect(
-      controller.previewWebsite({ websiteUrl: 'https://acme.com' }),
-    ).resolves.toEqual(preview);
-
-    expect(brandWebsitePreviewService.previewWebsite).toHaveBeenCalledWith(
-      'https://acme.com',
-    );
-    expect(loggerService.log).toHaveBeenCalledWith(
-      'BrandsSetupController.previewWebsite started',
-      expect.objectContaining({ operation: 'previewWebsite' }),
-    );
+    expect(previewedUrls).toEqual(['https://acme.com']);
+    expect(logs).toContainEqual({
+      context: expect.objectContaining({ operation: 'previewWebsite' }),
+      message: 'BrandsSetupController.previewWebsite started',
+    });
   });
 
-  it('verifies brand access before delegating scrape orchestration', async () => {
+  it('runs scrape setup for a brand in the caller organization', async () => {
     const dto = { brandUrl: 'https://acme.com' };
-    const setupResult = { brandId, success: true };
-    brandSetupService.setupBrand.mockResolvedValue(setupResult);
 
     await expect(
       controller.scrapeBrand(mockUser, brandId, dto),
-    ).resolves.toEqual(setupResult);
+    ).resolves.toEqual({ brandId, success: true });
 
-    expect(brandsService.findOne).toHaveBeenCalledWith({
-      id: brandId,
-      isDeleted: false,
-      organizationId: mockUser.organizationId,
-    });
-    expect(brandSetupService.setupBrand).toHaveBeenCalledWith(
-      brandId,
-      dto,
-      mockUser,
-    );
+    expect(setupRuns).toEqual([{ brandId, dto, user: mockUser }]);
   });
 
-  it('verifies brand access before delegating reference image orchestration', async () => {
-    const images: never[] = [];
-    const addResult = { count: 0, success: true };
-    brandSetupService.addReferenceImages.mockResolvedValue(addResult);
-
+  it('adds reference images to a brand in the caller organization', async () => {
     await expect(
-      controller.addReferenceImages(mockUser, brandId, { images }),
-    ).resolves.toEqual(addResult);
+      controller.addReferenceImages(mockUser, brandId, { images: [] }),
+    ).resolves.toEqual({ count: 0, success: true });
 
-    expect(brandsService.findOne).toHaveBeenCalledWith({
-      id: brandId,
-      isDeleted: false,
-      organizationId: mockUser.organizationId,
-    });
-    expect(brandSetupService.addReferenceImages).toHaveBeenCalledWith(
-      brandId,
-      images,
-      mockUser,
-    );
+    expect(referenceImageRuns).toEqual([
+      { brandId, images: [], user: mockUser },
+    ]);
   });
 
-  it('does not run setup orchestration when brand access is denied', async () => {
-    brandsService.findOne.mockResolvedValue(null);
+  it('does not run setup for a soft-deleted brand', async () => {
+    brands[0] = { ...brands[0], isDeleted: true } as BrandRow;
 
     await expect(
       controller.scrapeBrand(mockUser, brandId, {
@@ -126,29 +156,32 @@ describe('BrandsSetupController', () => {
       }),
     ).rejects.toMatchObject({ status: 404 });
 
-    expect(brandSetupService.setupBrand).not.toHaveBeenCalled();
+    expect(setupRuns).toEqual([]);
   });
 
-  it('does not scrape a brand the caller created in another organization', async () => {
+  it('does not run setup for an unknown brand', async () => {
+    brands = [];
+
+    await expect(
+      controller.scrapeBrand(mockUser, brandId, {
+        brandUrl: 'https://acme.com',
+      }),
+    ).rejects.toMatchObject({ status: 404 });
+
+    expect(setupRuns).toEqual([]);
+  });
+
+  it('does not touch a brand the caller created in another organization', async () => {
     // The lookup is session-org scoped, so a brand the caller created in
     // another organization never resolves.
-    const foreignBrand = {
-      id: brandId,
-      organizationId: 'cmorganization000000000000002',
-      userId: mockUser.userId,
-    };
-    // Emulates the database `where`, `OR` included: the old userId-or-org
-    // scope matches this row, the session-org scope must not.
-    const matchesWhere = (where: Record<string, unknown>): boolean =>
-      Object.entries(where).every(([key, value]) =>
-        key === 'OR'
-          ? (value as Record<string, unknown>[]).some(matchesWhere)
-          : (foreignBrand as Record<string, unknown>)[key] === value,
-      );
-    brandsService.findOne.mockImplementation(
-      async (where: Record<string, unknown>) =>
-        matchesWhere(where) ? foreignBrand : null,
-    );
+    brands = [
+      {
+        id: brandId,
+        isDeleted: false,
+        organizationId: 'cmorganization000000000000002',
+        userId: mockUser.userId,
+      },
+    ];
 
     await expect(
       controller.scrapeBrand(mockUser, brandId, {
@@ -159,7 +192,7 @@ describe('BrandsSetupController', () => {
       controller.addReferenceImages(mockUser, brandId, { images: [] }),
     ).rejects.toMatchObject({ status: 404 });
 
-    expect(brandSetupService.setupBrand).not.toHaveBeenCalled();
-    expect(brandSetupService.addReferenceImages).not.toHaveBeenCalled();
+    expect(setupRuns).toEqual([]);
+    expect(referenceImageRuns).toEqual([]);
   });
 });
