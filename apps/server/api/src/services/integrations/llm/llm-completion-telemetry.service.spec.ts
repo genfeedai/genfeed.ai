@@ -1,17 +1,28 @@
 import { runWithWorkflowAccounting } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { LlmCompletionTelemetryService } from '@api/services/integrations/llm/llm-completion-telemetry.service';
 import type { LlmCostSettlementQueueService } from '@api/services/integrations/llm/llm-cost-settlement-queue.service';
-import { LlmVendorCostLedgerService } from '@api/services/integrations/llm/llm-vendor-cost-ledger.service';
+import type { LlmVendorCostLedgerService } from '@api/services/integrations/llm/llm-vendor-cost-ledger.service';
 import { LLM_GENERATION_TELEMETRY_EVENT } from '@genfeedai/contracts/constants';
-import type { ILlmCompletionTelemetryEvent } from '@genfeedai/contracts/interfaces';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { safeFetch } from '@libs/security/destination-guard';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type {
+  ILlmCompletionTelemetryEvent,
+  ILlmVendorCostRecordInput,
+} from '@genfeedai/contracts/interfaces';
+import type { ConfigService } from '@libs/config/config.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+interface CapturedEvent {
+  event: string;
+  properties: Record<string, unknown>;
+}
+
+const captured = vi.hoisted(() => ({ bodies: [] as string[] }));
+
 vi.mock('@libs/security/destination-guard', () => ({
-  safeFetch: vi.fn().mockResolvedValue({ ok: true }),
+  safeFetch: vi.fn(async (_url: string, init?: { body?: unknown }) => {
+    captured.bodies.push(String(init?.body));
+    return { ok: true };
+  }),
 }));
 
 const event: ILlmCompletionTelemetryEvent = {
@@ -27,22 +38,35 @@ const event: ILlmCompletionTelemetryEvent = {
   threadId: 'thread-1',
 };
 
+function capturedEvents(): CapturedEvent[] {
+  return captured.bodies.map((body) => JSON.parse(body) as CapturedEvent);
+}
+
 describe('LlmCompletionTelemetryService', () => {
-  const ledger = { record: vi.fn() };
-  const configService = { get: vi.fn() };
-  const logger = {
-    debug: vi.fn(),
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
+  let ledgerRows: ILlmVendorCostRecordInput[];
+  let isLedgerDown: boolean;
+  let queued: ILlmVendorCostRecordInput[];
+  let isQueueDown: boolean;
+  let errors: string[];
+
+  const ledger = {
+    record: async (input: ILlmVendorCostRecordInput): Promise<void> => {
+      if (isLedgerDown) {
+        throw new Error('db down');
+      }
+      ledgerRows.push(input);
+    },
   };
-
-  let service: LlmCompletionTelemetryService;
-
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    ledger.record.mockResolvedValue(undefined);
-    configService.get.mockImplementation((key: string) => {
+  const queue = {
+    enqueue: async (input: ILlmVendorCostRecordInput): Promise<void> => {
+      if (isQueueDown) {
+        throw new Error('redis down');
+      }
+      queued.push(input);
+    },
+  };
+  const configService = {
+    get: (key: string) => {
       if (key === 'POSTHOG_PROJECT_API_KEY') {
         return 'phc_testkey';
       }
@@ -50,162 +74,228 @@ describe('LlmCompletionTelemetryService', () => {
         return 'https://eu.i.posthog.com';
       }
       return '';
-    });
+    },
+  };
+  const logger = {
+    debug: () => undefined,
+    error: (message: string) => {
+      errors.push(message);
+    },
+    log: () => undefined,
+    warn: () => undefined,
+  };
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        LlmCompletionTelemetryService,
-        { provide: LlmVendorCostLedgerService, useValue: ledger },
-        { provide: ConfigService, useValue: configService },
-        { provide: LoggerService, useValue: logger },
-      ],
-    }).compile();
+  function createService(withQueue = false): LlmCompletionTelemetryService {
+    return new LlmCompletionTelemetryService(
+      ledger as unknown as LlmVendorCostLedgerService,
+      configService as unknown as ConfigService,
+      logger as unknown as LoggerService,
+      withQueue
+        ? (queue as unknown as LlmCostSettlementQueueService)
+        : undefined,
+    );
+  }
 
-    service = module.get(LlmCompletionTelemetryService);
+  beforeEach(() => {
+    captured.bodies = [];
+    ledgerRows = [];
+    isLedgerDown = false;
+    queued = [];
+    isQueueDown = false;
+    errors = [];
   });
 
   it('freezes unknown model pricing explicitly in the receipt', async () => {
-    await service.recordCompletion({ ...event, model: 'unregistered-model' });
-    expect(ledger.record).toHaveBeenCalledWith(
+    await createService().recordCompletion({
+      ...event,
+      model: 'unregistered-model',
+    });
+
+    expect(ledgerRows).toEqual([
       expect.objectContaining({
+        costEvidence: 'unknown',
         pricingSnapshot: {
-          source: 'agent_chat_model_catalog',
+          completionPerMillion: null,
           fingerprint: expect.any(String),
           promptPerMillion: null,
-          completionPerMillion: null,
+          source: 'agent_chat_model_catalog',
         },
       }),
-    );
+    ]);
   });
 
   it('persists vendor cost and captures $ai_generation without prompt content', async () => {
-    await service.recordCompletion(event);
+    await createService().recordCompletion(event);
 
-    expect(ledger.record).toHaveBeenCalledWith(
+    expect(ledgerRows).toEqual([
       expect.objectContaining({
         brandId: 'brand-1',
+        costEvidence: 'calculated',
         isByok: false,
         model: 'deepseek/deepseek-v4-flash-0731',
         organizationId: 'org-1',
         vendorCostMicros: 130,
       }),
-    );
+    ]);
 
     await vi.waitFor(() => {
-      expect(safeFetch).toHaveBeenCalled();
+      expect(captured.bodies).toHaveLength(1);
     });
-
-    const fetchArgs = vi.mocked(safeFetch).mock.calls[0];
-    const body = JSON.parse(String(fetchArgs?.[1]?.body)) as {
-      event: string;
-      properties: Record<string, unknown>;
-    };
-    expect(body.event).toBe(LLM_GENERATION_TELEMETRY_EVENT);
-    expect(JSON.stringify(body.properties)).not.toContain('SECRET');
-    expect(Object.hasOwn(body.properties, 'messages')).toBe(false);
-    expect(Object.hasOwn(body.properties, 'prompt')).toBe(false);
-    expect(Object.hasOwn(body.properties, 'completion')).toBe(false);
-    expect(Object.hasOwn(body.properties, 'content')).toBe(false);
-    expect(Object.hasOwn(body.properties, '$ai_input')).toBe(false);
-    expect(Object.hasOwn(body.properties, '$ai_output_choices')).toBe(false);
+    const [body] = capturedEvents();
+    expect(body?.event).toBe(LLM_GENERATION_TELEMETRY_EVENT);
+    const properties = body?.properties ?? {};
+    expect(properties).not.toHaveProperty('messages');
+    expect(properties).not.toHaveProperty('prompt');
+    expect(properties).not.toHaveProperty('completion');
+    expect(properties).not.toHaveProperty('content');
+    expect(properties).not.toHaveProperty('$ai_input');
+    expect(properties).not.toHaveProperty('$ai_output_choices');
   });
 
   it('records BYOK tokens with vendorCostMicros 0 and skips our COGS', async () => {
-    await service.recordCompletion({ ...event, isByok: true });
+    await createService().recordCompletion({ ...event, isByok: true });
 
-    expect(ledger.record).toHaveBeenCalledWith(
+    expect(ledgerRows).toEqual([
       expect.objectContaining({
+        costEvidence: 'byok',
         isByok: true,
         vendorCostMicros: 0,
       }),
-    );
+    ]);
   });
 
-  it('skips the ledger when organizationId is missing', async () => {
-    await service.recordCompletion({
+  it('still captures analytics but writes no ledger row without an organization', async () => {
+    await createService().recordCompletion({
       ...event,
       organizationId: undefined,
     });
 
-    expect(ledger.record).not.toHaveBeenCalled();
+    expect(ledgerRows).toEqual([]);
     await vi.waitFor(() => {
-      expect(safeFetch).toHaveBeenCalled();
+      expect(captured.bodies).toHaveLength(1);
     });
   });
 
   it('does not fail the caller when the ledger write throws', async () => {
-    ledger.record.mockRejectedValueOnce(new Error('db down'));
+    isLedgerDown = true;
 
-    await expect(service.recordCompletion(event)).resolves.toBeUndefined();
-    expect(logger.error).toHaveBeenCalled();
+    await expect(
+      createService().recordCompletion(event),
+    ).resolves.toBeUndefined();
+    expect(errors).toEqual([
+      'LlmCompletionTelemetryService failed to persist vendor cost',
+    ]);
   });
-  it('creates distinct durable intents for genuine calls and queues frozen settlements', async () => {
-    const queue = { enqueue: vi.fn().mockResolvedValue(undefined) };
-    const scopedService = new LlmCompletionTelemetryService(
-      ledger as unknown as LlmVendorCostLedgerService,
-      configService as unknown as ConfigService,
-      logger as unknown as LoggerService,
-      queue as unknown as LlmCostSettlementQueueService,
-    );
-    const ids = await runWithWorkflowAccounting(
-      {
-        organizationId: 'org-1',
-        workflowExecutionId: 'exec',
-        workflowNodeId: 'node',
-        workflowOperationId: 'attempt',
-      },
-      async () => [
-        await scopedService.beginWorkflowOperation(
+
+  describe('workflow operations', () => {
+    const accounting = {
+      organizationId: 'org-1',
+      workflowExecutionId: 'exec',
+      workflowNodeId: 'node',
+      workflowOperationId: 'attempt',
+    };
+    const context = {
+      brandId: 'brand-1',
+      runId: 'run-1',
+      threadId: 'thread-1',
+    };
+
+    async function beginTwo(
+      service: LlmCompletionTelemetryService,
+    ): Promise<Array<string | undefined>> {
+      return runWithWorkflowAccounting(accounting, async () => [
+        await service.beginWorkflowOperation(
           'org-1',
           'model',
           'openrouter',
           false,
-          { brandId: 'brand-1', runId: 'run-1', threadId: 'thread-1' },
+          context,
         ),
-        await scopedService.beginWorkflowOperation(
+        await service.beginWorkflowOperation(
           'org-1',
           'model',
           'openrouter',
           false,
-          { brandId: 'brand-1', runId: 'run-1', threadId: 'thread-1' },
+          context,
         ),
-      ],
-    );
-    expect(ledger.record).toHaveBeenCalledWith(
-      expect.objectContaining({
-        costEvidence: 'pending',
-        brandId: 'brand-1',
-        runId: 'run-1',
-        threadId: 'thread-1',
-      }),
-    );
-    expect(ids[0]).not.toBe(ids[1]);
-    expect(ledger.record).toHaveBeenCalledTimes(2);
-    await scopedService.recordCompletion({
-      ...event,
-      workflowLedgerId: ids[0],
-      vendorCostMicros: 1234,
+      ]);
+    }
+
+    it('opens one pending ledger intent per genuine call', async () => {
+      const ids = await beginTwo(createService(true));
+
+      expect(ids[0]).not.toBe(ids[1]);
+      expect(ledgerRows).toEqual([
+        expect.objectContaining({
+          brandId: 'brand-1',
+          costEvidence: 'pending',
+          runId: 'run-1',
+          threadId: 'thread-1',
+          workflowLedgerId: ids[0],
+        }),
+        expect.objectContaining({
+          costEvidence: 'pending',
+          workflowLedgerId: ids[1],
+        }),
+      ]);
     });
-    expect(queue.enqueue).toHaveBeenCalledWith(
-      expect.objectContaining({
-        workflowLedgerId: ids[0],
-        vendorCostMicros: 1234,
-        costEvidence: 'observed',
-        organizationId: 'org-1',
-      }),
-    );
-    expect(ledger.record).toHaveBeenCalledTimes(2);
-    queue.enqueue.mockRejectedValueOnce(new Error('redis down'));
-    await scopedService.recordCompletion({
-      ...event,
-      workflowLedgerId: ids[0],
-      vendorCostMicros: 1234,
+
+    it('opens no intent outside a workflow execution', async () => {
+      const id = await createService(true).beginWorkflowOperation(
+        'org-1',
+        'model',
+        'openrouter',
+        false,
+        context,
+      );
+
+      expect(id).toBeUndefined();
+      expect(ledgerRows).toEqual([]);
     });
-    expect(ledger.record).toHaveBeenCalledWith(
-      expect.objectContaining({
-        workflowLedgerId: ids[0],
+
+    it('queues the observed settlement instead of writing the ledger', async () => {
+      const service = createService(true);
+      const [ledgerId] = await beginTwo(service);
+
+      await service.recordCompletion({
+        ...event,
         vendorCostMicros: 1234,
-      }),
-    );
+        workflowLedgerId: ledgerId,
+      });
+
+      expect(queued).toEqual([
+        expect.objectContaining({
+          costEvidence: 'observed',
+          organizationId: 'org-1',
+          vendorCostMicros: 1234,
+          workflowLedgerId: ledgerId,
+        }),
+      ]);
+      expect(ledgerRows).toHaveLength(2);
+    });
+
+    it('writes the settlement directly when the queue is unavailable', async () => {
+      const service = createService(true);
+      const [ledgerId] = await beginTwo(service);
+      isQueueDown = true;
+
+      await service.recordCompletion({
+        ...event,
+        vendorCostMicros: 1234,
+        workflowLedgerId: ledgerId,
+      });
+
+      expect(queued).toEqual([]);
+      expect(ledgerRows[2]).toEqual(
+        expect.objectContaining({
+          costEvidence: 'observed',
+          vendorCostMicros: 1234,
+          workflowLedgerId: ledgerId,
+        }),
+      );
+      expect(errors).toEqual([
+        'Workflow cost settlement queue unavailable; persisting directly',
+      ]);
+    });
   });
 });
