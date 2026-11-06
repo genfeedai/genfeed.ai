@@ -1,14 +1,14 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { usePageScope } from '@hooks/navigation/use-page-scope/use-page-scope';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { readRelationshipId } from '@/features/library-remix/library-remix-reference';
 import { useIngredientSidebar } from '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 
@@ -20,20 +20,16 @@ const SAFE_IDENTIFIER_PATTERN = /^[A-Za-z0-9_-]{1,200}$/;
 // unavailable error before the real answer arrives.
 const LOOKUP_RETRY_DELAYS_MS = [400, 1200];
 
-function waitForRetry(delayMs: number, signal: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(resolve, delayMs);
-    signal.addEventListener(
-      'abort',
-      () => {
-        clearTimeout(timer);
-        reject(signal.reason);
-      },
-      { once: true },
-    );
-  });
-}
+type LinkedIngredient = Awaited<ReturnType<IngredientsService['findOne']>>;
 
+/**
+ * Opens the `?asset=` Library asset in the sidebar. The lookup is cached per
+ * organization and asset, so following the same link again opens the asset at
+ * once and refreshes the record in the background. The record is checked
+ * against the current scope on every render: a brand page opens only that
+ * brand's assets, the organization Library any brand's, and never another
+ * organization's.
+ */
 export default function AssetDeepLink() {
   const translate = useTranslations('pages.library.assetDeepLink');
   const assetId = useSearchParams().get('asset');
@@ -41,88 +37,71 @@ export default function AssetDeepLink() {
   // The organization Library spans every brand, so only a brand page pins the
   // linked asset to one.
   const isBrandScoped = usePageScope() !== 'org';
-  const { openIngredientSidebar } = useIngredientSidebar();
-  const getService = useAuthedService((token: string) =>
-    IngredientsService.getInstance(token),
-  );
-  const [state, setState] = useState<'loading' | 'opened' | 'error'>('loading');
-  const openedKey = useRef<string | null>(null);
+  const { closeIngredientSidebar, openIngredientSidebar } =
+    useIngredientSidebar();
+  const isSafeId = assetId !== null && SAFE_IDENTIFIER_PATTERN.test(assetId);
+  // Scope still settling: wait for it rather than reporting the asset gone.
+  const isScopeReady =
+    isReady && Boolean(organizationId) && (!isBrandScoped || Boolean(brandId));
+  const isLookupEnabled = isSafeId && isScopeReady;
+
+  const assetQuery = useAuthedQuery<IngredientsService, LinkedIngredient>({
+    enabled: isLookupEnabled,
+    queryFn: async (service, signal) => {
+      // A lookup superseded while it waited for its token never reaches the API.
+      signal.throwIfAborted();
+      return service.findOne(assetId ?? '', {}, signal);
+    },
+    queryKey: ['library-asset', organizationId ?? null, assetId],
+    retry: LOOKUP_RETRY_DELAYS_MS.length,
+    retryDelay: (failureCount) =>
+      LOOKUP_RETRY_DELAYS_MS[failureCount] ?? LOOKUP_RETRY_DELAYS_MS[0],
+    service: (token: string) => IngredientsService.getInstance(token),
+  });
+
+  const ingredient = isLookupEnabled ? assetQuery.data : undefined;
+  const isInScope = ingredient
+    ? ingredient.id === assetId &&
+      !ingredient.isDeleted &&
+      (!isBrandScoped ||
+        (ingredient.brandId ?? readRelationshipId(ingredient.brand)) ===
+          brandId) &&
+      (ingredient.organizationId ??
+        readRelationshipId(ingredient.organization)) === organizationId
+    : false;
+  const openKey = `${organizationId}:${brandId}:${assetId}`;
+  const [openedKey, setOpenedKey] = useState<string | null>(null);
+
+  // Once the link is gone, the same asset can be linked again.
+  useEffect(() => {
+    if (!assetId) setOpenedKey(null);
+  }, [assetId]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    async function openAsset() {
-      if (!assetId) {
-        openedKey.current = null;
-        return;
-      }
-      const key = `${organizationId}:${brandId}:${assetId}`;
-      if (openedKey.current === key) return;
-      if (!SAFE_IDENTIFIER_PATTERN.test(assetId)) {
-        setState('error');
-        return;
-      }
-      setState('loading');
-      if (!isReady) return;
-      // Scope still settling: wait for it rather than reporting the asset gone.
-      if ((isBrandScoped && !brandId) || !organizationId) return;
-      try {
-        let ingredient: Awaited<
-          ReturnType<IngredientsService['findOne']>
-        > | null = null;
-        for (let attempt = 0; ingredient === null; attempt += 1) {
-          try {
-            const service = await getService();
-            controller.signal.throwIfAborted();
-            ingredient = await service.findOne(assetId, {}, controller.signal);
-          } catch (error) {
-            const retryDelay = LOOKUP_RETRY_DELAYS_MS[attempt];
-            if (controller.signal.aborted || retryDelay === undefined) {
-              throw error;
-            }
-            await waitForRetry(retryDelay, controller.signal);
-          }
-        }
-        if (controller.signal.aborted) return;
-        const ingredientBrandId =
-          ingredient.brandId ?? readRelationshipId(ingredient.brand);
-        const ingredientOrganizationId =
-          ingredient.organizationId ??
-          readRelationshipId(ingredient.organization);
-        if (
-          ingredient.id !== assetId ||
-          ingredient.isDeleted ||
-          (isBrandScoped && ingredientBrandId !== brandId) ||
-          ingredientOrganizationId !== organizationId
-        ) {
-          setState('error');
-          return;
-        }
-        openedKey.current = key;
-        openIngredientSidebar(ingredient);
-        setState('opened');
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        logger.warn('Could not open linked library asset', {
-          error,
-          reportToSentry: false,
-        });
-        setState('error');
-      }
-    }
-    void openAsset();
-    return () => controller.abort();
-  }, [
-    assetId,
-    brandId,
-    getService,
-    isReady,
-    isBrandScoped,
-    openIngredientSidebar,
-    organizationId,
-  ]);
+    if (!ingredient || !isInScope || openedKey === openKey) return;
+    openIngredientSidebar(ingredient);
+    setOpenedKey(openKey);
+  }, [ingredient, isInScope, openIngredientSidebar, openKey, openedKey]);
 
-  if (!assetId || state === 'opened') return null;
-  if (state === 'error') {
+  // A background refresh can find the opened asset deleted or moved out of
+  // scope: close it and report it unavailable instead of keeping it open.
+  useEffect(() => {
+    if (!ingredient || isInScope || openedKey !== openKey) return;
+    closeIngredientSidebar();
+    setOpenedKey(null);
+  }, [closeIngredientSidebar, ingredient, isInScope, openKey, openedKey]);
+
+  const lookupError = isLookupEnabled ? assetQuery.error : null;
+  useEffect(() => {
+    if (!lookupError) return;
+    logger.warn('Could not open linked library asset', {
+      error: lookupError,
+      reportToSentry: false,
+    });
+  }, [lookupError]);
+
+  if (!assetId || openedKey === openKey) return null;
+  if (!isSafeId || (ingredient && !isInScope) || (lookupError && !ingredient)) {
     return (
       <Alert variant="destructive" icon={false}>
         <AlertDescription>{translate('unavailable')}</AlertDescription>

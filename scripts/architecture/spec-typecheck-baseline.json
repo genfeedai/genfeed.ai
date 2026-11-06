@@ -5169,38 +5169,6 @@
       "workspace": "web"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/publishing/content.test.tsx",
-      "fingerprint": "4c65247b978f593cf15c",
-      "message": "Type 'null' is not assignable to type '{ agentConfig: { autoPublish: { confidenceThreshold: number; enabled: boolean; }; schedule: { cronExpression: string; enabled: boolean; timezone: string; }; }; }'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2353,
-      "count": 3,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/publishing/content.test.tsx",
-      "fingerprint": "46a29ab5575b96446896",
-      "message": "Object literal may only specify known properties, and 'isApprovalRequired' does not exist in type '{ confidenceThreshold: number; enabled: boolean; }'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/publishing/content.test.tsx",
-      "fingerprint": "1b8ff404bd7dd7c70558",
-      "message": "Type '{}' is missing the following properties from type '{ autoPublish: { confidenceThreshold: number; enabled: boolean; }; schedule: { cronExpression: string; enabled: boolean; timezone: string; }; }': autoPublish, schedule",
-      "workspace": "web"
-    },
-    {
-      "code": 2739,
-      "count": 4,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/publishing/content.test.tsx",
-      "fingerprint": "57c781dc31baf8ecb75f",
-      "message": "Type '{}' is missing the following properties from type '{ autoPublish: { confidenceThreshold: number; enabled: boolean; }; schedule: { cronExpression: string; enabled: boolean; timezone: string; }; }': autoPublish, schedule",
-      "workspace": "web"
-    },
-    {
       "code": 2740,
       "count": 2,
       "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-dashboard.test.tsx",

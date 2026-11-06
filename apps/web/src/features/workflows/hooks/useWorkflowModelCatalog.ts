@@ -3,10 +3,9 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { type ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { ModelsService } from '@services/ai/models.service';
 import { logger } from '@services/core/logger.service';
-import { useEffect, useState } from 'react';
 
 interface WorkflowModelCatalogSnapshot {
   hasError: boolean;
@@ -14,39 +13,25 @@ interface WorkflowModelCatalogSnapshot {
   models: readonly IModel[];
 }
 
-const EMPTY_SNAPSHOT: WorkflowModelCatalogSnapshot = {
-  hasError: false,
-  isLoading: false,
-  models: [],
-};
+const EMPTY_MODELS: readonly IModel[] = [];
 
 /**
  * Loads the callable catalog rows for the categories one workflow action can
  * run. The picker never sees a provider: the server routes the chosen model.
+ *
+ * Cached per viewer, organization and category set, so reopening the model
+ * picker lists the catalog at once and refreshes it in the background.
  */
 export function useWorkflowModelCatalog(
   categories: readonly ModelCategory[],
 ): WorkflowModelCatalogSnapshot {
   const { organizationId } = useBrand();
-  const getModelsService = useAuthedService((token: string) =>
-    ModelsService.getInstance(token),
-  );
-  const [snapshot, setSnapshot] =
-    useState<WorkflowModelCatalogSnapshot>(EMPTY_SNAPSHOT);
   const categoryQuery = categories.join(',');
 
-  useEffect(() => {
-    if (!organizationId || !categoryQuery) {
-      setSnapshot(EMPTY_SNAPSHOT);
-      return;
-    }
-
-    const controller = new AbortController();
-    setSnapshot({ hasError: false, isLoading: true, models: [] });
-
-    void (async () => {
+  const catalogQuery = useAuthedQuery<ModelsService, readonly IModel[]>({
+    enabled: Boolean(organizationId && categoryQuery),
+    queryFn: async (service, signal) => {
       try {
-        const service = await getModelsService();
         const rows = await service.findAllPages(
           {
             categories: categoryQuery,
@@ -55,31 +40,31 @@ export function useWorkflowModelCatalog(
             organizationId,
             sort: 'label: 1',
           },
-          controller.signal,
+          signal,
         );
-        if (controller.signal.aborted) {
-          return;
-        }
         // A retired row dispatches to its successor, so it is not a choice the
         // step can honour.
-        setSnapshot({
-          hasError: false,
-          isLoading: false,
-          models: rows.filter(
-            (row) => row.lifecycle !== ModelLifecycle.RETIRED,
-          ),
-        });
+        return rows.filter((row) => row.lifecycle !== ModelLifecycle.RETIRED);
       } catch (error) {
-        if (controller.signal.aborted) {
-          return;
+        if (!signal.aborted) {
+          logger.error('Failed to load workflow model catalog', { error });
         }
-        logger.error('Failed to load workflow model catalog', { error });
-        setSnapshot({ hasError: true, isLoading: false, models: [] });
+        throw error;
       }
-    })();
+    },
+    queryKey: [
+      'workflow-model-catalog',
+      organizationId ?? null,
+      { categories: categoryQuery },
+    ],
+    service: (token: string) => ModelsService.getInstance(token),
+  });
 
-    return () => controller.abort();
-  }, [categoryQuery, getModelsService, organizationId]);
-
-  return snapshot;
+  const models = catalogQuery.data;
+  return {
+    // A failed background refresh keeps the catalog already listed.
+    hasError: catalogQuery.isError && models === undefined,
+    isLoading: catalogQuery.isLoading,
+    models: models ?? EMPTY_MODELS,
+  };
 }

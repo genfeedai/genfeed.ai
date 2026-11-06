@@ -1,14 +1,24 @@
 import { EMPTY_PAGE_TOTALS } from '@genfeedai/contracts/constants';
 import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { ContentPlanStatus } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import {
+  fireEvent,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ContentPlansSection from './ContentPlansSection';
 
 const mocks = vi.hoisted(() => ({
+  brandId: 'brand-one',
   error: vi.fn(),
   generate: vi.fn(),
   getSeeds: vi.fn(),
@@ -36,7 +46,7 @@ const EMPTY_SEED_PREVIEW = {
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
-    brandId: 'brand-one',
+    brandId: mocks.brandId,
     isReady: true,
     organizationId: 'org-one',
   }),
@@ -48,6 +58,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     getSeeds: mocks.getSeeds,
     getWeeklySummary: mocks.getWeeklySummary,
   }),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@/hooks/data/content-plans/use-content-plans', () => ({
@@ -309,6 +324,23 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+function render(ui: ReactElement, client = createTestQueryClient()) {
+  return rtlRender(ui, { wrapper: queryClientWrapper(client) });
+}
+
+const SEED_PREVIEW_WITH_ADVERTISER = {
+  ...EMPTY_SEED_PREVIEW,
+  advertisers: [
+    {
+      adCount: 3,
+      id: 'adv-1',
+      name: 'Rival Co',
+      platform: 'meta',
+      topHeadline: 'Best deal ever',
+    },
+  ],
+};
+
 function makePlan(overrides: Record<string, unknown> = {}) {
   return {
     description:
@@ -327,6 +359,7 @@ function makePlan(overrides: Record<string, unknown> = {}) {
 describe('ContentPlansSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.brandId = 'brand-one';
     mocks.refresh.mockResolvedValue(undefined);
     mocks.generate.mockResolvedValue(undefined);
     mocks.getWeeklySummary.mockResolvedValue({
@@ -553,5 +586,72 @@ describe('ContentPlansSection', () => {
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
     ).toHaveTextContent('61 plans / 5 pages');
+  });
+
+  it('shows the cached confidence and seed picker at once when the dialog is reopened', async () => {
+    mocks.getSeeds.mockResolvedValue(SEED_PREVIEW_WITH_ADVERTISER);
+    const client = createTestQueryClient();
+    const firstVisit = render(<ContentPlansSection />, client);
+    fireEvent.click(screen.getByRole('button', { name: /Generate plan now/i }));
+    await screen.findByText('confidence:low');
+    await screen.findByRole('checkbox', { name: 'seed-advertiser-adv-1' });
+    firstVisit.unmount();
+
+    mocks.getWeeklySummary.mockReturnValue(new Promise(() => {}));
+    mocks.getSeeds.mockReturnValue(new Promise(() => {}));
+    render(<ContentPlansSection />, client);
+    fireEvent.click(screen.getByRole('button', { name: /Generate plan now/i }));
+
+    expect(screen.getByText('confidence:low')).toBeVisible();
+    expect(
+      screen.getByRole('checkbox', { name: 'seed-advertiser-adv-1' }),
+    ).toBeChecked();
+  });
+
+  it('never shows one brand seeds in another brand dialog', async () => {
+    mocks.getSeeds.mockResolvedValue(SEED_PREVIEW_WITH_ADVERTISER);
+    const client = createTestQueryClient();
+    const firstVisit = render(<ContentPlansSection />, client);
+    fireEvent.click(screen.getByRole('button', { name: /Generate plan now/i }));
+    await screen.findByRole('checkbox', { name: 'seed-advertiser-adv-1' });
+    firstVisit.unmount();
+
+    mocks.brandId = 'brand-two';
+    mocks.getWeeklySummary.mockReturnValue(new Promise(() => {}));
+    mocks.getSeeds.mockReturnValue(new Promise(() => {}));
+    render(<ContentPlansSection />, client);
+    fireEvent.click(screen.getByRole('button', { name: /Generate plan now/i }));
+
+    expect(screen.queryByText('confidence:low')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', { name: 'seed-advertiser-adv-1' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps an unticked seed when the seeds refresh in the background', async () => {
+    mocks.getSeeds.mockResolvedValue(SEED_PREVIEW_WITH_ADVERTISER);
+    const client = createTestQueryClient();
+    render(<ContentPlansSection />, client);
+    fireEvent.click(screen.getByRole('button', { name: /Generate plan now/i }));
+    const advertiserCheckbox = await screen.findByRole('checkbox', {
+      name: 'seed-advertiser-adv-1',
+    });
+    fireEvent.click(advertiserCheckbox);
+
+    mocks.getSeeds.mockResolvedValue({
+      ...SEED_PREVIEW_WITH_ADVERTISER,
+      advertisers: [
+        ...SEED_PREVIEW_WITH_ADVERTISER.advertisers,
+        { adCount: 1, id: 'adv-2', name: 'Other Co', platform: 'meta' },
+      ],
+    });
+    await client.refetchQueries({ queryKey: ['content-plan-seeds'] });
+
+    expect(
+      await screen.findByRole('checkbox', { name: 'seed-advertiser-adv-2' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', { name: 'seed-advertiser-adv-1' }),
+    ).not.toBeChecked();
   });
 });
