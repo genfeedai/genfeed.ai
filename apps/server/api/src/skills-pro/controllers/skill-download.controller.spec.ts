@@ -116,7 +116,11 @@ describe('SkillDownloadController', () => {
 
   it.each([
     ['the current organization', user, 'org-1:sk_rcpt_one'],
-    ['the receipt secret without an organization', undefined, 'bearer:sk_rcpt_one'],
+    [
+      'the receipt secret without an organization',
+      undefined,
+      'bearer:sk_rcpt_one',
+    ],
     [
       'the receipt secret for a blank organization',
       { organizationId: '  ' } as AuthenticatedUser,

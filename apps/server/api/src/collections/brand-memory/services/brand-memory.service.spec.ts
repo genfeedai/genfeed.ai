@@ -217,10 +217,7 @@ describe('BrandMemoryService', () => {
         'positioning.',
       );
 
-      expect(listed.map((row) => row.id)).toEqual([
-        'memory-new',
-        'memory-old',
-      ]);
+      expect(listed.map((row) => row.id)).toEqual(['memory-new', 'memory-old']);
     });
   });
 

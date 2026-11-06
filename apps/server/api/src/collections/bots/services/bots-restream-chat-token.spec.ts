@@ -107,7 +107,9 @@ describe('BotsRestreamChatService.resolveRestreamAccessToken', () => {
     const logger = { error: () => {}, log: () => {}, warn: () => {} };
 
     return new BotsRestreamChatService(
-      { ingestTranscriptChunk: async () => undefined } as unknown as BotsLivestreamService,
+      {
+        ingestTranscriptChunk: async () => undefined,
+      } as unknown as BotsLivestreamService,
       logger as unknown as LoggerService,
       restreamService as unknown as RestreamService,
       credentialsService as unknown as CredentialsService,

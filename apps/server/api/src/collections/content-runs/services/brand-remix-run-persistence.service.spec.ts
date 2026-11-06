@@ -60,17 +60,13 @@ function readPath(value: unknown, path: string[]): unknown {
 // Emulates the Prisma JSON filters this service uses: `equals` on the whole
 // column or at a `path`, and case-insensitive `string_contains`.
 function matchesJson(value: unknown, filter: Where): boolean {
-  const target = filter.path
-    ? readPath(value, filter.path as string[])
-    : value;
+  const target = filter.path ? readPath(value, filter.path as string[]) : value;
   if ('equals' in filter) {
     return isDeepStrictEqual(target, filter.equals);
   }
   return (
     typeof target === 'string' &&
-    target
-      .toLowerCase()
-      .includes(String(filter.string_contains).toLowerCase())
+    target.toLowerCase().includes(String(filter.string_contains).toLowerCase())
   );
 }
 
@@ -122,7 +118,11 @@ describe('BrandRemixRunPersistenceService', () => {
     serializationFailures = 0;
 
     const contentRun = {
-      create: async ({ data }: { data: Omit<RunRow, 'id' | 'createdAt' | 'updatedAt'> }) => {
+      create: async ({
+        data,
+      }: {
+        data: Omit<RunRow, 'id' | 'createdAt' | 'updatedAt'>;
+      }) => {
         if (serializationFailures > 0) {
           serializationFailures -= 1;
           throw { code: 'P2034' };
@@ -191,9 +191,9 @@ describe('BrandRemixRunPersistenceService', () => {
   it('returns a run inside the tenant organization', async () => {
     runs = [run('run-1')];
 
-    await expect(persistence.requireRun('org-1', 'run-1')).resolves.toMatchObject(
-      { id: 'run-1', organizationId: 'org-1' },
-    );
+    await expect(
+      persistence.requireRun('org-1', 'run-1'),
+    ).resolves.toMatchObject({ id: 'run-1', organizationId: 'org-1' });
   });
 
   it.each([

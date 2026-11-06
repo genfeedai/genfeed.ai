@@ -110,7 +110,10 @@ describe('ContentGatewayService', () => {
     expect(result).toEqual({
       executions: ['execution-1'],
       posts: [
-        { description: 'draft from content-writing', id: 'post-for-execution-1' },
+        {
+          description: 'draft from content-writing',
+          id: 'post-for-execution-1',
+        },
       ],
     });
     expect(savedPosts).toEqual([
@@ -158,7 +161,10 @@ describe('ContentGatewayService', () => {
     expect(result).toEqual({
       executions: ['execution-1'],
       posts: [
-        { description: 'draft from content-writing', id: 'post-for-execution-1' },
+        {
+          description: 'draft from content-writing',
+          id: 'post-for-execution-1',
+        },
       ],
     });
     expect(skillRuns).toEqual([
