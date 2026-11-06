@@ -4,10 +4,9 @@ import {
   AGENT_ASSISTANT_PROSE_CLASS,
   AGENT_CONVERSATION_INLINE_ROW_CLASS,
   AGENT_CONVERSATION_SCROLL_CLASS,
-  AGENT_CONVERSATION_STICKY_USER_TURN_CLASS,
   AGENT_CONVERSATION_SURFACE_CLASS,
   AGENT_CONVERSATION_TRACK_CLASS,
-  AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS,
+  AGENT_CONVERSATION_USER_BUBBLE_CLASS,
 } from './conversation-layout.constant';
 
 describe('conversation-layout.constant', () => {
@@ -29,35 +28,10 @@ describe('conversation-layout.constant', () => {
     expect(AGENT_CONVERSATION_INLINE_ROW_CLASS).not.toContain('border');
   });
 
-  it('bleeds the user prompt to the conversation track without owning card chrome', () => {
-    expect(AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS).toContain('-mx-3');
-    expect(AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS).toContain(
-      'w-[calc(100%+1.5rem)]',
-    );
-    expect(AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS).not.toContain(
-      'bg-card',
-    );
-    expect(AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS).not.toContain(
-      'rounded-xl',
-    );
-    expect(AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS).not.toContain('border');
-    expect(AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS).not.toContain('shadow');
-  });
-
-  it('keeps a masked spacing step above the sticky user prompt', () => {
-    expect(AGENT_CONVERSATION_SCROLL_CLASS).toContain(
-      'scrollbar-gutter:stable_both-edges',
-    );
-    expect(AGENT_CONVERSATION_SCROLL_CLASS).toContain(
-      '--agent-conversation-sticky-top:0.75rem',
-    );
-    expect(AGENT_CONVERSATION_STICKY_USER_TURN_CLASS).toContain('sticky');
-    expect(AGENT_CONVERSATION_STICKY_USER_TURN_CLASS).toContain(
-      'before:-top-3',
-    );
-    expect(AGENT_CONVERSATION_STICKY_USER_TURN_CLASS).toContain(
-      'before:bg-background',
-    );
+  it('sizes the user message to its text on the right, never pinned', () => {
+    expect(AGENT_CONVERSATION_USER_BUBBLE_CLASS).toContain('w-fit');
+    expect(AGENT_CONVERSATION_USER_BUBBLE_CLASS).toContain('max-w-[85%]');
+    expect(AGENT_CONVERSATION_USER_BUBBLE_CLASS).not.toContain('sticky');
   });
 
   it('lays the scroll region out as a column so the composer anchors to the bottom', () => {

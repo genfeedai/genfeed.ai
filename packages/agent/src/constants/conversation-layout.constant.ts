@@ -9,53 +9,27 @@ export const AGENT_CONVERSATION_TRACK_CLASS =
   'mx-auto w-full min-w-0 max-w-3xl px-3 sm:px-4';
 
 /**
- * Sticky user prompts pin to this inset so banners/toolbars can push them
- * down without touching the message component (Cursor `--composer-messages-top-inset`).
- */
-export const AGENT_CONVERSATION_STICKY_TOP_CLASS =
-  'top-[var(--agent-conversation-sticky-top,0px)]';
-
-/**
  * Scroll region: contain overscroll, disable browser scroll anchoring, and
  * reserve equal scrollbar gutters so the transcript stays centered on the
- * docked composer when a vertical scrollbar is present.
- * `--agent-conversation-sticky-top` is the Cursor-style inset for sticky
- * user prompts; override on this node when a banner sits above the transcript.
- * A flex column lets the transcript grow so the column footer (composer)
- * stays at the bottom of a short conversation instead of floating under it.
+ * composer when a vertical scrollbar is present. Only the transcript scrolls:
+ * the composer is a sibling below it, never inside it, so nothing the
+ * transcript does can move the prompt bar.
  */
 export const AGENT_CONVERSATION_SCROLL_CLASS =
-  'flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain [overflow-anchor:none] [scrollbar-gutter:stable_both-edges] [--agent-conversation-sticky-top:0.75rem]';
-
-/**
- * Off-screen assistant/work rows skip paint via content-visibility while
- * keeping an intrinsic height so sticky turns stay stable.
- */
-export const AGENT_TIMELINE_DEFERRED_CLASS =
-  '[content-visibility:auto] [contain-intrinsic-size:auto_160px]';
+  'flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain [overflow-anchor:none] [scrollbar-gutter:stable_both-edges]';
 
 /** Timeline product cards — not the docked composer (`--radius-workspace-composer`). */
 export const AGENT_CONVERSATION_SURFACE_RADIUS_CLASS = 'rounded-xl';
 
 /**
- * Bleed the user Card to the conversation track so it shares *width* with the
- * composer. Chrome comes from `@ui/card/Card`, not this string.
+ * The user's message: a compact bubble on the right of the track, sized to its
+ * text (Claude desktop). It scrolls with the transcript; it never pins.
  */
-export const AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS =
-  '-mx-3 w-[calc(100%+1.5rem)] max-w-none sm:-mx-4 sm:w-[calc(100%+2rem)]';
+export const AGENT_CONVERSATION_USER_BUBBLE_CLASS =
+  'w-fit max-w-[85%] rounded-2xl bg-tertiary px-4 py-2.5 text-card-foreground';
 
 /** Assistant body — solid foreground so faded /90–/92 type cannot wash out. */
 export const AGENT_ASSISTANT_PROSE_CLASS = 'text-sm leading-6 text-foreground';
-
-/**
- * Pins the user prompt to the scrollport and paints the canvas behind it so
- * assistant lines cannot show through the card's rounded corners.
- */
-export const AGENT_CONVERSATION_STICKY_USER_TURN_CLASS = [
-  'sticky',
-  AGENT_CONVERSATION_STICKY_TOP_CLASS,
-  "z-10 justify-start bg-background pb-2 before:pointer-events-none before:absolute before:inset-x-0 before:-top-3 before:h-3 before:bg-background before:content-['']",
-].join(' ');
 
 /**
  * Shared agent timeline card chrome — card plane, T3/Codex density

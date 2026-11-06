@@ -1,15 +1,17 @@
 import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
-import { Clipboard, RefreshCw, Sparkles } from 'lucide-react';
+import { Copy, RefreshCw, Sparkles } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 type AgentChatMessageFooterProps = {
   isUser: boolean;
-  metaItems: string[];
+  /** Wall-clock label, e.g. "14:37". */
+  time: string;
+  /** ISO timestamp behind the label. */
+  dateTime: string;
   shouldShowAssistantActions: boolean;
   isBusy: boolean;
   copyContent: string;
@@ -19,9 +21,19 @@ type AgentChatMessageFooterProps = {
   onRemember?: (message: AgentChatMessage) => void;
 };
 
+const ACTION_ICON_CLASS = 'size-3.5';
+
+/**
+ * The quiet row under a message, as in Claude desktop: its time and its
+ * actions on one line, attached to the message (right under a user bubble,
+ * left under an assistant reply). It shows while the message is hovered or
+ * focused, and always on touch. The row keeps its height when hidden, so
+ * hovering never shifts the transcript.
+ */
 export function AgentChatMessageFooter({
   isUser,
-  metaItems,
+  time,
+  dateTime,
   shouldShowAssistantActions,
   isBusy,
   copyContent,
@@ -29,95 +41,62 @@ export function AgentChatMessageFooter({
   onCopy,
   onRetry,
   onRemember,
-}: AgentChatMessageFooterProps): ReactElement | null {
-  const showUserActions = isUser && Boolean(onCopy || onRetry);
-  const showAssistantActions = !isUser && shouldShowAssistantActions;
-  // Assistant duration lives on TimelineWorkGroup *after* the answer.
-  // User footer: wall-clock + copy/retry. Assistant footer: actions only.
-  if (
-    !showUserActions &&
-    !showAssistantActions &&
-    !(isUser && metaItems.length)
-  ) {
-    return null;
-  }
+}: AgentChatMessageFooterProps): ReactElement {
+  const canAct = isUser || shouldShowAssistantActions;
+  const hasCopy = canAct && Boolean(onCopy);
+  const hasRetry = canAct && Boolean(onRetry);
+  const hasRemember = !isUser && shouldShowAssistantActions && onRemember;
 
-  const actionButtons = (
+  return (
     <div
       className={cn(
-        'flex items-center gap-1 transition-opacity',
-        hoverRevealClassName(),
+        'flex h-7 items-center gap-0.5 text-xs text-muted-foreground transition-opacity',
+        isUser ? 'flex-row-reverse self-end' : 'self-start',
+        hoverRevealClassName({ focus: 'group' }),
       )}
+      data-testid="agent-message-footer"
     >
-      {onCopy ? (
+      <time className="px-1.5 tabular-nums" dateTime={dateTime}>
+        {time}
+      </time>
+      {hasCopy && onCopy ? (
         <Button
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
           isDisabled={isBusy || copyContent.length === 0}
           tooltip="Copy"
-          tooltipPosition="top"
+          tooltipPosition="bottom"
           ariaLabel="Copy message"
           onClick={() => onCopy(copyContent)}
         >
-          <Clipboard className="size-3.5" />
+          <Copy className={ACTION_ICON_CLASS} />
         </Button>
       ) : null}
-      {onRetry ? (
+      {hasRetry && onRetry ? (
         <Button
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
           isDisabled={isBusy}
           tooltip="Retry"
-          tooltipPosition="top"
+          tooltipPosition="bottom"
           ariaLabel="Retry message"
           onClick={() => onRetry(message)}
         >
-          <RefreshCw className="size-3.5" />
+          <RefreshCw className={ACTION_ICON_CLASS} />
         </Button>
       ) : null}
-      {!isUser && onRemember ? (
+      {hasRemember ? (
         <Button
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
           isDisabled={isBusy}
           tooltip="Remember this message"
-          tooltipPosition="top"
+          tooltipPosition="bottom"
           ariaLabel="Remember message"
           onClick={() => onRemember(message)}
         >
-          <Sparkles className="size-3.5 text-primary" />
+          <Sparkles className={ACTION_ICON_CLASS} />
         </Button>
-      ) : null}
-    </div>
-  );
-
-  return (
-    <div
-      className={cn(
-        'flex items-center justify-between gap-2 text-2xs',
-        // User footer sits after the sticky prompt's own bottom padding.
-        !isUser && 'mt-2.5',
-      )}
-    >
-      {isUser ? (
-        <div className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
-          {keyListItems(metaItems, (item) => item).map(
-            ({ item, key }, index) => (
-              <span key={key} className="inline-flex items-center">
-                {index > 0 ? (
-                  <span className="mr-1.5 text-muted-foreground">•</span>
-                ) : null}
-                {index === 0 ? <time>{item}</time> : item}
-              </span>
-            ),
-          )}
-        </div>
-      ) : (
-        <div />
-      )}
-
-      {showUserActions || showAssistantActions ? (
-        <div className="ml-auto shrink-0">{actionButtons}</div>
       ) : null}
     </div>
   );

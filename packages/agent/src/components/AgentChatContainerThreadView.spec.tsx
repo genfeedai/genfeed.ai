@@ -151,7 +151,6 @@ describe('AgentChatContainerThreadView', () => {
         isBusy={false}
         isCreatingFollowUpTasks={false}
         isGenerating={false}
-        isWideLayout={false}
         isReadOnly={false}
         isStreamingActive={false}
         isSubmittingInputRequest={false}

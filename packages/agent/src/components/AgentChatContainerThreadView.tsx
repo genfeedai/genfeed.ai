@@ -1,7 +1,6 @@
 'use client';
 
 import { AgentChatTimeline } from '@genfeedai/agent/components/AgentChatTimeline';
-import { AgentConversationTurnNavigator } from '@genfeedai/agent/components/AgentConversationTurnNavigator';
 import { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInputRequestOverlay';
 import type { AgentPlanDecision } from '@genfeedai/agent/components/AgentPlanCard';
 import { AgentWorkObjects } from '@genfeedai/agent/components/AgentWorkObjects';
@@ -25,14 +24,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { ArrowDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import {
-  type ReactElement,
-  type ReactNode,
-  type RefObject,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import type { ReactElement, ReactNode, RefObject } from 'react';
 
 export type AgentChatContainerThreadViewProps = {
   activeThreadTitle: string | null;
@@ -43,7 +35,6 @@ export type AgentChatContainerThreadViewProps = {
   isBusy: boolean;
   isCreatingFollowUpTasks: boolean;
   isGenerating: boolean;
-  isWideLayout: boolean;
   isReadOnly: boolean;
   isStreamingActive: boolean;
   isSubmittingInputRequest: boolean;
@@ -81,8 +72,8 @@ export type AgentChatContainerThreadViewProps = {
   showFollowUpButton: boolean;
   timeline: TimelineEntry[];
   /**
-   * Composer under the transcript. A settled thread keeps it in the scroll so
-   * a short conversation stays in flow.
+   * Composer under the transcript, anchored at the bottom of the column and
+   * outside the transcript's scroll.
    */
   columnFooter?: ReactNode;
 };
@@ -101,7 +92,6 @@ export function AgentChatContainerThreadView({
   isBusy,
   isCreatingFollowUpTasks,
   isGenerating,
-  isWideLayout,
   isReadOnly,
   isStreamingActive,
   isSubmittingInputRequest,
@@ -151,32 +141,6 @@ export function AgentChatContainerThreadView({
         }
       />
     ) : null;
-  const columnFooterRef = useRef<HTMLDivElement>(null);
-  const [hasContentBehindComposer, setHasContentBehindComposer] =
-    useState(false);
-  const hasColumnFooter = columnFooter != null;
-  useEffect(() => {
-    const scroll = scrollContainerRef.current;
-    if (!hasColumnFooter || !scroll) {
-      setHasContentBehindComposer(false);
-      return;
-    }
-    const update = () => {
-      const footerHeight = columnFooterRef.current?.offsetHeight ?? 0;
-      const distance =
-        scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight;
-      setHasContentBehindComposer(distance > footerHeight + 8);
-    };
-    update();
-    scroll.addEventListener('scroll', update, { passive: true });
-    const observer = new ResizeObserver(update);
-    observer.observe(scroll);
-    if (columnFooterRef.current) observer.observe(columnFooterRef.current);
-    return () => {
-      scroll.removeEventListener('scroll', update);
-      observer.disconnect();
-    };
-  }, [hasColumnFooter, scrollContainerRef]);
   const inputCard =
     pendingInputRequest && shouldShowInputRequestOverlay ? (
       <div>
@@ -199,19 +163,14 @@ export function AgentChatContainerThreadView({
         isReadOnly && 'opacity-60',
       )}
     >
-      {isWideLayout ? (
-        <AgentConversationTurnNavigator
-          scrollContainerRef={scrollContainerRef}
-          timeline={timeline}
-        />
-      ) : null}
       {/* Scroll owns the full pane width so the scrollbar is flush to the
           window edge (Codex). Content re-centers on AGENT_CONVERSATION_TRACK. */}
       <div ref={scrollContainerRef} className={AGENT_CONVERSATION_SCROLL_CLASS}>
         <div
           className={cn(AGENT_CONVERSATION_TRACK_CLASS, 'grow space-y-1 pt-4')}
           data-composer-padding={String(composerTranscriptPaddingPx)}
-          style={{ paddingBottom: composerTranscriptPaddingPx }}
+          // The last row keeps a little air above the composer below it.
+          style={{ paddingBottom: Math.max(composerTranscriptPaddingPx, 16) }}
         >
           {/* Thread title lives in the shell topbar — no second title chrome. */}
           {activeThreadTitle ? (
@@ -249,33 +208,32 @@ export function AgentChatContainerThreadView({
             suppressThinkingPlaceholder={padBottomForComposer}
           />
         </div>
-        {hasColumnFooter ? (
-          <div
-            className={cn(
-              'z-20 shrink-0',
-              hasContentBehindComposer && 'sticky bottom-0 bg-background',
-            )}
-            data-composer-overlap={hasContentBehindComposer ? 'true' : 'false'}
-            data-testid="agent-column-composer"
-            ref={columnFooterRef}
-          >
-            {!isAtBottom ? (
-              <div className="pointer-events-none absolute inset-x-0 bottom-full z-20 flex justify-center pb-2">
-                <Button
-                  ariaLabel={translate('scrollToLatest')}
-                  className="pointer-events-auto rounded-md border border-border/70 bg-background/90 text-foreground/80 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm"
-                  icon={<ArrowDown className="size-4" />}
-                  onClick={scrollToBottom}
-                  size={ButtonSize.ICON}
-                  variant={ButtonVariant.GHOST}
-                  withWrapper={false}
-                />
-              </div>
-            ) : null}
-            {columnFooter}
-          </div>
-        ) : null}
       </div>
+
+      {columnFooter != null ? (
+        // The composer is the column's footer, a sibling of the transcript
+        // scroll: it stays anchored at the bottom whatever the transcript
+        // holds (Claude desktop). Only the transcript above it scrolls.
+        <div
+          className="relative z-20 shrink-0 bg-background"
+          data-testid="agent-column-composer"
+        >
+          {!isAtBottom ? (
+            <div className="pointer-events-none absolute inset-x-0 bottom-full z-20 flex justify-center pb-2">
+              <Button
+                ariaLabel={translate('scrollToLatest')}
+                className="pointer-events-auto rounded-full border border-border/70 bg-background/90 text-foreground/80 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm"
+                icon={<ArrowDown className="size-4" />}
+                onClick={scrollToBottom}
+                size={ButtonSize.ICON}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            </div>
+          ) : null}
+          {columnFooter}
+        </div>
+      ) : null}
 
       {!isAtBottom && !columnFooter ? (
         <div
@@ -287,7 +245,7 @@ export function AgentChatContainerThreadView({
             size={ButtonSize.ICON}
             icon={<ArrowDown className="size-4" />}
             ariaLabel={translate('scrollToLatest')}
-            className="pointer-events-auto rounded-md border border-border/70 bg-background/90 text-foreground/80 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm"
+            className="pointer-events-auto rounded-full border border-border/70 bg-background/90 text-foreground/80 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm"
             withWrapper={false}
             onClick={scrollToBottom}
           />
