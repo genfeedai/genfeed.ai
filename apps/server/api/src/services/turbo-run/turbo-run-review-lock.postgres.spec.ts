@@ -1,7 +1,7 @@
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { Pool } from 'pg';
-import { afterAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { TurboRunReviewLockService } from './turbo-run-review-lock';
 
 // Explicit opt-in only: a disposable database, never DATABASE_URL. Advisory
@@ -47,9 +47,47 @@ describe.skipIf(!connectionString)(
         );
         return rows[0]?.acquired === true;
       } finally {
-        await client.query('ROLLBACK');
-        client.release();
+        try {
+          await client.query('ROLLBACK');
+          client.release();
+        } catch {
+          // A client whose rollback failed may still hold the lock; destroy it.
+          client.release(true);
+        }
       }
+    }
+
+    /**
+     * Starts a review that holds `runId` until it is released. If the test
+     * fails before releasing it, the review is released and awaited anyway so
+     * its lock session never outlives the test.
+     */
+    async function holdReview(
+      service: TurboRunReviewLockService,
+      runId: string,
+      timeline?: string[],
+    ): Promise<{ release: () => Promise<void> }> {
+      let releaseHold: () => void = () => undefined;
+      const hold = new Promise<void>((resolve) => {
+        releaseHold = resolve;
+      });
+      let markStarted: () => void = () => undefined;
+      const started = new Promise<void>((resolve) => {
+        markStarted = resolve;
+      });
+      const review = service.run([runId], organizationId, async () => {
+        timeline?.push('first starts');
+        markStarted();
+        await hold;
+        timeline?.push('first ends');
+      });
+      const release = async () => {
+        releaseHold();
+        await review;
+      };
+      onTestFinished(() => release().catch(() => undefined));
+      await started;
+      return { release };
     }
 
     /** Ends the database session that holds the run's review lock. */
@@ -83,32 +121,19 @@ describe.skipIf(!connectionString)(
     });
 
     it('makes a second review of the same run wait for the first', async () => {
-      const first = lockService();
-      const second = lockService();
       const timeline: string[] = [];
-      let releaseFirst: () => void = () => undefined;
-      const firstHolds = new Promise<void>((resolve) => {
-        releaseFirst = resolve;
-      });
-      let markFirstStarted: () => void = () => undefined;
-      const firstStarted = new Promise<void>((resolve) => {
-        markFirstStarted = resolve;
-      });
-
-      const firstReview = first.run(['run-c'], organizationId, async () => {
-        timeline.push('first starts');
-        markFirstStarted();
-        await firstHolds;
-        timeline.push('first ends');
-      });
-      await firstStarted;
-      const secondReview = second.run(['run-c'], organizationId, async () => {
-        timeline.push('second starts');
-      });
+      const first = await holdReview(lockService(), 'run-c', timeline);
+      const secondReview = lockService().run(
+        ['run-c'],
+        organizationId,
+        async () => {
+          timeline.push('second starts');
+        },
+      );
       await new Promise((resolve) => setTimeout(resolve, 300));
       timeline.push('first released');
-      releaseFirst();
-      await Promise.all([firstReview, secondReview]);
+      await first.release();
+      await secondReview;
 
       expect(timeline).toEqual([
         'first starts',
@@ -119,31 +144,12 @@ describe.skipIf(!connectionString)(
     });
 
     it('lets reviews of different runs proceed side by side', async () => {
-      const first = lockService();
-      const second = lockService();
       const timeline: string[] = [];
-      let releaseFirst: () => void = () => undefined;
-      const firstHolds = new Promise<void>((resolve) => {
-        releaseFirst = resolve;
-      });
-
-      let markFirstStarted: () => void = () => undefined;
-      const firstStarted = new Promise<void>((resolve) => {
-        markFirstStarted = resolve;
-      });
-
-      const firstReview = first.run(['run-d'], organizationId, async () => {
-        timeline.push('first starts');
-        markFirstStarted();
-        await firstHolds;
-        timeline.push('first ends');
-      });
-      await firstStarted;
-      await second.run(['run-e'], organizationId, async () => {
+      const first = await holdReview(lockService(), 'run-d', timeline);
+      await lockService().run(['run-e'], organizationId, async () => {
         timeline.push('second runs');
       });
-      releaseFirst();
-      await firstReview;
+      await first.release();
 
       expect(timeline).toEqual(['first starts', 'second runs', 'first ends']);
     });
@@ -203,27 +209,11 @@ describe.skipIf(!connectionString)(
     });
 
     it('gives up with a retry message when another review holds the run', async () => {
-      const holder = lockService();
-      const waiter = lockService();
-      let releaseHolder: () => void = () => undefined;
-      const holderHolds = new Promise<void>((resolve) => {
-        releaseHolder = resolve;
-      });
-      let markHolderStarted: () => void = () => undefined;
-      const holderStarted = new Promise<void>((resolve) => {
-        markHolderStarted = resolve;
-      });
-
-      const holding = holder.run(['run-k'], organizationId, async () => {
-        markHolderStarted();
-        await holderHolds;
-      });
-      await holderStarted;
-      const waited = await waiter
+      const holder = await holdReview(lockService(), 'run-k');
+      const waited = await lockService()
         .run(['run-k'], organizationId, async () => 'ran')
         .catch((error: Error) => error.message);
-      releaseHolder();
-      await holding;
+      await holder.release();
 
       expect(waited).toBe('This review is updating. Try again.');
     }, 15_000);
