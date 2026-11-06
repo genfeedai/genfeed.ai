@@ -1169,22 +1169,6 @@
       "workspace": "api"
     },
     {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/server/api/src/collections/evaluations/controllers/evaluations.controller.spec.ts",
-      "fingerprint": "4b8097a65850b02da92b",
-      "message": "Type '{}' is missing the following properties from type 'EvaluateContentDto': contentType, contentId",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 2,
-      "file": "apps/server/api/src/collections/evaluations/controllers/evaluations.controller.spec.ts",
-      "fingerprint": "aec67aaddb89ed00098f",
-      "message": "Type '{ evaluationType: EvaluationType.PRE_PUBLICATION; }' is missing the following properties from type 'EvaluateContentDto': contentType, contentId",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/evaluations/services/evaluations-operations.service.spec.ts",
