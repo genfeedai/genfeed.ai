@@ -1,203 +1,229 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { DistributionsController } from '@api/collections/distributions/controllers/distributions.controller';
+import type { DistributionsService } from '@api/collections/distributions/services/distributions.service';
+import type { TelegramDistributionService } from '@api/services/distribution/telegram/telegram-distribution.service';
 import {
   DistributionContentType,
   DistributionPlatform,
   PublishStatus,
 } from '@genfeedai/contracts';
-import { testId } from '@helpers/testing/test-id.helper';
+import { NotFoundException } from '@nestjs/common';
 import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock serializers to avoid real serialization in unit tests
-vi.mock('@genfeedai/serializers', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@genfeedai/serializers')>();
-  return {
-    ...actual,
-    DistributionSerializer: {
-      opts: {},
-      serialize: vi.fn((data) => data),
-    },
-  };
-});
-
-// Mock response util to return data directly
+// The response layer is out of scope: hand back what the controller read.
 vi.mock('@api/helpers/utils/response/response.util', () => ({
-  serializeCollection: vi.fn((_req, _serializer, data) => data),
-  serializeSingle: vi.fn((_req, _serializer, data) => data),
+  serializeCollection: (_req: unknown, _serializer: unknown, data: unknown) =>
+    data,
+  serializeSingle: (_req: unknown, _serializer: unknown, data: unknown) => data,
 }));
 
-const ORG_ID = testId('entity').toString();
-const USER_ID = testId('entity').toString();
-
-function createMockUser() {
-  return {
-    brandId: testId('entity').toString(),
-    organizationId: ORG_ID,
-    userId: USER_ID,
-  };
+interface Distribution {
+  chatId?: string;
+  id: string;
+  organizationId: string;
+  platform: DistributionPlatform;
+  scheduledAt?: Date;
+  status: PublishStatus;
+  text?: string;
+  userId?: string;
 }
 
-function createMocks() {
-  const distributionsService = {
-    cancelScheduled: vi.fn().mockResolvedValue({
-      _id: testId('entity'),
-      status: PublishStatus.CANCELLED,
-    }),
-    findByOrganization: vi.fn().mockResolvedValue({
-      docs: [],
-      total: 0,
-    }),
-    findOneByOrganization: vi.fn().mockResolvedValue({
-      _id: testId('entity'),
-      platform: DistributionPlatform.TELEGRAM,
-    }),
-  };
-
-  const telegramDistributionService = {
-    schedule: vi.fn().mockResolvedValue({
-      distributionId: testId('entity').toString(),
-    }),
-    sendImmediate: vi.fn().mockResolvedValue({
-      distributionId: testId('entity').toString(),
-      telegramMessageId: '42',
-    }),
-  };
-
-  return { distributionsService, telegramDistributionService };
-}
+const user = {
+  brandId: 'brand-1',
+  organizationId: 'org-1',
+  userId: 'user-1',
+} as unknown as User;
+const req = { originalUrl: '/distributions' } as unknown as Request;
+const message = {
+  chatId: '-1001234567890',
+  contentType: DistributionContentType.TEXT,
+  platform: DistributionPlatform.TELEGRAM,
+};
 
 describe('DistributionsController', () => {
   let controller: DistributionsController;
-  let mocks: ReturnType<typeof createMocks>;
+  let distributions: Map<string, Distribution>;
 
-  const mockReq = { originalUrl: '/distributions' } as unknown as Request;
+  const seed = (row: Distribution) => distributions.set(row.id, row);
 
   beforeEach(() => {
-    mocks = createMocks();
+    distributions = new Map();
+    const record = (
+      options: Omit<Distribution, 'id' | 'platform' | 'status'>,
+      status: PublishStatus,
+    ) => {
+      const row = {
+        ...options,
+        id: `distribution-${distributions.size + 1}`,
+        platform: DistributionPlatform.TELEGRAM,
+        status,
+      };
+      distributions.set(row.id, row);
+      return { distributionId: row.id };
+    };
+    const ownRow = (id: string, organizationId: string) => {
+      const row = distributions.get(id);
+      return row?.organizationId === organizationId ? row : null;
+    };
+
+    const distributionsService = {
+      cancelScheduled: async (id: string, organizationId: string) => {
+        const row = ownRow(id, organizationId);
+        if (row?.status !== PublishStatus.SCHEDULED) {
+          throw new NotFoundException('Scheduled distribution not found');
+        }
+        row.status = PublishStatus.CANCELLED;
+        return row;
+      },
+      findByOrganization: async (
+        organizationId: string,
+        filters: { platform?: DistributionPlatform; status?: PublishStatus },
+        page: number,
+        limit: number,
+      ) => {
+        const docs = [...distributions.values()].filter(
+          (row) =>
+            row.organizationId === organizationId &&
+            (!filters.platform || row.platform === filters.platform) &&
+            (!filters.status || row.status === filters.status),
+        );
+        return {
+          docs: docs.slice((page - 1) * limit, page * limit),
+          total: docs.length,
+        };
+      },
+      findOneByOrganization: async (id: string, organizationId: string) =>
+        ownRow(id, organizationId),
+    };
+    const telegram = {
+      schedule: async (
+        options: Omit<Distribution, 'id' | 'platform' | 'status'>,
+      ) => record(options, PublishStatus.SCHEDULED),
+      sendImmediate: async (
+        options: Omit<Distribution, 'id' | 'platform' | 'status'>,
+      ) => ({
+        ...record(options, PublishStatus.PUBLISHED),
+        telegramMessageId: '42',
+      }),
+    };
+
     controller = new DistributionsController(
-      mocks.distributionsService as never,
-      mocks.telegramDistributionService as never,
+      distributionsService as unknown as DistributionsService,
+      telegram as unknown as TelegramDistributionService,
     );
   });
 
   describe('create', () => {
-    it('should dispatch immediate send when scheduledAt is absent', async () => {
-      const user = createMockUser();
-
-      await controller.create(
-        {
-          chatId: '-1001234567890',
-          contentType: DistributionContentType.TEXT,
-          platform: DistributionPlatform.TELEGRAM,
-          text: 'Hello',
-        },
-        user as never,
-      );
-
-      expect(
-        mocks.telegramDistributionService.sendImmediate,
-      ).toHaveBeenCalledWith(
-        expect.objectContaining({
-          chatId: '-1001234567890',
-          contentType: DistributionContentType.TEXT,
-          organizationId: ORG_ID,
-          text: 'Hello',
-          userId: USER_ID,
-        }),
-      );
-      expect(mocks.telegramDistributionService.schedule).not.toHaveBeenCalled();
+    it('sends at once in the caller organization when scheduledAt is absent', async () => {
+      await expect(
+        controller.create({ ...message, text: 'Hello' }, user),
+      ).resolves.toEqual({
+        distributionId: 'distribution-1',
+        telegramMessageId: '42',
+      });
+      expect(distributions.get('distribution-1')).toMatchObject({
+        chatId: '-1001234567890',
+        organizationId: 'org-1',
+        status: PublishStatus.PUBLISHED,
+        text: 'Hello',
+        userId: 'user-1',
+      });
     });
 
-    it('should dispatch scheduled send when scheduledAt is present', async () => {
-      const user = createMockUser();
-      const scheduledAt = new Date(Date.now() + 3600000).toISOString();
+    it('schedules the send when scheduledAt is present', async () => {
+      const scheduledAt = '2026-11-07T09:00:00.000Z';
 
       await controller.create(
-        {
-          chatId: '-1001234567890',
-          contentType: DistributionContentType.TEXT,
-          platform: DistributionPlatform.TELEGRAM,
-          scheduledAt,
-          text: 'Scheduled',
-        },
-        user as never,
+        { ...message, scheduledAt, text: 'Scheduled' },
+        user,
       );
 
-      expect(mocks.telegramDistributionService.schedule).toHaveBeenCalledWith(
-        expect.objectContaining({
-          chatId: '-1001234567890',
-          organizationId: ORG_ID,
-          scheduledAt: new Date(scheduledAt),
-          userId: USER_ID,
-        }),
-      );
-      expect(
-        mocks.telegramDistributionService.sendImmediate,
-      ).not.toHaveBeenCalled();
+      expect(distributions.get('distribution-1')).toMatchObject({
+        organizationId: 'org-1',
+        scheduledAt: new Date(scheduledAt),
+        status: PublishStatus.SCHEDULED,
+        userId: 'user-1',
+      });
     });
 
-    it('should throw for an unsupported platform', async () => {
-      const user = createMockUser();
-
+    it('rejects an unsupported platform without sending', async () => {
       await expect(
         controller.create(
           {
-            chatId: '-1001234567890',
-            contentType: DistributionContentType.TEXT,
+            ...message,
             platform: 'unsupported' as DistributionPlatform,
             text: 'Nope',
           },
-          user as never,
+          user,
         ),
       ).rejects.toThrow('Unsupported distribution platform');
+      expect(distributions.size).toBe(0);
     });
   });
 
-  describe('list', () => {
-    it('should query with organization and filters', async () => {
-      const user = createMockUser();
+  describe('reads', () => {
+    beforeEach(() => {
+      seed({
+        id: 'mine',
+        organizationId: 'org-1',
+        platform: DistributionPlatform.TELEGRAM,
+        status: PublishStatus.PUBLISHED,
+      });
+      seed({
+        id: 'foreign',
+        organizationId: 'org-2',
+        platform: DistributionPlatform.TELEGRAM,
+        status: PublishStatus.SCHEDULED,
+      });
+    });
 
-      await controller.list(
-        mockReq,
-        { platform: DistributionPlatform.TELEGRAM },
-        user as never,
-      );
+    it('lists only the caller organization distributions', async () => {
+      await expect(
+        controller.list(req, { platform: DistributionPlatform.TELEGRAM }, user),
+      ).resolves.toEqual({ docs: [distributions.get('mine')], total: 1 });
+    });
 
-      expect(
-        mocks.distributionsService.findByOrganization,
-      ).toHaveBeenCalledWith(
-        ORG_ID,
-        { platform: DistributionPlatform.TELEGRAM, status: undefined },
-        1,
-        20,
+    it('finds its own distribution', async () => {
+      await expect(controller.findOne(req, 'mine', user)).resolves.toBe(
+        distributions.get('mine'),
       );
     });
-  });
 
-  describe('findOne', () => {
-    it('should query with organization isolation', async () => {
-      const user = createMockUser();
-      const id = testId('entity').toString();
-
-      await controller.findOne(mockReq, id, user as never);
-
-      expect(
-        mocks.distributionsService.findOneByOrganization,
-      ).toHaveBeenCalledWith(id, ORG_ID);
+    it('finds nothing for another organization distribution', async () => {
+      await expect(
+        controller.findOne(req, 'foreign', user),
+      ).resolves.toBeNull();
     });
   });
 
   describe('cancel', () => {
-    it('should cancel with organization isolation', async () => {
-      const user = createMockUser();
-      const id = testId('entity').toString();
+    it('cancels a scheduled distribution of the caller organization', async () => {
+      seed({
+        id: 'mine',
+        organizationId: 'org-1',
+        platform: DistributionPlatform.TELEGRAM,
+        status: PublishStatus.SCHEDULED,
+      });
 
-      await controller.cancel(mockReq, id, user as never);
+      await controller.cancel(req, 'mine', user);
 
-      expect(mocks.distributionsService.cancelScheduled).toHaveBeenCalledWith(
-        id,
-        ORG_ID,
+      expect(distributions.get('mine')?.status).toBe(PublishStatus.CANCELLED);
+    });
+
+    it('leaves another organization scheduled distribution untouched', async () => {
+      seed({
+        id: 'foreign',
+        organizationId: 'org-2',
+        platform: DistributionPlatform.TELEGRAM,
+        status: PublishStatus.SCHEDULED,
+      });
+
+      await expect(controller.cancel(req, 'foreign', user)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(distributions.get('foreign')?.status).toBe(
+        PublishStatus.SCHEDULED,
       );
     });
   });
