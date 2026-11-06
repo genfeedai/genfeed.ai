@@ -20,7 +20,14 @@ const SHARED_NEUTRAL_PATHS = [
   /^\.github\/[^/]+\.md$/u,
   // Unit tests of the CI scripts run in PR CI, never inside either suite.
   /^scripts\/ci\/[^/]+\.test\.mjs$/u,
+  // Architecture guards and their baselines run in PR CI only.
+  /^scripts\/architecture\//u,
 ];
+
+// Unit-test files and test-only mocks. They are leaves: nothing a suite
+// builds imports them, so only the suite that runs a given spec cares.
+const TEST_FILE_PATTERN =
+  /(?:^|\/)(?:__mocks__|__tests__)\/|\.(?:spec|test)\.[cm]?[jt]sx?$/u;
 
 // A workflow file only runs itself. Neither suite calls a reusable workflow,
 // so another workflow's change cannot reach it; its own file and the local
@@ -41,6 +48,8 @@ export const REQUIRED_BROWSER_SUITES = [
       otherWorkflows('playwright-full-nightly.yml'),
       /^apps\/(?:server|mobile)\//u,
       /^scripts\/ci\/runtime-acceptance\.mjs$/u,
+      // Vitest specs and mocks; its own specs live under playwright/.
+      (path) => !path.startsWith('playwright/') && TEST_FILE_PATTERN.test(path),
     ],
   },
   {
@@ -52,6 +61,9 @@ export const REQUIRED_BROWSER_SUITES = [
       otherWorkflows('learning-runtime.yml'),
       /^apps\/(?:web|marketing|mobile|desktop|extension|docs)\//u,
       /^playwright\//u,
+      // Specs and mocks outside the content-learning ones it runs
+      // (scripts/ci/runtime-acceptance.mjs, vitest.learning-runtime.config.ts).
+      (path) => !/learning/iu.test(path) && TEST_FILE_PATTERN.test(path),
     ],
   },
 ];
