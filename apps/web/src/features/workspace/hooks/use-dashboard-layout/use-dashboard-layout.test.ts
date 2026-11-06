@@ -2,43 +2,70 @@ import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockFindForPage = vi.fn();
-const mockRemoveLayout = vi.fn();
-const mockGetService = vi.fn();
-const mockUseBrand = vi.fn();
-const mockUseAuthIdentity = vi.fn();
+type StoredLayout = {
+  brandId: string;
+  id: string;
+  pageKey: string;
+  widgets: string[];
+};
+
+// In-memory dashboard-layouts API keyed by brand and page. `reads` logs each
+// fetch so a test can tell a cached render from a real request.
+const api = vi.hoisted(() => ({
+  brandId: 'brand-ctx' as string | undefined,
+  isSignedIn: true,
+  layouts: [] as StoredLayout[],
+  reads: [] as string[],
+}));
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => mockUseBrand(),
+  useBrand: () => ({ brandId: api.brandId }),
 }));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
-  useAuthIdentity: () => mockUseAuthIdentity(),
+  useAuthIdentity: () => ({ isSignedIn: api.isSignedIn }),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => mockGetService,
+  useAuthedService: () => async () => ({
+    findForPage: async (brandId: string, pageKey: string) => {
+      api.reads.push(`${brandId}/${pageKey}`);
+      const layout = api.layouts.find(
+        (item) => item.brandId === brandId && item.pageKey === pageKey,
+      );
+      return layout ? { id: layout.id, widgets: layout.widgets } : null;
+    },
+    removeLayout: async (id: string) => {
+      api.layouts = api.layouts.filter((item) => item.id !== id);
+    },
+  }),
 }));
 
 vi.mock('@genfeedai/services/content/dashboard-layouts.service', () => ({
-  DashboardLayoutsService: { getInstance: vi.fn() },
+  DashboardLayoutsService: { getInstance: () => ({}) },
 }));
 
 import { useDashboardLayout } from './use-dashboard-layout';
 
-const LAYOUT = { id: 'layout-1', widgets: [] };
-
 describe('useDashboardLayout', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mockFindForPage.mockResolvedValue(LAYOUT);
-    mockRemoveLayout.mockResolvedValue(undefined);
-    mockGetService.mockResolvedValue({
-      findForPage: mockFindForPage,
-      removeLayout: mockRemoveLayout,
-    });
-    mockUseBrand.mockReturnValue({ brandId: 'brand-ctx' });
-    mockUseAuthIdentity.mockReturnValue({ isSignedIn: true });
+    api.brandId = 'brand-ctx';
+    api.isSignedIn = true;
+    api.layouts = [
+      {
+        brandId: 'brand-ctx',
+        id: 'layout-1',
+        pageKey: 'workspace-overview',
+        widgets: [],
+      },
+      {
+        brandId: 'brand-9',
+        id: 'layout-9',
+        pageKey: 'custom-page',
+        widgets: ['reach'],
+      },
+    ];
+    api.reads = [];
   });
 
   it('loads the layout for the context brand and default page key', async () => {
@@ -47,14 +74,8 @@ describe('useDashboardLayout', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.layout).toEqual({ id: 'layout-1', widgets: [] });
     });
-
-    expect(mockFindForPage).toHaveBeenCalledWith(
-      'brand-ctx',
-      'workspace-overview',
-    );
-    expect(result.current.layout).toEqual(LAYOUT);
   });
 
   it('prefers an explicit brand id and page key', async () => {
@@ -64,55 +85,58 @@ describe('useDashboardLayout', () => {
     );
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.layout).toEqual({
+        id: 'layout-9',
+        widgets: ['reach'],
+      });
     });
-
-    expect(mockFindForPage).toHaveBeenCalledWith('brand-9', 'custom-page');
   });
 
   it('does not fetch when signed out', () => {
-    mockUseAuthIdentity.mockReturnValue({ isSignedIn: false });
+    api.isSignedIn = false;
 
-    renderHook(() => useDashboardLayout(), {
+    const { result } = renderHook(() => useDashboardLayout(), {
       wrapper: createQueryWrapper(),
     });
 
-    expect(mockGetService).not.toHaveBeenCalled();
+    expect(result.current.layout).toBeUndefined();
+    expect(api.reads).toEqual([]);
   });
 
   it('does not fetch without a brand id', () => {
-    mockUseBrand.mockReturnValue({ brandId: undefined });
+    api.brandId = undefined;
 
-    renderHook(() => useDashboardLayout(), {
-      wrapper: createQueryWrapper(),
-    });
-
-    expect(mockGetService).not.toHaveBeenCalled();
-  });
-
-  it('resets the layout and invalidates the query', async () => {
     const { result } = renderHook(() => useDashboardLayout(), {
       wrapper: createQueryWrapper(),
     });
 
+    expect(result.current.layout).toBeUndefined();
+    expect(api.reads).toEqual([]);
+  });
+
+  it('resets the layout and shows the default again', async () => {
+    const { result } = renderHook(() => useDashboardLayout(), {
+      wrapper: createQueryWrapper(),
+    });
     await waitFor(() => {
-      expect(result.current.layout).toEqual(LAYOUT);
+      expect(result.current.layout).toEqual({ id: 'layout-1', widgets: [] });
     });
 
     await act(async () => {
       await result.current.resetLayout();
     });
 
-    expect(mockRemoveLayout).toHaveBeenCalledWith('layout-1');
+    expect(api.layouts.map((layout) => layout.id)).toEqual(['layout-9']);
+    await waitFor(() => {
+      expect(result.current.layout).toBeNull();
+    });
   });
 
   it('skips reset when there is no layout', async () => {
-    mockFindForPage.mockResolvedValue(null);
-
+    api.brandId = 'brand-without-layout';
     const { result } = renderHook(() => useDashboardLayout(), {
       wrapper: createQueryWrapper(),
     });
-
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
@@ -121,26 +145,27 @@ describe('useDashboardLayout', () => {
       await result.current.resetLayout();
     });
 
-    expect(mockRemoveLayout).not.toHaveBeenCalled();
+    expect(api.layouts).toHaveLength(2);
   });
 
-  it('refresh triggers a refetch', async () => {
+  it('refresh picks up a layout changed on the server', async () => {
     const { result } = renderHook(() => useDashboardLayout(), {
       wrapper: createQueryWrapper(),
     });
-
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.layout).toEqual({ id: 'layout-1', widgets: [] });
     });
 
-    mockFindForPage.mockClear();
-
+    api.layouts[0].widgets = ['followers'];
     act(() => {
       result.current.refresh();
     });
 
     await waitFor(() => {
-      expect(mockFindForPage).toHaveBeenCalled();
+      expect(result.current.layout).toEqual({
+        id: 'layout-1',
+        widgets: ['followers'],
+      });
     });
   });
 });
