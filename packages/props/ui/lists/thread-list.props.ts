@@ -2,7 +2,13 @@ import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/co
 import type { ReactNode } from 'react';
 
 /** What the small icon before a thread's title says about it. */
-export type ThreadListStatus = 'attention' | 'done' | 'idle';
+export type ThreadListStatus =
+  | 'attention'
+  | 'done'
+  | 'failed'
+  | 'idle'
+  | 'resolved'
+  | 'running';
 
 /** Recency buckets a flat thread list groups its rows into. */
 export type ThreadRecencyGroup = 'earlier' | 'last7Days' | 'today';
@@ -24,6 +30,11 @@ export interface ThreadListRowProps {
   href: string;
   /** Shown after the status icon, for a thumbnail or an avatar. */
   leading?: ReactNode;
+  /**
+   * Opens the thread in place (a side pane) instead of following `href`. A
+   * modified click (new tab, new window) still follows the link.
+   */
+  onSelect?: () => void;
   status?: ThreadListStatus;
   /** Spoken name of the status icon, so the state is not colour alone. */
   statusLabel?: string | null;

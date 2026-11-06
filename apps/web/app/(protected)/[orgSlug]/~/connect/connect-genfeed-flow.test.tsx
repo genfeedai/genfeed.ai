@@ -1,6 +1,17 @@
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
-import { fireEvent, render, screen } from '@testing-library/react';
+import type { QueryClient } from '@tanstack/react-query';
+import {
+  act,
+  fireEvent,
+  render as renderWithoutClient,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -38,6 +49,7 @@ const mocks = vi.hoisted(() => ({
   createApiKey: vi.fn(),
   findAll: vi.fn(),
   mcpEndpoint: 'https://mcp.genfeed.ai/mcp',
+  organizationId: 'org-1',
   statusOptions: vi.fn(),
   verifyMcpConnection: vi.fn(),
 }));
@@ -99,7 +111,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brands: [{ slug: 'main' }],
     isReady: true,
-    organizationId: 'org-1',
+    organizationId: mocks.organizationId,
     settings: { subscriptionTier: 'scale' },
   }),
 }));
@@ -107,6 +119,11 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 vi.mock('@genfeedai/config/deployment', () => ({
   getDeployment: () => 'cloud',
   isSelfHostedDeployment: () => false,
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -238,6 +255,16 @@ vi.mock('@ui/primitives/badge', () => ({
   Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
 
+function render(ui: React.ReactElement, client?: QueryClient) {
+  return renderWithoutClient(ui, { wrapper: queryClientWrapper(client) });
+}
+
+async function openManualKeyStep() {
+  await userEvent.click(
+    screen.getByRole('tab', { name: 'Advanced: manual API key' }),
+  );
+}
+
 function activeKey() {
   return {
     id: 'key-1',
@@ -250,6 +277,7 @@ describe('ConnectGenfeedFlow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.mcpEndpoint = 'https://mcp.genfeed.ai/mcp';
+    mocks.organizationId = 'org-1';
     mocks.connectionStatus = connectionStatus([]);
     mocks.findAll.mockResolvedValue([activeKey()]);
     mocks.createApiKey.mockResolvedValue({
@@ -608,5 +636,168 @@ describe('ConnectGenfeedFlow', () => {
     expect(
       screen.getByText(/enter the complete copy-once Genfeed key/i),
     ).toBeInTheDocument();
+  });
+
+  it('lists the cached keys at once when the manual-key step is reopened', async () => {
+    const client = createTestQueryClient();
+    const first = render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+    expect(await screen.findByText('MCP key')).toBeInTheDocument();
+    first.unmount();
+
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+
+    expect(screen.getByText('MCP key')).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Verify MCP connection' }),
+    ).toBeInTheDocument();
+  });
+
+  it("never paints one organization's cached keys for another", async () => {
+    const client = createTestQueryClient();
+    const first = render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+    expect(await screen.findByText('MCP key')).toBeInTheDocument();
+    first.unmount();
+
+    mocks.organizationId = 'org-2';
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading API keys...');
+    expect(screen.queryByText('MCP key')).not.toBeInTheDocument();
+  });
+
+  it('keeps a key created here listed, without its copy-once value, when the step reopens', async () => {
+    mocks.findAll.mockResolvedValue([]);
+    const client = createTestQueryClient();
+    const first = render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+    fireEvent.click(
+      await screen.findByRole('button', { name: /create scoped mcp key/i }),
+    );
+    expect(await screen.findByText(CREATED_TEST_KEY)).toBeInTheDocument();
+    first.unmount();
+
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+
+    expect(screen.getByRole('radio', { name: /MCP key/ })).toBeInTheDocument();
+    expect(screen.queryByText(CREATED_TEST_KEY)).not.toBeInTheDocument();
+  });
+
+  it('never carries a typed value over to the key a refresh falls back to', async () => {
+    mocks.findAll.mockResolvedValue([
+      activeKey(),
+      { ...activeKey(), id: 'key-2', label: 'Second key' },
+    ]);
+    const client = createTestQueryClient();
+    render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+    await userEvent.click(
+      await screen.findByRole('radio', { name: /Second key/ }),
+    );
+    fireEvent.change(
+      screen.getByLabelText('Stored value for the selected key'),
+      { target: { value: STORED_TEST_KEY } },
+    );
+
+    // Revoked elsewhere: the refresh lists only the first key.
+    mocks.findAll.mockResolvedValue([activeKey()]);
+    await act(() => client.invalidateQueries());
+    await waitFor(() =>
+      expect(screen.queryByText('Second key')).not.toBeInTheDocument(),
+    );
+
+    expect(
+      screen.getByLabelText('Stored value for the selected key'),
+    ).toHaveValue('');
+    expect(
+      screen.getByRole('button', { name: 'Verify MCP connection' }),
+    ).toBeDisabled();
+  });
+
+  it('never shows one key’s verification under the key a refresh falls back to', async () => {
+    mocks.findAll.mockResolvedValue([
+      activeKey(),
+      { ...activeKey(), id: 'key-2', label: 'Second key' },
+    ]);
+    const client = createTestQueryClient();
+    render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+    await userEvent.click(
+      await screen.findByRole('radio', { name: /Second key/ }),
+    );
+    fireEvent.change(
+      screen.getByLabelText('Stored value for the selected key'),
+      { target: { value: STORED_TEST_KEY } },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Verify MCP connection' }),
+    );
+    expect(await screen.findByText('Connection verified')).toBeInTheDocument();
+
+    mocks.findAll.mockResolvedValue([activeKey()]);
+    await act(() => client.invalidateQueries());
+    await waitFor(() =>
+      expect(screen.queryByText('Second key')).not.toBeInTheDocument(),
+    );
+    fireEvent.change(
+      screen.getByLabelText('Stored value for the selected key'),
+      { target: { value: 'gf_live_other' } },
+    );
+
+    expect(screen.queryByText('Connection verified')).not.toBeInTheDocument();
+  });
+
+  it('drops a verification that lands after the selected key changed', async () => {
+    mocks.findAll.mockResolvedValue([
+      activeKey(),
+      { ...activeKey(), id: 'key-2', label: 'Second key' },
+    ]);
+    let finishVerification!: (value: unknown) => void;
+    mocks.verifyMcpConnection.mockReturnValue(
+      new Promise((resolve) => {
+        finishVerification = resolve;
+      }),
+    );
+    const client = createTestQueryClient();
+    render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+    await userEvent.click(
+      await screen.findByRole('radio', { name: /Second key/ }),
+    );
+    fireEvent.change(
+      screen.getByLabelText('Stored value for the selected key'),
+      { target: { value: STORED_TEST_KEY } },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Verify MCP connection' }),
+    );
+
+    mocks.findAll.mockResolvedValue([activeKey()]);
+    await act(() => client.invalidateQueries());
+    await waitFor(() =>
+      expect(screen.queryByText('Second key')).not.toBeInTheDocument(),
+    );
+    fireEvent.change(
+      screen.getByLabelText('Stored value for the selected key'),
+      { target: { value: 'gf_live_other' } },
+    );
+    await act(async () => {
+      finishVerification({
+        keyId: 'key-2',
+        publishing: { connectedAccountCount: 1, isReady: true },
+        status: 'connected',
+        verifiedAt: '2026-07-18T12:00:00.000Z',
+      });
+    });
+
+    expect(screen.queryByText('Connection verified')).not.toBeInTheDocument();
   });
 });

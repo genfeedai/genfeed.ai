@@ -20,7 +20,8 @@ import {
   formatCompactNumberIntl,
   formatPercentageSimple,
 } from '@helpers/formatting/format/format.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { updateCachedQueries } from '@hooks/auth/update-cached-queries/update-cached-queries';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import {
   AnalyticsService,
@@ -28,10 +29,12 @@ import {
   type IPaginatedOrgsResponse,
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
+import { useQueryClient } from '@tanstack/react-query';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import TableUserCell from '@ui/display/table/TableUserCell';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
+import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
@@ -46,6 +49,7 @@ import type { AnalyticsOrganizationsListProps } from '@/features/admin/props/ana
 import { useDebounce } from '@/hooks/utils/use-debounce/use-debounce';
 
 const SEARCH_DEBOUNCE_MS = 300;
+const ANALYTICS_ORGANIZATIONS_KEY = ['admin', 'analytics-organizations'];
 const ALL_TYPES = 'all';
 
 const GENERATIONS_SORT = 'generations';
@@ -86,11 +90,7 @@ export default function AnalyticsOrganizationsList({
   const { dateRange, filters, refreshTrigger, setFilter } =
     useAnalyticsContext();
 
-  const getAnalyticsService = useAuthedService((token: string) =>
-    AnalyticsService.getInstance(token),
-  );
-
-  const [data, setData] = useState<IPaginatedOrgsResponse | null>(null);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<OrganizationSortMetric>(
     AnalyticsMetric.ENGAGEMENT,
@@ -102,31 +102,34 @@ export default function AnalyticsOrganizationsList({
   const [status, setStatus] = useState<string>(ALL_STATUSES);
   const [source, setSource] = useState<string>(ALL_SOURCES);
 
-  const isLoading = data === null;
   const searchTerm = filters.query ?? '';
   // The API searches, so a keystroke must not cost a request.
   const debouncedSearchTerm = useDebounce(searchTerm, SEARCH_DEBOUNCE_MS);
 
-  // `refreshTrigger` is the refresh button's nonce: pressing it refetches.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
-  useEffect(() => {
-    if (!dateRange.startDate || !dateRange.endDate) {
-      return;
-    }
-
-    const controller = new AbortController();
-    const fetchData = async () => {
+  const startDate = dateRange.startDate
+    ? format(dateRange.startDate, 'yyyy-MM-dd')
+    : null;
+  const endDate = dateRange.endDate
+    ? format(dateRange.endDate, 'yyyy-MM-dd')
+    : null;
+  // Cached per period, filters and page: coming back paints the table at once
+  // while it refreshes, and another page, sort or filter keeps the current
+  // rows until it loads. `refreshTrigger` (the Refresh button) re-reads in the
+  // background.
+  const organizationsQuery = useAuthedQuery({
+    enabled: Boolean(startDate && endDate),
+    keepPreviousDataWithin: ANALYTICS_ORGANIZATIONS_KEY,
+    queryFn: async (service, signal): Promise<IPaginatedOrgsResponse> => {
       try {
-        const service = await getAnalyticsService();
-        const response = await service.getOrganizationsWithStats(
+        return await service.getOrganizationsWithStats(
           {
-            endDate: format(dateRange.endDate as Date, 'yyyy-MM-dd'),
+            endDate: endDate ?? '',
             limit: ITEMS_PER_PAGE,
             page,
             order: sortDirection,
             ...(debouncedSearchTerm ? { search: debouncedSearchTerm } : {}),
             sort,
-            startDate: format(dateRange.startDate as Date, 'yyyy-MM-dd'),
+            startDate: startDate ?? '',
             ...(type !== ALL_TYPES
               ? { type: type as OrganizationCategory }
               : {}),
@@ -143,34 +146,42 @@ export default function AnalyticsOrganizationsList({
               ? { source: source as OrganizationSourceFilter }
               : {}),
           },
-          controller.signal,
+          signal,
         );
-        if (!controller.signal.aborted) {
-          setData(response);
-        }
       } catch (error) {
-        if (!controller.signal.aborted) {
+        if (!signal.aborted) {
           logger.error('Failed to fetch organizations', error);
         }
+        throw error;
       }
-    };
-
-    void fetchData();
-    return () => controller.abort();
-  }, [
-    getAnalyticsService,
-    dateRange,
-    page,
-    sort,
-    sortDirection,
-    type,
-    emailClass,
-    usage,
-    status,
-    source,
-    debouncedSearchTerm,
-    refreshTrigger,
-  ]);
+    },
+    queryKey: [
+      ...ANALYTICS_ORGANIZATIONS_KEY,
+      {
+        emailClass,
+        endDate,
+        page,
+        search: debouncedSearchTerm,
+        sort,
+        sortDirection,
+        source,
+        startDate,
+        status,
+        type,
+        usage,
+      },
+    ],
+    refreshKey: refreshTrigger,
+    service: (token: string) => AnalyticsService.getInstance(token),
+  });
+  const data = organizationsQuery.data ?? null;
+  // A failed background refresh keeps the table; the error replaces it only
+  // when nothing was ever read for this view.
+  const isLoadError = data === null && organizationsQuery.isError;
+  const isLoading = data === null && !isLoadError;
+  // While another page loads the previous page stays on screen, so the footer
+  // describes the response shown, not the page asked for.
+  const isPageLoading = organizationsQuery.isPlaceholderData;
 
   // A new search can leave the page past the last page of the new result set.
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset on search only
@@ -219,21 +230,21 @@ export default function AnalyticsOrganizationsList({
 
   // The stage follows the sidebar: sending an invitation moves the badge in the row.
   const handleConciergeChange = useCallback(
-    (organizationId: string, stage: IWarmupAccount['status']) => {
-      setData((current) =>
-        current
-          ? {
-              ...current,
-              data: current.data.map((org) =>
-                org.id === organizationId && org.concierge
-                  ? { ...org, concierge: { ...org.concierge, status: stage } }
-                  : org,
-              ),
-            }
-          : current,
+    async (organizationId: string, stage: IWarmupAccount['status']) => {
+      await updateCachedQueries<IPaginatedOrgsResponse>(
+        queryClient,
+        { queryKey: ANALYTICS_ORGANIZATIONS_KEY },
+        (current) => ({
+          ...current,
+          data: current.data.map((org) =>
+            org.id === organizationId && org.concierge
+              ? { ...org, concierge: { ...org.concierge, status: stage } }
+              : org,
+          ),
+        }),
       );
     },
-    [],
+    [queryClient],
   );
 
   const search = useMemo(
@@ -530,6 +541,19 @@ export default function AnalyticsOrganizationsList({
     [getReleaseAccessHref, rowSidebarT, translate],
   );
 
+  if (isLoadError) {
+    return (
+      <Alert variant="destructive" icon={false}>
+        <AlertDescription>{translate('listLoadError')}</AlertDescription>
+        <Button
+          label={translate('listRetry')}
+          variant={ButtonVariant.SECONDARY}
+          onClick={() => void organizationsQuery.refetch()}
+        />
+      </Alert>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <KPISection
@@ -711,26 +735,30 @@ export default function AnalyticsOrganizationsList({
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-foreground/60">
-            Showing {(page - 1) * pagination.limit + 1} -{' '}
-            {Math.min(page * pagination.limit, pagination.total)} of{' '}
+            Showing {(pagination.page - 1) * pagination.limit + 1} -{' '}
+            {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
             {pagination.total}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" aria-busy={isPageLoading}>
             <Button
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
-              isDisabled={page === 1}
-              onClick={() => setPage((prev) => prev - 1)}
+              ariaLabel={translate('previousPage')}
+              isDisabled={isPageLoading || pagination.page === 1}
+              onClick={() => setPage(pagination.page - 1)}
               icon={<ChevronLeft className="size-4" />}
             />
             <span className="text-sm">
-              Page {page} of {pagination.totalPages}
+              Page {pagination.page} of {pagination.totalPages}
             </span>
             <Button
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
-              isDisabled={page === pagination.totalPages}
-              onClick={() => setPage((prev) => prev + 1)}
+              ariaLabel={translate('nextPage')}
+              isDisabled={
+                isPageLoading || pagination.page === pagination.totalPages
+              }
+              onClick={() => setPage(pagination.page + 1)}
               icon={<ChevronRight className="size-4" />}
             />
           </div>

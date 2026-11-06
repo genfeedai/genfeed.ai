@@ -26,6 +26,10 @@ import {
   buildSystemEmailHtml,
   escapeSystemEmailHtml,
 } from '@helpers/email/system-email.helper';
+import {
+  buildEmailEyebrow,
+  buildEmailStatRow,
+} from '@helpers/email/system-email-blocks.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
@@ -397,12 +401,6 @@ export class EmailDigestService {
         : trend.direction === 'down'
           ? 'Down'
           : 'Flat';
-    const trendColor =
-      trend.direction === 'up'
-        ? '#10b981'
-        : trend.direction === 'down'
-          ? '#FF6166'
-          : '#949494';
     const trendPct = Math.abs(trend.percentageChange).toFixed(1);
 
     const topPerformersHtml = summary.topPerformers
@@ -446,15 +444,27 @@ export class EmailDigestService {
     const bodyHtml = `
   <p style="color:#A1A1A1;font-size:15px;line-height:24px;margin:0 0 18px;">Report for <strong style="color:#EDEDED;">${this.escapeHtml(orgName)}</strong></p>
 
-  <div style="background:#1F1F1F;border:1px solid #333333;border-radius:8px;padding:16px;margin:0 0 24px;">
-    <h2 style="color:#EDEDED;font-size:16px;line-height:22px;margin:0 0 8px;">Week-over-Week Trend</h2>
-    <p style="margin:0;font-size:28px;font-weight:700;line-height:34px;color:${trendColor};">
-      ${trend.direction === 'up' ? '+' : trend.direction === 'down' ? '-' : ''}${trendPct}%
-    </p>
-    <p style="margin:4px 0 0;color:#949494;font-size:13px;line-height:20px;">
-      ${trendLabel} from ${this.formatNumber(trend.previousEngagement)} to ${this.formatNumber(trend.currentEngagement)} engagements.
-    </p>
-  </div>
+  ${buildEmailEyebrow('Week-over-week engagement')}${buildEmailStatRow([
+    {
+      label: 'Engagements this week',
+      value: this.formatNumber(trend.currentEngagement),
+    },
+    {
+      label: 'Engagements last week',
+      value: this.formatNumber(trend.previousEngagement),
+    },
+    {
+      hint: trendLabel,
+      label: 'Change',
+      tone:
+        trend.direction === 'up'
+          ? 'success'
+          : trend.direction === 'down'
+            ? 'danger'
+            : 'neutral',
+      value: `${trend.direction === 'up' ? '+' : trend.direction === 'down' ? '-' : ''}${trendPct}%`,
+    },
+  ])}
 
   <h2 style="border-bottom:1px solid #333333;color:#EDEDED;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Top Performers</h2>
   ${

@@ -22,7 +22,8 @@ export interface UseAuthedQueryOptions<TService, TData>
    * Keep the current rows on screen while the next key loads (a new page,
    * search or sort), but only when the previous key starts with this prefix.
    * Pass the scope part of the key (resource, organization, brand) so one
-   * scope's data is never shown under another.
+   * scope's data is never shown under another. Another viewer's rows are
+   * never kept, whatever the prefix.
    */
   keepPreviousDataWithin?: QueryKey;
   /**
@@ -43,6 +44,27 @@ export interface UseAuthedQueryOptions<TService, TData>
    * skeleton back.
    */
   refreshKey?: unknown;
+}
+
+/** The key part that names the viewer; `useAuthedQuery` appends it last. */
+export function viewerKeyPart(
+  userId: string | null | undefined,
+  orgId: string | null | undefined,
+): { viewer: [string | null, string | null] } {
+  return { viewer: [userId ?? null, orgId ?? null] };
+}
+
+/**
+ * True when a full cached key belongs to this viewer. Pass it as a
+ * `predicate` so a cache write after a mutation never touches the cache of a
+ * viewer who signed in meanwhile.
+ */
+export function isViewerQueryKey(
+  key: QueryKey,
+  userId: string | null | undefined,
+  orgId: string | null | undefined,
+): boolean {
+  return hashKey(key.slice(-1)) === hashKey([viewerKeyPart(userId, orgId)]);
 }
 
 /**
@@ -80,6 +102,7 @@ export function useAuthedQuery<TService, TData>({
   const { orgId, userId } = useAuthIdentity();
   const getService = useAuthedService(service);
   const isEnabled = enabled && Boolean(userId);
+  const viewerKey = viewerKeyPart(userId, orgId);
 
   const query = useQuery<TData, Error, TData, QueryKey>({
     ...options,
@@ -87,12 +110,13 @@ export function useAuthedQuery<TService, TData>({
     placeholderData: keepPreviousDataWithin
       ? (previous, previousQuery) =>
           previousQuery &&
-          startsWithKey(previousQuery.queryKey, keepPreviousDataWithin)
+          startsWithKey(previousQuery.queryKey, keepPreviousDataWithin) &&
+          isViewerQueryKey(previousQuery.queryKey, userId, orgId)
             ? previous
             : undefined
       : undefined,
     queryFn: async ({ signal }) => queryFn(await getService(), signal),
-    queryKey: [...queryKey, { viewer: [userId ?? null, orgId ?? null] }],
+    queryKey: [...queryKey, viewerKey],
   });
 
   const { refetch } = query;

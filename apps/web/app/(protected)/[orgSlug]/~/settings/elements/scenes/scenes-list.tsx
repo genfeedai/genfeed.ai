@@ -1,14 +1,12 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   EMPTY_PAGE_TOTALS,
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
-import type {
-  IPaginatedResponse,
-  IQueryParams,
-} from '@genfeedai/contracts/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type { IQueryParams } from '@genfeedai/contracts/interfaces';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { ElementScene } from '@models/elements/scene.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
@@ -20,18 +18,22 @@ import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 const EMPTY_SCENES: ElementScene[] = [];
 
+function settingsScenesQueryKey(organizationId: string) {
+  return ['settings-scenes', organizationId] as const;
+}
+
 /** Columns the scenes endpoint can order by. */
 const SCENE_SORT_KEYS = ['label', 'key'];
 
 function ScenesListContent() {
-  const notificationsService = NotificationsService.getInstance();
+  const { organizationId } = useBrand();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
   const searchT = useTranslations('common.listSearch');
@@ -40,14 +42,38 @@ function ScenesListContent() {
     allowedKeys: SCENE_SORT_KEYS,
   });
 
-  const getScenesService = useAuthedService(
-    useCallback((token: string) => ScenesService.getInstance(token), []),
-  );
-
-  const [scenesPage, setScenesPage] =
-    useState<IPaginatedResponse<ElementScene> | null>(null);
+  // The scenes read through React Query, so coming back to the list paints
+  // the cached rows at once and refreshes them in the background; another
+  // page, search or sort keeps the current rows on screen while it loads.
+  const scopeKey = settingsScenesQueryKey(organizationId);
+  const scenesQuery = usePagedAuthedQuery<ScenesService, ElementScene>({
+    keepPreviousDataWithin: scopeKey,
+    queryFn: async (service, signal) => {
+      const query: IQueryParams = {
+        limit: ITEMS_PER_PAGE,
+        page: currentPage,
+        ...(search ? { search } : {}),
+        ...(sort ? { sort } : {}),
+      };
+      const data = await service.findAllPage(query, signal);
+      logger.info('GET /scenes success', data.items);
+      return data;
+    },
+    queryKey: [...scopeKey, { page: currentPage, search, sort: sort ?? null }],
+    service: (token: string) => ScenesService.getInstance(token),
+  });
+  const scenesPage = scenesQuery.data;
   const scenes = scenesPage?.items ?? EMPTY_SCENES;
-  const [isLoading, setIsLoading] = useState(true);
+  const isLoading = scenesQuery.isPending;
+
+  const { error: loadError } = scenesQuery;
+  useEffect(() => {
+    if (!loadError) {
+      return;
+    }
+    logger.error('GET /scenes failed', loadError);
+    NotificationsService.getInstance().error('Failed to load scenes');
+  }, [loadError]);
 
   const columns: TableColumn<ElementScene>[] = [
     {
@@ -65,49 +91,6 @@ function ScenesListContent() {
   ];
 
   const rowSidebar = useElementRowSidebar<ElementScene>();
-
-  // Only the latest request may fill the list, so a slow response for an
-  // earlier sort or search cannot replace the current one.
-  const requestRef = useRef<AbortController | null>(null);
-
-  const findAllScenes = useCallback(async () => {
-    requestRef.current?.abort();
-    const request = new AbortController();
-    requestRef.current = request;
-    setScenesPage(null);
-    setIsLoading(true);
-
-    try {
-      const service = await getScenesService();
-      const query: IQueryParams = {
-        limit: ITEMS_PER_PAGE,
-        page: currentPage,
-        ...(search ? { search } : {}),
-        ...(sort ? { sort } : {}),
-      };
-
-      const data = await service.findAllPage(query, request.signal);
-      if (request.signal.aborted) {
-        return;
-      }
-      setScenesPage(data);
-      setIsLoading(false);
-      logger.info('GET /scenes success', data.items);
-    } catch (error) {
-      if (request.signal.aborted) {
-        return;
-      }
-      logger.error('GET /scenes failed', error);
-      notificationsService.error('Failed to load scenes');
-      setScenesPage(null);
-      setIsLoading(false);
-    }
-  }, [currentPage, getScenesService, notificationsService, search, sort]);
-
-  useEffect(() => {
-    void findAllScenes();
-    return () => requestRef.current?.abort();
-  }, [findAllScenes]);
 
   return (
     <Container
@@ -138,14 +121,7 @@ function ScenesListContent() {
         <AutoPagination
           showTotal
           totalLabel="scenes"
-          totals={
-            scenesPage
-              ? {
-                  totalDocs: scenesPage.total,
-                  totalPages: scenesPage.totalPages,
-                }
-              : EMPTY_PAGE_TOTALS
-          }
+          totals={scenesPage?.totals ?? EMPTY_PAGE_TOTALS}
         />
       </div>
     </Container>

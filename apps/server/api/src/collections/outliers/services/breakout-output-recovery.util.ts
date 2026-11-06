@@ -16,6 +16,8 @@ import {
   toBrandedPostMaterialRecord,
 } from '@api/services/branded-generation-receipts/branded-generation-post-material.util';
 import {
+  BreakoutResponseOutputState,
+  BreakoutResponseState,
   PersistedReviewDecision,
   Platform,
   TargetExecutionState,
@@ -227,9 +229,9 @@ async function bindPostArtifact(
   )
     return { status: 'held', reason: 'review_or_publication_started' };
   if (
-    response.state !== 'planned' ||
-    output.state === 'suppressed' ||
-    output.state === 'expired'
+    response.state !== BreakoutResponseState.PLANNED ||
+    output.state === BreakoutResponseOutputState.SUPPRESSED ||
+    output.state === BreakoutResponseOutputState.EXPIRED
   )
     return { status: 'held', reason: 'binding_conflict' };
   const changed = await tx.post.updateMany({
@@ -361,7 +363,7 @@ export async function readBreakoutOutputRecovery(
       };
   }
   if (
-    output.state === 'published' ||
+    output.state === BreakoutResponseOutputState.PUBLISHED ||
     post?.targetExecutionState === TargetExecutionState.PUBLISHED
   )
     return {
@@ -405,7 +407,7 @@ export async function readBreakoutOutputRecovery(
   if (!row) {
     if (
       !post &&
-      output.state === 'reserved' &&
+      output.state === BreakoutResponseOutputState.RESERVED &&
       ['image', 'carousel', 'video', 'short'].includes(output.format) &&
       output.heldReason === 'media_brand_capability_unavailable'
     )
@@ -415,7 +417,11 @@ export async function readBreakoutOutputRecovery(
         reason: 'media_brand_capability_unavailable',
         action: 'none',
       };
-    if (!output.workflowExecutionId && output.state === 'reserved' && !post)
+    if (
+      !output.workflowExecutionId &&
+      output.state === BreakoutResponseOutputState.RESERVED &&
+      !post
+    )
       return {
         ...base,
         state: 'not_submitted',

@@ -11,6 +11,8 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
+import { useRefreshScope } from '@hooks/auth/use-refresh-scope/use-refresh-scope';
 import type { ElementStyle } from '@models/elements/style.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
@@ -24,29 +26,11 @@ import { Badge } from '@ui/primitives/badge';
 import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
+import { Suspense, useCallback, useEffect, useRef } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { LazyModalStyle } from '@/components/lazy/modal/LazyModal';
-import type {
-  StylesListAction,
-  StylesListState,
-} from '@/features/admin/props/styles.props';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
-
-function stylesListReducer(
-  state: StylesListState,
-  action: StylesListAction,
-): StylesListState {
-  switch (action.type) {
-    case 'SET_LOADING':
-      return { ...state, isLoading: action.payload };
-    case 'SET_PAGE':
-      return { ...state, page: action.payload, isLoading: false };
-    default:
-      return state;
-  }
-}
 
 const EMPTY_STYLES: ElementStyle[] = [];
 
@@ -72,13 +56,6 @@ function StylesListContent({
     allowedKeys: STYLE_SORT_KEYS,
   });
 
-  const [state, dispatch] = useReducer(stylesListReducer, {
-    page: null,
-    isLoading: true,
-  });
-
-  const { page, isLoading } = state;
-  const styles = page?.items ?? EMPTY_STYLES;
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
 
@@ -152,90 +129,86 @@ function StylesListContent({
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
 
-  // Only the latest request may fill the list, so a slow response for an
-  // earlier sort or search cannot replace the current one.
-  const latestRequestRef = useRef(0);
+  // Cached per scope and page: coming back paints the rows and footer it
+  // already has while they refresh, and another page, search or sort keeps
+  // the current rows on screen while it loads.
+  const scopeKey = [
+    'admin',
+    'styles',
+    { adminBrand, adminOrg, scope },
+  ] as const;
+  const stylesQuery = usePagedAuthedQuery<StylesService, ElementStyle>({
+    keepPreviousDataWithin: scopeKey,
+    queryFn: async (service, signal) => {
+      const query: IQueryParams = {
+        limit: ITEMS_PER_PAGE,
+        page: currentPage,
+        search: filters?.search || undefined,
+        ...(sort ? { sort } : {}),
+      };
 
-  const findAllStyles = useCallback(
-    async (isRefresh = false) => {
-      const requestId = ++latestRequestRef.current;
-      dispatch({ type: 'SET_LOADING', payload: !isRefresh });
-
-      // Notify parent of state changes
-      onRefreshingChangeRef.current?.(isRefresh);
-      onLoadingChangeRef.current?.(!isRefresh);
-
-      try {
-        const service = await getStylesService();
-
-        // Build API query
-        const query: IQueryParams = {
-          limit: ITEMS_PER_PAGE,
-          page: currentPage,
-          search: filters?.search || undefined,
-          ...(sort ? { sort } : {}),
-        };
-
-        if (scope === PageScope.SUPERADMIN) {
-          if (adminOrg) {
-            query.organization = adminOrg;
-          }
-          if (adminBrand) {
-            query.brand = adminBrand;
-          }
+      if (scope === PageScope.SUPERADMIN) {
+        if (adminOrg) {
+          query.organization = adminOrg;
         }
-
-        const data = await service.findAllPage(query);
-        if (requestId !== latestRequestRef.current) {
-          return;
-        }
-        dispatch({ type: 'SET_PAGE', payload: data });
-
-        logger.info('GET /styles success', data.items);
-      } catch (error) {
-        if (requestId !== latestRequestRef.current) {
-          return;
-        }
-        logger.error('GET /styles failed', error);
-        notificationsService.error('Failed to load styles');
-      } finally {
-        if (requestId === latestRequestRef.current) {
-          dispatch({ type: 'SET_LOADING', payload: false });
-          onLoadingChangeRef.current?.(false);
-          onRefreshingChangeRef.current?.(false);
+        if (adminBrand) {
+          query.brand = adminBrand;
         }
       }
-    },
-    [
-      currentPage,
-      filters?.search,
-      sort,
-      getStylesService,
-      notificationsService.error,
-      scope,
-      adminOrg,
-      adminBrand,
-    ],
-  );
 
-  // Fetch data on mount and when search params change
+      try {
+        const data = await service.findAllPage(query, signal);
+        logger.info('GET /styles success', data.items);
+        return data;
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('GET /styles failed', error);
+        }
+        throw error;
+      }
+    },
+    queryKey: [
+      ...scopeKey,
+      { page: currentPage, search: filters?.search ?? '', sort: sort ?? null },
+    ],
+    service: (token: string) => StylesService.getInstance(token),
+  });
+  const styles = stylesQuery.data?.items ?? EMPTY_STYLES;
+  const { errorUpdatedAt, isError, isFetching, isLoading } = stylesQuery;
+  // Cancels a read that started before the change, and re-reads every
+  // cached page, search and sort of this list.
+  const refreshStyles = useRefreshScope(scopeKey);
+  const isRefreshing = isFetching && !isLoading;
+
+  // One toast per failed read, not one per render.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    findAllStyles();
-  }, [findAllStyles]);
+    if (isError) {
+      notificationsService.error('Failed to load styles');
+    }
+  }, [errorUpdatedAt, isError, notificationsService]);
+
+  useEffect(() => {
+    onLoadingChangeRef.current?.(isLoading);
+  }, [isLoading]);
+
+  useEffect(() => {
+    onRefreshingChangeRef.current?.(isRefreshing);
+  }, [isRefreshing]);
 
   // Register refresh callback
   useEffect(() => {
     if (onRefresh) {
-      return onRefresh(() => findAllStyles(true));
+      return onRefresh(() => refreshStyles());
     }
-  }, [onRefresh, findAllStyles]);
+  }, [onRefresh, refreshStyles]);
 
   const handleDelete = async (style: IElementStyle) => {
     try {
       const service = await getStylesService();
       await service.delete(style.id);
       notificationsService.success('Style deleted');
-      findAllStyles(true);
+      void refreshStyles();
     } catch (error) {
       logger.error('Failed to delete style', error);
       notificationsService.error('Failed to delete style');
@@ -244,7 +217,9 @@ function StylesListContent({
 
   const saveStyle = useInlineRecordSave<Partial<IElementStyle>>({
     errorMessage: 'Failed to update style',
-    onSaved: () => findAllStyles(true),
+    onSaved: () => {
+      void refreshStyles();
+    },
     save: async (id, patch) => (await getStylesService()).patch(id, patch),
   });
 
@@ -292,18 +267,14 @@ function StylesListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalStyle onConfirm={() => findAllStyles(true)} />
+        <LazyModalStyle onConfirm={() => refreshStyles()} />
       )}
 
       <div className="mt-4">
         <AutoPagination
           showTotal
           totalLabel="styles"
-          totals={
-            page
-              ? { totalDocs: page.total, totalPages: page.totalPages }
-              : EMPTY_PAGE_TOTALS
-          }
+          totals={stylesQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
         />
       </div>
     </>

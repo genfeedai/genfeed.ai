@@ -22,6 +22,7 @@ import {
   escapeSystemEmailHtml,
   sanitizeSystemEmailUrl,
 } from '@helpers/email/system-email.helper';
+import { buildLifecycleVisualHtml } from '@helpers/email/system-email-templates.helper';
 import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
 import { SystemEmailEligibilityService } from './system-email-eligibility.service';
@@ -84,6 +85,8 @@ type EmailTemplate = {
   title: string;
   preheader: string;
   paragraphs: string[];
+  /** Visual block under the copy, e.g. the setup path. Empty when none. */
+  visualHtml: string;
   actionLabel: string;
   actionUrl: string;
 };
@@ -438,6 +441,7 @@ export class LifecycleEmailDeliveryService {
         actionLabel: action.label,
         actionUrl: action.url,
         paragraphs: renderLifecycleSystemEmailParagraphs(definition, greeting),
+        visualHtml: buildLifecycleVisualHtml(definition.step),
         preheader: definition.preheader,
         subject: definition.subject,
         title: definition.title,
@@ -450,6 +454,7 @@ export class LifecycleEmailDeliveryService {
       paragraphs: [
         `${greeting}, there is an update waiting in your Genfeed workspace.`,
       ],
+      visualHtml: '',
       preheader: 'Open your Genfeed workspace.',
       subject: 'Open Genfeed',
       title: 'Open Genfeed',
@@ -467,9 +472,10 @@ export class LifecycleEmailDeliveryService {
     return buildSystemEmailHtml({
       action: { label: template.actionLabel, url: template.actionUrl },
       appUrl: this.appUrl(),
-      bodyHtml: template.paragraphs
-        .map((paragraph) => buildSystemEmailParagraph(paragraph))
-        .join(''),
+      bodyHtml:
+        template.paragraphs
+          .map((paragraph) => buildSystemEmailParagraph(paragraph))
+          .join('') + (template.visualHtml ?? ''),
       footerNote,
       preheader: template.preheader,
       title: template.title,

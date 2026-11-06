@@ -4,8 +4,9 @@ import {
 } from '@api/collections/skills/policy/skill-authorized-version';
 import {
   grantMatchesActor,
-  type SkillCapabilityGrant,
+  type SkillGrantRecord,
   skillGrantRecipientClauses,
+  toSkillCapabilityGrant,
 } from '@api/collections/skills/policy/skill-capabilities';
 import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -46,31 +47,13 @@ const TARGET_RANK: Record<string, number> = {
   user: 0,
 };
 
-interface GrantRow {
-  access?: string | null;
-  recipientBrandId?: string | null;
-  recipientKind?: string | null;
-  recipientOrganizationId?: string | null;
-  recipientUserId?: string | null;
-  revokedAt?: Date | null;
+interface GrantRow extends SkillGrantRecord {
   skillId: string;
   skillVersionId: string;
 }
 
 function rankTarget(kind: string | null | undefined): number {
   return TARGET_RANK[kind ?? ''] ?? 9;
-}
-
-function asCapabilityGrant(grant: GrantRow): SkillCapabilityGrant {
-  const kind = grant.recipientKind;
-  return {
-    access: grant.access === 'use_and_read' ? 'use_and_read' : 'use',
-    isRevoked: grant.revokedAt != null,
-    recipientBrandId: grant.recipientBrandId ?? null,
-    recipientKind: kind === 'organization' || kind === 'brand' ? kind : 'user',
-    recipientOrganizationId: grant.recipientOrganizationId ?? null,
-    recipientUserId: grant.recipientUserId ?? null,
-  };
 }
 
 function grantVersionBySkill(
@@ -80,7 +63,7 @@ function grantVersionBySkill(
 ): Map<string, string> {
   const ranked = grants
     .filter((grant) => {
-      const capability = asCapabilityGrant(grant);
+      const capability = toSkillCapabilityGrant(grant);
       return (
         grantMatchesActor(capability, actor) &&
         (!readableOnly || capability.access === 'use_and_read')

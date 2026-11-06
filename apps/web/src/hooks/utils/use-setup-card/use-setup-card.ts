@@ -13,9 +13,9 @@ import {
 import type { IExpertPathStatus } from '@genfeedai/contracts/interfaces';
 import { ExpertPathService } from '@genfeedai/services/content/expert-path.service';
 import { logger } from '@genfeedai/services/core/logger.service';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 export interface SetupCardStep {
   key: string;
@@ -68,48 +68,29 @@ export function useSetupCard(): UseSetupCardReturn {
     getBrandOrganizationAccountType(selectedBrand),
   );
 
-  const [expertStatus, setExpertStatus] = useState<IExpertPathStatus | null>(
-    null,
-  );
-
-  const getExpertPathService = useAuthedService((token: string) =>
-    ExpertPathService.getInstance(token),
-  );
   const { activeHref, orgHref } = useOrgUrl();
 
-  useEffect(() => {
-    if (!isExpert || !isReady || !brandId) {
-      setExpertStatus(null);
-      return;
-    }
-
-    const controller = new AbortController();
-
-    const loadExpertPathStatus = async () => {
+  // Cached per brand: coming back to Settings shows the Expert Path progress
+  // at once while it refreshes.
+  const isExpertStatusEnabled = isExpert && isReady && Boolean(brandId);
+  const expertStatusQuery = useAuthedQuery({
+    enabled: isExpertStatusEnabled,
+    queryFn: async (service, signal) => {
       try {
-        const service = await getExpertPathService();
-        const status = await service.getStatus(brandId, controller.signal);
-
-        if (!controller.signal.aborted) {
-          setExpertStatus(status);
-        }
+        return await service.getStatus(brandId, signal);
       } catch (error) {
-        if (controller.signal.aborted) {
-          return;
+        if (!signal.aborted) {
+          logger.error('GET /expert-path failed', error);
         }
-
-        if (error instanceof Error && error.name === 'AbortError') {
-          return;
-        }
-
-        logger.error('GET /expert-path failed', error);
+        throw error;
       }
-    };
-
-    void loadExpertPathStatus();
-
-    return () => controller.abort();
-  }, [brandId, getExpertPathService, isExpert, isReady]);
+    },
+    queryKey: ['expert-path-status', brandId],
+    service: (token: string) => ExpertPathService.getInstance(token),
+  });
+  const expertStatus: IExpertPathStatus | null = isExpertStatusEnabled
+    ? (expertStatusQuery.data ?? null)
+    : null;
 
   return useMemo(() => {
     const completedSteps = currentUser?.onboardingStepsCompleted ?? [];

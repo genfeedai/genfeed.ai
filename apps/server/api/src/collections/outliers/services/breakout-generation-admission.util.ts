@@ -7,7 +7,11 @@ import { readBreakoutGrowth } from '@api/collections/outliers/services/breakout-
 import { readBreakoutLiveCapacity } from '@api/collections/outliers/services/breakout-live-capacity.util';
 import { loadBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-source.util';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
-import { Platform } from '@genfeedai/contracts';
+import {
+  BreakoutResponseOutputState,
+  BreakoutResponseState,
+  Platform,
+} from '@genfeedai/contracts';
 import { GENERATION_POOL_WORKLOAD_TYPE } from '@genfeedai/contracts/constants';
 import type { IReserveCreditsInput } from '@genfeedai/contracts/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
@@ -145,7 +149,8 @@ export async function admitBreakoutGenerationContinuation(
     },
   });
   await admission.reauthorize(tx);
-  if (response?.state !== 'planned') deny('response_unavailable');
+  if (response?.state !== BreakoutResponseState.PLANNED)
+    deny('response_unavailable');
   const output = await tx.breakoutResponseOutput.findFirst({
     where: {
       id: admission.outputId,
@@ -169,7 +174,8 @@ export async function admitBreakoutGenerationContinuation(
     !output ||
     output.format !== scope.format ||
     output.workflowExecutionId !== admission.workflowExecutionId ||
-    (output.state !== 'reserved' && output.state !== 'generating') ||
+    (output.state !== BreakoutResponseOutputState.RESERVED &&
+      output.state !== BreakoutResponseOutputState.GENERATING) ||
     output.ordinal < 1 ||
     output.ordinal > 5 ||
     !admission.componentKey.startsWith(`${output.generationKey}:`)

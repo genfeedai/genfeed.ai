@@ -22,6 +22,8 @@ export * from './crun-input-contract.helper';
 export * from './crun-video-input.helper';
 export * from './deserializer.helper';
 export * from './email/system-email.helper';
+export * from './email/system-email-blocks.helper';
+export * from './email/system-email-templates.helper';
 export * from './formatting/cn/cn.util';
 export * from './formatting/duration/duration.helper';
 export * from './formatting/initials/initials.helper';

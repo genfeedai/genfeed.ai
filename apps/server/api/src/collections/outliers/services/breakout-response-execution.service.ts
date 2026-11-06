@@ -15,7 +15,11 @@ import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/b
 import { BreakoutTextOutputPreparationService } from '@api/collections/outliers/services/breakout-text-output-preparation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import {
+  BreakoutResponseOutputState,
+  BreakoutResponseState,
+  WorkflowExecutionStatus,
+} from '@genfeedai/contracts';
 import type { BreakoutOutputRecoveryResult } from '@genfeedai/contracts/interfaces';
 import { type BreakoutResponseOutput, Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
@@ -146,7 +150,9 @@ export class BreakoutResponseExecutionService {
     plan: Extract<BreakoutGenerationPlanResult, { status: 'prepared' }>,
     output: BreakoutResponseOutput,
   ): Promise<OutputStep> {
-    const isOpen = output.state === 'reserved' && output.heldReason === null;
+    const isOpen =
+      output.state === BreakoutResponseOutputState.RESERVED &&
+      output.heldReason === null;
     const visual = isBreakoutMediaFormat(output.format);
     if (!visual && output.format !== 'text' && output.format !== 'thread') {
       await request.reauthorize(this.prisma);
@@ -161,7 +167,7 @@ export class BreakoutResponseExecutionService {
     const canGenerate =
       isOpen ||
       (visual &&
-        output.state === 'generating' &&
+        output.state === BreakoutResponseOutputState.GENERATING &&
         (output.heldReason === null ||
           output.heldReason === 'quality_evaluation_pending'));
     if (!canGenerate) {
@@ -297,7 +303,7 @@ export class BreakoutResponseExecutionService {
           where: scopedWhere(request.scope.organizationId, {
             ...request.scope,
             id: request.responseId,
-            state: 'planned',
+            state: BreakoutResponseState.PLANNED,
           }),
           select: { outputPlanFingerprint: true },
         });
@@ -342,14 +348,14 @@ export class BreakoutResponseExecutionService {
         )
           throw new ConflictException('breakout_execution_binding_conflict');
         if (output.workflowExecutionId === null) {
-          if (output.state !== 'reserved')
+          if (output.state !== BreakoutResponseOutputState.RESERVED)
             throw new ConflictException('breakout_execution_binding_conflict');
           await request.reauthorize(tx);
           const changed = await tx.breakoutResponseOutput.updateMany({
             where: scopedWhere(request.scope.organizationId, {
               ...where,
               workflowExecutionId: null,
-              state: 'reserved',
+              state: BreakoutResponseOutputState.RESERVED,
               generationKey: output.generationKey,
             }),
             data: { workflowExecutionId: execution.id },

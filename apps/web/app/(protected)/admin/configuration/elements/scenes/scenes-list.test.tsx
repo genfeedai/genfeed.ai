@@ -1,8 +1,13 @@
 import { paginatedResponse } from '@app-tests/paginated-response';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { IPageTotals } from '@genfeedai/contracts/interfaces';
 
 import '@testing-library/jest-dom/vitest';
 import { PageScope } from '@genfeedai/contracts';
+import type { QueryClient } from '@tanstack/react-query';
 import {
   act,
   fireEvent,
@@ -10,7 +15,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ScenesList from './scenes-list';
 
@@ -36,6 +41,18 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getScenesService,
 }));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
+function renderList(
+  ui: ReactElement,
+  client: QueryClient = createTestQueryClient(),
+) {
+  return render(ui, { wrapper: queryClientWrapper(client) });
+}
 
 vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
@@ -213,7 +230,7 @@ describe('ScenesList', () => {
 
   it('owns empty totals before its first response', () => {
     mocks.findAllPage.mockReturnValueOnce(new Promise(() => {}));
-    render(<ScenesList scope={PageScope.SUPERADMIN} />);
+    renderList(<ScenesList scope={PageScope.SUPERADMIN} />);
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
     ).toHaveTextContent('Pagination: scenes 0');
@@ -223,7 +240,7 @@ describe('ScenesList', () => {
     mocks.findAllPage.mockResolvedValueOnce(
       paginatedResponse([makeScene()], { totalDocs: 61, totalPages: 5 }),
     );
-    render(<ScenesList scope={PageScope.SUPERADMIN} />);
+    renderList(<ScenesList scope={PageScope.SUPERADMIN} />);
     await waitFor(() => {
       expect(
         screen.getByRole('navigation', { name: 'pagination' }),
@@ -235,7 +252,7 @@ describe('ScenesList', () => {
   });
 
   it('loads superadmin scenes and reads the admin filters from the URL', async () => {
-    render(<ScenesList scope={PageScope.SUPERADMIN} />);
+    renderList(<ScenesList scope={PageScope.SUPERADMIN} />);
 
     expect(screen.getByText('Loading scenes')).toBeInTheDocument();
     expect(await screen.findByText('Studio')).toBeInTheDocument();
@@ -247,11 +264,12 @@ describe('ScenesList', () => {
         organization: 'org-1',
         page: 2,
       }),
+      expect.any(AbortSignal),
     );
   });
 
   it('opens the delete flow with the clicked scene', async () => {
-    render(<ScenesList scope={PageScope.SUPERADMIN} />);
+    renderList(<ScenesList scope={PageScope.SUPERADMIN} />);
 
     await screen.findByText('Kitchen');
 
@@ -277,7 +295,7 @@ describe('ScenesList', () => {
     const onRefreshingChange = vi.fn();
 
     mocks.findAllPage.mockRejectedValueOnce(new Error('load failed'));
-    const { unmount } = render(
+    const { unmount } = renderList(
       <ScenesList
         scope={PageScope.SUPERADMIN}
         onLoadingChange={onLoadingChange}
@@ -305,7 +323,7 @@ describe('ScenesList', () => {
     });
     mockScenes();
     mocks.deleteScene.mockRejectedValueOnce(new Error('delete failed'));
-    render(<ScenesList scope={PageScope.SUPERADMIN} />);
+    renderList(<ScenesList scope={PageScope.SUPERADMIN} />);
     await screen.findByText('Studio');
     fireEvent.click(screen.getByRole('button', { name: 'Delete Studio' }));
 
@@ -324,10 +342,42 @@ describe('ScenesList', () => {
 
   it('supports empty and brand scoped states', async () => {
     mockScenes([]);
-    render(<ScenesList scope={PageScope.BRAND} />);
+    renderList(<ScenesList scope={PageScope.BRAND} />);
 
     expect(await screen.findByText('No scenes found')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit Studio' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Delete Studio' })).toBeNull();
+  });
+
+  it('paints the cached scenes at once when coming back', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderList(
+      <ScenesList scope={PageScope.SUPERADMIN} />,
+      client,
+    );
+    expect(await screen.findByText('Kitchen')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
+    renderList(<ScenesList scope={PageScope.SUPERADMIN} />, client);
+
+    expect(screen.getByText('Kitchen')).toBeInTheDocument();
+    expect(screen.queryByText('Loading scenes')).not.toBeInTheDocument();
+  });
+
+  it('never shows the superadmin scenes under the brand scope', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = renderList(
+      <ScenesList scope={PageScope.SUPERADMIN} />,
+      client,
+    );
+    expect(await screen.findByText('Kitchen')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
+    renderList(<ScenesList scope={PageScope.BRAND} />, client);
+
+    expect(screen.getByText('Loading scenes')).toBeInTheDocument();
+    expect(screen.queryByText('Kitchen')).not.toBeInTheDocument();
   });
 });

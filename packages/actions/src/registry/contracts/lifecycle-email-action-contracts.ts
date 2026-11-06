@@ -79,8 +79,17 @@ const TEMPLATE = closedObjectSchema(
     preheader: STRING_SCHEMA,
     subject: STRING_SCHEMA,
     title: STRING_SCHEMA,
+    visualHtml: STRING_SCHEMA,
   },
-  ['actionLabel', 'actionUrl', 'paragraphs', 'preheader', 'subject', 'title'],
+  [
+    'actionLabel',
+    'actionUrl',
+    'paragraphs',
+    'preheader',
+    'subject',
+    'title',
+    'visualHtml',
+  ],
 );
 const DELIVERY_STATE = closedObjectSchema(
   {

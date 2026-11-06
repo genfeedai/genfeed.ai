@@ -6,6 +6,7 @@ const ORG = '/test-org/~';
 const MASTER_ID = 'master-thread-e2e';
 const WORKING_ID = 'child-working-e2e';
 const REVIEW_ID = 'child-review-e2e';
+const NEEDS_ID = 'child-needs-e2e';
 const now = '2026-10-29T10:00:00.000Z';
 
 interface MockThread {
@@ -42,6 +43,14 @@ function makeThreads(): MockThread[] {
       kind: 'thread',
       parentThreadId: MASTER_ID,
       title: 'Carousel for the speaker drop',
+    },
+    {
+      attentionState: 'needs-input',
+      id: NEEDS_ID,
+      kind: 'thread',
+      parentThreadId: MASTER_ID,
+      runStatus: 'waiting_input',
+      title: 'Price a week of posts',
     },
   ];
 }
@@ -104,6 +113,7 @@ async function mockAgentSocketHandshake(page: Page): Promise<void> {
 
 interface AgentMock {
   modePatches: Array<Record<string, unknown>>;
+  planDecisions: Array<Record<string, unknown>>;
   statusPatches: Array<{ status: unknown; threadId: string }>;
   steers: Array<Record<string, unknown>>;
 }
@@ -146,7 +156,12 @@ const MASTER_TRANSFER_MESSAGE = {
 
 /** Serves the master, the thread list, one child's transcript and the steer ack. */
 async function mockMasterAndThreads(page: Page): Promise<AgentMock> {
-  const mock: AgentMock = { modePatches: [], statusPatches: [], steers: [] };
+  const mock: AgentMock = {
+    modePatches: [],
+    planDecisions: [],
+    statusPatches: [],
+    steers: [],
+  };
   const THREADS = makeThreads();
 
   await page.route('**/agent/threads**', async (route) => {
@@ -178,6 +193,21 @@ async function mockMasterAndThreads(page: Page): Promise<AgentMock> {
           contextVersion: 4,
           executionId: 'exec-steer-e2e',
           queuedAt: now,
+          status: 'queued',
+          threadId: path.split('/')[1],
+        },
+        202,
+      );
+      return;
+    }
+
+    if (request.method() === 'POST' && path.endsWith('/ui-actions')) {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      mock.planDecisions.push({ ...body, threadId: path.split('/')[1] });
+      await fulfillJson(
+        route,
+        {
+          executionId: 'exec-plan-e2e',
           status: 'queued',
           threadId: path.split('/')[1],
         },
@@ -291,7 +321,29 @@ async function mockMasterAndThreads(page: Page): Promise<AgentMock> {
                   type: 'thread-message',
                 },
               ]
-            : [];
+            : threadId === NEEDS_ID
+              ? [
+                  {
+                    attributes: {
+                      content: 'I drafted a plan and paused for your approval.',
+                      createdAt: now,
+                      metadata: {
+                        proposedPlan: {
+                          content:
+                            'Price ten posts and two videos, then reply with a total.',
+                          createdAt: now,
+                          id: 'plan-e2e',
+                          status: 'awaiting_approval',
+                          updatedAt: now,
+                        },
+                      },
+                      role: 'assistant',
+                    },
+                    id: 'needs-message-1',
+                    type: 'thread-message',
+                  },
+                ]
+              : [];
       await fulfillJson(route, {
         data: messages,
         meta: {
@@ -512,34 +564,32 @@ test.describe('Agent master thread and Threads panel', () => {
       { status: 'archived', threadId: REVIEW_ID },
     ]);
 
-    // The panel moved it to Resolved: the same state, not a second copy.
-    // Resolved starts collapsed with its count (#9395); open it to see the row.
+    // The panel moved it under Earlier: the same state, not a second copy.
+    // Earlier starts folded with its count; open it to see the resolved row.
     await expect(
       panel.getByTestId('agent-threads-panel-group-readyForReview'),
     ).toHaveCount(0);
-    const resolvedToggle = panel.getByTestId(
-      'agent-threads-panel-group-toggle-resolved',
-    );
-    await expect(resolvedToggle).toHaveAttribute('aria-expanded', 'false');
-    await expect(resolvedToggle).toHaveText(/^Resolved\s*·\s*1$/);
-    await resolvedToggle.click();
+    const earlierToggle = panel.getByRole('button', { name: /^Earlier/ });
+    await expect(earlierToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(earlierToggle).toHaveText(/^Earlier\s*·\s*1$/);
+    await earlierToggle.click();
+    const resolvedRow = panel
+      .getByTestId('agent-threads-panel-group-earlier')
+      .getByTestId(`agent-threads-panel-thread-${REVIEW_ID}`);
+    await expect(resolvedRow).toBeVisible();
     await expect(
-      panel
-        .getByTestId('agent-threads-panel-group-resolved')
-        .getByTestId(`agent-threads-panel-thread-${REVIEW_ID}`),
+      resolvedRow.getByRole('img', { name: 'Resolved' }),
     ).toBeVisible();
 
-    // Reopen from the panel row; the card follows. The row's action shows on
-    // hover (#9395), so point at the row first, as a mouse user does.
-    await panel
-      .getByTestId('agent-threads-panel-group-resolved')
-      .getByTestId(`agent-threads-panel-thread-${REVIEW_ID}`)
-      .hover();
+    // Reopen from the row's menu; the card follows. The menu shows on hover,
+    // so point at the row first, as a mouse user does.
+    await resolvedRow.hover();
     await panel
       .getByRole('button', {
-        name: 'Reopen: Carousel for the speaker drop',
+        name: 'Actions for Carousel for the speaker drop',
       })
       .click();
+    await page.getByRole('menuitem', { name: 'Reopen' }).click();
     await expect(card.getByTestId('agent-transfer-resolved')).toHaveCount(0);
     await expect(card.getByRole('button', { name: 'Resolve' })).toBeVisible();
     await expect(
@@ -551,6 +601,65 @@ test.describe('Agent master thread and Threads panel', () => {
       status: 'active',
       threadId: REVIEW_ID,
     });
+    expect(pageErrors).toEqual([]);
+  });
+  test('approves a waiting plan from the queue without leaving the master', async ({
+    authenticatedPage: page,
+  }) => {
+    const pageErrors: string[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    await page.setViewportSize({ height: 900, width: 1440 });
+    const mock = await mockMasterAndThreads(page);
+
+    await page.goto(`${ORG}/agent`);
+    await assertNoErrorBoundaryFallback(page);
+
+    const output = page.getByTestId('agent-output-output-pane');
+    const panel = output.getByTestId('agent-threads-panel');
+    const waiting = panel
+      .getByTestId('agent-threads-panel-group-needsYou')
+      .getByTestId(`agent-threads-panel-thread-${NEEDS_ID}`);
+    await expect(waiting).toBeVisible();
+    // Older threads stay folded, so the queue shows only live work.
+    await expect(panel.getByRole('button', { name: /^Earlier/ })).toHaveCount(
+      0,
+    );
+
+    await waiting.click();
+    await expect(page).toHaveURL(new RegExp(`/agent/${NEEDS_ID}$`));
+    const lightView = output.getByTestId('agent-thread-light-view');
+    await expect(lightView).toContainText(
+      'Price ten posts and two videos, then reply with a total.',
+    );
+    await lightView
+      .getByRole('group', { name: 'Plan decision' })
+      .getByRole('button', { name: 'Approve' })
+      .click();
+
+    await expect(
+      lightView.getByRole('group', { name: 'Plan decision' }),
+    ).toHaveCount(0);
+    await expect(lightView.getByTestId('agent-thread-status')).toHaveText(
+      'Running',
+    );
+    expect(mock.planDecisions).toEqual([
+      expect.objectContaining({
+        action: 'approve_plan',
+        payload: { planId: 'plan-e2e' },
+        threadId: NEEDS_ID,
+      }),
+    ]);
+
+    // Back in the queue the thread has moved from Needs you to Working.
+    await lightView.getByRole('button', { name: 'Threads' }).click();
+    await expect(
+      panel
+        .getByTestId('agent-threads-panel-group-working')
+        .getByTestId(`agent-threads-panel-thread-${NEEDS_ID}`),
+    ).toBeVisible();
+    await expect(
+      panel.getByTestId('agent-threads-panel-group-needsYou'),
+    ).toHaveCount(0);
     expect(pageErrors).toEqual([]);
   });
 });

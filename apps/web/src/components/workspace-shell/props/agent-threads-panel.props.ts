@@ -3,7 +3,7 @@ import type { AgentApiService, AgentThread } from '@genfeedai/agent';
 /** The part of the agent API the Threads panel reads and writes. */
 export type AgentThreadsPanelApi = Pick<
   AgentApiService,
-  'chatStream' | 'getMessages'
+  'chatStream' | 'getMessages' | 'respondToUiAction'
 >;
 
 export interface AgentThreadsPanelProps {
@@ -13,6 +13,11 @@ export interface AgentThreadsPanelProps {
    * brand's threads and offers no filter of its own; leave out to list all.
    */
   brandId?: string | null;
+  /**
+   * Where a row links to. A plain click opens the thread in the panel; a
+   * modified click (new tab) follows this link.
+   */
+  getThreadHref: (threadId: string) => string;
   isLoading?: boolean;
   /** The thread open in the light view. Leave out to let the panel keep it. */
   openThreadId?: string | null;

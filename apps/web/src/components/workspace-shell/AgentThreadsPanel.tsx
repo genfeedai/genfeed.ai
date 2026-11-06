@@ -2,6 +2,7 @@
 
 import type { AgentThread } from '@genfeedai/agent';
 import {
+  type ChildThreadGroups,
   getThreadStatusMeta,
   groupChildThreads,
   resolveThreadListPreview,
@@ -10,91 +11,48 @@ import {
   AgentThreadStatus,
   ButtonSize,
   ButtonVariant,
-  ComponentSize,
 } from '@genfeedai/contracts';
-import { cn } from '@helpers/formatting/cn/cn.util';
+import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
+import type { ThreadListStatus } from '@genfeedai/props/ui/lists/thread-list.props';
+import { formatThreadTime } from '@ui/lists/thread-list/group-by-recency';
+import {
+  ThreadListRow,
+  ThreadListSection,
+  ThreadListSubtitle,
+  useLocalDayClock,
+} from '@ui/lists/thread-list/ThreadList';
 import { Button } from '@ui/primitives/button';
 import Searchbar from '@ui/primitives/searchbar';
-import Spinner from '@ui/primitives/spinner';
-import {
-  hoverConcealClassName,
-  hoverRevealClassName,
-} from '@ui/styles/hover-reveal';
-import {
-  Check,
-  ChevronDown,
-  CircleAlert,
-  CircleCheck,
-  Undo2,
-} from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { type ReactElement, useMemo, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useMemo, useState } from 'react';
 import type { AgentThreadsPanelProps } from '@/components/workspace-shell/props/agent-threads-panel.props';
 import AgentThreadLightView from './AgentThreadLightView';
 
-type GroupKey =
-  | 'needsYou'
-  | 'working'
-  | 'readyForReview'
-  | 'recent'
-  | 'resolved';
+/** Open by default: what needs the operator, what runs, what just finished. */
+const OPEN_GROUPS = ['needsYou', 'working', 'readyForReview'] as const;
 
-const GROUP_ORDER: readonly GroupKey[] = [
-  'needsYou',
-  'working',
-  'readyForReview',
-  'recent',
-  'resolved',
-];
-
-/** Finished work stays out of sight until the operator asks for it. */
-const COLLAPSED_BY_DEFAULT: ReadonlySet<GroupKey> = new Set(['resolved']);
-
-function ThreadStatusIcon({
-  isResolved,
-  tone,
-}: {
-  isResolved: boolean;
-  tone: 'failed' | 'running' | 'warning' | null;
-}): ReactElement {
-  if (!isResolved && tone === 'running') {
-    return (
-      <span aria-hidden="true" className="mt-0.5 shrink-0">
-        <Spinner size={ComponentSize.SM} />
-      </span>
-    );
-  }
-  if (!isResolved && tone) {
-    return (
-      <CircleAlert
-        aria-hidden="true"
-        className={cn(
-          'mt-0.5 size-4 shrink-0',
-          tone === 'failed' ? 'text-destructive' : 'text-warning',
-        )}
-      />
-    );
-  }
+function countThreads(groups: ChildThreadGroups): number {
   return (
-    <CircleCheck
-      aria-hidden="true"
-      className={cn(
-        'mt-0.5 size-4 shrink-0',
-        isResolved ? 'text-muted-foreground' : 'text-success',
-      )}
-    />
+    groups.needsYou.length +
+    groups.working.length +
+    groups.readyForReview.length +
+    groups.recent.length +
+    groups.resolved.length
   );
 }
 
 /**
- * The Threads tab beside the master conversation: every thread the master (or
- * the operator) started, grouped by what needs attention, with a search box.
- * The brand is the topbar's, so the list takes it as `brandId` and has no
- * filter of its own. Picking one opens a light view with a steer box.
+ * The work queue beside the master conversation: every thread the master (or
+ * the operator) started, with only what needs the operator, what is running and
+ * what is ready for review in sight. Everything older folds under Earlier, and
+ * a search reaches it. The brand is the topbar's, so the list takes it as
+ * `brandId` and has no filter of its own. Picking a thread opens it in place,
+ * where it can be steered and its plan approved.
  */
 export default function AgentThreadsPanel({
   apiService,
   brandId = null,
+  getThreadHref,
   hasMoreResolved = false,
   isLoading = false,
   isLoadingMoreResolved = false,
@@ -109,10 +67,9 @@ export default function AgentThreadsPanel({
   threads,
 }: AgentThreadsPanelProps) {
   const translate = useTranslations('common.agentThreads');
+  const locale = useLocale();
+  const now = useLocalDayClock();
   const [searchQuery, setSearchQuery] = useState('');
-  const [toggledGroups, setToggledGroups] = useState<
-    Partial<Record<GroupKey, boolean>>
-  >({});
   const [localOpenThreadId, setLocalOpenThreadId] = useState<string | null>(
     null,
   );
@@ -170,151 +127,87 @@ export default function AgentThreadsPanel({
     );
   }
 
-  const visibleCount = GROUP_ORDER.reduce(
-    (count, key) => count + groups[key].length,
-    0,
-  );
+  const visibleCount = countThreads(groups);
   const isSearching = searchQuery.trim().length > 0;
+  const earlierCount = groups.recent.length + groups.resolved.length;
+  const isQueueClear = OPEN_GROUPS.every((key) => groups[key].length === 0);
+
+  const describeStatus = (
+    thread: AgentThread,
+  ): { label: string; status: ThreadListStatus } => {
+    if (thread.status === AgentThreadStatus.ARCHIVED) {
+      return { label: translate('resolved'), status: 'resolved' };
+    }
+    const meta = getThreadStatusMeta(thread);
+    if (meta?.tone === 'warning') {
+      return { label: meta.label, status: 'attention' };
+    }
+    if (meta?.tone === 'running') {
+      return { label: meta.label, status: 'running' };
+    }
+    if (meta?.tone === 'failed') {
+      return { label: meta.label, status: 'failed' };
+    }
+    if (thread.attentionState === 'updated') {
+      return { label: translate('groups.readyForReview'), status: 'done' };
+    }
+    return thread.runStatus === 'completed'
+      ? { label: translate('statusDone'), status: 'done' }
+      : { label: translate('statusIdle'), status: 'idle' };
+  };
 
   const renderRow = (thread: AgentThread) => {
-    const status = getThreadStatusMeta(thread);
-    const preview = resolveThreadListPreview(thread);
+    const { label, status } = describeStatus(thread);
+    const title = thread.title?.trim() || translate('untitled');
     const isResolved = thread.status === AgentThreadStatus.ARCHIVED;
     const onToggleResolved = isResolved ? onReopenThread : onResolveThread;
-    const toggleLabel = translate(isResolved ? 'reopen' : 'resolve');
-    const title = thread.title?.trim() || translate('untitled');
-    const hasStatusLabel = Boolean(status) && !isResolved;
+    const actions: CollectionOverflowAction[] = [];
+    if (onToggleResolved) {
+      actions.push({
+        id: isResolved ? 'reopen' : 'resolve',
+        isDisabled: pendingThreadIds?.has(thread.id) ?? false,
+        label: translate(isResolved ? 'reopen' : 'resolve'),
+        onSelect: () => void onToggleResolved(thread.id),
+      });
+    }
+    if (onOpenFullThread) {
+      actions.push({
+        id: 'open-full',
+        label: translate('openFull'),
+        onSelect: () => onOpenFullThread(thread.id),
+      });
+    }
     return (
-      <li
-        className="group relative rounded-lg transition-colors focus-within:bg-foreground/5 hover:bg-foreground/5"
+      <ThreadListRow
+        actions={actions}
+        actionsLabel={translate('actions', { title })}
+        data-testid={`agent-threads-panel-thread-${thread.id}`}
+        href={getThreadHref(thread.id)}
         key={thread.id}
-      >
-        {/* ui-guard-allow:unstyled-look -- the row <li> owns the hover and focus look; this is its click target */}
-        <Button
-          className="flex w-full min-w-0 items-start gap-2.5 rounded-lg px-2.5 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60"
-          data-testid={`agent-threads-panel-thread-${thread.id}`}
-          onClick={() => setOpenThreadId(thread.id)}
-          textTransform="none"
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-        >
-          <ThreadStatusIcon
-            isResolved={isResolved}
-            tone={status?.tone ?? null}
+        onSelect={() => setOpenThreadId(thread.id)}
+        status={status}
+        statusLabel={label}
+        subtitle={
+          <ThreadListSubtitle
+            parts={[
+              resolveThreadListPreview(thread),
+              brandId ? null : thread.brandLabel,
+            ]}
           />
-          <span className="min-w-0 flex-1 pr-24">
-            <span className="block truncate text-sm text-foreground">
-              {title}
-            </span>
-            {preview ? (
-              <span className="block truncate text-xs text-muted-foreground">
-                {preview}
-              </span>
-            ) : null}
-            {!brandId && thread.brandLabel ? (
-              <span className="block truncate text-xs text-muted-foreground/70">
-                {thread.brandLabel}
-              </span>
-            ) : null}
-          </span>
-        </Button>
-        {hasStatusLabel ? (
-          <span
-            className={cn(
-              'pointer-events-none absolute right-2.5 top-2 max-w-[40%] truncate text-xs text-muted-foreground',
-              onToggleResolved ? hoverConcealClassName() : null,
-            )}
-          >
-            {status?.label}
-          </span>
-        ) : null}
-        {onToggleResolved ? (
-          <Button
-            aria-label={`${toggleLabel}: ${title}`}
-            className={cn(
-              'absolute right-1.5 top-1.5 size-7 rounded-md text-muted-foreground hover:bg-foreground/10 hover:text-foreground',
-              hoverRevealClassName(),
-            )}
-            data-testid={`agent-threads-panel-toggle-resolved-${thread.id}`}
-            isDisabled={pendingThreadIds?.has(thread.id) ?? false}
-            onClick={() => void onToggleResolved(thread.id)}
-            size={ButtonSize.ICON}
-            tooltip={toggleLabel}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          >
-            {isResolved ? (
-              <Undo2 className="size-4" />
-            ) : (
-              <Check className="size-4" />
-            )}
-          </Button>
-        ) : null}
-      </li>
+        }
+        time={formatThreadTime(
+          thread.lastActivityAt ?? thread.updatedAt,
+          locale,
+          now,
+        )}
+        title={title}
+      />
     );
   };
 
-  const renderGroup = (key: GroupKey) => {
-    const isOpen = isSearching
-      ? true
-      : (toggledGroups[key] ?? !COLLAPSED_BY_DEFAULT.has(key));
-    const label = translate(`groups.${key}`);
-    const listId = `agent-threads-panel-list-${key}`;
-    return (
-      <section
-        aria-label={label}
-        data-testid={`agent-threads-panel-group-${key}`}
-        key={key}
-      >
-        {/* ui-guard-allow:unstyled-look -- a disclosure header, not a standalone button */}
-        <Button
-          aria-controls={listId}
-          aria-expanded={isOpen}
-          className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:text-foreground"
-          data-testid={`agent-threads-panel-group-toggle-${key}`}
-          onClick={() =>
-            setToggledGroups((current) => ({ ...current, [key]: !isOpen }))
-          }
-          textTransform="none"
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-        >
-          <ChevronDown
-            aria-hidden="true"
-            className={cn(
-              'size-3 transition-transform',
-              isOpen ? null : '-rotate-90',
-            )}
-          />
-          <span>{label}</span>
-          <span className="tabular-nums text-muted-foreground/70">
-            · {groups[key].length}
-          </span>
-        </Button>
-        {isOpen ? (
-          <ul className="space-y-0.5" id={listId}>
-            {groups[key].map(renderRow)}
-          </ul>
-        ) : null}
-        {isOpen &&
-        key === 'resolved' &&
-        hasMoreResolved &&
-        onLoadMoreResolved ? (
-          <Button
-            className="w-full justify-center"
-            isLoading={isLoadingMoreResolved}
-            onClick={() => void onLoadMoreResolved()}
-            size={ButtonSize.SM}
-            textTransform="none"
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          >
-            {translate('loadMoreResolved')}
-          </Button>
-        ) : null}
-      </section>
-    );
-  };
+  // A search unfolds every group, so a match is never hidden; clearing it
+  // puts the groups back the way they start.
+  const sectionKey = (key: string) => `${key}:${isSearching}`;
 
   return (
     <div
@@ -332,7 +225,7 @@ export default function AgentThreadsPanel({
         />
       </div>
 
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2 pb-3 pt-1">
+      <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 pb-3 pt-1">
         {isLoading && visibleCount === 0 ? (
           <p className="px-2 text-sm text-muted-foreground" role="status">
             {translate('loading')}
@@ -342,7 +235,53 @@ export default function AgentThreadsPanel({
             {isSearching ? translate('noMatches') : translate('empty')}
           </p>
         ) : (
-          GROUP_ORDER.filter((key) => groups[key].length > 0).map(renderGroup)
+          <>
+            {isQueueClear && !isSearching ? (
+              <p className="px-2.5 pt-2 text-sm text-muted-foreground">
+                {translate('nothingNeedsYou')}
+              </p>
+            ) : null}
+            {OPEN_GROUPS.map((key) => (
+              <ThreadListSection
+                data-testid={`agent-threads-panel-group-${key}`}
+                itemCount={groups[key].length}
+                key={sectionKey(key)}
+                title={translate(`groups.${key}`)}
+              >
+                {groups[key].map(renderRow)}
+              </ThreadListSection>
+            ))}
+            <ThreadListSection
+              data-testid="agent-threads-panel-group-earlier"
+              isDefaultCollapsed={!isSearching}
+              itemCount={earlierCount}
+              key={sectionKey('earlier')}
+              title={translate('groups.earlier')}
+            >
+              {groups.recent.map(renderRow)}
+              {groups.resolved.length > 0 ? (
+                <li className="px-2.5 pb-1 pt-2 text-xs text-muted-foreground/70">
+                  {translate('groups.resolved')}
+                </li>
+              ) : null}
+              {groups.resolved.map(renderRow)}
+              {hasMoreResolved && onLoadMoreResolved ? (
+                <li>
+                  <Button
+                    className="w-full justify-center"
+                    isLoading={isLoadingMoreResolved}
+                    onClick={() => void onLoadMoreResolved()}
+                    size={ButtonSize.SM}
+                    textTransform="none"
+                    variant={ButtonVariant.GHOST}
+                    withWrapper={false}
+                  >
+                    {translate('loadMoreResolved')}
+                  </Button>
+                </li>
+              ) : null}
+            </ThreadListSection>
+          </>
         )}
       </div>
     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   ThreadListRecencySectionsProps,
@@ -10,11 +10,18 @@ import type {
 } from '@genfeedai/props/ui/lists/thread-list.props';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import {
   hoverConcealClassName,
   hoverRevealClassName,
 } from '@ui/styles/hover-reveal';
-import { ChevronDown, Circle, CircleAlert, CircleCheck } from 'lucide-react';
+import {
+  ChevronDown,
+  Circle,
+  CircleAlert,
+  CircleCheck,
+  CircleX,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import {
@@ -30,7 +37,12 @@ import { groupThreadsByRecency } from './group-by-recency';
 const STATUS_ICONS: Record<ThreadListStatus, ReactElement> = {
   attention: <CircleAlert className="size-4 text-warning" />,
   done: <CircleCheck className="size-4 text-success" />,
+  failed: <CircleX className="size-4 text-destructive" />,
   idle: <Circle className="size-4 text-muted-foreground" />,
+  resolved: <CircleCheck className="size-4 text-muted-foreground" />,
+  running: (
+    <Spinner aria-hidden="true" className="text-info" size={ComponentSize.SM} />
+  ),
 };
 
 /**
@@ -129,6 +141,7 @@ export function ThreadListRow({
   'data-testid': dataTestId,
   href,
   leading,
+  onSelect,
   status = 'idle',
   statusLabel,
   subtitle,
@@ -148,6 +161,24 @@ export function ThreadListRow({
           hasActions && 'pr-10',
         )}
         href={href}
+        onClick={
+          onSelect
+            ? (event) => {
+                // A modified click keeps the link's own behaviour (new tab).
+                if (
+                  event.metaKey ||
+                  event.ctrlKey ||
+                  event.shiftKey ||
+                  event.altKey ||
+                  event.button !== 0
+                ) {
+                  return;
+                }
+                event.preventDefault();
+                onSelect();
+              }
+            : undefined
+        }
       >
         <span
           className="mt-0.5 shrink-0"

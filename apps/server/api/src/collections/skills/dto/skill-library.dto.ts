@@ -1,10 +1,14 @@
+import {
+  SKILL_GRANT_ACCESS,
+  SKILL_GRANT_RECIPIENT_KINDS,
+  type SkillGrantAccess,
+  type SkillGrantRecipientKind,
+} from '@api/collections/skills/policy/skill-capabilities';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 
 const OWNER_KINDS = ['user', 'organization', 'brand'] as const;
 const AUDIENCES = ['private', 'organization'] as const;
-const RECIPIENTS = ['user', 'organization', 'brand'] as const;
-const ACCESS = ['use', 'use_and_read'] as const;
 const PUBLISH_AUDIENCES = ['organization', 'public'] as const;
 
 /** Create accepts only private or organization. Keep the value as a string so a public attempt is still rejected. */
@@ -73,18 +77,18 @@ export class CreateScopedSkillDto {
 
 export class GrantSkillDto {
   @IsOptional()
-  @IsIn(ACCESS)
-  @ApiPropertyOptional({ enum: ACCESS })
-  access?: (typeof ACCESS)[number];
+  @IsIn(SKILL_GRANT_ACCESS)
+  @ApiPropertyOptional({ enum: SKILL_GRANT_ACCESS })
+  access?: SkillGrantAccess;
 
   @IsOptional()
   @IsString()
   @ApiPropertyOptional({ type: String })
   recipientBrandId?: string;
 
-  @IsIn(RECIPIENTS)
-  @ApiProperty({ enum: RECIPIENTS })
-  recipientKind!: (typeof RECIPIENTS)[number];
+  @IsIn(SKILL_GRANT_RECIPIENT_KINDS)
+  @ApiProperty({ enum: SKILL_GRANT_RECIPIENT_KINDS })
+  recipientKind!: SkillGrantRecipientKind;
 
   @IsOptional()
   @IsString()

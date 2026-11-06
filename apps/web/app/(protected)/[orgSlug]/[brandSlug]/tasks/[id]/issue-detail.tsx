@@ -5,27 +5,47 @@ import {
 } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-status.constants';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { TaskPriority, TaskStatus } from '@genfeedai/contracts/interfaces';
+import { updateCachedQueries } from '@hooks/auth/update-cached-queries/update-cached-queries';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useRefreshScope } from '@hooks/auth/use-refresh-scope/use-refresh-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { TaskCommentsService } from '@services/management/task-comments.service';
 import {
+  type TaskComment,
+  TaskCommentsService,
+} from '@services/management/task-comments.service';
+import {
+  type Task,
   type TaskLinkedEntityModel,
   TasksService,
 } from '@services/management/tasks.service';
+import { useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { ArrowLeft, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import type {
   IssueDetailAction,
   IssueDetailProps,
   IssueDetailState,
+  TaskCommentsServiceFactory,
 } from '@/features/tasks/props/issue-detail.props';
+import {
+  TASK_DETAIL_QUERY_KEY,
+  TASKS_LIST_QUERY_KEY,
+} from '@/lib/constants/tasks-query-keys';
 import IssueCommentsCard from './issue-comments-card';
 import IssueHeader from './issue-header';
 import IssueSidebar from './issue-sidebar';
@@ -65,11 +85,31 @@ const ENTITY_MODEL_COLORS: Record<TaskLinkedEntityModel, string> = {
 
 const VISIBLE_COMMENT_COUNT = 3;
 
+const EMPTY_COMMENTS: TaskComment[] = [];
+const EMPTY_CHILDREN: Task[] = [];
+
+function createTaskCommentsServices(token: string): TaskCommentsServiceFactory {
+  return (taskId) => TaskCommentsService.getInstanceForTask(token, taskId);
+}
+
+function issueDetailQueryKey(issueId: string, useIdentifier: boolean) {
+  return [
+    ...TASK_DETAIL_QUERY_KEY,
+    useIdentifier ? 'identifier' : 'id',
+    issueId,
+  ] as const;
+}
+
+function taskChildrenQueryKey(taskId: string) {
+  return ['task-children', taskId] as const;
+}
+
+/** Shared with the task inspector, which reads the same comments. */
+function taskCommentsQueryKey(taskId: string) {
+  return ['task-comments', taskId] as const;
+}
+
 const initialIssueDetailState: IssueDetailState = {
-  issue: null,
-  comments: [],
-  children: [],
-  isLoading: true,
   commentBody: '',
   isSubmitting: false,
   showAllComments: false,
@@ -80,23 +120,6 @@ function issueDetailReducer(
   action: IssueDetailAction,
 ): IssueDetailState {
   switch (action.type) {
-    case 'LOAD_START':
-      return { ...state, isLoading: true };
-    case 'LOAD_SUCCESS':
-      return {
-        ...state,
-        issue: action.payload.issue,
-        comments: action.payload.comments,
-        children: action.payload.children,
-      };
-    case 'LOAD_ERROR':
-      return { ...state, issue: null };
-    case 'LOAD_DONE':
-      return { ...state, isLoading: false };
-    case 'SET_ISSUE':
-      return { ...state, issue: action.payload };
-    case 'APPEND_COMMENT':
-      return { ...state, comments: [...state.comments, action.payload] };
     case 'SET_COMMENT_BODY':
       return { ...state, commentBody: action.payload };
     case 'SUBMIT_START':
@@ -112,92 +135,109 @@ function issueDetailReducer(
 
 export default function IssueDetail({
   issueId,
-  useIdentifier,
+  useIdentifier = false,
 }: IssueDetailProps) {
   const statusLabels = useTaskStatusLabels();
   const priorityLabels = useTaskPriorityLabels();
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
+  const queryClient = useQueryClient();
   const [state, dispatch] = useReducer(
     issueDetailReducer,
     initialIssueDetailState,
   );
-  const {
-    issue,
-    comments,
-    children,
-    isLoading,
-    commentBody,
-    isSubmitting,
-    showAllComments,
-  } = state;
-  const controllerRef = useRef<AbortController | null>(null);
+  const { commentBody, isSubmitting, showAllComments } = state;
   const lastCommentRef = useRef<HTMLDivElement | null>(null);
 
-  const resolvedIdRef = useRef<string | null>(null);
+  // The task, its sub-issues and its comments read through React Query, so
+  // reopening a task paints it at once and refreshes it in the background.
+  // Sub-issues read on their own: a failed sub-issue read never hides the task.
+  const detailQuery = useAuthedQuery<TasksService, Task>({
+    queryFn: (service) =>
+      useIdentifier
+        ? service.getByIdentifier(issueId)
+        : service.findOne(issueId),
+    queryKey: issueDetailQueryKey(issueId, useIdentifier),
+    service: (token: string) => TasksService.getInstance(token),
+  });
+  const issue = detailQuery.data ?? null;
+  const taskId = issue?.id ?? '';
+
+  const childrenQuery = useAuthedQuery<TasksService, Task[]>({
+    enabled: Boolean(taskId),
+    queryFn: (service) => service.getChildren(taskId),
+    queryKey: taskChildrenQueryKey(taskId),
+    service: (token: string) => TasksService.getInstance(token),
+  });
+  const children = taskId
+    ? (childrenQuery.data ?? EMPTY_CHILDREN)
+    : EMPTY_CHILDREN;
+
+  const commentsQuery = useAuthedQuery<
+    TaskCommentsServiceFactory,
+    TaskComment[]
+  >({
+    enabled: Boolean(taskId),
+    queryFn: (forTask) => forTask(taskId).list(),
+    queryKey: taskCommentsQueryKey(taskId),
+    service: createTaskCommentsServices,
+  });
+  // Comments posted while no list could be read stay on screen until a read
+  // that holds them lands; the partial list is never cached as the whole one.
+  const [postedComments, setPostedComments] = useState<
+    { comment: TaskComment; taskId: string }[]
+  >([]);
+  const comments = useMemo(() => {
+    if (!taskId) {
+      return EMPTY_COMMENTS;
+    }
+    const listed = commentsQuery.data ?? EMPTY_COMMENTS;
+    const unlisted = postedComments
+      .filter((posted) => posted.taskId === taskId)
+      .map((posted) => posted.comment)
+      .filter((posted) => !listed.some((comment) => comment.id === posted.id));
+    return unlisted.length > 0 ? [...listed, ...unlisted] : listed;
+  }, [commentsQuery.data, postedComments, taskId]);
+  // A failed background refresh keeps the task on screen; the not-found card
+  // only replaces it when nothing was ever read. Sub-issues and comments hold
+  // the page only on their first read: a retry after a failed read (such as
+  // the one posting a comment starts) never swaps the page for the skeleton.
+  const isLoading =
+    detailQuery.isPending ||
+    (Boolean(taskId) &&
+      ((childrenQuery.isPending && !childrenQuery.isFetched) ||
+        (commentsQuery.isPending && !commentsQuery.isFetched)));
+
+  const loadError =
+    detailQuery.error ?? childrenQuery.error ?? commentsQuery.error;
+  useEffect(() => {
+    if (!loadError) {
+      return;
+    }
+    logger.error('Failed to load task detail', { error: loadError, issueId });
+  }, [issueId, loadError]);
 
   const getTasksService = useAuthedService((token) =>
     TasksService.getInstance(token),
   );
 
   const getCommentsService = useAuthedService((token) =>
-    TaskCommentsService.getInstanceForTask(
-      token,
-      resolvedIdRef.current || issueId,
-    ),
+    TaskCommentsService.getInstanceForTask(token, taskId || issueId),
   );
 
-  const loadIssue = useCallback(async () => {
-    controllerRef.current?.abort();
-    const controller = new AbortController();
-    controllerRef.current = controller;
+  const updateCachedIssue = useCallback(
+    async (updated: Task) => {
+      const queryKey = issueDetailQueryKey(issueId, useIdentifier);
+      // A read already in flight would land after this write and undo it.
+      await queryClient.cancelQueries({ queryKey });
+      queryClient.setQueriesData<Task>({ queryKey }, (current) =>
+        current ? updated : current,
+      );
+    },
+    [issueId, queryClient, useIdentifier],
+  );
 
-    dispatch({ type: 'LOAD_START' });
-    try {
-      const issuesService = await getTasksService();
-
-      const issueData = useIdentifier
-        ? await issuesService.getByIdentifier(issueId)
-        : await issuesService.findOne(issueId);
-
-      resolvedIdRef.current = issueData.id;
-      const commentsService = await getCommentsService();
-
-      const [commentsData, childrenData] = await Promise.all([
-        commentsService.list(),
-        issuesService.getChildren(issueData.id),
-      ]);
-
-      if (!controller.signal.aborted) {
-        dispatch({
-          type: 'LOAD_SUCCESS',
-          payload: {
-            issue: issueData,
-            comments: commentsData,
-            children: childrenData,
-          },
-        });
-      }
-    } catch (error) {
-      if (!controller.signal.aborted) {
-        logger.error('Failed to load task detail', { error, issueId });
-        dispatch({ type: 'LOAD_ERROR' });
-      }
-    } finally {
-      if (!controller.signal.aborted) {
-        dispatch({ type: 'LOAD_DONE' });
-      }
-    }
-  }, [getTasksService, getCommentsService, issueId, useIdentifier]);
-
-  useEffect(() => {
-    loadIssue();
-    const controller = controllerRef.current;
-
-    return () => {
-      controller?.abort();
-    };
-  }, [loadIssue]);
+  const refreshTaskLists = useRefreshScope(TASKS_LIST_QUERY_KEY);
 
   const handleStatusUpdate = useCallback(
     async (newStatus: TaskStatus) => {
@@ -207,7 +247,9 @@ export default function IssueDetail({
         const updated = await issuesService.updateTask(issue.id, {
           status: newStatus,
         });
-        dispatch({ type: 'SET_ISSUE', payload: updated });
+        await updateCachedIssue(updated);
+        // Task lists elsewhere filter and count by status: re-read them.
+        await refreshTaskLists();
       } catch (error) {
         logger.error('Failed to update task status', {
           error,
@@ -217,7 +259,13 @@ export default function IssueDetail({
         notificationsService.error('Failed to update task status');
       }
     },
-    [getTasksService, issue, notificationsService],
+    [
+      getTasksService,
+      issue,
+      notificationsService,
+      refreshTaskLists,
+      updateCachedIssue,
+    ],
   );
 
   const handleAddComment = useCallback(async () => {
@@ -229,7 +277,17 @@ export default function IssueDetail({
     try {
       const commentsService = await getCommentsService();
       const newComment = await commentsService.addComment(commentBody.trim());
-      dispatch({ type: 'APPEND_COMMENT', payload: newComment });
+      setPostedComments((current) => [
+        ...current,
+        { comment: newComment, taskId },
+      ]);
+      // Appended to a cached list; with none cached (the read failed), the
+      // list reads again and the posted comment shows until it lands.
+      await updateCachedQueries<TaskComment[]>(
+        queryClient,
+        { queryKey: taskCommentsQueryKey(taskId) },
+        (current) => [...current, newComment],
+      );
       dispatch({ type: 'SET_COMMENT_BODY', payload: '' });
     } catch (error) {
       logger.error('Failed to add task comment', {
@@ -247,6 +305,8 @@ export default function IssueDetail({
     issue?.id,
     issueId,
     notificationsService,
+    queryClient,
+    taskId,
   ]);
 
   const hiddenCommentCount = Math.max(

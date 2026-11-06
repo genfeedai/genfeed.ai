@@ -1,4 +1,5 @@
 'use client';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { ButtonSize, ButtonVariant, MemberRole } from '@genfeedai/contracts';
 import {
@@ -9,7 +10,9 @@ import {
 import type { IPagedItems } from '@genfeedai/contracts/interfaces';
 import type { OrgMemoryEntry } from '@genfeedai/contracts/interfaces/settings/org-memory.interface';
 import { formatDate } from '@helpers/formatting/date/date.helper';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useRefreshScope } from '@hooks/auth/use-refresh-scope/use-refresh-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AgentMemoriesService } from '@services/automation/agent-memories.service';
@@ -31,10 +34,9 @@ import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import EditMemoryDialog from './edit-memory-dialog';
 
-const EMPTY_MEMORIES: IPagedItems<OrgMemoryEntry> = {
-  items: [],
-  totals: EMPTY_PAGE_TOTALS,
-};
+function organizationMemoriesQueryKey(organizationId: string) {
+  return ['organization-memories', organizationId] as const;
+}
 
 const MEMORY_SORT_KEYS = [
   'summary',
@@ -54,6 +56,7 @@ export default function SettingsOrganizationMemoryPage() {
     allowedKeys: MEMORY_SORT_KEYS,
   });
   const { orgHref } = useOrgUrl();
+  const { organizationId } = useBrand();
   const isBillingEnabled = hasOrganizationBillingHint();
   const canGovern =
     userRole === MemberRole.OWNER || userRole === MemberRole.ADMIN;
@@ -61,12 +64,50 @@ export default function SettingsOrganizationMemoryPage() {
     useCallback((token: string) => AgentMemoriesService.getInstance(token), []),
   );
 
-  const [memoriesPage, setMemoriesPage] =
-    useState<IPagedItems<OrgMemoryEntry> | null>(null);
+  const scopeKey = organizationMemoriesQueryKey(organizationId);
+  // The memories read through React Query, so coming back to the page paints
+  // the cached rows at once and refreshes them in the background; another
+  // page or sort keeps the current rows on screen while it loads.
+  const memoriesQuery = useAuthedQuery<
+    AgentMemoriesService,
+    IPagedItems<OrgMemoryEntry>
+  >({
+    enabled: isBillingEnabled && Boolean(organizationId),
+    keepPreviousDataWithin: scopeKey,
+    queryFn: (service, signal) =>
+      service.listOrganization(
+        {
+          limit: ITEMS_PER_PAGE,
+          page: currentPage,
+          ...(sort ? { sort } : {}),
+        },
+        signal,
+      ),
+    queryKey: [...scopeKey, { page: currentPage, sort: sort ?? null }],
+    service: (token: string) => AgentMemoriesService.getInstance(token),
+  });
+  const memoriesPage = memoriesQuery.data ?? null;
   const entries = memoriesPage?.items ?? null;
-  const [loadError, setLoadError] = useState(false);
+  // A failed background refresh keeps the rows; the error replaces the table
+  // only when there is nothing to show.
+  const loadError = Boolean(memoriesQuery.error) && !memoriesPage;
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<OrgMemoryEntry | null>(null);
+
+  const { error: memoriesError } = memoriesQuery;
+  useEffect(() => {
+    if (!memoriesError) {
+      return;
+    }
+    logger.error('GET /agent/memories/organization failed', memoriesError);
+    NotificationsService.getInstance().error(
+      translate('notifications.loadFailed'),
+    );
+  }, [memoriesError, translate]);
+
+  // Cancels a read that started before an archive or promote, and re-reads
+  // every cached page and sort.
+  const refreshEntries = useRefreshScope(scopeKey);
 
   const authorLabel = useCallback(
     (entry: OrgMemoryEntry): string =>
@@ -91,58 +132,6 @@ export default function SettingsOrganizationMemoryPage() {
     [translate],
   );
 
-  const loadEntries = useCallback(
-    async (signal?: AbortSignal) => {
-      if (!isBillingEnabled) {
-        setMemoriesPage(EMPTY_MEMORIES);
-        return;
-      }
-
-      setMemoriesPage(null);
-      setLoadError(false);
-      try {
-        const service = await getMemoriesService();
-        if (signal?.aborted) {
-          return;
-        }
-        const data = await service.listOrganization(
-          {
-            limit: ITEMS_PER_PAGE,
-            page: currentPage,
-            ...(sort ? { sort } : {}),
-          },
-          signal,
-        );
-        if (signal?.aborted) {
-          return;
-        }
-        setMemoriesPage(data);
-      } catch (error) {
-        if (signal?.aborted) {
-          return;
-        }
-        logger.error('GET /agent/memories/organization failed', error);
-        notificationsService.error(translate('notifications.loadFailed'));
-        setLoadError(true);
-        setMemoriesPage(EMPTY_MEMORIES);
-      }
-    },
-    [
-      currentPage,
-      getMemoriesService,
-      isBillingEnabled,
-      notificationsService,
-      sort,
-      translate,
-    ],
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadEntries(controller.signal);
-    return () => controller.abort();
-  }, [loadEntries]);
-
   const runAction = useCallback(
     async (entry: OrgMemoryEntry, action: 'archive' | 'promote' | 'reject') => {
       setPendingId(entry.id);
@@ -158,7 +147,7 @@ export default function SettingsOrganizationMemoryPage() {
           await service.reject(entry.id);
           notificationsService.success(translate('notifications.rejected'));
         }
-        await loadEntries();
+        await refreshEntries();
       } catch (error) {
         logger.error(`Memory ${action} failed`, error);
         notificationsService.error(translate('error.update'));
@@ -166,7 +155,7 @@ export default function SettingsOrganizationMemoryPage() {
         setPendingId(null);
       }
     },
-    [getMemoriesService, loadEntries, notificationsService, translate],
+    [getMemoriesService, notificationsService, refreshEntries, translate],
   );
 
   const columns: TableColumn<OrgMemoryEntry>[] = [
@@ -347,14 +336,14 @@ export default function SettingsOrganizationMemoryPage() {
           loadError
             ? {
                 onRetry: () => {
-                  void loadEntries();
+                  void memoriesQuery.refetch();
                 },
                 title: translate('error.load'),
               }
             : undefined
         }
         getRowKey={(entry) => entry.id}
-        isLoading={entries === null}
+        isLoading={entries === null && !loadError}
         items={entries ?? []}
         label={translate('table')}
         rowSidebar={rowSidebar}
@@ -364,7 +353,7 @@ export default function SettingsOrganizationMemoryPage() {
       />
       <EditMemoryDialog
         entry={editingEntry}
-        onCorrected={() => loadEntries()}
+        onCorrected={() => refreshEntries()}
         onOpenChange={(isOpen) => {
           if (!isOpen) {
             setEditingEntry(null);

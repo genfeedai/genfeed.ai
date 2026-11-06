@@ -7,15 +7,12 @@ import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { OnboardingAccessMode } from '@genfeedai/contracts/interfaces';
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
-import type { AccessBootstrapState } from '@services/auth/auth.service';
 import { AuthService } from '@services/auth/auth.service';
 import { logger } from '@services/core/logger.service';
 import type { InstallReadinessResponse } from '@services/onboarding/onboarding.service';
-import { OnboardingService } from '@services/onboarding/onboarding.service';
 import { UsersService } from '@services/organization/users.service';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
@@ -23,7 +20,8 @@ import { Button } from '@ui/primitives/button';
 import { ArrowLeft, ArrowUpRight, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type MouseEvent, useEffect, useMemo, useState } from 'react';
+import { type MouseEvent, useMemo, useState } from 'react';
+import { useInstallReadiness } from '@/hooks/data/onboarding/use-install-readiness/use-install-readiness';
 import {
   buildGenfeedCloudSignupUrl,
   buildOnboardingAccessSettingsPatch,
@@ -59,47 +57,6 @@ const TIMELINE_STEPS = [
   },
 ];
 
-const EMPTY_READINESS: InstallReadinessResponse = {
-  access: {
-    byokConfiguredProviders: [],
-    byokEnabled: false,
-    runtimeMode: 'server',
-    selectedMode: null,
-    serverDefaultsReady: false,
-  },
-  authMode: 'better_auth',
-  billingMode: 'oss_local',
-  localTools: {
-    anyDetected: false,
-    claude: false,
-    codex: false,
-    detected: [],
-  },
-  providers: {
-    anyConfigured: false,
-    configured: [],
-    fal: false,
-    imageGenerationReady: false,
-    openai: false,
-    openrouter: false,
-    replicate: false,
-    textGenerationReady: false,
-  },
-  ui: {
-    showBilling: false,
-    showCloudUpgradeCta: true,
-    showCredits: false,
-    showLocalTools: false,
-    showPricing: false,
-  },
-  workspace: {
-    brandId: null,
-    hasBrand: false,
-    hasOrganization: false,
-    organizationId: null,
-  },
-};
-
 function formatSelectedAccessLabel(
   readiness: InstallReadinessResponse,
 ): string {
@@ -131,76 +88,48 @@ function formatSelectedAccessLabel(
 
 export default function SummaryContent() {
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
-  const { getToken } = useAuthIdentity();
   const { currentUser } = useCurrentUser();
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
-  );
-  const getAuthService = useAuthedService((token: string) =>
-    AuthService.getInstance(token),
   );
   const { push } = useRouter();
   const [pendingMode, setPendingMode] = useState<OnboardingAccessMode | null>(
     null,
   );
-  const [readiness, setReadiness] =
-    useState<InstallReadinessResponse>(EMPTY_READINESS);
-  const [billingState, setBillingState] = useState<AccessBootstrapState | null>(
-    null,
-  );
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadReadiness = async () => {
+  const {
+    isLoading: isLoadingReadiness,
+    markAccessModeSaved,
+    readiness,
+  } = useInstallReadiness();
+  // In billing-enabled (cloud/SaaS) deployments, surface the user's real
+  // subscription tier and credit balance so a replayed summary reflects what
+  // they already have instead of a blank or OSS-only view.
+  const isBillingShown = readiness.ui.showBilling;
+  const billingQuery = useAuthedQuery({
+    enabled: isBillingShown,
+    queryFn: async (service) => {
       try {
-        const token = await resolveAuthToken(getToken);
-        if (!token || cancelled) {
-          setLoading(false);
-          return;
-        }
-
-        const service = OnboardingService.getInstance(token);
-        const response = await service.getInstallReadiness();
-
-        if (cancelled) {
-          return;
-        }
-
-        setReadiness(response);
-
-        // In billing-enabled (cloud/SaaS) deployments, surface the user's real
-        // subscription tier and credit balance so a replayed summary reflects
-        // what they already have instead of a blank or OSS-only view.
-        if (response.ui.showBilling) {
-          try {
-            const authService = await getAuthService();
-            const bootstrap = await authService.getBootstrap();
-
-            if (!cancelled) {
-              setBillingState(bootstrap.access);
-            }
-          } catch (billingError) {
-            logger.error(
-              'Failed to load billing state for onboarding summary',
-              billingError,
-            );
-          }
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        const bootstrap = await service.getBootstrap();
+        return bootstrap.access;
+      } catch (billingError) {
+        logger.error(
+          'Failed to load billing state for onboarding summary',
+          billingError,
+        );
+        throw billingError;
       }
-    };
-
-    void loadReadiness();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [getToken, getAuthService]);
+    },
+    queryKey: ['onboarding-summary-billing'],
+    service: (token: string) => AuthService.getInstance(token),
+  });
+  const billingState = billingQuery.data ?? null;
+  const isLoadingBilling = isBillingShown && billingQuery.isLoading;
+  const loading = isLoadingReadiness || isLoadingBilling;
+  // A failed read with nothing cached must not pass for a free account; a
+  // failed background refresh keeps the cached plan.
+  const isBillingUnavailable = billingState === null && billingQuery.isError;
+  const billingValue = (value: () => string) =>
+    loading ? 'Checking...' : isBillingUnavailable ? 'Unavailable' : value();
 
   const workspaceStatus = useMemo(() => {
     if (readiness.workspace.hasOrganization && readiness.workspace.hasBrand) {
@@ -210,8 +139,10 @@ export default function SummaryContent() {
     return 'Still bootstrapping';
   }, [readiness.workspace.hasBrand, readiness.workspace.hasOrganization]);
 
+  // The install labels wait on readiness only: a cached readiness stays on
+  // screen while just the plan is loading.
   const localToolsLabel = useMemo(() => {
-    if (loading) {
+    if (isLoadingReadiness) {
       return 'Checking...';
     }
 
@@ -220,10 +151,10 @@ export default function SummaryContent() {
     }
 
     return 'None detected';
-  }, [loading, readiness.localTools]);
+  }, [isLoadingReadiness, readiness.localTools]);
 
   const providersLabel = useMemo(() => {
-    if (loading) {
+    if (isLoadingReadiness) {
       return 'Checking...';
     }
 
@@ -232,15 +163,15 @@ export default function SummaryContent() {
     }
 
     return 'None configured';
-  }, [loading, readiness.providers]);
+  }, [isLoadingReadiness, readiness.providers]);
 
   const accessModeLabel = useMemo(() => {
-    if (loading) {
+    if (isLoadingReadiness) {
       return 'Checking...';
     }
 
     return formatSelectedAccessLabel(readiness);
-  }, [loading, readiness]);
+  }, [isLoadingReadiness, readiness]);
 
   const persistAccessMode = async (accessMode: OnboardingAccessMode) => {
     if (!currentUser) {
@@ -255,6 +186,7 @@ export default function SummaryContent() {
       });
 
       await service.patchSettings(currentUser.id, patch);
+      await markAccessModeSaved(accessMode);
     } catch (error) {
       logger.error('Failed to persist onboarding access mode', error);
     }
@@ -313,29 +245,27 @@ export default function SummaryContent() {
               <div className="flex items-start justify-between gap-4 border-t border-border pt-3 first:border-t-0 first:pt-0">
                 <span className="text-muted-foreground">Subscription</span>
                 <span className="text-right text-foreground">
-                  {loading
-                    ? 'Checking...'
-                    : formatSubscriptionTierLabel(
-                        billingState?.subscriptionTier,
-                      )}
+                  {billingValue(() =>
+                    formatSubscriptionTierLabel(billingState?.subscriptionTier),
+                  )}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4 border-t border-border pt-3">
                 <span className="text-muted-foreground">Status</span>
                 <span className="text-right text-foreground">
-                  {loading
-                    ? 'Checking...'
-                    : formatSubscriptionStatusLabel(
-                        billingState?.subscriptionStatus,
-                      )}
+                  {billingValue(() =>
+                    formatSubscriptionStatusLabel(
+                      billingState?.subscriptionStatus,
+                    ),
+                  )}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4 border-t border-border pt-3">
                 <span className="text-muted-foreground">Credits balance</span>
                 <span className="text-right text-foreground">
-                  {loading
-                    ? 'Checking...'
-                    : (billingState?.creditsBalance ?? 0).toLocaleString()}
+                  {billingValue(() =>
+                    (billingState?.creditsBalance ?? 0).toLocaleString(),
+                  )}
                 </span>
               </div>
             </div>

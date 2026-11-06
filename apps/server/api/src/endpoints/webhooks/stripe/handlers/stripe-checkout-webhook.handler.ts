@@ -42,10 +42,8 @@ import {
   USER_SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/contracts/interfaces/billing';
 import { toPrismaJson } from '@genfeedai/prisma';
-import {
-  buildSystemEmailHtml,
-  buildSystemEmailParagraph,
-} from '@helpers/email/system-email.helper';
+import { buildSystemEmailHtml } from '@helpers/email/system-email.helper';
+import { buildSkillsProReceiptEmailBody } from '@helpers/email/system-email-templates.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Inject, Injectable } from '@nestjs/common';
@@ -1182,14 +1180,7 @@ export class StripeCheckoutWebhookHandler {
     const command = `npx @genfeedai/skills-pro install ${receiptId}`;
     await this.notificationsService.deliverEmail({
       html: buildSystemEmailHtml({
-        bodyHtml: [
-          buildSystemEmailParagraph(
-            'Your Skills Pro purchase is ready. Use this receipt id to install the skills.',
-          ),
-          buildSystemEmailParagraph('You do not need a Genfeed account.'),
-          buildSystemEmailParagraph(`Receipt id: ${receiptId}`),
-          buildSystemEmailParagraph(command),
-        ].join(''),
+        bodyHtml: buildSkillsProReceiptEmailBody({ command, receiptId }),
         preheader: 'Your Skills Pro install command is inside.',
         title: 'Your Skills Pro receipt',
       }),

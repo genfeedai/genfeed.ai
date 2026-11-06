@@ -37,7 +37,7 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
     '../../../tests/next-intl.stub'
   );
-  return { useTranslations: translateFromCatalog };
+  return { useLocale: () => 'en-US', useTranslations: translateFromCatalog };
 });
 
 // The composer renders scope controls itself; the mocked provider only
@@ -80,7 +80,7 @@ vi.mock('next-intl', async () => {
     '../../../tests/next-intl.stub'
   );
 
-  return { useTranslations: translateFromCatalog };
+  return { useLocale: () => 'en-US', useTranslations: translateFromCatalog };
 });
 
 vi.mock('@genfeedai/agent/components/ConversationDockPanel', () => ({

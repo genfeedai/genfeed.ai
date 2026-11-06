@@ -1,5 +1,10 @@
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { TurboProjectKind } from '@genfeedai/contracts';
+import type { QueryClient } from '@tanstack/react-query';
 import {
   act,
   fireEvent,
@@ -89,6 +94,15 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
       ? mocks.getWorkflowService
       : mocks.getService,
 }));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
+function renderPane(client: QueryClient = createTestQueryClient()) {
+  return render(<TurboNewPane />, { wrapper: queryClientWrapper(client) });
+}
 
 vi.mock('@/hooks/feature-flags/use-feature-flag', () => ({
   useFeatureFlag: () => mocks.isIdeasEnabled,
@@ -192,7 +206,7 @@ describe('TurboNewPane', () => {
   beforeEach(resetMocks);
 
   it('opens on ideas with the starters, an empty prompt and no workflow lookup', () => {
-    render(<TurboNewPane />);
+    renderPane();
 
     expect(
       screen.getByRole('heading', { name: 'What should Turbo make?' }),
@@ -211,7 +225,7 @@ describe('TurboNewPane', () => {
   });
 
   it('fills the prompt from a starter without creating anything', () => {
-    render(<TurboNewPane />);
+    renderPane();
 
     fireEvent.click(screen.getByRole('button', { name: /Weekly content mix/ }));
 
@@ -229,7 +243,7 @@ describe('TurboNewPane', () => {
         why: 'Behind-the-scenes posts are your top performers.',
       },
     ];
-    render(<TurboNewPane />);
+    renderPane();
 
     expect(
       screen.queryByRole('button', { name: /Weekly content mix/ }),
@@ -257,7 +271,7 @@ describe('TurboNewPane', () => {
   });
 
   it('names the project after the starter when the prompt is left as the starter', async () => {
-    render(<TurboNewPane />);
+    renderPane();
 
     fireEvent.click(screen.getByRole('button', { name: /Weekly content mix/ }));
     fireEvent.click(sendButton());
@@ -283,7 +297,7 @@ describe('TurboNewPane', () => {
   });
 
   it('saves a typed prompt as the angle and opens the new project', async () => {
-    render(<TurboNewPane />);
+    renderPane();
 
     typePrompt('  Spring sale teasers  ');
     fireEvent.click(sendButton());
@@ -309,7 +323,7 @@ describe('TurboNewPane', () => {
   });
 
   it('sends the chosen formats and idea count', async () => {
-    render(<TurboNewPane />);
+    renderPane();
 
     fireEvent.click(screen.getByRole('combobox', { name: 'Formats' }));
     fireEvent.click(screen.getByRole('option', { name: 'Video' }));
@@ -331,7 +345,7 @@ describe('TurboNewPane', () => {
   });
 
   it('lets Turbo pick the angle when the prompt is empty', async () => {
-    render(<TurboNewPane />);
+    renderPane();
 
     fireEvent.click(sendButton());
 
@@ -351,7 +365,7 @@ describe('TurboNewPane', () => {
 
   it('still opens the project when saving the idea settings fails', async () => {
     mocks.update.mockRejectedValue(new Error('Settings unavailable'));
-    render(<TurboNewPane />);
+    renderPane();
 
     typePrompt('Behind the scenes');
     fireEvent.click(sendButton());
@@ -363,7 +377,7 @@ describe('TurboNewPane', () => {
   });
 
   it('refuses a prompt over 300 characters', () => {
-    render(<TurboNewPane />);
+    renderPane();
 
     typePrompt('a'.repeat(301));
 
@@ -376,7 +390,7 @@ describe('TurboNewPane', () => {
 
   it('cannot send without a brand', () => {
     mocks.brandId = '';
-    render(<TurboNewPane />);
+    renderPane();
 
     expect(sendButton()).toBeDisabled();
     expect(mocks.list).not.toHaveBeenCalled();
@@ -384,7 +398,7 @@ describe('TurboNewPane', () => {
 
   it('turns ideas off when the turbo_ideas flag is off', async () => {
     mocks.isIdeasEnabled = false;
-    render(<TurboNewPane />);
+    renderPane();
 
     expect(
       screen.getByText('Idea projects are not available right now.'),
@@ -402,7 +416,7 @@ describe('TurboNewPane', () => {
       isReleasePreviewEnabled: true,
       moduleOverrides: {},
     };
-    render(<TurboNewPane />);
+    renderPane();
 
     fireEvent.click(screen.getByRole('combobox', { name: 'Project source' }));
     expect(
@@ -428,7 +442,7 @@ describe('TurboNewPane', () => {
     'does not load workflows without a paid grant (%s) while ideas stay available',
     async (grant) => {
       mocks.settings.hasPaidModuleSubscription = grant;
-      render(<TurboNewPane />);
+      renderPane();
 
       fireEvent.click(screen.getByRole('combobox', { name: 'Project source' }));
       expect(
@@ -457,7 +471,7 @@ describe('TurboNewPane', () => {
           resolvers.push(done);
         }),
     );
-    const { rerender } = render(<TurboNewPane />);
+    const { rerender } = renderPane();
 
     typePrompt('Launch week');
     fireEvent.click(sendButton());
@@ -483,7 +497,7 @@ describe('TurboNewPane', () => {
         },
       ],
     });
-    render(<TurboNewPane />);
+    renderPane();
 
     typePrompt('Launch week');
     fireEvent.click(sendButton());
@@ -507,7 +521,7 @@ describe('TurboNewPane', () => {
     mocks.create.mockRejectedValueOnce({
       errors: [{ detail: 'Name is already in use', status: '422' }],
     });
-    render(<TurboNewPane />);
+    renderPane();
 
     typePrompt('Launch week');
     fireEvent.click(sendButton());
@@ -537,7 +551,7 @@ describe('TurboNewPane from a workflow', () => {
       { id: 'wf-1', label: 'Product spotlight' },
       { id: 'wf-2', label: 'Weekly recap' },
     ]);
-    render(<TurboNewPane />);
+    renderPane();
 
     chooseSource('From a workflow');
     await waitFor(() =>
@@ -565,7 +579,7 @@ describe('TurboNewPane from a workflow', () => {
   });
 
   it('points to creating a workflow, or back to ideas, when there are none', async () => {
-    render(<TurboNewPane />);
+    renderPane();
 
     chooseSource('From a workflow');
 
@@ -587,7 +601,7 @@ describe('TurboNewPane from a workflow', () => {
     mocks.list.mockRejectedValue({
       errors: [{ detail: 'Workflow access denied', status: '403' }],
     });
-    render(<TurboNewPane />);
+    renderPane();
 
     chooseSource('From a workflow');
 
@@ -605,7 +619,7 @@ describe('TurboNewPane from a workflow', () => {
           reject = fail;
         }),
     );
-    render(<TurboNewPane />);
+    renderPane();
 
     chooseSource('From a workflow');
     await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
@@ -618,6 +632,44 @@ describe('TurboNewPane from a workflow', () => {
     expect(sendButton()).toBeEnabled();
   });
 
+  it('paints the cached workflows at once when the workflow source is chosen again', async () => {
+    mocks.list.mockResolvedValue([{ id: 'wf-1', label: 'Product spotlight' }]);
+    const client = createTestQueryClient();
+    const firstVisit = renderPane(client);
+    chooseSource('From a workflow');
+    expect(
+      await screen.findByRole('combobox', { name: 'Workflow' }),
+    ).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.list.mockReturnValue(new Promise(() => {}));
+    renderPane(client);
+    chooseSource('From a workflow');
+
+    expect(screen.getByRole('combobox', { name: 'Workflow' })).toBeEnabled();
+    expect(screen.queryByText('Loading project…')).not.toBeInTheDocument();
+  });
+
+  it('never offers one brand’s workflows under another brand', async () => {
+    mocks.list.mockResolvedValue([{ id: 'wf-1', label: 'Product spotlight' }]);
+    const client = createTestQueryClient();
+    const firstVisit = renderPane(client);
+    chooseSource('From a workflow');
+    expect(
+      await screen.findByRole('combobox', { name: 'Workflow' }),
+    ).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.brandId = 'brand-2';
+    mocks.list.mockReturnValue(new Promise(() => {}));
+    renderPane(client);
+    chooseSource('From a workflow');
+
+    expect(
+      screen.queryByRole('combobox', { name: 'Workflow' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('does not fetch workflows when the creator leaves while the service resolves', async () => {
     let resolve: ((service: { list: typeof mocks.list }) => void) | undefined;
     mocks.getWorkflowService.mockImplementationOnce(
@@ -626,7 +678,7 @@ describe('TurboNewPane from a workflow', () => {
           resolve = ready;
         }),
     );
-    render(<TurboNewPane />);
+    renderPane();
 
     chooseSource('From a workflow');
     chooseSource('From ideas');
@@ -648,7 +700,7 @@ describe('TurboNewPane from a workflow', () => {
     });
 
     it('tells the agent it is on the Turbo New screen with the brand projects', async () => {
-      render(<TurboNewPane />);
+      renderPane();
 
       await waitFor(() =>
         expect(mocks.publishContext).toHaveBeenLastCalledWith({
@@ -662,7 +714,7 @@ describe('TurboNewPane from a workflow', () => {
     });
 
     it('asks which project a change request applies to instead of creating one', async () => {
-      render(<TurboNewPane />);
+      renderPane();
       await waitFor(() => expect(mocks.listProjects).toHaveBeenCalled());
       await screen.findByRole('textbox', { name: 'Creative angle' });
       await waitFor(() =>
@@ -691,7 +743,7 @@ describe('TurboNewPane from a workflow', () => {
     });
 
     it('opens the chosen project with the request ready in its agent', async () => {
-      render(<TurboNewPane />);
+      renderPane();
       await waitFor(() =>
         expect(mocks.publishContext).toHaveBeenLastCalledWith(
           expect.objectContaining({ app: 'turbo' }),
@@ -710,7 +762,7 @@ describe('TurboNewPane from a workflow', () => {
     });
 
     it('starts a new project when the viewer declines to pick one', async () => {
-      render(<TurboNewPane />);
+      renderPane();
       await waitFor(() =>
         expect(mocks.publishContext).toHaveBeenLastCalledWith(
           expect.objectContaining({ app: 'turbo' }),
@@ -739,7 +791,7 @@ describe('TurboNewPane from a workflow', () => {
 
     it('holds a change request until the project list has loaded', async () => {
       mocks.list.mockReturnValue(new Promise(() => {}));
-      render(<TurboNewPane />);
+      renderPane();
 
       typePrompt('revise the intro');
       fireEvent.click(sendButton());
@@ -752,7 +804,7 @@ describe('TurboNewPane from a workflow', () => {
     });
 
     it('creates a project for new work even when projects exist', async () => {
-      render(<TurboNewPane />);
+      renderPane();
       await waitFor(() =>
         expect(mocks.publishContext).toHaveBeenLastCalledWith(
           expect.objectContaining({ app: 'turbo' }),
@@ -770,7 +822,7 @@ describe('TurboNewPane from a workflow', () => {
 
     it('creates a project for a change request when the brand has none', async () => {
       mocks.listProjects.mockResolvedValue([]);
-      render(<TurboNewPane />);
+      renderPane();
       await waitFor(() =>
         expect(mocks.publishContext).toHaveBeenLastCalledWith({
           app: 'turbo',
