@@ -2,7 +2,10 @@ import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { AdminOrganizationApiKeysService } from '@api/endpoints/admin/organization-api-keys/organization-api-keys.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { isApiKeyPermissionLevelOffered } from '@genfeedai/contracts/constants';
+import {
+  API_KEY_ALLOWED_BRANDS_MAX,
+  isApiKeyPermissionLevelOffered,
+} from '@genfeedai/contracts/constants';
 import type { IAdminPartnerApiKeyResult } from '@genfeedai/contracts/interfaces';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
@@ -22,6 +25,11 @@ const identifier = z.string().trim().min(1).max(200);
 const levelSchema = z.enum(['none', 'read', 'write']);
 const partnerKeySchema = z
   .object({
+    allowedBrandIds: z
+      .array(identifier)
+      .min(1)
+      .max(API_KEY_ALLOWED_BRANDS_MAX)
+      .optional(),
     defaultBrandId: identifier.optional(),
     description: z.string().trim().min(1).max(500).optional(),
     expiresInDays: z.number().int().positive().max(3650).optional(),
@@ -62,7 +70,7 @@ export class AdminOrganizationApiKeysController {
     const parsed = partnerKeySchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(
-        'A label is required; levels must be none, read or write for a known resource',
+        'A label is required; levels must be none, read or write for a known resource; allowedBrandIds needs at least one brand id',
       );
     }
     const operatorUserId = request.context?.userId;

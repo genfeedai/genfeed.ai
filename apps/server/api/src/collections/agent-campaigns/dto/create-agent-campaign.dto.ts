@@ -1,11 +1,15 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import {
+  AGENT_CAMPAIGN_STATUSES,
+  type AgentCampaignStatus,
+} from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
   IsDate,
-  IsEnum,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -137,14 +141,14 @@ export class CreateAgentCampaignDto {
   @ApiProperty({ description: 'Campaign end date', required: false })
   endDate?: Date;
 
-  @IsEnum(['draft', 'active', 'paused', 'completed'])
+  @IsIn(AGENT_CAMPAIGN_STATUSES)
   @IsOptional()
   @ApiProperty({
     description: 'Campaign status',
-    enum: ['draft', 'active', 'paused', 'completed'],
+    enum: AGENT_CAMPAIGN_STATUSES,
     required: false,
   })
-  status?: 'draft' | 'active' | 'paused' | 'completed';
+  status?: AgentCampaignStatus;
 
   @ValidateNested()
   @Type(() => ContentQuotaConfigDto)

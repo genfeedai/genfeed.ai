@@ -1,21 +1,13 @@
 import type { HeyGenAvatarCandidate } from '@api/services/integrations/heygen/heygen-identity.types';
 import type { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
+import type {
+  TaskPriority,
+  TaskReviewState,
+  TaskStatus,
+} from '@genfeedai/contracts/interfaces';
 import type { Task } from '@genfeedai/prisma';
 
 export type { Task } from '@genfeedai/prisma';
-
-export const TASK_STATUSES = [
-  'backlog',
-  'todo',
-  'in_progress',
-  'blocked',
-  'in_review',
-  'done',
-  'failed',
-  'cancelled',
-] as const;
-
-export const TASK_PRIORITIES = ['critical', 'high', 'medium', 'low'] as const;
 
 export const TASK_LINKED_ENTITY_MODELS = [
   'Ingredient',
@@ -44,8 +36,6 @@ export const TASK_OUTPUT_TYPE_SOURCES = [
   'keyword',
 ] as const;
 
-export type TaskStatus = (typeof TASK_STATUSES)[number];
-export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 export type TaskLinkedEntityModel = (typeof TASK_LINKED_ENTITY_MODELS)[number];
 export type TaskOutputType = (typeof TASK_OUTPUT_TYPES)[number];
 export type TaskOutputTypeSource = (typeof TASK_OUTPUT_TYPE_SOURCES)[number];
@@ -80,6 +70,7 @@ export interface TaskDocument
     | 'dismissedAt'
     | 'failureReason'
     | 'requestedChangesReason'
+    | 'reviewState'
   > {
   approvedOutputIds: string[];
   assigneeUserId?: string;
@@ -117,7 +108,7 @@ export interface TaskDocument
   request: string;
   requestedChangesReason?: string;
   resultPreview?: string;
-  reviewState: string;
+  reviewState: TaskReviewState;
   reviewTriggered: boolean;
   routingSummary?: string;
   skillVariantIds: string[];

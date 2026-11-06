@@ -28,6 +28,7 @@ import {
 import { parseSourceFile } from './parse-source-file';
 
 export const AUTHORITY_FIELDS: ReadonlySet<string> = new Set([
+  'allowedBrandIds',
   'allowedIps',
   'expiresAt',
   'organizationId',

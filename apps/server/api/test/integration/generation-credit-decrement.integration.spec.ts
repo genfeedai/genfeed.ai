@@ -169,6 +169,7 @@ const createImageGenerationService = () => {
   };
   const organizationSettingsService = {
     findOne: vi.fn().mockResolvedValue(null),
+    findOneSelect: vi.fn().mockResolvedValue(null),
   };
   const modelRegistrationService = {
     validateModelForOrg: vi.fn().mockResolvedValue(undefined),
@@ -416,7 +417,10 @@ describe('Credit decrement is real and idempotent (#334 real-backend E2E)', () =
         TransactionUtil,
         {
           provide: OrganizationSettingsService,
-          useValue: { findOne: vi.fn().mockResolvedValue(null) },
+          useValue: {
+            findOne: vi.fn().mockResolvedValue(null),
+            findOneSelect: vi.fn().mockResolvedValue(null),
+          },
         },
         {
           provide: NotificationsPublisherService,

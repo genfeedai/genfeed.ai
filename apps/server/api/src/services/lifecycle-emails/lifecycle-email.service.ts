@@ -1,6 +1,7 @@
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
+import { LifecycleEmailDeliveryStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
@@ -16,12 +17,6 @@ import { LifecycleEmailWorkflowService } from './lifecycle-email-workflow.servic
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CHECKOUT_RECOVERY_DELAY_MS = 2 * 60 * 60 * 1000;
-const DELIVERY_STATUS = {
-  CANCELED: 'canceled',
-  FAILED: 'failed',
-  SCHEDULED: 'scheduled',
-} as const;
-
 type UserEmailTarget = {
   email: string | null;
   firstName: string | null;
@@ -191,7 +186,11 @@ export class LifecycleEmailService implements OnModuleInit {
         where: {
           sequence: 'abandoned-checkout',
           status: {
-            in: [DELIVERY_STATUS.SCHEDULED, DELIVERY_STATUS.FAILED, 'queued'],
+            in: [
+              LifecycleEmailDeliveryStatus.SCHEDULED,
+              LifecycleEmailDeliveryStatus.FAILED,
+              LifecycleEmailDeliveryStatus.QUEUED,
+            ],
           },
           triggerKey,
         },
@@ -325,7 +324,7 @@ export class LifecycleEmailService implements OnModuleInit {
           metadata: { ...item.metadata, organizationId },
           scheduledFor: new Date(item.scheduledFor),
           sequence: item.sequence,
-          status: DELIVERY_STATUS.SCHEDULED,
+          status: LifecycleEmailDeliveryStatus.SCHEDULED,
           step: item.step,
           triggerKey: item.triggerKey,
           userId: item.userId,
@@ -340,7 +339,12 @@ export class LifecycleEmailService implements OnModuleInit {
             sequence: item.sequence,
             step: item.step,
             triggerKey: item.triggerKey,
-            status: { in: [DELIVERY_STATUS.SCHEDULED, DELIVERY_STATUS.FAILED] },
+            status: {
+              in: [
+                LifecycleEmailDeliveryStatus.SCHEDULED,
+                LifecycleEmailDeliveryStatus.FAILED,
+              ],
+            },
           },
           select: { id: true },
         });
@@ -379,11 +383,18 @@ export class LifecycleEmailService implements OnModuleInit {
   ): Promise<LifecycleCheckoutCancellationItem> {
     this.assertOrganization(item.organizationId, organizationId);
     await this.prisma.lifecycleEmailDelivery.updateMany({
-      data: { canceledAt: new Date(), status: DELIVERY_STATUS.CANCELED },
+      data: {
+        canceledAt: new Date(),
+        status: LifecycleEmailDeliveryStatus.CANCELED,
+      },
       where: {
         sequence: 'abandoned-checkout',
         status: {
-          in: [DELIVERY_STATUS.SCHEDULED, DELIVERY_STATUS.FAILED, 'queued'],
+          in: [
+            LifecycleEmailDeliveryStatus.SCHEDULED,
+            LifecycleEmailDeliveryStatus.FAILED,
+            LifecycleEmailDeliveryStatus.QUEUED,
+          ],
         },
         triggerKey: item.triggerKey,
         userId: item.userId,

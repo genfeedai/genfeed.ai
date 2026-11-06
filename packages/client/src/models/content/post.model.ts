@@ -8,6 +8,7 @@ import type {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type {
+  BrandedGenerationReceiptStateV1,
   IBrand,
   IChannelTargetError,
   ICredential,
@@ -48,7 +49,7 @@ export class Post extends BaseEntity implements IPost {
   declare public groupId?: string;
   declare public generationId?: string | null;
   declare public brandedReceiptId?: string | null;
-  declare public brandedReceiptState?: string | null;
+  declare public brandedReceiptState?: BrandedGenerationReceiptStateV1 | null;
   declare public policyViolations?: IPost['policyViolations'];
   declare public url?: string;
   declare public scheduledDate?: string | null;

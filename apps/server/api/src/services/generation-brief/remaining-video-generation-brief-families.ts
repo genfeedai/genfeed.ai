@@ -294,6 +294,30 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
             nativeFields: ['start_image'],
           },
         ),
+        profile(
+          'fal-kling-video-v3-pro-image-to-video-capability',
+          MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO_IMAGE_TO_VIDEO,
+          {
+            audioSupported: true,
+            nativeFields: ['start_image'],
+          },
+        ),
+        profile(
+          'fal-kling-video-v3-standard-text-to-video-capability',
+          MODEL_KEYS.FAL_KLING_VIDEO_V3_STANDARD_TEXT_TO_VIDEO,
+          {
+            audioSupported: true,
+            nativeFields: ['start_image'],
+          },
+        ),
+        profile(
+          'fal-kling-video-v3-standard-image-to-video-capability',
+          MODEL_KEYS.FAL_KLING_VIDEO_V3_STANDARD_IMAGE_TO_VIDEO,
+          {
+            audioSupported: true,
+            nativeFields: ['start_image'],
+          },
+        ),
       ],
       spec: {
         aspectRatioField: 'aspect_ratio',

@@ -260,6 +260,7 @@ export async function readOrganizationCreditLedger(
 }
 
 export interface PartnerApiKeyInput {
+  allowedBrandIds?: string[];
   defaultBrandId?: string;
   description?: string;
   expiresInDays?: number;

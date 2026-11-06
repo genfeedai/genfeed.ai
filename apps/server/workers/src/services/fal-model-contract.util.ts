@@ -3,6 +3,7 @@ import {
   extractFalEndpointSchemas,
   type FalEndpointSchemas,
 } from '@api/services/integrations/fal/services/fal-contract';
+import type { ModelProviderContractMappingStatus } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import {
   mapFalPricing,
@@ -21,7 +22,7 @@ export interface FalCandidateContract {
   conditionalDimensions: Record<string, unknown>;
   currency: string | null;
   inputSchema: Record<string, unknown>;
-  mappingStatus: 'quarantined' | 'supported';
+  mappingStatus: ModelProviderContractMappingStatus;
   openapi: Record<string, unknown>;
   openapiVersion: string | null;
   outputSchema: Record<string, unknown>;

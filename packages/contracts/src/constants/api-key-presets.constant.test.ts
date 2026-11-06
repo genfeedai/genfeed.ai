@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   API_KEY_SCOPE_PRESETS,
+  apiKeyAllowedBrandsMetadata,
   CONNECT_GENFEED_VERIFICATION_METADATA_KEY,
+  readApiKeyAllowedBrandIds,
   SELF_SERVICE_API_KEY_SCOPES,
 } from './api-key-presets.constant';
 import { API_KEY_SCOPE_OPTIONS } from './api-key-scope-labels.constant';
@@ -66,5 +68,43 @@ describe('API key scope presets', () => {
         { label: 'Direct publishing', scopes: ['posts:publish'] },
       ]),
     );
+  });
+});
+
+describe('readApiKeyAllowedBrandIds', () => {
+  it.each([
+    ['no metadata', null, undefined],
+    ['metadata without a list', { kind: 'partner' }, undefined],
+    [
+      'a list',
+      { allowedBrandIds: ['brand-1', 'brand-2'] },
+      ['brand-1', 'brand-2'],
+    ],
+    ['a malformed list, failing closed', { allowedBrandIds: 'brand-1' }, []],
+    [
+      'non-string entries dropped',
+      { allowedBrandIds: ['brand-1', 7, ''] },
+      ['brand-1'],
+    ],
+  ])('reads %s', (_case, metadata, expected) => {
+    expect(readApiKeyAllowedBrandIds(metadata)).toEqual(expected);
+  });
+});
+
+describe('apiKeyAllowedBrandsMetadata', () => {
+  it.each([
+    ['a key without a limit', { kind: 'partner' }, {}],
+    [
+      'a limited key',
+      { allowedBrandIds: ['brand-1'], kind: 'partner' },
+      { allowedBrandIds: ['brand-1'] },
+    ],
+    [
+      'a malformed limit, failing closed',
+      { allowedBrandIds: 'brand-1' },
+      { allowedBrandIds: [] },
+    ],
+  ])('carries over the limit of %s', (_case, metadata, expected) => {
+    expect(apiKeyAllowedBrandsMetadata(metadata)).toEqual(expected);
   });
 });

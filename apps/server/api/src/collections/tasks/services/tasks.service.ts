@@ -1,10 +1,7 @@
 import type { WorkflowInitiatingActor } from '@api/authorization/brand-access/workflow-actor.util';
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
-import {
-  type TaskDocument,
-  type TaskStatus,
-} from '@api/collections/tasks/schemas/task.schema';
+import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import {
   TaskActionsService,
   type TaskEventInput,
@@ -28,7 +25,10 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
-import type { PopulateOption } from '@genfeedai/contracts/interfaces';
+import type {
+  PopulateOption,
+  TaskStatus,
+} from '@genfeedai/contracts/interfaces';
 import {
   type Prisma,
   WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,

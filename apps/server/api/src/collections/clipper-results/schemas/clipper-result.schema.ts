@@ -23,11 +23,11 @@ type ClipperResultRecord = Omit<
 export interface ClipperResultDocument extends ClipperResultRecord {
   isSelected: boolean;
   /** `avatar` (default) vs deterministic `raw-cut`. Real column; see #1239. */
-  mode: ClipperResultMode | string;
+  mode: ClipperResultMode;
   readiness: ClipperReadinessContract | Record<string, unknown>;
   referenceProvenance?: ClipperReferenceProvenance;
   generationBrief?: VideoGenerationBrief;
-  status: SharedClipperResultStatus | string;
+  status: SharedClipperResultStatus;
   terminalAt?: Date | null;
   // Raw-cut data contract. Persisted in the `data` blob and flattened by the
   // ClipperResultsService read codec so orchestrators and serializers consume a
@@ -46,7 +46,7 @@ export interface ClipperResultDocument extends ClipperResultRecord {
   sourceVideoS3Key?: string | null;
   sourceVideoUrl?: string | null;
   ingredientId?: string | null;
-  libraryLinkStatus?: ClipperLibraryLinkStatus | string | null;
+  libraryLinkStatus?: ClipperLibraryLinkStatus | null;
   libraryLinkError?: string | null;
   framing?: ClipRawCutFramingContract;
   mediaValidation?: ClipRawCutMediaValidationContract;

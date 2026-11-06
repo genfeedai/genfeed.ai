@@ -1,3 +1,4 @@
+import { initialContractReviewStatus } from '@api/collections/models/utils/model-provider-contract-status.util';
 import {
   prepareReplicateModelContract,
   type ReplicateCandidateContract,
@@ -310,8 +311,7 @@ export class ReplicateModelContractSyncService {
         pricing: candidate.pricing as Prisma.InputJsonValue,
         pricingType: candidate.pricingType,
         provider: ModelProvider.REPLICATE,
-        reviewStatus:
-          candidate.mappingStatus === 'supported' ? 'pending' : 'quarantined',
+        reviewStatus: initialContractReviewStatus(candidate.mappingStatus),
         schemaFamily: candidate.schemaFamily,
         unitPrice: candidate.unitPrice,
         unitPriceMicros: candidate.unitPriceMicros,

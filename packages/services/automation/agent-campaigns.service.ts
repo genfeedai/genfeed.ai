@@ -1,5 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
+  AgentCampaignStatus,
   IAgentCampaign,
   IAgentCampaignContentRotation,
   IAgentCampaignStatusResponse,
@@ -17,7 +18,7 @@ export interface CreateAgentCampaignInput {
   endDate?: string;
   label: string;
   startDate: string;
-  status?: 'draft' | 'active' | 'paused' | 'completed';
+  status?: AgentCampaignStatus;
 }
 
 export interface CreateAgentCampaignFromTemplateInput

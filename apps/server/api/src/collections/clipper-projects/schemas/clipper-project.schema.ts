@@ -7,6 +7,7 @@ import {
   CLIPPER_PROJECT_STATUSES,
   type ClipProcessingFlow,
   type ClipperCaptionStyle,
+  type ClipperContinuityQaStatus,
   type ClipperProjectDraft,
   type ClipperReadinessContract,
   type ClipperReferenceFrameSet,
@@ -60,6 +61,7 @@ export interface ClipperProjectSettings {
 
 type ClipperProjectRecord = Omit<
   PrismaClipperProject,
+  | 'continuityQaStatus'
   | 'continuityWorkflowExecutionId'
   | 'error'
   | 'failedClipCount'
@@ -73,7 +75,7 @@ type ClipperProjectRecord = Omit<
 >;
 
 export interface ClipperProjectDocument extends ClipperProjectRecord {
-  continuityQaStatus: string;
+  continuityQaStatus: ClipperContinuityQaStatus;
   continuityWorkflowExecutionId?: string | null;
   draft?: ClipperProjectDraft | null;
   error?: string | null;
@@ -90,7 +92,7 @@ export interface ClipperProjectDocument extends ClipperProjectRecord {
   source?: ClipperSourceContract;
   sourceVideoS3Key?: string;
   sourceVideoUrl?: string;
-  status: SharedClipperProjectStatus | string;
+  status: SharedClipperProjectStatus;
   terminalAt?: Date | null;
   transcriptText?: string;
   workflowExecutionId?: string | null;

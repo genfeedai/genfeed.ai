@@ -11,6 +11,11 @@ import {
   scopesWithinCaller,
   updatedKeyReach,
 } from '@api/collections/api-keys/utils/api-key-escalation.util';
+import {
+  existingConnectGenfeedMetadata,
+  existingMcpOAuthMetadata,
+  withoutReservedMetadata,
+} from '@api/collections/api-keys/utils/api-key-metadata.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -27,7 +32,10 @@ import {
   API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY,
   ApiKeyCategory,
 } from '@genfeedai/contracts';
-import { CONNECT_GENFEED_VERIFICATION_METADATA_KEY } from '@genfeedai/contracts/constants';
+import {
+  apiKeyAllowedBrandsMetadata,
+  readApiKeyAllowedBrandIds,
+} from '@genfeedai/contracts/constants';
 import { ApiKeyFullSerializer, ApiKeySerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -88,58 +96,6 @@ export class ApiKeysController {
         })
       : null;
     assertKeyWithinCaller(callerKey, requested, isCreate);
-  }
-
-  private withoutReservedMetadata(
-    metadata: Record<string, unknown> | undefined,
-  ): Record<string, unknown> | undefined {
-    if (!metadata) {
-      return undefined;
-    }
-    const {
-      [API_KEY_ACTION_ORIGIN_METADATA_KEY]: _actionOrigin,
-      [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: _actionOriginProof,
-      [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: _connectGenfeedVerification,
-      kind: _kind,
-      mcpAccessMode: _mcpAccessMode,
-      resource: _resource,
-      grantId: _grantId,
-      clientName: _clientName,
-      ...safeMetadata
-    } = metadata;
-    return safeMetadata;
-  }
-
-  private existingConnectGenfeedMetadata(
-    apiKey: Parameters<ApiKeysService['resolveActionOrigin']>[0],
-  ): Record<string, unknown> {
-    const metadata =
-      apiKey.metadata &&
-      typeof apiKey.metadata === 'object' &&
-      !Array.isArray(apiKey.metadata)
-        ? (apiKey.metadata as Record<string, unknown>)
-        : {};
-    const verification = metadata[CONNECT_GENFEED_VERIFICATION_METADATA_KEY];
-
-    return verification &&
-      typeof verification === 'object' &&
-      !Array.isArray(verification)
-      ? { [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: verification }
-      : {};
-  }
-
-  private existingMcpOAuthMetadata(
-    apiKey: Parameters<ApiKeysService['resolveActionOrigin']>[0],
-  ): Record<string, unknown> {
-    const metadata = apiKey.metadata as Record<string, unknown> | undefined;
-    if (metadata?.kind !== 'mcp-oauth-session') return {};
-    return {
-      kind: metadata.kind,
-      resource: metadata.resource,
-      mcpAccessMode: metadata.mcpAccessMode,
-      grantId: metadata.grantId,
-      clientName: metadata.clientName,
-    };
   }
 
   private trustedExistingOriginMetadata(
@@ -208,7 +164,7 @@ export class ApiKeysController {
       ...(user.isApiKey === true && createApiKeyDto.scopes == null
         ? { scopes: scopesWithinCaller(user.scopes) }
         : {}),
-      metadata: this.withoutReservedMetadata(createApiKeyDto.metadata),
+      metadata: withoutReservedMetadata(createApiKeyDto.metadata),
       organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     });
@@ -327,6 +283,7 @@ export class ApiKeysController {
       await this.apiKeysService.assertValidDefaultBrandId(
         user.organizationId,
         updateApiKeyDto.defaultBrandId,
+        readApiKeyAllowedBrandIds(existingKey.metadata),
       );
     }
 
@@ -335,10 +292,11 @@ export class ApiKeysController {
       ...(updateApiKeyDto.metadata !== undefined
         ? {
             metadata: {
-              ...this.withoutReservedMetadata(updateApiKeyDto.metadata),
-              ...this.existingConnectGenfeedMetadata(existingKey),
+              ...withoutReservedMetadata(updateApiKeyDto.metadata),
+              ...existingConnectGenfeedMetadata(existingKey.metadata),
               ...this.trustedExistingOriginMetadata(existingKey),
-              ...this.existingMcpOAuthMetadata(existingKey),
+              ...existingMcpOAuthMetadata(existingKey.metadata),
+              ...apiKeyAllowedBrandsMetadata(existingKey.metadata),
             },
           }
         : {}),
@@ -381,8 +339,8 @@ export class ApiKeysController {
         ? (existingKey.metadata as Record<string, unknown>)
         : undefined;
     const metadata = {
-      ...this.withoutReservedMetadata(existingMetadata),
-      ...this.existingMcpOAuthMetadata(existingKey),
+      ...withoutReservedMetadata(existingMetadata),
+      ...existingMcpOAuthMetadata(existingKey.metadata),
     };
     const existingOrigin = this.apiKeysService.resolveActionOrigin(existingKey);
     const trustedOrigin =
@@ -390,7 +348,13 @@ export class ApiKeysController {
         ? existingOrigin
         : undefined;
 
+    // The replacement keeps what the old key still reaches (#9130).
+    const brandReach = await this.apiKeysService.resolveRotationBrandReach(
+      user.organizationId,
+      existingKey,
+    );
     const replacementInput = {
+      ...brandReach,
       allowedIps: existingKey.allowedIps,
       category: this.toApiKeyCategory(existingKey.category),
       description: existingKey.description ?? undefined,
