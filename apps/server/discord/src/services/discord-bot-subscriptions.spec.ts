@@ -1,228 +1,224 @@
 import { DiscordBotSubscriptions } from '@discord/services/discord-bot-subscriptions';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
 import type { RedisService } from '@libs/redis/redis.service';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 type RedisHandler = (data: unknown) => void;
 
-interface SubscriptionTestContext {
-  handlers: Map<string, RedisHandler>;
-  handleIntegrationEvent: ReturnType<typeof vi.fn>;
-  logger: {
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-  };
-  redis: {
-    subscribe: ReturnType<typeof vi.fn>;
-    unsubscribe: ReturnType<typeof vi.fn>;
-  };
-  sendToChannel: ReturnType<typeof vi.fn>;
-  subscriptions: DiscordBotSubscriptions;
+interface Logged {
+  level: 'error' | 'log' | 'warn';
+  message: unknown;
 }
 
-function createContext(): SubscriptionTestContext {
-  const handlers = new Map<string, RedisHandler>();
-  const redis = {
-    subscribe: vi
-      .fn()
-      .mockImplementation(async (event: string, handler: RedisHandler) => {
-        handlers.set(event, handler);
-      }),
-    unsubscribe: vi.fn().mockResolvedValue(undefined),
-  };
-  const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-  const handleIntegrationEvent = vi.fn().mockResolvedValue(undefined);
-  const sendToChannel = vi.fn().mockResolvedValue(null);
+const INTEGRATION_EVENTS = [
+  REDIS_EVENTS.INTEGRATION_CREATED,
+  REDIS_EVENTS.INTEGRATION_UPDATED,
+  REDIS_EVENTS.INTEGRATION_DELETED,
+];
 
-  const subscriptions = new DiscordBotSubscriptions(
-    redis as unknown as RedisService,
-    logger,
-    { handleIntegrationEvent, sendToChannel },
-  );
-
-  return {
-    handleIntegrationEvent,
-    handlers,
-    logger,
-    redis,
-    sendToChannel,
-    subscriptions,
-  };
-}
-
-async function flushMicrotasks(): Promise<void> {
-  await new Promise((resolve) => setImmediate(resolve));
-}
+// The handlers run detached from the Redis callback; let them finish.
+const settle = () => new Promise((resolve) => setImmediate(resolve));
 
 describe('DiscordBotSubscriptions', () => {
-  describe('subscribe', () => {
-    it('should subscribe to the three integration events and the channel event', async () => {
-      const ctx = createContext();
+  let channels: Map<string, RedisHandler[]>;
+  let brokenChannels: Set<string>;
+  let integrationEvents: [string, unknown][];
+  let sentMessages: [string, string, string][];
+  let isBotFailing: boolean;
+  let logged: Logged[];
+  let subscriptions: DiscordBotSubscriptions;
 
-      await ctx.subscriptions.subscribe();
+  const publish = async (event: string, data: unknown) => {
+    for (const handler of channels.get(event) ?? []) {
+      handler(data);
+    }
+    await settle();
+  };
+  const messagesAt = (level: Logged['level']) =>
+    logged.filter((entry) => entry.level === level).map((e) => e.message);
 
-      expect(ctx.redis.subscribe).toHaveBeenCalledTimes(4);
-      expect(ctx.handlers.has(REDIS_EVENTS.INTEGRATION_CREATED)).toBe(true);
-      expect(ctx.handlers.has(REDIS_EVENTS.INTEGRATION_UPDATED)).toBe(true);
-      expect(ctx.handlers.has(REDIS_EVENTS.INTEGRATION_DELETED)).toBe(true);
-      expect(ctx.handlers.has(REDIS_EVENTS.DISCORD_SEND_TO_CHANNEL)).toBe(true);
-    });
+  beforeEach(() => {
+    channels = new Map();
+    brokenChannels = new Set();
+    integrationEvents = [];
+    sentMessages = [];
+    isBotFailing = false;
+    logged = [];
 
-    it('should not resubscribe when called twice', async () => {
-      const ctx = createContext();
+    // Redis pub/sub: one handler list per channel.
+    const redis = {
+      subscribe: async (event: string, handler: RedisHandler) => {
+        channels.set(event, [...(channels.get(event) ?? []), handler]);
+      },
+      unsubscribe: async (event: string) => {
+        if (brokenChannels.has(event)) throw new Error('redis gone');
+        channels.delete(event);
+      },
+    } as unknown as RedisService;
+    const record = (level: Logged['level']) => (message: unknown) => {
+      logged.push({ level, message });
+    };
 
-      await ctx.subscriptions.subscribe();
-      await ctx.subscriptions.subscribe();
-
-      expect(ctx.redis.subscribe).toHaveBeenCalledTimes(4);
-    });
+    subscriptions = new DiscordBotSubscriptions(
+      redis,
+      { error: record('error'), log: record('log'), warn: record('warn') },
+      {
+        handleIntegrationEvent: async (event: string, data: unknown) => {
+          if (isBotFailing) throw new Error('handler failed');
+          integrationEvents.push([event, data]);
+        },
+        sendToChannel: async (
+          orgId: string,
+          channelId: string,
+          message: string,
+        ) => {
+          if (isBotFailing) throw new Error('send failed');
+          sentMessages.push([orgId, channelId, message]);
+        },
+      },
+    );
   });
 
-  describe('integration event handling', () => {
-    it('should dispatch valid Discord integration events', async () => {
-      const ctx = createContext();
-      await ctx.subscriptions.subscribe();
+  it('listens once on the integration and send-to-channel events', async () => {
+    await subscriptions.subscribe();
+    await subscriptions.subscribe();
 
-      ctx.handlers.get(REDIS_EVENTS.INTEGRATION_CREATED)?.({
-        integrationId: 'int-1',
-        platform: 'DISCORD',
-      });
-      await flushMicrotasks();
-
-      expect(ctx.handleIntegrationEvent).toHaveBeenCalledWith(
-        REDIS_EVENTS.INTEGRATION_CREATED,
-        { integrationId: 'int-1', platform: 'DISCORD' },
-      );
-    });
-
-    it('should ignore events for other platforms', async () => {
-      const ctx = createContext();
-      await ctx.subscriptions.subscribe();
-
-      ctx.handlers.get(REDIS_EVENTS.INTEGRATION_UPDATED)?.({
-        integrationId: 'int-1',
-        platform: 'SLACK',
-      });
-      await flushMicrotasks();
-
-      expect(ctx.handleIntegrationEvent).not.toHaveBeenCalled();
-    });
-
-    it('should ignore malformed integration payloads', async () => {
-      const ctx = createContext();
-      await ctx.subscriptions.subscribe();
-
-      const handler = ctx.handlers.get(REDIS_EVENTS.INTEGRATION_DELETED);
-      handler?.(null);
-      handler?.('not-an-object');
-      handler?.({ platform: 'DISCORD' });
-      handler?.({ integrationId: 42, platform: 'DISCORD' });
-      await flushMicrotasks();
-
-      expect(ctx.handleIntegrationEvent).not.toHaveBeenCalled();
-    });
-
-    it('should log when the integration handler rejects', async () => {
-      const ctx = createContext();
-      const error = new Error('handler failed');
-      ctx.handleIntegrationEvent.mockRejectedValue(error);
-      await ctx.subscriptions.subscribe();
-
-      ctx.handlers.get(REDIS_EVENTS.INTEGRATION_CREATED)?.({
-        integrationId: 'int-1',
-        platform: 'DISCORD',
-      });
-      await flushMicrotasks();
-
-      expect(ctx.logger.error).toHaveBeenCalledWith(
-        'Failed to handle Redis integration event',
-        error,
-      );
-    });
+    expect(
+      [...channels.entries()].map(([event, handlers]) => [
+        event,
+        handlers.length,
+      ]),
+    ).toEqual([
+      [REDIS_EVENTS.INTEGRATION_CREATED, 1],
+      [REDIS_EVENTS.INTEGRATION_UPDATED, 1],
+      [REDIS_EVENTS.INTEGRATION_DELETED, 1],
+      [REDIS_EVENTS.DISCORD_SEND_TO_CHANNEL, 1],
+    ]);
   });
 
-  describe('send-to-channel event handling', () => {
-    it('should dispatch valid send-to-channel events', async () => {
-      const ctx = createContext();
-      await ctx.subscriptions.subscribe();
+  it.each(INTEGRATION_EVENTS)(
+    'hands a Discord integration %s event to the bot',
+    async (event) => {
+      await subscriptions.subscribe();
 
-      ctx.handlers.get(REDIS_EVENTS.DISCORD_SEND_TO_CHANNEL)?.({
-        channelId: 'ch-1',
-        message: 'hello',
-        orgId: 'org-1',
-      });
-      await flushMicrotasks();
+      await publish(event, { integrationId: 'int-1', platform: 'DISCORD' });
 
-      expect(ctx.sendToChannel).toHaveBeenCalledWith('org-1', 'ch-1', 'hello');
-    });
+      expect(integrationEvents).toEqual([
+        [event, { integrationId: 'int-1', platform: 'DISCORD' }],
+      ]);
+    },
+  );
 
-    it('should ignore malformed send-to-channel payloads', async () => {
-      const ctx = createContext();
-      await ctx.subscriptions.subscribe();
+  it.each([
+    ['another platform', { integrationId: 'int-1', platform: 'SLACK' }],
+    ['no payload', null],
+    ['a string payload', 'not-an-object'],
+    ['no integration id', { platform: 'DISCORD' }],
+    ['a numeric integration id', { integrationId: 42, platform: 'DISCORD' }],
+  ])('ignores an integration event with %s', async (_case, data) => {
+    await subscriptions.subscribe();
 
-      const handler = ctx.handlers.get(REDIS_EVENTS.DISCORD_SEND_TO_CHANNEL);
-      handler?.(null);
-      handler?.({ channelId: 'ch-1', orgId: 'org-1' });
-      handler?.({ channelId: 'ch-1', message: 7, orgId: 'org-1' });
-      await flushMicrotasks();
+    await publish(REDIS_EVENTS.INTEGRATION_UPDATED, data);
 
-      expect(ctx.sendToChannel).not.toHaveBeenCalled();
-    });
-
-    it('should log when sending to the channel rejects', async () => {
-      const ctx = createContext();
-      const error = new Error('send failed');
-      ctx.sendToChannel.mockRejectedValue(error);
-      await ctx.subscriptions.subscribe();
-
-      ctx.handlers.get(REDIS_EVENTS.DISCORD_SEND_TO_CHANNEL)?.({
-        channelId: 'ch-1',
-        message: 'hello',
-        orgId: 'org-1',
-      });
-      await flushMicrotasks();
-
-      expect(ctx.logger.error).toHaveBeenCalledWith(
-        'Failed to handle discord:send-to-channel event',
-        error,
-      );
-    });
+    expect(integrationEvents).toEqual([]);
   });
 
-  describe('unsubscribe', () => {
-    it('should be a no-op before subscribing', async () => {
-      const ctx = createContext();
+  it('sends a channel message for a send-to-channel event', async () => {
+    await subscriptions.subscribe();
 
-      await ctx.subscriptions.unsubscribe();
-
-      expect(ctx.redis.unsubscribe).not.toHaveBeenCalled();
+    await publish(REDIS_EVENTS.DISCORD_SEND_TO_CHANNEL, {
+      channelId: 'ch-1',
+      message: 'hello',
+      orgId: 'org-1',
     });
 
-    it('should unsubscribe from the integration events', async () => {
-      const ctx = createContext();
-      await ctx.subscriptions.subscribe();
+    expect(sentMessages).toEqual([['org-1', 'ch-1', 'hello']]);
+  });
 
-      await ctx.subscriptions.unsubscribe();
+  it.each([
+    ['no payload', null],
+    ['no message', { channelId: 'ch-1', orgId: 'org-1' }],
+    ['a numeric message', { channelId: 'ch-1', message: 7, orgId: 'org-1' }],
+  ])('ignores a send-to-channel event with %s', async (_case, data) => {
+    await subscriptions.subscribe();
 
-      expect(ctx.redis.unsubscribe).toHaveBeenCalledTimes(3);
-      expect(ctx.redis.unsubscribe).toHaveBeenCalledWith(
-        REDIS_EVENTS.INTEGRATION_CREATED,
-      );
-      expect(ctx.logger.warn).not.toHaveBeenCalled();
+    await publish(REDIS_EVENTS.DISCORD_SEND_TO_CHANNEL, data);
+
+    expect(sentMessages).toEqual([]);
+  });
+
+  it.each([
+    [
+      REDIS_EVENTS.INTEGRATION_CREATED,
+      { integrationId: 'int-1', platform: 'DISCORD' },
+      'Failed to handle Redis integration event',
+    ],
+    [
+      REDIS_EVENTS.DISCORD_SEND_TO_CHANNEL,
+      { channelId: 'ch-1', message: 'hello', orgId: 'org-1' },
+      'Failed to handle discord:send-to-channel event',
+    ],
+  ])(
+    'logs a bot failure on %s without breaking the listener',
+    async (event, data, message) => {
+      await subscriptions.subscribe();
+      isBotFailing = true;
+
+      await publish(event, data);
+
+      expect(messagesAt('error')).toEqual([message]);
+    },
+  );
+
+  it('stops listening for integration events but keeps channel sends', async () => {
+    await subscriptions.subscribe();
+
+    await subscriptions.unsubscribe();
+    await publish(REDIS_EVENTS.INTEGRATION_CREATED, {
+      integrationId: 'int-1',
+      platform: 'DISCORD',
     });
 
-    it('should warn when an unsubscribe rejects but continue', async () => {
-      const ctx = createContext();
-      const error = new Error('redis gone');
-      ctx.redis.unsubscribe.mockRejectedValueOnce(error);
-      await ctx.subscriptions.subscribe();
+    expect([...channels.keys()]).toEqual([
+      REDIS_EVENTS.DISCORD_SEND_TO_CHANNEL,
+    ]);
+    expect(integrationEvents).toEqual([]);
+    expect(messagesAt('warn')).toEqual([]);
+  });
 
-      await ctx.subscriptions.unsubscribe();
+  it('leaves Redis alone when it never subscribed', async () => {
+    await subscriptions.unsubscribe();
 
-      expect(ctx.logger.warn).toHaveBeenCalledWith(
-        'Failed to unsubscribe from one or more Redis channels',
-        error,
-      );
+    expect(channels.size).toBe(0);
+    expect(messagesAt('warn')).toEqual([]);
+  });
+
+  it('warns about a channel Redis cannot release and still releases the rest', async () => {
+    await subscriptions.subscribe();
+    brokenChannels.add(REDIS_EVENTS.INTEGRATION_UPDATED);
+
+    await subscriptions.unsubscribe();
+
+    expect([...channels.keys()]).toEqual([
+      REDIS_EVENTS.INTEGRATION_UPDATED,
+      REDIS_EVENTS.DISCORD_SEND_TO_CHANNEL,
+    ]);
+    expect(messagesAt('warn')).toEqual([
+      'Failed to unsubscribe from one or more Redis channels',
+    ]);
+  });
+
+  it('listens again after an unsubscribe', async () => {
+    await subscriptions.subscribe();
+    await subscriptions.unsubscribe();
+
+    await subscriptions.subscribe();
+    await publish(REDIS_EVENTS.INTEGRATION_DELETED, {
+      integrationId: 'int-1',
+      platform: 'DISCORD',
     });
+
+    expect(integrationEvents).toHaveLength(1);
+    expect(channels.get(REDIS_EVENTS.DISCORD_SEND_TO_CHANNEL)).toHaveLength(1);
   });
 });

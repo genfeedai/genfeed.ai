@@ -1,210 +1,284 @@
-import type { Mocked } from 'vitest';
+import type { ServerYoutubeUploader } from '@api/server.dependencies';
+import type { YoutubeAnalyticsService } from '@api/services/integrations/youtube/services/modules/youtube-analytics.service';
+import type { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
+import type { YoutubeCommentsService } from '@api/services/integrations/youtube/services/modules/youtube-comments.service';
+import type { YoutubeMetadataService } from '@api/services/integrations/youtube/services/modules/youtube-metadata.service';
+import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import type { ConfigService } from '@libs/config/config.service';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Break circular dependencies: both YoutubeAnalyticsService and YoutubeMetadataService import YoutubeService
+// Break circular dependencies: both modules import YoutubeService.
 vi.mock(
   '@api/services/integrations/youtube/services/modules/youtube-analytics.service',
-  () => ({
-    YoutubeAnalyticsService: vi.fn(),
-  }),
+  () => ({ YoutubeAnalyticsService: class {} }),
 );
-
 vi.mock(
   '@api/services/integrations/youtube/services/modules/youtube-metadata.service',
-  () => ({
-    YoutubeMetadataService: vi.fn(),
-  }),
+  () => ({ YoutubeMetadataService: class {} }),
 );
 
-const mockVideosList = vi.fn();
-const mockSearchList = vi.fn();
+interface CatalogVideo {
+  id: string;
+  popularIn: string[];
+  snippet: Record<string, unknown> & { publishedAt: string; title?: string };
+  statistics?: Record<string, string>;
+}
+
+interface ListArgs {
+  chart?: string;
+  id?: string[];
+  maxResults: number;
+  publishedAfter?: string;
+  q?: string;
+  regionCode?: string;
+}
+
+// The YouTube Data API: the regional mostPopular chart, video lookups by id,
+// and a keyword search over recent videos ordered by views.
+const youtube = vi.hoisted(() => ({
+  catalog: [] as CatalogVideo[],
+  keysUsed: [] as (string | undefined)[],
+}));
 
 vi.mock('googleapis', () => ({
   google: {
-    youtube: () => ({
-      videos: { list: mockVideosList },
-      search: { list: mockSearchList },
-    }),
+    youtube: ({ auth }: { auth?: string }) => {
+      const byViews = (a: CatalogVideo, b: CatalogVideo) =>
+        Number(b.statistics?.viewCount ?? 0) -
+        Number(a.statistics?.viewCount ?? 0);
+      return {
+        search: {
+          list: async ({ maxResults, publishedAfter, q }: ListArgs) => {
+            youtube.keysUsed.push(auth);
+            const items = youtube.catalog
+              .filter(
+                (video) =>
+                  video.snippet.title?.includes(q ?? '') &&
+                  video.snippet.publishedAt >= (publishedAfter ?? ''),
+              )
+              .sort(byViews)
+              .slice(0, maxResults)
+              .map((video) => ({ id: { videoId: video.id } }));
+            return { data: { items } };
+          },
+        },
+        videos: {
+          list: async ({ chart, id, maxResults, regionCode }: ListArgs) => {
+            youtube.keysUsed.push(auth);
+            const items = youtube.catalog
+              .filter((video) =>
+                chart === 'mostPopular'
+                  ? video.popularIn.includes(regionCode ?? '')
+                  : id?.includes(video.id),
+              )
+              .sort(byViews)
+              .slice(0, maxResults);
+            return { data: { items } };
+          },
+        },
+      };
+    },
   },
 }));
 
-import {
-  SERVER_TOKENS,
-  type ServerYoutubeUploader,
-} from '@api/server.dependencies';
-import { YoutubeAnalyticsService } from '@api/services/integrations/youtube/services/modules/youtube-analytics.service';
-import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
-import { YoutubeCommentsService } from '@api/services/integrations/youtube/services/modules/youtube-comments.service';
-import { YoutubeMetadataService } from '@api/services/integrations/youtube/services/modules/youtube-metadata.service';
-import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import { ConfigService } from '@libs/config/config.service';
-import { Test, TestingModule } from '@nestjs/testing';
+const NOW = new Date('2026-09-01T12:00:00.000Z');
+
+const video = (
+  id: string,
+  fields: Partial<CatalogVideo['snippet']> = {},
+  views = 100,
+  popularIn: string[] = [],
+): CatalogVideo => ({
+  id,
+  popularIn,
+  snippet: {
+    channelId: 'channel-1',
+    channelTitle: 'Creator',
+    description: 'Description',
+    publishedAt: '2026-08-29T12:00:00Z',
+    tags: ['ai', 'video'],
+    thumbnails: { high: { url: `https://img/${id}.jpg` } },
+    title: `AI agents ${id}`,
+    ...fields,
+  },
+  statistics: { commentCount: '25', likeCount: '500', viewCount: `${views}` },
+});
 
 describe('YoutubeService', () => {
-  let service: YoutubeService;
-  let authService: Mocked<YoutubeAuthService>;
-  let metadataService: Mocked<YoutubeMetadataService>;
-  let uploadService: Mocked<ServerYoutubeUploader>;
-  let analyticsService: Mocked<YoutubeAnalyticsService>;
+  let apiKey: string;
 
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    authService = {
-      refreshToken: vi.fn(),
-    } as unknown as Mocked<YoutubeAuthService>;
-
-    metadataService = {
-      getVideoMetadata: vi.fn(),
-      getVideoStatus: vi.fn(),
-    } as unknown as Mocked<YoutubeMetadataService>;
-
-    uploadService = {
-      uploadVideo: vi.fn(),
-    } as unknown as Mocked<ServerYoutubeUploader>;
-
-    analyticsService = {
-      getChannelDetails: vi.fn(),
-      getMediaAnalytics: vi.fn(),
-      getMediaAnalyticsBatch: vi.fn(),
-    } as unknown as Mocked<YoutubeAnalyticsService>;
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        YoutubeService,
-        {
-          provide: ConfigService,
-          useValue: { get: vi.fn().mockReturnValue('youtube-api-key') },
-        },
-        { provide: YoutubeAuthService, useValue: authService },
-        { provide: YoutubeMetadataService, useValue: metadataService },
-        { provide: SERVER_TOKENS.youtubeUploads, useValue: uploadService },
-        { provide: YoutubeAnalyticsService, useValue: analyticsService },
-        { provide: YoutubeCommentsService, useValue: { postComment: vi.fn() } },
-      ],
-    }).compile();
-
-    service = module.get(YoutubeService);
-  });
-
-  it('should delegate metadata calls', async () => {
-    metadataService.getVideoMetadata.mockResolvedValue({ id: 'abc' });
-
-    await service.getVideoMetadata('abc');
-    expect(metadataService.getVideoMetadata).toHaveBeenCalledWith('abc');
-  });
-
-  it('should delegate refresh token', async () => {
-    await service.refreshToken('org', 'brand');
-    expect(authService.refreshToken).toHaveBeenCalledWith(
-      'org',
-      'brand',
-      undefined,
+  const build = () =>
+    new YoutubeService(
+      { get: () => apiKey } as unknown as ConfigService,
+      {
+        refreshToken: async (org: string, brand: string, credential?: string) =>
+          `${org}/${brand}/${credential ?? 'oldest'} refreshed`,
+      } as unknown as YoutubeAuthService,
+      {
+        getVideoMetadata: async (id: string) => ({ id, title: `Video ${id}` }),
+        getVideoStatus: async (_org: string, _brand: string, id: string) => ({
+          id,
+          status: 'processed',
+        }),
+      } as unknown as YoutubeMetadataService,
+      {
+        uploadVideo: async (
+          _org: string,
+          brand: string,
+          id: string,
+          post: { label: string },
+          _settings: unknown,
+          credential?: string,
+        ) => `${brand}:${id}:${post.label}:${credential ?? 'oldest'}`,
+      } as unknown as ServerYoutubeUploader,
+      {
+        getMediaAnalytics: async (
+          _org: string,
+          _brand: string,
+          id: string,
+          credential: string,
+        ) => ({ credential, id, views: 42 }),
+        getMediaAnalyticsBatch: async (
+          _org: string,
+          _brand: string,
+          ids: string[],
+        ) => ids.map((id) => ({ id, views: 42 })),
+      } as unknown as YoutubeAnalyticsService,
+      {} as YoutubeCommentsService,
     );
+
+  beforeEach(() => {
+    vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
+    apiKey = 'youtube-api-key';
+    youtube.catalog = [];
+    youtube.keysUsed = [];
   });
 
-  it('should delegate upload operations', async () => {
-    await service.uploadVideo('org', 'brand', 'video', {
-      description: '',
-      label: '',
-      scheduledDate: new Date(),
-    });
-    expect(uploadService.uploadVideo).toHaveBeenCalled();
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
-  it('should delegate analytics operations', async () => {
-    await service.getMediaAnalytics('org', 'brand', 'vid', 'credential');
-    expect(analyticsService.getMediaAnalytics).toHaveBeenCalled();
-  });
+  it('maps the regional mostPopular chart into trends with the API key', async () => {
+    youtube.catalog = [
+      video('video-1', { title: 'Native trend' }, 10_000, ['DE']),
+      video('video-us', {}, 99_999, ['US']),
+    ];
 
-  it('loads the native mostPopular chart and maps video signals', async () => {
-    mockVideosList.mockResolvedValueOnce({
-      data: {
-        items: [
-          {
-            id: 'video-1',
-            snippet: {
-              channelId: 'channel-1',
-              channelTitle: 'Creator',
-              description: 'Description',
-              publishedAt: '2026-08-29T12:00:00Z',
-              tags: ['ai', 'video'],
-              thumbnails: { high: { url: 'https://img/video-1.jpg' } },
-              title: 'Native trend',
-            },
-            statistics: {
-              commentCount: '25',
-              likeCount: '500',
-              viewCount: '10000',
-            },
-          },
-        ],
-      },
-    });
-
-    await expect(service.getTrends('DE', 10)).resolves.toEqual([
-      expect.objectContaining({
+    await expect(build().getTrends('DE', 10)).resolves.toEqual([
+      {
+        channelId: 'channel-1',
+        channelTitle: 'Creator',
         commentCount: 25,
+        description: 'Description',
         id: 'video-1',
         likeCount: 500,
+        publishedAt: '2026-08-29T12:00:00Z',
+        tags: ['ai', 'video'],
+        thumbnailUrl: 'https://img/video-1.jpg',
         title: 'Native trend',
         url: 'https://www.youtube.com/watch?v=video-1',
         viewCount: 10000,
-      }),
+      },
     ]);
-    expect(mockVideosList).toHaveBeenCalledWith({
-      chart: 'mostPopular',
-      maxResults: 10,
-      part: ['id', 'snippet', 'statistics'],
-      regionCode: 'DE',
-    });
+    expect(youtube.keysUsed).toEqual(['youtube-api-key']);
   });
 
-  it('searches recent embeddable videos for the brand instead of the global chart', async () => {
-    mockSearchList.mockResolvedValueOnce({
-      data: { items: [{ id: { videoId: 'brand-video' } }] },
+  it('searches the brand topic over the last week instead of the global chart', async () => {
+    youtube.catalog = [
+      video('fresh', {}, 500),
+      video('popular-elsewhere', { title: 'Cooking' }, 9_000, ['US']),
+      video('stale', { publishedAt: '2026-08-01T00:00:00Z' }, 9_000),
+      video('fresher', {}, 900),
+    ];
+
+    const trends = await build().getTrends('US', 12, 'AI agents');
+
+    expect(trends.map((trend) => trend.id)).toEqual(['fresher', 'fresh']);
+  });
+
+  it('returns no trends when the brand topic has no recent videos', async () => {
+    youtube.catalog = [video('popular', { title: 'Cooking' }, 9_000, ['US'])];
+
+    await expect(build().getTrends('US', 12, 'AI agents')).resolves.toEqual([]);
+  });
+
+  it.each([
+    [1, 0],
+    [50, 120],
+  ])(
+    'caps the chart at %i videos when %i are asked for',
+    async (count, limit) => {
+      youtube.catalog = Array.from({ length: 60 }, (_, index) =>
+        video(`video-${index}`, {}, index, ['US']),
+      );
+
+      await expect(build().getTrends('US', limit)).resolves.toHaveLength(count);
+    },
+  );
+
+  it('skips chart entries without an id or a title', async () => {
+    youtube.catalog = [
+      video('kept', {}, 3, ['US']),
+      video('', {}, 2, ['US']),
+      video('untitled', { title: '   ' }, 1, ['US']),
+    ];
+
+    const trends = await build().getTrends('US');
+
+    expect(trends.map((trend) => trend.id)).toEqual(['kept']);
+  });
+
+  it.each(['', '   '])(
+    'returns no native trends without an API key (%j)',
+    async (key) => {
+      apiKey = key;
+      youtube.catalog = [video('video-1', {}, 10, ['US'])];
+
+      await expect(build().getTrends()).resolves.toEqual([]);
+      expect(youtube.keysUsed).toEqual([]);
+    },
+  );
+
+  it.each([
+    ['PT1H2M3S', 3723],
+    ['PT45S', 45],
+    ['PT10M', 600],
+    ['P1D', 0],
+  ])('reads the ISO 8601 duration %s as %i seconds', (duration, seconds) => {
+    expect(build().parseDuration(duration)).toBe(seconds);
+  });
+
+  it('answers metadata, token, upload and analytics requests from its modules', async () => {
+    const service = build();
+
+    await expect(service.getVideoMetadata('abc')).resolves.toEqual({
+      id: 'abc',
+      title: 'Video abc',
     });
-    mockVideosList.mockResolvedValueOnce({
-      data: { items: [{ id: 'brand-video', snippet: { title: 'AI agents' } }] },
-    });
-    expect(await service.getTrends('US', 12, 'AI agents')).toHaveLength(1);
-    expect(mockSearchList).toHaveBeenCalledWith(
-      expect.objectContaining({
-        q: 'AI agents',
-        order: 'viewCount',
-        videoEmbeddable: 'true',
-        publishedAfter: expect.any(String),
-      }),
+    await expect(
+      service.getVideoStatus('org', 'brand', 'abc'),
+    ).resolves.toEqual({ id: 'abc', status: 'processed' });
+    await expect(service.refreshToken('org', 'brand')).resolves.toBe(
+      'org/brand/oldest refreshed',
     );
-    expect(mockVideosList).toHaveBeenCalledWith({
-      id: ['brand-video'],
-      maxResults: 12,
-      part: ['id', 'snippet', 'statistics'],
-    });
-  });
-
-  it('returns empty for a brand search without substituting mostPopular', async () => {
-    mockSearchList.mockResolvedValueOnce({ data: { items: [] } });
-    expect(await service.getTrends('US', 12, 'AI agents')).toEqual([]);
-    expect(mockVideosList).not.toHaveBeenCalled();
-  });
-
-  it('returns no native trends when the API key is absent', async () => {
-    const module = await Test.createTestingModule({
-      providers: [
-        YoutubeService,
-        {
-          provide: ConfigService,
-          useValue: { get: vi.fn().mockReturnValue('') },
-        },
-        { provide: YoutubeAuthService, useValue: authService },
-        { provide: YoutubeMetadataService, useValue: metadataService },
-        { provide: SERVER_TOKENS.youtubeUploads, useValue: uploadService },
-        { provide: YoutubeAnalyticsService, useValue: analyticsService },
-        { provide: YoutubeCommentsService, useValue: { postComment: vi.fn() } },
-      ],
-    }).compile();
-    const unconfiguredService = module.get(YoutubeService);
-
-    await expect(unconfiguredService.getTrends()).resolves.toEqual([]);
-    expect(mockVideosList).not.toHaveBeenCalled();
+    await expect(
+      service.uploadVideo(
+        'org',
+        'brand',
+        'video',
+        { description: '', label: 'Launch', scheduledDate: NOW },
+        {},
+        'channel-2',
+      ),
+    ).resolves.toBe('brand:video:Launch:channel-2');
+    await expect(
+      service.getMediaAnalytics('org', 'brand', 'vid', 'credential'),
+    ).resolves.toEqual({ credential: 'credential', id: 'vid', views: 42 });
+    await expect(
+      service.getMediaAnalyticsBatch('org', 'brand', ['a', 'b'], 'credential'),
+    ).resolves.toEqual([
+      { id: 'a', views: 42 },
+      { id: 'b', views: 42 },
+    ]);
   });
 });
