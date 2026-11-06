@@ -48,8 +48,6 @@ export const API_KEY_SCOPE_PRESETS = {
     'articles:create',
     'brands:read',
     'credits:read',
-    'posts:read',
-    'credentials:read',
     'posts:draft',
     'posts:schedule',
     'posts:approve',
