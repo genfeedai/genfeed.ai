@@ -357,9 +357,10 @@ describe('AgentChatMessage', () => {
       '[data-message-role="user"][data-message-surface="prompt"]',
     );
 
-    expect(surface).toHaveClass('bg-tertiary');
     expect(surface).toHaveClass('w-fit');
-    expect(surface).toContainElement(screen.getByTestId('agent-user-prompt'));
+    const bubble = screen.getByTestId('agent-user-prompt');
+    expect(bubble).toHaveClass('bg-tertiary');
+    expect(surface).toContainElement(bubble);
     expect(surface?.parentElement).toHaveClass('items-end');
     expect(container.querySelector('.sticky')).toBeNull();
   });

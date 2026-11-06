@@ -25,8 +25,7 @@ export const AGENT_CONVERSATION_SURFACE_RADIUS_CLASS = 'rounded-xl';
  * The user's message: a compact bubble on the right of the track, sized to its
  * text (Claude desktop). It scrolls with the transcript; it never pins.
  */
-export const AGENT_CONVERSATION_USER_BUBBLE_CLASS =
-  'w-fit max-w-[85%] rounded-2xl bg-tertiary px-4 py-2.5 text-card-foreground';
+export const AGENT_CONVERSATION_USER_BUBBLE_CLASS = 'w-fit max-w-[85%]';
 
 /** Assistant body — solid foreground so faded /90–/92 type cannot wash out. */
 export const AGENT_ASSISTANT_PROSE_CLASS = 'text-sm leading-6 text-foreground';

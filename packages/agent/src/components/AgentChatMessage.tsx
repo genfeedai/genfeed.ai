@@ -18,9 +18,16 @@ import {
   shouldRenderCompletionSummary,
 } from '@genfeedai/agent/utils/should-render-completion-summary';
 import { stripTrailingReplyEnvelope } from '@genfeedai/agent/utils/strip-reply-envelope.util';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { collapseOAuthConnectCards } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Card from '@ui/card/Card';
 import KnowledgeCitationList from '@ui/knowledge/KnowledgeCitationList';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -421,12 +428,18 @@ function UserPromptCard({
   }
 
   return (
-    <div
-      className="text-sm leading-6 text-foreground"
+    // Inset is the recessed step above the card plane: on the dark canvas a
+    // bg-card prompt disappears into the page. Tighter than a card, as a
+    // chat bubble.
+    <Card
+      variant={CardVariant.INSET}
+      padding={CardPadding.NONE}
+      gap={CardGap.NONE}
+      className="px-4 py-2.5"
       data-testid="agent-user-prompt"
     >
-      {children}
-    </div>
+      <div className="text-sm leading-6 text-foreground">{children}</div>
+    </Card>
   );
 }
 
