@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
-import HighlightReviewCard, { type IHighlight } from './HighlightReviewCard';
+import type { IHighlight } from '@/props/studio/clipper.props';
+import HighlightReviewCard from './HighlightReviewCard';
 
 const mockHighlight: IHighlight = {
   clip_type: 'hook',

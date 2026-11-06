@@ -1,3 +1,4 @@
+import type { IStreakSummary } from '@genfeedai/contracts/types';
 import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -75,7 +76,19 @@ describe('useStreak', () => {
   });
 
   it('seeds initial streak data', () => {
-    const initialStreak = { currentStreak: 2, longestStreak: 2 };
+    const initialStreak: IStreakSummary = {
+      badgeMilestones: [],
+      currentStreak: 2,
+      id: 'streak-1',
+      longestStreak: 2,
+      milestoneHistory: [],
+      milestoneStates: [],
+      milestones: [],
+      nextMilestone: null,
+      status: 'active',
+      streakFreezes: 0,
+      totalContentDays: 2,
+    };
 
     const { result } = renderHook(() => useStreak({ initialStreak }), {
       wrapper: createQueryWrapper(),

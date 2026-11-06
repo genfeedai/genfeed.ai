@@ -40,7 +40,7 @@ const mockRegisterRefresh = vi.fn();
 const mockOpenUpload = vi.fn();
 const mockCloseUpload = vi.fn();
 const mockRouterReplace = vi.fn();
-const mockSearchParamsGet = vi.fn(() => null);
+const mockSearchParamsGet = vi.fn((_key: string): string | null => null);
 const mockSearchParamsToString = vi.fn(() => '');
 
 vi.mock('next-intl', async () => {

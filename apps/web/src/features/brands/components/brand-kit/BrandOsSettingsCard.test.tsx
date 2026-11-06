@@ -744,7 +744,7 @@ describe('Brand OS revision settings', () => {
     mocks.getBrandOsExport.mockResolvedValue(
       exportState({ state: 'private', revisionId: 'revision-1' }),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Retry', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     await screen.findByText('design.md · private');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(await openRevisionField('Description')).toHaveValue(

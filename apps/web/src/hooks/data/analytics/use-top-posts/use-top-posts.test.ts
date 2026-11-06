@@ -1,3 +1,4 @@
+import { AnalyticsMetric } from '@genfeedai/contracts';
 import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -54,7 +55,7 @@ describe('useTopPosts', () => {
     mockGetTopContent.mockResolvedValue(mockPosts);
 
     const { result } = renderHook(
-      () => useTopPosts({ limit: 5, metric: 'views' }),
+      () => useTopPosts({ limit: 5, metric: AnalyticsMetric.VIEWS }),
       {
         wrapper: createQueryWrapper(),
       },
@@ -70,7 +71,12 @@ describe('useTopPosts', () => {
 
   it('fetches top posts with formatted date keys', async () => {
     const { result } = renderHook(
-      () => useTopPosts({ brandId: 'brand-1', limit: 5, metric: 'views' }),
+      () =>
+        useTopPosts({
+          brandId: 'brand-1',
+          limit: 5,
+          metric: AnalyticsMetric.VIEWS,
+        }),
       { wrapper: createQueryWrapper() },
     );
 

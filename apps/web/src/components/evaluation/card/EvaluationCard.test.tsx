@@ -16,6 +16,21 @@ vi.mock('next-intl', async () => {
 
 import EvaluationCard from '@/components/evaluation/card/EvaluationCard';
 
+const BRAND_SCORES = {
+  messageAlignment: 61,
+  overall: 78,
+  styleAlignment: 62,
+  toneAlignment: 63,
+};
+
+const ENGAGEMENT_SCORES = {
+  emotionalAppeal: 64,
+  overall: 85,
+  platformFit: 65,
+  shareability: 66,
+  viralityPotential: 67,
+};
+
 function buildEvaluation(
   dataOverrides: Partial<IEvaluationData> = {},
 ): IEvaluation {
@@ -37,8 +52,8 @@ function buildEvaluation(
       },
       overallScore: 82,
       scores: {
-        brand: { overall: 78 },
-        engagement: { overall: 85 },
+        brand: BRAND_SCORES,
+        engagement: ENGAGEMENT_SCORES,
         persuasion: {
           ctaNaturalness: 76,
           demandFit: 70,
@@ -93,8 +108,8 @@ describe('EvaluationCard', () => {
         contentType={IngredientCategory.VIDEO}
         evaluation={buildEvaluation({
           scores: {
-            brand: { overall: 78 },
-            engagement: { overall: 85 },
+            brand: BRAND_SCORES,
+            engagement: ENGAGEMENT_SCORES,
             technical: { overall: 80 },
           },
         })}

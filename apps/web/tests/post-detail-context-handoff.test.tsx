@@ -161,7 +161,7 @@ function createHookData(
     notificationsService: {
       error: vi.fn(),
       success: vi.fn(),
-    } as UsePostDetailReturn['notificationsService'],
+    } as unknown as UsePostDetailReturn['notificationsService'],
     pathname: '/acme/main/publishing/posts/post-1',
     performAutoSaveForPost: vi.fn(),
     post,

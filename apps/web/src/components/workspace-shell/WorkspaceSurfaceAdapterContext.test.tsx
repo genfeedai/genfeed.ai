@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { type ReactElement, useEffect, useMemo } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  type ProductWorkspaceSurfaceAdapter,
   useActiveWorkspaceSurfaceAdapter,
   useActiveWorkspaceSurfacePresentationAdapter,
   useRegisterWorkspaceSurfaceAdapter,
@@ -97,7 +98,7 @@ function SelectionProbe(): null {
 
 function ProductRegistration(): null {
   const registration = useMemo(
-    () => ({
+    (): ProductWorkspaceSurfaceAdapter => ({
       contextLabel: 'Studio · Storyboard · v3',
       references: [],
       scope: {

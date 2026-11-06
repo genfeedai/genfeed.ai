@@ -1,5 +1,10 @@
-import { AssetParent, IngredientCategory } from '@genfeedai/contracts';
+import {
+  AssetCategory,
+  AssetParent,
+  IngredientCategory,
+} from '@genfeedai/contracts';
 import type { IAsset, IIngredient } from '@genfeedai/contracts/interfaces';
+import { createBaseEntity } from '@genfeedai/helpers/testing/entity-fixtures';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useLibraryRemixSource } from './use-library-remix-source';
@@ -94,12 +99,13 @@ describe('useLibraryRemixSource', () => {
 
   it('rejects a canonical asset that is outside the effective brand', async () => {
     mocks.findAsset.mockResolvedValue({
-      id: 'asset-1',
-      isDeleted: false,
-      parent: 'brand-2',
-      parentModel: AssetParent.BRAND,
+      ...createBaseEntity({ id: 'asset-1' }),
+      category: AssetCategory.REFERENCE,
+      parentBrandId: 'brand-2',
+      parentType: AssetParent.BRAND,
       url: 'https://cdn.example/asset-1.jpg',
-    } as IAsset);
+      userId: 'user-1',
+    } satisfies IAsset);
 
     const { result } = renderHook(() => useLibraryRemixSource('asset:asset-1'));
 

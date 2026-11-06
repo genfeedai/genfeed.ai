@@ -39,8 +39,8 @@ describe('Posts agent actions', () => {
 
     expect(rewriteAction?.isVisible?.(draftPost)).toBe(true);
     expect(scheduleAction?.isVisible?.(draftPost)).toBe(true);
-    rewriteAction?.onClick(draftPost);
-    scheduleAction?.onClick(draftPost);
+    rewriteAction?.onClick?.(draftPost);
+    scheduleAction?.onClick?.(draftPost);
     expect(onRewriteWithAgent).toHaveBeenCalledWith(draftPost);
     expect(onSuggestScheduleWithAgent).toHaveBeenCalledWith(draftPost);
   });

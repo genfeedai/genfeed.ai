@@ -9,7 +9,9 @@ vi.mock('@/hooks/ui/use-command-palette/use-command-palette', () => ({
   useCommandPalette: (...args: unknown[]) => useCommandPaletteMock(...args),
 }));
 
-const viewMock = vi.fn(() => <div data-testid="command-palette-view" />);
+const viewMock = vi.fn((_props: unknown) => (
+  <div data-testid="command-palette-view" />
+));
 vi.mock('./CommandPaletteView', () => ({
   CommandPaletteView: (props: unknown) => {
     viewMock(props);

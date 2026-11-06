@@ -79,7 +79,7 @@ describe('useMoodBoard', () => {
       expect(result.current.board).toEqual(BOARD);
     });
 
-    const layout = [{ h: 1, id: 'item-1', w: 1, x: 0, y: 0 }];
+    const layout = [{ assetId: 'item-1', position: { x: 0, y: 0 }, width: 1 }];
 
     await act(async () => {
       await result.current.save(layout);

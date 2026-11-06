@@ -2,7 +2,9 @@ import { ModelProvider } from '@genfeedai/contracts';
 import type {
   CrunInputControls,
   IModel,
+  ITraining,
 } from '@genfeedai/contracts/interfaces';
+import { createBaseEntity } from '@genfeedai/helpers/testing/entity-fixtures';
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { usePromptBarModels } from '@/hooks/prompt-bar/use-prompt-bar-models/use-prompt-bar-models';
@@ -54,9 +56,11 @@ const createMockModel = (overrides: Partial<IModel> = {}): IModel =>
     ...overrides,
   }) as IModel;
 
-const createMockTraining = (id: string) => ({
-  id,
-  name: 'Test Training',
+const createMockTraining = (id: string): ITraining => ({
+  ...createBaseEntity({ id }),
+  label: 'Test Training',
+  trigger: 'TEST',
+  user: 'user-1',
 });
 
 const baseOptions = {

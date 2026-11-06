@@ -1,8 +1,16 @@
 import '@testing-library/jest-dom/vitest';
-import { IngredientCategory, IngredientFormat } from '@genfeedai/contracts';
+import { createPromptFormMock } from '@app-tests/prompt-form.harness';
+import {
+  IngredientCategory,
+  IngredientFormat,
+  QualityTier,
+  SubscriptionTier,
+} from '@genfeedai/contracts';
+import { createModelFixture } from '@genfeedai/helpers/testing/entity-fixtures';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import PromptBarEssentials from '@/components/prompt-bars/components/essentials/PromptBarEssentials';
+import type { PromptBarEssentialsProps } from '@/props/prompt-bars/prompt-bar-tiers.props';
 
 const promptEditorProps: { extraExtensions?: unknown } = {};
 
@@ -62,8 +70,16 @@ vi.mock(
   }),
 );
 
+/** A form with an empty prompt and branding off; `text` overrides the prompt. */
+function createEssentialsForm(text = '') {
+  return createPromptFormMock({
+    getValues: (name) => (name === 'isBrandingEnabled' ? false : undefined),
+    watch: (name) => (name === 'text' ? text : undefined),
+  });
+}
+
 describe('PromptBarEssentials', () => {
-  const defaultProps = {
+  const defaultProps: PromptBarEssentialsProps = {
     activeGenerations: [],
     avatars: [],
     categoryType: IngredientCategory.IMAGE,
@@ -74,24 +90,9 @@ describe('PromptBarEssentials', () => {
       placeholder: 'Describe your prompt',
     },
     currentModelCategory: undefined,
-    form: {
-      control: {},
-      formState: { isValid: true },
-      getValues: vi.fn((name?: string) => {
-        if (name === 'isBrandingEnabled') {
-          return false;
-        }
-        return undefined;
-      }),
-      setValue: vi.fn(),
-      watch: vi.fn((name?: string) => {
-        if (name === 'text') {
-          return '';
-        }
-        return undefined;
-      }),
-    },
+    form: createEssentialsForm(),
     formatIcon: null,
+    generateLabel: 'Generate',
     generationMeter: null,
     selectedModelCost: 0,
     getDefaultVideoResolution: vi.fn(),
@@ -112,24 +113,34 @@ describe('PromptBarEssentials', () => {
     isGenerating: false,
     isModelNotSet: false,
     isProcessing: false,
+    isSupported: true,
     isQuickOptionsOpen: false,
     isRecording: false,
     modelDropdownRef: { current: null },
-    models: [{ key: 'kling-v2' }],
+    models: [createModelFixture({ key: 'kling-v2' })],
     normalizedWatchedModels: ['kling-v2'],
     onTextChange: vi.fn(),
     onToggleQuickOptions: vi.fn(),
+    pathname: '/studio',
     promptBarHeight: 0,
+    referenceSource: '' as const,
     references: [],
     secondaryContent: undefined,
-    selectedModels: [{ label: 'Kling V2.1' }],
+    selectedModels: [
+      createModelFixture({ key: 'kling-v2', label: 'Kling V2.1' }),
+    ],
     setIsAutoMode: vi.fn(),
     setReferenceSource: vi.fn(),
     setReferences: vi.fn(),
     setTextValue: vi.fn(),
-    subscriptionTier: 'scale',
+    subscriptionTier: SubscriptionTier.SCALE,
     textareaRef: { current: null },
-    textareaRegister: {},
+    textareaRegister: {
+      name: 'text',
+      onBlur: vi.fn(),
+      onChange: vi.fn(),
+      ref: vi.fn(),
+    },
     toggleVoice: vi.fn(),
     trainingIds: new Set<string>(),
     trainings: [],
@@ -139,7 +150,7 @@ describe('PromptBarEssentials', () => {
     watchedFormat: IngredientFormat.PORTRAIT,
     watchedModel: 'kling-v2',
     watchedModels: ['kling-v2'],
-    watchedQuality: 'standard',
+    watchedQuality: QualityTier.STANDARD,
   };
 
   it('forwards extraExtensions to PromptEditor', () => {
@@ -205,7 +216,9 @@ describe('PromptBarEssentials', () => {
 
     expect(submitCluster).toContainElement(outputsButton.parentElement);
 
-    const orderedChildren = Array.from(submitCluster?.children ?? []);
+    const orderedChildren = Array.from<Element | null>(
+      submitCluster?.children ?? [],
+    );
     const outputsIndex = orderedChildren.indexOf(outputsButton.parentElement);
     const generateIndex = orderedChildren.indexOf(generateButton);
 
@@ -251,15 +264,7 @@ describe('PromptBarEssentials', () => {
     rerender(
       <PromptBarEssentials
         {...defaultProps}
-        form={{
-          ...defaultProps.form,
-          watch: vi.fn((name?: string) => {
-            if (name === 'text') {
-              return 'already typing';
-            }
-            return undefined;
-          }),
-        }}
+        form={createEssentialsForm('already typing')}
         suggestions={[
           {
             id: 'create-plan',
@@ -276,17 +281,14 @@ describe('PromptBarEssentials', () => {
   });
 
   it('inserts the suggestion prompt by default when no custom handler is provided', () => {
-    const setValue = vi.fn();
+    const form = createEssentialsForm();
     const setTextValue = vi.fn();
     const onTextChange = vi.fn();
 
     render(
       <PromptBarEssentials
         {...defaultProps}
-        form={{
-          ...defaultProps.form,
-          setValue,
-        }}
+        form={form}
         onTextChange={onTextChange}
         setTextValue={setTextValue}
         suggestions={[
@@ -301,7 +303,7 @@ describe('PromptBarEssentials', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Use plan mode' }));
 
-    expect(setValue).toHaveBeenCalledWith(
+    expect(form.setValue).toHaveBeenCalledWith(
       'text',
       'Use plan mode for this task',
       {

@@ -5,6 +5,7 @@ import {
 import { ArticleStatus, AssetCategory, AssetScope } from '@genfeedai/contracts';
 import { BRAND_HANDLE_FORMAT_MESSAGE } from '@genfeedai/contracts/constants';
 import type { IBrand } from '@genfeedai/contracts/interfaces';
+import { createBrand } from '@genfeedai/helpers/testing/entity-fixtures';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
@@ -21,7 +22,10 @@ const mockLoggerError = vi.fn();
 const mockFindPublicArticles = vi.fn();
 const mockFindPublicImages = vi.fn();
 const mockFindPublicVideos = vi.fn();
-const mockSubscribe = vi.fn(() => vi.fn());
+type AssetStatusHandler = (data: { assetId: string; status: string }) => void;
+const mockSubscribe = vi.fn(
+  (_event: string, _handler: AssetStatusHandler): (() => void) => vi.fn(),
+);
 const mockReplace = vi.fn();
 const mockRefreshBrands = vi.fn();
 
@@ -58,7 +62,8 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => {
 
 vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => {
   const socketManager = {
-    subscribe: (...args: unknown[]) => mockSubscribe(...args),
+    subscribe: (event: string, handler: AssetStatusHandler) =>
+      mockSubscribe(event, handler),
   };
   return { useSocketManager: vi.fn(() => socketManager) };
 });
@@ -141,16 +146,12 @@ describe('useBrandDetail', () => {
     mockFindPublicArticles.mockResolvedValue([]);
     mockFindPublicImages.mockResolvedValue([]);
     mockFindPublicVideos.mockResolvedValue([]);
-    mockFindOne.mockResolvedValue({
-      id: 'brand-1',
-      links: [],
-      scope: AssetScope.BRAND,
-    } as IBrand);
-    mockPatch.mockResolvedValue({
-      id: 'brand-1',
-      links: [],
-      scope: AssetScope.PUBLIC,
-    } as IBrand);
+    mockFindOne.mockResolvedValue(
+      createBrand({ id: 'brand-1', scope: AssetScope.BRAND }),
+    );
+    mockPatch.mockResolvedValue(
+      createBrand({ id: 'brand-1', scope: AssetScope.PUBLIC }),
+    );
     mockGetService.mockResolvedValue({
       delete: vi.fn(),
       findOneBySlug: mockFindOne,
@@ -430,11 +431,9 @@ describe('useBrandDetail', () => {
       expect(result.current.isUpdating).toBe(true);
 
       await act(async () => {
-        resolvePatch?.({
-          id: 'brand-1',
-          links: [],
-          scope: AssetScope.PUBLIC,
-        } as IBrand);
+        resolvePatch?.(
+          createBrand({ id: 'brand-1', scope: AssetScope.PUBLIC }),
+        );
       });
 
       expect(result.current.isUpdating).toBe(false);
@@ -455,16 +454,12 @@ describe('useBrandDetail', () => {
     });
 
     it('persists the brand scope when the toggle is switched back off', async () => {
-      mockFindOne.mockResolvedValue({
-        id: 'brand-1',
-        links: [],
-        scope: AssetScope.PUBLIC,
-      } as IBrand);
-      mockPatch.mockResolvedValue({
-        id: 'brand-1',
-        links: [],
-        scope: AssetScope.BRAND,
-      } as IBrand);
+      mockFindOne.mockResolvedValue(
+        createBrand({ id: 'brand-1', scope: AssetScope.PUBLIC }),
+      );
+      mockPatch.mockResolvedValue(
+        createBrand({ id: 'brand-1', scope: AssetScope.BRAND }),
+      );
 
       const result = await renderLoadedBrand();
 
@@ -562,7 +557,7 @@ describe('useBrandDetail', () => {
       )
       .mockImplementation(
         async (_id: string, data: Record<string, boolean | string>) =>
-          ({ id: 'brand-1', links: [], ...data }) as IBrand,
+          ({ ...createBrand({ id: 'brand-1' }), ...data }) as IBrand,
       );
 
     mockGetService.mockResolvedValue({
@@ -597,11 +592,7 @@ describe('useBrandDetail', () => {
     });
 
     await act(async () => {
-      resolveFirstPatch?.({
-        id: 'brand-1',
-        label: 'New name',
-        links: [],
-      } as IBrand);
+      resolveFirstPatch?.(createBrand({ id: 'brand-1', label: 'New name' }));
       await Promise.all([firstSave, secondSave]);
     });
 
@@ -902,10 +893,7 @@ describe('useBrandDetail', () => {
       );
     });
 
-    const handler = mockSubscribe.mock.calls[0][1] as (data: {
-      assetId: string;
-      status: string;
-    }) => void;
+    const handler = mockSubscribe.mock.calls[0][1];
 
     // No pending asset — handler returns early without side effects
     expect(() => {

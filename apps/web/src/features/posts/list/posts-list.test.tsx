@@ -1,6 +1,10 @@
 import '@testing-library/jest-dom/vitest';
 import { PageScope, Platform, PostStatus } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
+import {
+  createBrand,
+  createOrganization,
+} from '@genfeedai/helpers/testing/entity-fixtures';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PostsList from '@/features/posts/list/posts-list';
@@ -365,9 +369,11 @@ describe('PostsList', () => {
     resourceData = [
       {
         ...postFixture,
-        brand: { slug: 'owner-brand' },
-        organization: { slug: 'owner-org' },
-      } as IPost,
+        brand: createBrand({ slug: 'owner-brand' }),
+        organization: Object.assign(createOrganization(), {
+          slug: 'owner-org',
+        }),
+      },
     ];
 
     render(

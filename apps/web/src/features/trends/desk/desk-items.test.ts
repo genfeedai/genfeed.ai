@@ -88,9 +88,9 @@ describe('toDeskItemFromTrend', () => {
       makeTrendItem({
         sourceClassification: {
           capturedAt: '2026-08-01T00:00:00.000Z',
-          confidence: 1,
+          confidence: 'high',
           freshnessWindowDays: 30,
-          intendedUse: 'reference',
+          intendedUse: 'evergreen_prompt_context',
           sourceKind: 'owned_brand_reference',
         },
       }),
@@ -309,9 +309,9 @@ describe('isObservedTrendContent', () => {
   it.each(['live', 'empty', undefined] as const)(
     'preserves low-confidence company references with %s preview state',
     (sourcePreviewState) => {
-      expect(isObservedTrendContent({ ...seed, sourcePreviewState })).toBe(
-        true,
-      );
+      expect(
+        isObservedTrendContent(makeTrendItem({ ...seed, sourcePreviewState })),
+      ).toBe(true);
     },
   );
   it.each([

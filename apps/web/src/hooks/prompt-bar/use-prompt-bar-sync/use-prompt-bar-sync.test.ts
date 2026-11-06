@@ -1,63 +1,63 @@
+import { createPromptFormMock } from '@app-tests/prompt-form.harness';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {
   IngredientCategory,
   IngredientFormat,
   QualityTier,
 } from '@genfeedai/contracts';
+import type { UsePromptBarSyncOptions } from '@genfeedai/props/studio/prompt-bar.props';
 import { act, renderHook } from '@testing-library/react';
 import { useForm } from 'react-hook-form';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePromptBarSync } from '@/hooks/prompt-bar/use-prompt-bar-sync/use-prompt-bar-sync';
 
-const createMockForm = () => ({
-  control: {},
-  formState: { isValid: true },
-  getValues: vi.fn((field?: string) => {
-    if (field === 'text') {
-      return 'current text';
-    }
-    if (field === 'format') {
-      return IngredientFormat.PORTRAIT;
-    }
-    if (field === 'models') {
-      return ['model-1'];
-    }
-    if (field === 'width') {
-      return 1080;
-    }
-    if (field === 'height') {
-      return 1920;
-    }
-    if (field === 'references') {
-      return [];
-    }
-    return {};
-  }),
-  setValue: vi.fn(),
-  watch: vi.fn(),
-});
+const createMockForm = () =>
+  createPromptFormMock({
+    getValues: (field?: string) => {
+      if (field === 'text') {
+        return 'current text';
+      }
+      if (field === 'format') {
+        return IngredientFormat.PORTRAIT;
+      }
+      if (field === 'models') {
+        return ['model-1'];
+      }
+      if (field === 'width') {
+        return 1080;
+      }
+      if (field === 'height') {
+        return 1920;
+      }
+      if (field === 'references') {
+        return [];
+      }
+      return {};
+    },
+  });
 
-const createBaseOptions = () => ({
-  categoryType: undefined,
-  externalFormat: undefined,
-  externalHeight: undefined,
-  externalWidth: undefined,
-  form: createMockForm(),
-  hasInitializedReferencesRef: { current: false },
-  isUserSelectingReferencesRef: { current: false },
-  models: [],
-  onConfigChange: vi.fn(),
-  onDatasetChange: vi.fn(),
-  onTextChange: vi.fn(),
-  promptConfig: undefined,
-  promptData: undefined,
-  promptText: undefined,
-  referenceSource: '' as 'brand' | 'ingredient' | '',
-  references: [],
-  setReferenceSource: vi.fn(),
-  setReferences: vi.fn(),
-  useSplitState: false,
-});
+const createBaseOptions = () =>
+  ({
+    categoryType: undefined,
+    externalFormat: undefined,
+    externalHeight: undefined,
+    externalWidth: undefined,
+    form: createMockForm(),
+    hasInitializedReferencesRef: { current: false },
+    isUserSelectingReferencesRef: { current: false },
+    models: [],
+    onConfigChange: vi.fn(),
+    onDatasetChange: vi.fn(),
+    onTextChange: vi.fn(),
+    promptConfig: undefined,
+    promptData: undefined,
+    promptText: undefined,
+    referenceSource: '',
+    references: [],
+    setReferenceSource: vi.fn(),
+    setReferences: vi.fn(),
+    useSplitState: false,
+  }) satisfies UsePromptBarSyncOptions;
 
 describe('usePromptBarSync', () => {
   beforeEach(() => {
@@ -415,7 +415,7 @@ describe('usePromptBarSync', () => {
     it('syncs text from promptData', () => {
       const options = {
         ...createBaseOptions(),
-        promptData: { text: 'new prompt text' },
+        promptData: { isValid: true, text: 'new prompt text' },
       };
 
       renderHook(() => usePromptBarSync(options));
@@ -430,7 +430,7 @@ describe('usePromptBarSync', () => {
     it('syncs style from promptData', () => {
       const options = {
         ...createBaseOptions(),
-        promptData: { style: 'cinematic', text: 'text' },
+        promptData: { isValid: true, style: 'cinematic', text: 'text' },
       };
 
       renderHook(() => usePromptBarSync(options));
@@ -443,7 +443,7 @@ describe('usePromptBarSync', () => {
     it('syncs mood from promptData', () => {
       const options = {
         ...createBaseOptions(),
-        promptData: { mood: 'happy', text: 'text' },
+        promptData: { isValid: true, mood: 'happy', text: 'text' },
       };
 
       renderHook(() => usePromptBarSync(options));
@@ -456,7 +456,11 @@ describe('usePromptBarSync', () => {
     it('syncs references from promptData', () => {
       const options = {
         ...createBaseOptions(),
-        promptData: { references: ['ref-1', 'ref-2'], text: 'text' },
+        promptData: {
+          isValid: true,
+          references: ['ref-1', 'ref-2'],
+          text: 'text',
+        },
       };
 
       renderHook(() => usePromptBarSync(options));
@@ -489,7 +493,7 @@ describe('usePromptBarSync', () => {
     it('syncs format from promptConfig in split state mode', () => {
       const options = {
         ...createBaseOptions(),
-        promptConfig: { format: IngredientFormat.SQUARE },
+        promptConfig: { isValid: true, format: IngredientFormat.SQUARE },
         useSplitState: true,
       };
 
@@ -505,10 +509,10 @@ describe('usePromptBarSync', () => {
     it('syncs models from promptConfig', () => {
       const options = {
         ...createBaseOptions(),
-        promptConfig: { models: ['model-a', 'model-b'] },
+        promptConfig: { isValid: true, models: ['model-a', 'model-b'] },
         useSplitState: true,
       };
-      options.form.getValues = vi.fn((field?: string) => {
+      options.form.getValues.mockImplementation((field?: string) => {
         if (field === 'models') {
           return [];
         }
@@ -527,10 +531,10 @@ describe('usePromptBarSync', () => {
     it('syncs duration from promptConfig', () => {
       const options = {
         ...createBaseOptions(),
-        promptConfig: { duration: 5 },
+        promptConfig: { isValid: true, duration: 5 },
         useSplitState: true,
       };
-      options.form.getValues = vi.fn((field?: string) => {
+      options.form.getValues.mockImplementation((field?: string) => {
         if (field === 'duration') {
           return undefined;
         }
@@ -547,10 +551,10 @@ describe('usePromptBarSync', () => {
     it('syncs quality from promptConfig', () => {
       const options = {
         ...createBaseOptions(),
-        promptConfig: { quality: QualityTier.STANDARD },
+        promptConfig: { isValid: true, quality: 'standard' as const },
         useSplitState: true,
       };
-      options.form.getValues = vi.fn((field?: string) => {
+      options.form.getValues.mockImplementation((field?: string) => {
         if (field === 'quality') {
           return QualityTier.HIGH;
         }
@@ -569,10 +573,10 @@ describe('usePromptBarSync', () => {
     it('does not resync quality when the form already matches', () => {
       const options = {
         ...createBaseOptions(),
-        promptConfig: { quality: QualityTier.ULTRA },
+        promptConfig: { isValid: true, quality: 'ultra' as const },
         useSplitState: true,
       };
-      options.form.getValues = vi.fn((field?: string) => {
+      options.form.getValues.mockImplementation((field?: string) => {
         if (field === 'quality') {
           return QualityTier.ULTRA;
         }
@@ -590,10 +594,14 @@ describe('usePromptBarSync', () => {
     it('syncs boolean flags from promptConfig', () => {
       const options = {
         ...createBaseOptions(),
-        promptConfig: { isAudioEnabled: false, isBrandingEnabled: true },
+        promptConfig: {
+          isValid: true,
+          isAudioEnabled: false,
+          isBrandingEnabled: true,
+        },
         useSplitState: true,
       };
-      options.form.getValues = vi.fn((field?: string) => {
+      options.form.getValues.mockImplementation((field?: string) => {
         if (field === 'brandingMode') {
           return 'off';
         }
@@ -620,10 +628,10 @@ describe('usePromptBarSync', () => {
     it('syncs autoSelectModel from promptConfig', () => {
       const options = {
         ...createBaseOptions(),
-        promptConfig: { autoSelectModel: true },
+        promptConfig: { isValid: true, autoSelectModel: true },
         useSplitState: true,
       };
-      options.form.getValues = vi.fn((field?: string) => {
+      options.form.getValues.mockImplementation((field?: string) => {
         if (field === 'autoSelectModel') {
           return false;
         }
@@ -642,7 +650,7 @@ describe('usePromptBarSync', () => {
     it('does not sync when not in split state mode', () => {
       const options = {
         ...createBaseOptions(),
-        promptConfig: { format: IngredientFormat.SQUARE },
+        promptConfig: { isValid: true, format: IngredientFormat.SQUARE },
         useSplitState: false,
       };
 

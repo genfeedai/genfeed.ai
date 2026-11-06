@@ -12,6 +12,7 @@ import type {
   IChannelTarget,
   IEngagementRule,
 } from '@genfeedai/contracts/interfaces';
+import { createBaseEntity } from '@genfeedai/helpers/testing/entity-fixtures';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -155,7 +156,7 @@ function target(): IChannelTarget {
     scheduledAt: '2026-08-02T10:00:00.000Z',
     source: ReleaseTargetSource.MANUAL,
     timezone: 'UTC',
-    validationIssues: [],
+    validationIssues: [] as string[],
     validationState: TargetValidationState.VALID,
   } as IChannelTarget;
 }
@@ -166,9 +167,9 @@ describe('ReleaseEngagementRules', () => {
     mocks.create.mockResolvedValue({ id: 'rule-2' });
     rulesState.rules = [
       {
+        ...createBaseEntity({ id: 'rule-1' }),
         actionPayload: { channels: [] },
         actionType: EngagementRuleAction.REPOST,
-        id: 'rule-1',
         isEnabled: true,
         lastError: 'Credential cannot write reposts.',
         metric: EngagementMetric.LIKES,
@@ -188,7 +189,7 @@ describe('ReleaseEngagementRules', () => {
         threshold: 100,
         triggeredAt: '2026-08-02T12:00:00.000Z',
         userId: 'user-1',
-      } as IEngagementRule,
+      },
     ];
   });
 

@@ -11,8 +11,8 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
     organizationId: 'org-123',
     refreshSettings: mockRefreshSettings,
     settings: {
-      autoPublish: true,
-      creditsLimit: 1000,
+      isAutoEvaluateEnabled: true,
+      seatsLimit: 1000,
       defaultModel: 'model-1',
     },
     settingsLoading: false,
@@ -47,8 +47,8 @@ describe('useOrganization', () => {
       const { result } = renderHook(() => useOrganization());
 
       expect(result.current.settings).toEqual({
-        autoPublish: true,
-        creditsLimit: 1000,
+        isAutoEvaluateEnabled: true,
+        seatsLimit: 1000,
         defaultModel: 'model-1',
       });
     });
@@ -77,11 +77,11 @@ describe('useOrganization', () => {
       const { result } = renderHook(() => useOrganization());
 
       await act(async () => {
-        await result.current.updateSettings('autoPublish', false);
+        await result.current.updateSettings('isAutoEvaluateEnabled', false);
       });
 
       expect(mockPatchSettings).toHaveBeenCalledWith('org-123', {
-        autoPublish: false,
+        isAutoEvaluateEnabled: false,
       });
     });
 
@@ -111,11 +111,11 @@ describe('useOrganization', () => {
       const { result } = renderHook(() => useOrganization());
 
       await act(async () => {
-        await result.current.updateSettings('creditsLimit', 2000);
+        await result.current.updateSettings('seatsLimit', 2000);
       });
 
       expect(mockPatchSettings).toHaveBeenCalledWith('org-123', {
-        creditsLimit: 2000,
+        seatsLimit: 2000,
       });
     });
 
@@ -123,11 +123,11 @@ describe('useOrganization', () => {
       const { result } = renderHook(() => useOrganization());
 
       await act(async () => {
-        await result.current.updateSettings('autoPublish', true);
+        await result.current.updateSettings('isAutoEvaluateEnabled', true);
       });
 
       expect(mockPatchSettings).toHaveBeenCalledWith('org-123', {
-        autoPublish: true,
+        isAutoEvaluateEnabled: true,
       });
     });
 
@@ -137,7 +137,7 @@ describe('useOrganization', () => {
       const { result } = renderHook(() => useOrganization());
 
       await expect(
-        result.current.updateSettings('autoPublish', false),
+        result.current.updateSettings('isAutoEvaluateEnabled', false),
       ).rejects.toThrow('Network error');
     });
 
@@ -147,7 +147,7 @@ describe('useOrganization', () => {
       const { result } = renderHook(() => useOrganization());
 
       try {
-        await result.current.updateSettings('autoPublish', false);
+        await result.current.updateSettings('isAutoEvaluateEnabled', false);
       } catch {
         // Expected to throw
       }
@@ -166,7 +166,7 @@ describe('useOrganization', () => {
         refreshSettings: mockRefreshSettings,
         settings: null,
         settingsLoading: true,
-      } as ReturnType<typeof useBrand>);
+      } as unknown as ReturnType<typeof useBrand>);
 
       const { result } = renderHook(() => useOrganization());
 
@@ -184,12 +184,12 @@ describe('useOrganization', () => {
         refreshSettings: mockRefreshSettings,
         settings: {},
         settingsLoading: false,
-      } as ReturnType<typeof useBrand>);
+      } as unknown as ReturnType<typeof useBrand>);
 
       const { result } = renderHook(() => useOrganization());
 
       await expect(
-        result.current.updateSettings('autoPublish', false),
+        result.current.updateSettings('isAutoEvaluateEnabled', false),
       ).rejects.toThrow('Organization ID is required');
     });
   });

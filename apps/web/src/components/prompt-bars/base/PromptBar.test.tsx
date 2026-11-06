@@ -1,10 +1,27 @@
 import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
-import { IngredientCategory, IngredientFormat } from '@genfeedai/contracts';
-import type { CrunInputControls } from '@genfeedai/contracts/interfaces';
+import {
+  IngredientCategory,
+  IngredientFormat,
+  ModelCategory,
+} from '@genfeedai/contracts';
+import type {
+  CrunInputControls,
+  IFolder,
+  IPreset,
+  ITraining,
+} from '@genfeedai/contracts/interfaces';
 import {
   getDefaultVideoResolution,
   hasResolutionOptions,
 } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
+import {
+  createBaseEntity,
+  createIngredientFixture,
+  createModelFixture,
+  createOrganization,
+  createPresetFixture,
+  createUser,
+} from '@genfeedai/helpers/testing/entity-fixtures';
 import type { PromptBarProps } from '@genfeedai/props/studio/prompt-bar.props';
 import {
   act,
@@ -18,6 +35,31 @@ import type { ReactElement } from 'react';
 import { use } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PromptBar from '@/components/prompt-bars/base/PromptBar';
+
+/** A prompt element (style, mood, camera, ...) keyed and labelled for a picker. */
+const createElement = (key: string, label: string) => ({
+  ...createBaseEntity({ id: key }),
+  key,
+  label,
+});
+
+const createTraining = (): ITraining => ({
+  ...createBaseEntity({ id: 'train-1' }),
+  label: 'Training 1',
+  trigger: 'TRAIN1',
+  user: 'user-1',
+});
+
+const createPreset = (): IPreset =>
+  createPresetFixture({ id: 'preset-1', key: 'preset-1', label: 'Preset 1' });
+
+const createFolder = (): IFolder => ({
+  ...createBaseEntity({ id: 'folder-1' }),
+  label: 'Folder 1',
+  organization: createOrganization(),
+  tags: [],
+  user: createUser(),
+});
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
@@ -279,7 +321,7 @@ vi.mock(
           <textarea data-testid="textarea" ref={ctx?.textareaRef} />
           <button
             type="button"
-            onClick={ctx?.handleSubmitForm}
+            onClick={() => ctx?.handleSubmitForm()}
             data-testid="submit-button"
           >
             Generate
@@ -1243,7 +1285,10 @@ describe('PromptBar', () => {
 
   it('should handle prompt data', () => {
     const { container } = render(
-      <PromptBar {...defaultProps} promptData={{ text: 'test prompt' }} />,
+      <PromptBar
+        {...defaultProps}
+        promptData={{ isValid: true, text: 'test prompt' }}
+      />,
     );
     expect(container.firstChild).toBeInTheDocument();
   });
@@ -1255,7 +1300,7 @@ describe('PromptBar', () => {
       <PromptBar
         {...defaultProps}
         promptText="test"
-        promptConfig={{}}
+        promptConfig={{ isValid: true }}
         onTextChange={mockOnTextChange}
         onConfigChange={mockOnConfigChange}
       />,
@@ -1299,10 +1344,7 @@ describe('PromptBar', () => {
   describe('with trainings', () => {
     it('should handle trainings prop', () => {
       const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          trainings={[{ id: 'train-1', name: 'Training 1' }]}
-        />,
+        <PromptBar {...defaultProps} trainings={[createTraining()]} />,
       );
       expect(container.firstChild).toBeInTheDocument();
     });
@@ -1311,10 +1353,7 @@ describe('PromptBar', () => {
   describe('with presets', () => {
     it('should handle presets prop', () => {
       const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          presets={[{ key: 'preset-1', label: 'Preset 1' }]}
-        />,
+        <PromptBar {...defaultProps} presets={[createPreset()]} />,
       );
       expect(container.firstChild).toBeInTheDocument();
     });
@@ -1325,7 +1364,7 @@ describe('PromptBar', () => {
       const { container } = render(
         <PromptBar
           {...defaultProps}
-          avatars={[{ id: 'avatar-1', name: 'Avatar 1' }]}
+          avatars={[{ key: 'avatar-1', label: 'Avatar 1' }]}
         />,
       );
       expect(container.firstChild).toBeInTheDocument();
@@ -1335,7 +1374,7 @@ describe('PromptBar', () => {
       const { container } = render(
         <PromptBar
           {...defaultProps}
-          voices={[{ id: 'voice-1', name: 'Voice 1' }]}
+          voices={[{ key: 'voice-1', label: 'Voice 1' }]}
         />,
       );
       expect(container.firstChild).toBeInTheDocument();
@@ -1347,7 +1386,7 @@ describe('PromptBar', () => {
       const { container } = render(
         <PromptBar
           {...defaultProps}
-          styles={[{ key: 'style-1', label: 'Style 1' }]}
+          styles={[createElement('style-1', 'Style 1')]}
         />,
       );
       expect(container.firstChild).toBeInTheDocument();
@@ -1357,7 +1396,7 @@ describe('PromptBar', () => {
       const { container } = render(
         <PromptBar
           {...defaultProps}
-          moods={[{ key: 'mood-1', label: 'Mood 1' }]}
+          moods={[createElement('mood-1', 'Mood 1')]}
         />,
       );
       expect(container.firstChild).toBeInTheDocument();
@@ -1367,7 +1406,7 @@ describe('PromptBar', () => {
       const { container } = render(
         <PromptBar
           {...defaultProps}
-          cameras={[{ key: 'camera-1', label: 'Camera 1' }]}
+          cameras={[createElement('camera-1', 'Camera 1')]}
         />,
       );
       expect(container.firstChild).toBeInTheDocument();
@@ -1377,7 +1416,7 @@ describe('PromptBar', () => {
       const { container } = render(
         <PromptBar
           {...defaultProps}
-          scenes={[{ key: 'scene-1', label: 'Scene 1' }]}
+          scenes={[createElement('scene-1', 'Scene 1')]}
         />,
       );
       expect(container.firstChild).toBeInTheDocument();
@@ -1387,7 +1426,7 @@ describe('PromptBar', () => {
       const { container } = render(
         <PromptBar
           {...defaultProps}
-          lightings={[{ key: 'lighting-1', label: 'Lighting 1' }]}
+          lightings={[createElement('lighting-1', 'Lighting 1')]}
         />,
       );
       expect(container.firstChild).toBeInTheDocument();
@@ -1397,7 +1436,7 @@ describe('PromptBar', () => {
       const { container } = render(
         <PromptBar
           {...defaultProps}
-          lenses={[{ key: 'lens-1', label: 'Lens 1' }]}
+          lenses={[createElement('lens-1', 'Lens 1')]}
         />,
       );
       expect(container.firstChild).toBeInTheDocument();
@@ -1407,7 +1446,7 @@ describe('PromptBar', () => {
       const { container } = render(
         <PromptBar
           {...defaultProps}
-          cameraMovements={[{ key: 'movement-1', label: 'Movement 1' }]}
+          cameraMovements={[createElement('movement-1', 'Movement 1')]}
         />,
       );
       expect(container.firstChild).toBeInTheDocument();
@@ -1417,7 +1456,7 @@ describe('PromptBar', () => {
       const { container } = render(
         <PromptBar
           {...defaultProps}
-          fontFamilies={[{ key: 'font-1', label: 'Font 1' }]}
+          fontFamilies={[createElement('font-1', 'Font 1')]}
         />,
       );
       expect(container.firstChild).toBeInTheDocument();
@@ -1428,7 +1467,11 @@ describe('PromptBar', () => {
         <PromptBar
           {...defaultProps}
           blacklists={[
-            { isDefault: true, key: 'blacklist-1', label: 'Blacklist 1' },
+            {
+              ...createElement('blacklist-1', 'Blacklist 1'),
+              isActive: true,
+              isDefault: true,
+            },
           ]}
         />,
       );
@@ -1439,7 +1482,7 @@ describe('PromptBar', () => {
       const { container } = render(
         <PromptBar
           {...defaultProps}
-          sounds={[{ isDefault: true, key: 'sound-1', label: 'Sound 1' }]}
+          sounds={[createIngredientFixture({ id: 'sound-1' })]}
         />,
       );
       expect(container.firstChild).toBeInTheDocument();
@@ -1449,10 +1492,7 @@ describe('PromptBar', () => {
   describe('with folders and profiles', () => {
     it('should handle folders prop', () => {
       const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          folders={[{ id: 'folder-1', name: 'Folder 1' }]}
-        />,
+        <PromptBar {...defaultProps} folders={[createFolder()]} />,
       );
       expect(container.firstChild).toBeInTheDocument();
     });
@@ -1474,8 +1514,16 @@ describe('PromptBar', () => {
         <PromptBar
           {...defaultProps}
           models={[
-            { category: 'image', key: 'model-1', label: 'Model 1' },
-            { category: 'video', key: 'model-2', label: 'Model 2' },
+            createModelFixture({
+              category: ModelCategory.IMAGE,
+              key: 'model-1',
+              label: 'Model 1',
+            }),
+            createModelFixture({
+              category: ModelCategory.VIDEO,
+              key: 'model-2',
+              label: 'Model 2',
+            }),
           ]}
         />,
       );
@@ -1510,12 +1558,18 @@ describe('PromptBar', () => {
       const { container } = render(
         <PromptBar
           {...defaultProps}
-          models={[{ category: 'video', key: 'model-1', label: 'Model 1' }]}
-          trainings={[{ id: 'train-1', name: 'Training 1' }]}
-          presets={[{ key: 'preset-1', label: 'Preset 1' }]}
-          folders={[{ id: 'folder-1', name: 'Folder 1' }]}
+          models={[
+            createModelFixture({
+              category: ModelCategory.VIDEO,
+              key: 'model-1',
+              label: 'Model 1',
+            }),
+          ]}
+          trainings={[createTraining()]}
+          presets={[createPreset()]}
+          folders={[createFolder()]}
           profiles={[{ id: 'profile-1', name: 'Profile 1' }]}
-          styles={[{ key: 'style-1', label: 'Style 1' }]}
+          styles={[createElement('style-1', 'Style 1')]}
           categoryType={IngredientCategory.VIDEO}
           externalFormat={IngredientFormat.PORTRAIT}
           externalWidth={1080}

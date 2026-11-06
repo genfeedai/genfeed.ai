@@ -22,7 +22,7 @@ function makeIngredient(overrides: Partial<IIngredient> = {}): IIngredient {
     id: 'ingredient-1',
     isDeleted: false,
     organization: 'org-1',
-    status: IngredientStatus.COMPLETED,
+    status: IngredientStatus.GENERATED,
     updatedAt: '2026-01-01T00:00:00.000Z',
     user: 'user-1',
     ...overrides,
@@ -31,7 +31,7 @@ function makeIngredient(overrides: Partial<IIngredient> = {}): IIngredient {
 
 function makePost(overrides: Partial<IPost> = {}): IPost {
   return {
-    category: PostCategory.SOCIAL,
+    category: PostCategory.POST,
     createdAt: '2026-01-01T00:00:00.000Z',
     description: '<p>Hello <strong>world</strong></p>',
     id: 'post-1',

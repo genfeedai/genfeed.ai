@@ -27,8 +27,14 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
   },
 }));
 
+interface SelectedBrandStub {
+  id: string;
+  organization: { id: string; slug: string };
+  slug: string;
+}
+
 const mockUseBrand = vi.hoisted(() =>
-  vi.fn(() => ({
+  vi.fn((): { selectedBrand: SelectedBrandStub | null } => ({
     selectedBrand: {
       id: 'brand-id',
       organization: { id: 'org-id', slug: 'test-org' },
@@ -38,7 +44,7 @@ const mockUseBrand = vi.hoisted(() =>
 );
 
 const mockUseRoutedOrganization = vi.hoisted(() =>
-  vi.fn(() => ({
+  vi.fn((): { confirmedOrganizationSlug: string | null } => ({
     confirmedOrganizationSlug: 'test-org',
   })),
 );

@@ -23,7 +23,7 @@ const enroll = vi.fn();
 const reopenItem = vi.fn();
 const refresh = vi.fn();
 const refreshAuthorizedSignals = vi.fn();
-const resolveAuthToken = vi.fn(async () => 'token-123');
+const resolveAuthToken = vi.fn(async (..._args: unknown[]) => 'token-123');
 const servicesPlatform = vi.fn();
 
 let hookState: {

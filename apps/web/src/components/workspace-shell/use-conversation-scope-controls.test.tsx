@@ -135,14 +135,14 @@ vi.mock('@ui/primitives/dialog', () => ({
 import { useConversationScopeControls } from './use-conversation-scope-controls';
 
 const activeThread = {
-  brandId: 'brand-a',
+  brandId: 'brand-a' as string | null,
   contextVersion: 3,
   createdAt: '2026-07-13T00:00:00.000Z',
   id: 'thread-1',
   organizationId: 'org-1',
   status: 'active',
   updatedAt: '2026-07-13T00:00:00.000Z',
-} as const;
+};
 
 function Harness({
   activeThreadOverride = activeThread,

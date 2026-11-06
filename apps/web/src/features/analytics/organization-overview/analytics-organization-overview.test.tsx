@@ -49,7 +49,7 @@ const useAnalyticsOptions: Array<{ scopeId?: string }> = [];
 let contextBrandId: string | null = null;
 
 let analyticsResult: {
-  analytics: IAnalytics | null;
+  analytics: Partial<IAnalytics> | null;
   isLoading: boolean;
 } = {
   analytics: null,
@@ -272,7 +272,7 @@ describe('AnalyticsOrganizationOverview', () => {
 
   it('shows no trend when growth is unknown', () => {
     analyticsResult = {
-      analytics: { ...analyticsFixture, viewsGrowth: null } as IAnalytics,
+      analytics: { ...analyticsFixture, viewsGrowth: undefined },
       isLoading: false,
     };
 

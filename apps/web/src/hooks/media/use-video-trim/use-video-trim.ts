@@ -2,7 +2,6 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface UseVideoTrimOptions {
-  videoUrl: string;
   videoDuration: number;
   minDuration?: number;
   maxDuration?: number;

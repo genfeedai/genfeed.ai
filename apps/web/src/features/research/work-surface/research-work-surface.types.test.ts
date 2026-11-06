@@ -1,15 +1,19 @@
-import type { AdsResearchItem } from '@genfeedai/contracts/interfaces';
+import {
+  AdsChannel,
+  AdsPlatform,
+  type AdsResearchItem,
+} from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import { toAdsResearchFinding } from './research-work-surface.types';
 
 function makeTikTokAd(source: AdsResearchItem['source']): AdsResearchItem {
   return {
-    channel: 'all',
+    channel: AdsChannel.ALL,
     explanation: 'Fast creator proof followed by a product reveal.',
     id: 'performance-1',
     metricValue: 94,
     metrics: { performanceScore: 94 },
-    platform: 'tiktok',
+    platform: AdsPlatform.TIKTOK,
     source,
     sourceId: 'ad-1',
     title: 'Creator proof winner',

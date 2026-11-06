@@ -1,3 +1,8 @@
+import {
+  createBrand,
+  createOrganization,
+} from '@genfeedai/helpers/testing/entity-fixtures';
+import { Brand } from '@genfeedai/models/organization/brand.model';
 import type {
   SwitcherDropdownFooterAction,
   SwitcherDropdownItem,
@@ -101,13 +106,14 @@ vi.mock('@ui/menus/switcher-dropdown/SwitcherDropdown', () => ({
 
 describe('MenuBrandSwitcher', () => {
   const brandsWithSlug = [
-    {
-      id: 'brand_1',
-      label: 'Test Brand',
-      organization: { slug: 'test-org' },
-      slug: 'test-brand',
-      thumbnailUrl: '',
-    },
+    new Brand(
+      createBrand({
+        id: 'brand_1',
+        label: 'Test Brand',
+        organization: Object.assign(createOrganization(), { slug: 'test-org' }),
+        slug: 'test-brand',
+      }),
+    ),
   ];
 
   beforeEach(() => {
