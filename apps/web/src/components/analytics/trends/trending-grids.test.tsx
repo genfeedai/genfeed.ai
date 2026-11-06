@@ -57,7 +57,7 @@ describe('trend grids', () => {
     render(<TrendingSounds sounds={[SOUND]} />);
 
     const grid = getGrid('trending-sounds-grid');
-    expect(grid).toHaveClass('@[60rem]:grid-cols-3', 'gap-5');
+    expect(grid).toHaveClass('@[60rem]:grid-cols-3', 'gap-4');
     expect(grid.className).not.toMatch(VIEWPORT_LADDER);
   });
 
@@ -65,7 +65,7 @@ describe('trend grids', () => {
     render(<TrendingSounds isLoading sounds={[]} />);
 
     const grid = getGrid('trending-sounds-skeleton');
-    expect(grid).toHaveClass('@[60rem]:grid-cols-3', 'gap-5');
+    expect(grid).toHaveClass('@[60rem]:grid-cols-3', 'gap-4');
   });
 });
 
