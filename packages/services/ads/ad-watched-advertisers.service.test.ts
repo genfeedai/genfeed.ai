@@ -1,97 +1,73 @@
+import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 import {
-  AdsPlatform,
-  type AdWatchedAdvertiser,
-} from '@genfeedai/contracts/interfaces';
-import {
-  installMockHttp,
-  type MockHttpInstance,
+  type FakeJsonApiResource,
+  installFakeJsonApiResource,
 } from '@services/__mocks__/http.mock';
 import { AdWatchedAdvertisersService } from '@services/ads/ad-watched-advertisers.service';
-import type { JsonApiResponseDocument } from '@services/core/json-api';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
+const NIKE = {
+  advertiserHandle: 'nike',
+  advertiserName: 'Nike',
+  brandId: 'brand-1',
+  freshnessState: 'fresh',
+  id: 'watched-1',
+  lastSnapshotRecordCount: 12,
+  platform: 'meta',
+};
+const ADIDAS = {
+  advertiserHandle: 'adidas',
+  brandId: 'brand-2',
+  freshnessState: 'stale',
+  id: 'watched-2',
+  platform: 'meta',
+};
 
 function createService(): {
-  http: MockHttpInstance;
+  server: FakeJsonApiResource;
   service: AdWatchedAdvertisersService;
 } {
   const service = new AdWatchedAdvertisersService('test-token');
-  const http = installMockHttp(service);
+  const server = installFakeJsonApiResource(service, {
+    rows: [NIKE, ADIDAS],
+    type: 'ad-watched-advertisers',
+  });
 
-  return { http, service };
-}
-
-function toDocument(
-  attributes: Record<string, unknown>,
-): JsonApiResponseDocument {
-  return {
-    data: {
-      attributes,
-      id: 'watched-1',
-      type: 'ad-watched-advertisers',
-    },
-  } as unknown as JsonApiResponseDocument;
+  return { server, service };
 }
 
 describe('AdWatchedAdvertisersService', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('lists watched competitors scoped to a brand (#3537)', async () => {
-    const { http, service } = createService();
-    http.get.mockResolvedValue({
-      data: {
-        data: [
-          {
-            attributes: {
-              advertiserHandle: 'nike',
-              advertiserName: 'Nike',
-              freshnessState: 'fresh',
-              lastSnapshotRecordCount: 12,
-              platform: 'meta',
-            },
-            id: 'watched-1',
-            type: 'ad-watched-advertisers',
-          },
-        ],
-      },
-    });
+    const { service } = createService();
 
     const result = await service.list({ brandId: 'brand-1' });
 
-    expect(http.get).toHaveBeenCalledWith('', {
-      params: { brandId: 'brand-1' },
-    });
     expect(result).toEqual([
       {
         advertiserHandle: 'nike',
         advertiserName: 'Nike',
+        brandId: 'brand-1',
         freshnessState: 'fresh',
         id: 'watched-1',
         lastSnapshotRecordCount: 12,
         platform: AdsPlatform.META,
       },
-    ] satisfies AdWatchedAdvertiser[]);
+    ]);
   });
 
   it('omits an absent brand rather than sending an empty filter (#3537)', async () => {
-    const { http, service } = createService();
-    http.get.mockResolvedValue({ data: { data: [] } });
+    const { service } = createService();
 
-    await service.list({});
+    const result = await service.list({});
 
-    expect(http.get).toHaveBeenCalledWith('', { params: {} });
+    expect(result.map((watched) => watched.id)).toEqual([
+      'watched-1',
+      'watched-2',
+    ]);
   });
 
   it('creates a watched competitor from a handle and platform (#3537)', async () => {
-    const { http, service } = createService();
-    http.post.mockResolvedValue({
-      data: toDocument({
-        advertiserHandle: 'gymshark',
-        freshnessState: 'unavailable',
-        platform: 'tiktok',
-      }),
-    });
+    const { server, service } = createService();
 
     const result = await service.create({
       advertiserHandle: 'gymshark',
@@ -99,21 +75,23 @@ describe('AdWatchedAdvertisersService', () => {
       platform: AdsPlatform.TIKTOK,
     });
 
-    expect(http.post).toHaveBeenCalledWith('', {
+    expect(result).toMatchObject({
       advertiserHandle: 'gymshark',
       brandId: 'brand-1',
+      id: 'ad-watched-advertisers-3',
       platform: 'tiktok',
     });
-    expect(result.id).toBe('watched-1');
-    expect(result.freshnessState).toBe('unavailable');
+    expect(server.rows).toHaveLength(3);
+    expect(
+      (await service.list({ brandId: 'brand-1' })).map((w) => w.id),
+    ).toEqual(['watched-1', 'ad-watched-advertisers-3']);
   });
 
   it('removes a watched competitor by id (#3537)', async () => {
-    const { http, service } = createService();
-    http.delete.mockResolvedValue({ data: toDocument({}) });
+    const { server, service } = createService();
 
     await service.remove('watched-1');
 
-    expect(http.delete).toHaveBeenCalledWith('/watched-1');
+    expect(server.rows).toEqual([ADIDAS]);
   });
 });
