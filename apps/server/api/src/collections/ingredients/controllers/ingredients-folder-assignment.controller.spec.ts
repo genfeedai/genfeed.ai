@@ -1,263 +1,200 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
-import type { FolderDocument } from '@api/collections/folders/schemas/folder.schema';
-import { FoldersService } from '@api/collections/folders/services/folders.service';
+import type { FoldersService } from '@api/collections/folders/services/folders.service';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
-import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { AssetAccessGuard } from '@api/guards/asset-access.guard';
-import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { MediaUrlService } from '@api/services/media-urls/media-url.service';
-import { createIngredientDocumentFixture } from '@api-test/fixtures/ingredient-document.fixture';
-import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+import type { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { testId } from '@helpers/testing/test-id.helper';
-import { ConfigService } from '@libs/config/config.service';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { ConfigService } from '@libs/config/config.service';
 import type { Request } from 'express';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/response/response.util', () => ({
-  returnNotFound: vi.fn((name: string, id: string) => ({
-    error: `${name}:${id}`,
-  })),
-  serializeCollection: vi.fn(
-    (_request: unknown, _serializer: unknown, data: unknown) => ({ data }),
-  ),
-  serializeSingle: vi.fn(
-    (_request: unknown, _serializer: unknown, data: unknown) => ({ data }),
-  ),
-}));
+vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@api/helpers/utils/response/response.util')
+    >();
+  return {
+    ...actual,
+    serializeSingle: (_req: unknown, _serializer: unknown, data: unknown) => ({
+      data,
+    }),
+  };
+});
 
-const evaluationProjection = {
-  attachToItem: vi.fn(async (item: object) => ({ ...item, evaluation: null })),
-  attachToPage: vi.fn(async (page: { docs: object[] }) => ({
-    ...page,
-    docs: page.docs.map((item) => ({ ...item, evaluation: null })),
-  })),
-};
+interface Row {
+  brandId: string | null;
+  folderId?: string | null;
+  id: string;
+  isDeleted: boolean;
+  organizationId: string;
+  tags?: string[];
+}
 
-const organizationId = testId('org');
-const brandId = testId('brand');
-const userId = testId('user');
-const ingredientId = testId('ingredient');
-const folderId = testId('folder');
+interface Where {
+  id: string;
+  isDeleted: boolean;
+  organizationId: string;
+}
 
-const mockUser = {
-  id: userId,
-  brandId: brandId,
-  organizationId: organizationId,
-  userId: userId,
+const ORG = testId('org');
+const OTHER_ORG = testId('org', 2);
+const BRAND = testId('brand');
+const OTHER_BRAND = testId('brand', 2);
+const INGREDIENT = testId('ingredient');
+const FOLDER = testId('folder');
+const TAG = testId('tag');
+const FOREIGN_TAG = testId('tag', 2);
+
+const user = {
+  brandId: BRAND,
+  id: testId('user'),
+  organizationId: ORG,
+  userId: testId('user'),
 } as unknown as User;
-
-const mockRequest = {
-  originalUrl: `/api/ingredients/${ingredientId}`,
-  params: { ingredientId },
+const request = {
+  originalUrl: `/api/ingredients/${INGREDIENT}`,
+  params: { ingredientId: INGREDIENT },
   query: {},
 } as unknown as Request;
 
-/** The mocked service returns a full Prisma row, so the fixture is complete. */
-const folder = {
-  id: folderId,
-  brandId,
-  createdAt: new Date('2026-01-01T00:00:00.000Z'),
-  description: null,
-  isActive: true,
-  isDeleted: false,
-  label: 'Campaigns',
-  organizationId,
-  parentId: null,
-  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-  userId,
-} as FolderDocument;
-
-const ingredient = createIngredientDocumentFixture({
-  id: ingredientId,
-  brandId,
-  folderId: null,
-  isDeleted: false,
-  organizationId,
-  userId,
+const notFound = (id: string) => ({
+  response: {
+    detail: `IngredientsController ${id} doesn't exist`,
+    title: 'IngredientsController not found',
+  },
+  status: 404,
 });
 
 describe('IngredientsController folder assignment', () => {
+  let ingredients: Map<string, Row>;
+  let folders: Map<string, Row>;
+  let orgTags: Map<string, string>;
   let controller: IngredientsController;
-  let foldersService: vi.Mocked<FoldersService>;
-  let ingredientsService: vi.Mocked<IngredientsService>;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [IngredientsController],
-      providers: [
+  const find = (table: Map<string, Row>, where: Where) => {
+    const row = table.get(where.id);
+    return row &&
+      row.organizationId === where.organizationId &&
+      row.isDeleted === where.isDeleted
+      ? { ...row }
+      : null;
+  };
+  const update = (dto: Record<string, unknown>) =>
+    controller.update(request, INGREDIENT, user, dto);
+
+  beforeEach(() => {
+    ingredients = new Map([
+      [
+        INGREDIENT,
         {
-          provide: IngredientsService,
-          useValue: {
-            findOne: vi.fn(),
-            findOneSelect: delegateFindOneSelect(),
-            patch: vi.fn(),
-            assertClientTags: vi.fn(),
-          },
-        },
-        {
-          provide: FoldersService,
-          useValue: {
-            findOne: vi.fn(),
-            findOneSelect: delegateFindOneSelect(),
-          },
-        },
-        {
-          provide: IngredientGenerationCancellationService,
-          useValue: {
-            cancelProcessingIngredient: vi.fn(),
-          },
-        },
-        {
-          provide: ConfigService,
-          useValue: {
-            ingredientsEndpoint: 'https://cdn.genfeed.ai/ingredients',
-          },
-        },
-        {
-          provide: MediaUrlService,
-          useValue: { buildUrlFromAbsolute: (url: string) => url },
-        },
-        {
-          provide: ContentEvaluationProjectionService,
-          useValue: evaluationProjection,
+          brandId: BRAND,
+          folderId: null,
+          id: INGREDIENT,
+          isDeleted: false,
+          organizationId: ORG,
         },
       ],
-    })
-      .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AssetAccessGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+    ]);
+    folders = new Map([
+      [
+        FOLDER,
+        { brandId: BRAND, id: FOLDER, isDeleted: false, organizationId: ORG },
+      ],
+    ]);
+    orgTags = new Map([
+      [TAG, ORG],
+      [FOREIGN_TAG, OTHER_ORG],
+    ]);
 
-    controller = module.get(IngredientsController);
-    foldersService = module.get(FoldersService);
-    ingredientsService = module.get(IngredientsService);
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('assigns an owned asset to an active folder in caller scope', async () => {
-    foldersService.findOne.mockResolvedValue(folder);
-    ingredientsService.findOne
-      .mockResolvedValueOnce(ingredient)
-      .mockResolvedValueOnce({ ...ingredient, folderId });
-    ingredientsService.patch.mockResolvedValue({
-      ...ingredient,
-      folderId,
-    });
-
-    const result = await controller.update(
-      mockRequest,
-      ingredientId,
-      mockUser,
-      { folderId },
-    );
-
-    expect(foldersService.findOne).toHaveBeenCalledWith({
-      id: folderId,
-      isDeleted: false,
-      organizationId,
-    });
-    expect(ingredientsService.findOne).toHaveBeenNthCalledWith(
-      1,
-      {
-        id: ingredientId,
-        isDeleted: false,
-        organizationId,
+    const ingredientsService = {
+      assertClientTags: async (tags: string[], organizationId: string) => {
+        if (tags.some((tag) => orgTags.get(tag) !== organizationId)) {
+          throw new Error('Tags must belong to the current organization');
+        }
       },
-      expect.any(Array),
+      findOne: async (where: Where) => find(ingredients, where),
+      patch: async (id: string, data: Partial<Row>) =>
+        Object.assign(ingredients.get(id) ?? {}, data),
+    } as unknown as IngredientsService;
+    const foldersService = {
+      findOneSelect: async (where: Where) => find(folders, where),
+    } as unknown as FoldersService;
+
+    controller = new IngredientsController(
+      ingredientsService,
+      foldersService,
+      {} as IngredientGenerationCancellationService,
+      {} as ConfigService,
+      {} as MediaUrlService,
     );
-    expect(ingredientsService.patch).toHaveBeenCalledWith(ingredientId, {
-      folderId,
-    });
-    expect(ingredientsService.findOne).toHaveBeenNthCalledWith(
-      2,
-      {
-        id: ingredientId,
-        isDeleted: false,
-        organizationId,
-      },
-      expect.any(Array),
-    );
-    expect(result).toEqual({
-      data: expect.objectContaining({ folderId }),
-    });
   });
 
-  it('rejects a folder outside the caller brand scope', async () => {
-    ingredientsService.findOne.mockResolvedValueOnce(ingredient);
-    foldersService.findOne.mockResolvedValue({
-      ...folder,
-      brandId: testId('brand', 2),
+  it('files an asset into a folder of the caller brand', async () => {
+    await expect(update({ folderId: FOLDER })).resolves.toEqual({
+      data: expect.objectContaining({ folderId: FOLDER, id: INGREDIENT }),
     });
-
-    const result = await controller.update(
-      mockRequest,
-      ingredientId,
-      mockUser,
-      { folderId },
-    );
-
-    expect(result).toEqual({
-      error: `IngredientsController:${folderId}`,
-    });
-    expect(ingredientsService.patch).not.toHaveBeenCalled();
+    expect(ingredients.get(INGREDIENT)?.folderId).toBe(FOLDER);
   });
 
-  it('rejects assignment when the asset is outside caller brand scope', async () => {
-    ingredientsService.findOne.mockResolvedValue({
-      ...ingredient,
-      brandId: testId('brand', 2),
-    });
+  it('files an asset into an organization-wide folder', async () => {
+    Object.assign(folders.get(FOLDER) ?? {}, { brandId: null });
 
-    const result = await controller.update(
-      mockRequest,
-      ingredientId,
-      mockUser,
-      { folderId },
-    );
+    await update({ folderId: FOLDER });
 
-    expect(result).toEqual({
-      error: `IngredientsController:${ingredientId}`,
-    });
-    expect(foldersService.findOne).not.toHaveBeenCalled();
-    expect(ingredientsService.patch).not.toHaveBeenCalled();
+    expect(ingredients.get(INGREDIENT)?.folderId).toBe(FOLDER);
   });
 
-  it('clears the folder assignment without requiring a folder lookup', async () => {
-    ingredientsService.findOne
-      .mockResolvedValueOnce({ ...ingredient, folderId })
-      .mockResolvedValueOnce(ingredient);
-    ingredientsService.patch.mockResolvedValue(ingredient);
+  it.each([
+    ['of another brand', { brandId: OTHER_BRAND }],
+    ['of another organization', { organizationId: OTHER_ORG }],
+    ['that was deleted', { isDeleted: true }],
+  ])('refuses a folder %s', async (_case, fields) => {
+    Object.assign(folders.get(FOLDER) ?? {}, fields);
 
-    await controller.update(mockRequest, ingredientId, mockUser, {
-      folderId: null,
-    });
-
-    expect(foldersService.findOne).not.toHaveBeenCalled();
-    expect(ingredientsService.patch).toHaveBeenCalledWith(ingredientId, {
-      folderId: null,
-    });
-  });
-  it('rejects foreign tags before any ingredient mutation', async () => {
-    ingredientsService.findOne.mockResolvedValue(ingredient);
-    ingredientsService.assertClientTags.mockRejectedValue(
-      new Error('Tags must belong to the current organization'),
+    await expect(update({ folderId: FOLDER })).rejects.toMatchObject(
+      notFound(FOLDER),
     );
+    expect(ingredients.get(INGREDIENT)?.folderId).toBeNull();
+  });
+
+  it.each([
+    ['of another brand', { brandId: OTHER_BRAND }],
+    ['of another organization', { organizationId: OTHER_ORG }],
+  ])('refuses to file an asset %s', async (_case, fields) => {
+    Object.assign(ingredients.get(INGREDIENT) ?? {}, fields);
+
+    await expect(update({ folderId: FOLDER })).rejects.toMatchObject(
+      notFound(INGREDIENT),
+    );
+    expect(ingredients.get(INGREDIENT)?.folderId).toBeNull();
+  });
+
+  it('takes an asset out of its folder even after the folder is gone', async () => {
+    Object.assign(ingredients.get(INGREDIENT) ?? {}, { folderId: FOLDER });
+    folders.clear();
+
+    await update({ folderId: null });
+
+    expect(ingredients.get(INGREDIENT)?.folderId).toBeNull();
+  });
+
+  it('tags an asset with organization tags', async () => {
+    await update({ tags: [TAG] });
+
+    expect(ingredients.get(INGREDIENT)?.tags).toEqual([TAG]);
+  });
+
+  it('refuses foreign tags before changing the asset', async () => {
     await expect(
-      controller.update(mockRequest, ingredientId, mockUser, {
-        tags: [testId('tag')],
-      }),
-    ).rejects.toThrow('Tags must belong');
-    expect(ingredientsService.assertClientTags).toHaveBeenCalledWith(
-      [testId('tag')],
-      organizationId,
-      brandId,
-    );
-    expect(ingredientsService.patch).not.toHaveBeenCalled();
+      update({ folderId: FOLDER, tags: [TAG, FOREIGN_TAG] }),
+    ).rejects.toThrow('Tags must belong to the current organization');
+    expect(ingredients.get(INGREDIENT)).toEqual({
+      brandId: BRAND,
+      folderId: null,
+      id: INGREDIENT,
+      isDeleted: false,
+      organizationId: ORG,
+    });
   });
 });
