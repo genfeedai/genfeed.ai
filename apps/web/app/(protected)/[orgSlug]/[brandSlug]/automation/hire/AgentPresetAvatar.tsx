@@ -15,18 +15,18 @@ import type {
 import { getAgentTypeIcon } from '../agents/agent-type-display';
 
 const PLATFORM_BRANDS: Record<string, PlatformBrand> = {
-  facebook: { faceClassName: 'bg-blue-600', Icon: FacebookIcon },
-  instagram: { faceClassName: 'bg-pink-500', Icon: InstagramIcon },
-  linkedin: { faceClassName: 'bg-blue-700', Icon: LinkedinIcon },
+  facebook: { faceClassName: 'bg-platform-facebook', Icon: FacebookIcon },
+  instagram: { faceClassName: 'bg-platform-instagram', Icon: InstagramIcon },
+  linkedin: { faceClassName: 'bg-platform-linkedin', Icon: LinkedinIcon },
   tiktok: {
-    faceClassName: 'bg-zinc-900 ring-1 ring-inset ring-white/10',
+    faceClassName: 'bg-black ring-1 ring-inset ring-white/10', // design-system-allow-content-color -- avatar artwork
     Icon: TiktokIcon,
   },
   twitter: {
-    faceClassName: 'bg-zinc-900 ring-1 ring-inset ring-white/10',
+    faceClassName: 'bg-black ring-1 ring-inset ring-white/10', // design-system-allow-content-color -- avatar artwork
     Icon: XTwitterIcon,
   },
-  youtube: { faceClassName: 'bg-red-500', Icon: YoutubeIcon },
+  youtube: { faceClassName: 'bg-platform-youtube', Icon: YoutubeIcon },
 };
 
 const PLATFORM_ALIASES: Record<string, string> = { x: 'twitter' };

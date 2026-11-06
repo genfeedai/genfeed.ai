@@ -54,7 +54,7 @@ function PhaseProgressInner() {
       </div>
 
       {confirmTarget && (
-        <div className="absolute top-full left-0 right-0 mt-2 p-3 rounded-lg bg-zinc-900 border border-foreground/10 shadow-lg z-10">
+        <div className="absolute top-full left-0 right-0 mt-2 p-3 rounded-lg bg-elevated shadow-dropdown z-10">
           <p className="text-sm text-foreground/70 mb-2">
             Roll back to{' '}
             <span className="font-medium text-foreground">

@@ -12,12 +12,12 @@ import { useMemo } from 'react';
 
 const STATUS_COLORS: Record<PostStatus, string> = {
   [PostStatus.DRAFT]: 'bg-muted-foreground',
-  [PostStatus.FAILED]: 'bg-red-500',
+  [PostStatus.FAILED]: 'bg-destructive',
   [PostStatus.PENDING]: 'bg-muted-foreground',
   [PostStatus.PRIVATE]: 'bg-muted-foreground',
-  [PostStatus.PROCESSING]: 'bg-blue-500',
-  [PostStatus.PUBLIC]: 'bg-green-500',
-  [PostStatus.SCHEDULED]: 'bg-orange-500',
+  [PostStatus.PROCESSING]: 'bg-info',
+  [PostStatus.PUBLIC]: 'bg-success',
+  [PostStatus.SCHEDULED]: 'bg-warning',
   [PostStatus.UNLISTED]: 'bg-muted-foreground',
 };
 

@@ -102,7 +102,7 @@ export function BrandVoiceProfileCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <Megaphone className="size-5 text-amber-500" />
+        <Megaphone className="size-5 text-muted-foreground" />
         <h3 className="text-sm font-semibold text-foreground">
           {action.title || 'Brand Voice Draft'}
         </h3>

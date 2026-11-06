@@ -33,7 +33,7 @@ export function OnboardingChecklistCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <Rocket className="size-5 text-violet-500" />
+        <Rocket className="size-5 text-muted-foreground" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Getting Started'}
         </h3>
@@ -92,9 +92,7 @@ export function OnboardingChecklistCard({
             <div className="flex items-center gap-2">
               <CircleCheck
                 className={`size-4 shrink-0 ${
-                  item.isCompleted
-                    ? 'text-green-500'
-                    : 'text-muted-foreground/40'
+                  item.isCompleted ? 'text-success' : 'text-muted-foreground/40'
                 }`}
               />
               <span

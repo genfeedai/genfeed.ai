@@ -1,5 +1,6 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Card from '@ui/card/Card';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
@@ -157,9 +158,9 @@ function AgentWorkflowInner() {
     <div className="flex flex-col gap-4 w-full max-w-2xl mx-auto">
       <PhaseProgress />
 
-      <div className="rounded-xl border border-foreground/10 bg-zinc-900/50 p-4">
+      <Card>
         <PhaseView />
-      </div>
+      </Card>
 
       {phase !== 'complete' && (
         <div className="flex items-center gap-2 justify-end">

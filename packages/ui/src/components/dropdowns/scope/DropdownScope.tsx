@@ -144,9 +144,10 @@ export default function DropdownScope({
               <span
                 className={cn(
                   'absolute -bottom-0.5 -right-0.5 size-2 rounded-full border border-background',
-                  currentScope === AssetScope.PUBLIC && 'bg-purple-500',
-                  currentScope === AssetScope.ORGANIZATION && 'bg-green-500',
-                  currentScope === AssetScope.BRAND && 'bg-blue-500',
+                  currentScope === AssetScope.PUBLIC && 'bg-categorical-violet',
+                  currentScope === AssetScope.ORGANIZATION &&
+                    'bg-categorical-emerald',
+                  currentScope === AssetScope.BRAND && 'bg-categorical-blue',
                   currentScope === AssetScope.USER && 'bg-muted-foreground',
                 )}
               />

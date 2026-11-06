@@ -559,6 +559,31 @@ There is no `success-subtle`, and there must not be one.
 It is checked as text: 9.25:1 on the dark card plane. The previous light
 agent blue (`#0284C7`) was 3.9:1 and failed AA.
 
+### Categorical colors
+
+Eight theme-aware hues tell records of different *kinds* apart: content types,
+tag categories, asset scopes, workflow node groups. They live in
+`packages/ui/src/core/categorical.ts` and ship as `text-categorical-<hue>` /
+`bg-categorical-<hue>/10` / `border-categorical-<hue>/20`. Each value is checked
+as text on its own canvas (AA in both themes), so one class works in Light and
+Dark with no `dark:` pair.
+
+| hue | light | dark |
+|-----|-------|------|
+| `amber` | `#B45309` | `#FCD34D` |
+| `blue` | `#1D4ED8` | `#93C5FD` |
+| `cyan` | `#0E7490` | `#67E8F9` |
+| `emerald` | `#047857` | `#6EE7B7` |
+| `orange` | `#C2410C` | `#FDBA74` |
+| `pink` | `#BE185D` | `#F9A8D4` |
+| `red` | `#B91C1C` | `#FCA5A5` |
+| `violet` | `#6D28D9` | `#C4B5FD` |
+
+Categorical hues identify; they never carry state (that is the status set) and
+never paint chrome. Tailwind's built-in hue and neutral ramps (`text-pink-500`,
+`bg-zinc-900`) are not used anywhere: `bun run check:design-system` fails on them
+(`palette-color`).
+
 ### Platform colors
 
 Platform brand colours are identifiers only. Do not use them for layout chrome or
@@ -973,8 +998,8 @@ Colour enters through exactly four doors:
    borderless and full-bleed wherever possible; chrome recedes behind it.
 2. **Platform brand identifiers** — scoped to badges and icons only.
 3. **Semantic status** — success/warning/destructive/info, for state, never decoration.
-4. **Categorical palettes** — workflow-node and tag colours, for identification,
-   never chrome.
+4. **Categorical palettes** — the `categorical-*` hues (see Categorical colors),
+   for identifying kinds of record, never chrome.
 
 Everything else — buttons, cards, borders, hovers, focus rings — is grayscale.
 Ambient treatments may derive tint *from* focused content (a low-opacity dominant-
@@ -1003,7 +1028,8 @@ animations in chrome.
 - **Don't** write `text-[10px]`, `text-[11px]`, or any arbitrary size — 11px is the
   floor and it has a name.
 - **Don't** add a per-theme override. If a component needs one, the step it picked
-  was wrong.
+  was wrong. The only `dark:` variants in product code are `dark:invert` on
+  monochrome logo artwork and the typography plugin's `dark:prose-invert`.
 - **Don't** mix Tailwind's built-in `gray-*` with this ladder; the default ramp is
   blue-tinted and is cleared from the theme on purpose.
 - **Don't** add opaque status variants — status fills are the hue at low alpha.

@@ -15,7 +15,7 @@ export function ImageTransformCard({
   return (
     <div className="border border-border bg-background p-4 my-2">
       <div className="flex items-center gap-2 mb-3">
-        <ImageIcon className="size-5 text-purple-500" />
+        <ImageIcon className="size-5 text-muted-foreground" />
         <h3 className="font-semibold text-sm">
           {action.title || 'Image Transform'}
         </h3>

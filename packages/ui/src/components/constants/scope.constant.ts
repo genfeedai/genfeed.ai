@@ -10,28 +10,28 @@ export interface ScopeOption {
 
 export const SCOPE_OPTIONS: readonly ScopeOption[] = [
   {
-    color: 'text-gray-600',
+    color: 'text-muted-foreground',
     description: 'Only you can access',
     label: 'Private',
     value: AssetScope.USER,
     variant: 'badge-error',
   },
   {
-    color: 'text-blue-600',
+    color: 'text-categorical-blue',
     description: 'Brand members can access',
     label: 'Brand',
     value: AssetScope.BRAND,
     variant: 'badge-warning',
   },
   {
-    color: 'text-green-600',
+    color: 'text-categorical-emerald',
     description: 'Team members can access',
     label: 'Organization',
     value: AssetScope.ORGANIZATION,
     variant: 'badge-warning',
   },
   {
-    color: 'text-purple-600',
+    color: 'text-categorical-violet',
     description: 'Anyone can access',
     label: 'Public',
     value: AssetScope.PUBLIC,

@@ -21,17 +21,17 @@ const CAMPAIGN_STATUS_CONFIG: Record<
   { color: string; icon: ReactElement; label: string }
 > = {
   active: {
-    color: 'text-green-500',
+    color: 'text-success',
     icon: <Play className="size-4" />,
     label: 'Active',
   },
   completed: {
-    color: 'text-blue-500',
+    color: 'text-info',
     icon: <CircleCheck className="size-4" />,
     label: 'Completed',
   },
   paused: {
-    color: 'text-yellow-500',
+    color: 'text-warning',
     icon: <Pause className="size-4" />,
     label: 'Paused',
   },
@@ -45,7 +45,7 @@ export function CampaignCreateCard({
   return (
     <div className="border border-border bg-background p-4 my-2">
       <div className="flex items-center gap-2 mb-3">
-        <Megaphone className="size-5 text-orange-500" />
+        <Megaphone className="size-5 text-muted-foreground" />
         <h3 className="font-semibold text-sm">
           {action.title || translate('newTitle')}
         </h3>
@@ -85,7 +85,7 @@ export function CampaignControlCard({
     <div className="border border-border bg-background p-4 my-2">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Megaphone className="size-5 text-orange-500" />
+          <Megaphone className="size-5 text-muted-foreground" />
           <h3 className="font-semibold text-sm">
             {action.title || translate('fallbackTitle')}
           </h3>

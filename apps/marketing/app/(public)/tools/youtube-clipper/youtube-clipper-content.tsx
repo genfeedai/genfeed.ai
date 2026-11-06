@@ -415,7 +415,9 @@ export default function YoutubeClipperContent(): React.ReactElement {
               Your free preview
             </Heading>
             <video
-              className="aspect-[9/16] w-full bg-black object-contain"
+              className={
+                'aspect-[9/16] w-full bg-black object-contain' /* design-system-allow-content-color -- video letterbox */
+              }
               controls
               data-ph-no-capture
               src={session.preview.url}

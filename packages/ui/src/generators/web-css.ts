@@ -1,3 +1,4 @@
+import { categoricalColorTokens } from '@ui/core/categorical';
 import { semanticColorTokens } from '@ui/core/colors';
 import { elevationTokens, focusTokens } from '@ui/core/elevation';
 import { motionTokens } from '@ui/core/motion';
@@ -26,6 +27,10 @@ function themedVariables(theme: 'light' | 'dark', indent: string): string {
     ([tokenName, value]) => declaration(kebab(tokenName), value.hsl, indent),
   );
 
+  const categoricalEntries = Object.entries(categoricalColorTokens[theme]).map(
+    ([hue, value]) => declaration(`categorical-${hue}`, value.hsl, indent),
+  );
+
   const scaleEntries = Object.entries(neutralScale[theme]).map(
     ([step, value]) => declaration(`gray-${step}`, value.hsl, indent),
   );
@@ -38,6 +43,7 @@ function themedVariables(theme: 'light' | 'dark', indent: string): string {
 
   return [
     ...semanticEntries,
+    ...categoricalEntries,
     ...scaleEntries,
     ...alphaScaleEntries,
     ...elevationEntries,
