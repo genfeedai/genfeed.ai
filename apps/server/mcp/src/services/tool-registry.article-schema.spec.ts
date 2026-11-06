@@ -1,7 +1,6 @@
 import { getToolByName, toMcpTools } from '@genfeedai/actions';
 import type { ClientService } from '@mcp/services/client.service';
 import { handleContentTool } from '@mcp/tools/content.tool';
-import { vi } from 'vitest';
 
 describe('get_articles schema contract (#6597)', () => {
   it('advertises exactly one selector on the connected MCP schema', () => {
@@ -28,13 +27,29 @@ describe('get_articles schema contract (#6597)', () => {
 });
 
 describe('get_articles runtime selectors', () => {
-  const getArticle = vi
-    .fn()
-    .mockResolvedValue({ id: 'article-1', title: 'Title' });
-  const searchArticles = vi.fn().mockResolvedValue([]);
-  const client = { getArticle, searchArticles } as unknown as ClientService;
+  const articles = [
+    { id: 'article-1', title: 'Topic deep dive' },
+    { id: 'article-2', title: 'Unrelated launch notes' },
+  ];
+  let apiRequests: unknown[][];
+  const client = {
+    getArticle: async (id: string) => {
+      apiRequests.push(['getArticle', id]);
+      return articles.find((article) => article.id === id) ?? null;
+    },
+    searchArticles: async (options: { limit?: number; query: string }) => {
+      apiRequests.push(['searchArticles', options]);
+      return articles
+        .filter((article) =>
+          article.title.toLowerCase().includes(options.query),
+        )
+        .slice(0, options.limit);
+    },
+  } as unknown as ClientService;
 
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    apiRequests = [];
+  });
 
   it.each([
     {},
@@ -53,29 +68,27 @@ describe('get_articles runtime selectors', () => {
       await expect(
         handleContentTool(client, 'get_articles', args),
       ).rejects.toThrow('Pass exactly one of articleId or query');
-      expect(getArticle).not.toHaveBeenCalled();
-      expect(searchArticles).not.toHaveBeenCalled();
+      expect(apiRequests).toEqual([]);
     },
   );
 
   it('gets a single article by its trimmed selector', async () => {
-    await handleContentTool(client, 'get_articles', {
+    const result = await handleContentTool(client, 'get_articles', {
       articleId: ' article-1 ',
     });
-    expect(getArticle).toHaveBeenCalledWith('article-1');
-    expect(searchArticles).not.toHaveBeenCalled();
+    expect(JSON.stringify(result)).toContain('Topic deep dive');
+    expect(apiRequests).toEqual([['getArticle', 'article-1']]);
   });
 
   it('searches by the trimmed query with search options', async () => {
-    await handleContentTool(client, 'get_articles', {
+    const result = await handleContentTool(client, 'get_articles', {
       query: ' topic ',
       limit: 2,
     });
-    expect(searchArticles).toHaveBeenCalledWith({
-      query: 'topic',
-      limit: 2,
-      category: undefined,
-    });
-    expect(getArticle).not.toHaveBeenCalled();
+    expect(JSON.stringify(result)).toContain('Topic deep dive');
+    expect(JSON.stringify(result)).not.toContain('Unrelated launch notes');
+    expect(apiRequests).toEqual([
+      ['searchArticles', { query: 'topic', limit: 2, category: undefined }],
+    ]);
   });
 });

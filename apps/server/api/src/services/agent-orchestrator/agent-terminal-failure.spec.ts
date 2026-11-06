@@ -11,12 +11,26 @@ vi.mock(
 import { AgentOrchestratorStreamLoopService } from './agent-orchestrator-stream-loop.service';
 import { AgentOrchestratorTurboRunService } from './agent-orchestrator-turbo-run.service';
 
+/** Stream effects that log each published event by name. */
+function recordingEffects(names: string[]) {
+  const published: string[] = [];
+  const effects = Object.fromEntries(
+    names.map((name) => [
+      name,
+      async () => {
+        published.push(name);
+      },
+    ]),
+  );
+  return { effects, published };
+}
+
 describe('background agent terminal failures', () => {
   it('throws at the round budget instead of allowing an old assistant message to complete the run', async () => {
-    const effects = {
-      publishStreamLifecycleStarted: vi.fn(),
-      publishStreamFailure: vi.fn(),
-    };
+    const { effects, published } = recordingEffects([
+      'publishStreamLifecycleStarted',
+      'publishStreamFailure',
+    ]);
     const contextService = {
       buildMemoryEntriesForResponse: vi.fn().mockReturnValue([]),
       buildMemoryInfluenceMetadata: vi.fn().mockReturnValue({}),
@@ -62,14 +76,14 @@ describe('background agent terminal failures', () => {
         [],
       ),
     ).rejects.toThrow('Agent exceeded maximum tool-calling rounds');
-    expect(effects.publishStreamFailure).not.toHaveBeenCalled();
+    expect(published).not.toContain('publishStreamFailure');
   });
 
   it('reads the real-token-streaming switch from platform settings (#5407)', async () => {
-    const effects = {
-      publishStreamLifecycleStarted: vi.fn(),
-      publishStreamFailure: vi.fn(),
-    };
+    const { effects } = recordingEffects([
+      'publishStreamLifecycleStarted',
+      'publishStreamFailure',
+    ]);
     const contextService = {
       buildMemoryEntriesForResponse: vi.fn().mockReturnValue([]),
       buildMemoryInfluenceMetadata: vi.fn().mockReturnValue({}),
@@ -78,9 +92,11 @@ describe('background agent terminal failures', () => {
         .fn()
         .mockReturnValue([{ role: 'assistant', content: 'An older answer' }]),
     };
-    const getFeatureSettings = vi
-      .fn()
-      .mockResolvedValue({ isAgentTokenStreamingEnabled: true });
+    const settingsReads: string[] = [];
+    const getFeatureSettings = async () => {
+      settingsReads.push('features');
+      return { isAgentTokenStreamingEnabled: true };
+    };
     const service = new AgentOrchestratorStreamLoopService(
       { error: vi.fn() } as never,
       {} as never,
@@ -118,25 +134,27 @@ describe('background agent terminal failures', () => {
         [],
       ),
     ).rejects.toThrow('Agent exceeded maximum tool-calling rounds');
-    expect(getFeatureSettings).toHaveBeenCalled();
+    expect(settingsReads).not.toHaveLength(0);
   });
 
   it('propagates failed batch execution to workflow finalization', async () => {
+    const executedTools: unknown[][] = [];
     const executor = {
-      executeTool: vi
-        .fn()
-        .mockResolvedValue({ success: false, error: 'HTTP 429' }),
+      executeTool: async (...args: unknown[]) => {
+        executedTools.push(args);
+        return { success: false, error: 'HTTP 429' };
+      },
     };
-    const recorder = {
-      recordToolStarted: vi.fn(),
-      recordToolCompleted: vi.fn(),
-      recordRunCompleted: vi.fn(),
-    };
-    const effects = {
-      publishStreamingToolStarted: vi.fn(),
-      publishStreamingToolCompleted: vi.fn(),
-      publishStreamErrorOnly: vi.fn(),
-    };
+    const { effects: recorder, published: recorded } = recordingEffects([
+      'recordToolStarted',
+      'recordToolCompleted',
+      'recordRunCompleted',
+    ]);
+    const { effects, published } = recordingEffects([
+      'publishStreamingToolStarted',
+      'publishStreamingToolCompleted',
+      'publishStreamErrorOnly',
+    ]);
     const service = new AgentOrchestratorTurboRunService(
       {} as never,
       {} as never,
@@ -164,8 +182,8 @@ describe('background agent terminal failures', () => {
         { maybeUpdateThreadTitle: vi.fn() },
       ),
     ).rejects.toThrow('HTTP 429');
-    expect(executor.executeTool).toHaveBeenCalled();
-    expect(recorder.recordRunCompleted).not.toHaveBeenCalled();
-    expect(effects.publishStreamErrorOnly).not.toHaveBeenCalled();
+    expect(executedTools).not.toHaveLength(0);
+    expect(recorded).not.toContain('recordRunCompleted');
+    expect(published).not.toContain('publishStreamErrorOnly');
   });
 });

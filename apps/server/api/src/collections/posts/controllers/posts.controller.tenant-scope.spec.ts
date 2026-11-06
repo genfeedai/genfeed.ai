@@ -69,38 +69,58 @@ async function setupController(
 
 describe('Post detail reads (#6176)', () => {
   const id = 'post-target';
+  // The post, its thread reply and its metrics live in the target organization.
   async function setup() {
-    const findAll = vi.fn(async (input: unknown) => ({
-      ...emptyPage(),
-      docs:
-        readRecord(readRecord(input).where).organizationId ===
-        targetOrganizationId
-          ? [{ id, organizationId: targetOrganizationId }]
+    const reads: unknown[] = [];
+    const findAll = vi.fn(async (input: unknown, options: unknown) => {
+      reads.push([input, options]);
+      return {
+        ...emptyPage(),
+        docs:
+          readRecord(readRecord(input).where).organizationId ===
+          targetOrganizationId
+            ? [{ id, organizationId: targetOrganizationId }]
+            : [],
+      };
+    });
+    const getChildren = vi.fn(
+      async (parentId: string, organizationId: string) =>
+        parentId === id && organizationId === targetOrganizationId
+          ? [{ id: 'reply-1', organizationId }]
           : [],
-    }));
-    const getChildren = vi.fn().mockResolvedValue([]);
-    const getPostAnalyticsSummary = vi.fn().mockResolvedValue(null);
+    );
+    const getPostAnalyticsSummary = vi.fn(
+      async (postId: string, organizationId: string) =>
+        postId === id && organizationId === targetOrganizationId
+          ? { totalLikes: 7, totalViews: 120 }
+          : null,
+    );
     const controller = await setupController(
       { findAll, getChildren },
       { getPostAnalyticsSummary },
     );
-    return { controller, findAll, getChildren, getPostAnalyticsSummary };
+    return { controller, reads };
   }
   it('returns 404 for a superadmin foreign row without override', async () => {
-    const { controller, findAll, getChildren } = await setup();
+    const { controller, reads } = await setup();
     await expect(
       controller.findOne(tenantReadRequest(adminUser), adminUser, id),
     ).rejects.toMatchObject({ status: 404 });
-    expect(findAll).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id, organizationId: sessionOrganizationId, isDeleted: false },
-      }),
-      { pagination: false },
-    );
-    expect(getChildren).not.toHaveBeenCalled();
+    expect(reads).toEqual([
+      [
+        expect.objectContaining({
+          where: {
+            id,
+            organizationId: sessionOrganizationId,
+            isDeleted: false,
+          },
+        }),
+        { pagination: false },
+      ],
+    ]);
   });
   it('reads the post, children and analytics under the matching superadmin override', async () => {
-    const { controller, getChildren, getPostAnalyticsSummary } = await setup();
+    const { controller } = await setup();
     const result = await controller.findOne(
       tenantReadRequest(adminUser),
       adminUser,
@@ -108,15 +128,11 @@ describe('Post detail reads (#6176)', () => {
       { organizationId: targetOrganizationId },
     );
     expect(result.data?.id).toBe(id);
-    expect(getChildren).toHaveBeenCalledWith(
-      id,
-      targetOrganizationId,
-      expect.any(Array),
-    );
-    expect(getPostAnalyticsSummary).toHaveBeenCalledWith(
-      id,
-      targetOrganizationId,
-    );
+    expect(JSON.stringify(result)).toContain('reply-1');
+    expect(result.data?.attributes).toMatchObject({
+      totalLikes: 7,
+      totalViews: 120,
+    });
   });
   it('returns 404 for a member foreign row without override', async () => {
     const { controller } = await setup();
@@ -125,13 +141,13 @@ describe('Post detail reads (#6176)', () => {
     ).rejects.toMatchObject({ status: 404 });
   });
   it('rejects a member foreign override before reading', async () => {
-    const { controller, findAll } = await setup();
+    const { controller, reads } = await setup();
     await expect(
       controller.findOne(tenantReadRequest(), memberUser, id, {
         organizationId: targetOrganizationId,
       }),
     ).rejects.toThrow(ForbiddenException);
-    expect(findAll).not.toHaveBeenCalled();
+    expect(reads).toEqual([]);
   });
 });
 
@@ -157,7 +173,11 @@ describe('Post list evaluation brands (#6176)', () => {
     async ({ organizationId, brandId, expectedBrandId }) => {
       const page = emptyPage();
       const findAll = vi.fn().mockResolvedValue(page);
-      const attachToPage = vi.fn().mockResolvedValue(page);
+      const projections: unknown[] = [];
+      const attachToPage = vi.fn(async (input: unknown, scope: unknown) => {
+        projections.push([input, scope]);
+        return input;
+      });
       const controller = await setupController(
         { findAll },
         {},
@@ -169,10 +189,9 @@ describe('Post list evaluation brands (#6176)', () => {
         adminUser,
         query,
       );
-      expect(attachToPage).toHaveBeenCalledWith(page, {
-        brandId: expectedBrandId,
-        contentType: 'post',
-      });
+      expect(projections).toEqual([
+        [page, { brandId: expectedBrandId, contentType: 'post' }],
+      ]);
     },
   );
 });
