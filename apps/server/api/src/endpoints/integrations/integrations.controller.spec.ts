@@ -1,133 +1,189 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationsIntegrationsController } from '@api/collections/organizations/controllers/organizations-integrations.controller';
-import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
-import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-integration.dto';
+import type { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
+import type { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { IntegrationPlatform } from '@genfeedai/contracts';
+import type { Request } from 'express';
+
+type IntegrationRow = Record<string, unknown> & {
+  id: string;
+  organizationId: string;
+};
+
+/** In-memory integrations, scoped by organization like the real service. */
+function createFakeIntegrationsService() {
+  const rows: IntegrationRow[] = [
+    {
+      id: 'int-1',
+      organizationId: 'org1',
+      platform: IntegrationPlatform.DISCORD,
+      status: 'active',
+    },
+    {
+      id: 'int-foreign',
+      organizationId: 'org2',
+      platform: IntegrationPlatform.SLACK,
+      status: 'active',
+    },
+  ];
+  const find = (organizationId: string, id: string) => {
+    const row = rows.find(
+      (item) => item.id === id && item.organizationId === organizationId,
+    );
+    if (!row) throw new NotFoundException('Integration');
+    return row;
+  };
+  const service = {
+    create: async (
+      organizationId: string,
+      dto: CreateIntegrationDto,
+      actorUserId?: string,
+    ) => {
+      if (
+        rows.some(
+          (row) =>
+            row.platform === dto.platform &&
+            row.organizationId === organizationId,
+        )
+      ) {
+        throw new Error('Duplicate');
+      }
+      const row: IntegrationRow = {
+        ...dto,
+        actorUserId,
+        id: `int-${rows.length + 1}`,
+        organizationId,
+        status: 'active',
+      };
+      rows.push(row);
+      return row;
+    },
+    findAll: async (organizationId: string) =>
+      rows.filter((row) => row.organizationId === organizationId),
+    findOne: async (organizationId: string, id: string) =>
+      find(organizationId, id),
+    remove: async (organizationId: string, id: string) => {
+      const row = find(organizationId, id);
+      rows.splice(rows.indexOf(row), 1);
+    },
+    update: async (
+      organizationId: string,
+      id: string,
+      dto: UpdateIntegrationDto,
+      actorUserId?: string,
+    ) => Object.assign(find(organizationId, id), dto, { actorUserId }),
+  };
+  return { rows, service };
+}
+
+const user = { id: 'user-1', organizationId: 'org1', userId: 'user-1' } as User;
+const request = (path: string) =>
+  ({ originalUrl: `/organizations/org1/integrations${path}` }) as Request;
 
 describe('OrganizationsIntegrationsController', () => {
   let controller: OrganizationsIntegrationsController;
-  let integrationsService: {
-    create: ReturnType<typeof vi.fn>;
-    findAll: ReturnType<typeof vi.fn>;
-    findOne: ReturnType<typeof vi.fn>;
-    remove: ReturnType<typeof vi.fn>;
-    update: ReturnType<typeof vi.fn>;
-  };
-  const mockUser = {
-    organizationId: 'org1',
-  } as unknown as User;
+  let rows: IntegrationRow[];
 
-  beforeEach(async () => {
-    integrationsService = {
-      create: vi.fn(),
-      findAll: vi.fn(),
-      findOne: vi.fn(),
-      remove: vi.fn(),
-      update: vi.fn(),
-    };
+  beforeEach(() => {
+    const fake = createFakeIntegrationsService();
+    rows = fake.rows;
+    controller = new OrganizationsIntegrationsController(
+      fake.service as unknown as IntegrationsService,
+    );
+  });
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [OrganizationsIntegrationsController],
-      providers: [
-        {
-          provide: FilesClientService,
-          useValue: { uploadToS3: vi.fn() },
-        },
-        {
-          provide: IntegrationsService,
-          useValue: integrationsService,
-        },
+  it('lists only the organization’s integrations', async () => {
+    const result = await controller.findAll(request(''), user, 'org1');
+
+    expect(result).toMatchObject({
+      data: [
+        { attributes: { platform: IntegrationPlatform.DISCORD }, id: 'int-1' },
       ],
-    })
-      .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
-
-    controller = module.get<OrganizationsIntegrationsController>(
-      OrganizationsIntegrationsController,
-    );
+    });
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
-  it('calls findAll on the service', async () => {
-    integrationsService.findAll.mockResolvedValue([]);
-    const request = { originalUrl: '/organizations/org1/integrations' };
-    await controller.findAll(request as never, mockUser, 'org1');
-    expect(integrationsService.findAll).toHaveBeenCalledWith('org1');
-  });
-
-  it('calls findOne on the service with correct params', async () => {
-    integrationsService.findOne.mockResolvedValue({ _id: 'int-1' });
-    const request = { originalUrl: '/organizations/org1/integrations/int-1' };
-    await controller.findOne(request as never, mockUser, 'org1', 'int-1');
-    expect(integrationsService.findOne).toHaveBeenCalledWith('org1', 'int-1');
-  });
-
-  it('calls create on the service with dto', async () => {
-    const dto = { botToken: 'token', platform: 'discord' };
-    integrationsService.create.mockResolvedValue({ _id: 'new-int' });
-    const request = { originalUrl: '/organizations/org1/integrations' };
-    await controller.create(request as never, mockUser, 'org1', dto as never);
-    expect(integrationsService.create).toHaveBeenCalledWith('org1', dto);
-  });
-
-  it('calls update on the service with id and dto', async () => {
-    const dto = { config: { channel: 'general' } };
-    integrationsService.update.mockResolvedValue({ _id: 'int-1' });
-    const request = { originalUrl: '/organizations/org1/integrations/int-1' };
-    await controller.update(
-      request as never,
-      mockUser,
+  it('returns one integration of the organization', async () => {
+    const result = await controller.findOne(
+      request('/int-1'),
+      user,
       'org1',
       'int-1',
-      dto as never,
     );
-    expect(integrationsService.update).toHaveBeenCalledWith(
-      'org1',
-      'int-1',
-      dto,
-    );
+
+    expect(result).toMatchObject({
+      data: {
+        attributes: { platform: IntegrationPlatform.DISCORD },
+        id: 'int-1',
+      },
+    });
   });
 
-  it('calls remove on the service with correct id', async () => {
-    integrationsService.remove.mockResolvedValue(undefined);
-    await controller.remove(mockUser, 'org1', 'int-1');
-    expect(integrationsService.remove).toHaveBeenCalledWith('org1', 'int-1');
-  });
-
-  it('propagates errors from findAll', async () => {
-    integrationsService.findAll.mockRejectedValue(new Error('DB error'));
-    const request = { originalUrl: '/organizations/org1/integrations' };
+  it('cannot read another organization’s integration through its own path', async () => {
     await expect(
-      controller.findAll(request as never, mockUser, 'org1'),
-    ).rejects.toThrow('DB error');
+      controller.findOne(request('/int-foreign'), user, 'org1', 'int-foreign'),
+    ).rejects.toThrow('Integration not found');
   });
+
+  it('creates an integration in the organization', async () => {
+    const result = await controller.create(request(''), user, 'org1', {
+      botToken: 'token',
+      platform: IntegrationPlatform.TELEGRAM,
+    } as CreateIntegrationDto);
+
+    expect(result).toMatchObject({
+      data: {
+        attributes: { platform: IntegrationPlatform.TELEGRAM },
+        id: 'int-3',
+      },
+    });
+    expect(rows).toContainEqual(
+      expect.objectContaining({
+        organizationId: 'org1',
+        platform: IntegrationPlatform.TELEGRAM,
+      }),
+    );
+  });
+
+  it('records who changed agent report bindings, and nobody otherwise', async () => {
+    await controller.update(request('/int-1'), user, 'org1', 'int-1', {
+      config: { channel: 'general' },
+    } as UpdateIntegrationDto);
+    expect(rows[0]).toMatchObject({
+      actorUserId: undefined,
+      config: { channel: 'general' },
+    });
+
+    await controller.update(request('/int-1'), user, 'org1', 'int-1', {
+      config: { agentReportBindings: [] },
+    } as unknown as UpdateIntegrationDto);
+    expect(rows[0]).toMatchObject({ actorUserId: 'user-1' });
+  });
+
+  it('removes the integration', async () => {
+    await controller.remove(user, 'org1', 'int-1');
+
+    expect(rows.map((row) => row.id)).toEqual(['int-foreign']);
+  });
+
+  it.each([
+    ['findAll', async () => controller.findAll(request(''), user, 'org2')],
+    ['remove', async () => controller.remove(user, 'org2', 'int-foreign')],
+  ])(
+    'rejects %s for an organization the user is not in',
+    async (_name, call) => {
+      await expect(call()).rejects.toThrow('organization mismatch');
+      expect(rows).toHaveLength(2);
+    },
+  );
 
   it('propagates errors from create', async () => {
-    integrationsService.create.mockRejectedValue(new Error('Duplicate'));
-    const request = { originalUrl: '/organizations/org1/integrations' };
     await expect(
-      controller.create(request as never, mockUser, 'org1', {
+      controller.create(request(''), user, 'org1', {
         botToken: 'x',
-        platform: 'discord',
-      } as never),
+        platform: IntegrationPlatform.DISCORD,
+      } as CreateIntegrationDto),
     ).rejects.toThrow('Duplicate');
-  });
-
-  it('returns the result from findOne', async () => {
-    const integration = { _id: 'int-1', platform: 'discord' };
-    integrationsService.findOne.mockResolvedValue(integration);
-    const request = { originalUrl: '/organizations/org1/integrations/int-1' };
-    const result = await controller.findOne(
-      request as never,
-      mockUser,
-      'org1',
-      'int-1',
-    );
-    expect(result).toBeDefined();
   });
 });

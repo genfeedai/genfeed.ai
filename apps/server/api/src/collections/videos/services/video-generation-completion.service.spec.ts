@@ -31,32 +31,62 @@ function makeContext(
   } as unknown as VideoGenerationContext;
 }
 
+type CancelledIngredient = { id: string; organizationId: string };
+
 describe('VideoGenerationCompletionService', () => {
   let service: VideoGenerationCompletionService;
-  let bookmarksService: { addGeneratedIngredient: ReturnType<typeof vi.fn> };
-  let cacheService: { invalidateByTags: ReturnType<typeof vi.fn> };
-  let cancellationService: { bindCancelOnAbort: ReturnType<typeof vi.fn> };
-  let ingredientCompletionService: {
-    waitForMultipleIngredientsCompletion: ReturnType<typeof vi.fn>;
-  };
-  let loggerService: {
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-  };
-  let videosService: { findOne: ReturnType<typeof vi.fn> };
+  // Observable effects of completion, recorded by stateful fakes.
+  let bookmarkLinks: string[];
+  let cancelled: CancelledIngredient[];
+  let invalidatedTags: string[];
+  let completedIngredients: unknown[];
+  let clientAbort: AbortController;
 
   beforeEach(() => {
-    bookmarksService = {
-      addGeneratedIngredient: vi.fn().mockResolvedValue(undefined),
+    bookmarkLinks = [];
+    cancelled = [];
+    invalidatedTags = [];
+    completedIngredients = [];
+    clientAbort = new AbortController();
+
+    const bookmarksService = {
+      addGeneratedIngredient: async (
+        bookmarkId: string,
+        ingredientId: string,
+        organizationId: string,
+      ) => {
+        bookmarkLinks.push(`${organizationId}/${bookmarkId}/${ingredientId}`);
+      },
     };
-    cacheService = { invalidateByTags: vi.fn().mockResolvedValue(undefined) };
-    cancellationService = { bindCancelOnAbort: vi.fn() };
-    ingredientCompletionService = {
-      waitForMultipleIngredientsCompletion: vi.fn(),
+    const cacheService = {
+      invalidateByTags: async (tags: string[]) => {
+        invalidatedTags.push(...tags);
+      },
     };
-    loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-    videosService = { findOne: vi.fn() };
+    // Same contract as the real service: cancel once the request aborts.
+    const cancellationService = {
+      bindCancelOnAbort: (
+        input: CancelledIngredient & { abortSignal: AbortSignal },
+      ) => {
+        input.abortSignal.addEventListener(
+          'abort',
+          () =>
+            cancelled.push({
+              id: input.id,
+              organizationId: input.organizationId,
+            }),
+          { once: true },
+        );
+      },
+    };
+    const ingredientCompletionService = {
+      waitForMultipleIngredientsCompletion: async () => completedIngredients,
+    };
+    const loggerService = {
+      error: () => undefined,
+      log: () => undefined,
+      warn: () => undefined,
+    };
 
     // Generation-only completion: only bookmarking, cache invalidation,
     // polling, and serialization dependencies remain. A reintroduced music
@@ -67,17 +97,15 @@ describe('VideoGenerationCompletionService', () => {
       cacheService as unknown as CacheService,
       ingredientCompletionService as unknown as IngredientCompletionService,
       loggerService as unknown as LoggerService,
-      videosService as unknown as VideosService,
+      {} as unknown as VideosService,
       cancellationService as unknown as IngredientGenerationCancellationService,
     );
   });
 
   it('completes generation without starting any music generation or merge job', async () => {
-    const context = makeContext();
+    const result = await service.complete(makeContext());
 
-    const result = await service.complete(context);
-
-    expect(cacheService.invalidateByTags).toHaveBeenCalledWith(['videos']);
+    expect(invalidatedTags).toEqual(['videos']);
     expect(result).toMatchObject({
       id: 'video-1',
       pendingIngredientIds: ['video-1'],
@@ -89,32 +117,41 @@ describe('VideoGenerationCompletionService', () => {
       createVideoDto: {
         bookmark: 'bookmark-1',
         waitForCompletion: false,
-      } as never,
+      } as VideoGenerationContext['createVideoDto'],
     });
 
     await service.complete(context);
 
-    expect(bookmarksService.addGeneratedIngredient).toHaveBeenCalledWith(
-      'bookmark-1',
-      'video-1',
-      'org-1',
-    );
+    expect(bookmarkLinks).toEqual(['org-1/bookmark-1/video-1']);
   });
 
   it('waits for completion when requested, without any music/merge polling', async () => {
     const completedIngredient = { id: 'video-1', status: 'GENERATED' };
-    ingredientCompletionService.waitForMultipleIngredientsCompletion.mockResolvedValue(
-      [completedIngredient],
-    );
+    completedIngredients = [completedIngredient];
     const context = makeContext({
-      createVideoDto: { waitForCompletion: true } as never,
+      abortSignal: clientAbort.signal,
+      createVideoDto: {
+        waitForCompletion: true,
+      } as VideoGenerationContext['createVideoDto'],
     });
 
     const result = await service.complete(context);
 
-    expect(cancellationService.bindCancelOnAbort).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'video-1', organizationId: 'org-1' }),
-    );
     expect(result).toEqual(completedIngredient);
+    expect(cancelled).toEqual([]);
+  });
+
+  it('cancels the processing video when the client aborts while waiting', async () => {
+    const context = makeContext({
+      abortSignal: clientAbort.signal,
+      createVideoDto: {
+        waitForCompletion: true,
+      } as VideoGenerationContext['createVideoDto'],
+    });
+
+    await service.complete(context);
+    clientAbort.abort();
+
+    expect(cancelled).toEqual([{ id: 'video-1', organizationId: 'org-1' }]);
   });
 });
