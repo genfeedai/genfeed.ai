@@ -1,93 +1,145 @@
 import type { ServerLogger, ServerPrisma } from '@api/server.dependencies';
 import { AdOptimizationAuditLogsService } from './ad-optimization-audit-logs.service';
 
-describe('AdOptimizationAuditLogsService', () => {
-  const create = vi.fn();
-  const findMany = vi.fn();
-  const logger = {
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  } satisfies ServerLogger;
+type Row = Record<string, unknown>;
+
+/**
+ * In-memory ad_optimization_audit_logs with Prisma's ordering and paging, and
+ * a logger that records what it was told.
+ */
+function buildService(options: { insertError?: Error; rows?: Row[] } = {}) {
+  const rows = options.rows ?? [];
+  const logs: { level: string; message: string }[] = [];
   const prisma = {
-    adOptimizationAuditLog: { create, findMany },
+    adOptimizationAuditLog: {
+      create: async ({ data }: { data: Row }) => {
+        if (options.insertError) throw options.insertError;
+        const row = {
+          createdAt: new Date(rows.length + 1),
+          id: `log-${rows.length + 1}`,
+          isDeleted: false,
+          ...data,
+        };
+        rows.push(row);
+        return row;
+      },
+      findMany: async (args: {
+        orderBy: { createdAt: 'desc' };
+        skip: number;
+        take: number;
+        where: Row;
+      }) =>
+        rows
+          .filter((row) =>
+            Object.entries(args.where).every(
+              ([key, value]) => row[key] === value,
+            ),
+          )
+          .sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
+          .slice(args.skip, args.skip + args.take),
+    },
   } as unknown as Pick<ServerPrisma, 'adOptimizationAuditLog'>;
-  const service = new AdOptimizationAuditLogsService(prisma, logger);
+  const logger = {
+    error: (message: string) => logs.push({ level: 'error', message }),
+    log: (message: string) => logs.push({ level: 'log', message }),
+    warn: (message: string) => logs.push({ level: 'warn', message }),
+  } satisfies ServerLogger;
+  return {
+    logs,
+    rows,
+    service: new AdOptimizationAuditLogsService(prisma, logger),
+  };
+}
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+function auditRow(id: string, organizationId: string, createdAt: number): Row {
+  return {
+    createdAt: new Date(createdAt),
+    data: { runId: id },
+    id,
+    isDeleted: false,
+    organizationId,
+  };
+}
 
+describe('AdOptimizationAuditLogsService', () => {
   describe('create', () => {
     it('persists the tenant id alongside the JSON payload', async () => {
-      const row = { id: 'log-1' };
-      create.mockResolvedValue(row);
+      const { logs, rows, service } = buildService();
 
       const result = await service.create({
         data: { action: 'PAUSE_AD', runId: 'run-9' },
         organizationId: 'org-1',
       });
 
-      expect(result).toBe(row);
-      expect(create).toHaveBeenCalledWith({
-        data: {
+      expect(rows).toEqual([
+        expect.objectContaining({
           data: { action: 'PAUSE_AD', runId: 'run-9' },
           organizationId: 'org-1',
+        }),
+      ]);
+      expect(result).toEqual(rows[0]);
+      expect(logs).toEqual([
+        {
+          level: 'log',
+          message: expect.stringContaining('created audit log for run run-9'),
         },
-      });
-      expect(logger.log).toHaveBeenCalledWith(
-        expect.stringContaining('created audit log for run run-9'),
-      );
+      ]);
     });
 
     it('logs and rethrows persistence failures', async () => {
       const dbError = new Error('insert failed');
-      create.mockRejectedValue(dbError);
+      const { logs, rows, service } = buildService({ insertError: dbError });
 
       await expect(
         service.create({ data: { runId: 'run-9' }, organizationId: 'org-1' }),
       ).rejects.toThrowError(dbError);
 
-      expect(logger.error).toHaveBeenCalledWith(
-        expect.stringContaining('failed'),
-        dbError,
-      );
+      expect(rows).toEqual([]);
+      expect(logs).toEqual([
+        { level: 'error', message: expect.stringContaining('failed') },
+      ]);
     });
   });
 
   describe('findByOrganization', () => {
-    it('scopes the query to the tenant and excludes tombstones', async () => {
-      findMany.mockResolvedValue([]);
-
-      await service.findByOrganization('org-1');
-
-      expect(findMany).toHaveBeenCalledWith({
-        orderBy: { createdAt: 'desc' },
-        skip: 0,
-        take: 50,
-        where: { isDeleted: false, organizationId: 'org-1' },
+    it('returns the tenant’s live logs newest first', async () => {
+      const { service } = buildService({
+        rows: [
+          auditRow('old', 'org-1', 1),
+          auditRow('other-org', 'org-2', 2),
+          { ...auditRow('deleted', 'org-1', 3), isDeleted: true },
+          auditRow('new', 'org-1', 4),
+        ],
       });
+
+      const rows = await service.findByOrganization('org-1');
+
+      expect(rows.map((row) => row.id)).toEqual(['new', 'old']);
     });
 
     it('applies explicit pagination parameters', async () => {
-      findMany.mockResolvedValue([{ id: 'log-1' }]);
-
-      const rows = await service.findByOrganization('org-1', {
-        limit: 10,
-        offset: 20,
+      const { service } = buildService({
+        rows: [
+          auditRow('first', 'org-1', 1),
+          auditRow('second', 'org-1', 2),
+          auditRow('third', 'org-1', 3),
+        ],
       });
 
-      expect(rows).toEqual([{ id: 'log-1' }]);
-      expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ skip: 20, take: 10 }),
-      );
+      const rows = await service.findByOrganization('org-1', {
+        limit: 1,
+        offset: 1,
+      });
+
+      expect(rows.map((row) => row.id)).toEqual(['second']);
     });
 
     it('refuses to run without a tenant id', async () => {
+      const { service } = buildService({ rows: [auditRow('a', 'org-1', 1)] });
+
       await expect(service.findByOrganization('')).rejects.toThrowError(
         'scopedWhere: organizationId is required',
       );
-      expect(findMany).not.toHaveBeenCalled();
     });
   });
 });
