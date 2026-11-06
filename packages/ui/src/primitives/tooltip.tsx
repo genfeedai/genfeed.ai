@@ -47,7 +47,7 @@ function TooltipContent({
           // Elevated surface + readable text. Avoid transparent / low-contrast
           // popovers that read as empty dark “pills” (same class of bug as the
           // collapsed switch chrome on publishing settings).
-          'z-50 overflow-hidden rounded-md bg-popover px-2.5 py-1.5 text-xs font-medium text-popover-foreground shadow-dropdown',
+          'z-50 overflow-hidden rounded-md bg-popover px-2.5 py-1.5 text-xs font-medium text-popover-foreground shadow-tooltip',
           'origin-[var(--radix-tooltip-content-transform-origin)] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=delayed-open]:zoom-in-95 data-[state=instant-open]:animate-none motion-reduce:data-[state=delayed-open]:animate-none',
           'data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
           className,

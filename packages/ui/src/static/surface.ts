@@ -4,13 +4,6 @@ import { neutralAlphaScale } from '../core/scales';
 
 type StaticSurfaceTheme = keyof typeof semanticColorTokens;
 
-/**
- * Solid one notch off `gray-1000`, used for the hover state of the inverted
- * primary button. It has no scale step of its own because it is the only place
- * the product dims a full-strength foreground fill.
- */
-const accentHover = { dark: '#CCCCCC', light: '#383838' } as const;
-
 function staticSurfaceThemeVariables(theme: StaticSurfaceTheme): string {
   const colors = semanticColorTokens[theme];
   const alpha = neutralAlphaScale[theme];
@@ -32,7 +25,7 @@ function staticSurfaceThemeVariables(theme: StaticSurfaceTheme): string {
   --gf-text-faint: ${alpha['800']};
   --gf-accent: ${colors.primary.hex};
   --gf-accent-foreground: ${colors.primaryForeground.hex};
-  --gf-accent-hover: ${accentHover[theme]};
+  --gf-accent-hover: ${colors.accentHover.hex};
   --gf-success: ${colors.success.hex};
   --gf-warning: ${colors.warning.hex};
   --gf-danger: ${colors.destructive.hex};
