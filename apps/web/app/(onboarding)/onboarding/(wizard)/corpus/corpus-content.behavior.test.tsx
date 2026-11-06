@@ -5,25 +5,62 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CorpusContent from './corpus-content';
 
-const handleStepCompleteMock = vi.fn();
-const handleSkipMock = vi.fn();
-const findForBrandMock = vi.fn();
-const findVersionsMock = vi.fn();
-const captureMock = vi.fn();
-const uploadMock = vi.fn();
-const retryMock = vi.fn();
-const analyticsMocks = vi.hoisted(() => ({ captureAnalyticsEvent: vi.fn() }));
+type StoredSource = {
+  body: Record<string, unknown>;
+  brandId: string;
+  id: string;
+  idempotencyKey: string;
+  purpose: string;
+  title: string;
+};
+type StoredVersion = {
+  id: string;
+  isCurrent: boolean;
+  processingState: string;
+};
+
+/**
+ * In-memory knowledge-sources API (idempotent capture, retry adds a new
+ * current version), plus what the onboarding wizard and analytics received.
+ */
+const world = vi.hoisted(() => ({
+  analytics: [] as { event: string; properties: unknown }[],
+  completedSteps: [] as string[],
+  skippedSteps: [] as string[],
+  sources: [] as StoredSource[],
+  versions: {} as Record<string, StoredVersion[]>,
+}));
+
+function seedSource(title: string, processingState: string): void {
+  world.sources.push({
+    body: {},
+    brandId: 'brand-1',
+    id: 'source-1',
+    idempotencyKey: 'seed',
+    purpose: 'BRAND_TRUTH',
+    title,
+  });
+  world.versions['source-1'] = [
+    { id: 'version-1', isCurrent: true, processingState },
+  ];
+}
 
 vi.mock('@/lib/analytics', () => ({
   ANALYTICS_EVENTS: { EXPERT_ONBOARDING_STEP: 'expert_onboarding_step' },
-  captureAnalyticsEvent: analyticsMocks.captureAnalyticsEvent,
+  captureAnalyticsEvent: (event: string, properties: unknown) => {
+    world.analytics.push({ event, properties });
+  },
 }));
 
 vi.mock('@contexts/onboarding/onboarding-context', () => ({
   useOnboarding: () => ({
     currentStepIndex: 2,
-    handleSkip: handleSkipMock,
-    handleStepComplete: handleStepCompleteMock,
+    handleSkip: async (step: string) => {
+      world.skippedSteps.push(step);
+    },
+    handleStepComplete: async (step: string) => {
+      world.completedSteps.push(step);
+    },
     saving: false,
     steps: ['brand', 'positioning', 'corpus'],
   }),
@@ -50,18 +87,55 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
 
 vi.mock('@services/content/knowledge-sources.service', () => ({
   KnowledgeSourcesService: {
-    getInstance: vi.fn(() => ({
-      capture: captureMock,
-      findForBrand: findForBrandMock,
-      findVersions: findVersionsMock,
-      retry: retryMock,
-      upload: uploadMock,
-    })),
+    getInstance: () => ({
+      capture: async (
+        body: Record<string, unknown>,
+        brandId: string,
+        idempotencyKey: string,
+      ) => {
+        const existing = world.sources.find(
+          (source) => source.idempotencyKey === idempotencyKey,
+        );
+        if (existing) return { source: existing };
+        const source: StoredSource = {
+          body,
+          brandId,
+          id: `source-${world.sources.length + 1}`,
+          idempotencyKey,
+          purpose: String(body.purpose),
+          title: String(body.title),
+        };
+        world.sources.push(source);
+        world.versions[source.id] = [
+          { id: `${source.id}-v1`, isCurrent: true, processingState: 'QUEUED' },
+        ];
+        return { source };
+      },
+      findForBrand: async ({ brandId }: { brandId: string }) =>
+        world.sources.filter((source) => source.brandId === brandId),
+      findVersions: async (sourceId: string) => world.versions[sourceId] ?? [],
+      retry: async (sourceId: string) => {
+        const versions = world.versions[sourceId] ?? [];
+        const version = {
+          id: `version-${versions.length + 1}`,
+          isCurrent: true,
+          processingState: 'QUEUED',
+        };
+        world.versions[sourceId] = [
+          ...versions.map((item) => ({ ...item, isCurrent: false })),
+          version,
+        ];
+        return { version };
+      },
+      upload: async () => {
+        throw new Error('upload not used in these tests');
+      },
+    }),
   },
 }));
 
 vi.mock('@services/core/logger.service', () => ({
-  logger: { error: vi.fn() },
+  logger: { error: () => undefined },
 }));
 
 vi.mock('next-intl', async () => {
@@ -82,12 +156,11 @@ vi.mock(
 
 describe('CorpusContent behavior', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    findForBrandMock.mockResolvedValue([]);
-    findVersionsMock.mockResolvedValue([]);
-    captureMock.mockResolvedValue({ source: { id: 'source-1' } });
-    uploadMock.mockResolvedValue({ source: { id: 'source-2' } });
-    retryMock.mockResolvedValue({ version: { id: 'version-2' } });
+    world.analytics = [];
+    world.completedSteps = [];
+    world.skippedSteps = [];
+    world.sources = [];
+    world.versions = {};
   });
 
   it('captures a URL as authoritative brand knowledge with a stable idempotency key', async () => {
@@ -98,25 +171,34 @@ describe('CorpusContent behavior', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add to corpus' }));
 
-    await waitFor(() => expect(captureMock).toHaveBeenCalled());
-    const [body, brandId, idempotencyKey] = captureMock.mock.calls[0];
-    expect(body).toMatchObject({
-      kind: 'URL',
-      purpose: 'BRAND_TRUTH',
-      referenceUrl: 'https://yoursite.com/talk',
-      scope: 'brand',
+    expect(
+      await screen.findByText('https://yoursite.com/talk'),
+    ).toBeInTheDocument();
+    expect(world.sources).toEqual([
+      expect.objectContaining({
+        body: expect.objectContaining({
+          kind: 'URL',
+          purpose: 'BRAND_TRUTH',
+          referenceUrl: 'https://yoursite.com/talk',
+          scope: 'brand',
+        }),
+        brandId: 'brand-1',
+        idempotencyKey: expect.stringMatching(/^expert-corpus-brand-1-/),
+      }),
+    ]);
+
+    fireEvent.change(screen.getByLabelText('Public URL'), {
+      target: { value: 'https://yoursite.com/talk' },
     });
-    expect(brandId).toBe('brand-1');
-    expect(idempotencyKey).toMatch(/^expert-corpus-brand-1-/);
+    fireEvent.click(screen.getByRole('button', { name: 'Add to corpus' }));
+    await waitFor(() =>
+      expect(screen.getByLabelText('Public URL')).toHaveValue(''),
+    );
+    expect(world.sources).toHaveLength(1);
   });
 
   it('blocks Continue until a source is ready and allows skipping', async () => {
-    findForBrandMock.mockResolvedValue([
-      { id: 'source-1', purpose: 'BRAND_TRUTH', title: 'Keynote' },
-    ]);
-    findVersionsMock.mockResolvedValue([
-      { id: 'version-1', isCurrent: true, processingState: 'QUEUED' },
-    ]);
+    seedSource('Keynote', 'QUEUED');
 
     render(<CorpusContent />);
 
@@ -124,20 +206,16 @@ describe('CorpusContent behavior', () => {
     expect(screen.getByRole('button', { name: /Continue/ })).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
-    await waitFor(() => expect(handleSkipMock).toHaveBeenCalledWith('corpus'));
-    expect(analyticsMocks.captureAnalyticsEvent).toHaveBeenCalledWith(
-      'expert_onboarding_step',
-      { action: 'skipped', step: 'corpus' },
-    );
+    await waitFor(() => expect(world.skippedSteps).toEqual(['corpus']));
+    expect(world.completedSteps).toEqual([]);
+    expect(world.analytics).toContainEqual({
+      event: 'expert_onboarding_step',
+      properties: { action: 'skipped', step: 'corpus' },
+    });
   });
 
   it('continues once a source is ready', async () => {
-    findForBrandMock.mockResolvedValue([
-      { id: 'source-1', purpose: 'BRAND_TRUTH', title: 'Newsletter' },
-    ]);
-    findVersionsMock.mockResolvedValue([
-      { id: 'version-1', isCurrent: true, processingState: 'READY' },
-    ]);
+    seedSource('Newsletter', 'READY');
 
     render(<CorpusContent />);
 
@@ -147,26 +225,21 @@ describe('CorpusContent behavior', () => {
     await waitFor(() => expect(continueButton).not.toBeDisabled());
 
     fireEvent.click(continueButton);
-    await waitFor(() =>
-      expect(handleStepCompleteMock).toHaveBeenCalledWith('corpus'),
-    );
+    await waitFor(() => expect(world.completedSteps).toEqual(['corpus']));
   });
 
   it('retries a failed source without creating a duplicate', async () => {
-    findForBrandMock.mockResolvedValue([
-      { id: 'source-1', purpose: 'BRAND_TRUTH', title: 'Call notes' },
-    ]);
-    findVersionsMock.mockResolvedValue([
-      { id: 'version-1', isCurrent: true, processingState: 'FAILED' },
-    ]);
+    seedSource('Call notes', 'FAILED');
 
     render(<CorpusContent />);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Retry' }));
 
-    await waitFor(() =>
-      expect(retryMock).toHaveBeenCalledWith('source-1', 'brand-1'),
-    );
-    expect(captureMock).not.toHaveBeenCalled();
+    expect(await screen.findByText('QUEUED')).toBeInTheDocument();
+    expect(world.sources).toHaveLength(1);
+    expect(world.versions['source-1']).toEqual([
+      expect.objectContaining({ isCurrent: false, processingState: 'FAILED' }),
+      expect.objectContaining({ isCurrent: true, processingState: 'QUEUED' }),
+    ]);
   });
 });
