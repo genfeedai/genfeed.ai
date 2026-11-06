@@ -794,7 +794,9 @@ queries on the collection itself:
 
 Cards use `gap-4`, stat tiles `gap-3`, media masonry its own 4px gutter. No
 collection uses `gap-6`, and no collection picks columns from `sm:`/`md:`/`lg:`
-viewport breakpoints.
+viewport breakpoints. `CollectionGrid` (`@ui/collection/CollectionGrid`) owns
+this ladder: pass `maxColumns` (2–4), `density="tile"` for stat or type tiles,
+and `as="ul"` when the children are list items. Don't rebuild it with `grid-cols-*`.
 
 **Record detail pages** follow the same economy: one primary action in the header
 with the rest in overflow, known facts on one line with an "All details"

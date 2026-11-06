@@ -175,7 +175,12 @@ describe('BrandDetailLatestArticles', () => {
     ];
     render(<BrandDetailLatestArticles articles={articles} />);
     const grid = screen.getByText('Article 2').closest('.grid');
-    expect(grid).toHaveClass('grid grid-cols-1 gap-3 sm:grid-cols-3');
+    expect(grid).toHaveClass(
+      'grid-cols-1',
+      '@[40rem]:grid-cols-2',
+      '@[60rem]:grid-cols-3',
+      'gap-4',
+    );
     expect(grid?.children).toHaveLength(3);
     expect(
       screen

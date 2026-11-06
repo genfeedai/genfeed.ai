@@ -21,6 +21,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getHelpResources } from '@/config/help-resources.config';
 import type { HelpResourceCardProps } from '@/props/settings/help-content.props';
 import Card from '@ui/card/Card';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import {
   Accordion,
   AccordionContent,
@@ -119,7 +120,7 @@ export default function SettingsHelpPage() {
           ))}
         </div>
       </section>
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <CollectionGrid maxColumns={3}>
         {resources.map((resource) => (
           <HelpResourceCard
             key={resource.id}
@@ -127,7 +128,7 @@ export default function SettingsHelpPage() {
             selfHosted={selfHosted}
           />
         ))}
-      </div>
+      </CollectionGrid>
       <section
         id="characters"
         aria-labelledby="help-characters"

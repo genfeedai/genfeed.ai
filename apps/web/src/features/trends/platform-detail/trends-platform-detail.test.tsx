@@ -188,7 +188,7 @@ describe('TrendsPlatformDetail', () => {
 
     const feed = screen.getByTestId('trends-platform-content-grid');
     expect(feed).toHaveClass('@container');
-    expect(feed.firstElementChild).toHaveClass('@[60rem]:grid-cols-3', 'gap-5');
+    expect(feed.firstElementChild).toHaveClass('@[60rem]:grid-cols-3', 'gap-4');
 
     for (const testId of [
       'trends-related-videos-grid',

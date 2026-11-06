@@ -1,5 +1,6 @@
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import Card from '@ui/card/Card';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import MetricItem from '@ui/display/metric-item/MetricItem';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import type { Props } from '@/features/analytics/props/platform-performance-section.props';
@@ -10,7 +11,7 @@ export default function PlatformPerformanceSection({ topPlatforms }: Props) {
   }
 
   return (
-    <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <CollectionGrid as="section" maxColumns={3}>
       {topPlatforms.map((platformData) => (
         <Card
           key={platformData.platform}
@@ -33,6 +34,6 @@ export default function PlatformPerformanceSection({ topPlatforms }: Props) {
           </div>
         </Card>
       ))}
-    </section>
+    </CollectionGrid>
   );
 }

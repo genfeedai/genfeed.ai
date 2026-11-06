@@ -5,6 +5,7 @@ import {
 } from '@genfeedai/contexts/analytics/analytics-context';
 import type { PatternType } from '@genfeedai/contracts/interfaces';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Alert } from '@ui/primitives/alert';
 import { EmptyState } from '@ui/primitives/empty-state';
@@ -201,11 +202,11 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
       )}
 
       {isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <CollectionGrid maxColumns={3}>
           {SKELETON_IDS.map((id) => (
             <PatternCardSkeleton key={id} />
           ))}
-        </div>
+        </CollectionGrid>
       )}
 
       {!isLoading && !error && patterns.length === 0 && (
@@ -213,14 +214,14 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
       )}
 
       {!isLoading && !error && patterns.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <CollectionGrid maxColumns={3}>
           {patterns.map((pattern) => (
             <PatternCard
               key={pattern.id ?? `${pattern.patternType}-${pattern.label}`}
               pattern={pattern}
             />
           ))}
-        </div>
+        </CollectionGrid>
       )}
 
       {!isLoading && !error && (patterns.length > 0 || currentPage > 1) && (

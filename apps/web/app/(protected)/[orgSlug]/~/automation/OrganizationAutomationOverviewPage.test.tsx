@@ -288,7 +288,7 @@ describe('OrganizationAutomationOverviewPage', () => {
 
     const grid = screen.getByTestId('organization-automation-brands')
       .firstElementChild as HTMLElement;
-    expect(grid).toHaveClass('gap-5');
+    expect(grid).toHaveClass('gap-4');
     expect(grid.className).not.toMatch(/(^|\s)(sm|md|lg|xl|2xl):grid-cols/);
   });
 
