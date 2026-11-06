@@ -1,10 +1,10 @@
+import { isDeepStrictEqual } from 'node:util';
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
-import { RUN_SELECT } from '@api/collections/content-runs/services/brand-remix-runs.types';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentRunStatus } from '@genfeedai/contracts';
 import { brandRemixRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { ConflictException } from '@nestjs/common';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 const config = brandRemixRunConfigSchema.parse({
   contract: 'brand-remix-run',
@@ -34,112 +34,221 @@ const config = brandRemixRunConfigSchema.parse({
   version: 1,
 });
 
+interface RunRow {
+  brandId: string;
+  config: Record<string, unknown>;
+  createdAt: Date;
+  id: string;
+  isDeleted: boolean;
+  organizationId: string;
+  status: ContentRunStatus;
+  updatedAt: Date;
+}
+
+type Where = Record<string, unknown>;
+
+function readPath(value: unknown, path: string[]): unknown {
+  return path.reduce<unknown>(
+    (current, key) =>
+      current && typeof current === 'object'
+        ? (current as Record<string, unknown>)[key]
+        : undefined,
+    value,
+  );
+}
+
+// Emulates the Prisma JSON filters this service uses: `equals` on the whole
+// column or at a `path`, and case-insensitive `string_contains`.
+function matchesJson(value: unknown, filter: Where): boolean {
+  const target = filter.path
+    ? readPath(value, filter.path as string[])
+    : value;
+  if ('equals' in filter) {
+    return isDeepStrictEqual(target, filter.equals);
+  }
+  return (
+    typeof target === 'string' &&
+    target
+      .toLowerCase()
+      .includes(String(filter.string_contains).toLowerCase())
+  );
+}
+
+function matchesWhere(row: RunRow, where: Where): boolean {
+  return Object.entries(where).every(([key, value]) => {
+    if (key === 'AND') {
+      return (value as Where[]).every((branch) => matchesWhere(row, branch));
+    }
+    if (key === 'config') {
+      return matchesJson(row.config, value as Where);
+    }
+    return (row as unknown as Record<string, unknown>)[key] === value;
+  });
+}
+
+const json = (value: unknown) =>
+  JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+
 describe('BrandRemixRunPersistenceService', () => {
-  const contentRun = {
-    create: vi.fn(),
-    findFirst: vi.fn(),
-    findMany: vi.fn(),
-    updateMany: vi.fn(),
-  };
-  const prisma = {
-    $transaction: vi.fn(),
-    contentRun,
-  } as unknown as PrismaService;
+  let runs: RunRow[];
+  let transactions: number;
+  let serializationFailures: number;
   let persistence: BrandRemixRunPersistenceService;
 
-  beforeEach(() => {
-    vi.resetAllMocks();
-    (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation(
-      (
-        operation: (transaction: { contentRun: typeof contentRun }) => unknown,
-      ) => operation({ contentRun }),
-    );
-    persistence = new BrandRemixRunPersistenceService(prisma);
-  });
-
-  it('requires runs with tenant organization and soft-delete scope', async () => {
-    contentRun.findFirst.mockResolvedValue({
+  function run(id: string, overrides: Partial<RunRow> = {}): RunRow {
+    return {
       brandId: 'brand-1',
-      config,
+      config: json(config),
       createdAt: new Date('2026-08-20T10:00:00.000Z'),
-      id: 'run-1',
+      id,
       isDeleted: false,
       organizationId: 'org-1',
       status: ContentRunStatus.PENDING,
       updatedAt: new Date('2026-08-20T10:00:00.000Z'),
-    });
+      ...overrides,
+    };
+  }
 
-    await persistence.requireRun('org-1', 'run-1');
-
-    expect(contentRun.findFirst).toHaveBeenCalledWith({
-      select: RUN_SELECT,
-      where: { id: 'run-1', isDeleted: false, organizationId: 'org-1' },
+  function titled(title: string): Record<string, unknown> {
+    return json({
+      ...config,
+      sourceSnapshot: { ...config.sourceSnapshot, title },
     });
+  }
+
+  beforeEach(() => {
+    runs = [];
+    transactions = 0;
+    serializationFailures = 0;
+
+    const contentRun = {
+      create: async ({ data }: { data: Omit<RunRow, 'id' | 'createdAt' | 'updatedAt'> }) => {
+        if (serializationFailures > 0) {
+          serializationFailures -= 1;
+          throw { code: 'P2034' };
+        }
+        const now = new Date('2026-08-21T10:00:00.000Z');
+        const row = {
+          ...data,
+          createdAt: now,
+          id: `run-created-${runs.length + 1}`,
+          updatedAt: now,
+        } as RunRow;
+        runs.push(row);
+        return row;
+      },
+      findFirst: async ({ where }: { where: Where }) =>
+        runs
+          .filter((row) => matchesWhere(row, where))
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0] ??
+        null,
+      findMany: async ({
+        skip,
+        take,
+        where,
+      }: {
+        skip: number;
+        take: number;
+        where: Where;
+      }) =>
+        runs
+          .filter((row) => matchesWhere(row, where))
+          .sort(
+            (a, b) =>
+              b.updatedAt.getTime() - a.updatedAt.getTime() ||
+              b.id.localeCompare(a.id),
+          )
+          .slice(skip, skip + take),
+      updateMany: async ({
+        data,
+        where,
+      }: {
+        data: Partial<RunRow>;
+        where: Where;
+      }) => {
+        const matched = runs.filter((row) => matchesWhere(row, where));
+        for (const row of matched) {
+          Object.assign(row, data);
+        }
+        return { count: matched.length };
+      },
+    };
+    const prisma = {
+      $transaction: async (
+        operation: (transaction: { contentRun: typeof contentRun }) => unknown,
+      ) => {
+        transactions += 1;
+        return operation({ contentRun });
+      },
+      contentRun,
+    };
+
+    persistence = new BrandRemixRunPersistenceService(
+      prisma as unknown as PrismaService,
+    );
+  });
+
+  it('returns a run inside the tenant organization', async () => {
+    runs = [run('run-1')];
+
+    await expect(persistence.requireRun('org-1', 'run-1')).resolves.toMatchObject(
+      { id: 'run-1', organizationId: 'org-1' },
+    );
+  });
+
+  it.each([
+    ['another organization', { organizationId: 'org-2' }],
+    ['a soft-deleted run', { isDeleted: true }],
+    ['a run that is not a brand remix', { config: { contract: 'other' } }],
+  ])('treats %s as not found', async (_label, overrides) => {
+    runs = [run('run-1', overrides as Partial<RunRow>)];
+
+    await expect(
+      persistence.requireRun('org-1', 'run-1'),
+    ).rejects.toMatchObject({ status: 404 });
   });
 
   it('lists the brand remix runs newest-edited first inside the tenant scope', async () => {
-    contentRun.findMany.mockResolvedValue([]);
+    runs = [
+      run('run-old', { updatedAt: new Date('2026-08-01T00:00:00.000Z') }),
+      run('run-new', { updatedAt: new Date('2026-08-03T00:00:00.000Z') }),
+      run('run-mid', { updatedAt: new Date('2026-08-02T00:00:00.000Z') }),
+      run('run-other-brand', { brandId: 'brand-2' }),
+      run('run-other-org', { organizationId: 'org-2' }),
+      run('run-deleted', { isDeleted: true }),
+      run('run-not-remix', { config: { contract: 'other' } }),
+    ];
 
-    await persistence.listRuns('org-1', 'brand-1', { limit: 20, page: 3 });
-
-    expect(contentRun.findMany).toHaveBeenCalledWith({
-      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
-      select: RUN_SELECT,
-      skip: 40,
-      take: 20,
-      where: {
-        brandId: 'brand-1',
-        config: { equals: 'brand-remix-run', path: ['contract'] },
-        isDeleted: false,
-        organizationId: 'org-1',
-      },
+    const firstPage = await persistence.listRuns('org-1', 'brand-1', {
+      limit: 2,
+      page: 1,
     });
+    const secondPage = await persistence.listRuns('org-1', 'brand-1', {
+      limit: 2,
+      page: 2,
+    });
+
+    expect(firstPage.map((row) => row.id)).toEqual(['run-new', 'run-mid']);
+    expect(secondPage.map((row) => row.id)).toEqual(['run-old']);
   });
 
   it('narrows the remix runs to titles that match the search', async () => {
-    contentRun.findMany.mockResolvedValue([]);
+    runs = [
+      run('run-recap', { config: titled('Weekly RECAP hook') }),
+      run('run-launch', { config: titled('Launch teaser') }),
+    ];
 
-    await persistence.listRuns('org-1', 'brand-1', {
+    const matches = await persistence.listRuns('org-1', 'brand-1', {
       limit: 20,
       page: 1,
       search: 'recap',
     });
 
-    expect(contentRun.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          AND: [
-            {
-              config: {
-                mode: 'insensitive',
-                path: ['sourceSnapshot', 'title'],
-                string_contains: 'recap',
-              },
-            },
-          ],
-          brandId: 'brand-1',
-          config: { equals: 'brand-remix-run', path: ['contract'] },
-          isDeleted: false,
-          organizationId: 'org-1',
-        },
-      }),
-    );
+    expect(matches.map((row) => row.id)).toEqual(['run-recap']);
   });
 
   it('retries serializable reuse-or-create until the prefilled run settles', async () => {
-    contentRun.findFirst.mockResolvedValue(null);
-    contentRun.create
-      .mockRejectedValueOnce({ code: 'P2034' })
-      .mockResolvedValueOnce({
-        brandId: 'brand-1',
-        config,
-        createdAt: new Date('2026-08-20T10:00:00.000Z'),
-        id: 'run-1',
-        isDeleted: false,
-        organizationId: 'org-1',
-        status: ContentRunStatus.PENDING,
-        updatedAt: new Date('2026-08-20T10:00:00.000Z'),
-      });
+    serializationFailures = 1;
 
     const persisted = await persistence.createOrReusePrefilledRun({
       brandId: 'brand-1',
@@ -148,22 +257,31 @@ describe('BrandRemixRunPersistenceService', () => {
       selector: { kind: 'source_post', sourcePostId: 'source-post-1' },
     });
 
-    expect(persisted.id).toBe('run-1');
-    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(persisted.id).toBe('run-created-1');
+    expect(transactions).toBe(2);
+    expect(runs).toHaveLength(1);
+  });
+
+  it('surfaces the serialization failure once every retry is used', async () => {
+    serializationFailures = 3;
+
+    await expect(
+      persistence.createOrReusePrefilledRun({
+        brandId: 'brand-1',
+        config,
+        organizationId: 'org-1',
+        selector: { kind: 'source_post', sourcePostId: 'source-post-1' },
+      }),
+    ).rejects.toEqual({ code: 'P2034' });
+    expect(transactions).toBe(3);
+    expect(runs).toEqual([]);
   });
 
   it('reuses the latest editable run for the same tenant-scoped selector', async () => {
-    const existing = {
-      brandId: 'brand-1',
-      config,
-      createdAt: new Date('2026-08-20T10:00:00.000Z'),
-      id: 'run-existing',
-      isDeleted: false,
-      organizationId: 'org-1',
-      status: ContentRunStatus.PENDING,
-      updatedAt: new Date('2026-08-20T10:00:00.000Z'),
-    };
-    contentRun.findFirst.mockResolvedValue(existing);
+    runs = [
+      run('run-older', { createdAt: new Date('2026-08-19T10:00:00.000Z') }),
+      run('run-existing'),
+    ];
 
     const persisted = await persistence.createOrReusePrefilledRun({
       brandId: 'brand-1',
@@ -173,20 +291,44 @@ describe('BrandRemixRunPersistenceService', () => {
     });
 
     expect(persisted.id).toBe('run-existing');
-    expect(contentRun.create).not.toHaveBeenCalled();
-    expect(contentRun.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          brandId: 'brand-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-        }),
-      }),
-    );
+    expect(runs).toHaveLength(2);
   });
 
-  it('rejects a stale exact-config compare-and-swap without writing', async () => {
-    contentRun.updateMany.mockResolvedValue({ count: 0 });
+  it('creates a new run instead of reusing one from another organization', async () => {
+    runs = [run('run-foreign', { organizationId: 'org-2' })];
+
+    const persisted = await persistence.createOrReusePrefilledRun({
+      brandId: 'brand-1',
+      config,
+      organizationId: 'org-1',
+      selector: { kind: 'source_post', sourcePostId: 'source-post-1' },
+    });
+
+    expect(persisted).toMatchObject({
+      id: 'run-created-2',
+      organizationId: 'org-1',
+    });
+    expect(runs).toHaveLength(2);
+  });
+
+  it('applies a compare-and-swap at the expected revision', async () => {
+    runs = [run('run-1')];
+
+    const updated = await persistence.compareAndSwapConfig({
+      expectedPhase: 'prefilled',
+      expectedRevision: 1,
+      nextConfig: { ...config, revision: 2 },
+      organizationId: 'org-1',
+      runId: 'run-1',
+      status: ContentRunStatus.PENDING,
+    });
+
+    expect(updated.config).toMatchObject({ revision: 2 });
+    expect(runs[0]?.config).toMatchObject({ revision: 2 });
+  });
+
+  it('rejects a stale compare-and-swap without writing', async () => {
+    runs = [run('run-1', { config: json({ ...config, revision: 3 }) })];
 
     await expect(
       persistence.compareAndSwapConfig({
@@ -198,5 +340,31 @@ describe('BrandRemixRunPersistenceService', () => {
         status: ContentRunStatus.PENDING,
       }),
     ).rejects.toBeInstanceOf(ConflictException);
+    expect(runs[0]?.config).toMatchObject({ revision: 3 });
+  });
+
+  it('swaps an exact config only while it is unchanged', async () => {
+    runs = [run('run-1')];
+    const next = { ...config, revision: 2 };
+
+    await expect(
+      persistence.compareAndSwapExactConfig({
+        expectedConfig: config,
+        nextConfig: next,
+        organizationId: 'org-1',
+        runId: 'run-1',
+        status: ContentRunStatus.PENDING,
+      }),
+    ).resolves.toMatchObject({ id: 'run-1' });
+    await expect(
+      persistence.compareAndSwapExactConfig({
+        expectedConfig: config,
+        nextConfig: { ...config, revision: 3 },
+        organizationId: 'org-1',
+        runId: 'run-1',
+        status: ContentRunStatus.PENDING,
+      }),
+    ).resolves.toBeNull();
+    expect(runs[0]?.config).toMatchObject({ revision: 2 });
   });
 });
