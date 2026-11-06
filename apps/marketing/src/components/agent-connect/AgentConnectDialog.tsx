@@ -203,7 +203,7 @@ export default function AgentConnectDialog({
                 ) : null}
                 <TabsContent
                   aria-label={`Set up ${client.name}`}
-                  className="space-y-5 focus-visible:ring-inset focus-visible:ring-offset-0"
+                  className="space-y-5 focus-visible:ring-inset focus-visible:ring-offset-0 forced-colors:focus-visible:-outline-offset-2"
                   key={client.slug}
                   value={client.slug}
                 >

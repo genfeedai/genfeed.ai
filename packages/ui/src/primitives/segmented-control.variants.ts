@@ -56,7 +56,7 @@ export const segmentedItemVariants = cva(
         // in a scrolling bar that would clip an outer ring, so theirs is inset.
         chip: `${chipItemClassName} focus-visible:ring-offset-2 focus-visible:ring-offset-background`,
         segmented:
-          'focus-visible:ring-inset h-full min-w-8 rounded-md border-0 bg-transparent text-foreground/70 shadow-none hover:bg-accent hover:text-accent-foreground data-[state=active]:bg-background data-[state=active]:text-accent-foreground data-[state=active]:shadow-sm data-[state=on]:bg-background data-[state=on]:text-accent-foreground data-[state=on]:shadow-sm',
+          'focus-visible:ring-inset forced-colors:focus-visible:-outline-offset-2 h-full min-w-8 rounded-md border-0 bg-transparent text-foreground/70 shadow-none hover:bg-accent hover:text-accent-foreground data-[state=active]:bg-background data-[state=active]:text-accent-foreground data-[state=active]:shadow-sm data-[state=on]:bg-background data-[state=on]:text-accent-foreground data-[state=on]:shadow-sm',
       },
       size: {
         default: 'text-xs [&_svg]:size-4',

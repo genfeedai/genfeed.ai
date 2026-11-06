@@ -7,6 +7,7 @@ import type {
 } from '@genfeedai/props/prompt-bars/prompt-command.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import { focusRingInsetClassName } from '@ui/primitives/focus-ring';
 import {
   AudioLines,
   Bookmark,
@@ -146,7 +147,8 @@ export function PromptCommandList({
           ) : null}
           <Button
             className={cn(
-              'flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors focus:outline-none focus-visible:outline-hidden focus-visible:ring-0',
+              'flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors',
+              focusRingInsetClassName,
               index === selectedIndex % items.length
                 ? 'bg-accent text-accent-foreground'
                 : 'text-popover-foreground hover:bg-accent/50',

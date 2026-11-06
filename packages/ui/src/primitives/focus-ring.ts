@@ -10,7 +10,9 @@ export const focusRingClassName =
 /**
  * For controls clipped by an `overflow-hidden` parent or flush against a
  * neighbour (table cells, composite segments, full-bleed media links), where
- * an outer ring would be cut off.
+ * an outer ring would be cut off. In forced-colors mode the ring is not
+ * painted and `outline-hidden` draws an outline instead, so it is pulled
+ * inside the control too.
  */
 export const focusRingInsetClassName =
-  'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring';
+  'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring forced-colors:focus-visible:-outline-offset-2';

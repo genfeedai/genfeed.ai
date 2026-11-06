@@ -497,7 +497,8 @@ export function isOffContractFocusRingToken(token: string): boolean {
     return false;
   }
   if (utility === FOCUS_OUTLINE_NONE) {
-    return Boolean(visible);
+    // An important `focus:outline-none` overrides `focus-visible:outline-hidden`.
+    return Boolean(visible) || token.includes('!');
   }
   if (utility.startsWith('outline')) {
     return true;
@@ -699,7 +700,12 @@ export function findPackageUiGuardFindings(
   );
 }
 
-const TYPE_SCALE_GUARD_ROOTS = ['apps/web', 'apps/marketing', 'packages'];
+const TYPE_SCALE_GUARD_ROOTS = [
+  'apps/extension',
+  'apps/marketing',
+  'apps/web',
+  'packages',
+];
 
 function findPackageUiGuardFindingsInRepo(): DesignSystemFinding[] {
   const files = TYPE_SCALE_GUARD_ROOTS.flatMap((root) =>

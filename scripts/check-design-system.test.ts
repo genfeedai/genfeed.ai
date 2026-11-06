@@ -225,9 +225,12 @@ describe('packages/ui design-system guards', () => {
       ['focus-visible:ring-1'],
     ],
     [
-      '<a className="focus-visible:outline-hidden focus-visible:ring-inset focus-visible:ring-offset-0" />',
+      '<a className="focus-visible:outline-hidden focus-visible:ring-inset focus-visible:ring-offset-0 forced-colors:focus-visible:-outline-offset-2" />',
       [],
     ],
+    ['<a className="focus:!outline-none" />', ['focus:!outline-none']],
+    ['<a className="focus:outline-none!" />', ['focus:outline-none!']],
+    ['<a className="focus:outline-none" />', []],
   ])('in %s flags focus tokens %j', (source, expected) => {
     expect(
       findPackageUiGuardFindings(source, 'apps/web/example.tsx')
