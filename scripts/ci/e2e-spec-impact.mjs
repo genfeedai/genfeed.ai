@@ -41,7 +41,8 @@ const OPT_OUT_PATTERN = /^E2E-Spec-Impact:\s*none\b\s*[-:–—]?\s*\S/im;
 const QUOTED_LITERAL_PATTERN = /(['"`])((?:\\.|(?!\1)[^\\])*)\1/g;
 const JSX_INLINE_TEXT_PATTERN = />([^<>{}=]*[A-Za-z][^<>{}=]*)</g;
 const JSX_BARE_TEXT_PATTERN = /^[A-Z][A-Za-z0-9 ,.'’!?:&()/-]{4,}$/;
-const IMPORT_LINE_PATTERN = /^\s*(?:import\b|export\b[^=]*\bfrom\b|\/\/|\*|\/\*)/;
+const IMPORT_LINE_PATTERN =
+  /^\s*(?:import\b|export\b[^=]*\bfrom\b|\/\/|\*|\/\*)/;
 // Kebab or snake case ids (test ids, preset ids). Plain words are too common.
 const ID_TOKEN_PATTERN = /^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)+$/;
 const CLASS_TOKEN_PATTERN = /^[!a-z0-9:[\]\-/._%()#,]+$/;
@@ -152,7 +153,10 @@ export function removedLiteralsByFile(diffText) {
     }
     if (!current || !isShippedSource(current)) continue;
     const bucket =
-      perFile.get(current) ?? perFile.set(current, { added: new Set(), removed: new Map() }).get(current);
+      perFile.get(current) ??
+      perFile
+        .set(current, { added: new Set(), removed: new Map() })
+        .get(current);
     if (line.startsWith('+')) {
       for (const literal of extractLiterals(line.slice(1))) {
         bucket.added.add(`${literal.kind}:${literal.text}`);
@@ -233,10 +237,14 @@ const SHIPPED_SEARCH_PATHSPEC = [
 /** True when the text still ships in app or package sources after the PR. */
 function isStillShipped(text) {
   try {
-    execFileSync('git', ['grep', '-q', '-F', '-e', text, ...SHIPPED_SEARCH_PATHSPEC], {
-      cwd: REPOSITORY_ROOT,
-      stdio: 'ignore',
-    });
+    execFileSync(
+      'git',
+      ['grep', '-q', '-F', '-e', text, ...SHIPPED_SEARCH_PATHSPEC],
+      {
+        cwd: REPOSITORY_ROOT,
+        stdio: 'ignore',
+      },
+    );
     return true;
   } catch {
     return false;
@@ -249,7 +257,11 @@ function loadSpecs() {
     .filter((file) => E2E_FILE_PATTERN.test(file))
     .map((file) => {
       const content = readFileSync(path.join(REPOSITORY_ROOT, file), 'utf8');
-      return { content, file, normalized: normalizeSpace(content).toLowerCase() };
+      return {
+        content,
+        file,
+        normalized: normalizeSpace(content).toLowerCase(),
+      };
     });
 }
 
@@ -284,7 +296,17 @@ function run() {
     return 0;
   }
 
-  const diff = git(['diff', '--no-renames', '-U0', '--no-color', base, head, '--', 'apps/web', 'packages']);
+  const diff = git([
+    'diff',
+    '--no-renames',
+    '-U0',
+    '--no-color',
+    base,
+    head,
+    '--',
+    'apps/web',
+    'packages',
+  ]);
   const removed = removedLiteralsByFile(diff);
   const stillShipped = new Map();
   const findings = findStaleReferences({
@@ -298,7 +320,9 @@ function run() {
     return !stillShipped.get(literal);
   });
   if (findings.length === 0) {
-    console.log('No removed UI string is still asserted by an untouched e2e spec.');
+    console.log(
+      'No removed UI string is still asserted by an untouched e2e spec.',
+    );
     return 0;
   }
 

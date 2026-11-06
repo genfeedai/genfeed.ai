@@ -44,15 +44,19 @@ test('extractLiterals reads quoted strings and JSX text, not imports or comments
   assert.deepEqual(extractLiterals('  <Button>Save changes</Button>'), [
     { kind: 'phrase', text: 'Save changes' },
   ]);
-  assert.deepEqual(extractLiterals("import { thing } from './some long path'"), []);
+  assert.deepEqual(
+    extractLiterals("import { thing } from './some long path'"),
+    [],
+  );
   assert.deepEqual(extractLiterals('// Active runs is gone'), []);
 });
 
 test('removedLiteralsByFile reports only strings the file no longer contains', () => {
   const removed = removedLiteralsByFile(buttonDiff);
-  assert.deepEqual([...removed.entries()], [
-    ['apps/web/src/Panel.tsx', [{ kind: 'phrase', text: 'Active runs' }]],
-  ]);
+  assert.deepEqual(
+    [...removed.entries()],
+    [['apps/web/src/Panel.tsx', [{ kind: 'phrase', text: 'Active runs' }]]],
+  );
 });
 
 test('removedLiteralsByFile ignores tests, stories and non-source files', () => {
@@ -95,11 +99,18 @@ test('findStaleReferences flags an untouched spec that still asserts removed cop
     ['apps/web/src/Panel.tsx', [{ kind: 'phrase', text: 'Active runs' }]],
   ]);
   const specs = [
-    spec('playwright/e2e/tests/a.spec.ts', "getByRole('heading', { name: 'Active runs' })"),
+    spec(
+      'playwright/e2e/tests/a.spec.ts',
+      "getByRole('heading', { name: 'Active runs' })",
+    ),
     spec('playwright/e2e/tests/b.spec.ts', "getByText('Something else')"),
   ];
   assert.deepEqual(
-    findStaleReferences({ changedFiles: ['apps/web/src/Panel.tsx'], removed, specs }),
+    findStaleReferences({
+      changedFiles: ['apps/web/src/Panel.tsx'],
+      removed,
+      specs,
+    }),
     [
       {
         literal: 'Active runs',
@@ -117,7 +128,10 @@ test('findStaleReferences stays quiet once the spec is part of the same change',
   const specs = [spec('playwright/e2e/tests/a.spec.ts', "name: 'Active runs'")];
   assert.deepEqual(
     findStaleReferences({
-      changedFiles: ['apps/web/src/Panel.tsx', 'playwright/e2e/tests/a.spec.ts'],
+      changedFiles: [
+        'apps/web/src/Panel.tsx',
+        'playwright/e2e/tests/a.spec.ts',
+      ],
       removed,
       specs,
     }),
@@ -129,18 +143,32 @@ test('findStaleReferences matches ids only when the spec quotes them exactly', (
   const removed = new Map([
     ['apps/web/src/Row.tsx', [{ kind: 'token', text: 'task-comments' }]],
   ]);
-  const quoted = spec('playwright/e2e/tests/a.spec.ts', "getByTestId('task-comments')");
-  const prose = spec('playwright/e2e/tests/b.spec.ts', '// the task-comments panel');
+  const quoted = spec(
+    'playwright/e2e/tests/a.spec.ts',
+    "getByTestId('task-comments')",
+  );
+  const prose = spec(
+    'playwright/e2e/tests/b.spec.ts',
+    '// the task-comments panel',
+  );
   const hits = findStaleReferences({
     changedFiles: ['apps/web/src/Row.tsx'],
     removed,
     specs: [quoted, prose],
   });
-  assert.deepEqual(hits.map((hit) => hit.specFile), ['playwright/e2e/tests/a.spec.ts']);
+  assert.deepEqual(
+    hits.map((hit) => hit.specFile),
+    ['playwright/e2e/tests/a.spec.ts'],
+  );
 });
 
 test('hasOptOut needs the trailer and a reason', () => {
-  assert.equal(hasOptOut('feat: x\n\nE2E-Spec-Impact: none - copy lives in a quarantined spec'), true);
+  assert.equal(
+    hasOptOut(
+      'feat: x\n\nE2E-Spec-Impact: none - copy lives in a quarantined spec',
+    ),
+    true,
+  );
   assert.equal(hasOptOut('feat: x\n\nE2E-Spec-Impact: none'), false);
   assert.equal(hasOptOut('feat: x'), false);
 });
