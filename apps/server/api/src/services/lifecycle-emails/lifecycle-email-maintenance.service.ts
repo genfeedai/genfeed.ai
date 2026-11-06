@@ -792,12 +792,16 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
   /**
    * Preview tile for a generated asset. Images and video stills come from the
    * public ingredients CDN by id; audio has no still and shows as a text tile.
+   * Once authorized media delivery is on those ids are private, and an email is
+   * opened long after any signed grant would expire, so it shows text tiles.
    */
   private ingredientThumbnail(
     item: { id: string; category: string },
     href: string,
   ): EmailThumbnail {
-    const endpoint = this.config.ingredientsEndpoint;
+    const endpoint = this.config.isAuthorizedMediaDeliveryEnabled
+      ? undefined
+      : this.config.ingredientsEndpoint;
     if (item.category === IngredientCategory.VIDEO) {
       return {
         href,

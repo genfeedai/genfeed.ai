@@ -427,7 +427,8 @@ export function buildTrendDigestHtml(
     ? `${topicCount} moving in the ${options.brandLabel} niche${readyPosts > 0 ? `, ${readyPosts} ${readyPosts === 1 ? 'post' : 'posts'} ready for today` : ''}.`
     : `${topicCount} trending today.`;
 
-  const platforms = new Set(trends.map((trend) => trend.platform)).size;
+  const platforms = new Set(trends.map((trend) => trend.platform.toLowerCase()))
+    .size;
   const sections: string[] = [
     buildSystemEmailParagraph(intro),
     buildEmailStatRow([

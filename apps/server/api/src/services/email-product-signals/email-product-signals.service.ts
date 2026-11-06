@@ -376,11 +376,16 @@ export class EmailProductSignalsService implements OnModuleInit {
     return { count };
   }
 
-  /** Public CDN still for an image or video; audio and others have none. */
+  /**
+   * Public CDN still for an image or video; audio and others have none. None
+   * once authorized media delivery is on: ids are private then and an email
+   * outlives any signed grant.
+   */
   private generationPreviewUrl(asset: {
     id: string;
     category: string;
   }): string | null {
+    if (this.config.isAuthorizedMediaDeliveryEnabled) return null;
     const endpoint = this.config.ingredientsEndpoint;
     if (!endpoint) return null;
     if (asset.category === IngredientCategory.IMAGE)

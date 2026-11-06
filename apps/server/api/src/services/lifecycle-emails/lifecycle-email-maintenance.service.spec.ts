@@ -28,7 +28,11 @@ const request = {
   organizationId: 'org-1',
   referenceDate: '2026-09-14T08:00:00.000Z',
 };
-function fixture(count: number, isConnected = true) {
+function fixture(
+  count: number,
+  isConnected = true,
+  isMediaDeliveryEnabled = false,
+) {
   const queueEmail = vi.fn();
   const findForUser = vi.fn().mockResolvedValue({ isEnabled: true });
   const prisma = {
@@ -65,6 +69,7 @@ function fixture(count: number, isConnected = true) {
     {
       get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
       ingredientsEndpoint: 'https://cdn.genfeed.ai/ingredients',
+      isAuthorizedMediaDeliveryEnabled: isMediaDeliveryEnabled,
     } as unknown as ConfigService,
     {} as SystemWorkflowRunnerService,
     {} as LifecycleEmailWorkflowService,
@@ -137,6 +142,13 @@ describe('system recap policy', () => {
     expect(html).toContain(
       'src="https://cdn.genfeed.ai/ingredients/images/asset-0"',
     );
+    expect(html).toContain('Created this week');
+  });
+  it('shows no CDN image once authorized media delivery is on', async () => {
+    const { service, queueEmail } = fixture(5, true, true);
+    await service.recaps(request);
+    const { html } = queueEmail.mock.calls[0][0];
+    expect(html).not.toContain('cdn.genfeed.ai/ingredients');
     expect(html).toContain('Created this week');
   });
   it.each([
