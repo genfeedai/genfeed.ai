@@ -59,6 +59,7 @@ When a check below fails, fix the code it names. Never edit a baseline to make i
 | Tenant queries carry `organizationId` and `isDeleted: false` | `check:tenant-scope` | Scope the query. Do not add a baseline entry. |
 | `crossOrgUnsafe()` call sites do not grow | `check:cross-org-unsafe` | Scope the query with `organizationId`. |
 | JSON `null` is rejected on `scopes`, `expiresAt`, `allowedIps`, `role`, `organizationId` in new declarations; baselined `@IsOptional()` declarations still accept it until removed from the baseline | `check:authority-field-optional` | Use `@IsOmittable()` from `@api/helpers/validation/is-omittable.validator`, not `@IsOptional()`. |
+| A PR that removes or rewrites UI copy, preset ids or fixture values updates the Playwright specs that assert them, in the same PR | `scripts/ci/e2e-spec-impact.mjs` (CI Static Checks) | Edit the spec, page object or fixture it names. Do not dispatch Playwright Full for the PR. If the match is a false positive, add the commit trailer `E2E-Spec-Impact: none - <reason>`. |
 
 Judgment, no check: one PR per change, no new env vars, name the root cause, CI green before merge.
 
