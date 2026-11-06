@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { ClipperProjectsService } from '@api/collections/clipper-projects/clipper-projects.service';
 import type { ClipperProjectDocument } from '@api/collections/clipper-projects/schemas/clipper-project.schema';
 import type { ClipperAnalysisWorkflowQueueService } from '@api/collections/clipper-projects/services/clipper-analysis-workflow-queue.service';
@@ -7,38 +8,87 @@ import type { IngredientsService } from '@api/collections/ingredients/services/i
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ConfigService } from '@libs/config/config.service';
 
+interface ProjectRow {
+  dispatchFailedSource?: Record<string, unknown>;
+  id: string;
+  organizationId: string;
+  source: Record<string, unknown>;
+  [field: string]: unknown;
+}
+
+type IngredientRow = Record<string, unknown> & {
+  id: string;
+  isDeleted: boolean;
+  organizationId: string;
+};
+
 describe('ClipperProjectLibrarySourceService', () => {
   const currentUser = {
     id: 'legacy-user-1',
     organizationId: 'org-1',
     userId: 'user-1',
   };
+  let ingredients: IngredientRow[];
+  let projects: ProjectRow[];
+  let queuedAnalyses: Record<string, unknown>[];
+  let isQueueDown: boolean;
   let service: ClipperProjectLibrarySourceService;
-  let clipperProjectsService: {
-    create: ReturnType<typeof vi.fn>;
-    markSourceDispatchFailed: ReturnType<typeof vi.fn>;
-    patch: ReturnType<typeof vi.fn>;
-  };
-  let clipperAnalysisWorkflowQueue: { enqueue: ReturnType<typeof vi.fn> };
-  let ingredientsService: { findOne: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    clipperProjectsService = {
-      create: vi.fn().mockResolvedValue({
-        id: 'project-1',
-      } as ClipperProjectDocument),
-      patch: vi.fn(),
-      markSourceDispatchFailed: vi.fn(),
+    ingredients = [];
+    projects = [];
+    queuedAnalyses = [];
+    isQueueDown = false;
+    const clipperProjectsService = {
+      create: async (data: Omit<ProjectRow, 'id'>) => {
+        const row = {
+          ...data,
+          id: `project-${projects.length + 1}`,
+        } as ProjectRow;
+        projects.push(row);
+        return { ...row } as unknown as ClipperProjectDocument;
+      },
+      markSourceDispatchFailed: async (
+        id: string,
+        organizationId: string,
+        source: Record<string, unknown>,
+      ) => {
+        const row = projects.find(
+          (item) => item.id === id && item.organizationId === organizationId,
+        );
+        if (row) row.dispatchFailedSource = source;
+      },
+      patch: async (
+        id: string,
+        update: Partial<ProjectRow>,
+        _populate: unknown,
+        organizationId: string,
+      ) => {
+        const row = projects.find(
+          (item) => item.id === id && item.organizationId === organizationId,
+        );
+        if (row) Object.assign(row, update);
+        return row;
+      },
     };
-    clipperAnalysisWorkflowQueue = {
-      enqueue: vi.fn().mockResolvedValue('clipper-analysis-project-1'),
+    const clipperAnalysisWorkflowQueue = {
+      enqueue: async (job: Record<string, unknown>) => {
+        if (isQueueDown) throw new Error('Queue unavailable');
+        queuedAnalyses.push(job);
+        return `clipper-analysis-${String(job.projectId)}`;
+      },
     };
-    ingredientsService = { findOne: vi.fn() };
+    const ingredientsService = {
+      findOne: async (where: Record<string, unknown>) =>
+        ingredients.find((row) =>
+          Object.entries(where).every(([key, value]) => row[key] === value),
+        ) ?? null,
+    };
     service = new ClipperProjectLibrarySourceService(
       clipperProjectsService as unknown as ClipperProjectsService,
       clipperAnalysisWorkflowQueue as unknown as ClipperAnalysisWorkflowQueueService,
       {
-        resolve: vi.fn().mockResolvedValue({ source: 'missing' }),
+        resolve: async () => ({ source: 'missing' }),
       } as unknown as ClipperIdentityResolutionService,
       ingredientsService as unknown as IngredientsService,
       { cdnUrl: 'https://cdn.test' } as unknown as ConfigService,
@@ -46,31 +96,27 @@ describe('ClipperProjectLibrarySourceService', () => {
   });
 
   describe('createFromIngredient', () => {
-    const readyVideo = {
+    const readyVideo: IngredientRow = {
       brandId: 'brand-1',
       category: 'VIDEO',
       id: 'video-1',
+      isDeleted: false,
       metadata: { duration: 600, label: 'Launch keynote', size: 50_000_000 },
       mimeType: 'video/mp4',
+      organizationId: 'org-1',
       s3Key: 'videos/video-1.mp4',
       status: 'GENERATED',
     };
-    const libraryUser = { ...currentUser, brandId: 'brand-1' };
+    const libraryUser = { ...currentUser, brandId: 'brand-1' } as User;
 
     it('creates a Library-sourced project and queues analysis', async () => {
-      ingredientsService.findOne.mockResolvedValue(readyVideo);
+      ingredients = [readyVideo];
 
       await expect(
-        service.createFromIngredient(libraryUser as never, {
-          ingredientId: 'video-1',
-        }),
+        service.createFromIngredient(libraryUser, { ingredientId: 'video-1' }),
       ).resolves.toMatchObject({ projectId: 'project-1', status: 'analyzing' });
 
-      expect(ingredientsService.findOne).toHaveBeenCalledWith(
-        { id: 'video-1', isDeleted: false, organizationId: 'org-1' },
-        [{ path: 'metadata' }],
-      );
-      expect(clipperProjectsService.create).toHaveBeenCalledWith(
+      expect(projects).toEqual([
         expect.objectContaining({
           brandId: 'brand-1',
           name: 'Launch keynote',
@@ -79,13 +125,14 @@ describe('ClipperProjectLibrarySourceService', () => {
           source: expect.objectContaining({
             durationSeconds: 600,
             ingredientId: 'video-1',
+            jobId: 'clipper-analysis-project-1',
             kind: 'library',
           }),
           sourceVideoS3Key: 'videos/video-1.mp4',
           status: 'pending',
         }),
-      );
-      expect(clipperAnalysisWorkflowQueue.enqueue).toHaveBeenCalledWith(
+      ]);
+      expect(queuedAnalyses).toEqual([
         expect.objectContaining({
           orgId: 'org-1',
           projectId: 'project-1',
@@ -98,63 +145,54 @@ describe('ClipperProjectLibrarySourceService', () => {
           }),
           youtubeUrl: expect.stringContaining('videos/video-1.mp4'),
         }),
-      );
+      ]);
     });
 
     it('retains a recoverable failed project when its canonical analysis cannot be queued', async () => {
-      ingredientsService.findOne.mockResolvedValue(readyVideo);
-      clipperAnalysisWorkflowQueue.enqueue.mockRejectedValue(
-        new Error('Queue unavailable'),
-      );
+      ingredients = [readyVideo];
+      isQueueDown = true;
+
       await expect(
-        service.createFromIngredient(libraryUser as never, {
-          ingredientId: 'video-1',
-        }),
+        service.createFromIngredient(libraryUser, { ingredientId: 'video-1' }),
       ).rejects.toThrow('Queue unavailable');
-      expect(
-        clipperProjectsService.markSourceDispatchFailed,
-      ).toHaveBeenCalledWith(
-        'project-1',
-        'org-1',
+      expect(projects).toEqual([
         expect.objectContaining({
-          jobId: 'clipper-analysis-project-1',
-          kind: 'library',
+          dispatchFailedSource: expect.objectContaining({
+            jobId: 'clipper-analysis-project-1',
+            kind: 'library',
+          }),
+          id: 'project-1',
         }),
-      );
+      ]);
     });
 
     it('accepts an organization-shared asset from any brand', async () => {
-      ingredientsService.findOne.mockResolvedValue({
-        ...readyVideo,
-        brandId: null,
-      });
+      ingredients = [{ ...readyVideo, brandId: null }];
 
       await expect(
-        service.createFromIngredient(libraryUser as never, {
+        service.createFromIngredient(libraryUser, {
           brandId: 'brand-2',
           ingredientId: 'video-1',
         }),
       ).resolves.toMatchObject({ projectId: 'project-1' });
+      expect(projects[0]).toMatchObject({ brandId: 'brand-2' });
     });
 
-    it('does not reveal another brand asset or a missing one', async () => {
-      ingredientsService.findOne.mockResolvedValueOnce({
-        ...readyVideo,
-        brandId: 'brand-2',
-      });
-      ingredientsService.findOne.mockResolvedValueOnce(null);
+    it.each([
+      ['another brand asset', [{ ...readyVideo, brandId: 'brand-2' }]],
+      [
+        'another organization asset',
+        [{ ...readyVideo, organizationId: 'org-2' }],
+      ],
+      ['a deleted asset', [{ ...readyVideo, isDeleted: true }]],
+      ['a missing asset', []],
+    ])('does not reveal %s', async (_label, rows) => {
+      ingredients = rows;
 
       await expect(
-        service.createFromIngredient(libraryUser as never, {
-          ingredientId: 'video-1',
-        }),
+        service.createFromIngredient(libraryUser, { ingredientId: 'video-1' }),
       ).rejects.toBeInstanceOf(NotFoundException);
-      await expect(
-        service.createFromIngredient(libraryUser as never, {
-          ingredientId: 'video-1',
-        }),
-      ).rejects.toBeInstanceOf(NotFoundException);
-      expect(clipperProjectsService.create).not.toHaveBeenCalled();
+      expect(projects).toEqual([]);
     });
 
     it.each([
@@ -201,18 +239,15 @@ describe('ClipperProjectLibrarySourceService', () => {
     ])(
       'refuses %s before any analysis starts',
       async (_label, overrides, message) => {
-        ingredientsService.findOne.mockResolvedValue({
-          ...readyVideo,
-          ...overrides,
-        });
+        ingredients = [{ ...readyVideo, ...overrides }];
 
         await expect(
-          service.createFromIngredient(libraryUser as never, {
+          service.createFromIngredient(libraryUser, {
             ingredientId: 'video-1',
           }),
         ).rejects.toThrow(message);
-        expect(clipperProjectsService.create).not.toHaveBeenCalled();
-        expect(clipperAnalysisWorkflowQueue.enqueue).not.toHaveBeenCalled();
+        expect(projects).toEqual([]);
+        expect(queuedAnalyses).toEqual([]);
       },
     );
   });
