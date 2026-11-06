@@ -3,7 +3,6 @@ import {
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
 import '@testing-library/jest-dom/vitest';
-import type { IBrandAgentConfig } from '@genfeedai/contracts/interfaces';
 import type { CardProps } from '@genfeedai/props/ui/ui.props';
 import {
   act,
@@ -14,27 +13,29 @@ import {
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
 // ReactNode used by Select mock
-import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PublishingConfig } from '@/features/settings/props/publishing-content.props';
 import BrandSettingsPublishingPage from './content';
 
-interface BrandDetailStub {
+/** The slice of useBrandDetail the publishing page reads. */
+interface BrandDetailMock {
   brand: {
-    agentConfig: IBrandAgentConfig;
+    agentConfig?: PublishingConfig;
     credentials?: Array<{
-      externalHandle: string;
+      externalHandle?: string;
       id: string;
       isConnected: boolean;
       platform: string;
     }>;
   } | null;
   brandId: string;
-  handleRefreshBrand: Mock;
+  handleRefreshBrand: () => unknown;
   hasBrandId: boolean;
   isLoading: boolean;
 }
 
-const mocks = vi.hoisted(() => ({
-  brandDetail: {
+const mocks = vi.hoisted(() => {
+  const brandDetail: BrandDetailMock = {
     brand: {
       agentConfig: {
         autoPublish: { confidenceThreshold: 0.92, enabled: true },
@@ -49,34 +50,37 @@ const mocks = vi.hoisted(() => ({
     handleRefreshBrand: vi.fn(),
     hasBrandId: true,
     isLoading: false,
-  } as BrandDetailStub,
-  brandsService: {},
-  copyToClipboard: vi.fn(),
-  createRss: vi.fn(),
-  credentialsService: {},
-  error: vi.fn(),
-  expandSet: vi.fn(),
-  findAllSets: vi.fn(),
-  getBrandsService: vi.fn(),
-  getCredentialsService: vi.fn(),
-  getNotificationsService: vi.fn(),
-  getPostingSetsService: vi.fn(),
-  getPublishingContext: vi.fn(),
-  loggerError: vi.fn(),
-  postingSetsService: {},
-  rssSources: [] as Array<{
-    failedCount: number;
-    feedUrl: string;
-    id: string;
-    importedCount: number;
-    isEnabled: boolean;
-    label: string;
-    lastError?: string | null;
-    skippedCount: number;
-  }>,
-  success: vi.fn(),
-  updateAgentConfig: vi.fn(),
-}));
+  };
+  return {
+    brandDetail,
+    brandsService: {},
+    copyToClipboard: vi.fn(),
+    createRss: vi.fn(),
+    credentialsService: {},
+    error: vi.fn(),
+    expandSet: vi.fn(),
+    findAllSets: vi.fn(),
+    getBrandsService: vi.fn(),
+    getCredentialsService: vi.fn(),
+    getNotificationsService: vi.fn(),
+    getPostingSetsService: vi.fn(),
+    getPublishingContext: vi.fn(),
+    loggerError: vi.fn(),
+    postingSetsService: {},
+    rssSources: [] as Array<{
+      failedCount: number;
+      feedUrl: string;
+      id: string;
+      importedCount: number;
+      isEnabled: boolean;
+      label: string;
+      lastError?: string | null;
+      skippedCount: number;
+    }>,
+    success: vi.fn(),
+    updateAgentConfig: vi.fn(),
+  };
+});
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -905,5 +909,123 @@ describe('BrandSettingsPublishingPage', () => {
         'Publishing readiness could not be loaded for this account. Retry by refreshing this page.',
       ),
     ).toBeVisible();
+  });
+
+  describe('cached readiness and form seeding', () => {
+    const readyCredential = {
+      externalHandle: 'ready-account',
+      id: 'credential-ready',
+      isConnected: true,
+      platform: 'twitter',
+    };
+    const readyContext = {
+      account: {
+        handle: 'ready-account',
+        id: 'credential-ready',
+        label: 'Ready account',
+        platform: 'twitter',
+      },
+      readiness: {
+        appReviewStatus: 'pass',
+        callbackUrlStatus: 'pass',
+        canSchedule: true,
+        diagnostics: [],
+        isRetryable: false,
+        permissionScopeStatus: 'pass',
+        providerKey: 'twitter',
+        quotaStatus: 'pass',
+        state: 'publish_capable',
+        tokenFreshness: 'pass',
+      },
+      surface: 'post',
+    };
+
+    beforeEach(() => {
+      mocks.brandDetail = {
+        ...mocks.brandDetail,
+        brand: {
+          ...mocks.brandDetail.brand,
+          credentials: [readyCredential],
+        },
+      };
+      mocks.getPublishingContext.mockResolvedValue(readyContext);
+    });
+
+    it('paints the cached account readiness at once when coming back', async () => {
+      const client = createTestQueryClient();
+      const firstVisit = render(<BrandSettingsPublishingPage />, {
+        wrapper: queryClientWrapper(client),
+      });
+      expect(await screen.findByText('Ready account')).toBeVisible();
+      firstVisit.unmount();
+
+      mocks.getPublishingContext.mockReturnValue(new Promise(() => {}));
+      render(<BrandSettingsPublishingPage />, {
+        wrapper: queryClientWrapper(client),
+      });
+
+      expect(screen.getByText('Ready account')).toBeVisible();
+      expect(screen.getByText('Publish Capable')).toBeVisible();
+      expect(screen.queryByText('Checking')).not.toBeInTheDocument();
+    });
+
+    it('never shows one brand’s cached readiness for another brand', async () => {
+      const client = createTestQueryClient();
+      const firstVisit = render(<BrandSettingsPublishingPage />, {
+        wrapper: queryClientWrapper(client),
+      });
+      expect(await screen.findByText('Ready account')).toBeVisible();
+      firstVisit.unmount();
+
+      mocks.brandDetail = { ...mocks.brandDetail, brandId: 'brand-2' };
+      mocks.getPublishingContext.mockReturnValue(new Promise(() => {}));
+      render(<BrandSettingsPublishingPage />, {
+        wrapper: queryClientWrapper(client),
+      });
+
+      expect(screen.queryByText('Ready account')).not.toBeInTheDocument();
+      expect(screen.getByText('Checking')).toBeVisible();
+    });
+
+    it('keeps an edited field when the brand refreshes in the background', () => {
+      const view = render(<BrandSettingsPublishingPage />, {
+        wrapper: queryClientWrapper(),
+      });
+      fireEvent.change(screen.getByLabelText('Confidence threshold'), {
+        target: { value: '0.5' },
+      });
+
+      mocks.brandDetail = {
+        ...mocks.brandDetail,
+        brand: {
+          ...mocks.brandDetail.brand,
+          agentConfig: {
+            autoPublish: { confidenceThreshold: 0.7, enabled: true },
+          },
+        },
+      };
+      view.rerender(<BrandSettingsPublishingPage />);
+
+      expect(screen.getByLabelText('Confidence threshold')).toHaveValue('0.5');
+    });
+
+    it('takes refreshed brand config into an untouched form', () => {
+      const view = render(<BrandSettingsPublishingPage />, {
+        wrapper: queryClientWrapper(),
+      });
+
+      mocks.brandDetail = {
+        ...mocks.brandDetail,
+        brand: {
+          ...mocks.brandDetail.brand,
+          agentConfig: {
+            autoPublish: { confidenceThreshold: 0.7, enabled: true },
+          },
+        },
+      };
+      view.rerender(<BrandSettingsPublishingPage />);
+
+      expect(screen.getByLabelText('Confidence threshold')).toHaveValue('0.7');
+    });
   });
 });

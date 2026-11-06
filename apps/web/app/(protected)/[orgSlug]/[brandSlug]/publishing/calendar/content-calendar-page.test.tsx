@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { PostsLayoutContext } from '@contexts/posts/posts-layout-context';
 import {
   ContextSidebarOutlet,
@@ -18,6 +22,7 @@ import type {
   IChannelTarget,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
+import type { QueryClient } from '@tanstack/react-query';
 import {
   act,
   fireEvent,
@@ -91,30 +96,23 @@ const moveCalendarPlacementMock = vi.fn();
 const republishAtMock = vi.fn();
 const pushMock = vi.fn();
 const setDateRangeMock = vi.fn();
-const useAuthedServiceMock = vi.fn();
 const calendarDateRange = {
   end: new Date('2026-03-16T00:00:00.000Z'),
   start: new Date('2026-03-10T00:00:00.000Z'),
 };
 
 const findNewslettersMock = vi.fn(async () => []);
-const getNewslettersServiceMock = vi.fn(async () => ({
-  findAllPages: findNewslettersMock,
-}));
-const getArticlesServiceMock = vi.fn(async () => ({
-  findAll: findArticlesMock,
-}));
+const newslettersService = { findAllPages: findNewslettersMock };
+const articlesService = { findAll: findArticlesMock };
 const repurposeMock = vi.fn();
-const getPostsServiceMock = vi.fn(async () => ({
-  repurpose: repurposeMock,
-}));
-const getReleaseGroupsServiceMock = vi.fn(async () => ({
+const postsService = { repurpose: repurposeMock };
+const releaseGroupsService = {
   findAllPages: findReleasesMock,
   moveCalendarPlacement: moveCalendarPlacementMock,
   republishAt: republishAtMock,
   update: updateReleaseMock,
   updateTarget: updateTargetMock,
-}));
+};
 const listSlotsMock = vi.fn(async (): Promise<ICalendarSlot[]> => []);
 const listCadencesMock = vi.fn(async () => []);
 const skipSlotMock = vi.fn();
@@ -122,7 +120,7 @@ const cancelSlotMock = vi.fn();
 const writeSlotMock = vi.fn();
 const generateSlotMock = vi.fn();
 const generateBulkMock = vi.fn();
-const getPostingCadencesServiceMock = vi.fn(async () => ({
+const postingCadencesService = {
   book: vi.fn(),
   cancel: cancelSlotMock,
   create: vi.fn(),
@@ -134,7 +132,7 @@ const getPostingCadencesServiceMock = vi.fn(async () => ({
   skip: skipSlotMock,
   update: vi.fn(),
   write: writeSlotMock,
-}));
+};
 
 const calendarRenderProps: Array<{
   emptyState?: ReactNode;
@@ -150,7 +148,6 @@ const calendarRenderProps: Array<{
   preferredTimes: Array<{ hour: number; minute: number }>;
   timezone: string;
 }> = [];
-let useAuthedServiceCallCount = 0;
 
 // The calendar page resolves the repurpose modal from the global-modals
 // provider, which this suite renders outside of.
@@ -195,8 +192,24 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   })),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: (...args: unknown[]) => useAuthedServiceMock(...args),
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+vi.mock('@services/content/articles.service', () => ({
+  ArticlesService: { getInstance: () => articlesService },
+}));
+vi.mock('@services/content/newsletters.service', () => ({
+  NewslettersService: { getInstance: () => newslettersService },
+}));
+vi.mock('@services/content/posts.service', () => ({
+  PostsService: { getInstance: () => postsService },
+}));
+vi.mock('@services/content/release-groups.service', () => ({
+  ReleaseGroupsService: { getInstance: () => releaseGroupsService },
+}));
+vi.mock('@services/content/posting-cadences.service', () => ({
+  PostingCadencesService: { getInstance: () => postingCadencesService },
 }));
 
 vi.mock(
@@ -469,7 +482,10 @@ function SubbarHost({ children }: { children: ReactNode }) {
   );
 }
 
-function renderCalendarPage(embedded = false) {
+function renderCalendarPage(
+  embedded = false,
+  client: QueryClient = createTestQueryClient(),
+) {
   return render(
     <ContextSidebarProvider>
       <SubbarHost>
@@ -477,6 +493,7 @@ function renderCalendarPage(embedded = false) {
       </SubbarHost>
       <ContextSidebarOutlet />
     </ContextSidebarProvider>,
+    { wrapper: queryClientWrapper(client) },
   );
 }
 
@@ -493,25 +510,6 @@ describe('ContentCalendarPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     calendarRenderProps.length = 0;
-    useAuthedServiceCallCount = 0;
-    // The page resolves five services per render, in declaration order:
-    // newsletters, articles, release groups, posting cadences, then posts.
-    const servicesInCallOrder = [
-      getNewslettersServiceMock,
-      getArticlesServiceMock,
-      getReleaseGroupsServiceMock,
-      getPostingCadencesServiceMock,
-      getPostsServiceMock,
-    ];
-    useAuthedServiceMock.mockImplementation(() => {
-      const service =
-        servicesInCallOrder[
-          useAuthedServiceCallCount % servicesInCallOrder.length
-        ];
-      useAuthedServiceCallCount += 1;
-
-      return service;
-    });
     findArticlesMock.mockResolvedValue([]);
     findReleasesMock.mockResolvedValue([release()]);
     listSlotsMock.mockResolvedValue([]);
@@ -530,14 +528,33 @@ describe('ContentCalendarPage', () => {
     expect(latestCalendarProps().emptyState).toBeUndefined();
   });
 
+  it('paints the cached schedule without a skeleton when the calendar is opened again', async () => {
+    const client = createTestQueryClient();
+    const first = renderCalendarPage(false, client);
+    await screen.findByRole('button', { name: 'open:release-1' });
+    first.unmount();
+
+    findReleasesMock.mockReturnValue(new Promise(() => undefined));
+    calendarRenderProps.length = 0;
+    renderCalendarPage(false, client);
+
+    expect(
+      screen.getByRole('button', { name: 'open:release-1' }),
+    ).toBeInTheDocument();
+    expect(latestCalendarProps().isLoading).toBe(false);
+  });
+
   it('queries the scheduler read model for the visible window only', async () => {
     await renderLoaded();
 
-    expect(findArticlesMock).toHaveBeenCalledWith({
-      brandId: 'brand-123',
-      endDate: '2026-03-16T00:00:00.000Z',
-      startDate: '2026-03-10T00:00:00.000Z',
-    });
+    expect(findArticlesMock).toHaveBeenCalledWith(
+      {
+        brandId: 'brand-123',
+        endDate: '2026-03-16T00:00:00.000Z',
+        startDate: '2026-03-10T00:00:00.000Z',
+      },
+      expect.any(AbortSignal),
+    );
     expect(findReleasesMock).toHaveBeenCalledWith(
       {
         brandId: 'brand-123',

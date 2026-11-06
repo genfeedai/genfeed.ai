@@ -1,4 +1,8 @@
 import { paginatedResponse } from '@app-tests/paginated-response';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { IngredientCategory } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
@@ -17,6 +21,11 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
     isReady: true,
     organizationId: 'org-1',
   }),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -42,10 +51,12 @@ describe('useLibraryPicker', () => {
     mocks.findAll.mockReset();
     mocks.findOne.mockReset();
     mocks.getService.mockReset();
-    mocks.getService.mockResolvedValue({
-      findAllPage: mocks.findAll,
+    // One service per media type: the picker asks for the active one.
+    mocks.getService.mockResolvedValue((category: string) => ({
+      category,
+      findAllPage: (...args: unknown[]) => mocks.findAll(category, ...args),
       findOne: mocks.findOne,
-    });
+    }));
   });
 
   it('paginates a large media library without loading every record', async () => {
@@ -63,8 +74,9 @@ describe('useLibraryPicker', () => {
         }),
       );
 
-    const { result } = renderHook(() =>
-      useLibraryPicker({ onSelect: vi.fn() }),
+    const { result } = renderHook(
+      () => useLibraryPicker({ onSelect: vi.fn() }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => expect(result.current.state.status).toBe('ready'));
@@ -78,16 +90,18 @@ describe('useLibraryPicker', () => {
     expect(result.current.state.hasMore).toBe(false);
     expect(result.current.state.total).toBe(25);
     expect(mocks.findAll).toHaveBeenLastCalledWith(
+      'images',
       expect.objectContaining({ limit: 24, page: 2 }),
-      undefined,
+      expect.any(AbortSignal),
     );
   });
 
   it('surfaces permission failures without leaking records', async () => {
     mocks.findAll.mockRejectedValue({ status: 403 });
 
-    const { result } = renderHook(() =>
-      useLibraryPicker({ onSelect: vi.fn() }),
+    const { result } = renderHook(
+      () => useLibraryPicker({ onSelect: vi.fn() }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() =>
@@ -104,7 +118,9 @@ describe('useLibraryPicker', () => {
     );
     mocks.findOne.mockResolvedValue(source);
 
-    const { result } = renderHook(() => useLibraryPicker({ onSelect }));
+    const { result } = renderHook(() => useLibraryPicker({ onSelect }), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.state.status).toBe('ready'));
 
     await act(async () => result.current.select(source));
@@ -133,7 +149,9 @@ describe('useLibraryPicker', () => {
       ingredient('image-1', { brand: 'brand-2' }),
     );
 
-    const { result } = renderHook(() => useLibraryPicker({ onSelect }));
+    const { result } = renderHook(() => useLibraryPicker({ onSelect }), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.state.status).toBe('ready'));
 
     await act(async () => result.current.select(source));
@@ -144,5 +162,84 @@ describe('useLibraryPicker', () => {
     mocks.findOne.mockRejectedValueOnce({ status: 404 });
     await act(async () => result.current.select(source));
     expect(result.current.selectionFailure).toBe('stale');
+  });
+
+  it('paints the cached sources on a return visit without a loading state', async () => {
+    mocks.findAll.mockResolvedValueOnce(
+      paginatedResponse([ingredient('image-1')], {
+        totalDocs: 1,
+        totalPages: 1,
+      }),
+    );
+    const client = createTestQueryClient();
+    const first = renderHook(() => useLibraryPicker({ onSelect: vi.fn() }), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() =>
+      expect(first.result.current.state.status).toBe('ready'),
+    );
+    first.unmount();
+
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(
+      () => useLibraryPicker({ onSelect: vi.fn() }),
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(result.current.state.status).toBe('ready');
+    expect(result.current.state.items.map((item) => item.id)).toEqual([
+      'image-1',
+    ]);
+  });
+
+  it('reads the chosen media type instead of showing the previous one', async () => {
+    mocks.findAll.mockResolvedValueOnce(
+      paginatedResponse([ingredient('image-1')], {
+        totalDocs: 1,
+        totalPages: 1,
+      }),
+    );
+    const { result } = renderHook(
+      () => useLibraryPicker({ onSelect: vi.fn() }),
+      { wrapper: queryClientWrapper() },
+    );
+    await waitFor(() => expect(result.current.state.status).toBe('ready'));
+
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    act(() => result.current.setCategory('videos'));
+
+    expect(result.current.state.status).toBe('loading');
+    expect(result.current.state.items).toEqual([]);
+    await waitFor(() =>
+      expect(mocks.findAll).toHaveBeenLastCalledWith(
+        'videos',
+        expect.objectContaining({ page: 1 }),
+        expect.any(AbortSignal),
+      ),
+    );
+  });
+
+  it('keeps the sources on screen when a background refresh fails', async () => {
+    mocks.findAll
+      .mockResolvedValueOnce(
+        paginatedResponse([ingredient('image-1')], {
+          totalDocs: 1,
+          totalPages: 1,
+        }),
+      )
+      .mockRejectedValueOnce(new Error('offline'));
+    const client = createTestQueryClient();
+    const { result } = renderHook(
+      () => useLibraryPicker({ onSelect: vi.fn() }),
+      { wrapper: queryClientWrapper(client) },
+    );
+    await waitFor(() => expect(result.current.state.status).toBe('ready'));
+
+    await act(() => client.refetchQueries({ queryKey: ['library-picker'] }));
+
+    await waitFor(() => expect(result.current.state.status).toBe('ready'));
+    expect(result.current.state.items.map((item) => item.id)).toEqual([
+      'image-1',
+    ]);
   });
 });

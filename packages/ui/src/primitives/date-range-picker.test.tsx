@@ -1,5 +1,13 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import DateRangePicker from './date-range-picker';
 
 vi.mock('next-intl', async () => {
@@ -86,6 +94,42 @@ describe('DateRangePicker', () => {
       const range = onChange.mock.calls[0][0];
       expect(range.startDate.toISOString()).toBe('2026-10-12T00:00:00.000Z');
       expect(range.endDate.toISOString()).toBe('2026-10-20T00:00:00.000Z');
+    });
+  });
+
+  describe('quick ranges after a daylight-saving change', () => {
+    const originalTimeZone = process.env.TZ;
+
+    beforeAll(() => {
+      process.env.TZ = 'America/New_York';
+    });
+
+    afterAll(() => {
+      process.env.TZ = originalTimeZone;
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('covers seven UTC days when the week spans the change', () => {
+      vi.useFakeTimers({
+        now: new Date('2026-11-06T00:06:00Z'),
+        toFake: ['Date'],
+      });
+      const onChange = vi.fn();
+      render(<DateRangePicker onChange={onChange} />);
+
+      expect(screen.getByRole('button')).toHaveTextContent(
+        'Oct 30 - Nov 5, 2026',
+      );
+
+      fireEvent.click(screen.getByRole('button'));
+      fireEvent.click(screen.getByRole('button', { name: 'Last 30 days' }));
+
+      const range = onChange.mock.calls[0][0];
+      expect(range.startDate.toISOString()).toBe('2026-10-07T00:00:00.000Z');
+      expect(range.endDate.toISOString()).toBe('2026-11-05T00:00:00.000Z');
     });
   });
 });

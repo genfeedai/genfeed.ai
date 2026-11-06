@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type {
   HeyGenCatalogAvatar,
   HeyGenCatalogVoice,
@@ -15,6 +19,10 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: mocks.organizationId }),
+}));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
@@ -57,7 +65,9 @@ describe('HeyGen catalogue recovery', () => {
   });
   it('keeps voices when avatars fail and retries the failed catalogue explicitly', async () => {
     mocks.avatars.mockRejectedValueOnce(new Error('avatar outage'));
-    const { result } = renderHook(() => useHeyGenCatalog());
+    const { result } = renderHook(() => useHeyGenCatalog(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.voices).toEqual([voice]);
     expect(result.current.error).toContain('avatars');
@@ -101,7 +111,9 @@ describe('HeyGen catalogue recovery', () => {
     };
     mocks.avatars.mockResolvedValue([avatar]);
     mocks.voices.mockRejectedValue(new Error('voice outage'));
-    const { result } = renderHook(() => useHeyGenCatalog());
+    const { result } = renderHook(() => useHeyGenCatalog(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.avatars).toEqual([avatar]);
     expect(result.current.voices).toEqual([]);
@@ -118,7 +130,9 @@ describe('HeyGen catalogue recovery', () => {
       ],
     };
     mocks.voices.mockRejectedValueOnce(credentialsInvalid);
-    const { result } = renderHook(() => useHeyGenCatalog());
+    const { result } = renderHook(() => useHeyGenCatalog(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isReconnectRequired).toBe(true);
     expect(result.current.error).toContain('Reconnect HeyGen');
@@ -132,7 +146,9 @@ describe('HeyGen catalogue recovery', () => {
     mocks.voices.mockRejectedValue({
       errors: [{ code: 'provider_unavailable', status: '502' }],
     });
-    const { result } = renderHook(() => useHeyGenCatalog());
+    const { result } = renderHook(() => useHeyGenCatalog(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isReconnectRequired).toBe(false);
     expect(result.current.error).toContain('voices');
@@ -146,7 +162,9 @@ describe('HeyGen catalogue recovery', () => {
         }),
       )
       .mockResolvedValueOnce([]);
-    const { result, rerender } = renderHook(() => useHeyGenCatalog());
+    const { result, rerender } = renderHook(() => useHeyGenCatalog(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(mocks.voices).toHaveBeenCalledOnce());
     const oldSignal = mocks.voices.mock.calls[0][0] as AbortSignal;
     mocks.organizationId = 'org-b';
@@ -159,7 +177,9 @@ describe('HeyGen catalogue recovery', () => {
     expect(result.current.error).toBeNull();
   });
   it('hides an already loaded private identity while the next organization is still loading', async () => {
-    const { result, rerender } = renderHook(() => useHeyGenCatalog());
+    const { result, rerender } = renderHook(() => useHeyGenCatalog(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.voices).toEqual([voice]));
     mocks.voices.mockReturnValueOnce(new Promise(() => {}));
     mocks.organizationId = 'org-b';
@@ -171,8 +191,9 @@ describe('HeyGen catalogue recovery', () => {
   });
   it('skips every catalogue request while disabled and loads once enabled', async () => {
     let isEnabled = false;
-    const { result, rerender } = renderHook(() =>
-      useHeyGenCatalog({ isEnabled }),
+    const { result, rerender } = renderHook(
+      () => useHeyGenCatalog({ isEnabled }),
+      { wrapper: queryClientWrapper() },
     );
     expect(result.current.isLoading).toBe(false);
     expect(mocks.getService).not.toHaveBeenCalled();
@@ -185,12 +206,16 @@ describe('HeyGen catalogue recovery', () => {
   });
   it('does not fetch without an organization and aborts pending requests on unmount', async () => {
     mocks.organizationId = undefined;
-    const empty = renderHook(() => useHeyGenCatalog());
+    const empty = renderHook(() => useHeyGenCatalog(), {
+      wrapper: queryClientWrapper(),
+    });
     expect(mocks.getService).not.toHaveBeenCalled();
     empty.unmount();
     mocks.organizationId = 'org-a';
     mocks.voices.mockReturnValue(new Promise(() => {}));
-    const pending = renderHook(() => useHeyGenCatalog());
+    const pending = renderHook(() => useHeyGenCatalog(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(mocks.voices).toHaveBeenCalledOnce());
     const signal = mocks.voices.mock.calls[0][0] as AbortSignal;
     pending.unmount();
@@ -203,7 +228,9 @@ describe('HeyGen catalogue recovery', () => {
       ownership,
       nextCursor: ownership === 'public' ? 'next' : null,
     }));
-    const { result } = renderHook(() => useHeyGenCatalog());
+    const { result } = renderHook(() => useHeyGenCatalog(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.hasMoreAvatars).toBe(true));
     expect(mocks.page).toHaveBeenCalledTimes(2);
     expect(result.current.isLoading).toBe(true);
@@ -218,7 +245,9 @@ describe('HeyGen catalogue recovery', () => {
         nextCursor: ownership === 'public' ? 'next' : null,
       };
     });
-    const { result } = renderHook(() => useHeyGenCatalog());
+    const { result } = renderHook(() => useHeyGenCatalog(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(mocks.page).toHaveBeenCalledTimes(2);
     await act(async () => result.current.loadMoreAvatars());
@@ -249,7 +278,9 @@ describe('HeyGen catalogue recovery', () => {
         nextCursor: ownership === 'public' ? 'next' : null,
       };
     });
-    const { result, rerender } = renderHook(() => useHeyGenCatalog());
+    const { result, rerender } = renderHook(() => useHeyGenCatalog(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     let pending: Promise<void> | undefined;
     act(() => {
@@ -267,5 +298,57 @@ describe('HeyGen catalogue recovery', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.hasMoreAvatars).toBe(true);
     expect(result.current.voices).toEqual([voice]);
+  });
+
+  it('paints the cached catalogue on a return visit without a loading state', async () => {
+    const client = createTestQueryClient();
+    const first = renderHook(() => useHeyGenCatalog(), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() => expect(first.result.current.voices).toEqual([voice]));
+    first.unmount();
+
+    mocks.voices.mockReturnValue(new Promise(() => {}));
+    mocks.page.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(() => useHeyGenCatalog(), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.voices).toEqual([voice]);
+    expect(result.current.error).toBeNull();
+  });
+
+  it('never paints one organization cached catalogue for another', async () => {
+    const client = createTestQueryClient();
+    const first = renderHook(() => useHeyGenCatalog(), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() => expect(first.result.current.voices).toEqual([voice]));
+    first.unmount();
+
+    mocks.voices.mockReturnValue(new Promise(() => {}));
+    mocks.organizationId = 'org-b';
+    const { result } = renderHook(() => useHeyGenCatalog(), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.voices).toEqual([]);
+  });
+
+  it('keeps the catalogue when a background refresh fails', async () => {
+    const client = createTestQueryClient();
+    const { result } = renderHook(() => useHeyGenCatalog(), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() => expect(result.current.voices).toEqual([voice]));
+
+    mocks.voices.mockRejectedValueOnce(new Error('voice outage'));
+    await act(() => client.refetchQueries({ queryKey: ['heygen', 'catalog'] }));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.voices).toEqual([voice]);
+    expect(result.current.error).toBeNull();
   });
 });

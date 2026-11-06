@@ -20,6 +20,7 @@ import type {
   IPaginatedResponse,
 } from '@genfeedai/contracts/interfaces';
 import { CHARACTERS_CHANGED_EVENT } from '@genfeedai/helpers/content/character-mention.util';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { PersonasService } from '@services/content/personas.service';
@@ -28,6 +29,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { createMediaHandler } from '@services/core/socket-manager.service';
 import { ImagesService } from '@services/ingredients/images.service';
+import { useQueryClient } from '@tanstack/react-query';
 import { resolvePendingIds } from '@utils/network/generation.util';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -43,6 +45,12 @@ function resolveCharacterImageUrl(id: string): string {
 }
 
 const EMPTY_CHARACTERS: BrandCharacterListItem[] = [];
+/** The Library characters table; the chat picker caches `brand-characters`. */
+const CHARACTERS_QUERY_KEY = 'library-characters';
+
+function createPersonasService(token: string): PersonasService {
+  return PersonasService.getInstance(token);
+}
 
 const OWNING_BRAND_ONLY: CharacterAvailabilityDraft = {
   brandIds: [],
@@ -60,7 +68,8 @@ function parseOptionalSeed(value: string): number | undefined {
 
 export function useCharactersPage(): CharactersPageState {
   const translate = useTranslations('common.settings.characters');
-  const { brandId, brands } = useBrand();
+  const { brandId, brands, organizationId } = useBrand();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
   const role = useUserRole();
@@ -76,17 +85,11 @@ export function useCharactersPage(): CharactersPageState {
     [],
   );
 
-  const getPersonasService = useAuthedService((token: string) =>
-    PersonasService.getInstance(token),
-  );
+  const getPersonasService = useAuthedService(createPersonasService);
   const getImagesService = useAuthedService((token: string) =>
     ImagesService.getInstance(token),
   );
 
-  const [charactersPage, setCharactersPage] =
-    useState<IPaginatedResponse<BrandCharacterListItem> | null>(null);
-  const characters = charactersPage?.items ?? EMPTY_CHARACTERS;
-  const [isLoading, setIsLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [description, setDescription] = useState('');
   const [isNonHumanoid, setIsNonHumanoid] = useState(false);
@@ -118,46 +121,55 @@ export function useCharactersPage(): CharactersPageState {
     return () => cleanupSocket();
   }, [cleanupSocket]);
 
-  const refreshCharacters = useCallback(
-    async (signal: AbortSignal) => {
-      if (!brandId) {
-        return;
-      }
-      const service = await getPersonasService();
-      const page = await service.listCharactersPage(
-        { limit: ITEMS_PER_PAGE, page: currentPage },
-        signal,
-      );
-      if (!signal.aborted) {
-        setCharactersPage(page);
+  // One brand's characters, cached per viewer, brand and page: coming back
+  // paints the last page at once and refreshes it in the background, and a
+  // new page keeps the current rows on screen while it loads.
+  const charactersScopeKey = [
+    CHARACTERS_QUERY_KEY,
+    organizationId || null,
+    brandId || null,
+  ];
+  const charactersQuery = useAuthedQuery<
+    PersonasService,
+    IPaginatedResponse<BrandCharacterListItem>
+  >({
+    enabled: Boolean(brandId),
+    keepPreviousDataWithin: charactersScopeKey,
+    queryFn: async (service, signal) => {
+      try {
+        return await service.listCharactersPage(
+          { limit: ITEMS_PER_PAGE, page: currentPage },
+          signal,
+        );
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('Failed to load brand characters', error);
+        }
+        throw error;
       }
     },
-    [brandId, currentPage, getPersonasService],
-  );
+    queryKey: [...charactersScopeKey, { page: currentPage }],
+    service: createPersonasService,
+  });
+  const charactersPage = charactersQuery.data;
+  const characters = charactersPage?.items ?? EMPTY_CHARACTERS;
+  const isLoading = Boolean(brandId) && charactersQuery.isPending;
+  const charactersLoadError = charactersQuery.error;
+  const hasCharactersPage = charactersPage !== undefined;
 
+  // A failed first read says so; a failed background refresh keeps the list.
   useEffect(() => {
-    if (!brandId) {
-      setIsLoading(false);
-      return;
+    if (charactersLoadError && !hasCharactersPage) {
+      notificationsService.error(translate('errors.loadFailed'));
     }
+  }, [charactersLoadError, hasCharactersPage, notificationsService, translate]);
 
-    const controller = new AbortController();
-    setIsLoading(true);
-    refreshCharacters(controller.signal)
-      .catch((error: unknown) => {
-        logger.error('Failed to load brand characters', error);
-        if (!controller.signal.aborted) {
-          notificationsService.error(translate('errors.loadFailed'));
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => controller.abort();
-  }, [brandId, notificationsService, refreshCharacters, translate]);
+  // A save can change any brand's list (sharing, ownership moves), so every
+  // cached characters page re-reads; the visible one before this resolves.
+  const refreshCharacters = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: [CHARACTERS_QUERY_KEY] }),
+    [queryClient],
+  );
 
   const waitForCandidate = useCallback(
     (pendingId: string) => {
@@ -323,7 +335,7 @@ export function useCharactersPage(): CharactersPageState {
       setIsNonHumanoid(false);
       setSeed('');
       setIsCreateDialogOpen(false);
-      await refreshCharacters(new AbortController().signal);
+      await refreshCharacters();
     } catch (error: unknown) {
       logger.error('Failed to create character from sheet', error);
       notificationsService.error(translate('errors.approveFailed'));
@@ -370,7 +382,7 @@ export function useCharactersPage(): CharactersPageState {
       window.dispatchEvent(new Event(CHARACTERS_CHANGED_EVENT));
       notificationsService.success(translate('availability.success'));
       setAvailabilityCharacter(null);
-      await refreshCharacters(new AbortController().signal);
+      await refreshCharacters();
     } catch (error: unknown) {
       logger.error('Failed to update character availability', error);
       notificationsService.error(translate('availability.error'));
@@ -399,7 +411,7 @@ export function useCharactersPage(): CharactersPageState {
         window.dispatchEvent(new Event(CHARACTERS_CHANGED_EVENT));
         notificationsService.success(translate('ownership.success'));
         setAvailabilityCharacter(null);
-        await refreshCharacters(new AbortController().signal);
+        await refreshCharacters();
       } catch (error: unknown) {
         logger.error('Failed to move character ownership', error);
         notificationsService.error(translate('ownership.error'));
@@ -422,25 +434,27 @@ export function useCharactersPage(): CharactersPageState {
       const referenceIngredientIds = [...references]
         .sort((first, second) => first.position - second.position)
         .map((reference) => reference.ingredientId);
-      setCharactersPage((current) =>
-        current
-          ? {
-              ...current,
-              items: current.items.map((character) =>
-                character.id === characterId
-                  ? {
-                      ...character,
-                      avatarIngredientId: referenceIngredientIds[0] ?? null,
-                      referenceIngredientIds,
-                    }
-                  : character,
-              ),
-            }
-          : current,
+      queryClient.setQueriesData<IPaginatedResponse<BrandCharacterListItem>>(
+        { queryKey: [CHARACTERS_QUERY_KEY] },
+        (current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.map((character) =>
+                  character.id === characterId
+                    ? {
+                        ...character,
+                        avatarIngredientId: referenceIngredientIds[0] ?? null,
+                        referenceIngredientIds,
+                      }
+                    : character,
+                ),
+              }
+            : current,
       );
       window.dispatchEvent(new Event(CHARACTERS_CHANGED_EVENT));
     },
-    [],
+    [queryClient],
   );
 
   const openCreateDialog = useCallback(() => {

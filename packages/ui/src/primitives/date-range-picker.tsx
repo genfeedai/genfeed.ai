@@ -3,8 +3,10 @@
 import { ButtonVariant, Timeframe } from '@genfeedai/contracts';
 import type { DateRange as AnalyticsDateRange } from '@genfeedai/contracts/interfaces/utils/date.interface';
 import { cn } from '@genfeedai/helpers';
-import { formatUtcChipDate } from '@genfeedai/helpers/utils/date-range.util';
-import { subDays } from 'date-fns';
+import {
+  formatUtcChipDate,
+  getTrailingUtcDays,
+} from '@genfeedai/helpers/utils/date-range.util';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -28,22 +30,11 @@ export interface DateRangePickerProps {
   value?: AnalyticsDateRange;
 }
 
-function getStartDate(
-  preset: DateRangePreset | 'custom',
-  yesterday: Date,
-): Date | undefined {
-  if (preset === 'custom') {
-    return undefined;
-  }
-
-  const daysMap = {
-    [Timeframe.D7]: 7,
-    [Timeframe.D30]: 30,
-    [Timeframe.D90]: 90,
-  } as const;
-
-  return subDays(yesterday, daysMap[preset] - 1);
-}
+const PRESET_DAYS = {
+  [Timeframe.D7]: 7,
+  [Timeframe.D30]: 30,
+  [Timeframe.D90]: 90,
+} as const;
 
 function formatSelectedDateRange(
   dateRange: CalendarDateRange | undefined,
@@ -65,10 +56,12 @@ function toUtcDay(day: Date): Date {
 }
 
 /** The calendar draws local days; the picker stores UTC days. */
+function calendarDayOf(date: Date): Date {
+  return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
 function toCalendarDay(date: Date | undefined): Date | undefined {
-  return date
-    ? new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
-    : undefined;
+  return date ? calendarDayOf(date) : undefined;
 }
 
 function getPresetForRange(
@@ -107,11 +100,14 @@ export default function DateRangePicker({
   // The first day of a custom range, while the second is still to be picked.
   const [rangeAnchor, setRangeAnchor] = useState<Date | null>(null);
 
-  const yesterday = subDays(new Date(), 1);
-  const [dateRange, setDateRange] = useState<CalendarDateRange | undefined>({
-    from: getStartDate(defaultPreset, yesterday),
-    to: yesterday,
-  });
+  // The last pickable day: yesterday by its UTC date, drawn as a calendar day.
+  const yesterday = calendarDayOf(getTrailingUtcDays(1).endDate);
+  const [dateRange, setDateRange] = useState<CalendarDateRange | undefined>(
+    () => {
+      const range = getTrailingUtcDays(PRESET_DAYS[defaultPreset]);
+      return { from: range.startDate, to: range.endDate };
+    },
+  );
 
   const valueStartTime = value?.startDate?.getTime() ?? null;
   const valueEndTime = value?.endDate?.getTime() ?? null;
@@ -131,11 +127,10 @@ export default function DateRangePicker({
   const handlePresetChange = (preset: DateRangePreset) => {
     setSelectedPreset(preset);
 
-    const startDate = getStartDate(preset, yesterday);
-    const endDate = yesterday;
+    const { endDate, startDate } = getTrailingUtcDays(PRESET_DAYS[preset]);
 
     setDateRange({ from: startDate, to: endDate });
-    onChange({ endDate, startDate: startDate ?? null });
+    onChange({ endDate, startDate });
     handleOpenChange(false);
   };
 

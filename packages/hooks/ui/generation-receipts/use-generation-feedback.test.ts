@@ -1,6 +1,8 @@
 import type { BrandedGenerationFeedbackReadV1 } from '@genfeedai/contracts/api-types/contracts/branded-generation-feedback.contract';
 import { useGenerationFeedback } from '@hooks/ui/generation-receipts/use-generation-feedback';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { createElement, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -14,6 +16,36 @@ const mocks = vi.hoisted(() => {
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
+    getToken: async () => 'token',
+    orgId: 'org',
+    sessionId: 'session',
+    userId: 'user',
+  }),
+}));
+
+function createClient(): QueryClient {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { gcTime: Number.POSITIVE_INFINITY, retry: false },
+    },
+  });
+}
+
+let activeClient = createClient();
+function QueryTestWrapper({ children }: { children: ReactNode }) {
+  return createElement(QueryClientProvider, { client: activeClient }, children);
+}
+function renderFeedback(
+  props: { brandId: string; receiptId: string },
+  client = createClient(),
+) {
+  activeClient = client;
+  return renderHook(() => useGenerationFeedback(props), {
+    wrapper: QueryTestWrapper,
+  });
+}
 
 const input = { brandId: 'brand', receiptId: 'receipt' };
 function feedback(
@@ -35,7 +67,7 @@ function feedback(
   };
 }
 async function loaded() {
-  const view = renderHook(() => useGenerationFeedback(input));
+  const view = renderFeedback(input);
   await waitFor(() => expect(view.result.current.feedback).not.toBeNull());
   return view;
 }
@@ -131,5 +163,76 @@ describe('useGenerationFeedback', () => {
     await waitFor(() => expect(result.current.hasError).toBe(true));
     expect(result.current.feedback?.rating).toBe('up');
     expect(result.current.isSaving).toBe(false);
+  });
+
+  it('shows the cached rating at once when the generation is reopened', async () => {
+    const client = createClient();
+    mocks.service.getFeedback.mockResolvedValue(feedback({ rating: 'up' }));
+    const first = renderFeedback(input, client);
+    await waitFor(() =>
+      expect(first.result.current.feedback?.rating).toBe('up'),
+    );
+    first.unmount();
+
+    mocks.service.getFeedback.mockReturnValue(new Promise(() => {}));
+    const { result } = renderFeedback(input, client);
+
+    expect(result.current.feedback?.rating).toBe('up');
+  });
+
+  it('shows a saved change on the next visit', async () => {
+    const client = createClient();
+    mocks.service.rateFeedback.mockResolvedValue(feedback({ rating: 'down' }));
+    const first = renderFeedback(input, client);
+    await waitFor(() => expect(first.result.current.feedback).not.toBeNull());
+    act(() => first.result.current.rate('down'));
+    await waitFor(() => expect(first.result.current.isSaving).toBe(false));
+    first.unmount();
+
+    mocks.service.getFeedback.mockReturnValue(new Promise(() => {}));
+    const { result } = renderFeedback(input, client);
+
+    expect(result.current.feedback?.rating).toBe('down');
+  });
+
+  it('never shows one receipt’s cached rating for another receipt', async () => {
+    const client = createClient();
+    mocks.service.getFeedback.mockResolvedValue(feedback({ rating: 'up' }));
+    const first = renderFeedback(input, client);
+    await waitFor(() =>
+      expect(first.result.current.feedback?.rating).toBe('up'),
+    );
+    first.unmount();
+
+    mocks.service.getFeedback.mockReturnValue(new Promise(() => {}));
+    const { result } = renderFeedback(
+      { brandId: 'brand', receiptId: 'other-receipt' },
+      client,
+    );
+
+    expect(result.current.feedback).toBeNull();
+  });
+
+  it('keeps the cached rating when its background refresh fails', async () => {
+    const client = createClient();
+    mocks.service.getFeedback.mockResolvedValue(feedback({ rating: 'up' }));
+    const first = renderFeedback(input, client);
+    await waitFor(() =>
+      expect(first.result.current.feedback?.rating).toBe('up'),
+    );
+    first.unmount();
+
+    mocks.service.getFeedback.mockRejectedValue(new Error('offline'));
+    const { result } = renderFeedback(input, client);
+
+    await waitFor(() =>
+      expect(
+        client.getQueryCache().find({
+          exact: false,
+          queryKey: ['generation-feedback', 'brand', 'receipt'],
+        })?.state.status,
+      ).toBe('error'),
+    );
+    expect(result.current.feedback?.rating).toBe('up');
   });
 });

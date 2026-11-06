@@ -43,17 +43,23 @@ export interface ContentCalendarLoadOptions {
   campaignId?: string;
   dateRange: ContentCalendarDateRange | null;
   filters: ReleaseCalendarFilters;
-  getArticlesService: () => Promise<Pick<ArticlesService, 'findAll'>>;
-  getNewslettersService: () => Promise<
-    Pick<NewslettersService, 'findAllPages'>
-  >;
-  getPostingCadencesService: () => Promise<
-    Pick<PostingCadencesService, 'list' | 'listSlots'>
-  >;
-  getReleaseGroupsService: () => Promise<
-    Pick<ReleaseGroupsService, 'findAllPages'>
-  >;
   notificationsService: Pick<NotificationsService, 'error'>;
+}
+/** One cached read of the calendar: everything it draws for a window. */
+/** The services the content calendar read uses, built from one token. */
+export interface ContentCalendarServices {
+  articles: ArticlesService;
+  cadences: PostingCadencesService;
+  newsletters: NewslettersService;
+  releaseGroups: ReleaseGroupsService;
+}
+
+export interface ContentCalendarData {
+  articles: IArticle[];
+  cadences: IPostingCadence[];
+  newsletters: Newsletter[];
+  releases: IReleaseGroup[];
+  slots: ICalendarSlot[];
 }
 export interface CalendarReleaseActionsOptions {
   releases: IReleaseGroup[];

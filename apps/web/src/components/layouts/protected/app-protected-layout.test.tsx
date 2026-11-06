@@ -1,3 +1,4 @@
+import { queryClientWrapper } from '@app-tests/query-client.harness';
 import { useRegisterBreadcrumbLeaf } from '@contexts/ui/breadcrumb-leaf-context';
 import { useAgentPageContext } from '@genfeedai/agent';
 import { MemberRole } from '@genfeedai/contracts';
@@ -5,8 +6,13 @@ import type { IDesktopRuntimeContext } from '@genfeedai/contracts/desktop';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
-import { fireEvent, render, renderHook, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import {
+  fireEvent,
+  renderHook,
+  render as renderWithoutQueryClient,
+  screen,
+} from '@testing-library/react';
+import type { ReactElement, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useUserRole } from '@/hooks/auth/use-user-role';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
@@ -590,6 +596,11 @@ vi.mock('next/navigation', () => ({
 function RunTitle({ label }: { readonly label: string }) {
   useRegisterBreadcrumbLeaf('run-1', label);
   return null;
+}
+
+/** The shell's installed-apps and rail providers read through React Query. */
+function render(ui: ReactElement) {
+  return renderWithoutQueryClient(ui, { wrapper: queryClientWrapper() });
 }
 
 describe('AppProtectedLayout', () => {

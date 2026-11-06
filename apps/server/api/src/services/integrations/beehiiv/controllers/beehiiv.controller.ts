@@ -11,10 +11,17 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import {
+  classifyApiKeyConnectError,
+  createApiKeyConnectException,
+} from '@api/services/integrations/_shared/api-key-connect-error.util';
 import { CreateBeehiivSubscribersDto } from '@api/services/integrations/beehiiv/dto/create-beehiiv-subscribers.dto';
 import { BeehiivProviderError } from '@api/services/integrations/beehiiv/errors/beehiiv-provider.error';
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import {
+  ApiKeyConnectErrorCode,
+  CredentialPlatform,
+} from '@genfeedai/contracts';
 import {
   BeehiivSubscriberOutcomeSerializer,
   CredentialSerializer,
@@ -73,63 +80,62 @@ export class BeehiivController {
       });
     }
 
+    let publications: Awaited<ReturnType<BeehiivService['listPublications']>>;
     try {
       // Verify API key by listing publications
-      const publications = await this.beehiivService.listPublications(apiKey);
-
-      if (!publications || publications.length === 0) {
-        return returnBadRequest({
-          detail:
-            'No publications found for this API key. Please check your Beehiiv API key.',
-          title: 'No publications',
-        });
-      }
-
-      const publication = publicationId
-        ? publications.find((item) => item.id === publicationId)
-        : publications[0];
-
-      if (!publication) {
-        return returnBadRequest({
-          detail:
-            'The selected Beehiiv publication was not found for this API key.',
-          title: 'Invalid publication',
-        });
-      }
-
-      // Store credential with API key as accessToken. The publication id is the
-      // account identity, so connecting a second publication adds an account
-      // instead of replacing the first.
-      const pending = await this.credentialsService.createPendingForBrand(
-        brand,
-        user.userId ?? user.id,
-        CredentialPlatform.BEEHIIV,
-        { accessToken: apiKey },
-      );
-
-      const credential = await this.credentialsService.updateExternalProfile(
-        pending.id,
-        brand.organizationId,
-        {
-          // Beehiiv publications have a display name, not a public @handle.
-          handle: undefined,
-          id: publication.id,
-          name: publication.name,
-        },
-      );
-
-      this.loggerService.log(`${url} connected`, {
-        publicationId: publication.id,
-        publicationName: publication.name,
-      });
-
-      return serializeSingle(request, CredentialSerializer, credential);
+      publications = await this.beehiivService.listPublications(apiKey);
     } catch (error: unknown) {
+      // Beehiiv has one fixed API host, so the only reason the user can fix
+      // in the form is a refused key.
+      const isKeyRejected =
+        (error instanceof BeehiivProviderError &&
+          error.code === 'authorization_failed') ||
+        classifyApiKeyConnectError(error) ===
+          ApiKeyConnectErrorCode.KEY_REJECTED;
+      const code = isKeyRejected
+        ? ApiKeyConnectErrorCode.KEY_REJECTED
+        : ApiKeyConnectErrorCode.UNKNOWN;
       this.logSafeError(url, error);
-      return returnInternalServerError(
-        'Failed to connect Beehiiv. Please verify your API key.',
+      throw createApiKeyConnectException(code);
+    }
+
+    const publication = publicationId
+      ? publications.find((item) => item.id === publicationId)
+      : publications[0];
+
+    if (!publication) {
+      throw createApiKeyConnectException(
+        ApiKeyConnectErrorCode.PUBLICATION_NOT_FOUND,
       );
     }
+
+    // Store credential with API key as accessToken. The publication id is the
+    // account identity, so connecting a second publication adds an account
+    // instead of replacing the first.
+    const pending = await this.credentialsService.createPendingForBrand(
+      brand,
+      user.userId ?? user.id,
+      CredentialPlatform.BEEHIIV,
+      { accessToken: apiKey },
+    );
+
+    const credential = await this.credentialsService.updateExternalProfile(
+      pending.id,
+      brand.organizationId,
+      {
+        // Beehiiv publications have a display name, not a public @handle.
+        handle: undefined,
+        id: publication.id,
+        name: publication.name,
+      },
+    );
+
+    this.loggerService.log(`${url} connected`, {
+      publicationId: publication.id,
+      publicationName: publication.name,
+    });
+
+    return serializeSingle(request, CredentialSerializer, credential);
   }
 
   /**

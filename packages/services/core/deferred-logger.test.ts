@@ -1,17 +1,31 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const logger = vi.hoisted(() => ({
-  debug: vi.fn(),
-  error: vi.fn(),
-  info: vi.fn(),
-  warn: vi.fn(),
-}));
+type Entry = [level: string, message: string, context: unknown];
+
+/** What reached the full logger, in order. */
+const written = vi.hoisted(() => [] as Entry[]);
+const logger = vi.hoisted(() => {
+  const level =
+    (name: string) =>
+    (message: string, context?: unknown): void => {
+      written.push([name, message, context]);
+    };
+  return {
+    debug: level('debug'),
+    error: level('error'),
+    info: level('info'),
+    warn: level('warn'),
+  };
+});
+
+beforeEach(() => {
+  written.length = 0;
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
   vi.doUnmock('./logger.service');
   vi.resetModules();
-  vi.clearAllMocks();
 });
 
 describe('deferredLogger', () => {
@@ -25,17 +39,22 @@ describe('deferredLogger', () => {
     deferredLogger.info('third', { id: 1 });
     deferredLogger.debug('fourth');
 
-    await vi.waitFor(() => expect(logger.debug).toHaveBeenCalledTimes(1));
-    expect(logger.error).toHaveBeenCalledWith('first', { error: failure });
-    expect(logger.warn).toHaveBeenCalledWith('second', undefined);
-    expect(logger.info).toHaveBeenCalledWith('third', { id: 1 });
-    expect(logger.debug).toHaveBeenCalledWith('fourth', undefined);
+    await vi.waitFor(() => expect(written).toHaveLength(4));
+    expect(written).toEqual([
+      ['error', 'first', { error: failure }],
+      ['warn', 'second', undefined],
+      ['info', 'third', { id: 1 }],
+      ['debug', 'fourth', undefined],
+    ]);
   });
 
   it('keeps the report on the console when the logger fails to load, then retries', async () => {
-    const consoleError = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {});
+    const onConsole: Entry[] = [];
+    vi.spyOn(console, 'error').mockImplementation(
+      (message: string, context?: unknown) => {
+        onConsole.push(['error', message, context]);
+      },
+    );
     let loads = 0;
     vi.doMock('./logger.service', () => {
       loads += 1;
@@ -48,16 +67,14 @@ describe('deferredLogger', () => {
     const failure = new Error('boom');
 
     deferredLogger.error('while offline', { error: failure });
-    await vi.waitFor(() =>
-      expect(consoleError).toHaveBeenCalledWith('while offline', {
-        error: failure,
-      }),
-    );
-    expect(logger.error).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(onConsole).toHaveLength(1));
+    expect(onConsole).toEqual([['error', 'while offline', { error: failure }]]);
+    expect(written).toEqual([]);
 
     deferredLogger.error('back online');
     await vi.waitFor(() =>
-      expect(logger.error).toHaveBeenCalledWith('back online', undefined),
+      expect(written).toEqual([['error', 'back online', undefined]]),
     );
+    expect(onConsole).toHaveLength(1);
   });
 });

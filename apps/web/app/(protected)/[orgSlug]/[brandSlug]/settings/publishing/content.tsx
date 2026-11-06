@@ -16,6 +16,7 @@ import type {
 import { redactSensitiveString } from '@genfeedai/helpers';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
 import { getCredentialLabel } from '@helpers/publisher/credential-label.helper';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
@@ -52,6 +53,7 @@ import type {
   FormAction,
   FormState,
   PublishingConfig,
+  PublishingReadinessSnapshot,
 } from '@/features/settings/props/publishing-content.props';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 import PublishingPostingSetsSection from './publishing-posting-sets-section';
@@ -202,9 +204,21 @@ function buildPublishingReadinessSummary(
   return lines.join('\n');
 }
 
+function publishingReadinessQueryKey(
+  brandId: string,
+  credentialIds: readonly string[],
+) {
+  return ['publishing-readiness', 'by-brand', brandId, credentialIds] as const;
+}
+
+const EMPTY_READINESS: PublishingReadinessSnapshot = {
+  contexts: [],
+  failedCredentialIds: [],
+};
+
 function buildStateFromConfig(
   config: PublishingConfig | undefined,
-): Omit<FormState, 'isSaving'> {
+): Omit<FormState, 'hasEdits' | 'isSaving'> {
   return {
     cronExpression: config?.schedule?.cronExpression ?? '',
     timezone: config?.schedule?.timezone ?? 'UTC',
@@ -220,20 +234,23 @@ function formReducer(state: FormState, action: FormAction): FormState {
     case 'RESET':
       return {
         ...buildStateFromConfig(action.config),
+        hasEdits: false,
         isSaving: state.isSaving,
       };
     case 'SET_CRON':
-      return { ...state, cronExpression: action.value };
+      return { ...state, cronExpression: action.value, hasEdits: true };
     case 'SET_TIMEZONE':
-      return { ...state, timezone: action.value };
+      return { ...state, hasEdits: true, timezone: action.value };
     case 'SET_SCHEDULE_ENABLED':
-      return { ...state, isScheduleEnabled: action.value };
+      return { ...state, hasEdits: true, isScheduleEnabled: action.value };
     case 'SET_AUTO_PUBLISH_ENABLED':
-      return { ...state, isAutoPublishEnabled: action.value };
+      return { ...state, hasEdits: true, isAutoPublishEnabled: action.value };
     case 'SET_CONFIDENCE_THRESHOLD':
-      return { ...state, confidenceThreshold: action.value };
+      return { ...state, confidenceThreshold: action.value, hasEdits: true };
     case 'SET_SAVING':
       return { ...state, isSaving: action.value };
+    case 'MARK_SAVED':
+      return { ...state, hasEdits: false };
     default:
       return state;
   }
@@ -248,9 +265,6 @@ export default function BrandSettingsPublishingPage() {
   const getBrandsService = useAuthedService((token: string) =>
     BrandsService.getInstance(token),
   );
-  const getCredentialsService = useAuthedService((token: string) =>
-    CredentialsService.getInstance(token),
-  );
 
   const publishingConfig = brand?.agentConfig as PublishingConfig | undefined;
   const connectedCredentials = useMemo(
@@ -260,25 +274,100 @@ export default function BrandSettingsPublishingPage() {
       ),
     [brand?.credentials],
   );
-  const [publishingContexts, setPublishingContexts] = useState<
-    AccountPublishingContext[]
-  >([]);
-  const [failedCredentialIds, setFailedCredentialIds] = useState<string[]>([]);
-  const [isReadinessLoading, setIsReadinessLoading] = useState(false);
+  const connectedCredentialIds = useMemo(
+    () => connectedCredentials.map((credential) => credential.id),
+    [connectedCredentials],
+  );
+  // Readiness reads through React Query, so coming back to the page paints
+  // the last readiness at once and re-checks it in the background.
+  const readinessQuery = useAuthedQuery<
+    CredentialsService,
+    PublishingReadinessSnapshot
+  >({
+    enabled: Boolean(brandId) && connectedCredentialIds.length > 0,
+    queryFn: async (service, signal) => {
+      const results = await Promise.allSettled(
+        connectedCredentialIds.map((credentialId) =>
+          service.getPublishingContext(credentialId, 'post', signal),
+        ),
+      );
+      return {
+        contexts: results.flatMap((result) =>
+          result.status === 'fulfilled' && result.value?.account?.id
+            ? [result.value]
+            : [],
+        ),
+        failedCredentialIds: results.flatMap((result, index) =>
+          result.status === 'fulfilled' && result.value?.account?.id
+            ? []
+            : [connectedCredentialIds[index]],
+        ),
+      };
+    },
+    queryKey: publishingReadinessQueryKey(brandId, connectedCredentialIds),
+    service: (token: string) => CredentialsService.getInstance(token),
+  });
+  const { error: readinessError } = readinessQuery;
+  const hasReadiness = readinessQuery.data !== undefined;
+  useEffect(() => {
+    if (readinessError && !hasReadiness) {
+      logger.error('Failed to load publishing readiness', readinessError);
+    }
+  }, [hasReadiness, readinessError]);
+  // A failed background re-check keeps the readiness on screen.
+  const readiness =
+    readinessQuery.data ??
+    (readinessError
+      ? { contexts: [], failedCredentialIds: connectedCredentialIds }
+      : EMPTY_READINESS);
+  const publishingContexts = readiness.contexts;
+  const failedCredentialIds = readiness.failedCredentialIds;
+  const isReadinessLoading = readinessQuery.isLoading;
 
   const [state, dispatch] = useReducer(formReducer, undefined, () => ({
     ...buildStateFromConfig(publishingConfig),
+    hasEdits: false,
     isSaving: false,
   }));
 
   const {
     cronExpression,
     timezone,
+    hasEdits,
     isScheduleEnabled,
     isAutoPublishEnabled,
     confidenceThreshold,
     isSaving,
   } = state;
+
+  const [isCustomSchedule, setIsCustomSchedule] = useState(
+    () =>
+      resolveSchedulePresetValue(
+        publishingConfig?.schedule?.cronExpression ?? '',
+      ) === CUSTOM_SCHEDULE_VALUE,
+  );
+
+  // The config the form was last seeded from. The brand refreshes in the
+  // background, so fresh config re-seeds the form only while it is
+  // untouched; another brand always re-seeds it.
+  const [configSource, setConfigSource] = useState({
+    brandId,
+    publishingConfig,
+  });
+  if (
+    configSource.publishingConfig !== publishingConfig ||
+    configSource.brandId !== brandId
+  ) {
+    setConfigSource({ brandId, publishingConfig });
+    if (configSource.brandId !== brandId || !hasEdits) {
+      dispatch({ type: 'RESET', config: publishingConfig });
+      setIsCustomSchedule(
+        resolveSchedulePresetValue(
+          publishingConfig?.schedule?.cronExpression ?? '',
+        ) === CUSTOM_SCHEDULE_VALUE,
+      );
+    }
+  }
 
   // Enabling auto-publish always clears the gate, so the note reflects the
   // live toggle rather than only the last-saved config.
@@ -286,76 +375,6 @@ export default function BrandSettingsPublishingPage() {
     enabled: isAutoPublishEnabled,
     isApprovalRequired: publishingConfig?.autoPublish?.isApprovalRequired,
   });
-
-  useEffect(() => {
-    dispatch({ type: 'RESET', config: publishingConfig });
-  }, [publishingConfig]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    if (!brandId || connectedCredentials.length === 0) {
-      setPublishingContexts([]);
-      setFailedCredentialIds([]);
-      setIsReadinessLoading(false);
-      return () => controller.abort();
-    }
-
-    setPublishingContexts([]);
-    setFailedCredentialIds([]);
-    setIsReadinessLoading(true);
-
-    const loadPublishingReadiness = async () => {
-      try {
-        const service = await getCredentialsService();
-        const results = await Promise.allSettled(
-          connectedCredentials.map((credential) =>
-            service.getPublishingContext(
-              credential.id,
-              'post',
-              controller.signal,
-            ),
-          ),
-        );
-
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        setPublishingContexts(
-          results.flatMap((result) =>
-            result.status === 'fulfilled' && result.value?.account?.id
-              ? [result.value]
-              : [],
-          ),
-        );
-        setFailedCredentialIds(
-          results.flatMap((result, index) => {
-            if (result.status === 'fulfilled' && result.value?.account?.id) {
-              return [];
-            }
-
-            return [connectedCredentials[index].id];
-          }),
-        );
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          logger.error('Failed to load publishing readiness', error);
-          setFailedCredentialIds(
-            connectedCredentials.map((credential) => credential.id),
-          );
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsReadinessLoading(false);
-        }
-      }
-    };
-
-    void loadPublishingReadiness();
-
-    return () => controller.abort();
-  }, [brandId, connectedCredentials, getCredentialsService]);
 
   const handleSave = useCallback(async () => {
     if (!brandId) {
@@ -382,6 +401,9 @@ export default function BrandSettingsPublishingPage() {
           timezone: timezone.trim() || 'UTC',
         },
       });
+      // The saved values become the form's seed, so the refreshed brand
+      // re-seeds it.
+      dispatch({ type: 'MARK_SAVED' });
       await handleRefreshBrand();
       notifications.success('Brand publishing defaults saved');
     } catch (error) {
@@ -410,21 +432,6 @@ export default function BrandSettingsPublishingPage() {
     },
     [clipboardService],
   );
-
-  const [isCustomSchedule, setIsCustomSchedule] = useState(
-    () =>
-      resolveSchedulePresetValue(
-        publishingConfig?.schedule?.cronExpression ?? '',
-      ) === CUSTOM_SCHEDULE_VALUE,
-  );
-
-  useEffect(() => {
-    setIsCustomSchedule(
-      resolveSchedulePresetValue(
-        publishingConfig?.schedule?.cronExpression ?? '',
-      ) === CUSTOM_SCHEDULE_VALUE,
-    );
-  }, [publishingConfig]);
 
   const scheduleSelectValue = isCustomSchedule
     ? CUSTOM_SCHEDULE_VALUE

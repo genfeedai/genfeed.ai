@@ -380,6 +380,33 @@ describe('GhostService', () => {
       );
     });
 
+    it.each([
+      [
+        'HTTPS://myblog.ghost.io',
+        'HTTPS://myblog.ghost.io/ghost/api/admin/site/',
+      ],
+      ['myblog.ghost.io', 'https://myblog.ghost.io/ghost/api/admin/site/'],
+    ])('reads %s at %s', async (ghostUrl, endpoint) => {
+      httpService.get.mockReturnValue(
+        of(makeAxiosResponse({ site: { title: 'Blog' } })),
+      );
+
+      await service.getSiteInfo(ghostUrl, 'keyid:keysecret0123456789abcdef');
+
+      expect(httpService.get.mock.calls[0]?.[0]).toBe(endpoint);
+    });
+
+    it('returns no site when the address answers with a page instead', async () => {
+      httpService.get.mockReturnValue(of(makeAxiosResponse('<html></html>')));
+
+      const result = await service.getSiteInfo(
+        'https://myblog.com',
+        'keyid:keysecret0123456789abcdef',
+      );
+
+      expect(result).toBeUndefined();
+    });
+
     it('should log and rethrow on error', async () => {
       httpService.get.mockReturnValue(throwError(() => new Error('Not found')));
 

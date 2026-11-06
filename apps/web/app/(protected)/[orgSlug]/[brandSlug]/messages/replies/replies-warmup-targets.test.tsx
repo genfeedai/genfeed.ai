@@ -1,5 +1,15 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
+  fireEvent,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import RepliesWarmupTargets from './replies-warmup-targets';
 
@@ -21,9 +31,24 @@ const getService = () => Promise.resolve(service);
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getService,
 }));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 vi.mock('sonner', () => ({
   toast: { error: vi.fn(), message: vi.fn(), success: vi.fn() },
 }));
+
+function render(ui: ReactElement, client = createTestQueryClient()) {
+  return rtlRender(ui, { wrapper: queryClientWrapper(client) });
+}
+
+const PEER = {
+  followersCount: 4200,
+  isActive: true,
+  monitoredAccountId: 'acc-9',
+  username: 'peer',
+};
 
 const SUGGESTION = {
   engagement: 120,
@@ -88,18 +113,10 @@ describe('RepliesWarmupTargets', () => {
   });
 
   it('lists the monitored accounts and removes one', async () => {
-    service.listWarmupTargets.mockResolvedValue([
-      {
-        followersCount: 4200,
-        isActive: true,
-        monitoredAccountId: 'acc-9',
-        username: 'peer',
-      },
-    ]);
+    service.listWarmupTargets.mockResolvedValue([PEER]);
     render(<RepliesWarmupTargets brandId="brand-1" />);
 
     expect(await screen.findByText('@peer')).toBeInTheDocument();
-    expect(service.listWarmupTargets).toHaveBeenCalledWith('brand-1');
     fireEvent.click(
       screen.getByRole('button', {
         name: 'removeLabel {"username":"peer"}',
@@ -128,5 +145,38 @@ describe('RepliesWarmupTargets', () => {
     expect(
       await screen.findByRole('button', { name: 'monitoring' }),
     ).toBeDisabled();
+  });
+
+  it('lists the monitored accounts it already loaded at once when Replies is reopened', async () => {
+    service.listWarmupTargets.mockResolvedValue([PEER]);
+    const client = createTestQueryClient();
+    const firstVisit = render(
+      <RepliesWarmupTargets brandId="brand-1" />,
+      client,
+    );
+    await screen.findByText('@peer');
+    firstVisit.unmount();
+
+    service.listWarmupTargets.mockReturnValue(new Promise(() => {}));
+    render(<RepliesWarmupTargets brandId="brand-1" />, client);
+
+    expect(screen.getByText('@peer')).toBeInTheDocument();
+    expect(screen.queryByText('monitoredEmpty')).not.toBeInTheDocument();
+  });
+
+  it('never lists one brand monitored accounts under another brand', async () => {
+    service.listWarmupTargets.mockResolvedValue([PEER]);
+    const client = createTestQueryClient();
+    const firstVisit = render(
+      <RepliesWarmupTargets brandId="brand-1" />,
+      client,
+    );
+    await screen.findByText('@peer');
+    firstVisit.unmount();
+
+    service.listWarmupTargets.mockReturnValue(new Promise(() => {}));
+    render(<RepliesWarmupTargets brandId="brand-2" />, client);
+
+    expect(screen.queryByText('@peer')).not.toBeInTheDocument();
   });
 });

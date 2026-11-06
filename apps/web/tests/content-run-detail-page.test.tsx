@@ -1,8 +1,19 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { queryClientWrapper } from '@app-tests/query-client.harness';
+import {
+  fireEvent,
+  render as renderView,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ContentRunDetailPage from '@/features/content-runs/detail/content-run-detail';
+
+/** The run reads through React Query; each render gets a fresh cache. */
+function render(ui: ReactElement) {
+  return renderView(ui, { wrapper: queryClientWrapper() });
+}
 
 const findOne = vi.fn();
 const createRemixPack = vi.fn();
@@ -12,6 +23,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     createRemixPack,
     findOne,
   }),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -93,7 +109,7 @@ describe('ContentRunDetailPage', () => {
     render(<ContentRunDetailPage runId="run-1" />);
 
     await waitFor(() => {
-      expect(findOne).toHaveBeenCalledWith('run-1');
+      expect(findOne).toHaveBeenCalledWith('run-1', expect.any(AbortSignal));
     });
 
     expect(

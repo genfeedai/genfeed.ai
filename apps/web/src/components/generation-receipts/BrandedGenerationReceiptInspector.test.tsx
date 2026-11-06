@@ -1,3 +1,8 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+
 const hash = `sha256:${'a'.repeat(64)}`;
 const time = '2026-10-01T00:00:00.000Z';
 function receipt() {
@@ -55,7 +60,13 @@ function publicReceipt() {
 }
 
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -67,6 +78,16 @@ const mocks = vi.hoisted(() => {
   };
   return { service, getService: async () => service };
 });
+
+function render(ui: ReactElement, client = createTestQueryClient()) {
+  return rtlRender(ui, { wrapper: queryClientWrapper(client) });
+}
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));

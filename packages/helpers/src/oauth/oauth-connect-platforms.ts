@@ -1,6 +1,7 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import {
+  DevIcon,
   FacebookIcon,
   GhostIcon,
   GoogleColorIcon,
@@ -11,7 +12,7 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import { Radio, Star } from 'lucide-react';
+import { Newspaper, Radio, Star } from 'lucide-react';
 
 export type OAuthConnectPlatformCategoryId =
   | 'social'
@@ -35,7 +36,10 @@ export interface OAuthConnectPlatformCategory {
 
 export interface OAuthConnectPlatform {
   category: OAuthConnectPlatformCategoryId;
-  /** Defaults to `oauth`. Only the brand Connect Account modal renders `api_key`. */
+  /**
+   * Defaults to `oauth`. Only the brand Connect Account modal renders
+   * `api_key`: it opens a key form (plus the site URL for Ghost).
+   */
   connectMethod?: OAuthConnectMethod;
   /**
    * Unique list key when multiple tiles share one {@link platform}
@@ -130,11 +134,14 @@ export const OAUTH_CONNECT_PLATFORM_CATEGORIES: OAuthConnectPlatformCategory[] =
 /**
  * Platforms with a brand `POST services/{path}/connect` endpoint that the
  * settings Connect button actually calls. OAuth tiles redirect to the provider;
- * `connectMethod: 'api_key'` tiles (Ghost) open a site URL + key form instead.
+ * `connectMethod: 'api_key'` tiles (Ghost, dev.to, Beehiiv) open a key form
+ * instead.
  *
  * Not listed:
  * - Mastodon, Snapchat, Pinterest, Shopify, WordPress, TikTok Ads (API-only),
  *   do not have a UI-compatible OAuth connect route.
+ * - Medium: its connect route is OAuth (client id + redirect), not a key, so
+ *   it cannot use the key form; an OAuth tile for it is a separate decision.
  * - Reddit has a route, but Genfeed does not have approved Reddit Data API
  *   access, so exposing it would send customers into a non-functional flow.
  * - X Ads remains hidden until its OAuth 1.0a migration is complete (#3590).
@@ -222,6 +229,25 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     label: 'Ghost',
     platform: CredentialPlatform.GHOST,
     servicePath: 'ghost',
+  },
+  {
+    category: 'publishing',
+    connectMethod: 'api_key',
+    Icon: DevIcon,
+    iconClassName: 'text-foreground',
+    label: 'dev.to',
+    platform: CredentialPlatform.DEV_TO,
+    servicePath: 'devto',
+  },
+  {
+    category: 'publishing',
+    connectMethod: 'api_key',
+    // Same mark the platform badge uses for Beehiiv.
+    Icon: Newspaper,
+    iconClassName: 'text-platform-beehiiv',
+    label: 'Beehiiv',
+    platform: CredentialPlatform.BEEHIIV,
+    servicePath: 'beehiiv',
   },
   {
     category: 'ads',

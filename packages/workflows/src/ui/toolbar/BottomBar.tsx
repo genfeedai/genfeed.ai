@@ -372,7 +372,7 @@ export function BottomBar() {
   const isActive = isRunning || isBatchRunning;
 
   return (
-    <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2">
+    <div className="absolute bottom-5 left-1/2 z-50 -translate-x-1/2">
       <div className="flex items-center gap-1 bg-muted/90 px-2 py-1 shadow-dropdown backdrop-blur-sm">
         <BatchCounter
           batchCount={batchCount}

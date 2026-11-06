@@ -1,10 +1,27 @@
+import { queryClientWrapper } from '@app-tests/query-client.harness';
+import type { ReactElement } from 'react';
+
 // @vitest-environment jsdom
-'use client';
+('use client');
 
 import { PersonaAvailabilityMode } from '@genfeedai/contracts';
-import { fireEvent, render, screen } from '@testing-library/react';
+import {
+  fireEvent,
+  render as renderInDom,
+  screen,
+} from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import CharacterCreateDialog from './character-create-dialog';
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
+/** Each spec gets its own query cache, like a fresh page load. */
+function render(ui: ReactElement) {
+  return renderInDom(ui, { wrapper: queryClientWrapper() });
+}
 
 vi.mock('next/image', () => ({
   default: ({
