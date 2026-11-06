@@ -292,8 +292,10 @@
     },
     "consent": {
       "brand": {
-        "allBrands": "All brands (organization-wide, no default brand)",
-        "label": "Brand"
+        "allBrands": "All brands",
+        "allBrandsDescription": "{clientName} can work in every brand in this organization.",
+        "label": "Brand",
+        "onlyBrandDescription": "{clientName} can only see and change {brand}. Your other brands stay hidden."
       },
       "organization": {
         "empty": "You need an active organization membership to authorize access.",

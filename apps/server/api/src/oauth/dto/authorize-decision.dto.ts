@@ -50,8 +50,9 @@ export class OAuthAuthorizeDecisionDto {
   organizationId?: string;
 
   /**
-   * Brand this connection generates for by default. Omit for organization-wide
-   * access with no default brand; it must belong to `organizationId`.
+   * The only brand this connection may reach, and its default. Omit to reach
+   * every brand in the organization; it must belong to `organizationId` and
+   * cannot be combined with `allowOrganizationSwitching`.
    */
   @IsOptional()
   @IsString()

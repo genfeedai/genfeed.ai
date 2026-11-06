@@ -123,7 +123,8 @@ export default function OAuthConsentContent() {
   >([]);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState('');
   const [brands, setBrands] = useState<{ id: string; label: string }[]>([]);
-  // Empty = no default brand: organization-wide reads only.
+  // Empty = every brand in the organization; a picked brand limits the
+  // connection to that one brand.
   const [selectedBrandId, setSelectedBrandId] = useState('');
   const [isLoadingBrands, setIsLoadingBrands] = useState(false);
   const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(true);
@@ -158,10 +159,12 @@ export default function OAuthConsentContent() {
     [accessLevels, accessLevel],
   );
   // Only the full request carries an org owner's admin standing (the server
-  // adds it for a full preset grant), so a narrower level never shows it.
+  // adds it for a full preset grant), so a narrower level or a connection
+  // limited to one brand never shows it.
   const showAdminNotice =
     !isClaude &&
     accessLevel === 'full' &&
+    !selectedBrandId &&
     API_KEY_SCOPE_PRESETS.mcp.every((scope) => requestedScopes.includes(scope));
   // `state` is optional (RFC 6749 §4.1.1); PKCE is the CSRF protection.
   const requiredParams = [
@@ -228,9 +231,8 @@ export default function OAuthConsentContent() {
     translateOrganization,
   ]);
 
-  // Offer the selected organization's brands, starting on the one the user
-  // already has selected there, so an MCP client can generate without being
-  // told which brand to use.
+  // Offer the selected organization's brands. The choice starts on "All
+  // brands"; picking one limits the connection to it.
   useEffect(() => {
     if (
       !selectedOrganizationId ||
@@ -257,22 +259,11 @@ export default function OAuthConsentContent() {
         if (controller.signal.aborted) {
           return;
         }
-        const options = available.map((brand) => ({
-          id: brand.id,
-          label: brand.label,
-        }));
-        setBrands(options);
-        const currentBrandId = organizations.find(
-          (organization) => organization.id === selectedOrganizationId,
-        )?.brand?.id;
-        setSelectedBrandId(
-          options.some((brand) => brand.id === currentBrandId)
-            ? (currentBrandId ?? '')
-            : (options[0]?.id ?? ''),
+        setBrands(
+          available.map((brand) => ({ id: brand.id, label: brand.label })),
         );
       } catch {
-        // No brand list: stay on "all brands"; the connection still works for
-        // organization-wide reads and for calls that name a brand.
+        // No brand list: stay on "All brands".
       } finally {
         if (!controller.signal.aborted) {
           setIsLoadingBrands(false);
@@ -281,7 +272,7 @@ export default function OAuthConsentContent() {
     }
     void loadBrands();
     return () => controller.abort();
-  }, [getToken, organizations, selectedOrganizationId]);
+  }, [getToken, selectedOrganizationId]);
 
   useEffect(
     () => () => {
@@ -301,6 +292,8 @@ export default function OAuthConsentContent() {
     window.addEventListener('pageshow', handlePageShow);
     return () => window.removeEventListener('pageshow', handlePageShow);
   }, []);
+
+  const selectedBrand = brands.find((brand) => brand.id === selectedBrandId);
 
   // "All" needs a second organization and a tool set that can use it.
   const canChooseAllOrganizations = !isClaude && organizations.length > 1;
@@ -526,20 +519,35 @@ export default function OAuthConsentContent() {
                 )}
 
                 {selectedOrganizationId && brands.length > 0 && (
-                  <SelectField
-                    isDisabled={consentState.isSubmitting || isLoadingBrands}
-                    label={translateBrand('label')}
-                    name="consent-brand"
-                    value={selectedBrandId}
-                    onChange={(event) => setSelectedBrandId(event.target.value)}
-                  >
-                    <option value="">{translateBrand('allBrands')}</option>
-                    {brands.map((brand) => (
-                      <option key={brand.id} value={brand.id}>
-                        {brand.label}
-                      </option>
-                    ))}
-                  </SelectField>
+                  <div className="space-y-1.5">
+                    <SelectField
+                      isDisabled={consentState.isSubmitting || isLoadingBrands}
+                      isTextCaseKept
+                      label={translateBrand('label')}
+                      name="consent-brand"
+                      value={selectedBrandId}
+                      onChange={(event) =>
+                        setSelectedBrandId(event.target.value)
+                      }
+                    >
+                      <option value="">{translateBrand('allBrands')}</option>
+                      {brands.map((brand) => (
+                        <option key={brand.id} value={brand.id}>
+                          {brand.label}
+                        </option>
+                      ))}
+                    </SelectField>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedBrand
+                        ? translateBrand('onlyBrandDescription', {
+                            brand: selectedBrand.label,
+                            clientName,
+                          })
+                        : translateBrand('allBrandsDescription', {
+                            clientName,
+                          })}
+                    </p>
+                  </div>
                 )}
 
                 {availableAccessLevels.length > 1 && (
