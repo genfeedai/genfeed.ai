@@ -223,7 +223,7 @@ function VideoStitchNodeComponent(props: NodeProps) {
             htmlFor={`draft-quality-${id}`}
             className="text-sm text-foreground cursor-pointer flex items-center gap-1 font-normal leading-normal"
           >
-            <Zap className="size-3" />
+            <Zap className="size-3.5" />
             Draft Quality
           </Label>
           {nodeData.outputQuality === 'draft' && (
@@ -258,7 +258,7 @@ function VideoStitchNodeComponent(props: NodeProps) {
               disabled={nodeData.status === 'processing'}
               className="absolute top-1 right-1 size-6"
             >
-              <RefreshCw className="size-3" />
+              <RefreshCw className="size-3.5" />
             </Button>
           </div>
         )}

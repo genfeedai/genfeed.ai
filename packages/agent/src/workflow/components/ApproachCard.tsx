@@ -45,7 +45,7 @@ function ApproachCardInner({
           )}
           {isSelected && (
             <span className="inline-flex items-center justify-center size-5 rounded-full bg-info/10">
-              <Check className="size-3 text-info" />
+              <Check className="size-3.5 text-info" />
             </span>
           )}
         </div>
@@ -63,7 +63,7 @@ function ApproachCardInner({
               key={pro}
               className="flex items-start gap-1.5 text-xs text-foreground/60"
             >
-              <Plus className="size-3 text-success shrink-0 mt-0.5" />
+              <Plus className="size-3.5 text-success shrink-0 mt-0.5" />
               <span>{pro}</span>
             </div>
           ))}
@@ -77,7 +77,7 @@ function ApproachCardInner({
               key={con}
               className="flex items-start gap-1.5 text-xs text-foreground/60"
             >
-              <Minus className="size-3 text-destructive shrink-0 mt-0.5" />
+              <Minus className="size-3.5 text-destructive shrink-0 mt-0.5" />
               <span>{con}</span>
             </div>
           ))}

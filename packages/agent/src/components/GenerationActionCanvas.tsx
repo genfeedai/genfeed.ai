@@ -141,7 +141,7 @@ export function GenerationActionCanvas({
             onClick={onOpenCanvas}
             className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-2xs font-medium text-primary hover:bg-primary/10"
           >
-            <Paintbrush className="size-3" />
+            <Paintbrush className="size-3.5" />
             {translate('expand')}
           </Button>
         ) : null}
@@ -195,7 +195,7 @@ export function GenerationActionCanvas({
                       })
                 }
               >
-                {isSelected ? <Check className="size-3" /> : null}
+                {isSelected ? <Check className="size-3.5" /> : null}
                 {resolvedSelectionLabel}
               </Button>
 
@@ -208,7 +208,7 @@ export function GenerationActionCanvas({
                   className="flex flex-1 items-center justify-center gap-0.5 px-1 py-1 text-2xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
                   title={translate('openLibraryTitle')}
                 >
-                  <ImageIcon className="size-3" />
+                  <ImageIcon className="size-3.5" />
                   {translate('library')}
                 </Link>
                 {asset.type === 'video' ? (
@@ -217,7 +217,7 @@ export function GenerationActionCanvas({
                     className="flex flex-1 items-center justify-center gap-0.5 border-l border-border px-1 py-1 text-2xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
                     title={translate('openEditorTitle')}
                   >
-                    <ExternalLink className="size-3" />
+                    <ExternalLink className="size-3.5" />
                     {translate('editor')}
                   </Link>
                 ) : null}

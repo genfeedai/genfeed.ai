@@ -62,6 +62,7 @@ const DESIGN_SYSTEM_BASELINE_PATH = path.join(
 export type DesignSystemFindingKind =
   | 'dark-only-palette-text'
   | 'off-ladder-opacity'
+  | 'off-scale-icon-size'
   | 'raw-chrome-color'
   | 'sub-11-text'
   | 'tight-tracking'
@@ -343,6 +344,37 @@ function findDarkOnlyPaletteTextFindings(): DesignSystemFinding[] {
 }
 
 const CONTROL_HEIGHT_TOKENS = new Set(['h-6', 'h-7']);
+// Icons ride the 14 / 16 / 20px scale (size-3.5 / size-4 / size-5).
+const OFF_SCALE_ICON_SIZE_TOKENS = new Set([
+  'size-3',
+  'h-3',
+  'w-3',
+  'size-6',
+  'h-6',
+  'w-6',
+]);
+
+function lucideIconNames(sourceFile: ts.SourceFile): Set<string> {
+  const names = new Set<string>();
+  for (const statement of sourceFile.statements) {
+    if (
+      !ts.isImportDeclaration(statement) ||
+      !ts.isStringLiteral(statement.moduleSpecifier) ||
+      statement.moduleSpecifier.text !== 'lucide-react'
+    ) {
+      continue;
+    }
+    const bindings = statement.importClause?.namedBindings;
+    if (bindings && ts.isNamedImports(bindings)) {
+      for (const element of bindings.elements) {
+        if (!element.isTypeOnly) {
+          names.add(element.name.text);
+        }
+      }
+    }
+  }
+  return names;
+}
 const CONTROL_COMPONENT_NAME_PATTERN =
   /(?:Action|Button|Combobox|CommandItem|Control|Input|Link|MenuItem|SearchBar|Searchbar|Select|Tab|TabsTrigger|Textarea|Toggle|Trigger)$/u;
 const CONTROL_SOURCE_FILE_PATTERN =
@@ -358,6 +390,7 @@ const PACKAGE_UI_EXTENSIONS = new Set(['.js', '.jsx', '.ts', '.tsx']);
 const DESIGN_SYSTEM_FINDING_KINDS: readonly DesignSystemFindingKind[] = [
   'dark-only-palette-text',
   'off-ladder-opacity',
+  'off-scale-icon-size',
   'raw-chrome-color',
   'sub-11-text',
   'tight-tracking',
@@ -560,6 +593,7 @@ export function findPackageUiGuardFindings(
   const findings: DesignSystemFinding[] = [];
   const findingKeys = new Set<string>();
   const isUiPackageFile = file.startsWith('packages/ui/');
+  const iconNames = lucideIconNames(sourceFile);
 
   const addFinding = (
     literal: ts.StringLiteralLike | TemplatePartNode,
@@ -617,10 +651,17 @@ export function findPackageUiGuardFindings(
           attribute.name.getText() === 'className',
       );
       if (className?.initializer) {
-        scanLiterals(
-          literalNodesWithin(className.initializer),
-          isControlElement(node),
-        );
+        const literals = literalNodesWithin(className.initializer);
+        scanLiterals(literals, isControlElement(node));
+        if (iconNames.has(node.tagName.getText(sourceFile))) {
+          for (const literal of literals) {
+            for (const token of classTokens(literal.text)) {
+              if (OFF_SCALE_ICON_SIZE_TOKENS.has(baseClassToken(token))) {
+                addFinding(literal, 'off-scale-icon-size', token);
+              }
+            }
+          }
+        }
       }
     } else if (
       ts.isStringLiteralLike(node) ||
@@ -849,9 +890,11 @@ export function formatDesignSystemRegressions(
               ? 'use h-control-sm (the 32px minimum control-scale token)'
               : finding.kind === 'tight-tracking'
                 ? 'use tracking-tight (-0.02em, the tightest tracking DESIGN.md allows)'
-                : finding.kind === 'off-ladder-opacity'
-                  ? 'use an opacity stop from the ladder: /5 /10 /20 /40 /50 /60 /70 /80 /90 (or /0, /100)'
-                  : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
+                : finding.kind === 'off-scale-icon-size'
+                  ? 'use an icon step: size-3.5 (14px), size-4 (16px) or size-5 (20px)'
+                  : finding.kind === 'off-ladder-opacity'
+                    ? 'use an opacity stop from the ladder: /5 /10 /20 /40 /50 /60 /70 /80 /90 (or /0, /100)'
+                    : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
       return `${finding.file}:${finding.line}: ${finding.token} — ${remedy}\n  ${finding.source}`;
     })
     .join('\n');

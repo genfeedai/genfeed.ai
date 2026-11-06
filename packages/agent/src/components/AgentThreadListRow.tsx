@@ -239,7 +239,7 @@ export function AgentThreadListRow({
               )}
               {conv.isPinned ? (
                 <Pin
-                  className="size-3 shrink-0 -rotate-45 text-muted-foreground"
+                  className="size-3.5 shrink-0 -rotate-45 text-muted-foreground"
                   aria-label={translate('pinned')}
                 />
               ) : null}

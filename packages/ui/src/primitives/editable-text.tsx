@@ -183,7 +183,7 @@ function EditableText({
             <Pencil
               aria-hidden="true"
               className={cn(
-                'size-3 shrink-0 text-muted-foreground transition-opacity',
+                'size-3.5 shrink-0 text-muted-foreground transition-opacity',
                 hoverRevealClassName({
                   focus: 'group-visible',
                   isInteractive: false,

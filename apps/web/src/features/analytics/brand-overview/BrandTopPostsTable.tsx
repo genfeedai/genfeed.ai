@@ -83,7 +83,7 @@ export default function BrandTopPostsTable({
                     />
                   ) : (
                     <div className="size-16 bg-muted flex items-center justify-center">
-                      <Video className="size-6 text-muted-foreground" />
+                      <Video className="size-5 text-muted-foreground" />
                     </div>
                   )}
                   <div className="max-w-xs">

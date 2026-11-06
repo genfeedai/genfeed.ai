@@ -53,7 +53,7 @@ export default function ViewMenu<TView extends string = ViewType>({
           withWrapper={false}
         >
           {trigger === 'label' ? <span>{active.label}</span> : null}
-          <ChevronDown aria-hidden="true" className="!size-3 opacity-60" />
+          <ChevronDown aria-hidden="true" className="!size-3.5 opacity-60" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">

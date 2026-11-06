@@ -111,7 +111,7 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
               'h-auto min-w-0 max-w-full text-left normal-case tracking-normal',
               isCards
                 ? cn(
-                    'flex min-h-[5.5rem] w-full flex-col items-start rounded-2xl border border-border bg-background text-foreground/90 shadow-md shadow-black/20 transition-colors hover:border-border/80 hover:bg-card',
+                    'flex min-h-[5.5rem] w-full flex-col items-start rounded-card border border-border bg-background text-foreground/90 shadow-md shadow-black/20 transition-colors hover:border-border/80 hover:bg-card',
                     thumbnailUrl
                       ? 'gap-0 overflow-hidden'
                       : 'gap-2.5 px-3.5 py-3.5',

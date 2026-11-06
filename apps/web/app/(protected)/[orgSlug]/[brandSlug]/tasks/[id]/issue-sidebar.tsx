@@ -132,9 +132,9 @@ export default function IssueSidebar({
                     )}
                   >
                     {entity.entityModel === 'Ingredient' ? (
-                      <Image className="size-3" />
+                      <Image className="size-3.5" />
                     ) : (
-                      <FileText className="size-3" />
+                      <FileText className="size-3.5" />
                     )}
                   </span>
                   <div className="min-w-0 flex-1">

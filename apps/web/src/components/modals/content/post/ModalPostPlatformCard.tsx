@@ -166,7 +166,7 @@ export default function ModalPostPlatformCard({
             }
             isDisabled={!isEnabled || isLoading || isGeneratingDesc}
             isLoading={isGeneratingDesc}
-            icon={<Sparkles className="size-3" />}
+            icon={<Sparkles className="size-3.5" />}
             label={isGeneratingDesc ? 'Generating…' : 'Generate'}
           />
         </div>

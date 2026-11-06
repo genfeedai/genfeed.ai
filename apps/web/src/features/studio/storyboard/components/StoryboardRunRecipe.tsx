@@ -210,7 +210,7 @@ export default function StoryboardRunRecipe({
                   <span className="max-w-40 truncate">{name}</span>
                   <Button
                     ariaLabel={translate('removeReference', { id: name })}
-                    icon={<X className="size-3" />}
+                    icon={<X className="size-3.5" />}
                     isDisabled={isDisabled}
                     onClick={() =>
                       patch({

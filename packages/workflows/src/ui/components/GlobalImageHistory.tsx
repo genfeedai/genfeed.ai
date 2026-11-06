@@ -157,7 +157,7 @@ function HistorySidebar({
             className="size-5 hover:bg-muted"
             title="Close"
           >
-            <X className="size-3" />
+            <X className="size-3.5" />
           </Button>
         </div>
       </div>

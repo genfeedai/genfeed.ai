@@ -288,7 +288,7 @@ function ClipperProjectControls({
       <div className="w-full">
         <div className="mb-8">
           <div className="flex items-center gap-3">
-            <Search className="size-6 text-primary" />
+            <Search className="size-5 text-primary" />
             <h2 className="text-2xl font-semibold text-foreground">
               Review Highlights
             </h2>

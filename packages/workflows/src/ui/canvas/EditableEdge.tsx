@@ -173,7 +173,7 @@ function EditableEdgeComponent({
           className="pointer-events-none"
         >
           <div className="flex items-center justify-center size-5 rounded-full bg-warning text-warning-foreground shadow-sm">
-            <Pause className="size-3" />
+            <Pause className="size-3.5" />
           </div>
         </foreignObject>
       )}

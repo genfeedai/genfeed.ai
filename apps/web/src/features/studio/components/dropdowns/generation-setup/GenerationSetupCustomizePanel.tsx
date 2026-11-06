@@ -83,7 +83,7 @@ export default function GenerationSetupCustomizePanel({
             <Button
               ariaLabel={translate('resetModel')}
               className="size-6 p-0"
-              icon={<Undo2 className="size-3" />}
+              icon={<Undo2 className="size-3.5" />}
               onClick={() => {
                 if (isModelKeyOverridden) onResetField('modelKey');
                 if (isPriorityOverridden) onResetField('prioritize');
@@ -145,7 +145,7 @@ export default function GenerationSetupCustomizePanel({
               <Button
                 ariaLabel={translate('unpinPreset')}
                 className="size-6 shrink-0 p-0"
-                icon={<X className="size-3" />}
+                icon={<X className="size-3.5" />}
                 isDisabled={isDisabled}
                 onClick={onClearPreset}
                 size={ButtonSize.ICON}

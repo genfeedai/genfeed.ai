@@ -70,7 +70,7 @@ export function OverviewTrendsPanel({
             <Skeleton
               // biome-ignore lint/suspicious/noArrayIndexKey: Fixed layout slots have positional identity and no item state.
               key={index}
-              className="h-10 rounded-[0.75rem]"
+              className="h-10 rounded-2xl"
             />
           ))}
         </div>

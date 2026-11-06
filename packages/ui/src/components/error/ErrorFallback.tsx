@@ -45,7 +45,7 @@ export function ErrorFallback({
           compact ? 'size-8' : 'mb-4 size-12',
         )}
       >
-        <TriangleAlert className="size-6 text-destructive" />
+        <TriangleAlert className="size-5 text-destructive" />
       </div>
       <div className={compact ? 'min-w-0 flex-1' : undefined}>
         <h3

@@ -330,7 +330,7 @@ function MotionOutputPreview({
         disabled={isProcessing}
         className="absolute top-1 right-1 size-6"
       >
-        <RefreshCw className="size-3" />
+        <RefreshCw className="size-3.5" />
       </Button>
     </div>
   );
@@ -349,7 +349,7 @@ function MotionRequirementHint({
     <>
       {!canGenerate && !isProcessing && (
         <div className="text-xs text-muted-foreground flex items-center gap-1">
-          <CircleAlert className="size-3" />
+          <CircleAlert className="size-3.5" />
           {isVideoTransferMode
             ? 'Connect an image and motion video'
             : 'Connect an image to generate'}
@@ -358,7 +358,7 @@ function MotionRequirementHint({
 
       {isVideoTransferMode && (
         <div className="text-xs text-muted-foreground flex items-center gap-1">
-          <Video className="size-3" />
+          <Video className="size-3.5" />
           Motion video: 3-30 seconds
         </div>
       )}
@@ -457,7 +457,7 @@ function MotionControlNodeComponent(props: NodeProps) {
             onClick={handleExpand}
             title="Expand preview"
           >
-            <Expand className="size-3" />
+            <Expand className="size-3.5" />
           </Button>
         )}
         {nodeData.status === 'processing' ? (

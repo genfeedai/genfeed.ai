@@ -125,7 +125,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
           disabled={nodeData.status === 'processing' || !canGenerate}
           title="Regenerate"
         >
-          <RefreshCw className="size-3" />
+          <RefreshCw className="size-3.5" />
         </Button>
       ) : null,
     [nodeData.outputAudio, nodeData.status, canGenerate, handleGenerate],
@@ -301,7 +301,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
         {/* Help text for required input */}
         {!canGenerate && nodeData.status !== 'processing' && (
           <div className="text-xs text-muted-foreground flex items-center gap-1">
-            <AudioLines className="size-3" />
+            <AudioLines className="size-3.5" />
             Connect text input to generate speech
           </div>
         )}

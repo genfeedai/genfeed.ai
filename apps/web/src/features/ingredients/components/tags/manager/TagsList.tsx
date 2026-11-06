@@ -45,7 +45,7 @@ export default function TagsList({
               className="hover:opacity-70 transition-opacity"
               ariaLabel={`Remove tag ${tagDisplay.label}`}
             >
-              <X className="size-3" />
+              <X className="size-3.5" />
             </Button>
           )}
         </Badge>

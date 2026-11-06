@@ -20,7 +20,7 @@ export default function ProductBenefits({ benefits }: Props) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <div className="flex items-start gap-2 mb-2">
-                  <X className="size-6 text-destructive mt-1 flex-shrink-0" />
+                  <X className="size-5 text-destructive mt-1 flex-shrink-0" />
                   <Text weight="bold" className="text-destructive">
                     Problem
                   </Text>
@@ -31,7 +31,7 @@ export default function ProductBenefits({ benefits }: Props) {
               </div>
               <div>
                 <div className="flex items-start gap-2 mb-2">
-                  <Check className="size-6 text-success mt-1 flex-shrink-0" />
+                  <Check className="size-5 text-success mt-1 flex-shrink-0" />
                   <Text weight="bold" className="text-success">
                     Solution
                   </Text>

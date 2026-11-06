@@ -427,7 +427,7 @@ export function SchedulePostCard({
           className="text-2xs uppercase tracking-wider text-muted-foreground"
           htmlFor="schedule-post-date-time"
         >
-          <Clock className="mr-1 inline size-3" />
+          <Clock className="mr-1 inline size-3.5" />
           Date & Time
         </Label>
         <Input

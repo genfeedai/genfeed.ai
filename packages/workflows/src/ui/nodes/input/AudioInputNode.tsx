@@ -191,7 +191,7 @@ function AudioInputNodeComponent(props: NodeProps) {
               onClick={handleRemoveAudio}
               className="absolute -right-1 -top-1 size-5"
             >
-              <X className="size-3" />
+              <X className="size-3.5" />
             </Button>
           </div>
           <div className="text-2xs text-muted-foreground truncate">

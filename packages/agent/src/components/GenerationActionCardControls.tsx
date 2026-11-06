@@ -266,7 +266,7 @@ export function GenerationActionCardControls({
                 className={cn('w-44 justify-start', SHELL_CONTROL_HEIGHT_CLASS)}
                 title={modelsError ?? 'No models available for this generation'}
               >
-                <RefreshCw className="mr-2 h-3 w-3 shrink-0" />
+                <RefreshCw className="mr-2 size-3.5 shrink-0" />
                 <span className="truncate text-xs">
                   {modelsError ? 'Models failed — retry' : 'No models — retry'}
                 </span>

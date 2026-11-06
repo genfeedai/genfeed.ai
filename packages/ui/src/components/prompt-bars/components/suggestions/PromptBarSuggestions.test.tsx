@@ -134,7 +134,7 @@ describe('PromptBarSuggestions', () => {
     );
 
     const button = screen.getByRole('button', { name: 'Create a plan' });
-    expect(button.className).toContain('rounded-2xl');
+    expect(button.className).toContain('rounded-card');
     expect(button.className).toContain('flex-col');
   });
 

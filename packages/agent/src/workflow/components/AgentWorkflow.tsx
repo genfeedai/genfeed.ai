@@ -123,7 +123,7 @@ function CompleteView() {
   return (
     <div className="flex flex-col items-center justify-center py-8 gap-3">
       <div className="size-12 rounded-full bg-success/10 flex items-center justify-center">
-        <Sparkles className="size-6 text-success" />
+        <Sparkles className="size-5 text-success" />
       </div>
       <p className="text-sm font-medium text-success">Workflow complete</p>
       <p className="text-xs text-muted-foreground text-center max-w-xs">
@@ -174,7 +174,7 @@ function AgentWorkflowInner() {
                 'border border-warning/20 rounded-lg hover:bg-warning/10',
               )}
             >
-              <ChevronRight className="size-3" />
+              <ChevronRight className="size-3.5" />
               Force advance
             </Button>
           )}
@@ -187,7 +187,7 @@ function AgentWorkflowInner() {
                 onClick={() => advance('user')}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-success border border-success/20 rounded-lg hover:bg-success/10 transition-colors"
               >
-                <ChevronRight className="size-3" />
+                <ChevronRight className="size-3.5" />
                 Advance
               </Button>
             )}

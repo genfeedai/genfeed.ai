@@ -71,7 +71,7 @@ export function TrendingTopicsCard({
                 }
                 className="ml-2 flex shrink-0 items-center gap-1 rounded bg-warning/10 px-2 py-1 text-2xs font-medium text-warning transition-colors hover:bg-warning/10   "
               >
-                <SquarePen className="size-3" />
+                <SquarePen className="size-3.5" />
                 Create Post
               </Button>
             </div>

@@ -615,7 +615,7 @@ export default function StudioPlaygroundCard({
               <div className="pointer-events-none absolute top-1.5 left-1.5 z-10 flex items-center gap-1">
                 {isVideo ? (
                   <Badge
-                    icon={<Film aria-hidden="true" className="size-3" />}
+                    icon={<Film aria-hidden="true" className="size-3.5" />}
                     variant="secondary"
                   >
                     <span className="sr-only">{translate('videoBadge')}</span>
@@ -734,9 +734,9 @@ export default function StudioPlaygroundCard({
               <Badge
                 icon={
                   job.type === 'voice' ? (
-                    <Mic aria-hidden="true" className="size-3" />
+                    <Mic aria-hidden="true" className="size-3.5" />
                   ) : (
-                    <Music aria-hidden="true" className="size-3" />
+                    <Music aria-hidden="true" className="size-3.5" />
                   )
                 }
                 variant="secondary"

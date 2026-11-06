@@ -52,7 +52,7 @@ export default function GenerationSetupRatioGrid({
               >
                 <span
                   className={cn(
-                    'rounded-[3px] border-[1.5px] border-current',
+                    'rounded-xs border-[1.5px] border-current',
                     !parsed && 'border-dashed',
                   )}
                   style={{

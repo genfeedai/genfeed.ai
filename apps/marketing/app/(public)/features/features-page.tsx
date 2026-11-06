@@ -93,7 +93,7 @@ export default function FeaturesPage(): React.ReactElement {
                       {feature.description}
                     </p>
                     <span className="mt-auto text-2xs font-black uppercase tracking-widest flex items-center gap-2 hover:gap-4 transition-all cursor-pointer">
-                      Learn More <ArrowRight className="size-3" />
+                      Learn More <ArrowRight className="size-3.5" />
                     </span>
                   </div>
                 );

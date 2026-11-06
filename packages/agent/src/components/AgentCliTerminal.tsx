@@ -794,7 +794,7 @@ export function AgentCliTerminalControls({
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
                 >
-                  <X className="size-3" />
+                  <X className="size-3.5" />
                 </Button>
               </div>
             ))}
@@ -839,7 +839,7 @@ export function AgentCliTerminalControls({
             <span className="hidden max-w-[5rem] truncate lg:inline">
               {activePreset.label}
             </span>
-            <ChevronDown className="size-3 text-muted-foreground" />
+            <ChevronDown className="size-3.5 text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">

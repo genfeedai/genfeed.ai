@@ -93,7 +93,7 @@ export default function GenerationSetupTypeBar({
               <ChevronDown
                 aria-hidden="true"
                 className={cn(
-                  'size-3 text-muted-foreground',
+                  'size-3.5 text-muted-foreground',
                   PROMPT_BAR_CHIP_LABEL_CLASS,
                 )}
               />

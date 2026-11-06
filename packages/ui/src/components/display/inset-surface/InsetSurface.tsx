@@ -33,7 +33,7 @@ export default function InsetSurface({
     <div
       {...props}
       className={cn(
-        'rounded-2xl',
+        'rounded-md',
         DENSITY_CLASSES[density],
         TONE_CLASSES[tone],
         className,

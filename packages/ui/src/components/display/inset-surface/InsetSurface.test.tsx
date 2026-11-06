@@ -8,7 +8,7 @@ describe('InsetSurface', () => {
     const { container } = render(<InsetSurface>Body</InsetSurface>);
     const surface = container.firstElementChild;
 
-    expect(surface).toHaveClass('rounded-2xl');
+    expect(surface).toHaveClass('rounded-md');
     expect(surface).toHaveClass('shadow-border');
     expect(surface).toHaveClass('bg-foreground/5');
     expect(surface).not.toHaveClass('bg-white/5');

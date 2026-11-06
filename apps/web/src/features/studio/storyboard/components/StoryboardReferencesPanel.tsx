@@ -76,7 +76,7 @@ export default function StoryboardReferencesPanel({
                   ariaLabel={translate('removeReference', {
                     title: reference.title,
                   })}
-                  icon={<X className="size-3" />}
+                  icon={<X className="size-3.5" />}
                   size={ButtonSize.ICON}
                   variant={ButtonVariant.GHOST}
                   onClick={reference.onRemove}

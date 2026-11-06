@@ -27,7 +27,7 @@ export default function IngredientTextTile(props: IngredientTileProps) {
       <div className="flex flex-col gap-2 p-3 pt-10 pb-10">
         <div className={`absolute top-2 left-2 ${TYPE_BADGE_CLASS}`}>
           <Badge
-            icon={<FileText aria-hidden="true" className="size-3" />}
+            icon={<FileText aria-hidden="true" className="size-3.5" />}
             variant="secondary"
           >
             {getLibraryAssetTypeLabel(ingredient.category) ?? 'Text'}

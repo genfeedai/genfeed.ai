@@ -563,7 +563,7 @@ export default function LoginBetterAuth({
         title={translate('loginForm.checkEmail')}
         headingIcon={
           <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-border bg-muted text-foreground">
-            <Mail className="size-6" aria-hidden="true" />
+            <Mail className="size-5" aria-hidden="true" />
           </div>
         }
       >

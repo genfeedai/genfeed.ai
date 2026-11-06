@@ -88,7 +88,7 @@ function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          <Link className="size-3" />
+          <Link className="size-3.5" />
           URL
         </Button>
         <Button
@@ -101,7 +101,7 @@ function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          <Type className="size-3" />
+          <Type className="size-3.5" />
           Text
         </Button>
       </div>

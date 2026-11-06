@@ -185,9 +185,9 @@ export function AgentOutputsPanel({
           className,
         )}
       >
-        <div className="gen-shell-empty-state w-full max-w-sm rounded-[1.75rem] px-6 py-7">
-          <div className="gen-shell-surface mx-auto flex size-14 items-center justify-center rounded-2xl">
-            <Image className="size-6 text-muted-foreground" />
+        <div className="gen-shell-empty-state w-full max-w-sm rounded-card px-6 py-7">
+          <div className="gen-shell-surface mx-auto flex size-14 items-center justify-center rounded-lg">
+            <Image className="size-5 text-muted-foreground" />
           </div>
           <p className="mt-4 text-2xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
             Outputs
@@ -330,7 +330,7 @@ export function AgentOutputsPanel({
                   setSelectedVariantId(group.variants[0]?.id ?? null);
                 }}
                 textTransform="none"
-                className="gen-shell-surface flex w-full items-start gap-3 rounded-2xl p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                className="gen-shell-surface flex w-full items-start gap-3 rounded-card p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                 data-active={group.id === selectedGroupId ? 'true' : 'false'}
               >
                 <div className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border">

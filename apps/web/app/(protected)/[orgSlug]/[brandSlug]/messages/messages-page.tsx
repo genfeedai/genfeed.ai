@@ -770,7 +770,7 @@ export default function MessagesPage() {
                       <StatusPill status={selectedConversation.status} />
                       {isReadOnly ? (
                         <Badge
-                          icon={<LockKeyhole className="size-3" />}
+                          icon={<LockKeyhole className="size-3.5" />}
                           variant="warning"
                         >
                           {translate('conversation.readOnly')}

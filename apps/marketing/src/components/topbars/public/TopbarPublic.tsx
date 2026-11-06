@@ -326,9 +326,9 @@ export default function TopbarPublic({
                 aria-expanded={isMobileMenuOpen}
               >
                 {isMobileMenuOpen ? (
-                  <X className="size-6" />
+                  <X className="size-5" />
                 ) : (
-                  <Menu className="size-6" />
+                  <Menu className="size-5" />
                 )}
               </Button>
             </div>

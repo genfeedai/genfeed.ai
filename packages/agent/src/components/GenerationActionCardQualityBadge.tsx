@@ -39,7 +39,7 @@ export function GenerationActionCardQualityBadge({
             onClick={onRegenerate}
             className="border-warning/20 bg-warning/10 text-warning hover:bg-warning/10"
           >
-            <RefreshCw className="size-3" />
+            <RefreshCw className="size-3.5" />
             Regenerate
           </Button>
         )}

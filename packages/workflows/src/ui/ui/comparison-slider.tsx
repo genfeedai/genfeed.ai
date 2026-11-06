@@ -157,7 +157,7 @@ function ComparisonSliderComponent({
           }
         >
           <ChevronsLeftRight
-            className="size-3 text-muted-foreground"
+            className="size-3.5 text-muted-foreground"
             aria-hidden
           />
         </div>

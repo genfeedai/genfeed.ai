@@ -81,7 +81,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
           onClick={handleExpand}
           title="Expand preview"
         >
-          <Expand className="size-3" />
+          <Expand className="size-3.5" />
         </Button>
       ) : null,
     [nodeData.outputVideo, handleExpand],
@@ -185,7 +185,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
               disabled={nodeData.status === 'processing'}
               className="absolute top-1 right-1 size-6"
             >
-              <RefreshCw className="size-3" />
+              <RefreshCw className="size-3.5" />
             </Button>
           </div>
         )}
@@ -212,7 +212,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
         {/* Help text for required inputs */}
         {!hasRequiredInputs && nodeData.status !== 'processing' && (
           <div className="text-xs text-muted-foreground flex items-center gap-1">
-            <CircleAlert className="size-3" />
+            <CircleAlert className="size-3.5" />
             Connect a video to trim
           </div>
         )}

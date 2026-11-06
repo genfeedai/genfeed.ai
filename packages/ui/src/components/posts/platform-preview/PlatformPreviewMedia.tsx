@@ -108,7 +108,7 @@ export function MediaTile({
             'absolute inset-0 flex items-center justify-center bg-black/20 text-white' /* design-system-allow-content-color -- media overlay */
           }
         >
-          <Play className="size-6" />
+          <Play className="size-5" />
         </span>
       ) : null}
       <div className="absolute bottom-2 left-2 flex flex-wrap gap-1">

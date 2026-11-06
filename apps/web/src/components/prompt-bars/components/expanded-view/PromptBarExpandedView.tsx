@@ -331,14 +331,14 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView() {
     >
       <div
         className={cn(
-          'absolute inset-0 z-20 rounded-3xl border border-dashed border-primary/0 bg-primary/0 opacity-0 transition-[background-color,border-color,opacity] duration-200 pointer-events-none',
+          'absolute inset-0 z-20 rounded-xl border border-dashed border-primary/0 bg-primary/0 opacity-0 transition-[background-color,border-color,opacity] duration-200 pointer-events-none',
           ctx.isDragActive && 'border-primary/70 bg-primary/10 opacity-100',
         )}
       >
         <div className="flex h-full items-center justify-center">
           <div
             className={
-              'rounded-2xl border border-primary/20 bg-black/50 px-4 py-3 text-center backdrop-blur-sm' /* design-system-allow-content-color -- drop-target scrim */
+              'rounded-lg border border-primary/20 bg-black/50 px-4 py-3 text-center backdrop-blur-sm' /* design-system-allow-content-color -- drop-target scrim */
             }
           >
             <p

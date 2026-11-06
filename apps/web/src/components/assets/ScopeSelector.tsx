@@ -83,7 +83,7 @@ export function ScopeSelector({
           value={value}
           onValueChange={(nextValue) => onChange(nextValue as AssetScope)}
           className={cn(
-            'overflow-hidden rounded-2xl border',
+            'overflow-hidden rounded-lg border',
             variant === 'panel'
               ? 'divide-y divide-border border-border bg-tertiary'
               : 'border-border bg-background divide-y divide-border',

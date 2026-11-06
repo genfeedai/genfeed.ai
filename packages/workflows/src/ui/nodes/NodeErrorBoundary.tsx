@@ -62,7 +62,7 @@ export class NodeErrorBoundary extends Component<
             size={ButtonSize.SM}
             onClick={this.handleRetry}
           >
-            <RefreshCw className="size-3" />
+            <RefreshCw className="size-3.5" />
             Retry
           </Button>
         </div>

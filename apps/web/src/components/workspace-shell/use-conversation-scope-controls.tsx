@@ -198,7 +198,7 @@ function ScopeTrigger({
       <span className="truncate">{label}</span>
       <ChevronDown
         aria-hidden="true"
-        className={cn('size-3 transition-transform', isOpen && 'rotate-180')}
+        className={cn('size-3.5 transition-transform', isOpen && 'rotate-180')}
       />
     </Button>
   );

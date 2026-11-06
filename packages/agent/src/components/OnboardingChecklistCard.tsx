@@ -118,7 +118,7 @@ export function OnboardingChecklistCard({
                 className="flex items-center gap-0.5 text-2xs font-medium text-primary hover:underline"
               >
                 {item.ctaLabel || 'Start'}
-                <ChevronRight className="size-3" />
+                <ChevronRight className="size-3.5" />
               </a>
             )}
           </div>

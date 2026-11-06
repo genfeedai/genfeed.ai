@@ -208,7 +208,7 @@ function SubtitleNodeComponent(props: NodeProps) {
               disabled={nodeData.status === 'processing'}
               className="absolute top-1 right-1 size-6"
             >
-              <RefreshCw className="size-3" />
+              <RefreshCw className="size-3.5" />
             </Button>
           </div>
         )}

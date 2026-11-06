@@ -120,7 +120,7 @@ export default function ClipperProgressView({
     <div>
       <div className="mb-8">
         <div className="flex items-center gap-3">
-          <Film className="size-6 text-primary" />
+          <Film className="size-5 text-primary" />
           <h2 className="text-2xl font-semibold text-foreground">
             {statusHeading}
           </h2>

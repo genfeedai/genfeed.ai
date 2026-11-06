@@ -99,7 +99,6 @@ export default function PostCardFooter({
               className="flex items-center gap-1.5 text-xs text-muted-foreground"
             >
               <StatusDot
-                isPulsing={isSaving}
                 size="xs"
                 tone={isSaving ? 'muted' : isDirty ? 'warning' : 'success'}
               />

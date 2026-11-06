@@ -130,7 +130,7 @@ function DeskLightCard({
 
             <div className="mt-auto flex flex-wrap items-center gap-2 text-xs text-foreground/60">
               <span className="inline-flex items-center gap-1">
-                <Zap className="size-3" />
+                <Zap className="size-3.5" />
                 {translateCard('velocityPerHour', {
                   value: formatCompactNumber(item.velocity),
                 })}
