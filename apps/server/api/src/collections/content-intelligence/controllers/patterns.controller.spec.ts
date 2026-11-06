@@ -1,226 +1,237 @@
-import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
-  serializeCollection: vi.fn(
-    (
-      _req: unknown,
-      serializer: { serialize(data: unknown): unknown },
-      result: { docs?: unknown[] } | unknown[],
-    ) => {
-      const docs = Array.isArray(result) ? result : (result.docs ?? []);
-      return { data: docs.map((doc) => serializer.serialize(doc)) };
-    },
-  ),
-  serializeSingle: vi.fn(
-    (
-      _req: unknown,
-      serializer: { serialize(data: unknown): unknown },
-      data: unknown,
-    ) => ({ data: serializer.serialize(data) }),
-  ),
+  serializeCollection: (
+    _req: unknown,
+    serializer: { serialize(data: unknown): unknown },
+    result: { docs?: unknown[] } | unknown[],
+  ) => {
+    const docs = Array.isArray(result) ? result : (result.docs ?? []);
+    return { data: docs.map((doc) => serializer.serialize(doc)) };
+  },
+  serializeSingle: (
+    _req: unknown,
+    serializer: { serialize(data: unknown): unknown },
+    data: unknown,
+  ) => ({ data: serializer.serialize(data) }),
 }));
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PatternsController } from '@api/collections/content-intelligence/controllers/patterns.controller';
 import type { PatternsQueryDto } from '@api/collections/content-intelligence/dto/patterns-query.dto';
-import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
+import type { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { ContentPatternType } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
-describe('PatternsController', () => {
-  let controller: PatternsController;
+interface PatternRow {
+  data: { description: string; patternType: string; platform: string };
+  id: string;
+  isDeleted: boolean;
+  organizationId: string;
+  sourceCreatorId: string;
+}
 
-  const organizationId = testId('org');
-  const sourceCreatorId = testId('creator');
-  const patternId = testId('pattern');
-  const missingPatternId = testId('pattern', 2);
+type Where = Record<string, unknown>;
 
-  const mockUser = {
-    id: 'user_123',
-    brandId: testId('brand'),
-    organizationId,
-    userId: testId('user'),
-  } as unknown as User;
+/** Prisma `where` over scalar columns, `AND`, and JSON `{ path, equals }`. */
+function matches(row: PatternRow, where: Where): boolean {
+  return Object.entries(where).every(([key, value]) => {
+    if (key === 'AND') {
+      return (value as Where[]).every((clause) => matches(row, clause));
+    }
+    if (key === 'data') {
+      const { equals, path } = value as { equals: unknown; path: string[] };
+      return row.data[path[0] as keyof PatternRow['data']] === equals;
+    }
+    return row[key as keyof PatternRow] === value;
+  });
+}
 
-  const mockRequest = {
-    originalUrl: '/api/content-intelligence/patterns',
-    query: {},
-  } as Request;
+const organizationId = testId('org');
+const sourceCreatorId = testId('creator');
+const otherCreatorId = testId('creator', 2);
+const hookId = testId('pattern');
+const templateId = testId('pattern', 3);
+const foreignId = testId('pattern', 4);
+const missingPatternId = testId('pattern', 2);
 
-  const mockPattern = {
-    data: {
-      description: 'Test pattern',
-      patternType: ContentPatternType.HOOK,
-      platform: 'twitter',
+const pattern = (overrides: Partial<PatternRow>): PatternRow => ({
+  data: {
+    description: 'Test pattern',
+    patternType: ContentPatternType.HOOK,
+    platform: 'twitter',
+  },
+  id: hookId,
+  isDeleted: false,
+  organizationId,
+  sourceCreatorId,
+  ...overrides,
+});
+
+const user = {
+  brandId: testId('brand'),
+  id: 'user_123',
+  organizationId,
+  userId: testId('user'),
+} as unknown as User;
+
+const request = {
+  originalUrl: '/api/content-intelligence/patterns',
+  query: {},
+} as Request;
+
+function setup() {
+  const rows: PatternRow[] = [
+    pattern({}),
+    pattern({
+      data: {
+        description: 'A template',
+        patternType: ContentPatternType.TEMPLATE,
+        platform: 'linkedin',
+      },
+      id: templateId,
+      sourceCreatorId: otherCreatorId,
+    }),
+    pattern({ id: foreignId, organizationId: testId('org', 2) }),
+  ];
+  const store = {
+    findAll: async ({ where }: { where: Where }) => ({
+      docs: rows.filter((row) => matches(row, where)),
+    }),
+    findOne: async (where: Where) =>
+      rows.find((row) => !row.isDeleted && matches(row, where)) ?? null,
+    findOneSelect: async (where: Where) => {
+      const row = rows.find((item) => !item.isDeleted && matches(item, where));
+      return row ? { id: row.id } : null;
     },
-    id: patternId,
-    organizationId,
-    sourceCreatorId,
+    remove: async (id: string) => {
+      const row = rows.find((item) => item.id === id);
+      if (row) row.isDeleted = true;
+      return row ?? null;
+    },
+  } as unknown as PatternStoreService;
+  const logger = {
+    debug: () => undefined,
+    error: () => undefined,
+    log: () => undefined,
+    warn: () => undefined,
   };
-
-  const mockPatternStoreService = {
-    findAll: vi.fn(),
-    findOne: vi.fn(),
-    findOneSelect: delegateFindOneSelect(),
-    remove: vi.fn(),
+  return {
+    controller: new PatternsController(
+      store,
+      logger as unknown as LoggerService,
+    ),
+    rows,
   };
+}
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [PatternsController],
-      providers: [
-        { provide: PatternStoreService, useValue: mockPatternStoreService },
-        {
-          provide: LoggerService,
-          useValue: {
-            debug: vi.fn(),
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
-          },
-        },
-      ],
-    }).compile();
+const ids = (response: unknown) =>
+  (response as { data: { id: string }[] }).data.map((item) => item.id);
 
-    controller = module.get<PatternsController>(PatternsController);
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
+describe('PatternsController', () => {
   describe('findAll', () => {
-    it('should return patterns for organization', async () => {
-      mockPatternStoreService.findAll.mockResolvedValue({
-        docs: [mockPattern],
-      });
+    it('lists the organization patterns only', async () => {
+      const { controller } = setup();
 
-      await controller.findAll(
-        mockRequest,
-        mockUser,
+      const result = await controller.findAll(
+        request,
+        user,
         {} satisfies PatternsQueryDto,
       );
 
-      expect(mockPatternStoreService.findAll).toHaveBeenCalled();
+      expect(ids(result)).toEqual([hookId, templateId]);
     });
 
-    it('should filter by patternType=hook', async () => {
-      mockPatternStoreService.findAll.mockResolvedValue({
-        docs: [mockPattern],
-      });
+    it.each([
+      [ContentPatternType.HOOK, hookId],
+      [ContentPatternType.TEMPLATE, templateId],
+    ])('filters by patternType=%s', async (patternType, expectedId) => {
+      const { controller } = setup();
 
-      await controller.findAll(mockRequest, mockUser, {
-        patternType: ContentPatternType.HOOK,
+      const result = await controller.findAll(request, user, {
+        patternType,
       } satisfies PatternsQueryDto);
 
-      expect(mockPatternStoreService.findAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            AND: expect.arrayContaining([
-              { data: { equals: 'hook', path: ['patternType'] } },
-            ]),
-          }),
-        }),
-        expect.anything(),
-      );
+      expect(ids(result)).toEqual([expectedId]);
     });
 
-    it('should filter by patternType=template', async () => {
-      mockPatternStoreService.findAll.mockResolvedValue({ docs: [] });
+    it('filters by canonical source creator ID', async () => {
+      const { controller } = setup();
 
-      await controller.findAll(mockRequest, mockUser, {
-        patternType: ContentPatternType.TEMPLATE,
+      const result = await controller.findAll(request, user, {
+        sourceCreatorId: otherCreatorId,
       } satisfies PatternsQueryDto);
 
-      expect(mockPatternStoreService.findAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            AND: expect.arrayContaining([
-              { data: { equals: 'template', path: ['patternType'] } },
-            ]),
-          }),
-        }),
-        expect.anything(),
-      );
+      expect(ids(result)).toEqual([templateId]);
     });
 
-    it('should filter by canonical source creator ID', async () => {
-      mockPatternStoreService.findAll.mockResolvedValue({ docs: [] });
+    it('leaves out removed patterns', async () => {
+      const { controller, rows } = setup();
+      rows[0].isDeleted = true;
 
-      await controller.findAll(mockRequest, mockUser, {
-        sourceCreatorId,
-      } satisfies PatternsQueryDto);
+      const result = await controller.findAll(request, user, {});
 
-      expect(mockPatternStoreService.findAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            sourceCreatorId,
-          }),
-        }),
-        expect.anything(),
-      );
+      expect(ids(result)).toEqual([templateId]);
     });
   });
 
   describe('findOne', () => {
-    it('should return a single pattern', async () => {
-      mockPatternStoreService.findOne.mockResolvedValue(mockPattern);
+    it('returns a single pattern', async () => {
+      const { controller } = setup();
 
-      const result = await controller.findOne(mockRequest, mockUser, patternId);
+      const result = await controller.findOne(request, user, hookId);
 
-      expect(mockPatternStoreService.findOne).toHaveBeenCalled();
       expect(result).toEqual({
         data: expect.objectContaining({
           attributes: expect.objectContaining({
             description: 'Test pattern',
             sourceCreatorId,
           }),
-          id: patternId,
+          id: hookId,
         }),
       });
     });
 
-    it('should throw when pattern not found', async () => {
-      mockPatternStoreService.findOne.mockResolvedValue(null);
+    it.each([
+      ['a missing pattern', missingPatternId],
+      ['another organization pattern', foreignId],
+      ['an invalid entity ID', 'invalid'],
+    ])('404s for %s', async (_label, id) => {
+      const { controller } = setup();
 
-      await expect(
-        controller.findOne(mockRequest, mockUser, missingPatternId),
-      ).rejects.toThrow(HttpException);
-    });
-
-    it('should throw for an invalid entity ID', async () => {
-      await expect(
-        controller.findOne(mockRequest, mockUser, 'invalid'),
-      ).rejects.toThrow(HttpException);
+      await expect(controller.findOne(request, user, id)).rejects.toThrow(
+        HttpException,
+      );
     });
   });
 
   describe('remove', () => {
-    it('should remove a pattern', async () => {
-      mockPatternStoreService.findOne.mockResolvedValue(mockPattern);
-      mockPatternStoreService.remove.mockResolvedValue({
-        ...mockPattern,
-        isDeleted: true,
-      });
+    it('soft-deletes the pattern', async () => {
+      const { controller, rows } = setup();
 
-      await controller.remove(mockRequest, mockUser, patternId);
+      await controller.remove(request, user, hookId);
 
-      expect(mockPatternStoreService.remove).toHaveBeenCalledWith(patternId);
+      expect(rows[0].isDeleted).toBe(true);
+      await expect(controller.findOne(request, user, hookId)).rejects.toThrow(
+        HttpException,
+      );
     });
 
-    it('should throw when pattern not found', async () => {
-      mockPatternStoreService.findOne.mockResolvedValue(null);
+    it('refuses another organization pattern and leaves it in place', async () => {
+      const { controller, rows } = setup();
+
+      await expect(controller.remove(request, user, foreignId)).rejects.toThrow(
+        HttpException,
+      );
+      expect(rows[2].isDeleted).toBe(false);
+    });
+
+    it('404s for a missing pattern', async () => {
+      const { controller } = setup();
 
       await expect(
-        controller.remove(mockRequest, mockUser, missingPatternId),
+        controller.remove(request, user, missingPatternId),
       ).rejects.toThrow(HttpException);
     });
   });

@@ -7,55 +7,107 @@ import type {
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { ClipperHandoffWorkflowService } from './clipper-handoff-workflow.service';
 
-function createHarness() {
+interface HandoffClip {
+  duration?: number;
+  id: string;
+  ingredientId?: string;
+  readiness: { readyActions: string[] };
+  status: string;
+  summary?: string;
+  title?: string;
+  videoUrl: string;
+}
+
+const readyClip: HandoffClip = {
+  duration: 10,
+  id: 'clip-1',
+  ingredientId: 'ingredient-1',
+  readiness: { readyActions: ['edit', 'publish'] },
+  status: 'completed',
+  summary: 'Summary',
+  title: 'Title',
+  videoUrl: 'https://cdn.test/clip.mp4',
+};
+
+/**
+ * Every collaborator touch lands in `touched`, in order; created editor
+ * projects, Library links and system workflow runs are kept as rows.
+ */
+function createHarness(clip: HandoffClip = readyClip) {
   const actions = new Map<string, SystemWorkflowActionExecutor>();
+  const touched: string[] = [];
+  const editorProjects: Record<string, unknown>[] = [];
+  const libraryLinks: Record<string, unknown>[] = [];
+  const workflowRuns: Record<string, unknown>[] = [];
   const runner = {
-    registerAction: vi.fn(
-      (actionId: string, executor: SystemWorkflowActionExecutor) => {
-        actions.set(actionId, executor);
-      },
-    ),
-    registerWorkflow: vi.fn(),
-    runWorkflow: vi.fn().mockResolvedValue({ result: { id: 'result-1' } }),
+    registerAction: (
+      actionId: string,
+      executor: SystemWorkflowActionExecutor,
+    ) => {
+      actions.set(actionId, executor);
+    },
+    registerWorkflow: () => undefined,
+    runWorkflow: async (run: Record<string, unknown>) => {
+      workflowRuns.push(run);
+      return { result: { id: 'result-1' } };
+    },
   };
-  const clipperLibrary = { linkReadyClip: vi.fn() };
+  const clipperLibrary = {
+    linkReadyClip: async (input: Record<string, unknown>) => {
+      touched.push('library.linkReadyClip');
+      libraryLinks.push(input);
+      return {
+        clipperResultId: input.clipperResultId,
+        ingredientId: clip.ingredientId,
+        status: 'linked',
+      };
+    },
+  };
   const clipperProjects = {
-    findOne: vi.fn().mockResolvedValue({ id: 'project-1' }),
-    reconcileTerminalState: vi.fn().mockResolvedValue({ id: 'project-1' }),
+    findOne: async () => {
+      touched.push('projects.findOne');
+      return { id: 'project-1' };
+    },
+    reconcileTerminalState: async () => ({ id: 'project-1' }),
   };
   const clipperResults = {
-    findProjectResultForHandoff: vi.fn().mockResolvedValue({
-      duration: 10,
-      id: 'clip-1',
-      ingredientId: 'ingredient-1',
-      readiness: { readyActions: ['edit', 'publish'] },
-      status: 'completed',
-      summary: 'Summary',
-      title: 'Title',
-      videoUrl: 'https://cdn.test/clip.mp4',
-    }),
+    findProjectResultForHandoff: async () => {
+      touched.push('results.findProjectResultForHandoff');
+      return clip;
+    },
   };
-  const editors = { create: vi.fn().mockResolvedValue({ id: 'editor-1' }) };
+  const editors = {
+    create: async (input: Record<string, unknown>) => {
+      touched.push('editors.create');
+      editorProjects.push(input);
+      return { id: `editor-${editorProjects.length}` };
+    },
+  };
   const service = new ClipperHandoffWorkflowService(
     clipperLibrary as unknown as ClipperLibraryLinkService,
     clipperProjects as unknown as ClipperProjectsService,
     clipperResults as unknown as ClipperResultsService,
     editors as unknown as EditorProjectsService,
-    { log: vi.fn() } as unknown as LoggerService,
+    { log: () => undefined } as unknown as LoggerService,
     runner as unknown as SystemWorkflowRunnerService,
   );
   service.onModuleInit();
+  const action = (actionId: string) => {
+    const executor = actions.get(actionId);
+    if (!executor) throw new Error(`${actionId} was not registered`);
+    return executor;
+  };
   return {
+    action,
     actions,
-    clipperLibrary,
-    clipperProjects,
-    clipperResults,
-    editors,
-    runner,
+    editorProjects,
+    libraryLinks,
     service,
+    touched,
+    workflowRuns,
   };
 }
 
@@ -77,23 +129,15 @@ describe('ClipperHandoffWorkflowService', () => {
   ])(
     'rejects a forged tenant before any handoff lookup for %s',
     async (actionId) => {
-      const {
-        actions,
-        clipperProjects,
-        clipperResults,
-        editors,
-        clipperLibrary,
-      } = createHarness();
+      const { action, touched } = createHarness();
+
       await expect(
-        actions.get(actionId)?.({
+        action(actionId)({
           ...actionRequest,
           input: { ...actionRequest.input, organizationId: 'foreign-org' },
         }),
       ).rejects.toThrow('does not match');
-      expect(clipperProjects.findOne).not.toHaveBeenCalled();
-      expect(clipperResults.findProjectResultForHandoff).not.toHaveBeenCalled();
-      expect(editors.create).not.toHaveBeenCalled();
-      expect(clipperLibrary.linkReadyClip).not.toHaveBeenCalled();
+      expect(touched).toEqual([]);
     },
   );
 
@@ -108,53 +152,50 @@ describe('ClipperHandoffWorkflowService', () => {
   });
 
   it('routes the controller-facing methods through system workflows', async () => {
-    const { runner, service } = createHarness();
+    const { service, touched, workflowRuns } = createHarness();
 
     await service.createEditorHandoff(
       { clipperResultId: 'clip-1', projectId: 'project-1' },
       { organizationId: 'org-1', userId: 'user-1' },
     );
 
-    expect(runner.runWorkflow).toHaveBeenCalledWith({
-      actionType: 'clipper.handoff.create-editor',
-      canonicalId: 'clipper.handoff.editor',
-      inputValues: { clipperResultId: 'clip-1', projectId: 'project-1' },
-      organizationId: 'org-1',
-      source: 'clipper-project-handoff',
-      userId: 'user-1',
-    });
+    expect(workflowRuns).toEqual([
+      {
+        actionType: 'clipper.handoff.create-editor',
+        canonicalId: 'clipper.handoff.editor',
+        inputValues: { clipperResultId: 'clip-1', projectId: 'project-1' },
+        organizationId: 'org-1',
+        source: 'clipper-project-handoff',
+        userId: 'user-1',
+      },
+    ]);
+    // The controller-facing method itself creates nothing.
+    expect(touched).toEqual([]);
   });
 
   it('creates editor state only inside the editor action', async () => {
-    const { actions, editors } = createHarness();
-    const action = actions.get('clipper.handoff.create-editor');
-    if (!action) {
-      throw new Error('Editor handoff action was not registered');
-    }
+    const { action, editorProjects } = createHarness();
 
-    await expect(action(actionRequest)).resolves.toEqual({
+    await expect(
+      action('clipper.handoff.create-editor')(actionRequest),
+    ).resolves.toEqual({
       clipperProjectId: 'project-1',
       clipperResultId: 'clip-1',
       editorPath: '/editor/editor-1',
       editorProjectId: 'editor-1',
       videoUrl: 'https://cdn.test/clip.mp4',
     });
-    expect(editors.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        organizationId: 'org-1',
-        userId: 'user-1',
-      }),
-    );
+    expect(editorProjects).toEqual([
+      expect.objectContaining({ organizationId: 'org-1', userId: 'user-1' }),
+    ]);
   });
 
   it('builds the publish handoff only inside the publish action', async () => {
-    const { actions } = createHarness();
-    const action = actions.get('clipper.handoff.prepare-publish');
-    if (!action) {
-      throw new Error('Publish handoff action was not registered');
-    }
+    const { action, editorProjects, libraryLinks } = createHarness();
 
-    await expect(action(actionRequest)).resolves.toEqual(
+    await expect(
+      action('clipper.handoff.prepare-publish')(actionRequest),
+    ).resolves.toEqual(
       expect.objectContaining({
         clipperProjectId: 'project-1',
         clipperResultId: 'clip-1',
@@ -165,65 +206,49 @@ describe('ClipperHandoffWorkflowService', () => {
         }),
       }),
     );
+    expect(editorProjects).toEqual([]);
+    expect(libraryLinks).toEqual([]);
   });
 
   it('rejects publish inside the action when readiness does not allow it', async () => {
-    const { actions, clipperResults } = createHarness();
-    clipperResults.findProjectResultForHandoff.mockResolvedValue({
+    const { action } = createHarness({
       id: 'clip-1',
       readiness: { readyActions: ['download'] },
       status: 'completed',
       videoUrl: 'https://cdn.test/clip.mp4',
     });
-    const action = actions.get('clipper.handoff.prepare-publish');
-    if (!action) {
-      throw new Error('Publish handoff action was not registered');
-    }
 
-    await expect(action(actionRequest)).rejects.toThrow(
-      'not ready for publish handoff',
-    );
+    await expect(
+      action('clipper.handoff.prepare-publish')(actionRequest),
+    ).rejects.toThrow('not ready for publish handoff');
   });
 
   it('requires a Library ingredient inside the editor action', async () => {
-    const { actions, clipperResults, editors } = createHarness();
-    clipperResults.findProjectResultForHandoff.mockResolvedValue({
+    const { action, editorProjects } = createHarness({
       id: 'clip-1',
       readiness: { readyActions: ['edit'] },
       status: 'completed',
       videoUrl: 'https://cdn.test/clip.mp4',
     });
-    const action = actions.get('clipper.handoff.create-editor');
-    if (!action) {
-      throw new Error('Editor handoff action was not registered');
-    }
 
-    await expect(action(actionRequest)).rejects.toThrow(
-      'not linked to a Library asset',
-    );
-    expect(editors.create).not.toHaveBeenCalled();
+    await expect(
+      action('clipper.handoff.create-editor')(actionRequest),
+    ).rejects.toThrow('not linked to a Library asset');
+    expect(editorProjects).toEqual([]);
   });
 
   it('links the completed clip only inside the Library action', async () => {
-    const { actions, clipperLibrary } = createHarness();
-    clipperLibrary.linkReadyClip.mockResolvedValue({
-      clipperResultId: 'clip-1',
-      ingredientId: 'ingredient-1',
-      status: 'linked',
-    });
-    const action = actions.get('clipper.handoff.link-library');
-    if (!action) {
-      throw new Error('Library handoff action was not registered');
-    }
+    const { action, libraryLinks } = createHarness();
 
-    await expect(action(actionRequest)).resolves.toEqual({
+    await expect(
+      action('clipper.handoff.link-library')(actionRequest),
+    ).resolves.toEqual({
       clipperResultId: 'clip-1',
       ingredientId: 'ingredient-1',
       status: 'linked',
     });
-    expect(clipperLibrary.linkReadyClip).toHaveBeenCalledWith({
-      clipperResultId: 'clip-1',
-      organizationId: 'org-1',
-    });
+    expect(libraryLinks).toEqual([
+      { clipperResultId: 'clip-1', organizationId: 'org-1' },
+    ]);
   });
 });
