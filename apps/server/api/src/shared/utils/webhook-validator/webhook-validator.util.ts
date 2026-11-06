@@ -40,6 +40,19 @@ interface SafeWebhookResolution {
   hostname: string;
 }
 
+/**
+ * The hostname did not resolve. Distinct from a refused (private or reserved)
+ * address so a connect form can say "check the address for typos" instead of
+ * "this address is not allowed".
+ */
+export class WebhookUrlUnresolvableException extends BadRequestException {
+  constructor() {
+    super(
+      'webhookUrl hostname could not be resolved — please provide a valid public endpoint',
+    );
+  }
+}
+
 async function resolveSafeWebhookUrl(
   url: string,
 ): Promise<SafeWebhookResolution> {
@@ -72,9 +85,7 @@ async function resolveSafeWebhookUrl(
         'webhookUrl must target a public address without credentials; private or reserved IP addresses are not permitted',
       );
     }
-    throw new BadRequestException(
-      'webhookUrl hostname could not be resolved — please provide a valid public endpoint',
-    );
+    throw new WebhookUrlUnresolvableException();
   }
 }
 

@@ -18,6 +18,7 @@ import { DevtoService } from '@api/services/integrations/devto/services/devto.se
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import type { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -39,6 +40,7 @@ describe('DevtoController', () => {
   const loggerMock = {
     error: vi.fn(),
     log: vi.fn(),
+    warn: vi.fn(),
   } as unknown as LoggerService;
 
   const mockUser = {
@@ -155,29 +157,48 @@ describe('DevtoController', () => {
       expect(devtoService.getCurrentUser).not.toHaveBeenCalled();
     });
 
-    it('should return bad request when the api key cannot be verified', async () => {
-      brandsService.findOne.mockResolvedValue(mockBrand);
-      devtoService.getCurrentUser.mockResolvedValue({});
+    it.each([
+      [
+        'the key returns no user',
+        () => devtoService.getCurrentUser.mockResolvedValue({}),
+        { code: 'API_KEY_CONNECT_KEY_REJECTED', status: 400 },
+      ],
+      [
+        'dev.to refuses the key',
+        () =>
+          devtoService.getCurrentUser.mockRejectedValue({
+            isAxiosError: true,
+            response: { status: 401 },
+          }),
+        { code: 'API_KEY_CONNECT_KEY_REJECTED', status: 400 },
+      ],
+      [
+        'dev.to is down',
+        () =>
+          devtoService.getCurrentUser.mockRejectedValue(
+            new Error('dev.to down'),
+          ),
+        { code: 'API_KEY_CONNECT_UNKNOWN', status: 500 },
+      ],
+    ])(
+      'refuses the connect when %s and stores nothing',
+      async (_case, arrange, expected) => {
+        brandsService.findOne.mockResolvedValue(mockBrand);
+        arrange();
 
-      const result = await controller.connect(mockRequest, mockUser, {
-        apiKey: 'bad-key',
-        brandId: devtoBrandId,
-      });
+        const failure = await controller
+          .connect(mockRequest, mockUser, {
+            apiKey: 'bad-key',
+            brandId: devtoBrandId,
+          })
+          .catch((error: HttpException) => ({
+            code: (error.getResponse() as { code: string }).code,
+            status: error.getStatus(),
+          }));
 
-      expect(result).toHaveProperty('errors');
-      expect(credentialsService.createPendingForBrand).not.toHaveBeenCalled();
-    });
-
-    it('should return internal server error when verification throws', async () => {
-      brandsService.findOne.mockResolvedValue(mockBrand);
-      devtoService.getCurrentUser.mockRejectedValue(new Error('dev.to down'));
-
-      const result = await controller.connect(mockRequest, mockUser, {
-        apiKey: 'bad-key',
-        brandId: devtoBrandId,
-      });
-
-      expect(result).toHaveProperty('errors');
-    });
+        expect(failure).toEqual(expected);
+        expect(credentialsService.createPendingForBrand).not.toHaveBeenCalled();
+      },
+    );
   });
 });
