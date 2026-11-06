@@ -60,15 +60,22 @@ export const PopulatePatterns = {
   ]),
 
   // Ingredient patterns
+  // `s3Key` is what marks a plain row as media for the response projection
+  // (`ingredientIdentity`); without it a populated ingredient is served
+  // unprojected, with no media grant, and the client falls back to a public
+  // CDN path that authorized delivery answers with 403. The projection nulls
+  // the key before the response leaves the API.
   ingredientMinimal: PopulateBuilder.withFields('ingredient', [
     'id',
     'category',
     'status',
+    's3Key',
   ]),
   ingredientsMinimal: PopulateBuilder.withFields('ingredients', [
     'id',
     'category',
     'status',
+    's3Key',
   ]),
   metadataBasic: PopulateBuilder.withFields('metadata', [
     'id',
