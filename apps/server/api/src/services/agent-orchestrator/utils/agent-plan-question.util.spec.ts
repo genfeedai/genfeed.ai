@@ -1,7 +1,9 @@
 import {
   countTrailingPlanQuestions,
+  isEmptyPlannerAnswer,
   parsePlanQuestion,
   parsePlanResponse,
+  readPlanBody,
 } from '@api/services/agent-orchestrator/utils/agent-plan-question.util';
 import { describe, expect, it } from 'vitest';
 
@@ -148,5 +150,54 @@ describe('parsePlanResponse', () => {
 
   it('parses broken JSON to null', () => {
     expect(parsePlanResponse('{"a":').parsed).toBeNull();
+  });
+});
+
+describe('isEmptyPlannerAnswer', () => {
+  it.each([
+    ['blank text', '  ', true],
+    ['a JSON plan with only a summary', '{"summary":"Plan drafted"}', true],
+    [
+      'a JSON plan with blank content, rationale and steps',
+      '{"content":" ","explanation":"","steps":[{"step":""}]}',
+      true,
+    ],
+    [
+      'an unusable question with no plan',
+      '{"question":{"prompt":"Which one?","options":[]}}',
+      true,
+    ],
+    ['a JSON plan with content', '{"content":"Draft three hooks"}', false],
+    ['a JSON plan with only steps', '{"steps":["Draft"]}', false],
+    ['a JSON plan with only a rationale', '{"explanation":"Why"}', false],
+    ['a question the planner can ask', JSON.stringify(validQuestion), false],
+    ['prose', 'Which post do you mean?', false],
+    ['a reply cut off inside its JSON', '{"content":"Step one, then', false],
+  ])('reads %s as empty: %s', (_label, answer, expected) => {
+    expect(isEmptyPlannerAnswer(answer)).toBe(expected);
+  });
+});
+
+describe('readPlanBody', () => {
+  it('lists the steps as the content when the plan has no markdown', () => {
+    expect(
+      readPlanBody({ steps: [{ step: 'Fetch' }, 'Draft', { step: ' ' }, 4] }),
+    ).toEqual({
+      content: '1. Fetch\n2. Draft',
+      steps: [{ step: 'Fetch' }, { status: 'pending', step: 'Draft' }],
+    });
+  });
+
+  it('uses the rationale as the content once, not twice', () => {
+    expect(readPlanBody({ explanation: ' Because ' })).toEqual({
+      content: 'Because',
+      steps: [],
+    });
+  });
+
+  it('keeps the markdown first and the rationale beside it', () => {
+    expect(
+      readPlanBody({ content: 'Plan', explanation: 'Why', steps: [] }),
+    ).toEqual({ content: 'Plan', explanation: 'Why', steps: [] });
   });
 });

@@ -67,6 +67,69 @@ export function parsePlanQuestion(
 }
 
 /**
+ * The steps a JSON plan lists: `{ step }` as the planner is asked, or a bare
+ * string. Steps with no text drop out.
+ */
+export function readPlanSteps(
+  parsed: Record<string, unknown>,
+): Record<string, unknown>[] {
+  if (!Array.isArray(parsed.steps)) return [];
+  return parsed.steps.flatMap((entry: unknown) => {
+    if (typeof entry === 'string') {
+      const step = entry.trim();
+      return step ? [{ status: 'pending', step }] : [];
+    }
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
+    const record = entry as Record<string, unknown>;
+    const step = readText(record.step);
+    return step ? [{ ...record, step }] : [];
+  });
+}
+
+export interface PlanBody {
+  content: string;
+  explanation?: string;
+  steps: Record<string, unknown>[];
+}
+
+/**
+ * What a reviewer can read in a JSON plan, or null when it holds nothing.
+ * The content is the plan's markdown, else a question the planner may no
+ * longer ask, else its steps as a numbered list, else its rationale, so a
+ * plan sent to review always carries content to approve.
+ */
+export function readPlanBody(parsed: Record<string, unknown>): PlanBody | null {
+  const explanation = readText(parsed.explanation);
+  const steps = readPlanSteps(parsed);
+  const openQuestion = parsePlanQuestion(parsed);
+  const stepList = steps
+    .map((entry, index) => `${index + 1}. ${String(entry.step)}`)
+    .join('\n');
+  const content =
+    readText(parsed.content) ??
+    (openQuestion ? `Open question: ${openQuestion.prompt}` : undefined) ??
+    (stepList || undefined) ??
+    explanation;
+  if (!content) return null;
+  return {
+    content,
+    ...(explanation && explanation !== content ? { explanation } : {}),
+    steps,
+  };
+}
+
+/**
+ * Whether a planner answer is a JSON plan with nothing to review: no content,
+ * rationale, steps or question. Prose and a reply cut off inside its JSON are
+ * not empty; they are answered or reviewed as they are.
+ */
+export function isEmptyPlannerAnswer(assistantContent: string): boolean {
+  if (!assistantContent.trim()) return true;
+  const { parsed } = parsePlanResponse(assistantContent);
+  return parsed !== null && readPlanBody(parsed) === null;
+}
+
+/**
  * How many plan questions the user has been asked in a row, counting back from
  * the latest message. A plan or any other assistant reply ends the run, so a
  * later request in the same thread starts with a fresh allowance.
