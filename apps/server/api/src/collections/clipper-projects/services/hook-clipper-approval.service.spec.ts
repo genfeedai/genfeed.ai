@@ -1,10 +1,12 @@
 import type { ClipperProjectsService } from '@api/collections/clipper-projects/clipper-projects.service';
-import type { ClipperGenerationService } from '@api/collections/clipper-projects/services/clipper-generation.service';
+import type {
+  ClipperGenerationInput,
+  ClipperGenerationService,
+} from '@api/collections/clipper-projects/services/clipper-generation.service';
 import type { ClipperResultsService } from '@api/collections/clipper-results/clipper-results.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
-import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import type { ModuleRef } from '@nestjs/core';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { HookClipApprovalService } from './hook-clipper-approval.service';
 
 const request = {
@@ -34,92 +36,242 @@ const request = {
   userId: 'user-1',
 };
 
-function createExecution() {
+interface StoredExecution {
+  id: string;
+  inputValues: { request: ClipperGenerationInput };
+  metadata: Record<string, unknown>;
+  nodeResults: Array<Record<string, unknown>>;
+  organizationId: string;
+  status: string;
+  workflowId: string;
+}
+
+interface StoredRecord {
+  id: string;
+  isDeleted: boolean;
+  organizationId: string;
+  [key: string]: unknown;
+}
+
+interface GateDecision {
+  approved: boolean;
+  executionId: string;
+  nodeId: string;
+  organizationId: string;
+  reason?: string;
+  userId: string;
+  workflowId: string;
+}
+
+function hookDispatch(resultId: string) {
   return {
-    id: 'execution-1',
-    inputValues: { request },
+    nodeId: 'generate-hook',
+    nodeType: 'genfeedAction',
+    output: {
+      count: 1,
+      results: [
+        {
+          index: 0,
+          result: {
+            clipperResultIds: [resultId],
+            originalIndex: 0,
+            providerJobIds: [`${resultId}-job`],
+            queuedClipCount: 1,
+          },
+        },
+      ],
+    },
+    status: 'completed',
+  };
+}
+
+function pendingExecution(
+  id: string,
+  attempt: number,
+  hookResultId: string,
+): StoredExecution {
+  return {
+    id,
+    inputValues: { request: request as ClipperGenerationInput },
     metadata: {
-      clipperHookReviewAttempt: 1,
+      clipperHookReviewAttempt: attempt,
       pendingApproval: { nodeId: 'review-hook' },
     },
-    nodeResults: [
-      {
-        nodeId: 'generate-hook',
-        nodeType: 'genfeedAction',
-        output: {
-          count: 1,
-          results: [
-            {
-              index: 0,
-              result: {
-                clipperResultIds: ['hook-result'],
-                originalIndex: 0,
-                providerJobIds: ['hook-job'],
-                queuedClipCount: 1,
-              },
-            },
-          ],
-        },
-        status: 'completed',
-      },
-    ],
+    nodeResults: [hookDispatch(hookResultId)],
+    organizationId: 'org-1',
     status: 'RUNNING',
     workflowId: 'workflow-1',
   };
 }
 
+function matches(
+  record: { id: string; isDeleted?: boolean; organizationId: string },
+  where: { id: string; isDeleted: boolean; organizationId: string },
+): boolean {
+  return (
+    record.id === where.id &&
+    (record.isDeleted ?? false) === where.isDeleted &&
+    record.organizationId === where.organizationId
+  );
+}
+
 describe('HookClipApprovalService workflow review gate', () => {
-  let clipperGeneration: { generateClips: ReturnType<typeof vi.fn> };
-  let clipperProjects: {
-    findOne: ReturnType<typeof vi.fn>;
-    findOneSelect: ReturnType<typeof vi.fn>;
-    patch: ReturnType<typeof vi.fn>;
-  };
-  let clipperResults: {
-    findOne: ReturnType<typeof vi.fn>;
-    findOneSelect: ReturnType<typeof vi.fn>;
-    patch: ReturnType<typeof vi.fn>;
-  };
-  let executions: {
-    findOne: ReturnType<typeof vi.fn>;
-    findOneSelect: ReturnType<typeof vi.fn>;
-  };
-  let executor: { submitReviewGateApproval: ReturnType<typeof vi.fn> };
+  let projects: Map<string, StoredRecord>;
+  let results: Map<string, StoredRecord>;
+  let executions: Map<string, StoredExecution>;
+  let decisions: GateDecision[];
+  let generations: Array<{
+    input: ClipperGenerationInput;
+    review: Record<string, unknown>;
+  }>;
   let service: HookClipApprovalService;
 
   beforeEach(() => {
-    clipperGeneration = { generateClips: vi.fn().mockResolvedValue({}) };
-    clipperProjects = {
-      findOne: vi.fn().mockResolvedValue({
-        id: 'project-1',
-        workflowExecutionId: 'execution-1',
-      }),
-      findOneSelect: delegateFindOneSelect(),
-      patch: vi.fn().mockResolvedValue({}),
+    projects = new Map([
+      [
+        'project-1',
+        {
+          id: 'project-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+          status: 'awaiting_review',
+          workflowExecutionId: 'execution-1',
+        },
+      ],
+    ]);
+    results = new Map([
+      [
+        'hook-result',
+        {
+          id: 'hook-result',
+          isDeleted: false,
+          organizationId: 'org-1',
+          projectId: 'project-1',
+          status: 'completed',
+        },
+      ],
+    ]);
+    executions = new Map([
+      ['execution-1', pendingExecution('execution-1', 1, 'hook-result')],
+    ]);
+    decisions = [];
+    generations = [];
+
+    const store = (records: Map<string, StoredRecord>) => ({
+      findOne: async (where: {
+        id: string;
+        isDeleted: boolean;
+        organizationId: string;
+      }) => {
+        const record = records.get(where.id);
+        return record && matches(record, where) ? record : null;
+      },
+      findOneSelect: async (where: {
+        id: string;
+        isDeleted: boolean;
+        organizationId: string;
+        projectId?: string;
+      }) => {
+        const record = records.get(where.id);
+        return record &&
+          matches(record, where) &&
+          (where.projectId === undefined ||
+            record.projectId === where.projectId)
+          ? record
+          : null;
+      },
+      patch: async (
+        id: string,
+        update: Record<string, unknown>,
+        _populate: unknown[],
+        organizationId: string,
+      ) => {
+        const record = records.get(id);
+        if (!record || record.organizationId !== organizationId) {
+          throw new Error(`missing ${id}`);
+        }
+        records.set(id, { ...record, ...update });
+        return records.get(id);
+      },
+    });
+
+    const executor = {
+      submitReviewGateApproval: async (
+        workflowId: string,
+        executionId: string,
+        userId: string,
+        organizationId: string,
+        nodeId: string,
+        approved: boolean,
+        reason?: string,
+      ) => {
+        decisions.push({
+          approved,
+          executionId,
+          nodeId,
+          organizationId,
+          ...(reason ? { reason } : {}),
+          userId,
+          workflowId,
+        });
+        const execution = executions.get(executionId) as StoredExecution;
+        executions.set(executionId, {
+          ...execution,
+          metadata: { clipperHookReviewAttempt: 1 },
+          status: approved ? 'COMPLETED' : 'FAILED',
+        });
+        return { status: approved ? 'approved' : 'rejected' };
+      },
     };
-    clipperResults = {
-      findOne: vi.fn().mockResolvedValue({ status: 'completed' }),
-      findOneSelect: delegateFindOneSelect(),
-      patch: vi.fn().mockResolvedValue({}),
+    const executionsService = {
+      findOne: async (where: {
+        id: string;
+        isDeleted: boolean;
+        organizationId: string;
+      }) => {
+        const execution = executions.get(where.id);
+        return execution && matches(execution, where) ? execution : null;
+      },
     };
-    executions = {
-      findOne: vi.fn().mockResolvedValue(createExecution()),
-      findOneSelect: delegateFindOneSelect(),
-    };
-    executor = {
-      submitReviewGateApproval: vi.fn().mockResolvedValue({
-        status: 'approved',
-      }),
+    const clipperGeneration = {
+      generateClips: async (
+        input: ClipperGenerationInput,
+        review: { attempt: number; feedback: string; lastAction: string },
+      ) => {
+        generations.push({ input, review });
+        executions.set('execution-2', {
+          ...pendingExecution('execution-2', review.attempt, 'hook-result-2'),
+          metadata: {
+            clipperHookReviewAttempt: review.attempt,
+            clipperHookReviewFeedback: review.feedback,
+            clipperHookReviewLastAction: review.lastAction,
+            pendingApproval: { nodeId: 'review-hook' },
+          },
+        });
+        results.set('hook-result-2', {
+          id: 'hook-result-2',
+          isDeleted: false,
+          organizationId: 'org-1',
+          projectId: 'project-1',
+          status: 'extracting',
+        });
+        const project = projects.get('project-1') as StoredRecord;
+        projects.set('project-1', {
+          ...project,
+          workflowExecutionId: 'execution-2',
+        });
+        return {};
+      },
     };
     const moduleRef = {
-      get: vi.fn((token: unknown) =>
-        token === WorkflowExecutorService ? executor : executions,
-      ),
+      get: (token: unknown) =>
+        token === WorkflowExecutorService ? executor : executionsService,
     };
+
     service = new HookClipApprovalService(
-      clipperResults as unknown as ClipperResultsService,
+      store(results) as unknown as ClipperResultsService,
       clipperGeneration as unknown as ClipperGenerationService,
-      clipperProjects as unknown as ClipperProjectsService,
+      store(projects) as unknown as ClipperProjectsService,
       moduleRef as unknown as ModuleRef,
     );
   });
@@ -131,30 +283,28 @@ describe('HookClipApprovalService workflow review gate', () => {
       remainingClipCount: 1,
       state: 'awaiting_confirmation',
     });
-    expect(executions.findOne).toHaveBeenCalledWith({
-      id: 'execution-1',
-      isDeleted: false,
-      organizationId: 'org-1',
+  });
+
+  it('reports nothing to review for another organization', async () => {
+    await expect(service.getStatus('project-1', 'org-2')).resolves.toEqual({
+      attempt: 0,
+      remainingClipCount: 0,
+      state: 'not_required',
     });
   });
 
   it('keeps the UI in hook generation until provider completion', async () => {
-    clipperResults.findOne.mockResolvedValue({ status: 'extracting' });
+    results.set('hook-result', {
+      ...(results.get('hook-result') as StoredRecord),
+      status: 'extracting',
+    });
 
     await expect(service.getStatus('project-1', 'org-1')).resolves.toEqual(
       expect.objectContaining({ state: 'generating_hook' }),
     );
   });
 
-  it('approves the native review gate and never invokes clip generation directly', async () => {
-    executions.findOne
-      .mockResolvedValueOnce(createExecution())
-      .mockResolvedValueOnce({
-        ...createExecution(),
-        metadata: { clipperHookReviewAttempt: 1 },
-        status: 'COMPLETED',
-      });
-
+  it('approves the native review gate and never starts clip generation directly', async () => {
     await expect(
       service.submitDecision({
         action: 'approve',
@@ -163,40 +313,27 @@ describe('HookClipApprovalService workflow review gate', () => {
         userId: 'reviewer-1',
       }),
     ).resolves.toEqual(expect.objectContaining({ state: 'approved' }));
-    expect(executor.submitReviewGateApproval).toHaveBeenCalledWith(
-      'workflow-1',
-      'execution-1',
-      'reviewer-1',
-      'org-1',
-      'review-hook',
-      true,
+
+    expect(decisions).toEqual([
+      {
+        approved: true,
+        executionId: 'execution-1',
+        nodeId: 'review-hook',
+        organizationId: 'org-1',
+        userId: 'reviewer-1',
+        workflowId: 'workflow-1',
+      },
+    ]);
+    expect(generations).toEqual([]);
+    expect(projects.get('project-1')).toEqual(
+      expect.objectContaining({
+        clipperHookReviewLastAction: 'approve',
+        status: 'generating',
+      }),
     );
-    expect(clipperGeneration.generateClips).not.toHaveBeenCalled();
   });
 
   it('rejects the current execution and starts a new workflow for revision', async () => {
-    executions.findOne
-      .mockResolvedValueOnce(createExecution())
-      .mockResolvedValueOnce({
-        ...createExecution(),
-        id: 'execution-2',
-        metadata: {
-          clipperHookReviewAttempt: 2,
-          clipperHookReviewFeedback: 'Stronger opening',
-          clipperHookReviewLastAction: 'request_changes',
-          pendingApproval: { nodeId: 'review-hook' },
-        },
-      });
-    clipperProjects.findOne
-      .mockResolvedValueOnce({
-        id: 'project-1',
-        workflowExecutionId: 'execution-1',
-      })
-      .mockResolvedValueOnce({
-        id: 'project-1',
-        workflowExecutionId: 'execution-2',
-      });
-
     await expect(
       service.submitDecision({
         action: 'request_changes',
@@ -209,38 +346,55 @@ describe('HookClipApprovalService workflow review gate', () => {
       expect.objectContaining({
         attempt: 2,
         lastAction: 'request_changes',
+        state: 'generating_hook',
       }),
     );
-    expect(executor.submitReviewGateApproval).toHaveBeenCalledWith(
-      'workflow-1',
-      'execution-1',
-      'reviewer-1',
-      'org-1',
-      'review-hook',
-      false,
-      'Stronger opening',
-    );
-    expect(clipperGeneration.generateClips).toHaveBeenCalledWith(
-      expect.objectContaining({
-        highlights: expect.arrayContaining([
-          expect.objectContaining({
-            summary: expect.stringContaining(
-              'Revision guidance: Stronger opening',
-            ),
-          }),
-        ]),
-      }),
+
+    expect(decisions).toEqual([
       {
-        attempt: 2,
-        feedback: 'Stronger opening',
-        lastAction: 'request_changes',
+        approved: false,
+        executionId: 'execution-1',
+        nodeId: 'review-hook',
+        organizationId: 'org-1',
+        reason: 'Stronger opening',
+        userId: 'reviewer-1',
+        workflowId: 'workflow-1',
       },
-    );
-    expect(clipperResults.patch).toHaveBeenCalledWith(
-      'hook-result',
-      { isDeleted: true },
-      [],
-      'org-1',
-    );
+    ]);
+    expect(generations).toEqual([
+      {
+        input: expect.objectContaining({
+          highlights: [
+            expect.objectContaining({
+              summary: 'Hook summary\nRevision guidance: Stronger opening',
+            }),
+            expect.objectContaining({ summary: 'Body summary' }),
+          ],
+        }),
+        review: {
+          attempt: 2,
+          feedback: 'Stronger opening',
+          lastAction: 'request_changes',
+        },
+      },
+    ]);
+    expect(results.get('hook-result')?.isDeleted).toBe(true);
+  });
+
+  it('refuses a decision when no hook is waiting for review', async () => {
+    results.set('hook-result', {
+      ...(results.get('hook-result') as StoredRecord),
+      status: 'extracting',
+    });
+
+    await expect(
+      service.submitDecision({
+        action: 'approve',
+        organizationId: 'org-1',
+        projectId: 'project-1',
+        userId: 'reviewer-1',
+      }),
+    ).rejects.toThrow('The hook clip is not awaiting an operator decision.');
+    expect(decisions).toEqual([]);
   });
 });

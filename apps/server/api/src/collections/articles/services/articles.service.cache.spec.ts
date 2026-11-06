@@ -26,6 +26,11 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 
+interface ArticleQuery {
+  orderBy?: unknown;
+  where: Record<string, unknown>;
+}
+
 /**
  * Focused coverage for the canonical article cache-key invalidation added in
  * #860: every write must bust `articles:list:{orgId}` + `articles:single:{id}`
@@ -39,14 +44,29 @@ describe('ArticlesService cache invalidation', () => {
 
   function buildService(
     options: {
-      organizationsService?: OrganizationsService;
+      genfeedOrganization?: { id: string } | null;
       publicArticlesOrganizationId?: string;
+      storedArticle?: Record<string, unknown> | null;
     } = {},
   ) {
+    const reads: ArticleQuery[] = [];
+    const organizationLookups: Array<Record<string, unknown>> = [];
+    const invalidatedKeys: string[][] = [];
+    const invalidatedTags: string[][] = [];
+
     const delegate = {
-      create: vi.fn(),
-      findFirst: vi.fn(),
-      update: vi.fn(),
+      create: async (input: { data: Record<string, unknown> }) => ({
+        ...input.data,
+        id: 'article_1',
+      }),
+      findFirst: async (query: ArticleQuery) => {
+        reads.push(query);
+        return options.storedArticle ?? null;
+      },
+      update: async (input: {
+        data: Record<string, unknown>;
+        where: { id: string };
+      }) => ({ ...input.data, id: input.where.id }),
     };
 
     const prisma = {
@@ -70,29 +90,44 @@ describe('ArticlesService cache invalidation', () => {
       article: delegate,
     } as unknown as PrismaService;
 
+    const noop = () => undefined;
     const logger = {
-      debug: vi.fn(),
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
+      debug: noop,
+      error: noop,
+      log: noop,
+      warn: noop,
     } as unknown as LoggerService;
 
     const cacheService = {
-      invalidateByTags: vi.fn().mockResolvedValue(0),
+      invalidateByTags: async () => 0,
     } as unknown as CacheService;
 
     const cacheInvalidationService = {
-      invalidate: vi.fn().mockResolvedValue(undefined),
-      invalidateByTags: vi.fn().mockResolvedValue(0),
+      invalidate: async (...keys: string[]) => {
+        invalidatedKeys.push(keys);
+      },
+      invalidateByTags: async (tags: string[]) => {
+        invalidatedTags.push(tags);
+        return 0;
+      },
     } as unknown as CacheInvalidationService;
 
     const configService = {
-      get: vi.fn((key: string) =>
+      get: (key: string) =>
         key === 'PUBLIC_ARTICLES_ORGANIZATION_ID'
           ? options.publicArticlesOrganizationId
           : undefined,
-      ),
     } as unknown as ConfigService;
+
+    const organizationsService =
+      options.genfeedOrganization === undefined
+        ? undefined
+        : ({
+            findOne: async (where: Record<string, unknown>) => {
+              organizationLookups.push(where);
+              return options.genfeedOrganization;
+            },
+          } as unknown as OrganizationsService);
 
     const service = new ArticlesService(
       prisma,
@@ -106,18 +141,25 @@ describe('ArticlesService cache invalidation', () => {
       undefined, // articlesContentService
       cacheService,
       undefined, // usersService
-      options.organizationsService,
+      organizationsService,
       cacheInvalidationService,
     );
 
-    return { cacheInvalidationService, delegate, service };
+    return {
+      invalidatedKeys,
+      invalidatedTags,
+      organizationLookups,
+      reads,
+      service,
+    };
   }
 
   it('binds a preview read to the signed article even when slugs collide', async () => {
-    const { delegate, service } = buildService();
-    delegate.findFirst.mockResolvedValue(null);
+    const { reads, service } = buildService();
+
     await service.findPublicArticleBySlug('shared-slug', 'article_2');
-    expect(delegate.findFirst).toHaveBeenCalledWith(
+
+    expect(reads).toEqual([
       expect.objectContaining({
         where: {
           id: 'article_2',
@@ -127,54 +169,56 @@ describe('ArticlesService cache invalidation', () => {
           slug: 'shared-slug',
         },
       }),
-    );
+    ]);
   });
 
   it('keeps ordinary slug reads restricted to published articles', async () => {
-    const { delegate, service } = buildService();
-    delegate.findFirst.mockResolvedValue(null);
+    const { reads, service } = buildService();
+
     await service.findPublicArticleBySlug('shared-slug');
-    expect(delegate.findFirst).toHaveBeenCalledWith({
-      // Deterministic: the earliest release wins if a legacy duplicate survives.
-      orderBy: [{ publishedAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
-      where: expect.objectContaining({
-        isDeleted: false,
-        slug: 'shared-slug',
-        status: 'PUBLISHED',
-        publishedAt: { lte: expect.any(Date) },
-      }),
-    });
-    expect(delegate.findFirst.mock.calls[0][0].where).not.toHaveProperty('id');
+
+    expect(reads).toEqual([
+      {
+        // Deterministic: the earliest release wins if a legacy duplicate survives.
+        orderBy: [{ publishedAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+        where: expect.objectContaining({
+          isDeleted: false,
+          publishedAt: { lte: expect.any(Date) },
+          slug: 'shared-slug',
+          status: 'PUBLISHED',
+        }),
+      },
+    ]);
+    expect(reads[0]?.where).not.toHaveProperty('id');
   });
 
-  it('serves public slugs only from the Genfeed organization', async () => {
-    const organizationsService = {
-      findOne: vi.fn().mockResolvedValue({ id: 'org_genfeed' }),
-    } as unknown as OrganizationsService;
-    const { delegate, service } = buildService({ organizationsService });
-    delegate.findFirst.mockResolvedValue(null);
+  it('serves public slugs only from the Genfeed organization, resolved once', async () => {
+    const { organizationLookups, reads, service } = buildService({
+      genfeedOrganization: { id: 'org_genfeed' },
+    });
 
     await service.findPublicArticleBySlug('shared-slug');
     await service.findPublicArticleBySlug('other-slug');
 
-    expect(organizationsService.findOne).toHaveBeenCalledTimes(1);
-    expect(organizationsService.findOne).toHaveBeenCalledWith({
-      isDeleted: false,
-      slug: 'genfeedai',
-    });
-    expect(delegate.findFirst.mock.calls[0][0].where).toMatchObject({
-      organizationId: 'org_genfeed',
-      slug: 'shared-slug',
-      status: 'PUBLISHED',
-    });
+    expect(organizationLookups).toEqual([
+      { isDeleted: false, slug: 'genfeedai' },
+    ]);
+    expect(reads.map((read) => read.where)).toEqual([
+      expect.objectContaining({
+        organizationId: 'org_genfeed',
+        slug: 'shared-slug',
+        status: 'PUBLISHED',
+      }),
+      expect.objectContaining({
+        organizationId: 'org_genfeed',
+        slug: 'other-slug',
+      }),
+    ]);
   });
 
   it('serves the configured organization id without a slug lookup, so a rename cannot unpublish the site', async () => {
-    const organizationsService = {
-      findOne: vi.fn().mockResolvedValue(null),
-    } as unknown as OrganizationsService;
-    const { service } = buildService({
-      organizationsService,
+    const { organizationLookups, service } = buildService({
+      genfeedOrganization: null,
       publicArticlesOrganizationId: ' org_renamed ',
     });
 
@@ -187,14 +231,11 @@ describe('ArticlesService cache invalidation', () => {
     await expect(
       service.publicArticleScope.isHostedOrganization('org_customer'),
     ).resolves.toBe(false);
-    expect(organizationsService.findOne).not.toHaveBeenCalled();
+    expect(organizationLookups).toEqual([]);
   });
 
   it('matches no tenant when the Genfeed organization cannot be resolved', async () => {
-    const organizationsService = {
-      findOne: vi.fn().mockResolvedValue(null),
-    } as unknown as OrganizationsService;
-    const { service } = buildService({ organizationsService });
+    const { service } = buildService({ genfeedOrganization: null });
 
     await expect(
       service.publicArticleScope.buildWhere(),
@@ -207,8 +248,7 @@ describe('ArticlesService cache invalidation', () => {
   });
 
   it('busts the org list key, the single key, and the articles tag on create', async () => {
-    const { cacheInvalidationService, delegate, service } = buildService();
-    delegate.create.mockResolvedValue({ id: 'article_1' });
+    const { invalidatedKeys, invalidatedTags, service } = buildService();
 
     const dto = {
       category: 'POST',
@@ -219,28 +259,24 @@ describe('ArticlesService cache invalidation', () => {
 
     await service.createArticle(dto, userId, organizationId, brandId);
 
-    expect(cacheInvalidationService.invalidate).toHaveBeenCalledWith(
+    expect(invalidatedKeys).toContainEqual([
       `articles:list:${organizationId}`,
       'articles:single:article_1',
-    );
-    expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
-      'articles',
     ]);
+    expect(invalidatedTags).toContainEqual(['articles']);
   });
 
   it('busts the org list key, the single key, and the articles tag on delete', async () => {
-    const { cacheInvalidationService, delegate, service } = buildService();
-    delegate.findFirst.mockResolvedValue({ id: 'article_2' });
-    delegate.update.mockResolvedValue({ id: 'article_2', isDeleted: true });
+    const { invalidatedKeys, invalidatedTags, service } = buildService({
+      storedArticle: { id: 'article_2' },
+    });
 
     await service.removeArticle('article_2', userId, organizationId, brandId);
 
-    expect(cacheInvalidationService.invalidate).toHaveBeenCalledWith(
+    expect(invalidatedKeys).toContainEqual([
       `articles:list:${organizationId}`,
       'articles:single:article_2',
-    );
-    expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
-      'articles',
     ]);
+    expect(invalidatedTags).toContainEqual(['articles']);
   });
 });
