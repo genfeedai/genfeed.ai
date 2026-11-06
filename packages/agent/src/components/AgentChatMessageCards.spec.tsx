@@ -128,6 +128,7 @@ describe('ContentPreviewCard', () => {
         action={{
           id: 'first-post',
           type: 'content_preview_card',
+          title: 'Draft preview',
           tweets: ['A brand draft'],
           images: ['https://cdn.test/first-post.png'],
           ctas: [
@@ -189,6 +190,7 @@ describe('ContentPreviewCard', () => {
           ] as KnowledgeReceipt[],
           textContent: 'Thursday is ship day.',
           type: 'content_preview_card',
+          title: 'Draft preview',
         }}
       />,
     );
@@ -211,6 +213,7 @@ describe('ContentPreviewCard', () => {
         action={{
           id: 'first-post',
           type: 'content_preview_card',
+          title: 'Draft preview',
           tweets: ['A brand draft'],
           ctas: [{ label: 'Looks good', action: 'send_prompt' }],
         }}
@@ -305,6 +308,7 @@ describe('ContentPreviewCard', () => {
           id: 'image-failed-card',
           status: 'completed',
           type: 'content_preview_card',
+          title: 'Draft preview',
         }}
         apiService={{ getGeneratedAsset } as never}
       />,
@@ -335,6 +339,7 @@ describe('ContentPreviewCard', () => {
           id: 'image-stuck-card',
           status: 'processing',
           type: 'content_preview_card',
+          title: 'Draft preview',
         }}
         apiService={{ getGeneratedAsset } as never}
       />,
@@ -363,6 +368,7 @@ describe('ContentPreviewCard', () => {
           id: 'video-long-card',
           status: 'processing',
           type: 'content_preview_card',
+          title: 'Draft preview',
         }}
         apiService={{ getGeneratedAsset } as never}
       />,
@@ -438,6 +444,7 @@ describe('ContentPreviewCard', () => {
           ],
           id: 'scoped-image-output',
           type: 'content_preview_card',
+          title: 'Draft preview',
         }}
       />,
     );

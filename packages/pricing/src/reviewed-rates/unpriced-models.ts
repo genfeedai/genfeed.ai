@@ -44,7 +44,6 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'fal-ai/gpt-image-2': FAL_ENDPOINT_MOVED,
   'fal-ai/kling-video':
     'A fal model family page, not a callable endpoint, so it has no single price.',
-  'fal-ai/kling-video/v3/pro': FAL_ENDPOINT_MOVED,
   'fal-ai/luma-dream-machine': FAL_NO_PUBLIC_RATE,
   'fal-ai/runway-gen3': FAL_ENDPOINT_GONE,
   'fal-ai/seedance-2.0': FAL_ENDPOINT_MOVED,

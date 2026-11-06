@@ -19,7 +19,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 const { copyToClipboard } = vi.hoisted(() => ({
   copyToClipboard: vi.fn().mockResolvedValue(undefined),
@@ -421,8 +421,6 @@ function createModel(
     isActive: true,
     isDefault: false,
     isDeleted: false,
-    key: overrides.key,
-    label: overrides.label,
     provider: ModelProvider.REPLICATE,
     updatedAt: '2026-01-01',
     ...overrides,
@@ -430,10 +428,10 @@ function createModel(
 }
 
 function createApiServiceMock(options?: {
-  createPrompt?: ReturnType<typeof vi.fn>;
-  createStudioHandoff?: ReturnType<typeof vi.fn>;
-  estimateGenerationCredits?: ReturnType<typeof vi.fn>;
-  generateIngredient?: ReturnType<typeof vi.fn>;
+  createPrompt?: Mock;
+  createStudioHandoff?: Mock;
+  estimateGenerationCredits?: Mock;
+  generateIngredient?: Mock;
   models?: IModel[];
 }) {
   const createPrompt =
@@ -456,20 +454,25 @@ function createApiServiceMock(options?: {
     vi.fn().mockResolvedValue({ id: 'handoff-1' });
   const models = options?.models ?? [];
 
-  return {
-    baseUrl: 'http://genfeed.localhost:3010',
-    createPrompt: vi.fn((...args: unknown[]) => createPrompt(...args)),
-    createStudioHandoff: vi.fn((...args: unknown[]) =>
-      createStudioHandoff(...args),
-    ),
-    estimateGenerationCredits: vi.fn((...args: unknown[]) =>
-      estimateGenerationCredits(...args),
-    ),
-    generateIngredient: vi.fn((...args: unknown[]) =>
-      generateIngredient(...args),
-    ),
-    getModels: vi.fn(() => Promise.resolve(models)),
-  };
+  return Object.assign(
+    new AgentApiService({
+      baseUrl: 'http://genfeed.localhost:3010',
+      getToken: async () => null,
+    }),
+    {
+      createPrompt: vi.fn((...args: unknown[]) => createPrompt(...args)),
+      createStudioHandoff: vi.fn((...args: unknown[]) =>
+        createStudioHandoff(...args),
+      ),
+      estimateGenerationCredits: vi.fn((...args: unknown[]) =>
+        estimateGenerationCredits(...args),
+      ),
+      generateIngredient: vi.fn((...args: unknown[]) =>
+        generateIngredient(...args),
+      ),
+      getModels: vi.fn(() => Promise.resolve(models)),
+    },
+  );
 }
 
 async function clickGenerate(type: 'image' | 'video') {
@@ -657,7 +660,7 @@ describe('GenerationActionCard', () => {
 
     const send = await screen.findByRole('button', { name: 'Generate image' });
     expect(send).toHaveAttribute('aria-label', 'Generate image');
-    expect(send).not.toHaveTextContent(/generate image/i);
+    expect(send.textContent).not.toMatch(/generate image/i);
     expect(screen.queryByText('Model')).not.toBeInTheDocument();
     expect(screen.queryByText('Aspect Ratio')).not.toBeInTheDocument();
     expect(screen.queryByText('Outputs')).not.toBeInTheDocument();
@@ -1539,7 +1542,7 @@ describe('GenerationActionCard', () => {
           title: 'Generate Image',
           type: 'generation_action_card',
         }}
-        apiService={createApiServiceMock() as unknown as AgentApiService}
+        apiService={createApiServiceMock()}
         onUiAction={onUiAction}
       />,
     );
@@ -1577,7 +1580,7 @@ describe('GenerationActionCard', () => {
             title: 'Generate Image',
             type: 'generation_action_card',
           }}
-          apiService={createApiServiceMock() as unknown as AgentApiService}
+          apiService={createApiServiceMock()}
           onUiAction={onUiAction}
         />
       );
@@ -1625,7 +1628,7 @@ describe('GenerationActionCard', () => {
           title: 'Generate Image',
           type: 'generation_action_card',
         }}
-        apiService={createApiServiceMock() as unknown as AgentApiService}
+        apiService={createApiServiceMock()}
         onUiAction={onUiAction}
       />,
     );
@@ -1659,7 +1662,7 @@ describe('GenerationActionCard', () => {
           title: 'Generate Image',
           type: 'generation_action_card',
         }}
-        apiService={createApiServiceMock() as unknown as AgentApiService}
+        apiService={createApiServiceMock()}
         onUiAction={vi.fn()}
       />
     );
@@ -2333,7 +2336,7 @@ describe('GenerationActionCard', () => {
     // does not exist (Studio generate only lives under a brand slug).
     // `activeHref` falls back to the context-selected brand instead.
     orgUrlParams.brandSlug = '';
-    brandState.selectedBrand = { slug: 'brand-1' };
+    brandState.selectedBrand = { agentConfig: undefined, slug: 'brand-1' };
     const onOpenInStudio = vi.fn();
     const createStudioHandoff = vi
       .fn()
@@ -2717,15 +2720,11 @@ describe('GenerationActionCard', () => {
       id: 'flux-output',
       url: 'https://cdn.test/flux.jpg',
     });
-    const { baseUrl, ...methods } = createApiServiceMock({
+    const apiService = createApiServiceMock({
       models: [model],
       estimateGenerationCredits,
       generateIngredient,
     });
-    const apiService = Object.assign(
-      new AgentApiService({ baseUrl, getToken: async () => null }),
-      methods,
-    );
     renderGenerationActionCard(
       <GenerationActionCard
         action={{

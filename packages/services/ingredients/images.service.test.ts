@@ -61,10 +61,6 @@ vi.mock('@services/core/base.service', () => {
     mapOne(res: { data: unknown }) {
       return res.data;
     }
-
-    static getInstance(this: unknown, token: string) {
-      return new (MockBaseService as new (token: string) => unknown)(token);
-    }
   }
 
   return { BaseService: MockBaseService };
@@ -107,12 +103,6 @@ vi.mock('@services/content/ingredients.service', () => {
     }
     mapOne(res: { data: unknown }) {
       return res.data;
-    }
-
-    static getInstance(this: unknown, token: string) {
-      return new (MockIngredientsService as new (token: string) => unknown)(
-        token,
-      );
     }
   }
 
@@ -180,7 +170,7 @@ describe('ImagesService', () => {
 
   describe('post', () => {
     it('serializes body and posts to root endpoint', async () => {
-      const imageData = { url: 'https://example.com/image.jpg' };
+      const imageData = { promptTemplate: 'Sunset over the bay' };
       mockPost.mockResolvedValue({ data: { data: { id: 'img-1' } } });
 
       await service.post(imageData);
@@ -194,7 +184,9 @@ describe('ImagesService', () => {
       const mockImage = { id: 'img-1', url: 'https://example.com/img.jpg' };
       mockPost.mockResolvedValue({ data: { data: mockImage } });
 
-      const result = await service.post({ url: 'https://example.com/img.jpg' });
+      const result = await service.post({
+        promptTemplate: 'Sunset over the bay',
+      });
       expect(result).toBeDefined();
     });
   });

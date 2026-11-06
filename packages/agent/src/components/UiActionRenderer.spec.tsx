@@ -172,7 +172,14 @@ type HandlerExpectation = {
   wrapsHandler?: boolean;
 };
 
-const handlerDrivenCases = [
+type HandlerDrivenCase = {
+  actionType: AgentUiAction['type'];
+  expectations: HandlerExpectation[];
+  spy: ReturnType<typeof vi.fn>;
+  testId: string;
+};
+
+const handlerDrivenCases: HandlerDrivenCase[] = [
   {
     actionType: 'completion_summary_card',
     expectations: [
@@ -265,12 +272,7 @@ const handlerDrivenCases = [
     spy: cardPropsSpies.aiTextAction,
     testId: 'ai-text-action-card',
   },
-] satisfies Array<{
-  actionType: AgentUiAction['type'];
-  expectations: HandlerExpectation[];
-  spy: ReturnType<typeof vi.fn>;
-  testId: string;
-}>;
+];
 
 const apiServiceCases = [
   {

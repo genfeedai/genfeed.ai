@@ -35,6 +35,9 @@ describe('assertApiKeyAgentToolBaselineAccess', () => {
     ['an mcp-preset key', MCP, 'get_brands'],
     ['an mcp-preset key', MCP, 'create_post'],
     ['an admin key', [ApiKeyScope.ADMIN], 'create_post'],
+    ['a read-preset key', READ, 'get_posts'],
+    ['a posts:read key', [ApiKeyScope.POSTS_READ], 'get_posts'],
+    ['a drafting key', [ApiKeyScope.POSTS_DRAFT], 'get_posts'],
   ])('lets %s run %s', (_label, scopes, tool) => {
     expect(() =>
       assertApiKeyAgentToolBaselineAccess({ isApiKey: true, scopes }, tool),
@@ -54,6 +57,11 @@ describe('assertApiKeyAgentToolBaselineAccess', () => {
     ['a read-preset key', READ, 'create_post'],
     ['a read-preset key', READ, 'transform_media'],
     ['a key without scopes', [], 'get_brands'],
+    [
+      'a key without a posts scope',
+      [ApiKeyScope.IMAGES_READ, ApiKeyScope.ANALYTICS_READ],
+      'get_posts',
+    ],
   ])('refuses %s running %s', (_label, scopes, tool) => {
     expect(() =>
       assertApiKeyAgentToolBaselineAccess({ isApiKey: true, scopes }, tool),

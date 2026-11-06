@@ -53,6 +53,20 @@ export const API_KEY_PERMISSION_GROUPS: readonly IApiKeyPermissionGroup[] = [
     label: 'Publishing',
     resources: [
       {
+        id: 'posts',
+        label: 'Posts',
+        levels: ['none', 'read'],
+        readScopes: ['posts:read'],
+        writeScopes: [],
+      },
+      {
+        id: 'connected-accounts',
+        label: 'Connected accounts',
+        levels: ['none', 'read'],
+        readScopes: ['credentials:read'],
+        writeScopes: [],
+      },
+      {
         id: 'post-drafts',
         label: 'Post drafts',
         levels: ['none', 'write'],

@@ -24,6 +24,7 @@
       "@contexts/*": ["../contexts/*"],
       "@helpers/*": ["../helpers/src/*"],
       "@hooks/*": ["../hooks/*"],
+      "@providers/*": ["../contexts/providers/*"],
       "@genfeedai/contracts/interfaces": [
         "../contracts/src/interfaces/index.ts"
       ],

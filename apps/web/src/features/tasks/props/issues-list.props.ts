@@ -1,5 +1,5 @@
 import type { ViewType } from '@genfeedai/contracts';
-import type { TaskPriority } from '@services/management/tasks.service';
+import type { TaskPriority } from '@genfeedai/contracts/interfaces';
 
 export type ViewMode = ViewType.KANBAN | ViewType.LIST;
 

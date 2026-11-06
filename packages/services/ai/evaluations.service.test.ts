@@ -105,7 +105,7 @@ describe('EvaluationsService', () => {
   const mockEvaluationData = {
     data: {
       attributes: {
-        evaluationType: EvaluationType.QUALITY,
+        evaluationType: EvaluationType.PRE_PUBLICATION,
         feedback: 'Good quality content',
         score: 85,
       },
@@ -179,7 +179,7 @@ describe('EvaluationsService', () => {
 
     it('should pass options when provided', async () => {
       const imageId = 'image-123';
-      const options = { evaluationType: EvaluationType.QUALITY };
+      const options = { evaluationType: EvaluationType.PRE_PUBLICATION };
       http.post.mockResolvedValue({
         data: mockEvaluationData,
       });
@@ -215,7 +215,7 @@ describe('EvaluationsService', () => {
 
     it('should pass options when provided', async () => {
       const videoId = 'video-123';
-      const options = { evaluationType: EvaluationType.CREATIVITY };
+      const options = { evaluationType: EvaluationType.PRE_PUBLICATION };
       http.post.mockResolvedValue({
         data: mockEvaluationData,
       });
@@ -240,7 +240,7 @@ describe('EvaluationsService', () => {
 
     it('should pass options when provided', async () => {
       const articleId = 'article-123';
-      const options = { evaluationType: EvaluationType.RELEVANCE };
+      const options = { evaluationType: EvaluationType.EXTERNAL_ANALYSIS };
       http.post.mockResolvedValue({
         data: mockEvaluationData,
       });
@@ -265,7 +265,7 @@ describe('EvaluationsService', () => {
 
     it('should pass options when provided', async () => {
       const postId = 'post-123';
-      const options = { evaluationType: EvaluationType.ENGAGEMENT };
+      const options = { evaluationType: EvaluationType.POST_PUBLICATION };
       http.post.mockResolvedValue({
         data: mockEvaluationData,
       });
@@ -366,7 +366,7 @@ describe('EvaluationsService', () => {
         brand: 'brand-123',
         contentType: IngredientCategory.IMAGE,
         endDate: '2024-12-31',
-        evaluationType: EvaluationType.QUALITY,
+        evaluationType: EvaluationType.PRE_PUBLICATION,
         maxScore: '100',
         minScore: '50',
         startDate: '2024-01-01',

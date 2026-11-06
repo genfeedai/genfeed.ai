@@ -11,7 +11,7 @@ export interface EditorProjectDocument
   extends Omit<EditorProject, 'config' | 'tracks'> {
   config?: Partial<IEditorProjectSettings> & Record<string, unknown>;
   settings?: Partial<IEditorProjectSettings>;
-  status?: EditorProjectStatus | string;
+  status?: EditorProjectStatus;
   thumbnailUrl?: string;
   totalDurationFrames?: number;
   tracks: IEditorTrack[];

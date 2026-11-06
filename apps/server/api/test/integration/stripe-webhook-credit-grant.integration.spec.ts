@@ -329,6 +329,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
           provide: OrganizationSettingsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue(null),
+            findOneSelect: vi.fn().mockResolvedValue(null),
             patch: vi.fn().mockResolvedValue(null),
           },
         },

@@ -1,6 +1,6 @@
 import { Asset } from '@genfeedai/models/ingredients/asset.model';
+import { installMockHttp } from '@services/__mocks__/http.mock';
 import { AssetsService } from '@services/content/assets.service';
-import type { AxiosInstance } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock modules
@@ -56,6 +56,14 @@ vi.mock('@genfeedai/models/ingredients/asset.model', () => ({
   },
 }));
 
+type UploadProgressEvent = { loaded: number; total: number | undefined };
+
+type UploadPost = (
+  url: string,
+  data: FormData,
+  config: { onUploadProgress: (event: UploadProgressEvent) => void },
+) => Promise<unknown>;
+
 describe('AssetsService', () => {
   let service: AssetsService;
   const mockToken = 'test-token-123';
@@ -72,14 +80,10 @@ describe('AssetsService', () => {
     },
   });
 
-  const mockUploadPost = (
-    post: AxiosInstance['post'],
-  ): ReturnType<typeof vi.fn> => {
-    const mockPost = vi.fn(post);
-    service.instance = {
-      post: mockPost,
-    } as Partial<AxiosInstance> as AxiosInstance;
-    return mockPost;
+  const mockUploadPost = (post: UploadPost): ReturnType<typeof vi.fn> => {
+    const http = installMockHttp(service);
+    http.post.mockImplementation(post);
+    return http.post;
   };
 
   beforeEach(() => {
@@ -115,14 +119,9 @@ describe('AssetsService', () => {
         },
       };
 
-      const mockPost = vi.fn().mockResolvedValue({
+      const mockPost = installMockHttp(service).post.mockResolvedValue({
         data: mockResponse,
       });
-
-      // Mock the instance.post method
-      service.instance = {
-        post: mockPost,
-      } as Partial<AxiosInstance> as AxiosInstance;
 
       const formData = new FormData();
       formData.append('file', new Blob(['test']), 'test.jpg');
@@ -135,8 +134,7 @@ describe('AssetsService', () => {
       });
 
       expect(result).toBeInstanceOf(Asset);
-      expect(result.id).toBe('asset-123');
-      expect(result.name).toBe('test.jpg');
+      expect(result).toMatchObject({ id: 'asset-123', name: 'test.jpg' });
     });
 
     it('should track upload progress', async () => {
@@ -204,11 +202,7 @@ describe('AssetsService', () => {
 
     it('should handle upload errors', async () => {
       const mockError = new Error('Upload failed');
-      const mockPost = vi.fn().mockRejectedValue(mockError);
-
-      service.instance = {
-        post: mockPost,
-      } as Partial<AxiosInstance> as AxiosInstance;
+      installMockHttp(service).post.mockRejectedValue(mockError);
 
       const formData = new FormData();
 
@@ -247,9 +241,11 @@ describe('AssetsService', () => {
       const formData = new FormData();
       const result = await service.postUpload(formData);
 
-      expect(result.id).toBe('asset-123');
-      expect(result.fileName).toBe('test.jpg');
-      expect(result.fileUrl).toBe('https://cdn.test.com/test.jpg');
+      expect(result).toMatchObject({
+        fileName: 'test.jpg',
+        fileUrl: 'https://cdn.test.com/test.jpg',
+        id: 'asset-123',
+      });
     });
 
     it('should handle large file uploads', async () => {

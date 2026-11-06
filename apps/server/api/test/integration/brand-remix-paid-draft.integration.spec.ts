@@ -257,7 +257,7 @@ describeWithDatabase('Brand remix paid draft integration', () => {
       {} as never,
       { findAll: vi.fn().mockResolvedValue([]) } as never,
       {
-        findOne: vi.fn().mockResolvedValue({
+        findOneSelect: vi.fn().mockResolvedValue({
           accessToken: 'x-access-token',
           accessTokenSecret: 'x-access-token-secret',
         }),

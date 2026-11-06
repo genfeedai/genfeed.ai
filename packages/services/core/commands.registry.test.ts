@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import type { AppRailNavigationItem } from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
+import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { Terminal } from 'lucide-react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -11,7 +12,7 @@ const { mockEnvironmentService, mockRegisterCommands } = vi.hoisted(() => ({
     },
     currentApp: 'app',
   },
-  mockRegisterCommands: vi.fn((commands: { id: string }[]): string[] =>
+  mockRegisterCommands: vi.fn((commands: ICommand[]): string[] =>
     commands.map((command) => command.id),
   ),
 }));

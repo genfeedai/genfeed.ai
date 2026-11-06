@@ -4,6 +4,7 @@ import {
   useTaskStatusLabels,
 } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-status.constants';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { TaskPriority, TaskStatus } from '@genfeedai/contracts/interfaces';
 import { updateCachedQueries } from '@hooks/auth/update-cached-queries/update-cached-queries';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -18,8 +19,6 @@ import {
 import {
   type Task,
   type TaskLinkedEntityModel,
-  type TaskPriority,
-  type TaskStatus,
   TasksService,
 } from '@services/management/tasks.service';
 import { useQueryClient } from '@tanstack/react-query';

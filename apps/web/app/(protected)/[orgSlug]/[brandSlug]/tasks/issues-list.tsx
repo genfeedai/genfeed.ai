@@ -6,7 +6,11 @@ import {
   EMPTY_PAGE_TOTALS,
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
-import type { IPagedItems } from '@genfeedai/contracts/interfaces';
+import type {
+  IPagedItems,
+  TaskPriority,
+  TaskStatus,
+} from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { updateCachedQueries } from '@hooks/auth/update-cached-queries/update-cached-queries';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -14,12 +18,7 @@ import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-page
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import {
-  type Task,
-  type TaskPriority,
-  type TaskStatus,
-  TasksService,
-} from '@services/management/tasks.service';
+import { type Task, TasksService } from '@services/management/tasks.service';
 import { useQueryClient } from '@tanstack/react-query';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';

@@ -181,6 +181,7 @@ export * from './content/media-provenance.interface';
 export * from './content/model.interface';
 export * from './content/mood-board.interface';
 export * from './content/newsletter-feed.interface';
+export * from './content/newsletter-status.interface';
 export * from './content/persona.interface';
 export * from './content/post.interface';
 export * from './content/post-draft-generation.interface';

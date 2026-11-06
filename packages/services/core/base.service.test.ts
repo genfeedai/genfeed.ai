@@ -84,6 +84,7 @@ import type { AxiosRequestConfig } from 'axios';
 class TestModel {
   id: string;
   name: string;
+  description?: string | null;
 
   constructor(partial: Partial<TestModel>) {
     this.id = partial.id || '';

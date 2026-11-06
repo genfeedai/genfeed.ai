@@ -7,7 +7,7 @@ import {
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { describe, expect, it } from 'vitest';
-import type { TimelineStreaming } from './derive-timeline';
+import type { EnrichedWorkEvent, TimelineStreaming } from './derive-timeline';
 import {
   collapseSupersededSnapshotCards,
   deriveTimeline,
@@ -37,15 +37,15 @@ function msg(
 }
 
 function workEvent(
-  overrides: Partial<AgentWorkEvent> & { id: string; createdAt: string },
-) {
+  overrides: Partial<EnrichedWorkEvent> & { id: string; createdAt: string },
+): EnrichedWorkEvent {
   return {
     event: AgentWorkEventType.TOOL_COMPLETED,
     label: 'Tool',
     status: AgentWorkEventStatus.COMPLETED,
     threadId: 't1',
     ...overrides,
-  } as AgentWorkEvent;
+  };
 }
 
 describe('deriveTimeline', () => {

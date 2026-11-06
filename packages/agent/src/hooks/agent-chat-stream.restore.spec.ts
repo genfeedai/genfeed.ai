@@ -135,7 +135,6 @@ describe('restoreThreadFromSnapshot', () => {
     async ({ terminal, visible }) => {
       const snapshot = makeSnapshot({
         runId: 'run-1',
-        startedAt: null,
         status: 'running',
       });
       const deps = makeDeps(snapshot);
@@ -172,7 +171,6 @@ describe('restoreThreadFromSnapshot', () => {
     async (change) => {
       const snapshot = makeSnapshot({
         runId: 'run-1',
-        startedAt: null,
         status: 'running',
       });
       const deps = makeDeps(snapshot);
@@ -198,7 +196,7 @@ describe('restoreThreadFromSnapshot', () => {
   it('restores a genuinely different run after an older run completed', async () => {
     seedRun('thread-1', { status: 'completed' });
     const deps = makeDeps(
-      makeSnapshot({ runId: 'run-new', startedAt: null, status: 'running' }),
+      makeSnapshot({ runId: 'run-new', status: 'running' }),
     );
     await restoreThreadFromSnapshot('thread-1', deps as never);
     expect(deps.setActiveRun).toHaveBeenCalledWith('run-new', {
@@ -214,7 +212,6 @@ describe('restoreThreadFromSnapshot', () => {
       seedRun('thread-2', { runId: 'run-2', status: 'running' });
       const snapshot = makeSnapshot({
         runId: 'run-1',
-        startedAt: null,
         status: 'running',
       });
       const deps = makeDeps(snapshot);
@@ -242,9 +239,7 @@ describe('restoreThreadFromSnapshot', () => {
   it('restores an unchanged background summary without replacing the visible run', async () => {
     useAgentChatStore.setState({ activeThreadId: 'thread-2' });
     seedRun('thread-2', { runId: 'run-2', status: 'running' });
-    const deps = makeDeps(
-      makeSnapshot({ runId: 'run-1', startedAt: null, status: 'running' }),
-    );
+    const deps = makeDeps(makeSnapshot({ runId: 'run-1', status: 'running' }));
     await restoreThreadFromSnapshot('thread-1', deps as never);
     expect(deps.updateThreadSummary).toHaveBeenCalledOnce();
     expect(deps.setMessages).not.toHaveBeenCalled();
@@ -256,7 +251,7 @@ describe('restoreThreadFromSnapshot', () => {
     async (terminal) => {
       seedRun('thread-1', { status: terminal });
       const deps = makeDeps(
-        makeSnapshot({ runId: 'run-1', startedAt: null, status: 'running' }),
+        makeSnapshot({ runId: 'run-1', status: 'running' }),
       );
       await restoreThreadFromSnapshot('thread-1', deps as never);
       expect(deps.updateThreadSummary).not.toHaveBeenCalled();
@@ -272,7 +267,7 @@ describe('restoreThreadFromSnapshot', () => {
           ? createAgentStreamEntry('thread-1', 'existing-request')
           : null;
       const deps = makeDeps(
-        makeSnapshot({ runId: 'run-1', startedAt: null, status: 'running' }),
+        makeSnapshot({ runId: 'run-1', status: 'running' }),
       );
       let release: (snapshot: AgentThreadSnapshot) => void = () => {};
       deps.apiService.getThreadSnapshot.mockImplementation(
@@ -284,9 +279,7 @@ describe('restoreThreadFromSnapshot', () => {
       const restoring = restoreThreadFromSnapshot('thread-1', deps as never);
       if (entry) entry.revision += 1;
       else createAgentStreamEntry('thread-1', 'new-request');
-      release(
-        makeSnapshot({ runId: 'run-1', startedAt: null, status: 'running' }),
-      );
+      release(makeSnapshot({ runId: 'run-1', status: 'running' }));
       await restoring;
       expect(deps.setMessages).not.toHaveBeenCalled();
       expect(deps.updateThreadSummary).not.toHaveBeenCalled();

@@ -9,6 +9,7 @@ export const API_KEY_SCOPE_PRESETS = {
     'articles:read',
     'articles:create',
     'brands:read',
+    'posts:read',
     'posts:draft',
   ],
   full: [
@@ -28,6 +29,8 @@ export const API_KEY_SCOPE_PRESETS = {
     'articles:create',
     'brands:read',
     'credits:read',
+    'posts:read',
+    'credentials:read',
     'posts:draft',
     'posts:schedule',
     'posts:approve',
@@ -57,6 +60,8 @@ export const API_KEY_SCOPE_PRESETS = {
     'articles:read',
     'brands:read',
     'credits:read',
+    'posts:read',
+    'credentials:read',
     'analytics:read',
   ],
 } as const satisfies Record<string, readonly string[]>;

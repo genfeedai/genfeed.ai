@@ -37,11 +37,12 @@ function makeMessage(
 
 function makePlan(id: string): AgentProposedPlan {
   return {
-    followUpQuestions: [],
-    planId: id,
+    content: `Plan ${id}`,
+    createdAt: '2026-03-26T10:00:00.000Z',
+    id,
     steps: [{ description: 'Do a thing', title: 'Step 1' }],
-    summary: `Plan ${id}`,
-  } as unknown as AgentProposedPlan;
+    updatedAt: '2026-03-26T10:00:00.000Z',
+  };
 }
 
 function makeThread(id: string) {
@@ -488,13 +489,14 @@ describe('agent-chat.store stream state', () => {
 
 describe('agent-chat.store run lifecycle', () => {
   it('clears a stale active run without discarding completed work history', () => {
-    const completedEvent = {
+    const completedEvent: AgentWorkEvent = {
       createdAt: '2026-03-26T10:01:00.000Z',
+      event: AgentWorkEventType.TOOL_COMPLETED,
       id: 'work-1',
       label: 'Generated image',
       status: AgentWorkEventStatus.COMPLETED,
-      type: AgentWorkEventType.TOOL,
-    } as AgentWorkEvent;
+      threadId: 'thread-1',
+    };
 
     useAgentChatStore.getState().setActiveRun('run-stale');
     useAgentChatStore.getState().setIsGenerating(true);
@@ -668,7 +670,7 @@ describe('agent-chat.store simple setters', () => {
     expect(state.socketConnectionState).toBe('connected');
     expect(state.pageContext).toEqual({ pathname: '/library' });
     expect(state.draftAgentMode).toBe(AgentThreadMode.PLAN);
-    expect(state.latestProposedPlan?.summary).toBe('Plan plan-z');
+    expect(state.latestProposedPlan?.content).toBe('Plan plan-z');
     expect(state.workEvents).toEqual([]);
   });
 
@@ -966,7 +968,7 @@ describe('agent-chat.store conversation cache', () => {
 
     const state = useAgentChatStore.getState();
     expect(state.messages.map((message) => message.id)).toEqual(['m-1', 'm-2']);
-    expect(state.latestProposedPlan?.summary).toBe('Plan plan-1');
+    expect(state.latestProposedPlan?.content).toBe('Plan plan-1');
     expect(state.workEvents.map((event) => event.id)).toEqual(['w-1']);
     expect(state.pendingInputRequest?.inputRequestId).toBe('req-1');
     expect(state.hasMoreMessages).toBe(true);

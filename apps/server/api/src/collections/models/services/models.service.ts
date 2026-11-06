@@ -36,6 +36,7 @@ import {
 import type {
   IModelProviderContractSnapshot,
   IModelProviderContracts,
+  ModelReviewStatus,
 } from '@genfeedai/contracts/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
@@ -79,7 +80,7 @@ type RegistryReviewPatch = Omit<Partial<UpdateModelDto>, 'providerCostUsd'> & {
   rejectionReason?: string;
   reviewedAt?: Date;
   reviewedBy?: string;
-  reviewStatus?: 'approved' | 'legacy' | 'pending' | 'rejected';
+  reviewStatus?: ModelReviewStatus;
   reviewedProviderContractVersion?: string;
   pendingProviderContractVersion?: null;
   providerInputSchema?: Prisma.InputJsonValue;

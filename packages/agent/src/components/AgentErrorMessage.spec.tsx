@@ -57,7 +57,7 @@ describe('AgentErrorMessage', () => {
   it('displays human-readable connection copy for bare Generation failed: 500', () => {
     render(<AgentErrorMessage message="Generation failed: 500" />);
 
-    expect(screen.getByRole('alert')).toHaveTextContent(
+    expect(screen.getByRole('alert').textContent).toMatch(
       /Connection interrupted/i,
     );
     expect(screen.getByRole('alert')).not.toHaveTextContent(

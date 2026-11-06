@@ -55,14 +55,12 @@ describe('resolveStudioHandoffIdentityFromSettings', () => {
           defaultAvatarPhotoUrl: 'https://cdn.test/brand.png',
           defaultVoiceRef: {
             externalVoiceId: 'brand-voice',
-            source: 'catalog',
           },
         },
         organizationSettings: {
           defaultAvatarPhotoUrl: 'https://cdn.test/org.png',
           defaultVoiceRef: {
             externalVoiceId: 'org-voice',
-            source: 'catalog',
           },
         },
       }),
@@ -80,7 +78,6 @@ describe('resolveStudioHandoffIdentityFromSettings', () => {
           defaultAvatarPhotoUrl: 'https://cdn.test/org.png',
           defaultVoiceRef: {
             externalVoiceId: 'org-voice',
-            source: 'catalog',
           },
         },
       }),

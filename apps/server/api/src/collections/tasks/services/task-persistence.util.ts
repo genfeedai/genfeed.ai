@@ -1,5 +1,5 @@
-import type { TaskStatus } from '@api/collections/tasks/schemas/task.schema';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
+import type { TaskStatus } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 
 /**
