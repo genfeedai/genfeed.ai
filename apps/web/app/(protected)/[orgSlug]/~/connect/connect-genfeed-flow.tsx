@@ -123,8 +123,12 @@ export default function ConnectGenfeedFlow() {
   const [verificationSecretState, setVerificationSecret] = useState('');
   // The key the copy-once value and its verification belong to.
   const [secretKeyId, setSecretKeyId] = useState('');
-  const [verificationState, setVerification] =
-    useState<ConnectGenfeedVerificationResult | null>(null);
+  // A verification result belongs to the key it was requested for, so one
+  // that lands after the selection moved never shows under another key.
+  const [verificationState, setVerificationEntry] = useState<{
+    keyId: string;
+    result: ConnectGenfeedVerificationResult;
+  } | null>(null);
   const [isCreatingKey, setIsCreatingKey] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [copiedItem, setCopiedItem] = useState('');
@@ -187,7 +191,23 @@ export default function ConnectGenfeedFlow() {
   const verificationSecret = isSecretForSelectedKey
     ? verificationSecretState
     : '';
-  const verification = isSecretForSelectedKey ? verificationState : null;
+  const verification =
+    isSecretForSelectedKey && verificationState?.keyId === selectedKeyId
+      ? verificationState.result
+      : null;
+  const setVerification = (result: ConnectGenfeedVerificationResult | null) => {
+    setVerificationEntry(result ? { keyId: selectedKeyId, result } : null);
+  };
+  // Typing or verifying for a key the old value was not entered for starts
+  // clean: the old key's copy-once value and result never carry over.
+  const bindSecretToSelectedKey = () => {
+    if (secretKeyId !== selectedKeyId) {
+      setCreatedPlainKey('');
+      setVerificationSecret('');
+      setVerificationEntry(null);
+    }
+    setSecretKeyId(selectedKeyId);
+  };
 
   const trackStep = useCallback(
     (step: ConnectGenfeedStep, outcome?: 'failure' | 'success') => {
@@ -359,7 +379,7 @@ export default function ConnectGenfeedFlow() {
   };
 
   const handleVerify = async () => {
-    setSecretKeyId(selectedKeyId);
+    bindSecretToSelectedKey();
     const secret = verificationSecret.trim();
     if (!selectedKey || !secret) {
       setVerification({
@@ -795,7 +815,7 @@ export default function ConnectGenfeedFlow() {
                     autoComplete="off"
                     id="connect-genfeed-key"
                     onChange={(event) => {
-                      setSecretKeyId(selectedKeyId);
+                      bindSecretToSelectedKey();
                       setVerificationSecret(event.target.value);
                     }}
                     placeholder="gf_live_..."

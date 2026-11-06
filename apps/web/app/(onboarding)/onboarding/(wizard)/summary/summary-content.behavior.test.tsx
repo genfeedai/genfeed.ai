@@ -6,7 +6,14 @@ import {
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { focusManager } from '@tanstack/react-query';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
@@ -440,6 +447,33 @@ describe('SummaryContent behavior', () => {
     render(<SummaryContent />, { wrapper: queryClientWrapper(client) });
 
     expect(await screen.findByText('None configured')).toBeInTheDocument();
+  });
+
+  it('re-checks readiness when the window regains focus inside the cache window', async () => {
+    const client = createTestQueryClient();
+    client.setDefaultOptions({
+      queries: { ...client.getDefaultOptions().queries, staleTime: 30_000 },
+    });
+    render(<SummaryContent />, { wrapper: queryClientWrapper(client) });
+    expect(await screen.findByText('Codex CLI')).toBeInTheDocument();
+
+    // A provider key was removed in another tab.
+    getInstallReadinessMock.mockResolvedValue({
+      ...BILLING_READINESS,
+      providers: {
+        ...BILLING_READINESS.providers,
+        anyConfigured: false,
+        configured: [],
+      },
+      ui: { ...BILLING_READINESS.ui, showBilling: false },
+    });
+    act(() => {
+      focusManager.setFocused(false);
+      focusManager.setFocused(true);
+    });
+
+    expect(await screen.findByText('None configured')).toBeInTheDocument();
+    focusManager.setFocused(undefined);
   });
 
   it('shows a choice saved here as current when the step is revisited', async () => {

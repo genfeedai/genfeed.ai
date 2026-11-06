@@ -74,7 +74,7 @@ export function useInstallReadiness({ enabled = true } = {}) {
     // Provider keys can change in another tab: entering a step or coming back
     // to the window re-checks, while the cached readiness stays on screen.
     refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: 'always',
     queryFn: async (service) => {
       try {
         return await service.getInstallReadiness();

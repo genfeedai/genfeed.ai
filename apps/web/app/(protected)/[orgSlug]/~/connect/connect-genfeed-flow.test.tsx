@@ -721,4 +721,83 @@ describe('ConnectGenfeedFlow', () => {
       screen.getByRole('button', { name: 'Verify MCP connection' }),
     ).toBeDisabled();
   });
+
+  it('never shows one key’s verification under the key a refresh falls back to', async () => {
+    mocks.findAll.mockResolvedValue([
+      activeKey(),
+      { ...activeKey(), id: 'key-2', label: 'Second key' },
+    ]);
+    const client = createTestQueryClient();
+    render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+    await userEvent.click(
+      await screen.findByRole('radio', { name: /Second key/ }),
+    );
+    fireEvent.change(
+      screen.getByLabelText('Stored value for the selected key'),
+      { target: { value: STORED_TEST_KEY } },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Verify MCP connection' }),
+    );
+    expect(await screen.findByText('Connection verified')).toBeInTheDocument();
+
+    mocks.findAll.mockResolvedValue([activeKey()]);
+    await act(() => client.invalidateQueries());
+    await waitFor(() =>
+      expect(screen.queryByText('Second key')).not.toBeInTheDocument(),
+    );
+    fireEvent.change(
+      screen.getByLabelText('Stored value for the selected key'),
+      { target: { value: 'gf_live_other' } },
+    );
+
+    expect(screen.queryByText('Connection verified')).not.toBeInTheDocument();
+  });
+
+  it('drops a verification that lands after the selected key changed', async () => {
+    mocks.findAll.mockResolvedValue([
+      activeKey(),
+      { ...activeKey(), id: 'key-2', label: 'Second key' },
+    ]);
+    let finishVerification!: (value: unknown) => void;
+    mocks.verifyMcpConnection.mockReturnValue(
+      new Promise((resolve) => {
+        finishVerification = resolve;
+      }),
+    );
+    const client = createTestQueryClient();
+    render(<ConnectGenfeedFlow />, client);
+    await openManualKeyStep();
+    await userEvent.click(
+      await screen.findByRole('radio', { name: /Second key/ }),
+    );
+    fireEvent.change(
+      screen.getByLabelText('Stored value for the selected key'),
+      { target: { value: STORED_TEST_KEY } },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Verify MCP connection' }),
+    );
+
+    mocks.findAll.mockResolvedValue([activeKey()]);
+    await act(() => client.invalidateQueries());
+    await waitFor(() =>
+      expect(screen.queryByText('Second key')).not.toBeInTheDocument(),
+    );
+    fireEvent.change(
+      screen.getByLabelText('Stored value for the selected key'),
+      { target: { value: 'gf_live_other' } },
+    );
+    await act(async () => {
+      finishVerification({
+        keyId: 'key-2',
+        publishing: { connectedAccountCount: 1, isReady: true },
+        status: 'connected',
+        verifiedAt: '2026-07-18T12:00:00.000Z',
+      });
+    });
+
+    expect(screen.queryByText('Connection verified')).not.toBeInTheDocument();
+  });
 });
