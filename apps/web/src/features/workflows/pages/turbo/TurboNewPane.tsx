@@ -42,6 +42,7 @@ import {
 import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import { useFeatureFlag } from '@/hooks/feature-flags/use-feature-flag';
+import { turboWorkflowOptionsQueryKey } from '@/lib/constants/workflow-query-keys';
 import { isProjectChangeRequest } from '@/lib/creative-apps/project-change-request';
 import TurboPromptCards from './TurboPromptCards';
 import { createTurboProjectsApi } from './turbo-projects-api';
@@ -60,10 +61,6 @@ const FORMAT_OPTIONS: readonly (readonly TurboIdeaFormat[])[] = [
 ];
 const DEFAULT_FORMATS: readonly TurboIdeaFormat[] = ['image', 'video'];
 const EMPTY_WORKFLOWS: WorkflowSummary[] = [];
-
-function turboWorkflowOptionsQueryKey(brandId: string) {
-  return ['turbo-workflow-options', brandId] as const;
-}
 
 function formatsKey(formats: readonly TurboIdeaFormat[]): string {
   return formats.join('+');

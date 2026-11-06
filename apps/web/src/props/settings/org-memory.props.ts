@@ -14,7 +14,11 @@ export interface MemoryRevisionPage {
   nextCursor: string | null;
 }
 
-/** Revisions fetched with "Load more" during one opening of the dialog. */
+/**
+ * Revisions fetched with "Load more" during one opening of the dialog, after
+ * the first page they continue. A refreshed first page starts a new chain.
+ */
 export interface OlderRevisionPages extends MemoryRevisionPage {
   entryId: string | undefined;
+  firstPage: MemoryRevisionPage | undefined;
 }

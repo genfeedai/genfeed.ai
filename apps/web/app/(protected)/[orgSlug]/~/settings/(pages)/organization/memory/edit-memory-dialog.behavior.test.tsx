@@ -225,4 +225,52 @@ describe('EditMemoryDialog behavior', () => {
     expect(screen.queryByText('Launch is on the 3rd.')).not.toBeInTheDocument();
     expect(screen.queryByText('No earlier revisions')).not.toBeInTheDocument();
   });
+
+  it('keeps every revision reachable when a new one lands after older pages loaded', async () => {
+    const [current, original] = revisions;
+    const revision = (number: number, content: string) => ({
+      ...current,
+      content,
+      id: `revision-${number}`,
+      isCurrent: false,
+      revision: number,
+    });
+    listRevisionsMock.mockImplementation(
+      async (_id: string, query: { cursor?: string }) =>
+        query.cursor === 'after-3'
+          ? { items: [original], nextCursor: null }
+          : {
+              items: [revision(3, 'Launch is on the 9th.'), current],
+              nextCursor: 'after-3',
+            },
+    );
+    const client = createTestQueryClient();
+    renderDialog(client);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Show older revisions' }),
+    );
+    expect(await screen.findByText('Launch is on the 3rd.')).toBeVisible();
+
+    // Another correction lands; the first page now ends one revision later.
+    listRevisionsMock.mockImplementation(
+      async (_id: string, query: { cursor?: string }) =>
+        query.cursor === 'after-4'
+          ? { items: [current, original], nextCursor: null }
+          : {
+              items: [
+                revision(4, 'Launch is on the 12th.'),
+                revision(3, 'Launch is on the 9th.'),
+              ],
+              nextCursor: 'after-4',
+            },
+    );
+    await client.invalidateQueries();
+    expect(await screen.findByText('Launch is on the 12th.')).toBeVisible();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Show older revisions' }),
+    );
+    expect(await screen.findByText('Launch is on the 7th.')).toBeVisible();
+    expect(screen.getByText('Launch is on the 3rd.')).toBeVisible();
+  });
 });

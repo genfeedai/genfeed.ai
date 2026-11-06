@@ -24,7 +24,7 @@ import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   EditMemoryDialogProps,
   MemoryRevisionPage,
@@ -90,19 +90,29 @@ export default function EditMemoryDialog({
       service: (token: string) => AgentMemoriesService.getInstance(token),
     },
   );
-  // Pages fetched with "Load more" stay with the opening they were read in.
+  const firstPage = historyQuery.data;
+  // Pages fetched with "Load more" continue the first page they were read
+  // after. A refreshed first page (a new revision shifts every boundary)
+  // drops them, so no revision falls between the pages.
   const [olderPages, setOlderPages] = useState<OlderRevisionPages>({
     entryId,
+    firstPage,
     items: [],
     nextCursor: null,
   });
   const [isLoadMoreError, setIsLoadMoreError] = useState(false);
-  if (olderPages.entryId !== entryId) {
-    setOlderPages({ entryId, items: [], nextCursor: null });
+  if (
+    olderPages.entryId !== entryId ||
+    (olderPages.firstPage !== firstPage && olderPages.items.length > 0)
+  ) {
+    setOlderPages({ entryId, firstPage, items: [], nextCursor: null });
     setIsLoadMoreError(false);
   }
   const hasOlderPages = olderPages.items.length > 0;
-  const firstPage = historyQuery.data;
+  const latestFirstPageRef = useRef(firstPage);
+  useEffect(() => {
+    latestFirstPageRef.current = firstPage;
+  }, [firstPage]);
   const revisions = firstPage
     ? [...firstPage.items, ...olderPages.items]
     : historyQuery.error
@@ -135,16 +145,22 @@ export default function EditMemoryDialog({
     if (!entryId || !nextCursor) {
       return;
     }
+    const chainFirstPage = firstPage;
+    const chainLength = olderPages.items.length;
     try {
       const service = await getMemoriesService();
       const page = await service.listRevisions(entryId, {
         cursor: nextCursor,
         limit: REVISION_PAGE_SIZE,
       });
+      // A page read for a chain the first page has since replaced is dropped.
       setOlderPages((current) =>
-        current.entryId === entryId
+        current.entryId === entryId &&
+        current.items.length === chainLength &&
+        chainFirstPage === latestFirstPageRef.current
           ? {
               entryId,
+              firstPage: chainFirstPage,
               items: [...current.items, ...page.items],
               nextCursor: page.nextCursor,
             }
@@ -154,7 +170,7 @@ export default function EditMemoryDialog({
       logger.error('GET /agent/memories/:id/revisions failed', error);
       setIsLoadMoreError(true);
     }
-  }, [entryId, getMemoriesService, nextCursor]);
+  }, [entryId, firstPage, getMemoriesService, nextCursor, olderPages.items]);
 
   const canSave =
     Boolean(entry?.currentRevisionId) &&

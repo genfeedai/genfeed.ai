@@ -7,6 +7,7 @@ import { buildSystemWorkflowMetadata } from '@genfeedai/contracts/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WorkflowSummary } from '@/features/workflows/services/workflow-api';
+import { turboWorkflowOptionsQueryKey } from '@/lib/constants/workflow-query-keys';
 import { useWorkflowLibraryPage } from './useWorkflowLibraryPage';
 
 const mocks = vi.hoisted(() => ({
@@ -469,6 +470,31 @@ describe('useWorkflowLibraryPage — workflow duplication and deletion', () => {
 
     expect(mocks.serviceRemove).not.toHaveBeenCalled();
     expect(result.current.workflows).toHaveLength(1);
+  });
+
+  it('stops the Turbo picker offering a workflow once it is deleted', async () => {
+    const client = createTestQueryClient();
+    client.setQueryData(turboWorkflowOptionsQueryKey('brand-fud'), [
+      makeWorkflow({ id: 'wf-1', label: 'Editable Workflow' }),
+      makeWorkflow({ id: 'wf-2', label: 'Kept Workflow' }),
+    ]);
+    const { result } = renderHook(() => useWorkflowLibraryPage(), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() => expect(result.current.workflows).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.handleDelete('wf-1');
+    });
+
+    await waitFor(() => expect(result.current.workflows).toEqual([]));
+    expect(
+      client
+        .getQueryData<WorkflowSummary[]>(
+          turboWorkflowOptionsQueryKey('brand-fud'),
+        )
+        ?.map((workflow) => workflow.label),
+    ).toEqual(['Kept Workflow']);
   });
 });
 

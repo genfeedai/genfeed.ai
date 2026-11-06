@@ -461,6 +461,15 @@ export function useLivestreamChatBotPage(
         { queryKey: livestreamBotQueryKey(organizationId, brandId) },
         savedBot,
       );
+      // The form shows what was saved, server defaults included, and counts as
+      // untouched again; edits made while the save ran are kept.
+      const submittedForm = form;
+      setFormSource({ bot: savedBot, scopeKey });
+      setForm((current) =>
+        isSameLivestreamForm(current, submittedForm)
+          ? hydrateForm(savedBot)
+          : current,
+      );
       // A bot with no brand is cached under every brand that read it: those
       // copies re-read, so another brand never edits the old configuration.
       const otherBrands = {

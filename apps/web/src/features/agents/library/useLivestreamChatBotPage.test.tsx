@@ -202,4 +202,39 @@ describe('useLivestreamChatBotPage', () => {
       expect(view.result.current.form.label).toBe('Livestream Chat Bot');
     });
   });
+
+  it('shows the saved bot after a save, so later refreshes still reach the form', async () => {
+    const client = createTestQueryClient();
+    const { result } = renderHook(() => useLivestreamChatBotPage('youtube'), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() => {
+      expect(result.current.form.label).toBe('Friday Stream Bot');
+    });
+    act(() => {
+      result.current.setForm((current) => ({ ...current, linkLabel: '' }));
+    });
+    const savedBot = {
+      ...YOUTUBE_BOT,
+      livestreamSettings: {
+        links: [{ label: 'Primary Link', url: 'https://example.com' }],
+        messageTemplates: [],
+      },
+    };
+    mocks.patch.mockResolvedValue(savedBot);
+    mocks.findAllByOrganization.mockResolvedValue([savedBot]);
+
+    await act(() => result.current.handleSave());
+
+    expect(result.current.form.linkLabel).toBe('Primary Link');
+
+    mocks.findAllByOrganization.mockResolvedValue([
+      { ...savedBot, label: 'Evening Stream Bot' },
+    ]);
+    await act(() => client.invalidateQueries());
+
+    await waitFor(() => {
+      expect(result.current.form.label).toBe('Evening Stream Bot');
+    });
+  });
 });
