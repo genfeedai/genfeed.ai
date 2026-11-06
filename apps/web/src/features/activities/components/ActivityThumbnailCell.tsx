@@ -126,7 +126,7 @@ function ActivityAssetPreview({
             onViewIngredient?.(ingredient);
           }}
           className={cn(
-            'absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary' /* design-system-allow-content-color */,
+            'absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring' /* design-system-allow-content-color */,
             hoverRevealClassName({ focus: 'visible' }),
           )}
         >
@@ -146,7 +146,7 @@ function ActivityAssetPreview({
             event.stopPropagation();
             onViewIngredient?.(ingredient);
           }}
-          className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+          className="absolute inset-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         />
       ) : null}
     </div>

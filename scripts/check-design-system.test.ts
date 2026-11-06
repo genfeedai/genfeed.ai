@@ -216,6 +216,46 @@ describe('packages/ui design-system guards', () => {
     expect(formatDesignSystemRegressions(findings)).toContain('size-3.5');
   });
 
+  it('flags focus rings that fork the one focus treatment', () => {
+    const findings = findPackageUiGuardFindings(
+      '<><a className="focus:ring-2 focus-visible:ring-ring/60 focus-visible:ring-1 focus-visible:outline-2" /><b className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-inset focus-visible:ring-0 focus:outline-none" /></>',
+      'apps/web/example.tsx',
+    );
+
+    expect(findings.map((entry) => entry.token)).toEqual([
+      'focus-visible:outline-2',
+      'focus-visible:outline-none',
+      'focus-visible:ring-1',
+      'focus-visible:ring-ring/60',
+      'focus:ring-2',
+    ]);
+    expect(formatDesignSystemRegressions(findings)).toContain(
+      'focusRingClassName',
+    );
+  });
+
+  it.each([
+    ['<a className="focus-visible:!ring-1" />', ['focus-visible:!ring-1']],
+    ['<a className="focus-visible:ring-1!" />', ['focus-visible:ring-1!']],
+    [
+      'const a = <a className={`focus-visible:ring-1 ${x}`} />;',
+      ['focus-visible:ring-1'],
+    ],
+    [
+      '<a className="focus-visible:outline-hidden focus-visible:ring-inset focus-visible:ring-offset-0 forced-colors:focus-visible:-outline-offset-2" />',
+      [],
+    ],
+    ['<a className="focus:!outline-none" />', ['focus:!outline-none']],
+    ['<a className="focus:outline-none!" />', ['focus:outline-none!']],
+    ['<a className="focus:outline-none" />', []],
+  ])('in %s flags focus tokens %j', (source, expected) => {
+    expect(
+      findPackageUiGuardFindings(source, 'apps/web/example.tsx')
+        .filter((entry) => entry.kind === 'off-contract-focus-ring')
+        .map((entry) => entry.token),
+    ).toEqual(expected);
+  });
+
   it('flags arbitrary text sizes that have a named step', () => {
     const findings = findPackageUiGuardFindings(
       '<div className="text-[11px] md:text-[13px] text-[0.875rem] text-[16px] text-[17px] text-[3.5rem] text-sm" />',

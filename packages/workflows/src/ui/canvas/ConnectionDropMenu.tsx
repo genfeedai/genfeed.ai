@@ -249,7 +249,7 @@ function ConnectionDropMenuComponent() {
         <div className="px-3 py-2">
           <FormSearchbar
             ariaLabel="Search compatible nodes"
-            inputClassName="text-xs bg-muted border-border outline-none focus:ring-2 focus:ring-ring"
+            inputClassName="text-xs bg-muted border-border outline-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             inputRef={inputRef}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search compatible nodes..."

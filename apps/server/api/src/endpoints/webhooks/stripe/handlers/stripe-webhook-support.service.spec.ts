@@ -1,18 +1,9 @@
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
-import { UsersService } from '@api/collections/users/services/users.service';
-import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
-import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
-import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
-import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
-import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { CacheService } from '@api/services/cache/cache.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
-import { StripePaymentRevenueReferenceService } from '@api/services/integrations/stripe/services/stripe-payment-revenue-reference.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
-import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+import {
+  STRIPE_WORLD_NOW,
+  stripeWebhookWorld,
+  type WorldRow,
+} from '@api-test/fixtures/stripe-webhook.world';
 import {
   ActivityKey,
   ActivitySource,
@@ -21,259 +12,166 @@ import {
   SubscriptionPlan,
   SubscriptionTier,
 } from '@genfeedai/contracts';
-import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@sentry/nestjs', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@sentry/nestjs')>()),
-  captureException: vi.fn(),
-}));
+type Row = WorldRow;
+
+const NOW = STRIPE_WORLD_NOW;
+const ONE_YEAR_LATER = new Date('2027-09-27T00:00:00.000Z');
+
+function world() {
+  const w = stripeWebhookWorld();
+  return Object.assign(w, { service: w.support });
+}
+
+const PRICES = {
+  STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'price_enterprise',
+  STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: 'price_pro',
+  STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'price_scale',
+};
 
 describe('StripeWebhookSupportService', () => {
-  let service: StripeWebhookSupportService;
+  beforeEach(() => {
+    vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
+  });
 
-  const configService = { get: vi.fn().mockReturnValue(undefined) };
-  const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-  const prisma = {
-    $transaction: vi.fn(async (callback: (client: unknown) => unknown) =>
-      callback(prisma),
-    ),
-    $executeRaw: vi.fn().mockResolvedValue(0),
-    billingRevenueEvent: {
-      aggregate: vi.fn().mockResolvedValue({ _sum: { amountMinor: 0 } }),
-      createMany: vi.fn(),
-      findFirst: vi.fn(),
-    },
-    creditTransaction: {
-      findFirst: vi.fn(),
-    },
-    organization: {
-      findFirst: vi.fn(),
-    },
-  };
-  const revenueCommit = {
-    activities: [],
-    inbox: [],
-    pendingDeliveryIds: ['delivery-1'],
-  };
-  const activityRecorder = {
-    afterCommit: vi.fn(),
-    dispatch: vi.fn().mockResolvedValue(undefined),
-    dispatchInTransaction: vi.fn().mockResolvedValue(revenueCommit),
-    record: vi.fn(),
-  };
-  const cacheService = {
-    exists: vi.fn(),
-    generateKey: vi.fn(),
-    set: vi.fn(),
-    withLock: vi.fn(),
-  };
-  const creditsUtilsService = {
-    addOrganizationCreditsWithExpiration: vi.fn(),
-  };
-  const organizationSettingsService = {
-    findOne: vi.fn(),
-    findOneSelect: delegateFindOneSelect(),
-    getLatestMajorVersionModelIds: vi.fn().mockResolvedValue(['model_1']),
-    patch: vi.fn(),
-  };
-  const subscriptionsService = { findByStripeCustomerId: vi.fn() };
-  const usersService = {
-    findOne: vi.fn(),
-    findOneSelect: delegateFindOneSelect(),
-    patch: vi.fn(),
-  };
-  const requestContextCacheService = {
-    invalidateForOrganization: vi.fn(),
-    invalidateForUser: vi.fn(),
-  };
-  const accessBootstrapCacheService = {
-    invalidateForOrganization: vi.fn(),
-    invalidateForUser: vi.fn(),
-  };
-  const creditGrantService = {
-    logUnresolvedGrant: vi.fn(),
-    resolveMonthlyCredits: vi.fn(),
-    resolvePlanCredits: vi.fn(),
-    resolveTierFromPriceId: vi.fn().mockReturnValue(null),
-  };
-
-  const priceConfig: Record<string, string> = {
-    STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'price_enterprise',
-    STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'price_scale',
-  };
-
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    configService.get.mockReturnValue(undefined);
-    creditGrantService.resolveTierFromPriceId.mockReturnValue(null);
-    cacheService.exists.mockResolvedValue(false);
-    cacheService.generateKey.mockImplementation((namespace, ...parts) =>
-      [namespace, ...parts].join(':'),
-    );
-    cacheService.set.mockResolvedValue(true);
-    cacheService.withLock.mockImplementation(
-      async (_key: string, fn: () => Promise<unknown>) => await fn(),
-    );
-    prisma.creditTransaction.findFirst.mockResolvedValue(null);
-    prisma.billingRevenueEvent.createMany.mockResolvedValue({ count: 1 });
-    prisma.organization.findFirst.mockResolvedValue({ label: 'Acme Studio' });
-    organizationSettingsService.getLatestMajorVersionModelIds.mockResolvedValue(
-      ['model_1'],
-    );
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        StripeWebhookSupportService,
-        {
-          provide: PlatformSettingsService,
-          useValue: runtimeSettingsMock(configService),
-        },
-        { provide: ConfigService, useValue: configService },
-        { provide: CacheService, useValue: cacheService },
-        { provide: LoggerService, useValue: loggerService },
-        { provide: PrismaService, useValue: prisma },
-        { provide: ActivityRecorderService, useValue: activityRecorder },
-        {
-          provide: SubscriptionCreditGrantService,
-          useValue: creditGrantService,
-        },
-        { provide: CreditsUtilsService, useValue: creditsUtilsService },
-        {
-          provide: OrganizationSettingsService,
-          useValue: organizationSettingsService,
-        },
-        { provide: SUBSCRIPTIONS_SERVICE, useValue: subscriptionsService },
-        { provide: UsersService, useValue: usersService },
-        {
-          provide: StripePaymentRevenueReferenceService,
-          useValue: { resolveProcessingFee: vi.fn() },
-        },
-        {
-          provide: RequestContextCacheService,
-          useValue: requestContextCacheService,
-        },
-        {
-          provide: AccessBootstrapCacheService,
-          useValue: accessBootstrapCacheService,
-        },
-      ],
-    }).compile();
-
-    service = module.get(StripeWebhookSupportService);
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('resolveCheckoutCredits', () => {
-    it('prefers the session metadata credits', async () => {
-      expect(await service.resolveCheckoutCredits({ credits: '250' }, 0)).toBe(
-        250,
-      );
-    });
+    it.each([
+      ['the session metadata credits', { credits: '250' }, undefined, 0, 250],
+      ['the admin-configured checkout credits', {}, '500', 0, 500],
+      ['the persisted default over a caller fallback', {}, undefined, 1, 1000],
+      [
+        'the persisted default without a caller fallback',
+        {},
+        undefined,
+        undefined,
+        1000,
+      ],
+    ])(
+      'resolves %s',
+      async (_name, metadata, configured, fallback, expected) => {
+        const w = world();
+        Object.assign(w.config, { STRIPE_PAYG_CREDITS: configured });
 
-    it('falls back to admin-configured checkout credits', async () => {
-      configService.get.mockReturnValue('500');
-
-      expect(await service.resolveCheckoutCredits({}, 0)).toBe(500);
-    });
-
-    it('uses the persisted default without session credits', async () => {
-      expect(await service.resolveCheckoutCredits({}, 1)).toBe(1000);
-    });
-
-    it('has a valid persisted fallback even without a caller fallback', async () => {
-      expect(await service.resolveCheckoutCredits({})).toBe(1000);
-    });
+        await expect(
+          w.service.resolveCheckoutCredits(metadata, fallback),
+        ).resolves.toBe(expected);
+      },
+    );
   });
 
   describe('withCheckoutSessionProcessing', () => {
-    it('builds a managed-inference credit reference from the checkout session id', () => {
-      expect(
-        service.buildCheckoutSessionCreditReference(
-          'managed-inference',
-          'cs_managed_1',
+    it.each([
+      [
+        'without an actor',
+        undefined,
+        {
+          referenceId: 'cs_managed_1',
+          referenceType: 'stripe-checkout-session:managed-inference',
+        },
+      ],
+      [
+        'with an actor',
+        'user_1',
+        {
+          actorUserId: 'user_1',
+          referenceId: 'cs_managed_1',
+          referenceType: 'stripe-checkout-session:managed-inference',
+        },
+      ],
+    ])(
+      'builds a checkout-session credit reference %s',
+      (_name, actor, expected) => {
+        const w = world();
+
+        expect(
+          w.service.buildCheckoutSessionCreditReference(
+            'managed-inference',
+            'cs_managed_1',
+            actor,
+          ),
+        ).toEqual(expected);
+      },
+    );
+
+    it('runs the callback once under a five-minute session lock and marks the session processed for 30 days', async () => {
+      const w = world();
+      const runs: string[] = [];
+      const run = () =>
+        w.service.withCheckoutSessionProcessing(
+          'cs_1',
+          'user-credit',
+          async () => {
+            runs.push('ran');
+            return 'done';
+          },
+        );
+
+      await expect(run()).resolves.toBe('done');
+      await expect(run()).resolves.toBeNull();
+
+      expect(runs).toEqual(['ran']);
+      expect(w.locks).toEqual([
+        {
+          key: 'stripe-checkout-session:user-credit:lock:cs_1',
+          ttlSeconds: 300,
+        },
+        {
+          key: 'stripe-checkout-session:user-credit:lock:cs_1',
+          ttlSeconds: 300,
+        },
+      ]);
+      expect([...w.markers.entries()]).toEqual([
+        [
+          'stripe-checkout-session:user-credit:processed:cs_1',
+          {
+            options: {
+              tags: ['stripe-checkout-session', 'user-credit', 'cs_1'],
+              ttl: 2_592_000,
+            },
+            value: {
+              kind: 'user-credit',
+              processedAt: NOW.toISOString(),
+              sessionId: 'cs_1',
+            },
+          },
+        ],
+      ]);
+    });
+
+    it('leaves the session unmarked when the callback fails', async () => {
+      const w = world();
+
+      await expect(
+        w.service.withCheckoutSessionProcessing(
+          'cs_1',
+          'user-credit',
+          async () => {
+            throw new Error('grant failed');
+          },
         ),
-      ).toEqual({
-        referenceId: 'cs_managed_1',
-        referenceType: 'stripe-checkout-session:managed-inference',
-      });
+      ).rejects.toThrow('grant failed');
+
+      expect(w.markers.size).toBe(0);
     });
 
-    it('runs the callback under a session lock and marks the session processed', async () => {
-      const callback = vi.fn().mockResolvedValue('done');
-
-      await expect(
-        service.withCheckoutSessionProcessing('cs_1', 'user-credit', callback),
-      ).resolves.toBe('done');
-
-      expect(cacheService.withLock).toHaveBeenCalledWith(
-        'stripe-checkout-session:user-credit:lock:cs_1',
-        expect.any(Function),
-        300,
-      );
-      expect(cacheService.exists).toHaveBeenCalledWith(
-        'stripe-checkout-session:user-credit:processed:cs_1',
-      );
-      expect(callback).toHaveBeenCalledTimes(1);
-      expect(cacheService.set).toHaveBeenCalledWith(
-        'stripe-checkout-session:user-credit:processed:cs_1',
-        expect.objectContaining({
-          kind: 'user-credit',
-          sessionId: 'cs_1',
-        }),
-        expect.objectContaining({
-          tags: ['stripe-checkout-session', 'user-credit', 'cs_1'],
-          ttl: 2_592_000,
-        }),
-      );
-    });
-
-    it('returns null without running the callback for an already processed session', async () => {
-      cacheService.exists.mockResolvedValue(true);
-      const callback = vi.fn();
-
-      await expect(
-        service.withCheckoutSessionProcessing('cs_1', 'user-credit', callback),
-      ).resolves.toBeNull();
-
-      expect(callback).not.toHaveBeenCalled();
-      expect(cacheService.set).not.toHaveBeenCalled();
-    });
-
-    it('does not apply an idempotent credit side effect twice when Redis marker writes fail', async () => {
-      const appliedGrants = new Set<string>();
-      const reference = service.buildCheckoutSessionCreditReference(
+    it('never grants a checkout pack twice when the Redis marker cannot be written', async () => {
+      const w = world();
+      w.faults.marker.push(new Error('redis unavailable'), false);
+      const reference = w.service.buildCheckoutSessionCreditReference(
         'organization-payment',
         'cs_retry_1',
       );
-      const grantKey = [
-        'org_1',
-        'pay-as-you-go',
-        reference.referenceType,
-        reference.referenceId,
-      ].join(':');
-
-      cacheService.exists.mockResolvedValue(false);
-      cacheService.set
-        .mockRejectedValueOnce(new Error('redis unavailable'))
-        .mockResolvedValueOnce(false);
-      prisma.creditTransaction.findFirst.mockImplementation(async () =>
-        appliedGrants.has(grantKey) ? { id: 'txn_1' } : null,
-      );
-      creditsUtilsService.addOrganizationCreditsWithExpiration.mockImplementation(
-        async () => {
-          appliedGrants.add(grantKey);
-        },
-      );
-
-      const runGrant = async () =>
-        await service.withCheckoutSessionProcessing(
+      const runGrant = () =>
+        w.service.withCheckoutSessionProcessing(
           'cs_retry_1',
           'organization-payment',
-          async () =>
-            await service.addPurchasedCredits(
+          () =>
+            w.service.addPurchasedCredits(
               'org_1',
               100,
               'pay-as-you-go',
@@ -285,632 +183,857 @@ describe('StripeWebhookSupportService', () => {
       await expect(runGrant()).resolves.toBe(true);
       await expect(runGrant()).resolves.toBe(false);
 
-      expect(
-        creditsUtilsService.addOrganizationCreditsWithExpiration,
-      ).toHaveBeenCalledTimes(1);
-      expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
-        select: { id: true },
-        where: {
-          category: CreditTransactionCategory.ADD,
-          isDeleted: false,
+      expect(w.ledger).toEqual([
+        expect.objectContaining({
+          amount: 100,
           organizationId: 'org_1',
           referenceId: 'cs_retry_1',
           referenceType: 'stripe-checkout-session:organization-payment',
-          source: 'pay-as-you-go',
+        }),
+      ]);
+      expect(w.markers.size).toBe(0);
+      expect(w.logs).toEqual([
+        {
+          level: 'warn',
+          message:
+            'StripeWebhookSupportService failed to cache Stripe checkout processed marker',
+          meta: {
+            error: 'redis unavailable',
+            kind: 'organization-payment',
+            sessionId: 'cs_retry_1',
+          },
         },
-      });
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'failed to cache Stripe checkout processed marker',
-        ),
-        expect.objectContaining({ sessionId: 'cs_retry_1' }),
-      );
+        {
+          level: 'log',
+          message:
+            'StripeWebhookSupportService skipping duplicate purchased credit grant',
+          meta: {
+            organizationId: 'org_1',
+            referenceId: 'cs_retry_1',
+            referenceType: 'stripe-checkout-session:organization-payment',
+            source: 'pay-as-you-go',
+          },
+        },
+        {
+          level: 'warn',
+          message:
+            'StripeWebhookSupportService failed to cache Stripe checkout processed marker',
+          meta: { kind: 'organization-payment', sessionId: 'cs_retry_1' },
+        },
+      ]);
     });
   });
 
   describe('addPurchasedCredits', () => {
-    it('adds credits with a 1-year expiration', async () => {
+    const REFERENCE = {
+      actorUserId: 'user_1',
+      referenceId: 'cs_1',
+      referenceType: 'stripe-checkout-session:organization-payment',
+    };
+
+    it('grants credits that expire one year later', async () => {
+      const w = world();
+
       await expect(
-        service.addPurchasedCredits('org_1', 100, 'pay-as-you-go', 'desc'),
+        w.service.addPurchasedCredits('org_1', 100, 'pay-as-you-go', 'desc'),
       ).resolves.toBe(true);
 
-      expect(
-        creditsUtilsService.addOrganizationCreditsWithExpiration,
-      ).toHaveBeenCalledWith(
+      expect(w.ledger).toEqual([
+        {
+          amount: 100,
+          category: CreditTransactionCategory.ADD,
+          createdAt: NOW,
+          description: 'desc',
+          expiresAt: ONE_YEAR_LATER,
+          isDeleted: false,
+          organizationId: 'org_1',
+          source: 'pay-as-you-go',
+        },
+      ]);
+    });
+
+    it('records the checkout session and buyer on a referenced grant', async () => {
+      const w = world();
+
+      await w.service.addPurchasedCredits(
         'org_1',
         100,
         'pay-as-you-go',
         'desc',
-        expect.any(Date),
+        REFERENCE,
       );
 
-      const expiry = creditsUtilsService.addOrganizationCreditsWithExpiration
-        .mock.calls[0][4] as Date;
-      const oneYearFromNow = Date.now() + 365 * 24 * 60 * 60 * 1000;
-      expect(Math.abs(expiry.getTime() - oneYearFromNow)).toBeLessThan(5_000);
+      expect(w.ledger).toEqual([
+        expect.objectContaining({
+          actorUserId: 'user_1',
+          expiresAt: ONE_YEAR_LATER,
+          metadata: {
+            stripeCheckoutSessionId: 'cs_1',
+            stripeCheckoutSessionType:
+              'stripe-checkout-session:organization-payment',
+          },
+          referenceId: 'cs_1',
+          referenceType: 'stripe-checkout-session:organization-payment',
+        }),
+      ]);
+    });
+
+    it.each<[string, Row, number]>([
+      ['an ADD row for the same session and source', {}, 1],
+      ['a deleted earlier row', { isDeleted: true }, 2],
+      ['a row from another source', { source: 'subscription' }, 2],
+      [
+        'a RESET row under the same unique key',
+        { category: CreditTransactionCategory.RESET },
+        1,
+      ],
+      ['a row of another organization', { organizationId: 'org_2' }, 2],
+    ])(
+      'leaves %s at %s ledger row(s) after the grant',
+      async (_name, overrides, rows) => {
+        const w = world();
+        w.ledger.push({
+          category: CreditTransactionCategory.ADD,
+          id: 'txn_1',
+          isDeleted: false,
+          organizationId: 'org_1',
+          referenceId: 'cs_1',
+          referenceType: REFERENCE.referenceType,
+          source: 'pay-as-you-go',
+          ...overrides,
+        });
+
+        await w.service.addPurchasedCredits(
+          'org_1',
+          100,
+          'pay-as-you-go',
+          'desc',
+          { referenceId: 'cs_1', referenceType: REFERENCE.referenceType },
+        );
+
+        expect(w.ledger).toHaveLength(rows);
+      },
+    );
+
+    it('skips a grant that a concurrent delivery wrote first', async () => {
+      const w = world();
+      w.races.beforeGrant = () => {
+        w.ledger.push({
+          category: CreditTransactionCategory.ADD,
+          organizationId: 'org_1',
+          referenceId: 'cs_1',
+          referenceType: REFERENCE.referenceType,
+          source: 'pay-as-you-go',
+        });
+      };
+
+      await expect(
+        w.service.addPurchasedCredits(
+          'org_1',
+          100,
+          'pay-as-you-go',
+          'desc',
+          REFERENCE,
+        ),
+      ).resolves.toBe(false);
+
+      expect(w.ledger).toHaveLength(1);
+    });
+
+    it.each([
+      [
+        'an unreferenced grant that hits a unique key',
+        { code: 'P2002' },
+        undefined,
+      ],
+      [
+        'a referenced grant that fails otherwise',
+        new Error('db down'),
+        REFERENCE,
+      ],
+    ])('rethrows %s', async (_name, fault, reference) => {
+      const w = world();
+      w.faults.grant.push(fault);
+
+      await expect(
+        w.service.addPurchasedCredits(
+          'org_1',
+          100,
+          'pay-as-you-go',
+          'desc',
+          reference,
+        ),
+      ).rejects.toBe(fault);
     });
   });
 
   describe('hasSubscriptionCreditGrant', () => {
-    it('returns false when no matching credit transaction exists', async () => {
-      prisma.creditTransaction.findFirst.mockResolvedValue(null);
-
-      await expect(
-        service.hasSubscriptionCreditGrant('org_1', {
-          reference: {
-            referenceId: 'stripe-invoice:in_123',
-            referenceType: 'stripe-invoice:subscription-grant',
-          },
-        }),
-      ).resolves.toBe(false);
-
-      expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
-        select: { id: true },
-        where: {
-          isDeleted: false,
-          organizationId: 'org_1',
-          OR: [
-            {
-              referenceId: 'stripe-invoice:in_123',
-              referenceType: 'stripe-invoice:subscription-grant',
-            },
-          ],
-        },
-      });
+    const PERIOD = {
+      end: new Date('2026-08-01T00:00:00.000Z'),
+      source: 'monthly',
+      start: new Date('2026-07-01T00:00:00.000Z'),
+    };
+    const LOOKUP = {
+      legacyInvoiceReference: {
+        referenceId: 'stripe-invoice:in_old',
+        referenceType: 'stripe-invoice:subscription-grant',
+      },
+      legacyPeriod: PERIOD,
+      reference: {
+        referenceId: 'stripe-subscription:sub_123',
+        referenceType: 'stripe-subscription:initial-grant',
+      },
+    };
+    const grant = (overrides: Row): Row => ({
+      category: CreditTransactionCategory.ADD,
+      createdAt: new Date('2026-07-15T00:00:00.000Z'),
+      isDeleted: false,
+      organizationId: 'org_1',
+      referenceId: 'unrelated',
+      referenceType: 'unrelated',
+      source: 'monthly',
+      ...overrides,
     });
 
-    it('returns true when a matching credit transaction exists, without filtering by category', async () => {
-      prisma.creditTransaction.findFirst.mockResolvedValue({ id: 'txn_1' });
-
-      await expect(
-        service.hasSubscriptionCreditGrant('org_1', {
-          reference: {
-            referenceId: 'stripe-invoice:in_123',
-            referenceType: 'stripe-invoice:subscription-grant',
-          },
-        }),
-      ).resolves.toBe(true);
-
-      const where = prisma.creditTransaction.findFirst.mock.calls[0][0].where;
-      expect(where).not.toHaveProperty('category');
-    });
-
-    it('recognizes legacy invoice grants from the same subscription period', async () => {
-      prisma.creditTransaction.findFirst.mockResolvedValue({ id: 'txn_1' });
-      const periodStart = new Date('2026-07-01T00:00:00.000Z');
-      const periodEnd = new Date('2026-08-01T00:00:00.000Z');
-
-      await expect(
-        service.hasSubscriptionCreditGrant('org_1', {
-          legacyPeriod: {
-            end: periodEnd,
-            source: 'monthly',
-            start: periodStart,
-          },
-          reference: {
+    it.each<[string, Row[], boolean]>([
+      ['no ledger row', [], false],
+      [
+        'a yearly RESET row under the exact reference',
+        [
+          grant({
+            category: CreditTransactionCategory.RESET,
             referenceId: 'stripe-subscription:sub_123',
             referenceType: 'stripe-subscription:initial-grant',
-          },
-        }),
-      ).resolves.toBe(true);
+          }),
+        ],
+        true,
+      ],
+      [
+        'the legacy invoice reference',
+        [
+          grant({
+            referenceId: 'stripe-invoice:in_old',
+            referenceType: 'stripe-invoice:subscription-grant',
+          }),
+        ],
+        true,
+      ],
+      [
+        'a legacy invoice grant inside the period',
+        [grant({ referenceType: 'stripe-invoice:subscription-grant' })],
+        true,
+      ],
+      [
+        'a legacy invoice grant at the period end',
+        [
+          grant({
+            createdAt: PERIOD.end,
+            referenceType: 'stripe-invoice:subscription-grant',
+          }),
+        ],
+        false,
+      ],
+      [
+        'a legacy invoice grant from another source',
+        [
+          grant({
+            referenceType: 'stripe-invoice:subscription-grant',
+            source: 'yearly',
+          }),
+        ],
+        false,
+      ],
+      [
+        'a matching grant of another organization',
+        [
+          grant({
+            organizationId: 'org_2',
+            referenceId: 'stripe-subscription:sub_123',
+            referenceType: 'stripe-subscription:initial-grant',
+          }),
+        ],
+        false,
+      ],
+      [
+        'a deleted matching grant',
+        [
+          grant({
+            isDeleted: true,
+            referenceId: 'stripe-subscription:sub_123',
+            referenceType: 'stripe-subscription:initial-grant',
+          }),
+        ],
+        false,
+      ],
+    ])('answers %s with %s', async (_name, rows, expected) => {
+      const w = world();
+      w.ledger.push(...rows);
 
-      expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
-        select: { id: true },
-        where: {
-          isDeleted: false,
-          organizationId: 'org_1',
-          OR: [
-            {
-              referenceId: 'stripe-subscription:sub_123',
-              referenceType: 'stripe-subscription:initial-grant',
-            },
-            {
-              createdAt: { gte: periodStart, lt: periodEnd },
-              referenceType: 'stripe-invoice:subscription-grant',
-              source: 'monthly',
-            },
-          ],
-        },
-      });
+      await expect(
+        w.service.hasSubscriptionCreditGrant('org_1', LOOKUP),
+      ).resolves.toBe(expected);
+    });
+
+    it('ignores the legacy invoice reference when the lookup has none', async () => {
+      const w = world();
+      w.ledger.push(
+        grant({
+          referenceId: 'stripe-invoice:in_old',
+          referenceType: 'stripe-invoice:subscription-grant',
+        }),
+      );
+
+      await expect(
+        w.service.hasSubscriptionCreditGrant('org_1', {
+          reference: LOOKUP.reference,
+        }),
+      ).resolves.toBe(false);
     });
   });
 
   describe('isUniqueConstraintError', () => {
-    it('returns true for a Prisma P2002 error', () => {
-      expect(service.isUniqueConstraintError({ code: 'P2002' })).toBe(true);
-    });
-
-    it('returns false for other error codes', () => {
-      expect(service.isUniqueConstraintError({ code: 'P2025' })).toBe(false);
-    });
-
-    it('returns false for non-object errors', () => {
-      expect(service.isUniqueConstraintError(new Error('boom'))).toBe(false);
-      expect(service.isUniqueConstraintError(null)).toBe(false);
-      expect(service.isUniqueConstraintError(undefined)).toBe(false);
+    it.each([
+      [{ code: 'P2002' }, true],
+      [{ code: 'P2025' }, false],
+      [new Error('boom'), false],
+      [null, false],
+      [undefined, false],
+    ])('classifies %o as %s', (error, expected) => {
+      expect(world().service.isUniqueConstraintError(error)).toBe(expected);
     });
   });
 
   describe('recordCreditsActivity', () => {
-    it('defaults to CREDITS_ADD and includes the user when given', async () => {
-      await service.recordCreditsActivity({
-        brandId: 'brand_1',
-        organizationId: 'org_1',
-        source: ActivitySource.PAY_AS_YOU_GO,
-        userId: 'user_1',
-        value: '100',
-      });
+    it.each([
+      [
+        'a user and brand entry, defaulting to credits added',
+        {
+          brandId: 'brand_1',
+          organizationId: 'org_1',
+          source: ActivitySource.PAY_AS_YOU_GO,
+          userId: 'user_1',
+          value: '100',
+        },
+        {
+          brandId: 'brand_1',
+          key: ActivityKey.CREDITS_ADD,
+          organizationId: 'org_1',
+          source: ActivitySource.PAY_AS_YOU_GO,
+          userId: 'user_1',
+          value: '100',
+        },
+      ],
+      [
+        'an organization-wide entry with its own key',
+        {
+          key: ActivityKey.CREDITS_RESET,
+          organizationId: 'org_1',
+          source: ActivitySource.SUBSCRIPTION,
+          value: 'Subscription credits reset',
+        },
+        {
+          key: ActivityKey.CREDITS_RESET,
+          organizationId: 'org_1',
+          source: ActivitySource.SUBSCRIPTION,
+          value: 'Subscription credits reset',
+        },
+      ],
+    ])('records %s', async (_name, input, expected) => {
+      const w = world();
 
-      expect(activityRecorder.record).toHaveBeenCalledWith({
-        brandId: 'brand_1',
-        key: ActivityKey.CREDITS_ADD,
-        organizationId: 'org_1',
-        source: ActivitySource.PAY_AS_YOU_GO,
-        userId: 'user_1',
-        value: '100',
-      });
-    });
+      await w.service.recordCreditsActivity(input);
 
-    it('records an organization-wide entry without user or brand', async () => {
-      await service.recordCreditsActivity({
-        organizationId: 'org_1',
-        source: ActivitySource.SUBSCRIPTION,
-        value: 'Subscription credits granted',
-      });
-
-      expect(activityRecorder.record).toHaveBeenCalledWith({
-        key: ActivityKey.CREDITS_ADD,
-        organizationId: 'org_1',
-        source: ActivitySource.SUBSCRIPTION,
-        value: 'Subscription credits granted',
-      });
-    });
-  });
-
-  describe('markOnboardingComplete', () => {
-    it('patches the onboarding fields for incomplete users', async () => {
-      await service.markOnboardingComplete({
-        id: 'user_1',
-        isOnboardingCompleted: false,
-      });
-
-      expect(usersService.patch).toHaveBeenCalledWith('user_1', {
-        isOnboardingCompleted: true,
-        onboardingCompletedAt: expect.any(Date),
-        onboardingStepsCompleted: ['brand', 'providers', 'summary'],
-      });
-    });
-
-    it('is a no-op for already-onboarded users', async () => {
-      await service.markOnboardingComplete({
-        id: 'user_1',
-        isOnboardingCompleted: true,
-      });
-
-      expect(usersService.patch).not.toHaveBeenCalled();
+      expect(w.journal).toEqual([`activity ${JSON.stringify(expected)}`]);
     });
   });
 
-  describe('markOnboardingCompleteFromSession', () => {
-    const session = {
+  describe('onboarding', () => {
+    const SESSION = {
       customer: 'cus_123',
       customer_details: { email: 'ada@example.com' },
       id: 'cs_1',
     } as unknown as StripeCheckoutSession;
 
-    it('warns when no user can be resolved', async () => {
-      subscriptionsService.findByStripeCustomerId.mockResolvedValue(null);
-      usersService.findOne.mockResolvedValue(null);
-
-      await service.markOnboardingCompleteFromSession(session, 'test');
-
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'could not find user for onboarding completion',
-        ),
-        expect.objectContaining({
-          customerId: 'cus_123',
-          emailDomain: 'example.com',
-        }),
+    it('completes onboarding for an incomplete user and leaves a completed one alone', async () => {
+      const w = world();
+      w.users.push(
+        { id: 'user_1', isOnboardingCompleted: false },
+        { id: 'user_2', isOnboardingCompleted: true },
       );
-      expect(loggerService.warn.mock.calls[0][1]).not.toHaveProperty('email');
-      expect(usersService.patch).not.toHaveBeenCalled();
-    });
 
-    it('falls back to the session email and completes onboarding', async () => {
-      subscriptionsService.findByStripeCustomerId.mockResolvedValue(null);
-      usersService.findOne.mockResolvedValue({
+      await w.service.markOnboardingComplete({
         id: 'user_1',
-        email: 'ada@example.com',
         isOnboardingCompleted: false,
       });
-
-      await service.markOnboardingCompleteFromSession(session, 'test');
-
-      expect(usersService.findOne).toHaveBeenCalledWith({
-        email: 'ada@example.com',
+      await w.service.markOnboardingComplete({
+        id: 'user_2',
+        isOnboardingCompleted: true,
       });
-      expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
-        'user_1',
-      );
-      expect(
-        accessBootstrapCacheService.invalidateForUser,
-      ).toHaveBeenCalledWith('user_1');
-      expect(usersService.patch).toHaveBeenCalledWith(
-        'user_1',
-        expect.objectContaining({ isOnboardingCompleted: true }),
-      );
-      expect(usersService.patch.mock.invocationCallOrder[0]).toBeLessThan(
-        requestContextCacheService.invalidateForUser.mock
-          .invocationCallOrder[0],
-      );
-      expect(loggerService.log).toHaveBeenCalledWith(
-        expect.stringContaining('onboarding marked complete'),
-        expect.objectContaining({ emailDomain: 'example.com' }),
-      );
-      expect(loggerService.log.mock.calls[0][1]).not.toHaveProperty('email');
+
+      expect(w.users).toEqual([
+        {
+          id: 'user_1',
+          isOnboardingCompleted: true,
+          onboardingCompletedAt: NOW,
+          onboardingStepsCompleted: ['brand', 'providers', 'summary'],
+        },
+        { id: 'user_2', isOnboardingCompleted: true },
+      ]);
+    });
+
+    it.each<[string, (w: ReturnType<typeof world>) => void]>([
+      [
+        'the subscription owner',
+        (w) => {
+          w.subscriptions.push({
+            organizationId: 'org_1',
+            stripeCustomerId: 'cus_123',
+            userId: 'user_1',
+          });
+          w.users.push({ email: 'other@example.com', id: 'user_1' });
+        },
+      ],
+      [
+        'the checkout email when no subscription names a user',
+        (w) => w.users.push({ email: 'ada@example.com', id: 'user_1' }),
+      ],
+    ])(
+      'completes onboarding for %s, then refreshes their caches',
+      async (_name, arrange) => {
+        const w = world();
+        arrange(w);
+
+        await w.service.markOnboardingCompleteFromSession(SESSION, 'test');
+
+        expect(w.users[0]).toMatchObject({ isOnboardingCompleted: true });
+        expect(w.journal).toEqual([
+          'user user_1',
+          'invalidate request-context user user_1',
+          'invalidate access-bootstrap user user_1',
+        ]);
+        expect(w.logs).toEqual([
+          {
+            level: 'log',
+            message: 'test onboarding marked complete',
+            meta: expect.objectContaining({
+              sessionId: 'cs_1',
+              userId: 'user_1',
+            }),
+          },
+        ]);
+        expect(w.logs[0]?.meta).not.toHaveProperty('email');
+      },
+    );
+
+    it('warns with only the email domain when no user can be found', async () => {
+      const w = world();
+
+      await w.service.markOnboardingCompleteFromSession(SESSION, 'test');
+
+      expect(w.journal).toEqual([]);
+      expect(w.logs).toEqual([
+        {
+          level: 'warn',
+          message: 'test could not find user for onboarding completion',
+          meta: {
+            customerId: 'cus_123',
+            emailDomain: 'example.com',
+            sessionId: 'cs_1',
+          },
+        },
+      ]);
     });
   });
 
-  describe('setHasEverHadCredits', () => {
-    it('patches the org setting when found', async () => {
-      organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
+  describe('organization settings', () => {
+    function withSettings() {
+      const w = world();
+      w.settings.push({ id: 'os_1', organizationId: 'org_1' });
+      return w;
+    }
 
-      await service.setHasEverHadCredits('org_1', 'test');
+    it('flags that the organization has had credits, then refreshes its caches', async () => {
+      const w = withSettings();
 
-      expect(organizationSettingsService.patch).toHaveBeenCalledWith('os_1', {
-        hasEverHadCredits: true,
-      });
-      expect(
-        requestContextCacheService.invalidateForOrganization,
-      ).toHaveBeenCalledWith('org_1');
-      expect(
-        accessBootstrapCacheService.invalidateForOrganization,
-      ).toHaveBeenCalledWith('org_1');
-      expect(
-        organizationSettingsService.patch.mock.invocationCallOrder[0],
-      ).toBeLessThan(
-        requestContextCacheService.invalidateForOrganization.mock
-          .invocationCallOrder[0],
-      );
+      await w.service.setHasEverHadCredits('org_1', 'test');
+
+      expect(w.settings).toEqual([
+        { hasEverHadCredits: true, id: 'os_1', organizationId: 'org_1' },
+      ]);
+      expect(w.journal).toEqual([
+        'settings os_1',
+        'invalidate request-context org org_1',
+        'invalidate access-bootstrap org org_1',
+      ]);
     });
 
-    it('warns instead of throwing when the patch fails', async () => {
-      organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
-      organizationSettingsService.patch.mockRejectedValueOnce(
-        new Error('boom'),
-      );
+    it('warns instead of throwing when the credits flag cannot be written', async () => {
+      const w = withSettings();
+      w.faults.settingsPatch.push(new Error('boom'));
 
-      await service.setHasEverHadCredits('org_1', 'test');
+      await expect(
+        w.service.setHasEverHadCredits('org_1', 'test'),
+      ).resolves.toBeUndefined();
 
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('failed to set hasEverHadCredits flag'),
-        expect.objectContaining({ organizationId: 'org_1' }),
-      );
-    });
-  });
-
-  describe('invalidateUserCaches', () => {
-    it('invalidates both per-user caches', async () => {
-      await service.invalidateUserCaches('user_1');
-
-      expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
-        'user_1',
-      );
-      expect(
-        accessBootstrapCacheService.invalidateForUser,
-      ).toHaveBeenCalledWith('user_1');
-    });
-  });
-
-  describe('invalidateOrganizationCaches', () => {
-    it('invalidates both per-organization caches', async () => {
-      await service.invalidateOrganizationCaches('org_1');
-
-      expect(
-        requestContextCacheService.invalidateForOrganization,
-      ).toHaveBeenCalledWith('org_1');
-      expect(
-        accessBootstrapCacheService.invalidateForOrganization,
-      ).toHaveBeenCalledWith('org_1');
-    });
-  });
-
-  describe('resolveSubscriptionPlan', () => {
-    it('maps the enterprise price to the enterprise plan', () => {
-      configService.get.mockImplementation((key: string) => priceConfig[key]);
-
-      expect(service.resolveSubscriptionPlan('price_enterprise')).toBe(
-        SubscriptionPlan.ENTERPRISE,
-      );
+      expect(w.journal).toEqual([]);
+      expect(w.logs).toEqual([
+        {
+          level: 'warn',
+          message: 'test failed to set hasEverHadCredits flag',
+          meta: { error: 'boom', organizationId: 'org_1' },
+        },
+      ]);
     });
 
-    it('maps tier prices to the monthly plan', () => {
-      configService.get.mockImplementation((key: string) => priceConfig[key]);
+    it('moves the organization to its new tier with the latest models, then refreshes its caches', async () => {
+      const w = withSettings();
 
-      expect(service.resolveSubscriptionPlan('price_scale')).toBe(
-        SubscriptionPlan.MONTHLY,
-      );
-    });
-
-    it('maps yearly recurring intervals to the yearly plan', () => {
-      expect(service.resolveSubscriptionPlan('price_unknown', 'year')).toBe(
-        SubscriptionPlan.YEARLY,
-      );
-    });
-
-    it('defaults unknown prices to monthly with a warning', () => {
-      expect(service.resolveSubscriptionPlan('price_unknown')).toBe(
-        SubscriptionPlan.MONTHLY,
-      );
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('unknown price ID'),
-        { stripePriceId: 'price_unknown' },
-      );
-    });
-  });
-
-  describe('resolveTierFromPriceId', () => {
-    // The mapping itself is owned and tested by SubscriptionCreditGrantService;
-    // a second copy here is what let a webhook and a grant disagree on a tier.
-    it('delegates the mapping to the credit grant service', () => {
-      creditGrantService.resolveTierFromPriceId.mockReturnValue(
-        SubscriptionTier.SCALE,
-      );
-
-      expect(service.resolveTierFromPriceId('price_scale')).toBe(
-        SubscriptionTier.SCALE,
-      );
-      expect(creditGrantService.resolveTierFromPriceId).toHaveBeenCalledWith(
-        'price_scale',
-      );
-    });
-
-    it('returns null for unknown prices', () => {
-      expect(service.resolveTierFromPriceId('price_unknown')).toBeNull();
-    });
-  });
-
-  describe('updateOrganizationTierAndModels', () => {
-    it('patches the tier and refreshed model list', async () => {
-      organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
-
-      await service.updateOrganizationTierAndModels(
+      await w.service.updateOrganizationTierAndModels(
         'org_1',
         SubscriptionTier.SCALE,
         'test',
       );
 
-      expect(organizationSettingsService.patch).toHaveBeenCalledWith('os_1', {
-        enabledModelIds: ['model_1'],
-        subscriptionTier: SubscriptionTier.SCALE,
-      });
-      expect(
-        requestContextCacheService.invalidateForOrganization,
-      ).toHaveBeenCalledWith('org_1');
-      expect(
-        accessBootstrapCacheService.invalidateForOrganization,
-      ).toHaveBeenCalledWith('org_1');
-      expect(
-        organizationSettingsService.patch.mock.invocationCallOrder[0],
-      ).toBeLessThan(
-        requestContextCacheService.invalidateForOrganization.mock
-          .invocationCallOrder[0],
-      );
+      expect(w.settings).toEqual([
+        {
+          enabledModelIds: ['model_1', 'model_2'],
+          id: 'os_1',
+          organizationId: 'org_1',
+          subscriptionTier: SubscriptionTier.SCALE,
+        },
+      ]);
+      expect(w.journal).toEqual([
+        'settings os_1',
+        'invalidate request-context org org_1',
+        'invalidate access-bootstrap org org_1',
+      ]);
     });
 
-    it('warns when the org settings are missing', async () => {
-      organizationSettingsService.findOne.mockResolvedValue(null);
+    it.each([
+      [
+        'setHasEverHadCredits',
+        (w: ReturnType<typeof world>) =>
+          w.service.setHasEverHadCredits('org_1', 'test'),
+      ],
+      [
+        'updateOrganizationTierAndModels',
+        (w: ReturnType<typeof world>) =>
+          w.service.updateOrganizationTierAndModels(
+            'org_1',
+            SubscriptionTier.PRO,
+            'test',
+          ),
+      ],
+    ])(
+      '%s changes nothing for an organization without settings',
+      async (_name, act) => {
+        const w = world();
 
-      await service.updateOrganizationTierAndModels(
-        'org_1',
-        SubscriptionTier.SCALE,
-        'test',
-      );
+        await act(w);
 
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('org settings not found for tier update'),
-        { organizationId: 'org_1', tier: SubscriptionTier.SCALE },
+        expect(w.settings).toEqual([]);
+        expect(w.journal).toEqual([]);
+      },
+    );
+
+    it('logs a failed tier update instead of throwing', async () => {
+      const w = withSettings();
+      w.faults.settingsPatch.push(new Error('boom'));
+
+      await expect(
+        w.service.updateOrganizationTierAndModels(
+          'org_1',
+          SubscriptionTier.SCALE,
+          'test',
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(w.settings).toEqual([{ id: 'os_1', organizationId: 'org_1' }]);
+      expect(w.logs.map((entry) => entry.message)).toEqual([
+        'test failed to update org tier/models',
+      ]);
+    });
+
+    it('refreshes both caches of a user and of an organization', async () => {
+      const w = world();
+
+      await w.service.invalidateUserCaches('user_1');
+      await w.service.invalidateOrganizationCaches('org_1');
+
+      expect(w.journal).toEqual([
+        'invalidate request-context user user_1',
+        'invalidate access-bootstrap user user_1',
+        'invalidate request-context org org_1',
+        'invalidate access-bootstrap org org_1',
+      ]);
+    });
+  });
+
+  describe('plans and tiers', () => {
+    it.each([
+      ['price_enterprise', undefined, SubscriptionPlan.ENTERPRISE],
+      ['price_pro', undefined, SubscriptionPlan.MONTHLY],
+      ['price_scale', 'year', SubscriptionPlan.MONTHLY],
+      ['price_unknown', 'year', SubscriptionPlan.YEARLY],
+    ] as const)('maps %s (%s) to the %s plan', (price, interval, plan) => {
+      const w = world();
+      Object.assign(w.config, PRICES);
+
+      expect(w.service.resolveSubscriptionPlan(price, interval)).toBe(plan);
+      expect(w.logs).toEqual([]);
+    });
+
+    it('defaults an unknown monthly price to the monthly plan with a warning', () => {
+      const w = world();
+
+      expect(w.service.resolveSubscriptionPlan('price_unknown')).toBe(
+        SubscriptionPlan.MONTHLY,
       );
-      expect(organizationSettingsService.patch).not.toHaveBeenCalled();
+      expect(w.logs).toEqual([
+        {
+          level: 'warn',
+          message:
+            'StripeWebhookSupportService unknown price ID, defaulting to monthly',
+          meta: { stripePriceId: 'price_unknown' },
+        },
+      ]);
+    });
+
+    // The mapping has one owner, SubscriptionCreditGrantService; a second copy
+    // here is what let a webhook and a grant disagree on a tier.
+    it.each([
+      ['price_pro', SubscriptionTier.PRO],
+      ['price_scale', SubscriptionTier.SCALE],
+      ['price_enterprise', SubscriptionTier.ENTERPRISE],
+      ['price_unknown', null],
+    ])('resolves %s to the tier the credit grant uses (%s)', (price, tier) => {
+      const w = world();
+      Object.assign(w.config, PRICES);
+
+      expect(w.service.resolveTierFromPriceId(price)).toBe(tier);
     });
   });
 
   describe('recordRevenueEvent (genfeedai/genfeed.ai#4969)', () => {
-    const baseInput = {
+    const INPUT = {
       amountMinor: 4900,
       currency: 'usd',
-      occurredAt: new Date('2026-09-27T00:00:00.000Z'),
+      occurredAt: NOW,
       organizationId: 'org_1',
       source: BillingRevenueSource.CREDIT_PURCHASE,
       stripeObjectId: 'cs_test_1',
       userId: 'user_1',
     };
+    const alert = (payload: Row) => ({
+      deduplicationKey: 'message.revenue/cs_test_1',
+      messages: [
+        {
+          destination: null,
+          message: { action: 'revenue_notification', payload, type: 'discord' },
+        },
+      ],
+      occurredAt: NOW,
+      organizationId: 'org_1',
+      source: { id: 'cs_test_1', type: 'stripe_revenue' },
+      topic: 'operator.alerts',
+    });
 
-    const revenueMessage = (payload: Record<string, unknown>) =>
-      expect.objectContaining({
-        deduplicationKey: 'message.revenue/cs_test_1',
-        messages: [
-          {
-            destination: null,
-            message: {
-              action: 'revenue_notification',
-              payload: expect.objectContaining(payload),
-              type: 'discord',
-            },
-          },
-        ],
-        organizationId: 'org_1',
-        topic: 'operator.alerts',
+    it('books the payment once and alerts the operator once across webhook replays', async () => {
+      const w = world();
+
+      await w.service.recordRevenueEvent({
+        ...INPUT,
+        amountMinor: 4899.6,
+        currency: ' USD ',
       });
+      await w.service.recordRevenueEvent(INPUT);
 
-    it('records the operator alert in the ledger transaction when the row is new', async () => {
-      prisma.billingRevenueEvent.createMany.mockResolvedValue({ count: 1 });
-
-      await service.recordRevenueEvent(baseInput);
-
-      expect(activityRecorder.dispatchInTransaction).toHaveBeenCalledTimes(1);
-      expect(activityRecorder.dispatchInTransaction).toHaveBeenCalledWith(
-        prisma,
-        revenueMessage({
+      expect(w.revenue).toEqual([
+        {
+          amountMinor: 4900,
+          currency: 'usd',
+          isDeleted: false,
+          occurredAt: NOW,
+          organizationId: 'org_1',
+          source: BillingRevenueSource.CREDIT_PURCHASE,
+          stripeObjectId: 'cs_test_1',
+          userId: 'user_1',
+        },
+      ]);
+      expect(w.alerts).toEqual([
+        alert({
           amountMinor: 4900,
           currency: 'usd',
           organizationId: 'org_1',
           organizationLabel: 'Acme Studio',
+          planLabel: undefined,
           source: BillingRevenueSource.CREDIT_PURCHASE,
           userId: 'user_1',
         }),
-      );
-      expect(activityRecorder.afterCommit).toHaveBeenCalledWith(revenueCommit);
+      ]);
+      expect(w.delivered).toEqual(['delivery_1']);
     });
 
-    it('still records the ledger row and alerts when the organization name cannot be read', async () => {
-      prisma.organization.findFirst.mockRejectedValue(new Error('db blip'));
+    it('carries the plan label of subscription revenue and books an anonymous payment', async () => {
+      const w = world();
 
-      await service.recordRevenueEvent(baseInput);
-
-      expect(prisma.billingRevenueEvent.createMany).toHaveBeenCalledTimes(1);
-      expect(activityRecorder.dispatchInTransaction).toHaveBeenCalledTimes(1);
-      expect(activityRecorder.afterCommit).toHaveBeenCalledWith(revenueCommit);
-    });
-
-    it('is skipped on a webhook replay — the unique stripeObjectId skips the insert', async () => {
-      // `createMany({ skipDuplicates: true })` reports 0 rows written when the
-      // unique `stripeObjectId` already exists — the exact replay case.
-      prisma.billingRevenueEvent.createMany.mockResolvedValue({ count: 0 });
-
-      await service.recordRevenueEvent(baseInput);
-
-      expect(prisma.billingRevenueEvent.createMany).toHaveBeenCalledTimes(1);
-      expect(activityRecorder.dispatchInTransaction).not.toHaveBeenCalled();
-      expect(activityRecorder.afterCommit).not.toHaveBeenCalled();
-    });
-
-    it('never alerts when the ledger write itself fails', async () => {
-      prisma.billingRevenueEvent.createMany.mockRejectedValue(
-        new Error('db down'),
-      );
-
-      await expect(
-        service.recordRevenueEvent(baseInput),
-      ).resolves.toBeUndefined();
-
-      expect(activityRecorder.dispatchInTransaction).not.toHaveBeenCalled();
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('failed to record revenue event'),
-        expect.objectContaining({ organizationId: 'org_1' }),
-      );
-    });
-
-    it('rolls the ledger row back with a failed alert write and never throws', async () => {
-      prisma.billingRevenueEvent.createMany.mockResolvedValue({ count: 1 });
-      activityRecorder.dispatchInTransaction.mockRejectedValueOnce(
-        new Error('outbox down'),
-      );
-
-      await expect(
-        service.recordRevenueEvent(baseInput),
-      ).resolves.toBeUndefined();
-
-      expect(activityRecorder.afterCommit).not.toHaveBeenCalled();
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('failed to record revenue event'),
-        expect.objectContaining({ stripeObjectId: 'cs_test_1' }),
-      );
-    });
-
-    it('passes the caller-supplied plan label through for subscription revenue', async () => {
-      prisma.billingRevenueEvent.createMany.mockResolvedValue({ count: 1 });
-
-      await service.recordRevenueEvent({
-        ...baseInput,
+      await w.service.recordRevenueEvent({
+        ...INPUT,
         planLabel: 'pro',
         source: BillingRevenueSource.SUBSCRIPTION_INVOICE,
+        userId: undefined,
       });
 
-      expect(activityRecorder.dispatchInTransaction).toHaveBeenCalledWith(
-        prisma,
-        revenueMessage({
+      expect(w.revenue).toEqual([expect.objectContaining({ userId: null })]);
+      expect(w.alerts).toEqual([
+        alert({
+          amountMinor: 4900,
+          currency: 'usd',
+          organizationId: 'org_1',
+          organizationLabel: 'Acme Studio',
           planLabel: 'pro',
           source: BillingRevenueSource.SUBSCRIPTION_INVOICE,
+          userId: undefined,
         }),
-      );
+      ]);
     });
 
-    it('never records or alerts for a non-positive amount', async () => {
-      await service.recordRevenueEvent({ ...baseInput, amountMinor: 0 });
+    it('still books and alerts when the organization name cannot be read', async () => {
+      const w = world();
+      w.faults.organizationLookup.push(new Error('db blip'));
 
-      expect(prisma.billingRevenueEvent.createMany).not.toHaveBeenCalled();
-      expect(activityRecorder.dispatchInTransaction).not.toHaveBeenCalled();
+      await w.service.recordRevenueEvent(INPUT);
+
+      expect(w.revenue).toHaveLength(1);
+      expect(w.alerts).toEqual([
+        alert(expect.objectContaining({ organizationLabel: undefined })),
+      ]);
+      expect(w.delivered).toEqual(['delivery_1']);
+    });
+
+    it.each([
+      ['the ledger write fails', 'revenueWrite'],
+      ['the alert write fails', 'alert'],
+    ] as const)(
+      'books nothing, alerts nothing and never throws when %s',
+      async (_name, fault) => {
+        const w = world();
+        w.faults[fault].push(new Error('db down'));
+
+        await expect(
+          w.service.recordRevenueEvent(INPUT),
+        ).resolves.toBeUndefined();
+
+        expect(w.revenue).toEqual([]);
+        expect(w.alerts).toEqual([]);
+        expect(w.delivered).toEqual([]);
+        expect(w.logs).toEqual([
+          {
+            level: 'error',
+            message:
+              'StripeWebhookSupportService failed to record revenue event',
+            meta: expect.objectContaining({ stripeObjectId: 'cs_test_1' }),
+          },
+        ]);
+      },
+    );
+
+    it.each([
+      ['a zero amount', { amountMinor: 0 }],
+      ['a negative amount', { amountMinor: -100 }],
+      ['a non-numeric amount', { amountMinor: Number.NaN }],
+      ['no organization', { organizationId: '' }],
+      ['no Stripe object', { stripeObjectId: '' }],
+    ])('books nothing for %s', async (_name, overrides) => {
+      const w = world();
+
+      await w.service.recordRevenueEvent({ ...INPUT, ...overrides });
+
+      expect(w.revenue).toEqual([]);
+      expect(w.alerts).toEqual([]);
     });
   });
 
   describe('notifyOperatorOfBillingEvent', () => {
-    const subscriptionCreated = {
+    const CREATED = {
       kind: 'subscription_created' as const,
       organizationId: 'org_1',
       planLabel: 'Scale',
       stripeObjectId: 'sub_1',
     };
 
-    it('queues a billing card that names the organization', async () => {
-      await service.notifyOperatorOfBillingEvent(subscriptionCreated);
+    it('queues and delivers a billing card that names the organization', async () => {
+      const w = world();
 
-      expect(activityRecorder.dispatch).toHaveBeenCalledWith({
-        deduplicationKey: 'message.billing/subscription_created/sub_1',
-        messages: [
-          {
-            destination: null,
-            message: {
-              action: 'billing_event',
-              payload: {
-                kind: 'subscription_created',
-                organizationId: 'org_1',
-                organizationLabel: 'Acme Studio',
-                planLabel: 'Scale',
+      await w.service.notifyOperatorOfBillingEvent(CREATED);
+
+      expect(w.alerts).toEqual([
+        {
+          deduplicationKey: 'message.billing/subscription_created/sub_1',
+          messages: [
+            {
+              destination: null,
+              message: {
+                action: 'billing_event',
+                payload: {
+                  kind: 'subscription_created',
+                  organizationId: 'org_1',
+                  organizationLabel: 'Acme Studio',
+                  planLabel: 'Scale',
+                },
+                type: 'discord',
               },
-              type: 'discord',
             },
-          },
-        ],
-        organizationId: 'org_1',
-        source: { id: 'sub_1', type: 'stripe_billing_event' },
-        topic: 'operator.alerts',
-      });
+          ],
+          organizationId: 'org_1',
+          source: { id: 'sub_1', type: 'stripe_billing_event' },
+          topic: 'operator.alerts',
+        },
+      ]);
+      expect(w.delivered).toEqual(['delivery_1']);
     });
 
-    it('still queues the card when the organization name cannot be read', async () => {
-      prisma.organization.findFirst.mockRejectedValue(new Error('db blip'));
+    it('still queues the card without a name when the organization cannot be read', async () => {
+      const w = world();
+      w.faults.organizationLookup.push(new Error('db blip'));
 
-      await service.notifyOperatorOfBillingEvent(subscriptionCreated);
+      await w.service.notifyOperatorOfBillingEvent(CREATED);
 
-      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+      expect(w.alerts).toEqual([
         expect.objectContaining({
           messages: [
             expect.objectContaining({
               message: expect.objectContaining({
-                payload: expect.not.objectContaining({
-                  organizationLabel: expect.anything(),
-                }),
+                payload: {
+                  kind: 'subscription_created',
+                  organizationId: 'org_1',
+                  organizationLabel: undefined,
+                  planLabel: 'Scale',
+                },
               }),
             }),
           ],
         }),
-      );
+      ]);
     });
 
-    it('never throws when the outbox write fails', async () => {
-      activityRecorder.dispatch.mockRejectedValue(new Error('outbox down'));
+    it('logs instead of throwing when the outbox write fails', async () => {
+      const w = world();
+      w.faults.alert.push(new Error('outbox down'));
 
       await expect(
-        service.notifyOperatorOfBillingEvent(subscriptionCreated),
+        w.service.notifyOperatorOfBillingEvent(CREATED),
       ).resolves.toBeUndefined();
-      expect(loggerService.error).toHaveBeenCalled();
+
+      expect(w.alerts).toEqual([]);
+      expect(w.logs.map((entry) => entry.message)).toEqual([
+        'StripeWebhookSupportService failed to queue billing event alert',
+      ]);
     });
   });
 
-  describe('recordRevenueAdjustment alerts', () => {
-    const refund = {
+  describe('recordRevenueAdjustment', () => {
+    const REFUND = {
       adjustedGrossMinor: 1_000,
       adjustmentId: 're_1',
       occurredAt: new Date('2026-11-03T00:00:00.000Z'),
@@ -920,64 +1043,178 @@ describe('StripeWebhookSupportService', () => {
         | BillingRevenueSource.REFUND
         | BillingRevenueSource.DISPUTE,
     };
-
-    beforeEach(() => {
-      prisma.billingRevenueEvent.findFirst.mockResolvedValue({
+    function booked() {
+      const w = world();
+      // 4,900 gross paid, 4,000 net of tax booked.
+      w.revenue.push({
         amountMinor: 4_000,
         currency: 'usd',
+        isDeleted: false,
         organizationId: 'org_1',
+        source: BillingRevenueSource.CREDIT_PURCHASE,
+        stripeObjectId: 'cs_test_1',
+        userId: 'user_1',
       });
-      prisma.billingRevenueEvent.aggregate.mockResolvedValue({
-        _sum: { amountMinor: 0 },
+      return w;
+    }
+    const adjustments = (w: ReturnType<typeof world>) =>
+      w.revenue
+        .slice(1)
+        .map((row) => `${row.stripeObjectId}=${row.amountMinor}`);
+
+    it('takes the net share of a refund out of revenue and announces it once across replays', async () => {
+      const w = booked();
+
+      await w.service.recordRevenueAdjustment(REFUND);
+      await w.service.recordRevenueAdjustment(REFUND);
+
+      expect(w.revenue[1]).toEqual({
+        amountMinor: -816,
+        currency: 'usd',
+        isDeleted: false,
+        occurredAt: REFUND.occurredAt,
+        organizationId: 'org_1',
+        source: BillingRevenueSource.REFUND,
+        stripeObjectId: 're_1:1000',
+        userId: 'user_1',
       });
-    });
-
-    it('announces a refund once the negative ledger row is written', async () => {
-      await service.recordRevenueAdjustment(refund);
-
-      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+      expect(adjustments(w)).toEqual(['re_1:1000=-816']);
+      expect(w.alerts).toEqual([
         expect.objectContaining({
-          deduplicationKey: expect.stringMatching(
-            /^message\.billing\/refund\/re_1/,
-          ),
+          deduplicationKey: 'message.billing/refund/re_1:1000',
           messages: [
             expect.objectContaining({
               message: expect.objectContaining({
-                payload: expect.objectContaining({
+                payload: {
                   amountMinor: 1_000,
                   currency: 'usd',
                   kind: 'refund',
                   organizationId: 'org_1',
-                }),
+                  organizationLabel: 'Acme Studio',
+                },
               }),
             }),
           ],
         }),
-      );
+      ]);
     });
 
-    it('announces a dispute as a dispute', async () => {
-      await service.recordRevenueAdjustment({
-        ...refund,
+    it('books only the remainder of a cumulative refund', async () => {
+      const w = booked();
+
+      await w.service.recordRevenueAdjustment(REFUND);
+      await w.service.recordRevenueAdjustment({
+        ...REFUND,
+        adjustedGrossMinor: 2_000,
+      });
+
+      // 2,000 of 4,900 gross is 1,633 net; 816 was already taken out.
+      expect(adjustments(w)).toEqual(['re_1:1000=-816', 're_1:2000=-817']);
+      expect(w.alerts).toHaveLength(2);
+    });
+
+    it('caps a dispute larger than the payment at the whole net amount and announces it as a dispute', async () => {
+      const w = booked();
+
+      await w.service.recordRevenueAdjustment({
+        ...REFUND,
+        adjustedGrossMinor: 9_000,
         adjustmentId: 'dp_1',
         source: BillingRevenueSource.DISPUTE,
       });
 
-      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+      expect(adjustments(w)).toEqual(['dp_1:9000=-4000']);
+      expect(w.alerts).toEqual([
         expect.objectContaining({
-          deduplicationKey: expect.stringMatching(
-            /^message\.billing\/dispute\/dp_1/,
-          ),
+          deduplicationKey: 'message.billing/dispute/dp_1:9000',
         }),
-      );
+      ]);
     });
 
-    it('stays quiet on a webhook replay that writes no new row', async () => {
-      prisma.billingRevenueEvent.createMany.mockResolvedValue({ count: 0 });
+    it('books nothing for a payment the ledger never recorded', async () => {
+      const w = world();
 
-      await service.recordRevenueAdjustment(refund);
+      await w.service.recordRevenueAdjustment(REFUND);
 
-      expect(activityRecorder.dispatch).not.toHaveBeenCalled();
+      expect(w.revenue).toEqual([]);
+      expect(w.alerts).toEqual([]);
+      expect(w.logs).toEqual([
+        {
+          level: 'warn',
+          message: 'StripeWebhookSupportService no revenue row to adjust',
+          meta: { adjustmentId: 're_1', originalStripeObjectId: 'cs_test_1' },
+        },
+      ]);
+    });
+
+    it('logs instead of throwing when the adjustment cannot be written', async () => {
+      const w = booked();
+      w.faults.revenueWrite.push(new Error('db down'));
+
+      await expect(
+        w.service.recordRevenueAdjustment(REFUND),
+      ).resolves.toBeUndefined();
+
+      expect(adjustments(w)).toEqual([]);
+      expect(w.alerts).toEqual([]);
+      expect(w.logs.map((entry) => entry.message)).toEqual([
+        'StripeWebhookSupportService failed to record revenue adjustment',
+      ]);
+    });
+  });
+
+  describe('recordProcessingFee', () => {
+    const FEE_INPUT = {
+      occurredAt: NOW,
+      organizationId: 'org_1',
+      payment: { invoiceId: 'in_1' },
+      revenueObjectId: 'in_1',
+      userId: 'user_1',
+    };
+
+    it('takes the Stripe fee out of revenue once across replays', async () => {
+      const w = world();
+      w.fees.set('in_1', { currency: 'USD', feeMinor: 145.4 });
+
+      await w.service.recordProcessingFee(FEE_INPUT);
+      await w.service.recordProcessingFee(FEE_INPUT);
+
+      expect(w.revenue).toEqual([
+        {
+          amountMinor: -145,
+          currency: 'usd',
+          isDeleted: false,
+          occurredAt: NOW,
+          organizationId: 'org_1',
+          source: BillingRevenueSource.PROCESSING_FEE,
+          stripeObjectId: 'fee:in_1',
+          userId: 'user_1',
+        },
+      ]);
+    });
+
+    it.each<[string, (w: ReturnType<typeof world>) => void]>([
+      ['no fee is known', () => undefined],
+      [
+        'the fee is zero',
+        (w) => w.fees.set('pi_1', { currency: 'usd', feeMinor: 0 }),
+      ],
+      [
+        'the Stripe lookup fails',
+        (w) => w.fees.set('pi_1', new Error('stripe down')),
+      ],
+    ])('books nothing when %s', async (_name, arrange) => {
+      const w = world();
+      arrange(w);
+
+      await expect(
+        w.service.recordProcessingFee({
+          ...FEE_INPUT,
+          payment: { paymentIntentId: 'pi_1' },
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(w.revenue).toEqual([]);
     });
   });
 });

@@ -91,7 +91,7 @@ function OrganizationUnavailable() {
           </div>
         ) : (
           <Link
-            className="mt-6 text-sm font-medium text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="mt-6 text-sm font-medium text-foreground underline-offset-4 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             href={APP_ROUTES.ROOT}
           >
             {translate('returnSetup')}

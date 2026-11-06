@@ -18,9 +18,20 @@ export function hydrateContentRun(
   }
 
   const config = isContentRunRecord(run.config) ? run.config : {};
+  // The promoted columns are copies of `config` keys for filtering; the
+  // document reads them from `config`, so a key `config` lacks stays absent.
+  const {
+    clientRequestId: _clientRequestId,
+    contract: _contract,
+    createdByUserId: _createdByUserId,
+    phase: _phase,
+    revision: _revision,
+    skillSlug: _skillSlug,
+    ...columns
+  } = run;
 
   return {
-    ...run,
+    ...columns,
     ...config,
     status: run.status ?? config.status,
   };

@@ -42,7 +42,7 @@ export const chipItemClassName =
   'rounded-full border border-border bg-transparent text-foreground/70 hover:bg-hover hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary';
 
 export const segmentedItemVariants = cva(
-  'inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0',
+  'inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap font-medium transition-colors duration-200 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0',
   {
     defaultVariants: {
       appearance: 'segmented',
@@ -52,9 +52,11 @@ export const segmentedItemVariants = cva(
     variants: {
       isFullWidth: { false: '', true: 'min-w-0 flex-1' },
       appearance: {
-        chip: chipItemClassName,
+        // Chips stand apart, so their ring sits outside; segments sit flush
+        // in a scrolling bar that would clip an outer ring, so theirs is inset.
+        chip: `${chipItemClassName} focus-visible:ring-offset-2 focus-visible:ring-offset-background`,
         segmented:
-          'h-full min-w-8 rounded-md border-0 bg-transparent text-foreground/70 shadow-none hover:bg-accent hover:text-accent-foreground data-[state=active]:bg-background data-[state=active]:text-accent-foreground data-[state=active]:shadow-sm data-[state=on]:bg-background data-[state=on]:text-accent-foreground data-[state=on]:shadow-sm',
+          'focus-visible:ring-inset forced-colors:focus-visible:-outline-offset-2 h-full min-w-8 rounded-md border-0 bg-transparent text-foreground/70 shadow-none hover:bg-accent hover:text-accent-foreground data-[state=active]:bg-background data-[state=active]:text-accent-foreground data-[state=active]:shadow-sm data-[state=on]:bg-background data-[state=on]:text-accent-foreground data-[state=on]:shadow-sm',
       },
       size: {
         default: 'text-xs [&_svg]:size-4',

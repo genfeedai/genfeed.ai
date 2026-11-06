@@ -122,7 +122,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
             value={formatMinutesSeconds(nodeData.startTime)}
             onChange={handleStartTimeChange}
             placeholder="0:00"
-            className="w-full mt-1 px-2 py-1 text-xs bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full mt-1 px-2 py-1 text-xs bg-background border border-border rounded focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           />
         </div>
 
@@ -149,7 +149,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
             value={formatMinutesSeconds(nodeData.endTime)}
             onChange={handleEndTimeChange}
             placeholder="1:00"
-            className="w-full mt-1 px-2 py-1 text-xs bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full mt-1 px-2 py-1 text-xs bg-background border border-border rounded focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           />
         </div>
 

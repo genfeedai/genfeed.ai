@@ -11,7 +11,7 @@ import { cva } from 'class-variance-authority';
  * mono are separate axes, so a caller never restyles a badge with className.
  */
 export const badgeVariants = cva(
-  'inline-flex items-center gap-1 whitespace-nowrap rounded-sm px-1.5 h-5 text-2xs font-medium tabular-nums uppercase tracking-wide shadow-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+  'inline-flex items-center gap-1 whitespace-nowrap rounded-sm px-1.5 h-5 text-2xs font-medium tabular-nums uppercase tracking-wide shadow-none transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
   {
     compoundVariants: [
       {

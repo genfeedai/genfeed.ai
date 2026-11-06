@@ -23,7 +23,7 @@ export default function TopbarLogo({
         href={logoHref}
         className={cn(
           isCompact
-            ? 'flex size-8 flex-shrink-0 items-center justify-center rounded-md transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60'
+            ? 'flex size-8 flex-shrink-0 items-center justify-center rounded-md transition-colors hover:bg-foreground/5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
             : 'py-2',
         )}
         aria-label={`${EnvironmentService.LOGO_ALT} home`}

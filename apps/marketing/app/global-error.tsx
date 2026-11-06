@@ -28,7 +28,7 @@ export default function GlobalError({ error }: GlobalErrorProps) {
               The page could not be displayed. Your work is safe.
             </p>
             <Link
-              className="inline-flex h-10 items-center justify-center border border-border bg-foreground px-5 text-sm font-semibold text-background transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex h-10 items-center justify-center border border-border bg-foreground px-5 text-sm font-semibold text-background transition-opacity hover:opacity-85 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               href="/"
             >
               Return home

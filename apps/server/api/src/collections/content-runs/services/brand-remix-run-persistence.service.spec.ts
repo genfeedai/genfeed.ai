@@ -70,6 +70,16 @@ function matchesJson(value: unknown, filter: Where): boolean {
   );
 }
 
+/** Columns the database trigger copies out of `config` on every write. */
+const PROMOTED_CONFIG_COLUMNS = new Set([
+  'clientRequestId',
+  'contract',
+  'createdByUserId',
+  'phase',
+  'revision',
+  'skillSlug',
+]);
+
 function matchesWhere(row: RunRow, where: Where): boolean {
   return Object.entries(where).every(([key, value]) => {
     if (key === 'AND') {
@@ -77,6 +87,9 @@ function matchesWhere(row: RunRow, where: Where): boolean {
     }
     if (key === 'config') {
       return matchesJson(row.config, value as Where);
+    }
+    if (PROMOTED_CONFIG_COLUMNS.has(key)) {
+      return row.config[key] === value;
     }
     return (row as unknown as Record<string, unknown>)[key] === value;
   });

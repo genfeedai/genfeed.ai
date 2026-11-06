@@ -78,10 +78,14 @@ describe('TrendsService', () => {
       viralityScore: 75,
       ...overrides,
     },
+    expiresAt: new Date(Date.now() + 30 * 60 * 1000),
     id: 'trend-id-1',
+    isCurrent: true,
     isDeleted: false,
     organizationId: mockOrganizationId,
+    platform: overrides.platform ?? 'tiktok',
     updatedAt: new Date(),
+    viralityScore: 75,
   });
 
   // A flattened trend: the row's columns plus the fields stored in its data JSON.
@@ -886,10 +890,17 @@ describe('TrendsService', () => {
       );
     });
 
-    it('should filter by platform in-memory when specified', async () => {
+    it('should filter by platform when specified', async () => {
       const tikTokDoc = makePrismaTrendDoc({ platform: 'tiktok' });
       const instagramDoc = makePrismaTrendDoc({ platform: 'instagram' });
-      prisma.trend.findMany.mockResolvedValue([tikTokDoc, instagramDoc]);
+      prisma.trend.findMany.mockImplementation(
+        ({ where }: { where: { platform?: string } }) =>
+          Promise.resolve(
+            [tikTokDoc, instagramDoc].filter(
+              (doc) => !where.platform || doc.platform === where.platform,
+            ),
+          ),
+      );
 
       const result = await service.getTrends(
         mockOrganizationId,

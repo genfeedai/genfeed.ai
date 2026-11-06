@@ -220,8 +220,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/server/api/src/endpoints/public/controllers/brands/public.brands.controller.spec.ts',
   'apps/server/api/src/endpoints/public/controllers/images/public.images.controller.spec.ts',
   'apps/server/api/src/endpoints/public/controllers/musics/public.musics.controller.spec.ts',
-  'apps/server/api/src/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler.spec.ts',
-  'apps/server/api/src/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service.spec.ts',
   'apps/server/api/src/endpoints/webhooks/webhooks.service.spec.ts',
   'apps/server/api/src/helpers/decorators/log/log-method.decorator.spec.ts',
   'apps/server/api/src/helpers/filters/http-exception/http-exception.filter.spec.ts',

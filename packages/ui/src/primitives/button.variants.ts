@@ -1,6 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
 import { cva } from 'class-variance-authority';
+import { focusRingClassName } from './focus-ring';
 
 export type ButtonVariantConfig = {
   nativeVariant:
@@ -90,7 +91,7 @@ export const TEXT_TRANSFORM_CLASSES: Record<string, string> = {
 };
 
 const nativeButtonVariants = cva(
-  'inline-flex items-center gap-2 whitespace-nowrap text-left text-xs font-medium cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:shrink-0',
+  `${focusRingClassName} inline-flex items-center gap-2 whitespace-nowrap text-left text-xs font-medium cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:shrink-0`,
   {
     defaultVariants: {
       size: 'default',

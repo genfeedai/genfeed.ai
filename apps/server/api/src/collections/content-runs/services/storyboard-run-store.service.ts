@@ -66,7 +66,7 @@ export class StoryboardRunStoreService {
       where: scopedWhere(organizationId, {
         brandId,
         id: runId,
-        config: { path: ['contract'], equals: STORYBOARD_RUN_CONTRACT },
+        contract: STORYBOARD_RUN_CONTRACT,
       }),
     });
     if (!record) throw new NotFoundException('Storyboard run', runId);

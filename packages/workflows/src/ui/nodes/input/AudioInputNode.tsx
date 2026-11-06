@@ -160,7 +160,7 @@ function AudioInputNodeComponent(props: NodeProps) {
             onKeyDown={handleUrlKeyDown}
             placeholder="https://..."
             aria-label="Audio URL"
-            className="nodrag nopan flex-1 h-7 px-2 text-xs border border-border bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+            className="nodrag nopan flex-1 h-7 px-2 text-xs border border-border bg-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           />
           <Button
             withWrapper={false}

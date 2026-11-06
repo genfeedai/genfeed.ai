@@ -428,6 +428,13 @@ jobs:
       # baseline (#7137). Shrinking and relocating entries stay green.
       - name: Check ratchet baselines did not grow
         run: bun run check:ratchet-growth --base "${CI_BASE_SHA:-HEAD^1}"
+      # Same-PR rule: a change that removes or rewrites copy, preset ids or
+      # fixture values must update the Playwright specs that assert them in the
+      # same PR. Reads the diff and spec sources only; no browser, no extra job.
+      # Opt out with an `E2E-Spec-Impact: none - <reason>` commit trailer.
+      - name: Check e2e specs follow UI changes
+        if: github.event_name == 'pull_request'
+        run: node scripts/ci/e2e-spec-impact.mjs --base "${CI_BASE_SHA}"
       - name: Check pinned product skill catalog
         run: bun run check:skills-catalog
       - name: Check skill trusted-builtin allowlist

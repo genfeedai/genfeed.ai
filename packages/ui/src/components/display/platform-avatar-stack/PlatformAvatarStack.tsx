@@ -48,7 +48,7 @@ export default function PlatformAvatarStack({
         <Button
           ariaLabel={`${items.length} connected: ${summary}`}
           className={cn(
-            'flex w-fit items-center -space-x-1.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            'flex w-fit items-center -space-x-1.5 rounded-full focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             className,
           )}
           data-testid="platform-avatar-stack"

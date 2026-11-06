@@ -423,9 +423,9 @@ describe('ContentRunsService', () => {
 
     const where = {
       brandId: 'brand-1',
-      config: { equals: 'content-writing', path: ['skillSlug'] },
       isDeleted: false,
       organizationId: 'org-1',
+      skillSlug: 'content-writing',
       status: ContentRunStatus.PENDING,
     };
     expect(contentRun.findMany).toHaveBeenCalledWith({

@@ -10,6 +10,7 @@ import type { IngredientsService } from '@api/collections/ingredients/services/i
 import type { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import type { AgentClipperRunIdentity } from '@genfeedai/contracts/interfaces';
+import type { ConfigService } from '@libs/config/config.service';
 import type { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
@@ -144,6 +145,7 @@ describe('ClipperProjectIngestionService', () => {
       ingredientsService as unknown as IngredientsService,
       presignedUploadService as unknown as PresignedUploadService,
       http as unknown as HttpService,
+      { cdnUrl: 'https://cdn.test' } as unknown as ConfigService,
     );
   });
 
@@ -623,6 +625,34 @@ describe('ClipperProjectIngestionService', () => {
       projectId: 'project-1',
       uploadUrl: 'https://uploads.test/ingredient-1',
     });
+  });
+
+  it('stores the canonical CDN URL when authorized delivery issues no public upload URL', async () => {
+    const storageKey = 'videos/0b7e1d2a-1111-4222-8333-444455556666';
+    const mediaUrl = `https://cdn.test/${storageKey}`;
+    presignedUploadService.getPresignedUploadUrl.mockResolvedValue({
+      expiresIn: 3600,
+      id: 'ingredient-1',
+      publicUrl: '',
+      s3Key: storageKey,
+      uploadUrl: 'https://uploads.test/ingredient-1',
+    });
+
+    await service.prepareUpload(currentUser as never, {
+      contentType: 'video/mp4',
+      filename: 'podcast.mp4',
+      flow: 'review',
+      sizeBytes: 15_000_000,
+    });
+
+    expect(clipperProjectsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: expect.objectContaining({
+          artifact: { contentType: 'video/mp4', mediaUrl, storageKey },
+        }),
+        sourceVideoUrl: mediaUrl,
+      }),
+    );
   });
 
   it('confirms authoritative upload metadata and queues the configured review flow', async () => {

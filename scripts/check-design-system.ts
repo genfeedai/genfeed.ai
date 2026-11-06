@@ -61,6 +61,7 @@ const DESIGN_SYSTEM_BASELINE_PATH = path.join(
 );
 
 export type DesignSystemFindingKind =
+  | 'off-contract-focus-ring'
   | 'off-ladder-opacity'
   | 'off-scale-icon-size'
   | 'off-scale-text-size'
@@ -374,6 +375,7 @@ const NATIVE_CONTROL_NAMES = new Set([
 ]);
 const PACKAGE_UI_EXTENSIONS = new Set(['.js', '.jsx', '.ts', '.tsx']);
 const DESIGN_SYSTEM_FINDING_KINDS: readonly DesignSystemFindingKind[] = [
+  'off-contract-focus-ring',
   'off-ladder-opacity',
   'off-scale-icon-size',
   'off-scale-text-size',
@@ -496,6 +498,47 @@ export function isOffScaleTextSizeToken(token: string): boolean {
   }
   const px = match[2] === 'rem' ? Number(match[1]) * 16 : Number(match[1]);
   return px >= MIN_TOKENIZED_TEXT_PX && px <= MAX_TOKENIZED_TEXT_PX;
+}
+
+// One focus treatment (`focusRingClassName` / `focusRingInsetClassName` in
+// packages/ui/src/primitives/focus-ring.ts). A ring keyed on `focus:` shows on
+// every mouse click, and any other ring width, colour or offset is a fork.
+const FOCUS_RING_CONTRACT_TOKENS = new Set([
+  'ring-0',
+  'ring-2',
+  'ring-inset',
+  'ring-offset-0',
+  'ring-offset-2',
+  'ring-offset-background',
+  'ring-ring',
+]);
+const FOCUS_RING_TOKEN_PATTERN =
+  /^(?:.*:)?focus(-visible)?:!?((?:ring|outline)(?:-[^!]+)?)!?$/u;
+// `outline-none` drops the outline even in forced-colors mode, where the ring's
+// box-shadow is not painted, so a `focus-visible:` suppressor must be
+// `outline-hidden`. Plain `focus:outline-none` stays allowed.
+const FOCUS_OUTLINE_SUPPRESSOR = 'outline-hidden';
+const FOCUS_OUTLINE_NONE = 'outline-none';
+
+export function isOffContractFocusRingToken(token: string): boolean {
+  const match = FOCUS_RING_TOKEN_PATTERN.exec(
+    token.replace(LEADING_BANG_PATTERN, ''),
+  );
+  if (!match) {
+    return false;
+  }
+  const [, visible, utility] = match;
+  if (utility === FOCUS_OUTLINE_SUPPRESSOR) {
+    return false;
+  }
+  if (utility === FOCUS_OUTLINE_NONE) {
+    // An important `focus:outline-none` overrides `focus-visible:outline-hidden`.
+    return Boolean(visible) || token.includes('!');
+  }
+  if (utility.startsWith('outline')) {
+    return true;
+  }
+  return !visible || !FOCUS_RING_CONTRACT_TOKENS.has(utility);
 }
 
 const MIN_NEGATIVE_TRACKING_EM = -0.02;
@@ -644,6 +687,9 @@ export function findPackageUiGuardFindings(
         if (isOffLadderOpacityToken(token)) {
           addFinding(literal, 'off-ladder-opacity', token);
         }
+        if (isOffContractFocusRingToken(token)) {
+          addFinding(literal, 'off-contract-focus-ring', token);
+        }
       }
     }
   };
@@ -682,6 +728,9 @@ export function findPackageUiGuardFindings(
         if (isOffLadderOpacityToken(token)) {
           addFinding(node, 'off-ladder-opacity', token);
         }
+        if (isOffContractFocusRingToken(token)) {
+          addFinding(node, 'off-contract-focus-ring', token);
+        }
       }
     }
 
@@ -697,7 +746,12 @@ export function findPackageUiGuardFindings(
   );
 }
 
-const TYPE_SCALE_GUARD_ROOTS = ['apps/web', 'apps/marketing', 'packages'];
+const TYPE_SCALE_GUARD_ROOTS = [
+  'apps/extension',
+  'apps/marketing',
+  'apps/web',
+  'packages',
+];
 
 function findPackageUiGuardFindingsInRepo(): DesignSystemFinding[] {
   const files = TYPE_SCALE_GUARD_ROOTS.flatMap((root) =>
@@ -899,9 +953,11 @@ export function formatDesignSystemRegressions(
                   ? 'use an icon step: size-3.5 (14px), size-4 (16px) or size-5 (20px)'
                   : finding.kind === 'off-ladder-opacity'
                     ? 'use an opacity stop from the ladder: /5 /10 /20 /40 /50 /60 /70 /80 /90 (or /0, /100)'
-                    : finding.kind === 'off-scale-text-size'
-                      ? 'use the named step: text-2xs (11px), text-xs (12px), text-sm (14px), text-md (15px) or text-base (16px)'
-                      : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
+                    : finding.kind === 'off-contract-focus-ring'
+                      ? 'use focusRingClassName or focusRingInsetClassName from @ui/primitives/focus-ring (focus-visible:outline-hidden ring-2 ring-ring ring-offset-2 ring-offset-background)'
+                      : finding.kind === 'off-scale-text-size'
+                        ? 'use the named step: text-2xs (11px), text-xs (12px), text-sm (14px), text-md (15px) or text-base (16px)'
+                        : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
       return `${finding.file}:${finding.line}: ${finding.token} — ${remedy}\n  ${finding.source}`;
     })
     .join('\n');
