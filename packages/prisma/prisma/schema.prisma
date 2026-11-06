@@ -5898,6 +5898,18 @@ model BotActivity {
   monitoredAccountId String?
   monitoredAccount   MonitoredAccount? @relation(fields: [monitoredAccountId], references: [id])
   data               Json              @default("{}")
+
+  /// Keys copied out of `data` so reply-bot filters and counts never read or
+  /// detoast it. The `promote_bot_activity_data` trigger recomputes them on every
+  /// insert and on every update of `data`; never write them directly.
+  status              String?
+  botType             String?
+  triggerTweetId      String?
+  replyTweetId        String?
+  dmSent              Boolean @default(false)
+  isManuallyPosted    Boolean @default(false)
+  isIntentNeedsReview Boolean @default(false)
+
   isDeleted          Boolean           @default(false)
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
