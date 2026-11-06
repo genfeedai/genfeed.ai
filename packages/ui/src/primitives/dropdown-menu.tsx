@@ -43,7 +43,7 @@ function DropdownMenuSubTrigger({
     <DropdownMenuPrimitive.SubTrigger
       ref={ref}
       className={cn(
-        'dropdown-case mx-1 flex cursor-pointer select-none items-center gap-2 rounded-sm px-3 py-1.5 text-[13px] text-foreground outline-none hover:bg-hover focus:bg-hover data-[disabled]:pointer-events-none data-[state=open]:bg-hover data-[disabled]:opacity-50',
+        'dropdown-case mx-1 flex cursor-pointer select-none items-center gap-2 min-h-8 rounded-sm px-3 py-1.5 text-sm text-foreground outline-none hover:bg-hover focus:bg-hover data-[disabled]:pointer-events-none data-[state=open]:bg-hover data-[disabled]:opacity-50',
         inset && 'pl-8',
         className,
       )}
@@ -150,7 +150,7 @@ function DropdownMenuItem({
     <DropdownMenuPrimitive.Item
       ref={ref}
       className={cn(
-        'dropdown-case mx-1 flex cursor-pointer select-none items-center gap-2 rounded-sm px-3 py-1.5 text-[13px] text-foreground outline-none hover:bg-hover focus:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+        'dropdown-case mx-1 flex cursor-pointer select-none items-center gap-2 min-h-8 rounded-sm px-3 py-1.5 text-sm text-foreground outline-none hover:bg-hover focus:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         inset && 'pl-8',
         className,
       )}

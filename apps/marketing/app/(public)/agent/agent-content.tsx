@@ -125,7 +125,7 @@ export default function AgentContent() {
                 <Text className="text-sm text-foreground/70">
                   {prompt.result}
                 </Text>
-                <Text className="mt-auto text-[13px] font-semibold text-foreground/50">
+                <Text className="mt-auto text-sm font-semibold text-foreground/50">
                   {prompt.hrefLabel}
                 </Text>
               </Link>

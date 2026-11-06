@@ -117,17 +117,17 @@ describe('packages/ui design-system guards', () => {
     ).toEqual([]);
   });
 
-  it('flags arbitrary text sizes below 11px while accepting the floor', () => {
+  it('flags arbitrary text sizes below 11px as sub-floor', () => {
     const findings = findPackageUiGuardFindings(
       '<><span className="text-[10px]" /><span className="text-[0.625rem]" /><span className="text-[11px]" /></>',
       'packages/ui/src/example.tsx',
     );
 
-    expect(findings.map((entry) => entry.token)).toEqual([
-      'text-[0.625rem]',
-      'text-[10px]',
-    ]);
-    expect(findings.every((entry) => entry.kind === 'sub-11-text')).toBe(true);
+    expect(
+      findings
+        .filter((entry) => entry.kind === 'sub-11-text')
+        .map((entry) => entry.token),
+    ).toEqual(['text-[0.625rem]', 'text-[10px]']);
   });
 
   it('flags negative tracking tighter than -0.02em and nothing else', () => {
@@ -197,6 +197,24 @@ describe('packages/ui design-system guards', () => {
     expect(formatDesignSystemRegressions(findings)).toContain(
       '/5 /10 /20 /40 /50 /60 /70 /80 /90',
     );
+  });
+
+  it('flags arbitrary text sizes that have a named step', () => {
+    const findings = findPackageUiGuardFindings(
+      '<div className="text-[11px] md:text-[13px] text-[0.875rem] text-[16px] text-[17px] text-[3.5rem] text-sm" />',
+      'apps/marketing/example.tsx',
+    );
+
+    expect(
+      findings
+        .filter((entry) => entry.kind === 'off-scale-text-size')
+        .map((entry) => entry.token),
+    ).toEqual([
+      'md:text-[13px]',
+      'text-[0.875rem]',
+      'text-[11px]',
+      'text-[16px]',
+    ]);
   });
 
   it('keeps the control-height rule inside packages/ui', () => {

@@ -134,7 +134,7 @@ describe('PromptBarCompactSelect', () => {
         value="16:9"
       />,
     );
-    expect(container.querySelector('.lucide-chevron-down')).not.toBeNull();
+    expect(container.querySelector('.lucide-chevrons-up-down')).not.toBeNull();
 
     rerender(
       <PromptBarCompactSelect
@@ -145,7 +145,7 @@ describe('PromptBarCompactSelect', () => {
         value="16:9"
       />,
     );
-    expect(container.querySelector('.lucide-chevron-down')).toBeNull();
+    expect(container.querySelector('.lucide-chevrons-up-down')).toBeNull();
     expect(container.querySelector('.lucide-clock-3')).not.toBeNull();
   });
 });
