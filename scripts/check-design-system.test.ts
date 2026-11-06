@@ -207,6 +207,7 @@ describe('packages/ui design-system guards', () => {
 
     expect(findings.map((entry) => entry.token)).toEqual([
       'focus-visible:outline-2',
+      'focus-visible:outline-none',
       'focus-visible:ring-1',
       'focus-visible:ring-ring/60',
       'focus:ring-2',

@@ -479,7 +479,11 @@ const FOCUS_RING_CONTRACT_TOKENS = new Set([
 ]);
 const FOCUS_RING_TOKEN_PATTERN =
   /^(?:.*:)?focus(-visible)?:!?((?:ring|outline)(?:-[^!]+)?)!?$/u;
-const FOCUS_OUTLINE_SUPPRESSORS = new Set(['outline-hidden', 'outline-none']);
+// `outline-none` drops the outline even in forced-colors mode, where the ring's
+// box-shadow is not painted, so a `focus-visible:` suppressor must be
+// `outline-hidden`. Plain `focus:outline-none` stays allowed.
+const FOCUS_OUTLINE_SUPPRESSOR = 'outline-hidden';
+const FOCUS_OUTLINE_NONE = 'outline-none';
 
 export function isOffContractFocusRingToken(token: string): boolean {
   const match = FOCUS_RING_TOKEN_PATTERN.exec(
@@ -489,8 +493,11 @@ export function isOffContractFocusRingToken(token: string): boolean {
     return false;
   }
   const [, visible, utility] = match;
-  if (FOCUS_OUTLINE_SUPPRESSORS.has(utility)) {
+  if (utility === FOCUS_OUTLINE_SUPPRESSOR) {
     return false;
+  }
+  if (utility === FOCUS_OUTLINE_NONE) {
+    return Boolean(visible);
   }
   if (utility.startsWith('outline')) {
     return true;
@@ -893,7 +900,7 @@ export function formatDesignSystemRegressions(
                 : finding.kind === 'off-ladder-opacity'
                   ? 'use an opacity stop from the ladder: /5 /10 /20 /40 /50 /60 /70 /80 /90 (or /0, /100)'
                   : finding.kind === 'off-contract-focus-ring'
-                    ? 'use focusRingClassName or focusRingInsetClassName from @ui/primitives/focus-ring (focus-visible:ring-2 ring-ring ring-offset-2 ring-offset-background)'
+                    ? 'use focusRingClassName or focusRingInsetClassName from @ui/primitives/focus-ring (focus-visible:outline-hidden ring-2 ring-ring ring-offset-2 ring-offset-background)'
                     : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
       return `${finding.file}:${finding.line}: ${finding.token} — ${remedy}\n  ${finding.source}`;
     })
