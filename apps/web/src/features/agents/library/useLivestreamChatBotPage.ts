@@ -381,11 +381,14 @@ export function useLivestreamChatBotPage(
     );
   }, [sessionError]);
 
-  function writeSession(nextBotId: string, nextSession: LivestreamSession) {
-    queryClient.setQueriesData<LivestreamSession>(
-      { queryKey: livestreamSessionQueryKey(nextBotId) },
-      nextSession,
-    );
+  async function writeSession(
+    nextBotId: string,
+    nextSession: LivestreamSession,
+  ) {
+    const queryKey = livestreamSessionQueryKey(nextBotId);
+    // A read already in flight would land after this write and undo it.
+    await queryClient.cancelQueries({ queryKey });
+    queryClient.setQueriesData<LivestreamSession>({ queryKey }, nextSession);
   }
 
   const recentDeliveries = useMemo(
@@ -396,7 +399,7 @@ export function useLivestreamChatBotPage(
   async function refreshSession(savedBotId: string): Promise<void> {
     const service = await getBotsService();
     const nextSession = await service.getLivestreamSession(savedBotId);
-    writeSession(savedBotId, nextSession);
+    await writeSession(savedBotId, nextSession);
   }
 
   async function handleSave(): Promise<void> {
@@ -447,6 +450,9 @@ export function useLivestreamChatBotPage(
         return;
       }
 
+      await queryClient.cancelQueries({
+        queryKey: livestreamBotQueryKey(organizationId, brandId),
+      });
       queryClient.setQueriesData<Bot | null>(
         { queryKey: livestreamBotQueryKey(organizationId, brandId) },
         savedBot,
@@ -481,7 +487,7 @@ export function useLivestreamChatBotPage(
               ? await service.resumeLivestreamSession(bot.id)
               : await service.stopLivestreamSession(bot.id);
 
-      writeSession(bot.id, nextSession);
+      await writeSession(bot.id, nextSession);
       notificationsService.success(`Session ${action}ed`);
     } catch (_error) {
       notificationsService.error(`Failed to ${action} livestream session`);
@@ -500,7 +506,7 @@ export function useLivestreamChatBotPage(
         promotionAngle: promotionAngle || undefined,
         topic: manualTopic || undefined,
       });
-      writeSession(bot.id, nextSession);
+      await writeSession(bot.id, nextSession);
       notificationsService.success('Manual override applied');
     } catch (_error) {
       notificationsService.error('Failed to apply manual override');
@@ -526,7 +532,7 @@ export function useLivestreamChatBotPage(
         confidence: 0.8,
         text: transcriptChunk.trim(),
       });
-      writeSession(bot.id, nextSession);
+      await writeSession(bot.id, nextSession);
       setTranscriptChunk('');
       notificationsService.success('Transcript chunk processed');
     } catch (_error) {
@@ -546,7 +552,7 @@ export function useLivestreamChatBotPage(
         message: sendNowMessage.trim() || undefined,
         platform: selectedPlatform,
       });
-      writeSession(bot.id, nextSession);
+      await writeSession(bot.id, nextSession);
       setSendNowMessage('');
       notificationsService.success('Livestream message sent');
     } catch (_error) {

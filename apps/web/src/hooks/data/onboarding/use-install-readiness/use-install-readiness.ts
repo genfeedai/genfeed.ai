@@ -78,7 +78,11 @@ export function useInstallReadiness({ enabled = true } = {}) {
   });
 
   const markAccessModeSaved = useCallback(
-    (selectedMode: OnboardingAccessMode) => {
+    async (selectedMode: OnboardingAccessMode) => {
+      // A read already in flight would land after this write and undo it.
+      await queryClient.cancelQueries({
+        queryKey: INSTALL_READINESS_QUERY_KEY,
+      });
       queryClient.setQueriesData<InstallReadinessResponse>(
         { queryKey: INSTALL_READINESS_QUERY_KEY },
         (current) =>

@@ -222,7 +222,11 @@ export default function AnalyticsOrganizationsList({
 
   // The stage follows the sidebar: sending an invitation moves the badge in the row.
   const handleConciergeChange = useCallback(
-    (organizationId: string, stage: IWarmupAccount['status']) => {
+    async (organizationId: string, stage: IWarmupAccount['status']) => {
+      // A read already in flight would land after this write and undo it.
+      await queryClient.cancelQueries({
+        queryKey: ANALYTICS_ORGANIZATIONS_KEY,
+      });
       queryClient.setQueriesData<IPaginatedOrgsResponse>(
         { queryKey: ANALYTICS_ORGANIZATIONS_KEY },
         (current) =>

@@ -372,6 +372,8 @@ export default function IssuesList() {
     try {
       const service = await getTasksService();
       const updated = await service.updateTask(issue.id, input);
+      // A read already in flight would land after this write and undo it.
+      await queryClient.cancelQueries({ queryKey: TASKS_LIST_KEY });
       queryClient.setQueriesData<IPagedItems<Task>>(
         { queryKey: TASKS_LIST_KEY },
         (current) =>

@@ -293,7 +293,11 @@ function MembersListContent() {
         isLoadingRoles={isLoadingRoles}
         rolesError={rolesError}
         onLoadRoles={loadRoles}
-        onUpdated={(updated) => {
+        onUpdated={async (updated) => {
+          // A read already in flight would land after this write and undo it.
+          await queryClient.cancelQueries({
+            queryKey: organizationMembersQueryKey(organizationId),
+          });
           queryClient.setQueriesData<IPagedItems<Member>>(
             { queryKey: organizationMembersQueryKey(organizationId) },
             (current) =>

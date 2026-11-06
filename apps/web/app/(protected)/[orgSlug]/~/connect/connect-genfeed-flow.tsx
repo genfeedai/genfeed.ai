@@ -295,6 +295,10 @@ export default function ConnectGenfeedFlow() {
       setCreatedPlainKey(plainKey);
       setVerificationSecret(plainKey);
       setChosenKeyId(apiKey.id);
+      // A read already in flight would land after this write and undo it.
+      await queryClient.cancelQueries({
+        queryKey: [CONNECT_GENFEED_API_KEYS_KEY, organizationId],
+      });
       queryClient.setQueriesData<ApiKey[]>(
         { queryKey: [CONNECT_GENFEED_API_KEYS_KEY, organizationId] },
         (current = []) => [

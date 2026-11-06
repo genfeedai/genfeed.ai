@@ -181,10 +181,12 @@ export default function IssueDetail({
   );
 
   const updateCachedDetail = useCallback(
-    (update: (current: IssueDetailData) => IssueDetailData) => {
-      queryClient.setQueriesData<IssueDetailData>(
-        { queryKey: issueDetailQueryKey(issueId, useIdentifier) },
-        (current) => (current ? update(current) : current),
+    async (update: (current: IssueDetailData) => IssueDetailData) => {
+      const queryKey = issueDetailQueryKey(issueId, useIdentifier);
+      // A read already in flight would land after this write and undo it.
+      await queryClient.cancelQueries({ queryKey });
+      queryClient.setQueriesData<IssueDetailData>({ queryKey }, (current) =>
+        current ? update(current) : current,
       );
     },
     [issueId, queryClient, useIdentifier],
@@ -198,7 +200,7 @@ export default function IssueDetail({
         const updated = await issuesService.updateTask(issue.id, {
           status: newStatus,
         });
-        updateCachedDetail((current) => ({ ...current, issue: updated }));
+        await updateCachedDetail((current) => ({ ...current, issue: updated }));
       } catch (error) {
         logger.error('Failed to update task status', {
           error,
@@ -220,6 +222,9 @@ export default function IssueDetail({
     try {
       const commentsService = await getCommentsService();
       const newComment = await commentsService.addComment(commentBody.trim());
+      await queryClient.cancelQueries({
+        queryKey: taskCommentsQueryKey(taskId),
+      });
       queryClient.setQueriesData<TaskComment[]>(
         { queryKey: taskCommentsQueryKey(taskId) },
         (current) => (current ? [...current, newComment] : current),

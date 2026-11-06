@@ -97,6 +97,10 @@ export default function SystemNotificationsPanel() {
     setIsBusy(true);
     try {
       const next = await operation(await getService());
+      // A read already in flight would land after this write and undo it.
+      await queryClient.cancelQueries({
+        queryKey: SYSTEM_NOTIFICATIONS_QUERY_KEY,
+      });
       queryClient.setQueriesData<ISystemNotificationOverview>(
         { queryKey: SYSTEM_NOTIFICATIONS_QUERY_KEY },
         next,

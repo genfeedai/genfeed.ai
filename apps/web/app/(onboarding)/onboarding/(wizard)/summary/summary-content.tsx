@@ -179,7 +179,7 @@ export default function SummaryContent() {
       });
 
       await service.patchSettings(currentUser.id, patch);
-      markAccessModeSaved(accessMode);
+      await markAccessModeSaved(accessMode);
     } catch (error) {
       logger.error('Failed to persist onboarding access mode', error);
     }
