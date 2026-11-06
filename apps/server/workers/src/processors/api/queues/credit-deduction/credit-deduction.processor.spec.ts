@@ -1,787 +1,1166 @@
 import type { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { FreeTrialService } from '@api/collections/credits/services/free-trial.service';
+import type { RetryCreditBackService } from '@api/collections/credits/services/retry-credit-back.service';
 import { currentWorkflowAccountingScope } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
+import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import type { FreeTrialEmailsService } from '@api/services/lifecycle-emails/free-trial-emails.service';
 import { LowCreditThresholdService } from '@api/services/low-credit-threshold/low-credit-threshold.service';
+import type { DefaultGenerationAffordabilityService } from '@api/services/router/default-generation-affordability.service';
+import type { PrismaService as ApiPrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
   ActivitySource,
   CreditTransactionCategory,
   IngredientCategory,
 } from '@genfeedai/contracts';
+import type { WorkflowAccountingScope } from '@genfeedai/contracts/interfaces';
+import type {
+  IDeductCreditsOptions,
+  IReleaseCreditReservationInput,
+  ISettleCreditReservationInput,
+} from '@genfeedai/contracts/interfaces/billing';
 import type { CreditDeductionJobData } from '@genfeedai/contracts/queue';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { PrismaService } from '@libs/prisma/prisma.service';
+import type { RedisService } from '@libs/redis/redis.service';
 import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-deduction/credit-deduction.processor';
 import type { Job } from 'bullmq';
 import { UnrecoverableError } from 'bullmq';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-describe('CreditDeductionProcessor', () => {
-  let processor: CreditDeductionProcessor;
-  let creditsUtilsService: {
-    deductCreditsFromOrganization: ReturnType<typeof vi.fn>;
-    getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
-    releaseReservation: ReturnType<typeof vi.fn>;
-    settleReservation: ReturnType<typeof vi.fn>;
+type Row = Record<string, unknown>;
+
+interface AssetRow {
+  category: IngredientCategory;
+  generationBilling: Row | null;
+  id: string;
+  isDeleted: boolean;
+  metadata: {
+    externalId: string | null;
+    id: string;
+    isDeleted: boolean;
+    result: string | null;
+  } | null;
+  organizationId: string;
+  s3Key: string | null;
+  status: string;
+  userId: string;
+}
+
+interface Where {
+  id?: string;
+  idempotencyKey?: string;
+  ingredientId?: string;
+  isDeleted?: boolean;
+  organizationId?: string;
+}
+
+interface MetadataWrite {
+  data: { externalId: string };
+  where: {
+    id: string;
+    ingredients: { some: { id: string; organizationId: string } };
+    OR: Array<{ externalId: string | null }>;
   };
-  let creditTransactionsService: {
-    createTransactionEntry: ReturnType<typeof vi.fn>;
-    getLatestPaidGrantCredits: ReturnType<typeof vi.fn>;
+}
+
+type Client = 'default' | 'proof-transaction';
+
+function asset(overrides: Partial<AssetRow> = {}): AssetRow {
+  return {
+    category: IngredientCategory.IMAGE,
+    generationBilling: null,
+    id: 'asset',
+    isDeleted: false,
+    metadata: { externalId: null, id: 'meta', isDeleted: false, result: null },
+    organizationId: 'org-1',
+    s3Key: 'owned/asset.png',
+    status: 'GENERATED',
+    userId: 'user-1',
+    ...overrides,
   };
-  let freeTrialService: { getState: ReturnType<typeof vi.fn> };
-  let affordability: { getDefaultImageCredits: ReturnType<typeof vi.fn> };
-  let freeTrialEmails: { sendTrialCreditsLow: ReturnType<typeof vi.fn> };
-  let activityRecorder: {
-    record: ReturnType<typeof vi.fn>;
-  };
-  let publisher: { set: ReturnType<typeof vi.fn> };
-  let redisService: { getPublisher: ReturnType<typeof vi.fn> };
-  let logger: {
-    debug: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-  };
-  let prisma: {
-    ingredient: { findFirst: ReturnType<typeof vi.fn> };
-    crunGenerationTask: { findFirst: ReturnType<typeof vi.fn> };
-    metadata: { updateMany: ReturnType<typeof vi.fn> };
-    organization: { findFirst: ReturnType<typeof vi.fn> };
-    organizationSetting: { findFirst: ReturnType<typeof vi.fn> };
-    workflowExecution: { findFirst: ReturnType<typeof vi.fn> };
+}
+
+function world() {
+  const state = {
+    activities: [] as Row[],
+    assets: [] as AssetRow[],
+    balance: 5000,
+    balanceReads: [] as Array<{ client: Client; organizationId: string }>,
+    creditBacks: [] as Row[],
+    crunTasks: [] as Row[],
+    deductions: [] as Row[],
+    executions: [] as Where[],
+    faults: {
+      balance: [] as Error[],
+      deduct: [] as Error[],
+      deductAfterCommit: [] as Error[],
+      ledger: [] as Error[],
+      settle: [] as Error[],
+      transaction: [] as unknown[],
+    },
+    // Default image price per configured model: 8 credits for the
+    // organization's own default.
+    imagePrices: { 'org-image-model': 8 } as Record<string, number>,
+    isRedisAvailable: true,
+    journal: [] as string[],
+    // A paying organization whose latest plan grant was 10,000 credits, so
+    // its low-credit threshold is 1,000 (10%).
+    latestPaidGrant: 10_000 as number | null,
+    ledger: [] as Row[],
+    locks: [] as string[],
+    logs: [] as Array<{ level: string; message: string }>,
+    races: { beforeMetadataWrite: undefined as (() => void) | undefined },
+    reads: [] as string[],
+    redis: new Map<string, { ttlSeconds: number; value: string }>(),
+    releases: [] as IReleaseCreditReservationInput[],
+    settlements: [] as Row[],
+    transactionAttempts: [] as unknown[],
+    trial: { isTrialExpired: false, trialEndsAt: null as Date | null },
+    trialEmails: [] as string[],
   };
 
-  beforeEach(() => {
-    creditsUtilsService = {
-      deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
-      getOrganizationCreditsBalance: vi.fn().mockResolvedValue(5000),
-      releaseReservation: vi.fn().mockResolvedValue(undefined),
-      settleReservation: vi.fn().mockResolvedValue(undefined),
-    };
-    creditTransactionsService = {
-      createTransactionEntry: vi.fn().mockResolvedValue(undefined),
-      // A paying organization whose latest plan grant was 10,000 credits, so
-      // its low-credit threshold is 1,000 (10%).
-      getLatestPaidGrantCredits: vi.fn().mockResolvedValue(10_000),
-    };
-    freeTrialService = {
-      getState: vi
-        .fn()
-        .mockResolvedValue({ isTrialExpired: false, trialEndsAt: null }),
-    };
-    affordability = { getDefaultImageCredits: vi.fn().mockResolvedValue(8) };
-    freeTrialEmails = { sendTrialCreditsLow: vi.fn().mockResolvedValue(true) };
-    activityRecorder = {
-      record: vi.fn().mockResolvedValue({ id: 'activity-1' }),
-    };
-    publisher = { set: vi.fn().mockResolvedValue('OK') };
-    redisService = { getPublisher: vi.fn().mockReturnValue(publisher) };
-    logger = {
-      debug: vi.fn(),
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
-    };
-    prisma = {
-      ingredient: { findFirst: vi.fn() },
-      crunGenerationTask: { findFirst: vi.fn().mockResolvedValue(null) },
-      metadata: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
-      organization: {
-        findFirst: vi.fn().mockResolvedValue({ label: 'Acme Studio' }),
-      },
-      organizationSetting: {
-        findFirst: vi
-          .fn()
-          .mockResolvedValue({ defaultImageModel: 'org-image-model' }),
-      },
-      workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
-    };
+  const findAsset = (where: Where) => {
+    state.reads.push(`ingredient:${where.id}`);
+    const row = state.assets.find(
+      (item) =>
+        item.id === where.id &&
+        item.organizationId === where.organizationId &&
+        !item.isDeleted,
+    );
+    return row ? structuredClone(row) : null;
+  };
+  const findTask = (where: Where) => {
+    state.reads.push(`crun-task:${where.ingredientId}`);
+    const row = state.crunTasks.find(
+      (item) =>
+        item.ingredientId === where.ingredientId &&
+        item.organizationId === where.organizationId &&
+        item.isDeleted === false,
+    );
+    return row ? structuredClone(row) : null;
+  };
+  const proofClient = {
+    $queryRaw: async (query: {
+      strings: readonly string[];
+      values: unknown[];
+    }) => {
+      const table = /FROM "(\w+)"/.exec(query.strings.join('?'))?.[1];
+      state.locks.push(`${table}:${query.values.join(':')}`);
+      return [];
+    },
+    creditTransaction: {
+      findFirst: async ({ where }: { where: Where }) =>
+        state.ledger.find(
+          (row) =>
+            row.organizationId === where.organizationId &&
+            row.idempotencyKey === where.idempotencyKey,
+        ) ?? null,
+    },
+    crunGenerationTask: {
+      findFirst: async ({ where }: { where: Where }) => findTask(where),
+    },
+    ingredient: {
+      findFirst: async ({ where }: { where: Where }) => findAsset(where),
+    },
+  };
+  const clientOf = (tx: unknown): Client =>
+    Object.is(tx, proofClient) ? 'proof-transaction' : 'default';
 
-    processor = new CreditDeductionProcessor(
-      creditsUtilsService as never,
-      creditTransactionsService as never,
-      activityRecorder as never,
-      redisService as never,
-      logger as never,
-      prisma as never,
-      // The real shared threshold owner over the mocked inputs.
-      new LowCreditThresholdService(
-        prisma as never,
-        freeTrialService as never,
-        affordability as never,
-        creditTransactionsService as never,
-      ),
-      freeTrialEmails as never,
-      { grantBestEffort: async () => undefined } as never,
-    );
-  });
-
-  it('restores accepted provider identity before retrying the same reservation settlement', async () => {
-    const job = buildJob({
-      acceptedGeneration: { ingredientId: 'asset', externalId: 'provider-id' },
-      reservationId: 'hold',
-    });
-    prisma.ingredient.findFirst.mockResolvedValue({
-      metadata: { id: 'meta', externalId: null, isDeleted: false },
-    });
-    creditsUtilsService.settleReservation.mockRejectedValueOnce(
-      new Error('database busy'),
-    );
-    await expect(processor.process(job)).rejects.toThrow('database busy');
-    prisma.ingredient.findFirst.mockResolvedValue({
-      metadata: { id: 'meta', externalId: 'provider-id', isDeleted: false },
-    });
-    await processor.process(job);
-    expect(prisma.ingredient.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          id: 'asset',
-          organizationId: job.data.organizationId,
-          isDeleted: false,
-        },
-      }),
-    );
-    expect(prisma.metadata.updateMany).toHaveBeenCalledWith({
-      where: {
-        id: 'meta',
-        isDeleted: false,
-        ingredients: {
-          some: {
-            id: 'asset',
-            organizationId: job.data.organizationId,
-            isDeleted: false,
-          },
-        },
-        OR: [{ externalId: null }, { externalId: 'provider-id' }],
-      },
-      data: { externalId: 'provider-id' },
-    });
-    expect(prisma.metadata.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
-      creditsUtilsService.settleReservation.mock.invocationCallOrder[0],
-    );
-    expect(creditsUtilsService.settleReservation).toHaveBeenCalledTimes(2);
-    expect(creditsUtilsService.settleReservation.mock.calls[0]).toEqual(
-      creditsUtilsService.settleReservation.mock.calls[1],
-    );
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
-    expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    null,
-    {
-      metadata: {
-        id: 'meta',
-        externalId: 'other-provider-id',
-        isDeleted: false,
+  const prisma = {
+    ...proofClient,
+    $transaction: async (
+      operation: (client: typeof proofClient) => Promise<void>,
+      options: unknown,
+    ) => {
+      state.transactionAttempts.push(options);
+      const fault = state.faults.transaction.shift();
+      if (fault) throw fault;
+      return operation(proofClient);
+    },
+    metadata: {
+      updateMany: async ({ data, where }: MetadataWrite) => {
+        const race = state.races.beforeMetadataWrite;
+        state.races.beforeMetadataWrite = undefined;
+        race?.();
+        const owner = state.assets.find(
+          (item) =>
+            item.metadata?.id === where.id &&
+            !item.metadata.isDeleted &&
+            item.id === where.ingredients.some.id &&
+            item.organizationId === where.ingredients.some.organizationId &&
+            !item.isDeleted,
+        );
+        const allowed = where.OR.map((clause) => clause.externalId);
+        if (!owner?.metadata || !allowed.includes(owner.metadata.externalId)) {
+          return { count: 0 };
+        }
+        owner.metadata.externalId = data.externalId;
+        state.journal.push(`metadata ${where.id}=${data.externalId}`);
+        return { count: 1 };
       },
     },
-  ])(
-    'rejects missing tenant asset or conflicting provider identity before charging',
-    async (asset) => {
-      prisma.ingredient.findFirst.mockResolvedValue(asset);
-      const job = buildJob({
-        acceptedGeneration: {
-          ingredientId: 'asset',
-          externalId: 'provider-id',
-        },
-        reservationId: 'hold',
-      });
-      await expect(processor.process(job)).rejects.toBeInstanceOf(
-        UnrecoverableError,
+    organization: {
+      findFirst: async () => ({ label: 'Acme Studio' }),
+    },
+    organizationSetting: {
+      findFirst: async () => ({ defaultImageModel: 'org-image-model' }),
+    },
+    workflowExecution: {
+      findFirst: async ({ where }: { where: Where }) =>
+        state.executions.find(
+          (row) =>
+            row.id === where.id &&
+            row.organizationId === where.organizationId &&
+            !row.isDeleted,
+        ) ?? null,
+    },
+  };
+
+  const creditsUtils = {
+    deductCreditsFromOrganization: async (
+      organizationId: string,
+      userId: string,
+      amount: number,
+      description: string,
+      source: ActivitySource,
+      options?: IDeductCreditsOptions,
+    ) => {
+      const fault = state.faults.deduct.shift();
+      if (fault) throw fault;
+      const isRecorded = state.deductions.some(
+        (row) =>
+          row.idempotencyKey !== undefined &&
+          row.idempotencyKey === options?.idempotencyKey,
       );
-      expect(prisma.metadata.updateMany).not.toHaveBeenCalled();
-      expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
-      expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
+      if (!isRecorded) {
+        state.deductions.push({
+          amount,
+          description,
+          organizationId,
+          scope: currentWorkflowAccountingScope(),
+          source,
+          userId,
+          ...options,
+        });
+      }
+      const lostReply = state.faults.deductAfterCommit.shift();
+      if (lostReply) throw lostReply;
     },
+    getOrganizationCreditsBalance: async (
+      organizationId: string,
+      tx?: unknown,
+    ) => {
+      const fault = state.faults.balance.shift();
+      if (fault) throw fault;
+      state.balanceReads.push({ client: clientOf(tx), organizationId });
+      return state.balance;
+    },
+    releaseReservation: async (input: IReleaseCreditReservationInput) => {
+      state.releases.push(input);
+    },
+    settleReservation: async (input: ISettleCreditReservationInput) => {
+      const fault = state.faults.settle.shift();
+      if (fault) throw fault;
+      if (
+        state.settlements.some(
+          (row) => row.reservationId === input.reservationId,
+        )
+      ) {
+        return;
+      }
+      state.journal.push(`settle ${input.reservationId}`);
+      state.settlements.push({
+        ...input,
+        scope: currentWorkflowAccountingScope(),
+      });
+    },
+  };
+
+  const creditTransactions = {
+    createTransactionEntry: async (
+      ...args: Parameters<CreditTransactionsService['createTransactionEntry']>
+    ) => {
+      const [
+        organizationId,
+        category,
+        amount,
+        balanceBefore,
+        balanceAfter,
+        source,
+        description,
+        ,
+        tx,
+        options,
+      ] = args;
+      const fault = state.faults.ledger.shift();
+      if (fault) throw fault;
+      if (
+        state.ledger.some(
+          (row) => row.idempotencyKey === options?.idempotencyKey,
+        )
+      ) {
+        throw Object.assign(new Error('duplicate ledger key'), {
+          code: 'P2002',
+        });
+      }
+      state.ledger.push({
+        amount,
+        balanceAfter,
+        balanceBefore,
+        category,
+        client: clientOf(tx),
+        description,
+        organizationId,
+        source,
+        ...options,
+      });
+    },
+    getLatestPaidGrantCredits: async () => state.latestPaidGrant,
+  };
+
+  const publisher = {
+    set: async (key: string, value: string, _ex: 'EX', ttl: number) => {
+      if (state.redis.has(key)) return null;
+      state.redis.set(key, { ttlSeconds: ttl, value });
+      return 'OK';
+    },
+  };
+  const log = (level: string) => (message: unknown) => {
+    state.logs.push({ level, message: String(message) });
+  };
+
+  const processor = new CreditDeductionProcessor(
+    creditsUtils as unknown as CreditsUtilsService,
+    creditTransactions as unknown as CreditTransactionsService,
+    {
+      record: async (input: Row) => {
+        state.activities.push(input);
+        return { id: 'activity-1' };
+      },
+    } as unknown as ActivityRecorderService,
+    {
+      getPublisher: () => (state.isRedisAvailable ? publisher : null),
+    } as unknown as RedisService,
+    {
+      debug: log('debug'),
+      error: log('error'),
+      log: () => undefined,
+      warn: log('warn'),
+    } as unknown as LoggerService,
+    prisma as unknown as PrismaService,
+    // The real shared threshold owner over the in-memory inputs.
+    new LowCreditThresholdService(
+      prisma as unknown as ApiPrismaService,
+      {
+        getState: async () => state.trial,
+      } as unknown as FreeTrialService,
+      {
+        getDefaultImageCredits: async (
+          _organizationId: string,
+          model: string,
+        ) => state.imagePrices[model] ?? null,
+      } as unknown as DefaultGenerationAffordabilityService,
+      creditTransactions as unknown as CreditTransactionsService,
+    ),
+    {
+      sendTrialCreditsLow: async (organizationId: string) => {
+        state.trialEmails.push(organizationId);
+        return true;
+      },
+    } as unknown as FreeTrialEmailsService,
+    {
+      grantBestEffort: async (input: Row) => {
+        state.creditBacks.push(input);
+      },
+    } as unknown as RetryCreditBackService,
   );
 
-  it('retries accepted BYOK tracking using one durable ledger key without GEN deductions', async () => {
-    const job = buildJob({
-      type: 'record-byok-usage',
-      idempotencyKey: 'interpolation-asset',
-      acceptedGeneration: { ingredientId: 'asset', externalId: 'provider-id' },
+  return Object.assign(state, { processor });
+}
+
+function buildJob(
+  data: Partial<CreditDeductionJobData>,
+): Job<CreditDeductionJobData> {
+  return {
+    attemptsMade: 0,
+    data: {
+      amount: 10,
+      description: 'Image generation',
+      organizationId: 'org-1',
+      source: ActivitySource.IMAGE_GENERATION,
+      type: 'deduct-credits',
+      userId: 'user-1',
+      ...data,
+    },
+    id: 'job-1',
+    opts: { attempts: 3 },
+  } as Job<CreditDeductionJobData>;
+}
+
+const SCOPE: WorkflowAccountingScope = {
+  organizationId: 'org-1',
+  workflowExecutionId: 'run',
+  workflowNodeId: 'node',
+  workflowOperationId: 'attempt',
+};
+
+const ACCEPTED = { externalId: 'provider-id', ingredientId: 'asset' };
+
+describe('CreditDeductionProcessor', () => {
+  describe('accepted provider identity', () => {
+    it('persists the provider identity before settling, and a retry settles the same hold once', async () => {
+      const w = world();
+      w.assets.push(asset());
+      w.faults.settle.push(new Error('database busy'));
+      const job = buildJob({
+        acceptedGeneration: ACCEPTED,
+        reservationId: 'hold',
+      });
+
+      await expect(w.processor.process(job)).rejects.toThrow('database busy');
+      await w.processor.process(job);
+
+      expect(w.journal).toEqual([
+        'metadata meta=provider-id',
+        'metadata meta=provider-id',
+        'settle hold',
+      ]);
+      expect(w.assets[0]?.metadata?.externalId).toBe('provider-id');
+      expect(w.settlements).toEqual([
+        expect.objectContaining({ actualAmount: 10, reservationId: 'hold' }),
+      ]);
+      expect(w.deductions).toEqual([]);
+      expect(w.releases).toEqual([]);
     });
-    prisma.ingredient.findFirst.mockResolvedValue({
-      metadata: { id: 'meta', externalId: null, isDeleted: false },
+
+    it.each([
+      ['a missing asset', []],
+      [
+        'an asset of another organization',
+        [asset({ organizationId: 'org-2' })],
+      ],
+      ['a deleted asset', [asset({ isDeleted: true })]],
+      [
+        'deleted metadata',
+        [
+          asset({
+            metadata: {
+              externalId: null,
+              id: 'meta',
+              isDeleted: true,
+              result: null,
+            },
+          }),
+        ],
+      ],
+      [
+        'a conflicting provider identity',
+        [
+          asset({
+            metadata: {
+              externalId: 'other-provider-id',
+              id: 'meta',
+              isDeleted: false,
+              result: null,
+            },
+          }),
+        ],
+      ],
+    ])('refuses %s permanently before charging', async (_name, assets) => {
+      const w = world();
+      w.assets.push(...assets);
+
+      await expect(
+        w.processor.process(
+          buildJob({ acceptedGeneration: ACCEPTED, reservationId: 'hold' }),
+        ),
+      ).rejects.toBeInstanceOf(UnrecoverableError);
+
+      expect(w.journal).toEqual([]);
+      expect(w.settlements).toEqual([]);
+      expect(w.releases).toEqual([]);
     });
-    creditTransactionsService.createTransactionEntry.mockRejectedValueOnce(
-      new Error('ledger unavailable'),
-    );
-    await expect(processor.process(job)).rejects.toThrow('ledger unavailable');
-    await processor.process(job);
-    expect(
-      creditTransactionsService.createTransactionEntry.mock.calls[0],
-    ).toEqual(creditTransactionsService.createTransactionEntry.mock.calls[1]);
-    expect(
-      creditTransactionsService.createTransactionEntry.mock.calls[1].at(-1),
-    ).toEqual({
-      idempotencyKey: `byok:${job.data.organizationId}:interpolation-asset`,
-      actorUserId: job.data.userId,
-      metadata: job.data.metadata,
+
+    it('retries without charging when another provider claims the metadata mid-write', async () => {
+      const w = world();
+      w.assets.push(asset());
+      w.races.beforeMetadataWrite = () => {
+        w.assets.splice(
+          0,
+          1,
+          asset({
+            metadata: {
+              externalId: 'other-provider-id',
+              id: 'meta',
+              isDeleted: false,
+              result: null,
+            },
+          }),
+        );
+      };
+
+      const rejection = w.processor.process(
+        buildJob({ acceptedGeneration: ACCEPTED, reservationId: 'hold' }),
+      );
+
+      await expect(rejection).rejects.toThrow(
+        'Accepted generation metadata changed before persistence',
+      );
+      await expect(rejection).rejects.not.toBeInstanceOf(UnrecoverableError);
+      expect(w.assets[0]?.metadata?.externalId).toBe('other-provider-id');
+      expect(w.settlements).toEqual([]);
     });
-    expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
+
+    it('records the identity of a zero-credit acceptance without charging', async () => {
+      const w = world();
+      w.assets.push(asset());
+
+      await w.processor.process(
+        buildJob({ acceptedGeneration: ACCEPTED, amount: 0 }),
+      );
+
+      expect(w.assets[0]?.metadata?.externalId).toBe('provider-id');
+      expect(w.deductions).toEqual([]);
+      expect(w.settlements).toEqual([]);
+    });
+
+    it('retries accepted BYOK tracking under one durable ledger key without a credit charge', async () => {
+      const w = world();
+      w.assets.push(asset());
+      w.faults.ledger.push(new Error('ledger unavailable'));
+      const job = buildJob({
+        acceptedGeneration: ACCEPTED,
+        idempotencyKey: 'interpolation-asset',
+        type: 'record-byok-usage',
+      });
+
+      await expect(w.processor.process(job)).rejects.toThrow(
+        'ledger unavailable',
+      );
+      await w.processor.process(job);
+
+      expect(w.ledger).toEqual([
+        {
+          actorUserId: 'user-1',
+          amount: 10,
+          balanceAfter: 5000,
+          balanceBefore: 5000,
+          category: CreditTransactionCategory.BYOK_USAGE,
+          client: 'default',
+          description: '[BYOK] Image generation',
+          idempotencyKey: 'byok:org-1:interpolation-asset',
+          organizationId: 'org-1',
+          source: ActivitySource.IMAGE_GENERATION,
+        },
+      ]);
+      expect(w.assets[0]?.metadata?.externalId).toBe('provider-id');
+      expect(w.settlements).toEqual([]);
+      expect(w.deductions).toEqual([]);
+    });
   });
 
-  it('deducts a trusted queued charge when its execution is deleted or unavailable, without attaching its scope', async () => {
-    const job = buildJob({});
-    job.data.workflowAccounting = {
-      organizationId: job.data.organizationId,
-      workflowExecutionId: 'unavailable',
-      workflowNodeId: 'node',
-      workflowOperationId: 'attempt',
-    };
-    creditsUtilsService.deductCreditsFromOrganization.mockImplementation(
-      async () => {
-        expect(currentWorkflowAccountingScope()).toBeUndefined();
+  describe('workflow accounting scope', () => {
+    it('charges inside the scope of a live workflow execution', async () => {
+      const w = world();
+      w.executions.push({
+        id: 'run',
+        isDeleted: false,
+        organizationId: 'org-1',
+      });
+
+      await w.processor.process(
+        buildJob({ idempotencyKey: 'charge-1', workflowAccounting: SCOPE }),
+      );
+
+      expect(w.deductions).toEqual([
+        expect.objectContaining({ idempotencyKey: 'charge-1', scope: SCOPE }),
+      ]);
+    });
+
+    it.each([
+      ['deleted', [{ id: 'run', isDeleted: true, organizationId: 'org-1' }]],
+      ['unavailable', []],
+      [
+        'owned by another organization',
+        [{ id: 'run', isDeleted: false, organizationId: 'org-2' }],
+      ],
+    ])(
+      'still charges a trusted job whose execution is %s, without its scope',
+      async (_name, executions) => {
+        const w = world();
+        w.executions.push(...executions);
+
+        await w.processor.process(
+          buildJob({ idempotencyKey: 'charge-1', workflowAccounting: SCOPE }),
+        );
+
+        expect(w.deductions).toEqual([
+          expect.objectContaining({
+            idempotencyKey: 'charge-1',
+            scope: undefined,
+          }),
+        ]);
       },
     );
-    await processor.process(job);
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).toHaveBeenCalledTimes(1);
-    expect(prisma.workflowExecution.findFirst).toHaveBeenCalledWith({
-      where: {
-        id: 'unavailable',
-        organizationId: job.data.organizationId,
+
+    it('refuses a forged organization scope before charging', async () => {
+      const w = world();
+      w.executions.push({
+        id: 'run',
         isDeleted: false,
-      },
-      select: { id: true },
+        organizationId: 'foreign',
+      });
+
+      await expect(
+        w.processor.process(
+          buildJob({
+            workflowAccounting: { ...SCOPE, organizationId: 'foreign' },
+          }),
+        ),
+      ).rejects.toThrow('does not match');
+
+      expect(w.deductions).toEqual([]);
     });
   });
-  it('rejects a forged organization scope before charging', async () => {
-    const job = buildJob({});
-    job.data.workflowAccounting = {
-      organizationId: 'foreign',
-      workflowExecutionId: 'run',
-      workflowNodeId: 'node',
-      workflowOperationId: 'attempt',
-    };
-    await expect(processor.process(job)).rejects.toThrow('does not match');
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
-    expect(prisma.workflowExecution.findFirst).not.toHaveBeenCalled();
-  });
-  it('settles a media-generation hold once through the reserved branch, forwarding its metadata', async () => {
-    await processor.process(
-      buildJob({
+
+  describe('charging', () => {
+    it('settles a media-generation hold once through the reserved branch, forwarding its metadata and brand', async () => {
+      const w = world();
+      const job = buildJob({
+        brandId: 'brand-1',
         idempotencyKey: 'media-generation-settle:hold-1',
         metadata: { assetId: 'asset-1', marginMultiplier: 3.33 },
         reservationId: 'hold-1',
-      }),
-    );
-
-    expect(creditsUtilsService.settleReservation).toHaveBeenCalledTimes(1);
-    expect(creditsUtilsService.settleReservation).toHaveBeenCalledWith({
-      actualAmount: 10,
-      actorUserId: 'user-1',
-      description: 'Image generation',
-      metadata: { assetId: 'asset-1', marginMultiplier: 3.33 },
-      organizationId: 'org-1',
-      reservationId: 'hold-1',
-      settlementIdempotencyKey: 'media-generation-settle:hold-1',
-      source: ActivitySource.IMAGE_GENERATION,
-    });
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
-    expect(prisma.ingredient.findFirst).not.toHaveBeenCalled();
-  });
-
-  it('normalizes legacy late-job payloads to the reservation ledger reference', async () => {
-    await processor.process(
-      buildJob({ idempotencyKey: 'media-generation-late-settle:hold-1' }),
-    );
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.objectContaining({
-        referenceId: 'hold-1',
-        referenceType: 'credit_reservation',
-        idempotencyKey: 'media-generation-late-settle:hold-1',
-      }),
-    );
-  });
-  it('passes completion billing references into the credit utility', async () => {
-    const data: CreditDeductionJobData = {
-      amount: 18,
-      description: 'Fleet voice clone compute',
-      idempotencyKey: 'fleet-voice-clone-job-1',
-      metadata: {
-        fleetJobId: 'job-1',
-        processTimeSeconds: 61,
-      },
-      organizationId: 'org-1',
-      referenceId: 'job-1',
-      referenceType: 'fleet:voice-clone',
-      source: ActivitySource.VOICE_GENERATION,
-      type: 'deduct-credits',
-      userId: 'user-1',
-    };
-
-    await processor.process({
-      attemptsMade: 0,
-      data,
-      id: 'credit-deduct-org-1-fleet-voice-clone-job-1',
-      opts: { attempts: 3 },
-    } as Job<CreditDeductionJobData>);
-
-    expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).toHaveBeenCalledWith(
-      'org-1',
-      'user-1',
-      18,
-      'Fleet voice clone compute',
-      ActivitySource.VOICE_GENERATION,
-      {
-        idempotencyKey: 'fleet-voice-clone-job-1',
-        maxOverdraftCredits: undefined,
-        metadata: {
-          fleetJobId: 'job-1',
-          processTimeSeconds: 61,
-        },
-        referenceId: 'job-1',
-        referenceType: 'fleet:voice-clone',
-      },
-    );
-  });
-
-  function buildJob(
-    data: Partial<CreditDeductionJobData>,
-  ): Job<CreditDeductionJobData> {
-    return {
-      attemptsMade: 0,
-      data: {
-        amount: 10,
-        description: 'Image generation',
-        organizationId: 'org-1',
-        source: ActivitySource.IMAGE_GENERATION,
-        type: 'deduct-credits',
-        userId: 'user-1',
-        ...data,
-      },
-      id: 'job-1',
-      opts: { attempts: 3 },
-    } as Job<CreditDeductionJobData>;
-  }
-
-  it('forwards the job metadata when settling a reservation', async () => {
-    await processor.process(
-      buildJob({
-        metadata: { assetId: 'asset-1', pricingType: 'per-image' },
-        reservationId: 'reservation-1',
-      }),
-    );
-
-    expect(creditsUtilsService.settleReservation).toHaveBeenCalledWith(
-      expect.objectContaining({
-        actualAmount: 10,
-        metadata: { assetId: 'asset-1', pricingType: 'per-image' },
-        reservationId: 'reservation-1',
-      }),
-    );
-  });
-
-  it('carries the job brand onto a reservation settlement', async () => {
-    await processor.process(
-      buildJob({ brandId: 'brand-1', reservationId: 'reservation-1' }),
-    );
-
-    expect(creditsUtilsService.settleReservation).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandId: 'brand-1',
-        reservationId: 'reservation-1',
-      }),
-    );
-  });
-
-  it('carries the job brand onto a direct deduction', async () => {
-    await processor.process(
-      buildJob({ brandId: 'brand-1', idempotencyKey: 'charge-1' }),
-    );
-
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).toHaveBeenCalledWith(
-      'org-1',
-      'user-1',
-      10,
-      'Image generation',
-      ActivitySource.IMAGE_GENERATION,
-      expect.objectContaining({ brandId: 'brand-1' }),
-    );
-  });
-
-  it('throws an UnrecoverableError when a deduction job has no userId', async () => {
-    await expect(
-      processor.process(buildJob({ userId: undefined })),
-    ).rejects.toThrow(UnrecoverableError);
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
-  });
-
-  it('sends a low-credits alert once when the balance drops below the threshold', async () => {
-    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(500);
-
-    await processor.process(buildJob({}));
-
-    expect(publisher.set).toHaveBeenCalledWith(
-      'low-credits-notified:org-1',
-      '1',
-      'EX',
-      86400,
-      'NX',
-    );
-    expect(activityRecorder.record).toHaveBeenCalledWith(
-      expect.objectContaining({
-        alert: expect.objectContaining({
-          deduplicationKey: expect.stringMatching(/^credits-low\/org-1\/\d+$/),
-          operatorMessages: {
-            discord: {
-              action: 'low_credits_alert',
-              payload: {
-                balance: 500,
-                organizationId: 'org-1',
-                organizationLabel: 'Acme Studio',
-              },
-              type: 'discord',
-            },
-          },
-        }),
-        key: ActivityKey.CREDITS_LOW,
-        organizationId: 'org-1',
-      }),
-    );
-  });
-
-  it('debounces the low-credits alert when the redis key is already set', async () => {
-    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(500);
-    publisher.set.mockResolvedValue(null);
-
-    await processor.process(buildJob({}));
-
-    expect(activityRecorder.record).not.toHaveBeenCalled();
-    expect(logger.debug).toHaveBeenCalled();
-  });
-
-  it('skips the low-credits alert when redis is unavailable', async () => {
-    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(500);
-    redisService.getPublisher.mockReturnValue(null);
-
-    await processor.process(buildJob({}));
-
-    expect(activityRecorder.record).not.toHaveBeenCalled();
-    expect(logger.warn).toHaveBeenCalled();
-  });
-
-  describe('relative low-credit threshold', () => {
-    const inTrial = {
-      isTrialExpired: false,
-      trialEndsAt: new Date('2026-10-13T00:00:00.000Z'),
-    };
-
-    it('does not flag a never-paid organization whose free credits still buy an image', async () => {
-      freeTrialService.getState.mockResolvedValue(inTrial);
-      // 25 free credits used to read as "low" against a fixed 1000.
-      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(25);
-
-      await processor.process(buildJob({}));
-
-      expect(activityRecorder.record).not.toHaveBeenCalled();
-      expect(freeTrialEmails.sendTrialCreditsLow).not.toHaveBeenCalled();
-      expect(affordability.getDefaultImageCredits).toHaveBeenCalledWith(
-        'org-1',
-        'org-image-model',
-      );
-      expect(
-        creditTransactionsService.getLatestPaidGrantCredits,
-      ).not.toHaveBeenCalled();
-    });
-
-    it('alerts and emails a never-paid organization once its balance cannot buy a default image', async () => {
-      freeTrialService.getState.mockResolvedValue(inTrial);
-      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(5);
-
-      await processor.process(buildJob({}));
-
-      expect(freeTrialEmails.sendTrialCreditsLow).toHaveBeenCalledWith('org-1');
-      expect(activityRecorder.record).toHaveBeenCalledWith(
-        expect.objectContaining({
-          key: ActivityKey.CREDITS_LOW,
-          value: JSON.stringify({ balance: 5, threshold: 8 }),
-        }),
-      );
-    });
-
-    it('stays quiet for an expired trial (admission already refuses it)', async () => {
-      freeTrialService.getState.mockResolvedValue({
-        isTrialExpired: true,
-        trialEndsAt: new Date('2026-10-01T00:00:00.000Z'),
       });
-      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(5);
 
-      await processor.process(buildJob({}));
+      await w.processor.process(job);
+      await w.processor.process(job);
 
-      expect(activityRecorder.record).not.toHaveBeenCalled();
-      expect(freeTrialEmails.sendTrialCreditsLow).not.toHaveBeenCalled();
+      expect(w.settlements).toEqual([
+        {
+          actorUserId: 'user-1',
+          actualAmount: 10,
+          brandId: 'brand-1',
+          description: 'Image generation',
+          metadata: { assetId: 'asset-1', marginMultiplier: 3.33 },
+          organizationId: 'org-1',
+          reservationId: 'hold-1',
+          settlementIdempotencyKey: 'media-generation-settle:hold-1',
+          source: ActivitySource.IMAGE_GENERATION,
+        },
+      ]);
+      expect(w.deductions).toEqual([]);
+      expect(w.reads).toEqual([]);
     });
 
-    it('scales a paying organization threshold with its latest paid grant', async () => {
-      creditTransactionsService.getLatestPaidGrantCredits.mockResolvedValue(
-        500,
+    it('books a legacy late-settlement job against the reservation ledger reference', async () => {
+      const w = world();
+
+      await w.processor.process(
+        buildJob({ idempotencyKey: 'media-generation-late-settle:hold-1' }),
       );
-      // 10% of a 500-credit pack is 50, so 60 left is not low yet.
-      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(60);
 
-      await processor.process(buildJob({}));
-      expect(activityRecorder.record).not.toHaveBeenCalled();
-
-      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(40);
-      await processor.process(buildJob({}));
-
-      expect(activityRecorder.record).toHaveBeenCalledWith(
+      expect(w.deductions).toEqual([
         expect.objectContaining({
-          value: JSON.stringify({ balance: 40, threshold: 50 }),
+          idempotencyKey: 'media-generation-late-settle:hold-1',
+          referenceId: 'hold-1',
+          referenceType: 'credit_reservation',
+        }),
+      ]);
+    });
+
+    it('books a completion charge with its own billing references and brand', async () => {
+      const w = world();
+
+      await w.processor.process(
+        buildJob({
+          amount: 18,
+          brandId: 'brand-1',
+          description: 'Fleet voice clone compute',
+          idempotencyKey: 'fleet-voice-clone-job-1',
+          maxOverdraftCredits: 25,
+          metadata: { fleetJobId: 'job-1', processTimeSeconds: 61 },
+          referenceId: 'job-1',
+          referenceType: 'fleet:voice-clone',
+          source: ActivitySource.VOICE_GENERATION,
         }),
       );
-      expect(freeTrialEmails.sendTrialCreditsLow).not.toHaveBeenCalled();
-    });
 
-    it('does not guess a threshold when neither a price nor a paid grant is known', async () => {
-      affordability.getDefaultImageCredits.mockResolvedValue(null);
-      creditTransactionsService.getLatestPaidGrantCredits.mockResolvedValue(
-        null,
-      );
-      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(0);
-
-      await processor.process(buildJob({}));
-
-      expect(activityRecorder.record).not.toHaveBeenCalled();
-    });
-  });
-
-  it('never fails the job when the low-credits check fails', async () => {
-    creditsUtilsService.getOrganizationCreditsBalance.mockRejectedValue(
-      new Error('balance lookup failed'),
-    );
-
-    await expect(processor.process(buildJob({}))).resolves.toBeUndefined();
-    expect(logger.error).toHaveBeenCalled();
-  });
-
-  it('preserves the completion gate on legacy jobs already in Redis', async () => {
-    prisma.ingredient.findFirst.mockResolvedValue({
-      id: 'legacy-asset',
-      status: 'PROCESSING',
-    } as never);
-    await expect(
-      processor.process(buildJob({ settlementAssetId: 'legacy-asset' })),
-    ).rejects.toThrow('not terminal');
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
-  });
-
-  it('skips failed legacy media jobs without charging', async () => {
-    prisma.ingredient.findFirst.mockResolvedValue({
-      id: 'legacy-asset',
-      status: 'FAILED',
-    } as never);
-    await processor.process(
-      buildJob({
-        settlementAssetId: 'legacy-asset',
-        reservationId: 'legacy-hold',
-      }),
-    );
-    expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
-      organizationId: 'org-1',
-      reservationId: 'legacy-hold',
-    });
-    expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
-  });
-
-  it('retains canonical actor and output attribution in BYOK usage evidence', async () => {
-    await processor.process(
-      buildJob({
-        type: 'record-byok-usage',
-        userId: 'canonical-user',
-        metadata: { assetId: 'asset-1' },
-      }),
-    );
-    expect(
-      creditTransactionsService.createTransactionEntry,
-    ).toHaveBeenCalledWith(
-      'org-1',
-      CreditTransactionCategory.BYOK_USAGE,
-      expect.any(Number),
-      5000,
-      5000,
-      expect.anything(),
-      expect.anything(),
-      undefined,
-      undefined,
-      expect.objectContaining({
-        actorUserId: 'canonical-user',
-        metadata: { assetId: 'asset-1' },
-      }),
-    );
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
-  });
-
-  it('records BYOK usage as a zero-balance-change ledger entry', async () => {
-    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(1234);
-
-    await processor.process(
-      buildJob({
-        amount: 3,
-        description: 'BYOK image call',
-        type: 'record-byok-usage',
-      }),
-    );
-
-    expect(
-      creditTransactionsService.createTransactionEntry,
-    ).toHaveBeenCalledWith(
-      'org-1',
-      CreditTransactionCategory.BYOK_USAGE,
-      3,
-      1234,
-      1234,
-      ActivitySource.IMAGE_GENERATION,
-      '[BYOK] BYOK image call',
-      undefined,
-      undefined,
-      {
-        idempotencyKey: 'byok:org-1:job-1',
-        actorUserId: 'user-1',
-        metadata: undefined,
-      },
-    );
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
-  });
-
-  describe('retried deductions', () => {
-    // The ledger rejects a second write under a key it has already recorded,
-    // as CreditsUtilsService.deductCreditsCore does.
-    function useKeyedLedger(options: { failAfterCommit: boolean }) {
-      const ledger: Array<{ amount: number; key?: string }> = [];
-      let isFirstAttempt = true;
-      creditsUtilsService.deductCreditsFromOrganization.mockImplementation(
-        async (
-          _organizationId: string,
-          _userId: string,
-          amount: number,
-          _description: string,
-          _source: ActivitySource,
-          ledgerOptions?: { idempotencyKey?: string },
-        ) => {
-          const key = ledgerOptions?.idempotencyKey;
-          if (!key || !ledger.some((entry) => entry.key === key)) {
-            ledger.push({ amount, key });
-          }
-          if (options.failAfterCommit && isFirstAttempt) {
-            isFirstAttempt = false;
-            throw new Error('connection lost after commit');
-          }
+      expect(w.deductions).toEqual([
+        {
+          amount: 18,
+          brandId: 'brand-1',
+          description: 'Fleet voice clone compute',
+          idempotencyKey: 'fleet-voice-clone-job-1',
+          maxOverdraftCredits: 25,
+          metadata: { fleetJobId: 'job-1', processTimeSeconds: 61 },
+          organizationId: 'org-1',
+          referenceId: 'job-1',
+          referenceType: 'fleet:voice-clone',
+          source: ActivitySource.VOICE_GENERATION,
+          userId: 'user-1',
         },
-      );
-      return ledger;
-    }
+      ]);
+      expect(w.settlements).toEqual([]);
+    });
+
+    it('refuses a deduction job with no user permanently', async () => {
+      const w = world();
+
+      await expect(
+        w.processor.process(buildJob({ userId: undefined })),
+      ).rejects.toBeInstanceOf(UnrecoverableError);
+
+      expect(w.deductions).toEqual([]);
+    });
 
     it('charges once when a keyed job is retried after the ledger committed', async () => {
-      const ledger = useKeyedLedger({ failAfterCommit: true });
+      const w = world();
+      w.faults.deductAfterCommit.push(
+        new Error('connection lost after commit'),
+      );
       const job = buildJob({ idempotencyKey: 'credit-settle:hold-9' });
 
-      await expect(processor.process(job)).rejects.toThrow('after commit');
-      await processor.process(job);
+      await expect(w.processor.process(job)).rejects.toThrow('after commit');
+      await w.processor.process(job);
 
-      expect(ledger).toEqual([{ amount: 10, key: 'credit-settle:hold-9' }]);
+      expect(w.deductions).toEqual([
+        expect.objectContaining({
+          amount: 10,
+          idempotencyKey: 'credit-settle:hold-9',
+        }),
+      ]);
     });
 
     it('charges a keyless legacy job once per job id across redelivery', async () => {
-      const ledger = useKeyedLedger({ failAfterCommit: true });
+      const w = world();
+      w.faults.deductAfterCommit.push(
+        new Error('connection lost after commit'),
+      );
       const job = buildJob({});
 
-      await expect(processor.process(job)).rejects.toThrow('after commit');
-      await processor.process(job);
-      await processor.process(job);
+      await expect(w.processor.process(job)).rejects.toThrow('after commit');
+      await w.processor.process(job);
+      await w.processor.process(job);
 
-      expect(ledger).toEqual([{ amount: 10, key: 'credit-job:job-1' }]);
+      expect(w.deductions).toEqual([
+        expect.objectContaining({
+          amount: 10,
+          idempotencyKey: 'credit-job:job-1',
+        }),
+      ]);
+    });
+
+    it('turns a business-rule refusal into a permanent failure and logs it', async () => {
+      const w = world();
+      w.faults.deduct.push(new BusinessLogicException('insufficient credits'));
+
+      await expect(w.processor.process(buildJob({}))).rejects.toBeInstanceOf(
+        UnrecoverableError,
+      );
+
+      expect(w.logs).toEqual([
+        { level: 'error', message: 'CreditDeductionProcessor job failed' },
+      ]);
+      expect(w.deductions).toEqual([]);
+    });
+
+    it('rethrows a transient failure unchanged so BullMQ retries', async () => {
+      const w = world();
+      w.faults.deduct.push(new Error('db timeout'));
+
+      const rejection = w.processor.process(buildJob({}));
+
+      await expect(rejection).rejects.toThrow('db timeout');
+      await expect(rejection).rejects.not.toBeInstanceOf(UnrecoverableError);
     });
   });
 
-  it('converts BusinessLogicException into an UnrecoverableError', async () => {
-    creditsUtilsService.deductCreditsFromOrganization.mockRejectedValue(
-      new BusinessLogicException('insufficient credits'),
+  describe('legacy completion gate', () => {
+    it.each(['FAILED', 'REJECTED', 'ARCHIVED', 'failed'])(
+      'releases the hold of a %s legacy media job without charging',
+      async (status) => {
+        const w = world();
+        w.assets.push(asset({ id: 'legacy-asset', status }));
+
+        await w.processor.process(
+          buildJob({
+            reservationId: 'legacy-hold',
+            settlementAssetId: 'legacy-asset',
+          }),
+        );
+
+        expect(w.releases).toEqual([
+          { organizationId: 'org-1', reservationId: 'legacy-hold' },
+        ]);
+        expect(w.settlements).toEqual([]);
+      },
     );
 
-    await expect(processor.process(buildJob({}))).rejects.toThrow(
-      UnrecoverableError,
+    it('releases a generated legacy asset that holds no output', async () => {
+      const w = world();
+      w.assets.push(asset({ id: 'legacy-asset', s3Key: null }));
+
+      await w.processor.process(
+        buildJob({
+          reservationId: 'legacy-hold',
+          settlementAssetId: 'legacy-asset',
+        }),
+      );
+
+      expect(w.releases).toEqual([
+        { organizationId: 'org-1', reservationId: 'legacy-hold' },
+      ]);
+      expect(w.settlements).toEqual([]);
+    });
+
+    it.each([
+      ['an owned file', 'VALIDATED', 'owned/legacy.png', null],
+      ['a provider result', 'GENERATED', null, 'https://provider.test/out.png'],
+    ])(
+      'settles a terminal legacy asset with %s',
+      async (_name, status, s3Key, result) => {
+        const w = world();
+        w.assets.push(
+          asset({
+            id: 'legacy-asset',
+            metadata: {
+              externalId: null,
+              id: 'meta',
+              isDeleted: false,
+              result,
+            },
+            s3Key,
+            status,
+          }),
+        );
+
+        await w.processor.process(
+          buildJob({
+            reservationId: 'legacy-hold',
+            settlementAssetId: 'legacy-asset',
+          }),
+        );
+
+        expect(w.settlements).toEqual([
+          expect.objectContaining({
+            actualAmount: 10,
+            reservationId: 'legacy-hold',
+          }),
+        ]);
+        expect(w.releases).toEqual([]);
+      },
     );
-    expect(logger.error).toHaveBeenCalled();
+
+    it.each([
+      ['PROCESSING', [asset({ id: 'legacy-asset', status: 'PROCESSING' })]],
+      ['missing', []],
+      ['missing', [asset({ id: 'legacy-asset', organizationId: 'org-2' })]],
+    ])(
+      'keeps a %s legacy asset for retry without charging',
+      async (label, assets) => {
+        const w = world();
+        w.assets.push(...assets);
+
+        await expect(
+          w.processor.process(buildJob({ settlementAssetId: 'legacy-asset' })),
+        ).rejects.toThrow(
+          `Media asset legacy-asset is not terminal (${label})`,
+        );
+
+        expect(w.deductions).toEqual([]);
+        expect(w.releases).toEqual([]);
+      },
+    );
   });
 
-  it('rethrows transient errors so BullMQ retries', async () => {
-    creditsUtilsService.deductCreditsFromOrganization.mockRejectedValue(
-      new Error('db timeout'),
-    );
+  describe('retry credit back', () => {
+    it('credits back a settled media charge for its asset', async () => {
+      const w = world();
 
-    await expect(processor.process(buildJob({}))).rejects.toThrow('db timeout');
+      await w.processor.process(
+        buildJob({ metadata: { assetId: 'asset-1' }, reservationId: 'hold-1' }),
+      );
+
+      expect(w.creditBacks).toEqual([
+        {
+          chargedCredits: 10,
+          ingredientId: 'asset-1',
+          organizationId: 'org-1',
+        },
+      ]);
+    });
+
+    it.each([
+      ['a charge without an asset', { amount: 10, metadata: { mode: 'x' } }],
+      ['a zero charge', { amount: 0, metadata: { assetId: 'asset-1' } }],
+      [
+        'a duration top-up',
+        {
+          amount: 4,
+          metadata: {
+            assetId: 'asset-1',
+            durationTopUpOfReservationId: 'hold-0',
+          },
+        },
+      ],
+    ])('grants nothing for %s', async (_name, data) => {
+      const w = world();
+
+      await w.processor.process(buildJob({ ...data, reservationId: 'hold-1' }));
+
+      expect(w.creditBacks).toEqual([]);
+    });
+  });
+
+  describe('low-credits alert', () => {
+    it('alerts the owner and operators once and arms a 24-hour debounce when the balance drops below the threshold', async () => {
+      const w = world();
+      w.balance = 500;
+
+      await w.processor.process(buildJob({}));
+
+      expect(w.activities).toEqual([
+        {
+          alert: {
+            deduplicationKey: expect.stringMatching(
+              /^credits-low\/org-1\/\d+$/,
+            ),
+            operatorMessages: {
+              discord: {
+                action: 'low_credits_alert',
+                payload: {
+                  balance: 500,
+                  organizationId: 'org-1',
+                  organizationLabel: 'Acme Studio',
+                },
+                type: 'discord',
+              },
+            },
+          },
+          key: ActivityKey.CREDITS_LOW,
+          organizationId: 'org-1',
+          source: ActivitySource.SCRIPT,
+          value: JSON.stringify({ balance: 500, threshold: 1000 }),
+        },
+      ]);
+      expect([...w.redis.entries()]).toEqual([
+        ['low-credits-notified:org-1', { ttlSeconds: 86400, value: '1' }],
+      ]);
+    });
+
+    it('stays quiet while the debounce key from an earlier alert is set', async () => {
+      const w = world();
+      w.balance = 500;
+      w.redis.set('low-credits-notified:org-1', {
+        ttlSeconds: 86400,
+        value: '1',
+      });
+
+      await w.processor.process(buildJob({}));
+
+      expect(w.activities).toEqual([]);
+      expect(w.logs).toEqual([
+        {
+          level: 'debug',
+          message:
+            'CreditDeductionProcessor low-credits alert already sent for org-1 (debounced)',
+        },
+      ]);
+    });
+
+    it('skips the alert and warns when redis is unavailable', async () => {
+      const w = world();
+      w.balance = 500;
+      w.isRedisAvailable = false;
+
+      await w.processor.process(buildJob({}));
+
+      expect(w.activities).toEqual([]);
+      expect(w.logs).toEqual([
+        {
+          level: 'warn',
+          message:
+            'CreditDeductionProcessor Redis not available for low-credits debounce',
+        },
+      ]);
+    });
+
+    it('never fails the charge when the low-credits check fails', async () => {
+      const w = world();
+      w.faults.balance.push(new Error('balance lookup failed'));
+
+      await expect(w.processor.process(buildJob({}))).resolves.toBeUndefined();
+
+      expect(w.deductions).toHaveLength(1);
+      expect(w.logs).toEqual([
+        {
+          level: 'error',
+          message: 'CreditDeductionProcessor failed to check low credits',
+        },
+      ]);
+    });
+
+    describe('relative threshold', () => {
+      const inTrial = {
+        isTrialExpired: false,
+        trialEndsAt: new Date('2026-10-13T00:00:00.000Z'),
+      };
+
+      it('does not flag a never-paid organization whose free credits still buy its default image', async () => {
+        const w = world();
+        w.trial = inTrial;
+        // 25 free credits used to read as "low" against a fixed 1000.
+        w.balance = 25;
+
+        await w.processor.process(buildJob({}));
+
+        expect(w.activities).toEqual([]);
+        expect(w.trialEmails).toEqual([]);
+      });
+
+      it('alerts and emails a never-paid organization once its balance cannot buy its default image', async () => {
+        const w = world();
+        w.trial = inTrial;
+        w.balance = 5;
+
+        await w.processor.process(buildJob({}));
+
+        expect(w.trialEmails).toEqual(['org-1']);
+        expect(w.activities).toEqual([
+          expect.objectContaining({
+            key: ActivityKey.CREDITS_LOW,
+            value: JSON.stringify({ balance: 5, threshold: 8 }),
+          }),
+        ]);
+      });
+
+      it('stays quiet for an expired trial (admission already refuses it)', async () => {
+        const w = world();
+        w.trial = {
+          isTrialExpired: true,
+          trialEndsAt: new Date('2026-10-01T00:00:00.000Z'),
+        };
+        w.balance = 5;
+
+        await w.processor.process(buildJob({}));
+
+        expect(w.activities).toEqual([]);
+        expect(w.trialEmails).toEqual([]);
+      });
+
+      it.each([
+        // 10% of a 500-credit pack is 50.
+        [60, []],
+        [
+          40,
+          [
+            expect.objectContaining({
+              value: JSON.stringify({ balance: 40, threshold: 50 }),
+            }),
+          ],
+        ],
+      ])(
+        'scales a paying organization threshold with its latest paid grant (balance %i)',
+        async (balance, activities) => {
+          const w = world();
+          w.latestPaidGrant = 500;
+          w.balance = balance;
+
+          await w.processor.process(buildJob({}));
+
+          expect(w.activities).toEqual(activities);
+          expect(w.trialEmails).toEqual([]);
+        },
+      );
+
+      it('does not guess a threshold when neither a price nor a paid grant is known', async () => {
+        const w = world();
+        w.imagePrices = {};
+        w.latestPaidGrant = null;
+        w.balance = 0;
+
+        await w.processor.process(buildJob({}));
+
+        expect(w.activities).toEqual([]);
+      });
+    });
+  });
+
+  describe('BYOK usage', () => {
+    it('records usage as a zero-balance-change ledger entry with canonical actor and output attribution', async () => {
+      const w = world();
+      w.balance = 1234;
+
+      await w.processor.process(
+        buildJob({
+          amount: 3,
+          brandId: 'brand-1',
+          description: 'BYOK image call',
+          metadata: { assetId: 'asset-1' },
+          type: 'record-byok-usage',
+          userId: 'canonical-user',
+        }),
+      );
+
+      expect(w.ledger).toEqual([
+        {
+          actorUserId: 'canonical-user',
+          amount: 3,
+          balanceAfter: 1234,
+          balanceBefore: 1234,
+          brandId: 'brand-1',
+          category: CreditTransactionCategory.BYOK_USAGE,
+          client: 'default',
+          description: '[BYOK] BYOK image call',
+          idempotencyKey: 'byok:org-1:job-1',
+          metadata: { assetId: 'asset-1' },
+          organizationId: 'org-1',
+          source: ActivitySource.IMAGE_GENERATION,
+        },
+      ]);
+      expect(w.deductions).toEqual([]);
+      expect(w.settlements).toEqual([]);
+    });
   });
 });
 
 describe('Crun media BYOK consumer authority', () => {
-  function fixture(
+  function crunWorld(
     amount = 3,
     endpoint = 'google/nano-banana-pro',
     category: IngredientCategory = IngredientCategory.IMAGE,
   ) {
+    const w = world();
+    w.balance = 100;
     const modelKey = `crun/${endpoint}`;
     const receipt = {
-      kind: 'byok',
-      state: 'pending',
       amount,
       description: 'Image generation',
       expiresAt: '2099-01-01T00:00:00.000Z',
+      kind: 'byok',
       source:
         category === IngredientCategory.VIDEO
           ? ActivitySource.VIDEO_GENERATION
           : ActivitySource.IMAGE_GENERATION,
-      userId: 'user-1',
+      state: 'pending',
       submissionIntentProvider: 'crun',
+      userId: 'user-1',
     };
     const { kind: _kind, state: _state, ...immutable } = receipt;
     const priced = quoteModelBillablePricing(
       billableProfile({
-        key: modelKey,
-        provider: 'crun',
         cost: amount,
         isFree: amount === 0,
-      }),
-      {
-        modelKey,
+        key: modelKey,
         provider: 'crun',
-        outputs: 1,
-        requests: 1,
-      },
+      }),
+      { modelKey, outputs: 1, provider: 'crun', requests: 1 },
       1,
       new Date().toISOString(),
     );
@@ -789,296 +1168,387 @@ describe('Crun media BYOK consumer authority', () => {
     const quote = {
       ...priced.snapshot,
       providerQuote: {
-        provider: 'crun',
+        acquisitionRateVersion: null,
+        contractVersion: 'v1',
+        credentialFingerprint: 'c'.repeat(64),
+        credentialId: null,
+        credentialSource: 'byok',
+        creditsPerUsd: null,
         estimated: false,
+        inputHash: 'b'.repeat(64),
+        provider: 'crun',
         providerCreditsPerTask: '8',
         quoteHash: 'a'.repeat(64),
-        inputHash: 'b'.repeat(64),
-        contractVersion: 'v1',
-        creditsPerUsd: null,
-        acquisitionRateVersion: null,
-        credentialSource: 'byok',
-        credentialId: null,
-        credentialFingerprint: 'c'.repeat(64),
       },
     };
-    const task = {
-      organizationId: 'org-1',
-      ingredientId: 'image',
-      userId: 'user-1',
-      credentialSource: 'byok',
-      reservationId: null,
-      fundingBinding: { kind: 'byok', receipt: immutable },
-      quoteSnapshot: quote,
-      modelKey: quote.modelKey,
-      endpoint,
+    const task: Row = {
       contractVersion: 'v1',
-      inputHash: 'b'.repeat(64),
-      credentialId: null,
       credentialFingerprint: 'c'.repeat(64),
-      outputIndex: 0,
-      state: 'provider-success',
-      terminalReceipt: { status: 'success', credits: '8' },
-      vendorCostRecordedAt: new Date(),
-      mediaPersistedAt: new Date(),
-      recoveryCode: null,
+      credentialId: null,
+      credentialSource: 'byok',
+      endpoint,
+      fundingBinding: { kind: 'byok', receipt: immutable },
+      ingredientId: 'image',
+      inputHash: 'b'.repeat(64),
+      isDeleted: false,
       leaseUntil: new Date(Date.now() + 60000),
+      mediaPersistedAt: new Date(),
+      modelKey: quote.modelKey,
+      organizationId: 'org-1',
+      outputIndex: 0,
+      quoteSnapshot: quote,
+      recoveryCode: null,
+      reservationId: null,
+      state: 'provider-success',
+      terminalReceipt: { credits: '8', status: 'success' },
+      userId: 'user-1',
+      vendorCostRecordedAt: new Date(),
       version: 7,
     };
-    const ingredient = {
-      userId: 'user-1',
-      status: 'GENERATED',
+    const ingredient = asset({
       category,
-      s3Key: 'owned/image.png',
       generationBilling: receipt,
-    };
-    const state: {
-      task: Record<string, unknown> | null;
-      ingredient: Record<string, unknown> | null;
-      ledger: Record<string, unknown> | null;
-    } = { task, ingredient, ledger: null };
-    const tx = {
-      $queryRaw: vi.fn().mockResolvedValue([]),
-      crunGenerationTask: { findFirst: vi.fn(async () => state.task) },
-      ingredient: { findFirst: vi.fn(async () => state.ingredient) },
-      creditTransaction: { findFirst: vi.fn(async () => state.ledger) },
-    };
-    const prisma = {
-      ...tx,
-      $transaction: vi.fn(
-        async (operation: (client: typeof tx) => Promise<void>) =>
-          operation(tx),
-      ),
-    };
-    const balance = vi.fn().mockResolvedValue(100);
-    const create = vi.fn(
-      async (
-        ...args: Parameters<CreditTransactionsService['createTransactionEntry']>
-      ) => {
-        const [, category, value, , , source, , , , options] = args;
-        if (!options) throw new Error('Missing ledger identity');
-        state.ledger = {
-          category,
-          amount: value,
-          source,
-          actorUserId: options.actorUserId,
-          metadata: options.metadata,
-        };
-      },
-    );
-    const logger = { log: vi.fn(), error: vi.fn() };
-    const processor = new CreditDeductionProcessor(
-      { getOrganizationCreditsBalance: balance } as never,
-      { createTransactionEntry: create } as never,
-      {} as never,
-      {} as never,
-      logger as never,
-      prisma as never,
-      {} as never,
-      {} as never,
-      { grantBestEffort: async () => undefined } as never,
-    );
+      id: 'image',
+      metadata: null,
+      s3Key: 'owned/image.png',
+    });
+    w.crunTasks.push(task);
+    w.assets.push(ingredient);
     const data: CreditDeductionJobData = {
-      type: 'record-byok-usage',
-      organizationId: 'org-1',
-      userId: 'user-1',
       amount,
       description: receipt.description,
-      source: receipt.source,
       idempotencyKey: 'media-generation-usage:image',
       metadata: { assetId: 'image', submissionIntentProvider: 'crun' },
+      organizationId: 'org-1',
+      source: receipt.source,
+      type: 'record-byok-usage',
+      userId: 'user-1',
     };
     const run = () =>
-      processor.process({
+      w.processor.process({
+        attemptsMade: 0,
         data,
         id: 'usage',
-        attemptsMade: 0,
         opts: { attempts: 3 },
       } as Job<CreditDeductionJobData>);
-    return { task, ingredient, state, tx, prisma, balance, create, data, run };
+    return { data, ingredient, receipt, run, task, w };
   }
+  type CrunFixture = ReturnType<typeof crunWorld>;
+
+  const LOCKS = [
+    'crun_generation_tasks:org-1:image',
+    'ingredients:org-1:image',
+  ];
+
+  function proofEntry(amount: number, source: ActivitySource) {
+    return {
+      actorUserId: 'user-1',
+      amount,
+      balanceAfter: 100,
+      balanceBefore: 100,
+      category: CreditTransactionCategory.BYOK_USAGE,
+      client: 'proof-transaction',
+      description: 'Image generation',
+      idempotencyKey: 'byok:org-1:media-generation-usage:image',
+      metadata: { assetId: 'image', submissionIntentProvider: 'crun' },
+      organizationId: 'org-1',
+      source,
+    };
+  }
+
   it.each([0, 3])(
-    'records exact usage %s once in the proof transaction without altering an active lease',
+    'records exact usage %s once in the serializable proof transaction without altering an active lease',
     async (amount) => {
-      const f = fixture(amount);
+      const f = crunWorld(amount);
       const lease = f.task.leaseUntil;
+
       await f.run();
       await f.run();
-      expect(f.create).toHaveBeenCalledTimes(1);
-      expect(f.balance).toHaveBeenCalledWith('org-1', f.tx);
-      expect(f.create.mock.calls[0]?.[8]).toBe(f.tx);
-      expect(f.create.mock.calls[0]?.[1]).toBe(
-        CreditTransactionCategory.BYOK_USAGE,
-      );
-      expect(f.create.mock.calls[0]?.slice(3, 5)).toEqual([100, 100]);
-      expect(f.prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
-        isolationLevel: 'Serializable',
-      });
-      expect(f.tx.$queryRaw).toHaveBeenCalledTimes(4);
+
+      expect(f.w.ledger).toEqual([
+        proofEntry(amount, ActivitySource.IMAGE_GENERATION),
+      ]);
+      expect(f.w.balanceReads).toEqual([
+        { client: 'proof-transaction', organizationId: 'org-1' },
+      ]);
+      expect(f.w.transactionAttempts).toEqual([
+        { isolationLevel: 'Serializable' },
+        { isolationLevel: 'Serializable' },
+      ]);
+      expect(f.w.locks).toEqual([...LOCKS, ...LOCKS]);
       expect(f.task.leaseUntil).toBe(lease);
       expect(f.task.version).toBe(7);
     },
   );
+
   it.each(['kling/v2-5-turbo-pro', 'google/veo3-1-fast-t2v'])(
-    'records exact video usage for %s and rejects category/model mixing',
+    'records exact video usage for %s once',
     async (endpoint) => {
-      const f = fixture(3, endpoint, IngredientCategory.VIDEO);
+      const f = crunWorld(3, endpoint, IngredientCategory.VIDEO);
+
       await f.run();
       await f.run();
-      expect(f.create).toHaveBeenCalledTimes(1);
-      expect(f.create.mock.calls[0]?.[5]).toBe(ActivitySource.VIDEO_GENERATION);
-      for (const wrong of [
-        fixture(3, endpoint),
-        fixture(3, 'google/nano-banana-pro', IngredientCategory.VIDEO),
-        fixture(3, 'unknown/video', IngredientCategory.VIDEO),
-      ]) {
-        await expect(wrong.run()).rejects.toThrow(
-          'CRUN_BYOK_USAGE_IDENTITY_INVALID',
-        );
-        expect(wrong.create).not.toHaveBeenCalled();
-      }
-      const mismatched = fixture(3, endpoint, IngredientCategory.VIDEO);
-      mismatched.task.modelKey = 'crun/google/nano-banana-pro';
-      await expect(mismatched.run()).rejects.toThrow(
-        'CRUN_BYOK_USAGE_IDENTITY_INVALID',
-      );
+
+      expect(f.w.ledger).toEqual([
+        proofEntry(3, ActivitySource.VIDEO_GENERATION),
+      ]);
     },
   );
-  it('supports previously queued canonical media jobs without a new marker', async () => {
-    const f = fixture();
-    f.data.metadata = { assetId: 'image' };
-    await f.run();
-    expect(f.create).toHaveBeenCalledTimes(1);
-  });
-  it('retains ordinary incumbent media usage behavior', async () => {
-    const f = fixture();
-    f.state.task = null;
-    f.ingredient.generationBilling = {
-      ...f.ingredient.generationBilling,
-      submissionIntentProvider: 'heygen',
-    };
-    f.data.metadata = { assetId: 'image' };
-    await f.run();
-    expect(f.prisma.$transaction).not.toHaveBeenCalled();
-    expect(f.create.mock.calls[0]?.[8]).toBeUndefined();
-  });
+
   it.each([
-    'actor',
-    'organization',
-    'amount',
-    'source',
-    'description',
-    'asset',
-    'key',
-    'missing-asset',
-    'missing-ingredient',
-    'deleted-ingredient',
-    'binding',
-    'free-binding',
-    'model',
-    'contract',
-    'input-hash',
-    'fingerprint',
-    'index',
-    'duplicate-category',
-    'duplicate-amount',
-  ])('rejects invalid %s without balance or ledger writes', async (field) => {
-    const f = fixture();
-    if (field === 'actor') f.data.userId = 'foreign';
-    if (field === 'organization') f.task.organizationId = 'foreign';
-    if (field === 'amount') f.data.amount++;
-    if (field === 'source') f.data.source = ActivitySource.VIDEO_GENERATION;
-    if (field === 'description') f.data.description = 'changed';
-    if (field === 'asset')
-      f.data.metadata = { assetId: 'other', submissionIntentProvider: 'crun' };
-    if (field === 'key') f.data.idempotencyKey = 'other';
-    if (field === 'missing-asset')
-      f.data.metadata = { submissionIntentProvider: 'crun' };
-    if (field === 'missing-ingredient' || field === 'deleted-ingredient')
-      f.state.ingredient = null;
-    if (field === 'binding' || field === 'free-binding')
-      f.state.task = {
-        ...f.task,
-        fundingBinding: { kind: field === 'binding' ? 'reservation' : 'free' },
-      };
-    if (field === 'model') f.task.modelKey = 'foreign';
-    if (field === 'contract') f.task.contractVersion = 'changed';
-    if (field === 'input-hash') f.task.inputHash = 'd'.repeat(64);
-    if (field === 'fingerprint') f.task.credentialFingerprint = 'd'.repeat(64);
-    if (field === 'index') f.task.outputIndex = 2;
-    if (field.startsWith('duplicate-'))
-      f.state.ledger = {
-        category:
-          field === 'duplicate-category'
-            ? CreditTransactionCategory.DEDUCT
-            : CreditTransactionCategory.BYOK_USAGE,
-        actorUserId: 'user-1',
-        amount: field === 'duplicate-amount' ? 4 : 3,
-        source: f.data.source,
-        metadata: { assetId: 'image' },
-      };
-    await expect(f.run()).rejects.toBeInstanceOf(UnrecoverableError);
-    expect(f.balance).not.toHaveBeenCalled();
-    expect(f.create).not.toHaveBeenCalled();
-  });
-  it.each([
-    'missing-task',
-    'deleted-task',
-    'altered-marker',
-    'missing-vendor',
-    'missing-media',
-    'missing-owned-key',
-    'nonterminal',
-    'failed',
-    'conflict',
-    'receipt-failed',
-    'missing-marker',
-  ])('holds %s proof without acknowledging consumption', async (field) => {
-    const f = fixture();
-    if (field === 'missing-task' || field === 'deleted-task')
-      f.state.task = null;
-    if (field === 'altered-marker')
-      f.ingredient.generationBilling.submissionIntentProvider = 'heygen';
-    if (field === 'missing-vendor')
-      f.state.task = { ...f.task, vendorCostRecordedAt: null };
-    if (field === 'missing-media')
-      f.state.task = { ...f.task, mediaPersistedAt: null };
-    if (field === 'missing-owned-key') f.ingredient.s3Key = '';
-    if (field === 'nonterminal') f.task.state = 'polling';
-    if (field === 'failed') f.task.state = 'provider-failed';
-    if (field === 'conflict')
-      f.state.task = {
-        ...f.task,
-        recoveryCode: 'CRUN_TERMINAL_RECEIPT_CONFLICT',
-      };
-    if (field === 'receipt-failed')
-      f.ingredient.generationBilling.state = 'failed';
-    if (field === 'missing-marker')
-      f.ingredient.generationBilling.submissionIntentProvider = '';
-    await expect(f.run()).rejects.toThrow();
-    expect(f.balance).not.toHaveBeenCalled();
-    expect(f.create).not.toHaveBeenCalled();
-  });
-  it.each(['idempotencyKey', 'organizationId', 'userId'] as const)(
-    'rejects a nonstring %s before classification reads',
-    async (field) => {
-      const f = fixture();
-      Object.assign(f.data, { [field]: 42 });
+    [
+      'a video route for an image asset',
+      'kling/v2-5-turbo-pro',
+      IngredientCategory.IMAGE,
+    ],
+    [
+      'a video route for an image asset',
+      'google/veo3-1-fast-t2v',
+      IngredientCategory.IMAGE,
+    ],
+    [
+      'an image route for a video asset',
+      'google/nano-banana-pro',
+      IngredientCategory.VIDEO,
+    ],
+    ['an unknown route', 'unknown/video', IngredientCategory.VIDEO],
+  ])(
+    'refuses %s (%s) without a ledger write',
+    async (_name, endpoint, category) => {
+      const f = crunWorld(3, endpoint, category);
+
       await expect(f.run()).rejects.toThrow('CRUN_BYOK_USAGE_IDENTITY_INVALID');
-      expect(f.tx.ingredient.findFirst).not.toHaveBeenCalled();
-      expect(f.tx.crunGenerationTask.findFirst).not.toHaveBeenCalled();
-      expect(f.balance).not.toHaveBeenCalled();
-      expect(f.create).not.toHaveBeenCalled();
+
+      expect(f.w.ledger).toEqual([]);
     },
   );
-  it('retries serialization conflicts with fresh proof and propagates exhausted conflicts', async () => {
-    const f = fixture();
-    f.prisma.$transaction.mockRejectedValueOnce({ code: 'P2034' });
+
+  it('refuses a video task whose frozen model names an image route', async () => {
+    const f = crunWorld(3, 'kling/v2-5-turbo-pro', IngredientCategory.VIDEO);
+    f.task.modelKey = 'crun/google/nano-banana-pro';
+
+    await expect(f.run()).rejects.toThrow('CRUN_BYOK_USAGE_IDENTITY_INVALID');
+
+    expect(f.w.ledger).toEqual([]);
+  });
+
+  it('supports previously queued canonical media jobs without a new marker', async () => {
+    const f = crunWorld();
+    f.data.metadata = { assetId: 'image' };
+
     await f.run();
-    expect(f.prisma.$transaction).toHaveBeenCalledTimes(2);
-    const exhausted = fixture();
-    exhausted.prisma.$transaction.mockRejectedValue({ code: 'P2034' });
-    await expect(exhausted.run()).rejects.toMatchObject({ code: 'P2034' });
-    expect(exhausted.prisma.$transaction).toHaveBeenCalledTimes(3);
+
+    expect(f.w.ledger).toEqual([
+      proofEntry(3, ActivitySource.IMAGE_GENERATION),
+    ]);
+  });
+
+  it('records ordinary incumbent media usage outside the proof transaction', async () => {
+    const f = crunWorld();
+    f.w.crunTasks.splice(0);
+    f.receipt.submissionIntentProvider = 'heygen';
+    f.data.metadata = { assetId: 'image' };
+
+    await f.run();
+
+    expect(f.w.transactionAttempts).toEqual([]);
+    expect(f.w.ledger).toEqual([
+      {
+        actorUserId: 'user-1',
+        amount: 3,
+        balanceAfter: 100,
+        balanceBefore: 100,
+        category: CreditTransactionCategory.BYOK_USAGE,
+        client: 'default',
+        description: '[BYOK] Image generation',
+        idempotencyKey: 'byok:org-1:media-generation-usage:image',
+        metadata: { assetId: 'image' },
+        organizationId: 'org-1',
+        source: ActivitySource.IMAGE_GENERATION,
+      },
+    ]);
+  });
+
+  it.each<[string, (f: CrunFixture) => void]>([
+    ['actor', (f) => Object.assign(f.data, { userId: 'foreign' })],
+    ['amount', (f) => Object.assign(f.data, { amount: 4 })],
+    [
+      'source',
+      (f) => Object.assign(f.data, { source: ActivitySource.VIDEO_GENERATION }),
+    ],
+    ['description', (f) => Object.assign(f.data, { description: 'changed' })],
+    [
+      'asset',
+      (f) =>
+        Object.assign(f.data, {
+          metadata: { assetId: 'other', submissionIntentProvider: 'crun' },
+        }),
+    ],
+    ['key', (f) => Object.assign(f.data, { idempotencyKey: 'other' })],
+    [
+      'missing-asset',
+      (f) =>
+        Object.assign(f.data, {
+          metadata: { submissionIntentProvider: 'crun' },
+        }),
+    ],
+    ['missing-ingredient', (f) => f.w.assets.splice(0)],
+    [
+      'deleted-ingredient',
+      (f) => Object.assign(f.ingredient, { isDeleted: true }),
+    ],
+    [
+      'binding',
+      (f) => Object.assign(f.task, { fundingBinding: { kind: 'reservation' } }),
+    ],
+    [
+      'free-binding',
+      (f) => Object.assign(f.task, { fundingBinding: { kind: 'free' } }),
+    ],
+    ['model', (f) => Object.assign(f.task, { modelKey: 'foreign' })],
+    ['contract', (f) => Object.assign(f.task, { contractVersion: 'changed' })],
+    ['input-hash', (f) => Object.assign(f.task, { inputHash: 'd'.repeat(64) })],
+    [
+      'fingerprint',
+      (f) => Object.assign(f.task, { credentialFingerprint: 'd'.repeat(64) }),
+    ],
+    ['index', (f) => Object.assign(f.task, { outputIndex: 2 })],
+    [
+      'altered-marker',
+      (f) => Object.assign(f.receipt, { submissionIntentProvider: 'heygen' }),
+    ],
+    [
+      'missing-marker',
+      (f) => Object.assign(f.receipt, { submissionIntentProvider: '' }),
+    ],
+  ])(
+    'refuses invalid %s permanently without balance or ledger writes',
+    async (_field, mutate) => {
+      const f = crunWorld();
+      mutate(f);
+
+      await expect(f.run()).rejects.toMatchObject({
+        message: 'CRUN_BYOK_USAGE_IDENTITY_INVALID',
+        name: 'UnrecoverableError',
+      });
+
+      expect(f.w.balanceReads).toEqual([]);
+      expect(f.w.ledger).toEqual([]);
+    },
+  );
+
+  it.each([
+    ['category', CreditTransactionCategory.DEDUCT, 3],
+    ['amount', CreditTransactionCategory.BYOK_USAGE, 4],
+  ])(
+    'refuses an earlier usage row with a different %s',
+    async (_field, category, amount) => {
+      const f = crunWorld();
+      const earlier = {
+        actorUserId: 'user-1',
+        amount,
+        category,
+        idempotencyKey: 'byok:org-1:media-generation-usage:image',
+        metadata: { assetId: 'image' },
+        organizationId: 'org-1',
+        source: ActivitySource.IMAGE_GENERATION,
+      };
+      f.w.ledger.push(earlier);
+
+      await expect(f.run()).rejects.toThrow(
+        'CRUN_BYOK_USAGE_DUPLICATE_CONFLICT',
+      );
+
+      expect(f.w.balanceReads).toEqual([]);
+      expect(f.w.ledger).toEqual([earlier]);
+    },
+  );
+
+  it.each<[string, (f: CrunFixture) => void]>([
+    ['a missing task', (f) => f.w.crunTasks.splice(0)],
+    ['a deleted task', (f) => Object.assign(f.task, { isDeleted: true })],
+    [
+      'a task of another organization',
+      (f) => Object.assign(f.task, { organizationId: 'org-2' }),
+    ],
+    [
+      'unrecorded vendor cost',
+      (f) => Object.assign(f.task, { vendorCostRecordedAt: null }),
+    ],
+    [
+      'unpersisted media',
+      (f) => Object.assign(f.task, { mediaPersistedAt: null }),
+    ],
+    ['no owned file', (f) => Object.assign(f.ingredient, { s3Key: '' })],
+    ['a polling task', (f) => Object.assign(f.task, { state: 'polling' })],
+    [
+      'a failed provider task',
+      (f) => Object.assign(f.task, { state: 'provider-failed' }),
+    ],
+    [
+      'a terminal receipt conflict',
+      (f) =>
+        Object.assign(f.task, {
+          recoveryCode: 'CRUN_TERMINAL_RECEIPT_CONFLICT',
+        }),
+    ],
+    [
+      'a failed usage receipt',
+      (f) => Object.assign(f.receipt, { state: 'failed' }),
+    ],
+  ])(
+    'holds %s for retry without acknowledging consumption',
+    async (_case, mutate) => {
+      const f = crunWorld();
+      mutate(f);
+
+      await expect(f.run()).rejects.toMatchObject({
+        message: 'CRUN_BYOK_USAGE_HELD',
+        name: 'Error',
+      });
+
+      expect(f.w.balanceReads).toEqual([]);
+      expect(f.w.ledger).toEqual([]);
+    },
+  );
+
+  it.each(['idempotencyKey', 'organizationId', 'userId'])(
+    'refuses a nonstring %s before any read',
+    async (field) => {
+      const f = crunWorld();
+      Object.assign(f.data, { [field]: 42 });
+
+      await expect(f.run()).rejects.toThrow('CRUN_BYOK_USAGE_IDENTITY_INVALID');
+
+      expect(f.w.reads).toEqual([]);
+      expect(f.w.balanceReads).toEqual([]);
+      expect(f.w.ledger).toEqual([]);
+    },
+  );
+
+  it('retries a serialization conflict with fresh proof', async () => {
+    const f = crunWorld();
+    f.w.faults.transaction.push({ code: 'P2034' });
+
+    await f.run();
+
+    expect(f.w.transactionAttempts).toHaveLength(2);
+    expect(f.w.ledger).toEqual([
+      proofEntry(3, ActivitySource.IMAGE_GENERATION),
+    ]);
+  });
+
+  it('propagates a conflict that outlasts three attempts', async () => {
+    const f = crunWorld();
+    f.w.faults.transaction.push(
+      { code: 'P2034' },
+      { code: 'P2034' },
+      { code: 'P2034' },
+    );
+
+    await expect(f.run()).rejects.toMatchObject({ code: 'P2034' });
+
+    expect(f.w.transactionAttempts).toHaveLength(3);
+    expect(f.w.ledger).toEqual([]);
   });
 });

@@ -757,22 +757,22 @@ export class BillingAccountsService {
             select: { id: true, organizationId: true },
           });
           if (wallet?.organizationId === input.organizationId) {
-            // `{ not }` carries no tenant proof by design; OWNER role proven.
-            const remaining = await crossOrgUnsafe(
-              async () =>
-                // tenant-scope-ignore: sibling org lookup on the shared billing account
-                await tx.billingAccountOrganization.findFirst({
-                  where: {
-                    billingAccountId: input.billingAccountId,
-                    isDeleted: false,
-                    organizationId: { not: input.organizationId },
-                    status: BillingAccountOrganizationStatus.LINKED,
-                  },
-                }),
-            );
-            await tx.creditBalance.update({
-              data: { organizationId: remaining?.organizationId ?? null },
-              where: scopedWhere(input.organizationId, { id: wallet.id }),
+            // `{ not }` and the sibling handoff carry no tenant proof; OWNER proven.
+            await crossOrgUnsafe(async () => {
+              // tenant-scope-ignore: sibling org lookup on the shared billing account
+              const remaining = await tx.billingAccountOrganization.findFirst({
+                where: {
+                  billingAccountId: input.billingAccountId,
+                  isDeleted: false,
+                  organizationId: { not: input.organizationId },
+                  status: BillingAccountOrganizationStatus.LINKED,
+                },
+              });
+              // tenant-scope-ignore: hands the shared wallet to the sibling org
+              await tx.creditBalance.update({
+                data: { organizationId: remaining?.organizationId ?? null },
+                where: scopedWhere(input.organizationId, { id: wallet.id }),
+              });
             });
           }
 
