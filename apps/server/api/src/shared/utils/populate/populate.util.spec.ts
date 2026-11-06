@@ -39,6 +39,18 @@ describe('PopulatePatterns', () => {
     expect(PopulatePatterns.userMinimal.select).toEqual(
       expect.arrayContaining(['id', 'handle', 'email']),
     );
+    expect(PopulatePatterns.ingredientsMinimal.select).toEqual([
+      'id',
+      'category',
+      'status',
+      's3Key',
+    ]);
+    expect(PopulatePatterns.ingredientMinimal.select).toEqual([
+      'id',
+      'category',
+      'status',
+      's3Key',
+    ]);
     expect(PopulatePatterns.postsMinimal.select).toEqual(
       expect.arrayContaining(['platform', 'status', 'externalId']),
     );

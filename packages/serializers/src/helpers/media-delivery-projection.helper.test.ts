@@ -6,7 +6,10 @@ import {
   projectMediaResponse,
   projectSocialAvatarUrls,
 } from '@serializers/helpers/media-delivery-projection.helper';
-import { PostSerializer } from '@serializers/server/content/post.serializer';
+import {
+  PostListSerializer,
+  PostSerializer,
+} from '@serializers/server/content/post.serializer';
 import { IngredientSerializer } from '@serializers/server/ingredients/ingredient.serializer';
 import { CredentialSerializer } from '@serializers/server/organizations/credential.serializer';
 import { describe, expect, it } from 'vitest';
@@ -53,6 +56,24 @@ describe('media delivery response projection', () => {
     expect(projected).toContain('"generationHarness":null');
     expect(projected).not.toContain('original.png');
     expect(JSON.stringify(response)).toBe(snapshot);
+  });
+
+  it('projects a grant onto the minimal ingredient rows of a serialized post list', () => {
+    // The shape `PopulatePatterns.ingredientsMinimal` loads for the list.
+    const response = PostListSerializer.serialize([
+      {
+        id: testId('post', 1),
+        ingredients: [
+          { id, category: 'VIDEO', status: 'GENERATED', s3Key: 'videos/key' },
+        ],
+      },
+    ]);
+    expect(ingredientResponseIds(response)).toEqual([id]);
+    const projected = JSON.stringify(
+      projectMediaResponse(response, [preview], true),
+    );
+    expect(projected).toContain('protected-preview');
+    expect(projected).not.toContain('videos/key');
   });
 
   it('projects a grant onto every ingredient included with a serialized post', () => {
