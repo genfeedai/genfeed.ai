@@ -1,6 +1,7 @@
-import type {
-  ContentLearningArm,
-  ContentLearningMode,
+import {
+  type ContentLearningArm,
+  type ContentLearningMode,
+  ContentLearningRunStatus,
 } from '../../enums/content-learning.enum';
 
 export type LearningFormat =
@@ -599,13 +600,20 @@ export interface LearningRunDispatchReceiptV1 {
   terminalResult?: LearningRunDispatchTerminalResultV1;
 }
 
+export type LearningRunTerminalStatus = Exclude<
+  ContentLearningRunStatus,
+  ContentLearningRunStatus.PENDING | ContentLearningRunStatus.RUNNING
+>;
+const LEARNING_RUN_TERMINAL_STATUSES: readonly string[] = [
+  ContentLearningRunStatus.COMPLETED,
+  ContentLearningRunStatus.INSUFFICIENT_DATA,
+  ContentLearningRunStatus.FAILED,
+  ContentLearningRunStatus.CANCELLED,
+  ContentLearningRunStatus.INVALIDATED,
+];
+
 export interface LearningRunDispatchTerminalResultV1 {
-  runStatus:
-    | 'completed'
-    | 'insufficient_data'
-    | 'failed'
-    | 'cancelled'
-    | 'invalidated';
+  runStatus: LearningRunTerminalStatus;
   reasonCode: string | null;
   resultArtifactId: string | null;
   completedAt: string;
@@ -621,13 +629,7 @@ export function validLearningRunTerminalResult(
     v === null || (typeof v === 'string' && v.length > 0 && v.length <= 256);
   if (
     typeof raw.runStatus !== 'string' ||
-    ![
-      'completed',
-      'insufficient_data',
-      'failed',
-      'cancelled',
-      'invalidated',
-    ].includes(raw.runStatus) ||
+    !LEARNING_RUN_TERMINAL_STATUSES.includes(raw.runStatus) ||
     !nullableCode(raw.reasonCode) ||
     !nullableCode(raw.resultArtifactId) ||
     typeof raw.completedAt !== 'string' ||
@@ -635,7 +637,7 @@ export function validLearningRunTerminalResult(
     new Date(raw.completedAt).toISOString() !== raw.completedAt
   )
     return false;
-  if (raw.runStatus === 'insufficient_data')
+  if (raw.runStatus === ContentLearningRunStatus.INSUFFICIENT_DATA)
     return (
       raw.reasonCode === 'minimum_training_30' &&
       raw.resultArtifactId === null &&
@@ -646,10 +648,11 @@ export function validLearningRunTerminalResult(
     );
   if (raw.trainingCount !== null || raw.requiredTrainingCount !== null)
     return false;
-  if (raw.runStatus === 'completed') return raw.reasonCode === null;
+  if (raw.runStatus === ContentLearningRunStatus.COMPLETED)
+    return raw.reasonCode === null;
   return (
     raw.resultArtifactId === null &&
-    (raw.runStatus === 'cancelled'
+    (raw.runStatus === ContentLearningRunStatus.CANCELLED
       ? raw.reasonCode === 'cancelled'
       : typeof raw.reasonCode === 'string')
   );
@@ -702,20 +705,25 @@ export function learningRunTerminalResult(
   const result = {
     runStatus: run.status,
     reasonCode:
-      run.status === 'insufficient_data'
+      run.status === ContentLearningRunStatus.INSUFFICIENT_DATA
         ? 'minimum_training_30'
-        : run.status === 'cancelled'
+        : run.status === ContentLearningRunStatus.CANCELLED
           ? 'cancelled'
-          : run.status === 'completed'
+          : run.status === ContentLearningRunStatus.COMPLETED
             ? null
             : run.error,
-    resultArtifactId: run.status === 'completed' ? run.resultArtifactId : null,
+    resultArtifactId:
+      run.status === ContentLearningRunStatus.COMPLETED
+        ? run.resultArtifactId
+        : null,
     completedAt: completedAt.toISOString(),
-    trainingCount: run.status === 'insufficient_data' ? count : null,
-    requiredTrainingCount: run.status === 'insufficient_data' ? 30 : null,
+    trainingCount:
+      run.status === ContentLearningRunStatus.INSUFFICIENT_DATA ? count : null,
+    requiredTrainingCount:
+      run.status === ContentLearningRunStatus.INSUFFICIENT_DATA ? 30 : null,
   };
   if (
-    run.status === 'insufficient_data' &&
+    run.status === ContentLearningRunStatus.INSUFFICIENT_DATA &&
     (!report ||
       !('reason' in report) ||
       report.reason !== 'minimum_training_30')

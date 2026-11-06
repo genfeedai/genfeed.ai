@@ -17,7 +17,12 @@ import {
 } from '@api/collections/content-learning/services/learning-run-control.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { PlatformRole } from '@genfeedai/contracts';
+import {
+  CONTENT_LEARNING_ACTIVE_STATUSES,
+  ContentLearningOperationStatus,
+  ContentLearningRunStatus,
+  PlatformRole,
+} from '@genfeedai/contracts';
 import {
   type LearningRunDispatchReceiptV1,
   learningRunTerminalResult,
@@ -66,19 +71,23 @@ function scopedRunDispatch(
     organizationId,
   };
 }
-const terminalStatuses = new Set([
-  'completed',
-  'insufficient_data',
-  'failed',
-  'cancelled',
-  'invalidated',
+const terminalStatuses: ReadonlySet<string> = new Set([
+  ContentLearningRunStatus.COMPLETED,
+  ContentLearningRunStatus.INSUFFICIENT_DATA,
+  ContentLearningRunStatus.FAILED,
+  ContentLearningRunStatus.CANCELLED,
+  ContentLearningRunStatus.INVALIDATED,
 ]);
-export function learningRunOperationStatus(status: string): string | null {
-  return ['pending', 'running', ...terminalStatuses].includes(status)
-    ? status === 'insufficient_data'
-      ? 'completed'
-      : status
-    : null;
+const runStatuses: ReadonlySet<string> = new Set(
+  Object.values(ContentLearningRunStatus),
+);
+export function learningRunOperationStatus(
+  status: string,
+): ContentLearningOperationStatus | null {
+  if (!runStatuses.has(status)) return null;
+  return status === ContentLearningRunStatus.INSUFFICIENT_DATA
+    ? ContentLearningOperationStatus.COMPLETED
+    : (status as ContentLearningOperationStatus);
 }
 @Traced()
 @Injectable()
@@ -139,7 +148,7 @@ export class LearningRunService {
   private async writePair(
     tx: Prisma.TransactionClient,
     claim: LearningRunClaim,
-    status: string,
+    status: ContentLearningRunStatus,
     now: Date,
     data: Prisma.ContentLearningRunUpdateManyMutationInput = {},
     error: string | null = null,
@@ -170,7 +179,7 @@ export class LearningRunService {
       where: {
         id: claim.run.id,
         isDeleted: false,
-        status: 'running',
+        status: ContentLearningRunStatus.RUNNING,
         startedAt: claim.token,
       },
       data: {
@@ -185,7 +194,7 @@ export class LearningRunService {
         id: claim.operation.id,
         organizationId: claim.operation.organizationId,
         isDeleted: false,
-        status: 'running',
+        status: ContentLearningOperationStatus.RUNNING,
         resultReferences: {
           path: ['claimedStartedAt'],
           equals: claim.token.toISOString(),
@@ -230,16 +239,19 @@ export class LearningRunService {
         !(await this.dependencies.valid('run', run.id, tx, null))
       )
         return this.invalidateWithdrawn(tx, ctx, receipt);
-      if (run.status === 'running')
+      if (run.status === ContentLearningRunStatus.RUNNING)
         return this.reconcileRunningRun(tx, ctx, receipt);
-      if (run.status === 'pending' && operation.status === 'running') {
+      if (
+        run.status === ContentLearningRunStatus.PENDING &&
+        operation.status === ContentLearningOperationStatus.RUNNING
+      ) {
         const invalid = await this.resetPendingClaim(tx, ctx, receipt);
         if (invalid) return invalid;
       }
       return {
         operation: {
           ...operation,
-          status: 'pending',
+          status: ContentLearningOperationStatus.PENDING,
           resultReferences: storedJson(receipt),
         },
         dispatchable:
@@ -261,10 +273,14 @@ export class LearningRunService {
         isDeleted: false,
         status: statusGuard,
       },
-      data: { status: 'failed', error },
+      data: { status: ContentLearningOperationStatus.FAILED, error },
     });
     return {
-      operation: { ...ctx.operation, status: 'failed', error },
+      operation: {
+        ...ctx.operation,
+        status: ContentLearningOperationStatus.FAILED,
+        error,
+      },
       dispatchable: false,
     };
   }
@@ -276,8 +292,8 @@ export class LearningRunService {
     const stored = parseLearningRunDispatch(operation.resultReferences);
     if (stored) return { receipt: stored, outcome: null };
     const isUnversionedPending =
-      operation.status === 'pending' &&
-      run.status === 'pending' &&
+      operation.status === ContentLearningOperationStatus.PENDING &&
+      run.status === ContentLearningRunStatus.PENDING &&
       !run.startedAt &&
       operation.resultReferences !== null &&
       typeof operation.resultReferences === 'object' &&
@@ -298,20 +314,20 @@ export class LearningRunService {
           id: operation.id,
           organizationId: input.organizationId,
           isDeleted: false,
-          status: 'pending',
+          status: ContentLearningOperationStatus.PENDING,
         },
         data: { resultReferences: toPrismaJson(receipt) },
       });
       return { receipt, outcome: null };
     }
     const freshLegacy =
-      run.status === 'running' &&
+      run.status === ContentLearningRunStatus.RUNNING &&
       run.startedAt &&
       now.getTime() < run.startedAt.getTime() + 300000;
     if (freshLegacy)
       return { receipt: null, outcome: { operation, dispatchable: false } };
     const error =
-      run.status === 'running'
+      run.status === ContentLearningRunStatus.RUNNING
         ? 'legacy_claim_unverifiable'
         : 'dispatch_receipt_invalid';
     await tx.contentLearningOperation.updateMany({
@@ -320,9 +336,9 @@ export class LearningRunService {
         organizationId: input.organizationId,
         isDeleted: false,
       },
-      data: { status: 'failed', error },
+      data: { status: ContentLearningOperationStatus.FAILED, error },
     });
-    if (['pending', 'running'].includes(run.status))
+    if (CONTENT_LEARNING_ACTIVE_STATUSES.includes(run.status))
       await tx.contentLearningRun.updateMany({
         where: {
           id: run.id,
@@ -331,7 +347,7 @@ export class LearningRunService {
           startedAt: run.startedAt,
         },
         data: {
-          status: 'failed',
+          status: ContentLearningRunStatus.FAILED,
           error,
           report: Prisma.DbNull,
           completedAt: now,
@@ -340,7 +356,11 @@ export class LearningRunService {
     return {
       receipt: null,
       outcome: {
-        operation: { ...operation, status: 'failed', error },
+        operation: {
+          ...operation,
+          status: ContentLearningOperationStatus.FAILED,
+          error,
+        },
         dispatchable: false,
       },
     };
@@ -356,7 +376,9 @@ export class LearningRunService {
       receipt.claimedStartedAt === run.startedAt?.toISOString()
         ? learningRunTerminalResult(run, run.completedAt)
         : null;
-    const status = result ? learningRunOperationStatus(run.status) : 'failed';
+    const status = result
+      ? learningRunOperationStatus(run.status)
+      : ContentLearningOperationStatus.FAILED;
     await tx.contentLearningOperation.updateMany({
       where: {
         id: operation.id,
@@ -365,7 +387,7 @@ export class LearningRunService {
         status: operation.status,
       },
       data: {
-        status: status ?? 'failed',
+        status: status ?? ContentLearningOperationStatus.FAILED,
         error: result ? run.error : 'dispatch_receipt_invalid',
         resultReferences: toPrismaJson({
           ...receipt,
@@ -376,7 +398,7 @@ export class LearningRunService {
     return {
       operation: {
         ...operation,
-        status: status ?? 'failed',
+        status: status ?? ContentLearningOperationStatus.FAILED,
         error: result ? run.error : 'dispatch_receipt_invalid',
       },
       dispatchable: false,
@@ -397,7 +419,7 @@ export class LearningRunService {
         startedAt: run.startedAt,
       },
       data: {
-        status: 'invalidated',
+        status: ContentLearningRunStatus.INVALIDATED,
         error,
         report: Prisma.DbNull,
         completedAt: now,
@@ -411,19 +433,23 @@ export class LearningRunService {
         status: operation.status,
       },
       data: {
-        status: 'invalidated',
+        status: ContentLearningOperationStatus.INVALIDATED,
         error,
         resultReferences: toPrismaJson({
           ...receipt,
           terminalResult: learningRunTerminalResult(
-            { ...run, status: 'invalidated', error },
+            { ...run, status: ContentLearningRunStatus.INVALIDATED, error },
             now,
           ),
         }),
       },
     });
     return {
-      operation: { ...operation, status: 'invalidated', error },
+      operation: {
+        ...operation,
+        status: ContentLearningOperationStatus.INVALIDATED,
+        error,
+      },
       dispatchable: false,
     };
   }
@@ -436,14 +462,17 @@ export class LearningRunService {
     if (
       !run.startedAt ||
       receipt.claimedStartedAt !== run.startedAt.toISOString() ||
-      operation.status !== 'running'
+      operation.status !== ContentLearningOperationStatus.RUNNING
     )
       return this.failDispatchOperation(tx, ctx, 'dispatch_receipt_invalid');
     const expiredAt = run.startedAt.getTime() + 300000;
     if (now.getTime() < expiredAt) return { operation, dispatchable: false };
-    const status = receipt.attemptCount < 3 ? 'pending' : 'failed';
+    const status =
+      receipt.attemptCount < 3
+        ? ContentLearningRunStatus.PENDING
+        : ContentLearningRunStatus.FAILED;
     const nextAttemptAt =
-      status === 'pending'
+      status === ContentLearningRunStatus.PENDING
         ? new Date(expiredAt + (receipt.attemptCount === 1 ? 5000 : 10000))
         : null;
     await this.writePair(
@@ -466,7 +495,8 @@ export class LearningRunService {
         }),
       },
       dispatchable:
-        status === 'pending' && Boolean(nextAttemptAt && nextAttemptAt <= now),
+        status === ContentLearningRunStatus.PENDING &&
+        Boolean(nextAttemptAt && nextAttemptAt <= now),
     };
   }
   /** Returns an outcome only when the claim is invalid; null means reset to pending. */
@@ -486,9 +516,12 @@ export class LearningRunService {
         id: operation.id,
         organizationId: input.organizationId,
         isDeleted: false,
-        status: 'running',
+        status: ContentLearningOperationStatus.RUNNING,
       },
-      data: { status: 'pending', resultReferences: toPrismaJson(receipt) },
+      data: {
+        status: ContentLearningOperationStatus.PENDING,
+        resultReferences: toPrismaJson(receipt),
+      },
     });
     return null;
   }
@@ -503,8 +536,8 @@ export class LearningRunService {
       const receipt = parseLearningRunDispatch(operation.resultReferences);
       if (
         !receipt ||
-        operation.status !== 'pending' ||
-        run.status !== 'pending' ||
+        operation.status !== ContentLearningOperationStatus.PENDING ||
+        run.status !== ContentLearningRunStatus.PENDING ||
         receipt.attemptCount >= 3 ||
         (receipt.nextAttemptAt && new Date(receipt.nextAttemptAt) > now)
       )
@@ -513,7 +546,12 @@ export class LearningRunService {
         where: {
           organizationId: input.organizationId,
           isDeleted: false,
-          status: { in: ['pending', 'running'] },
+          status: {
+            in: [
+              ContentLearningOperationStatus.PENDING,
+              ContentLearningOperationStatus.RUNNING,
+            ],
+          },
           type: { in: ['dataset-train', 'dataset-evaluate'] },
           resultReferences: { path: ['runId'], equals: run.id },
         },
@@ -539,11 +577,11 @@ export class LearningRunService {
         where: {
           id: run.id,
           isDeleted: false,
-          status: 'pending',
+          status: ContentLearningRunStatus.PENDING,
           startedAt: run.startedAt,
         },
         data: {
-          status: 'running',
+          status: ContentLearningRunStatus.RUNNING,
           startedAt: token,
           progress: 0,
           error: null,
@@ -556,10 +594,10 @@ export class LearningRunService {
           id: operation.id,
           organizationId: input.organizationId,
           isDeleted: false,
-          status: 'pending',
+          status: ContentLearningOperationStatus.PENDING,
         },
         data: {
-          status: 'running',
+          status: ContentLearningOperationStatus.RUNNING,
           error: null,
           resultReferences: toPrismaJson(next),
         },
@@ -567,8 +605,15 @@ export class LearningRunService {
       if (claimedRun.count !== 1 || claimedOperation.count !== 1)
         throw new ConflictException('Run dispatch claim changed');
       return {
-        run: { ...run, status: 'running', startedAt: token },
-        operation: { ...operation, status: 'running' },
+        run: {
+          ...run,
+          status: ContentLearningRunStatus.RUNNING,
+          startedAt: token,
+        },
+        operation: {
+          ...operation,
+          status: ContentLearningOperationStatus.RUNNING,
+        },
         receipt: next,
         token,
       };
@@ -585,8 +630,8 @@ export class LearningRunService {
       const { run, operation, now } = await this.lockedDispatch(tx, input);
       const receipt = parseLearningRunDispatch(operation.resultReferences);
       if (
-        run.status !== 'running' ||
-        operation.status !== 'running' ||
+        run.status !== ContentLearningRunStatus.RUNNING ||
+        operation.status !== ContentLearningOperationStatus.RUNNING ||
         run.startedAt?.getTime() !== claim.token.getTime() ||
         receipt?.claimedStartedAt !== claim.token.toISOString() ||
         now.getTime() >= claim.token.getTime() + 300000
@@ -599,7 +644,7 @@ export class LearningRunService {
         await this.writePair(
           tx,
           claim,
-          'invalidated',
+          ContentLearningRunStatus.INVALIDATED,
           now,
           { report: Prisma.DbNull },
           'authorization_or_source_withdrawn',
@@ -623,9 +668,11 @@ export class LearningRunService {
           : 'run_attempt_failed';
     const result = await this.owned(claim, async (tx, now) => {
       const status =
-        deterministic || claim.receipt.attemptCount >= 3 ? 'failed' : 'pending';
+        deterministic || claim.receipt.attemptCount >= 3
+          ? ContentLearningRunStatus.FAILED
+          : ContentLearningRunStatus.PENDING;
       const nextAttemptAt =
-        status === 'pending'
+        status === ContentLearningRunStatus.PENDING
           ? new Date(
               now.getTime() + (claim.receipt.attemptCount === 1 ? 5000 : 10000),
             )
@@ -757,7 +804,7 @@ export class LearningRunService {
           this.writePair(
             tx,
             claim,
-            'invalidated',
+            ContentLearningRunStatus.INVALIDATED,
             now,
             { report: Prisma.DbNull },
             'dataset_unavailable',
@@ -813,13 +860,19 @@ export class LearningRunService {
       const training = rows.filter((row) => row.split === 'training');
       if (training.length < 30) {
         await this.owned(claim, async (tx, now) =>
-          this.writePair(tx, claim, 'insufficient_data', now, {
-            progress: 100,
-            report: toPrismaJson({
-              reason: 'minimum_training_30',
-              count: training.length,
-            }),
-          }),
+          this.writePair(
+            tx,
+            claim,
+            ContentLearningRunStatus.INSUFFICIENT_DATA,
+            now,
+            {
+              progress: 100,
+              report: toPrismaJson({
+                reason: 'minimum_training_30',
+                count: training.length,
+              }),
+            },
+          ),
         );
         return null;
       }
@@ -838,7 +891,7 @@ export class LearningRunService {
               const updated = await tx.contentLearningRun.updateMany({
                 where: {
                   id: runId,
-                  status: 'running',
+                  status: ContentLearningRunStatus.RUNNING,
                   startedAt: claim.token,
                   isDeleted: false,
                 },
@@ -894,16 +947,22 @@ export class LearningRunService {
               tx,
             ),
           );
-          await this.writePair(tx, claim, 'completed', now, {
-            progress: 100,
-            resultArtifactId: artifact.id,
-            report: toPrismaJson({
-              manifestHash: dataset.manifestHash,
-              armState: state,
-              sourceAccountCount: groups.length,
-              synthetic: dataset.synthetic,
-            }),
-          });
+          await this.writePair(
+            tx,
+            claim,
+            ContentLearningRunStatus.COMPLETED,
+            now,
+            {
+              progress: 100,
+              resultArtifactId: artifact.id,
+              report: toPrismaJson({
+                manifestHash: dataset.manifestHash,
+                armState: state,
+                sourceAccountCount: groups.length,
+                synthetic: dataset.synthetic,
+              }),
+            },
+          );
           return artifact;
         });
       const evaluationRows: LearningEvaluationRow[] = rows.map((row) => {
@@ -970,10 +1029,16 @@ export class LearningRunService {
         synthetic: dataset.synthetic,
       };
       return await this.owned(claim, async (tx, now) => {
-        await this.writePair(tx, claim, 'completed', now, {
-          progress: 100,
-          report: toPrismaJson(fullReport),
-        });
+        await this.writePair(
+          tx,
+          claim,
+          ContentLearningRunStatus.COMPLETED,
+          now,
+          {
+            progress: 100,
+            report: toPrismaJson(fullReport),
+          },
+        );
         return fullReport;
       });
     } catch (error) {

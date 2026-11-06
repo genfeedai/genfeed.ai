@@ -27,3 +27,17 @@ export enum ContentLearningOperationStatus {
   CANCELLED = 'cancelled',
   INVALIDATED = 'invalidated',
 }
+export enum ContentLearningRunStatus {
+  PENDING = 'pending',
+  RUNNING = 'running',
+  COMPLETED = 'completed',
+  INSUFFICIENT_DATA = 'insufficient_data',
+  FAILED = 'failed',
+  CANCELLED = 'cancelled',
+  INVALIDATED = 'invalidated',
+}
+/** Run and operation statuses that still hold a dispatch slot (non-terminal). */
+export const CONTENT_LEARNING_ACTIVE_STATUSES: readonly string[] = [
+  ContentLearningRunStatus.PENDING,
+  ContentLearningRunStatus.RUNNING,
+];

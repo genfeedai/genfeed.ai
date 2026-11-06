@@ -1,4 +1,5 @@
 import { LearningDatasetPublicationPins } from '@api/collections/content-learning/services/learning-dataset-publication-pins';
+import { ContentLearningRunStatus } from '@genfeedai/contracts';
 import {
   isLearningDerivedDependencyKind,
   isLearningGlobalDependencyKind,
@@ -210,7 +211,10 @@ export class LearningDatasetGraph {
       case 'run': {
         const rows = await this.tx.contentLearningRun.findMany({
           select: { configHash: true, id: true },
-          where: { ...globalWhere, status: { not: 'invalidated' } },
+          where: {
+            ...globalWhere,
+            status: { not: ContentLearningRunStatus.INVALIDATED },
+          },
         });
         for (const row of rows) {
           const pin = row.configHash;

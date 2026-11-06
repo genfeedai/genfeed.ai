@@ -5,7 +5,12 @@ import {
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { PlatformRole } from '@genfeedai/contracts';
+import {
+  CONTENT_LEARNING_ACTIVE_STATUSES,
+  ContentLearningOperationStatus,
+  ContentLearningRunStatus,
+  PlatformRole,
+} from '@genfeedai/contracts';
 import {
   type LearningRunDispatchReceiptV1,
   validLearningRunDispatchReceipt,
@@ -23,6 +28,14 @@ export interface LearningRunControlInput {
   actorId: string;
   requestId: string;
 }
+const RETRYABLE_RUN_STATUSES: readonly string[] = [
+  ContentLearningRunStatus.FAILED,
+  ContentLearningRunStatus.CANCELLED,
+];
+const CANCELLABLE_RUN_STATUSES: readonly string[] = [
+  ...CONTENT_LEARNING_ACTIVE_STATUSES,
+  ...RETRYABLE_RUN_STATUSES,
+];
 interface LearningRunClock {
   now: Date;
 }
@@ -100,9 +113,9 @@ export class LearningRunControlService {
       const now = await this.clock(tx);
       if (action === 'retry') {
         if (
-          !['failed', 'cancelled'].includes(run.status) ||
+          !RETRYABLE_RUN_STATUSES.includes(run.status) ||
           cycles.some((cycle) =>
-            ['pending', 'running'].includes(cycle.status),
+            CONTENT_LEARNING_ACTIVE_STATUSES.includes(cycle.status),
           ) ||
           !(await this.dependencies.valid('run', run.id, tx, null))
         )
@@ -110,7 +123,7 @@ export class LearningRunControlService {
         const changed = await tx.contentLearningRun.updateMany({
           where: { id: run.id, isDeleted: false, status: run.status },
           data: {
-            status: 'pending',
+            status: ContentLearningRunStatus.PENDING,
             progress: 0,
             error: null,
             report: Prisma.DbNull,
@@ -136,19 +149,22 @@ export class LearningRunControlService {
             requestId: input.requestId,
             payloadHash,
             type: `dataset-${run.type}`,
-            status: 'pending',
+            status: ContentLearningOperationStatus.PENDING,
             resultReferences: toPrismaJson(receipt),
           },
         });
       } else {
-        if (!['pending', 'running', 'failed', 'cancelled'].includes(run.status))
+        if (!CANCELLABLE_RUN_STATUSES.includes(run.status))
           throw new ConflictException('Run cannot cancel');
         await tx.contentLearningRun.updateMany({
           where: { id: run.id, isDeleted: false, status: run.status },
-          data: { status: 'cancelled', completedAt: now },
+          data: {
+            status: ContentLearningRunStatus.CANCELLED,
+            completedAt: now,
+          },
         });
         for (const cycle of cycles.filter((cycle) =>
-          ['pending', 'running'].includes(cycle.status),
+          CONTENT_LEARNING_ACTIVE_STATUSES.includes(cycle.status),
         )) {
           const receipt: unknown = cycle.resultReferences;
           if (!validLearningRunDispatchReceipt(receipt))
@@ -161,13 +177,13 @@ export class LearningRunControlService {
               status: cycle.status,
             },
             data: {
-              status: 'cancelled',
+              status: ContentLearningOperationStatus.CANCELLED,
               error: null,
               resultReferences: toPrismaJson({
                 ...receipt,
                 nextAttemptAt: null,
                 terminalResult: {
-                  runStatus: 'cancelled',
+                  runStatus: ContentLearningRunStatus.CANCELLED,
                   reasonCode: 'cancelled',
                   resultArtifactId: null,
                   completedAt: now.toISOString(),
@@ -186,7 +202,7 @@ export class LearningRunControlService {
             requestId: input.requestId,
             payloadHash,
             type: 'run-cancel',
-            status: 'completed',
+            status: ContentLearningOperationStatus.COMPLETED,
             resultReferences: toPrismaJson({
               runId: run.id,
               action,
