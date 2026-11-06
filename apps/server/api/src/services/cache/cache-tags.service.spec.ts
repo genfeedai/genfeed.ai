@@ -1,117 +1,156 @@
-import { CacheClientService } from '@api/services/cache/cache-client.service';
+import type { CacheClientService } from '@api/services/cache/cache-client.service';
 import { CacheTagsService } from '@api/services/cache/cache-tags.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { describe, expect, it } from 'vitest';
+
+type Log = { context: Record<string, unknown>; level: string; message: string };
+
+/**
+ * A Redis keyspace of plain values and sets with MULTI pipelines, plus a
+ * logger that records what it was told. `failing` makes the named command
+ * reject the way a dropped connection does.
+ */
+function buildService(
+  options: { failing?: 'exec' | 'smembers'; isReady?: boolean } = {},
+) {
+  const values = new Map<string, string>();
+  const sets = new Map<string, Set<string>>();
+  const logs: Log[] = [];
+  const redis = {
+    multi: () => {
+      const queued: (() => void)[] = [];
+      const pipeline = {
+        del: (key: string) => {
+          queued.push(() => {
+            values.delete(key);
+            sets.delete(key);
+          });
+          return pipeline;
+        },
+        exec: async () => {
+          if (options.failing === 'exec') throw new Error('pipeline error');
+          for (const command of queued) command();
+          return [];
+        },
+        sadd: (key: string, member: string) => {
+          queued.push(() => {
+            sets.set(key, (sets.get(key) ?? new Set()).add(member));
+          });
+          return pipeline;
+        },
+      };
+      return pipeline;
+    },
+    smembers: async (key: string) => {
+      if (options.failing === 'smembers') throw new Error('redis down');
+      return [...(sets.get(key) ?? [])];
+    },
+  };
+  const record =
+    (level: string) => (message: string, context: Record<string, unknown>) =>
+      logs.push({ context, level, message });
+  const service = new CacheTagsService(
+    {
+      instance: redis,
+      isReady: options.isReady ?? true,
+    } as unknown as CacheClientService,
+    {
+      debug: record('debug'),
+      error: record('error'),
+      log: record('log'),
+      warn: record('warn'),
+    } as unknown as LoggerService,
+  );
+  return { logs, service, sets, values };
+}
 
 describe('CacheTagsService', () => {
-  let service: CacheTagsService;
+  it('adds the key to every tag set', async () => {
+    const { service, sets } = buildService();
 
-  const mockPipeline = {
-    del: vi.fn().mockReturnThis(),
-    exec: vi.fn().mockResolvedValue([]),
-    sadd: vi.fn().mockReturnThis(),
-  };
-
-  const mockRedisClient = {
-    del: vi.fn().mockResolvedValue(1),
-    multi: vi.fn().mockReturnValue(mockPipeline),
-    smembers: vi.fn().mockResolvedValue([]),
-  };
-
-  const mockCacheClientService = {
-    instance: mockRedisClient,
-    isReady: true,
-  } as unknown as CacheClientService;
-
-  const mockLogger = {
-    debug: vi.fn(),
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  };
-
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    mockPipeline.exec.mockResolvedValue([]);
-    mockRedisClient.smembers.mockResolvedValue([]);
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CacheTagsService,
-        { provide: CacheClientService, useValue: mockCacheClientService },
-        { provide: LoggerService, useValue: mockLogger },
-      ],
-    }).compile();
-
-    service = module.get<CacheTagsService>(CacheTagsService);
-  });
-
-  it('should do nothing when tags array is empty', async () => {
-    await service.setTags('cache:key', []);
-    expect(mockRedisClient.multi).not.toHaveBeenCalled();
-  });
-
-  it('should add key to each tag set via pipeline', async () => {
     await service.setTags('posts:123', ['org:abc', 'brand:xyz']);
-    expect(mockRedisClient.multi).toHaveBeenCalledOnce();
-    expect(mockPipeline.sadd).toHaveBeenCalledWith('tag:org:abc', 'posts:123');
-    expect(mockPipeline.sadd).toHaveBeenCalledWith(
-      'tag:brand:xyz',
-      'posts:123',
-    );
-    expect(mockPipeline.exec).toHaveBeenCalledOnce();
-  });
 
-  it('should log error when setTags pipeline fails', async () => {
-    mockPipeline.exec.mockRejectedValueOnce(new Error('pipeline error'));
-    await service.setTags('key', ['tag1']);
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining('setTags error'),
-      expect.objectContaining({ key: 'key', tags: ['tag1'] }),
+    expect(sets).toEqual(
+      new Map([
+        ['tag:org:abc', new Set(['posts:123'])],
+        ['tag:brand:xyz', new Set(['posts:123'])],
+      ]),
     );
   });
 
-  it('should return 0 when tag has no associated keys', async () => {
-    mockRedisClient.smembers.mockResolvedValueOnce([]);
-    const count = await service.invalidateByTags(['empty-tag']);
-    expect(count).toBe(0);
+  it('writes nothing for an empty tag list or a cache that is not ready', async () => {
+    const empty = buildService();
+    const offline = buildService({ isReady: false });
+
+    await empty.service.setTags('cache:key', []);
+    await offline.service.setTags('cache:key', ['org:abc']);
+
+    expect(empty.sets.size).toBe(0);
+    expect(offline.sets.size).toBe(0);
   });
 
-  it('should delete all keys associated with a tag and the tag set itself', async () => {
-    mockRedisClient.smembers.mockResolvedValueOnce(['key:1', 'key:2']);
-    const count = await service.invalidateByTags(['my-tag']);
-    expect(count).toBe(2);
-    expect(mockPipeline.del).toHaveBeenCalledWith('key:1');
-    expect(mockPipeline.del).toHaveBeenCalledWith('key:2');
-    expect(mockPipeline.del).toHaveBeenCalledWith('tag:my-tag');
-    expect(mockPipeline.exec).toHaveBeenCalledOnce();
+  it('logs instead of throwing when the setTags pipeline fails', async () => {
+    const { logs, service } = buildService({ failing: 'exec' });
+
+    await expect(service.setTags('key', ['tag1'])).resolves.toBeUndefined();
+
+    expect(logs).toEqual([
+      {
+        context: expect.objectContaining({ key: 'key', tags: ['tag1'] }),
+        level: 'error',
+        message: expect.stringContaining('setTags error'),
+      },
+    ]);
   });
 
-  it('should sum counts across multiple tags', async () => {
-    mockRedisClient.smembers
-      .mockResolvedValueOnce(['a:1'])
-      .mockResolvedValueOnce(['b:1', 'b:2', 'b:3']);
-    const count = await service.invalidateByTags(['tag-a', 'tag-b']);
-    expect(count).toBe(4);
+  it('returns 0 when a tag has no associated keys', async () => {
+    const { logs, service } = buildService();
+
+    await expect(service.invalidateByTags(['empty-tag'])).resolves.toBe(0);
+    expect(logs).toEqual([]);
   });
 
-  it('should log debug when keys were invalidated', async () => {
-    mockRedisClient.smembers.mockResolvedValueOnce(['k1']);
-    await service.invalidateByTags(['t1']);
-    expect(mockLogger.debug).toHaveBeenCalledWith(
-      expect.stringContaining('invalidated 1 keys'),
-      expect.objectContaining({ tags: ['t1'] }),
-    );
+  it('deletes every tagged key and the tag set, leaving other keys', async () => {
+    const { service, sets, values } = buildService();
+    values.set('key:1', 'one');
+    values.set('key:2', 'two');
+    values.set('key:untagged', 'kept');
+    await service.setTags('key:1', ['my-tag']);
+    await service.setTags('key:2', ['my-tag']);
+
+    await expect(service.invalidateByTags(['my-tag'])).resolves.toBe(2);
+
+    expect([...values.keys()]).toEqual(['key:untagged']);
+    expect(sets.has('tag:my-tag')).toBe(false);
   });
 
-  it('should return 0 and log error when invalidation fails', async () => {
-    mockRedisClient.smembers.mockRejectedValueOnce(new Error('redis down'));
-    const count = await service.invalidateByTags(['bad-tag']);
-    expect(count).toBe(0);
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining('invalidateByTags error'),
-      expect.objectContaining({ tags: ['bad-tag'] }),
-    );
+  it('sums counts across tags and logs what it invalidated', async () => {
+    const { logs, service } = buildService();
+    await service.setTags('a:1', ['tag-a']);
+    await service.setTags('b:1', ['tag-b']);
+    await service.setTags('b:2', ['tag-b']);
+    await service.setTags('b:3', ['tag-b']);
+
+    await expect(service.invalidateByTags(['tag-a', 'tag-b'])).resolves.toBe(4);
+    expect(logs).toEqual([
+      {
+        context: { tags: ['tag-a', 'tag-b'] },
+        level: 'debug',
+        message: expect.stringContaining('invalidated 4 keys'),
+      },
+    ]);
+  });
+
+  it('returns 0 and logs when invalidation fails', async () => {
+    const { logs, service } = buildService({ failing: 'smembers' });
+
+    await expect(service.invalidateByTags(['bad-tag'])).resolves.toBe(0);
+    expect(logs).toEqual([
+      {
+        context: expect.objectContaining({ tags: ['bad-tag'] }),
+        level: 'error',
+        message: expect.stringContaining('invalidateByTags error'),
+      },
+    ]);
   });
 });
