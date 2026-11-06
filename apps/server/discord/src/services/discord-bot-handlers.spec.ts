@@ -1,26 +1,17 @@
 import { registerDiscordBotHandlers } from '@discord/services/discord-bot-handlers';
 import type { OrgIntegration, WorkflowSession } from '@genfeedai/integrations';
 import type { Client, Message } from 'discord.js';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-type ListenerFn = (...args: unknown[]) => Promise<void> | void;
+type Listener = (...args: unknown[]) => Promise<void> | void;
 
-interface HandlerMocks {
-  getSession: ReturnType<typeof vi.fn>;
-  handleAttachmentInput: ReturnType<typeof vi.fn>;
-  handleButtonInteraction: ReturnType<typeof vi.fn>;
-  handleCancelCommand: ReturnType<typeof vi.fn>;
-  handleSettingsCommand: ReturnType<typeof vi.fn>;
-  handleStatusCommand: ReturnType<typeof vi.fn>;
-  handleTextInput: ReturnType<typeof vi.fn>;
-  handleWorkflowsCommand: ReturnType<typeof vi.fn>;
-  logReady: ReturnType<typeof vi.fn>;
-  registerSlashCommands: ReturnType<typeof vi.fn>;
+interface Reply {
+  content: string;
+  ephemeral: boolean;
 }
 
-interface HandlerTestContext {
-  listeners: Map<string, ListenerFn>;
-  mocks: HandlerMocks;
-  onceListeners: Map<string, ListenerFn>;
+interface Actor {
+  user: { id: string };
 }
 
 const integration: OrgIntegration = {
@@ -34,230 +25,186 @@ const integration: OrgIntegration = {
   updatedAt: new Date('2026-01-01'),
 };
 
-function createContext(): HandlerTestContext {
-  const listeners = new Map<string, ListenerFn>();
-  const onceListeners = new Map<string, ListenerFn>();
-  const client = {
-    on: vi.fn().mockImplementation((event: string, listener: ListenerFn) => {
-      listeners.set(event, listener);
-    }),
-    once: vi.fn().mockImplementation((event: string, listener: ListenerFn) => {
-      onceListeners.set(event, listener);
-    }),
-  } as unknown as Client;
-
-  const mocks: HandlerMocks = {
-    getSession: vi.fn(),
-    handleAttachmentInput: vi.fn().mockResolvedValue(undefined),
-    handleButtonInteraction: vi.fn().mockResolvedValue(undefined),
-    handleCancelCommand: vi.fn().mockResolvedValue(undefined),
-    handleSettingsCommand: vi.fn().mockResolvedValue(undefined),
-    handleStatusCommand: vi.fn().mockResolvedValue(undefined),
-    handleTextInput: vi.fn().mockResolvedValue(undefined),
-    handleWorkflowsCommand: vi.fn().mockResolvedValue(undefined),
-    logReady: vi.fn(),
-    registerSlashCommands: vi.fn().mockResolvedValue(undefined),
-  };
-
-  registerDiscordBotHandlers(
-    client,
-    integration,
-    mocks as unknown as Parameters<typeof registerDiscordBotHandlers>[2],
-  );
-
-  return { listeners, mocks, onceListeners };
-}
-
-function createCommandInteraction(commandName: string, userId = 'user-1') {
-  return {
-    commandName,
-    isButton: vi.fn().mockReturnValue(false),
-    isChatInputCommand: vi.fn().mockReturnValue(true),
-    isRepliable: vi.fn().mockReturnValue(true),
-    reply: vi.fn().mockResolvedValue(undefined),
-    user: { id: userId },
-  };
-}
-
-function createMessage(overrides: {
-  attachments?: Map<string, unknown>;
-  bot?: boolean;
-  content?: string;
-  userId?: string;
-}): Message {
-  return {
-    attachments: overrides.attachments ?? new Map<string, unknown>(),
-    author: { bot: overrides.bot ?? false, id: overrides.userId ?? 'user-1' },
-    channelId: 'ch-1',
-    content: overrides.content ?? '',
-  } as unknown as Message;
-}
-
-const collectingSession: WorkflowSession = {
+const session = (state: WorkflowSession['state']): WorkflowSession => ({
   collectedInputs: new Map(),
   currentInputIndex: 0,
   requiredInputs: [],
   startedAt: Date.now(),
-  state: 'collecting',
-};
+  state,
+});
+
+const message = (
+  fields: {
+    attachments?: Map<string, unknown>;
+    bot?: boolean;
+    content?: string;
+    userId?: string;
+  } = {},
+) =>
+  ({
+    attachments: fields.attachments ?? new Map<string, unknown>(),
+    author: { bot: fields.bot ?? false, id: fields.userId ?? 'user-1' },
+    channelId: 'ch-1',
+    content: fields.content ?? '',
+  }) as unknown as Message;
 
 describe('registerDiscordBotHandlers', () => {
-  describe('ready event', () => {
-    it('should log the tag and register slash commands', async () => {
-      const ctx = createContext();
+  let listeners: Map<string, Listener>;
+  let sessions: Map<string, WorkflowSession>;
+  let handled: string[];
+  let replies: Reply[];
 
-      const [readyListener] = [...ctx.onceListeners.values()];
-      await readyListener?.({ user: { id: 'bot-user', tag: 'Bot#0001' } });
-
-      expect(ctx.mocks.logReady).toHaveBeenCalledWith('Bot#0001');
-      expect(ctx.mocks.registerSlashCommands).toHaveBeenCalledWith(
-        'bot-user',
-        'bot-token',
-      );
-    });
+  const emit = (event: string, payload: unknown) =>
+    listeners.get(event)?.(payload);
+  const command = (
+    commandName: string,
+    userId = 'user-1',
+    isRepliable = true,
+  ) => ({
+    commandName,
+    isButton: () => false,
+    isChatInputCommand: () => true,
+    isRepliable: () => isRepliable,
+    reply: async (reply: Reply) => {
+      replies.push(reply);
+    },
+    user: { id: userId },
   });
 
-  describe('interactionCreate', () => {
-    it('should reply with an authorization error for unauthorized users', async () => {
-      const ctx = createContext();
-      const interaction = createCommandInteraction('workflows', 'intruder');
+  beforeEach(() => {
+    listeners = new Map();
+    sessions = new Map();
+    handled = [];
+    replies = [];
 
-      await ctx.listeners.get('interactionCreate')?.(interaction);
+    // A Discord client that keeps the listeners it is given.
+    const client = {
+      on: (event: string, listener: Listener) => listeners.set(event, listener),
+      once: (event: string, listener: Listener) =>
+        listeners.set(event, listener),
+    } as unknown as Client;
+    // The bot manager: each handler notes what it handled.
+    const note =
+      (name: string) =>
+      async (subject: Actor | Message, extra = '') => {
+        const who = 'user' in subject ? subject.user.id : subject.author.id;
+        handled.push(`${name} ${who} ${extra}`.trim());
+      };
+    registerDiscordBotHandlers(client, integration, {
+      getSession: (key: string) => sessions.get(key),
+      handleAttachmentInput: note('attachment'),
+      handleButtonInteraction: note('button'),
+      handleCancelCommand: note('cancel'),
+      handleSettingsCommand: note('settings'),
+      handleStatusCommand: note('status'),
+      handleTextInput: note('text'),
+      handleWorkflowsCommand: note('workflows'),
+      logReady: (tag: string) => handled.push(`ready ${tag}`),
+      registerSlashCommands: async (clientId: string, token: string) => {
+        handled.push(`commands ${clientId} ${token}`);
+      },
+    } as unknown as Parameters<typeof registerDiscordBotHandlers>[2]);
+  });
 
-      expect(interaction.reply).toHaveBeenCalledWith({
-        content: 'You are not authorized to use this bot.',
-        ephemeral: true,
-      });
-      expect(ctx.mocks.handleWorkflowsCommand).not.toHaveBeenCalled();
+  it('logs the tag and registers slash commands once ready', async () => {
+    await emit('clientReady', { user: { id: 'bot-user', tag: 'Bot#0001' } });
+
+    expect(handled).toEqual(['ready Bot#0001', 'commands bot-user bot-token']);
+  });
+
+  describe('interactions', () => {
+    it('tells an unauthorized user they may not use the bot', async () => {
+      await emit('interactionCreate', command('workflows', 'intruder'));
+
+      expect(replies).toEqual([
+        { content: 'You are not authorized to use this bot.', ephemeral: true },
+      ]);
+      expect(handled).toEqual([]);
     });
 
-    it('should stay silent for unauthorized non-repliable interactions', async () => {
-      const ctx = createContext();
-      const interaction = createCommandInteraction('workflows', 'intruder');
-      interaction.isRepliable.mockReturnValue(false);
+    it('stays silent for an unauthorized interaction it cannot answer', async () => {
+      await emit('interactionCreate', command('workflows', 'intruder', false));
 
-      await ctx.listeners.get('interactionCreate')?.(interaction);
-
-      expect(interaction.reply).not.toHaveBeenCalled();
+      expect(replies).toEqual([]);
+      expect(handled).toEqual([]);
     });
 
     it.each([
-      ['workflows', 'handleWorkflowsCommand'],
-      ['status', 'handleStatusCommand'],
-      ['cancel', 'handleCancelCommand'],
-      ['settings', 'handleSettingsCommand'],
-    ] as const)('should route /%s to %s', async (commandName, handlerName) => {
-      const ctx = createContext();
-      const interaction = createCommandInteraction(commandName);
+      ['workflows', ['workflows user-1 org-1']],
+      ['status', ['status user-1']],
+      ['cancel', ['cancel user-1']],
+      ['settings', ['settings user-1']],
+      ['unknown', []],
+    ])('routes /%s', async (commandName, expected) => {
+      await emit('interactionCreate', command(commandName));
 
-      await ctx.listeners.get('interactionCreate')?.(interaction);
-
-      expect(ctx.mocks[handlerName]).toHaveBeenCalled();
+      expect(handled).toEqual(expected);
     });
 
-    it('should ignore unknown slash commands', async () => {
-      const ctx = createContext();
-      const interaction = createCommandInteraction('unknown');
-
-      await ctx.listeners.get('interactionCreate')?.(interaction);
-
-      expect(ctx.mocks.handleWorkflowsCommand).not.toHaveBeenCalled();
-      expect(ctx.mocks.handleStatusCommand).not.toHaveBeenCalled();
-      expect(ctx.mocks.handleCancelCommand).not.toHaveBeenCalled();
-      expect(ctx.mocks.handleSettingsCommand).not.toHaveBeenCalled();
-    });
-
-    it('should route button interactions with the org id', async () => {
-      const ctx = createContext();
-      const interaction = {
+    it('routes a button press with the organization', async () => {
+      await emit('interactionCreate', {
         customId: 'confirm:run',
-        isButton: vi.fn().mockReturnValue(true),
-        isChatInputCommand: vi.fn().mockReturnValue(false),
-        isRepliable: vi.fn().mockReturnValue(true),
+        isButton: () => true,
+        isChatInputCommand: () => false,
+        isRepliable: () => true,
         user: { id: 'user-1' },
-      };
+      });
 
-      await ctx.listeners.get('interactionCreate')?.(interaction);
-
-      expect(ctx.mocks.handleButtonInteraction).toHaveBeenCalledWith(
-        interaction,
-        'org-1',
-      );
+      expect(handled).toEqual(['button user-1 org-1']);
     });
   });
 
-  describe('messageCreate', () => {
-    it('should ignore bot-authored messages', async () => {
-      const ctx = createContext();
-
-      await ctx.listeners.get('messageCreate')?.(
-        createMessage({ bot: true, content: 'hi' }),
-      );
-
-      expect(ctx.mocks.getSession).not.toHaveBeenCalled();
+  describe('messages', () => {
+    beforeEach(() => {
+      sessions.set('ch-1:user-1', session('collecting'));
     });
 
-    it('should ignore unauthorized authors', async () => {
-      const ctx = createContext();
+    it.each([
+      [
+        'text',
+        message({ content: 'a red panda' }),
+        ['text user-1 ch-1:user-1'],
+      ],
+      [
+        'an attachment',
+        message({
+          attachments: new Map([['a-1', { url: 'https://cdn/img.png' }]]),
+          content: 'caption',
+        }),
+        ['attachment user-1 ch-1:user-1'],
+      ],
+      ['an empty message', message(), []],
+      ['a bot message', message({ bot: true, content: 'hi' }), []],
+      [
+        'an unauthorized author',
+        message({ content: 'hi', userId: 'intruder' }),
+        [],
+      ],
+    ])(
+      'collects %s for the channel session',
+      async (_case, input, expected) => {
+        await emit('messageCreate', input);
 
-      await ctx.listeners.get('messageCreate')?.(
-        createMessage({ content: 'hi', userId: 'intruder' }),
-      );
+        expect(handled).toEqual(expected);
+      },
+    );
 
-      expect(ctx.mocks.getSession).not.toHaveBeenCalled();
-    });
+    it.each([
+      ['no session', []],
+      [
+        'a session that is not collecting',
+        [['ch-1:user-1', session('running')]],
+      ],
+      [
+        'a session in another channel',
+        [['ch-2:user-1', session('collecting')]],
+      ],
+    ] as const)('ignores a message with %s', async (_case, entries) => {
+      sessions = new Map(entries);
 
-    it('should ignore messages without a collecting session', async () => {
-      const ctx = createContext();
-      ctx.mocks.getSession.mockReturnValue(undefined);
+      await emit('messageCreate', message({ content: 'hi' }));
 
-      await ctx.listeners.get('messageCreate')?.(
-        createMessage({ content: 'hi' }),
-      );
-
-      expect(ctx.mocks.getSession).toHaveBeenCalledWith('ch-1:user-1');
-      expect(ctx.mocks.handleTextInput).not.toHaveBeenCalled();
-      expect(ctx.mocks.handleAttachmentInput).not.toHaveBeenCalled();
-    });
-
-    it('should route attachment messages to handleAttachmentInput', async () => {
-      const ctx = createContext();
-      ctx.mocks.getSession.mockReturnValue(collectingSession);
-      const message = createMessage({
-        attachments: new Map([['a-1', { url: 'https://cdn/img.png' }]]),
-      });
-
-      await ctx.listeners.get('messageCreate')?.(message);
-
-      expect(ctx.mocks.handleAttachmentInput).toHaveBeenCalledWith(
-        message,
-        'ch-1:user-1',
-      );
-      expect(ctx.mocks.handleTextInput).not.toHaveBeenCalled();
-    });
-
-    it('should route text messages to handleTextInput', async () => {
-      const ctx = createContext();
-      ctx.mocks.getSession.mockReturnValue(collectingSession);
-      const message = createMessage({ content: 'a red panda' });
-
-      await ctx.listeners.get('messageCreate')?.(message);
-
-      expect(ctx.mocks.handleTextInput).toHaveBeenCalledWith(
-        message,
-        'ch-1:user-1',
-      );
-      expect(ctx.mocks.handleAttachmentInput).not.toHaveBeenCalled();
-    });
-
-    it('should ignore empty non-attachment messages', async () => {
-      const ctx = createContext();
-      ctx.mocks.getSession.mockReturnValue(collectingSession);
-
-      await ctx.listeners.get('messageCreate')?.(createMessage({}));
-
-      expect(ctx.mocks.handleTextInput).not.toHaveBeenCalled();
-      expect(ctx.mocks.handleAttachmentInput).not.toHaveBeenCalled();
+      expect(handled).toEqual([]);
     });
   });
 });
