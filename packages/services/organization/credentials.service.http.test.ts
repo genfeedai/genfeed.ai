@@ -3,133 +3,124 @@ import {
   CredentialInstagram,
 } from '@genfeedai/models/auth/credential.model';
 import {
-  axiosResponse,
   collectionDocument,
-  installMockHttp,
-  type MockHttpInstance,
   resourceDocument,
 } from '@services/__mocks__/http.mock';
+import { installFakeHttpRoutes } from '@services/__mocks__/http-routes.fake';
 import { CredentialsService } from '@services/organization/credentials.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+const credentialId = 'cred_1';
+const health = [{ credentialId, status: 'healthy' }];
+const readiness = [{ credentialId, isReady: true }];
+const context = { credentialId, isReady: true };
 
 describe('CredentialsService HTTP methods', () => {
-  const credentialId = 'cred_1';
   let service: CredentialsService;
-  let http: MockHttpInstance;
+  let server: ReturnType<typeof installFakeHttpRoutes>;
 
   beforeEach(() => {
-    vi.clearAllMocks();
     service = new CredentialsService('credentials-token');
-    http = installMockHttp(service);
+    server = installFakeHttpRoutes(service, {
+      'GET /brand/brand_1/account-health': health,
+      'GET /brand/brand_1/publishing-readiness': readiness,
+      'GET /cred_1/instagram/pages': collectionDocument([
+        { id: 'page_1', name: 'Page' },
+      ]),
+      'GET /cred_1/publishing-context?surface=post': context,
+      'GET /cred_1/publishing-context?surface=thread': {
+        ...context,
+        isReady: false,
+      },
+      'GET /cred_1/quota': resourceDocument(
+        { remaining: 10, used: 2 },
+        { id: 'quota_1' },
+      ),
+      'PATCH /cred_1/account-health/override': (body: unknown) => ({
+        credentialId,
+        override: body,
+        status: 'healthy',
+      }),
+      'POST /cred_1/account-health/assess': (body: unknown) => ({
+        credentialId,
+        request: body,
+        status: 'warning',
+      }),
+      'POST /cred_1/refresh': resourceDocument(
+        { platform: 'instagram' },
+        { id: credentialId },
+      ),
+    });
   });
 
   it('findCredentialInstagramPages maps Instagram pages', async () => {
-    http.get.mockResolvedValue(
-      axiosResponse(collectionDocument([{ id: 'page_1', name: 'Page' }])),
-    );
-
     const result = await service.findCredentialInstagramPages(credentialId);
 
-    expect(http.get).toHaveBeenCalledWith(`/${credentialId}/instagram/pages`, {
-      signal: undefined,
-    });
+    expect(result).toHaveLength(1);
     expect(result[0]).toBeInstanceOf(CredentialInstagram);
+    expect(result[0]).toMatchObject({ id: 'page_1', name: 'Page' });
   });
 
   it('refreshCredential POSTs the refresh action', async () => {
-    http.post.mockResolvedValue(
-      axiosResponse(
-        resourceDocument({ platform: 'instagram' }, { id: credentialId }),
-      ),
-    );
-
     const result = await service.refreshCredential(credentialId);
 
-    expect(http.post).toHaveBeenCalledWith(`/${credentialId}/refresh`);
     expect(result).toBeInstanceOf(Credential);
+    expect(result).toMatchObject({ id: credentialId, platform: 'instagram' });
   });
 
   it('listBrandAccountHealth GETs the brand health list', async () => {
-    const health = [{ credentialId, status: 'healthy' }];
-    http.get.mockResolvedValue(axiosResponse(health));
-
-    const result = await service.listBrandAccountHealth('brand_1');
-
-    expect(http.get).toHaveBeenCalledWith('/brand/brand_1/account-health');
-    expect(result).toEqual(health);
+    await expect(service.listBrandAccountHealth('brand_1')).resolves.toEqual(
+      health,
+    );
   });
 
-  it('listBrandPublishingReadiness GETs readiness with a signal', async () => {
+  it('listBrandPublishingReadiness GETs readiness and honours cancellation', async () => {
+    await expect(
+      service.listBrandPublishingReadiness('brand_1'),
+    ).resolves.toEqual(readiness);
+
     const controller = new AbortController();
-    const readiness = [{ credentialId, isReady: true }];
-    http.get.mockResolvedValue(axiosResponse(readiness));
-
-    const result = await service.listBrandPublishingReadiness(
-      'brand_1',
-      controller.signal,
-    );
-
-    expect(http.get).toHaveBeenCalledWith(
-      '/brand/brand_1/publishing-readiness',
-      { signal: controller.signal },
-    );
-    expect(result).toEqual(readiness);
+    controller.abort();
+    await expect(
+      service.listBrandPublishingReadiness('brand_1', controller.signal),
+    ).rejects.toThrow('canceled');
   });
 
-  it('getPublishingContext GETs with the default surface', async () => {
-    const context = { credentialId, isReady: true };
-    http.get.mockResolvedValue(axiosResponse(context));
-
-    const result = await service.getPublishingContext(credentialId);
-
-    expect(http.get).toHaveBeenCalledWith(
-      `/${credentialId}/publishing-context`,
-      { params: { surface: 'post' }, signal: undefined },
+  it('getPublishingContext defaults to the post surface', async () => {
+    await expect(service.getPublishingContext(credentialId)).resolves.toEqual(
+      context,
     );
-    expect(result).toEqual(context);
+    await expect(
+      service.getPublishingContext(credentialId, 'thread'),
+    ).resolves.toMatchObject({ isReady: false });
   });
 
-  it('assessAccountHealth POSTs the assessment request', async () => {
-    const summary = { credentialId, status: 'warning' };
-    http.post.mockResolvedValue(axiosResponse(summary));
-
-    const result = await service.assessAccountHealth(credentialId);
-
-    expect(http.post).toHaveBeenCalledWith(
-      `/${credentialId}/account-health/assess`,
-      {},
-    );
-    expect(result).toEqual(summary);
+  it('assessAccountHealth POSTs an empty assessment request by default', async () => {
+    await expect(service.assessAccountHealth(credentialId)).resolves.toEqual({
+      credentialId,
+      request: {},
+      status: 'warning',
+    });
   });
 
   it('overrideAccountHealth PATCHes the manual override and never POSTs it', async () => {
-    const summary = { credentialId, status: 'healthy' };
-    http.patch.mockResolvedValue(axiosResponse(summary));
-
     const override = {
       confirm: true,
       reason: 'Verified the account manually',
     } as const;
+
     const result = await service.overrideAccountHealth(credentialId, override);
 
-    expect(http.patch).toHaveBeenCalledWith(
-      `/${credentialId}/account-health/override`,
-      override,
-    );
-    expect(http.post).not.toHaveBeenCalled();
-    expect(result).toEqual(summary);
+    expect(result).toEqual({ credentialId, override, status: 'healthy' });
+    expect(Object.keys(server.bodies)).toEqual([
+      'PATCH /cred_1/account-health/override',
+    ]);
   });
 
   it('getQuotaStatus extracts the quota resource', async () => {
-    http.get.mockResolvedValue(
-      axiosResponse(
-        resourceDocument({ remaining: 10, used: 2 }, { id: 'quota_1' }),
-      ),
-    );
-
-    const result = await service.getQuotaStatus(credentialId);
-
-    expect(http.get).toHaveBeenCalledWith(`/${credentialId}/quota`);
-    expect(result).toMatchObject({ remaining: 10, used: 2 });
+    await expect(service.getQuotaStatus(credentialId)).resolves.toMatchObject({
+      remaining: 10,
+      used: 2,
+    });
   });
 });

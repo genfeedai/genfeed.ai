@@ -2,120 +2,147 @@ import { OrganizationLogoService } from '@api/collections/organizations/services
 import type { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import * as Sentry from '@sentry/nestjs';
+
+type LogoAsset = { cloudObjectKey: string; id: string; parentOrgId: string };
+
+// What reaches Sentry and the logs: the observable side of a signing failure.
+const reported = vi.hoisted(() => ({
+  exceptions: [] as { context: unknown; error: unknown }[],
+  warnings: [] as string[],
+}));
 
 vi.mock('@sentry/nestjs', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@sentry/nestjs')>()),
-  captureException: vi.fn(),
-  captureMessage: vi.fn(),
+  captureException: (error: unknown, context: unknown) => {
+    reported.exceptions.push({ context, error });
+  },
+  captureMessage: () => undefined,
 }));
 
-describe('OrganizationLogoService', () => {
-  const prisma = { asset: { findMany: vi.fn() } };
-  const mediaUrlService = { buildUrl: vi.fn() };
-  const loggerService = { warn: vi.fn() };
+const UNSIGNABLE_KEY = 'logos/bad';
 
-  const createService = () =>
-    new OrganizationLogoService(
+/**
+ * Fake asset table (newest first, as the service orders it) and signer. The
+ * signer refuses `logos/bad`; `queries` counts asset reads.
+ */
+function createService(assets: LogoAsset[] = []) {
+  const state = { queries: 0 };
+  const prisma = {
+    asset: {
+      findMany: async () => {
+        state.queries += 1;
+        return assets;
+      },
+    },
+  };
+  const mediaUrlService = {
+    buildUrl: (key: string) => {
+      if (key === UNSIGNABLE_KEY) {
+        throw new Error('Could not sign the media URL');
+      }
+      return `https://cdn.test/${key}?Signature=sig`;
+    },
+  };
+  const loggerService = {
+    warn: (message: string) => {
+      reported.warnings.push(message);
+    },
+  };
+  return {
+    service: new OrganizationLogoService(
       prisma as unknown as PrismaService,
       mediaUrlService as unknown as MediaUrlService,
       loggerService as unknown as LoggerService,
-    );
+    ),
+    state,
+  };
+}
 
+describe('OrganizationLogoService', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mediaUrlService.buildUrl.mockImplementation(
-      (key: string) => `https://cdn.test/${key}?Signature=sig`,
-    );
+    reported.exceptions = [];
+    reported.warnings = [];
   });
 
   it('returns an empty map without querying when no ids are given', async () => {
-    const result = await createService().resolveLogoUrls(['', '']);
+    const { service, state } = createService();
+
+    const result = await service.resolveLogoUrls(['', '']);
 
     expect(result.size).toBe(0);
-    expect(prisma.asset.findMany).not.toHaveBeenCalled();
+    expect(state.queries).toBe(0);
   });
 
   it('signs the stored object key through MediaUrlService', async () => {
-    prisma.asset.findMany.mockResolvedValue([
+    const { service } = createService([
       { cloudObjectKey: 'logos/abc.png', id: 'a1', parentOrgId: 'org_1' },
     ]);
 
-    const result = await createService().resolveLogoUrls(['org_1']);
+    const result = await service.resolveLogoUrls(['org_1']);
 
-    expect(mediaUrlService.buildUrl).toHaveBeenCalledWith('logos/abc.png');
     expect(result.get('org_1')).toBe(
       'https://cdn.test/logos/abc.png?Signature=sig',
     );
   });
 
   it('falls back to the legacy logos/<assetId> key when none is stored', async () => {
-    prisma.asset.findMany.mockResolvedValue([
+    const { service } = createService([
       { cloudObjectKey: '  ', id: 'a2', parentOrgId: 'org_2' },
     ]);
 
-    await createService().resolveLogoUrls(['org_2']);
+    const result = await service.resolveLogoUrls(['org_2']);
 
-    expect(mediaUrlService.buildUrl).toHaveBeenCalledWith('logos/a2');
+    expect(result.get('org_2')).toBe('https://cdn.test/logos/a2?Signature=sig');
   });
 
   it('keeps only the newest logo per organization', async () => {
-    prisma.asset.findMany.mockResolvedValue([
+    const { service } = createService([
       { cloudObjectKey: 'logos/new', id: 'new', parentOrgId: 'org_1' },
       { cloudObjectKey: 'logos/old', id: 'old', parentOrgId: 'org_1' },
     ]);
 
-    const result = await createService().resolveLogoUrls(['org_1']);
+    const result = await service.resolveLogoUrls(['org_1']);
 
-    expect(mediaUrlService.buildUrl).toHaveBeenCalledTimes(1);
-    expect(result.get('org_1')).toContain('logos/new');
+    expect([...result.entries()]).toEqual([
+      ['org_1', 'https://cdn.test/logos/new?Signature=sig'],
+    ]);
   });
 
   it('omits an org whose logo cannot be signed and reports once per process', async () => {
-    prisma.asset.findMany.mockResolvedValue([
-      { cloudObjectKey: 'logos/bad', id: 'bad', parentOrgId: 'org_1' },
+    const { service } = createService([
+      { cloudObjectKey: UNSIGNABLE_KEY, id: 'bad', parentOrgId: 'org_1' },
       { cloudObjectKey: 'logos/ok', id: 'ok', parentOrgId: 'org_2' },
     ]);
-    mediaUrlService.buildUrl.mockImplementation((key: string) => {
-      if (key === 'logos/bad') {
-        throw new Error('Could not sign the media URL');
-      }
-      return `https://cdn.test/${key}`;
-    });
-    const service = createService();
 
     const first = await service.resolveLogoUrls(['org_1', 'org_2']);
     await service.resolveLogoUrls(['org_1', 'org_2']);
 
     expect(first.has('org_1')).toBe(false);
-    expect(first.get('org_2')).toBe('https://cdn.test/logos/ok');
-    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
-    expect(Sentry.captureException).toHaveBeenCalledWith(
-      expect.any(Error),
-      expect.objectContaining({
-        tags: expect.objectContaining({
-          component: 'OrganizationLogoService',
-          organizationId: 'org_1',
+    expect(first.get('org_2')).toBe('https://cdn.test/logos/ok?Signature=sig');
+    expect(reported.exceptions).toEqual([
+      {
+        context: expect.objectContaining({
+          tags: expect.objectContaining({
+            component: 'OrganizationLogoService',
+            organizationId: 'org_1',
+          }),
         }),
-      }),
-    );
-    expect(loggerService.warn).toHaveBeenCalledTimes(1);
+        error: expect.any(Error),
+      },
+    ]);
+    expect(reported.warnings).toHaveLength(1);
   });
 
   it('falls through to an older logo when the newest cannot be signed', async () => {
-    prisma.asset.findMany.mockResolvedValue([
-      { cloudObjectKey: 'logos/bad', id: 'bad', parentOrgId: 'org_1' },
+    const { service } = createService([
+      { cloudObjectKey: UNSIGNABLE_KEY, id: 'bad', parentOrgId: 'org_1' },
       { cloudObjectKey: 'logos/old', id: 'old', parentOrgId: 'org_1' },
     ]);
-    mediaUrlService.buildUrl.mockImplementation((key: string) => {
-      if (key === 'logos/bad') {
-        throw new Error('Could not sign the media URL');
-      }
-      return `https://cdn.test/${key}`;
-    });
 
-    const result = await createService().resolveLogoUrls(['org_1']);
+    const result = await service.resolveLogoUrls(['org_1']);
 
-    expect(result.get('org_1')).toBe('https://cdn.test/logos/old');
+    expect(result.get('org_1')).toBe(
+      'https://cdn.test/logos/old?Signature=sig',
+    );
   });
 });
