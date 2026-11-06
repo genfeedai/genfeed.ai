@@ -1,137 +1,137 @@
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { CacheClientService } from '@api/services/cache/cache-client.service';
-import { CacheTagsService } from '@api/services/cache/cache-tags.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { CacheClientService } from '@api/services/cache/cache-client.service';
+import type { CacheTagsService } from '@api/services/cache/cache-tags.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('CacheInvalidationService', () => {
+  let keys: Set<string>;
+  let tagged: Map<string, string[]>;
+  let isRedisDown: boolean;
+  let unlinkCalls: number;
+  let errors: string[];
   let service: CacheInvalidationService;
 
-  const mockUnlink = vi.fn();
+  beforeEach(() => {
+    keys = new Set([
+      'brands:list:org1',
+      'brands:single:id1',
+      'users:profile:user-123',
+      'usercontroller:list',
+      'other:key',
+    ]);
+    tagged = new Map([
+      ['user:user-123', ['users:profile:user-123']],
+      ['usercontroller', ['usercontroller:list']],
+      ['user', ['users:profile:user-123']],
+      ['profile', ['users:profile:user-123', 'other:key']],
+    ]);
+    isRedisDown = false;
+    unlinkCalls = 0;
+    errors = [];
 
-  const mockRedisClient = {
-    unlink: mockUnlink,
-  };
+    const redis = {
+      unlink: async (toRemove: string[]) => {
+        unlinkCalls += 1;
+        if (isRedisDown) {
+          throw new Error('Redis unavailable');
+        }
+        const before = keys.size;
+        for (const key of toRemove) {
+          keys.delete(key);
+        }
+        return before - keys.size;
+      },
+    };
+    const cacheTags = {
+      invalidateByTags: async (tags: string[]) => {
+        if (isRedisDown) {
+          throw new Error('Redis unavailable');
+        }
+        const toRemove = new Set(tags.flatMap((tag) => tagged.get(tag) ?? []));
+        const before = keys.size;
+        for (const key of toRemove) {
+          keys.delete(key);
+        }
+        return before - keys.size;
+      },
+    };
 
-  const mockCacheClientService = {
-    get instance() {
-      return mockRedisClient;
-    },
-  };
-
-  const mockCacheTagsService = {
-    invalidateByTags: vi.fn(),
-  };
-
-  const mockLogger = {
-    debug: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-  };
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CacheInvalidationService,
-        {
-          provide: CacheClientService,
-          useValue: mockCacheClientService,
+    service = new CacheInvalidationService(
+      { instance: redis } as unknown as CacheClientService,
+      cacheTags as unknown as CacheTagsService,
+      {
+        debug: () => undefined,
+        error: (message: string) => {
+          errors.push(message);
         },
-        {
-          provide: CacheTagsService,
-          useValue: mockCacheTagsService,
-        },
-        {
-          provide: LoggerService,
-          useValue: mockLogger,
-        },
-      ],
-    }).compile();
-
-    service = module.get<CacheInvalidationService>(CacheInvalidationService);
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+        warn: () => undefined,
+      } as unknown as LoggerService,
+    );
   });
 
   describe('invalidate', () => {
-    it('should call redis.unlink with the provided keys', async () => {
-      mockUnlink.mockResolvedValue(2);
-
+    it('removes exactly the given keys', async () => {
       await service.invalidate('brands:list:org1', 'brands:single:id1');
 
-      expect(mockUnlink).toHaveBeenCalledWith([
-        'brands:list:org1',
-        'brands:single:id1',
+      expect([...keys]).toEqual([
+        'users:profile:user-123',
+        'usercontroller:list',
+        'other:key',
       ]);
     });
 
-    it('should not call redis.unlink when no keys are provided', async () => {
+    it('does not reach Redis when no keys are given', async () => {
       await service.invalidate();
 
-      expect(mockUnlink).not.toHaveBeenCalled();
+      expect(unlinkCalls).toBe(0);
+      expect(keys.size).toBe(5);
     });
 
-    it('should not throw and should log on redis error', async () => {
-      const error = new Error('Redis unavailable');
-      mockUnlink.mockRejectedValue(error);
+    it('swallows and logs a Redis error', async () => {
+      isRedisDown = true;
 
-      await expect(service.invalidate('some:key')).resolves.not.toThrow();
-      expect(mockLogger.error).toHaveBeenCalled();
+      await expect(service.invalidate('some:key')).resolves.toBeUndefined();
+      expect(errors).toEqual(['CacheInvalidationService invalidate error']);
     });
   });
 
   describe('invalidateByTags', () => {
-    it('should delegate to CacheTagsService and return count', async () => {
-      mockCacheTagsService.invalidateByTags.mockResolvedValue(5);
-
+    it('removes every key under the tags and returns the count', async () => {
       const count = await service.invalidateByTags(['user', 'profile']);
 
-      expect(mockCacheTagsService.invalidateByTags).toHaveBeenCalledWith([
-        'user',
-        'profile',
-      ]);
-      expect(count).toBe(5);
+      expect(count).toBe(2);
+      expect(keys.has('users:profile:user-123')).toBe(false);
+      expect(keys.has('other:key')).toBe(false);
+      expect(keys.has('brands:list:org1')).toBe(true);
     });
 
-    it('should return 0 and log on error', async () => {
-      mockCacheTagsService.invalidateByTags.mockRejectedValue(
-        new Error('Redis unavailable'),
-      );
+    it('returns 0 and logs on error', async () => {
+      isRedisDown = true;
 
       const count = await service.invalidateByTags(['user']);
 
       expect(count).toBe(0);
-      expect(mockLogger.error).toHaveBeenCalled();
-    });
-  });
-
-  describe('invalidateForUser', () => {
-    it('should invalidate with user tag', async () => {
-      mockCacheTagsService.invalidateByTags.mockResolvedValue(3);
-
-      await service.invalidateForUser('user-123');
-
-      expect(mockCacheTagsService.invalidateByTags).toHaveBeenCalledWith([
-        'user:user-123',
+      expect(errors).toEqual([
+        'CacheInvalidationService invalidateByTags error',
       ]);
     });
   });
 
-  describe('invalidateForController', () => {
-    it('should invalidate with lowercased controller name', async () => {
-      mockCacheTagsService.invalidateByTags.mockResolvedValue(10);
+  it.each([
+    [
+      'invalidateForUser',
+      () => service.invalidateForUser('user-123'),
+      'users:profile:user-123',
+    ],
+    [
+      'invalidateForController (lowercased)',
+      () => service.invalidateForController('UserController'),
+      'usercontroller:list',
+    ],
+  ])('%s removes only the keys under its tag', async (_case, act, removed) => {
+    await act();
 
-      await service.invalidateForController('UserController');
-
-      expect(mockCacheTagsService.invalidateByTags).toHaveBeenCalledWith([
-        'usercontroller',
-      ]);
-    });
+    expect(keys.has(removed)).toBe(false);
+    expect(keys.size).toBe(4);
   });
 });
