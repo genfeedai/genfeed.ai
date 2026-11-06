@@ -251,12 +251,12 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
         if (nextRun.brandId !== brandId)
           throw new Error('Storyboard is unavailable in this brand.');
         const runKey = storyboardRunQueryKey(brandId, nextRun.id);
-        // A read already in flight must not land over the action's result.
+        // The server's answer to this action is the run now, whatever its
+        // revision: a read already in flight must not land over it.
         await queryClient.cancelQueries({ queryKey: runKey });
         queryClient.setQueriesData<BrandRemixRunView>(
           { queryKey: runKey },
-          (current) =>
-            current ? newestRun(nextRun, [[runKey, current]]) : nextRun,
+          nextRun,
         );
         setAction({ error: null, readAt: 0, isWorking: false, scope });
         return nextRun;

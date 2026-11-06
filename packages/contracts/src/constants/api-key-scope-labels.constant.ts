@@ -15,6 +15,8 @@ export const API_KEY_SCOPE_OPTIONS = [
     label: 'Articles',
     scopes: ['articles:read', 'articles:create'],
   },
+  { label: 'Posts', scopes: ['posts:read'] },
+  { label: 'Connected accounts', scopes: ['credentials:read'] },
   { label: 'Post drafts', scopes: ['posts:draft'] },
   { label: 'Post scheduling', scopes: ['posts:schedule'] },
   { label: 'Publish approvals', scopes: ['posts:approve'] },

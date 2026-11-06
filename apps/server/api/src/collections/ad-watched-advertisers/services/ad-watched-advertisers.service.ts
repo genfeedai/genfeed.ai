@@ -9,7 +9,11 @@ import {
   CredentialPlatform,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
-import type { PopulateOption } from '@genfeedai/contracts/interfaces';
+import type {
+  AdWatchedAdvertiserFreshnessState,
+  AdWatchedAdvertiserIngestionStatus,
+  PopulateOption,
+} from '@genfeedai/contracts/interfaces';
 import type { PaidCreativePlatform } from '@genfeedai/integrations/ads';
 import {
   isPaidCreativePlatform,
@@ -36,13 +40,6 @@ const UPDATE_SCALAR_FIELDS = [
   'externalAdvertiserId',
 ] as const;
 
-export type AdIngestionStatus = 'success' | 'error' | 'unavailable';
-export type AdResearchFreshnessState =
-  | 'empty'
-  | 'fresh'
-  | 'stale'
-  | 'unavailable';
-
 type AdWatchedAdvertiserCreateInput = CreateAdWatchedAdvertiserDto & {
   organizationId?: string;
 };
@@ -58,10 +55,10 @@ export type AdWatchedAdvertiserScope = {
 
 export type AdIngestionResult = {
   errorCode?: string;
-  freshnessState: AdResearchFreshnessState;
+  freshnessState: AdWatchedAdvertiserFreshnessState;
   recordCount?: number;
   snapshotId?: string;
-  status: AdIngestionStatus;
+  status: AdWatchedAdvertiserIngestionStatus;
 };
 
 /**

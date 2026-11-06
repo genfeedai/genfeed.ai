@@ -137,6 +137,28 @@ describe('claimed Brand OS draft lifecycle', () => {
     expect(mocks.loaded).toHaveBeenCalledOnce();
     expect(mocks.getClaimedBrandOsDraft).toHaveBeenCalledOnce();
   });
+  it.each([
+    ['an empty handoff', {}],
+    ['a draft without fields', { draft: { id: 'draft-1' } }],
+  ])('treats %s as no claimed draft', async (_label, handoff) => {
+    mocks.getClaimedBrandOsDraft.mockResolvedValue(handoff);
+    const client = createTestQueryClient();
+    const { result } = renderHook(() => useBrandKitReviewCard(props), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    await waitFor(() =>
+      expect(mocks.getClaimedBrandOsDraft).toHaveBeenCalledOnce(),
+    );
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    // The card still works: no render crash took it down.
+    act(() => result.current.setWebsiteUrl('https://acme.test'));
+    expect(result.current.websiteUrl).toBe('https://acme.test');
+    expect(result.current.draft).toBeNull();
+    expect(result.current.isBrandOsDraft).toBe(false);
+    expect(mocks.loaded).not.toHaveBeenCalled();
+  });
   it('paints the cached handoff at once when Brand Kit is reopened', async () => {
     mocks.getClaimedBrandOsDraft.mockResolvedValue({
       draft: draft('brand-1', 60),

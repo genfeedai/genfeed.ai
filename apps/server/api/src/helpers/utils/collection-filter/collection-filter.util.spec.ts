@@ -257,6 +257,19 @@ describe('CollectionFilterUtil', () => {
         CollectionFilterUtil.buildBrandFilter(undefined, undefined, 'none'),
       ).toEqual({ not: null });
     });
+
+    it.each(['exists', 'none'] as const)(
+      'keeps a brand-restricted key on its own brands in %s mode',
+      (defaultTo) => {
+        expect(
+          CollectionFilterUtil.buildBrandFilter(
+            undefined,
+            { allowedBrandIds: ['brand-own'], brandId: 'brand-own' },
+            defaultTo,
+          ),
+        ).toEqual({ in: ['brand-own'] });
+      },
+    );
   });
 
   describe('buildAuthorizedBrandFilter', () => {

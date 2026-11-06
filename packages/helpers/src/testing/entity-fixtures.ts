@@ -169,17 +169,23 @@ export const createMetadataFixture = (
 });
 
 /** A complete ingredient tag owned by the default brand. */
-export const createTagFixture = (partial: Partial<ITag> = {}): ITag => ({
-  ...createBaseEntity<ITag>(partial),
-  backgroundColor: '#000000',
-  brand: createBrand(),
-  category: TagCategory.INGREDIENT,
-  label: 'Test tag',
-  organization: createOrganization(),
-  textColor: '#ffffff',
-  user: createUser(),
-  ...partial,
-});
+export const createTagFixture = (partial: Partial<ITag> = {}): ITag => {
+  const brand = createBrand();
+  const organization = createOrganization();
+  return {
+    ...createBaseEntity<ITag>(partial),
+    backgroundColor: '#000000',
+    brand,
+    brandId: brand.id,
+    category: TagCategory.INGREDIENT,
+    label: 'Test tag',
+    organization,
+    organizationId: organization.id,
+    textColor: '#ffffff',
+    user: createUser(),
+    ...partial,
+  };
+};
 
 /** An active, available image model. */
 export const createModelFixture = (partial: Partial<IModel> = {}): IModel => ({

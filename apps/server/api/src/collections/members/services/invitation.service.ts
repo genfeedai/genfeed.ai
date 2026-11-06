@@ -7,6 +7,7 @@ import { scopedWhere } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import type { InvitationStatus } from '@genfeedai/contracts/interfaces';
 import {
   buildSystemEmailHtml,
   buildSystemEmailParagraph,
@@ -29,14 +30,6 @@ const TRAILING_SLASH_PATTERN = /\/$/;
 const INVITATION_TOKEN_BYTES = 32;
 const INVITATION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 const DEFAULT_APP_URL = 'https://app.genfeed.ai';
-
-export type InvitationStatus =
-  | 'accepted'
-  | 'delivered'
-  | 'delivery-failed'
-  | 'expired'
-  | 'pending'
-  | 'revoked';
 
 export type InvitationAcceptanceOutcome =
   | 'accepted'

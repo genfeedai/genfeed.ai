@@ -220,7 +220,7 @@ describe('Cloud bootstrap live brand policy across warmed caches', () => {
         isRevoked: false,
         OR: [{ expiresAt: null }, { expiresAt: { gt: expect.any(Date) } }],
       },
-      select: { scopes: true },
+      select: { metadata: true, scopes: true },
     });
     f.findKey.mockResolvedValue(null);
     await expect(f.service.getBootstrap(keyRequest)).rejects.toThrow(

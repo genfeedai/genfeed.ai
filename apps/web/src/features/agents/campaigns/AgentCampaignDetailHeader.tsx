@@ -1,17 +1,18 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { IAgentCampaignStatusResponse } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentCampaignStatus,
+  IAgentCampaignStatusResponse,
+} from '@genfeedai/contracts/interfaces';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft } from 'lucide-react';
 
-type CampaignStatus = 'draft' | 'active' | 'paused' | 'completed';
-
 const STATUS_BADGE_VARIANTS: Record<
-  CampaignStatus,
+  AgentCampaignStatus,
   'secondary' | 'success' | 'warning' | 'default'
 > = {
   active: 'success',

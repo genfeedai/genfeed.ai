@@ -1,5 +1,6 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { parseContractReviewedPricing } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import { initialContractReviewStatus } from '@api/collections/models/utils/model-provider-contract-status.util';
 import { ModelProvider } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
@@ -258,8 +259,7 @@ export class FalModelContractSyncService {
         pricing: toPrismaJson(candidate.pricing),
         pricingType: candidate.pricingType,
         provider: ModelProvider.FAL,
-        reviewStatus:
-          candidate.mappingStatus === 'supported' ? 'pending' : 'quarantined',
+        reviewStatus: initialContractReviewStatus(candidate.mappingStatus),
         schemaFamily: candidate.schemaFamily,
         unitPrice: candidate.unitPrice,
         unitPriceMicros: candidate.unitPriceMicros,

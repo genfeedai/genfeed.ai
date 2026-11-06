@@ -3,6 +3,7 @@ import type { CreateKnowledgeVersionDto } from '@api/collections/contexts/dto/cr
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
 import { buildKnowledgeMediaReferenceKey } from '@api/collections/contexts/utils/knowledge-media-identity.util';
 import {
+  KnowledgeCaptureRequestStatus,
   KnowledgeRetentionPolicy,
   KnowledgeSourceKind,
 } from '@genfeedai/contracts';
@@ -197,7 +198,7 @@ async function completeExistingCapture(
       organizationId: input.actor.organizationId,
       requestHash: input.requestHash,
       sourceId: input.sourceId,
-      status: 'completed',
+      status: KnowledgeCaptureRequestStatus.COMPLETED,
     },
   });
   return { source: input.existing, version };

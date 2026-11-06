@@ -417,4 +417,33 @@ describe('useStoryboardRun', () => {
     await waitFor(() => expect(result.current.run?.phase).toBe('in_review'));
     expect(result.current.status).toBe('ready');
   });
+
+  it('shows the run an action returns even when it carries a lower revision', async () => {
+    mocks.findBrandRemixRun.mockResolvedValue({
+      ...run,
+      phase: 'approved',
+      revision: 3,
+      status: ContentRunStatus.COMPLETED,
+    });
+    mocks.prepareBrandRemixPausedDraft.mockResolvedValue({
+      ...run,
+      phase: 'paid_draft_ready',
+      revision: 1,
+      status: ContentRunStatus.COMPLETED,
+    });
+    const { result } = renderHook(() => useStoryboardRun('run-1'), {
+      wrapper: queryClientWrapper(),
+    });
+    await waitFor(() => expect(result.current.run?.revision).toBe(3));
+
+    await act(async () => {
+      await result.current.preparePausedDraft({
+        destination: { adAccountId: 'act_1', credentialId: 'credential-1' },
+      });
+    });
+
+    await waitFor(() =>
+      expect(result.current.run?.phase).toBe('paid_draft_ready'),
+    );
+  });
 });

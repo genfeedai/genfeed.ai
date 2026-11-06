@@ -1,8 +1,8 @@
 import '@testing-library/jest-dom/vitest';
 import type {
+  InvitationStatus,
   IWarmupAccount,
   IWarmupInvitation,
-  IWarmupInvitationStatus,
 } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -106,7 +106,7 @@ function makeAccount(overrides: Partial<IWarmupAccount> = {}): IWarmupAccount {
   return { ...account, ...overrides };
 }
 
-function withInvitation(status: IWarmupInvitationStatus): IWarmupAccount {
+function withInvitation(status: InvitationStatus): IWarmupAccount {
   return makeAccount({ invitation: { ...pendingInvitation, status } });
 }
 

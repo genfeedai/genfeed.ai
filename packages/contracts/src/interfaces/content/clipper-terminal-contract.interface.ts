@@ -14,6 +14,24 @@ export const CLIPPER_PROJECT_STATUSES = [
 
 export type ClipperProjectStatus = (typeof CLIPPER_PROJECT_STATUSES)[number];
 
+/**
+ * Continuity QA run on a clipper project (`ClipperProject.continuityQaStatus`).
+ * `not-required` projects skip the hook review; a finished run lands on
+ * `completed` or `skipped`.
+ */
+export const CLIPPER_CONTINUITY_QA_STATUSES = [
+  'not-required',
+  'pending',
+  'queued',
+  'running',
+  'completed',
+  'skipped',
+  'failed',
+] as const;
+
+export type ClipperContinuityQaStatus =
+  (typeof CLIPPER_CONTINUITY_QA_STATUSES)[number];
+
 export const CLIPPER_PROJECT_TERMINAL_STATUSES = [
   'partially-completed',
   'completed',

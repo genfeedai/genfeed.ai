@@ -1,8 +1,7 @@
+import type { TaskPriority, TaskStatus } from '@genfeedai/contracts/interfaces';
 import type {
   Task,
   TaskLinkedEntityModel,
-  TaskPriority,
-  TaskStatus,
 } from '@services/management/tasks.service';
 
 export type IssueSidebarProps = {

@@ -10,6 +10,26 @@ import type {
 } from '../..';
 import type { IBaseEntity } from '../index';
 
+/** Whether an operator approved a model for the catalog (`Model.reviewStatus`). */
+export type ModelReviewStatus = 'approved' | 'legacy' | 'pending' | 'rejected';
+
+/** Whether an imported provider contract maps onto a supported schema (`ModelProviderContract.mappingStatus`). */
+export type ModelProviderContractMappingStatus = 'quarantined' | 'supported';
+
+/** Operator review of an imported provider contract (`ModelProviderContract.reviewStatus`). */
+export type ModelProviderContractReviewStatus =
+  | 'approved'
+  | 'pending'
+  | 'quarantined'
+  | 'rejected';
+
+/** Freshness of a model's provider contract sync (`Model.providerSyncStatus`). */
+export type ModelProviderSyncStatus =
+  | 'failed'
+  | 'fresh'
+  | 'quarantined'
+  | 'review_required';
+
 export interface IModel extends IBaseEntity {
   aliases?: string[];
   label: string;
@@ -42,7 +62,7 @@ export interface IModel extends IBaseEntity {
   reviewedProviderContractVersion?: string;
   pendingProviderContractVersion?: string;
   providerSchemaFamily?: string;
-  providerSyncStatus?: 'failed' | 'fresh' | 'quarantined' | 'review_required';
+  providerSyncStatus?: ModelProviderSyncStatus;
   providerSchemaSyncedAt?: Date;
   providerPricingSyncedAt?: Date;
   providerSyncFailedAt?: Date;
@@ -87,7 +107,7 @@ export interface IModel extends IBaseEntity {
   rejectionReason?: string;
   reviewedAt?: Date;
   reviewedBy?: string;
-  reviewStatus?: 'approved' | 'legacy' | 'pending' | 'rejected';
+  reviewStatus?: ModelReviewStatus;
   /**
    * Confidence the typed decision had in `category` itself, taken at
    * discovery time (#4869). Absent on seeded rows, on deterministic keyword

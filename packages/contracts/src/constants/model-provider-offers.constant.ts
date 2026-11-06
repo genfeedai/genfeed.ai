@@ -6,6 +6,35 @@ export const MODEL_PROVIDER_ASSOCIATIONS = [
     provider: 'kie',
     endpoint: 'kling-3.0/video',
   },
+  // Kling 3.0 on fal: one endpoint per tier (Replicate's `mode`) and per text
+  // or image start, reviewed against fal's OpenAPI and Replicate's schema
+  // (2026-11-04). The input adapter refuses an offer whose tier or start does
+  // not match the request, so only the matching endpoint is ever quoted. 4K
+  // stays on Replicate: fal charges the same flat rate there.
+  {
+    modelKey: 'kwaivgi/kling-v3-video',
+    executionModelKey: 'fal-ai/kling-video/v3/pro',
+    provider: 'fal',
+    endpoint: 'fal-ai/kling-video/v3/pro/text-to-video',
+  },
+  {
+    modelKey: 'kwaivgi/kling-v3-video',
+    executionModelKey: 'fal-ai/kling-video/v3/pro/image-to-video',
+    provider: 'fal',
+    endpoint: 'fal-ai/kling-video/v3/pro/image-to-video',
+  },
+  {
+    modelKey: 'kwaivgi/kling-v3-video',
+    executionModelKey: 'fal-ai/kling-video/v3/standard/text-to-video',
+    provider: 'fal',
+    endpoint: 'fal-ai/kling-video/v3/standard/text-to-video',
+  },
+  {
+    modelKey: 'kwaivgi/kling-v3-video',
+    executionModelKey: 'fal-ai/kling-video/v3/standard/image-to-video',
+    provider: 'fal',
+    endpoint: 'fal-ai/kling-video/v3/standard/image-to-video',
+  },
   {
     // Both are Google's Nano Banana 2 (fal describes its endpoint as such,
     // checked 2026-11-01). fal's text-to-image endpoint has no reference-image

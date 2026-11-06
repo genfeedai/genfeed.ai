@@ -6,6 +6,18 @@ import type {
   IUser,
 } from '../index';
 
+/** Derived lifecycle of a member invitation, as the API reports it. */
+export const INVITATION_STATUSES = [
+  'accepted',
+  'delivered',
+  'delivery-failed',
+  'expired',
+  'pending',
+  'revoked',
+] as const;
+
+export type InvitationStatus = (typeof INVITATION_STATUSES)[number];
+
 export interface IMemberInvitation {
   id?: string;
   email: string;
@@ -15,13 +27,7 @@ export interface IMemberInvitation {
   invitedByUserId?: string;
   roleId?: string;
   roleKey?: string;
-  status?:
-    | 'accepted'
-    | 'delivered'
-    | 'delivery-failed'
-    | 'expired'
-    | 'pending'
-    | 'revoked';
+  status?: InvitationStatus;
   redirectUrl?: string;
   expiresAt?: Date | string;
   acceptedAt?: Date | string | null;

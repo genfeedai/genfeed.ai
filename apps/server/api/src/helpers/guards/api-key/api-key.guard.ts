@@ -1,12 +1,17 @@
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RateLimitError } from '@api/helpers/exceptions/api/api-error.exception';
 import {
   type ApiKeyRouteAccess,
   hasApiKeyBaselineAccess,
   resolveApiKeyRouteAccess,
 } from '@api/helpers/utils/auth/api-key-baseline-scope.util';
+import { collectRequestedBrandIds } from '@api/helpers/utils/auth/api-key-brand-restriction.util';
 import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/contracts';
-import { MCP_ORGANIZATION_HEADER } from '@genfeedai/contracts/constants';
+import {
+  MCP_ORGANIZATION_HEADER,
+  readApiKeyAllowedBrandIds,
+} from '@genfeedai/contracts/constants';
 import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import {
   CanActivate,
@@ -126,6 +131,28 @@ export class ApiKeyAuthGuard implements CanActivate {
 
     const apiKeyId = apiKey.id;
 
+    // A key limited to some brands (#9130) reaches only the ones still live
+    // in this organization. Any brand the request names outside that list is
+    // reported as missing, exactly like a brand of another organization.
+    const keyAllowedBrandIds = readApiKeyAllowedBrandIds(apiKey.metadata);
+    const allowedBrandIds = keyAllowedBrandIds
+      ? await this.apiKeysService.resolveLiveAllowedBrandIds(
+          organizationId,
+          keyAllowedBrandIds,
+        )
+      : undefined;
+    if (allowedBrandIds?.length === 0) {
+      throw new UnauthorizedException('API key has no brand left to act on');
+    }
+    if (
+      allowedBrandIds &&
+      collectRequestedBrandIds(request).some(
+        (brandId) => !allowedBrandIds.includes(brandId),
+      )
+    ) {
+      throw new NotFoundException('Brand');
+    }
+
     // `AuthenticatedUser.brandId` is a general request-scoping convenience
     // read by many non-generation endpoints, so it must always resolve to a
     // real brand — never the organizationId (a prior bug here) and never
@@ -133,15 +160,21 @@ export class ApiKeyAuthGuard implements CanActivate {
     // generation tools look up the key's validated `defaultBrandId`
     // separately (explicit param > key default > reject); they must not
     // trust this ambient value as if it were that stricter signal.
-    const requestScopedBrandId =
-      (await this.apiKeysService.resolveValidDefaultBrandId(
-        organizationId,
-        apiKey.defaultBrandId,
-      )) ?? (await this.apiKeysService.resolveAnyBrandId(organizationId));
+    const defaultBrandId = await this.apiKeysService.resolveValidDefaultBrandId(
+      organizationId,
+      apiKey.defaultBrandId,
+    );
+    const requestScopedBrandId = allowedBrandIds
+      ? defaultBrandId && allowedBrandIds.includes(defaultBrandId)
+        ? defaultBrandId
+        : allowedBrandIds[0]
+      : (defaultBrandId ??
+        (await this.apiKeysService.resolveAnyBrandId(organizationId)));
 
     // Attach user info to request for downstream use
     request.user = {
       actionOrigin: this.apiKeysService.resolveActionOrigin(apiKey),
+      ...(allowedBrandIds ? { allowedBrandIds } : {}),
       apiKeyId,
       canSwitchOrganizations:
         this.apiKeysService.canSwitchOrganizations(apiKey),

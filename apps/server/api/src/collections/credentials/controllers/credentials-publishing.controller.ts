@@ -19,7 +19,10 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
-import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import {
+  API_KEY_CONNECTED_ACCOUNT_READ_SCOPES,
+  API_KEY_POSTING_CONFIGURATION_SCOPES,
+} from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import type {
   AccountHealthSummary,
   ContentSurface,
@@ -71,6 +74,7 @@ export class CredentialsPublishingController {
   ) {}
 
   @TenantReadPolicy('mutating')
+  @RequiredScopes(...API_KEY_CONNECTED_ACCOUNT_READ_SCOPES)
   @Get('brand/:brandId/account-health')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -88,6 +92,7 @@ export class CredentialsPublishingController {
   }
 
   @TenantReadPolicy('selected')
+  @RequiredScopes(...API_KEY_CONNECTED_ACCOUNT_READ_SCOPES)
   @Get('brand/:brandId/publishing-readiness')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -105,6 +110,7 @@ export class CredentialsPublishingController {
   }
 
   @TenantReadPolicy('selected')
+  @RequiredScopes(...API_KEY_CONNECTED_ACCOUNT_READ_SCOPES)
   @Get(':credentialId/posting-times')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -183,6 +189,7 @@ export class CredentialsPublishingController {
   }
 
   @TenantReadPolicy('selected')
+  @RequiredScopes(...API_KEY_CONNECTED_ACCOUNT_READ_SCOPES)
   @Get(':credentialId/next-slot')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -202,6 +209,7 @@ export class CredentialsPublishingController {
   }
 
   @TenantReadPolicy('mutating')
+  @RequiredScopes(...API_KEY_CONNECTED_ACCOUNT_READ_SCOPES)
   @Get(':credentialId/publishing-context')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -260,6 +268,7 @@ export class CredentialsPublishingController {
   }
 
   @TenantReadPolicy('selected')
+  @RequiredScopes(...API_KEY_CONNECTED_ACCOUNT_READ_SCOPES)
   @Get('mentions')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -273,6 +282,7 @@ export class CredentialsPublishingController {
   }
 
   @TenantReadPolicy('selected')
+  @RequiredScopes(...API_KEY_CONNECTED_ACCOUNT_READ_SCOPES)
   @Get(':credentialId/quota')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({

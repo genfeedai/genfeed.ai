@@ -42,7 +42,7 @@ export const CollectionFilterUtil = {
    */
   buildAuthorizedBrandFilter(
     brand: unknown,
-    user: { brandId?: string },
+    user: { allowedBrandIds?: readonly string[]; brandId?: string },
     isSuperAdmin: boolean,
     defaultTo: 'user' | 'exists' | 'none' = 'user',
   ): string | Record<string, unknown> {
@@ -260,6 +260,7 @@ export const CollectionFilterUtil = {
    * - valid entity ID → specific brand
    * - undefined with user.brandId → user's brand
    * - undefined without user.brandId → any brand exists
+   * - a brand-restricted API key never falls back wider than its brands
    *
    * @param brand - Brand ID from query params
    * @param user - Authenticated user containing brand fallback
@@ -283,11 +284,17 @@ export const CollectionFilterUtil = {
    */
   buildBrandFilter(
     brand: unknown,
-    user?: { brandId?: string },
+    user?: { allowedBrandIds?: readonly string[]; brandId?: string },
     defaultTo: 'user' | 'exists' | 'none' = 'user',
   ): string | Record<string, unknown> {
     if (isEntityId(brand)) {
       return String(brand);
+    }
+
+    // A brand-restricted API key (#9130) lists only its own brands; the key
+    // guard already rejected an explicit brand outside them.
+    if (user?.allowedBrandIds && !(defaultTo === 'user' && user.brandId)) {
+      return { in: [...user.allowedBrandIds] };
     }
 
     switch (defaultTo) {

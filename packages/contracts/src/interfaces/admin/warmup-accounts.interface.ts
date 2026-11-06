@@ -2,6 +2,7 @@ import type {
   BrandKitFieldKey,
   IBrandKitDraft,
 } from '../organization/brand-kit.interface';
+import type { InvitationStatus } from '../organization/member.interface';
 import type { IContentPreview } from './content-preview.interface';
 export type IWarmupAccountStatus =
   | 'DRAFT'
@@ -30,14 +31,6 @@ export interface IWarmupAccountAuditEvent {
   timestamp: string;
 }
 
-export type IWarmupInvitationStatus =
-  | 'accepted'
-  | 'delivered'
-  | 'delivery-failed'
-  | 'expired'
-  | 'pending'
-  | 'revoked';
-
 export interface IWarmupInvitation {
   acceptedAt: string | null;
   createdAt: string;
@@ -48,7 +41,7 @@ export interface IWarmupInvitation {
   organizationId: string;
   revokedAt: string | null;
   roleKey: string;
-  status: IWarmupInvitationStatus;
+  status: InvitationStatus;
   updatedAt: string;
 }
 

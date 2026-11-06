@@ -224,6 +224,12 @@ export type AdWatchedAdvertiserFreshnessState =
   | 'stale'
   | 'unavailable';
 
+/** Outcome of the last archive poll (`ad_watched_advertisers.lastIngestionStatus`). */
+export type AdWatchedAdvertiserIngestionStatus =
+  | 'success'
+  | 'error'
+  | 'unavailable';
+
 /**
  * A competitor whose public ad-archive creative we poll on the organization's
  * behalf. The `last*` fields are ingestion bookkeeping, surfaced so a silent
@@ -238,7 +244,7 @@ export interface AdWatchedAdvertiser {
   freshnessState: AdWatchedAdvertiserFreshnessState;
   lastAttemptedAt?: string;
   lastIngestionErrorCode?: string;
-  lastIngestionStatus?: string;
+  lastIngestionStatus?: AdWatchedAdvertiserIngestionStatus;
   lastSnapshotRecordCount?: number;
   lastSuccessfulAt?: string;
   platform: AdWatchlistPlatform;

@@ -5,6 +5,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   IngredientCategory,
   IngredientStatus,
+  LifecycleEmailDeliveryStatus,
   SubscriptionStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -123,7 +124,11 @@ export class SystemEmailEligibilityService {
           where: { id: deliveryId, userId: input.userId },
           select: { status: true },
         });
-        return !!delivery && !['canceled', 'skipped'].includes(delivery.status);
+        return (
+          !!delivery &&
+          delivery.status !== LifecycleEmailDeliveryStatus.CANCELED &&
+          delivery.status !== LifecycleEmailDeliveryStatus.SKIPPED
+        );
       }
       case 'win-back':
         return (

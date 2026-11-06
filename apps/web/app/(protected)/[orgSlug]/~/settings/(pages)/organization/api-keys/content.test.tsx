@@ -57,6 +57,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
+    brands: [
+      { id: 'brand-acme', label: 'Acme' },
+      { id: 'brand-zen', label: 'Zen' },
+    ],
     isReady: mocks.isReady,
     organizationId: mocks.organizationId,
   }),
@@ -171,6 +175,30 @@ vi.mock('lucide-react', () => ({
   RefreshCw: () => <span data-testid="hi-arrow-path" />,
   Trash2: () => <span data-testid="hi-trash" />,
   TriangleAlert: () => <span data-testid="hi-triangle-alert" />,
+}));
+
+vi.mock('@ui/primitives/select', () => ({
+  SelectField: ({
+    children,
+    label,
+    onChange,
+    value,
+  }: {
+    children: ReactNode;
+    label?: string;
+    onChange?: (event: { target: { value: string } }) => void;
+    value?: string;
+  }) => (
+    <label>
+      {label}
+      <select
+        value={value ?? ''}
+        onChange={(event) => onChange?.({ target: event.target })}
+      >
+        {children}
+      </select>
+    </label>
+  ),
 }));
 
 vi.mock('@ui/card/Card', () => ({
@@ -753,10 +781,62 @@ describe('SettingsApiKeysPage', () => {
       'images:delete',
       'prompts:read',
       'articles:read',
+      'posts:read',
+      'credentials:read',
       'brands:read',
       'analytics:read',
       'credits:read',
     ]);
+  });
+
+  it('limits a new key to the one brand chosen', async () => {
+    render(<SettingsApiKeysPage />);
+
+    await screen.findByText('MCP Key');
+    fireEvent.change(screen.getByLabelText('Brand access'), {
+      target: { value: 'brand-acme' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+
+    await waitFor(() => {
+      expect(mocks.createApiKey).toHaveBeenCalledTimes(1);
+    });
+    expect(mocks.createApiKey.mock.calls[0][0]).toMatchObject({
+      allowedBrandIds: ['brand-acme'],
+      defaultBrandId: 'brand-acme',
+    });
+  });
+
+  it('creates a key for every brand unless one is chosen', async () => {
+    render(<SettingsApiKeysPage />);
+
+    await screen.findByText('MCP Key');
+    expect(screen.getByLabelText('Brand access')).toHaveValue('');
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+
+    await waitFor(() => {
+      expect(mocks.createApiKey).toHaveBeenCalledTimes(1);
+    });
+    expect(mocks.createApiKey.mock.calls[0][0]).not.toHaveProperty(
+      'allowedBrandIds',
+    );
+  });
+
+  it('shows which brand a limited key reaches', async () => {
+    mocks.findAllApiKeys.mockResolvedValue(
+      paginatedResponse([
+        {
+          id: 'key-3',
+          label: 'Zen partner',
+          lastUsedAt: null,
+          metadata: { allowedBrandIds: ['brand-zen'] },
+          scopes: ['images:read'],
+        },
+      ]),
+    );
+    render(<SettingsApiKeysPage />);
+
+    expect(await screen.findByText('Limited to: Zen')).toBeInTheDocument();
   });
 
   it('does not let a stale list overwrite a key created during the initial load', async () => {

@@ -204,6 +204,32 @@ describe('reviewed rate sheet', () => {
     },
   );
 
+  it.each([
+    ['fal-ai/kling-video/v3/pro/text-to-video', false, 0.56],
+    ['fal-ai/kling-video/v3/pro/image-to-video', true, 0.84],
+    ['fal-ai/kling-video/v3/standard/text-to-video', false, 0.42],
+    ['fal-ai/kling-video/v3/standard/image-to-video', true, 0.63],
+  ])(
+    'prices fal %s with audio %s for five seconds at $%s',
+    (endpoint, hasAudio, expected) => {
+      const entry = findReviewedRateSheetEntry('fal', endpoint);
+      if (!entry) throw new Error(`missing fal entry for ${endpoint}`);
+      const quote = quoteModelBillablePricing(
+        profileFor(entry),
+        {
+          duration: 5,
+          modelKey: entry.endpoint,
+          provider: 'fal',
+          selectors: { generate_audio: hasAudio },
+        },
+        1,
+        entry.verifiedAt,
+      );
+      if (quote.status !== 'priced') throw new Error(quote.reason);
+      expect(quote.snapshot.providerCostUsd).toBeCloseTo(expected, 10);
+    },
+  );
+
   it('never lists a model as both priced and unpriced', () => {
     for (const entry of REVIEWED_RATE_SHEET_ENTRIES)
       expect(UNPRICED_MODELS[entry.endpoint], entry.endpoint).toBeUndefined();

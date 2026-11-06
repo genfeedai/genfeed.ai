@@ -2,8 +2,9 @@ import type { ViewType } from '@genfeedai/contracts';
 import type {
   IPageTotals,
   IPaginatedResponse,
+  TaskPriority,
 } from '@genfeedai/contracts/interfaces';
-import type { Task, TaskPriority } from '@services/management/tasks.service';
+import type { Task } from '@services/management/tasks.service';
 
 export type ViewMode = ViewType.KANBAN | ViewType.LIST;
 
