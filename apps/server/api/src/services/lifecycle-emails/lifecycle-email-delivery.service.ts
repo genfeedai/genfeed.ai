@@ -7,6 +7,7 @@ import {
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
+import { LifecycleEmailDeliveryStatus } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   buildLifecycleSystemEmailAction,
@@ -28,22 +29,14 @@ import { SystemEmailEligibilityService } from './system-email-eligibility.servic
 
 const TRAILING_SLASHES_PATTERN = /\/+$/;
 
-const DELIVERY_STATUS = {
-  CANCELED: 'canceled',
-  FAILED: 'failed',
-  QUEUED: 'queued',
-  SENT: 'sent',
-  SKIPPED: 'skipped',
-} as const;
-
 // Every status a delivery can never leave once reached. A finalize replay
 // (BullMQ retry against a terminal job) must not overwrite the row that
 // already recorded why the delivery stopped.
 const TERMINAL_DELIVERY_STATUSES = new Set<string>([
-  DELIVERY_STATUS.SENT,
-  DELIVERY_STATUS.QUEUED,
-  DELIVERY_STATUS.CANCELED,
-  DELIVERY_STATUS.SKIPPED,
+  LifecycleEmailDeliveryStatus.SENT,
+  LifecycleEmailDeliveryStatus.QUEUED,
+  LifecycleEmailDeliveryStatus.CANCELED,
+  LifecycleEmailDeliveryStatus.SKIPPED,
 ]);
 
 // The workflow state's `preference` object is closed; the full row would leak
@@ -149,14 +142,14 @@ export class LifecycleEmailDeliveryService {
     const delivery = state.delivery;
     if (!delivery) return { ...state, skipReason: 'delivery record missing' };
     if (
-      delivery.status === DELIVERY_STATUS.SENT ||
-      delivery.status === DELIVERY_STATUS.QUEUED
+      delivery.status === LifecycleEmailDeliveryStatus.SENT ||
+      delivery.status === LifecycleEmailDeliveryStatus.QUEUED
     ) {
       return { ...state, skipReason: 'already sent' };
     }
     if (
-      delivery.status === DELIVERY_STATUS.CANCELED ||
-      delivery.status === DELIVERY_STATUS.SKIPPED
+      delivery.status === LifecycleEmailDeliveryStatus.CANCELED ||
+      delivery.status === LifecycleEmailDeliveryStatus.SKIPPED
     ) {
       return { ...state, skipReason: delivery.status };
     }
@@ -276,10 +269,18 @@ export class LifecycleEmailDeliveryService {
     if (error) {
       // sql-risk-audit: ignore bulk-write-tenant-review -- LifecycleEmailDelivery is keyed by user, not organization; `where` pins the primary key so this updates exactly one row.
       await this.prisma.lifecycleEmailDelivery.updateMany({
-        data: { failureReason: error, status: DELIVERY_STATUS.FAILED },
+        data: {
+          failureReason: error,
+          status: LifecycleEmailDeliveryStatus.FAILED,
+        },
         where: {
           id: state.delivery.id,
-          status: { in: ['scheduled', 'failed'] },
+          status: {
+            in: [
+              LifecycleEmailDeliveryStatus.SCHEDULED,
+              LifecycleEmailDeliveryStatus.FAILED,
+            ],
+          },
         },
       });
       return { delivered: false };
@@ -296,8 +297,14 @@ export class LifecycleEmailDeliveryService {
     // a terminal `queued` and dropped the failure reason.
     // sql-risk-audit: ignore bulk-write-tenant-review -- LifecycleEmailDelivery is keyed by user, not organization; `where` pins the primary key so this updates exactly one row.
     await this.prisma.lifecycleEmailDelivery.updateMany({
-      data: { failureReason: null, status: DELIVERY_STATUS.QUEUED },
-      where: { id: state.delivery.id, status: 'scheduled' },
+      data: {
+        failureReason: null,
+        status: LifecycleEmailDeliveryStatus.QUEUED,
+      },
+      where: {
+        id: state.delivery.id,
+        status: LifecycleEmailDeliveryStatus.SCHEDULED,
+      },
     });
     return { delivered: false, queued: true };
   }
@@ -407,7 +414,7 @@ export class LifecycleEmailDeliveryService {
       data: {
         failureReason: reason,
         skippedAt: new Date(),
-        status: DELIVERY_STATUS.SKIPPED,
+        status: LifecycleEmailDeliveryStatus.SKIPPED,
       },
       where: { id: deliveryId },
     });

@@ -1,6 +1,7 @@
 import { TagCategory } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type { ITag } from '@genfeedai/contracts/interfaces';
+import { createTagFixture } from '@genfeedai/helpers/testing/entity-fixtures';
 import { Tag } from '@genfeedai/models/content/tag.model';
 import { TagSerializer } from '@genfeedai/serializers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -69,17 +70,14 @@ describe('TagsService', () => {
   const mockToken = 'test-token';
   let service: TagsService;
 
-  const mockTagData: ITag = {
-    category: TagCategory.STYLE,
-    createdAt: new Date().toISOString(),
+  const mockTagData: ITag = createTagFixture({
     id: 'tag-123',
     label: 'Test Tag',
-    updatedAt: new Date().toISOString(),
-  };
+  });
 
   const mockTagsData: ITag[] = [
-    { category: TagCategory.STYLE, id: 'tag-1', label: 'Tag 1' },
-    { category: TagCategory.STYLE, id: 'tag-2', label: 'Tag 2' },
+    createTagFixture({ id: 'tag-1', label: 'Tag 1' }),
+    createTagFixture({ id: 'tag-2', label: 'Tag 2' }),
   ];
 
   beforeEach(() => {
@@ -113,10 +111,10 @@ describe('TagsService', () => {
     it('should get tags for a specific category', async () => {
       mockInstance.get.mockResolvedValue({ data: mockTagsData });
 
-      const result = await service.getTagsForCategory(TagCategory.STYLE);
+      const result = await service.getTagsForCategory(TagCategory.INGREDIENT);
 
       expect(mockInstance.get).toHaveBeenCalledWith('', {
-        params: { category: TagCategory.STYLE },
+        params: { category: TagCategory.INGREDIENT },
       });
       expect(result).toHaveLength(2);
       expect(result[0]).toBeInstanceOf(Tag);
@@ -125,10 +123,10 @@ describe('TagsService', () => {
     it('should log success message', async () => {
       mockInstance.get.mockResolvedValue({ data: mockTagsData });
 
-      await service.getTagsForCategory(TagCategory.MOOD);
+      await service.getTagsForCategory(TagCategory.PROMPT);
 
       expect(logger.info).toHaveBeenCalledWith(
-        `GET /tags?category=${TagCategory.MOOD} success`,
+        `GET /tags?category=${TagCategory.PROMPT} success`,
         expect.any(Array),
       );
     });
@@ -138,10 +136,10 @@ describe('TagsService', () => {
       mockInstance.get.mockRejectedValue(error);
 
       await expect(
-        service.getTagsForCategory(TagCategory.STYLE),
+        service.getTagsForCategory(TagCategory.INGREDIENT),
       ).rejects.toThrow('Network error');
       expect(logger.error).toHaveBeenCalledWith(
-        `GET /tags?category=${TagCategory.STYLE} failed`,
+        `GET /tags?category=${TagCategory.INGREDIENT} failed`,
         error,
       );
     });
@@ -152,7 +150,7 @@ describe('TagsService', () => {
       mockInstance.post.mockResolvedValue({ data: mockTagData });
 
       const result = await service.addTagToEntity(
-        TagCategory.STYLE,
+        TagCategory.INGREDIENT,
         'entity-123',
         'New Tag',
       );
@@ -164,10 +162,14 @@ describe('TagsService', () => {
     it('should serialize tag data before sending', async () => {
       mockInstance.post.mockResolvedValue({ data: mockTagData });
 
-      await service.addTagToEntity(TagCategory.MOOD, 'entity-123', 'Mood Tag');
+      await service.addTagToEntity(
+        TagCategory.PROMPT,
+        'entity-123',
+        'Mood Tag',
+      );
 
       expect(TagSerializer.serialize).toHaveBeenCalledWith({
-        category: TagCategory.MOOD,
+        category: TagCategory.PROMPT,
         label: 'Mood Tag',
       });
     });
@@ -175,7 +177,11 @@ describe('TagsService', () => {
     it('should log success message', async () => {
       mockInstance.post.mockResolvedValue({ data: mockTagData });
 
-      await service.addTagToEntity(TagCategory.STYLE, 'entity-123', 'New Tag');
+      await service.addTagToEntity(
+        TagCategory.INGREDIENT,
+        'entity-123',
+        'New Tag',
+      );
 
       expect(logger.info).toHaveBeenCalledWith(
         'POST /tags success',
@@ -188,7 +194,7 @@ describe('TagsService', () => {
       mockInstance.post.mockRejectedValue(error);
 
       await expect(
-        service.addTagToEntity(TagCategory.STYLE, 'entity-123', 'New Tag'),
+        service.addTagToEntity(TagCategory.INGREDIENT, 'entity-123', 'New Tag'),
       ).rejects.toThrow('Create failed');
       expect(logger.error).toHaveBeenCalledWith('POST /tags failed', error);
     });
@@ -288,10 +294,10 @@ describe('TagsService', () => {
     it('should include category filter when provided', async () => {
       mockInstance.get.mockResolvedValue({ data: mockTagsData });
 
-      await service.searchTags('Test', TagCategory.STYLE);
+      await service.searchTags('Test', TagCategory.INGREDIENT);
 
       expect(mockInstance.get).toHaveBeenCalledWith('', {
-        params: { category: TagCategory.STYLE, label: 'Test' },
+        params: { category: TagCategory.INGREDIENT, label: 'Test' },
       });
     });
 

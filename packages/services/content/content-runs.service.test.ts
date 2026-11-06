@@ -1,7 +1,8 @@
 import { ContentRunStatus } from '@genfeedai/contracts';
-import type {
-  BrandRemixRunView,
-  BrandRemixSourceSelector,
+import {
+  BrandRemixOrganicPlatform,
+  type BrandRemixRunView,
+  type BrandRemixSourceSelector,
 } from '@genfeedai/contracts/api-types/contracts';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -200,9 +201,10 @@ describe('ContentRunsService', () => {
     });
 
     const service = new ContentRunsService('token');
-    const result = await service.findOne('run-1');
+    const signal = new AbortController().signal;
+    const result = await service.findOne('run-1', signal);
 
-    expect(mockGet).toHaveBeenCalledWith('/content-runs/run-1');
+    expect(mockGet).toHaveBeenCalledWith('/content-runs/run-1', { signal });
     expect(result).toMatchObject({ _id: 'run-1', status: 'completed' });
   });
 
@@ -292,7 +294,7 @@ describe('ContentRunsService', () => {
       reviewRequired: true,
       target: {
         kind: 'organic',
-        platform: 'tiktok',
+        platform: BrandRemixOrganicPlatform.TIKTOK,
       },
     },
     id: 'run-remix-1',
@@ -308,12 +310,12 @@ describe('ContentRunsService', () => {
       evidence: ['The first three seconds lead with proof.'],
       metrics: { views: 120000 },
       pattern: { hook: 'Proof before promise' },
-      platform: 'tiktok',
+      platform: BrandRemixOrganicPlatform.TIKTOK,
       selector: remixSource,
       sourceId: 'source-reference-1',
       title: 'Proof-led TikTok hook',
     },
-    status: 'pending',
+    status: ContentRunStatus.PENDING,
     updatedAt: '2026-08-20T10:00:00.000Z',
     version: 1,
   };

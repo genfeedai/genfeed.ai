@@ -150,9 +150,11 @@ describe('BotActivitiesService', () => {
   describe('getStats', () => {
     it('should get stats from summary endpoint', async () => {
       const mockStats: IBotActivityStats = {
-        completedActivities: 80,
-        failedActivities: 5,
-        pendingActivities: 15,
+        avgProcessingTimeMs: 1200,
+        dmsSent: 10,
+        failed: 5,
+        repliesSent: 70,
+        skipped: 15,
         totalActivities: 100,
       };
       mockInstance.get.mockResolvedValue({ data: mockStats });

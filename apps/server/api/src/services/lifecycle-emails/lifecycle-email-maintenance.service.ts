@@ -11,7 +11,11 @@ import { NotificationPreferenceService } from '@api/services/notifications/workf
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { isSelfHostedDeployment } from '@genfeedai/config';
-import { IngredientCategory, TargetExecutionState } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  LifecycleEmailDeliveryStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types';
 import {
   APP_ROUTES,
@@ -157,7 +161,12 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     while (true) {
       const due = await this.prisma.lifecycleEmailDelivery.findMany({
         where: {
-          status: { in: ['scheduled', 'failed'] },
+          status: {
+            in: [
+              LifecycleEmailDeliveryStatus.SCHEDULED,
+              LifecycleEmailDeliveryStatus.FAILED,
+            ],
+          },
           scheduledFor: { lte: new Date(request.referenceDate) },
           OR: [
             {

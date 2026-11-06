@@ -8,6 +8,7 @@ import {
   type ReviewDecision,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import type { BrandedGenerationReceiptStateV1 } from '@genfeedai/contracts/interfaces';
 
 export interface PostAnalyticsSummary {
   totalViews: number;
@@ -83,7 +84,7 @@ export class PostEntity extends BaseEntity {
   declare readonly promptUsed?: string;
   declare readonly generationId?: string;
   declare readonly brandedReceiptId?: string | null;
-  declare readonly brandedReceiptState?: string | null;
+  declare readonly brandedReceiptState?: BrandedGenerationReceiptStateV1 | null;
   declare readonly contentRunId?: string;
   declare readonly personaId?: string;
   declare readonly variantId?: string;

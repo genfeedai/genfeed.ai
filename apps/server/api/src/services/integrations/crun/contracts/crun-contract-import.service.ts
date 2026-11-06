@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { initialContractReviewStatus } from '@api/collections/models/utils/model-provider-contract-status.util';
 import {
   CRUN_MODEL_MANIFEST,
   type CrunManifestEntry,
@@ -9,6 +10,7 @@ import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import type {
   CrunInputField,
   CrunModelInputContract,
+  ModelProviderContractMappingStatus,
 } from '@genfeedai/contracts/interfaces';
 import { normalizeCrunInput } from '@genfeedai/helpers';
 import { toPrismaJson } from '@genfeedai/prisma';
@@ -314,7 +316,9 @@ export class CrunContractImportService {
           }),
         )
         .digest('hex');
-    const mappingStatus = contract ? 'supported' : 'quarantined';
+    const mappingStatus: ModelProviderContractMappingStatus = contract
+      ? 'supported'
+      : 'quarantined';
     if (!isApply)
       return { contract, mappingStatus, unsupportedReason, version };
     // Platform catalog scope: these are global models, never tenant-owned imports.
@@ -362,7 +366,7 @@ export class CrunContractImportService {
           pricing: toPrismaJson(getCrunPricingSnapshot(entry)),
           pricingType: 'per-request',
           provider: ModelProvider.CRUN,
-          reviewStatus: contract ? 'pending' : 'quarantined',
+          reviewStatus: initialContractReviewStatus(mappingStatus),
           schemaFamily: contract ? entry.schemaFamily : null,
           unsupportedReason,
           version,

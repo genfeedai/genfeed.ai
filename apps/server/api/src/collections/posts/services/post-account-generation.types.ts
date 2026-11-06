@@ -1,12 +1,15 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { BrandedModeResolution } from '@api/services/branded-text-generation/branded-mode-resolver.service';
-import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
+import type {
+  AccountPublishingContext,
+  BrandedGenerationReceiptStateV1,
+} from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 
 /** Post columns an account or thread run writes after create: its receipt link and stopped reason. */
 export interface PostGenerationUpdateFields {
   brandedReceiptId?: string | null;
-  brandedReceiptState?: string | null;
+  brandedReceiptState?: BrandedGenerationReceiptStateV1 | null;
   targetError?: Prisma.InputJsonValue | typeof Prisma.JsonNull;
 }
 

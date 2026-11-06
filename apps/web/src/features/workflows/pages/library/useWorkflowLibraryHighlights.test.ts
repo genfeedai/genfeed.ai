@@ -1,4 +1,9 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { WorkflowLifecycle } from '@genfeedai/contracts';
+import type { QueryClient } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useWorkflowLibraryHighlights } from './useWorkflowLibraryHighlights';
@@ -18,6 +23,10 @@ const mocks = vi.hoisted(() => ({
   listByIds: vi.fn(),
   mostUsed: vi.fn(),
   error: vi.fn(),
+}));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
   useCollectionScope: () => mocks.scope,
@@ -51,8 +60,17 @@ const workflow = {
   updatedAt: '2026-09-02',
 };
 
+let queryClient: QueryClient;
+
+function renderHighlights() {
+  return renderHook(() => useWorkflowLibraryHighlights(), {
+    wrapper: queryClientWrapper(queryClient),
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  queryClient = createTestQueryClient();
   mocks.scope = {
     brandId: 'brand-1',
     organizationId: 'org-1',
@@ -75,7 +93,7 @@ beforeEach(() => {
 
 describe('workflow library highlights', () => {
   it('loads persisted favorites independently of the current list page and asks for org top five', async () => {
-    const { result } = renderHook(() => useWorkflowLibraryHighlights());
+    const { result } = renderHighlights();
     await waitFor(() => expect(result.current.favorites.isLoading).toBe(false));
     expect(mocks.listByIds).toHaveBeenCalledExactlyOnceWith(
       ['favorite-1'],
@@ -85,7 +103,7 @@ describe('workflow library highlights', () => {
       id: 'favorite-1',
       nodeCount: 0,
     });
-    expect(mocks.mostUsed).toHaveBeenCalledWith(5);
+    expect(mocks.mostUsed).toHaveBeenCalledWith(5, expect.any(AbortSignal));
     expect(result.current.mostUsed.items[0].executionCount).toBe(25);
   });
 
@@ -95,7 +113,7 @@ describe('workflow library highlights', () => {
     });
     mocks.listByIds.mockResolvedValue([workflow]);
     mocks.save.mockResolvedValue({ favoriteWorkflowIds: ['favorite-1'] });
-    const { result } = renderHook(() => useWorkflowLibraryHighlights());
+    const { result } = renderHighlights();
     await waitFor(() => expect(result.current.favorites.isLoading).toBe(false));
 
     expect(result.current.favorites.hasError).toBe(false);
@@ -119,7 +137,7 @@ describe('workflow library highlights', () => {
 
   it('reports a batch failure and retries without losing saved ids', async () => {
     mocks.listByIds.mockRejectedValueOnce(new Error('Unavailable'));
-    const { result } = renderHook(() => useWorkflowLibraryHighlights());
+    const { result } = renderHighlights();
     await waitFor(() => expect(result.current.favorites.isLoading).toBe(false));
     expect(result.current.favorites.hasError).toBe(true);
     expect(result.current.favorites.items).toEqual([]);
@@ -131,7 +149,7 @@ describe('workflow library highlights', () => {
 
   it('reports a settings read failure and prevents overwriting unknown favorites', async () => {
     mocks.settings.mockRejectedValueOnce(new Error('Unavailable'));
-    const { result } = renderHook(() => useWorkflowLibraryHighlights());
+    const { result } = renderHighlights();
     await waitFor(() => expect(result.current.favorites.isLoading).toBe(false));
     expect(result.current.favorites.hasError).toBe(true);
     expect(result.current.favorites.items).toEqual([]);
@@ -144,7 +162,7 @@ describe('workflow library highlights', () => {
 
   it('keeps favorites available when team usage fails', async () => {
     mocks.mostUsed.mockRejectedValue(new Error('Unavailable'));
-    const { result } = renderHook(() => useWorkflowLibraryHighlights());
+    const { result } = renderHighlights();
     await waitFor(() => expect(result.current.favorites.isLoading).toBe(false));
     expect(result.current.mostUsed.hasError).toBe(true);
     expect(result.current.favorites.items).toHaveLength(1);
@@ -152,7 +170,7 @@ describe('workflow library highlights', () => {
   });
 
   it('persists a removed favorite and keeps the prior selection on a rejected write', async () => {
-    const { result } = renderHook(() => useWorkflowLibraryHighlights());
+    const { result } = renderHighlights();
     await waitFor(() => expect(result.current.favorites.isLoading).toBe(false));
     const favorite = result.current.favorites.items[0];
     mocks.save.mockRejectedValueOnce(new Error('Failed'));
@@ -175,9 +193,7 @@ describe('workflow library highlights', () => {
           finishOld = resolve;
         }),
     );
-    const { result, rerender } = renderHook(() =>
-      useWorkflowLibraryHighlights(),
-    );
+    const { result, rerender } = renderHighlights();
     await waitFor(() => expect(mocks.settings).toHaveBeenCalledOnce());
     mocks.scope = { ...mocks.scope, organizationId: 'org-2' };
     mocks.settings.mockResolvedValue({ favoriteWorkflowIds: [] });
@@ -197,7 +213,7 @@ describe('workflow library highlights', () => {
       { ...workflow, id: ids[49] },
       { ...workflow, id: ids[0] },
     ]);
-    const { result } = renderHook(() => useWorkflowLibraryHighlights());
+    const { result } = renderHighlights();
     await waitFor(() => expect(result.current.favorites.isLoading).toBe(false));
     expect(mocks.listByIds).toHaveBeenCalledExactlyOnceWith(
       ids,
@@ -220,9 +236,7 @@ describe('workflow library highlights', () => {
             finishOld = resolve;
           }),
       );
-      const { result, rerender } = renderHook(() =>
-        useWorkflowLibraryHighlights(),
-      );
+      const { result, rerender } = renderHighlights();
       await waitFor(() => expect(mocks.listByIds).toHaveBeenCalledOnce());
       const signal = mocks.listByIds.mock.calls[0][1] as AbortSignal;
       mocks.scope = { ...mocks.scope, [key]: 'new-scope' };
@@ -242,10 +256,73 @@ describe('workflow library highlights', () => {
     mocks.listByIds.mockResolvedValue([
       { ...workflow, brandId: 'another-brand' },
     ]);
-    const { result } = renderHook(() => useWorkflowLibraryHighlights());
+    const { result } = renderHighlights();
     await waitFor(() => expect(result.current.favorites.isLoading).toBe(false));
     expect(result.current.favorites.items).toEqual([]);
     expect(result.current.favoriteIds).toEqual(['favorite-1']);
     expect(result.current.mostUsed.items).toHaveLength(1);
+  });
+  it('paints the cached favorites and team usage at once on a return visit', async () => {
+    const firstVisit = renderHighlights();
+    await waitFor(() =>
+      expect(firstVisit.result.current.mostUsed.isLoading).toBe(false),
+    );
+    await waitFor(() =>
+      expect(firstVisit.result.current.favorites.isLoading).toBe(false),
+    );
+    firstVisit.unmount();
+
+    mocks.settings.mockReturnValue(new Promise<never>(() => undefined));
+    mocks.mostUsed.mockReturnValue(new Promise<never>(() => undefined));
+    const { result } = renderHighlights();
+
+    expect(result.current.favorites.isLoading).toBe(false);
+    expect(result.current.favorites.items.map((item) => item.id)).toEqual([
+      'favorite-1',
+    ]);
+    expect(result.current.favoriteIds).toEqual(['favorite-1']);
+    expect(result.current.mostUsed.isLoading).toBe(false);
+    expect(result.current.mostUsed.items[0].executionCount).toBe(25);
+  });
+
+  it("never shows one organization's highlights in another", async () => {
+    const firstOrganization = renderHighlights();
+    await waitFor(() =>
+      expect(firstOrganization.result.current.favorites.isLoading).toBe(false),
+    );
+    firstOrganization.unmount();
+
+    mocks.scope = { ...mocks.scope, organizationId: 'org-2' };
+    mocks.settings.mockReturnValue(new Promise<never>(() => undefined));
+    mocks.mostUsed.mockReturnValue(new Promise<never>(() => undefined));
+    const { result } = renderHighlights();
+
+    expect(result.current.favorites.isLoading).toBe(true);
+    expect(result.current.favorites.items).toEqual([]);
+    expect(result.current.favoriteIds).toEqual([]);
+    expect(result.current.mostUsed.isLoading).toBe(true);
+    expect(result.current.mostUsed.items).toEqual([]);
+  });
+
+  it('keeps a removed favorite removed when the library is opened again', async () => {
+    const firstVisit = renderHighlights();
+    await waitFor(() =>
+      expect(firstVisit.result.current.favorites.isLoading).toBe(false),
+    );
+    await act(async () =>
+      firstVisit.result.current.toggleFavorite(
+        firstVisit.result.current.favorites.items[0],
+      ),
+    );
+    await waitFor(() =>
+      expect(firstVisit.result.current.favoriteIds).toEqual([]),
+    );
+    firstVisit.unmount();
+
+    mocks.settings.mockReturnValue(new Promise<never>(() => undefined));
+    const { result } = renderHighlights();
+
+    expect(result.current.favoriteIds).toEqual([]);
+    expect(result.current.favorites.items).toEqual([]);
   });
 });

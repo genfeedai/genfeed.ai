@@ -500,7 +500,7 @@ describe('PostsService', () => {
 
       const result = await service.generateSourceVariations({
         count: 3,
-        platform: 'twitter',
+        platform: Platform.TWITTER,
         postId: 'source-post-1',
       });
 

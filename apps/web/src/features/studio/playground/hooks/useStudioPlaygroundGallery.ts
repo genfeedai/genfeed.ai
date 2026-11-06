@@ -2,15 +2,17 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { StudioPlaygroundJob } from '@/features/studio/playground/types';
 import { toStudioPlaygroundJob } from '@/features/studio/playground/utils/studio-playground-asset';
 import type { StudioPlaygroundFilter } from '@/features/studio/playground/utils/studio-playground-gallery';
 import { loadStudioGalleryIngredients } from '@/features/studio/playground/utils/studio-playground-gallery';
+
+const EMPTY_JOBS: readonly StudioPlaygroundJob[] = [];
 
 export interface UseStudioPlaygroundGalleryParams {
   brandId: string;
@@ -20,144 +22,114 @@ export interface UseStudioPlaygroundGalleryParams {
 export interface UseStudioPlaygroundGalleryReturn {
   galleryError: 'load' | 'refresh' | null;
   isLoadingGallery: boolean;
-  refresh: () => void;
+  refresh: () => Promise<void>;
   storedJobs: readonly StudioPlaygroundJob[];
 }
 
+/**
+ * The Studio generation history for one brand and filter. It is cached per
+ * organization, brand, filter, session and API, so reopening Studio paints the
+ * last history at once and refreshes it in the background; another scope
+ * never sees it, and a superseded read is cancelled. `isLoadingGallery` is
+ * true for the first read and for an asked-for refresh, never for the quiet
+ * background one.
+ */
 export function useStudioPlaygroundGallery({
   brandId,
   filter,
 }: UseStudioPlaygroundGalleryParams): UseStudioPlaygroundGalleryReturn {
   const { organizationId } = useBrand();
-  const { orgId, userId, sessionId } = useAuthIdentity();
-  const ownerKey = JSON.stringify([
+  const { sessionId } = useAuthIdentity();
+  const apiEndpoint = EnvironmentService.apiEndpoint;
+  const scopeKey = JSON.stringify([
+    organizationId ?? null,
     brandId,
     filter,
-    organizationId,
-    orgId,
-    userId,
-    sessionId,
-    EnvironmentService.apiEndpoint,
+    sessionId ?? null,
+    apiEndpoint,
   ]);
-  const ownerRef = useRef({ key: ownerKey, epoch: 0 });
-  if (ownerRef.current.key !== ownerKey)
-    ownerRef.current = { key: ownerKey, epoch: ownerRef.current.epoch + 1 };
-  const owner = ownerRef.current;
-  const isMounted = useRef(true);
-  const isCurrentOwner = useCallback(
-    () => isMounted.current && ownerRef.current === owner,
-    [owner],
-  );
-  const [snapshot, setSnapshot] = useState({
-    owner,
-    jobs: [] as readonly StudioPlaygroundJob[],
-    hasLoaded: false,
-    error: null as UseStudioPlaygroundGalleryReturn['galleryError'],
-    loading: Boolean(brandId),
-  });
-  // Discard scope state during render, before children can observe old rows.
-  // Epoch ownership prevents A -> B -> A resurrecting discarded A.
-  const isCurrentScope = snapshot.owner === owner;
-  if (!isCurrentScope) {
-    setSnapshot({
-      owner,
-      jobs: [],
-      hasLoaded: false,
-      error: null,
-      loading: Boolean(brandId),
-    });
-  }
-  const [reloadToken, setReloadToken] = useState(0);
-  const controllerRef = useRef<AbortController | null>(null);
-  const getIngredientsService = useAuthedService((token: string) =>
-    IngredientsService.getInstance(token),
-  );
 
-  const refresh = useCallback(() => {
-    if (!isCurrentOwner()) return;
-    controllerRef.current?.abort();
-    setReloadToken((previous) => previous + 1);
-  }, [isCurrentOwner]);
-
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reloadToken is the explicit refresh trigger.
-  useEffect(() => {
-    if (!brandId || !isCurrentOwner()) return;
-    const controller = new AbortController();
-    controllerRef.current = controller;
-    const canApply = () =>
-      isCurrentOwner() &&
-      !controller.signal.aborted &&
-      controllerRef.current === controller;
-    setSnapshot((current) =>
-      canApply() && current.owner === owner
-        ? { ...current, loading: true }
-        : current,
-    );
-    void (async () => {
+  const galleryQuery = useAuthedQuery<
+    IngredientsService,
+    StudioPlaygroundJob[]
+  >({
+    enabled: Boolean(brandId),
+    queryFn: async (service, signal) => {
+      // A read superseded while it waited for its token never reaches the API.
+      signal.throwIfAborted();
       try {
-        const service = await getIngredientsService();
-        if (!canApply()) return;
         const ingredients = await loadStudioGalleryIngredients(
           service,
           brandId,
           filter,
-          controller.signal,
+          signal,
         );
-        if (!canApply()) return;
-        const jobs = ingredients
+        return ingredients
           .map(toStudioPlaygroundJob)
           .filter((job): job is StudioPlaygroundJob => job !== null)
           .toSorted((left, right) => right.createdAt - left.createdAt);
-        setSnapshot({
-          owner,
-          jobs,
-          hasLoaded: true,
-          error: null,
-          loading: false,
-        });
       } catch (error) {
-        if (!canApply()) return;
-        logger.error('Failed to load Studio generation history', error);
-        setSnapshot((current) =>
-          canApply() && current.owner === owner
-            ? {
-                ...current,
-                error: current.hasLoaded ? 'refresh' : 'load',
-              }
-            : current,
-        );
-      } finally {
-        if (canApply())
-          setSnapshot((current) =>
-            canApply() && current.owner === owner
-              ? { ...current, loading: false }
-              : current,
-          );
+        if (!signal.aborted) {
+          logger.error('Failed to load Studio generation history', error);
+        }
+        throw error;
       }
-    })();
-    return () => {
-      controller.abort();
-    };
-  }, [
-    brandId,
-    filter,
-    getIngredientsService,
-    isCurrentOwner,
-    owner,
-    reloadToken,
-  ]);
+    },
+    queryKey: [
+      'studio-playground-gallery',
+      organizationId ?? null,
+      brandId,
+      filter,
+      sessionId ?? null,
+      apiEndpoint,
+    ],
+    // A failed read shows the "couldn't load" alert with its own Retry at
+    // once; a silent automatic retry would hold the history on loading.
+    retry: false,
+    service: (token: string) => IngredientsService.getInstance(token),
+  });
 
+  // An asked-for refresh shows its progress; it belongs to the scope it was
+  // asked in, so a later scope never inherits it.
+  const [refreshingScope, setRefreshingScope] = useState<string | null>(null);
+  const currentScopeRef = useRef(scopeKey);
+  currentScopeRef.current = scopeKey;
+  const { refetch } = galleryQuery;
+  const refresh = useCallback(async () => {
+    // A refresh captured under an earlier scope never restarts the current read.
+    if (!brandId || currentScopeRef.current !== scopeKey) return;
+    setRefreshingScope(scopeKey);
+    try {
+      await refetch();
+    } finally {
+      setRefreshingScope((current) => (current === scopeKey ? null : current));
+    }
+  }, [brandId, refetch, scopeKey]);
+
+  if (!brandId) {
+    return {
+      galleryError: null,
+      isLoadingGallery: false,
+      refresh,
+      storedJobs: EMPTY_JOBS,
+    };
+  }
+
+  const jobs = galleryQuery.data;
+  const isRefreshing = refreshingScope === scopeKey;
+  // A retry after a failed first read starts without an error; the failure
+  // stays on screen until a read succeeds.
+  const hasFailed =
+    galleryQuery.error !== null ||
+    (galleryQuery.isFetching &&
+      galleryQuery.errorUpdatedAt > galleryQuery.dataUpdatedAt);
   return {
-    galleryError: isCurrentScope && brandId ? snapshot.error : null,
-    isLoadingGallery: Boolean(brandId) && (!isCurrentScope || snapshot.loading),
+    galleryError: hasFailed ? (jobs ? 'refresh' : 'load') : null,
+    isLoadingGallery:
+      jobs === undefined
+        ? galleryQuery.isPending || galleryQuery.isFetching
+        : galleryQuery.isFetching && isRefreshing,
     refresh,
-    storedJobs: isCurrentScope && brandId ? snapshot.jobs : [],
+    storedJobs: jobs ?? EMPTY_JOBS,
   };
 }

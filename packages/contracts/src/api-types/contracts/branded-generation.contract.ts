@@ -882,6 +882,18 @@ export const brandGenerationCostV1Schema = z
     )
       issue(ctx, 'Unknown cost cannot substitute amounts');
   });
+/** Lifecycle of a branded generation receipt; `posts.brandedReceiptState` stores it too. */
+export const brandedGenerationReceiptStateV1Schema = z.enum([
+  'created',
+  'resolved',
+  'dispatched',
+  'checking',
+  'ready',
+  'needs_review',
+  'blocked',
+  'failed',
+  'cancelled',
+]);
 export const brandedGenerationReceiptV1Schema = bounded(
   z
     .strictObject({
@@ -894,17 +906,7 @@ export const brandedGenerationReceiptV1Schema = bounded(
       candidateIndex: revision,
       requestHash: hash,
       revision,
-      state: z.enum([
-        'created',
-        'resolved',
-        'dispatched',
-        'checking',
-        'ready',
-        'needs_review',
-        'blocked',
-        'failed',
-        'cancelled',
-      ]),
+      state: brandedGenerationReceiptStateV1Schema,
       mode,
       surface,
       contentType,
@@ -1221,6 +1223,9 @@ export type BrandGenerationExecutionV1 = z.infer<
   typeof brandGenerationExecutionV1Schema
 >;
 export type BrandGenerationCostV1 = z.infer<typeof brandGenerationCostV1Schema>;
+export type BrandedGenerationReceiptStateV1 = z.infer<
+  typeof brandedGenerationReceiptStateV1Schema
+>;
 export type BrandedGenerationReceiptV1 = z.infer<
   typeof brandedGenerationReceiptV1Schema
 >;

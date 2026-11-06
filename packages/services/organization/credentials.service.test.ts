@@ -1,14 +1,10 @@
+import { Platform } from '@genfeedai/contracts';
 import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
+import { installMockHttp } from '@services/__mocks__/http.mock';
 import { CredentialsService } from '@services/organization/credentials.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@services/core/base.service');
-
-type TestableCredentialsService = CredentialsService & {
-  instance: {
-    get: ReturnType<typeof vi.fn>;
-  };
-};
 
 describe('CredentialsService', () => {
   let service: CredentialsService;
@@ -54,12 +50,22 @@ describe('CredentialsService', () => {
 
   describe('publishing readiness', () => {
     it('loads the account publishing context with surface and cancellation', async () => {
-      const context = {
+      const context: AccountPublishingContext = {
         account: {
           id: 'credential-1',
           label: 'Genfeed',
-          platform: 'twitter',
+          platform: Platform.TWITTER,
         },
+        brand: { id: 'brand-1' },
+        constraints: {
+          notes: [],
+          supportsDirectPublishing: true,
+          supportsRichArticleCopy: false,
+          supportsThreads: true,
+          usesWeightedCharacters: true,
+        },
+        promptHints: [],
+        publishability: 'publishable',
         readiness: {
           appReviewStatus: 'pass',
           callbackUrlStatus: 'pass',
@@ -72,11 +78,13 @@ describe('CredentialsService', () => {
           state: 'publish_capable',
           tokenFreshness: 'pass',
         },
+        recentPosts: [],
         surface: 'post',
-      } as AccountPublishingContext;
+      };
       const controller = new AbortController();
-      const get = vi.fn().mockResolvedValue({ data: context });
-      (service as unknown as TestableCredentialsService).instance = { get };
+      const get = installMockHttp(service).get.mockResolvedValue({
+        data: context,
+      });
 
       await expect(
         service.getPublishingContext('credential-1', 'post', controller.signal),
@@ -90,10 +98,9 @@ describe('CredentialsService', () => {
 
   describe('posting times', () => {
     it('lists posting times for a credential', async () => {
-      const get = vi.fn().mockResolvedValue({
+      const get = installMockHttp(service).get.mockResolvedValue({
         data: { times: [{ hour: 9, minute: 0 }] },
       });
-      (service as unknown as TestableCredentialsService).instance = { get };
 
       await expect(service.listPostingTimes('credential-1')).resolves.toEqual([
         { hour: 9, minute: 0 },
@@ -104,10 +111,9 @@ describe('CredentialsService', () => {
     });
 
     it('requests the next free slot', async () => {
-      const get = vi.fn().mockResolvedValue({
+      const get = installMockHttp(service).get.mockResolvedValue({
         data: { found: false },
       });
-      (service as unknown as TestableCredentialsService).instance = { get };
 
       await expect(service.findNextSlot('credential-1')).resolves.toEqual({
         found: false,

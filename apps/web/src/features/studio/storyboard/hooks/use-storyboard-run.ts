@@ -8,11 +8,13 @@ import type {
 } from '@genfeedai/contracts/api-types/contracts';
 import type { QuoteBrandRemixScenes } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { resolvePairedRunIdentity } from '@/features/studio/storyboard/utils/storyboard-run';
@@ -114,10 +116,39 @@ function getSocketResource(run: BrandRemixRunView): 'images' | 'videos' {
   return run.draft.output.kind === 'image' ? 'images' : 'videos';
 }
 
+function storyboardRunQueryKey(brandId: string, runId: string) {
+  return ['brand-remix-run', brandId, runId] as const;
+}
+
+/** The highest revision of `run` among it and the cached copies of it. */
+function newestRun(
+  run: BrandRemixRunView,
+  cached: ReadonlyArray<readonly [unknown, BrandRemixRunView | undefined]>,
+): BrandRemixRunView {
+  return cached.reduce<BrandRemixRunView>(
+    (newest, [, candidate]) =>
+      candidate &&
+      candidate.id === newest.id &&
+      candidate.brandId === newest.brandId &&
+      candidate.revision > newest.revision
+        ? candidate
+        : newest,
+    run,
+  );
+}
+
+/**
+ * One Discovery storyboard run of the active brand. It is cached per brand and
+ * run, so reopening the run paints it at once and refreshes it in the
+ * background; while generation is in flight it re-reads every few seconds.
+ * Actions write the run they return into the cache. A failed read replaces
+ * the run only when none is on screen.
+ */
 export function useStoryboardRun(runId: string): UseStoryboardRunResult {
   const brandId = useBrandId();
   const router = useRouter();
   const { activeHref } = useOrgUrl();
+  const queryClient = useQueryClient();
   const { isReady: isSocketReady, subscribe } = useSocketManager();
   const getContentRunsService = useAuthedService((token: string) =>
     ContentRunsService.getInstance(token),
@@ -132,71 +163,47 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
     return service;
   }, [getContentRunsService, scope]);
   const actionInFlightRef = useRef(false);
-  const [run, setRun] = useState<BrandRemixRunView | null>(null);
-  const [status, setStatus] = useState<StoryboardRunStatus>('loading');
-  const [error, setError] = useState<string | null>(null);
+  const [action, setAction] = useState<{
+    error: string | null;
+    /** The run read on screen when the action failed; a later read supersedes the error. */
+    readAt: number;
+    isWorking: boolean;
+    scope: string;
+  }>({ error: null, readAt: 0, isWorking: false, scope });
 
-  const fetchRun = useCallback(
-    async (signal?: AbortSignal) => {
-      try {
-        const service = await getScopedService();
-        const nextRun = await service.findBrandRemixRun(runId, signal);
-        if (signal?.aborted) {
-          return;
-        }
-        if (activeScope.current !== scope) return;
-        if (nextRun.brandId !== brandId)
-          throw new Error('Storyboard is unavailable in this brand.');
-        setRun(nextRun);
-        setStatus('ready');
-        setError(null);
-      } catch (caughtError) {
-        if (
-          activeScope.current !== scope ||
-          signal?.aborted ||
-          (caughtError instanceof Error && caughtError.name === 'AbortError')
-        ) {
-          return;
-        }
-        setError(
-          getJsonApiErrorMessage(
-            caughtError,
-            'The storyboard run could not be updated.',
-          ),
-        );
-        setStatus('error');
-      }
+  const runQuery = useAuthedQuery<ContentRunsService, BrandRemixRunView>({
+    enabled: Boolean(brandId),
+    queryFn: async (service, signal) => {
+      // A read superseded while it waited for its token never reaches the API.
+      signal.throwIfAborted();
+      const nextRun = await service.findBrandRemixRun(runId, signal);
+      if (nextRun.brandId !== brandId)
+        throw new Error('Storyboard is unavailable in this brand.');
+      // An action that returned a newer revision while this read was in
+      // flight wins over it.
+      return newestRun(
+        nextRun,
+        queryClient.getQueriesData<BrandRemixRunView>({
+          queryKey: storyboardRunQueryKey(brandId, runId),
+        }),
+      );
     },
-    [getScopedService, runId, brandId, scope],
-  );
+    queryKey: storyboardRunQueryKey(brandId, runId),
+    refetchInterval: (query) =>
+      query.state.data && isStoryboardRunInFlight(query.state.data)
+        ? RUN_REFRESH_MS
+        : false,
+    service: (token: string) => ContentRunsService.getInstance(token),
+  });
+  const readAtRef = useRef(0);
+  readAtRef.current = runQuery.dataUpdatedAt;
+  const cachedRun = runQuery.data;
+  const run = cachedRun?.brandId === brandId ? cachedRun : null;
 
+  const { refetch } = runQuery;
   const refresh = useCallback(async () => {
-    await fetchRun();
-  }, [fetchRun]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setRun(null);
-    setError(null);
-    setStatus('loading');
-    void fetchRun(controller.signal);
-    return () => controller.abort();
-  }, [fetchRun]);
-
-  useEffect(() => {
-    if (!run || !isStoryboardRunInFlight(run)) {
-      return;
-    }
-
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => {
-      void fetchRun(controller.signal);
-    }, RUN_REFRESH_MS);
-    return () => {
-      controller.abort();
-      window.clearTimeout(timer);
-    };
-  }, [fetchRun, run]);
+    await refetch();
+  }, [refetch]);
 
   const socketAssetIds = useMemo(
     () =>
@@ -207,15 +214,15 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
       ).sort(),
     [run?.execution?.variants],
   );
+  const socketResource = run ? getSocketResource(run) : null;
 
   useEffect(() => {
-    if (!run || !isSocketReady || !socketAssetIds.length) {
+    if (!socketResource || !isSocketReady || !socketAssetIds.length) {
       return;
     }
 
-    const resource = getSocketResource(run);
     const unsubscribe = socketAssetIds.map((assetId) =>
-      subscribe(`/${resource}/${assetId}`, () => {
+      subscribe(`/${socketResource}/${assetId}`, () => {
         void refresh();
       }),
     );
@@ -224,7 +231,7 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
         dispose();
       }
     };
-  }, [isSocketReady, refresh, run, socketAssetIds, subscribe]);
+  }, [isSocketReady, refresh, socketAssetIds, socketResource, subscribe]);
 
   const perform = useCallback(
     async (operation: () => Promise<BrandRemixRunView>) => {
@@ -237,31 +244,39 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
       }
 
       actionInFlightRef.current = true;
-      setStatus('working');
-      setError(null);
+      setAction({ error: null, readAt: 0, isWorking: true, scope });
       try {
         const nextRun = await operation();
         if (activeScope.current !== scope) return null;
         if (nextRun.brandId !== brandId)
           throw new Error('Storyboard is unavailable in this brand.');
-        setRun(nextRun);
-        setStatus('ready');
+        const runKey = storyboardRunQueryKey(brandId, nextRun.id);
+        // The server's answer to this action is the run now, whatever its
+        // revision: a read already in flight must not land over it.
+        await queryClient.cancelQueries({ queryKey: runKey });
+        queryClient.setQueriesData<BrandRemixRunView>(
+          { queryKey: runKey },
+          nextRun,
+        );
+        setAction({ error: null, readAt: 0, isWorking: false, scope });
         return nextRun;
       } catch (caughtError) {
         if (activeScope.current !== scope) return null;
-        setError(
-          getJsonApiErrorMessage(
+        setAction({
+          error: getJsonApiErrorMessage(
             caughtError,
             'The storyboard run could not be updated.',
           ),
-        );
-        setStatus('error');
+          readAt: readAtRef.current,
+          isWorking: false,
+          scope,
+        });
         return null;
       } finally {
         actionInFlightRef.current = false;
       }
     },
-    [scope, brandId, run],
+    [scope, brandId, run, queryClient],
   );
 
   const start = useCallback(
@@ -410,6 +425,27 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
     [getScopedService, perform, run],
   );
 
+  // A failed action's message stays until a later read of the run lands.
+  const currentAction =
+    action.scope === scope &&
+    (action.isWorking || runQuery.dataUpdatedAt === action.readAt)
+      ? action
+      : { error: null, readAt: 0, isWorking: false, scope };
+  const readError = runQuery.error
+    ? getJsonApiErrorMessage(
+        runQuery.error,
+        'The storyboard run could not be updated.',
+      )
+    : null;
+  const error = currentAction.error ?? readError;
+  const status: StoryboardRunStatus = currentAction.isWorking
+    ? 'working'
+    : error
+      ? 'error'
+      : run
+        ? 'ready'
+        : 'loading';
+
   return {
     saveScenes,
     attachSceneSource,
@@ -420,7 +456,7 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
     error,
     preparePausedDraft,
     refresh,
-    run: run?.brandId === brandId ? run : null,
+    run,
     runId,
     start,
     status,

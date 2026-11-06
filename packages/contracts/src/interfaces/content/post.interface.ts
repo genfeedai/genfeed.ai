@@ -2,6 +2,7 @@ import type {
   CredentialPlatform,
   PostCategory,
   PostFormat,
+  PostStatus,
   PostVisibility,
   ReviewDecision,
   SourcePostVariationPlatform,
@@ -21,6 +22,7 @@ import type {
 import type { IBrandPolicyViolation } from '../organization/brand-publish-policy.interface';
 import type { IPublishApproval } from '../publisher/publish-approval.interface';
 import type { IChannelTargetError } from '../scheduler/channel-target.interface';
+import type { BrandedGenerationReceiptStateV1 } from './branded-generation.interface';
 import type { SeoScorecardSnapshot } from './seo-scorecard.interface';
 
 export interface IPost extends IBaseEntity {
@@ -43,7 +45,7 @@ export interface IPost extends IBaseEntity {
   label?: string;
   description?: string;
   tags?: ITag[];
-  status: string;
+  status: PostStatus;
   targetExecutionState: TargetExecutionState;
   targetSettings?: Record<string, unknown> | null;
   visibility?: PostVisibility;
@@ -97,7 +99,7 @@ export interface IPost extends IBaseEntity {
   generationId?: string | null;
   /** Branded generation receipt that produced the text, with its state when the dispatch finished. */
   brandedReceiptId?: string | null;
-  brandedReceiptState?: string | null;
+  brandedReceiptState?: BrandedGenerationReceiptStateV1 | null;
   variantId?: string | null;
   workflowExecutionId?: string | null;
 }

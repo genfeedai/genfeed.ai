@@ -106,13 +106,15 @@ describe('CredentialsService HTTP methods', () => {
     const summary = { credentialId, status: 'healthy' };
     http.patch.mockResolvedValue(axiosResponse(summary));
 
-    const result = await service.overrideAccountHealth(credentialId, {
-      status: 'healthy',
-    });
+    const override = {
+      confirm: true,
+      reason: 'Verified the account manually',
+    } as const;
+    const result = await service.overrideAccountHealth(credentialId, override);
 
     expect(http.patch).toHaveBeenCalledWith(
       `/${credentialId}/account-health/override`,
-      { status: 'healthy' },
+      override,
     );
     expect(http.post).not.toHaveBeenCalled();
     expect(result).toEqual(summary);

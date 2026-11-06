@@ -14,6 +14,7 @@ export type {
   BrandAssetTextCoverageV1,
   BrandExampleRuleV1,
   BrandedGenerationInputV1,
+  BrandedGenerationReceiptStateV1,
   BrandedGenerationReceiptV1,
   BrandedGenerationResolutionV1,
   BrandFactRuleV1,

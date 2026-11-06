@@ -42,11 +42,11 @@ describe('VideosService', () => {
     mockVideoResponse();
     const controller = new AbortController();
 
-    const result = await service.post({ label: 'Video' }, controller.signal);
+    const result = await service.post({ text: 'Video' }, controller.signal);
 
     expect(http.post).toHaveBeenCalledWith(
       '',
-      { label: 'Video' },
+      { text: 'Video' },
       { signal: controller.signal, handlesErrorResponse: expect.any(Function) },
     );
     expect(result.id).toBe('video_1');
@@ -125,26 +125,33 @@ describe('VideosService', () => {
     it('postMerge POSTs the serialized merge params', async () => {
       mockVideoResponse();
 
-      await service.postMerge({ ids: ['v1', 'v2'] });
+      await service.postMerge({ category: 'video', ids: ['v1', 'v2'] });
 
-      expect(http.post).toHaveBeenCalledWith('/merge', { ids: ['v1', 'v2'] });
+      expect(http.post).toHaveBeenCalledWith('/merge', {
+        category: 'video',
+        ids: ['v1', 'v2'],
+      });
     });
 
     it('postUpscale POSTs serialized edit params to the id route', async () => {
       mockVideoResponse();
 
-      await service.postUpscale('video_1', { scale: 2 });
+      await service.postUpscale('video_1', { height: 2160, width: 3840 });
 
-      expect(http.post).toHaveBeenCalledWith('/video_1/upscale', { scale: 2 });
+      expect(http.post).toHaveBeenCalledWith('/video_1/upscale', {
+        height: 2160,
+        width: 3840,
+      });
     });
 
     it('postResize POSTs resize params', async () => {
       mockVideoResponse();
 
-      await service.postResize('video_1', { format: 'portrait' });
+      await service.postResize('video_1', { height: 1920, width: 1080 });
 
       expect(http.post).toHaveBeenCalledWith('/video_1/resize', {
-        format: 'portrait',
+        height: 1920,
+        width: 1080,
       });
     });
 

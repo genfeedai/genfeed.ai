@@ -147,10 +147,10 @@ describe('ArticlesService', () => {
   it('scoreSeo POSTs the seo scoring request', async () => {
     mockArticle('post');
 
-    await service.scoreSeo(articleId, { keywords: ['ai'] });
+    await service.scoreSeo(articleId, { targetKeyword: 'ai' });
 
     expect(http.post).toHaveBeenCalledWith(`/${articleId}/seo-scores`, {
-      keywords: ['ai'],
+      targetKeyword: 'ai',
     });
   });
 

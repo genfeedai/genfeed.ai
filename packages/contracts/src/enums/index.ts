@@ -81,6 +81,7 @@ export * from './job.enum';
 export * from './knowledge-base.enum';
 export * from './knowledge-source.enum';
 export * from './library-shelf.enum';
+export * from './lifecycle-email-delivery.enum';
 export * from './link.enum';
 export * from './live-session.enum';
 export * from './marketplace.enum';
