@@ -27,10 +27,11 @@ import {
   type IChannelMessage,
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import { buildSystemEmailHtml } from '@helpers/email/system-email.helper';
 import {
-  buildSystemEmailHtml,
-  escapeSystemEmailHtml,
-} from '@helpers/email/system-email.helper';
+  buildAgentReviewStatusEmailBody,
+  buildWorkflowStatusEmailBody,
+} from '@helpers/email/system-email-templates.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -763,8 +764,13 @@ export class WorkflowNotificationDeliveryService {
         subject,
         text: [subject, payload.summary, href].filter(Boolean).join('\n'),
         html: buildSystemEmailHtml({
+          action: href ? { label: 'View agent', url: href } : undefined,
           title: subject,
-          bodyHtml: `<p>${escapeSystemEmailHtml(payload.summary)}</p>${href ? `<p><a href="${escapeSystemEmailHtml(href)}">View agent</a></p>` : ''}`,
+          bodyHtml: buildAgentReviewStatusEmailBody({
+            isExpired: payload.expired,
+            label: payload.strategyLabel,
+            summary: payload.summary,
+          }),
         }),
       };
     }
@@ -781,13 +787,17 @@ export class WorkflowNotificationDeliveryService {
       const text = [subject, title, summary, recovery, payload.summary, href]
         .filter(Boolean)
         .join('\n');
-      const bodyHtml = [title, summary, recovery, payload.summary]
-        .filter((value): value is string => typeof value === 'string')
-        .map((value) => `<p>${escapeSystemEmailHtml(value)}</p>`)
-        .join('');
       return {
         html: buildSystemEmailHtml({
-          bodyHtml: `${bodyHtml}${href ? `<p><a href="${escapeSystemEmailHtml(href)}">View agent</a></p>` : ''}`,
+          action: href ? { label: 'View agent', url: href } : undefined,
+          bodyHtml: buildWorkflowStatusEmailBody({
+            details: [title, summary, recovery, payload.summary].filter(
+              (value): value is string => typeof value === 'string',
+            ),
+            isFailed: true,
+            kind: 'agent-run',
+            label: payload.workflowLabel,
+          }),
           title: subject,
         }),
         subject,
@@ -802,21 +812,30 @@ export class WorkflowNotificationDeliveryService {
         subject,
         text: [subject, summary, href].filter(Boolean).join('\n'),
         html: buildSystemEmailHtml({
+          action: href ? { label: 'View agent', url: href } : undefined,
           title: subject,
-          bodyHtml: `<p>${escapeSystemEmailHtml(summary)}</p>${href ? `<p><a href="${escapeSystemEmailHtml(href)}">View agent</a></p>` : ''}`,
+          bodyHtml: buildWorkflowStatusEmailBody({
+            details: [summary],
+            isFailed: false,
+            kind: 'agent-run',
+            label: payload.workflowLabel,
+          }),
         }),
       };
     }
-    const escapedLabel = escapeSystemEmailHtml(payload.workflowLabel);
-    const escapedError = payload.error
-      ? `: ${escapeSystemEmailHtml(payload.error)}`
-      : '.';
-    const bodyHtml = isFailure
-      ? `<p>Your workflow <strong>${escapedLabel}</strong> failed${escapedError}</p>`
-      : `<p>Your workflow <strong>${escapedLabel}</strong> completed successfully.</p>`;
 
     return {
-      html: buildSystemEmailHtml({ bodyHtml, title: subject }),
+      html: buildSystemEmailHtml({
+        bodyHtml: buildWorkflowStatusEmailBody({
+          details: isFailure
+            ? [`Failed${payload.error ? `: ${payload.error}` : '.'}`]
+            : ['Completed successfully.'],
+          isFailed: isFailure,
+          kind: 'workflow',
+          label: payload.workflowLabel,
+        }),
+        title: subject,
+      }),
       subject,
       text: isFailure
         ? `Your workflow ${payload.workflowLabel} failed${payload.error ? `: ${payload.error}` : '.'}`

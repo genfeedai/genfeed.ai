@@ -28,7 +28,11 @@ const request = {
   organizationId: 'org-1',
   referenceDate: '2026-09-14T08:00:00.000Z',
 };
-function fixture(count: number, isConnected = true) {
+function fixture(
+  count: number,
+  isConnected = true,
+  isMediaDeliveryEnabled = false,
+) {
   const queueEmail = vi.fn();
   const findForUser = vi.fn().mockResolvedValue({ isEnabled: true });
   const prisma = {
@@ -44,6 +48,7 @@ function fixture(count: number, isConnected = true) {
         Array.from({ length: count }, (_, index) => ({
           id: `asset-${index}`,
           brandId: 'brand-1',
+          category: 'IMAGE',
         })),
       ),
     },
@@ -63,6 +68,8 @@ function fixture(count: number, isConnected = true) {
     prisma as unknown as PrismaService,
     {
       get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
+      ingredientsEndpoint: 'https://cdn.genfeed.ai/ingredients',
+      isAuthorizedMediaDeliveryEnabled: isMediaDeliveryEnabled,
     } as unknown as ConfigService,
     {} as SystemWorkflowRunnerService,
     {} as LifecycleEmailWorkflowService,
@@ -123,9 +130,26 @@ describe('system recap policy', () => {
         idempotencyKey: 'product:org-1:week:user-1:2026-09-07T00:00:00.000Z',
       }),
     );
-    expect(queueEmail.mock.calls[0][0].html).toContain(
-      'analytics are available',
+    const { html } = queueEmail.mock.calls[0][0];
+    expect(html).toContain('>5<');
+    expect(html).toContain('Created');
+    expect(html).not.toContain('Performance of published pieces');
+  });
+  it('previews the created images from the ingredients CDN', async () => {
+    const { service, queueEmail } = fixture(5);
+    await service.recaps(request);
+    const { html } = queueEmail.mock.calls[0][0];
+    expect(html).toContain(
+      'src="https://cdn.genfeed.ai/ingredients/images/asset-0"',
     );
+    expect(html).toContain('Created this week');
+  });
+  it('shows no CDN image once authorized media delivery is on', async () => {
+    const { service, queueEmail } = fixture(5, true, true);
+    await service.recaps(request);
+    const { html } = queueEmail.mock.calls[0][0];
+    expect(html).not.toContain('cdn.genfeed.ai/ingredients');
+    expect(html).toContain('Created this week');
   });
   it.each([
     [false, 'settings/accounts', 'connect_account'],
@@ -173,8 +197,8 @@ describe('system recap policy', () => {
         }),
       }),
     );
-    expect(queueEmail.mock.calls[0][0].html).toContain(
-      '500 credits used during this period.',
+    expect(queueEmail.mock.calls[0][0].html).toMatch(
+      />500<\/div><div[^>]*>Credits used</,
     );
   });
   it('deduplicates repeated generated IDs before the five-piece threshold', async () => {

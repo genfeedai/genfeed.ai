@@ -15,6 +15,7 @@ import {
   buildTrendDigestHtml,
   buildTrendDigestItems,
   buildTrendDigestMessage,
+  buildTrendDigestSubject,
   type RawTrendHashtag,
   type RawTrendSound,
   type RawTrendVideo,
@@ -277,7 +278,7 @@ export class TrendNotificationWorkflowService {
                 action: 'send_email',
                 payload: {
                   html: this.requiredString(state.summaryHtml, 'summaryHtml'),
-                  subject: `Your Trend Summary - ${trends.length} Trending Topics`,
+                  subject: buildTrendDigestSubject(trends),
                   to,
                 },
                 type: 'email',
