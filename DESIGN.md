@@ -682,6 +682,13 @@ colour and then a 2px ring in `--ring`, so the ring survives on any surface —
 including one whose background already matches the ring colour. The ring is
 monochrome; focus is not a place to introduce hue.
 
+In code the ring is `focusRingClassName` from `@ui/primitives/focus-ring`
+(`focus-visible:ring-2 ring-ring ring-offset-2 ring-offset-background`).
+Controls that sit flush in a clipped row, such as accordion triggers, tab panels
+and switcher rows, use `focusRingInsetClassName` instead. Primitives already
+apply it, so a call site never hand-rolls `focus:ring-*` or an outline offset.
+`check:design-system` flags `off-contract-focus-ring`.
+
 ## Components
 
 Standalone MCP previews bundle the existing shared React components and shared
