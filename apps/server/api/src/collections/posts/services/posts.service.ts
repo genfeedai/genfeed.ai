@@ -109,10 +109,6 @@ export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
   publishIntent?: string;
   reviewEvents?: Record<string, unknown>[];
   reviewFeedback?: string;
-  /** The manual-review Turbo run this draft was appended to. */
-  reviewTurboRunId?: string;
-  /** The review item inside `reviewTurboRunId` that holds this draft. */
-  reviewItemId?: string;
   sourceActionId?: string;
   sourceWorkflowId?: string;
   sourceWorkflowName?: string;
