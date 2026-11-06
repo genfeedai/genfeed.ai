@@ -162,7 +162,7 @@ export function ExecutionPanel({
   }, [fetchExecution]);
 
   return (
-    <div className="absolute right-0 top-0 bottom-0 w-96 border-l border-border bg-card shadow-xl">
+    <aside className="flex h-full w-80 shrink-0 flex-col border-l border-border bg-card">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="font-semibold">Execution</h2>
         <Button
@@ -175,7 +175,7 @@ export function ExecutionPanel({
         </Button>
       </div>
 
-      <div className="h-[calc(100%-56px)] overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -320,6 +320,6 @@ export function ExecutionPanel({
           <p className="text-center text-muted-foreground">No execution data</p>
         )}
       </div>
-    </div>
+    </aside>
   );
 }
