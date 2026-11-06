@@ -248,7 +248,7 @@ describe('OAuthConsentPage', () => {
     expect(lastDecisionBody()).not.toHaveProperty('allowOrganizationSwitching');
   });
 
-  it('defaults the brand to the one already selected in the account', async () => {
+  it('starts on all brands and sends no brand limit', async () => {
     getMyOrganizationsMock.mockResolvedValue([
       {
         brand: { id: 'brand-2', label: 'Second brand' },
@@ -264,25 +264,33 @@ describe('OAuthConsentPage', () => {
     mockDecisionResponse();
     render(<OAuthConsentPage />);
     const picker = await screen.findByLabelText('Brand');
-    await waitFor(() => expect(picker).toHaveValue('brand-2'));
-    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
-    await waitFor(() => expect(redirectMock).toHaveBeenCalled());
-    expect(findOrganizationBrandsMock).toHaveBeenCalledWith('org-1');
-    expect(lastDecisionBody()).toMatchObject({ brandId: 'brand-2' });
-  });
-
-  it('sends no brand when the user keeps all brands', async () => {
-    findOrganizationBrandsMock.mockResolvedValue([
-      { id: 'brand-1', label: 'First brand' },
-    ]);
-    mockDecisionResponse();
-    render(<OAuthConsentPage />);
-    const picker = await screen.findByLabelText('Brand');
-    await waitFor(() => expect(picker).toHaveValue('brand-1'));
-    fireEvent.change(picker, { target: { value: '' } });
+    expect(picker).toHaveValue('');
+    expect(
+      screen.getByText('Claude can work in every brand in this organization.'),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
     await waitFor(() => expect(redirectMock).toHaveBeenCalled());
     expect(lastDecisionBody()).not.toHaveProperty('brandId');
+  });
+
+  it('limits the connection to the one brand the user picks', async () => {
+    findOrganizationBrandsMock.mockResolvedValue([
+      { id: 'brand-1', label: 'First brand' },
+      { id: 'brand-2', label: 'Second brand' },
+    ]);
+    mockDecisionResponse();
+    render(<OAuthConsentPage />);
+    fireEvent.change(await screen.findByLabelText('Brand'), {
+      target: { value: 'brand-2' },
+    });
+    expect(
+      screen.getByText(
+        'Claude can only see and change Second brand. Your other brands stay hidden.',
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+    await waitFor(() => expect(redirectMock).toHaveBeenCalled());
+    expect(lastDecisionBody()).toMatchObject({ brandId: 'brand-2' });
   });
 
   it('shows the sole organization and grants it without another step', async () => {
@@ -451,6 +459,19 @@ describe('OAuthConsentPage', () => {
       }
     },
   );
+
+  it('drops the admin notice once the connection is limited to one brand', async () => {
+    findOrganizationBrandsMock.mockResolvedValue([
+      { id: 'brand-1', label: 'First brand' },
+    ]);
+    render(<OAuthConsentPage />);
+    fireEvent.change(await screen.findByLabelText('Brand'), {
+      target: { value: 'brand-1' },
+    });
+    expect(
+      screen.queryByText(/approve its own queued actions/),
+    ).not.toBeInTheDocument();
+  });
 
   it.each<[string, boolean]>([
     ['Authorize', true],

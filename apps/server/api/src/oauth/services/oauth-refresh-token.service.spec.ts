@@ -414,6 +414,38 @@ describe('OAuthRefreshTokenService', () => {
     );
   });
 
+  it.each([
+    [
+      'a connection limited to one brand',
+      { allowedBrandIds: ['brand-1'] },
+      ['brand-1'],
+    ],
+    ['a connection reaching every brand', {}, undefined],
+  ])(
+    'keeps the brand limit of %s across rotation',
+    async (_label, brandMetadata, expected) => {
+      const { apiKeysService, seedApiKey, seedRefreshToken, service } =
+        buildHarness();
+      const original = seedApiKey({
+        defaultBrandId: 'brand-1',
+        metadata: {
+          ...brandMetadata,
+          grantId: 'grant-1',
+          kind: 'mcp-oauth-session',
+          resource,
+        },
+      });
+      seedRefreshToken('refresh-plain-token-original', {
+        apiKeyId: original.id,
+      });
+
+      await service.refresh(refreshGrant('refresh-plain-token-original'));
+
+      const [[, keyInput]] = vi.mocked(apiKeysService.rotateWithKey).mock.calls;
+      expect(keyInput.allowedBrandIds).toEqual(expected);
+    },
+  );
+
   it('rejects an expired refresh token without issuing a token', async () => {
     const { apiKeysService, seedApiKey, seedRefreshToken, service } =
       buildHarness();
