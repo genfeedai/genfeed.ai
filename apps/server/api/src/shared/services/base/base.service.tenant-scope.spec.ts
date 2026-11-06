@@ -1,382 +1,389 @@
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import {
   crossOrgUnsafe,
   runWithTenantContext,
 } from '@libs/prisma/tenant-context';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+type Row = Record<string, unknown>;
 
 const ORG = 'org_own';
-const FOREIGN_ORG = 'org_foreign';
 
-type DelegateMock = Record<string, ReturnType<typeof vi.fn>>;
+class TestService extends BaseService<Row> {}
 
-class TestService extends BaseService<Record<string, unknown>> {}
+// Prisma `where` as Postgres evaluates it on these rows: AND/OR arrays and
+// equality, where `organizationId: null` only matches platform rows.
+const satisfies = (row: Row, where: Row): boolean =>
+  Object.entries(where).every(([key, condition]) => {
+    if (key === 'AND') {
+      return (condition as Row[]).every((clause) => satisfies(row, clause));
+    }
+    if (key === 'OR') {
+      return (condition as Row[]).some((clause) => satisfies(row, clause));
+    }
+    return row[key] === condition;
+  });
 
-function createDelegate(): DelegateMock {
-  return {
-    count: vi.fn().mockResolvedValue(0),
-    findFirst: vi.fn().mockResolvedValue({ id: 'row_1' }),
-    findMany: vi.fn().mockResolvedValue([]),
-    update: vi.fn().mockResolvedValue({ id: 'row_1' }),
-    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+/** A table holding own, deleted, foreign-organization and platform rows. */
+function createTable() {
+  const rows: Row[] = [
+    {
+      id: 'row_1',
+      isDeleted: false,
+      label: 'old',
+      organizationId: ORG,
+      slug: 'a',
+      userId: 'u0',
+    },
+    {
+      id: 'row_2',
+      isDeleted: false,
+      label: 'old',
+      organizationId: ORG,
+      slug: 'b',
+      userId: 'u1',
+    },
+    {
+      id: 'deleted_row',
+      isDeleted: true,
+      label: 'old',
+      organizationId: ORG,
+      slug: 'a',
+      userId: 'u0',
+    },
+    {
+      id: 'foreign_row',
+      isDeleted: false,
+      label: 'old',
+      organizationId: 'org_foreign',
+      slug: 'a',
+      userId: 'u1',
+    },
+    {
+      id: 'platform_row',
+      isDeleted: false,
+      label: 'old',
+      organizationId: null,
+      slug: 'a',
+      userId: null,
+    },
+  ];
+  const matching = (where: Row) => rows.filter((row) => satisfies(row, where));
+  const delegate = {
+    count: async ({ where }: { where: Row }) => matching(where).length,
+    findFirst: async ({ where }: { where: Row }) => matching(where)[0] ?? null,
+    findMany: async ({
+      skip = 0,
+      take,
+      where,
+    }: {
+      skip?: number;
+      take?: number;
+      where: Row;
+    }) =>
+      matching(where).slice(skip, take === undefined ? undefined : skip + take),
+    update: async ({ data, where }: { data: Row; where: Row }) => {
+      const [row] = matching(where);
+      if (!row) throw new Error('Record to update not found.');
+      return Object.assign(row, data);
+    },
+    updateMany: async ({ data, where }: { data: Row; where: Row }) => {
+      const hits = matching(where);
+      for (const row of hits) Object.assign(row, data);
+      return { count: hits.length };
+    },
   };
+  return { delegate, rows };
 }
 
-function createService(
-  modelName: string,
-  isCloudTenantGuard = true,
-): {
-  delegate: DelegateMock;
-  service: TestService;
-} {
-  const delegate = createDelegate();
+function createService(modelName: string, isCloudTenantGuard?: boolean) {
+  const { delegate, rows } = createTable();
   const prisma = {
-    isCloudTenantGuard,
     [modelName]: delegate,
+    ...(isCloudTenantGuard === undefined ? {} : { isCloudTenantGuard }),
   } as unknown as PrismaService;
   const logger = {
-    debug: vi.fn(),
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  } as Partial<LoggerService> as LoggerService;
-
-  return { delegate, service: new TestService(prisma, modelName, logger) };
+    debug: () => undefined,
+    error: () => undefined,
+    log: () => undefined,
+    warn: () => undefined,
+  } as unknown as LoggerService;
+  const field = (id: string, key: string) =>
+    rows.find((row) => row.id === id)?.[key];
+  return { field, rows, service: new TestService(prisma, modelName, logger) };
 }
+
+const asTenant = <T>(work: () => Promise<T>) =>
+  runWithTenantContext({ organizationId: ORG }, work);
+const ids = (rows: Row[] | null) => (rows ?? []).map((row) => row.id);
 
 describe('BaseService tenant scope', () => {
   describe('pure tenant model (brand)', () => {
-    let delegate: DelegateMock;
-    let service: TestService;
+    let world: ReturnType<typeof createService>;
 
     beforeEach(() => {
-      ({ delegate, service } = createService('brand'));
+      world = createService('brand', true);
     });
 
-    it('scopes an id-only patch to the request tenant', async () => {
-      await runWithTenantContext({ organizationId: ORG }, () =>
-        service.patch('row_1', { label: 'x' }),
+    it.each([
+      ['an own row', 'row_1', 'row_1'],
+      ['a foreign row', 'foreign_row', null],
+      ['a platform row', 'platform_row', null],
+      ['a deleted own row', 'deleted_row', null],
+    ])(
+      'findOne by id reads %s only when it is the tenant',
+      async (_case, id, expected) => {
+        const row = await asTenant(() => world.service.findOne({ id }));
+
+        expect(row?.id ?? null).toBe(expected);
+      },
+    );
+
+    it('find and findAll list only the tenant rows', async () => {
+      const [found, page, unpaginated] = await asTenant(() =>
+        Promise.all([
+          world.service.find({ slug: 'a' }),
+          world.service.findAll(
+            { where: { slug: 'a' } },
+            { limit: 5, page: 1 },
+          ),
+          world.service.findAll(
+            { where: { slug: 'a' } },
+            { pagination: false },
+          ),
+        ]),
       );
 
-      expect(delegate.update).toHaveBeenCalledWith({
-        data: { label: 'x' },
-        where: { id: 'row_1', organizationId: ORG },
-      });
+      expect(ids(found)).toEqual(['row_1']);
+      expect(ids(page.docs)).toEqual(['row_1']);
+      expect(page.totalDocs).toBe(1);
+      expect(ids(unpaginated.docs)).toEqual(['row_1']);
     });
 
-    it('scopes an id-only remove to the request tenant', async () => {
-      await runWithTenantContext({ organizationId: ORG }, () =>
-        service.remove('row_1'),
+    it.each([
+      [
+        'patch',
+        (service: TestService, id: string) =>
+          service.patch(id, { label: 'new' }),
+        'label',
+        'new',
+      ],
+      [
+        'remove',
+        (service: TestService, id: string) => service.remove(id),
+        'isDeleted',
+        true,
+      ],
+      [
+        'updateEntityFlag',
+        (service: TestService, id: string) =>
+          service.updateEntityFlag(id, ORG, 'isRead' as keyof Row, true),
+        'isRead',
+        true,
+      ],
+    ])('%s writes an own row by id', async (_method, write, key, value) => {
+      await asTenant(() => write(world.service, 'row_1'));
+
+      expect(world.field('row_1', key)).toBe(value);
+    });
+
+    it.each([
+      [
+        'patch',
+        (service: TestService, id: string) =>
+          service.patch(id, { label: 'new' }),
+      ],
+      ['remove', (service: TestService, id: string) => service.remove(id)],
+    ])(
+      '%s never reaches another organization or a platform row through an id',
+      async (_method, write) => {
+        await expect(
+          asTenant(() => write(world.service, 'foreign_row')),
+        ).rejects.toThrow('Record to update not found.');
+        await expect(
+          asTenant(() => write(world.service, 'platform_row')),
+        ).rejects.toThrow('Record to update not found.');
+
+        expect(
+          world.rows.slice(3).map(({ isDeleted, label }) => [label, isDeleted]),
+        ).toEqual([
+          ['old', false],
+          ['old', false],
+        ]);
+      },
+    );
+
+    it('patchAll writes only the tenant rows', async () => {
+      await asTenant(() =>
+        world.service.patchAll({ slug: 'a' }, { label: 'new' }),
       );
 
-      expect(delegate.update).toHaveBeenCalledWith({
-        data: { isDeleted: true },
-        where: { id: 'row_1', organizationId: ORG },
-      });
+      expect(world.rows.map(({ id, label }) => [id, label])).toEqual([
+        ['row_1', 'new'],
+        ['row_2', 'old'],
+        ['deleted_row', 'old'],
+        ['foreign_row', 'old'],
+        ['platform_row', 'old'],
+      ]);
     });
 
-    it('scopes updateEntityFlag writes to the request tenant', async () => {
-      await runWithTenantContext({ organizationId: ORG }, () =>
-        service.updateEntityFlag('row_1', ORG, 'isRead' as never, true),
+    it.each([
+      [
+        'an explicit tenant organization',
+        { id: 'row_1', organizationId: ORG },
+        'row_1',
+      ],
+      [
+        'a caller OR that names the tenant',
+        { OR: [{ organizationId: ORG }, { userId: 'u9' }], id: 'row_2' },
+        'row_2',
+      ],
+    ])('keeps %s as the caller wrote it', async (_case, where, expected) => {
+      const row = await asTenant(() => world.service.findOne(where));
+
+      expect(row?.id).toBe(expected);
+    });
+
+    it('adds the tenant beside an organizationId:null filter, so no platform row leaks', async () => {
+      const rows = await asTenant(() =>
+        world.service.find({ organizationId: null }),
       );
 
-      expect(delegate.update).toHaveBeenCalledWith({
-        data: { isRead: true },
-        where: { id: 'row_1', organizationId: ORG },
-      });
+      expect(rows).toEqual([]);
     });
 
-    it('scopes findOne, find and findAll reads to the request tenant', async () => {
-      await runWithTenantContext({ organizationId: ORG }, async () => {
-        await service.findOne({ id: 'row_1' });
-        await service.find({ slug: 'a' });
-        await service.findAll({ where: { slug: 'a' } }, { pagination: false });
-      });
+    it('leaves queries unscoped without a tenant context (workers)', async () => {
+      await world.service.patch('foreign_row', { label: 'new' });
+      await world.service.remove('platform_row');
+      await world.service.patchAll({ slug: 'b' }, { label: 'b' });
 
-      const expectedWhere = {
-        id: 'row_1',
-        isDeleted: false,
-        organizationId: ORG,
-      };
-      expect(delegate.findFirst).toHaveBeenCalledWith({ where: expectedWhere });
-      expect(delegate.findMany).toHaveBeenNthCalledWith(1, {
-        where: { isDeleted: false, organizationId: ORG, slug: 'a' },
+      expect(await world.service.findOne({ id: 'foreign_row' })).toMatchObject({
+        label: 'new',
       });
-      expect(delegate.findMany).toHaveBeenNthCalledWith(2, {
-        orderBy: [{ createdAt: 'desc' }],
-        where: { isDeleted: false, organizationId: ORG, slug: 'a' },
-      });
+      expect(world.field('platform_row', 'isDeleted')).toBe(true);
+      expect(world.field('row_2', 'label')).toBe('b');
     });
 
-    it('scopes the findAll count with the same where as the page', async () => {
-      await runWithTenantContext({ organizationId: ORG }, () =>
-        service.findAll({ where: { slug: 'a' } }, { limit: 5, page: 1 }),
+    it('leaves a write unscoped inside crossOrgUnsafe', async () => {
+      await asTenant(() =>
+        crossOrgUnsafe(() =>
+          world.service.patch('foreign_row', { label: 'new' }),
+        ),
       );
 
-      expect(delegate.count).toHaveBeenCalledWith({
-        where: { isDeleted: false, organizationId: ORG, slug: 'a' },
-      });
-    });
-
-    it('scopes patchAll as a write', async () => {
-      await runWithTenantContext({ organizationId: ORG }, () =>
-        service.patchAll({ slug: 'a' }, { label: 'x' }),
-      );
-
-      expect(delegate.updateMany).toHaveBeenCalledWith({
-        data: { label: 'x' },
-        where: { isDeleted: false, organizationId: ORG, slug: 'a' },
-      });
-    });
-
-    it('never reaches another organization through an id', async () => {
-      // The scope names the request tenant, so a foreign row's id cannot match.
-      await runWithTenantContext({ organizationId: ORG }, async () => {
-        await service.findOne({ id: 'foreign_row' });
-        await service.patch('foreign_row', { label: 'x' });
-      });
-
-      for (const call of [
-        delegate.findFirst.mock.calls[0]?.[0],
-        delegate.update.mock.calls[0]?.[0],
-      ]) {
-        expect(call.where.organizationId).toBe(ORG);
-        expect(call.where.organizationId).not.toBe(FOREIGN_ORG);
-      }
-    });
-
-    it('does not read null-organization rows of a pure tenant model', async () => {
-      await runWithTenantContext({ organizationId: ORG }, () =>
-        service.findOne({ id: 'row_1' }),
-      );
-
-      const where = delegate.findFirst.mock.calls[0]?.[0].where;
-      expect(where.OR).toBeUndefined();
-      expect(where.organizationId).toBe(ORG);
-    });
-
-    it('keeps a caller-supplied organization untouched', async () => {
-      await runWithTenantContext({ organizationId: ORG }, async () => {
-        await service.findOne({ id: 'row_1', organizationId: ORG });
-        await service.findOne({
-          OR: [{ organizationId: ORG }, { userId: 'u1' }],
-          id: 'row_2',
-        });
-      });
-
-      expect(delegate.findFirst).toHaveBeenNthCalledWith(1, {
-        where: { id: 'row_1', isDeleted: false, organizationId: ORG },
-      });
-      expect(delegate.findFirst).toHaveBeenNthCalledWith(2, {
-        where: {
-          OR: [{ organizationId: ORG }, { userId: 'u1' }],
-          id: 'row_2',
-          isDeleted: false,
-        },
-      });
-    });
-
-    it('keeps an organizationId:null filter and adds the tenant beside it', async () => {
-      await runWithTenantContext({ organizationId: ORG }, () =>
-        service.find({ organizationId: null }),
-      );
-
-      expect(delegate.findMany).toHaveBeenCalledWith({
-        where: {
-          AND: [{ organizationId: ORG }],
-          isDeleted: false,
-          organizationId: null,
-        },
-      });
-    });
-
-    it('leaves queries unchanged without a tenant context (workers)', async () => {
-      await service.patch('row_1', { label: 'x' });
-      await service.remove('row_1');
-      await service.findOne({ id: 'row_1' });
-      await service.patchAll({ slug: 'a' }, { label: 'x' });
-
-      expect(delegate.update).toHaveBeenNthCalledWith(1, {
-        data: { label: 'x' },
-        where: { id: 'row_1' },
-      });
-      expect(delegate.update).toHaveBeenNthCalledWith(2, {
-        data: { isDeleted: true },
-        where: { id: 'row_1' },
-      });
-      expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { id: 'row_1', isDeleted: false },
-      });
-      expect(delegate.updateMany).toHaveBeenCalledWith({
-        data: { label: 'x' },
-        where: { isDeleted: false, slug: 'a' },
-      });
-    });
-
-    it('leaves queries unchanged inside crossOrgUnsafe', async () => {
-      await runWithTenantContext({ organizationId: ORG }, () =>
-        crossOrgUnsafe(() => service.patch('row_1', { label: 'x' })),
-      );
-
-      expect(delegate.update).toHaveBeenCalledWith({
-        data: { label: 'x' },
-        where: { id: 'row_1' },
-      });
+      expect(world.field('foreign_row', 'label')).toBe('new');
     });
   });
 
   describe('platform-default model (tag)', () => {
-    let delegate: DelegateMock;
-    let service: TestService;
+    let world: ReturnType<typeof createService>;
 
     beforeEach(() => {
-      ({ delegate, service } = createService('tag'));
+      world = createService('tag', true);
     });
 
-    it('reads platform rows alongside the tenant rows', async () => {
-      await runWithTenantContext({ organizationId: ORG }, () =>
-        service.findOne({ id: 'row_1' }),
-      );
+    it.each([
+      ['an own row', 'row_1', 'row_1'],
+      ['a platform row', 'platform_row', 'platform_row'],
+      ['a foreign row', 'foreign_row', null],
+    ])(
+      'findOne by id reads %s alongside the tenant rows',
+      async (_case, id, expected) => {
+        const row = await asTenant(() => world.service.findOne({ id }));
 
-      expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: {
-          AND: [{ OR: [{ organizationId: null }, { organizationId: ORG }] }],
-          id: 'row_1',
-          isDeleted: false,
-        },
-      });
-    });
+        expect(row?.id ?? null).toBe(expected);
+      },
+    );
 
-    it('keeps existing AND clauses when adding the platform arm', async () => {
-      await runWithTenantContext({ organizationId: ORG }, () =>
-        service.find({ AND: [{ slug: 'a' }] }),
-      );
+    it.each([
+      ['an AND clause', { AND: [{ slug: 'a' }] }, ['row_1', 'platform_row']],
+      [
+        'a null-only platform lookup',
+        { organizationId: null },
+        ['platform_row'],
+      ],
+    ])(
+      'keeps %s and adds only the platform-or-tenant arm',
+      async (_case, where, expected) => {
+        const rows = await asTenant(() => world.service.find(where));
 
-      expect(delegate.findMany).toHaveBeenCalledWith({
-        where: {
-          AND: [
-            { slug: 'a' },
-            { OR: [{ organizationId: null }, { organizationId: ORG }] },
-          ],
-          isDeleted: false,
-        },
-      });
-    });
-
-    it('lets a null-only platform lookup prove the tenant through the OR arm', async () => {
-      await runWithTenantContext({ organizationId: ORG }, () =>
-        service.find({ organizationId: null }),
-      );
-
-      expect(delegate.findMany).toHaveBeenCalledWith({
-        where: {
-          AND: [{ OR: [{ organizationId: null }, { organizationId: ORG }] }],
-          isDeleted: false,
-          organizationId: null,
-        },
-      });
-    });
+        expect(ids(rows)).toEqual(expected);
+      },
+    );
 
     it('never lets a tenant write a platform row', async () => {
-      await runWithTenantContext({ organizationId: ORG }, async () => {
-        await service.patch('row_1', { label: 'x' });
-        await service.remove('row_1');
-        await service.patchAll({ slug: 'a' }, { label: 'x' });
-      });
-
-      expect(delegate.update).toHaveBeenNthCalledWith(1, {
-        data: { label: 'x' },
-        where: { id: 'row_1', organizationId: ORG },
-      });
-      expect(delegate.update).toHaveBeenNthCalledWith(2, {
-        data: { isDeleted: true },
-        where: { id: 'row_1', organizationId: ORG },
-      });
-      expect(delegate.updateMany).toHaveBeenCalledWith({
-        data: { label: 'x' },
-        where: { isDeleted: false, organizationId: ORG, slug: 'a' },
-      });
-    });
-
-    it('leaves a superadmin platform write unscoped inside crossOrgUnsafe', async () => {
-      await runWithTenantContext({ organizationId: ORG }, () =>
-        crossOrgUnsafe(() => service.patch('row_1', { label: 'x' })),
+      await expect(
+        asTenant(() => world.service.patch('platform_row', { label: 'new' })),
+      ).rejects.toThrow('Record to update not found.');
+      await expect(
+        asTenant(() => world.service.remove('platform_row')),
+      ).rejects.toThrow('Record to update not found.');
+      await asTenant(() =>
+        world.service.patchAll({ slug: 'a' }, { label: 'new' }),
       );
 
-      expect(delegate.update).toHaveBeenCalledWith({
-        data: { label: 'x' },
-        where: { id: 'row_1' },
-      });
+      expect(
+        world.rows.map(({ id, isDeleted, label }) => [id, label, isDeleted]),
+      ).toEqual([
+        ['row_1', 'new', false],
+        ['row_2', 'old', false],
+        ['deleted_row', 'old', true],
+        ['foreign_row', 'old', false],
+        ['platform_row', 'old', false],
+      ]);
+    });
+
+    it('lets a superadmin write a platform row inside crossOrgUnsafe', async () => {
+      await asTenant(() =>
+        crossOrgUnsafe(() =>
+          world.service.patch('platform_row', { label: 'new' }),
+        ),
+      );
+
+      expect(world.field('platform_row', 'label')).toBe('new');
     });
   });
 
   describe('non-tenant model (user)', () => {
     it('does not add an organization scope', async () => {
-      const { delegate, service } = createService('user');
+      const world = createService('user', true);
 
-      await runWithTenantContext({ organizationId: ORG }, async () => {
-        await service.patch('row_1', { label: 'x' });
-        await service.findOne({ id: 'row_1' });
+      const row = await asTenant(async () => {
+        await world.service.patch('foreign_row', { label: 'new' });
+        return world.service.findOne({ id: 'foreign_row' });
       });
 
-      expect(delegate.update).toHaveBeenCalledWith({
-        data: { label: 'x' },
-        where: { id: 'row_1' },
-      });
-      expect(delegate.findFirst.mock.calls[0]?.[0].where.organizationId).toBe(
-        undefined,
-      );
+      expect(row).toMatchObject({ id: 'foreign_row', label: 'new' });
     });
   });
 
   describe('non-CLOUD mode (self-hosted single-tenant)', () => {
-    it.each(['brand', 'tag'])(
-      'leaves %s queries exactly as the caller wrote them under a tenant context',
-      async (modelName) => {
-        const { delegate, service } = createService(modelName, false);
+    it.each([
+      ['brand', false],
+      ['tag', false],
+      ['brand', undefined],
+    ])(
+      'leaves %s queries as the caller wrote them under a tenant context (gate %s)',
+      async (modelName, gate) => {
+        const world = createService(modelName, gate);
 
-        await runWithTenantContext({ organizationId: ORG }, async () => {
-          await service.patch('row_1', { label: 'x' });
-          await service.remove('row_1');
-          await service.findOne({ id: 'row_1' });
-          await service.find({ slug: 'a' });
-          await service.patchAll({ slug: 'a' }, { label: 'x' });
+        const [found, row] = await asTenant(async () => {
+          await world.service.patch('foreign_row', { label: 'new' });
+          await world.service.remove('platform_row');
+          await world.service.patchAll({ slug: 'b' }, { label: 'b' });
+          return Promise.all([
+            world.service.find({ slug: 'a' }),
+            world.service.findOne({ id: 'foreign_row' }),
+          ]);
         });
 
-        expect(delegate.update).toHaveBeenNthCalledWith(1, {
-          data: { label: 'x' },
-          where: { id: 'row_1' },
-        });
-        expect(delegate.update).toHaveBeenNthCalledWith(2, {
-          data: { isDeleted: true },
-          where: { id: 'row_1' },
-        });
-        expect(delegate.findFirst).toHaveBeenCalledWith({
-          where: { id: 'row_1', isDeleted: false },
-        });
-        expect(delegate.findMany).toHaveBeenCalledWith({
-          where: { isDeleted: false, slug: 'a' },
-        });
-        expect(delegate.updateMany).toHaveBeenCalledWith({
-          data: { label: 'x' },
-          where: { isDeleted: false, slug: 'a' },
-        });
+        expect(ids(found)).toEqual(['row_1', 'foreign_row']);
+        expect(row).toMatchObject({ label: 'new' });
+        expect(world.field('platform_row', 'isDeleted')).toBe(true);
+        expect(world.field('row_2', 'label')).toBe('b');
       },
     );
-
-    it('treats a client that does not report the CLOUD gate as non-CLOUD', async () => {
-      const delegate = createDelegate();
-      const prisma = { brand: delegate } as unknown as PrismaService;
-      const service = new TestService(prisma, 'brand');
-
-      await runWithTenantContext({ organizationId: ORG }, () =>
-        service.findOne({ id: 'row_1' }),
-      );
-
-      expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { id: 'row_1', isDeleted: false },
-      });
-    });
   });
 });
