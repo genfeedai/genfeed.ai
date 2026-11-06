@@ -25,6 +25,7 @@ describe('InstagramSocialAdapter', () => {
       debug: vi.fn(),
       error: vi.fn(),
       log: vi.fn(),
+      warn: vi.fn(),
     };
     // Cast at the constructor boundary so the adapter's dependencies can grow
     // without re-fingerprinting the spec-typecheck baseline (see #2674).

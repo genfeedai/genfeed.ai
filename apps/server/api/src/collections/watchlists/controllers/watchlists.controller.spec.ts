@@ -4,6 +4,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConflictException } from '@nestjs/common';
+import type { Request } from 'express';
 
 describe('WatchlistsController', () => {
   let controller: WatchlistsController;
@@ -27,7 +28,7 @@ describe('WatchlistsController', () => {
     path: '/watchlists',
     protocol: 'https',
     query: {},
-  } as never;
+  } as unknown as Request;
 
   beforeEach(() => {
     watchlistsService = {

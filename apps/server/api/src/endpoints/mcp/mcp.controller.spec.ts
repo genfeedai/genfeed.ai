@@ -9,6 +9,7 @@ import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import { IngredientOrigin } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -27,18 +28,16 @@ describe('MCPController', () => {
   let analyticsService: vi.Mocked<AnalyticsService>;
 
   const mockCreateVideoDto: CreateVideoDto = {
-    aspectRatio: '16:9',
     duration: 30,
     model: 'openai-sora',
-    prompt: 'Test prompt',
+    text: 'Test prompt',
   };
 
-  const mockBaseQueryDto: BaseQueryDto = {
+  const mockBaseQueryDto = tenantReadQuery(BaseQueryDto, {
     limit: 10,
-    order: 'desc',
     page: 1,
     sort: 'createdAt',
-  };
+  });
 
   const mockRequest = {
     headers: {},
