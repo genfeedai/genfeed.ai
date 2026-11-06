@@ -7,12 +7,14 @@
  * (trends + branding/threshold options) are passed in by the caller so this file
  * can live in a public package that the engine and workers both consume.
  */
+
 import {
   buildSystemEmailHtml,
   buildSystemEmailParagraph,
   escapeSystemEmailHtml,
   sanitizeSystemEmailUrl,
 } from '../email/system-email.helper';
+import { buildEmailStatRow } from '../email/system-email-blocks.helper';
 
 const TRAILING_ZERO_DECIMAL_PATTERN = /\.0$/;
 const TRAILING_SLASH_PATTERN = /\/$/;
@@ -425,7 +427,25 @@ export function buildTrendDigestHtml(
     ? `${topicCount} moving in the ${options.brandLabel} niche${readyPosts > 0 ? `, ${readyPosts} ${readyPosts === 1 ? 'post' : 'posts'} ready for today` : ''}.`
     : `${topicCount} trending today.`;
 
-  const sections: string[] = [buildSystemEmailParagraph(intro)];
+  const platforms = new Set(trends.map((trend) => trend.platform)).size;
+  const sections: string[] = [
+    buildSystemEmailParagraph(intro),
+    buildEmailStatRow([
+      {
+        label: trends.length === 1 ? 'Topic' : 'Topics',
+        value: String(trends.length),
+      },
+      {
+        label: readyPosts === 1 ? 'Post ready' : 'Posts ready',
+        tone: readyPosts > 0 ? 'success' : 'neutral',
+        value: String(readyPosts),
+      },
+      {
+        label: platforms === 1 ? 'Platform' : 'Platforms',
+        value: String(platforms),
+      },
+    ]),
+  ];
 
   if (lead) {
     sections.push(leadHtml(lead, appUrl));

@@ -5,6 +5,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   CreditTransactionCategory,
+  IngredientCategory,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types';
@@ -15,8 +16,9 @@ import {
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
 import {
+  buildCreditPurchaseEmailBody,
+  buildGenerationEmailBody,
   buildSystemEmailHtml,
-  buildSystemEmailParagraph,
 } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
@@ -33,6 +35,12 @@ import {
 } from './email-product-signals.workflow';
 
 const TRAILING_SLASH_PATTERN = /\/$/;
+
+function generationKind(category: string): 'image' | 'video' | 'audio' {
+  if (category === IngredientCategory.IMAGE) return 'image';
+  if (category === IngredientCategory.VIDEO) return 'video';
+  return 'audio';
+}
 
 const PAGE_SIZE = 100;
 const DAY_MS = 86_400_000;
@@ -86,7 +94,7 @@ export class EmailProductSignalsService implements OnModuleInit {
           userId: true,
           generationStartedAt: true,
           generationCompletedAt: true,
-          brand: { select: { slug: true } },
+          brand: { select: { slug: true, label: true } },
           organization: { select: { slug: true } },
         },
         orderBy: { id: 'asc' },
@@ -125,11 +133,12 @@ export class EmailProductSignalsService implements OnModuleInit {
           },
           html: buildSystemEmailHtml({
             title: subject,
-            bodyHtml: buildSystemEmailParagraph(
-              isFailed
-                ? 'This generation could not finish. Open the asset to review it and try again.'
-                : 'Your generation has finished. Open the asset to review it and prepare it for publishing.',
-            ),
+            bodyHtml: buildGenerationEmailBody({
+              brandLabel: asset.brand.label,
+              imageUrl: this.generationPreviewUrl(asset),
+              isFailed,
+              kind: generationKind(asset.category),
+            }),
             action: {
               label: isFailed ? 'Review generation' : 'View content',
               url: `${this.appUrl()}/__email_action__`,
@@ -342,9 +351,9 @@ export class EmailProductSignalsService implements OnModuleInit {
           policyData: { transactionId: purchase.id },
           html: buildSystemEmailHtml({
             title: 'Your credits are available',
-            bodyHtml: buildSystemEmailParagraph(
-              `${purchase.amount.toLocaleString('en-US')} credits have been added to your workspace. You can continue creating.`,
-            ),
+            bodyHtml: buildCreditPurchaseEmailBody({
+              amount: purchase.amount,
+            }),
             action: {
               label: 'Open your workspace',
               url: `${this.appUrl()}/__email_action__`,
@@ -365,6 +374,20 @@ export class EmailProductSignalsService implements OnModuleInit {
       now,
     );
     return { count };
+  }
+
+  /** Public CDN still for an image or video; audio and others have none. */
+  private generationPreviewUrl(asset: {
+    id: string;
+    category: string;
+  }): string | null {
+    const endpoint = this.config.ingredientsEndpoint;
+    if (!endpoint) return null;
+    if (asset.category === IngredientCategory.IMAGE)
+      return `${endpoint}/images/${asset.id}`;
+    if (asset.category === IngredientCategory.VIDEO)
+      return `${endpoint}/thumbnails/${asset.id}`;
+    return null;
   }
 
   private async checkpoint(

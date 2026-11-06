@@ -409,8 +409,8 @@ describe('agent failure delivery', () => {
       expect.objectContaining({
         subject: 'Workflow failed: <Daily>',
         text: 'Your workflow <Daily> failed: secret raw error',
-        html: expect.stringContaining(
-          'Your workflow <strong>&lt;Daily&gt;</strong> failed: secret raw error',
+        html: expect.stringMatching(
+          /&lt;Daily&gt;[\s\S]*Failed: secret raw error/,
         ),
       }),
     );

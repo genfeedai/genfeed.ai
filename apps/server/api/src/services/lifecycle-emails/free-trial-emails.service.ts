@@ -22,6 +22,7 @@ import {
   buildSystemEmailParagraph,
   escapeSystemEmailHtml,
 } from '@helpers/email/system-email.helper';
+import { buildFreeTrialVisualHtml } from '@helpers/email/system-email-templates.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
@@ -198,9 +199,11 @@ export class FreeTrialEmailsService {
     const html = buildSystemEmailHtml({
       action: { label: definition.actionLabel, url: destinationUrl },
       appUrl,
-      bodyHtml: definition.paragraphs
-        .map((paragraph) => buildSystemEmailParagraph(paragraph))
-        .join(''),
+      bodyHtml:
+        buildFreeTrialVisualHtml(templateKey) +
+        definition.paragraphs
+          .map((paragraph) => buildSystemEmailParagraph(paragraph))
+          .join(''),
       footerNote:
         'Manage these emails in your Genfeed notification preferences.',
       preheader: definition.paragraphs[0],

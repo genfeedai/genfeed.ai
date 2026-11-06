@@ -11,7 +11,7 @@ import { NotificationPreferenceService } from '@api/services/notifications/workf
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { isSelfHostedDeployment } from '@genfeedai/config';
-import { TargetExecutionState } from '@genfeedai/contracts';
+import { IngredientCategory, TargetExecutionState } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types';
 import {
   APP_ROUTES,
@@ -23,9 +23,14 @@ import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { BillingAccountMemberRole, Prisma } from '@genfeedai/prisma';
 import {
   buildSystemEmailHtml,
-  buildSystemEmailParagraph,
   escapeSystemEmailHtml,
 } from '@helpers/email/system-email.helper';
+import type { EmailThumbnail } from '@helpers/email/system-email-blocks.helper';
+import {
+  buildContentRecapEmailBody,
+  buildCreditAlertEmailBody,
+  buildPublishingConnectionEmailBody,
+} from '@helpers/email/system-email-templates.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
@@ -56,6 +61,8 @@ const DAY_MS = 86_400_000;
  * waits a week.
  */
 const CREDIT_ALERT_COOLDOWN_MS = 7 * DAY_MS;
+/** Previews in one recap or reminder: two rows of three. */
+const RECAP_PREVIEW_LIMIT = 6;
 const CREDIT_ALERT_TEMPLATE_KEYS = ['credit-low', 'credit-exhausted'] as const;
 @Traced()
 @Injectable()
@@ -295,6 +302,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
           generationCompletedAt: { gte: start, lt: end },
         },
         select: { id: true, brandId: true, category: true },
+        orderBy: { generationCompletedAt: 'desc' },
       }),
       this.prisma.article.findMany({
         where: { ...scope, generationCompletedAt: { gte: start, lt: end } },
@@ -354,46 +362,43 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         [...ingredients, ...articles].map(({ brandId }) => brandId),
       );
     const views = metrics.some((row) => row.views !== null)
-      ? metrics
-          .reduce((sum, row) => sum + (row.views ?? 0), 0)
-          .toLocaleString('en-US')
-      : 'unavailable';
+      ? metrics.reduce((sum, row) => sum + (row.views ?? 0), 0)
+      : null;
     const interactions = metrics.some(
       (row) =>
         row.likes !== null || row.comments !== null || row.shares !== null,
     )
-      ? metrics
-          .reduce(
-            (sum, row) =>
-              sum + (row.likes ?? 0) + (row.comments ?? 0) + (row.shares ?? 0),
-            0,
-          )
-          .toLocaleString('en-US')
-      : 'unavailable';
+      ? metrics.reduce(
+          (sum, row) =>
+            sum + (row.likes ?? 0) + (row.comments ?? 0) + (row.shares ?? 0),
+          0,
+        )
+      : null;
     const periodLabel = weekly ? 'week' : 'day';
-    const paragraphs = [
-      `Your ${periodLabel} in Genfeed: ${start.toISOString().slice(0, 10)} to ${new Date(end.getTime() - 1).toISOString().slice(0, 10)} (UTC).`,
-      `You generated ${generated} pieces of content. ${publishedIds.size} have been published and ${generated - publishedIds.size} are ready to review or publish.`,
-      ...(articles.length
-        ? [
-            `Recent articles: ${articles
-              .slice(0, 3)
-              .map((article) => article.label)
-              .join('; ')}.`,
-          ]
-        : []),
-      `${creditsUsed.toLocaleString('en-US')} credits used during this period.`,
-      ...(metrics.length
-        ? [
-            `Latest measured performance for these published pieces: views ${views}; interactions ${interactions}.`,
-          ]
-        : ['Published performance will appear when analytics are available.']),
-      ...(missingConnection
-        ? [
-            'Some of your content has no connected publishing account. Connect a destination to share what you created.',
-          ]
-        : []),
+    const previews: EmailThumbnail[] = [
+      ...ingredients.map((item) =>
+        this.ingredientThumbnail(item, destinationUrl),
+      ),
+      ...articles.map(
+        (article): EmailThumbnail => ({
+          href: destinationUrl,
+          kind: 'article',
+          label: article.label,
+        }),
+      ),
     ];
+    const bodyHtml = buildContentRecapEmailBody({
+      creditsUsed,
+      generated,
+      hasMissingConnection: missingConnection,
+      interactions: metrics.length ? interactions : undefined,
+      items: previews.slice(0, RECAP_PREVIEW_LIMIT),
+      moreCount: Math.max(0, previews.length - RECAP_PREVIEW_LIMIT),
+      period: weekly ? 'week' : 'day',
+      periodRange: `${start.toISOString().slice(0, 10)} to ${new Date(end.getTime() - 1).toISOString().slice(0, 10)} (UTC)`,
+      published: publishedIds.size,
+      views: metrics.length ? views : undefined,
+    });
     await this.queueProductEmail({
       request,
       userId,
@@ -401,7 +406,8 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
       templateKey: weekly ? 'content-weekly' : 'content-daily',
       key: `${weekly ? 'week' : 'day'}:${userId}:${start.toISOString()}`,
       subject: `Your Genfeed ${periodLabel}: ${generated} pieces created`,
-      paragraphs,
+      bodyHtml,
+      preheader: `${generated} created, ${publishedIds.size} published, ${creditsUsed.toLocaleString('en-US')} credits used.`,
       destinationUrl,
       actionLabel: missingConnection
         ? 'Connect and publish'
@@ -567,6 +573,41 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         select: { slug: true, label: true },
       });
       if (!brand) continue;
+      const destinationUrl = `${this.appUrl()}${createBrandAppRoute(encodeURIComponent(organizationSlug), encodeURIComponent(brand.slug), APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}`;
+      const waitingWhere = {
+        ...GENERATED_CONTENT_FILTER,
+        brandId: item.brandId,
+        generationCompletedAt: {
+          gte: new Date(now.getTime() - 7 * DAY_MS),
+          lt: new Date(now.getTime() - DAY_MS),
+        },
+        userId,
+      };
+      const [waitingIngredients, waitingIngredientCount, waitingArticleCount] =
+        await Promise.all([
+          this.prisma.ingredient.findMany({
+            where: scopedWhere(request.organizationId, waitingWhere),
+            select: { id: true, brandId: true, category: true },
+            orderBy: { generationCompletedAt: 'desc' },
+            take: RECAP_PREVIEW_LIMIT,
+          }),
+          this.prisma.ingredient.count({
+            where: scopedWhere(request.organizationId, waitingWhere),
+          }),
+          this.prisma.article.count({
+            where: {
+              organizationId: request.organizationId,
+              isDeleted: false,
+              userId,
+              brandId: item.brandId,
+              generationCompletedAt: waitingWhere.generationCompletedAt,
+            },
+          }),
+        ]);
+      const waitingCount = waitingIngredientCount + waitingArticleCount;
+      const waiting = waitingIngredients.map((ingredient) =>
+        this.ingredientThumbnail(ingredient, destinationUrl),
+      );
       const period = completedEmailPeriod(now, true).end.toISOString();
       await this.queueProductEmail({
         request,
@@ -575,11 +616,14 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         templateKey: 'publishing-connection',
         key: `connection:${userId}:${item.brandId}:${period}`,
         subject: `Your ${brand.label} content is ready to publish`,
-        paragraphs: [
+        bodyHtml: buildPublishingConnectionEmailBody({
+          brandLabel: brand.label,
+          items: waiting.slice(0, RECAP_PREVIEW_LIMIT),
+          waitingCount: waitingCount,
+        }),
+        preheader:
           'You have generated content waiting for a publishing destination.',
-          'Connect an account to review and publish it from Genfeed.',
-        ],
-        destinationUrl: `${this.appUrl()}${createBrandAppRoute(encodeURIComponent(organizationSlug), encodeURIComponent(brand.slug), APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}`,
+        destinationUrl,
         actionLabel: 'Connect an account',
         goal: 'connect_account',
         brandId: item.brandId,
@@ -683,10 +727,11 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
       subject: exhausted
         ? 'Your Genfeed credits are used up'
         : 'Your Genfeed credits are running low',
-      paragraphs: [
-        `You have ${Math.max(0, spendable).toLocaleString('en-US')} credits available after current generation reservations.`,
-        'Add credits to keep creating content.',
-      ],
+      bodyHtml: buildCreditAlertEmailBody({
+        isExhausted: exhausted,
+        spendable,
+      }),
+      preheader: `You have ${Math.max(0, spendable).toLocaleString('en-US')} credits available.`,
       destinationUrl: `${this.appUrl()}${createOrganizationAppRoute(encodeURIComponent(organization.slug), APP_ROUTES.SETTINGS.CREDITS)}`,
       actionLabel: 'Add credits',
       goal: 'buy_credits',
@@ -701,7 +746,8 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     templateKey: string;
     key: string;
     subject: string;
-    paragraphs: string[];
+    bodyHtml: string;
+    preheader: string;
     destinationUrl: string;
     actionLabel: string;
     goal: 'connect_account' | 'publish_content' | 'buy_credits';
@@ -713,10 +759,8 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     const html = buildSystemEmailHtml({
       appUrl: this.appUrl(),
       title: input.subject,
-      preheader: input.paragraphs[0],
-      bodyHtml: input.paragraphs
-        .map((paragraph) => buildSystemEmailParagraph(paragraph))
-        .join(''),
+      preheader: input.preheader,
+      bodyHtml: input.bodyHtml,
       action: { label: input.actionLabel, url: input.destinationUrl },
       footerNote:
         'Manage these emails in your Genfeed notification preferences.',
@@ -743,6 +787,32 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         ...(input.periodEnd ? { periodEnd: input.periodEnd } : {}),
       },
     });
+  }
+
+  /**
+   * Preview tile for a generated asset. Images and video stills come from the
+   * public ingredients CDN by id; audio has no still and shows as a text tile.
+   */
+  private ingredientThumbnail(
+    item: { id: string; category: string },
+    href: string,
+  ): EmailThumbnail {
+    const endpoint = this.config.ingredientsEndpoint;
+    if (item.category === IngredientCategory.VIDEO) {
+      return {
+        href,
+        imageUrl: endpoint ? `${endpoint}/thumbnails/${item.id}` : null,
+        kind: 'video',
+      };
+    }
+    if (item.category === IngredientCategory.IMAGE) {
+      return {
+        href,
+        imageUrl: endpoint ? `${endpoint}/images/${item.id}` : null,
+        kind: 'image',
+      };
+    }
+    return { href, kind: 'audio' };
   }
 
   private appUrl(): string {
