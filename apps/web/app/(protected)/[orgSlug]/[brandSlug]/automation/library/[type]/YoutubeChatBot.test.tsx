@@ -1,6 +1,6 @@
+import { queryClientWrapper } from '@app-tests/query-client.harness';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { queryClientWrapper } from '@app-tests/query-client.harness';
 import YoutubeChatBot from './YoutubeChatBot';
 import '@testing-library/jest-dom/vitest';
 
