@@ -1,5 +1,5 @@
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
-import type { CreativePattern } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
+import type { CreativePatternDocument } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
 import { CacheService } from '@api/services/cache/cache.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
@@ -14,10 +14,15 @@ describe('PatternMatcherService', () => {
   const brandId = 'brand-xyz';
   const cacheKey = `brand-patterns:${orgId}:${brandId}`;
 
-  const mockPatterns: Partial<CreativePattern>[] = [
-    { _id: 'pattern-1' } as never,
-    { _id: 'pattern-2' } as never,
-  ];
+  const createPattern = (id: string): CreativePatternDocument => ({
+    brandId,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    id,
+    isDeleted: false,
+    organizationId: orgId,
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  });
+  const mockPatterns = [createPattern('pattern-1'), createPattern('pattern-2')];
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -48,7 +53,7 @@ describe('PatternMatcherService', () => {
 
   it('should generate a cache key with brand-patterns prefix', async () => {
     cacheService.generateKey.mockReturnValue(cacheKey);
-    cacheService.getOrSet.mockResolvedValue(mockPatterns as CreativePattern[]);
+    cacheService.getOrSet.mockResolvedValue(mockPatterns);
 
     await service.getTopPatternsForBrand(orgId, brandId);
 
@@ -61,7 +66,7 @@ describe('PatternMatcherService', () => {
 
   it('should call getOrSet with the generated cache key and 1hr TTL', async () => {
     cacheService.generateKey.mockReturnValue(cacheKey);
-    cacheService.getOrSet.mockResolvedValue(mockPatterns as CreativePattern[]);
+    cacheService.getOrSet.mockResolvedValue(mockPatterns);
 
     await service.getTopPatternsForBrand(orgId, brandId);
 
@@ -74,7 +79,7 @@ describe('PatternMatcherService', () => {
 
   it('should return patterns from the cache', async () => {
     cacheService.generateKey.mockReturnValue(cacheKey);
-    cacheService.getOrSet.mockResolvedValue(mockPatterns as CreativePattern[]);
+    cacheService.getOrSet.mockResolvedValue(mockPatterns);
 
     const result = await service.getTopPatternsForBrand(orgId, brandId);
 
@@ -85,11 +90,9 @@ describe('PatternMatcherService', () => {
     cacheService.generateKey.mockReturnValue(cacheKey);
     // Execute the factory fn synchronously to verify what it calls
     cacheService.getOrSet.mockImplementation(
-      async (_key: string, fn: () => Promise<CreativePattern[]>) => fn(),
+      async (_key: string, fn: () => Promise<unknown>) => fn(),
     );
-    creativePatternsService.findTopForBrand.mockResolvedValue(
-      mockPatterns as CreativePattern[],
-    );
+    creativePatternsService.findTopForBrand.mockResolvedValue(mockPatterns);
 
     await service.getTopPatternsForBrand(orgId, brandId);
 
@@ -103,7 +106,7 @@ describe('PatternMatcherService', () => {
   it('should pass options to findTopForBrand', async () => {
     cacheService.generateKey.mockReturnValue(cacheKey);
     cacheService.getOrSet.mockImplementation(
-      async (_key: string, fn: () => Promise<CreativePattern[]>) => fn(),
+      async (_key: string, fn: () => Promise<unknown>) => fn(),
     );
     creativePatternsService.findTopForBrand.mockResolvedValue([]);
 
@@ -138,7 +141,7 @@ describe('PatternMatcherService', () => {
   it('should propagate errors from findTopForBrand within factory fn', async () => {
     cacheService.generateKey.mockReturnValue(cacheKey);
     cacheService.getOrSet.mockImplementation(
-      async (_key: string, fn: () => Promise<CreativePattern[]>) => fn(),
+      async (_key: string, fn: () => Promise<unknown>) => fn(),
     );
     creativePatternsService.findTopForBrand.mockRejectedValue(
       new Error('db error'),

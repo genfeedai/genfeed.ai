@@ -386,8 +386,11 @@ describe('CollectionFilterUtil', () => {
 
       expect(result).toHaveProperty('OR');
       expect(result.OR).toHaveLength(2);
-      expect(result.OR?.[0].userId).toBe(userId);
-      expect(result.OR?.[1].organizationId).toBe(organizationId);
+      expect(result).toHaveProperty(['OR', 0, 'userId'], userId);
+      expect(result).toHaveProperty(
+        ['OR', 1, 'organizationId'],
+        organizationId,
+      );
     });
 
     it('returns single condition when only user provided', () => {
@@ -425,13 +428,13 @@ describe('CollectionFilterUtil', () => {
 
     it('supports single-ended ranges', () => {
       const onlyStart = CollectionFilterUtil.buildDateRangeFilter('2024-01-01');
-      expect(onlyStart.createdAt.gte).toEqual(new Date('2024-01-01'));
+      expect(onlyStart).toHaveProperty('createdAt.gte', new Date('2024-01-01'));
 
       const onlyEnd = CollectionFilterUtil.buildDateRangeFilter(
         undefined,
         '2024-12-31',
       );
-      expect(onlyEnd.createdAt.lte).toEqual(new Date('2024-12-31'));
+      expect(onlyEnd).toHaveProperty('createdAt.lte', new Date('2024-12-31'));
     });
   });
 
