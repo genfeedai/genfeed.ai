@@ -11,6 +11,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { API_KEY_CONNECTED_ACCOUNT_READ_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
@@ -108,6 +109,7 @@ export class CredentialsController {
     ]);
   }
 
+  @RequiredScopes(...API_KEY_CONNECTED_ACCOUNT_READ_SCOPES)
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
@@ -159,6 +161,7 @@ export class CredentialsController {
     return serializeCollection(request, CredentialSerializer, data);
   }
 
+  @RequiredScopes(...API_KEY_CONNECTED_ACCOUNT_READ_SCOPES)
   @Get(':credentialId')
   @SetMetadata('roles', ['superadmin'])
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -253,6 +256,7 @@ export class CredentialsController {
   }
 
   @TenantReadPolicy('mutating')
+  @RequiredScopes(...API_KEY_CONNECTED_ACCOUNT_READ_SCOPES)
   @Get(':credentialId/instagram/pages')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAllInstagramPages(

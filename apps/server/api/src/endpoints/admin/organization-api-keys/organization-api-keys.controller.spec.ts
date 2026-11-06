@@ -202,7 +202,7 @@ describe('admin partner API key mint', () => {
 
   it.each([
     ['a level the resource does not offer', { analytics: 'write' }],
-    ['an unknown resource', { posts: 'read' }],
+    ['an unknown resource', { invoices: 'read' }],
     ['an unknown level', { images: 'admin' }],
   ])('rejects %s', async (_case, levels) => {
     const { controller, keys } = createController();

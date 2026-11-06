@@ -24,6 +24,34 @@ export const API_KEY_POST_CREATION_SCOPES = [
   ApiKeyScope.POSTS_PUBLISH,
 ] as const;
 
+/** Every scope that publishes on a channel; each implies reading its posts and accounts. */
+const API_KEY_PUBLISHING_WRITE_SCOPES = [
+  ApiKeyScope.POSTS_DRAFT,
+  ApiKeyScope.POSTS_SCHEDULE,
+  ApiKeyScope.POSTS_APPROVE,
+  ApiKeyScope.POSTS_PUBLISH,
+] as const;
+
+/**
+ * Reading posts: `posts:read`, or any scope that drafts, schedules or
+ * publishes them. Server-minted `admin` keys keep the access they had.
+ */
+export const API_KEY_POST_READ_SCOPES = [
+  ApiKeyScope.POSTS_READ,
+  ...API_KEY_PUBLISHING_WRITE_SCOPES,
+  ApiKeyScope.ADMIN,
+] as const;
+
+/**
+ * Reading connected accounts: `credentials:read`, or any publishing scope,
+ * since drafting or publishing needs to see which accounts a post can use.
+ */
+export const API_KEY_CONNECTED_ACCOUNT_READ_SCOPES = [
+  ApiKeyScope.CREDENTIALS_READ,
+  ...API_KEY_PUBLISHING_WRITE_SCOPES,
+  ApiKeyScope.ADMIN,
+] as const;
+
 const PUBLISHING_CAPABILITY_SCOPES = {
   approve: [ApiKeyScope.POSTS_APPROVE],
   draft: [ApiKeyScope.POSTS_DRAFT],

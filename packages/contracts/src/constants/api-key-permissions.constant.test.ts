@@ -71,29 +71,33 @@ describe('API key permission registry', () => {
       analytics: 'read',
       articles: 'read',
       brands: 'read',
+      'connected-accounts': 'read',
       credits: 'read',
       'direct-publishing': 'none',
       images: 'read',
       'post-drafts': 'none',
       'post-scheduling': 'none',
+      posts: 'read',
       prompts: 'read',
       'publish-approvals': 'none',
       videos: 'read',
     });
   });
 
-  it('shows the content preset as Write on content and post drafts, Read on brands', () => {
+  it('shows the content preset as Write on content and post drafts, Read on brands and posts', () => {
     expect(
       resolveApiKeyPermissionLevels(API_KEY_SCOPE_PRESETS.content),
     ).toEqual({
       analytics: 'none',
       articles: 'write',
       brands: 'read',
+      'connected-accounts': 'none',
       credits: 'none',
       'direct-publishing': 'none',
       images: 'write',
       'post-drafts': 'write',
       'post-scheduling': 'none',
+      posts: 'read',
       prompts: 'write',
       'publish-approvals': 'none',
       videos: 'write',
