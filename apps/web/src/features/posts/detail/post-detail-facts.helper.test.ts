@@ -1,4 +1,8 @@
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+} from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it, vi } from 'vitest';
 import { buildPostDetailFacts } from '@/features/posts/detail/post-detail-facts.helper';
