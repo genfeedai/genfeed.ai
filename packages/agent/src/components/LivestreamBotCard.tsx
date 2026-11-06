@@ -44,7 +44,7 @@ export function LivestreamBotCard({
   return (
     <div className="my-2 overflow-hidden border border-info/20 bg-background">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <MessageSquare className="size-5 text-sky-500" />
+        <MessageSquare className="size-5 text-muted-foreground" />
         <div>
           <h3 className="text-sm font-semibold text-foreground">
             {action.title || 'Livestream bot'}

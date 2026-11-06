@@ -97,7 +97,7 @@ export function ToolCallDetailPanel({
             onClick={() => void handleCopy()}
           >
             {copied ? (
-              <Check className="size-3.5 text-emerald-500" />
+              <Check className="size-3.5 text-success" />
             ) : (
               <Clipboard className="size-3.5" />
             )}

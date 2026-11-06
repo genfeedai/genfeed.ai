@@ -115,7 +115,7 @@ export function ReviewGateCard({
     <div className="border border-border bg-background p-4 my-2">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <ClipboardList className="size-5 text-amber-500" />
+          <ClipboardList className="size-5 text-muted-foreground" />
           <h3 className="font-semibold text-sm">
             {action.title || translate('defaultTitle')}
           </h3>
@@ -125,7 +125,7 @@ export function ReviewGateCard({
           size={ButtonSize.XS}
           onClick={selectAll}
           isDisabled={!isDecisionAvailable}
-          className="text-blue-500 hover:text-info"
+          className="text-info hover:text-info/80"
         >
           {translate('selectAll')}
         </Button>
@@ -151,7 +151,7 @@ export function ReviewGateCard({
               isChecked={selected.has(item.id)}
               isDisabled={!isDecisionAvailable}
               onChange={() => toggleItem(item.id)}
-              className="rounded border-zinc-300 text-primary"
+              className="rounded border-border text-primary"
             />
             <div className="flex-1 min-w-0">
               <span className="text-sm font-medium truncate block">

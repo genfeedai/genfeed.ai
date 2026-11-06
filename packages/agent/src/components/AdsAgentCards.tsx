@@ -78,7 +78,7 @@ export function AdDetailSummaryCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <ChartColumn className="size-5 text-blue-500" />
+        <ChartColumn className="size-5 text-muted-foreground" />
         <h3 className="text-sm font-semibold text-foreground">
           {action.title || 'Ad detail summary'}
         </h3>
@@ -109,7 +109,7 @@ export function CampaignLaunchPrepCard({
   return (
     <div className="my-2 border border-warning/20 bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <Rocket className="size-5 text-amber-500" />
+        <Rocket className="size-5 text-muted-foreground" />
         <h3 className="text-sm font-semibold text-foreground">
           {action.title || 'Campaign launch prep'}
         </h3>

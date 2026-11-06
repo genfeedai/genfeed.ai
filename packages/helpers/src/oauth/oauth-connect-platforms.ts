@@ -165,21 +165,21 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
   {
     category: 'social',
     Icon: InstagramIcon,
-    iconClassName: 'text-pink-500',
+    iconClassName: 'text-platform-instagram',
     label: 'Instagram',
     platform: CredentialPlatform.INSTAGRAM,
   },
   {
     category: 'social',
     Icon: FacebookIcon,
-    iconClassName: 'text-blue-600',
+    iconClassName: 'text-platform-facebook',
     label: 'Facebook',
     platform: CredentialPlatform.FACEBOOK,
   },
   {
     category: 'social',
     Icon: LinkedinIcon,
-    iconClassName: 'text-blue-700',
+    iconClassName: 'text-platform-linkedin',
     label: 'LinkedIn',
     platform: CredentialPlatform.LINKEDIN,
   },
@@ -194,7 +194,7 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
   {
     category: 'video',
     Icon: YoutubeIcon,
-    iconClassName: 'text-red-500',
+    iconClassName: 'text-platform-youtube',
     label: 'YouTube',
     platform: CredentialPlatform.YOUTUBE,
   },
@@ -208,7 +208,7 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
   {
     category: 'video',
     Icon: Radio,
-    iconClassName: 'text-violet-500',
+    iconClassName: 'text-foreground',
     label: 'Restream',
     platform: CredentialPlatform.RESTREAM,
     servicePath: 'restream',
@@ -216,7 +216,7 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
   {
     category: 'creator',
     Icon: Star,
-    iconClassName: 'text-violet-500',
+    iconClassName: 'text-platform-fanvue',
     label: 'Fanvue',
     platform: CredentialPlatform.FANVUE,
     servicePath: 'fanvue',
@@ -253,7 +253,7 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     category: 'ads',
     connectId: 'meta-ads',
     Icon: FacebookIcon,
-    iconClassName: 'text-blue-600',
+    iconClassName: 'text-platform-facebook',
     label: 'Meta Ads',
     // Marketing API reuses the Facebook credential + ads scopes.
     platform: CredentialPlatform.FACEBOOK,

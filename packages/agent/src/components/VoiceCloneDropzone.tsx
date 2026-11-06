@@ -43,7 +43,7 @@ export function VoiceCloneDropzone({
         <CloudUpload className="mb-2 size-8 text-muted-foreground" />
         {file ? (
           <div className="flex items-center gap-2">
-            <Music className="size-4 text-rose-500" />
+            <Music className="size-4 text-muted-foreground" />
             <span className="text-xs font-medium text-foreground">
               {file.name}
             </span>

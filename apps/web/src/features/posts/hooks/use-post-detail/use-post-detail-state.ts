@@ -341,7 +341,7 @@ export function usePostDetailState({
       likes === undefined
         ? null
         : {
-            accent: 'text-rose-500',
+            accent: 'text-categorical-pink',
             icon: Heart,
             label: 'Likes',
             value: formatCompactNumber(likes),

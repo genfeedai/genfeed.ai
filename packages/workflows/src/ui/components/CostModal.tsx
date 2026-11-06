@@ -120,9 +120,9 @@ export function CostModal() {
                       <span
                         className={`font-mono text-xs ${
                           variance > 0
-                            ? 'text-red-400'
+                            ? 'text-destructive'
                             : variance < 0
-                              ? 'text-green-400'
+                              ? 'text-success'
                               : 'text-muted-foreground'
                         }`}
                       >

@@ -278,7 +278,11 @@ function EditorPreview({
   const aspectRatio = width / height;
 
   return (
-    <div className="relative w-full bg-neutral-950 overflow-hidden">
+    <div
+      className={
+        'relative w-full bg-black overflow-hidden' /* design-system-allow-content-color -- video letterbox */
+      }
+    >
       <div
         className="relative mx-auto"
         style={{

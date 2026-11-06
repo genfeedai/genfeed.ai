@@ -55,7 +55,7 @@ export function BrandCreateCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <Sparkles className="size-5 text-pink-500" />
+        <Sparkles className="size-5 text-muted-foreground" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Create Brand'}
         </h3>

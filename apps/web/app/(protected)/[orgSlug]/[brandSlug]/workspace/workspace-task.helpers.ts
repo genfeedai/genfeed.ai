@@ -259,7 +259,7 @@ export function getAdvancedToolHref(task: Task): string {
 
 export function getTaskStateDotClass(task: Task): string {
   if (task.status === 'failed') {
-    return 'bg-rose-400';
+    return 'bg-destructive';
   }
 
   if (
@@ -267,14 +267,14 @@ export function getTaskStateDotClass(task: Task): string {
     task.reviewState === 'changes_requested' ||
     task.status === 'in_review'
   ) {
-    return 'bg-amber-300';
+    return 'bg-warning';
   }
 
   if (task.status === 'done') {
-    return 'bg-emerald-300';
+    return 'bg-success';
   }
 
-  return 'bg-sky-300';
+  return 'bg-info';
 }
 
 export function applyRealtimeTaskUpdate(

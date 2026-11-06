@@ -5,24 +5,24 @@ export const TAG_SCOPE_COLORS: Record<
   { bg: string; text: string; icon: string }
 > = {
   [TagCategory.INGREDIENT]: {
-    bg: 'bg-blue-500/10',
+    bg: 'bg-categorical-blue/10',
     icon: '',
-    text: 'text-blue-500',
+    text: 'text-categorical-blue',
   },
   [TagCategory.ARTICLE]: {
-    bg: 'bg-yellow-500/10',
+    bg: 'bg-categorical-amber/10',
     icon: '',
-    text: 'text-yellow-500',
+    text: 'text-categorical-amber',
   },
   [TagCategory.PROMPT]: {
-    bg: 'bg-purple-500/10',
+    bg: 'bg-categorical-violet/10',
     icon: '',
-    text: 'text-purple-500',
+    text: 'text-categorical-violet',
   },
   universal: {
-    bg: 'bg-gray-500/10',
+    bg: 'bg-foreground/10',
     icon: '',
-    text: 'text-gray-500',
+    text: 'text-muted-foreground',
   },
 };
 

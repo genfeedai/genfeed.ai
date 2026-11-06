@@ -103,7 +103,7 @@ export const badgeVariants = cva(
         /** Count or key on a neutral surface — reads against any background. */
         inverse: 'bg-foreground text-background',
         /** Over media (thumbnails, previews): legible on any image. */
-        overlay: 'bg-black/60 text-white backdrop-blur-sm',
+        overlay: 'bg-black/60 text-white backdrop-blur-sm', // design-system-allow-content-color -- badge over media
         /** Bordered, transparent chip for metadata that should stay quiet. */
         outline: 'border border-border bg-transparent text-muted-foreground',
         /** Secondary / cancelled / idle — muted neutral */

@@ -37,31 +37,31 @@ import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
 const PLATFORMS = [
   {
-    color: 'text-slate-300',
+    color: 'text-foreground',
     icon: XTwitterIcon,
     label: 'Twitter/X',
     platform: ReplyBotPlatform.TWITTER,
   },
   {
-    color: 'text-pink-500',
+    color: 'text-platform-instagram',
     icon: InstagramIcon,
     label: 'Instagram',
     platform: ReplyBotPlatform.INSTAGRAM,
   },
   {
-    color: 'text-slate-300',
+    color: 'text-foreground',
     icon: TiktokIcon,
     label: 'TikTok',
     platform: ReplyBotPlatform.TIKTOK,
   },
   {
-    color: 'text-red-500',
+    color: 'text-platform-youtube',
     icon: YoutubeIcon,
     label: 'YouTube',
     platform: ReplyBotPlatform.YOUTUBE,
   },
   {
-    color: 'text-orange-500',
+    color: 'text-platform-reddit',
     icon: RedditIcon,
     label: 'Reddit',
     platform: ReplyBotPlatform.REDDIT,

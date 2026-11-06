@@ -13,44 +13,44 @@ export const GROUP_COLORS: Record<
   { bg: string; border: string; text: string }
 > = {
   blue: {
-    bg: 'bg-blue-500/10',
-    border: 'border-blue-500/20',
-    text: 'text-blue-400',
+    bg: 'bg-categorical-blue/10',
+    border: 'border-categorical-blue/20',
+    text: 'text-categorical-blue',
   },
   gray: {
-    bg: 'bg-gray-500/10',
-    border: 'border-gray-500/20',
-    text: 'text-gray-400',
+    bg: 'bg-foreground/10',
+    border: 'border-foreground/20',
+    text: 'text-muted-foreground',
   },
   green: {
-    bg: 'bg-green-500/10',
-    border: 'border-green-500/20',
-    text: 'text-green-400',
+    bg: 'bg-categorical-emerald/10',
+    border: 'border-categorical-emerald/20',
+    text: 'text-categorical-emerald',
   },
   orange: {
-    bg: 'bg-orange-500/10',
-    border: 'border-orange-500/20',
-    text: 'text-orange-400',
+    bg: 'bg-categorical-orange/10',
+    border: 'border-categorical-orange/20',
+    text: 'text-categorical-orange',
   },
   pink: {
-    bg: 'bg-pink-500/10',
-    border: 'border-pink-500/20',
-    text: 'text-pink-400',
+    bg: 'bg-categorical-pink/10',
+    border: 'border-categorical-pink/20',
+    text: 'text-categorical-pink',
   },
   purple: {
-    bg: 'bg-purple-500/10',
-    border: 'border-purple-500/20',
-    text: 'text-purple-400',
+    bg: 'bg-categorical-violet/10',
+    border: 'border-categorical-violet/20',
+    text: 'text-categorical-violet',
   },
   red: {
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/20',
-    text: 'text-red-400',
+    bg: 'bg-categorical-red/10',
+    border: 'border-categorical-red/20',
+    text: 'text-categorical-red',
   },
   yellow: {
-    bg: 'bg-yellow-500/10',
-    border: 'border-yellow-500/20',
-    text: 'text-yellow-400',
+    bg: 'bg-categorical-amber/10',
+    border: 'border-categorical-amber/20',
+    text: 'text-categorical-amber',
   },
 };
 
