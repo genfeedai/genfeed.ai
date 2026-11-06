@@ -23,6 +23,7 @@ import {
   Platform,
   SocialConversationType,
   SocialMessageType,
+  SocialMessageWorkflowTriggerStatus,
 } from '@genfeedai/contracts';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 
@@ -175,7 +176,9 @@ export async function ingestInboundSocialMessage(
         status: 'received',
         userId: input.userId,
         workflowTriggerStatus:
-          ports.hasWorkflowQueue() && input.userId ? 'pending' : undefined,
+          ports.hasWorkflowQueue() && input.userId
+            ? SocialMessageWorkflowTriggerStatus.PENDING
+            : undefined,
       },
     });
   } catch (error) {

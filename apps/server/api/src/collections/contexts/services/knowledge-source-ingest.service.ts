@@ -24,6 +24,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import {
   KnowledgeBaseCategory,
+  KnowledgeCaptureRequestStatus,
   KnowledgeMemoryScope,
   KnowledgeProcessingState,
   KnowledgeRefreshRunStatus,
@@ -536,7 +537,7 @@ export class KnowledgeSourceIngestService {
       if (isStillCurrent) {
         await this.settleCaptureRequests(
           state,
-          'failed',
+          KnowledgeCaptureRequestStatus.FAILED,
           state.failure ?? 'Source cannot be ingested',
         );
       }
@@ -582,7 +583,7 @@ export class KnowledgeSourceIngestService {
       } else if (isStillCurrent) {
         await this.settleCaptureRequests(
           state,
-          'failed',
+          KnowledgeCaptureRequestStatus.FAILED,
           toSafeFailureReason(error),
         );
       }
@@ -618,9 +619,9 @@ export class KnowledgeSourceIngestService {
       await tx.knowledgeCaptureRequest.updateMany({
         where: scopedWhere(state.organizationId, {
           sourceId: state.sourceId,
-          status: 'queued',
+          status: KnowledgeCaptureRequestStatus.QUEUED,
         }),
-        data: { error, status: 'failed' },
+        data: { error, status: KnowledgeCaptureRequestStatus.FAILED },
       });
     });
   }
@@ -812,16 +813,22 @@ export class KnowledgeSourceIngestService {
    */
   private async settleCaptureRequests(
     state: KnowledgeSourceIngestState,
-    status: 'completed' | 'failed',
+    status: Exclude<
+      KnowledgeCaptureRequestStatus,
+      KnowledgeCaptureRequestStatus.QUEUED
+    >,
     error?: string,
   ): Promise<void> {
     await this.assertInitiator(state, state.source?.brandId);
     await this.prisma.knowledgeCaptureRequest.updateMany({
       where: scopedWhere(state.organizationId, {
         sourceId: state.sourceId,
-        status: 'queued',
+        status: KnowledgeCaptureRequestStatus.QUEUED,
       }),
-      data: status === 'failed' ? { error, status } : { status },
+      data:
+        status === KnowledgeCaptureRequestStatus.FAILED
+          ? { error, status }
+          : { status },
     });
   }
 

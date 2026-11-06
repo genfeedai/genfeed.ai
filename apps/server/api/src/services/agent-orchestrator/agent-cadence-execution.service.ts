@@ -38,6 +38,7 @@ import {
   parsePlatform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { brandedGenerationReceiptStateV1Schema } from '@genfeedai/contracts/api-types/contracts/branded-generation.contract';
 import { GENERATE_CONTENT_TEXT_CREDITS } from '@genfeedai/contracts/constants';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { Traced } from '@libs/tracing/traced';
@@ -263,10 +264,9 @@ export class AgentCadenceExecutionService {
         agentThreadId: state.threadId,
         targetExecutionState: TargetExecutionState.DRAFT,
         brandedReceiptId: data.receiptId,
-        brandedReceiptState:
-          typeof data.receiptState === 'string'
-            ? data.receiptState
-            : 'needs_review',
+        brandedReceiptState: brandedGenerationReceiptStateV1Schema
+          .catch('needs_review')
+          .parse(data.receiptState),
       },
       [],
     );
