@@ -153,7 +153,10 @@ describe('SpeechController', () => {
 
       expect(replicateService.transcribeAudio).toHaveBeenCalled();
       expect(result).toBeDefined();
-      expect(result).toHaveProperty('confidence', mockTranscriptionResult.confidence);
+      expect(result).toHaveProperty(
+        'confidence',
+        mockTranscriptionResult.confidence,
+      );
       expect(result).toHaveProperty('text', mockTranscriptionResult.text);
     });
 

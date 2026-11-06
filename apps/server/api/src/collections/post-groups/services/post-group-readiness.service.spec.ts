@@ -1,6 +1,6 @@
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
-import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import type { SchedulerTx } from '@api/collections/post-groups/services/post-group.types';
+import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
@@ -204,9 +204,7 @@ describe('PostGroupReadinessService', () => {
     });
 
     it('throws an actionable error for a blocked channel', async () => {
-      findCredentials.mockResolvedValue([
-        makeRow({ accessToken: null }),
-      ]);
+      findCredentials.mockResolvedValue([makeRow({ accessToken: null })]);
       const readiness = await service.resolveForCredentials(tx, 'org-1', [
         'cred-x',
       ]);
@@ -242,9 +240,7 @@ describe('PostGroupReadinessService', () => {
      * blocked channel read as `'Bad Request Exception'` with no reason attached.
      */
     it('carries a readable reason on the exception itself, not just in the payload', async () => {
-      findCredentials.mockResolvedValue([
-        makeRow({ accessToken: null }),
-      ]);
+      findCredentials.mockResolvedValue([makeRow({ accessToken: null })]);
       const readiness = await service.resolveForCredentials(tx, 'org-1', [
         'cred-x',
       ]);

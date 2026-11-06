@@ -348,9 +348,7 @@ describe('GhostService', () => {
   describe('getSiteInfo', () => {
     it('should return site info from the API', async () => {
       const mockSite = { title: 'My Blog', url: 'https://myblog.ghost.io' };
-      httpService.get.mockReturnValue(
-        of(axiosResponse({ site: mockSite })),
-      );
+      httpService.get.mockReturnValue(of(axiosResponse({ site: mockSite })));
 
       const result = await service.getSiteInfo(
         'https://myblog.ghost.io',
@@ -388,7 +386,7 @@ describe('GhostService', () => {
       ['myblog.ghost.io', 'https://myblog.ghost.io/ghost/api/admin/site/'],
     ])('reads %s at %s', async (ghostUrl, endpoint) => {
       httpService.get.mockReturnValue(
-        of(makeAxiosResponse({ site: { title: 'Blog' } })),
+        of(axiosResponse({ site: { title: 'Blog' } })),
       );
 
       await service.getSiteInfo(ghostUrl, 'keyid:keysecret0123456789abcdef');
@@ -397,7 +395,7 @@ describe('GhostService', () => {
     });
 
     it('returns no site when the address answers with a page instead', async () => {
-      httpService.get.mockReturnValue(of(makeAxiosResponse('<html></html>')));
+      httpService.get.mockReturnValue(of(axiosResponse('<html></html>')));
 
       const result = await service.getSiteInfo(
         'https://myblog.com',

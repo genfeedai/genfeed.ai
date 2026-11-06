@@ -105,7 +105,10 @@ describe('RolesController', () => {
         createPaginatedFixture([mockRole]),
       );
 
-      const result = await controller.findAll(mockReq, tenantReadQuery(BaseQueryDto));
+      const result = await controller.findAll(
+        mockReq,
+        tenantReadQuery(BaseQueryDto),
+      );
 
       expect(rolesService.findAll).toHaveBeenCalledWith(
         { where: { isDeleted: false } },
@@ -117,9 +120,9 @@ describe('RolesController', () => {
     it('should throw HttpException when findAll fails', async () => {
       rolesService.findAll.mockRejectedValue(new Error('Fetch failed'));
 
-      await expect(controller.findAll(mockReq, tenantReadQuery(BaseQueryDto))).rejects.toThrow(
-        HttpException,
-      );
+      await expect(
+        controller.findAll(mockReq, tenantReadQuery(BaseQueryDto)),
+      ).rejects.toThrow(HttpException);
     });
   });
 

@@ -376,9 +376,7 @@ describe('OpenRouterService', () => {
     };
 
     it('posts to the OpenRouter embeddings endpoint and returns the raw response', async () => {
-      httpService.post.mockReturnValue(
-        of(axiosResponse(embeddingResponse)),
-      );
+      httpService.post.mockReturnValue(of(axiosResponse(embeddingResponse)));
 
       const result = await service.embeddings({
         input: 'hello world',
@@ -402,9 +400,7 @@ describe('OpenRouterService', () => {
     });
 
     it('sends the first-party ZDR/no-retention policy on every request', async () => {
-      httpService.post.mockReturnValue(
-        of(axiosResponse(embeddingResponse)),
-      );
+      httpService.post.mockReturnValue(of(axiosResponse(embeddingResponse)));
 
       await service.embeddings({
         input: 'hello',
@@ -416,9 +412,7 @@ describe('OpenRouterService', () => {
     });
 
     it('uses apiKeyOverride instead of config key when provided', async () => {
-      httpService.post.mockReturnValue(
-        of(axiosResponse(embeddingResponse)),
-      );
+      httpService.post.mockReturnValue(of(axiosResponse(embeddingResponse)));
 
       await service.embeddings(
         { input: 'hello', model: 'baai/bge-large-en-v1.5' },

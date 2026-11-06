@@ -5,8 +5,8 @@ import { PresetsQueryDto } from '@api/collections/presets/dto/presets-query.dto'
 import { UpdatePresetDto } from '@api/collections/presets/dto/update-preset.dto';
 import { PresetsService } from '@api/collections/presets/services/presets.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { ModelCategory } from '@genfeedai/contracts';
 import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
+import { ModelCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -88,13 +88,13 @@ describe('PresetsController', () => {
       expect(Array.isArray(query)).toBe(false);
     });
 
-    it('should default orderBy to { createdAt: -1 } when no sort provided', () => {
+    it('should order newest first with an id tiebreak by default', () => {
       const query = controller.buildFindAllQuery(
         mockUser,
         tenantReadQuery(PresetsQueryDto),
       );
 
-      expect(query.orderBy).toEqual({ createdAt: -1 });
+      expect(query.orderBy).toEqual({ createdAt: -1, id: -1 });
     });
 
     it.each([

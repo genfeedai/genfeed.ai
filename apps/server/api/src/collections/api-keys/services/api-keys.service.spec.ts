@@ -20,7 +20,10 @@ import {
 
 type MockFn = ReturnType<typeof vi.fn>;
 
-type ApiKeysServiceHarness = Omit<ApiKeysService, 'createWithKey' | 'revoke'> & {
+type ApiKeysServiceHarness = Omit<
+  ApiKeysService,
+  'createWithKey' | 'revoke'
+> & {
   createWithKey: MockFn;
   revoke: MockFn;
 };

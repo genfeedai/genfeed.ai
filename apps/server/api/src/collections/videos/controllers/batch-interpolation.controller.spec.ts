@@ -697,7 +697,10 @@ describe('BatchInterpolationController', () => {
 
         expect(first).toHaveProperty('groupId', expect.any(String));
         expect(second).toHaveProperty('groupId', expect.any(String));
-        expect(first).not.toHaveProperty('groupId', Reflect.get(second, 'groupId'));
+        expect(first).not.toHaveProperty(
+          'groupId',
+          Reflect.get(second, 'groupId'),
+        );
       });
 
       it('should start all pair generations without waiting for earlier pairs to finish', async () => {

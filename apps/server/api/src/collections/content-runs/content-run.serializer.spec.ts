@@ -1,6 +1,6 @@
+import { singleResourceAttributes } from '@api-test/helpers/json-api-resource';
 import { ContentRunSource, ContentRunStatus } from '@genfeedai/contracts';
 import { ContentRunSerializer } from '@genfeedai/serializers';
-import { singleResourceAttributes } from '@api-test/helpers/json-api-resource';
 
 describe('ContentRunSerializer', () => {
   it('serializes lifecycle attributes for the expanded content run contract', () => {

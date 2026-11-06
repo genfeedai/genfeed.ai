@@ -3,11 +3,11 @@ import { PublicImagesController } from '@api/endpoints/public/controllers/images
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
-import { echoSerialize } from '@api-test/helpers/json-api-resource';
 import {
   createIngredientDocumentFixture,
   createPaginatedFixture,
 } from '@api-test/fixtures/ingredient-document.fixture';
+import { echoSerialize } from '@api-test/helpers/json-api-resource';
 import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import {
   AssetScope,
@@ -105,7 +105,9 @@ describe('PublicImagesController', () => {
     imagesService = module.get(ImagesService);
     loggerService = module.get(LoggerService);
 
-    vi.spyOn(IngredientSerializer, 'serialize').mockImplementation(echoSerialize);
+    vi.spyOn(IngredientSerializer, 'serialize').mockImplementation(
+      echoSerialize,
+    );
   });
 
   afterEach(() => {

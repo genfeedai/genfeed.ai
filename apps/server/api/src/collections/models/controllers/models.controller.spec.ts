@@ -13,15 +13,14 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import { createPaginatedFixture } from '@api-test/fixtures/ingredient-document.fixture';
 import { createModelDocumentFixture } from '@api-test/fixtures/model-document.fixture';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import {
   ModelCategory,
   ModelLifecycle,
   ModelProvider,
 } from '@genfeedai/contracts';
-import { ModelSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException, HttpException } from '@nestjs/common';
@@ -418,7 +417,11 @@ describe('ModelsController', () => {
           key: 'model-1',
           label: 'Model 1',
         }),
-        createModelDocumentFixture({ id: '2', key: 'model-2', label: 'Model 2' }),
+        createModelDocumentFixture({
+          id: '2',
+          key: 'model-2',
+          label: 'Model 2',
+        }),
       ]);
 
       modelsService.findAll.mockResolvedValue(mockModels);

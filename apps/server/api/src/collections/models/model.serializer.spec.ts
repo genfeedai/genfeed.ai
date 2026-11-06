@@ -1,9 +1,9 @@
 import { buildCrunContract } from '@api/services/integrations/crun/contracts/crun-contract-import.service';
 import { CRUN_VIDEO_MANIFEST } from '@api/services/integrations/crun/contracts/crun-manifest';
+import { singleResourceAttributes } from '@api-test/helpers/json-api-resource';
 import { IngredientCategory } from '@genfeedai/contracts';
 import { projectCrunInputControls } from '@genfeedai/helpers';
 import { ModelSerializer } from '@genfeedai/serializers';
-import { singleResourceAttributes } from '@api-test/helpers/json-api-resource';
 
 describe('ModelSerializer', () => {
   it('projects verified audio-reference capability instead of trusting stored flags', () => {

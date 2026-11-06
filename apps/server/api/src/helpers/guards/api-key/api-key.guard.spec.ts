@@ -1,6 +1,8 @@
 import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
+import { createMockExecutionContext } from '@api-test/mocks/controller.mocks';
+import { mockRequest as buildMockRequest } from '@api-test/mocks/service.mocks';
 import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import {
@@ -10,8 +12,6 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { createMockExecutionContext } from '@api-test/mocks/controller.mocks';
-import { mockRequest as buildMockRequest } from '@api-test/mocks/service.mocks';
 
 describe('ApiKeyAuthGuard', () => {
   let guard: ApiKeyAuthGuard;
