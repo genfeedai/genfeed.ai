@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import {
   persistSubmissionFailure,
   persistSubmissionRejection,
@@ -8,261 +9,342 @@ import {
   CreditReservationStatus,
   IngredientStatus,
 } from '@genfeedai/contracts';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+type Row = Record<string, unknown>;
+type Where = Record<string, unknown>;
+
+interface Database {
+  holds: Row[];
+  ingredients: Row[];
+  tasks: Row[];
+}
+
+const ORG = 'org-1';
+const AVATAR = 'avatar-1';
 
 const where = {
-  id: 'avatar-1',
-  organizationId: 'org-1',
+  id: AVATAR,
+  organizationId: ORG,
   isDeleted: false,
   status: IngredientStatus.PROCESSING,
 };
 const failed = { status: IngredientStatus.FAILED };
-function fixture(byok = false) {
-  const hold = {
-    id: 'hold-1',
-    status: CreditReservationStatus.RESERVED,
-    metadata: {
-      assetId: 'avatar-1',
-      submissionIntent: { version: 1, provider: 'heygen' },
-      audit: 'preserved',
-    },
-  };
-  const receipt = {
-    kind: 'byok',
-    amount: 0,
-    description: 'Avatar',
-    source: ActivitySource.VIDEO_GENERATION,
-    state: 'pending',
-    userId: 'user-1',
-    expiresAt: '2026-09-30T00:00:00.000Z',
-    submissionIntentProvider: 'heygen',
+
+const intentHold = (status: string) => ({
+  id: 'hold-1',
+  isDeleted: false,
+  metadata: {
+    assetId: AVATAR,
     audit: 'preserved',
-  };
-  const tx = {
-    crunGenerationTask: { findFirst: vi.fn().mockResolvedValue(null) },
-    $queryRaw: vi.fn().mockResolvedValue([]),
-    ingredient: {
-      findFirst: vi.fn().mockResolvedValue(
-        byok
-          ? {
-              generationBilling: receipt,
-              status: IngredientStatus.PROCESSING,
-            }
-          : null,
-      ),
-      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-    },
-    creditReservation: {
-      findFirst: vi.fn().mockResolvedValue(byok ? null : hold),
-      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-    },
-  };
-  const prisma = {
-    ...tx,
-    $transaction: vi.fn(async (operation) => operation(tx)),
-  };
-  return { tx, prisma: prisma as unknown as PrismaService, hold, receipt };
-}
+    submissionIntent: { provider: 'heygen', version: 1 },
+  },
+  organizationId: ORG,
+  status,
+  workloadId: AVATAR,
+  workloadType: 'media-generation',
+});
+
+const byokReceipt = (fields: Row = {}) => ({
+  amount: 0,
+  audit: 'preserved',
+  description: 'Avatar',
+  expiresAt: '2026-09-30T00:00:00.000Z',
+  kind: 'byok',
+  source: ActivitySource.VIDEO_GENERATION,
+  state: 'pending',
+  submissionIntentProvider: 'heygen',
+  userId: 'user-1',
+  ...fields,
+});
+
+const proof = (kind: string) => ({
+  confirmedFailure: {
+    ingredientId: AVATAR,
+    kind,
+    observedAt: expect.any(String),
+    provider: 'heygen',
+    version: 1,
+  },
+});
+
+// Prisma filters as Postgres applies them to these rows.
+const matches = (row: Row, filter: Where): boolean =>
+  Object.entries(filter).every(([key, condition]) => {
+    if (key === 'AND') {
+      return (condition as Where[]).every((clause) => matches(row, clause));
+    }
+    if (condition && typeof condition === 'object' && 'notIn' in condition) {
+      return !(condition.notIn as unknown[]).includes(row[key]);
+    }
+    if (condition && typeof condition === 'object' && 'equals' in condition) {
+      return isDeepStrictEqual(row[key], condition.equals);
+    }
+    return row[key] === condition;
+  });
 
 describe('confirmed submitted-generation failure evidence', () => {
-  it('does not treat a generic FAILED projection as provider proof', async () => {
-    const state = fixture();
-    expect(
-      await persistSubmissionFailure(state.prisma, where, failed, false),
-    ).toBeNull();
-    expect(state.tx.ingredient.updateMany).not.toHaveBeenCalled();
-    expect(state.tx.ingredient.updateMany).not.toHaveBeenCalled();
-  });
-  it('commits provider failure proof in the same transaction as the scoped FAILED CAS', async () => {
-    const state = fixture();
-    expect(
-      await persistSubmissionFailure(state.prisma, where, failed, true),
-    ).toEqual({ count: 1 });
-    expect(state.tx.ingredient.updateMany).toHaveBeenCalledWith({
-      where: { ...where, AND: [where] },
-      data: failed,
+  let db: Database;
+  let isLedgerDown: boolean;
+  let conflicts: number;
+  let prisma: PrismaService;
+
+  const ingredient = () => db.ingredients[0];
+  const hold = () => db.holds[0];
+  const seedIngredient = (fields: Row = {}) => {
+    db.ingredients.push({
+      id: AVATAR,
+      isDeleted: false,
+      organizationId: ORG,
+      status: IngredientStatus.PROCESSING,
+      ...fields,
     });
-    expect(state.tx.creditReservation.updateMany).toHaveBeenCalledWith({
-      where: {
-        id: 'hold-1',
-        organizationId: 'org-1',
-        isDeleted: false,
-        status: CreditReservationStatus.RESERVED,
-        metadata: { equals: state.hold.metadata },
+  };
+  const seedCrunTask = (fields: Row) => {
+    db.tasks.push({
+      ingredientId: AVATAR,
+      isDeleted: false,
+      organizationId: ORG,
+      ...fields,
+    });
+  };
+
+  beforeEach(() => {
+    db = { holds: [], ingredients: [], tasks: [] };
+    isLedgerDown = false;
+    conflicts = 0;
+
+    const table = (rows: () => Row[]) => ({
+      findFirst: async ({ where: filter }: { where: Where }) => {
+        const row = rows().find((candidate) => matches(candidate, filter));
+        return row ? structuredClone(row) : null;
       },
-      data: {
-        metadata: expect.objectContaining({
-          audit: 'preserved',
-          confirmedFailure: {
-            version: 1,
-            ingredientId: 'avatar-1',
-            provider: 'heygen',
-            kind: 'provider-terminal',
-            observedAt: expect.any(String),
-          },
-        }),
+      updateMany: async ({
+        data,
+        where: filter,
+      }: {
+        data: Row;
+        where: Where;
+      }) => {
+        const changed = rows().filter((row) => matches(row, filter));
+        for (const row of changed) Object.assign(row, structuredClone(data));
+        return { count: changed.length };
       },
     });
+    const holds = table(() => db.holds);
+    const tx = {
+      $queryRaw: async () => [],
+      creditReservation: {
+        ...holds,
+        updateMany: async (args: { data: Row; where: Where }) => {
+          if (isLedgerDown) throw new Error('Financial write failed');
+          return holds.updateMany(args);
+        },
+      },
+      crunGenerationTask: table(() => db.tasks),
+      ingredient: table(() => db.ingredients),
+    };
+    prisma = {
+      // A serializable transaction: it aborts on a write conflict and rolls
+      // back every write when the callback throws.
+      $transaction: async (operation: (client: typeof tx) => unknown) => {
+        if (conflicts > 0) {
+          conflicts -= 1;
+          throw Object.assign(new Error('Write conflict'), { code: 'P2034' });
+        }
+        const snapshot = structuredClone(db);
+        try {
+          return await operation(tx);
+        } catch (error) {
+          db = snapshot;
+          throw error;
+        }
+      },
+    } as unknown as PrismaService;
   });
-  it('propagates evidence failure so the enclosing transaction rolls back the FAILED write', async () => {
-    const state = fixture();
-    state.tx.creditReservation.updateMany.mockRejectedValue(
-      new Error('Financial write failed'),
-    );
-    await expect(
-      persistSubmissionFailure(state.prisma, where, failed, true),
-    ).rejects.toThrow('Financial write failed');
-  });
-  it('still fails the library row when the intent hold already expired at its ceiling', async () => {
-    const state = fixture();
-    state.hold.status = CreditReservationStatus.EXPIRED;
-    expect(
-      await persistSubmissionFailure(state.prisma, where, failed, true),
-    ).toEqual({ count: 1 });
-    expect(state.tx.ingredient.updateMany).toHaveBeenCalledTimes(1);
-    expect(state.tx.creditReservation.updateMany).not.toHaveBeenCalled();
-  });
-  it('rejects a failure for a hold that was released', async () => {
-    const state = fixture();
-    state.hold.status = CreditReservationStatus.RELEASED;
-    await expect(
-      persistSubmissionFailure(state.prisma, where, failed, true),
-    ).rejects.toThrow('already ended');
-  });
-  it('does not write negative proof if the library CAS loses', async () => {
-    const state = fixture();
-    state.tx.ingredient.updateMany.mockResolvedValue({ count: 0 });
-    expect(
-      await persistSubmissionFailure(state.prisma, where, failed, true),
-    ).toEqual({ count: 0 });
-    expect(state.tx.creditReservation.updateMany).not.toHaveBeenCalled();
-  });
-  it('records authenticated provider failure after a generic FAILED projection won', async () => {
-    const state = fixture();
-    const alreadyFailed = { ...where, status: IngredientStatus.FAILED };
-    await persistSubmissionFailure(state.prisma, alreadyFailed, failed, true);
-    expect(state.tx.ingredient.updateMany).toHaveBeenCalledWith({
-      where: { ...alreadyFailed, AND: [alreadyFailed] },
-      data: failed,
+
+  describe('with a credit hold for the submission', () => {
+    beforeEach(() => {
+      seedIngredient();
+      db.holds.push(intentHold(CreditReservationStatus.RESERVED));
     });
-    expect(state.tx.creditReservation.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: {
-          metadata: expect.objectContaining({
-            confirmedFailure: expect.objectContaining({
-              kind: 'provider-terminal',
-            }),
-          }),
-        },
-      }),
-    );
-  });
-  it('persists rejection before any library projection', async () => {
-    const state = fixture();
-    await persistSubmissionRejection(state.prisma, 'avatar-1', 'org-1');
-    expect(state.tx.ingredient.updateMany).not.toHaveBeenCalled();
-    expect(state.tx.creditReservation.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: {
-          metadata: expect.objectContaining({
-            confirmedFailure: expect.objectContaining({
-              kind: 'submission-rejected',
-            }),
-          }),
-        },
-      }),
-    );
-  });
-  it.each([IngredientStatus.PROCESSING, IngredientStatus.FAILED])(
-    'atomically ends a BYOK receipt after authenticated failure from %s',
-    async (status) => {
-      const state = fixture(true);
-      const transitionWhere = { ...where, status };
-      expect(
-        await persistSubmissionFailure(
-          state.prisma,
-          transitionWhere,
-          failed,
-          true,
-        ),
-      ).toEqual({ count: 1 });
-      expect(state.tx.ingredient.updateMany).toHaveBeenCalledWith({
-        where: {
-          ...transitionWhere,
-          AND: [transitionWhere],
-          generationBilling: { equals: state.receipt },
-        },
-        data: {
-          status: IngredientStatus.FAILED,
-          generationBilling: expect.objectContaining({
-            state: 'failed',
-            audit: 'preserved',
-            confirmedFailure: expect.objectContaining({
-              ingredientId: 'avatar-1',
-              provider: 'heygen',
-              kind: 'provider-terminal',
-            }),
-          }),
+
+    it('does not treat a generic FAILED projection as provider proof', async () => {
+      await expect(
+        persistSubmissionFailure(prisma, where, failed, false),
+      ).resolves.toBeNull();
+      expect(ingredient()?.status).toBe(IngredientStatus.PROCESSING);
+      expect(hold()).toEqual(intentHold(CreditReservationStatus.RESERVED));
+    });
+
+    it('fails the library row and records provider proof on the hold together', async () => {
+      await expect(
+        persistSubmissionFailure(prisma, where, failed, true),
+      ).resolves.toEqual({ count: 1 });
+
+      expect(ingredient()?.status).toBe(IngredientStatus.FAILED);
+      expect(hold()).toEqual({
+        ...intentHold(CreditReservationStatus.RESERVED),
+        metadata: {
+          ...intentHold(CreditReservationStatus.RESERVED).metadata,
+          ...proof('provider-terminal'),
         },
       });
-      expect(state.tx.creditReservation.updateMany).not.toHaveBeenCalled();
-    },
-  );
-  it('durably ends a BYOK receipt before the rejection projection', async () => {
-    const state = fixture(true);
-    await persistSubmissionRejection(state.prisma, 'avatar-1', 'org-1');
-    expect(state.tx.ingredient.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          id: 'avatar-1',
-          organizationId: 'org-1',
-          isDeleted: false,
-          generationBilling: { equals: state.receipt },
-        }),
-        data: {
-          generationBilling: expect.objectContaining({
-            state: 'failed',
-            confirmedFailure: expect.objectContaining({
-              kind: 'submission-rejected',
-            }),
-          }),
-        },
-      }),
-    );
-  });
-  it('never rewrites a completed BYOK receipt as rejection', async () => {
-    const state = fixture(true);
-    state.tx.ingredient.findFirst.mockResolvedValue({
-      generationBilling: { ...state.receipt, state: 'recorded' },
-      status: IngredientStatus.GENERATED,
     });
+
+    it('rolls the FAILED write back when the proof cannot be saved', async () => {
+      isLedgerDown = true;
+
+      await expect(
+        persistSubmissionFailure(prisma, where, failed, true),
+      ).rejects.toThrow('Financial write failed');
+      expect(ingredient()?.status).toBe(IngredientStatus.PROCESSING);
+      expect(hold()).toEqual(intentHold(CreditReservationStatus.RESERVED));
+    });
+
+    it('retries a serialization conflict', async () => {
+      conflicts = 2;
+
+      await expect(
+        persistSubmissionFailure(prisma, where, failed, true),
+      ).resolves.toEqual({ count: 1 });
+      expect(ingredient()?.status).toBe(IngredientStatus.FAILED);
+    });
+
+    it('gives up after three serialization conflicts', async () => {
+      conflicts = 3;
+
+      await expect(
+        persistSubmissionFailure(prisma, where, failed, true),
+      ).rejects.toThrow('Write conflict');
+      expect(ingredient()?.status).toBe(IngredientStatus.PROCESSING);
+    });
+
+    it('records no proof when the library row is no longer processing', async () => {
+      ingredient().status = IngredientStatus.GENERATED;
+
+      await expect(
+        persistSubmissionFailure(prisma, where, failed, true),
+      ).resolves.toEqual({ count: 0 });
+      expect(ingredient()?.status).toBe(IngredientStatus.GENERATED);
+      expect(hold()).toEqual(intentHold(CreditReservationStatus.RESERVED));
+    });
+
+    it('records provider proof after a generic FAILED projection won', async () => {
+      ingredient().status = IngredientStatus.FAILED;
+      const alreadyFailed = { ...where, status: IngredientStatus.FAILED };
+
+      await expect(
+        persistSubmissionFailure(prisma, alreadyFailed, failed, true),
+      ).resolves.toEqual({ count: 1 });
+      expect(hold()?.metadata).toEqual(
+        expect.objectContaining(proof('provider-terminal')),
+      );
+    });
+
+    it('records a rejection on the hold before any library projection', async () => {
+      await persistSubmissionRejection(prisma, AVATAR, ORG);
+
+      expect(ingredient()?.status).toBe(IngredientStatus.PROCESSING);
+      expect(hold()?.metadata).toEqual(
+        expect.objectContaining(proof('submission-rejected')),
+      );
+    });
+  });
+
+  it('still fails the library row when the hold already expired at its ceiling', async () => {
+    seedIngredient();
+    db.holds.push(intentHold(CreditReservationStatus.EXPIRED));
+
     await expect(
-      persistSubmissionRejection(state.prisma, 'avatar-1', 'org-1'),
-    ).rejects.toMatchObject({
-      response: expect.objectContaining({
-        detail: 'Submission rejection conflicts with completed BYOK usage',
-      }),
+      persistSubmissionFailure(prisma, where, failed, true),
+    ).resolves.toEqual({ count: 1 });
+    expect(ingredient()?.status).toBe(IngredientStatus.FAILED);
+    expect(hold()).toEqual(intentHold(CreditReservationStatus.EXPIRED));
+  });
+
+  it('refuses a failure for a hold that was released', async () => {
+    seedIngredient();
+    db.holds.push(intentHold(CreditReservationStatus.RELEASED));
+
+    await expect(
+      persistSubmissionFailure(prisma, where, failed, true),
+    ).rejects.toThrow('already ended');
+    expect(ingredient()?.status).toBe(IngredientStatus.PROCESSING);
+  });
+
+  describe('with a BYOK receipt on the library row', () => {
+    it.each([IngredientStatus.PROCESSING, IngredientStatus.FAILED])(
+      'ends the receipt with the FAILED write from %s',
+      async (status) => {
+        seedIngredient({ generationBilling: byokReceipt(), status });
+
+        await expect(
+          persistSubmissionFailure(prisma, { ...where, status }, failed, true),
+        ).resolves.toEqual({ count: 1 });
+        expect(ingredient()).toMatchObject({
+          generationBilling: {
+            ...byokReceipt({ state: 'failed' }),
+            ...proof('provider-terminal'),
+          },
+          status: IngredientStatus.FAILED,
+        });
+      },
+    );
+
+    it('ends the receipt on rejection before the library projection', async () => {
+      seedIngredient({ generationBilling: byokReceipt() });
+
+      await persistSubmissionRejection(prisma, AVATAR, ORG);
+
+      expect(ingredient()).toMatchObject({
+        generationBilling: {
+          ...byokReceipt({ state: 'failed' }),
+          ...proof('submission-rejected'),
+        },
+        status: IngredientStatus.PROCESSING,
+      });
     });
-    expect(state.tx.ingredient.updateMany).not.toHaveBeenCalled();
-  });
-  it('denies a forged Crun failure even when the caller disables confirmation', async () => {
-    const state = fixture(true);
-    state.receipt.submissionIntentProvider = 'crun';
-    state.tx.crunGenerationTask.findFirst.mockResolvedValue({
-      state: 'submitting',
-      providerTaskId: null,
-    } as never);
-    expect(
-      await persistSubmissionFailure(state.prisma, where, failed, false),
-    ).toEqual({ count: 0 });
-    expect(state.tx.ingredient.updateMany).not.toHaveBeenCalled();
-  });
-  it('denies a missing durable task for a Crun BYOK receipt', async () => {
-    const state = fixture(true);
-    state.receipt.submissionIntentProvider = 'crun';
-    expect(
-      await persistSubmissionFailure(state.prisma, where, failed, true),
-    ).toEqual({ count: 0 });
-    expect(state.tx.ingredient.updateMany).not.toHaveBeenCalled();
+
+    it('never rewrites a completed receipt as a rejection', async () => {
+      seedIngredient({
+        generationBilling: byokReceipt({ state: 'recorded' }),
+        status: IngredientStatus.GENERATED,
+      });
+
+      await expect(
+        persistSubmissionRejection(prisma, AVATAR, ORG),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          detail: 'Submission rejection conflicts with completed BYOK usage',
+        }),
+      });
+      expect(ingredient()?.generationBilling).toEqual(
+        byokReceipt({ state: 'recorded' }),
+      );
+    });
+
+    it('denies a forged Crun failure even when the caller skips confirmation', async () => {
+      seedIngredient({
+        generationBilling: byokReceipt({ submissionIntentProvider: 'crun' }),
+      });
+      seedCrunTask({ providerTaskId: null, state: 'submitting' });
+
+      await expect(
+        persistSubmissionFailure(prisma, where, failed, false),
+      ).resolves.toEqual({ count: 0 });
+      expect(ingredient()?.status).toBe(IngredientStatus.PROCESSING);
+    });
+
+    it('denies a Crun receipt whose durable task is missing', async () => {
+      seedIngredient({
+        generationBilling: byokReceipt({ submissionIntentProvider: 'crun' }),
+      });
+
+      await expect(
+        persistSubmissionFailure(prisma, where, failed, true),
+      ).resolves.toEqual({ count: 0 });
+      expect(ingredient()?.status).toBe(IngredientStatus.PROCESSING);
+    });
   });
 });
