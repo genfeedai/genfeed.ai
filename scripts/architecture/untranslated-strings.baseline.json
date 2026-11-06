@@ -399,7 +399,6 @@
     "packages/agent/src/components/AgentCliTerminal.tsx": 12,
     "packages/agent/src/components/AgentCompletionSummaryCard.tsx": 9,
     "packages/agent/src/components/AgentComposerStatusStack.tsx": 1,
-    "packages/agent/src/components/AgentConversationTurnNavigator.tsx": 1,
     "packages/agent/src/components/AgentFullPageMobileBar.tsx": 3,
     "packages/agent/src/components/AgentFullPageMobileDrawers.tsx": 3,
     "packages/agent/src/components/AgentGeneratedTextCard.tsx": 6,

@@ -9,7 +9,10 @@ import { canonicalizeRequestedMcpResource } from '@api/oauth/oauth-metadata.util
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { mostRestrictiveMcpAccessMode } from '@genfeedai/actions';
 import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
-import { MCP_CLAUDE_SCOPE_CEILING } from '@genfeedai/contracts/constants';
+import {
+  MCP_CLAUDE_SCOPE_CEILING,
+  readApiKeyAllowedBrandIds,
+} from '@genfeedai/contracts/constants';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import type { McpOAuthRefreshToken } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -188,8 +191,10 @@ export class OAuthRefreshTokenService {
     const rotated = await this.apiKeysService.rotateWithKey(
       apiKey.id,
       {
+        // The brand chosen at consent, and the limit to it, survive every
+        // rotation.
+        allowedBrandIds: readApiKeyAllowedBrandIds(apiKey.metadata),
         category: ApiKeyCategory.GENFEEDAI,
-        // The brand chosen at consent survives every rotation.
         defaultBrandId: apiKey.defaultBrandId ?? undefined,
         description: 'OAuth session for a remote MCP client',
         expiresAt: expiresAt.toISOString(),

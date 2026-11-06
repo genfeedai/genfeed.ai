@@ -158,7 +158,10 @@ describe('OrganizationsIntegrationsController', () => {
     await controller.update(request('/int-1'), user, 'org1', 'int-1', {
       config: { agentReportBindings: [] },
     } as unknown as UpdateIntegrationDto);
-    expect(rows[0]).toMatchObject({ actorUserId: 'user-1' });
+    expect(rows[0]).toMatchObject({
+      actorUserId: 'user-1',
+      config: { agentReportBindings: [] },
+    });
   });
 
   it('removes the integration', async () => {

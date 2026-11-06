@@ -124,7 +124,7 @@ export default function HomeOutputCard({
       <figcaption className="absolute inset-x-0 bottom-0 z-10 p-6 text-left sm:p-7">
         <Text
           className={
-            'text-[11px] font-bold uppercase tracking-[0.14em] text-white/70' /* design-system-allow-content-color -- caption over video */
+            'text-2xs font-bold uppercase tracking-[0.14em] text-white/70' /* design-system-allow-content-color -- caption over video */
           }
         >
           {asset.format}

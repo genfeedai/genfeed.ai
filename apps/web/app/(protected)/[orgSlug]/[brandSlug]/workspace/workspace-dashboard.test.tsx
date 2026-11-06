@@ -479,7 +479,7 @@ describe('workspace dashboard sections', () => {
 
     // Panels share the container-query card grid, not the stat-tile ladder.
     const panels = screen.getByTestId('dashboard-panels');
-    expect(panels.firstElementChild).toHaveClass('grid', 'gap-5');
+    expect(panels.firstElementChild).toHaveClass('grid', 'gap-4');
     expect(
       within(panels).getByTestId('overview-trends-panel'),
     ).toBeInTheDocument();

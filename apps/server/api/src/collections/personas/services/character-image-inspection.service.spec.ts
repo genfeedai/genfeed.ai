@@ -1,211 +1,283 @@
 import { CharacterImageInspectionService } from '@api/collections/personas/services/character-image-inspection.service';
 import { ValidationException } from '@api/exceptions/validation.exception';
-import { CacheService } from '@api/services/cache/cache.service';
-import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { Test } from '@nestjs/testing';
+import type { CacheService } from '@api/services/cache/cache.service';
+import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+interface Image {
+  brandId: string;
+  category: IngredientCategory;
+  cdnUrl: string | null;
+  id: string;
+  isDeleted: boolean;
+  organizationId: string;
+  personaId: string | null;
+  status: IngredientStatus;
+  updatedAt: Date;
+}
+
+interface Persona {
+  avatarIngredientId: string | null;
+  brandId: string;
+  handle: string;
+  id: string;
+  isDeleted: boolean;
+  label: string;
+  organizationId: string;
+  referenceIngredientIds: string[];
+}
+
+type PersonaMatch =
+  | { avatarIngredientId: string }
+  | { id: string }
+  | { references: { some: { ingredientId: string } } };
+
+const IMAGE_URL = 'https://cdn.example.com/image.png';
+const updatedAt = new Date('2026-09-08T12:00:00Z');
+
+// Matches a column against an equality or `{ in: [...] }` filter.
+const matchesColumn = (value: unknown, filter: unknown) =>
+  typeof filter === 'object' && filter !== null && 'in' in filter
+    ? (filter.in as unknown[]).includes(value)
+    : value === filter;
+
+const matchesPersona = (persona: Persona, match: PersonaMatch) =>
+  'references' in match
+    ? persona.referenceIngredientIds.includes(
+        match.references.some.ingredientId,
+      )
+    : Object.entries(match).every(
+        ([key, value]) => persona[key as keyof Persona] === value,
+      );
 
 describe('CharacterImageInspectionService', () => {
-  const prisma = {
-    ingredient: { findFirst: vi.fn() },
-    persona: { findFirst: vi.fn() },
-  };
-  const cache = { getOrSetWithLock: vi.fn() };
-  const vision = { chatCompletion: vi.fn() };
-  const updatedAt = new Date('2026-09-08T12:00:00Z');
+  let cache: Map<string, unknown>;
+  let images: Image[];
+  let personas: Persona[];
+  let visionAnswers: Map<string, string>;
+  let seenByVision: string[];
   let service: CharacterImageInspectionService;
 
-  beforeEach(async () => {
-    vi.resetAllMocks();
-    prisma.ingredient.findFirst.mockResolvedValue({
-      id: 'image-1',
-      cdnUrl: 'https://cdn.example.com/image.png',
-      personaId: null,
-      updatedAt,
-    });
-    prisma.persona.findFirst.mockResolvedValue(null);
-    cache.getOrSetWithLock.mockImplementation(
-      (_key: string, factory: () => Promise<unknown>) => factory(),
-    );
-    vision.chatCompletion.mockResolvedValue({
-      choices: [
-        { message: { content: '{"hasFace":true,"isCharacter":true}' } },
-      ],
-    });
-    const module = await Test.createTestingModule({
-      providers: [
-        CharacterImageInspectionService,
-        { provide: PrismaService, useValue: prisma },
-        { provide: CacheService, useValue: cache },
-        { provide: OpenRouterService, useValue: vision },
-      ],
-    }).compile();
-    service = module.get(CharacterImageInspectionService);
+  const image = (fields: Partial<Image> = {}): Image => ({
+    brandId: 'brand-1',
+    category: IngredientCategory.IMAGE,
+    cdnUrl: IMAGE_URL,
+    id: 'image-1',
+    isDeleted: false,
+    organizationId: 'org-1',
+    personaId: null,
+    status: IngredientStatus.GENERATED,
+    updatedAt,
+    ...fields,
   });
 
-  it('inspects actual image pixels and scopes both database lookups to the active brand', async () => {
-    const result = await service.inspect('image-1', 'org-1', 'brand-1');
-    expect(result).toMatchObject({
-      id: 'image-1',
-      hasFace: true,
-      isCharacter: true,
+  const persona = (fields: Partial<Persona> = {}): Persona => ({
+    avatarIngredientId: null,
+    brandId: 'brand-1',
+    handle: 'anna',
+    id: 'character-1',
+    isDeleted: false,
+    label: 'Anna',
+    organizationId: 'org-1',
+    referenceIngredientIds: [],
+    ...fields,
+  });
+
+  const inspect = (assetId = 'image-1') =>
+    service.inspect(assetId, 'org-1', 'brand-1');
+
+  beforeEach(() => {
+    cache = new Map();
+    images = [];
+    personas = [];
+    seenByVision = [];
+    visionAnswers = new Map([
+      [IMAGE_URL, '{"hasFace":true,"isCharacter":true}'],
+    ]);
+
+    const prisma = {
+      ingredient: {
+        findFirst: async ({ where }: { where: Record<string, unknown> }) =>
+          images.find((row) =>
+            Object.entries(where).every(([key, filter]) =>
+              matchesColumn(row[key as keyof Image], filter),
+            ),
+          ) ?? null,
+      },
+      persona: {
+        findFirst: async ({
+          where: { OR, ...columns },
+        }: {
+          where: Record<string, unknown> & { OR: PersonaMatch[] };
+        }) =>
+          personas.find(
+            (row) =>
+              Object.entries(columns).every(
+                ([key, value]) => row[key as keyof Persona] === value,
+              ) && OR.some((match) => matchesPersona(row, match)),
+          ) ?? null,
+      },
+    } as unknown as PrismaService;
+    const cacheService = {
+      getOrSetWithLock: async (key: string, load: () => Promise<unknown>) => {
+        if (!cache.has(key)) {
+          cache.set(key, await load());
+        }
+        return cache.get(key);
+      },
+    } as unknown as CacheService;
+    // A vision model that answers per image URL; an unknown URL is an outage.
+    const vision = {
+      chatCompletion: async (request: {
+        messages: [unknown, { content: [{ image_url: { url: string } }] }];
+      }) => {
+        const url = request.messages[1].content[0].image_url.url;
+        seenByVision.push(url);
+        const content = visionAnswers.get(url);
+        if (content === undefined) {
+          throw new Error('unavailable');
+        }
+        return { choices: [{ message: { content } }] };
+      },
+    } as unknown as OpenRouterService;
+
+    service = new CharacterImageInspectionService(prisma, cacheService, vision);
+  });
+
+  it('classifies a finished brand image from its pixels', async () => {
+    images.push(image());
+
+    await expect(inspect()).resolves.toEqual({
       characterId: null,
+      handle: null,
+      hasFace: true,
+      id: 'image-1',
+      isCharacter: true,
+      label: null,
     });
-    expect(prisma.ingredient.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          id: 'image-1',
-          organizationId: 'org-1',
-          brandId: 'brand-1',
-          isDeleted: false,
-          category: { in: ['IMAGE', 'IMAGE_EDIT'] },
-          status: { in: ['GENERATED', 'UPLOADED', 'VALIDATED'] },
-        },
-      }),
-    );
-    expect(prisma.persona.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          organizationId: 'org-1',
-          brandId: 'brand-1',
-          isDeleted: false,
-          OR: [
-            { avatarIngredientId: 'image-1' },
-            { references: { some: { ingredientId: 'image-1' } } },
-          ],
-        },
-      }),
-    );
-    expect(vision.chatCompletion).toHaveBeenCalledWith(
-      expect.objectContaining({
-        messages: [
-          { role: 'system', content: expect.any(String) },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image_url',
-                image_url: { url: 'https://cdn.example.com/image.png' },
-              },
-            ],
-          },
-        ],
-      }),
-    );
+    expect(seenByVision).toEqual([IMAGE_URL]);
   });
 
-  it('rejects inaccessible or unfinished images before inference', async () => {
-    prisma.ingredient.findFirst.mockResolvedValue(null);
-    await expect(
-      service.inspect('foreign-image', 'org-1', 'brand-1'),
-    ).rejects.toBeInstanceOf(ValidationException);
-    expect(prisma.persona.findFirst).not.toHaveBeenCalled();
-    expect(vision.chatCompletion).not.toHaveBeenCalled();
+  it.each([
+    ['another brand', image({ brandId: 'brand-2' })],
+    ['another organization', image({ organizationId: 'org-2' })],
+    ['a deleted image', image({ isDeleted: true })],
+    ['a video', image({ category: IngredientCategory.VIDEO })],
+    ['an unfinished image', image({ status: IngredientStatus.PROCESSING })],
+  ])('refuses %s before inference', async (_case, row) => {
+    images.push(row);
+
+    await expect(inspect()).rejects.toBeInstanceOf(ValidationException);
+    expect(seenByVision).toEqual([]);
   });
 
-  it.each([null, 'character-1'])(
-    'recognizes saved references and generated images with personaId=%s without inference',
-    async (personaId) => {
-      prisma.ingredient.findFirst.mockResolvedValue({
-        id: 'image-1',
-        cdnUrl: 'https://cdn.example.com/image.png',
-        personaId,
-        updatedAt,
-      });
-      prisma.persona.findFirst.mockResolvedValue({
-        id: 'character-1',
-        handle: 'anna',
-        label: 'Anna',
-      });
-      expect(
-        await service.inspect('image-1', 'org-1', 'brand-1'),
-      ).toMatchObject({
+  it.each([
+    ['its avatar', image(), persona({ avatarIngredientId: 'image-1' })],
+    [
+      'one of its references',
+      image(),
+      persona({ referenceIngredientIds: ['image-1'] }),
+    ],
+    ['its generated image', image({ personaId: 'character-1' }), persona()],
+  ])(
+    'recognizes a saved character by %s without inference',
+    async (_case, row, saved) => {
+      images.push(row);
+      personas.push(saved);
+
+      await expect(inspect()).resolves.toMatchObject({
         characterId: 'character-1',
         handle: 'anna',
+        hasFace: null,
+        isCharacter: null,
         label: 'Anna',
       });
-      const alternatives = [
-        { avatarIngredientId: 'image-1' },
-        { references: { some: { ingredientId: 'image-1' } } },
-        ...(personaId ? [{ id: personaId }] : []),
-      ];
-      expect(prisma.persona.findFirst).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ OR: alternatives }),
-        }),
-      );
-      expect(vision.chatCompletion).not.toHaveBeenCalled();
-      expect(cache.getOrSetWithLock).not.toHaveBeenCalled();
+      expect(seenByVision).toEqual([]);
     },
   );
+
+  it('ignores a character of another brand using the same image', async () => {
+    images.push(image());
+    personas.push(
+      persona({ avatarIngredientId: 'image-1', brandId: 'brand-2' }),
+    );
+
+    await expect(inspect()).resolves.toMatchObject({
+      characterId: null,
+      isCharacter: true,
+    });
+  });
 
   it.each([
     [false, true],
     [true, false],
     [false, false],
   ])(
-    'preserves independent face=%s and character=%s results',
+    'keeps face=%s and character=%s independent',
     async (hasFace, isCharacter) => {
-      vision.chatCompletion.mockResolvedValue({
-        choices: [
-          { message: { content: JSON.stringify({ hasFace, isCharacter }) } },
-        ],
-      });
-      expect(
-        await service.inspect('image-1', 'org-1', 'brand-1'),
-      ).toMatchObject({ hasFace, isCharacter });
+      images.push(image());
+      visionAnswers.set(IMAGE_URL, JSON.stringify({ hasFace, isCharacter }));
+
+      await expect(inspect()).resolves.toMatchObject({ hasFace, isCharacter });
     },
   );
 
-  it('reuses cached classification while rechecking saved associations', async () => {
-    cache.getOrSetWithLock.mockResolvedValue({
-      hasFace: false,
+  it('reuses the classification of an unchanged image', async () => {
+    images.push(image());
+    await inspect();
+
+    await expect(inspect()).resolves.toMatchObject({
+      hasFace: true,
       isCharacter: true,
     });
-    expect(await service.inspect('image-1', 'org-1', 'brand-1')).toMatchObject({
-      hasFace: false,
-      isCharacter: true,
-    });
-    expect(cache.getOrSetWithLock).toHaveBeenCalledWith(
+    expect(seenByVision).toEqual([IMAGE_URL]);
+    expect([...cache.keys()]).toEqual([
       'character-image:v1:org-1:brand-1:image-1:2026-09-08T12:00:00.000Z',
-      expect.any(Function),
-      { ttl: 86400 },
-      30,
-    );
-    expect(vision.chatCompletion).not.toHaveBeenCalled();
-    expect(prisma.persona.findFirst).toHaveBeenCalledTimes(1);
+    ]);
   });
 
-  it.each([
-    'unavailable',
-    'invalid JSON',
-    '{"hasFace":"yes","isCharacter":true}',
-  ])(
-    'returns unknown instead of a negative detection on %s',
-    async (response) => {
-      if (response === 'unavailable')
-        vision.chatCompletion.mockRejectedValue(new Error('unavailable'));
-      else
-        vision.chatCompletion.mockResolvedValue({
-          choices: [{ message: { content: response } }],
-        });
-      expect(
-        await service.inspect('image-1', 'org-1', 'brand-1'),
-      ).toMatchObject({ hasFace: null, isCharacter: null, characterId: null });
-    },
-  );
+  it('rechecks saved characters before answering from the cache', async () => {
+    images.push(image());
+    await inspect();
+    personas.push(persona({ avatarIngredientId: 'image-1' }));
 
-  it('does not send local or absent URLs to the vision service', async () => {
-    prisma.ingredient.findFirst.mockResolvedValue({
-      id: 'image-1',
-      cdnUrl: 'http://localhost/image.png',
-      personaId: null,
-      updatedAt,
+    await expect(inspect()).resolves.toMatchObject({
+      characterId: 'character-1',
+      hasFace: null,
     });
-    expect(await service.inspect('image-1', 'org-1', 'brand-1')).toMatchObject({
+  });
+
+  it.each<[string, [string, string][]]>([
+    ['the vision service is down', []],
+    ['the answer is not JSON', [[IMAGE_URL, 'invalid JSON']]],
+    [
+      'a field is not boolean',
+      [[IMAGE_URL, '{"hasFace":"yes","isCharacter":true}']],
+    ],
+  ])('answers unknown when %s', async (_case, answers) => {
+    images.push(image());
+    visionAnswers = new Map(answers);
+
+    await expect(inspect()).resolves.toMatchObject({
+      characterId: null,
       hasFace: null,
       isCharacter: null,
     });
-    expect(vision.chatCompletion).not.toHaveBeenCalled();
+    expect(cache.size).toBe(0);
+  });
+
+  it.each([
+    ['a local URL', 'http://localhost/image.png'],
+    ['no URL', null],
+  ])('keeps %s away from the vision service', async (_case, cdnUrl) => {
+    images.push(image({ cdnUrl }));
+
+    await expect(inspect()).resolves.toMatchObject({
+      hasFace: null,
+      isCharacter: null,
+    });
+    expect(seenByVision).toEqual([]);
   });
 });

@@ -1,10 +1,12 @@
 import { enhanceCreatedPrompt } from '@api/collections/prompts/enhance-created-prompt';
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { PromptStatus, Status } from '@genfeedai/contracts';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 const input = {
   brandId: 'selected-brand',
   chargedCredits: 1,
+  contentType: 'image' as const,
   organizationId: 'org',
   promptId: 'prompt',
   requestedSkillSlugs: ['cinema'],
@@ -12,77 +14,107 @@ const input = {
   url: 'prompt-create',
   userId: 'user',
   userPrompt: 'Raw input',
-  contentType: 'image' as const,
 };
-function setup() {
-  return {
-    promptEnhancementService: {
-      enhance: vi.fn().mockResolvedValue({
-        result: 'Shared enhanced result',
-        tokensUsed: 20,
-        isByok: false,
-      }),
-    },
-    promptsService: { patch: vi.fn() },
-    creditsUtilsService: { refundOrganizationCredits: vi.fn() },
-    websocketService: { emit: vi.fn() },
-    loggerService: { log: vi.fn(), error: vi.fn() },
+
+function setup(enhancement: { result: string } | Error) {
+  const state = {
+    enhanceRequests: [] as unknown[],
+    prompts: new Map<string, Record<string, unknown>>([
+      ['prompt', { status: PromptStatus.PROCESSING }],
+    ]),
+    refunds: [] as unknown[][],
+    socketEvents: [] as Array<{ payload: unknown; path: string }>,
   };
+  const deps = {
+    creditsUtilsService: {
+      refundOrganizationCredits: async (...args: unknown[]) => {
+        state.refunds.push(args);
+      },
+    },
+    loggerService: { error: () => {}, log: () => {} },
+    promptEnhancementService: {
+      enhance: async (request: unknown) => {
+        state.enhanceRequests.push(request);
+        if (enhancement instanceof Error) {
+          throw enhancement;
+        }
+        return { isByok: false, result: enhancement.result, tokensUsed: 20 };
+      },
+    },
+    promptsService: {
+      patch: async (id: string, update: Record<string, unknown>) => {
+        state.prompts.set(id, { ...state.prompts.get(id), ...update });
+      },
+    },
+    websocketService: {
+      emit: async (path: string, payload: unknown) => {
+        state.socketEvents.push({ path, payload });
+      },
+    },
+  };
+  return { deps, state };
 }
 
 describe('enhanceCreatedPrompt', () => {
   it('persists and publishes the shared enhancer result for the selected brand and skills', async () => {
-    const deps = setup();
-    await enhanceCreatedPrompt(deps as never, input);
-    expect(deps.promptEnhancementService.enhance).toHaveBeenCalledWith({
-      actorUserId: 'user',
-      brandId: 'selected-brand',
-      contentType: 'image',
-      organizationId: 'org',
-      requestedSkillSlugs: ['cinema'],
-      model: undefined,
-      systemPromptKey: 'system.model.image',
-      userPrompt: 'Raw input',
-    });
-    expect(deps.promptsService.patch).toHaveBeenCalledWith('prompt', {
+    const { deps, state } = setup({ result: 'Shared enhanced result' });
+
+    await enhanceCreatedPrompt(
+      deps as unknown as Parameters<typeof enhanceCreatedPrompt>[0],
+      input,
+    );
+
+    expect(state.enhanceRequests).toEqual([
+      {
+        actorUserId: 'user',
+        brandId: 'selected-brand',
+        contentType: 'image',
+        model: undefined,
+        organizationId: 'org',
+        requestedSkillSlugs: ['cinema'],
+        systemPromptKey: 'system.model.image',
+        userPrompt: 'Raw input',
+      },
+    ]);
+    expect(state.prompts.get('prompt')).toEqual({
       enhanced: 'Shared enhanced result',
       status: PromptStatus.GENERATED,
     });
-    expect(deps.websocketService.emit).toHaveBeenCalledWith(
-      expect.any(String),
-      { result: 'Shared enhanced result', status: Status.COMPLETED },
-    );
-    expect(
-      deps.creditsUtilsService.refundOrganizationCredits,
-    ).not.toHaveBeenCalled();
+    expect(state.socketEvents).toEqual([
+      {
+        path: WebSocketPaths.prompt('prompt'),
+        payload: { result: 'Shared enhanced result', status: Status.COMPLETED },
+      },
+    ]);
+    expect(state.refunds).toEqual([]);
   });
 
-  it('retains refund, failed persistence and websocket behavior on shared enhancement failure', async () => {
-    const deps = setup();
-    deps.promptEnhancementService.enhance.mockRejectedValue(
-      new Error('Enhancement unavailable'),
+  it('refunds, marks the prompt failed and reports the error when enhancement fails', async () => {
+    const { deps, state } = setup(new Error('Enhancement unavailable'));
+
+    await enhanceCreatedPrompt(
+      deps as unknown as Parameters<typeof enhanceCreatedPrompt>[0],
+      input,
     );
-    await enhanceCreatedPrompt(deps as never, input);
-    expect(
-      deps.creditsUtilsService.refundOrganizationCredits,
-    ).toHaveBeenCalledWith(
-      'org',
-      1,
-      'prompt-creation-refund',
-      'Prompt creation failed - credit refund',
-      expect.any(Date),
-      { brandId: 'selected-brand' },
-    );
-    expect(deps.promptsService.patch).toHaveBeenCalledWith('prompt', {
+
+    expect(state.refunds).toEqual([
+      [
+        'org',
+        1,
+        'prompt-creation-refund',
+        'Prompt creation failed - credit refund',
+        expect.any(Date),
+        { brandId: 'selected-brand' },
+      ],
+    ]);
+    expect(state.prompts.get('prompt')).toEqual({
       status: PromptStatus.FAILED,
     });
-    expect(deps.websocketService.emit).toHaveBeenCalledWith(
-      expect.any(String),
-      { error: 'Enhancement unavailable', status: Status.FAILED },
-    );
-    expect(deps.promptsService.patch).not.toHaveBeenCalledWith(
-      'prompt',
-      expect.objectContaining({ enhanced: expect.any(String) }),
-    );
+    expect(state.socketEvents).toEqual([
+      {
+        path: WebSocketPaths.prompt('prompt'),
+        payload: { error: 'Enhancement unavailable', status: Status.FAILED },
+      },
+    ]);
   });
 });

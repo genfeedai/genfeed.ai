@@ -29,23 +29,33 @@ import { Test } from '@nestjs/testing';
 
 describe('Organization settings authorized path reads (#6176)', () => {
   async function setup(isMissingSettings = false) {
-    const capture = vi.fn();
-    const read = vi.fn(() =>
-      lazyTenantResult(
-        isMissingSettings
-          ? null
-          : {
-              id: 'settings',
-              organizationId: targetOrganizationId,
-              isFleetEnabled: true,
-            },
-        capture,
-      ),
-    );
-    const byok = vi.fn(() =>
-      lazyTenantResult([{ provider: ByokProvider.OPENROUTER }], capture),
-    );
-    const ensure = vi.fn(() => read());
+    // Each read records its arguments when issued and the tenant scope it
+    // actually ran in when awaited, like a lazy Prisma query.
+    const reads: unknown[][] = [];
+    const selfHeals: unknown[][] = [];
+    const executedIn: ReturnType<typeof getTenantContext>[] = [];
+    const capture = (context: ReturnType<typeof getTenantContext>) => {
+      executedIn.push(context);
+    };
+    const settingsRow = isMissingSettings
+      ? null
+      : {
+          id: 'settings',
+          isFleetEnabled: true,
+          organizationId: targetOrganizationId,
+        };
+    const read = (...args: unknown[]) => {
+      reads.push(args);
+      return lazyTenantResult(settingsRow, capture);
+    };
+    const byok = (...args: unknown[]) => {
+      reads.push(args);
+      return lazyTenantResult([{ provider: ByokProvider.OPENROUTER }], capture);
+    };
+    const ensure = (...args: unknown[]) => {
+      selfHeals.push(args);
+      return lazyTenantResult(settingsRow, capture);
+    };
     const settingsService = { ensureForOrganization: ensure, findOne: read };
     const module = await Test.createTestingModule({
       controllers: [OrganizationsSettingsController],
@@ -58,10 +68,14 @@ describe('Organization settings authorized path reads (#6176)', () => {
         { provide: ByokService, useValue: { getStatus: byok } },
         { provide: WebhookDispatchService, useValue: {} },
         { provide: AccessBootstrapCacheService, useValue: {} },
-        { provide: EventEmitter2, useValue: { emitAsync: vi.fn() } },
+        { provide: EventEmitter2, useValue: { emitAsync: async () => [] } },
         {
           provide: LoggerService,
-          useValue: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
+          useValue: {
+            error: () => undefined,
+            log: () => undefined,
+            warn: () => undefined,
+          },
         },
       ],
     })
@@ -71,51 +85,47 @@ describe('Organization settings authorized path reads (#6176)', () => {
     const controller = module.get<OrganizationsSettingsController>(
       OrganizationsSettingsController,
     );
-    return { controller, capture, read, byok, ensure };
+    return { controller, executedIn, reads, selfHeals };
   }
 
   it('reads foreign settings without creating or patching them', async () => {
-    const { controller, read, ensure } = await setup();
+    const { controller, reads, selfHeals } = await setup();
     const response = await controller.getSettings(
       tenantReadRequest(adminUser),
       targetOrganizationId,
     );
     expect(response.data?.id).toBe('settings');
-    expect(read).toHaveBeenCalledWith(
-      { organizationId: targetOrganizationId },
-      [],
-      { includePaidHint: true },
-    );
-    expect(ensure).not.toHaveBeenCalled();
+    expect(reads).toEqual([
+      [{ organizationId: targetOrganizationId }, [], { includePaidHint: true }],
+    ]);
+    expect(selfHeals).toEqual([]);
   });
 
   it('returns 404 for missing foreign settings without self-healing', async () => {
-    const { controller, ensure, read } = await setup(true);
+    const { controller, reads, selfHeals } = await setup(true);
     await expect(
       controller.getSettings(
         tenantReadRequest(adminUser),
         targetOrganizationId,
       ),
     ).rejects.toMatchObject({ status: 404 });
-    expect(read).toHaveBeenCalledWith(
-      { organizationId: targetOrganizationId },
-      [],
-      { includePaidHint: true },
-    );
-    expect(ensure).not.toHaveBeenCalled();
+    expect(reads).toEqual([
+      [{ organizationId: targetOrganizationId }, [], { includePaidHint: true }],
+    ]);
+    expect(selfHeals).toEqual([]);
   });
 
   it.each([adminUser, memberUser])(
     'self-heals only the caller session organization',
     async (user) => {
-      const { controller, ensure } = await setup();
+      const { controller, selfHeals } = await setup();
       await controller.getSettings(
         tenantReadRequest(user),
         sessionOrganizationId,
       );
-      expect(ensure).toHaveBeenCalledWith(sessionOrganizationId, {
-        includePaidHint: true,
-      });
+      expect(selfHeals).toEqual([
+        [sessionOrganizationId, { includePaidHint: true }],
+      ]);
     },
   );
 
@@ -150,7 +160,7 @@ describe('Organization settings authorized path reads (#6176)', () => {
       }
     }
     it('awaits lazy reads inside the authorized path organization and restores the caller scope', async () => {
-      const { controller, capture } = await setup();
+      const { controller, executedIn } = await setup();
       await runWithTenantContext(
         { organizationId: sessionOrganizationId },
         async () => {
@@ -160,25 +170,24 @@ describe('Organization settings authorized path reads (#6176)', () => {
           });
         },
       );
-      expect(capture).toHaveBeenCalledWith({
-        organizationId: targetOrganizationId,
-      });
+      expect(
+        new Set(executedIn.map((context) => context?.organizationId)),
+      ).toEqual(new Set([targetOrganizationId]));
     });
     it('rejects a member foreign path before executing a read', async () => {
-      const { controller, capture, read, byok } = await setup();
+      const { controller, executedIn, reads } = await setup();
       await expect(invoke(controller, memberUser)).rejects.toThrow(
         ForbiddenException,
       );
-      expect(read).not.toHaveBeenCalled();
-      expect(byok).not.toHaveBeenCalled();
-      expect(capture).not.toHaveBeenCalled();
+      expect(reads).toEqual([]);
+      expect(executedIn).toEqual([]);
     });
     it('keeps a member read pinned to the session path', async () => {
-      const { controller, capture } = await setup();
+      const { controller, executedIn } = await setup();
       await invoke(controller, memberUser, sessionOrganizationId);
-      expect(capture).toHaveBeenCalledWith({
-        organizationId: sessionOrganizationId,
-      });
+      expect(
+        new Set(executedIn.map((context) => context?.organizationId)),
+      ).toEqual(new Set([sessionOrganizationId]));
     });
   });
 });

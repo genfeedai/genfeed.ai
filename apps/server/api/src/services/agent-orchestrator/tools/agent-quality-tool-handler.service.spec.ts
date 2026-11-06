@@ -2,62 +2,108 @@ import type { IngredientsService } from '@api/collections/ingredients/services/i
 import type { VotesService } from '@api/collections/votes/services/votes.service';
 import { AgentQualityToolHandler } from '@api/services/agent-orchestrator/tools/agent-quality-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { VoteEntityModel } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+interface StoredVote {
+  entityId: string;
+  entityModel?: VoteEntityModel;
+  id: string;
+  organizationId: string;
+  userId: string;
+}
 
 describe('AgentQualityToolHandler.rateIngredient', () => {
   const ctx: ToolExecutionContext = {
     organizationId: 'org-1',
     userId: 'user-1',
   };
-  const logger = { error: vi.fn(), log: vi.fn() };
-  let ingredients: {
-    findOne: ReturnType<typeof vi.fn>;
-    findOneSelect: ReturnType<typeof vi.fn>;
-  };
-  let votes: {
-    addVote: ReturnType<typeof vi.fn>;
-    removeVote: ReturnType<typeof vi.fn>;
-  };
+  const logger = {
+    error: () => undefined,
+    log: () => undefined,
+  } as unknown as LoggerService;
+
+  let ingredientLookups: number;
+  let ingredientRows: Array<{
+    id: string;
+    isDeleted: boolean;
+    organizationId: string;
+  }>;
+  let votes: StoredVote[];
+  let votesService: VotesService;
   let handler: AgentQualityToolHandler;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    ingredients = {
-      findOne: vi.fn().mockResolvedValue({ id: 'ing-1' }),
-      findOneSelect: delegateFindOneSelect(),
+    ingredientLookups = 0;
+    ingredientRows = [
+      { id: 'ing-1', isDeleted: false, organizationId: 'org-1' },
+      { id: 'foreign-ing', isDeleted: false, organizationId: 'org-2' },
+    ];
+    votes = [];
+
+    const findIngredient = async (where: {
+      id: string;
+      isDeleted: boolean;
+      organizationId: string;
+    }) => {
+      ingredientLookups += 1;
+      return (
+        ingredientRows.find(
+          (row) =>
+            row.id === where.id &&
+            row.isDeleted === where.isDeleted &&
+            row.organizationId === where.organizationId,
+        ) ?? null
+      );
     };
-    votes = {
-      addVote: vi
-        .fn()
-        .mockResolvedValue({ created: true, vote: { id: 'vote-1' } }),
-      removeVote: vi.fn().mockResolvedValue({ removedCount: 1 }),
-    };
+    const ingredients = {
+      findOne: findIngredient,
+      findOneSelect: findIngredient,
+    } as unknown as IngredientsService;
+
+    const sameVote = (vote: StoredVote, input: Omit<StoredVote, 'id'>) =>
+      vote.entityId === input.entityId &&
+      vote.organizationId === input.organizationId &&
+      vote.userId === input.userId;
+    votesService = {
+      addVote: async (input: Omit<StoredVote, 'id'>) => {
+        const existing = votes.find((vote) => sameVote(vote, input));
+        if (existing) {
+          return { created: false, vote: existing };
+        }
+        const vote = { ...input, id: `vote-${votes.length + 1}` };
+        votes.push(vote);
+        return { created: true, vote };
+      },
+      removeVote: async (input: Omit<StoredVote, 'id'>) => {
+        const before = votes.length;
+        votes = votes.filter((vote) => !sameVote(vote, input));
+        return { removedCount: before - votes.length };
+      },
+    } as unknown as VotesService;
+
     handler = new AgentQualityToolHandler(
-      logger as unknown as LoggerService,
+      logger,
       undefined,
       undefined,
-      ingredients as unknown as IngredientsService,
-      votes as unknown as VotesService,
+      ingredients,
+      votesService,
     );
   });
 
-  it('validates the ingredient against the caller organization before voting', async () => {
+  it('records the caller’s vote on an ingredient in their organization', async () => {
     const result = await handler.rateIngredient({ ingredientId: 'ing-1' }, ctx);
 
-    expect(ingredients.findOne).toHaveBeenCalledWith({
-      id: 'ing-1',
-      isDeleted: false,
-      organizationId: 'org-1',
-    });
-    expect(votes.addVote).toHaveBeenCalledWith({
-      entityId: 'ing-1',
-      entityModel: VoteEntityModel.INGREDIENT,
-      organizationId: 'org-1',
-      userId: 'user-1',
-    });
+    expect(votes).toEqual([
+      {
+        entityId: 'ing-1',
+        entityModel: VoteEntityModel.INGREDIENT,
+        id: 'vote-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+    ]);
     expect(result).toMatchObject({
       data: { action: 'added', ingredientId: 'ing-1', voteId: 'vote-1' },
       success: true,
@@ -65,8 +111,6 @@ describe('AgentQualityToolHandler.rateIngredient', () => {
   });
 
   it('rejects an ingredient from another organization without writing a vote', async () => {
-    ingredients.findOne.mockResolvedValue(null);
-
     const result = await handler.rateIngredient(
       { ingredientId: 'foreign-ing' },
       ctx,
@@ -74,34 +118,29 @@ describe('AgentQualityToolHandler.rateIngredient', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain('not found');
-    expect(votes.addVote).not.toHaveBeenCalled();
-    expect(votes.removeVote).not.toHaveBeenCalled();
+    expect(votes).toEqual([]);
   });
 
   it('keeps the vote when the same ingredient is rated again', async () => {
-    votes.addVote.mockResolvedValue({ created: false, vote: { id: 'vote-1' } });
-
+    await handler.rateIngredient({ ingredientId: 'ing-1' }, ctx);
     const result = await handler.rateIngredient({ ingredientId: 'ing-1' }, ctx);
 
     expect(result).toMatchObject({
       data: { action: 'added', ingredientId: 'ing-1', voteId: 'vote-1' },
       success: true,
     });
-    expect(votes.removeVote).not.toHaveBeenCalled();
+    expect(votes).toHaveLength(1);
   });
 
   it('removes the vote only on an explicit remove action', async () => {
+    await handler.rateIngredient({ ingredientId: 'ing-1' }, ctx);
+
     const result = await handler.rateIngredient(
       { action: 'remove', ingredientId: 'ing-1' },
       ctx,
     );
 
-    expect(votes.removeVote).toHaveBeenCalledWith({
-      entityId: 'ing-1',
-      organizationId: 'org-1',
-      userId: 'user-1',
-    });
-    expect(votes.addVote).not.toHaveBeenCalled();
+    expect(votes).toEqual([]);
     expect(result).toMatchObject({
       data: { action: 'removed', ingredientId: 'ing-1' },
       success: true,
@@ -110,11 +149,11 @@ describe('AgentQualityToolHandler.rateIngredient', () => {
 
   it('fails closed when ingredient validation is unavailable', async () => {
     const unvalidated = new AgentQualityToolHandler(
-      logger as unknown as LoggerService,
+      logger,
       undefined,
       undefined,
       undefined,
-      votes as unknown as VotesService,
+      votesService,
     );
 
     const result = await unvalidated.rateIngredient(
@@ -123,13 +162,13 @@ describe('AgentQualityToolHandler.rateIngredient', () => {
     );
 
     expect(result.success).toBe(false);
-    expect(votes.addVote).not.toHaveBeenCalled();
-    expect(votes.removeVote).not.toHaveBeenCalled();
+    expect(votes).toEqual([]);
   });
 
   it('requires an ingredientId', async () => {
     const result = await handler.rateIngredient({}, ctx);
+
     expect(result.success).toBe(false);
-    expect(ingredients.findOne).not.toHaveBeenCalled();
+    expect(ingredientLookups).toBe(0);
   });
 });

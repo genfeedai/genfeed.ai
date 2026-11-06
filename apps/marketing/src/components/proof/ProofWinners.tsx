@@ -45,7 +45,7 @@ function PublishedLinkedInPost({ winner }: { winner: Winner }) {
         <LinkedinIcon className="size-6 shrink-0 text-platform-linkedin" />
       </div>
 
-      <p className="px-5 pb-5 text-[15px] leading-7 text-foreground/90 sm:px-7 sm:text-base">
+      <p className="px-5 pb-5 text-md text-foreground/90 sm:px-7 sm:text-base">
         {proof.captionExcerpt}
       </p>
 

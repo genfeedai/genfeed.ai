@@ -1,118 +1,188 @@
+import type { CrunContractImportService } from '@api/services/integrations/crun/contracts/crun-contract-import.service';
+import type { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
+import type { CrunTaskFinalizationService } from '@api/services/integrations/crun/crun-task-finalization.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
 
-const row = {
+interface TaskRow {
+  id: string;
+  mediaPersistedAt: Date | null;
+  organizationId: string;
+  state: string;
+  version: number;
+}
+
+const row: TaskRow = {
   id: 'task',
+  mediaPersistedAt: null,
   organizationId: 'org',
   state: 'provider-failed',
-  mediaPersistedAt: null,
   version: 4,
 };
-function fixture() {
-  const tasks = {
-    failStalePrepared: vi.fn().mockResolvedValue(0),
-    claimDue: vi.fn().mockResolvedValue([row]),
-    poll: vi.fn(),
-    renewLease: vi.fn().mockResolvedValue(true),
-    ownsLease: vi.fn().mockResolvedValue(true),
-  };
-  const finalizer = { finalize: vi.fn().mockResolvedValue(undefined) };
-  const importer = { synchronize: vi.fn() };
-  const logger = { warn: vi.fn() };
-  return {
-    tasks,
-    finalizer,
-    importer,
-    logger,
-    service: new CrunReconcileService(
-      tasks as never,
-      finalizer as never,
-      importer as never,
-      logger as never,
-    ),
-  };
+
+interface Finalized {
+  info: unknown;
+  signal: AbortSignal;
+  task: TaskRow;
 }
+
+function fixture() {
+  // Every task-store call appends to one ordered log, so a test reads what
+  // the pass did and in which order.
+  const state = {
+    claimed: [row] as TaskRow[],
+    finalizeGate: undefined as Promise<void> | undefined,
+    finalized: [] as Finalized[],
+    isOwner: true,
+    isSweepDown: false,
+    log: [] as string[],
+    pollResult: undefined as { info: unknown; task: TaskRow } | undefined,
+    renewFailures: 0,
+    warnings: [] as string[],
+  };
+  const tasks = {
+    claimDue: async () => {
+      state.log.push('claim');
+      return state.claimed;
+    },
+    failStalePrepared: async () => {
+      state.log.push('sweep');
+      if (state.isSweepDown) {
+        throw new Error('db down');
+      }
+      return 0;
+    },
+    ownsLease: async () => state.isOwner,
+    poll: async (task: TaskRow) => {
+      state.log.push(`poll:${task.id}`);
+      return state.pollResult;
+    },
+    renewLease: async () => {
+      state.log.push('renew');
+      if (state.renewFailures > 0) {
+        state.renewFailures -= 1;
+        throw new Error('fixture outage');
+      }
+      return true;
+    },
+  };
+  const finalizer = {
+    finalize: async (task: TaskRow, info: unknown, signal: AbortSignal) => {
+      state.finalized.push({ info, signal, task });
+      await state.finalizeGate;
+    },
+  };
+  const logger = {
+    warn: (message: string) => {
+      state.warnings.push(message);
+    },
+  };
+  const service = new CrunReconcileService(
+    tasks as unknown as CrunTaskService,
+    finalizer as unknown as CrunTaskFinalizationService,
+    {
+      synchronize: async () => undefined,
+    } as unknown as CrunContractImportService,
+    logger as unknown as LoggerService,
+  );
+  return { service, state };
+}
+
+function gate() {
+  let release: () => void = () => undefined;
+  const promise = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  return { promise, release };
+}
+
 describe('Crun shared worker ownership', () => {
   afterEach(() => vi.useRealTimers());
+
   it('drains accepted failure from durable proof without credential/status reads', async () => {
     const f = fixture();
+
     await f.service.reconcile();
-    expect(f.tasks.poll).not.toHaveBeenCalled();
-    expect(f.finalizer.finalize).toHaveBeenCalledWith(
-      row,
-      undefined,
-      expect.any(AbortSignal),
-    );
+
+    expect(f.state.log).toEqual(['sweep', 'claim']);
+    expect(f.state.finalized).toEqual([
+      { info: undefined, signal: expect.any(AbortSignal), task: row },
+    ]);
   });
+
   it('fails abandoned prepared rows before claiming and survives a sweep error', async () => {
     const f = fixture();
+    f.state.isSweepDown = true;
+
     await f.service.reconcile();
-    expect(f.tasks.failStalePrepared.mock.invocationCallOrder[0]).toBeLessThan(
-      f.tasks.claimDue.mock.invocationCallOrder[0],
-    );
-    f.tasks.failStalePrepared.mockRejectedValueOnce(new Error('db down'));
-    await f.service.reconcile();
-    expect(f.logger.warn).toHaveBeenCalledWith(
-      'Crun stale prepared sweep deferred',
-    );
-    expect(f.tasks.claimDue).toHaveBeenCalledTimes(2);
+
+    expect(f.state.log).toEqual(['sweep', 'claim']);
+    expect(f.state.warnings).toEqual(['Crun stale prepared sweep deferred']);
+    expect(f.state.finalized).toHaveLength(1);
   });
+
   it('passes the terminal claimed epoch returned by poll to finalization', async () => {
     const f = fixture();
-    f.tasks.claimDue.mockResolvedValue([{ ...row, state: 'pending' }]);
+    f.state.claimed = [{ ...row, state: 'pending' }];
     const terminal = { ...row, state: 'provider-success' };
-    const info = { taskId: 'opaque' };
-    f.tasks.poll.mockResolvedValue({ task: terminal, info });
+    f.state.pollResult = { info: { taskId: 'opaque' }, task: terminal };
+
     await f.service.reconcile();
-    expect(f.finalizer.finalize).toHaveBeenCalledWith(
-      terminal,
-      info,
-      expect.any(AbortSignal),
-    );
+
+    expect(f.state.log).toEqual(['sweep', 'claim', 'poll:task']);
+    expect(f.state.finalized).toEqual([
+      {
+        info: { taskId: 'opaque' },
+        signal: expect.any(AbortSignal),
+        task: terminal,
+      },
+    ]);
   });
+
   it('renews during long finalization and clears timer on completion', async () => {
     vi.useFakeTimers();
     const f = fixture();
-    let release: () => void = () => undefined;
-    f.finalizer.finalize.mockImplementation(
-      () =>
-        new Promise<void>((resolve) => {
-          release = resolve;
-        }),
-    );
+    const finalization = gate();
+    f.state.finalizeGate = finalization.promise;
+
     const run = f.service.reconcile();
     await vi.advanceTimersByTimeAsync(40000);
-    expect(f.tasks.renewLease).toHaveBeenCalledTimes(2);
-    release();
+    expect(f.state.log).toEqual(['sweep', 'claim', 'renew', 'renew']);
+
+    finalization.release();
     await run;
     await vi.advanceTimersByTimeAsync(60000);
-    expect(f.tasks.renewLease).toHaveBeenCalledTimes(2);
+
+    expect(f.state.log).toEqual(['sweep', 'claim', 'renew', 'renew']);
     expect(vi.getTimerCount()).toBe(0);
   });
+
   it('permanently aborts the effect signal after renewal fails even when ownership later recovers', async () => {
     vi.useFakeTimers();
     const f = fixture();
-    let signal: AbortSignal | undefined;
-    let release: () => void = () => undefined;
-    f.finalizer.finalize.mockImplementation((_task, _info, supplied) => {
-      signal = supplied;
-      return new Promise<void>((resolve) => {
-        release = resolve;
-      });
-    });
-    f.tasks.renewLease.mockRejectedValueOnce(new Error('fixture outage'));
+    const finalization = gate();
+    f.state.finalizeGate = finalization.promise;
+    f.state.renewFailures = 1;
+
     const run = f.service.reconcile();
     await vi.advanceTimersByTimeAsync(20000);
+    const signal = f.state.finalized[0]?.signal;
     expect(signal?.aborted).toBe(true);
-    f.tasks.ownsLease.mockResolvedValue(true);
-    release();
+
+    f.state.isOwner = true;
+    finalization.release();
     await run;
+
     expect(signal?.aborted).toBe(true);
     expect(vi.getTimerCount()).toBe(0);
   });
+
   it('does not finalize a stale or lost ownership epoch', async () => {
     const f = fixture();
-    f.tasks.ownsLease.mockResolvedValue(false);
+    f.state.isOwner = false;
+
     await f.service.reconcile();
-    expect(f.finalizer.finalize).not.toHaveBeenCalled();
+
+    expect(f.state.finalized).toEqual([]);
   });
 });

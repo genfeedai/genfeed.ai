@@ -1,372 +1,517 @@
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { VisualProjectBillingService } from '@api/collections/visual-projects/services/visual-project-billing.service';
-import type { IVisualCodeQuoteSnapshot } from '@genfeedai/contracts/interfaces';
+import type { VisualProjectRendererClientService } from '@api/collections/visual-projects/services/visual-project-renderer-client.service';
+import type { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
+import type { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-model-access.service';
+import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type {
+  IVisualCodeQuoteSnapshot,
+  IVisualCodeReceipt,
+  IVisualCodeSettings,
+} from '@genfeedai/contracts/interfaces';
 import type { VisualRevision } from '@genfeedai/prisma';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-const quote: IVisualCodeQuoteSnapshot = {
-  unit: 'credits',
-  modelKey: 'openai/test',
-  provider: 'openai',
-  isByok: false,
-  inputCostPerMillion: 1,
-  outputCostPerMillion: 2,
-  authoringCredits: 3,
-  inspectionCredits: 1,
-  renderCredits: 2,
-  maximumCredits: 6,
-  maximumAuthoringCalls: 3,
-  maximumInspectionCalls: 3,
-  maximumRepairs: 2,
-  maximumRenderJobs: 4,
-  renderDeadlineSeconds: 120,
-  rendererVersion: '4.0.530',
-  creditsPerSecond: 1 / 240,
-  settings: { width: 640, height: 360, fps: 30, durationFrames: 30 },
-  outputRequests: [{ format: 'mp4' }],
-};
-function fixture() {
-  const revision = {
-    id: 'revision',
-    projectId: 'project',
-    organizationId: 'org',
-    brandId: 'brand',
-    userId: 'user',
-    maximumCredits: 6,
-    consumedCredits: 2,
-    reservationId: 'hold',
-    receipts: [],
-  } as unknown as VisualRevision;
-  const credits = {
-    reserveCredits: vi.fn(),
-    settleReservation: vi.fn().mockResolvedValue({}),
-    releaseReservation: vi.fn().mockResolvedValue({}),
-  };
-  const renderer = { recoverStopped: vi.fn() };
-  const prisma = {
-    creditReservation: {
-      findFirst: vi.fn().mockResolvedValue({
-        id: 'hold',
-        status: 'RESERVED',
-        amount: 6,
-        expiresAt: new Date(Date.now() + 3600000),
-      }),
-    },
-    visualRevision: {
-      findFirstOrThrow: vi.fn(async () => revision),
-      updateMany: vi.fn(async ({ data }) => {
-        Object.assign(revision, data);
-        return { count: 1 };
-      }),
-    },
-  };
-  const service = new VisualProjectBillingService(
-    prisma as never,
-    credits as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    renderer as never,
-  );
-  revision.receipts = [service.quoteReceipt(quote)] as never;
-  return { service, credits, revision, prisma, renderer };
+type Row = Record<string, unknown>;
+
+interface Hold {
+  actorUserId: string;
+  amount: number;
+  expiresAt: Date;
+  id: string;
+  idempotencyKey: string;
+  isDeleted: boolean;
+  organizationId: string;
+  status: string;
+  workloadId: string;
+  workloadType: string;
 }
-describe('visual revision cost bookkeeping', () => {
-  it('rejects a route or price change even when the approved ceiling has spare credits', async () => {
-    const { service, revision } = fixture();
-    vi.spyOn(service, 'quote').mockResolvedValue({ ...quote, isByok: true });
-    await expect(service.validateSnapshot(revision)).rejects.toThrow(
-      'quote_changed',
-    );
-    vi.mocked(service.quote).mockResolvedValue({
-      ...quote,
-      inputCostPerMillion: 2,
-    });
-    await expect(service.validateSnapshot(revision)).rejects.toThrow(
-      'quote_changed',
-    );
-  });
-  it('settles consumed work once and records the durable marker only after success', async () => {
-    const { service, revision, credits } = fixture();
-    credits.settleReservation.mockRejectedValueOnce(
-      new Error('wallet unavailable'),
-    );
-    await expect(service.settle(revision)).rejects.toThrow(
-      'wallet unavailable',
-    );
-    expect(JSON.stringify(revision.receipts)).not.toContain('settlement');
-    await service.settle(revision);
-    await service.settle(revision);
-    expect(credits.settleReservation).toHaveBeenCalledTimes(2);
-    expect(credits.settleReservation).toHaveBeenLastCalledWith(
-      expect.objectContaining({ actualAmount: 2, reservationId: 'hold' }),
-    );
-  });
-  it('does not touch the wallet for zero-cost work and still settles durably', async () => {
-    const { service, revision, credits } = fixture();
-    revision.receipts = [
-      service.quoteReceipt({ ...quote, maximumCredits: 0 }),
-    ] as never;
-    Object.assign(revision, {
-      maximumCredits: 50,
-      consumedCredits: 0,
-      reservationId: null,
-    });
-    await expect(service.reserve(revision)).resolves.toBeNull();
-    await service.settle(revision);
-    await service.settle(revision);
-    expect(credits.reserveCredits).not.toHaveBeenCalled();
-    expect(credits.settleReservation).not.toHaveBeenCalled();
-    expect(credits.releaseReservation).not.toHaveBeenCalled();
-    expect(JSON.stringify(revision.receipts)).toContain('settlement');
-  });
-  it('releases an unused hold without a debit', async () => {
-    const { service, revision, credits } = fixture();
-    revision.consumedCredits = 0;
-    await service.settle(revision);
-    expect(credits.releaseReservation).toHaveBeenCalledOnce();
-    expect(credits.settleReservation).not.toHaveBeenCalled();
-  });
-});
 
-describe('stopped visual work reconciliation', () => {
-  it('recovers a hold whose reservation write did not persist before releasing it', async () => {
-    const f = fixture();
-    f.revision.reservationId = null;
-    f.prisma.creditReservation.findFirst.mockResolvedValue({
-      id: 'recovered-hold',
-    });
-    await f.service.reconcileStopped(f.revision);
-    expect(f.prisma.creditReservation.findFirst).toHaveBeenCalledWith({
-      where: {
-        organizationId: 'org',
+interface StoredRevision {
+  brandId: string;
+  consumedCredits: number;
+  id: string;
+  isDeleted: boolean;
+  maximumCredits: number;
+  organizationId: string;
+  projectId: string;
+  receipts: IVisualCodeReceipt[];
+  reservationId: string | null;
+  userId: string;
+}
+
+const MODEL = 'openai/test';
+const SETTINGS: IVisualCodeSettings = {
+  durationFrames: 30,
+  fps: 30,
+  height: 360,
+  width: 640,
+};
+const IN_AN_HOUR = new Date(Date.now() + 3_600_000);
+
+// Prisma filters as Postgres applies them: JSON `equals` compares the stored document.
+const matches = (row: object, where: Row) =>
+  Object.entries(where).every(([key, condition]) => {
+    const value = (row as Row)[key];
+    if (condition && typeof condition === 'object' && 'equals' in condition) {
+      return JSON.stringify(value) === JSON.stringify(condition.equals);
+    }
+    return value === condition;
+  });
+
+const receipt = (fields: Partial<IVisualCodeReceipt>) =>
+  ({
+    boundCredits: 0,
+    credits: 0,
+    isResultApplied: false,
+    operatorCredits: 0,
+    state: 'started',
+    ...fields,
+  }) as IVisualCodeReceipt;
+
+describe('VisualProjectBillingService', () => {
+  // The pricing world the quote is computed from.
+  let route: { isAvailable: boolean; isByok: boolean; provider: string };
+  let price: { completionPerMillion: number; promptPerMillion: number };
+  // The wallet: holds and what was settled or released against them.
+  let holds: Hold[];
+  let settlements: { actualAmount: number; reservationId: string }[];
+  let releases: string[];
+  let walletFailures: number;
+  let isReservationLookupDown: boolean;
+  // The renderer's receipts for renders that were running when work stopped.
+  let stoppedRenders: Map<string, Row>;
+  let recoveredRenders: string[];
+  // The stored revision row.
+  let stored: StoredRevision;
+  let snapshot: IVisualCodeQuoteSnapshot;
+  let service: VisualProjectBillingService;
+
+  const read = () => structuredClone(stored) as unknown as VisualRevision;
+  const receiptOf = (id: string) =>
+    stored.receipts.find((entry) => entry.id === id);
+  const hasSettlementMarker = () =>
+    stored.receipts.some((entry) => entry.kind === 'settlement');
+  const seedHold = (fields: Partial<Hold> = {}) => {
+    holds = [
+      {
         actorUserId: 'user',
-        workloadType: 'visual-code',
-        workloadId: 'revision',
+        amount: stored.maximumCredits,
+        expiresAt: IN_AN_HOUR,
+        id: 'hold',
         idempotencyKey: 'visual-code-revision',
         isDeleted: false,
+        organizationId: 'org',
+        status: 'RESERVED',
+        workloadId: 'revision',
+        workloadType: 'visual-code',
+        ...fields,
       },
-      select: { id: true },
-    });
-    expect(f.credits.releaseReservation).toHaveBeenCalledWith(
-      expect.objectContaining({ reservationId: 'recovered-hold' }),
-    );
-  });
-  it('never marks settled when reservation existence is unknown', async () => {
-    const f = fixture();
-    f.revision.reservationId = null;
-    f.prisma.creditReservation.findFirst.mockRejectedValue(
-      new Error('database unavailable'),
-    );
-    await expect(f.service.reconcileStopped(f.revision)).rejects.toThrow(
-      'database unavailable',
-    );
-    expect(f.credits.releaseReservation).not.toHaveBeenCalled();
-    expect(f.revision.receipts).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ kind: 'settlement' })]),
-    );
-  });
-  it('records crashed provider liability without charging an unconfirmed call', async () => {
-    const f = fixture();
-    (f.revision.receipts as unknown[]).push({
-      id: 'author-1',
-      kind: 'author',
-      state: 'started',
-      credits: 0,
-      operatorCredits: 0,
-      boundCredits: 3,
-      isResultApplied: false,
-    });
-    await f.service.reconcileStopped(f.revision);
-    expect(f.revision.receipts).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: 'author-1',
-          state: 'indeterminate',
-          credits: 0,
-          operatorCredits: 3,
+    ];
+  };
+
+  beforeEach(async () => {
+    route = { isAvailable: true, isByok: false, provider: 'openai' };
+    price = { completionPerMillion: 2, promptPerMillion: 1 };
+    holds = [];
+    settlements = [];
+    releases = [];
+    walletFailures = 0;
+    isReservationLookupDown = false;
+    stoppedRenders = new Map();
+    recoveredRenders = [];
+
+    const prisma = {
+      creditReservation: {
+        findFirst: async ({ where }: { where: Row }) => {
+          if (isReservationLookupDown) throw new Error('database unavailable');
+          return holds.find((hold) => matches(hold, where)) ?? null;
+        },
+      },
+      model: {
+        findMany: async () => [
+          {
+            capabilities: ['vision'],
+            id: 'model-1',
+            key: MODEL,
+            recommendedFor: [],
+            supportsFeatures: [],
+          },
+        ],
+      },
+      organization: { findFirst: async () => ({ id: 'org' }) },
+      organizationSetting: { findFirst: async () => null },
+      visualRevision: {
+        findFirstOrThrow: async ({ where }: { where: Row }) => {
+          if (!matches(stored, where))
+            throw new Error('No VisualRevision found');
+          return read();
+        },
+        updateMany: async ({ data, where }: { data: Row; where: Row }) => {
+          if (!matches(stored, where)) return { count: 0 };
+          Object.assign(stored, structuredClone(data));
+          return { count: 1 };
+        },
+      },
+    };
+    const credits = {
+      releaseReservation: async ({
+        reservationId,
+      }: {
+        reservationId: string;
+      }) => {
+        releases.push(reservationId);
+        Object.assign(holds.find((hold) => hold.id === reservationId) ?? {}, {
+          status: 'RELEASED',
+        });
+      },
+      reserveCredits: async (
+        input: Omit<Hold, 'expiresAt' | 'id' | 'isDeleted' | 'status'>,
+      ) => {
+        const existing = holds.find(
+          (hold) => hold.idempotencyKey === input.idempotencyKey,
+        );
+        if (existing) return existing;
+        const hold: Hold = {
+          ...input,
+          expiresAt: IN_AN_HOUR,
+          id: `reserved-${holds.length + 1}`,
+          isDeleted: false,
+          status: 'RESERVED',
+        };
+        holds.push(hold);
+        return hold;
+      },
+      settleReservation: async (input: {
+        actualAmount: number;
+        reservationId: string;
+      }) => {
+        if (walletFailures > 0) {
+          walletFailures -= 1;
+          throw new Error('wallet unavailable');
+        }
+        settlements.push({
+          actualAmount: input.actualAmount,
+          reservationId: input.reservationId,
+        });
+      },
+    };
+    const registry = {
+      getDefaultModelKey: async () => MODEL,
+      listSelectable: async () => [
+        { key: MODEL, label: 'Test', pricing: price, provider: 'openai' },
+      ],
+      toRoundCredits: (usd: number) => Math.ceil(usd),
+    };
+    service = new VisualProjectBillingService(
+      prisma as unknown as PrismaService,
+      credits as unknown as CreditsUtilsService,
+      registry as unknown as AgentChatModelRegistryService,
+      {
+        enforceModel: async (_organizationId: string, key: string) => key,
+      } as unknown as AgentModelAccessService,
+      {
+        getCompletionRoute: async () => ({ ...route }),
+      } as unknown as LlmDispatcherService,
+      {
+        availability: async () => ({
+          creditsPerSecond: 1 / 240,
+          isAvailable: true,
         }),
-      ]),
+        recoverStopped: async (id: string) => {
+          recoveredRenders.push(id);
+          return stoppedRenders.get(id) ?? null;
+        },
+      } as unknown as VisualProjectRendererClientService,
     );
-    expect(f.credits.settleReservation).not.toHaveBeenCalled();
-  });
-  it('settles trusted recovered render compute without submitting a replacement render', async () => {
-    const f = fixture();
-    (f.revision.receipts as unknown[]).push({
-      id: 'render-1',
-      kind: 'render',
-      state: 'started',
-      credits: 0,
-      operatorCredits: 0,
-      boundCredits: 0.5,
-      isResultApplied: false,
-    });
-    f.renderer.recoverStopped.mockResolvedValue({
-      computeSeconds: 120,
-      isComputeIndeterminate: false,
-    });
-    await f.service.reconcileStopped(f.revision);
-    expect(f.renderer.recoverStopped).toHaveBeenCalledWith('render-1');
-    expect(f.credits.settleReservation).toHaveBeenCalledWith(
-      expect.objectContaining({ actualAmount: 0.5 }),
-    );
-  });
-});
 
-it('uses the original idempotent wallet reservation as the uncertain admission barrier', async () => {
-  const f = fixture();
-  f.revision.reservationId = null;
-  (f.revision.receipts as unknown[]).push({
-    id: 'admission-1',
-    kind: 'admission',
-    state: 'started',
-    credits: 0,
-    operatorCredits: 0,
-    boundCredits: 0,
-    isResultApplied: false,
-  });
-  f.credits.reserveCredits.mockResolvedValue({ id: 'barrier-hold' });
-  await f.service.reconcileStopped(f.revision);
-  expect(f.credits.reserveCredits).toHaveBeenCalledWith(
-    expect.objectContaining({
-      idempotencyKey: 'visual-code-revision',
-      amount: 6,
-    }),
-  );
-  expect(f.prisma.creditReservation.findFirst).toHaveBeenCalledWith({
-    where: expect.objectContaining({
-      id: 'barrier-hold',
+    snapshot = await service.quote('org', MODEL, true, SETTINGS, [
+      { format: 'mp4' },
+    ]);
+    stored = {
+      brandId: 'brand',
+      consumedCredits: 2,
+      id: 'revision',
+      isDeleted: false,
+      maximumCredits: snapshot.maximumCredits,
       organizationId: 'org',
-      actorUserId: 'user',
-    }),
+      projectId: 'project',
+      receipts: [service.quoteReceipt(snapshot)],
+      reservationId: 'hold',
+      userId: 'user',
+    };
+    seedHold();
   });
-  expect(f.credits.releaseReservation).toHaveBeenCalledWith(
-    expect.objectContaining({ reservationId: 'barrier-hold' }),
-  );
-  expect(f.revision.receipts).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        id: 'admission-1',
-        state: 'confirmed',
-        credits: 0,
-        operatorCredits: 0,
-      }),
-    ]),
-  );
-});
 
-describe('visual paid hold lifetime', () => {
-  it.each(['RELEASED', 'EXPIRED', 'SETTLED'])(
-    'refuses new paid work with a %s hold',
-    async (status) => {
-      const f = fixture();
-      vi.spyOn(f.service, 'quote').mockResolvedValue(quote);
-      f.prisma.creditReservation.findFirst.mockResolvedValue({
-        id: 'hold',
-        status,
-        amount: 6,
-        expiresAt: new Date(Date.now() + 10000),
+  describe('quote', () => {
+    it('bounds authoring, inspection and rendering at the model and renderer prices', () => {
+      expect(snapshot).toMatchObject({
+        authoringCredits: 3,
+        creditsPerSecond: 1 / 240,
+        inspectionCredits: 3,
+        isByok: false,
+        maximumCredits: 8,
+        modelKey: MODEL,
+        provider: 'openai',
+        renderCredits: 2,
       });
-      await expect(f.service.validateSnapshot(f.revision)).rejects.toThrow(
+    });
+
+    it('charges nothing for model calls on a BYOK route but still bounds rendering', async () => {
+      route.isByok = true;
+
+      expect(
+        await service.quote('org', MODEL, true, SETTINGS, [{ format: 'mp4' }]),
+      ).toMatchObject({
+        authoringCredits: 0,
+        inputCostPerMillion: 0,
+        inspectionCredits: 0,
+        maximumCredits: 2,
+        renderCredits: 2,
+      });
+    });
+  });
+
+  describe('validateSnapshot', () => {
+    it('accepts an unchanged quote backed by its live hold', async () => {
+      await expect(service.validateSnapshot(read())).resolves.toEqual(snapshot);
+    });
+
+    it.each([
+      [
+        'the route turns BYOK',
+        () => {
+          route.isByok = true;
+        },
+      ],
+      [
+        'the input price changes',
+        () => {
+          price.promptPerMillion = 2;
+        },
+      ],
+    ])(
+      'rejects the quote when %s, even with spare credits under the ceiling',
+      async (_case, change) => {
+        change();
+
+        await expect(service.validateSnapshot(read())).rejects.toThrow(
+          'quote_changed',
+        );
+      },
+    );
+
+    it.each([
+      ['a released hold', { status: 'RELEASED' }],
+      ['an expired hold', { status: 'EXPIRED' }],
+      ['a settled hold', { status: 'SETTLED' }],
+      ['a hold past its expiry', { expiresAt: new Date(0) }],
+      ['a hold for a different amount', { amount: 5 }],
+    ])('refuses new paid work with %s', async (_case, fields) => {
+      seedHold(fields);
+
+      await expect(service.validateSnapshot(read())).rejects.toThrow(
         'visual_reservation_unavailable',
       );
-      expect(f.credits.reserveCredits).not.toHaveBeenCalled();
-    },
-  );
-  it('rejects queue delay past expiry and a changed hold amount', async () => {
-    const f = fixture();
-    vi.spyOn(f.service, 'quote').mockResolvedValue(quote);
-    f.prisma.creditReservation.findFirst.mockResolvedValue({
-      id: 'hold',
-      status: 'RESERVED',
-      amount: 6,
-      expiresAt: new Date(0),
+      expect(holds).toHaveLength(1);
     });
-    await expect(f.service.validateSnapshot(f.revision)).rejects.toThrow(
-      'visual_reservation_unavailable',
-    );
-    f.prisma.creditReservation.findFirst.mockResolvedValue({
-      id: 'hold',
-      status: 'RESERVED',
-      amount: 5,
-      expiresAt: new Date(Date.now() + 10000),
+
+    it('skips every hold read for a free quote', async () => {
+      stored.receipts = [
+        service.quoteReceipt({ ...snapshot, maximumCredits: 0 }),
+      ];
+      isReservationLookupDown = true;
+
+      await expect(service.validateSnapshot(read())).resolves.toMatchObject({
+        maximumCredits: 0,
+      });
     });
-    await expect(f.service.validateSnapshot(f.revision)).rejects.toThrow(
-      'visual_reservation_unavailable',
-    );
   });
-  it.each(['RELEASED', 'EXPIRED'])(
-    'assigns confirmed work to the operator when a pending call outlives a %s hold',
-    async (status) => {
-      const f = fixture();
-      vi.spyOn(f.service, 'quote').mockResolvedValue(quote);
-      await f.service.validateSnapshot(f.revision);
-      (f.revision.receipts as unknown[]).push({
-        id: 'inspection',
-        kind: 'inspection',
-        state: 'confirmed',
-        credits: 2,
-        operatorCredits: 1,
-        boundCredits: 2,
-        isResultApplied: true,
-        providerCost: 0.1,
-      });
-      f.prisma.creditReservation.findFirst.mockResolvedValue({
-        id: 'hold',
-        status,
-        amount: 6,
-        expiresAt: new Date(0),
-      });
-      await f.service.settle(f.revision);
-      await f.service.settle(f.revision);
-      expect(f.revision.consumedCredits).toBe(0);
-      expect(f.revision.receipts).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            id: 'inspection',
-            credits: 0,
-            operatorCredits: 3,
-            providerCost: 0.1,
-          }),
-        ]),
+
+  describe('settle', () => {
+    it('settles consumed work once and records the marker only after the wallet succeeds', async () => {
+      walletFailures = 1;
+
+      await expect(service.settle(read())).rejects.toThrow(
+        'wallet unavailable',
       );
-      expect(f.credits.releaseReservation).toHaveBeenCalledOnce();
-      expect(f.credits.settleReservation).not.toHaveBeenCalled();
-      expect(f.credits.reserveCredits).not.toHaveBeenCalled();
-    },
-  );
-  it('keeps missing paid-hold settlement recoverable without a false marker', async () => {
-    const f = fixture();
-    f.prisma.creditReservation.findFirst.mockResolvedValue(null);
-    await expect(f.service.settle(f.revision)).rejects.toThrow(
-      'visual_reservation_unavailable',
-    );
-    expect(f.credits.settleReservation).not.toHaveBeenCalled();
-    expect(f.credits.releaseReservation).not.toHaveBeenCalled();
-    expect(f.revision.receipts).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ kind: 'settlement' })]),
-    );
-  });
-  it('preserves already settled user costs during marker recovery', async () => {
-    const f = fixture();
-    f.prisma.creditReservation.findFirst.mockResolvedValue({
-      id: 'hold',
-      status: 'SETTLED',
-      amount: 6,
-      expiresAt: new Date(0),
+      expect(hasSettlementMarker()).toBe(false);
+
+      await service.settle(read());
+      await service.settle(read());
+
+      expect(settlements).toEqual([{ actualAmount: 2, reservationId: 'hold' }]);
+      expect(hasSettlementMarker()).toBe(true);
     });
-    await f.service.settle(f.revision);
-    expect(f.revision.consumedCredits).toBe(2);
-    expect(f.credits.settleReservation).toHaveBeenCalledWith(
-      expect.objectContaining({ actualAmount: 2 }),
+
+    it('releases an unused hold without a debit', async () => {
+      stored.consumedCredits = 0;
+
+      await service.settle(read());
+
+      expect(releases).toEqual(['hold']);
+      expect(settlements).toEqual([]);
+    });
+
+    it('never touches the wallet for zero-cost work and still settles durably', async () => {
+      stored.receipts = [
+        service.quoteReceipt({ ...snapshot, maximumCredits: 0 }),
+      ];
+      Object.assign(stored, {
+        consumedCredits: 0,
+        maximumCredits: 50,
+        reservationId: null,
+      });
+      holds = [];
+
+      await expect(service.reserve(read())).resolves.toBeNull();
+      await service.settle(read());
+      await service.settle(read());
+
+      expect(holds).toEqual([]);
+      expect(settlements).toEqual([]);
+      expect(releases).toEqual([]);
+      expect(hasSettlementMarker()).toBe(true);
+    });
+
+    it.each(['RELEASED', 'EXPIRED'])(
+      'assigns confirmed work to the operator when the call outlived a %s hold',
+      async (status) => {
+        stored.receipts.push(
+          receipt({
+            boundCredits: 2,
+            credits: 2,
+            id: 'inspection',
+            isResultApplied: true,
+            kind: 'inspection',
+            operatorCredits: 1,
+            providerCost: 0.1,
+            state: 'confirmed',
+          } as Partial<IVisualCodeReceipt>),
+        );
+        seedHold({ expiresAt: new Date(0), status });
+
+        await service.settle(read());
+        await service.settle(read());
+
+        expect(stored.consumedCredits).toBe(0);
+        expect(receiptOf('inspection')).toMatchObject({
+          credits: 0,
+          operatorCredits: 3,
+          providerCost: 0.1,
+        });
+        expect(releases).toEqual(['hold']);
+        expect(settlements).toEqual([]);
+        expect(holds).toHaveLength(1);
+      },
     );
-    expect(f.credits.releaseReservation).not.toHaveBeenCalled();
+
+    it('keeps a missing paid hold recoverable without a false marker', async () => {
+      holds = [];
+
+      await expect(service.settle(read())).rejects.toThrow(
+        'visual_reservation_unavailable',
+      );
+      expect(settlements).toEqual([]);
+      expect(releases).toEqual([]);
+      expect(hasSettlementMarker()).toBe(false);
+    });
+
+    it('preserves already settled user costs during marker recovery', async () => {
+      seedHold({ expiresAt: new Date(0), status: 'SETTLED' });
+
+      await service.settle(read());
+
+      expect(stored.consumedCredits).toBe(2);
+      expect(settlements).toEqual([{ actualAmount: 2, reservationId: 'hold' }]);
+      expect(releases).toEqual([]);
+    });
   });
-  it('skips all hold reads for a free quote before stage admission', async () => {
-    const f = fixture();
-    const free = { ...quote, maximumCredits: 0 };
-    f.revision.receipts = [f.service.quoteReceipt(free)] as never;
-    vi.spyOn(f.service, 'quote').mockResolvedValue(free);
-    await f.service.validateSnapshot(f.revision);
-    expect(f.prisma.creditReservation.findFirst).not.toHaveBeenCalled();
+
+  describe('reconcileStopped', () => {
+    it('recovers a hold whose reservation write did not persist, then releases it', async () => {
+      stored.reservationId = null;
+
+      await service.reconcileStopped(read());
+
+      expect(stored.reservationId).toBe('hold');
+      expect(releases).toEqual(['hold']);
+      expect(hasSettlementMarker()).toBe(true);
+    });
+
+    it('never marks settled while the hold lookup is failing', async () => {
+      stored.reservationId = null;
+      isReservationLookupDown = true;
+
+      await expect(service.reconcileStopped(read())).rejects.toThrow(
+        'database unavailable',
+      );
+      expect(releases).toEqual([]);
+      expect(hasSettlementMarker()).toBe(false);
+    });
+
+    it('records crashed provider liability without charging an unconfirmed call', async () => {
+      stored.receipts.push(
+        receipt({ boundCredits: 3, id: 'author-1', kind: 'authoring' }),
+      );
+
+      await service.reconcileStopped(read());
+
+      expect(receiptOf('author-1')).toMatchObject({
+        credits: 0,
+        operatorCredits: 3,
+        state: 'indeterminate',
+      });
+      expect(settlements).toEqual([]);
+      expect(releases).toEqual(['hold']);
+    });
+
+    it('settles trusted recovered render compute without submitting a replacement render', async () => {
+      stored.receipts.push(
+        receipt({ boundCredits: 0.5, id: 'render-1', kind: 'render' }),
+      );
+      stoppedRenders.set('render-1', {
+        computeSeconds: 120,
+        isComputeIndeterminate: false,
+      });
+
+      await service.reconcileStopped(read());
+
+      expect(recoveredRenders).toEqual(['render-1']);
+      expect(receiptOf('render-1')).toMatchObject({
+        computeSeconds: 120,
+        credits: 0.5,
+        state: 'confirmed',
+      });
+      expect(settlements).toEqual([
+        { actualAmount: 0.5, reservationId: 'hold' },
+      ]);
+    });
+
+    it('uses the original idempotent wallet reservation as the uncertain admission barrier', async () => {
+      stored.reservationId = null;
+      stored.receipts.push(receipt({ id: 'admission-1', kind: 'admission' }));
+      holds = [];
+
+      await service.reconcileStopped(read());
+
+      expect(holds).toEqual([
+        expect.objectContaining({
+          actorUserId: 'user',
+          amount: snapshot.maximumCredits,
+          id: 'reserved-1',
+          idempotencyKey: 'visual-code-revision',
+          organizationId: 'org',
+        }),
+      ]);
+      expect(stored.reservationId).toBe('reserved-1');
+      expect(releases).toEqual(['reserved-1']);
+      expect(receiptOf('admission-1')).toMatchObject({
+        credits: 0,
+        operatorCredits: 0,
+        state: 'confirmed',
+      });
+    });
   });
 });

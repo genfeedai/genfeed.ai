@@ -112,18 +112,56 @@ describe('StripeController', () => {
     stripeCustomerId: 'cus_test123',
   };
 
+  type Checkout = {
+    customer: string;
+    metadata: unknown;
+    origin: string;
+    price: string;
+    quantity: number;
+    redirects: unknown;
+  };
+  let checkouts: Checkout[];
+  let portals: { customer: string; returnUrl: string }[];
+  let checkoutsStarted: unknown[];
+  let ensuredAccounts: unknown[];
+  let subscriptionWrites: unknown[][];
+
   beforeEach(async () => {
+    checkouts = [];
+    portals = [];
+    checkoutsStarted = [];
+    ensuredAccounts = [];
+    subscriptionWrites = [];
     stripeService = {
       createOrganizationCustomer: vi.fn().mockResolvedValue({
         id: 'cus_recreated',
       }),
-      createPaymentSession: vi.fn().mockResolvedValue({
-        id: 'cs_org_1',
-        url: 'https://checkout.stripe.com/session',
-      }),
-      getBillingPortalUrl: vi
-        .fn()
-        .mockResolvedValue({ url: 'https://billing.stripe.com/portal' }),
+      createPaymentSession: vi.fn(
+        async (
+          customer: string,
+          price: string,
+          origin: string,
+          quantity: number,
+          redirects: unknown,
+          metadata: unknown,
+        ) => {
+          checkouts.push({
+            customer,
+            metadata,
+            origin,
+            price,
+            quantity,
+            redirects,
+          });
+          return { id: 'cs_org_1', url: 'https://checkout.stripe.com/session' };
+        },
+      ),
+      getBillingPortalUrl: vi.fn(
+        async (customer: string, returnUrl: string) => {
+          portals.push({ customer, returnUrl });
+          return { url: 'https://billing.stripe.com/portal' };
+        },
+      ),
       findOrganizationCustomers: vi.fn().mockResolvedValue([]),
       retrieveCustomer: vi.fn().mockResolvedValue({
         id: 'cus_test123',
@@ -132,16 +170,22 @@ describe('StripeController', () => {
     };
 
     subscriptionsService = {
-      createForOrganization: vi.fn().mockResolvedValue(mockSubscription),
+      createForOrganization: vi.fn(async (...args: unknown[]) => {
+        subscriptionWrites.push(['create', ...args]);
+        return mockSubscription;
+      }),
       findByOrganizationId: vi.fn().mockResolvedValue(mockSubscription),
-      patch: vi.fn().mockResolvedValue(mockSubscription),
+      patch: vi.fn(async (...args: unknown[]) => {
+        subscriptionWrites.push(['patch', ...args]);
+        return mockSubscription;
+      }),
     };
 
     usersService = {
       // Post-cutover identity is the canonical Genfeed user id.
-      findOne: vi.fn().mockResolvedValue({
-        id: userId,
-      }),
+      findOne: vi.fn(async (where: { id?: string }) =>
+        where.id === userId ? { id: userId } : null,
+      ),
       findOneSelect: delegateFindOneSelect(),
     };
 
@@ -150,7 +194,9 @@ describe('StripeController', () => {
       findOneSelect: delegateFindOneSelect(),
     };
     lifecycleEmailService = {
-      recordCheckoutStarted: vi.fn().mockResolvedValue(undefined),
+      recordCheckoutStarted: vi.fn(async (event: unknown) => {
+        checkoutsStarted.push(event);
+      }),
     };
 
     const findByOrganizationId = vi.fn(async (_organizationId: string) => ({
@@ -192,7 +238,10 @@ describe('StripeController', () => {
       }),
     };
     billingAccountsService = {
-      ensureForOrganization: vi.fn().mockResolvedValue({ id: 'ba_1' }),
+      ensureForOrganization: vi.fn(async (input: unknown) => {
+        ensuredAccounts.push(input);
+        return { id: 'ba_1' };
+      }),
       requireRole: vi.fn().mockResolvedValue('OWNER'),
       resolveForOrganization: vi.fn().mockResolvedValue({ id: 'ba_1' }),
     };
@@ -252,32 +301,30 @@ describe('StripeController', () => {
         id: 'cs_org_1',
         url: 'https://checkout.stripe.com/session',
       });
-      // Regression (#1199): resolve the DB user by canonical Genfeed User.id.
-      expect(usersService.findOne).toHaveBeenCalledWith({
-        id: userId,
-      });
-      expect(billingAccountsService.ensureForOrganization).toHaveBeenCalledWith(
+      // Regression (#1199): the users fake only knows the canonical Genfeed
+      // User.id, so a successful checkout proves the lookup used it.
+      expect(ensuredAccounts).toEqual([
+        { label: 'Test Org', organizationId: orgId, userId },
+      ]);
+      expect(checkoutsStarted).toEqual([
         {
-          label: 'Test Org',
+          checkoutSessionId: 'cs_org_1',
+          checkoutUrl: 'https://checkout.stripe.com/session',
           organizationId: orgId,
+          source: 'organization-checkout',
           userId,
         },
-      );
-      expect(lifecycleEmailService.recordCheckoutStarted).toHaveBeenCalledWith({
-        checkoutSessionId: 'cs_org_1',
-        checkoutUrl: 'https://checkout.stripe.com/session',
-        organizationId: orgId,
-        source: 'organization-checkout',
-        userId,
-      });
-      expect(stripeService.createPaymentSession).toHaveBeenCalledWith(
-        'cus_test123',
-        'price_abc123',
-        'https://app.genfeed.ai',
-        1,
-        undefined,
-        { organizationId: orgId },
-      );
+      ]);
+      expect(checkouts).toEqual([
+        {
+          customer: 'cus_test123',
+          metadata: { organizationId: orgId },
+          origin: 'https://app.genfeed.ai',
+          price: 'price_abc123',
+          quantity: 1,
+          redirects: undefined,
+        },
+      ]);
     });
 
     it('should throw BAD_REQUEST when origin header is missing', async () => {
@@ -310,7 +357,14 @@ describe('StripeController', () => {
         dto,
         mockRequest,
       );
-      expect(subscriptionsService.createForOrganization).toHaveBeenCalled();
+      expect(subscriptionWrites).toEqual([
+        [
+          'create',
+          { id: orgId, label: 'Test Org' },
+          'test@example.com',
+          userId,
+        ],
+      ]);
       expect(result).toEqual({
         id: 'cs_org_1',
         url: 'https://checkout.stripe.com/session',
@@ -328,14 +382,12 @@ describe('StripeController', () => {
       await controller.createCheckoutSession(mockUser, dto, mockRequest);
 
       expect(stripeService.createOrganizationCustomer).not.toHaveBeenCalled();
-      expect(stripeService.createPaymentSession).toHaveBeenCalledWith(
-        'cus_test123',
-        'price_abc123',
-        'https://app.genfeed.ai',
-        1,
-        undefined,
-        { organizationId: orgId },
-      );
+      expect(checkouts).toEqual([
+        expect.objectContaining({
+          customer: 'cus_test123',
+          price: 'price_abc123',
+        }),
+      ]);
     });
 
     it('rebinds the single org customer row when the Stripe customer is stale', async () => {
@@ -351,18 +403,15 @@ describe('StripeController', () => {
 
       await controller.createCheckoutSession(mockUser, dto, mockRequest);
 
-      expect(subscriptionsService.patch).toHaveBeenCalledWith(
-        'test-object-id',
-        { customerId: 'cust_row_1' },
-      );
-      expect(stripeService.createPaymentSession).toHaveBeenCalledWith(
-        'cus_recreated',
-        'price_abc123',
-        'https://app.genfeed.ai',
-        1,
-        undefined,
-        { organizationId: orgId },
-      );
+      expect(subscriptionWrites).toEqual([
+        ['patch', 'test-object-id', { customerId: 'cust_row_1' }],
+      ]);
+      expect(checkouts).toEqual([
+        expect.objectContaining({
+          customer: 'cus_recreated',
+          price: 'price_abc123',
+        }),
+      ]);
     });
 
     it('should throw NOT_FOUND if subscription missing and org not found', async () => {
@@ -384,14 +433,14 @@ describe('StripeController', () => {
         dtoWithUrls,
         mockRequest,
       );
-      expect(stripeService.createPaymentSession).toHaveBeenCalledWith(
-        'cus_test123',
-        'price_abc123',
-        'https://app.genfeed.ai',
-        1,
-        { cancel: 'https://cancel.url', success: 'https://success.url' },
-        { organizationId: orgId },
-      );
+      expect(checkouts).toEqual([
+        expect.objectContaining({
+          redirects: {
+            cancel: 'https://cancel.url',
+            success: 'https://success.url',
+          },
+        }),
+      ]);
     });
 
     it('should re-throw HttpExceptions from stripe service', async () => {
@@ -426,17 +475,19 @@ describe('StripeController', () => {
         id: 'cs_org_1',
         url: 'https://checkout.stripe.com/session',
       });
-      expect(stripeService.createPaymentSession).toHaveBeenCalledWith(
-        'cus_test123',
-        'price_payg',
-        'https://app.genfeed.ai',
-        5_000,
+      expect(checkouts).toEqual([
         {
-          cancel: 'https://app.genfeed.ai/settings/credits',
-          success: 'https://app.genfeed.ai/settings/credits?credits=success',
+          customer: 'cus_test123',
+          metadata: { organizationId: orgId },
+          origin: 'https://app.genfeed.ai',
+          price: 'price_payg',
+          quantity: 5_000,
+          redirects: {
+            cancel: 'https://app.genfeed.ai/settings/credits',
+            success: 'https://app.genfeed.ai/settings/credits?credits=success',
+          },
         },
-        { organizationId: orgId },
-      );
+      ]);
     });
 
     it('rejects checkout when managed credit billing is unavailable', async () => {
@@ -450,7 +501,7 @@ describe('StripeController', () => {
         ),
       ).rejects.toMatchObject({ status: HttpStatus.SERVICE_UNAVAILABLE });
 
-      expect(stripeService.createPaymentSession).not.toHaveBeenCalled();
+      expect(checkouts).toEqual([]);
     });
 
     it('rejects checkout when the authenticated user no longer exists', async () => {
@@ -464,7 +515,7 @@ describe('StripeController', () => {
         ),
       ).rejects.toMatchObject({ status: HttpStatus.NOT_FOUND });
 
-      expect(stripeService.createPaymentSession).not.toHaveBeenCalled();
+      expect(checkouts).toEqual([]);
     });
 
     it('rejects checkout when neither identity source has an email', async () => {
@@ -482,7 +533,7 @@ describe('StripeController', () => {
         ),
       ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
 
-      expect(stripeService.createPaymentSession).not.toHaveBeenCalled();
+      expect(checkouts).toEqual([]);
     });
   });
 
@@ -513,10 +564,13 @@ describe('StripeController', () => {
           })
           .expect(HttpStatus.OK);
 
-        expect(stripeService.getBillingPortalUrl).toHaveBeenCalledWith(
-          'cus_test123',
-          'https://app.genfeed.ai/acme/~/settings/organization/subscription',
-        );
+        expect(portals).toEqual([
+          {
+            customer: 'cus_test123',
+            returnUrl:
+              'https://app.genfeed.ai/acme/~/settings/organization/subscription',
+          },
+        ]);
       });
 
       it('rejects a repeated type-confused returnPath before billing work', async () => {
@@ -529,7 +583,7 @@ describe('StripeController', () => {
         expect(
           subscriptionsService.findByOrganizationId,
         ).not.toHaveBeenCalled();
-        expect(stripeService.getBillingPortalUrl).not.toHaveBeenCalled();
+        expect(portals).toEqual([]);
       });
 
       it('rejects an off-origin returnPath before billing work', async () => {
@@ -542,7 +596,7 @@ describe('StripeController', () => {
         expect(
           subscriptionsService.findByOrganizationId,
         ).not.toHaveBeenCalled();
-        expect(stripeService.getBillingPortalUrl).not.toHaveBeenCalled();
+        expect(portals).toEqual([]);
       });
     });
 
@@ -558,10 +612,9 @@ describe('StripeController', () => {
     it('should return to the origin root when no returnPath is given', async () => {
       await controller.getBillingPortalUrl(mockUser, mockRequest, {});
 
-      expect(stripeService.getBillingPortalUrl).toHaveBeenCalledWith(
-        'cus_test123',
-        'https://app.genfeed.ai',
-      );
+      expect(portals).toEqual([
+        { customer: 'cus_test123', returnUrl: 'https://app.genfeed.ai' },
+      ]);
     });
 
     it('should append a relative returnPath to the request origin', async () => {
@@ -569,10 +622,13 @@ describe('StripeController', () => {
         returnPath: '/acme/~/settings/organization/subscription',
       });
 
-      expect(stripeService.getBillingPortalUrl).toHaveBeenCalledWith(
-        'cus_test123',
-        'https://app.genfeed.ai/acme/~/settings/organization/subscription',
-      );
+      expect(portals).toEqual([
+        {
+          customer: 'cus_test123',
+          returnUrl:
+            'https://app.genfeed.ai/acme/~/settings/organization/subscription',
+        },
+      ]);
     });
 
     it('should throw BAD_REQUEST when origin missing', async () => {
@@ -593,7 +649,7 @@ describe('StripeController', () => {
       ).rejects.toThrow(HttpException);
 
       expect(subscriptionsService.findByOrganizationId).not.toHaveBeenCalled();
-      expect(stripeService.getBillingPortalUrl).not.toHaveBeenCalled();
+      expect(portals).toEqual([]);
     });
 
     it('should throw NOT_FOUND when subscription not found', async () => {

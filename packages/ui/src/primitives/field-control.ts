@@ -1,8 +1,8 @@
 /*
- * Field controls paint with semantic roles only. `placeholder:text-muted`
- * would resolve `--color-muted` as a *surface* step and paint invisible
- * placeholder text. Semantic roles (`text-foreground`, `text-muted-foreground`)
- * carry the same value at every variant and every specificity.
+ * Field controls paint with semantic roles and ladder steps only. Placeholders
+ * use `text-gray-800` (the placeholder step, AA on both canvases) so they read
+ * quieter than typed text. Never `placeholder:text-muted`: that resolves
+ * `--color-muted`, a *surface* step, and paints invisible placeholder text.
  */
 /**
  * Compact control row height shared by toolbars, filter triggers, tabs, and
@@ -12,7 +12,7 @@
 export const controlHeightClassName = 'h-8';
 
 export const fieldControlClassName =
-  'flex h-8 w-full min-w-0 rounded-lg border border-border bg-tertiary px-3 py-1.5 text-sm text-foreground transition-[color,box-shadow,border-color,background-color] duration-200 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-border-strong disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50';
+  'flex h-8 w-full min-w-0 rounded-md border border-border bg-tertiary px-3 py-1.5 text-sm text-foreground transition-[color,box-shadow,border-color,background-color] duration-200 placeholder:text-gray-800 focus-visible:outline-none focus-visible:border-border-strong disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50';
 
 export const fieldControlInputClassName =
   'file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground';

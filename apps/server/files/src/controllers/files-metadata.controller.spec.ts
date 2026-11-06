@@ -13,22 +13,33 @@ vi.mock('@genfeedai/config', async (original) => ({
   isCloudDeployment: () => !deployment.selfHosted,
 }));
 
-const { guardedFetch, writeFileSync } = vi.hoisted(() => ({
-  guardedFetch: vi.fn(),
-  writeFileSync: vi.fn(),
+// The network and the disk: the guard records each request with the policy
+// it was given; the disk keeps every written file.
+const world = vi.hoisted(() => ({
+  disk: new Map<string, Buffer>(),
+  requests: [] as Array<{ policy: unknown; url: string }>,
+  respond: (() => new Response('audio')) as () => Response,
 }));
 vi.mock('@libs/security/destination-guard', () => ({
-  safeFetch: guardedFetch,
+  safeFetch: async (url: string, _init: unknown, policy: unknown) => {
+    world.requests.push({ policy, url });
+    return world.respond();
+  },
 }));
 vi.mock('node:fs', () => ({
-  existsSync: vi.fn(() => true),
-  mkdirSync: vi.fn(),
-  unlinkSync: vi.fn(),
-  writeFileSync,
+  existsSync: () => true,
+  mkdirSync: () => undefined,
+  unlinkSync: (file: string) => {
+    world.disk.delete(file);
+  },
+  writeFileSync: (file: string, data: Buffer) => {
+    world.disk.set(file, data);
+  },
 }));
 
 describe('FilesMetadataController URL download', () => {
-  const getVideoMetadata = vi.fn();
+  let probed: string[];
+
   const config = {
     get: (key: string) => {
       if (key === 'GENFEEDAI_CDN_URL') return 'http://minio:9000/bucket';
@@ -38,97 +49,106 @@ describe('FilesMetadataController URL download', () => {
     },
   };
   const controller = new FilesMetadataController(
-    { getVideoMetadata } as unknown as FFmpegService,
+    {
+      getVideoMetadata: async (filePath: string) => {
+        probed.push(filePath);
+        return { duration: 5 };
+      },
+    } as unknown as FFmpegService,
     config as unknown as ConfigService,
-    { log: vi.fn(), error: vi.fn() } as unknown as LoggerService,
-    { cleanupTempFiles: vi.fn() } as unknown as TempFileCleanupCron,
+    { error: () => {}, log: () => {} } as unknown as LoggerService,
+    { cleanupTempFiles: () => {} } as unknown as TempFileCleanupCron,
   );
 
   beforeEach(() => {
     deployment.selfHosted = true;
-    guardedFetch.mockReset();
-    writeFileSync.mockClear();
-    getVideoMetadata.mockReset().mockResolvedValue({ duration: 5 });
+    world.disk.clear();
+    world.requests.length = 0;
+    world.respond = () => new Response('audio');
+    probed = [];
   });
 
-  it('routes external narration through the DNS-pinned public destination guard', async () => {
-    guardedFetch.mockResolvedValue(
-      new Response('audio', {
-        headers: { 'content-type': 'audio/mpeg' },
-      }),
-    );
+  it('downloads external narration through the public destination guard and probes the cached copy', async () => {
+    world.respond = () =>
+      new Response('audio', { headers: { 'content-type': 'audio/mpeg' } });
+
     const result = await controller.getFileMetadata({
       url: 'https://audio.example/narration.mp3',
     });
-    expect(guardedFetch).toHaveBeenCalledWith(
-      'https://audio.example/narration.mp3',
-      { signal: expect.any(AbortSignal) },
-      {},
-    );
+
+    expect(world.requests).toEqual([
+      { policy: {}, url: 'https://audio.example/narration.mp3' },
+    ]);
     expect(result).toMatchObject({
-      duration: 5,
       cachedFileName: expect.stringMatching(/\.mp3$/),
+      duration: 5,
     });
-    expect(writeFileSync).toHaveBeenCalledWith(
-      expect.any(String),
-      Buffer.from('audio'),
-    );
+    expect([...world.disk.values()]).toEqual([Buffer.from('audio')]);
+    expect(probed).toEqual([result.cachedFilePath]);
   });
 
   it('permits only the exact configured storage origin on a private network', async () => {
-    guardedFetch.mockResolvedValue(new Response('audio'));
     await controller.getFileMetadata({
       url: 'http://minio:9000/bucket/audio.wav',
     });
-    expect(guardedFetch).toHaveBeenCalledWith(
-      'http://minio:9000/bucket/audio.wav',
-      expect.any(Object),
-      { allowedOrigins: ['http://minio:9000'], allowPrivateNetwork: true },
-    );
+
+    expect(world.requests).toEqual([
+      {
+        policy: {
+          allowPrivateNetwork: true,
+          allowedOrigins: ['http://minio:9000'],
+        },
+        url: 'http://minio:9000/bucket/audio.wav',
+      },
+    ]);
   });
 
   it('never probes or writes media when a private address or redirect is rejected', async () => {
-    guardedFetch.mockRejectedValue(new Error('Destination address is blocked'));
+    world.respond = () => {
+      throw new Error('Destination address is blocked');
+    };
+
     await expect(
       controller.getFileMetadata({ url: 'https://audio.example/redirect' }),
     ).rejects.toBeInstanceOf(HttpException);
-    expect(writeFileSync).not.toHaveBeenCalled();
-    expect(getVideoMetadata).not.toHaveBeenCalled();
+    expect(world.disk.size).toBe(0);
+    expect(probed).toEqual([]);
   });
 
   it('rejects oversized responses before buffering or probing', async () => {
-    guardedFetch.mockResolvedValue(
+    world.respond = () =>
       new Response('audio', {
         headers: { 'content-length': String(101 * 1024 * 1024) },
-      }),
-    );
+      });
+
     await expect(
       controller.getFileMetadata({ url: 'https://audio.example/large' }),
     ).rejects.toMatchObject({ status: 413 });
-    expect(writeFileSync).not.toHaveBeenCalled();
-    expect(getVideoMetadata).not.toHaveBeenCalled();
+    expect(world.disk.size).toBe(0);
+    expect(probed).toEqual([]);
   });
+
   it('refuses the Cloud files origin even for an authenticated caller', async () => {
     deployment.selfHosted = false;
-    guardedFetch.mockResolvedValue(new Response('audio'));
+
     await expect(
       controller.getFileMetadata({
         url: 'http://files:3012/v1/files/download/audios/other-tenant.wav',
       }),
     ).rejects.toMatchObject({ status: 400 });
-    expect(guardedFetch).not.toHaveBeenCalled();
-    expect(getVideoMetadata).not.toHaveBeenCalled();
+    expect(world.requests).toEqual([]);
+    expect(probed).toEqual([]);
   });
+
   it('accepts authenticated Cloud public narration with the public destination guard', async () => {
     deployment.selfHosted = false;
-    guardedFetch.mockResolvedValue(new Response('audio'));
+
     await controller.getFileMetadata({
       url: 'https://audio.example/narration.mp3',
     });
-    expect(guardedFetch).toHaveBeenCalledWith(
-      'https://audio.example/narration.mp3',
-      expect.anything(),
-      {},
-    );
+
+    expect(world.requests).toEqual([
+      { policy: {}, url: 'https://audio.example/narration.mp3' },
+    ]);
   });
 });

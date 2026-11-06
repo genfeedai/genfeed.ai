@@ -1,123 +1,86 @@
 import { VercelWebhookController } from '@api/endpoints/webhooks/vercel/webhooks.vercel.controller';
-import { VercelWebhookService } from '@api/endpoints/webhooks/vercel/webhooks.vercel.service';
-import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { VercelWebhookService } from '@api/endpoints/webhooks/vercel/webhooks.vercel.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: {
-    getCallerName: vi.fn().mockReturnValue('vercel callback'),
+    getCallerName: () => 'vercel callback',
   },
 }));
 
+// The fake signer accepts exactly `signed:<raw body>`, so a pass proves the
+// controller verified the raw bytes it received with the header it received.
+const sign = (rawBody: string) => `signed:${rawBody}`;
+
 describe('VercelWebhookController', () => {
   let controller: VercelWebhookController;
-  let vercelWebhookService: vi.Mocked<VercelWebhookService>;
-  let loggerService: vi.Mocked<LoggerService>;
+  let handled: unknown[];
+  let handlerFailure: Error | undefined;
+  let logs: Array<[string, unknown]>;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [VercelWebhookController],
-      providers: [
-        {
-          provide: VercelWebhookService,
-          useValue: {
-            handleWebhook: vi.fn(),
-            validateSignature: vi.fn(),
-          },
+  const deliver = (rawBody: string, signature = sign(rawBody)) =>
+    controller.handleVercel({
+      body: Buffer.from(rawBody),
+      headers: { 'x-vercel-signature': signature },
+    } as unknown as Request);
+
+  beforeEach(() => {
+    handled = [];
+    handlerFailure = undefined;
+    logs = [];
+    controller = new VercelWebhookController(
+      {
+        error: (message: string, detail: unknown) =>
+          logs.push([`error: ${message}`, detail]),
+        log: (message: string, detail: unknown) =>
+          logs.push([`log: ${message}`, detail]),
+      } as unknown as LoggerService,
+      {
+        handleWebhook: async (payload: unknown) => {
+          if (handlerFailure) {
+            throw handlerFailure;
+          }
+          handled.push(payload);
         },
-        {
-          provide: LoggerService,
-          useValue: {
-            error: vi.fn(),
-            log: vi.fn(),
-          },
-        },
-      ],
-    })
-      .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
-
-    controller = module.get<VercelWebhookController>(VercelWebhookController);
-    vercelWebhookService = module.get(VercelWebhookService);
-    loggerService = module.get(LoggerService);
-  });
-
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+        validateSignature: (rawBody: Buffer, signature: string) =>
+          signature === sign(rawBody.toString()),
+      } as unknown as VercelWebhookService,
+    );
   });
 
   describe('handleVercel', () => {
-    it('should handle webhook successfully with valid signature', async () => {
+    it('handles a correctly signed webhook', async () => {
       const payload = { data: 'test', type: 'deployment.ready' };
-      const signature = 'valid-signature';
-      const rawBody = Buffer.from(JSON.stringify(payload));
 
-      const mockRequest = {
-        body: rawBody,
-        headers: {
-          'x-vercel-signature': signature,
-        },
-      } as unknown as Request;
+      await expect(deliver(JSON.stringify(payload))).resolves.toEqual({
+        success: true,
+      });
 
-      vercelWebhookService.validateSignature.mockReturnValue(true);
-      vercelWebhookService.handleWebhook.mockResolvedValue(undefined);
-
-      const result = await controller.handleVercel(mockRequest);
-
-      expect(loggerService.log).toHaveBeenCalledWith(
-        'VercelWebhookController vercel callback received',
-        payload,
-      );
-      expect(vercelWebhookService.validateSignature).toHaveBeenCalledWith(
-        rawBody,
-        signature,
-      );
-      expect(vercelWebhookService.handleWebhook).toHaveBeenCalledWith(payload);
-      expect(result).toEqual({ success: true });
+      expect(handled).toEqual([payload]);
+      expect(logs).toEqual([
+        ['log: VercelWebhookController vercel callback received', payload],
+      ]);
     });
 
-    it('should throw UnauthorizedException with invalid signature', async () => {
+    it('rejects a bad signature before logging or handling the body', async () => {
       const payload = { data: 'test', type: 'deployment.ready' };
-      const signature = 'invalid-signature';
-      const rawBody = Buffer.from(JSON.stringify(payload));
 
-      const mockRequest = {
-        body: rawBody,
-        headers: {
-          'x-vercel-signature': signature,
-        },
-      } as unknown as Request;
+      await expect(
+        deliver(JSON.stringify(payload), 'invalid-signature'),
+      ).rejects.toThrow(UnauthorizedException);
 
-      vercelWebhookService.validateSignature.mockReturnValue(false);
-
-      await expect(controller.handleVercel(mockRequest)).rejects.toThrow(
-        UnauthorizedException,
-      );
-
-      expect(vercelWebhookService.validateSignature).toHaveBeenCalledWith(
-        rawBody,
-        signature,
-      );
-      expect(vercelWebhookService.handleWebhook).not.toHaveBeenCalled();
-      expect(loggerService.log).not.toHaveBeenCalled();
+      expect(handled).toEqual([]);
+      expect(logs.map(([message]) => message)).toEqual([
+        'error: VercelWebhookController vercel callback invalid signature',
+        'error: VercelWebhookController vercel callback failed',
+      ]);
     });
 
-    it('should reject a signed body that is not valid JSON with 400', async () => {
-      const mockRequest = {
-        body: Buffer.from('not json'),
-        headers: { 'x-vercel-signature': 'valid-signature' },
-      } as unknown as Request;
-
-      vercelWebhookService.validateSignature.mockReturnValue(true);
-
-      await expect(controller.handleVercel(mockRequest)).rejects.toThrow(
-        BadRequestException,
-      );
-      expect(vercelWebhookService.handleWebhook).not.toHaveBeenCalled();
+    it('rejects a signed body that is not valid JSON with 400', async () => {
+      await expect(deliver('not json')).rejects.toThrow(BadRequestException);
+      expect(handled).toEqual([]);
     });
 
     it.each([
@@ -128,21 +91,14 @@ describe('VercelWebhookController', () => {
         'a non-string commit sha',
         { deployment: { meta: { githubCommitSha: 1 } } },
       ],
-    ])('should reject a signed body with %s with 400', async (_label, body) => {
-      const mockRequest = {
-        body: Buffer.from(JSON.stringify(body)),
-        headers: { 'x-vercel-signature': 'valid-signature' },
-      } as unknown as Request;
-
-      vercelWebhookService.validateSignature.mockReturnValue(true);
-
-      await expect(controller.handleVercel(mockRequest)).rejects.toThrow(
+    ])('rejects a signed body with %s with 400', async (_label, body) => {
+      await expect(deliver(JSON.stringify(body))).rejects.toThrow(
         BadRequestException,
       );
-      expect(vercelWebhookService.handleWebhook).not.toHaveBeenCalled();
+      expect(handled).toEqual([]);
     });
 
-    it('should accept null optional fields and unknown keys', async () => {
+    it('accepts null optional fields and unknown keys', async () => {
       const payload = {
         deployment: {
           meta: { githubCommitMessage: null },
@@ -151,45 +107,28 @@ describe('VercelWebhookController', () => {
         extra: { anything: true },
         type: 'deployment.ready',
       };
-      const mockRequest = {
-        body: Buffer.from(JSON.stringify(payload)),
-        headers: { 'x-vercel-signature': 'valid-signature' },
-      } as unknown as Request;
 
-      vercelWebhookService.validateSignature.mockReturnValue(true);
-
-      await expect(controller.handleVercel(mockRequest)).resolves.toEqual({
+      await expect(deliver(JSON.stringify(payload))).resolves.toEqual({
         success: true,
       });
-      expect(vercelWebhookService.handleWebhook).toHaveBeenCalledWith(payload);
+      expect(handled).toEqual([payload]);
     });
 
-    it('should throw error when webhook handling fails', async () => {
+    it('logs and rethrows when handling the webhook fails', async () => {
       const payload = { data: 'test', type: 'deployment.failed' };
-      const signature = 'valid-signature';
-      const rawBody = Buffer.from(JSON.stringify(payload));
-      const error = new Error('Webhook processing failed');
+      handlerFailure = new Error('Webhook processing failed');
 
-      const mockRequest = {
-        body: rawBody,
-        headers: {
-          'x-vercel-signature': signature,
-        },
-      } as unknown as Request;
-
-      vercelWebhookService.validateSignature.mockReturnValue(true);
-      vercelWebhookService.handleWebhook.mockRejectedValue(error);
-
-      await expect(controller.handleVercel(mockRequest)).rejects.toThrow(error);
-
-      expect(loggerService.log).toHaveBeenCalledWith(
-        'VercelWebhookController vercel callback received',
-        payload,
+      await expect(deliver(JSON.stringify(payload))).rejects.toThrow(
+        handlerFailure,
       );
-      expect(loggerService.error).toHaveBeenCalledWith(
-        'VercelWebhookController vercel callback failed',
-        error,
-      );
+
+      expect(logs).toEqual([
+        ['log: VercelWebhookController vercel callback received', payload],
+        [
+          'error: VercelWebhookController vercel callback failed',
+          handlerFailure,
+        ],
+      ]);
     });
   });
 });

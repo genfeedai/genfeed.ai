@@ -1,369 +1,278 @@
-import { SystemEventsService } from '@api/services/system-events/system-events.service';
-
-vi.mock('@genfeedai/config', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@genfeedai/config')>();
-  return {
-    ...actual,
-    isSelfHostedDeployment: () => false,
-  };
-});
+vi.mock('@genfeedai/config', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/config')>()),
+  isSelfHostedDeployment: () => false,
+}));
 
 import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
 import { StripeWebhookErrorKind } from '@api/endpoints/webhooks/stripe/stripe-webhook-error.util';
 import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks.stripe.controller';
-import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
-import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { RedisService } from '@libs/redis/redis.service';
-import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import type { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
+import type { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import type { SystemEventsService } from '@api/services/system-events/system-events.service';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { RedisService } from '@libs/redis/redis.service';
+import {
+  BadRequestException,
+  type HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import type { Request } from 'express';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+type Row = Record<string, unknown>;
+type LogEntry = unknown[];
+
+const SIGNATURE = 'valid-signature';
 
 describe('StripeWebhookController', () => {
+  // The event Stripe signed, and everything a delivery leaves behind:
+  // the durable event log, handled events, claimed and released keys, and logs.
+  let event: Row;
+  let timeline: string[];
+  let recorded: Row[];
+  let handled: [Row, string][];
+  let claims: unknown[][];
+  let claimedKeys: Set<string>;
+  let releasedKeys: string[];
+  let logs: LogEntry[];
+  let warnings: LogEntry[];
+  let errors: LogEntry[];
+  let handlerFailure: unknown;
+  let isEventStoreDown: boolean;
   let controller: StripeWebhookController;
-  let stripeWebhookService: vi.Mocked<StripeWebhookService>;
-  let stripeService: { constructWebhookEvent: ReturnType<typeof vi.fn> };
-  let systemEvents: { recordStripeEvent: ReturnType<typeof vi.fn> };
-  let loggerService: vi.Mocked<LoggerService>;
 
-  const mockPublisher = {
-    del: vi.fn().mockResolvedValue(1),
-    set: vi.fn().mockResolvedValue('OK'),
+  const deliver = (headers: Row = { 'stripe-signature': SIGNATURE }) =>
+    controller.handleStripe({
+      body: Buffer.from('{}'),
+      headers,
+    } as unknown as Request);
+  const failWith = (error: unknown) => {
+    handlerFailure = error;
   };
 
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    mockPublisher.del.mockResolvedValue(1);
-    mockPublisher.set.mockResolvedValue('OK');
+  beforeEach(() => {
+    event = {
+      data: { object: { id: 'in_1' } },
+      id: 'evt_1',
+      type: 'invoice.paid',
+    };
+    timeline = [];
+    recorded = [];
+    handled = [];
+    claims = [];
+    claimedKeys = new Set();
+    releasedKeys = [];
+    logs = [];
+    warnings = [];
+    errors = [];
+    handlerFailure = undefined;
+    isEventStoreDown = false;
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [StripeWebhookController],
-      providers: [
-        {
-          provide: SystemEventsService,
-          useValue: { recordStripeEvent: vi.fn().mockResolvedValue(undefined) },
+    const publisher = {
+      del: async (key: string) => {
+        releasedKeys.push(key);
+        return Number(claimedKeys.delete(key));
+      },
+      // Redis SET NX: only the first delivery of an event id claims it.
+      set: async (key: string, ...options: unknown[]) => {
+        claims.push([key, ...options]);
+        if (claimedKeys.has(key)) return null;
+        claimedKeys.add(key);
+        return 'OK';
+      },
+    };
+    controller = new StripeWebhookController(
+      {
+        error: (...entry: unknown[]) => {
+          errors.push(entry);
         },
-        {
-          provide: StripeWebhookService,
-          useValue: {
-            handleWebhookEvent: vi.fn(),
-          },
+        log: (...entry: unknown[]) => {
+          logs.push(entry);
         },
-        {
-          provide: StripeService,
-          useValue: {
-            constructWebhookEvent: vi.fn(),
-          },
+        warn: (...entry: unknown[]) => {
+          warnings.push(entry);
         },
-        {
-          provide: LoggerService,
-          useValue: {
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
-          },
+      } as unknown as LoggerService,
+      { getPublisher: () => publisher } as unknown as RedisService,
+      {
+        constructWebhookEvent: async (_body: Buffer, signature?: string) => {
+          if (signature !== SIGNATURE) {
+            throw new BadRequestException('Invalid Stripe signature');
+          }
+          return event;
         },
-        {
-          provide: RedisService,
-          useValue: {
-            getPublisher: vi.fn().mockReturnValue(mockPublisher),
-          },
+      } as unknown as StripeService,
+      {
+        handleWebhookEvent: async (delivered: Row, url: string) => {
+          timeline.push('handled');
+          if (handlerFailure) throw handlerFailure;
+          handled.push([delivered, url]);
         },
-      ],
-    })
-      .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
-
-    controller = module.get<StripeWebhookController>(StripeWebhookController);
-    stripeWebhookService = module.get(StripeWebhookService);
-    stripeService = module.get(StripeService);
-    loggerService = module.get(LoggerService);
-    systemEvents = module.get(SystemEventsService);
+      } as unknown as StripeWebhookService,
+      {
+        recordStripeEvent: async (delivered: Row) => {
+          if (isEventStoreDown) throw new Error('Database unavailable');
+          timeline.push('recorded');
+          recorded.push(delivered);
+        },
+      } as unknown as SystemEventsService,
+    );
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
+  it('records, claims and handles a verified event once', async () => {
+    await expect(deliver()).resolves.toEqual({ success: true });
 
-  describe('handleStripe', () => {
-    const mockRequest = (body: unknown, signature?: string) =>
-      ({
-        body,
-        headers: {
-          'stripe-signature': signature || 'test-signature',
-        },
-      }) as unknown as Request;
-
-    it('fails before billing side effects if durable event persistence fails', async () => {
-      stripeService.constructWebhookEvent.mockResolvedValue({
-        id: 'evt_1',
-        type: 'invoice.paid',
-        data: { object: {} },
-      });
-      systemEvents.recordStripeEvent.mockRejectedValue(
-        new Error('Database unavailable'),
-      );
-      await expect(
-        controller.handleStripe(mockRequest(Buffer.from('{}'))),
-      ).rejects.toThrow('Database unavailable');
-      expect(stripeWebhookService.handleWebhookEvent).not.toHaveBeenCalled();
-      expect(mockPublisher.set).not.toHaveBeenCalled();
-    });
-
-    it('persists provider activity even if billing rejects it as non-retryable', async () => {
-      const event = { id: 'evt_1', type: 'invoice.paid', data: { object: {} } };
-      stripeService.constructWebhookEvent.mockResolvedValue(event);
-      stripeWebhookService.handleWebhookEvent.mockRejectedValue(
-        new BadRequestException('Invalid billing metadata'),
-      );
-      await controller
-        .handleStripe(mockRequest(Buffer.from('{}')))
-        .catch(() => undefined);
-      expect(systemEvents.recordStripeEvent).toHaveBeenCalledWith(event);
-      expect(
-        systemEvents.recordStripeEvent.mock.invocationCallOrder[0],
-      ).toBeLessThan(
-        stripeWebhookService.handleWebhookEvent.mock.invocationCallOrder[0],
-      );
-    });
-
-    it('should handle webhook successfully', async () => {
-      const rawBody = Buffer.from('{"type":"payment_intent.succeeded"}');
-      const mockEvent = {
-        data: { object: { id: 'pi_123' } },
-        id: 'evt_123',
-        type: 'payment_intent.succeeded',
-      };
-      const request = mockRequest(rawBody, 'valid-signature');
-
-      stripeService.constructWebhookEvent.mockResolvedValue(mockEvent);
-      stripeWebhookService.handleWebhookEvent.mockResolvedValue(undefined);
-
-      const result = await controller.handleStripe(request);
-
-      expect(stripeService.constructWebhookEvent).toHaveBeenCalledWith(
-        rawBody,
-        'valid-signature',
-      );
-      expect(loggerService.log).toHaveBeenCalledWith(
+    expect(recorded).toEqual([event]);
+    expect(handled).toEqual([
+      [event, expect.stringContaining('StripeWebhookController')],
+    ]);
+    expect(claims).toEqual([
+      ['stripe:webhook:evt_1', expect.any(String), 'EX', 86_400, 'NX'],
+    ]);
+    expect(logs).toEqual([
+      [
         expect.stringContaining('webhook validated'),
-        { id: 'evt_123', type: 'payment_intent.succeeded' },
-      );
-      expect(stripeWebhookService.handleWebhookEvent).toHaveBeenCalledWith(
-        mockEvent,
-        expect.stringContaining('StripeWebhookController'),
-      );
-      expect(result).toEqual({ success: true });
-    });
+        { id: 'evt_1', type: 'invoice.paid' },
+      ],
+    ]);
+  });
 
-    it('acquires the idempotency key atomically (SET NX) before processing', async () => {
-      const rawBody = Buffer.from('{"type":"invoice.paid"}');
-      const mockEvent = {
-        data: { object: { id: 'in_1' } },
-        id: 'evt_nx',
+  it('skips a duplicate delivery of an event another delivery already claimed', async () => {
+    await deliver();
+
+    await expect(deliver()).resolves.toEqual({ success: true });
+
+    expect(handled).toHaveLength(1);
+    expect(recorded).toHaveLength(2);
+    expect(logs).toContainEqual([
+      expect.stringContaining('duplicate event skipped'),
+      {
+        id: 'evt_1',
+        kind: StripeWebhookErrorKind.IDEMPOTENT,
         type: 'invoice.paid',
-      };
-      const request = mockRequest(rawBody, 'valid-signature');
+      },
+    ]);
+  });
 
-      stripeService.constructWebhookEvent.mockResolvedValue(mockEvent);
-      mockPublisher.set.mockResolvedValueOnce('OK');
+  it('fails before any billing effect or key claim when the event log is down', async () => {
+    isEventStoreDown = true;
 
-      await controller.handleStripe(request);
+    await expect(deliver()).rejects.toThrow('Database unavailable');
+    expect(handled).toEqual([]);
+    expect(claims).toEqual([]);
+  });
 
-      expect(mockPublisher.set).toHaveBeenCalledWith(
-        'stripe:webhook:evt_nx',
-        expect.any(String),
-        'EX',
-        expect.any(Number),
-        'NX',
-      );
-      expect(stripeWebhookService.handleWebhookEvent).toHaveBeenCalledTimes(1);
-    });
+  it('persists provider activity before billing rejects it as non-retryable', async () => {
+    failWith(new BadRequestException('Invalid billing metadata'));
 
-    it('skips processing when another delivery already holds the idempotency key', async () => {
-      const rawBody = Buffer.from('{"type":"invoice.paid"}');
-      const mockEvent = {
-        data: { object: { id: 'in_1' } },
-        id: 'evt_dup',
-        type: 'invoice.paid',
-      };
-      const request = mockRequest(rawBody, 'valid-signature');
+    await deliver().catch(() => undefined);
 
-      stripeService.constructWebhookEvent.mockResolvedValue(mockEvent);
-      // SET NX returns null when the key already exists — concurrent duplicate
-      mockPublisher.set.mockResolvedValueOnce(null);
+    expect(recorded).toEqual([event]);
+    expect(timeline).toEqual(['recorded', 'handled']);
+  });
 
-      const result = await controller.handleStripe(request);
-
-      expect(stripeWebhookService.handleWebhookEvent).not.toHaveBeenCalled();
-      expect(result).toEqual({ success: true });
-      expect(loggerService.log).toHaveBeenCalledWith(
-        expect.stringContaining('duplicate event skipped'),
-        {
-          id: 'evt_dup',
-          kind: StripeWebhookErrorKind.IDEMPOTENT,
-          type: 'invoice.paid',
-        },
-      );
-    });
-
-    it('rejects an invalid signature as 400 without remapping to 500', async () => {
-      const rawBody = Buffer.from('{"type":"invalid"}');
-      const request = mockRequest(rawBody, 'invalid-signature');
-      const signatureError = new BadRequestException(
-        'Invalid Stripe signature',
+  it.each([
+    ['an invalid', { 'stripe-signature': 'invalid-signature' }],
+    ['a missing', {}],
+  ])(
+    'rejects %s signature as 400 without recording or claiming',
+    async (_case, headers) => {
+      const thrown = await deliver(headers).catch(
+        (error: HttpException) => error,
       );
 
-      stripeService.constructWebhookEvent.mockRejectedValue(signatureError);
-
-      const thrown = await controller
-        .handleStripe(request)
-        .catch((error: unknown) => error);
-
-      expect(thrown).toBe(signatureError);
       expect((thrown as HttpException).getStatus()).toBe(
         HttpStatus.BAD_REQUEST,
       );
+      expect(warnings).toEqual([
+        [
+          expect.stringContaining('webhook signature rejected'),
+          {
+            errorName: 'BadRequestException',
+            kind: StripeWebhookErrorKind.SIGNATURE,
+          },
+        ],
+      ]);
+      expect(errors).toEqual([]);
+      expect(recorded).toEqual([]);
+      expect(releasedKeys).toEqual([]);
+    },
+  );
 
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('webhook signature rejected'),
-        {
-          errorName: 'BadRequestException',
-          kind: StripeWebhookErrorKind.SIGNATURE,
-        },
-      );
-      expect(loggerService.error).not.toHaveBeenCalledWith(
+  it('reports a real handler fault and releases the key for redelivery', async () => {
+    const fault = new Error('Processing failed');
+    failWith(fault);
+    event = { ...event, id: 'evt_456', type: 'customer.created' };
+
+    await expect(deliver()).rejects.toBe(fault);
+
+    expect(errors).toEqual([
+      [
         expect.stringContaining('processing failed'),
-        expect.anything(),
-        expect.anything(),
-      );
-      expect(mockPublisher.del).not.toHaveBeenCalled();
-    });
-
-    it('does not wrap a real handler fault in Webhook processing failed', async () => {
-      const rawBody = Buffer.from('{"type":"customer.created"}');
-      const mockEvent = {
-        data: { object: { id: 'cus_123' } },
-        id: 'evt_456',
-        type: 'customer.created',
-      };
-      const request = mockRequest(rawBody);
-      const serviceError = new Error('Processing failed');
-
-      stripeService.constructWebhookEvent.mockResolvedValue(mockEvent);
-      stripeWebhookService.handleWebhookEvent.mockRejectedValue(serviceError);
-
-      await expect(controller.handleStripe(request)).rejects.toBe(serviceError);
-
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('processing failed'),
-        serviceError,
+        fault,
         {
           errorName: 'Error',
           eventId: 'evt_456',
           eventType: 'customer.created',
           kind: StripeWebhookErrorKind.FAULT,
         },
-      );
-      expect(mockPublisher.del).toHaveBeenCalledWith('stripe:webhook:evt_456');
-    });
+      ],
+    ]);
+    expect(releasedKeys).toEqual(['stripe:webhook:evt_456']);
+    expect(claimedKeys.has('stripe:webhook:evt_456')).toBe(false);
+  });
 
-    it('rejects a missing stripe signature as 400', async () => {
-      const rawBody = Buffer.from('{"type":"test"}');
-      const request = mockRequest(rawBody, undefined);
-      const signatureError = new BadRequestException(
-        'Invalid Stripe signature',
-      );
+  it('passes an expected handler 4xx through and keeps the key', async () => {
+    const expected = new BadRequestException(
+      'Managed checkout is not configured',
+    );
+    failWith(expected);
 
-      stripeService.constructWebhookEvent.mockRejectedValue(signatureError);
+    await expect(deliver()).rejects.toBe(expected);
 
-      const thrown = await controller
-        .handleStripe(request)
-        .catch((error) => error);
-
-      expect(thrown).toBeInstanceOf(BadRequestException);
-      expect((thrown as HttpException).getStatus()).toBe(
-        HttpStatus.BAD_REQUEST,
-      );
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('webhook signature rejected'),
-        expect.objectContaining({ kind: StripeWebhookErrorKind.SIGNATURE }),
-      );
-    });
-
-    it('passes through expected handler 4xx without a generic 500', async () => {
-      const mockEvent = {
-        data: { object: { id: 'cs_1' } },
-        id: 'evt_expected',
-        type: 'checkout.session.completed',
-      };
-      const expected = new BadRequestException(
-        'Managed checkout is not configured',
-      );
-
-      stripeService.constructWebhookEvent.mockResolvedValue(mockEvent);
-      stripeWebhookService.handleWebhookEvent.mockRejectedValue(expected);
-
-      await expect(
-        controller.handleStripe(mockRequest(Buffer.from('{}'))),
-      ).rejects.toBe(expected);
-
-      expect(loggerService.warn).toHaveBeenCalledWith(
+    expect(warnings).toEqual([
+      [
         expect.stringContaining('webhook expected rejected'),
         expect.objectContaining({
-          eventId: 'evt_expected',
+          eventId: 'evt_1',
           kind: StripeWebhookErrorKind.EXPECTED,
         }),
-      );
-      expect(mockPublisher.del).not.toHaveBeenCalled();
-    });
+      ],
+    ]);
+    expect(releasedKeys).toEqual([]);
+  });
 
-    it('acknowledges a Prisma unique-constraint replay instead of 500', async () => {
-      const mockEvent = {
-        data: { object: { id: 'in_1' } },
-        id: 'evt_replay',
-        type: 'invoice.paid',
-      };
+  it('acknowledges a Prisma unique-constraint replay instead of a 500', async () => {
+    failWith({ code: 'P2002' });
 
-      stripeService.constructWebhookEvent.mockResolvedValue(mockEvent);
-      stripeWebhookService.handleWebhookEvent.mockRejectedValue({
-        code: 'P2002',
-      });
+    await expect(deliver()).resolves.toEqual({ success: true });
 
-      const result = await controller.handleStripe(
-        mockRequest(Buffer.from('{}')),
-      );
-
-      expect(result).toEqual({ success: true });
-      expect(loggerService.warn).toHaveBeenCalledWith(
+    expect(warnings).toEqual([
+      [
         expect.stringContaining('webhook replay acknowledged'),
         expect.objectContaining({
-          eventId: 'evt_replay',
+          eventId: 'evt_1',
           kind: StripeWebhookErrorKind.REPLAY,
         }),
-      );
-      expect(mockPublisher.del).not.toHaveBeenCalled();
-    });
+      ],
+    ]);
+    expect(releasedKeys).toEqual([]);
+  });
 
-    it('rejects the retryable identity_missing billing error as 503 and releases the event key', async () => {
-      const mockEvent = {
-        data: { object: { id: 'sub_1' } },
-        id: 'evt_missing',
-        type: 'customer.subscription.created',
-      };
-      const missing = new StripeWebhookBillingError('identity_missing');
+  it('rejects a retryable identity_missing billing error as 503 and releases the key', async () => {
+    const missing = new StripeWebhookBillingError('identity_missing');
+    failWith(missing);
+    event = {
+      ...event,
+      id: 'evt_missing',
+      type: 'customer.subscription.created',
+    };
 
-      stripeService.constructWebhookEvent.mockResolvedValue(mockEvent);
-      stripeWebhookService.handleWebhookEvent.mockRejectedValue(missing);
+    await expect(deliver()).rejects.toBe(missing);
 
-      await expect(
-        controller.handleStripe(mockRequest(Buffer.from('{}'))),
-      ).rejects.toBe(missing);
-
-      expect(missing.getStatus()).toBe(HttpStatus.SERVICE_UNAVAILABLE);
-      expect(loggerService.warn).toHaveBeenCalledExactlyOnceWith(
+    expect(missing.getStatus()).toBe(HttpStatus.SERVICE_UNAVAILABLE);
+    expect(warnings).toEqual([
+      [
         expect.stringContaining('webhook billing rejected'),
         {
           code: 'identity_missing',
@@ -372,49 +281,38 @@ describe('StripeWebhookController', () => {
           eventType: 'customer.subscription.created',
           kind: StripeWebhookErrorKind.BILLING,
         },
-      );
-      expect(loggerService.error).not.toHaveBeenCalled();
-      expect(mockPublisher.del).toHaveBeenCalledWith(
-        'stripe:webhook:evt_missing',
-      );
-    });
+      ],
+    ]);
+    expect(errors).toEqual([]);
+    expect(releasedKeys).toEqual(['stripe:webhook:evt_missing']);
+  });
 
-    it.each([
-      'invalid_payload',
-      'identity_conflict',
-      'identity_ambiguous',
-    ] as const)(
-      'acknowledges deterministic %s with one structured warning and keeps the event key',
-      async (code) => {
-        const mockEvent = {
-          data: { object: { id: 'in_1' } },
-          id: `evt_${code}`,
-          type: 'invoice.paid',
-        };
+  it.each([
+    'invalid_payload',
+    'identity_conflict',
+    'identity_ambiguous',
+  ] as const)(
+    'acknowledges deterministic %s with one structured warning and keeps the key',
+    async (code) => {
+      failWith(new StripeWebhookBillingError(code));
 
-        stripeService.constructWebhookEvent.mockResolvedValue(mockEvent);
-        stripeWebhookService.handleWebhookEvent.mockRejectedValue(
-          new StripeWebhookBillingError(code),
-        );
+      await expect(deliver()).resolves.toEqual({ success: true });
 
-        const result = await controller.handleStripe(
-          mockRequest(Buffer.from('{}')),
-        );
-
-        expect(result).toEqual({ success: true });
-        expect(loggerService.warn).toHaveBeenCalledExactlyOnceWith(
+      expect(warnings).toEqual([
+        [
           expect.stringContaining('webhook billing acknowledged'),
           {
             code,
             errorName: 'StripeWebhookBillingError',
-            eventId: `evt_${code}`,
+            eventId: 'evt_1',
             eventType: 'invoice.paid',
             kind: StripeWebhookErrorKind.BILLING,
           },
-        );
-        expect(loggerService.error).not.toHaveBeenCalled();
-        expect(mockPublisher.del).not.toHaveBeenCalled();
-      },
-    );
-  });
+        ],
+      ]);
+      expect(errors).toEqual([]);
+      expect(releasedKeys).toEqual([]);
+      expect(claimedKeys.has('stripe:webhook:evt_1')).toBe(true);
+    },
+  );
 });

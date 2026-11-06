@@ -27,11 +27,14 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AgentThreadLightViewProps } from '@/components/workspace-shell/props/agent-threads-panel.props';
 import { collectThreadAssets } from './agent-thread-assets.util';
 
 const MESSAGE_LIMIT = 20;
+// While the thread runs, its transcript is re-read this often so the work
+// shows up here as it lands instead of only after a reload.
+const RUNNING_REFRESH_MS = 4000;
 
 /**
  * A thread seen from the master's Threads panel, laid out like the master
@@ -58,7 +61,11 @@ export default function AgentThreadLightView({
   const [hasDecisionFailed, setHasDecisionFailed] = useState(false);
   // The plan this view just approved or sent back. Its card stops offering a
   // decision at once, before the reloaded messages show the plan's new state.
-  const [decidedPlanId, setDecidedPlanId] = useState<string | null>(null);
+  const [decidedPlan, setDecidedPlan] = useState<{
+    action: 'approve_plan' | 'revise_plan';
+    id: string;
+  } | null>(null);
+  const decidedPlanId = decidedPlan?.id ?? null;
   const updateThread = useAgentChatStore((state) => state.updateThread);
 
   const status = getThreadStatusMeta(thread);
@@ -104,6 +111,28 @@ export default function AgentThreadLightView({
     void loadMessages(controller.signal);
     return () => controller.abort();
   }, [loadMessages]);
+
+  // A running thread (for example right after its plan was approved) shows
+  // its new messages as they land, and once more when the run settles.
+  const isWorking = status?.tone === 'running';
+  const wasWorkingRef = useRef(isWorking);
+  useEffect(() => {
+    const controller = new AbortController();
+    if (wasWorkingRef.current && !isWorking) {
+      void loadMessages(controller.signal);
+    }
+    wasWorkingRef.current = isWorking;
+    if (!isWorking) {
+      return () => controller.abort();
+    }
+    const intervalId = window.setInterval(() => {
+      void loadMessages(controller.signal);
+    }, RUNNING_REFRESH_MS);
+    return () => {
+      window.clearInterval(intervalId);
+      controller.abort();
+    };
+  }, [isWorking, loadMessages]);
 
   // The composer clears itself once this resolves; a rejection keeps the draft.
   const handleSteer = useCallback(
@@ -154,7 +183,7 @@ export default function AgentThreadLightView({
             expectedContextVersion: thread.contextVersion,
           },
         );
-        setDecidedPlanId(latestPlan.id);
+        setDecidedPlan({ action, id: latestPlan.id });
         updateThread(thread.id, {
           attentionState: 'running',
           pendingInputCount: 0,
@@ -192,6 +221,16 @@ export default function AgentThreadLightView({
             decidePlan('revise_plan', { revisionNote }),
         }
       : undefined;
+
+  // Approved here, the card reads Approved at once; the reloaded transcript
+  // catches up with the same state once the run records it.
+  const displayedPlan =
+    latestPlan &&
+    decidedPlan?.action === 'approve_plan' &&
+    decidedPlan.id === latestPlan.id &&
+    latestPlan.status === 'awaiting_approval'
+      ? { ...latestPlan, status: 'approved' as const }
+      : latestPlan;
 
   const title = thread.title?.trim() || translate('untitled');
   const toggleLabel = translate(isResolved ? 'reopen' : 'resolve');
@@ -289,8 +328,8 @@ export default function AgentThreadLightView({
               />
             ))
           )}
-          {latestPlan ? (
-            <AgentPlanCard decision={planDecision} plan={latestPlan} />
+          {displayedPlan ? (
+            <AgentPlanCard decision={planDecision} plan={displayedPlan} />
           ) : null}
           {hasDecisionFailed ? (
             <p className="text-sm text-destructive" role="alert">

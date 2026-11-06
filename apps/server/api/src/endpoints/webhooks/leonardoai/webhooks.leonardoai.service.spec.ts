@@ -1,223 +1,122 @@
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { LeonardoaiWebhookService } from '@api/endpoints/webhooks/leonardoai/webhooks.leonardoai.service';
-import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
-import { testId } from '@helpers/testing/test-id.helper';
 import type { LeonardoAIWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-function createMockDeps() {
-  return {
-    logger: {
-      debug: vi.fn(),
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
-    },
-    metadataService: {
-      findOne: vi.fn(),
-      findOneSelect: delegateFindOneSelect(),
-      patch: vi.fn(),
-    },
-  };
+interface Metadata {
+  error?: string;
+  id: string;
+  patchCount: number;
+  result?: string;
 }
 
+const callback = (
+  fields: Partial<LeonardoAIWebhookPayload>,
+): LeonardoAIWebhookPayload =>
+  ({
+    customId: 'metadata-1',
+    data: null,
+    generationId: 'gen-123',
+    ...fields,
+  }) as LeonardoAIWebhookPayload;
+
 describe('LeonardoaiWebhookService', () => {
+  let metadata: Map<string, Metadata>;
   let service: LeonardoaiWebhookService;
-  let deps: ReturnType<typeof createMockDeps>;
 
-  beforeEach(async () => {
-    deps = createMockDeps();
+  beforeEach(() => {
+    metadata = new Map([['metadata-1', { id: 'metadata-1', patchCount: 0 }]]);
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        LeonardoaiWebhookService,
-        { provide: LoggerService, useValue: deps.logger },
-        { provide: MetadataService, useValue: deps.metadataService },
-      ],
-    }).compile();
+    const metadataService = {
+      findOneSelect: async (where: { id: string }) => {
+        const row = metadata.get(where.id);
+        return row ? { id: row.id } : null;
+      },
+      patch: async (id: string, data: Partial<Metadata>) => {
+        const row = metadata.get(id);
+        if (row) {
+          Object.assign(row, data, { patchCount: row.patchCount + 1 });
+        }
+        return row;
+      },
+    } as unknown as MetadataService;
+    const logger = {
+      log: () => undefined,
+      warn: () => undefined,
+    } as unknown as LoggerService;
 
-    service = module.get<LeonardoaiWebhookService>(LeonardoaiWebhookService);
+    service = new LeonardoaiWebhookService(logger, metadataService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  it('should return early when no generationId', async () => {
-    const body = { customId: 'abc', data: null } as LeonardoAIWebhookPayload;
-
-    await service.handleCallback(body);
-
-    expect(deps.logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('no generationId'),
+  it('stores the first image URL of a completed generation', async () => {
+    await service.handleCallback(
+      callback({
+        images: [
+          { url: 'https://cdn.leonardo.ai/img1.png' },
+          { url: 'https://cdn.leonardo.ai/img2.png' },
+        ],
+        status: 'COMPLETE',
+      } as Partial<LeonardoAIWebhookPayload>),
     );
-    expect(deps.metadataService.findOne).not.toHaveBeenCalled();
-  });
 
-  it('should return early when no customId', async () => {
-    const body = {
-      data: null,
-      generationId: 'gen-123',
-    } as LeonardoAIWebhookPayload;
-
-    await service.handleCallback(body);
-
-    expect(deps.logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('no customId'),
-    );
-    expect(deps.metadataService.findOne).not.toHaveBeenCalled();
-  });
-
-  it('should return early when metadata not found', async () => {
-    const metadataId = testId('metadata');
-    const body = {
-      customId: metadataId,
-      data: null,
-      generationId: 'gen-123',
-      status: 'COMPLETE',
-    } as LeonardoAIWebhookPayload;
-
-    deps.metadataService.findOne.mockResolvedValue(null);
-
-    await service.handleCallback(body);
-
-    expect(deps.logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('metadata not found'),
-      expect.objectContaining({ metadataId }),
-    );
-    expect(deps.metadataService.patch).not.toHaveBeenCalled();
-  });
-
-  it('should store first image URL on COMPLETE with images', async () => {
-    const metadataId = testId('metadata');
-    const body = {
-      customId: metadataId,
-      data: null,
-      generationId: 'gen-123',
-      images: [
-        { url: 'https://cdn.leonardo.ai/img1.png' },
-        { url: 'https://cdn.leonardo.ai/img2.png' },
-      ],
-      status: 'COMPLETE',
-    } as LeonardoAIWebhookPayload;
-
-    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
-    deps.metadataService.patch.mockResolvedValue({});
-
-    await service.handleCallback(body);
-
-    expect(deps.metadataService.patch).toHaveBeenCalledWith(
-      metadataId,
-      expect.objectContaining({
-        result: 'https://cdn.leonardo.ai/img1.png',
-      }),
-    );
-  });
-
-  it('should stringify images array when first image has no url', async () => {
-    const metadataId = testId('metadata');
-    const images = [{ id: 'img-1' }];
-    const body = {
-      customId: metadataId,
-      data: null,
-      generationId: 'gen-123',
-      images,
-      status: 'COMPLETE',
-    } as LeonardoAIWebhookPayload;
-
-    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
-    deps.metadataService.patch.mockResolvedValue({});
-
-    await service.handleCallback(body);
-
-    expect(deps.metadataService.patch).toHaveBeenCalledWith(
-      metadataId,
-      expect.objectContaining({
-        result: JSON.stringify(images),
-      }),
-    );
-  });
-
-  it('should set error on FAILED status', async () => {
-    const metadataId = testId('metadata');
-    const body = {
-      customId: metadataId,
-      data: null,
-      generationId: 'gen-123',
-      status: 'FAILED',
-    } as LeonardoAIWebhookPayload;
-
-    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
-    deps.metadataService.patch.mockResolvedValue({});
-
-    await service.handleCallback(body);
-
-    expect(deps.metadataService.patch).toHaveBeenCalledWith(
-      metadataId,
-      expect.objectContaining({
-        error: 'Image generation failed',
-      }),
-    );
-  });
-
-  it('should patch with empty object for non-COMPLETE non-FAILED status', async () => {
-    const metadataId = testId('metadata');
-    const body = {
-      customId: metadataId,
-      data: null,
-      generationId: 'gen-123',
-      status: 'PROCESSING',
-    } as LeonardoAIWebhookPayload;
-
-    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
-    deps.metadataService.patch.mockResolvedValue({});
-
-    await service.handleCallback(body);
-
-    expect(deps.metadataService.patch).toHaveBeenCalledWith(metadataId, {});
-  });
-
-  it('should look up metadata with correct filter', async () => {
-    const metadataId = testId('metadata');
-    const body = {
-      customId: metadataId,
-      data: null,
-      generationId: 'gen-123',
-      status: 'COMPLETE',
-    } as LeonardoAIWebhookPayload;
-
-    deps.metadataService.findOne.mockResolvedValue(null);
-
-    await service.handleCallback(body);
-
-    expect(deps.metadataService.findOne).toHaveBeenCalledWith({
-      id: metadataId,
+    expect(metadata.get('metadata-1')).toEqual({
+      id: 'metadata-1',
+      patchCount: 1,
+      result: 'https://cdn.leonardo.ai/img1.png',
     });
   });
 
-  it('should log completion with generationId, metadataId, and status', async () => {
-    const metadataId = testId('metadata');
-    const body = {
-      customId: metadataId,
-      data: null,
-      generationId: 'gen-xyz',
-      status: 'COMPLETE',
-    } as LeonardoAIWebhookPayload;
+  it('stores the whole image list when the first image has no URL', async () => {
+    const images = [{ id: 'img-1' }];
 
-    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
-    deps.metadataService.patch.mockResolvedValue({});
-
-    await service.handleCallback(body);
-
-    expect(deps.logger.log).toHaveBeenCalledWith(
-      expect.stringContaining('completed'),
-      expect.objectContaining({
-        generationId: 'gen-xyz',
-        metadataId,
+    await service.handleCallback(
+      callback({
+        images,
         status: 'COMPLETE',
-      }),
+      } as Partial<LeonardoAIWebhookPayload>),
     );
+
+    expect(metadata.get('metadata-1')?.result).toBe(JSON.stringify(images));
+  });
+
+  it('records the failure of a failed generation', async () => {
+    await service.handleCallback(callback({ status: 'FAILED' }));
+
+    expect(metadata.get('metadata-1')).toEqual({
+      error: 'Image generation failed',
+      id: 'metadata-1',
+      patchCount: 1,
+    });
+  });
+
+  it.each([
+    ['a generation still running', 'PROCESSING'],
+    ['a completed generation without images', 'COMPLETE'],
+  ])('touches no result or error for %s', async (_case, status) => {
+    await service.handleCallback(callback({ status }));
+
+    expect(metadata.get('metadata-1')).toEqual({
+      id: 'metadata-1',
+      patchCount: 1,
+    });
+  });
+
+  it.each([
+    ['no generation id', { generationId: undefined }],
+    ['no custom id', { customId: undefined }],
+    ['unknown metadata', { customId: 'metadata-missing' }],
+  ])('ignores a callback with %s', async (_case, fields) => {
+    await service.handleCallback(
+      callback({
+        ...fields,
+        images: [{ url: 'https://cdn.leonardo.ai/img1.png' }],
+        status: 'COMPLETE',
+      } as Partial<LeonardoAIWebhookPayload>),
+    );
+
+    expect([...metadata.values()]).toEqual([
+      { id: 'metadata-1', patchCount: 0 },
+    ]);
   });
 });

@@ -1,107 +1,155 @@
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { ReviewablePostsService } from '@api/collections/posts/services/reviewable-posts.service';
-import { SkillsService } from '@api/collections/skills/services/skills.service';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { ReviewablePostsService } from '@api/collections/posts/services/reviewable-posts.service';
+import type { SkillsService } from '@api/collections/skills/services/skills.service';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
-import { SkillWorkflowService } from '@api/services/skill-executor/skill-executor.service';
+import type { SkillWorkflowService } from '@api/services/skill-executor/skill-executor.service';
 import { testId } from '@helpers/testing/test-id.helper';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { LoggerService } from '@libs/logger/logger.service';
+
+interface BrandRow {
+  agentConfig?: Record<string, unknown>;
+  id: string;
+  organizationId: string;
+}
+
+interface SkillRun {
+  context: Record<string, unknown>;
+  params: unknown;
+  skillSlug: string;
+  userId: unknown;
+}
 
 describe('ContentGatewayService', () => {
+  const organizationId = testId('org');
+  const brandId = testId('brand');
+
+  let brands: BrandRow[];
+  let enabledSkills: string[];
+  let skillRuns: SkillRun[];
+  let savedPosts: Array<Record<string, unknown>>;
   let service: ContentGatewayService;
-  let brandsService: { findOne: ReturnType<typeof vi.fn> };
-  let skillsService: { getEnabledSkillSlugs: ReturnType<typeof vi.fn> };
-  let skillWorkflowService: { execute: ReturnType<typeof vi.fn> };
-  let reviewablePostsService: {
-    createFromSkillExecution: ReturnType<typeof vi.fn>;
-  };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ContentGatewayService,
-        {
-          provide: BrandsService,
-          useValue: { findOne: vi.fn().mockResolvedValue({ id: 'brand' }) },
-        },
-        {
-          provide: SkillsService,
-          useValue: {
-            getEnabledSkillSlugs: vi
-              .fn()
-              .mockResolvedValue(['content-writing']),
-          },
-        },
-        {
-          provide: SkillWorkflowService,
-          useValue: {
-            execute: vi.fn().mockResolvedValue({
-              draft: {
-                content: 'hello',
-                metadata: {},
-                platforms: [],
-                skillSlug: 'content-writing',
-                type: 'text',
-              },
-              executionId: 'execution-1',
-            }),
-          },
-        },
-        {
-          provide: ReviewablePostsService,
-          useValue: {
-            createFromSkillExecution: vi
-              .fn()
-              .mockResolvedValue([{ id: 'post-1', description: 'hello' }]),
-          },
-        },
-        {
-          provide: LoggerService,
-          useValue: {
-            debug: vi.fn(),
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
-          },
-        },
-      ],
-    }).compile();
+  beforeEach(() => {
+    brands = [{ id: brandId, organizationId }];
+    enabledSkills = ['content-writing'];
+    skillRuns = [];
+    savedPosts = [];
 
-    service = module.get(ContentGatewayService);
-    brandsService = module.get(BrandsService);
-    skillsService = module.get(SkillsService);
-    skillWorkflowService = module.get(SkillWorkflowService);
-    reviewablePostsService = module.get(ReviewablePostsService);
+    const brandsService = {
+      findOne: async (where: { id: string; organizationId: string }) =>
+        brands.find(
+          (row) =>
+            row.id === where.id && row.organizationId === where.organizationId,
+        ) ?? null,
+    };
+    const skillsService = {
+      getEnabledSkillSlugs: async (
+        _organizationId: string,
+        _brandId: string,
+        requested?: string[],
+      ) =>
+        requested
+          ? enabledSkills.filter((slug) => requested.includes(slug))
+          : enabledSkills,
+    };
+    const skillWorkflowService = {
+      execute: async (
+        skillSlug: string,
+        context: Record<string, unknown>,
+        params: unknown,
+        userId: unknown,
+      ) => {
+        skillRuns.push({ context, params, skillSlug, userId });
+        const executionId = `execution-${skillRuns.length}`;
+        return {
+          draft: {
+            content: `draft from ${skillSlug}`,
+            metadata: {},
+            platforms: [],
+            skillSlug,
+            type: 'text',
+          },
+          executionId,
+        };
+      },
+    };
+    const reviewablePostsService = {
+      createFromSkillExecution: async (input: {
+        drafts: Array<{ content: string }>;
+        executionId: string;
+      }) => {
+        savedPosts.push(input as unknown as Record<string, unknown>);
+        return input.drafts.map((draft) => ({
+          description: draft.content,
+          id: `post-for-${input.executionId}`,
+        }));
+      },
+    };
+    const logger = { debug: () => {}, error: () => {}, log: () => {} };
+
+    service = new ContentGatewayService(
+      brandsService as unknown as BrandsService,
+      skillsService as unknown as SkillsService,
+      skillWorkflowService as unknown as SkillWorkflowService,
+      reviewablePostsService as unknown as ReviewablePostsService,
+      logger as unknown as LoggerService,
+    );
   });
 
-  afterEach(() => vi.clearAllMocks());
+  it('routes a signal through each enabled skill and saves its draft as a reviewable post', async () => {
+    enabledSkills = ['content-writing', 'thread-expansion'];
 
-  it('routes a signal and returns posts with workflow executions', async () => {
     const result = await service.routeSignal({
-      brandId: testId('brand'),
-      organizationId: testId('org'),
+      brandId,
+      organizationId,
       payload: { campaignId: 'ccampaign0001', skillSlugs: ['content-writing'] },
+      type: 'cron',
+      userId: 'user-1',
+    });
+
+    expect(result).toEqual({
+      executions: ['execution-1'],
+      posts: [
+        {
+          description: 'draft from content-writing',
+          id: 'post-for-execution-1',
+        },
+      ],
+    });
+    expect(savedPosts).toEqual([
+      expect.objectContaining({
+        brandId,
+        campaignId: 'ccampaign0001',
+        executionId: 'execution-1',
+        organizationId,
+        skillSlug: 'content-writing',
+        userId: 'user-1',
+      }),
+    ]);
+  });
+
+  it('runs every enabled skill when the signal names none', async () => {
+    enabledSkills = ['content-writing', 'thread-expansion'];
+
+    const result = await service.routeSignal({
+      brandId,
+      organizationId,
+      payload: { campaignId: '   ' },
       type: 'cron',
     });
 
-    expect(brandsService.findOne).toHaveBeenCalled();
-    expect(skillsService.getEnabledSkillSlugs).toHaveBeenCalled();
-    expect(skillWorkflowService.execute).toHaveBeenCalled();
-    expect(
-      reviewablePostsService.createFromSkillExecution,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        campaignId: 'ccampaign0001',
-        executionId: 'execution-1',
-      }),
-    );
-    expect(result.executions).toEqual(['execution-1']);
-    expect(result.posts).toHaveLength(1);
+    expect(result.executions).toEqual(['execution-1', 'execution-2']);
+    expect(skillRuns.map((run) => run.skillSlug)).toEqual([
+      'content-writing',
+      'thread-expansion',
+    ]);
+    expect(savedPosts.map((post) => post.campaignId)).toEqual([
+      undefined,
+      undefined,
+    ]);
   });
 
-  it('processes a manual request through the canonical skill workflow', async () => {
-    const organizationId = testId('org');
-    const brandId = testId('brand');
+  it('processes a manual request inside the requested brand and organization', async () => {
     const result = await service.processManualRequest(
       organizationId,
       brandId,
@@ -110,62 +158,78 @@ describe('ContentGatewayService', () => {
       'user-1',
     );
 
-    expect(skillWorkflowService.execute).toHaveBeenCalledWith(
-      'content-writing',
-      expect.objectContaining({ brandId, organizationId }),
-      { prompt: 'hello' },
-      'user-1',
-    );
-    expect(result.executions).toEqual(['execution-1']);
+    expect(result).toEqual({
+      executions: ['execution-1'],
+      posts: [
+        {
+          description: 'draft from content-writing',
+          id: 'post-for-execution-1',
+        },
+      ],
+    });
+    expect(skillRuns).toEqual([
+      {
+        context: {
+          brandId,
+          brandVoice: '',
+          organizationId,
+          platforms: [],
+        },
+        params: { prompt: 'hello' },
+        skillSlug: 'content-writing',
+        userId: 'user-1',
+      },
+    ]);
   });
 
   it('passes the brand voice to the skill instead of an empty one', async () => {
-    brandsService.findOne.mockResolvedValue({
-      agentConfig: {
-        voice: { audience: ['founders'], style: 'punchy', tone: 'direct' },
+    brands = [
+      {
+        agentConfig: {
+          voice: { audience: ['founders'], style: 'punchy', tone: 'direct' },
+        },
+        id: brandId,
+        organizationId,
       },
-      id: 'brand',
-    });
+    ];
 
     await service.processManualRequest(
-      testId('org'),
-      testId('brand'),
+      organizationId,
+      brandId,
       'content-writing',
       { platform: 'twitter', topic: 'hooks' },
       'user-1',
     );
 
-    expect(skillWorkflowService.execute).toHaveBeenCalledWith(
-      'content-writing',
-      expect.objectContaining({
-        brandVoice: 'tone: direct; style: punchy; audience: founders',
-      }),
-      { platform: 'twitter', topic: 'hooks' },
-      'user-1',
+    expect(skillRuns[0]?.context.brandVoice).toBe(
+      'tone: direct; style: punchy; audience: founders',
     );
   });
 
-  it('rejects a missing brand before workflow execution', async () => {
-    brandsService.findOne.mockResolvedValue(null);
+  it('rejects a brand from another organization before any skill runs', async () => {
     await expect(
       service.processManualRequest(
-        testId('org'),
-        testId('brand', 2),
+        testId('org', 2),
+        brandId,
         'content-writing',
       ),
-    ).rejects.toThrow();
-    expect(skillWorkflowService.execute).not.toHaveBeenCalled();
+    ).rejects.toMatchObject({ status: 404 });
+
+    expect(skillRuns).toEqual([]);
+    expect(savedPosts).toEqual([]);
   });
 
   it('returns no executions when no skills are enabled', async () => {
-    skillsService.getEnabledSkillSlugs.mockResolvedValue([]);
-    const result = await service.routeSignal({
-      brandId: testId('brand'),
-      organizationId: testId('org'),
-      payload: {},
-      type: 'cron',
-    });
-    expect(result).toEqual({ executions: [], posts: [] });
-    expect(skillWorkflowService.execute).not.toHaveBeenCalled();
+    enabledSkills = [];
+
+    await expect(
+      service.routeSignal({
+        brandId,
+        organizationId,
+        payload: {},
+        type: 'cron',
+      }),
+    ).resolves.toEqual({ executions: [], posts: [] });
+    expect(skillRuns).toEqual([]);
   });
 });

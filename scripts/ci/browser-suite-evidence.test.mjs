@@ -241,6 +241,81 @@ test('shared neutral paths: docs, agent notes and other workflows', () => {
   assert.equal(isNeutralPath(SUITE, 'skills/content/SKILL.md'), false);
 });
 
+test('test-only files are neutral unless the suite runs them', () => {
+  assert.equal(
+    isNeutralPath(SUITE, 'apps/web/src/features/posts/posts-list.spec.tsx'),
+    true,
+  );
+  assert.equal(
+    isNeutralPath(SUITE, 'packages/services/__mocks__/http-routes.fake.ts'),
+    true,
+  );
+  assert.equal(
+    isNeutralPath(
+      SUITE,
+      'packages/storage/__tests__/s3-storage.provider.test.ts',
+    ),
+    true,
+  );
+  assert.equal(
+    isNeutralPath(
+      SUITE,
+      'scripts/architecture/mock-interaction-specs.baseline.ts',
+    ),
+    true,
+  );
+  assert.equal(
+    isNeutralPath(SUITE, 'playwright/e2e/tests/settings/connections.spec.ts'),
+    false,
+  );
+  assert.equal(
+    isNeutralPath(SUITE, 'apps/web/src/features/posts/posts-list.tsx'),
+    false,
+  );
+  assert.equal(
+    isNeutralPath(
+      LEARNING,
+      'apps/server/api/src/endpoints/posts/posts.service.spec.ts',
+    ),
+    true,
+  );
+  assert.equal(
+    isNeutralPath(
+      LEARNING,
+      'scripts/architecture/spec-typecheck-baseline.json',
+    ),
+    true,
+  );
+  assert.equal(
+    isNeutralPath(
+      LEARNING,
+      'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',
+    ),
+    false,
+  );
+  assert.equal(
+    isNeutralPath(
+      LEARNING,
+      'apps/server/api/src/collections/content-learning/services/learning-dataset.service.spec.ts',
+    ),
+    false,
+  );
+  assert.equal(
+    isNeutralPath(
+      LEARNING,
+      'apps/server/api/test/helpers/migration-deploy-diagnostics.ts',
+    ),
+    false,
+  );
+  assert.equal(
+    isNeutralPath(
+      LEARNING,
+      'apps/server/api/src/endpoints/posts/posts.service.ts',
+    ),
+    false,
+  );
+});
+
 test('an in-flight run blocks without starting a duplicate', () => {
   const result = classifySuiteEvidence(
     SUITE,

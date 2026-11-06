@@ -1,72 +1,124 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { ClipperProjectsService } from '@api/collections/clipper-projects/clipper-projects.service';
-import type { ClipperProjectDocument } from '@api/collections/clipper-projects/schemas/clipper-project.schema';
 import { PublicYoutubeClipperClaimService } from '@api/collections/clipper-projects/services/public-youtube-clipper-claim.service';
 import type { PublicClipperToolStoreService } from '@api/services/public-clipper-tool/public-clipper-tool-store.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 
+type Row = Record<string, unknown> & { id: string };
+type Session = Record<string, unknown>;
+
+const token = 'a'.repeat(43);
+const projectId = `public-youtube-clipper-${'f'.repeat(64)}`;
+const user = {
+  id: 'user-1',
+  organizationId: 'org-1',
+  userId: 'user-1',
+} as AuthenticatedUser;
+
+const readySession = (): Session => ({
+  expiresAt: '2026-08-26T12:00:00.000Z',
+  highlights: [
+    {
+      clip_type: 'educational',
+      end_time: 40,
+      id: 'moment-1',
+      start_time: 10,
+      summary: 'Useful moment',
+      tags: ['creator'],
+      title: 'A useful moment',
+      virality_score: 80,
+    },
+  ],
+  language: 'en',
+  preview: {
+    recommendationId: 'moment-1',
+    status: 'ready',
+    url: 'https://cdn.example/preview.mp4',
+  },
+  sourceArtifact: {
+    contentType: 'video/mp4',
+    mediaUrl: 'https://cdn.example/source.mp4',
+    storageKey: 'clips/sources/source.mp4',
+  },
+  sourceFingerprint: 'source-fingerprint',
+  sourceVideoS3Key: 'clips/sources/source.mp4',
+  sourceVideoUrl: 'https://cdn.example/source.mp4',
+  status: 'ready',
+  transcriptSegments: [{ end: 5, start: 0, text: 'Transcript' }],
+});
+
 describe('PublicYoutubeClipperClaimService', () => {
-  const project = {
-    id: `public-youtube-clipper-${'f'.repeat(64)}`,
-    organizationId: 'org-1',
-    userId: 'user-1',
-  } as ClipperProjectDocument;
-  const clipperProjects = { findOne: vi.fn() };
-  const clipperProjectCreate = vi.fn();
-  const clipperResultCreate = vi.fn();
-  const brandFindFirst = vi.fn();
-  const prisma = {
-    $transaction: vi.fn(async (callback: (transaction: unknown) => unknown) =>
-      callback({
-        brand: { findFirst: brandFindFirst },
-        clipperProject: { create: clipperProjectCreate },
-        clipperResult: { create: clipperResultCreate },
-      }),
-    ),
-  };
-  const store = {
-    deleteSession: vi.fn(),
-    getSession: vi.fn(),
-    tokenHash: vi.fn().mockReturnValue('f'.repeat(64)),
-  };
+  let brands: Row[];
+  let projects: Map<string, Row>;
+  let results: Row[];
+  let sessionReads: number;
+  let sessions: Map<string, Session>;
   let service: PublicYoutubeClipperClaimService;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    clipperProjects.findOne
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(project);
-    brandFindFirst.mockResolvedValue({ id: 'brand-1' });
-    store.getSession.mockResolvedValue({
-      expiresAt: '2026-08-26T12:00:00.000Z',
-      highlights: [
-        {
-          clip_type: 'educational',
-          end_time: 40,
-          id: 'moment-1',
-          start_time: 10,
-          summary: 'Useful moment',
-          tags: ['creator'],
-          title: 'A useful moment',
-          virality_score: 80,
-        },
-      ],
-      language: 'en',
-      preview: {
-        recommendationId: 'moment-1',
-        status: 'ready',
-        url: 'https://cdn.example/preview.mp4',
+    brands = [
+      { id: 'brand-1', isDeleted: false, organizationId: 'org-1' },
+      { id: 'brand-foreign', isDeleted: false, organizationId: 'org-2' },
+    ];
+    projects = new Map();
+    results = [];
+    sessionReads = 0;
+    sessions = new Map([[token, readySession()]]);
+
+    const clipperProjects = {
+      findOne: async (where: Row) => {
+        const project = projects.get(where.id);
+        return project &&
+          project.organizationId === where.organizationId &&
+          project.isDeleted === where.isDeleted
+          ? project
+          : null;
       },
-      sourceArtifact: {
-        contentType: 'video/mp4',
-        mediaUrl: 'https://cdn.example/source.mp4',
-        storageKey: 'clips/sources/source.mp4',
+    };
+    const prisma = {
+      // Writes stage in the transaction and only land if it commits.
+      $transaction: async (
+        callback: (transaction: unknown) => Promise<unknown>,
+      ) => {
+        const staged = { projects: [] as Row[], results: [] as Row[] };
+        await callback({
+          brand: {
+            findFirst: async ({ where }: { where: Row }) =>
+              brands.find(
+                (brand) =>
+                  brand.id === where.id &&
+                  brand.organizationId === where.organizationId &&
+                  brand.isDeleted === where.isDeleted,
+              ) ?? null,
+          },
+          clipperProject: {
+            create: async ({ data }: { data: Row }) => {
+              staged.projects.push({ isDeleted: false, ...data });
+            },
+          },
+          clipperResult: {
+            create: async ({ data }: { data: Row }) => {
+              staged.results.push(data);
+            },
+          },
+        });
+        for (const project of staged.projects) {
+          projects.set(project.id, project);
+        }
+        results.push(...staged.results);
       },
-      sourceFingerprint: 'source-fingerprint',
-      sourceVideoS3Key: 'clips/sources/source.mp4',
-      sourceVideoUrl: 'https://cdn.example/source.mp4',
-      status: 'ready',
-      transcriptSegments: [{ end: 5, start: 0, text: 'Transcript' }],
-    });
+    };
+    const store = {
+      deleteSession: async (previewToken: string) => {
+        sessions.delete(previewToken);
+      },
+      getSession: async (previewToken: string) => {
+        sessionReads += 1;
+        return sessions.get(previewToken);
+      },
+      tokenHash: () => 'f'.repeat(64),
+    };
+
     service = new PublicYoutubeClipperClaimService(
       clipperProjects as unknown as ClipperProjectsService,
       prisma as unknown as PrismaService,
@@ -74,74 +126,65 @@ describe('PublicYoutubeClipperClaimService', () => {
     );
   });
 
-  it('atomically creates a tenant-scoped project and its one preview result', async () => {
-    await expect(
-      service.claim({
-        brandId: 'brand-1',
-        previewToken: 'a'.repeat(43),
-        user: {
-          id: 'user-1',
-          organizationId: 'org-1',
-          userId: 'user-1',
-        } as never,
-      }),
-    ).resolves.toBe(project);
-
-    expect(brandFindFirst).toHaveBeenCalledWith({
-      select: { id: true },
-      where: { id: 'brand-1', isDeleted: false, organizationId: 'org-1' },
+  it('creates the tenant-scoped project with its one preview result and consumes the session', async () => {
+    const claimed = await service.claim({
+      brandId: 'brand-1',
+      previewToken: token,
+      user,
     });
-    expect(clipperProjectCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        brandId: 'brand-1',
-        config: expect.objectContaining({
-          source: expect.objectContaining({
-            artifact: expect.objectContaining({
-              mediaUrl: 'https://cdn.example/source.mp4',
-              storageKey: 'clips/sources/source.mp4',
-            }),
-            status: 'completed',
-          }),
-          sourceVideoS3Key: 'clips/sources/source.mp4',
-          sourceVideoUrl: 'https://cdn.example/source.mp4',
+
+    expect(claimed).toBe(projects.get(projectId));
+    expect(claimed).toMatchObject({
+      brandId: 'brand-1',
+      config: {
+        source: {
+          artifact: {
+            mediaUrl: 'https://cdn.example/source.mp4',
+            storageKey: 'clips/sources/source.mp4',
+          },
+          status: 'completed',
+        },
+        sourceVideoS3Key: 'clips/sources/source.mp4',
+        sourceVideoUrl: 'https://cdn.example/source.mp4',
+      },
+      organizationId: 'org-1',
+      readyClipCount: 1,
+      status: 'completed',
+      userId: 'user-1',
+    });
+    expect(results).toEqual([
+      expect.objectContaining({
+        data: expect.objectContaining({
+          videoUrl: 'https://cdn.example/preview.mp4',
         }),
-        id: project.id,
         organizationId: 'org-1',
+        projectId,
         status: 'completed',
         userId: 'user-1',
       }),
-    });
-    expect(clipperResultCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        organizationId: 'org-1',
-        projectId: project.id,
-        status: 'completed',
-        userId: 'user-1',
-      }),
-    });
-    expect(store.deleteSession).toHaveBeenCalledWith('a'.repeat(43));
+    ]);
+    expect(sessions.has(token)).toBe(false);
   });
 
-  it('is idempotent for the same tenant and canonical user', async () => {
-    clipperProjects.findOne.mockReset().mockResolvedValue(project);
+  it('returns the existing project for the same tenant and user without reading the session', async () => {
+    const existing = {
+      id: projectId,
+      isDeleted: false,
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+    projects.set(projectId, existing);
 
-    await expect(
-      service.claim({
-        previewToken: 'a'.repeat(43),
-        user: {
-          id: 'user-1',
-          organizationId: 'org-1',
-          userId: 'user-1',
-        } as never,
-      }),
-    ).resolves.toBe(project);
-
-    expect(store.getSession).not.toHaveBeenCalled();
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    await expect(service.claim({ previewToken: token, user })).resolves.toBe(
+      existing,
+    );
+    expect(sessionReads).toBe(0);
+    expect(results).toEqual([]);
+    expect(sessions.has(token)).toBe(true);
   });
 
-  it('does not discard a preview that is still rendering during handoff', async () => {
-    store.getSession.mockResolvedValueOnce({
+  it('keeps a preview that is still rendering and creates nothing', async () => {
+    sessions.set(token, {
       highlights: [],
       preview: { jobId: 'preview-job-1', status: 'generating' },
       sourceVideoUrl: 'https://www.youtube.com/watch?v=abc12345',
@@ -150,20 +193,21 @@ describe('PublicYoutubeClipperClaimService', () => {
     });
 
     await expect(
-      service.claim({
-        previewToken: 'a'.repeat(43),
-        user: {
-          id: 'user-1',
-          organizationId: 'org-1',
-          userId: 'user-1',
-        } as never,
-      }),
+      service.claim({ previewToken: token, user }),
     ).rejects.toMatchObject({
       response: { code: 'public_youtube_clipper_preview_in_progress' },
       status: 409,
     });
+    expect(projects.size).toBe(0);
+    expect(sessions.has(token)).toBe(true);
+  });
 
-    expect(prisma.$transaction).not.toHaveBeenCalled();
-    expect(store.deleteSession).not.toHaveBeenCalled();
+  it('rejects a brand from another organization and creates nothing', async () => {
+    await expect(
+      service.claim({ brandId: 'brand-foreign', previewToken: token, user }),
+    ).rejects.toThrow();
+    expect(projects.size).toBe(0);
+    expect(results).toEqual([]);
+    expect(sessions.has(token)).toBe(true);
   });
 });

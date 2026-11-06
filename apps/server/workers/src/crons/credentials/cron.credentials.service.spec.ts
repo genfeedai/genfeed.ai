@@ -1,173 +1,166 @@
-import { SERVER_TOKENS } from '@api/index';
-import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
-import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
-import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
-import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
-import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
-import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
-import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
-import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import type { ServerCredentialStore } from '@api/index';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { CronCredentialsService } from '@workers/crons/credentials/cron.credentials.service';
 
-describe('CronCredentialsService', () => {
+type Ctor = ConstructorParameters<typeof CronCredentialsService>;
+
+interface CredentialRow {
+  accessTokenExpiry: Date | null;
+  brandId?: string;
+  id: string;
+  isConnected: boolean;
+  isDeleted: boolean;
+  organizationId?: string;
+  platform: string;
+}
+
+const now = new Date('2026-11-06T12:00:00.000Z');
+const inMinutes = (minutes: number) =>
+  new Date(now.getTime() + minutes * 60 * 1000);
+
+describe('CronCredentialsService.refreshExpiringTokens', () => {
+  let credentials: CredentialRow[];
+  let refreshed: Array<{ args: unknown[]; refresher: string }>;
+  let failingCredentialIds: Set<string>;
+  let summaries: unknown[];
   let service: CronCredentialsService;
-  let credentialsService: { findAll: ReturnType<typeof vi.fn> };
-  let twitterService: { refreshToken: ReturnType<typeof vi.fn> };
 
-  beforeEach(async () => {
-    credentialsService = {
-      findAll: vi.fn().mockResolvedValue({ docs: [] }),
-    };
-    twitterService = {
-      refreshToken: vi.fn().mockResolvedValue({}),
-    };
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CronCredentialsService,
-        {
-          provide: LoggerService,
-          useValue: {
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
-          },
-        },
-        {
-          provide: SERVER_TOKENS.credentials,
-          useValue: credentialsService,
-        },
-        {
-          provide: FacebookService,
-          useValue: {
-            refreshToken: vi.fn(),
-          },
-        },
-        {
-          provide: GoogleAdsService,
-          useValue: {
-            refreshToken: vi.fn(),
-          },
-        },
-        {
-          provide: InstagramService,
-          useValue: {
-            refreshToken: vi.fn(),
-          },
-        },
-        {
-          provide: LinkedInService,
-          useValue: {
-            refreshToken: vi.fn(),
-          },
-        },
-        {
-          provide: PinterestService,
-          useValue: {
-            refreshToken: vi.fn(),
-          },
-        },
-        {
-          provide: RedditService,
-          useValue: {
-            refreshToken: vi.fn(),
-          },
-        },
-        {
-          provide: TiktokService,
-          useValue: {
-            refreshToken: vi.fn(),
-          },
-        },
-        {
-          provide: TwitterService,
-          useValue: twitterService,
-        },
-        {
-          provide: YoutubeService,
-          useValue: {
-            refreshToken: vi.fn(),
-          },
-        },
-      ],
-    }).compile();
-
-    service = module.get<CronCredentialsService>(CronCredentialsService);
+  const credential = (
+    id: string,
+    overrides: Partial<CredentialRow> = {},
+  ): CredentialRow => ({
+    accessTokenExpiry: inMinutes(30),
+    brandId: 'brand-1',
+    id,
+    isConnected: true,
+    isDeleted: false,
+    organizationId: 'org-1',
+    platform: 'TWITTER',
+    ...overrides,
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  const refresher = (name: string) => ({
+    refreshToken: async (...args: unknown[]) => {
+      if (failingCredentialIds.has(String(args[2]))) {
+        throw new Error('refresh token revoked');
+      }
+      refreshed.push({ args, refresher: name });
+      return {};
+    },
   });
 
-  it('refreshes tokens for a Prisma SCREAMING twitter credential', async () => {
-    credentialsService.findAll.mockResolvedValue({
-      docs: [
+  beforeEach(() => {
+    vi.useFakeTimers({ now });
+    credentials = [];
+    refreshed = [];
+    failingCredentialIds = new Set();
+    summaries = [];
+
+    service = new CronCredentialsService(
+      ...([
         {
-          brandId: 'brand-1',
-          id: 'cred-1',
-          organizationId: 'org-1',
-          platform: 'TWITTER',
-        },
-      ],
-    });
+          error: () => {},
+          log: (message: string, context?: unknown) => {
+            if (message.endsWith('completed')) summaries.push(context);
+          },
+          warn: () => {},
+        } as unknown as LoggerService,
+        {
+          findAll: async ({
+            where,
+          }: {
+            where: {
+              accessTokenExpiry: { lt: Date };
+              isConnected: boolean;
+              isDeleted: boolean;
+            };
+          }) => ({
+            docs: credentials.filter(
+              (row) =>
+                row.accessTokenExpiry !== null &&
+                row.accessTokenExpiry < where.accessTokenExpiry.lt &&
+                row.isConnected === where.isConnected &&
+                row.isDeleted === where.isDeleted,
+            ),
+          }),
+        } as unknown as ServerCredentialStore,
+        refresher('facebook'),
+        refresher('google-ads'),
+        refresher('instagram'),
+        refresher('linkedin'),
+        refresher('pinterest'),
+        refresher('reddit'),
+        refresher('tiktok'),
+        refresher('twitter'),
+        refresher('youtube'),
+      ] as unknown as Ctor),
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('refreshes a Prisma SCREAMING twitter credential through the X refresher', async () => {
+    credentials = [credential('cred-1')];
 
     await service.refreshExpiringTokens();
 
-    expect(twitterService.refreshToken).toHaveBeenCalledWith(
-      'org-1',
-      'brand-1',
-      'cred-1',
-    );
+    expect(refreshed).toEqual([
+      { args: ['org-1', 'brand-1', 'cred-1'], refresher: 'twitter' },
+    ]);
+    expect(summaries).toEqual([{ failures: 0, successes: 1, total: 1 }]);
   });
 
   it('refreshes each X account of a multi-account brand by its credential id', async () => {
-    credentialsService.findAll.mockResolvedValue({
-      docs: [
-        {
-          brandId: 'brand-1',
-          id: 'cred-a',
-          organizationId: 'org-1',
-          platform: 'TWITTER',
-        },
-        {
-          brandId: 'brand-1',
-          id: 'cred-b',
-          organizationId: 'org-1',
-          platform: 'TWITTER',
-        },
-      ],
-    });
+    credentials = [credential('cred-a'), credential('cred-b')];
 
     await service.refreshExpiringTokens();
 
-    expect(twitterService.refreshToken).toHaveBeenCalledTimes(2);
-    expect(twitterService.refreshToken).toHaveBeenCalledWith(
-      'org-1',
-      'brand-1',
-      'cred-a',
-    );
-    expect(twitterService.refreshToken).toHaveBeenCalledWith(
-      'org-1',
-      'brand-1',
-      'cred-b',
-    );
+    expect(refreshed.map(({ args }) => args[2])).toEqual(['cred-a', 'cred-b']);
   });
 
-  it('does not apply OAuth 2.0 refresh semantics to X Ads credentials', async () => {
-    credentialsService.findAll.mockResolvedValue({
-      docs: [
-        {
-          brandId: 'brand-1',
-          id: 'cred-x-ads',
-          organizationId: 'org-1',
-          platform: 'X_ADS',
-        },
-      ],
-    });
+  it.each([
+    ['expires in more than an hour', { accessTokenExpiry: inMinutes(90) }],
+    ['has no expiry', { accessTokenExpiry: null }],
+    ['is disconnected', { isConnected: false }],
+    ['is deleted', { isDeleted: true }],
+  ])('leaves a credential that %s alone', async (_label, overrides) => {
+    credentials = [credential('cred-1', overrides)];
 
-    await expect(service.refreshExpiringTokens()).resolves.toBeUndefined();
-    expect(twitterService.refreshToken).not.toHaveBeenCalled();
+    await service.refreshExpiringTokens();
+
+    expect(refreshed).toEqual([]);
+    expect(summaries).toEqual([]);
+  });
+
+  it.each([
+    ['an X Ads credential', { platform: 'X_ADS' }],
+    ['a credential without a workspace', { brandId: undefined }],
+  ])(
+    'counts %s as a failure without refreshing it',
+    async (_label, overrides) => {
+      credentials = [credential('cred-1', overrides)];
+
+      await expect(service.refreshExpiringTokens()).resolves.toBeUndefined();
+
+      expect(refreshed).toEqual([]);
+      expect(summaries).toEqual([{ failures: 1, successes: 0, total: 1 }]);
+    },
+  );
+
+  it('keeps refreshing the rest when one refresh fails', async () => {
+    credentials = [
+      credential('cred-bad'),
+      credential('cred-yt', { platform: 'YOUTUBE' }),
+    ];
+    failingCredentialIds.add('cred-bad');
+
+    await service.refreshExpiringTokens();
+
+    expect(refreshed).toEqual([
+      { args: ['org-1', 'brand-1', 'cred-yt'], refresher: 'youtube' },
+    ]);
+    expect(summaries).toEqual([{ failures: 1, successes: 1, total: 2 }]);
   });
 });

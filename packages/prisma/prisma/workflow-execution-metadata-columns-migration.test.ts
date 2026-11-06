@@ -87,4 +87,23 @@ describe('workflow execution metadata columns', () => {
   ])('%s is a single concurrent index statement', (migration, expected) => {
     expect(statement(migration)).toBe(expected);
   });
+
+  // The JSON-path indexes the promoted-column indexes replaced, dropped once
+  // v0.2.26 (the first release reading the columns) was the only one running.
+  it.each([
+    [
+      '20261106170000_drop_workflow_execution_agent_thread_lookup_index',
+      'DROP INDEX CONCURRENTLY IF EXISTS "workflow_executions_agent_thread_lookup_idx";',
+    ],
+    [
+      '20261106170100_drop_workflow_execution_thread_snapshot_index',
+      'DROP INDEX CONCURRENTLY IF EXISTS "workflow_executions_thread_snapshot_idx";',
+    ],
+    [
+      '20261106170200_drop_workflow_execution_proactive_agent_turn_index',
+      'DROP INDEX CONCURRENTLY IF EXISTS "workflow_executions_proactive_agent_turn_idx";',
+    ],
+  ])('%s drops one replaced index online, alone', (migration, expected) => {
+    expect(statement(migration)).toBe(expected);
+  });
 });

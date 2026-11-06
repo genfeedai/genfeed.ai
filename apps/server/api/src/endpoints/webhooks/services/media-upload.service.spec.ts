@@ -2,49 +2,55 @@ import type { MetadataService } from '@api/collections/metadata/services/metadat
 import { MediaUploadService } from '@api/endpoints/webhooks/services/media-upload.service';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
+type Probe = Record<string, unknown>;
+
+/**
+ * The files service uploads from a URL and answers with what it probed; the
+ * metadata table keeps each patch; warnings are recorded.
+ */
+function buildService(probe: Probe) {
+  const uploads: { folder: string; key: string; source: unknown }[] = [];
+  const metadata = new Map<string, Record<string, unknown>>([['meta-1', {}]]);
+  const warnings: string[] = [];
+  const files = {
+    uploadToS3: async (key: string, folder: string, source: unknown) => {
+      uploads.push({ folder, key, source });
+      return probe;
+    },
+  };
+  const metadataService = {
+    patch: async (id: string, data: Record<string, unknown>) => {
+      metadata.set(id, { ...metadata.get(id), ...data });
+    },
+  };
+  const silent = () => undefined;
+  const service = new MediaUploadService(
+    files as unknown as FilesClientService,
+    metadataService as unknown as MetadataService,
+    {
+      debug: silent,
+      error: silent,
+      log: silent,
+      warn: (message: string) => warnings.push(message),
+    } as unknown as LoggerService,
+  );
+  return { metadata, service, uploads, warnings };
+}
+
+const fullProbe = {
+  duration: 10,
+  hasAudio: true,
+  height: 720,
+  size: 1024,
+  width: 1280,
+};
 
 describe('MediaUploadService', () => {
-  let service: MediaUploadService;
-  let filesClientService: Record<string, ReturnType<typeof vi.fn>>;
-  let metadataService: { patch: ReturnType<typeof vi.fn> };
-  let loggerService: {
-    debug: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-  };
-
-  beforeEach(() => {
-    filesClientService = {
-      uploadToS3: vi.fn(),
-    };
-    metadataService = {
-      patch: vi.fn(),
-    };
-    loggerService = {
-      debug: vi.fn(),
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
-    };
-
-    service = new MediaUploadService(
-      filesClientService as unknown as FilesClientService,
-      metadataService as unknown as MetadataService,
-      loggerService as unknown as LoggerService,
-    );
-  });
-
   describe('uploadAndUpdateMetadata', () => {
-    it('should upload to S3 with correct plural path', async () => {
-      filesClientService.uploadToS3.mockResolvedValue({
-        duration: 10,
-        hasAudio: true,
-        height: 720,
-        size: 1024,
-        width: 1280,
-      });
+    it('uploads to the plural media folder and returns the probe', async () => {
+      const { service, uploads } = buildService(fullProbe);
 
       const result = await service.uploadAndUpdateMetadata(
         'ing-123',
@@ -53,28 +59,18 @@ describe('MediaUploadService', () => {
         'meta-1',
       );
 
-      expect(filesClientService.uploadToS3).toHaveBeenCalledWith(
-        'ing-123',
-        'videos',
-        { type: 'url', url: 'http://example.com/video.mp4' },
-      );
-      expect(result).toEqual({
-        duration: 10,
-        hasAudio: true,
-        height: 720,
-        size: 1024,
-        width: 1280,
-      });
+      expect(result).toEqual(fullProbe);
+      expect(uploads).toEqual([
+        {
+          folder: 'videos',
+          key: 'ing-123',
+          source: { type: 'url', url: 'http://example.com/video.mp4' },
+        },
+      ]);
     });
 
-    it('should update metadata with valid dimensions', async () => {
-      filesClientService.uploadToS3.mockResolvedValue({
-        duration: 10,
-        hasAudio: true,
-        height: 720,
-        size: 1024,
-        width: 1280,
-      });
+    it('stores valid dimensions on the metadata row', async () => {
+      const { metadata, service } = buildService(fullProbe);
 
       await service.uploadAndUpdateMetadata(
         'ing-123',
@@ -83,17 +79,11 @@ describe('MediaUploadService', () => {
         'meta-1',
       );
 
-      expect(metadataService.patch).toHaveBeenCalledWith('meta-1', {
-        duration: 10,
-        hasAudio: true,
-        height: 720,
-        size: 1024,
-        width: 1280,
-      });
+      expect(metadata.get('meta-1')).toEqual(fullProbe);
     });
 
-    it('should exclude zero dimensions from update', async () => {
-      filesClientService.uploadToS3.mockResolvedValue({
+    it('leaves zero dimensions off the metadata row', async () => {
+      const { metadata, service } = buildService({
         duration: 5,
         hasAudio: false,
         height: 0,
@@ -108,15 +98,15 @@ describe('MediaUploadService', () => {
         'meta-1',
       );
 
-      expect(metadataService.patch).toHaveBeenCalledWith('meta-1', {
+      expect(metadata.get('meta-1')).toEqual({
         duration: 5,
         hasAudio: false,
         size: 512,
       });
     });
 
-    it('should log warning when dimensions are missing', async () => {
-      filesClientService.uploadToS3.mockResolvedValue({
+    it('warns when dimensions are missing', async () => {
+      const { service, warnings } = buildService({
         height: 0,
         size: 512,
         width: 0,
@@ -130,7 +120,7 @@ describe('MediaUploadService', () => {
         'ext-id',
       );
 
-      expect(loggerService.warn).toHaveBeenCalled();
+      expect(warnings).toHaveLength(1);
     });
   });
 });

@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import type { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { HttpException } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -24,19 +23,22 @@ vi.mock('@api/collections/videos/services/videos.service', () => ({
   VideosService: class {},
 }));
 
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosEffectsController } from '@api/collections/videos/controllers/transformations/effects/videos-effects.controller';
-import { VideosService } from '@api/collections/videos/services/videos.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
-import { IngredientStatus } from '@genfeedai/contracts';
+import type { VideosService } from '@api/collections/videos/services/videos.service';
+import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { SharedService } from '@api/shared/services/shared/shared.service';
+import {
+  IngredientStatus,
+  TransformationCategory,
+  WebSocketEventType,
+} from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import type { ConfigService } from '@libs/config/config.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 
 const mockRequest = {
   originalUrl: '/api/videos',
@@ -49,208 +51,253 @@ const organizationId = testId('org');
 const userId = testId('user');
 const videoId = testId('video');
 
-const mockVideo = {
-  brandId,
-  id: videoId,
-  organizationId,
-  userId,
-};
-
 const mockUser = {
-  id: 'user_123',
   brandId,
+  id: 'user_123',
   organizationId,
   userId,
 } as unknown as User;
 
-const ingredientId = testId('ingredient');
-const metadataId = testId('metadata');
+// A path that cannot exist, so the mirror cleanup takes its warning branch.
+const OUTPUT_PATH = '/nonexistent-genfeed-test/video.mp4';
 
-describe('VideosEffectsController', () => {
-  let controller: VideosEffectsController;
+interface Harness {
+  controller: VideosEffectsController;
+  createdMedia: Array<Record<string, unknown>>;
+  errors: string[];
+  failures: string[];
+  ingredientPatches: Array<{ id: string; update: Record<string, unknown> }>;
+  issuedUrls: Array<{ ids: string[]; organizationId: string }>;
+  jobs: Array<Record<string, unknown>>;
+  published: Array<{ eventType: string; id: string }>;
+}
 
-  const mockServices = {
-    configService: {
-      ingredientsEndpoint: 'https://api.example.com',
-      isAuthorizedMediaDeliveryEnabled: false,
+function makeHarness(options: {
+  authorizedUrl?: string | Error;
+  failMediaCreation?: boolean;
+  videos?: Array<{
+    brandId: string;
+    id: string;
+    organizationId: string;
+    userId: string;
+  }>;
+}): Harness {
+  const videos = options.videos ?? [
+    { brandId, id: videoId, organizationId, userId },
+  ];
+  const harness: Omit<Harness, 'controller'> = {
+    createdMedia: [],
+    errors: [],
+    failures: [],
+    ingredientPatches: [],
+    issuedUrls: [],
+    jobs: [],
+    published: [],
+  };
+
+  const configService = {
+    ingredientsEndpoint: 'https://api.example.com',
+    isAuthorizedMediaDeliveryEnabled: options.authorizedUrl !== undefined,
+  };
+  const authorizedMediaUrls = {
+    issueServerPublish: async (organization: string, ids: string[]) => {
+      harness.issuedUrls.push({ ids, organizationId: organization });
+      if (options.authorizedUrl instanceof Error) {
+        throw options.authorizedUrl;
+      }
+      return new Map([[videoId, options.authorizedUrl]]);
     },
-    authorizedMediaUrls: { issueServerPublish: vi.fn() },
-    fileQueueService: {
-      processVideo: vi.fn().mockResolvedValue({ jobId: 'job123' }),
-      waitForJob: vi.fn().mockResolvedValue({ outputPath: '/tmp/video.mp4' }),
+  };
+  const fileQueueService = {
+    processVideo: async (job: Record<string, unknown>) => {
+      harness.jobs.push(job);
+      return { jobId: `job-${harness.jobs.length}` };
     },
-    filesClientService: { uploadToS3: vi.fn() },
-    ingredientsService: { patch: vi.fn() },
-    loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
-    metadataService: { patch: vi.fn() },
-    sharedService: {
-      createMediaDocuments: vi.fn().mockResolvedValue({
-        ingredientData: { id: ingredientId },
-        metadataData: { id: metadataId },
-      }),
+    waitForJob: async () => ({ outputPath: OUTPUT_PATH }),
+  };
+  const filesClientService = {
+    uploadToS3: async (id: string) => ({ s3Key: `videos/${id}.mp4` }),
+  };
+  const ingredientsService = {
+    patch: async (id: string, update: Record<string, unknown>) => {
+      harness.ingredientPatches.push({ id, update });
     },
-    videosService: { findOne: vi.fn() },
-    websocketService: {
-      publishMediaFailed: vi.fn(),
-      publishVideoComplete: vi.fn(),
+  };
+  const loggerService = {
+    error: (message: string) => {
+      harness.errors.push(message);
+    },
+    log: () => {},
+    warn: () => {},
+  };
+  const sharedService = {
+    createMediaDocuments: async (
+      _user: User,
+      input: Record<string, unknown>,
+    ) => {
+      if (options.failMediaCreation) {
+        throw new Error('DB error');
+      }
+      harness.createdMedia.push(input);
+      const n = harness.createdMedia.length;
+      return {
+        ingredientData: { id: `ingredient-${n}` },
+        metadataData: { id: `metadata-${n}` },
+      };
+    },
+  };
+  const videosService = {
+    findOne: async (where: { id: string; userId: string }) =>
+      videos.find(
+        (video) => video.id === where.id && video.userId === where.userId,
+      ) ?? null,
+  };
+  const websocketService = {
+    publishMediaFailed: async (url: string) => {
+      harness.failures.push(url);
+    },
+    publishVideoComplete: async (
+      _url: string,
+      event: { eventType: string; id: string },
+    ) => {
+      harness.published.push({ eventType: event.eventType, id: event.id });
     },
   };
 
-  beforeEach(async () => {
-    mockServices.configService.isAuthorizedMediaDeliveryEnabled = false;
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [VideosEffectsController],
-      providers: [
-        {
-          provide: AuthorizedMediaUrlService,
-          useValue: mockServices.authorizedMediaUrls,
-        },
-        { provide: ConfigService, useValue: mockServices.configService },
-        { provide: FileQueueService, useValue: mockServices.fileQueueService },
-        {
-          provide: FilesClientService,
-          useValue: mockServices.filesClientService,
-        },
-        {
-          provide: IngredientsService,
-          useValue: mockServices.ingredientsService,
-        },
-        { provide: LoggerService, useValue: mockServices.loggerService },
-        { provide: MetadataService, useValue: mockServices.metadataService },
-        { provide: SharedService, useValue: mockServices.sharedService },
-        { provide: VideosService, useValue: mockServices.videosService },
-        {
-          provide: NotificationsPublisherService,
-          useValue: mockServices.websocketService,
-        },
-      ],
-    })
-      .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+  const controller = new VideosEffectsController(
+    configService as unknown as ConfigService,
+    fileQueueService as unknown as FileQueueService,
+    filesClientService as unknown as FilesClientService,
+    ingredientsService as unknown as IngredientsService,
+    loggerService as unknown as LoggerService,
+    { patch: async () => undefined } as unknown as MetadataService,
+    sharedService as unknown as SharedService,
+    videosService as unknown as VideosService,
+    websocketService as unknown as NotificationsPublisherService,
+    authorizedMediaUrls as unknown as AuthorizedMediaUrlService,
+  );
+  return { ...harness, controller };
+}
 
-    controller = module.get<VideosEffectsController>(VideosEffectsController);
-  });
+describe('VideosEffectsController', () => {
+  it('reverses a video into a new generated ingredient and announces it', async () => {
+    const harness = makeHarness({});
 
-  afterEach(() => vi.clearAllMocks());
+    await expect(
+      harness.controller.reverseVideo(mockRequest, mockUser, videoId),
+    ).resolves.toMatchObject({ data: { id: 'ingredient-1' } });
 
-  it('uses the freshly authorized source URL when media delivery is activated', async () => {
-    mockServices.configService.isAuthorizedMediaDeliveryEnabled = true;
-    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    mockServices.authorizedMediaUrls.issueServerPublish.mockResolvedValueOnce(
-      new Map([
-        [videoId, 'https://authorized.test/random-source?signature=grant'],
+    expect(harness.createdMedia).toEqual([
+      expect.objectContaining({
+        brandId,
+        organizationId,
+        parentId: videoId,
+        status: IngredientStatus.PROCESSING,
+      }),
+    ]);
+    expect(harness.jobs).toEqual([
+      expect.objectContaining({
+        ingredientId: 'ingredient-1',
+        params: { inputPath: `https://api.example.com/videos/${videoId}` },
+        room: 'user:user_123',
+        type: 'reverse-video',
+        userId,
+      }),
+    ]);
+    await vi.waitFor(() =>
+      expect(harness.published).toEqual([
+        { eventType: WebSocketEventType.VIDEO_REVERSED, id: 'ingredient-1' },
       ]),
     );
-    await controller.reverseVideo(mockRequest, mockUser, videoId);
-    expect(
-      mockServices.authorizedMediaUrls.issueServerPublish,
-    ).toHaveBeenCalledWith(mockUser.organizationId.toString(), [videoId]);
-    expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
-      expect.objectContaining({
-        params: expect.objectContaining({
-          inputPath: 'https://authorized.test/random-source?signature=grant',
-        }),
-      }),
+    expect(harness.ingredientPatches).toEqual([
+      {
+        id: 'ingredient-1',
+        update: {
+          s3Key: 'videos/ingredient-1.mp4',
+          status: IngredientStatus.GENERATED,
+          transformations: [TransformationCategory.REVERSED],
+        },
+      },
+    ]);
+  });
+
+  it('mirrors a video into a new generated ingredient and announces it', async () => {
+    const harness = makeHarness({});
+
+    await expect(
+      harness.controller.mirrorVideo(mockRequest, mockUser, videoId),
+    ).resolves.toMatchObject({ data: { id: 'ingredient-1' } });
+
+    expect(harness.jobs).toEqual([
+      expect.objectContaining({ type: 'mirror-video' }),
+    ]);
+    await vi.waitFor(() =>
+      expect(harness.published).toEqual([
+        { eventType: WebSocketEventType.VIDEO_MIRRORED, id: 'ingredient-1' },
+      ]),
     );
+    expect(harness.ingredientPatches[0]?.update).toMatchObject({
+      status: IngredientStatus.GENERATED,
+      transformations: [TransformationCategory.MIRRORED],
+    });
+  });
+
+  it('uses the freshly authorized source URL when media delivery is activated', async () => {
+    const harness = makeHarness({
+      authorizedUrl: 'https://authorized.test/random-source?signature=grant',
+    });
+
+    await harness.controller.reverseVideo(mockRequest, mockUser, videoId);
+
+    expect(harness.issuedUrls).toEqual([{ ids: [videoId], organizationId }]);
+    expect(harness.jobs[0]?.params).toEqual({
+      inputPath: 'https://authorized.test/random-source?signature=grant',
+    });
   });
 
   it('rejects an issuer scope denial before queueing a transformation', async () => {
-    mockServices.configService.isAuthorizedMediaDeliveryEnabled = true;
-    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    mockServices.authorizedMediaUrls.issueServerPublish.mockRejectedValueOnce(
-      new Error('Scoped media unavailable'),
-    );
+    const harness = makeHarness({
+      authorizedUrl: new Error('Scoped media unavailable'),
+    });
+
     await expect(
-      controller.reverseVideo(mockRequest, mockUser, videoId),
+      harness.controller.reverseVideo(mockRequest, mockUser, videoId),
     ).rejects.toThrow('Scoped media unavailable');
-    expect(mockServices.fileQueueService.processVideo).not.toHaveBeenCalled();
+    expect(harness.jobs).toEqual([]);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
+  it.each([
+    ['reverseVideo', 'an unknown video', 'nonexistent'],
+    ['mirrorVideo', 'an unknown video', 'nonexistent'],
+    ['reverseVideo', "another user's video", videoId],
+  ] as const)('%s returns not found for %s', async (method, _label, id) => {
+    const harness = makeHarness({
+      videos: [
+        {
+          brandId,
+          id: videoId,
+          organizationId,
+          userId: testId('user', 2),
+        },
+      ],
+    });
 
-  it('should reverse video and return serialized result', async () => {
-    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    const result = await controller.reverseVideo(
-      mockRequest,
-      mockUser,
-      videoId,
-    );
-    expect(result).toBeDefined();
-    expect(mockServices.sharedService.createMediaDocuments).toHaveBeenCalled();
-    expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'reverse-video' }),
-    );
-  });
-
-  it('should throw NOT_FOUND when video does not exist for reverse', async () => {
-    mockServices.videosService.findOne.mockResolvedValue(null);
     await expect(
-      controller.reverseVideo(mockRequest, mockUser, 'nonexistent'),
+      harness.controller[method](mockRequest, mockUser, id),
     ).rejects.toThrow(HttpException);
+    expect(harness.createdMedia).toEqual([]);
+    expect(harness.jobs).toEqual([]);
   });
 
-  it('should pass correct userId and room for reverse', async () => {
-    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.reverseVideo(mockRequest, mockUser, videoId);
-    expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
-      expect.objectContaining({
-        room: 'user:user_123',
-        userId: userId,
-      }),
-    );
-  });
+  it('logs and rethrows when the mirror ingredient cannot be created', async () => {
+    const harness = makeHarness({ failMediaCreation: true });
 
-  it('should create ingredient with PROCESSING status for reverse', async () => {
-    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.reverseVideo(mockRequest, mockUser, videoId);
-    expect(
-      mockServices.sharedService.createMediaDocuments,
-    ).toHaveBeenCalledWith(
-      mockUser,
-      expect.objectContaining({ status: IngredientStatus.PROCESSING }),
-    );
-  });
-
-  it('should mirror video and return serialized result', async () => {
-    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    const result = await controller.mirrorVideo(mockRequest, mockUser, videoId);
-    expect(result).toBeDefined();
-    expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'mirror-video' }),
-    );
-  });
-
-  it('should throw NOT_FOUND when video does not exist for mirror', async () => {
-    mockServices.videosService.findOne.mockResolvedValue(null);
     await expect(
-      controller.mirrorVideo(mockRequest, mockUser, 'nonexistent'),
-    ).rejects.toThrow(HttpException);
-  });
-
-  it('should propagate error when createMediaDocuments fails for mirror', async () => {
-    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    mockServices.sharedService.createMediaDocuments.mockRejectedValueOnce(
-      new Error('DB error'),
+      harness.controller.mirrorVideo(mockRequest, mockUser, videoId),
+    ).rejects.toThrow('DB error');
+    expect(harness.errors).toContainEqual(
+      expect.stringMatching(/^VideosEffectsController .* failed$/),
     );
-    await expect(
-      controller.mirrorVideo(mockRequest, mockUser, videoId),
-    ).rejects.toThrow();
-    expect(mockServices.loggerService.error).toHaveBeenCalled();
-  });
-
-  it('should set parent to the source video id', async () => {
-    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.reverseVideo(mockRequest, mockUser, videoId);
-    expect(
-      mockServices.sharedService.createMediaDocuments,
-    ).toHaveBeenCalledWith(
-      mockUser,
-      expect.objectContaining({
-        parentId: videoId,
-      }),
-    );
+    expect(harness.jobs).toEqual([]);
   });
 });

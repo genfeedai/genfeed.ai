@@ -1,25 +1,38 @@
-import { describe, expect, it, vi } from 'vitest';
+import { EventEmitter } from 'node:events';
 import {
   attachBetterAuthRequestLog,
+  type BetterAuthRequestLogger,
   createBetterAuthRequestLogPayload,
   logBetterAuthResponse,
   sanitizeBetterAuthLogPath,
-} from './better-auth-request-log.util';
+} from '@api/auth/better-auth/better-auth-request-log.util';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+let lines: Array<{ level: string; message: string; payload: unknown }>;
+const logger = {
+  error: (message: string, payload: unknown) => {
+    lines.push({ level: 'error', message, payload });
+  },
+  warn: (message: string, payload: unknown) => {
+    lines.push({ level: 'warn', message, payload });
+  },
+} as unknown as BetterAuthRequestLogger;
+
+beforeEach(() => {
+  lines = [];
+});
 
 describe('sanitizeBetterAuthLogPath', () => {
-  it('strips query strings so magic-link tokens never reach logs', () => {
-    expect(
-      sanitizeBetterAuthLogPath(
-        '/v1/auth/magic-link/verify?token=aGaBbdnmaRCxtCMzgEyMYNckdOecENYi&callbackURL=/agent',
-      ),
-    ).toBe('/v1/auth/magic-link/verify');
-  });
-
-  it('strips hash fragments and empty query markers', () => {
-    expect(sanitizeBetterAuthLogPath('/v1/auth/get-session#frag')).toBe(
-      '/v1/auth/get-session',
-    );
-    expect(sanitizeBetterAuthLogPath('/v1/auth/token?')).toBe('/v1/auth/token');
+  it.each([
+    [
+      '/v1/auth/magic-link/verify?token=aGaBbdnmaRCxtCMzgEyMYNckdOecENYi&callbackURL=/agent',
+      '/v1/auth/magic-link/verify',
+    ],
+    ['/v1/auth/get-session#frag', '/v1/auth/get-session'],
+    ['/v1/auth/token?', '/v1/auth/token'],
+    ['?token=secret', '/'],
+  ])('reduces %s to %s', (input, expected) => {
+    expect(sanitizeBetterAuthLogPath(input)).toBe(expected);
   });
 });
 
@@ -42,94 +55,54 @@ describe('createBetterAuthRequestLogPayload', () => {
 });
 
 describe('logBetterAuthResponse', () => {
-  it('warns on 401 and 403 without logging the query string', () => {
-    const logger = {
-      debug: vi.fn(),
-      error: vi.fn(),
-      warn: vi.fn(),
-    };
-
+  it.each([
+    [401, 'warn'],
+    [403, 'warn'],
+    [500, 'error'],
+    [503, 'error'],
+  ])('logs a %i at %s without the query string', (statusCode, level) => {
     logBetterAuthResponse(
       logger,
       createBetterAuthRequestLogPayload(
         'GET',
         '/v1/auth/get-session?token=secret',
-        401,
+        statusCode,
         8,
       ),
     );
 
-    expect(logger.warn).toHaveBeenCalledWith('Better Auth request failed', {
-      durationMs: 8,
-      method: 'GET',
-      path: '/v1/auth/get-session',
-      statusCode: 401,
-    });
-    expect(logger.error).not.toHaveBeenCalled();
-    expect(logger.debug).not.toHaveBeenCalled();
+    expect(lines).toEqual([
+      {
+        level,
+        message: 'Better Auth request failed',
+        payload: {
+          durationMs: 8,
+          method: 'GET',
+          path: '/v1/auth/get-session',
+          statusCode,
+        },
+      },
+    ]);
   });
 
-  it('errors on 5xx', () => {
-    const logger = {
-      debug: vi.fn(),
-      error: vi.fn(),
-      warn: vi.fn(),
-    };
-
+  it.each([200, 302])('does not log a %i response', (statusCode) => {
     logBetterAuthResponse(
       logger,
       createBetterAuthRequestLogPayload(
-        'POST',
-        '/v1/auth/sign-in/magic-link',
-        500,
-        3,
+        'GET',
+        '/v1/auth/get-session',
+        statusCode,
+        4,
       ),
     );
 
-    expect(logger.error).toHaveBeenCalledWith('Better Auth request failed', {
-      durationMs: 3,
-      method: 'POST',
-      path: '/v1/auth/sign-in/magic-link',
-      statusCode: 500,
-    });
-    expect(logger.warn).not.toHaveBeenCalled();
-  });
-
-  it('does not log successful Better Auth responses', () => {
-    const logger = {
-      debug: vi.fn(),
-      error: vi.fn(),
-      warn: vi.fn(),
-    };
-
-    logBetterAuthResponse(
-      logger,
-      createBetterAuthRequestLogPayload('GET', '/v1/auth/get-session', 200, 4),
-    );
-
-    expect(logger.debug).not.toHaveBeenCalled();
-    expect(logger.warn).not.toHaveBeenCalled();
-    expect(logger.error).not.toHaveBeenCalled();
+    expect(lines).toEqual([]);
   });
 });
 
 describe('attachBetterAuthRequestLog', () => {
   it('logs the finished status from the Express response', () => {
-    const logger = {
-      debug: vi.fn(),
-      error: vi.fn(),
-      warn: vi.fn(),
-    };
-    const finishListeners: Array<() => void> = [];
-    const res = {
-      once: vi.fn((event: string, listener: () => void) => {
-        if (event === 'finish') {
-          finishListeners.push(listener);
-        }
-        return res;
-      }),
-      statusCode: 401,
-    };
+    const res = Object.assign(new EventEmitter(), { statusCode: 200 });
 
     attachBetterAuthRequestLog(
       {
@@ -140,14 +113,22 @@ describe('attachBetterAuthRequestLog', () => {
       res,
       logger,
     );
+    res.statusCode = 401;
 
-    expect(logger.warn).not.toHaveBeenCalled();
-    finishListeners[0]?.();
-    expect(logger.warn).toHaveBeenCalledWith('Better Auth request failed', {
-      durationMs: expect.any(Number),
-      method: 'GET',
-      path: '/v1/auth/token',
-      statusCode: 401,
-    });
+    expect(lines).toEqual([]);
+    res.emit('finish');
+    res.emit('finish');
+    expect(lines).toEqual([
+      {
+        level: 'warn',
+        message: 'Better Auth request failed',
+        payload: {
+          durationMs: expect.any(Number),
+          method: 'GET',
+          path: '/v1/auth/token',
+          statusCode: 401,
+        },
+      },
+    ]);
   });
 });

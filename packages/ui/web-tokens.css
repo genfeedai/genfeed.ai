@@ -53,6 +53,8 @@
   [data-theme='light'] {
     --accent: 0 0% 93%;
     --accent-foreground: 0 0% 9%;
+    --accent-hover: 0 0% 22%;
+    --agent: 201 96% 32%;
     --background: 0 0% 98%;
     --tertiary: 0 0% 93%;
     --border: 0 0% 90%;
@@ -118,6 +120,8 @@
     :root:not([data-theme]) {
       --accent: 0 0% 12%;
       --accent-foreground: 0 0% 93%;
+      --accent-hover: 0 0% 80%;
+      --agent: 198 93% 60%;
       --background: 0 0% 0%;
       --tertiary: 0 0% 9%;
       --border: 0 0% 15%;
@@ -183,6 +187,8 @@
   [data-theme='dark'] {
     --accent: 0 0% 12%;
     --accent-foreground: 0 0% 93%;
+    --accent-hover: 0 0% 80%;
+    --agent: 198 93% 60%;
     --background: 0 0% 0%;
     --tertiary: 0 0% 9%;
     --border: 0 0% 15%;

@@ -2,87 +2,102 @@ import {
   type CreatePatternDto,
   PatternStoreService,
 } from '@api/collections/content-intelligence/services/pattern-store.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ContentIntelligencePlatform,
   ContentPatternType,
 } from '@genfeedai/contracts';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
   assertTenantScopedQuery,
   TenantIsolationError,
 } from '@libs/prisma/tenant-guard';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-function createMocks() {
-  const contentPattern = {
-    create: vi.fn(),
-    findMany: vi.fn(),
-    findFirst: vi.fn(),
-    findUnique: vi.fn(),
-    update: vi.fn(),
-    updateMany: vi.fn(),
-  };
+interface PatternRow {
+  createdAt: Date;
+  data: Record<string, unknown>;
+  id: string;
+  isDeleted: boolean;
+  organizationId: string;
+  sourceCreatorId?: string;
+}
 
-  return {
-    logger: {
-      debug: vi.fn(),
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
-    },
-    prisma: { contentPattern },
+interface DataFilter {
+  data: {
+    array_contains?: unknown[];
+    equals?: unknown;
+    gte?: number;
+    path: string[];
   };
 }
 
-describe('PatternStoreService organization scoping', () => {
-  let service: PatternStoreService;
-  let mocks: ReturnType<typeof createMocks>;
+interface PatternWhere {
+  AND?: DataFilter[];
+  id?: string;
+  isDeleted?: boolean;
+  organizationId?: string;
+  sourceCreatorId?: string;
+}
 
-  const organizationId = 'org-123';
-  const creatorId = 'creator-1';
+const ORG = 'org-123';
+const CREATOR = 'creator-1';
+
+const pattern = (
+  rawExample: string,
+  fields: Partial<CreatePatternDto> = {},
+): CreatePatternDto => ({
+  extractedFormula: 'formula',
+  organizationId: ORG,
+  patternType: ContentPatternType.HOOK,
+  placeholders: [],
+  platform: ContentIntelligencePlatform.INSTAGRAM,
+  rawExample,
+  sourceCreatorId: CREATOR,
+  sourceMetrics: {
+    comments: 0,
+    engagementRate: 0,
+    likes: 0,
+    shares: 0,
+    views: 0,
+    viralScore: 0,
+  },
+  tags: [],
+  ...fields,
+});
+
+const readPath = (data: Record<string, unknown>, path: string[]) =>
+  path.reduce<unknown>(
+    (value, key) => (value as Record<string, unknown> | undefined)?.[key],
+    data,
+  );
+
+const matchesData = (data: Record<string, unknown>, filter: DataFilter) => {
+  const value = readPath(data, filter.data.path);
+  if (filter.data.equals !== undefined) return value === filter.data.equals;
+  if (filter.data.gte !== undefined) return Number(value) >= filter.data.gte;
+  return (filter.data.array_contains ?? []).every(
+    (item) => Array.isArray(value) && value.includes(item),
+  );
+};
+
+describe('PatternStoreService', () => {
+  let rows: PatternRow[];
+  let isCloudGuardOn: boolean;
+  let service: PatternStoreService;
+
+  const live = () => rows.filter((row) => !row.isDeleted);
+  const examplesOf = (documents: { rawExample?: unknown }[]) =>
+    documents.map((document) => document.rawExample);
 
   beforeEach(() => {
-    mocks = createMocks();
-    service = new PatternStoreService(
-      mocks.prisma as never,
-      mocks.logger as never,
-    );
-  });
+    rows = [];
+    isCloudGuardOn = false;
 
-  describe('findByCreator', () => {
-    it('should scope the lookup to the organization and creator', async () => {
-      mocks.prisma.contentPattern.findMany.mockResolvedValue([]);
-
-      await service.findByCreator(creatorId, organizationId);
-
-      expect(mocks.prisma.contentPattern.findMany).toHaveBeenCalledWith({
-        where: { isDeleted: false, organizationId, sourceCreatorId: creatorId },
-      });
-    });
-
-    it('should not match a foreign organization', async () => {
-      // A creator that belongs to another org yields no rows because the
-      // organization filter is part of the where clause.
-      mocks.prisma.contentPattern.findMany.mockResolvedValue([]);
-
-      const result = await service.findByCreator(creatorId, 'other-org');
-
-      expect(result).toEqual([]);
-      expect(mocks.prisma.contentPattern.findMany).toHaveBeenCalledWith({
-        where: {
-          isDeleted: false,
-          organizationId: 'other-org',
-          sourceCreatorId: creatorId,
-        },
-      });
-    });
-  });
-
-  describe('incrementUsage', () => {
-    const patternId = 'pattern-1';
-
-    function guardAll(): void {
-      const guard = (operation: string) => (args: unknown) =>
+    // The cloud tenant guard checks every query against the request tenant.
+    const guard = (operation: string, args: unknown) => {
+      if (isCloudGuardOn) {
         assertTenantScopedQuery({
           args,
           isCloud: true,
@@ -90,162 +105,215 @@ describe('PatternStoreService organization scoping', () => {
           operation,
           tenantModelNames: new Set(['ContentPattern']),
         });
-      const checkFindFirst = guard('findFirst');
-      const checkUpdate = guard('update');
-      mocks.prisma.contentPattern.findFirst.mockImplementation(
-        async (args: unknown) => {
-          checkFindFirst(args);
-          return { data: { usageCount: 2 }, id: patternId, organizationId };
-        },
-      );
-      mocks.prisma.contentPattern.update.mockImplementation(
-        async (args: { data: Record<string, unknown> }) => {
-          checkUpdate(args);
-          return { id: patternId, organizationId, ...args.data };
-        },
-      );
-    }
+      }
+    };
+    const matches = (row: PatternRow, where: PatternWhere) =>
+      (where.id === undefined || row.id === where.id) &&
+      (where.organizationId === undefined ||
+        row.organizationId === where.organizationId) &&
+      (where.isDeleted === undefined || row.isDeleted === where.isDeleted) &&
+      (where.sourceCreatorId === undefined ||
+        row.sourceCreatorId === where.sourceCreatorId) &&
+      (where.AND ?? []).every((filter) => matchesData(row.data, filter));
+    const contentPattern = {
+      create: async ({
+        data,
+      }: {
+        data: Omit<PatternRow, 'createdAt' | 'id' | 'isDeleted'>;
+      }) => {
+        const row: PatternRow = {
+          createdAt: new Date(Date.UTC(2026, 0, rows.length + 1)),
+          id: `pattern-${rows.length + 1}`,
+          isDeleted: false,
+          ...data,
+        };
+        rows.push(row);
+        return { ...row };
+      },
+      findFirst: async (args: { where: PatternWhere }) => {
+        guard('findFirst', args);
+        return rows.find((row) => matches(row, args.where)) ?? null;
+      },
+      findMany: async (args: { take?: number; where: PatternWhere }) => {
+        guard('findMany', args);
+        return rows
+          .filter((row) => matches(row, args.where))
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+          .slice(0, args.take);
+      },
+      update: async (args: {
+        data: Partial<PatternRow>;
+        where: PatternWhere;
+      }) => {
+        guard('update', args);
+        const row = rows.find((candidate) => matches(candidate, args.where));
+        return row ? Object.assign(row, args.data) : null;
+      },
+      updateMany: async (args: {
+        data: Partial<PatternRow>;
+        where: PatternWhere;
+      }) => {
+        guard('updateMany', args);
+        const matched = rows.filter((row) => matches(row, args.where));
+        for (const row of matched) {
+          Object.assign(row, args.data);
+        }
+        return { count: matched.length };
+      },
+    };
+    const logger = {
+      debug: () => undefined,
+      error: () => undefined,
+      log: () => undefined,
+      warn: () => undefined,
+    } as unknown as LoggerService;
 
-    it('scopes the lookup and the write to the organization under the CLOUD tenant guard', async () => {
-      guardAll();
-
-      await runWithTenantContext({ organizationId }, () =>
-        service.incrementUsage(patternId, organizationId),
-      );
-
-      expect(mocks.prisma.contentPattern.findFirst).toHaveBeenCalledWith({
-        where: { id: patternId, isDeleted: false, organizationId },
-        select: { data: true },
-      });
-      expect(mocks.prisma.contentPattern.update).toHaveBeenCalledWith({
-        data: { data: { usageCount: 3 } },
-        where: { id: patternId, isDeleted: false, organizationId },
-      });
-    });
-
-    it('refuses an organization other than the request tenant', async () => {
-      guardAll();
-
-      await expect(
-        runWithTenantContext({ organizationId: 'org-other' }, () =>
-          service.incrementUsage(patternId, organizationId),
-        ),
-      ).rejects.toBeInstanceOf(TenantIsolationError);
-      expect(mocks.prisma.contentPattern.update).not.toHaveBeenCalled();
-    });
-
-    it('does nothing when the pattern is not visible to the organization', async () => {
-      mocks.prisma.contentPattern.findFirst.mockResolvedValue(null);
-
-      await service.incrementUsage(patternId, organizationId);
-
-      expect(mocks.prisma.contentPattern.update).not.toHaveBeenCalled();
-    });
+    service = new PatternStoreService(
+      { contentPattern } as unknown as PrismaService,
+      logger,
+    );
   });
 
-  describe('deleteByCreator', () => {
-    it('should scope the soft-delete to the organization and creator', async () => {
-      mocks.prisma.contentPattern.updateMany.mockResolvedValue({ count: 3 });
+  it('stores ownership as columns and the pattern as JSON data', async () => {
+    const stored = await service.storePattern(
+      pattern('example', { sourcePostDate: new Date('2026-02-03T04:05:06Z') }),
+    );
 
-      const result = await service.deleteByCreator(creatorId, organizationId);
-
-      expect(mocks.prisma.contentPattern.updateMany).toHaveBeenCalledWith({
-        where: { isDeleted: false, organizationId, sourceCreatorId: creatorId },
-        data: { isDeleted: true },
-      });
-      expect(result).toEqual({ count: 3 });
-    });
-  });
-
-  describe('storeBulkPatterns', () => {
-    it('should persist each pattern via storePattern', async () => {
-      const storePattern = vi
-        .spyOn(service, 'storePattern')
-        .mockImplementation(async (dto) => ({ id: dto.rawExample }) as never);
-
-      const patterns = [
-        buildPattern('a'),
-        buildPattern('b'),
-        buildPattern('c'),
-      ];
-
-      const result = await service.storeBulkPatterns(patterns);
-
-      expect(storePattern).toHaveBeenCalledTimes(3);
-      expect(result).toEqual([{ id: 'a' }, { id: 'b' }, { id: 'c' }]);
-    });
-  });
-
-  it('persists scalar ownership separately from pattern JSON data', async () => {
-    mocks.prisma.contentPattern.create.mockImplementation(async ({ data }) => ({
-      createdAt: new Date(),
-      id: 'pattern-1',
-      isDeleted: false,
-      updatedAt: new Date(),
-      ...data,
-    }));
-
-    await service.storePattern({
-      ...buildPattern('example'),
-      sourceCreatorId: creatorId,
-    });
-
-    expect(mocks.prisma.contentPattern.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(rows).toEqual([
+      expect.objectContaining({
         data: expect.objectContaining({
           patternType: ContentPatternType.HOOK,
           rawExample: 'example',
           relevanceWeight: 1,
+          sourcePostDate: '2026-02-03T04:05:06.000Z',
           usageCount: 0,
         }),
-        organizationId,
-        sourceCreatorId: creatorId,
+        organizationId: ORG,
+        sourceCreatorId: CREATOR,
       }),
-    });
+    ]);
+    expect(rows[0]?.data).not.toHaveProperty('organizationId');
+    expect(stored).toMatchObject({ rawExample: 'example', usageCount: 0 });
   });
 
-  it('filters JSON domain fields through Prisma JSON paths', async () => {
-    mocks.prisma.contentPattern.findMany.mockResolvedValue([]);
+  it('stores every pattern of a bulk import', async () => {
+    const stored = await service.storeBulkPatterns([
+      pattern('a'),
+      pattern('b'),
+      pattern('c'),
+    ]);
 
-    await service.findByOrganization(organizationId, {
-      minEngagementRate: 2,
-      patternType: ContentPatternType.HOOK,
-    });
-
-    expect(mocks.prisma.contentPattern.findMany).toHaveBeenCalledWith({
-      orderBy: [{ createdAt: 'desc' }],
-      where: expect.objectContaining({
-        AND: expect.arrayContaining([
-          { data: { equals: ContentPatternType.HOOK, path: ['patternType'] } },
-          {
-            data: {
-              gte: 2,
-              path: ['sourceMetrics', 'engagementRate'],
-            },
-          },
-        ]),
-        organizationId,
-      }),
-    });
+    expect(examplesOf(stored)).toEqual(['a', 'b', 'c']);
+    expect(rows).toHaveLength(3);
   });
 
-  function buildPattern(rawExample: string): CreatePatternDto {
-    return {
-      extractedFormula: 'formula',
-      organizationId,
-      patternType: ContentPatternType.HOOK,
-      placeholders: [],
-      platform: ContentIntelligencePlatform.INSTAGRAM,
-      rawExample,
-      sourceMetrics: {
-        comments: 0,
-        engagementRate: 0,
-        likes: 0,
-        shares: 0,
-        views: 0,
-        viralScore: 0,
-      },
-      tags: [],
-    };
-  }
+  it('lists the creator patterns of the organization only', async () => {
+    await service.storeBulkPatterns([
+      pattern('mine'),
+      pattern('other creator', { sourceCreatorId: 'creator-2' }),
+      pattern('other org', { organizationId: 'org-other' }),
+    ]);
+
+    await expect(service.findByCreator(CREATOR, ORG)).resolves.toEqual([
+      expect.objectContaining({ rawExample: 'mine' }),
+    ]);
+    await expect(service.findByCreator(CREATOR, 'org-x')).resolves.toEqual([]);
+  });
+
+  it.each([
+    [{}, ['newest', 'tiktok', 'hooked', 'oldest']],
+    [{ limit: 2 }, ['newest', 'tiktok']],
+    [{ platform: ContentIntelligencePlatform.TIKTOK }, ['tiktok']],
+    [
+      { patternType: ContentPatternType.HOOK, minEngagementRate: 2 },
+      ['hooked'],
+    ],
+    [{ tags: ['growth'] }, ['newest']],
+    [{ sourceCreator: 'creator-2' }, ['oldest']],
+  ])(
+    'filters organization patterns by JSON fields (%o)',
+    async (filters, expected) => {
+      await service.storePattern(
+        pattern('oldest', {
+          patternType: ContentPatternType.CTA,
+          sourceCreatorId: 'creator-2',
+        }),
+      );
+      await service.storePattern(
+        pattern('hooked', {
+          sourceMetrics: { ...pattern('').sourceMetrics, engagementRate: 3 },
+        }),
+      );
+      await service.storePattern(
+        pattern('tiktok', {
+          patternType: ContentPatternType.CTA,
+          platform: ContentIntelligencePlatform.TIKTOK,
+        }),
+      );
+      await service.storePattern(
+        pattern('newest', {
+          patternType: ContentPatternType.CTA,
+          tags: ['growth', 'b2b'],
+        }),
+      );
+      await service.storePattern(
+        pattern('foreign', { organizationId: 'org-x' }),
+      );
+
+      const found = await service.findByOrganization(ORG, filters);
+
+      expect(examplesOf(found)).toEqual(expected);
+    },
+  );
+
+  it('counts a use of a pattern under the cloud tenant guard', async () => {
+    await service.storePattern(pattern('example'));
+    isCloudGuardOn = true;
+
+    await runWithTenantContext({ organizationId: ORG }, () =>
+      service.incrementUsage('pattern-1', ORG),
+    );
+    await runWithTenantContext({ organizationId: ORG }, () =>
+      service.incrementUsage('pattern-1', ORG),
+    );
+
+    expect(rows[0]?.data.usageCount).toBe(2);
+  });
+
+  it('refuses to count a use for an organization other than the request tenant', async () => {
+    await service.storePattern(pattern('example'));
+    isCloudGuardOn = true;
+
+    await expect(
+      runWithTenantContext({ organizationId: 'org-other' }, () =>
+        service.incrementUsage('pattern-1', ORG),
+      ),
+    ).rejects.toBeInstanceOf(TenantIsolationError);
+    expect(rows[0]?.data.usageCount).toBe(0);
+  });
+
+  it('counts nothing for a pattern of another organization', async () => {
+    await service.storePattern(pattern('example', { organizationId: 'org-x' }));
+
+    await service.incrementUsage('pattern-1', ORG);
+
+    expect(rows[0]?.data.usageCount).toBe(0);
+  });
+
+  it('soft-deletes the creator patterns of the organization only', async () => {
+    await service.storeBulkPatterns([
+      pattern('a'),
+      pattern('b'),
+      pattern('other creator', { sourceCreatorId: 'creator-2' }),
+      pattern('other org', { organizationId: 'org-x' }),
+    ]);
+
+    await expect(service.deleteByCreator(CREATOR, ORG)).resolves.toEqual({
+      count: 2,
+    });
+    expect(live().map((row) => row.data.rawExample)).toEqual([
+      'other creator',
+      'other org',
+    ]);
+  });
 });

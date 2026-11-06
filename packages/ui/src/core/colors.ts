@@ -18,8 +18,11 @@
  * | success (as text)        |  7.80:1 |  5.48:1 |
  * | warning (as text)        |  9.22:1 |  5.02:1 |
  * | info (as text)           |  7.92:1 |  5.62:1 |
+ * | agent (as text)          |  9.25:1 |  5.68:1 |
  */
 export const semanticColorRoles = [
+  'accentHover',
+  'agent',
   'background',
   'tertiary',
   'foreground',
@@ -62,11 +65,17 @@ export const semanticColorTokens = {
     // gray-200 — the hover/selected fill every interactive surface lands on.
     accent: { hex: '#1F1F1F', hsl: '0 0% 12%' },
     accentForeground: { hex: '#EDEDED', hsl: '0 0% 93%' },
+    // One notch off a full-strength foreground fill: the hover of the inverted
+    // primary button, the only place the product dims gray-1000.
+    accentHover: { hex: '#CCCCCC', hsl: '0 0% 80%' },
+    // The only product hue outside the status set (AI agent activity).
+    agent: { hex: '#38BDF8', hsl: '198 93% 60%' },
     // background-100 — the canvas: pure black (Codex/Vercel). Elevation above
     // it comes from near-black planes plus hairline borders, and type stays
     // capped at #EDEDED so it does not bloom on #000.
     background: { hex: '#000000', hsl: '0 0% 0%' },
-    // background-200 — the near-black content plane (app chrome, panels, cards).
+    // Nested fill inside a card (inputs, chips), half a step below gray-200 so
+    // a filled input stays quieter than its hover.
     tertiary: { hex: '#161616', hsl: '0 0% 9%' },
     border: { hex: '#262626', hsl: '0 0% 15%' },
     borderStrong: { hex: '#3D3D3D', hsl: '0 0% 24%' },
@@ -100,6 +109,9 @@ export const semanticColorTokens = {
   light: {
     accent: { hex: '#EDEDED', hsl: '0 0% 93%' },
     accentForeground: { hex: '#171717', hsl: '0 0% 9%' },
+    accentHover: { hex: '#383838', hsl: '0 0% 22%' },
+    // #0284C7 is 3.92:1 on #FAFAFA and fails AA as text.
+    agent: { hex: '#0369A1', hsl: '201 96% 32%' },
     // True neutral. Every hue angle here is 0 by design — a warm canvas tints
     // every screenshot, thumbnail, and brand colour the product renders on it.
     background: { hex: '#FAFAFA', hsl: '0 0% 98%' },

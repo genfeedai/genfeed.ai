@@ -17,19 +17,47 @@ import type { Request } from 'express';
 describe('PromptsOperationsController', () => {
   let controller: PromptsOperationsController;
 
+  /** What reached each boundary during a call. */
+  const seen = {
+    completionKeys: [] as (string | undefined)[],
+    savedPrompts: [] as { enhanced?: string; original?: string }[],
+    templateVariables: [] as Record<string, unknown>[],
+    transcribed: [] as unknown[],
+  };
+
   const whisperService = {
-    transcribeAudio: vi.fn().mockResolvedValue('Transcribed text'),
+    transcribeAudio: async (file: unknown) => {
+      seen.transcribed.push(file);
+      return 'Transcribed text';
+    },
   };
   const templatesService = {
-    getRenderedPrompt: vi.fn().mockResolvedValue('rendered prompt'),
+    getRenderedPrompt: async (
+      _key: string,
+      variables: Record<string, unknown>,
+    ) => {
+      seen.templateVariables.push(variables);
+      return 'rendered prompt';
+    },
   };
   const promptBuilderService = {
-    buildPrompt: vi.fn().mockResolvedValue({ input: {} }),
+    buildPrompt: async () => ({ input: {} }),
   };
   const replicateService = {
-    generateTextCompletionSync: vi
-      .fn()
-      .mockResolvedValue('  Generated reply  '),
+    generateTextCompletionSync: async (
+      _model: string,
+      _input: unknown,
+      apiKeyOverride?: string,
+    ) => {
+      seen.completionKeys.push(apiKeyOverride);
+      return '  Generated reply  ';
+    },
+  };
+  const promptsService = {
+    create: async (entity: { enhanced?: string; original?: string }) => {
+      seen.savedPrompts.push(entity);
+      return entity;
+    },
   };
 
   beforeEach(async () => {
@@ -38,14 +66,15 @@ describe('PromptsOperationsController', () => {
       providers: [
         {
           provide: LoggerService,
-          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
+          useValue: {
+            error: () => undefined,
+            log: () => undefined,
+            warn: () => undefined,
+          },
         },
         { provide: ReplicateService, useValue: replicateService },
         { provide: PromptBuilderService, useValue: promptBuilderService },
-        {
-          provide: PromptsService,
-          useValue: { create: vi.fn() },
-        },
+        { provide: PromptsService, useValue: promptsService },
         { provide: WhisperService, useValue: whisperService },
         { provide: TemplatesService, useValue: templatesService },
       ],
@@ -69,7 +98,10 @@ describe('PromptsOperationsController', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    seen.completionKeys = [];
+    seen.savedPrompts = [];
+    seen.templateVariables = [];
+    seen.transcribed = [];
   });
 
   it('keeps paid voice transcription behind authentication', () => {
@@ -92,7 +124,7 @@ describe('PromptsOperationsController', () => {
     await expect(controller.voiceToSpeech(file)).resolves.toEqual({
       text: 'Transcribed text',
     });
-    expect(whisperService.transcribeAudio).toHaveBeenCalledWith(file);
+    expect(seen.transcribed).toEqual([file]);
   });
 
   // `tagGrok` reaches the reply twice: once as a template variable, and again
@@ -115,11 +147,9 @@ describe('PromptsOperationsController', () => {
       );
 
       expect(result.reply).toBe('@grok Generated reply');
-      expect(templatesService.getRenderedPrompt).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ tagGrok: true }),
-        'org_1',
-      );
+      expect(seen.templateVariables).toEqual([
+        expect.objectContaining({ tagGrok: true, tweetContent: 'Hello world' }),
+      ]);
     });
 
     it('returns the trimmed reply unprefixed when tagGrok is absent', async () => {
@@ -130,11 +160,15 @@ describe('PromptsOperationsController', () => {
       );
 
       expect(result.reply).toBe('Generated reply');
-      expect(templatesService.getRenderedPrompt).toHaveBeenCalledWith(
-        expect.anything(),
+      expect(seen.templateVariables).toEqual([
         expect.objectContaining({ tagGrok: false }),
-        'org_1',
-      );
+      ]);
+      expect(seen.savedPrompts).toEqual([
+        expect.objectContaining({
+          enhanced: '  Generated reply  ',
+          original: 'Hello world',
+        }),
+      ]);
     });
 
     // #5375: the resolved BYOK key travels on request.creditsConfig, set by
@@ -150,11 +184,7 @@ describe('PromptsOperationsController', () => {
         request,
       );
 
-      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.anything(),
-        'org-openrouter-key',
-      );
+      expect(seen.completionKeys).toEqual(['org-openrouter-key']);
     });
 
     it('dispatches with no key override when the guard did not bypass', async () => {
@@ -164,11 +194,7 @@ describe('PromptsOperationsController', () => {
         {} as Request,
       );
 
-      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.anything(),
-        undefined,
-      );
+      expect(seen.completionKeys).toEqual([undefined]);
     });
   });
 });

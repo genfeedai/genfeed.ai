@@ -1,466 +1,473 @@
-import { UsersService } from '@api/collections/users/services/users.service';
-import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
+import type { UsersService } from '@api/collections/users/services/users.service';
+import type { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
-import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
+import type { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
-import { StripeWebhookBillingService } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.service';
+import type { StripeWebhookBillingService } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.service';
 import type { StripeSubscription } from '@api/services/integrations/stripe/services/stripe.service';
 import { selectSoftwareSubscriptionItem } from '@api/services/integrations/stripe/services/stripe-software-item.util';
-import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
+import type { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import {
   SubscriptionPlan,
   SubscriptionStatus,
   SubscriptionTier,
 } from '@genfeedai/contracts';
-import {
-  type ISubscriptionOssReadModel,
-  SUBSCRIPTIONS_SERVICE,
+import type {
+  ISubscriptionOssReadModel,
+  ISubscriptionsService,
 } from '@genfeedai/contracts/interfaces/billing';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-describe('StripeSubscriptionWebhookHandler', () => {
-  let handler: StripeSubscriptionWebhookHandler;
+type Row = Record<string, unknown>;
+type LogEntry = [string, unknown];
 
-  const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-  const subscriptionsService = {
-    findByStripeCustomerId: vi.fn(),
-    findByOrganizationId: vi.fn(),
-    findOne: vi.fn(),
-    patch: vi.fn(),
-    syncSubscriptionState: vi.fn(),
-  };
-  const usersService = { findOne: vi.fn() };
-  const supportService = {
-    invalidateUserCaches: vi.fn(),
-    softwareItem: selectSoftwareSubscriptionItem,
-    resolveSubscriptionPlan: vi.fn().mockReturnValue(SubscriptionPlan.MONTHLY),
-    notifyOperatorOfBillingEvent: vi.fn(),
-    resolveTierFromPriceId: vi.fn().mockReturnValue(null),
-    updateOrganizationTierAndModels: vi.fn(),
-  };
-  const lifecycleEmailService = {
-    recordSubscriptionLapsed: vi.fn(),
-  };
-  const creditReconciler = { reconcile: vi.fn() };
-  const billingService = { resolve: vi.fn(), persist: vi.fn() };
+const PERIOD_START = 1_747_321_600;
+const PERIOD_END = 1_750_000_000;
+const DB_SUBSCRIPTION = {
+  cancelAtPeriodEnd: false,
+  id: 'sub_db_1',
+  isDeleted: false,
+  organizationId: 'org_1',
+  plan: SubscriptionPlan.MONTHLY,
+  status: 'active',
+  stripePriceId: 'price_1',
+  stripeSubscriptionId: 'sub_stripe_1',
+  userId: 'user_1',
+} satisfies ISubscriptionOssReadModel;
 
-  function stripeSubscription(
-    overrides: Record<string, unknown> = {},
-  ): StripeSubscription {
-    return {
-      cancel_at_period_end: false,
-      customer: 'cus_123',
-      id: 'sub_stripe_1',
-      items: {
-        data: [
-          {
-            current_period_start: 1_747_321_600,
-            current_period_end: 1_750_000_000,
-            price: { id: 'price_1', recurring: { interval: 'month' } },
-          },
-        ],
-      },
-      status: 'active',
-      ...overrides,
-    } as unknown as StripeSubscription;
-  }
-
-  const dbSubscription = {
-    cancelAtPeriodEnd: false,
-    id: 'sub_db_1',
-    isDeleted: false,
-    organizationId: 'org_1',
-    plan: SubscriptionPlan.MONTHLY,
-    status: 'active',
-    stripePriceId: 'price_1',
-    userId: 'user_1',
-  } satisfies ISubscriptionOssReadModel;
-
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    supportService.resolveSubscriptionPlan.mockReturnValue(
-      SubscriptionPlan.MONTHLY,
-    );
-    supportService.resolveTierFromPriceId.mockReturnValue(null);
-    billingService.resolve.mockResolvedValue({
-      billingAccountId: 'ba_1',
-      subscription: dbSubscription,
-    });
-    billingService.persist.mockResolvedValue(dbSubscription);
-    subscriptionsService.findByOrganizationId.mockResolvedValue(null);
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        StripeSubscriptionWebhookHandler,
-        { provide: LoggerService, useValue: loggerService },
-        { provide: SUBSCRIPTIONS_SERVICE, useValue: subscriptionsService },
-        { provide: UsersService, useValue: usersService },
-        { provide: StripeWebhookSupportService, useValue: supportService },
-        { provide: LifecycleEmailService, useValue: lifecycleEmailService },
+function stripeSubscription(overrides: Row = {}): StripeSubscription {
+  return {
+    cancel_at_period_end: false,
+    customer: 'cus_123',
+    id: 'sub_stripe_1',
+    items: {
+      data: [
         {
-          provide: StripeSubscriptionCreditReconcilerService,
-          useValue: creditReconciler,
-        },
-        {
-          provide: StripeWebhookBillingService,
-          useValue: billingService,
+          current_period_end: PERIOD_END,
+          current_period_start: PERIOD_START,
+          price: { id: 'price_1', recurring: { interval: 'month' } },
         },
       ],
-    }).compile();
+    },
+    status: 'active',
+    ...overrides,
+  } as unknown as StripeSubscription;
+}
+const withItem = (item: Row) =>
+  stripeSubscription({
+    items: { data: [{ price: { id: 'price_1' }, ...item }] },
+  });
 
-    handler = module.get(StripeSubscriptionWebhookHandler);
+describe('StripeSubscriptionWebhookHandler', () => {
+  // Stored state and every effect a Stripe event leaves behind.
+  let subscription: Row;
+  let users: Set<string>;
+  let priceTiers: Map<string, SubscriptionTier>;
+  let organizationTiers: Map<string, SubscriptionTier>;
+  let identityError: Error | undefined;
+  let reconcileError: Error | undefined;
+  let lifecycleError: Error | undefined;
+  let persisted: Row[];
+  let syncs: unknown[][];
+  let reconciled: Row[];
+  let notifications: Row[];
+  let lapsed: Row[];
+  let timeline: string[];
+  let logs: LogEntry[];
+  let warnings: LogEntry[];
+  let errors: LogEntry[];
+  let handler: StripeSubscriptionWebhookHandler;
+
+  beforeEach(() => {
+    subscription = { ...DB_SUBSCRIPTION };
+    users = new Set(['user_1']);
+    priceTiers = new Map();
+    organizationTiers = new Map([['org_1', SubscriptionTier.PRO]]);
+    identityError = undefined;
+    reconcileError = undefined;
+    lifecycleError = undefined;
+    persisted = [];
+    syncs = [];
+    reconciled = [];
+    notifications = [];
+    lapsed = [];
+    timeline = [];
+    logs = [];
+    warnings = [];
+    errors = [];
+
+    const subscriptions = {
+      findOne: async ({ stripeSubscriptionId }: Row) =>
+        subscription.stripeSubscriptionId === stripeSubscriptionId &&
+        !subscription.isDeleted
+          ? { ...subscription }
+          : null,
+      patch: async (id: string, data: Row) => {
+        if (id !== subscription.id) throw new Error('subscription not found');
+        return Object.assign(subscription, data);
+      },
+      syncSubscriptionState: async (...args: unknown[]) => {
+        syncs.push(args);
+      },
+    };
+    const support = {
+      invalidateUserCaches: async (userId: string) => {
+        timeline.push(`invalidate:${userId}`);
+      },
+      notifyOperatorOfBillingEvent: async (event: Row) => {
+        notifications.push(event);
+      },
+      resolveSubscriptionPlan: () => SubscriptionPlan.MONTHLY,
+      resolveTierFromPriceId: (priceId: string) =>
+        priceTiers.get(priceId) ?? null,
+      softwareItem: selectSoftwareSubscriptionItem,
+      updateOrganizationTierAndModels: async (
+        organizationId: string,
+        tier: SubscriptionTier,
+      ) => {
+        timeline.push(`tier:${tier}`);
+        organizationTiers.set(organizationId, tier);
+      },
+    };
+    const billing = {
+      persist: async (_identity: unknown, patch: Row) => {
+        persisted.push(patch);
+        return Object.assign(subscription, patch);
+      },
+      resolve: async () => {
+        if (identityError) throw identityError;
+        return { billingAccountId: 'ba_1', subscription: { ...subscription } };
+      },
+    };
+
+    handler = new StripeSubscriptionWebhookHandler(
+      {
+        error: (message: string, context: unknown) => {
+          errors.push([message, context]);
+        },
+        log: (message: string, context: unknown) => {
+          logs.push([message, context]);
+        },
+        warn: (message: string, context: unknown) => {
+          warnings.push([message, context]);
+        },
+      } as unknown as LoggerService,
+      subscriptions as unknown as ISubscriptionsService,
+      {
+        findOne: async ({ id }: { id: string }) =>
+          users.has(id) ? { id } : null,
+      } as unknown as UsersService,
+      support as unknown as StripeWebhookSupportService,
+      {
+        recordSubscriptionLapsed: async (event: Row) => {
+          if (lifecycleError) throw lifecycleError;
+          lapsed.push(event);
+        },
+      } as unknown as LifecycleEmailService,
+      {
+        reconcile: async (input: Row) => {
+          if (reconcileError) throw reconcileError;
+          reconciled.push(input);
+        },
+      } as unknown as StripeSubscriptionCreditReconcilerService,
+      billing as unknown as StripeWebhookBillingService,
+    );
   });
 
   describe('handleSubscriptionCreated', () => {
-    it('patches the matching subscription and syncs its state', async () => {
-      subscriptionsService.findByStripeCustomerId.mockResolvedValue(
-        dbSubscription,
-      );
-      subscriptionsService.patch.mockResolvedValue(dbSubscription);
+    it('persists the subscription, syncs its state and reconciles the initial grant', async () => {
+      await handler.handleSubscriptionCreated(stripeSubscription(), 'test');
+
+      expect(subscription).toMatchObject({
+        cancelAtPeriodEnd: false,
+        currentPeriodEnd: new Date(PERIOD_END * 1000),
+        currentPeriodStart: new Date(PERIOD_START * 1000),
+        plan: SubscriptionPlan.MONTHLY,
+        status: SubscriptionStatus.ACTIVE,
+        stripePriceId: 'price_1',
+        stripeSubscriptionId: 'sub_stripe_1',
+      });
+      expect(syncs).toEqual([
+        [
+          expect.objectContaining({ id: 'sub_db_1' }),
+          'sub_stripe_1',
+          'price_1',
+          'active',
+        ],
+      ]);
+      expect(reconciled).toEqual([
+        {
+          billingAccountId: 'ba_1',
+          billingReason: 'subscription_create',
+          periodEnd: new Date(PERIOD_END * 1000),
+          periodStart: new Date(PERIOD_START * 1000),
+          stripeSubscriptionId: 'sub_stripe_1',
+          subscription: expect.objectContaining({
+            organizationId: 'org_1',
+            plan: SubscriptionPlan.MONTHLY,
+            stripePriceId: 'price_1',
+          }),
+          subscriptionStatus: 'active',
+          trigger: 'customer.subscription.created',
+          url: 'test',
+        },
+      ]);
+      expect(organizationTiers.get('org_1')).toBe(SubscriptionTier.PRO);
+    });
+
+    it('moves the organization to the price tier and announces it by plan name', async () => {
+      priceTiers.set('price_1', SubscriptionTier.SCALE);
 
       await handler.handleSubscriptionCreated(stripeSubscription(), 'test');
 
-      expect(billingService.persist).toHaveBeenCalledWith(
-        { billingAccountId: 'ba_1', subscription: dbSubscription },
-        expect.objectContaining({
-          status: SubscriptionStatus.ACTIVE,
-          stripePriceId: 'price_1',
-          stripeSubscriptionId: 'sub_stripe_1',
-          plan: SubscriptionPlan.MONTHLY,
-        }),
-      );
-      expect(subscriptionsService.syncSubscriptionState).toHaveBeenCalledWith(
-        dbSubscription,
+      expect(organizationTiers.get('org_1')).toBe(SubscriptionTier.SCALE);
+      expect(syncs.at(-1)).toEqual([
+        expect.anything(),
         'sub_stripe_1',
         'price_1',
         'active',
-      );
-      expect(creditReconciler.reconcile).toHaveBeenCalledWith({
-        billingAccountId: 'ba_1',
-        billingReason: 'subscription_create',
-        periodEnd: new Date(1_750_000_000 * 1000),
-        periodStart: new Date(1_747_321_600 * 1000),
-        stripeSubscriptionId: 'sub_stripe_1',
-        subscription: expect.objectContaining({
+        SubscriptionTier.SCALE,
+      ]);
+      expect(notifications).toEqual([
+        {
+          kind: 'subscription_created',
           organizationId: 'org_1',
-          plan: SubscriptionPlan.MONTHLY,
-          stripePriceId: 'price_1',
-        }),
-        subscriptionStatus: 'active',
-        trigger: 'customer.subscription.created',
-        url: 'test',
-      });
+          planLabel: 'Scale',
+          stripeObjectId: 'sub_stripe_1',
+        },
+      ]);
     });
 
-    it('updates the org tier when the price maps to one', async () => {
-      subscriptionsService.findByStripeCustomerId.mockResolvedValue(
-        dbSubscription,
-      );
-      subscriptionsService.patch.mockResolvedValue(dbSubscription);
-      supportService.resolveTierFromPriceId.mockReturnValue(
-        SubscriptionTier.SCALE,
+    it('ignores a service-scoped subscription', async () => {
+      await handler.handleSubscriptionCreated(
+        stripeSubscription({ metadata: { billing_scope: 'service' } }),
+        'test',
       );
 
-      await handler.handleSubscriptionCreated(stripeSubscription(), 'test');
-
-      expect(
-        supportService.updateOrganizationTierAndModels,
-      ).toHaveBeenCalledWith('org_1', SubscriptionTier.SCALE, 'test');
-    });
-
-    it('announces the new subscription with its plan name', async () => {
-      subscriptionsService.findByStripeCustomerId.mockResolvedValue(
-        dbSubscription,
-      );
-      subscriptionsService.patch.mockResolvedValue(dbSubscription);
-      supportService.resolveTierFromPriceId.mockReturnValue(
-        SubscriptionTier.SCALE,
-      );
-
-      await handler.handleSubscriptionCreated(stripeSubscription(), 'test');
-
-      expect(supportService.notifyOperatorOfBillingEvent).toHaveBeenCalledWith({
-        kind: 'subscription_created',
-        organizationId: 'org_1',
-        planLabel: 'Scale',
-        stripeObjectId: 'sub_stripe_1',
-      });
+      expect(persisted).toEqual([]);
+      expect(reconciled).toEqual([]);
     });
 
     it('propagates classified identity errors without nested logs or side effects', async () => {
-      billingService.resolve.mockRejectedValueOnce(
-        new StripeWebhookBillingError('identity_missing'),
-      );
+      identityError = new StripeWebhookBillingError('identity_missing');
+
       await expect(
         handler.handleSubscriptionCreated(stripeSubscription(), 'test'),
       ).rejects.toMatchObject({ code: 'identity_missing' });
-      expect(billingService.persist).not.toHaveBeenCalled();
-      expect(creditReconciler.reconcile).not.toHaveBeenCalled();
-      expect(loggerService.warn).not.toHaveBeenCalled();
-      expect(loggerService.error).not.toHaveBeenCalled();
+
+      expect(persisted).toEqual([]);
+      expect(reconciled).toEqual([]);
+      expect(warnings).toEqual([]);
+      expect(errors).toEqual([]);
     });
 
     it.each([
-      { items: { data: [] } },
-      { items: { data: [{ price: { id: '' } }] } },
-      { status: 'future_status' },
-      {
-        items: {
-          data: [{ price: { id: 'price_1' }, current_period_end: Infinity }],
-        },
-      },
-      {
-        items: {
-          data: [{ price: { id: 'price_1' }, current_period_start: 1e30 }],
-        },
-      },
-    ])(
-      'rejects invalid subscription payload before writes: %j',
-      async (payload) => {
-        await expect(
-          handler.handleSubscriptionCreated(
-            stripeSubscription(payload),
-            'test',
-          ),
-        ).rejects.toMatchObject({ code: 'invalid_payload' });
-        expect(billingService.persist).not.toHaveBeenCalled();
-        expect(
-          subscriptionsService.syncSubscriptionState,
-        ).not.toHaveBeenCalled();
-        expect(creditReconciler.reconcile).not.toHaveBeenCalled();
-        expect(
-          supportService.updateOrganizationTierAndModels,
-        ).not.toHaveBeenCalled();
-      },
-    );
-
-    it('treats a null period boundary as absent instead of rejecting the payload', async () => {
-      await handler.handleSubscriptionCreated(
-        stripeSubscription({
+      ['no software item', { items: { data: [] } }],
+      ['an empty price id', { items: { data: [{ price: { id: '' } }] } }],
+      ['an unknown status', { status: 'future_status' }],
+      [
+        'an infinite period end',
+        {
           items: {
             data: [
               {
+                current_period_end: Number.POSITIVE_INFINITY,
                 price: { id: 'price_1' },
-                current_period_start: null,
-                current_period_end: 1_750_000_000,
               },
             ],
           },
-        }),
-        'test',
-      );
+        },
+      ],
+      [
+        'an out-of-range period start',
+        {
+          items: {
+            data: [{ current_period_start: 1e30, price: { id: 'price_1' } }],
+          },
+        },
+      ],
+    ])('rejects a payload with %s before any write', async (_case, payload) => {
+      await expect(
+        handler.handleSubscriptionCreated(stripeSubscription(payload), 'test'),
+      ).rejects.toMatchObject({ code: 'invalid_payload' });
 
-      expect(billingService.persist).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          currentPeriodStart: undefined,
-          currentPeriodEnd: new Date(1_750_000_000 * 1000),
-        }),
-      );
-      const input = creditReconciler.reconcile.mock.calls[0][0];
-      expect(input).toMatchObject({
-        billingAccountId: 'ba_1',
-        periodEnd: new Date(1_750_000_000 * 1000),
-      });
-      expect(input).not.toHaveProperty('periodStart');
+      expect(subscription).toEqual(DB_SUBSCRIPTION);
+      expect(syncs).toEqual([]);
+      expect(reconciled).toEqual([]);
+      expect(organizationTiers.get('org_1')).toBe(SubscriptionTier.PRO);
     });
 
-    it('persists timestamp zero as the Unix epoch', async () => {
-      await handler.handleSubscriptionCreated(
-        stripeSubscription({
-          items: {
-            data: [
-              {
-                price: { id: 'price_1' },
-                current_period_start: 0,
-                current_period_end: 0,
-              },
-            ],
-          },
+    it.each([
+      [
+        'a null period start as absent',
+        withItem({
+          current_period_end: PERIOD_END,
+          current_period_start: null,
         }),
-        'test',
-      );
-      expect(billingService.persist).toHaveBeenCalledWith(
-        expect.anything(),
+        undefined,
+        new Date(PERIOD_END * 1000),
+      ],
+      [
+        'timestamp zero as the Unix epoch',
+        withItem({ current_period_end: 0, current_period_start: 0 }),
+        new Date(0),
+        new Date(0),
+      ],
+    ])('stores %s', async (_case, payload, start, end) => {
+      await handler.handleSubscriptionCreated(payload, 'test');
+
+      expect(persisted).toEqual([
         expect.objectContaining({
-          currentPeriodStart: new Date(0),
-          currentPeriodEnd: new Date(0),
+          currentPeriodEnd: end,
+          currentPeriodStart: start,
         }),
-      );
-      expect(creditReconciler.reconcile).toHaveBeenCalledWith(
-        expect.objectContaining({
-          periodStart: new Date(0),
-          periodEnd: new Date(0),
-        }),
-      );
+      ]);
+      expect(reconciled[0]).toMatchObject({ periodEnd: end });
+      expect(reconciled[0]?.periodStart).toEqual(start);
     });
 
     it('propagates reconciliation failures so Stripe can retry the event', async () => {
-      const reconciliationError = new Error('credit ledger unavailable');
-      subscriptionsService.findByStripeCustomerId.mockResolvedValue(
-        dbSubscription,
-      );
-      subscriptionsService.patch.mockResolvedValue(dbSubscription);
-      creditReconciler.reconcile.mockRejectedValueOnce(reconciliationError);
+      reconcileError = new Error('credit ledger unavailable');
 
       await expect(
         handler.handleSubscriptionCreated(stripeSubscription(), 'test'),
-      ).rejects.toBe(reconciliationError);
+      ).rejects.toBe(reconcileError);
 
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('failed to handle subscription created'),
-        { category: 'reconciliation_failed' },
-      );
+      expect(errors).toEqual([
+        [
+          expect.stringContaining('failed to handle subscription created'),
+          { category: 'reconciliation_failed' },
+        ],
+      ]);
     });
   });
 
   describe('handleSubscriptionUpdated', () => {
-    it('patches the subscription and invalidates the user caches', async () => {
-      subscriptionsService.findOne.mockResolvedValue(dbSubscription);
-      subscriptionsService.patch.mockResolvedValue(dbSubscription);
-      usersService.findOne.mockResolvedValue({ id: 'user_1' });
-      supportService.resolveTierFromPriceId.mockReturnValue(
-        SubscriptionTier.SCALE,
+    it('updates the subscription and tier, then invalidates the user caches', async () => {
+      priceTiers.set('price_1', SubscriptionTier.SCALE);
+
+      await handler.handleSubscriptionUpdated(
+        stripeSubscription({ cancel_at_period_end: true, status: 'past_due' }),
+        'test',
       );
 
-      await handler.handleSubscriptionUpdated(stripeSubscription(), 'test');
-
-      expect(subscriptionsService.patch).toHaveBeenCalledWith(
-        'sub_db_1',
-        expect.objectContaining({ status: SubscriptionStatus.ACTIVE }),
-      );
-      expect(usersService.findOne).toHaveBeenCalledWith({
-        id: 'user_1',
+      expect(subscription).toMatchObject({
+        cancelAtPeriodEnd: true,
+        currentPeriodEnd: new Date(PERIOD_END * 1000),
+        status: SubscriptionStatus.PAST_DUE,
       });
-      expect(
-        supportService.updateOrganizationTierAndModels,
-      ).toHaveBeenCalledWith('org_1', SubscriptionTier.SCALE, 'test');
-      expect(supportService.invalidateUserCaches).toHaveBeenCalledWith(
-        'user_1',
-      );
-      expect(
-        supportService.updateOrganizationTierAndModels.mock
-          .invocationCallOrder[0],
-      ).toBeLessThan(
-        supportService.invalidateUserCaches.mock.invocationCallOrder[0],
-      );
+      expect(organizationTiers.get('org_1')).toBe(SubscriptionTier.SCALE);
+      expect(timeline).toEqual([
+        `tier:${SubscriptionTier.SCALE}`,
+        'invalidate:user_1',
+      ]);
     });
 
-    it('warns when the subscription is unknown', async () => {
-      subscriptionsService.findOne.mockResolvedValue(null);
-
-      await handler.handleSubscriptionUpdated(stripeSubscription(), 'test');
-
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('subscription not found for update'),
-        { stripeSubscriptionId: 'sub_stripe_1' },
+    it('warns and writes nothing when the subscription is unknown', async () => {
+      await handler.handleSubscriptionUpdated(
+        stripeSubscription({ id: 'sub_unknown', status: 'past_due' }),
+        'test',
       );
-      expect(subscriptionsService.patch).not.toHaveBeenCalled();
+
+      expect(warnings).toEqual([
+        [
+          expect.stringContaining('subscription not found for update'),
+          { stripeSubscriptionId: 'sub_unknown' },
+        ],
+      ]);
+      expect(subscription).toEqual(DB_SUBSCRIPTION);
     });
   });
 
   describe('handleSubscriptionDeleted', () => {
-    it('soft-deletes, keeps the credit balance, and resets the tier to BYOK', async () => {
-      subscriptionsService.findOne.mockResolvedValue(dbSubscription);
-      subscriptionsService.patch.mockResolvedValue(dbSubscription);
-      usersService.findOne.mockResolvedValue({ id: 'user_1' });
+    it('soft-deletes, drops the organization to free, records the lapse, then invalidates caches', async () => {
+      await handler.handleSubscriptionDeleted(stripeSubscription(), 'test');
 
-      await handler.handleSubscriptionDeleted(
-        stripeSubscription({ cancel_at_period_end: false }),
-        'test',
-      );
-
-      expect(subscriptionsService.patch).toHaveBeenCalledWith('sub_db_1', {
+      expect(subscription).toMatchObject({
         cancelAtPeriodEnd: false,
         isDeleted: true,
         status: SubscriptionStatus.CANCELLED,
       });
-      expect(
-        supportService.updateOrganizationTierAndModels,
-      ).toHaveBeenCalledWith('org_1', SubscriptionTier.FREE, 'test');
-      expect(usersService.findOne).toHaveBeenCalledWith({
-        id: 'user_1',
-      });
-      expect(supportService.invalidateUserCaches).toHaveBeenCalledWith(
-        'user_1',
-      );
-      expect(
-        lifecycleEmailService.recordSubscriptionLapsed,
-      ).toHaveBeenCalledWith({
-        organizationId: 'org_1',
-        subscriptionId: 'sub_stripe_1',
-        userId: 'user_1',
-      });
-      expect(
-        supportService.updateOrganizationTierAndModels.mock
-          .invocationCallOrder[0],
-      ).toBeLessThan(
-        supportService.invalidateUserCaches.mock.invocationCallOrder[0],
-      );
+      expect(organizationTiers.get('org_1')).toBe(SubscriptionTier.FREE);
+      expect(timeline).toEqual([
+        `tier:${SubscriptionTier.FREE}`,
+        'invalidate:user_1',
+      ]);
+      expect(lapsed).toEqual([
+        {
+          organizationId: 'org_1',
+          subscriptionId: 'sub_stripe_1',
+          userId: 'user_1',
+        },
+      ]);
     });
 
     it('announces the canceled subscription with the plan it was on', async () => {
-      subscriptionsService.findOne.mockResolvedValue(dbSubscription);
-      subscriptionsService.patch.mockResolvedValue(dbSubscription);
-      usersService.findOne.mockResolvedValue({ id: 'user_1' });
-      supportService.resolveTierFromPriceId.mockReturnValue(
-        SubscriptionTier.SCALE,
-      );
+      priceTiers.set('price_1', SubscriptionTier.SCALE);
 
       await handler.handleSubscriptionDeleted(stripeSubscription(), 'test');
 
-      expect(supportService.notifyOperatorOfBillingEvent).toHaveBeenCalledWith({
-        kind: 'subscription_canceled',
-        organizationId: 'org_1',
-        planLabel: 'Scale',
-        stripeObjectId: 'sub_stripe_1',
-      });
+      expect(notifications).toEqual([
+        {
+          kind: 'subscription_canceled',
+          organizationId: 'org_1',
+          planLabel: 'Scale',
+          stripeObjectId: 'sub_stripe_1',
+        },
+      ]);
     });
 
     it('keeps deletion successful when lifecycle recording fails', async () => {
-      subscriptionsService.findOne.mockResolvedValue(dbSubscription);
-      subscriptionsService.patch.mockResolvedValue(dbSubscription);
-      usersService.findOne.mockResolvedValue({ id: 'user_1' });
-      lifecycleEmailService.recordSubscriptionLapsed.mockRejectedValueOnce(
-        new Error('lifecycle unavailable'),
-      );
+      lifecycleError = new Error('lifecycle unavailable');
 
       await handler.handleSubscriptionDeleted(stripeSubscription(), 'test');
 
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'lifecycle email subscription-lapsed recording skipped',
-        ),
-        {
-          error: 'lifecycle unavailable',
-          subscriptionId: 'sub_stripe_1',
-        },
-      );
-      expect(loggerService.log).toHaveBeenCalledWith(
+      expect(subscription.isDeleted).toBe(true);
+      expect(warnings).toEqual([
+        [
+          expect.stringContaining(
+            'lifecycle email subscription-lapsed recording skipped',
+          ),
+          { error: 'lifecycle unavailable', subscriptionId: 'sub_stripe_1' },
+        ],
+      ]);
+      expect(logs).toContainEqual([
         expect.stringContaining('subscription deleted successfully'),
-        {
-          organizationId: 'org_1',
-          stripeSubscriptionId: 'sub_stripe_1',
-        },
-      );
-      expect(loggerService.error).not.toHaveBeenCalledWith(
-        expect.stringContaining('failed to handle subscription deleted'),
-        expect.anything(),
-      );
+        { organizationId: 'org_1', stripeSubscriptionId: 'sub_stripe_1' },
+      ]);
+      expect(errors).toEqual([]);
     });
 
-    it('warns when the subscription is unknown', async () => {
-      subscriptionsService.findOne.mockResolvedValue(null);
+    it('stops after the soft delete when the subscription user is gone', async () => {
+      users.clear();
 
       await handler.handleSubscriptionDeleted(stripeSubscription(), 'test');
 
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('subscription not found for deletion'),
-        { stripeSubscriptionId: 'sub_stripe_1' },
+      expect(subscription.isDeleted).toBe(true);
+      expect(organizationTiers.get('org_1')).toBe(SubscriptionTier.PRO);
+      expect(lapsed).toEqual([]);
+      expect(warnings).toEqual([
+        [
+          expect.stringContaining('user not found for subscription'),
+          { subscriptionId: 'sub_db_1' },
+        ],
+      ]);
+    });
+
+    it('warns and writes nothing when the subscription is unknown', async () => {
+      await handler.handleSubscriptionDeleted(
+        stripeSubscription({ id: 'sub_unknown' }),
+        'test',
       );
-      expect(subscriptionsService.patch).not.toHaveBeenCalled();
+
+      expect(warnings).toEqual([
+        [
+          expect.stringContaining('subscription not found for deletion'),
+          { stripeSubscriptionId: 'sub_unknown' },
+        ],
+      ]);
+      expect(subscription).toEqual(DB_SUBSCRIPTION);
     });
   });
 });

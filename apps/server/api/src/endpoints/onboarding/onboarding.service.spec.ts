@@ -9,18 +9,14 @@
  *   → OrganizationsService.create() normalises to 'BUSINESS'  ← Prisma-form
  *   → prisma.organization.create({ data: { category: 'BUSINESS' } }) ✓
  *
- * OrganizationsService is the boundary that fixes the bug.  These tests exercise
- * it directly, proving the normalization that protects the onboarding path.
- *
- * NOTE: UserSetupService cannot be imported in this worktree because it pulls
- * in CreditsUtilsService → LlmDispatcherService → @anthropic-ai/sdk which is
- * absent from the worktree's node_modules (pre-existing workspace limitation).
- * The integration-layer assertion is covered by organizations.service.spec.ts.
+ * OrganizationsService is the boundary that fixes the bug. These tests write
+ * through it into an in-memory organization table and read back what was
+ * persisted.
  */
 
 // Real, complete OrganizationCategory + real getModelMeta/
 // PRISMA_MODEL_METADATA.Organization via the light @genfeedai/prisma/testing
-// subpath (equivalent to the hand-rolled version below, which this replaces).
+// subpath.
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -29,130 +25,97 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { OrganizationCategory } from '@genfeedai/contracts';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 
+type CreateInput = Parameters<OrganizationsService['create']>[0];
+type PatchInput = Parameters<OrganizationsService['patch']>[1];
+type Row = Record<string, unknown> & { id: string };
+
 describe('Onboarding path — regression #564: OrganizationCategory enum mapping', () => {
-  const organizationDelegate = {
-    create: vi.fn(),
-    findFirst: vi.fn(),
-    update: vi.fn(),
-  };
-
-  const prisma = {
-    organization: organizationDelegate,
-  } as unknown as PrismaService;
-
-  const logger = {
-    debug: vi.fn(),
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  } as unknown as LoggerService;
-
+  let organizations: Map<string, Row>;
   let organizationsService: OrganizationsService;
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    organizationsService = new OrganizationsService(prisma, logger);
-    organizationDelegate.create.mockImplementation(({ data }) =>
-      Promise.resolve({ ...data, id: 'org_reg564' }),
+  const matches = (row: Row, where: Record<string, unknown> = {}) =>
+    Object.entries(where).every(([key, value]) =>
+      typeof value === 'object' && value !== null ? true : row[key] === value,
     );
-    organizationDelegate.findFirst.mockResolvedValue(null);
+
+  beforeEach(() => {
+    organizations = new Map([['org_1', { accountType: null, id: 'org_1' }]]);
+    let nextId = 1;
+
+    organizationsService = new OrganizationsService(
+      {
+        organization: {
+          create: async ({ data }: { data: Record<string, unknown> }) => {
+            const row = { ...data, id: `org_reg564_${nextId++}` };
+            organizations.set(row.id, row);
+            return row;
+          },
+          findFirst: async ({ where }: { where?: Record<string, unknown> }) =>
+            [...organizations.values()].find((row) => matches(row, where)) ??
+            null,
+          update: async ({
+            data,
+            where,
+          }: {
+            data: Record<string, unknown>;
+            where: { id: string };
+          }) => {
+            const row = { ...organizations.get(where.id), ...data } as Row;
+            organizations.set(where.id, row);
+            return row;
+          },
+        },
+      } as unknown as PrismaService,
+      {
+        debug: () => {},
+        error: () => {},
+        log: () => {},
+        warn: () => {},
+      } as unknown as LoggerService,
+    );
   });
 
-  /**
-   * The onboarding path calls organizationsService.create({ category: OrganizationCategory.BUSINESS })
-   * which is the app-form value 'business'.  OrganizationsService.create() must normalise it to
-   * the Prisma UPPERCASE form before writing.
-   */
-  describe('OrganizationsService.create — app-form category → Prisma UPPERCASE (onboarding write boundary)', () => {
-    it('converts OrganizationCategory.BUSINESS ("business") to Prisma "BUSINESS"', async () => {
-      await organizationsService.create({
-        category: OrganizationCategory.BUSINESS,
-        label: 'Default Organization',
-        slug: 'default-organization',
-        userId: 'user_1',
-      } as never);
+  const create = (category: string, slug: string) =>
+    organizationsService.create({
+      category: category as OrganizationCategory,
+      label: slug,
+      slug,
+      userId: 'user_1',
+    } as unknown as CreateInput);
 
-      expect(organizationDelegate.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ category: 'BUSINESS' }),
-        }),
-      );
+  it.each([
+    [OrganizationCategory.BUSINESS, 'BUSINESS'],
+    [OrganizationCategory.CREATOR, 'CREATOR'],
+    [OrganizationCategory.AGENCY, 'AGENCY'],
+    ['BUSINESS', 'BUSINESS'],
+  ])('persists category %s as Prisma %s', async (category, persisted) => {
+    await create(category, 'default-organization');
+
+    expect([...organizations.values()].at(-1)).toMatchObject({
+      category: persisted,
+      slug: 'default-organization',
     });
+  });
 
-    it('converts OrganizationCategory.CREATOR ("creator") to Prisma "CREATOR"', async () => {
-      await organizationsService.create({
-        category: OrganizationCategory.CREATOR,
-        label: 'Creator Org',
-        slug: 'creator-org',
-        userId: 'user_2',
-      } as never);
+  it('also normalises the accountType field on patch', async () => {
+    await organizationsService.patch('org_1', {
+      accountType: OrganizationCategory.CREATOR,
+    } as unknown as PatchInput);
 
-      expect(organizationDelegate.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ category: 'CREATOR' }),
-        }),
-      );
+    expect(organizations.get('org_1')).toMatchObject({
+      accountType: 'CREATOR',
     });
+  });
 
-    it('converts OrganizationCategory.AGENCY ("agency") to Prisma "AGENCY"', async () => {
-      await organizationsService.create({
-        category: OrganizationCategory.AGENCY,
-        label: 'Agency Org',
-        slug: 'agency-org',
-        userId: 'user_3',
-      } as never);
-
-      expect(organizationDelegate.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ category: 'AGENCY' }),
-        }),
-      );
-    });
-
-    it('passes through an already-UPPERCASE category idempotently', async () => {
-      await organizationsService.create({
-        category: 'BUSINESS' as OrganizationCategory,
-        label: 'Idempotent Org',
-        slug: 'idempotent-org',
-        userId: 'user_4',
-      } as never);
-
-      expect(organizationDelegate.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ category: 'BUSINESS' }),
-        }),
-      );
-    });
-
-    it('also normalises accountType field when present', async () => {
-      await organizationsService.patch('org_1', {
-        accountType: OrganizationCategory.CREATOR as never,
-      });
-
-      expect(organizationDelegate.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ accountType: 'CREATOR' }),
-        }),
-      );
-    });
-
-    it('throws BadRequestException for an unrecognised category string', () => {
-      // OrganizationsService.create() normalises the category synchronously,
-      // before its first await, so the throw escapes before a promise is
-      // returned — assert synchronously rather than via .rejects.
-      expect(() =>
-        organizationsService.create({
-          category: 'personal' as OrganizationCategory,
-          label: 'Bad Org',
-          slug: 'bad-org',
-          userId: 'user_5',
-        } as never),
-      ).toThrow(BadRequestException);
-    });
+  it('rejects an unrecognised category before anything is written', () => {
+    // create() normalises the category synchronously, before its first await,
+    // so the throw escapes before a promise is returned.
+    expect(() => create('personal', 'bad-org')).toThrow(BadRequestException);
+    expect(organizations.size).toBe(1);
   });
 });

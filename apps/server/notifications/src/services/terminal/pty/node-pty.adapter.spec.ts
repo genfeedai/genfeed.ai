@@ -1,35 +1,94 @@
-import fs from 'node:fs';
 import process from 'node:process';
-import { spawn } from 'node-pty';
-import type { Mock } from 'vitest';
 import { NodePtyAdapter } from './node-pty.adapter';
 import type { PtySpawnOptions } from './pty-adapter.interface';
 
+type ExitEvent = { exitCode: number; signal?: number };
+
+class FakePty {
+  readonly pid = 4242;
+  dataHandlers = new Set<(data: string) => void>();
+  exitHandlers = new Set<(event: ExitEvent) => void>();
+  isKilled = false;
+  size = { cols: 0, rows: 0 };
+  written = '';
+
+  constructor(
+    readonly command: string,
+    readonly args: string[],
+    readonly options: Record<string, unknown>,
+  ) {}
+
+  emitData(data: string) {
+    for (const handler of this.dataHandlers) handler(data);
+  }
+
+  emitExit(event: ExitEvent) {
+    for (const handler of this.exitHandlers) handler(event);
+  }
+
+  kill() {
+    this.isKilled = true;
+  }
+
+  onData(handler: (data: string) => void) {
+    this.dataHandlers.add(handler);
+    return { dispose: () => this.dataHandlers.delete(handler) };
+  }
+
+  onExit(handler: (event: ExitEvent) => void) {
+    this.exitHandlers.add(handler);
+    return { dispose: () => this.exitHandlers.delete(handler) };
+  }
+
+  resize(cols: number, rows: number) {
+    this.size = { cols, rows };
+  }
+
+  write(data: string) {
+    this.written += data;
+  }
+}
+
+// The spawn-helper on a fake disk; undefined means the file is absent.
+const world = vi.hoisted(() => ({
+  helperMode: undefined as number | undefined,
+  helperPath: undefined as string | undefined,
+  ptys: [] as FakePty[],
+}));
+
 vi.mock('node:fs', () => {
-  const mocked = {
-    chmodSync: vi.fn(),
-    existsSync: vi.fn(),
-    statSync: vi.fn(),
+  const isHelper = (file: string) => file.endsWith('spawn-helper');
+  const fake = {
+    chmodSync: (file: string, mode: number) => {
+      world.helperPath = file;
+      world.helperMode = mode;
+    },
+    existsSync: (file: string) =>
+      isHelper(file) ? world.helperMode !== undefined : true,
+    statSync: (file: string) => {
+      if (!isHelper(file) || world.helperMode === undefined) {
+        throw new Error(`ENOENT: ${file}`);
+      }
+      return { mode: world.helperMode };
+    },
   };
-  return { ...mocked, default: mocked };
+  return { ...fake, default: fake };
 });
 
 vi.mock('node-pty', () => ({
-  spawn: vi.fn(),
+  spawn: (
+    command: string,
+    args: string[],
+    options: Record<string, unknown>,
+  ) => {
+    const pty = new FakePty(command, args, options);
+    world.ptys.push(pty);
+    return pty;
+  },
 }));
-
-interface MockPty {
-  kill: Mock;
-  onData: Mock;
-  onExit: Mock;
-  pid: number;
-  resize: Mock;
-  write: Mock;
-}
 
 describe('NodePtyAdapter', () => {
   let adapter: NodePtyAdapter;
-  let mockPty: MockPty;
 
   const spawnOptions: PtySpawnOptions = {
     args: ['-l'],
@@ -43,58 +102,47 @@ describe('NodePtyAdapter', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
     adapter = new NodePtyAdapter();
-    mockPty = {
-      kill: vi.fn(),
-      onData: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-      onExit: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-      pid: 4242,
-      resize: vi.fn(),
-      write: vi.fn(),
-    };
-    (spawn as Mock).mockReturnValue(mockPty);
+    world.helperMode = undefined;
+    world.helperPath = undefined;
+    world.ptys = [];
   });
 
   describe('ensureReady', () => {
-    it('returns early on win32 without touching the filesystem', () => {
+    it('leaves the filesystem alone on win32', () => {
+      world.helperMode = 0o644;
       const platformSpy = vi
         .spyOn(process, 'platform', 'get')
         .mockReturnValue('win32');
 
       adapter.ensureReady();
-
-      expect(fs.existsSync).not.toHaveBeenCalled();
       platformSpy.mockRestore();
+
+      expect(world.helperMode).toBe(0o644);
     });
 
     it('returns when the spawn-helper does not exist', () => {
-      (fs.existsSync as Mock).mockReturnValue(false);
-
-      adapter.ensureReady();
-
-      expect(fs.statSync).not.toHaveBeenCalled();
-      expect(fs.chmodSync).not.toHaveBeenCalled();
+      expect(() => adapter.ensureReady()).not.toThrow();
+      expect(world.helperMode).toBeUndefined();
     });
 
     it('leaves an already-executable spawn-helper untouched', () => {
-      (fs.existsSync as Mock).mockReturnValue(true);
-      (fs.statSync as Mock).mockReturnValue({ mode: 0o755 });
+      world.helperMode = 0o750;
 
       adapter.ensureReady();
 
-      expect(fs.chmodSync).not.toHaveBeenCalled();
+      expect(world.helperMode).toBe(0o750);
+      expect(world.helperPath).toBeUndefined();
     });
 
     it('marks a non-executable spawn-helper as executable', () => {
-      (fs.existsSync as Mock).mockReturnValue(true);
-      (fs.statSync as Mock).mockReturnValue({ mode: 0o644 });
+      world.helperMode = 0o644;
 
       adapter.ensureReady();
 
-      expect(fs.chmodSync).toHaveBeenCalledWith(
-        expect.stringContaining('spawn-helper'),
-        0o644 | 0o755,
+      expect(world.helperMode).toBe(0o755);
+      expect(world.helperPath).toContain(
+        `prebuilds/${process.platform}-${process.arch}/spawn-helper`,
       );
     });
   });
@@ -103,13 +151,19 @@ describe('NodePtyAdapter', () => {
     it('spawns a pty with the given options', () => {
       adapter.spawn(spawnOptions);
 
-      expect(spawn).toHaveBeenCalledWith('/bin/bash', ['-l'], {
-        cols: 80,
-        cwd: '/workspace',
-        env: { NODE_ENV: 'test', TERM: 'xterm-256color' },
-        name: 'xterm-256color',
-        rows: 24,
-      });
+      expect(world.ptys).toEqual([
+        expect.objectContaining({
+          args: ['-l'],
+          command: '/bin/bash',
+          options: {
+            cols: 80,
+            cwd: '/workspace',
+            env: { NODE_ENV: 'test', TERM: 'xterm-256color' },
+            name: 'xterm-256color',
+            rows: 24,
+          },
+        }),
+      ]);
     });
 
     it('exposes the pty pid', () => {
@@ -118,30 +172,35 @@ describe('NodePtyAdapter', () => {
       expect(handle.pid).toBe(4242);
     });
 
-    it('proxies kill, resize, and write to the pty', () => {
+    it('drives kill, resize, and write on the pty', () => {
       const handle = adapter.spawn(spawnOptions);
 
       handle.kill();
       handle.resize(100, 40);
       handle.write('ls\n');
 
-      expect(mockPty.kill).toHaveBeenCalled();
-      expect(mockPty.resize).toHaveBeenCalledWith(100, 40);
-      expect(mockPty.write).toHaveBeenCalledWith('ls\n');
+      expect(world.ptys[0]).toMatchObject({
+        isKilled: true,
+        size: { cols: 100, rows: 40 },
+        written: 'ls\n',
+      });
     });
 
-    it('proxies data and exit subscriptions', () => {
+    it('delivers pty data and exit to subscribers until they dispose', () => {
       const handle = adapter.spawn(spawnOptions);
-      const onData = vi.fn();
-      const onExit = vi.fn();
+      const pty = world.ptys[0];
+      const received: unknown[] = [];
 
-      const dataSubscription = handle.onData(onData);
-      const exitSubscription = handle.onExit(onExit);
+      const dataSubscription = handle.onData((data) => received.push(data));
+      const exitSubscription = handle.onExit((event) => received.push(event));
+      pty.emitData('hello');
+      dataSubscription.dispose();
+      pty.emitData('after dispose');
+      pty.emitExit({ exitCode: 0 });
+      exitSubscription.dispose();
+      pty.emitExit({ exitCode: 1 });
 
-      expect(mockPty.onData).toHaveBeenCalledWith(onData);
-      expect(mockPty.onExit).toHaveBeenCalledWith(onExit);
-      expect(dataSubscription.dispose).toBeDefined();
-      expect(exitSubscription.dispose).toBeDefined();
+      expect(received).toEqual(['hello', { exitCode: 0 }]);
     });
   });
 });

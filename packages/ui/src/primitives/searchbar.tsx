@@ -205,7 +205,7 @@ export default function Searchbar({
         placeholder={placeholder}
         className={cn(
           sizeClass,
-          'w-full rounded-md border border-border bg-card px-3 text-foreground placeholder:text-muted-foreground',
+          'w-full rounded-md border border-border bg-card px-3 text-foreground placeholder:text-gray-800',
           'focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-0',
           showIcon && 'pl-10',
           showClearButton && displayedValue && 'pr-8',

@@ -1,5 +1,3 @@
-import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
-
 vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
   AutoSwagger: () => () => undefined,
 }));
@@ -7,13 +5,13 @@ vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
 import { testId } from '@helpers/testing/test-id.helper';
 
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  extractRequestContext: vi.fn(() => ({
+  extractRequestContext: () => ({
     organizationId: 'corg000000000000000000001',
     userId: 'cuser000000000000000000001',
-  })),
+  }),
 }));
 vi.mock('@libs/utils/caller/caller.util', () => ({
-  CallerUtil: { getCallerName: vi.fn(() => 'testMethod') },
+  CallerUtil: { getCallerName: () => 'testMethod' },
 }));
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
@@ -28,18 +26,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('AdsGatewayWriteController paused-only campaign writes', () => {
   let controller: AdsGatewayWriteController;
-  let adsGatewayService: {
-    comparePlatforms: ReturnType<typeof vi.fn>;
-    getAdapter: ReturnType<typeof vi.fn>;
-  };
-  let credentialsService: {
-    findOne: ReturnType<typeof vi.fn>;
-    findOneSelect: ReturnType<typeof vi.fn>;
-  };
-  let mockAdapter: {
-    createCampaign: ReturnType<typeof vi.fn>;
-    updateCampaign: ReturnType<typeof vi.fn>;
-  };
+  // Campaigns on the fake ad platform, by id.
+  let campaigns: Map<string, Record<string, unknown>>;
+  // Every credential read or adapter lookup the controller made.
+  let touched: string[];
 
   const mockUser = {
     id: 'user_authProvider_123',
@@ -53,27 +43,53 @@ describe('AdsGatewayWriteController paused-only campaign writes', () => {
   };
 
   beforeEach(async () => {
-    mockAdapter = {
-      createCampaign: vi.fn().mockResolvedValue({ id: 'campaign-1' }),
-      updateCampaign: vi.fn().mockResolvedValue({ id: 'campaign-1' }),
-    };
+    campaigns = new Map([
+      ['campaign-1', { name: 'Existing', status: 'PAUSED' }],
+    ]);
+    touched = [];
 
-    adsGatewayService = {
-      comparePlatforms: vi.fn(),
-      getAdapter: vi.fn().mockReturnValue(mockAdapter),
+    const adapter = {
+      createCampaign: async (
+        _context: unknown,
+        input: Record<string, unknown>,
+      ) => {
+        campaigns.set('campaign-new', { ...input });
+        return { id: 'campaign-new' };
+      },
+      updateCampaign: async (
+        _context: unknown,
+        id: string,
+        input: Record<string, unknown>,
+      ) => {
+        campaigns.set(id, { ...campaigns.get(id), ...input });
+        return { id };
+      },
     };
-
-    credentialsService = {
-      findOne: vi.fn().mockResolvedValue({ accessToken: 'token-abc' }),
-      findOneSelect: delegateFindOneSelect(),
+    const credentialsService = {
+      findOne: async () => {
+        touched.push('credential');
+        return { accessToken: 'token-abc' };
+      },
+      async findOneSelect() {
+        return this.findOne();
+      },
     };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AdsGatewayWriteController],
       providers: [
-        { provide: AdsGatewayService, useValue: adsGatewayService },
+        {
+          provide: AdsGatewayService,
+          useValue: {
+            comparePlatforms: () => undefined,
+            getAdapter: (platform: string) => {
+              touched.push(`adapter:${platform}`);
+              return adapter;
+            },
+          },
+        },
         { provide: CredentialsService, useValue: credentialsService },
-        { provide: LoggerService, useValue: { log: vi.fn() } },
+        { provide: LoggerService, useValue: { log: () => undefined } },
         AdsGatewayRequestContextService,
       ],
     })
@@ -107,9 +123,8 @@ describe('AdsGatewayWriteController paused-only campaign writes', () => {
         }),
       ).rejects.toThrow(INVALID_CAMPAIGN_STATUS_MESSAGE);
 
-      expect(credentialsService.findOne).not.toHaveBeenCalled();
-      expect(adsGatewayService.getAdapter).not.toHaveBeenCalled();
-      expect(mockAdapter.createCampaign).not.toHaveBeenCalled();
+      expect(touched).toEqual([]);
+      expect(campaigns.has('campaign-new')).toBe(false);
     },
   );
 
@@ -123,9 +138,11 @@ describe('AdsGatewayWriteController paused-only campaign writes', () => {
         }),
       ).rejects.toThrow(INVALID_CAMPAIGN_STATUS_MESSAGE);
 
-      expect(credentialsService.findOne).not.toHaveBeenCalled();
-      expect(adsGatewayService.getAdapter).not.toHaveBeenCalled();
-      expect(mockAdapter.updateCampaign).not.toHaveBeenCalled();
+      expect(touched).toEqual([]);
+      expect(campaigns.get('campaign-1')).toEqual({
+        name: 'Existing',
+        status: 'PAUSED',
+      });
     },
   );
 
@@ -139,10 +156,10 @@ describe('AdsGatewayWriteController paused-only campaign writes', () => {
       }),
     ).resolves.toBeDefined();
 
-    expect(mockAdapter.createCampaign).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ status: 'PAUSED' }),
-    );
+    expect(campaigns.get('campaign-new')).toMatchObject({
+      name: 'Launch',
+      status: 'PAUSED',
+    });
   });
 
   it('accepts an omitted status on create', async () => {
@@ -154,7 +171,7 @@ describe('AdsGatewayWriteController paused-only campaign writes', () => {
       }),
     ).resolves.toBeDefined();
 
-    expect(mockAdapter.createCampaign).toHaveBeenCalled();
+    expect(campaigns.get('campaign-new')).toMatchObject({ name: 'Launch' });
   });
 
   it('accepts a budget-only update with no status', async () => {
@@ -165,11 +182,10 @@ describe('AdsGatewayWriteController paused-only campaign writes', () => {
       }),
     ).resolves.toBeDefined();
 
-    expect(mockAdapter.updateCampaign).toHaveBeenCalledWith(
-      expect.anything(),
-      'campaign-1',
-      expect.objectContaining({ dailyBudget: 25 }),
-    );
+    expect(campaigns.get('campaign-1')).toMatchObject({
+      dailyBudget: 25,
+      status: 'PAUSED',
+    });
   });
 
   it('rejects an unknown platform before validating the status', async () => {
@@ -184,7 +200,6 @@ describe('AdsGatewayWriteController paused-only campaign writes', () => {
       'Invalid platform: snapchat. Must be one of: meta, google, tiktok, x',
     );
 
-    expect(credentialsService.findOne).not.toHaveBeenCalled();
-    expect(adsGatewayService.getAdapter).not.toHaveBeenCalled();
+    expect(touched).toEqual([]);
   });
 });

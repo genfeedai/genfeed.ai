@@ -9,33 +9,79 @@ import {
 } from '@genfeedai/contracts';
 import { brandRemixRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 const createdAt = new Date('2026-08-20T10:00:00.000Z');
 
+interface CredentialRow {
+  brandId: string;
+  grantedScopes: string[];
+  grantedScopesCapturedAt: Date | null;
+  id: string;
+  isConnected: boolean;
+  isDeleted: boolean;
+  organizationId: string;
+  platform: string;
+}
+
+/** A where value matches when it equals the row's column. */
+const matches = (row: object, where: Record<string, unknown>) =>
+  Object.entries(where).every(
+    ([key, value]) => (row as Record<string, unknown>)[key] === value,
+  );
+
 describe('BrandRemixRunPaidDraftService', () => {
-  const contentRun = {
-    findFirst: vi.fn(),
-    updateMany: vi.fn(),
+  /** The stored run, the brand's ad credentials, and every provider draft request. */
+  const state = {
+    credentials: [] as CredentialRow[],
+    providerDrafts: [] as { platform: 'meta' | 'x'; input: unknown }[],
+    run: null as Record<string, unknown> | null,
   };
   const prisma = {
-    contentRun,
-    credential: { findFirst: vi.fn() },
-    ingredient: { findMany: vi.fn() },
-    post: { findMany: vi.fn() },
+    contentRun: {
+      findFirst: async () => state.run,
+      // Another writer always commits first: the exact-config claim loses.
+      updateMany: async () => ({ count: 0 }),
+    },
+    credential: {
+      findFirst: async ({ where }: { where: Record<string, unknown> }) =>
+        state.credentials.find((row) => matches(row, where)) ?? null,
+    },
+    ingredient: {
+      findMany: async () => [
+        { id: 'image-1', status: IngredientStatus.GENERATED },
+      ],
+    },
+    post: {
+      findMany: async () => [
+        { id: 'post-1', reviewDecision: PersistedReviewDecision.APPROVED },
+      ],
+    },
   } as unknown as PrismaService;
-  const pausedMetaCampaignDraftService = { prepare: vi.fn() };
-  const pausedXAdsCampaignDraftService = { prepare: vi.fn() };
+  const pausedMetaCampaignDraftService = {
+    prepare: async (input: unknown) => {
+      state.providerDrafts.push({ input, platform: 'meta' });
+      return {};
+    },
+  };
+  const pausedXAdsCampaignDraftService = {
+    prepare: async (input: unknown) => {
+      state.providerDrafts.push({ input, platform: 'x' });
+      return {};
+    },
+  };
   let paidDraft: BrandRemixRunPaidDraftService;
 
   beforeEach(() => {
-    vi.resetAllMocks();
+    state.credentials = [];
+    state.providerDrafts = [];
+    state.run = null;
     const graph = assembleBrandRemixRunsGraph({
       adsResearchService: {} as never,
       avatarVideoGenerationService: {} as never,
       turboRunService: {} as never,
       brandsService: {
-        findOne: vi.fn().mockResolvedValue({
+        findOne: async () => ({
           agentConfig: {},
           description: 'Operational content systems.',
           id: 'brand-1',
@@ -44,7 +90,7 @@ describe('BrandRemixRunPaidDraftService', () => {
           organizationId: 'org-1',
           text: 'Turn content signals into campaigns.',
         }),
-        resolveBrandKitAssets: vi.fn().mockResolvedValue({ references: [] }),
+        resolveBrandKitAssets: async () => ({ references: [] }),
       } as never,
       byokService: {} as never,
       contentGeneratorService: {} as never,
@@ -52,7 +98,7 @@ describe('BrandRemixRunPaidDraftService', () => {
       imageGenerationService: {} as never,
       personasService: personasServiceStub(),
       organizationSettingsService: {
-        findOne: vi.fn().mockResolvedValue({ organizationId: 'org-1' }),
+        findOne: async () => ({ organizationId: 'org-1' }),
       } as never,
       pausedMetaCampaignDraftService: pausedMetaCampaignDraftService as never,
       pausedXAdsCampaignDraftService: pausedXAdsCampaignDraftService as never,
@@ -66,6 +112,33 @@ describe('BrandRemixRunPaidDraftService', () => {
       videoGenerationService: {} as never,
     });
     paidDraft = graph.paidDraft;
+  });
+
+  function storeRun(platform: 'meta' | 'x') {
+    state.run = {
+      brandId: 'brand-1',
+      config: approvedPaidConfig(platform),
+      createdAt,
+      id: 'run-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+      status: ContentRunStatus.COMPLETED,
+      updatedAt: createdAt,
+    };
+  }
+
+  const metaCredential = (
+    overrides: Partial<CredentialRow> = {},
+  ): CredentialRow => ({
+    brandId: 'brand-1',
+    grantedScopes: ['ads_management'],
+    grantedScopesCapturedAt: new Date('2026-08-20T09:59:00.000Z'),
+    id: 'credential-1',
+    isConnected: true,
+    isDeleted: false,
+    organizationId: 'org-1',
+    platform: 'FACEBOOK',
+    ...overrides,
   });
 
   function approvedPaidConfig(platform: 'meta' | 'x') {
@@ -134,71 +207,45 @@ describe('BrandRemixRunPaidDraftService', () => {
   }
 
   it('rejects an X Ads draft that is missing a source tweet before provider calls', async () => {
-    contentRun.findFirst.mockResolvedValue({
-      brandId: 'brand-1',
-      config: approvedPaidConfig('x'),
-      createdAt,
-      id: 'run-1',
-      isDeleted: false,
-      organizationId: 'org-1',
-      status: ContentRunStatus.COMPLETED,
-      updatedAt: createdAt,
-    });
-    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: 'image-1', status: IngredientStatus.GENERATED },
-    ]);
-    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: 'post-1', reviewDecision: PersistedReviewDecision.APPROVED },
-    ]);
+    storeRun('x');
 
     await expect(
       paidDraft.prepare('org-1', 'run-1', 'user-1', {
         destination: { adAccountId: 'act-1', credentialId: 'credential-1' },
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(pausedXAdsCampaignDraftService.prepare).not.toHaveBeenCalled();
+    expect(state.providerDrafts).toEqual([]);
   });
 
   it('does not call Meta when the paid-draft claim loses its exact-config CAS', async () => {
-    contentRun.findFirst.mockResolvedValue({
-      brandId: 'brand-1',
-      config: approvedPaidConfig('meta'),
-      createdAt,
-      id: 'run-1',
-      isDeleted: false,
-      organizationId: 'org-1',
-      status: ContentRunStatus.COMPLETED,
-      updatedAt: createdAt,
-    });
-    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: 'image-1', status: IngredientStatus.GENERATED },
-    ]);
-    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: 'post-1', reviewDecision: PersistedReviewDecision.APPROVED },
-    ]);
-    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
-      {
-        grantedScopes: ['ads_management'],
-        grantedScopesCapturedAt: new Date('2026-08-20T09:59:00.000Z'),
-        id: 'credential-1',
-      },
-    );
-    contentRun.updateMany.mockResolvedValue({ count: 0 });
+    storeRun('meta');
+    state.credentials = [metaCredential()];
 
     await expect(
       paidDraft.prepare('org-1', 'run-1', 'user-1', {
         destination: { adAccountId: 'act-1', credentialId: 'credential-1' },
       }),
     ).rejects.toBeInstanceOf(ConflictException);
-    expect(pausedMetaCampaignDraftService.prepare).not.toHaveBeenCalled();
-    expect(prisma.credential.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          brandId: 'brand-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-        }),
-      }),
-    );
+    expect(state.providerDrafts).toEqual([]);
   });
+
+  it.each([
+    ['another brand', { brandId: 'brand-2' }],
+    ['another organization', { organizationId: 'org-2' }],
+    ['a removed credential', { isDeleted: true }],
+    ['a disconnected credential', { isConnected: false }],
+  ])(
+    'refuses an ads credential from %s before any provider call',
+    async (_label, overrides) => {
+      storeRun('meta');
+      state.credentials = [metaCredential(overrides)];
+
+      await expect(
+        paidDraft.prepare('org-1', 'run-1', 'user-1', {
+          destination: { adAccountId: 'act-1', credentialId: 'credential-1' },
+        }),
+      ).rejects.toThrow('Ads credential is unavailable');
+      expect(state.providerDrafts).toEqual([]);
+    },
+  );
 });
