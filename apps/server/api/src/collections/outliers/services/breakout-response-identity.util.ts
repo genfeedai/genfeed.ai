@@ -1,7 +1,7 @@
 import { buildArtifactContentDigest } from '@api/agent-artifacts/agent-artifact-material.util';
 import { readBreakoutBaselineReceipt } from '@api/collections/outliers/services/breakout-baseline-receipt.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { Platform } from '@genfeedai/contracts';
+import { BreakoutResponseState, Platform } from '@genfeedai/contracts';
 import type {
   BreakoutBaselineReadInput,
   BreakoutOutputPlanInput,
@@ -180,7 +180,7 @@ export async function reserveBreakoutOutputPlan(
   )
     return { status: 'plan_conflict' };
   const replay = response.outputPlanFingerprint !== null;
-  if (!replay && response.state !== 'detected')
+  if (!replay && response.state !== BreakoutResponseState.DETECTED)
     return { status: 'plan_conflict' };
   const data = slots.map((slot) => ({
     organizationId: input.organizationId,
@@ -207,10 +207,13 @@ export async function reserveBreakoutOutputPlan(
     const committed = await tx.breakoutResponse.updateMany({
       where: scopedWhere(input.organizationId, {
         ...where,
-        state: 'detected',
+        state: BreakoutResponseState.DETECTED,
         outputPlanFingerprint: null,
       }),
-      data: { state: 'planned', outputPlanFingerprint: planFingerprint },
+      data: {
+        state: BreakoutResponseState.PLANNED,
+        outputPlanFingerprint: planFingerprint,
+      },
     });
     if (committed.count !== 1)
       throw new Error('Breakout output plan changed; roll back transaction');

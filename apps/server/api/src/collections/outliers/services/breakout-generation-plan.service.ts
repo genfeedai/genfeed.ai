@@ -18,7 +18,11 @@ import { RouterService } from '@api/services/router/router.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { isSelfHostedDeployment } from '@genfeedai/config';
-import { ModelCategory, Platform } from '@genfeedai/contracts';
+import {
+  BreakoutResponseState,
+  ModelCategory,
+  Platform,
+} from '@genfeedai/contracts';
 import { GENERATE_CONTENT_TEXT_CREDITS } from '@genfeedai/contracts/constants';
 import type {
   AccountPublishingConstraints,
@@ -144,7 +148,11 @@ export class BreakoutGenerationPlanService {
       },
     });
     await request.reauthorize(this.prisma);
-    if (!response || !['detected', 'planned'].includes(response.state))
+    if (
+      !response ||
+      (response.state !== BreakoutResponseState.DETECTED &&
+        response.state !== BreakoutResponseState.PLANNED)
+    )
       return { status: 'held' as const, reason: 'response_unavailable' };
     const source = await loadBreakoutPublication(this.prisma, {
       ...request.scope,

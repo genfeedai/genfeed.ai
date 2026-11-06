@@ -14,6 +14,7 @@ import { BrandValidationService } from '@api/services/brand-validation/brand-val
 import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { BreakoutResponseOutputState } from '@genfeedai/contracts';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import {
@@ -162,7 +163,7 @@ export class BreakoutMediaOutputGenerationService {
           workflowExecutionId: admission.workflowExecutionId,
           format: scope.format,
           isDeleted: false,
-          state: 'reserved',
+          state: BreakoutResponseOutputState.RESERVED,
         },
         data: { heldReason: 'media_brand_capability_unavailable' },
       });
@@ -203,9 +204,12 @@ export class BreakoutMediaOutputGenerationService {
       const changed = await tx.breakoutResponseOutput.updateMany({
         where: scopedWhere(scope.organizationId, {
           ...where,
-          state: 'reserved',
+          state: BreakoutResponseOutputState.RESERVED,
         }),
-        data: { state: 'generating', heldReason: null },
+        data: {
+          state: BreakoutResponseOutputState.GENERATING,
+          heldReason: null,
+        },
       });
       if (!changed.count) {
         await admission.reauthorize(tx);
@@ -215,7 +219,7 @@ export class BreakoutMediaOutputGenerationService {
         });
         await admission.reauthorize(tx);
         if (
-          retained?.state !== 'generating' ||
+          retained?.state !== BreakoutResponseOutputState.GENERATING ||
           retained.generationKey !== output.generationKey
         )
           throw new ConflictException('breakout_media_output_not_dispatchable');

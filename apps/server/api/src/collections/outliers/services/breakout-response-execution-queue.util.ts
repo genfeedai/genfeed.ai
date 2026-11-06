@@ -13,6 +13,7 @@ import type { WorkflowExecutionQueueService } from '@api/collections/workflows/s
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { Platform } from '@genfeedai/contracts';
+import { BreakoutResponseState } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { LoggerService } from '@libs/logger/logger.service';
 
@@ -68,7 +69,7 @@ export async function enqueueDetectedBreakoutResponse(
       credentialId: source.credentialId,
       platform: source.platform,
       externalId: source.externalId,
-      state: 'detected',
+      state: BreakoutResponseState.DETECTED,
     }),
     select: { id: true },
   });
