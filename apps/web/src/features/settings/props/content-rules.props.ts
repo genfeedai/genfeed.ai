@@ -56,9 +56,3 @@ export interface HarnessPositioningScorecardProps {
   /** Brand-scoped href to the positioning interview (`/settings/brand-kit/setup`). */
   interviewHref: string;
 }
-
-/** The profile last saved on the content rules page, for the brand it was saved under. */
-export interface SavedProfileRef {
-  brandId: string;
-  id: string;
-}

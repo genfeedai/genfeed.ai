@@ -1,5 +1,3 @@
-import { queryClientWrapper } from '@app-tests/query-client.harness';
-import type { ReactElement } from 'react';
 import '@testing-library/jest-dom/vitest';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {
@@ -8,24 +6,10 @@ import {
 } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import { IngredientFormat } from '@genfeedai/contracts';
 import type { PromptBarFrameControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
-import {
-  fireEvent,
-  render as renderInDom,
-  screen,
-} from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { UseFormReturn } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
 import PromptBarFrameControls from '@/components/prompt-bars/components/frame-controls/PromptBarFrameControls';
-
-vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
-  useAuthIdentity: (await import('@app-tests/query-client.harness'))
-    .useTestViewer,
-}));
-
-/** Each spec gets its own query cache, like a fresh page load. */
-function render(ui: ReactElement) {
-  return renderInDom(ui, { wrapper: queryClientWrapper() });
-}
 
 describe('PromptBarFrameControls', () => {
   const mockForm: UseFormReturn<PromptTextareaSchema> = {

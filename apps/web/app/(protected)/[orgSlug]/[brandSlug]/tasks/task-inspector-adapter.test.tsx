@@ -1,8 +1,4 @@
 import {
-  createTestQueryClient,
-  queryClientWrapper,
-} from '@app-tests/query-client.harness';
-import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
   useContextSidebar,
@@ -25,7 +21,6 @@ import {
 } from './task-selection-context';
 
 const mocks = vi.hoisted(() => ({
-  listComments: vi.fn(),
   pathname: '/acme/brand/workspace/tasks',
   replace: vi.fn(),
   resolvers: new Map<string, () => Promise<unknown>>(),
@@ -67,11 +62,6 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   },
 }));
 
-vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
-  useAuthIdentity: (await import('@app-tests/query-client.harness'))
-    .useTestViewer,
-}));
-
 vi.mock('@services/management/tasks.service', () => ({
   TasksService: {
     getInstance: () => ({ updateTask: mocks.updateTask }),
@@ -80,9 +70,7 @@ vi.mock('@services/management/tasks.service', () => ({
 
 vi.mock('@services/management/task-comments.service', () => ({
   TaskCommentsService: {
-    getInstanceForTask: (_token: string, taskId: string) => ({
-      list: () => mocks.listComments(taskId),
-    }),
+    getInstanceForTask: () => ({ list: () => Promise.resolve([]) }),
   },
 }));
 
@@ -99,17 +87,14 @@ vi.mock('../workspace/workspace-task-inspector', () => ({
   WorkspaceTaskDetail: ({
     leading,
     task,
-    trailing,
   }: {
     leading: ReactNode;
     task: Task;
-    trailing: ReactNode;
   }) => (
     <div data-testid="workspace-task-inspector">
       {leading}
       <p>{task.title}</p>
       <p>Status: {task.status}</p>
-      {trailing}
     </div>
   ),
 }));
@@ -188,16 +173,9 @@ function TasksLayout() {
   );
 }
 
-function renderTasksLayout(client = createTestQueryClient()) {
-  return render(<TasksLayout />, { wrapper: queryClientWrapper(client) });
+function renderTasksLayout() {
+  return render(<TasksLayout />);
 }
-
-const COMMENT = {
-  body: 'Repro attached in the run log.',
-  createdAt: '2026-11-01T10:00:00.000Z',
-  id: 'comment-1',
-  isAgentComment: true,
-};
 
 describe('TaskInspectorAdapter', () => {
   beforeEach(() => {
@@ -206,34 +184,6 @@ describe('TaskInspectorAdapter', () => {
     mocks.updateTask.mockReset();
     mocks.updateTask.mockResolvedValue({ ...TASK, status: 'done' });
     mocks.sidebarStates = [];
-    mocks.listComments.mockReset();
-    mocks.listComments.mockImplementation((taskId: string) =>
-      Promise.resolve(taskId === 'task-101' ? [COMMENT] : []),
-    );
-  });
-
-  it('lists the cached comments at once when the task is reopened', async () => {
-    const client = createTestQueryClient();
-    const firstOpen = renderTasksLayout(client);
-    expect(await screen.findByText(COMMENT.body)).toBeInTheDocument();
-    firstOpen.unmount();
-
-    mocks.listComments.mockReturnValue(new Promise(() => {}));
-    renderTasksLayout(client);
-
-    expect(screen.getByText(COMMENT.body)).toBeInTheDocument();
-    expect(screen.queryByText('noComments')).not.toBeInTheDocument();
-  });
-
-  it('never lists one task comments under another task', async () => {
-    renderTasksLayout();
-    expect(await screen.findByText(COMMENT.body)).toBeInTheDocument();
-
-    mocks.listComments.mockReturnValue(new Promise(() => {}));
-    fireEvent.click(screen.getByRole('button', { name: 'Select second task' }));
-
-    expect(screen.getByText('Second task')).toBeInTheDocument();
-    expect(screen.queryByText(COMMENT.body)).not.toBeInTheDocument();
   });
 
   it('changes the task in place while the click is ahead of the URL update', () => {

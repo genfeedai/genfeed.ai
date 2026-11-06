@@ -14,7 +14,6 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
-import { isCancelledRequest } from '@services/core/operation-error';
 import { BrandsService } from '@services/social/brands.service';
 import type {
   ApprovalResponse,
@@ -156,21 +155,15 @@ export class WorkflowApiService extends HTTPBaseService {
    * The active organization's most-run workflows, ordered by execution count
    * then most recent run (GET /workflows/most-used, limit 1–12).
    */
-  async listMostUsed(
-    limit?: number,
-    signal?: AbortSignal,
-  ): Promise<WorkflowUsageSummary[]> {
+  async listMostUsed(limit?: number): Promise<WorkflowUsageSummary[]> {
     try {
       const response = await this.instance.get<JsonApiResponseDocument>(
         '/most-used',
-        { params: limit === undefined ? undefined : { limit }, signal },
+        { params: limit === undefined ? undefined : { limit } },
       );
       return deserializeCollection<WorkflowUsageSummary>(response.data);
     } catch (error) {
-      // A read superseded by navigation is not a failure worth reporting.
-      if (!isCancelledRequest(error)) {
-        logger.error('Failed to list most used workflows', { error, limit });
-      }
+      logger.error('Failed to list most used workflows', { error, limit });
       throw error;
     }
   }

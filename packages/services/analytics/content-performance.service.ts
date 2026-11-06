@@ -31,10 +31,9 @@ export class ContentPerformanceService extends HTTPBaseService {
 
   public async getWeeklySummary(
     params: IWeeklySummaryQueryParams,
-    signal?: AbortSignal,
   ): Promise<IWeeklyPerformanceSummary> {
     return await this.instance
-      .get<JsonApiResponseDocument>('weekly', { params, signal })
+      .get<JsonApiResponseDocument>('weekly', { params })
       .then((res) => deserializeResource<IWeeklyPerformanceSummary>(res.data));
   }
 }

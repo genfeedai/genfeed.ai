@@ -10,7 +10,7 @@ import type {
   ITraining,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { useAuthedQuery } from '@genfeedai/hooks/auth/use-authed-query/use-authed-query';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { ModelsService } from '@genfeedai/services/ai/models.service';
 import { TrainingsService } from '@genfeedai/services/ai/trainings.service';
@@ -18,163 +18,261 @@ import { TagsService } from '@genfeedai/services/content/tags.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { FontFamiliesService } from '@genfeedai/services/elements/font-families.service';
 import { PresetsService } from '@genfeedai/services/elements/presets.service';
-import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   PromptBarContext,
   type PromptBarContextValue,
 } from './promptbar.context';
 
-type PromptBarModel = IModel & { isTraining: boolean };
-
-interface PromptBarCatalogs {
-  fontFamilies: IFontFamily[];
-  models: PromptBarModel[];
-  presets: IPreset[];
-  tags: ITag[];
-  trainings: ITraining[];
-}
-
-interface PromptBarCatalogServices {
-  fontFamilies: FontFamiliesService;
-  models: ModelsService;
-  presets: PresetsService;
-  tags: TagsService;
-  trainings: TrainingsService;
-}
-
-const EMPTY_MODELS: PromptBarModel[] = [];
-const EMPTY_FONT_FAMILIES: IFontFamily[] = [];
-const EMPTY_PRESETS: IPreset[] = [];
-const EMPTY_TAGS: ITag[] = [];
-const EMPTY_TRAININGS: ITraining[] = [];
-
-function createPromptBarCatalogServices(
-  token: string,
-): PromptBarCatalogServices {
-  return {
-    fontFamilies: FontFamiliesService.getInstance(token),
-    models: ModelsService.getInstance(token),
-    presets: PresetsService.getInstance(token),
-    tags: TagsService.getInstance(token),
-    trainings: TrainingsService.getInstance(token),
-  };
-}
-
-function toTrainingModel(training: ITraining): PromptBarModel {
-  return {
-    category: IngredientCategory.IMAGE,
-    cost: 5,
-    createdAt: training.createdAt,
-    description: training.description,
-    id: training.id,
-    isActive: true,
-    isDefault: false,
-    isDeleted: false,
-    isHighlighted: false,
-    isTraining: true,
-    key: String(training.model),
-    label: training.label,
-    provider: 'replicate',
-    trigger: training.trigger,
-    updatedAt: training.updatedAt,
-  } as unknown as PromptBarModel;
-}
-
-/**
- * Every picker in the prompt bar lists its full catalog, and HTTP list
- * endpoints are always paginated — walk the pages instead of relying on the
- * ignored `pagination: false`.
- */
-async function loadPromptBarCatalogs(
-  services: PromptBarCatalogServices,
-  signal: AbortSignal,
-): Promise<PromptBarCatalogs> {
-  try {
-    const [fontFamilies, presets, models, trainings, tags] = await Promise.all([
-      services.fontFamilies.findAllPages({}, signal),
-      services.presets.findAllPages({}, signal),
-      services.models.findAllPages({ isActive: true }, signal),
-      services.trainings.findAllPages(
-        { isActive: true, status: 'completed' },
-        signal,
-      ),
-      services.tags.findAllPages({ isActive: true }, signal),
-    ]);
-
-    logger.debug('PromptBar data loaded', {
-      fontFamilies: fontFamilies.length,
-      models: models.length,
-      presets: presets.length,
-      tags: tags.length,
-      trainings: trainings.length,
-    });
-
-    return {
-      fontFamilies,
-      models: [
-        ...models.map((model) => ({ ...model, isTraining: false })),
-        ...trainings.map(toTrainingModel),
-      ],
-      presets,
-      tags,
-      trainings,
-    };
-  } catch (err) {
-    if (!signal.aborted) {
-      logger.error('Failed to load PromptBar data', err);
-    }
-    throw err;
-  }
-}
-
 function PromptBarProviderContent({
   children,
   enabled,
 }: LayoutProps & { enabled: boolean }): ReactNode {
-  const { isLoaded: isAuthLoaded, isSignedIn } = useAuthIdentity();
+  const {
+    isLoaded: isAuthLoaded,
+    isSignedIn,
+    userId,
+    orgId,
+  } = useAuthIdentity();
   const { organizationId, settings: orgSettings } = useBrand();
 
+  const getFontFamiliesService = useAuthedService(
+    useCallback((token: string) => FontFamiliesService.getInstance(token), []),
+  );
+
+  const getPresetsService = useAuthedService(
+    useCallback((token: string) => PresetsService.getInstance(token), []),
+  );
+
+  const getModelsService = useAuthedService(
+    useCallback((token: string) => ModelsService.getInstance(token), []),
+  );
+
+  const getTrainingsService = useAuthedService(
+    useCallback((token: string) => TrainingsService.getInstance(token), []),
+  );
+
+  const getTagsService = useAuthedService(
+    useCallback((token: string) => TagsService.getInstance(token), []),
+  );
+
+  const [allModels, setAllModels] = useState<
+    (IModel & { isTraining: boolean })[]
+  >([]);
+  const [presets, setPresets] = useState<IPreset[]>([]);
+  const [fontFamilies, setFontFamilies] = useState<IFontFamily[]>([]);
+  const [tags, setTags] = useState<ITag[]>([]);
+  const [trainings, setTrainings] = useState<ITraining[]>([]);
+
+  const [error, setError] = useState<Error | null>(null);
   const refreshCallbacksRef = useRef<(() => void)[]>([]);
 
+  const [isLoading, setIsLoading] = useState(true);
   // The catalogs are large and only a few screens read them, so nothing is
   // fetched until a consumer mounts and calls `requestLoad`.
   const [hasDemand, setHasDemand] = useState(false);
   const requestLoad = useCallback(() => setHasDemand(true), []);
+  const isLoadingRef = useRef(false);
+  const fetchIdRef = useRef(0);
 
-  const hasActiveSession = enabled && Boolean(isSignedIn);
-
-  // Cached per organization (and viewer): reopening a screen with a picker
-  // paints the catalogs at once and refreshes them in the background.
-  const catalogsQuery = useAuthedQuery<
-    PromptBarCatalogServices,
-    PromptBarCatalogs
-  >({
-    enabled: Boolean(isAuthLoaded) && hasActiveSession && hasDemand,
-    queryFn: loadPromptBarCatalogs,
-    queryKey: ['prompt-bar-catalogs', organizationId || null],
-    service: createPromptBarCatalogServices,
+  const lastSessionRef = useRef<{
+    userId: string | null;
+    orgId: string | null;
+    organizationId: string | null;
+  }>({
+    organizationId: null,
+    orgId: null,
+    userId: null,
   });
-  const {
-    data: catalogs,
-    error: catalogsError,
-    isFetching,
-    isPending,
-    refetch: refetchCatalogs,
-  } = catalogsQuery;
-  const hasCatalogs = catalogs !== undefined;
-  const isCatalogLoading = !hasCatalogs && (isPending || isFetching);
-  // A failed background refresh keeps the loaded catalogs and reports nothing.
-  const error = !hasCatalogs && !isFetching ? catalogsError : null;
-  const allModels = catalogs?.models ?? EMPTY_MODELS;
+
+  const findAllPromptBarData = useCallback(async () => {
+    if (!isSignedIn || !enabled) {
+      return;
+    }
+
+    const currentFetchId = ++fetchIdRef.current;
+
+    isLoadingRef.current = true;
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const [
+        fontFamiliesService,
+        presetsService,
+        modelsService,
+        trainingsService,
+        tagsService,
+      ] = await Promise.all([
+        getFontFamiliesService(),
+        getPresetsService(),
+        getModelsService(),
+        getTrainingsService(),
+        getTagsService(),
+      ]);
+
+      // Every picker in the prompt bar lists its full catalog, and HTTP list
+      // endpoints are always paginated — walk the pages instead of relying on
+      // the ignored `pagination: false`.
+      const dataPromises: Promise<unknown>[] = [
+        fontFamiliesService.findAllPages(),
+        presetsService.findAllPages(),
+        modelsService.findAllPages({ isActive: true }),
+        trainingsService.findAllPages({
+          isActive: true,
+          status: 'completed',
+        }),
+        tagsService.findAllPages({
+          isActive: true,
+        }),
+      ];
+
+      // Observe every request up front: Promise.all rejects on the FIRST
+      // failure (and the supersede path bails before awaiting at all), which
+      // left the remaining in-flight rejections unhandled — each one surfaced
+      // as an uncaught page error and took down the route's error boundary.
+      for (const promise of dataPromises) {
+        promise.catch(() => undefined);
+      }
+
+      if (currentFetchId !== fetchIdRef.current) {
+        logger.debug('PromptBar fetch superseded, discarding stale results', {
+          currentFetchId: fetchIdRef.current,
+          fetchId: currentFetchId,
+        });
+        return;
+      }
+
+      const results = await Promise.all(dataPromises);
+
+      const fontFamiliesData = results[0] as IFontFamily[];
+      const presetsData = results[1] as IPreset[];
+      const modelsData = results[2] as IModel[];
+      const trainingsData = results[3] as ITraining[];
+      const tagsData = results[4] as ITag[];
+
+      logger.debug('PromptBar data loaded', {
+        enabledModelIds: orgSettings?.enabledModelIds?.length ?? 'N/A',
+        fontFamilies: fontFamiliesData.length,
+        models: modelsData.length,
+        presets: presetsData.length,
+        tags: tagsData.length,
+        trainings: trainingsData.length,
+      });
+
+      const trainingModels: (IModel & { isTraining: boolean })[] =
+        trainingsData.map(
+          (t) =>
+            ({
+              category: IngredientCategory.IMAGE,
+              cost: 5,
+              createdAt: t.createdAt,
+              description: t.description,
+              id: t.id,
+              isActive: true,
+              isDefault: false,
+              isDeleted: false,
+              isHighlighted: false,
+              isTraining: true,
+              key: String(t.model),
+              label: t.label,
+              provider: 'replicate',
+              trigger: t.trigger,
+              updatedAt: t.updatedAt,
+            }) as unknown as IModel & { isTraining: boolean },
+        );
+
+      const modelsWithTrainingFlag = modelsData.map(
+        (m) =>
+          ({ ...m, isTraining: false }) as IModel & { isTraining: boolean },
+      );
+
+      setFontFamilies(fontFamiliesData);
+      setPresets(presetsData);
+      setAllModels([...modelsWithTrainingFlag, ...trainingModels]);
+      setTags(tagsData);
+      setTrainings(trainingsData);
+      lastSessionRef.current = { organizationId, orgId, userId };
+    } catch (err) {
+      if (currentFetchId === fetchIdRef.current) {
+        logger.error('Failed to load PromptBar data', err);
+        setError(
+          err instanceof Error
+            ? err
+            : new Error('Failed to load PromptBar data'),
+        );
+      }
+    } finally {
+      if (currentFetchId === fetchIdRef.current) {
+        isLoadingRef.current = false;
+        setIsLoading(false);
+      }
+    }
+  }, [
+    isSignedIn,
+    enabled,
+    userId,
+    orgId,
+    organizationId,
+    getFontFamiliesService,
+    getPresetsService,
+    getModelsService,
+    getTrainingsService,
+    getTagsService,
+    orgSettings,
+  ]);
+  useEffect(() => {
+    if (!isAuthLoaded || !enabled || !hasDemand) {
+      return;
+    }
+
+    if (!isSignedIn) {
+      lastSessionRef.current = {
+        organizationId: null,
+        orgId: null,
+        userId: null,
+      };
+      isLoadingRef.current = false;
+      return;
+    }
+
+    const sessionChanged =
+      lastSessionRef.current.userId !== (userId ?? null) ||
+      lastSessionRef.current.orgId !== (orgId ?? null) ||
+      lastSessionRef.current.organizationId !== (organizationId ?? null);
+
+    if (sessionChanged) {
+      void findAllPromptBarData();
+    }
+  }, [
+    isAuthLoaded,
+    isSignedIn,
+    enabled,
+    hasDemand,
+    userId,
+    orgId,
+    organizationId,
+    findAllPromptBarData,
+  ]);
 
   const refetch = useCallback(async () => {
-    if (hasActiveSession) {
-      await refetchCatalogs();
-    }
+    lastSessionRef.current = {
+      organizationId: null,
+      orgId: null,
+      userId: null,
+    };
+    await findAllPromptBarData();
     refreshCallbacksRef.current.forEach((callback) => {
       callback();
     });
-  }, [hasActiveSession, refetchCatalogs]);
+  }, [findAllPromptBarData]);
 
   const onRefresh = useCallback((callback: () => void) => {
     refreshCallbacksRef.current.push(callback);
@@ -185,20 +283,17 @@ function PromptBarProviderContent({
     };
   }, []);
 
+  const hasActiveSession = enabled && isSignedIn;
   const exposedIsLoading =
-    enabled && !isAuthLoaded
-      ? true
-      : hasActiveSession
-        ? isCatalogLoading
-        : false;
+    enabled && !isAuthLoaded ? true : hasActiveSession ? isLoading : false;
 
   const models = useMemo(() => {
     if (exposedIsLoading || !hasActiveSession) {
-      return EMPTY_MODELS;
+      return [];
     }
 
     if (organizationId && !orgSettings) {
-      return EMPTY_MODELS;
+      return [];
     }
 
     if (!organizationId) {
@@ -207,7 +302,7 @@ function PromptBarProviderContent({
 
     const enabledModelIds = orgSettings?.enabledModelIds;
     if (!enabledModelIds || enabledModelIds.length === 0) {
-      return EMPTY_MODELS;
+      return [];
     }
 
     return allModels.filter(
@@ -227,31 +322,28 @@ function PromptBarProviderContent({
   const value = useMemo<PromptBarContextValue>(
     () => ({
       error: hasActiveSession ? error : null,
-      fontFamilies: hasActiveSession
-        ? (catalogs?.fontFamilies ?? EMPTY_FONT_FAMILIES)
-        : EMPTY_FONT_FAMILIES,
+      fontFamilies: hasActiveSession ? fontFamilies : [],
       isLoading: exposedIsLoading,
       models,
       onRefresh,
-      presets: hasActiveSession
-        ? (catalogs?.presets ?? EMPTY_PRESETS)
-        : EMPTY_PRESETS,
+      presets: hasActiveSession ? presets : [],
       refetch,
       requestLoad,
-      tags: hasActiveSession ? (catalogs?.tags ?? EMPTY_TAGS) : EMPTY_TAGS,
-      trainings: hasActiveSession
-        ? (catalogs?.trainings ?? EMPTY_TRAININGS)
-        : EMPTY_TRAININGS,
+      tags: hasActiveSession ? tags : [],
+      trainings: hasActiveSession ? trainings : [],
     }),
     [
-      catalogs,
       error,
       exposedIsLoading,
+      fontFamilies,
       hasActiveSession,
       models,
       onRefresh,
+      presets,
       refetch,
       requestLoad,
+      tags,
+      trainings,
     ],
   );
 

@@ -94,13 +94,9 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
   /**
    * The X accounts the brand's warm-up monitor follows.
    */
-  async listWarmupTargets(
-    brandId: string,
-    signal?: AbortSignal,
-  ): Promise<IReplyTarget[]> {
+  async listWarmupTargets(brandId: string): Promise<IReplyTarget[]> {
     const response = await this.instance.get<IReplyTarget[]>('warmup/targets', {
       params: { brandId },
-      signal,
     });
     return response.data;
   }

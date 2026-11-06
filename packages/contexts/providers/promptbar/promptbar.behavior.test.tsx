@@ -7,20 +7,12 @@ import {
   usePromptBarContext,
 } from '@providers/promptbar/promptbar.context';
 import PromptBarProvider from '@providers/promptbar/promptbar.provider';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, renderHook, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const useAuthMock = vi.fn();
 const useBrandMock = vi.fn();
-const catalogServices = vi.hoisted(() => ({
-  fontFamilies: { findAllPages: vi.fn() },
-  models: { findAllPages: vi.fn() },
-  presets: { findAllPages: vi.fn() },
-  tags: { findAllPages: vi.fn() },
-  trainings: { findAllPages: vi.fn() },
-}));
+const useAuthedServiceMock = vi.fn();
 
 vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => useAuthMock(),
@@ -31,26 +23,8 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService:
-    <T,>(factory: (token: string) => T) =>
-    async () =>
-      factory('token'),
-}));
-
-vi.mock('@genfeedai/services/elements/font-families.service', () => ({
-  FontFamiliesService: { getInstance: () => catalogServices.fontFamilies },
-}));
-vi.mock('@genfeedai/services/elements/presets.service', () => ({
-  PresetsService: { getInstance: () => catalogServices.presets },
-}));
-vi.mock('@genfeedai/services/ai/models.service', () => ({
-  ModelsService: { getInstance: () => catalogServices.models },
-}));
-vi.mock('@genfeedai/services/ai/trainings.service', () => ({
-  TrainingsService: { getInstance: () => catalogServices.trainings },
-}));
-vi.mock('@genfeedai/services/content/tags.service', () => ({
-  TagsService: { getInstance: () => catalogServices.tags },
+  useAuthedService: (factory: (token: string) => unknown) =>
+    useAuthedServiceMock(factory),
 }));
 
 // The provider logs from inside the catalog `try`, so a double that omits the
@@ -78,10 +52,6 @@ function makeService(result: unknown[] | Error): StubService {
   return { findAllPages };
 }
 
-function pendingService(): StubService {
-  return { findAllPages: vi.fn(() => new Promise<never>(() => undefined)) };
-}
-
 function makeModel(id: string, key: string, label: string): IModel {
   return { id, key, label } as unknown as IModel;
 }
@@ -105,38 +75,13 @@ function Consumer(): null {
   return null;
 }
 
-/** Installs the font, preset, model, training and tag catalogs, in that order. */
-function installServices([
-  fontFamilies = makeService([]),
-  presets = makeService([]),
-  models = makeService([]),
-  trainings = makeService([]),
-  tags = makeService([]),
-]: StubService[]): void {
-  Object.assign(catalogServices, {
-    fontFamilies,
-    models,
-    presets,
-    tags,
-    trainings,
+function installServices(services: StubService[]): void {
+  let callIndex = 0;
+  useAuthedServiceMock.mockImplementation(() => {
+    const service = services[callIndex % services.length];
+    callIndex += 1;
+    return vi.fn().mockResolvedValue(service);
   });
-}
-
-let queryClient: QueryClient;
-
-function QueryWrapper({ children }: { children: ReactNode }) {
-  return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
-}
-
-function renderProvider(enabled = true) {
-  return render(
-    <PromptBarProvider enabled={enabled}>
-      <Consumer />
-    </PromptBarProvider>,
-    { wrapper: QueryWrapper },
-  );
 }
 
 describe('usePromptBarContext', () => {
@@ -150,11 +95,6 @@ describe('usePromptBarContext', () => {
 describe('PromptBarProvider behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { gcTime: Number.POSITIVE_INFINITY, retry: false },
-      },
-    });
     useAuthMock.mockReturnValue({
       isLoaded: true,
       isSignedIn: true,
@@ -183,7 +123,11 @@ describe('PromptBarProvider behavior', () => {
       tagsService,
     ]);
 
-    renderProvider();
+    render(
+      <PromptBarProvider>
+        <Consumer />
+      </PromptBarProvider>,
+    );
 
     await waitFor(() => {
       expect(contextValue.isLoading).toBe(false);
@@ -225,7 +169,11 @@ describe('PromptBarProvider behavior', () => {
       makeService([]),
     ]);
 
-    renderProvider();
+    render(
+      <PromptBarProvider>
+        <Consumer />
+      </PromptBarProvider>,
+    );
 
     await waitFor(() => {
       expect(contextValue.isLoading).toBe(false);
@@ -257,7 +205,11 @@ describe('PromptBarProvider behavior', () => {
       makeService([]),
     ]);
 
-    renderProvider();
+    render(
+      <PromptBarProvider>
+        <Consumer />
+      </PromptBarProvider>,
+    );
 
     await waitFor(() => {
       expect(contextValue.isLoading).toBe(false);
@@ -285,7 +237,11 @@ describe('PromptBarProvider behavior', () => {
       makeService([]),
     ]);
 
-    renderProvider();
+    render(
+      <PromptBarProvider>
+        <Consumer />
+      </PromptBarProvider>,
+    );
 
     await waitFor(() => {
       expect(contextValue.isLoading).toBe(false);
@@ -302,7 +258,11 @@ describe('PromptBarProvider behavior', () => {
       makeService([]),
     ]);
 
-    renderProvider();
+    render(
+      <PromptBarProvider>
+        <Consumer />
+      </PromptBarProvider>,
+    );
 
     await waitFor(() => {
       expect(contextValue.isLoading).toBe(false);
@@ -321,7 +281,11 @@ describe('PromptBarProvider behavior', () => {
     });
     installServices([makeService([])]);
 
-    renderProvider();
+    render(
+      <PromptBarProvider>
+        <Consumer />
+      </PromptBarProvider>,
+    );
 
     await waitFor(() => {
       expect(contextValue.isLoading).toBe(false);
@@ -333,7 +297,11 @@ describe('PromptBarProvider behavior', () => {
   it('stays idle when disabled', async () => {
     installServices([makeService([])]);
 
-    renderProvider(false);
+    render(
+      <PromptBarProvider enabled={false}>
+        <Consumer />
+      </PromptBarProvider>,
+    );
 
     await waitFor(() => {
       expect(contextValue.isLoading).toBe(false);
@@ -351,7 +319,11 @@ describe('PromptBarProvider behavior', () => {
       makeService([]),
     ]);
 
-    renderProvider();
+    render(
+      <PromptBarProvider>
+        <Consumer />
+      </PromptBarProvider>,
+    );
 
     await waitFor(() => {
       expect(contextValue.isLoading).toBe(false);
@@ -385,79 +357,5 @@ describe('PromptBarProvider behavior', () => {
       await contextValue.refetch();
     });
     expect(refreshCallback).toHaveBeenCalledTimes(1);
-  });
-  it('paints the cached catalogs at once on a return visit', async () => {
-    installServices([
-      makeService([{ id: 'font_1' }]),
-      makeService([]),
-      makeService([makeModel('model_1', 'one', 'One')]),
-    ]);
-    const firstVisit = renderProvider();
-    await waitFor(() => expect(contextValue.models).toHaveLength(1));
-    firstVisit.unmount();
-
-    installServices([
-      pendingService(),
-      pendingService(),
-      pendingService(),
-      pendingService(),
-      pendingService(),
-    ]);
-    renderProvider();
-
-    expect(contextValue.isLoading).toBe(false);
-    expect(contextValue.models.map((model) => model.label)).toEqual(['One']);
-    expect(contextValue.fontFamilies).toEqual([{ id: 'font_1' }]);
-  });
-
-  it("never shows one organization's catalogs in another", async () => {
-    useAuthMock.mockReturnValue({
-      isLoaded: true,
-      isSignedIn: true,
-      orgId: 'org_1',
-      userId: 'user_1',
-    });
-    useBrandMock.mockReturnValue({
-      organizationId: 'org_1',
-      settings: { enabledModelIds: [] },
-    });
-    installServices([makeService([{ id: 'font_org_1' }])]);
-    const firstOrganization = renderProvider();
-    await waitFor(() =>
-      expect(contextValue.fontFamilies).toEqual([{ id: 'font_org_1' }]),
-    );
-    firstOrganization.unmount();
-
-    useBrandMock.mockReturnValue({
-      organizationId: 'org_2',
-      settings: { enabledModelIds: [] },
-    });
-    installServices([
-      pendingService(),
-      pendingService(),
-      pendingService(),
-      pendingService(),
-      pendingService(),
-    ]);
-    renderProvider();
-
-    expect(contextValue.isLoading).toBe(true);
-    expect(contextValue.fontFamilies).toEqual([]);
-  });
-
-  it('keeps the loaded catalogs when a refresh fails', async () => {
-    installServices([makeService([{ id: 'font_1' }])]);
-    renderProvider();
-    await waitFor(() =>
-      expect(contextValue.fontFamilies).toEqual([{ id: 'font_1' }]),
-    );
-
-    installServices([makeService(new Error('offline'))]);
-    await act(async () => {
-      await contextValue.refetch();
-    });
-
-    expect(contextValue.fontFamilies).toEqual([{ id: 'font_1' }]);
-    expect(contextValue.error).toBeNull();
   });
 });

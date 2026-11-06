@@ -1,7 +1,3 @@
-import {
-  createTestQueryClient,
-  queryClientWrapper,
-} from '@app-tests/query-client.harness';
 import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useCallback } from 'react';
@@ -87,15 +83,11 @@ describe('Studio history recovery with the real bounded loader', () => {
   it('loads a complete snapshot and supports a successful empty result', async () => {
     queueCategoryPages(['saved']);
     queueCategoryPages([]);
-    const { result } = renderHook(() => useStudioPlaygroundGallery(scope), {
-      wrapper: queryClientWrapper(),
-    });
+    const { result } = renderHook(() => useStudioPlaygroundGallery(scope));
     await waitFor(() => expect(result.current.storedJobs).toHaveLength(1));
-    act(() => {
-      void result.current.refresh();
-    });
-    await waitFor(() => expect(result.current.storedJobs).toEqual([]));
-    expect(result.current.isLoadingGallery).toBe(false);
+    act(() => result.current.refresh());
+    await waitFor(() => expect(result.current.isLoadingGallery).toBe(false));
+    expect(result.current.storedJobs).toEqual([]);
     expect(result.current.galleryError).toBeNull();
     expect(
       mocks.findAllPage.mock.calls.every(([query]) => query.limit === 24),
@@ -111,13 +103,9 @@ describe('Studio history recovery with the real bounded loader', () => {
       if (calls === ALL_CATEGORY_COUNT + 1) return retry.promise;
       return Promise.resolve(page());
     });
-    const { result } = renderHook(() => useStudioPlaygroundGallery(scope), {
-      wrapper: queryClientWrapper(),
-    });
+    const { result } = renderHook(() => useStudioPlaygroundGallery(scope));
     await waitFor(() => expect(result.current.galleryError).toBe('load'));
-    act(() => {
-      void result.current.refresh();
-    });
+    act(() => result.current.refresh());
     await waitFor(() =>
       expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT * 2),
     );
@@ -141,17 +129,11 @@ describe('Studio history recovery with the real bounded loader', () => {
           return Promise.resolve(page(calls === 1 ? ids : []));
         return Promise.reject(new Error('offline'));
       });
-      const { result } = renderHook(() => useStudioPlaygroundGallery(scope), {
-        wrapper: queryClientWrapper(),
-      });
+      const { result } = renderHook(() => useStudioPlaygroundGallery(scope));
       await waitFor(() => expect(result.current.isLoadingGallery).toBe(false));
-      act(() => {
-        void result.current.refresh();
-      });
+      act(() => result.current.refresh());
       await waitFor(() => expect(result.current.galleryError).toBe('refresh'));
-      act(() => {
-        void result.current.refresh();
-      });
+      act(() => result.current.refresh());
       await waitFor(() => expect(mocks.error).toHaveBeenCalledTimes(2));
       expect(result.current.storedJobs.map((job) => job.id)).toEqual(ids);
       expect(result.current.galleryError).toBe('refresh');
@@ -163,14 +145,10 @@ describe('Studio history recovery with the real bounded loader', () => {
       .mockResolvedValueOnce(page(['kept-out']))
       .mockRejectedValueOnce(new Error('next category'))
       .mockResolvedValue(page(['retry-result']));
-    const { result } = renderHook(() => useStudioPlaygroundGallery(scope), {
-      wrapper: queryClientWrapper(),
-    });
+    const { result } = renderHook(() => useStudioPlaygroundGallery(scope));
     await waitFor(() => expect(result.current.galleryError).toBe('load'));
     expect(result.current.storedJobs).toEqual([]);
-    act(() => {
-      void result.current.refresh();
-    });
+    act(() => result.current.refresh());
     await waitFor(() => expect(result.current.galleryError).toBeNull());
     expect(
       mocks.findAllPage.mock.calls.map(([query]) => query.page),
@@ -183,7 +161,7 @@ describe('Studio history recovery with the real bounded loader', () => {
     ]);
   });
 
-  it('clears brand and filter scope synchronously and repaints cached A on return', async () => {
+  it('clears brand and filter scope synchronously and never resurrects discarded A', async () => {
     let calls = 0;
     mocks.findAllPage.mockImplementation(() => {
       calls += 1;
@@ -192,7 +170,6 @@ describe('Studio history recovery with the real bounded loader', () => {
       return Promise.reject(new Error('unavailable'));
     });
     const { result, rerender } = renderHook(useStudioPlaygroundGallery, {
-      wrapper: queryClientWrapper(),
       initialProps: { brandId: 'brand-a', filter: 'all' as 'all' | 'image' },
     });
     await waitFor(() => expect(result.current.storedJobs).toHaveLength(1));
@@ -201,61 +178,15 @@ describe('Studio history recovery with the real bounded loader', () => {
     expect(result.current.galleryError).toBeNull();
     await waitFor(() => expect(result.current.galleryError).toBe('load'));
     rerender({ brandId: 'brand-b', filter: 'all' });
-    expect(result.current.storedJobs).toEqual([]);
     expect(result.current.galleryError).toBeNull();
     rerender({ brandId: 'brand-a', filter: 'all' });
-    expect(result.current.storedJobs.map((job) => job.id)).toEqual(['a']);
-    expect(result.current.isLoadingGallery).toBe(false);
-  });
-
-  it('paints the cached history at once when Studio is opened again', async () => {
-    const client = createTestQueryClient();
-    queueCategoryPages(['saved']);
-    const firstVisit = renderHook(() => useStudioPlaygroundGallery(scope), {
-      wrapper: queryClientWrapper(client),
-    });
-    await waitFor(() =>
-      expect(firstVisit.result.current.storedJobs.map((job) => job.id)).toEqual(
-        ['saved'],
-      ),
-    );
-    firstVisit.unmount();
-
-    mocks.findAllPage.mockImplementation(() => new Promise(() => {}));
-    const { result } = renderHook(() => useStudioPlaygroundGallery(scope), {
-      wrapper: queryClientWrapper(client),
-    });
-
-    expect(result.current.storedJobs.map((job) => job.id)).toEqual(['saved']);
-    expect(result.current.isLoadingGallery).toBe(false);
-    expect(result.current.galleryError).toBeNull();
-  });
-
-  it('never paints one brand history under another brand', async () => {
-    const client = createTestQueryClient();
-    queueCategoryPages(['brand-a-saved']);
-    const firstVisit = renderHook(() => useStudioPlaygroundGallery(scope), {
-      wrapper: queryClientWrapper(client),
-    });
-    await waitFor(() =>
-      expect(firstVisit.result.current.storedJobs).toHaveLength(1),
-    );
-    firstVisit.unmount();
-
-    mocks.findAllPage.mockImplementation(() => new Promise(() => {}));
-    const { result } = renderHook(
-      () => useStudioPlaygroundGallery({ ...scope, brandId: 'brand-b' }),
-      { wrapper: queryClientWrapper(client) },
-    );
-
     expect(result.current.storedJobs).toEqual([]);
-    expect(result.current.isLoadingGallery).toBe(true);
+    await waitFor(() => expect(result.current.galleryError).toBe('load'));
   });
 
   it('does not request unresolved brands', () => {
-    const { result } = renderHook(
-      () => useStudioPlaygroundGallery({ ...scope, brandId: '' }),
-      { wrapper: queryClientWrapper() },
+    const { result } = renderHook(() =>
+      useStudioPlaygroundGallery({ ...scope, brandId: '' }),
     );
     expect(result.current).toMatchObject({
       storedJobs: [],
@@ -274,7 +205,6 @@ describe('Studio history recovery with the real bounded loader', () => {
       return Promise.resolve(page(['c']));
     });
     const { result, rerender } = renderHook(useStudioPlaygroundGallery, {
-      wrapper: queryClientWrapper(),
       initialProps: scope,
     });
     await waitFor(() =>
@@ -298,39 +228,30 @@ describe('Studio history recovery with the real bounded loader', () => {
     expect(mocks.error).not.toHaveBeenCalled();
   });
 
-  it('aborts a replaced refresh and unmount without logging transport aborts', async () => {
+  it('aborts replacement and unmount without logging transport aborts', async () => {
     const first = deferred<ReturnType<typeof page>>();
     const second = deferred<ReturnType<typeof page>>();
     let calls = 0;
     mocks.findAllPage.mockImplementation(() => {
       calls += 1;
-      if (calls <= ALL_CATEGORY_COUNT) return Promise.resolve(page(['saved']));
-      return calls <= ALL_CATEGORY_COUNT * 2 ? first.promise : second.promise;
+      return calls <= ALL_CATEGORY_COUNT ? first.promise : second.promise;
     });
-    const { result, unmount } = renderHook(
-      () => useStudioPlaygroundGallery(scope),
-      { wrapper: queryClientWrapper() },
+    const { result, unmount } = renderHook(() =>
+      useStudioPlaygroundGallery(scope),
     );
-    await waitFor(() => expect(result.current.storedJobs).toHaveLength(1));
-    act(() => {
-      void result.current.refresh();
-    });
+    await waitFor(() =>
+      expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT),
+    );
+    act(() => result.current.refresh());
+    expect((mocks.findAllPage.mock.calls[0][1] as AbortSignal).aborted).toBe(
+      true,
+    );
     await waitFor(() =>
       expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT * 2),
     );
-    act(() => {
-      void result.current.refresh();
-    });
-    expect(
-      (mocks.findAllPage.mock.calls[ALL_CATEGORY_COUNT][1] as AbortSignal)
-        .aborted,
-    ).toBe(true);
-    await waitFor(() =>
-      expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT * 3),
-    );
     unmount();
     expect(
-      (mocks.findAllPage.mock.calls[ALL_CATEGORY_COUNT * 2][1] as AbortSignal)
+      (mocks.findAllPage.mock.calls[ALL_CATEGORY_COUNT][1] as AbortSignal)
         .aborted,
     ).toBe(true);
     await act(async () => {
@@ -349,17 +270,12 @@ describe('Studio history recovery with the real bounded loader', () => {
     'immediately discards prior-owner rows and error when %s changes',
     async (change) => {
       queueCategoryPages(['old-owner']);
-      const { result, rerender } = renderHook(
-        () => useStudioPlaygroundGallery(scope),
-        {
-          wrapper: queryClientWrapper(),
-        },
+      const { result, rerender } = renderHook(() =>
+        useStudioPlaygroundGallery(scope),
       );
       await waitFor(() => expect(result.current.storedJobs).toHaveLength(1));
       mocks.findAllPage.mockRejectedValue(new Error('Refresh failed'));
-      act(() => {
-        void result.current.refresh();
-      });
+      act(() => result.current.refresh());
       await waitFor(() => expect(result.current.galleryError).toBe('refresh'));
       mocks.findAllPage.mockReturnValue(new Promise(() => {}));
       if (change === 'actor') mocks.identity.userId = 'user-b';
@@ -380,11 +296,8 @@ describe('Studio history recovery with the real bounded loader', () => {
 
   it('treats replacement-owner failure as an empty load failure', async () => {
     queueCategoryPages(['old-owner']);
-    const { result, rerender } = renderHook(
-      () => useStudioPlaygroundGallery(scope),
-      {
-        wrapper: queryClientWrapper(),
-      },
+    const { result, rerender } = renderHook(() =>
+      useStudioPlaygroundGallery(scope),
     );
     await waitFor(() => expect(result.current.storedJobs).toHaveLength(1));
     mocks.findAllPage.mockRejectedValue(new Error('New owner offline'));
@@ -400,11 +313,8 @@ describe('Studio history recovery with the real bounded loader', () => {
     async (outcome) => {
       const old = deferred<ReturnType<typeof page>>();
       mocks.findAllPage.mockReturnValue(old.promise);
-      const { result, rerender } = renderHook(
-        () => useStudioPlaygroundGallery(scope),
-        {
-          wrapper: queryClientWrapper(),
-        },
+      const { result, rerender } = renderHook(() =>
+        useStudioPlaygroundGallery(scope),
       );
       await waitFor(() =>
         expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT),
@@ -445,11 +355,8 @@ describe('Studio history recovery with the real bounded loader', () => {
     const acquisition = deferred<{ findAllPage: typeof mocks.findAllPage }>();
     mocks.getService.mockReturnValueOnce(acquisition.promise);
     mocks.findAllPage.mockResolvedValue(page(['current-owner']));
-    const { result, rerender } = renderHook(
-      () => useStudioPlaygroundGallery(scope),
-      {
-        wrapper: queryClientWrapper(),
-      },
+    const { result, rerender } = renderHook(() =>
+      useStudioPlaygroundGallery(scope),
     );
     mocks.apiEndpoint = 'https://other-api.example.test';
     rerender();
@@ -473,9 +380,7 @@ describe('Studio history recovery with the real bounded loader', () => {
   it('does not dispatch an acquisition that completes after unmount', async () => {
     const acquisition = deferred<{ findAllPage: typeof mocks.findAllPage }>();
     mocks.getService.mockReturnValueOnce(acquisition.promise);
-    const { unmount } = renderHook(() => useStudioPlaygroundGallery(scope), {
-      wrapper: queryClientWrapper(),
-    });
+    const { unmount } = renderHook(() => useStudioPlaygroundGallery(scope));
     unmount();
     await act(async () =>
       acquisition.resolve({ findAllPage: mocks.findAllPage }),
@@ -485,11 +390,8 @@ describe('Studio history recovery with the real bounded loader', () => {
 
   it('ignores a captured old refresh without aborting the current owner', async () => {
     queueCategoryPages(['old-owner']);
-    const { result, rerender } = renderHook(
-      () => useStudioPlaygroundGallery(scope),
-      {
-        wrapper: queryClientWrapper(),
-      },
+    const { result, rerender } = renderHook(() =>
+      useStudioPlaygroundGallery(scope),
     );
     await waitFor(() => expect(result.current.storedJobs).toHaveLength(1));
     const oldRefresh = result.current.refresh;
@@ -503,9 +405,7 @@ describe('Studio history recovery with the real bounded loader', () => {
     const signal = mocks.findAllPage.mock.calls[
       ALL_CATEGORY_COUNT
     ][1] as AbortSignal;
-    act(() => {
-      void oldRefresh();
-    });
+    act(() => oldRefresh());
     expect(signal.aborted).toBe(false);
     expect(mocks.findAllPage).toHaveBeenCalledTimes(ALL_CATEGORY_COUNT * 2);
     await act(async () => current.resolve(page(['current-owner'])));

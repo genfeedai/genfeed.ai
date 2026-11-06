@@ -448,12 +448,9 @@ describe('OrganizationsService HTTP methods', () => {
     it('getByokAllProviders GETs the byok settings', async () => {
       http.get.mockResolvedValue(axiosResponse([{ provider: 'openai' }]));
 
-      const signal = new AbortController().signal;
-      const result = await service.getByokAllProviders(orgId, signal);
+      const result = await service.getByokAllProviders(orgId);
 
-      expect(http.get).toHaveBeenCalledWith(`/${orgId}/settings/byok`, {
-        signal,
-      });
+      expect(http.get).toHaveBeenCalledWith(`/${orgId}/settings/byok`);
       expect(result).toEqual([{ provider: 'openai' }]);
     });
 
