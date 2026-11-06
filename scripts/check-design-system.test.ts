@@ -7,8 +7,8 @@ import {
   type DesignSystemBaseline,
   type DesignSystemFinding,
   diffDesignSystemBaseline,
-  findDarkOnlyPaletteTextTokens,
   findPackageUiGuardFindings,
+  findPaletteColorTokens,
   findRawChromeColorTokens,
   formatDesignSystemRegressions,
 } from './check-design-system';
@@ -55,10 +55,13 @@ describe('app chrome color guard', () => {
     ).toEqual([]);
   });
 
-  it('includes onboarding in the guarded chrome surfaces', () => {
-    expect(APP_CHROME_COLOR_SURFACES).toContainEqual({
-      root: 'apps/web/app/(onboarding)',
-    });
+  it('guards the whole web app and shared UI packages', () => {
+    expect(APP_CHROME_COLOR_SURFACES).toEqual(
+      expect.arrayContaining([
+        { root: 'apps/web' },
+        { root: 'packages/ui/src' },
+      ]),
+    );
   });
 });
 
@@ -336,28 +339,26 @@ describe('design evaluation seed', () => {
   });
 });
 
-describe('findDarkOnlyPaletteTextTokens', () => {
-  it('flags light palette text that only reads on a dark surface', () => {
-    expect(
-      findDarkOnlyPaletteTextTokens(
-        "'bg-amber-500/12 text-amber-300 hover:text-rose-200 text-emerald-400/60'",
-      ),
-    ).toEqual(['text-amber-300', 'hover:text-rose-200', 'text-emerald-400/60']);
-  });
-
-  it('allows dark-theme pairs, deeper shades and semantic tokens', () => {
-    expect(
-      findDarkOnlyPaletteTextTokens(
-        'text-amber-700 dark:text-amber-300 text-red-600 text-warning',
-      ),
-    ).toEqual([]);
-  });
-
-  it('honours the content-color escape marker', () => {
-    expect(
-      findDarkOnlyPaletteTextTokens(
-        "'text-emerald-300' // design-system-allow-content-color -- terminal",
-      ),
-    ).toEqual([]);
+describe('findPaletteColorTokens', () => {
+  it.each([
+    [
+      "'bg-amber-500/12 text-amber-300 hover:text-rose-200'",
+      ['bg-amber-500/12', 'text-amber-300', 'hover:text-rose-200'],
+    ],
+    [
+      'text-emerald-700 dark:text-emerald-300 bg-zinc-900',
+      ['text-emerald-700', 'dark:text-emerald-300', 'bg-zinc-900'],
+    ],
+    [
+      'dark:bg-card md:border-sky-400/20',
+      ['dark:bg-card', 'md:border-sky-400/20'],
+    ],
+    [
+      'text-success bg-categorical-violet/10 text-platform-instagram bg-gray-100 dark:invert dark:prose-invert',
+      [],
+    ],
+    ["'text-emerald-300' // design-system-allow-content-color -- terminal", []],
+  ])('in %s flags %j', (line, expected) => {
+    expect(findPaletteColorTokens(line)).toEqual(expected);
   });
 });

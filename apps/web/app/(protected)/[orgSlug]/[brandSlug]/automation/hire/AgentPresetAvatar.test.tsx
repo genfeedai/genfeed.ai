@@ -23,7 +23,7 @@ describe('AgentPresetAvatar', () => {
       />,
     );
 
-    expect(faceOf('youtube-scriptwriter')).toHaveClass('bg-red-500');
+    expect(faceOf('youtube-scriptwriter')).toHaveClass('bg-platform-youtube');
   });
 
   it('normalizes platform casing and aliases', () => {
@@ -35,7 +35,7 @@ describe('AgentPresetAvatar', () => {
       />,
     );
 
-    expect(faceOf('linkedin-copywriter')).toHaveClass('bg-blue-700');
+    expect(faceOf('linkedin-copywriter')).toHaveClass('bg-platform-linkedin');
   });
 
   it('keeps a multi-platform agent neutral', () => {

@@ -29,7 +29,7 @@ export default function SettingsProgressOverviewCard({
         nextSetupStep ? (
           <Button
             asChild
-            className="inline-flex items-center gap-2 rounded-full border border-orange-400/20 bg-orange-400/10 px-4 py-2 text-sm font-medium text-orange-700 dark:text-orange-100 transition-colors hover:bg-orange-400/10"
+            className="inline-flex items-center gap-2 rounded-full border border-categorical-orange/20 bg-categorical-orange/10 px-4 py-2 text-sm font-medium text-categorical-orange transition-colors hover:bg-categorical-orange/10"
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
           >
@@ -41,7 +41,7 @@ export default function SettingsProgressOverviewCard({
         ) : (
           <Button
             asChild
-            className="inline-flex items-center gap-2 rounded-full border border-orange-400/20 bg-orange-400/10 px-4 py-2 text-sm font-medium text-orange-700 dark:text-orange-100 transition-colors hover:bg-orange-400/10"
+            className="inline-flex items-center gap-2 rounded-full border border-categorical-orange/20 bg-categorical-orange/10 px-4 py-2 text-sm font-medium text-categorical-orange transition-colors hover:bg-categorical-orange/10"
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
           >

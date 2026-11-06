@@ -61,7 +61,7 @@ export function AiTextActionCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <FileText className="size-5 text-sky-500" />
+        <FileText className="size-5 text-muted-foreground" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Text Actions'}
         </h3>

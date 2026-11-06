@@ -55,7 +55,7 @@ export function EngagementOpportunityCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <MessageSquare className="size-5 text-emerald-500" />
+        <MessageSquare className="size-5 text-muted-foreground" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Engagement Opportunity'}
         </h3>

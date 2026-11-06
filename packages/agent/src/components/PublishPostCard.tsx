@@ -502,7 +502,7 @@ export function PublishPostCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <Send className="size-5 text-emerald-500" />
+        <Send className="size-5 text-muted-foreground" />
         <h3 className="text-sm font-semibold text-foreground">
           {action.title || translate('defaultTitle')}
         </h3>

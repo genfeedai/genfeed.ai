@@ -42,7 +42,7 @@ export function WorkflowCreatedCard({
   return (
     <div className="my-2 overflow-hidden border border-success/20 bg-background">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <CircleCheck className="size-5 text-emerald-500" />
+        <CircleCheck className="size-5 text-success" />
         <div>
           <h3 className="text-sm font-semibold text-foreground">
             {action.title || 'Automation created'}

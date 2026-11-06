@@ -165,7 +165,7 @@ describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
     expect(fanvue?.category).toBe('creator');
     expect(fanvue?.servicePath).toBe('fanvue');
     expect(fanvue?.Icon).toBe(Star);
-    expect(fanvue?.iconClassName).toBe('text-violet-500');
+    expect(fanvue?.iconClassName).toBe('text-platform-fanvue');
     expect(
       groupOAuthConnectPlatforms().some((group) => group.label === 'Creator'),
     ).toBe(true);

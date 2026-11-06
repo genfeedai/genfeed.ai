@@ -170,7 +170,7 @@ export default function PlatformHomePage({
 
   const cards: OverviewCard[] = [
     {
-      color: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+      color: 'bg-categorical-emerald/10 text-categorical-emerald',
       cta: connectionCta,
       description: connectionDescription,
       href: href(destinations.settingsSocial),
@@ -179,7 +179,7 @@ export default function PlatformHomePage({
       label: translate('connection.label'),
     },
     {
-      color: 'bg-violet-500/10 text-violet-700 dark:text-violet-300',
+      color: 'bg-categorical-violet/10 text-categorical-violet',
       cta: translate('create.cta', { platform: platformLabel }),
       href: href(destinations.create),
       icon: Sparkles,
@@ -187,7 +187,7 @@ export default function PlatformHomePage({
       label: translate('create.label'),
     },
     {
-      color: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+      color: 'bg-categorical-amber/10 text-categorical-amber',
       cta: translate('queue.cta'),
       href: href(destinations.queue),
       icon: List,
@@ -195,7 +195,7 @@ export default function PlatformHomePage({
       label: translate('queue.label'),
     },
     {
-      color: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
+      color: 'bg-categorical-blue/10 text-categorical-blue',
       cta: translate('calendar.cta'),
       href: href(destinations.calendar),
       icon: Calendar,
@@ -203,7 +203,7 @@ export default function PlatformHomePage({
       label: translate('calendar.label'),
     },
     {
-      color: 'bg-pink-500/10 text-pink-700 dark:text-pink-300',
+      color: 'bg-categorical-pink/10 text-categorical-pink',
       cta: translate('engage.cta'),
       href: href(destinations.messages),
       icon: MessageSquare,
@@ -214,7 +214,7 @@ export default function PlatformHomePage({
 
   if (destinations.replies) {
     cards.push({
-      color: 'bg-orange-500/10 text-orange-700 dark:text-orange-300',
+      color: 'bg-categorical-orange/10 text-categorical-orange',
       cta: translate('replies.cta'),
       href: href(destinations.replies),
       icon: MessageCircleReply,
@@ -225,7 +225,7 @@ export default function PlatformHomePage({
 
   if (destinations.live) {
     cards.push({
-      color: 'bg-red-500/10 text-red-700 dark:text-red-300',
+      color: 'bg-categorical-red/10 text-categorical-red',
       cta: translate('live.cta'),
       href: href(destinations.live),
       icon: Radio,
@@ -235,7 +235,7 @@ export default function PlatformHomePage({
   }
 
   cards.push({
-    color: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
+    color: 'bg-categorical-blue/10 text-categorical-blue',
     cta: translate('winners.cta'),
     href: href(destinations.analytics),
     icon: ChartColumn,

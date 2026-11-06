@@ -193,7 +193,7 @@ function TimelineWorkGroupInner({
               {terminalStatus === 'failed' ? (
                 <CircleAlert className="size-3.5 text-destructive" />
               ) : (
-                <CircleCheck className="size-3.5 text-emerald-500" />
+                <CircleCheck className="size-3.5 text-success" />
               )}
               {statusLabel}
             </span>

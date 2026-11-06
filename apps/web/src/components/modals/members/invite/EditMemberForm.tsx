@@ -46,7 +46,7 @@ export default function EditMemberForm({
       <h3 className="font-bold text-lg">Edit Member Brands</h3>
 
       <div className="py-4">
-        <p className="text-sm text-gray-400 mb-4">
+        <p className="text-sm text-muted-foreground mb-4">
           Assign accounts to <strong>{member.userFullName}</strong>
         </p>
 
@@ -75,7 +75,7 @@ export default function EditMemberForm({
                       <span className="flex-1">
                         <div className="font-medium">{brand.label}</div>
                         {brand.slug && (
-                          <div className="text-sm text-gray-400">
+                          <div className="text-sm text-muted-foreground">
                             @{brand.slug}
                           </div>
                         )}

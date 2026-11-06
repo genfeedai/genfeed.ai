@@ -17,8 +17,10 @@ import { ArrowLeft } from 'lucide-react';
 
 const platformIcons: Record<CampaignPlatform, React.ReactNode> = {
   [CampaignPlatform.TWITTER]: <XTwitterIcon className="text-foreground/70" />,
-  [CampaignPlatform.REDDIT]: <RedditIcon className="text-orange-500" />,
-  [CampaignPlatform.INSTAGRAM]: <InstagramIcon className="text-pink-500" />,
+  [CampaignPlatform.REDDIT]: <RedditIcon className="text-platform-reddit" />,
+  [CampaignPlatform.INSTAGRAM]: (
+    <InstagramIcon className="text-platform-instagram" />
+  ),
 };
 
 function getCampaignStatusVariant(
