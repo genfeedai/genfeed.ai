@@ -207,7 +207,7 @@ function NegativePromptSelectorComponent({
               value={customText}
               onChange={(e) => handleCustomChange(e.target.value)}
               placeholder="ugly, deformed, ..."
-              className="nodrag nopan w-full h-7 border border-input bg-background px-2 text-xs shadow-sm placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="nodrag nopan w-full h-7 border border-input bg-background px-2 text-xs shadow-sm placeholder:text-muted-foreground/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             />
           </div>
         </>

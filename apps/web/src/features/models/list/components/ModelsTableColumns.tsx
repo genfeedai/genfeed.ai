@@ -473,7 +473,7 @@ export function buildModelsTableColumns({
           : null;
         const cost = (
           <span
-            className="rounded-sm text-xs tabular-nums text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="rounded-sm text-xs tabular-nums text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             tabIndex={breakdown ? 0 : undefined}
           >
             {formatModelCreditCost(model, translate)}

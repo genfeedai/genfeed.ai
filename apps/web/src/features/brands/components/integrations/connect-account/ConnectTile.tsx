@@ -67,7 +67,7 @@ export default function ConnectTile({
     <Button
       className={cn(
         'group flex w-full flex-col gap-3 rounded-xl bg-card p-3 text-left shadow-border transition-colors',
-        'hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        'hover:bg-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         'disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-card',
       )}
       isDisabled={!item.isConnectAvailable || connectingPlatform !== null}

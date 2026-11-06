@@ -206,7 +206,7 @@ export default function Searchbar({
         className={cn(
           sizeClass,
           'w-full rounded-md border border-border bg-card px-3 text-foreground placeholder:text-muted-foreground',
-          'focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          'focus-visible:border-border-strong focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           showIcon && 'pl-10',
           showClearButton && displayedValue && 'pr-8',
           inputClassName,

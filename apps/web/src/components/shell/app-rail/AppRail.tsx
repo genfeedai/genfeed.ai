@@ -82,7 +82,7 @@ function AppRailItem({
       : label;
   const itemClassName = cn(
     'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+    'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
     // Same motion and fills as the sidebar menu rows (one shared primitive).
     sidebarRowStateClassName(isActive, 'text-foreground/50'),
     isLocked && 'opacity-60',

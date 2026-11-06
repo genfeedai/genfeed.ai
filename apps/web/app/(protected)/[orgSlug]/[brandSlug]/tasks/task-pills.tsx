@@ -45,7 +45,7 @@ const PRIORITY_ICONS: Record<TaskPriority, typeof ChevronsUp> = {
 
 /** Strips field chrome so the badge itself is the select trigger. */
 const PILL_TRIGGER_CLASS =
-  'h-auto w-auto rounded-full border-0 bg-transparent p-0 shadow-none hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+  'h-auto w-auto rounded-full border-0 bg-transparent p-0 shadow-none hover:opacity-80 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
 /** Fixed widths keep pills aligned down a table column. */
 export const STATUS_PILL_CLASS = 'w-28 justify-center';

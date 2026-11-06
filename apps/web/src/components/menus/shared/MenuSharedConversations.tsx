@@ -53,7 +53,7 @@ export default function MenuSharedConversations({
         <div className="pb-1">
           <Link
             href={newAgentThreadHref}
-            className="group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/80 transition-colors duration-150 cursor-pointer hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/80 transition-colors duration-150 cursor-pointer hover:bg-foreground/5 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <Plus className="size-4 text-muted-foreground group-hover:text-foreground/80" />
             <span className="text-sm font-medium tracking-[-0.01em] text-foreground/90">

@@ -19,7 +19,7 @@ export const optionTileGroupVariants = cva('', {
 });
 
 export const optionTileVariants = cva(
-  'min-w-0 rounded-lg border border-border bg-transparent text-left transition-colors duration-200 hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 data-[state=on]:border-primary data-[state=on]:bg-primary/10',
+  'min-w-0 rounded-lg border border-border bg-transparent text-left transition-colors duration-200 hover:bg-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 data-[state=on]:border-primary data-[state=on]:bg-primary/10',
   {
     defaultVariants: { layout: 'row', size: 'default' },
     variants: {

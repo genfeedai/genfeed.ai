@@ -77,7 +77,7 @@ function TableCellContent<T>({
   const primary = nameLink ? (
     <Link
       aria-label={nameLink.label}
-      className="no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="no-underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       href={nameLink.href}
     >
       {content}
@@ -597,7 +597,7 @@ export default function AppTable<T>({
                         <Button
                           ariaLabel={column.sortLabel}
                           className={cn(
-                            'group flex h-10 w-full items-center gap-1 text-left text-xs font-medium tracking-wide text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                            'group flex h-10 w-full items-center gap-1 text-left text-xs font-medium tracking-wide text-muted-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                             isCompact ? 'px-2' : 'px-4',
                           )}
                           onClick={() => handleSort(columnKey)}
@@ -681,7 +681,7 @@ export default function AppTable<T>({
                         coverLink && 'relative cursor-pointer',
                         !coverLink &&
                           onActivateRow &&
-                          'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                          'cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                         getRowClassName?.(item),
                       )}
                       onClick={
@@ -733,7 +733,7 @@ export default function AppTable<T>({
                               raised, and they are positioned on their own `td`. */}
                               <Link
                                 aria-label={coverLink.label}
-                                className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                                className="absolute inset-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                                 href={coverLink.href}
                               />
                               <TableCellContent column={column} item={item} />

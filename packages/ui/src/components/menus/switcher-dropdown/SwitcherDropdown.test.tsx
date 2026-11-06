@@ -353,7 +353,7 @@ describe('SwitcherDropdown', () => {
     fireEvent.click(screen.getByText('Open'));
     const footerAction = screen.getByRole('button', { name: /New Item/i });
     expect(footerAction).toHaveClass(
-      'focus-visible:outline-none',
+      'focus-visible:outline-hidden',
       'focus-visible:ring-2',
       'focus-visible:ring-ring',
     );

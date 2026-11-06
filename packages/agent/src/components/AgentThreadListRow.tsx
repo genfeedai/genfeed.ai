@@ -201,7 +201,7 @@ export function AgentThreadListRow({
       ) : (
         <Link
           href={threadHref}
-          className="flex min-w-0 flex-1 gap-2 rounded px-2.5 py-1.5 pr-8 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+          className="flex min-w-0 flex-1 gap-2 rounded px-2.5 py-1.5 pr-8 text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
           onClick={(event) => {
             if (usesProgrammaticNavigation) {
               event.preventDefault();

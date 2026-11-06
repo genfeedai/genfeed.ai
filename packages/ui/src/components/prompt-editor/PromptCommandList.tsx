@@ -146,7 +146,7 @@ export function PromptCommandList({
           ) : null}
           <Button
             className={cn(
-              'flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors focus:outline-none focus-visible:outline-none focus-visible:ring-0',
+              'flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors focus:outline-none focus-visible:outline-hidden focus-visible:ring-0',
               index === selectedIndex % items.length
                 ? 'bg-accent text-accent-foreground'
                 : 'text-popover-foreground hover:bg-accent/50',

@@ -42,7 +42,7 @@ export default function MenuSharedPrimaryAction({
             data-testid="sidebar-primary-action"
             href={primaryActionHref ?? config.primaryAction.href}
             onClick={handleLinkClick}
-            className="flex h-9 w-full items-center gap-3 rounded-md shadow-border bg-card px-3 py-1.5 text-left text-xs font-semibold transition-colors hover:shadow-border-strong hover:bg-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="flex h-9 w-full items-center gap-3 rounded-md shadow-border bg-card px-3 py-1.5 text-left text-xs font-semibold transition-colors hover:shadow-border-strong hover:bg-tertiary focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             data-tone="accent"
           >
             {config.primaryAction.icon ? (
@@ -74,7 +74,7 @@ export default function MenuSharedPrimaryAction({
               handleLinkClick();
               config.primaryAction?.onClick?.();
             }}
-            className="flex h-9 w-full items-center gap-3 rounded-md shadow-border bg-card px-3 py-1.5 text-left text-xs font-semibold transition-colors hover:shadow-border-strong hover:bg-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="flex h-9 w-full items-center gap-3 rounded-md shadow-border bg-card px-3 py-1.5 text-left text-xs font-semibold transition-colors hover:shadow-border-strong hover:bg-tertiary focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             data-tone="accent"
           >
             {config.primaryAction.icon ? (

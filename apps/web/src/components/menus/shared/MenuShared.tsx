@@ -114,7 +114,7 @@ export default function MenuShared({
             className={cn(
               'group flex h-control-sm w-full items-center gap-2 rounded px-2.5 py-1 transition-colors duration-150',
               'text-foreground/80 hover:bg-foreground/5 hover:text-foreground',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+              'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             )}
             aria-label={`Back to ${backLabel ?? 'previous page'}`}
           >

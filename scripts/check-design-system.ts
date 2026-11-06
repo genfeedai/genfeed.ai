@@ -472,12 +472,14 @@ const FOCUS_RING_CONTRACT_TOKENS = new Set([
   'ring-0',
   'ring-2',
   'ring-inset',
+  'ring-offset-0',
   'ring-offset-2',
   'ring-offset-background',
   'ring-ring',
 ]);
 const FOCUS_RING_TOKEN_PATTERN =
-  /^(?:.*:)?focus(-visible)?:((?:ring|outline)(?:-.+)?)$/u;
+  /^(?:.*:)?focus(-visible)?:!?((?:ring|outline)(?:-[^!]+)?)!?$/u;
+const FOCUS_OUTLINE_SUPPRESSORS = new Set(['outline-hidden', 'outline-none']);
 
 export function isOffContractFocusRingToken(token: string): boolean {
   const match = FOCUS_RING_TOKEN_PATTERN.exec(
@@ -487,7 +489,7 @@ export function isOffContractFocusRingToken(token: string): boolean {
     return false;
   }
   const [, visible, utility] = match;
-  if (utility === 'outline-none') {
+  if (FOCUS_OUTLINE_SUPPRESSORS.has(utility)) {
     return false;
   }
   if (utility.startsWith('outline')) {
@@ -671,6 +673,9 @@ export function findPackageUiGuardFindings(
       for (const token of completeTemplateTokens(node)) {
         if (isOffLadderOpacityToken(token)) {
           addFinding(node, 'off-ladder-opacity', token);
+        }
+        if (isOffContractFocusRingToken(token)) {
+          addFinding(node, 'off-contract-focus-ring', token);
         }
       }
     }

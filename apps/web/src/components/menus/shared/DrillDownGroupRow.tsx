@@ -60,7 +60,7 @@ export default function DrillDownGroupRow({
 
   const rowClasses = cn(
     'group relative flex w-full items-center gap-3 rounded px-3 py-1.5 transition-colors duration-150',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+    'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
     sidebarRowStateClassName(isActive),
   );
 

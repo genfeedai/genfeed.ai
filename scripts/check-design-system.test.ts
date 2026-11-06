@@ -216,6 +216,25 @@ describe('packages/ui design-system guards', () => {
     );
   });
 
+  it.each([
+    ['<a className="focus-visible:!ring-1" />', ['focus-visible:!ring-1']],
+    ['<a className="focus-visible:ring-1!" />', ['focus-visible:ring-1!']],
+    [
+      'const a = <a className={`focus-visible:ring-1 ${x}`} />;',
+      ['focus-visible:ring-1'],
+    ],
+    [
+      '<a className="focus-visible:outline-hidden focus-visible:ring-inset focus-visible:ring-offset-0" />',
+      [],
+    ],
+  ])('in %s flags focus tokens %j', (source, expected) => {
+    expect(
+      findPackageUiGuardFindings(source, 'apps/web/example.tsx')
+        .filter((entry) => entry.kind === 'off-contract-focus-ring')
+        .map((entry) => entry.token),
+    ).toEqual(expected);
+  });
+
   it('keeps the control-height rule inside packages/ui', () => {
     expect(
       findPackageUiGuardFindings(

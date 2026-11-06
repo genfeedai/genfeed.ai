@@ -31,7 +31,7 @@ export function AgentSidebarContent({
       <div className="px-3 pt-2 pb-1">
         <Link
           href={href('/overview')}
-          className="group flex h-8 w-full cursor-pointer items-center gap-2.5 rounded px-2.5 py-1.5 text-foreground/80 transition-colors duration-150 hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="group flex h-8 w-full cursor-pointer items-center gap-2.5 rounded px-2.5 py-1.5 text-foreground/80 transition-colors duration-150 hover:bg-foreground/5 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           aria-label="Back to overview"
         >
           <ArrowLeft className="size-4 text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80" />

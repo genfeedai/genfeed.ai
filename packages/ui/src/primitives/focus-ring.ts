@@ -5,7 +5,7 @@
  * `focus-visible:ring-0` still merges it away through `cn`.
  */
 export const focusRingClassName =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+  'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
 /**
  * For controls clipped by an `overflow-hidden` parent or flush against a
@@ -13,4 +13,4 @@ export const focusRingClassName =
  * an outer ring would be cut off.
  */
 export const focusRingInsetClassName =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring';
+  'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring';

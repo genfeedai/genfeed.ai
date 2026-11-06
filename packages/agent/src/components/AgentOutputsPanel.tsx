@@ -330,7 +330,7 @@ export function AgentOutputsPanel({
                   setSelectedVariantId(group.variants[0]?.id ?? null);
                 }}
                 textTransform="none"
-                className="gen-shell-surface flex w-full items-start gap-3 rounded-2xl p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="gen-shell-surface flex w-full items-start gap-3 rounded-2xl p-3.5 text-left transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 data-active={group.id === selectedGroupId ? 'true' : 'false'}
               >
                 <div className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border">

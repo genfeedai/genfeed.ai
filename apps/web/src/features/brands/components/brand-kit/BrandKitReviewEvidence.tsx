@@ -37,7 +37,7 @@ export default function SourceEvidenceRows({
             <div className="min-w-0">
               {source.url ? (
                 <a
-                  className="block truncate rounded-sm font-medium text-foreground/80 outline-none hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="block truncate rounded-sm font-medium text-foreground/80 outline-none hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   href={source.url}
                   rel="noopener noreferrer"
                   target="_blank"

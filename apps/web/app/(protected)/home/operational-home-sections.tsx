@@ -150,7 +150,7 @@ function SurfaceTitleLink({
   return (
     <Link
       href={href}
-      className="transition-colors hover:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="transition-colors hover:text-foreground/80 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       {children}
     </Link>
@@ -387,7 +387,7 @@ function NeedsYouSurface({
                     title={
                       <Link
                         aria-label={`Open ${item.summary}`}
-                        className="block truncate hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        className="block truncate hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                         href={reviewItemHref(item)}
                       >
                         {item.summary}

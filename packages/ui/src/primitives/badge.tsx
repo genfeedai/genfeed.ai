@@ -179,7 +179,7 @@ function Badge({
       {onRemove && (
         <button
           aria-label={removeLabel}
-          className="-mr-0.5 inline-flex size-3.5 shrink-0 items-center justify-center rounded-full hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50"
+          className="-mr-0.5 inline-flex size-3.5 shrink-0 items-center justify-center rounded-full hover:bg-foreground/10 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50"
           disabled={isRemoveDisabled}
           onClick={(event) => {
             event.stopPropagation();

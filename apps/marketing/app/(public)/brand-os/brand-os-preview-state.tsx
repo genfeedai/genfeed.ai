@@ -313,7 +313,7 @@ function EvidencePreview({ draft }: { draft: IBrandKitDraft }) {
               {sourceRows.map((source) => (
                 <li className="py-3 first:pt-0 last:pb-0" key={source.href}>
                   <Link
-                    className="group flex flex-col gap-1 rounded-sm outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    className="group flex flex-col gap-1 rounded-sm outline-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     href={source.href}
                     rel="noopener noreferrer"
                     target="_blank"

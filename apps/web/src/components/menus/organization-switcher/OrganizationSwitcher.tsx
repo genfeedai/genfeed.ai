@@ -127,7 +127,7 @@ export default function OrganizationSwitcher({
             title={displayLabel}
             className={cn(
               'flex h-8 w-max max-w-52 min-w-0 cursor-pointer items-center gap-2 rounded-md px-1.5 text-left transition-colors duration-150 hover:bg-foreground/5',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+              'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               compactOnMobile && 'gap-0 px-1 md:gap-2 md:px-1.5',
               isSwitching && 'cursor-not-allowed opacity-50',
               isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,

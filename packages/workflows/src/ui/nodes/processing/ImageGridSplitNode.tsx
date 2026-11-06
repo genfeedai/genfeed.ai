@@ -63,7 +63,7 @@ function GridConfiguration({
           max="10"
           value={nodeData.gridRows}
           onChange={onRowsChange}
-          className="w-full px-2 py-1.5 text-sm bg-background border border-border rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="w-full px-2 py-1.5 text-sm bg-background border border-border rounded focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         />
       </div>
       <div>
@@ -81,7 +81,7 @@ function GridConfiguration({
           max="10"
           value={nodeData.gridCols}
           onChange={onColsChange}
-          className="w-full px-2 py-1.5 text-sm bg-background border border-border rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="w-full px-2 py-1.5 text-sm bg-background border border-border rounded focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         />
       </div>
     </div>
