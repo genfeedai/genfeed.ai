@@ -10,7 +10,6 @@ import { AgentRunFailureCard } from '@genfeedai/agent/components/AgentRunFailure
 import { AnimatedStatusText } from '@genfeedai/agent/components/AnimatedStatusText';
 import { TimelineStreamingRow } from '@genfeedai/agent/components/TimelineStreamingRow';
 import { TimelineWorkGroup } from '@genfeedai/agent/components/TimelineWorkGroup';
-import { AGENT_TIMELINE_DEFERRED_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type {
   AgentChatMessage as AgentChatMessageType,
   AgentProposedPlan,
@@ -249,10 +248,13 @@ export function AgentChatTimeline({
           { entry, index }: (typeof turn.items)[number],
           isEmbedded = false,
         ) =>
+          // No content-visibility deferral: rows painted at an estimated
+          // height and then measured made the transcript jump while scrolling
+          // past cards (most visibly after a plan was approved).
           entry.kind === 'user-message' ? (
             renderTimelineEntry(entry, index, isLiveTurn)
           ) : (
-            <div className={AGENT_TIMELINE_DEFERRED_CLASS} key={entry.id}>
+            <div key={entry.id}>
               {renderTimelineEntry(entry, index, isLiveTurn, isEmbedded)}
             </div>
           );

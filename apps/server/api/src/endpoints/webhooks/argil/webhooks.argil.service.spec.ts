@@ -1,174 +1,171 @@
+import type { ClipperProjectsService } from '@api/collections/clipper-projects/clipper-projects.service';
+import type { ClipperLibraryLinkService } from '@api/collections/clipper-projects/services/clipper-library-link.service';
+import type {
+  ClipperResultsService,
+  ProviderTerminalTransitionInput,
+} from '@api/collections/clipper-results/clipper-results.service';
 import { ArgilWebhookService } from '@api/endpoints/webhooks/argil/webhooks.argil.service';
+import type { ArgilWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
+import type { LoggerService } from '@libs/logger/logger.service';
+
+interface ClipRow {
+  error?: string;
+  id: string;
+  organizationId: string;
+  projectId: string;
+  providerJobId: string;
+  providerName: string;
+  status: string;
+  videoUrl?: string;
+}
 
 describe('ArgilWebhookService', () => {
-  const clipperLibraryLinkService = { linkReadyClip: vi.fn() };
-  const clipperProjectsService = { reconcileTerminalState: vi.fn() };
-  const clipperResultsService = {
-    findOne: vi.fn(),
-    transitionProviderTerminal: vi.fn(),
-  };
-  const loggerService = { log: vi.fn(), warn: vi.fn() };
+  let clips: Map<string, ClipRow>;
+  let libraryLinks: Array<{ clipperResultId: string; organizationId: string }>;
+  let reconciledProjects: Array<[string, string | undefined]>;
   let service: ArgilWebhookService;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    clipperResultsService.findOne.mockResolvedValue({
-      id: 'clip-1',
-      organizationId: 'org-1',
-      projectId: 'project-1',
-      providerJobId: 'video-1',
-      providerName: 'argil',
-      status: 'processing',
-    });
-    clipperResultsService.transitionProviderTerminal.mockResolvedValue(true);
-    clipperLibraryLinkService.linkReadyClip.mockResolvedValue({
-      clipperResultId: 'clip-1',
-      ingredientId: 'ingredient-1',
-      status: 'linked',
-    });
+    clips = new Map([
+      [
+        'clip-1',
+        {
+          id: 'clip-1',
+          organizationId: 'org-1',
+          projectId: 'project-1',
+          providerJobId: 'video-1',
+          providerName: 'argil',
+          status: 'processing',
+        },
+      ],
+    ]);
+    libraryLinks = [];
+    reconciledProjects = [];
+
     service = new ArgilWebhookService(
-      clipperLibraryLinkService as never,
-      clipperProjectsService as never,
-      clipperResultsService as never,
-      loggerService as never,
+      {
+        linkReadyClip: async (link: {
+          clipperResultId: string;
+          organizationId: string;
+        }) => {
+          libraryLinks.push(link);
+          return { ...link, ingredientId: 'ingredient-1', status: 'linked' };
+        },
+      } as unknown as ClipperLibraryLinkService,
+      {
+        reconcileTerminalState: async (
+          projectId: string,
+          organizationId?: string,
+        ) => {
+          reconciledProjects.push([projectId, organizationId]);
+        },
+      } as unknown as ClipperProjectsService,
+      {
+        findOne: async ({ id }: { id: string }) => {
+          const clip = clips.get(id);
+          return clip ? { ...clip } : null;
+        },
+        // Compare-and-set: only a processing clip of this provider job moves.
+        transitionProviderTerminal: async ({
+          clipperResultId,
+          providerJobId,
+          providerName,
+          ...terminal
+        }: ProviderTerminalTransitionInput) => {
+          await Promise.resolve();
+          const clip = clips.get(clipperResultId);
+          if (
+            clip?.status !== 'processing' ||
+            clip.providerJobId !== providerJobId ||
+            clip.providerName !== providerName
+          ) {
+            return false;
+          }
+          Object.assign(clip, terminal);
+          return true;
+        },
+      } as unknown as ClipperResultsService,
+      { log: () => {}, warn: () => {} } as unknown as LoggerService,
     );
   });
 
-  it('completes the matching clip and reconciles its project', async () => {
-    await service.handleCallback({
-      data: {
-        extras: { callbackId: 'clip-1' },
-        videoId: 'video-1',
-        videoUrl: 'https://cdn.argil.ai/video-1.mp4',
-      },
-      event: 'VIDEO_GENERATION_SUCCESS',
-    });
+  const success = (
+    extras: unknown = { callbackId: 'clip-1' },
+    videoId = 'video-1',
+  ): ArgilWebhookPayload => ({
+    data: { extras, videoId, videoUrl: `https://cdn.argil.ai/${videoId}.mp4` },
+    event: 'VIDEO_GENERATION_SUCCESS',
+  });
+  const failure = (error: string): ArgilWebhookPayload => ({
+    data: { error, extras: { callbackId: 'clip-1' }, videoId: 'video-1' },
+    event: 'VIDEO_GENERATION_FAILED',
+  });
 
-    expect(
-      clipperResultsService.transitionProviderTerminal,
-    ).toHaveBeenCalledWith({
-      clipperResultId: 'clip-1',
-      providerJobId: 'video-1',
-      providerName: 'argil',
+  it('completes the matching clip, links it to the Library and reconciles its project', async () => {
+    await service.handleCallback(success());
+
+    expect(clips.get('clip-1')).toMatchObject({
       status: 'completed',
       videoUrl: 'https://cdn.argil.ai/video-1.mp4',
     });
-    expect(clipperLibraryLinkService.linkReadyClip).toHaveBeenCalledWith({
-      clipperResultId: 'clip-1',
-      organizationId: 'org-1',
-    });
-    expect(clipperProjectsService.reconcileTerminalState).toHaveBeenCalledWith(
-      'project-1',
-      'org-1',
-    );
+    expect(libraryLinks).toEqual([
+      { clipperResultId: 'clip-1', organizationId: 'org-1' },
+    ]);
+    expect(reconciledProjects).toEqual([['project-1', 'org-1']]);
   });
 
-  it('is idempotent for an already-terminal clip', async () => {
-    clipperResultsService.findOne.mockResolvedValue({
-      organizationId: 'org-1',
-      projectId: 'project-1',
-      providerJobId: 'video-1',
-      providerName: 'argil',
-      status: 'completed',
-    });
-    clipperResultsService.transitionProviderTerminal.mockResolvedValue(false);
+  it('re-links but does not reconcile again on a replayed callback with string extras', async () => {
+    await service.handleCallback(success());
 
-    await service.handleCallback({
-      data: {
-        extras: JSON.stringify({ callbackId: 'clip-1' }),
-        videoId: 'video-1',
-        videoUrl: 'https://cdn.argil.ai/video-1.mp4',
-      },
-      event: 'VIDEO_GENERATION_SUCCESS',
-    });
+    await service.handleCallback(
+      success(JSON.stringify({ callbackId: 'clip-1' })),
+    );
 
-    expect(clipperLibraryLinkService.linkReadyClip).toHaveBeenCalledWith({
-      clipperResultId: 'clip-1',
-      organizationId: 'org-1',
-    });
-    expect(
-      clipperProjectsService.reconcileTerminalState,
-    ).not.toHaveBeenCalled();
+    expect(libraryLinks).toHaveLength(2);
+    expect(reconciledProjects).toEqual([['project-1', 'org-1']]);
   });
 
   it('rejects a callback for a different provider job', async () => {
     await expect(
-      service.handleCallback({
-        data: {
-          extras: { callbackId: 'clip-1' },
-          videoId: 'video-other',
-          videoUrl: 'https://cdn.argil.ai/video-other.mp4',
-        },
-        event: 'VIDEO_GENERATION_SUCCESS',
-      }),
+      service.handleCallback(success(undefined, 'video-other')),
     ).rejects.toThrow('does not match the stored provider job');
-    expect(
-      clipperResultsService.transitionProviderTerminal,
-    ).not.toHaveBeenCalled();
+    expect(clips.get('clip-1')?.status).toBe('processing');
+  });
+
+  it.each([
+    ['no extras', success(null)],
+    ['unparseable extras', success('{not json')],
+  ])('rejects a callback with %s', async (_label, payload) => {
+    await expect(service.handleCallback(payload)).rejects.toThrow(
+      'requires data.videoId and extras.callbackId',
+    );
+  });
+
+  it('ignores a callback whose clip no longer exists', async () => {
+    clips.clear();
+
+    await expect(service.handleCallback(success())).resolves.toBeUndefined();
+    expect(reconciledProjects).toEqual([]);
   });
 
   it('marks only the matching clip failed', async () => {
-    await service.handleCallback({
-      data: {
-        error: 'Render failed',
-        extras: { callbackId: 'clip-1' },
-        videoId: 'video-1',
-      },
-      event: 'VIDEO_GENERATION_FAILED',
-    });
+    await service.handleCallback(failure('Render failed'));
 
-    expect(
-      clipperResultsService.transitionProviderTerminal,
-    ).toHaveBeenCalledWith({
-      clipperResultId: 'clip-1',
+    expect(clips.get('clip-1')).toMatchObject({
       error: 'Render failed',
-      providerJobId: 'video-1',
-      providerName: 'argil',
       status: 'failed',
     });
-    expect(clipperProjectsService.reconcileTerminalState).toHaveBeenCalledWith(
-      'project-1',
-      'org-1',
-    );
+    expect(libraryLinks).toEqual([]);
+    expect(reconciledProjects).toEqual([['project-1', 'org-1']]);
   });
 
-  it('allows only one concurrent terminal callback to reconcile the project', async () => {
-    let claimed = false;
-    clipperResultsService.transitionProviderTerminal.mockImplementation(
-      async () => {
-        if (claimed) {
-          return false;
-        }
-        claimed = true;
-        await Promise.resolve();
-        return true;
-      },
-    );
-
+  it('lets only one concurrent terminal callback reconcile the project', async () => {
     await Promise.all([
-      service.handleCallback({
-        data: {
-          extras: { callbackId: 'clip-1' },
-          videoId: 'video-1',
-          videoUrl: 'https://cdn.argil.ai/video-1.mp4',
-        },
-        event: 'VIDEO_GENERATION_SUCCESS',
-      }),
-      service.handleCallback({
-        data: {
-          error: 'Late failure',
-          extras: { callbackId: 'clip-1' },
-          videoId: 'video-1',
-        },
-        event: 'VIDEO_GENERATION_FAILED',
-      }),
+      service.handleCallback(success()),
+      service.handleCallback(failure('Late failure')),
     ]);
 
-    expect(
-      clipperResultsService.transitionProviderTerminal,
-    ).toHaveBeenCalledTimes(2);
-    expect(clipperProjectsService.reconcileTerminalState).toHaveBeenCalledTimes(
-      1,
-    );
+    expect(clips.get('clip-1')?.status).toBe('completed');
+    expect(reconciledProjects).toEqual([['project-1', 'org-1']]);
   });
 });

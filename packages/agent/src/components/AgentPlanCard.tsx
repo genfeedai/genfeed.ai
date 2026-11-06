@@ -34,6 +34,10 @@ interface AgentPlanCardProps {
   plan: AgentProposedPlan;
 }
 
+/** What the agent is told when an empty plan is sent back for a new draft. */
+export const EMPTY_PLAN_REVISION_NOTE =
+  'The plan came back empty. Draft the full plan again for the same request.';
+
 function getStatusBadgeVariant(
   status: AgentProposedPlan['status'],
 ): 'secondary' | 'success' | 'warning' {
@@ -76,6 +80,13 @@ export function AgentPlanCard({
     status === 'awaiting_approval' &&
     hasProposedPlanBody(plan);
   const trimmedNote = revisionNote.trim();
+  // A plan with nothing in it cannot be approved (the server refuses it), so
+  // the only way forward is to have the agent draft it again. Without this the
+  // thread sat in "Needs you" behind a card with no action.
+  const isEmptyPlanAwaiting =
+    Boolean(decision) &&
+    status === 'awaiting_approval' &&
+    !hasProposedPlanBody(plan);
 
   return (
     <Card
@@ -120,6 +131,21 @@ export function AgentPlanCard({
         <p className="mt-3 text-sm text-muted-foreground">
           {translate('empty')}
         </p>
+      ) : null}
+
+      {decision && isEmptyPlanAwaiting ? (
+        <div className="mt-3 flex justify-end">
+          <Button
+            isDisabled={decision.isBusy}
+            label={translate('draftAgain')}
+            onClick={() => {
+              void decision.onRequestChanges(EMPTY_PLAN_REVISION_NOTE);
+            }}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.DEFAULT}
+            withWrapper={false}
+          />
+        </div>
       ) : null}
 
       {decision && isDecisionOpen ? (

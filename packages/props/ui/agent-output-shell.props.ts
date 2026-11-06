@@ -21,6 +21,8 @@ export interface AgentOutputLayoutLabels {
   readonly collapseOutput: string;
   readonly expandOutput: string;
   readonly output: string;
+  /** Accessible name of the draggable divider between the two panes. */
+  readonly resizePanes?: string;
 }
 
 export interface AgentOutputLayoutProps {
@@ -54,6 +56,11 @@ export interface AgentOutputLayoutProps {
   readonly labels: AgentOutputLayoutLabels;
   /** Docked third pane, shown from the `2xl` breakpoint. */
   readonly preview?: AgentOutputPreviewDefinition;
+  /**
+   * Makes the divider between the agent and the output draggable. The split
+   * is remembered in this browser under this key.
+   */
+  readonly resizeStorageKey?: string;
   readonly tabs: readonly AgentOutputTabDefinition[];
 }
 

@@ -1,32 +1,76 @@
+import type { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { AgentExecutionRecoveryEventService } from '@api/services/agent-threading/services/agent-execution-recovery-event.service';
-import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 const orgId = 'a'.repeat(24);
 const threadId = 'b'.repeat(24);
 const userId = 'c'.repeat(24);
 const executionId = 'execution-1';
 
+interface ThreadRow {
+  id: string;
+  isDeleted: boolean;
+  organizationId: string;
+  userId: string;
+}
+
 describe('AgentExecutionRecoveryEventService', () => {
-  const findUnique = vi.fn();
-  const findOne = vi.fn();
-  const appendEvent = vi.fn();
-  const warn = vi.fn();
+  let executions: Map<string, { organizationId: string; result: unknown }>;
+  let threads: ThreadRow[];
+  let events: Array<Record<string, unknown>>;
+  let warnings: Array<{ context: unknown; message: string }>;
+  let isEventStoreDown: boolean;
   let service: AgentExecutionRecoveryEventService;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    findUnique.mockResolvedValue({
-      organizationId: orgId,
-      result: { metadata: { threadId } },
-    });
-    findOne.mockResolvedValue({ id: threadId, userId });
-    appendEvent.mockResolvedValue({ sequence: 4 });
+    executions = new Map([
+      [
+        executionId,
+        { organizationId: orgId, result: { metadata: { threadId } } },
+      ],
+    ]);
+    threads = [
+      { id: threadId, isDeleted: false, organizationId: orgId, userId },
+    ];
+    events = [];
+    warnings = [];
+    isEventStoreDown = false;
+
     service = new AgentExecutionRecoveryEventService(
-      { workflowExecution: { findUnique } } as never,
-      { findOne, findOneSelect: delegateFindOneSelect() } as never,
-      { appendEvent } as never,
-      { warn } as never,
+      {
+        workflowExecution: {
+          findUnique: async ({ where }: { where: { id: string } }) =>
+            executions.get(where.id) ?? null,
+        },
+      } as unknown as PrismaService,
+      {
+        findOneSelect: async (where: Omit<ThreadRow, 'userId'>) => {
+          const row = threads.find(
+            (thread) =>
+              thread.id === where.id &&
+              thread.isDeleted === where.isDeleted &&
+              thread.organizationId === where.organizationId,
+          );
+          return row ? { userId: row.userId } : null;
+        },
+      } as unknown as AgentThreadsService,
+      {
+        appendEvent: async (event: Record<string, unknown>) => {
+          if (isEventStoreDown) {
+            throw new Error('db down');
+          }
+          events.push(event);
+          return { sequence: events.length };
+        },
+      } as unknown as AgentThreadEngineService,
+      {
+        warn: (message: string, context: unknown) => {
+          warnings.push({ context, message });
+        },
+      } as unknown as LoggerService,
     );
   });
 
@@ -36,70 +80,81 @@ describe('AgentExecutionRecoveryEventService', () => {
       type: 'failed',
     });
 
-    expect(findOne).toHaveBeenCalledWith({
-      id: threadId,
-      isDeleted: false,
-      organizationId: orgId,
-    });
-    expect(appendEvent).toHaveBeenCalledWith({
-      commandId: `run-failed:${threadId}:${executionId}`,
-      metadata: { origin: 'execution-recovery' },
-      organizationId: orgId,
-      payload: {
-        error: 'never started',
-        label: 'Agent failed',
-        status: 'failed',
+    expect(events).toEqual([
+      {
+        commandId: `run-failed:${threadId}:${executionId}`,
+        metadata: { origin: 'execution-recovery' },
+        organizationId: orgId,
+        payload: {
+          error: 'never started',
+          label: 'Agent failed',
+          status: 'failed',
+        },
+        runId: executionId,
+        threadId,
+        type: 'run.failed',
+        userId,
       },
-      runId: executionId,
-      threadId,
-      type: 'run.failed',
-      userId,
-    });
+    ]);
   });
 
   it('records a cancelled run', async () => {
     await service.recordExecutionEnded(executionId, { type: 'cancelled' });
 
-    expect(appendEvent).toHaveBeenCalledWith(
+    expect(events).toEqual([
       expect.objectContaining({
         commandId: `run-cancelled:${threadId}:${executionId}`,
+        payload: { label: 'Agent cancelled', status: 'cancelled' },
         runId: executionId,
         type: 'run.cancelled',
       }),
-    );
+    ]);
   });
 
-  it('records nothing for an execution that is not an agent turn', async () => {
-    findUnique.mockResolvedValue({ organizationId: orgId, result: {} });
+  it.each([
+    [
+      'an execution that is not an agent turn',
+      () => executions.set(executionId, { organizationId: orgId, result: {} }),
+    ],
+    ['an unknown execution', () => executions.clear()],
+    [
+      'a deleted thread',
+      () => {
+        threads[0] = { ...(threads[0] as ThreadRow), isDeleted: true };
+      },
+    ],
+    [
+      'a thread in another organization',
+      () => {
+        threads[0] = {
+          ...(threads[0] as ThreadRow),
+          organizationId: 'd'.repeat(24),
+        };
+      },
+    ],
+  ])('records nothing for %s', async (_label, arrange) => {
+    arrange();
 
     await service.recordExecutionEnded(executionId, {
       error: 'x',
       type: 'failed',
     });
 
-    expect(appendEvent).not.toHaveBeenCalled();
-  });
-
-  it('records nothing when the thread is gone or deleted', async () => {
-    findOne.mockResolvedValue(null);
-
-    await service.recordExecutionEnded(executionId, {
-      error: 'x',
-      type: 'failed',
-    });
-
-    expect(appendEvent).not.toHaveBeenCalled();
+    expect(events).toEqual([]);
+    expect(warnings).toEqual([]);
   });
 
   it('never throws, so recovery still closes the execution', async () => {
-    appendEvent.mockRejectedValue(new Error('db down'));
+    isEventStoreDown = true;
 
     await expect(
       service.recordExecutionEnded(executionId, { error: 'x', type: 'failed' }),
     ).resolves.toBeUndefined();
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('failed to record the ended run'),
-      expect.objectContaining({ error: 'db down', executionId }),
-    );
+    expect(warnings).toEqual([
+      {
+        context: { error: 'db down', executionId },
+        message: expect.stringContaining('failed to record the ended run'),
+      },
+    ]);
   });
 });

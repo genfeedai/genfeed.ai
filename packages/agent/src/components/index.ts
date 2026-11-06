@@ -6,7 +6,6 @@ export {
 export { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
 export { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
 export { AgentChatMessage } from '@genfeedai/agent/components/AgentChatMessage';
-export { AgentConversationTurnNavigator } from '@genfeedai/agent/components/AgentConversationTurnNavigator';
 export { AgentFullPage } from '@genfeedai/agent/components/AgentFullPage';
 export { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGeneratedTextCard';
 export { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
