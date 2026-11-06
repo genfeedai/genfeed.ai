@@ -652,9 +652,11 @@ export class ContentEngineService {
       this.contentRotationService.getLookbackDays(contentRotation);
     const since = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
     const campaignId = String(campaign.id);
+    // Only the promoted rotation key is read: loading `result` for each of
+    // up to 1,000 runs just to read one key detoasted every blob.
     const executions = await this.prisma.workflowExecution.findMany({
       orderBy: { createdAt: 'desc' },
-      select: { result: true },
+      select: { contentRotationTargetKey: true },
       take: 1000,
       where: scopedWhere(organizationId, {
         createdAt: { gte: since },
@@ -662,10 +664,9 @@ export class ContentEngineService {
       }),
     });
 
-    return executions.map((execution) => {
-      const result = this.readRecord(execution.result);
-      return { metadata: this.readRecord(result?.metadata) ?? {} };
-    });
+    return executions.map(({ contentRotationTargetKey }) => ({
+      metadata: contentRotationTargetKey ? { contentRotationTargetKey } : {},
+    }));
   }
 
   /**

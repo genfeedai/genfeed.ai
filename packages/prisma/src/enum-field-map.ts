@@ -9032,6 +9032,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'clipperContinuityProject',
       'clipperGenerationProject',
       'completedAt',
+      'contentRotationTargetKey',
       'costEstimate',
       'createdAt',
       'creditsUsed',

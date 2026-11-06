@@ -5579,6 +5579,8 @@ model WorkflowExecution {
   dispatchId     String?
   campaignId     String?
   isSystemAction Boolean @default(false)
+  /// The campaign rotation target a campaign run was dispatched for.
+  contentRotationTargetKey String?
 
   @@unique([organizationId, idempotencyKey], map: "workflow_executions_org_idempotency_key")
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
