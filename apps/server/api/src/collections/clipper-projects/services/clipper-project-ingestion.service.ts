@@ -40,6 +40,8 @@ import {
   type ClipperSourceContract,
   DEFAULT_CLIP_RESULT_MODE,
 } from '@genfeedai/contracts/interfaces';
+import { ConfigService } from '@libs/config/config.service';
+import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
 import { Traced } from '@libs/tracing/traced';
 import { HttpService } from '@nestjs/axios';
 import {
@@ -85,6 +87,7 @@ export class ClipperProjectIngestionService {
     private readonly ingredientsService: IngredientsService,
     private readonly presignedUploadService: PresignedUploadService,
     private readonly httpService: HttpService,
+    private readonly configService: ConfigService,
   ) {}
 
   private async youtubeSourceTitle(sourceUrl: string): Promise<string> {
@@ -359,11 +362,23 @@ export class ClipperProjectIngestionService {
       },
       { maxBytes: MAX_CLIP_SOURCE_SIZE_BYTES },
     );
+    // Authorized media delivery issues no public URL with the upload, so the
+    // source keeps the unsigned canonical CDN URL for its key, as a Library
+    // source does. Jobs read the stored object by key, never through this URL.
+    const mediaUrl =
+      upload.publicUrl ||
+      resolveIngredientMediaUrl(
+        { s3Key: upload.s3Key },
+        this.configService.cdnUrl,
+      );
+    if (!mediaUrl) {
+      throw new BadRequestException('The uploaded clip source has no URL.');
+    }
     const now = new Date().toISOString();
     const source: ClipperSourceContract = {
       artifact: {
         contentType: dto.contentType,
-        mediaUrl: upload.publicUrl,
+        mediaUrl,
         storageKey: upload.s3Key,
       },
       contentType: dto.contentType,
@@ -404,7 +419,7 @@ export class ClipperProjectIngestionService {
       },
       source,
       sourceVideoS3Key: upload.s3Key,
-      sourceVideoUrl: upload.publicUrl,
+      sourceVideoUrl: mediaUrl,
       status: 'pending',
       userId,
     };
