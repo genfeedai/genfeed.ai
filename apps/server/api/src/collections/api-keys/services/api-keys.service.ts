@@ -21,10 +21,12 @@ import {
   ApiKeyScope,
 } from '@genfeedai/contracts';
 import {
+  API_KEY_ALLOWED_BRANDS_METADATA_KEY,
   CONNECT_GENFEED_VERIFICATION_METADATA_KEY,
   MCP_ACTIVE_ORGANIZATION_METADATA_KEY,
   MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY,
   MCP_OAUTH_SESSION_KIND,
+  readApiKeyAllowedBrandIds,
 } from '@genfeedai/contracts/constants';
 import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { getApiRateLimitForTier } from '@genfeedai/pricing';
@@ -125,6 +127,7 @@ export class ApiKeysService extends BaseService<
   async assertValidDefaultBrandId(
     organizationId: string,
     defaultBrandId: string | null | undefined,
+    allowedBrandIds?: readonly string[],
   ): Promise<void> {
     if (!defaultBrandId) {
       return;
@@ -138,6 +141,102 @@ export class ApiKeysService extends BaseService<
         "defaultBrandId must reference a brand in this API key's organization.",
       );
     }
+    if (allowedBrandIds && !allowedBrandIds.includes(defaultBrandId)) {
+      throw new BadRequestException(
+        'defaultBrandId must be one of the allowedBrandIds.',
+      );
+    }
+  }
+
+  /**
+   * A brand allowlist (#9130) may name only live brands of the key's own
+   * organization, and a default brand on the same key must be one of them.
+   */
+  async assertValidAllowedBrandIds(
+    organizationId: string,
+    allowedBrandIds: readonly string[] | undefined,
+    defaultBrandId: string | null | undefined,
+  ): Promise<void> {
+    if (allowedBrandIds === undefined) {
+      return;
+    }
+    const live = await this.resolveLiveAllowedBrandIds(
+      organizationId,
+      allowedBrandIds,
+    );
+    if (
+      allowedBrandIds.length === 0 ||
+      live.length !== new Set(allowedBrandIds).size
+    ) {
+      throw new BadRequestException(
+        "allowedBrandIds must reference brands in this API key's organization.",
+      );
+    }
+    if (defaultBrandId && !allowedBrandIds.includes(defaultBrandId)) {
+      throw new BadRequestException(
+        'defaultBrandId must be one of the allowedBrandIds.',
+      );
+    }
+  }
+
+  /**
+   * The live brands a restricted key may still reach in `organizationId`, in
+   * allowlist order. Brands deleted since the key was made drop out; a key
+   * acting in another organization reaches none of them.
+   */
+  async resolveLiveAllowedBrandIds(
+    organizationId: string,
+    allowedBrandIds: readonly string[],
+  ): Promise<string[]> {
+    if (allowedBrandIds.length === 0) {
+      return [];
+    }
+    const brands = await this.prisma.brand.findMany({
+      select: { id: true },
+      where: {
+        id: { in: [...allowedBrandIds] },
+        isDeleted: false,
+        organizationId,
+      },
+    });
+    const live = new Set(brands.map((brand) => brand.id));
+    return allowedBrandIds.filter((brandId) => live.has(brandId));
+  }
+
+  /**
+   * The brands a rotated key keeps (#9130): the old key's allowed brands that
+   * still exist, and its default brand when that still exists and stays in
+   * the list. A key whose every allowed brand was deleted cannot be rotated.
+   */
+  async resolveRotationBrandReach(
+    organizationId: string,
+    existingKey: { defaultBrandId?: string | null; metadata?: unknown },
+  ): Promise<{ allowedBrandIds?: string[]; defaultBrandId?: string }> {
+    const existingAllowedBrandIds = readApiKeyAllowedBrandIds(
+      existingKey.metadata,
+    );
+    const allowedBrandIds = existingAllowedBrandIds
+      ? await this.resolveLiveAllowedBrandIds(
+          organizationId,
+          existingAllowedBrandIds,
+        )
+      : undefined;
+    if (allowedBrandIds?.length === 0) {
+      throw new BadRequestException(
+        'Every brand this API key was limited to has been deleted. Create a new key instead.',
+      );
+    }
+    const defaultBrandId = await this.resolveValidDefaultBrandId(
+      organizationId,
+      existingKey.defaultBrandId,
+    );
+    const isDefaultAllowed =
+      defaultBrandId !== undefined &&
+      (!allowedBrandIds || allowedBrandIds.includes(defaultBrandId));
+    return {
+      allowedBrandIds,
+      defaultBrandId: isDefaultAllowed ? defaultBrandId : undefined,
+    };
   }
 
   /**
@@ -218,11 +317,17 @@ export class ApiKeysService extends BaseService<
     },
     trustedOrigin?: ActionOrigin.CLI | ActionOrigin.MCP | ActionOrigin.UI,
   ): Promise<{ apiKey: ApiKeyDocument; plainKey: string }> {
-    const scopes = createApiKeyDto.scopes ?? [...DEFAULT_API_KEY_SCOPES];
+    const { allowedBrandIds, ...keyFields } = createApiKeyDto;
+    const scopes = keyFields.scopes ?? [...DEFAULT_API_KEY_SCOPES];
     this.assertValidScopes(scopes);
     await this.assertValidDefaultBrandId(
-      createApiKeyDto.organizationId,
-      createApiKeyDto.defaultBrandId,
+      keyFields.organizationId,
+      keyFields.defaultBrandId,
+    );
+    await this.assertValidAllowedBrandIds(
+      keyFields.organizationId,
+      allowedBrandIds,
+      keyFields.defaultBrandId,
     );
 
     const plainKey = this.generateApiKey();
@@ -230,7 +335,7 @@ export class ApiKeysService extends BaseService<
     const keyFingerprint = this.computeFingerprint(plainKey);
 
     const apiKeyData = {
-      ...createApiKeyDto,
+      ...keyFields,
       isRevoked: false,
       key: hashedKey,
       keyFingerprint,
@@ -239,7 +344,7 @@ export class ApiKeysService extends BaseService<
         keyFingerprint,
         trustedOrigin,
       ),
-      rateLimit: createApiKeyDto.rateLimit || 60,
+      rateLimit: keyFields.rateLimit || 60,
       scopes,
       usageCount: 0,
     };
@@ -603,6 +708,33 @@ export class ApiKeysService extends BaseService<
   }
 
   private buildApiKeyMetadata(
+    dto: Pick<CreateApiKeyDto, 'allowedBrandIds' | 'metadata'> & {
+      organizationId: string;
+      userId: string;
+    },
+    keyFingerprint: string,
+    trustedOrigin?: ActionOrigin.CLI | ActionOrigin.MCP | ActionOrigin.UI,
+  ): Record<string, unknown> | undefined {
+    // The brand allowlist comes only from the validated field, never from
+    // caller metadata, so it always names live brands of this organization.
+    const {
+      [API_KEY_ALLOWED_BRANDS_METADATA_KEY]: _untrustedAllowedBrands,
+      ...metadataWithoutBrands
+    } = dto.metadata ?? {};
+    const brandMetadata = dto.allowedBrandIds
+      ? { [API_KEY_ALLOWED_BRANDS_METADATA_KEY]: [...dto.allowedBrandIds] }
+      : {};
+    const metadata = this.buildOriginMetadata(
+      { ...dto, metadata: dto.metadata ? metadataWithoutBrands : undefined },
+      keyFingerprint,
+      trustedOrigin,
+    );
+    return metadata || dto.allowedBrandIds
+      ? { ...metadata, ...brandMetadata }
+      : undefined;
+  }
+
+  private buildOriginMetadata(
     dto: Pick<CreateApiKeyDto, 'metadata'> & {
       organizationId: string;
       userId: string;

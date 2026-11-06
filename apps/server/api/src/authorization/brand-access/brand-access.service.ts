@@ -3,6 +3,7 @@ import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-ke
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import { MemberRole } from '@genfeedai/contracts';
+import { readApiKeyAllowedBrandIds } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { ForbiddenException, Injectable } from '@nestjs/common';
@@ -35,8 +36,19 @@ export class BrandAccessService {
       return { where: base, role: MemberRole.OWNER, brandIds: undefined };
     }
     if (!isCloudDeployment()) {
-      return { where: base, role: null, brandIds: undefined };
+      const keyBrandIds = await this.readSelfHostedKeyBrandIds(actor, tx);
+      return {
+        where: {
+          ...base,
+          ...(keyBrandIds === undefined ? {} : { id: { in: keyBrandIds } }),
+        },
+        role: null,
+        brandIds: keyBrandIds,
+      };
     }
+    // A key limited to some brands (#9130) reaches only those, whatever its
+    // owner's own membership allows.
+    let keyBrandIds: string[] | undefined;
     let effectiveActor = actor;
     if (actor.isApiKey) {
       if (!actor.apiKeyId?.trim()) {
@@ -50,9 +62,10 @@ export class BrandAccessService {
           isRevoked: false,
           OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
         },
-        select: { scopes: true },
+        select: { metadata: true, scopes: true },
       });
       if (!key) throw new ForbiddenException('Brand access denied');
+      keyBrandIds = readApiKeyAllowedBrandIds(key.metadata);
       effectiveActor = {
         ...actor,
         scopes: (actor.scopes ?? []).filter((scope) =>
@@ -85,9 +98,16 @@ export class BrandAccessService {
       membershipRole,
     );
     const privileged = role === MemberRole.OWNER || role === MemberRole.ADMIN;
-    const brandIds = privileged
+    const memberBrandIds = privileged
       ? undefined
       : member.brands.map((brand) => brand.id);
+    const brandIds =
+      keyBrandIds === undefined
+        ? memberBrandIds
+        : keyBrandIds.filter(
+            (brandId) =>
+              memberBrandIds === undefined || memberBrandIds.includes(brandId),
+          );
     return {
       where: {
         ...base,
@@ -96,6 +116,25 @@ export class BrandAccessService {
       role,
       brandIds,
     };
+  }
+
+  /** Self-hosted keys skip the membership read but keep their brand limit. */
+  private async readSelfHostedKeyBrandIds(
+    actor: BrandAccessActor,
+    tx: Prisma.TransactionClient,
+  ): Promise<string[] | undefined> {
+    if (!actor.isApiKey || !actor.apiKeyId?.trim()) {
+      return undefined;
+    }
+    const key = await tx.apiKey.findFirst({
+      where: {
+        id: actor.apiKeyId,
+        organizationId: actor.organizationId,
+        isRevoked: false,
+      },
+      select: { metadata: true },
+    });
+    return readApiKeyAllowedBrandIds(key?.metadata);
   }
 
   async predicate(

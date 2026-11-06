@@ -17,6 +17,11 @@ export interface AuthenticatedUser {
   brandId: string;
   isSuperAdmin?: boolean;
   apiKeyId?: string;
+  /**
+   * Set only for an API key limited to some brands (#9130): the live brands
+   * it may reach. Written by the key guard from the key row, never a header.
+   */
+  allowedBrandIds?: string[];
   /** The MCP session may move between its user's organizations. */
   canSwitchOrganizations?: boolean;
   mcpAccessMode?: McpAccessMode;

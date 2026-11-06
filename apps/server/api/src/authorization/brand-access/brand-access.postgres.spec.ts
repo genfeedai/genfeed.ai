@@ -70,7 +70,7 @@ CREATE TABLE agent_memories (id text PRIMARY KEY, "organizationId" text NOT NULL
  metadata jsonb, importance integer, confidence double precision, "performanceSnapshot" jsonb, "promotedSkillId" text, "isDeleted" boolean NOT NULL DEFAULT false,
  "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
 CREATE TABLE agent_campaigns (id text PRIMARY KEY, "organizationId" text NOT NULL, "brandId" text, "userId" text, "isDeleted" boolean NOT NULL DEFAULT false);
-CREATE TABLE api_keys (id text PRIMARY KEY, "userId" text NOT NULL REFERENCES users(id), "organizationId" text NOT NULL REFERENCES organizations(id), scopes text[] NOT NULL, "isRevoked" boolean NOT NULL DEFAULT false, "expiresAt" TIMESTAMP(3));
+CREATE TABLE api_keys (id text PRIMARY KEY, "userId" text NOT NULL REFERENCES users(id), "organizationId" text NOT NULL REFERENCES organizations(id), scopes text[] NOT NULL, "isRevoked" boolean NOT NULL DEFAULT false, "expiresAt" TIMESTAMP(3), metadata jsonb);
 CREATE TABLE roles (id text PRIMARY KEY, key text NOT NULL, "isDeleted" boolean NOT NULL DEFAULT false);
 CREATE TABLE brands (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "isDeleted" boolean NOT NULL DEFAULT false, UNIQUE(id,"organizationId"));
 CREATE TABLE members (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "userId" text NOT NULL REFERENCES users(id), "roleId" text NOT NULL REFERENCES roles(id), "roleKey" text, "currentBrandId" text NOT NULL, "isActive" boolean NOT NULL DEFAULT true, "isDeleted" boolean NOT NULL DEFAULT false);
@@ -149,7 +149,7 @@ describe('mandatory Cloud brand authorization with real PostgreSQL and Prisma', 
   beforeEach(async () => {
     embeddings.mockClear();
     await pool.query(
-      `UPDATE "${schema}".api_keys SET scopes=ARRAY['*','admin'],"isRevoked"=false,"expiresAt"=null WHERE id='key-a'`,
+      `UPDATE "${schema}".api_keys SET scopes=ARRAY['*','admin'],"isRevoked"=false,"expiresAt"=null,metadata=null WHERE id='key-a'`,
     );
     await pool.query(
       `UPDATE "${schema}".members SET "isActive"=true,"isDeleted"=false,"roleId"='ordinary' WHERE id='member-a'`,
@@ -273,6 +273,47 @@ describe('mandatory Cloud brand authorization with real PostgreSQL and Prisma', 
     await expect(
       prisma.$transaction((tx) => policy.assert(keyActor, 'brand-a', tx)),
     ).rejects.toThrow('Brand access denied');
+  });
+  it('limits an owner key to the brands on its allowlist (#9130)', async () => {
+    await pool.query(
+      `UPDATE "${schema}".members SET "roleId"='owner' WHERE id='member-a'`,
+    );
+    await pool.query(
+      `UPDATE "${schema}".api_keys SET metadata='{"allowedBrandIds":["brand-b"]}'::jsonb WHERE id='key-a'`,
+    );
+    const keyActor = {
+      ...actorA,
+      isApiKey: true,
+      apiKeyId: 'key-a',
+      scopes: ['admin'],
+    };
+    expect(
+      await prisma.brand.findMany({
+        where: await policy.predicate(keyActor),
+        select: { id: true },
+      }),
+    ).toEqual([{ id: 'brand-b' }]);
+    await expect(
+      prisma.$transaction((tx) => policy.assert(keyActor, 'brand-a', tx)),
+    ).rejects.toThrow('Brand access denied');
+    await expect(
+      prisma.$transaction((tx) => policy.assert(keyActor, 'brand-b', tx)),
+    ).resolves.toBeUndefined();
+  });
+  it('keeps an unrestricted owner key on every brand of its organization', async () => {
+    await pool.query(
+      `UPDATE "${schema}".members SET "roleId"='owner' WHERE id='member-a'`,
+    );
+    expect(
+      await prisma.brand.count({
+        where: await policy.predicate({
+          ...actorA,
+          isApiKey: true,
+          apiKeyId: 'key-a',
+          scopes: ['admin'],
+        }),
+      }),
+    ).toBe(2);
   });
   it('applies the same policy to real Knowledge mutations, versions, reads and async admission before embedding', async () => {
     const source = await records.createSource(actorA, {
