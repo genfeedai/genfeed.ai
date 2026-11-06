@@ -12,6 +12,14 @@ export type SkillAudience = (typeof SKILL_AUDIENCES)[number];
 export const SKILL_GRANT_ACCESS = ['use', 'use_and_read'] as const;
 export type SkillGrantAccess = (typeof SKILL_GRANT_ACCESS)[number];
 
+export const SKILL_GRANT_RECIPIENT_KINDS = [
+  'user',
+  'organization',
+  'brand',
+] as const;
+export type SkillGrantRecipientKind =
+  (typeof SKILL_GRANT_RECIPIENT_KINDS)[number];
+
 export interface SkillCapabilityActor {
   userId: string;
   organizationId: string;
@@ -32,11 +40,36 @@ export interface SkillCapabilitySubject {
 
 export interface SkillCapabilityGrant {
   access: SkillGrantAccess;
-  recipientKind: 'user' | 'organization' | 'brand';
+  recipientKind: SkillGrantRecipientKind;
   recipientUserId: string | null;
   recipientOrganizationId: string | null;
   recipientBrandId: string | null;
   isRevoked: boolean;
+}
+
+/** A stored `skill_grants` row, as selected for capability checks. */
+export interface SkillGrantRecord {
+  access?: string | null;
+  recipientBrandId?: string | null;
+  recipientKind?: string | null;
+  recipientOrganizationId?: string | null;
+  recipientUserId?: string | null;
+  revokedAt?: Date | null;
+}
+
+/** Reads a stored grant; an unknown recipient kind falls back to the narrowest, `user`. */
+export function toSkillCapabilityGrant(
+  row: SkillGrantRecord,
+): SkillCapabilityGrant {
+  const kind = row.recipientKind;
+  return {
+    access: row.access === 'use_and_read' ? 'use_and_read' : 'use',
+    isRevoked: row.revokedAt != null,
+    recipientBrandId: row.recipientBrandId ?? null,
+    recipientKind: kind === 'organization' || kind === 'brand' ? kind : 'user',
+    recipientOrganizationId: row.recipientOrganizationId ?? null,
+    recipientUserId: row.recipientUserId ?? null,
+  };
 }
 
 /** Verified source policy. Imported license text is never this object. */

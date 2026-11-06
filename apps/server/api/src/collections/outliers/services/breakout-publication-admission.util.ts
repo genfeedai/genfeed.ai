@@ -21,7 +21,11 @@ import {
   brandedPostMaterialSelect,
   describeBrandedPostMaterialLayout,
 } from '@api/services/branded-generation-receipts/branded-generation-post-material.util';
-import { TargetExecutionState } from '@genfeedai/contracts';
+import {
+  BreakoutResponseOutputState,
+  BreakoutResponseState,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import type { BreakoutOutputRecoveryInput } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
@@ -185,7 +189,7 @@ async function assertCurrentSourceGrowth(
       brandId: scope.brandId,
       credentialId: scope.credentialId,
       platform: scope.platform,
-      state: 'planned',
+      state: BreakoutResponseState.PLANNED,
       isDeleted: false,
     },
     select: {
@@ -225,7 +229,9 @@ async function assertCurrentSourceGrowth(
     output.ordinal < 1 ||
     output.ordinal > 5 ||
     output.heldReason !== null ||
-    !['generating', 'scheduled', 'publishing'].includes(output.state)
+    (output.state !== BreakoutResponseOutputState.GENERATING &&
+      output.state !== BreakoutResponseOutputState.SCHEDULED &&
+      output.state !== BreakoutResponseOutputState.PUBLISHING)
   )
     hold('output_unavailable');
   const source = await loadBreakoutPublication(tx, {

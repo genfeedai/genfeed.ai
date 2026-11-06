@@ -12,6 +12,8 @@ import {
 } from '@api/services/branded-generation-receipts/branded-generation-post-material.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
+  BreakoutResponseOutputState,
+  BreakoutResponseState,
   IngredientCategory,
   IngredientStatus,
   TargetExecutionState,
@@ -287,9 +289,9 @@ export async function bindBreakoutMediaPostArtifact(
   )
     return held('artifact_changed');
   if (
-    response.state !== 'planned' ||
-    output.state === 'suppressed' ||
-    output.state === 'expired'
+    response.state !== BreakoutResponseState.PLANNED ||
+    output.state === BreakoutResponseOutputState.SUPPRESSED ||
+    output.state === BreakoutResponseOutputState.EXPIRED
   )
     return held('binding_conflict');
   const changed = await tx.post.updateMany({

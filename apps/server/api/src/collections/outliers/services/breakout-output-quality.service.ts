@@ -34,7 +34,11 @@ import {
 } from '@api/services/branded-generation-receipts/branded-generation-post-material.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { ActivitySource, CreditReservationStatus } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  BreakoutResponseOutputState,
+  CreditReservationStatus,
+} from '@genfeedai/contracts';
 import {
   GENERATION_POOL_WORKLOAD_TYPE,
   MEDIA_GENERATION_HOLD_TTL_MS,
@@ -250,7 +254,12 @@ export class BreakoutOutputQualityService {
       const changed = await tx.breakoutResponseOutput.updateMany({
         where: scopedWhere(admission.scope.organizationId, {
           ...this.outputWhere(admission),
-          state: { in: ['reserved', 'generating'] },
+          state: {
+            in: [
+              BreakoutResponseOutputState.RESERVED,
+              BreakoutResponseOutputState.GENERATING,
+            ],
+          },
           heldReason: null,
         }),
         data: { heldReason: 'quality_evaluation_pending' },
@@ -521,7 +530,13 @@ export class BreakoutOutputQualityService {
       const changed = await tx.breakoutResponseOutput.updateMany({
         where: scopedWhere(admission.scope.organizationId, {
           ...this.outputWhere(admission),
-          state: { in: ['reserved', 'generating', 'awaiting_review'] },
+          state: {
+            in: [
+              BreakoutResponseOutputState.RESERVED,
+              BreakoutResponseOutputState.GENERATING,
+              BreakoutResponseOutputState.AWAITING_REVIEW,
+            ],
+          },
           OR: [
             { heldReason: null },
             {
@@ -532,7 +547,9 @@ export class BreakoutOutputQualityService {
           ],
         }),
         data: {
-          state: approved ? 'generating' : 'awaiting_review',
+          state: approved
+            ? BreakoutResponseOutputState.GENERATING
+            : BreakoutResponseOutputState.AWAITING_REVIEW,
           heldReason: approved ? null : 'platform_quality_blocked',
         },
       });

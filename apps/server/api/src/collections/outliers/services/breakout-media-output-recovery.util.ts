@@ -12,6 +12,7 @@ import {
   describeBrandedPostMaterialLayout,
 } from '@api/services/branded-generation-receipts/branded-generation-post-material.util';
 import {
+  BreakoutResponseOutputState,
   IngredientStatus,
   PersistedReviewDecision,
 } from '@genfeedai/contracts';
@@ -89,7 +90,7 @@ export async function readBreakoutMediaOutputRecovery(
   if (!row) {
     if (
       !post &&
-      output.state === 'reserved' &&
+      output.state === BreakoutResponseOutputState.RESERVED &&
       output.heldReason === 'media_brand_capability_unavailable'
     )
       return {
@@ -98,7 +99,11 @@ export async function readBreakoutMediaOutputRecovery(
         reason: 'media_brand_capability_unavailable',
         action: 'none',
       };
-    if (!output.workflowExecutionId && output.state === 'reserved' && !post)
+    if (
+      !output.workflowExecutionId &&
+      output.state === BreakoutResponseOutputState.RESERVED &&
+      !post
+    )
       return {
         ...base,
         state: 'not_submitted',
@@ -182,7 +187,7 @@ export async function readBreakoutMediaOutputRecovery(
     },
   });
   if (visuals.length === 0)
-    return output.state === 'reserved'
+    return output.state === BreakoutResponseOutputState.RESERVED
       ? {
           ...base,
           postId: captionPostId,

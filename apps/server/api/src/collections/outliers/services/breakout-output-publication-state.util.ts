@@ -1,4 +1,7 @@
-import { TargetExecutionState } from '@genfeedai/contracts';
+import {
+  BreakoutResponseOutputState,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import type { BrandedGenerationReceiptV1 } from '@genfeedai/contracts/api-types/contracts';
 import type { BreakoutOutputRecoveryResult } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
@@ -36,7 +39,7 @@ export function breakoutPublicationState(
       reason: 'platform_quality_blocked',
       action: 'none',
     };
-  if (output.state === 'awaiting_review')
+  if (output.state === BreakoutResponseOutputState.AWAITING_REVIEW)
     return {
       ...base,
       state: 'awaiting_review',

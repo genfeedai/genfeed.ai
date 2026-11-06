@@ -1,5 +1,6 @@
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
+  BreakoutResponseState,
   CreditReservationStatus,
   PostProviderPublishReceiptStatus,
   TurboRunStatus,
@@ -26,7 +27,7 @@ const UNFINISHED_CONTINUATION_STATUSES = [
   WorkflowNodeContinuationStatus.FAILED,
 ];
 /** A planned response owns its output slots; a detected one holds nothing yet. */
-const IN_FLIGHT_BREAKOUT_RESPONSE_STATES = ['planned'];
+const IN_FLIGHT_BREAKOUT_RESPONSE_STATES = [BreakoutResponseState.PLANNED];
 const IN_FLIGHT_BREAKOUT_OUTPUT_STATES = ['generation_in_flight', 'reserved'];
 
 /** Running or pending workflow executions, and continuations still owed a result. */
