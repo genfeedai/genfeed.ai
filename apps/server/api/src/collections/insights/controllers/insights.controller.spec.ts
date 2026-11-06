@@ -14,6 +14,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { Timeframe } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -93,8 +94,8 @@ describe('InsightsController', () => {
   describe('getForecast', () => {
     it('should return trend forecasts', async () => {
       const dto: GetForecastDto = {
-        timeframe: '30days',
-        topic: 'AI Technology',
+        metrics: ['engagement'],
+        period: Timeframe.D30,
       };
 
       const forecast = {
@@ -149,7 +150,7 @@ describe('InsightsController', () => {
     });
 
     it('should accept custom limit', async () => {
-      const insights = [];
+      const insights: unknown[] = [];
       mockInsightsService.getInsights.mockResolvedValue(insights);
 
       await controller.getInsights(mockReq, mockUser, '10');
@@ -165,6 +166,7 @@ describe('InsightsController', () => {
     it('should predict viral potential', async () => {
       const dto: PredictViralDto = {
         content: 'Amazing AI breakthrough!',
+        contentType: 'caption',
         platform: 'twitter',
       };
 

@@ -383,7 +383,7 @@ describe('TikTokPublisherService', () => {
         tiktokService.uploadVideo.mockResolvedValue({
           data: {
             isPending: true,
-            post_id: null,
+            post_id: undefined,
             publish_id: mockPublishId,
           },
         });
@@ -572,10 +572,7 @@ describe('TikTokPublisherService', () => {
     it('should build correct TikTok URL', () => {
       const externalId = 'video-123456789';
 
-      const result = service.buildPostUrl(
-        externalId,
-        mockCredential as unknown as CredentialEntity,
-      );
+      const result = service.buildPostUrl(externalId, mockCredential);
 
       expect(result).toBe(
         `https://www.tiktok.com/@${mockCredential.externalHandle}/video/${externalId}`,

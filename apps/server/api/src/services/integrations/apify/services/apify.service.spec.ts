@@ -533,7 +533,10 @@ describe('ApifyService', () => {
         text: 'Hello world',
       };
 
-      const result = service.convertToUnifiedComment(tweet as never, 'twitter');
+      const result = service.convertToUnifiedComment(
+        tweet as never,
+        Platform.TWITTER,
+      );
 
       expect(result.platform).toBe('twitter');
       expect(result.contentType).toBe('tweet');
@@ -561,7 +564,7 @@ describe('ApifyService', () => {
 
       const result = service.convertToUnifiedComment(
         comment as never,
-        'instagram',
+        Platform.INSTAGRAM,
       );
 
       expect(result.platform).toBe('instagram');
@@ -585,7 +588,7 @@ describe('ApifyService', () => {
 
       const result = service.convertToUnifiedComment(
         comment as never,
-        'tiktok',
+        Platform.TIKTOK,
       );
 
       expect(result.platform).toBe('tiktok');
@@ -608,7 +611,7 @@ describe('ApifyService', () => {
 
       const result = service.convertToUnifiedComment(
         comment as never,
-        'youtube',
+        Platform.YOUTUBE,
       );
 
       expect(result.platform).toBe('youtube');

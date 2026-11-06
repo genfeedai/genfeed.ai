@@ -320,8 +320,10 @@ describe('QueryDefaultsUtil', () => {
       });
 
       it('should support custom default values', () => {
-        const result = QueryDefaultsUtil.parseBooleanFilter(undefined, true);
-        expect(result).toBe(true);
+        const result = QueryDefaultsUtil.parseBooleanFilter(undefined, {
+          equals: true,
+        });
+        expect(result).toEqual({ equals: true });
       });
     });
 

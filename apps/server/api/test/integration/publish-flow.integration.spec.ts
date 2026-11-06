@@ -277,7 +277,7 @@ describeWithDatabase('Publish flow real-backend proof (#334)', () => {
     // PostsService.patch ignores leftover `status`; canonical write is
     // targetExecutionState + visibility (#2642).
     await postsService.patch(postId, {
-      externalId: result.externalId,
+      externalId: result.externalId ?? undefined,
       externalShortcode: result.externalShortcode ?? undefined,
       publicationDate: new Date(),
       targetExecutionState: TargetExecutionState.PUBLISHED,

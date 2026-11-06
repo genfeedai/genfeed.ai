@@ -1,5 +1,6 @@
 import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
 import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
+import { createMockExecutionContext } from '@api-test/mocks/controller.mocks';
 import { runWithWideEvent } from '@libs/logger/wide-event/wide-event.context';
 import { startWideEvent } from '@libs/logger/wide-event/wide-event.lifecycle';
 import { type ArgumentsHost, HttpStatus } from '@nestjs/common';
@@ -67,7 +68,13 @@ describe('AllExceptionFilter', () => {
     status: ReturnType<typeof vi.fn>;
     json: ReturnType<typeof vi.fn>;
   };
-  let mockRequest: { url: string; method: string };
+  let mockRequest: {
+    body: Record<string, unknown>;
+    headers: Record<string, string>;
+    method: string;
+    originalUrl: string;
+    url: string;
+  };
 
   beforeAll(async () => {
     const module = await import(
@@ -82,8 +89,10 @@ describe('AllExceptionFilter', () => {
     vi.clearAllMocks();
 
     mockLoggerService = {
+      debug: vi.fn(),
       error: vi.fn(),
       log: vi.fn(),
+      warn: vi.fn(),
     };
 
     mockConfigService = {
@@ -114,12 +123,10 @@ describe('AllExceptionFilter', () => {
       status: vi.fn().mockReturnThis(),
     };
 
-    mockArgumentsHost = {
-      switchToHttp: vi.fn().mockReturnValue({
-        getRequest: vi.fn().mockReturnValue(mockRequest),
-        getResponse: vi.fn().mockReturnValue(mockResponse),
-      }),
-    };
+    mockArgumentsHost = createMockExecutionContext({
+      request: mockRequest,
+      response: mockResponse,
+    });
 
     filter = new AllExceptionFilterClass(mockLoggerService, mockConfigService);
   });

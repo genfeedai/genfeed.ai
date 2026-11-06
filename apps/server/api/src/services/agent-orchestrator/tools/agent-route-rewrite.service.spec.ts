@@ -48,18 +48,28 @@ describe('AgentRouteRewriteService', () => {
               href: '/analytics/overview?period=30d#top',
               label: 'Open analytics',
             },
-            {
-              ctaHref: '/automation/workflows/workflow-1',
-              label: 'Open workflow',
-            },
           ],
-          editorUrl: '/publishing/approvals?filter=ready',
           id: 'action-review',
           title: 'Review',
           type: 'content_preview_card',
         },
+        {
+          checklist: [
+            {
+              ctaHref: '/automation/workflows/workflow-1',
+              id: 'open-workflow',
+              isCompleted: false,
+              label: 'Open workflow',
+            },
+          ],
+          completionPercent: 0,
+          id: 'action-checklist',
+          title: 'Checklist',
+          type: 'onboarding_checklist_card',
+        },
       ],
       creditsUsed: 0,
+      data: { editorUrl: '/publishing/approvals?filter=ready' },
       success: true,
     };
 
@@ -70,11 +80,17 @@ describe('AgentRouteRewriteService', () => {
         {
           href: '/genfeed-ai/launch-brand/analytics/overview?period=30d#top',
         },
+      ],
+    });
+    expect(scoped.data).toEqual({
+      editorUrl: '/genfeed-ai/launch-brand/publishing/approvals?filter=ready',
+    });
+    expect(scoped.nextActions?.[1]).toMatchObject({
+      checklist: [
         {
           ctaHref: '/genfeed-ai/launch-brand/automation/workflows/workflow-1',
         },
       ],
-      editorUrl: '/genfeed-ai/launch-brand/publishing/approvals?filter=ready',
     });
   });
 

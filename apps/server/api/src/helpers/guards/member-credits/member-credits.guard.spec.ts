@@ -33,7 +33,7 @@ function createContext(): ExecutionContext {
     getClass: vi.fn(),
     getHandler: vi.fn(),
     switchToHttp: () => ({ getRequest: () => req }),
-  } as ExecutionContext;
+  } as unknown as ExecutionContext;
 }
 
 describe('MemberCreditsGuard', () => {

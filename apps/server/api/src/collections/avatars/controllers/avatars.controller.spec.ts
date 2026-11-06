@@ -208,9 +208,9 @@ describe('AvatarsController', () => {
         }),
         expect.anything(),
       );
-      const [{ where }] = vi.mocked(mockAvatarsService.findAll).mock.calls[0];
-      expect(where).not.toHaveProperty('type');
-      expect(where).not.toHaveProperty('origin');
+      const [query] = vi.mocked(mockAvatarsService.findAll).mock.calls[0];
+      expect(query).not.toHaveProperty('where.type');
+      expect(query).not.toHaveProperty('where.origin');
     });
 
     it('filters avatars by origin and keeps the tenant scope', async () => {

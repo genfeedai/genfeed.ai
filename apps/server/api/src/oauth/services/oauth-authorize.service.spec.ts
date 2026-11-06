@@ -37,6 +37,7 @@ const challenge = buildCodeChallenge(verifier);
 
 function makeUser(): User {
   return {
+    brandId: 'brand-1',
     emailAddresses: [{ emailAddress: 'founder@example.com' }],
     firstName: 'Genfeed',
     lastName: 'Founder',

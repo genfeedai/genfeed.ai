@@ -143,6 +143,7 @@ describe('DistributionsController', () => {
       await expect(
         controller.create(
           {
+            chatId: '-1001234567890',
             contentType: DistributionContentType.TEXT,
             platform: 'unsupported' as DistributionPlatform,
             text: 'Nope',

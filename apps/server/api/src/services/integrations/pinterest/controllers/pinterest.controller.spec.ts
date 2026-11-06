@@ -12,7 +12,7 @@ describe('PinterestController', () => {
     generateAuthUrl: vi.fn().mockReturnValue('url'),
     getPinAnalytics: vi.fn(),
     searchPins: vi.fn(),
-  } as PinterestService;
+  } as unknown as PinterestService;
   const loggerMock = { log: vi.fn() } as unknown as LoggerService;
   const brandsServiceMock = {
     findOne: vi.fn().mockResolvedValue({

@@ -373,7 +373,7 @@ describe('PromptBuilderService', () => {
       const calls = (
         templatesService.getPromptByKey as ReturnType<typeof vi.fn>
       ).mock.calls;
-      const templateKeys = calls.map((call: [string, string?]) => call[0]);
+      const templateKeys = calls.map(([key]) => key);
       expect(templateKeys).not.toContain('preset.cinematic');
     });
   });

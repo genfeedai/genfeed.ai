@@ -568,7 +568,9 @@ describe('BotActionExecutorService', () => {
     });
 
     it('should return false when accessToken is missing', () => {
-      const credential = { accessTokenSecret: 'secret' };
+      const credential = {
+        accessTokenSecret: 'secret',
+      } as unknown as IReplyBotCredentialData;
 
       expect(service.validateCredential(credential)).toBe(false);
     });

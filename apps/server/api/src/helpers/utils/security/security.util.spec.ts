@@ -32,9 +32,9 @@ describe('SecurityUtil', () => {
     });
 
     it('should throw error for non-string file path', () => {
-      expect(() => SecurityUtil.validateFilePath(null)).toThrow(
-        ValidationException,
-      );
+      expect(() =>
+        SecurityUtil.validateFilePath(null as unknown as string),
+      ).toThrow(ValidationException);
     });
 
     it('should block directory traversal with ../', () => {
@@ -263,9 +263,12 @@ describe('SecurityUtil', () => {
     });
 
     it('should throw error for non-string arguments', () => {
-      expect(() => SecurityUtil.sanitizeCommandArgs([123, 'file.mp4'])).toThrow(
-        ValidationException,
-      );
+      expect(() =>
+        SecurityUtil.sanitizeCommandArgs([
+          123,
+          'file.mp4',
+        ] as unknown as string[]),
+      ).toThrow(ValidationException);
     });
   });
 
@@ -287,9 +290,9 @@ describe('SecurityUtil', () => {
     });
 
     it('should throw error for non-number', () => {
-      expect(() => SecurityUtil.validateNumericParam('50', 'width')).toThrow(
-        ValidationException,
-      );
+      expect(() =>
+        SecurityUtil.validateNumericParam('50' as unknown as number, 'width'),
+      ).toThrow(ValidationException);
     });
 
     it('should throw error for value below minimum', () => {
@@ -327,9 +330,9 @@ describe('SecurityUtil', () => {
     });
 
     it('should throw error for null value', () => {
-      expect(() => SecurityUtil.validateStringParam(null, 'param')).toThrow(
-        ValidationException,
-      );
+      expect(() =>
+        SecurityUtil.validateStringParam(null as unknown as string, 'param'),
+      ).toThrow(ValidationException);
     });
 
     it('should throw error for string exceeding maxLength', () => {

@@ -191,7 +191,10 @@ describe('OrganizationsIntegrationsController', () => {
     it('should update an existing integration', async () => {
       const updatedIntegration = {
         ...mockIntegration,
-        config: { ...mockIntegration.config, defaultWorkflow: 'new-workflow' },
+        config: {
+          ...(mockIntegration.config as Record<string, unknown>),
+          defaultWorkflow: 'new-workflow',
+        },
         status: IntegrationStatus.PAUSED,
       };
 

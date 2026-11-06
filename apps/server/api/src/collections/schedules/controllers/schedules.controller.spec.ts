@@ -148,10 +148,11 @@ describe('SchedulesController', () => {
   describe('bulkSchedule', () => {
     it('should bulk schedule content', async () => {
       const dto: BulkScheduleDto = {
+        brandIds: ['brand-1'],
         contentIds: ['id1', 'id2', 'id3'],
-        interval: 3600,
-        platform: 'twitter',
-        startTime: new Date().toISOString(),
+        platforms: ['twitter'],
+        schedulingStrategy: 'evenly-distributed',
+        staggerMinutes: 60,
       };
 
       const scheduled = {

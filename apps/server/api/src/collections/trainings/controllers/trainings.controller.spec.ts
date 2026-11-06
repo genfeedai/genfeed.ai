@@ -267,10 +267,8 @@ describe('TrainingsController', () => {
     const training = {
       id: testId('training', 2),
       userId: testId('user', 2),
-    } as never;
-    const sourceImages = [
-      { id: 'img-1', metadata: { extension: 'jpg' } },
-    ] as never;
+    };
+    const sourceImages = [{ id: 'img-1', metadata: { extension: 'jpg' } }];
 
     const invokeFailurePath = (controllerRef: TrainingsController) =>
       (

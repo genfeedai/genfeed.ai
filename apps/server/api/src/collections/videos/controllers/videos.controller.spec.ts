@@ -951,7 +951,7 @@ describe('VideosController', () => {
       const folderId = 'cmfolder000000000000000001';
       const query: VideosQueryDto = {
         ...baseQuery,
-        folder: folderId as string,
+        folderId,
       };
 
       const mockData = {
@@ -971,7 +971,7 @@ describe('VideosController', () => {
     it('should filter by brand', async () => {
       const query: VideosQueryDto = {
         ...baseQuery,
-        brand: mockBrandId as string,
+        brandId: mockBrandId,
       };
 
       const mockData = {

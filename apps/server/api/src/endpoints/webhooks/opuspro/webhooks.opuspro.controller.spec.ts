@@ -128,7 +128,7 @@ describe('OpusProWebhookController', () => {
         status: 'failed',
       } as OpusProWebhookPayload;
 
-      opusProWebhookService.extractVideoUrl.mockReturnValue(null);
+      opusProWebhookService.extractVideoUrl.mockReturnValue(undefined);
       opusProWebhookService.handleCallback.mockResolvedValue(undefined);
       webhooksService.handleFailedGeneration.mockResolvedValue(undefined);
 
@@ -157,7 +157,7 @@ describe('OpusProWebhookController', () => {
         status: 'failed',
       } as OpusProWebhookPayload;
 
-      opusProWebhookService.extractVideoUrl.mockReturnValue(null);
+      opusProWebhookService.extractVideoUrl.mockReturnValue(undefined);
       opusProWebhookService.handleCallback.mockResolvedValue(undefined);
       webhooksService.handleFailedGeneration.mockResolvedValue(undefined);
 
@@ -177,7 +177,7 @@ describe('OpusProWebhookController', () => {
         status: 'processing',
       } as OpusProWebhookPayload;
 
-      opusProWebhookService.extractVideoUrl.mockReturnValue(null);
+      opusProWebhookService.extractVideoUrl.mockReturnValue(undefined);
 
       const result = await controller.handleCallback(
         mockTokenRequest(WEBHOOK_SECRET),
@@ -215,7 +215,7 @@ describe('OpusProWebhookController', () => {
         status: 'completed',
       } as OpusProWebhookPayload;
 
-      opusProWebhookService.extractVideoUrl.mockReturnValue(null);
+      opusProWebhookService.extractVideoUrl.mockReturnValue(undefined);
       opusProWebhookService.handleCallback.mockResolvedValue(undefined);
 
       const result = await controller.handleCallback(
@@ -237,7 +237,7 @@ describe('OpusProWebhookController', () => {
         status: 'processing',
       } as OpusProWebhookPayload;
 
-      opusProWebhookService.extractVideoUrl.mockReturnValue(null);
+      opusProWebhookService.extractVideoUrl.mockReturnValue(undefined);
       opusProWebhookService.handleCallback.mockResolvedValue(undefined);
 
       const result = await controller.handleCallback(

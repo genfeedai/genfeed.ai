@@ -149,8 +149,10 @@ describe('resolveRequiredBrandRequestContext', () => {
   it('rejects incomplete scope', () => {
     expect(() =>
       resolveRequiredBrandRequestContext({
+        brandId: '',
         id: 'user-auth',
         isSuperAdmin: false,
+        organizationId: '',
         userId: 'user-auth',
       }),
     ).toThrow('Organization, brand, and user context are required');

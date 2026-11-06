@@ -10,6 +10,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { of } from 'rxjs';
+import type { Mock } from 'vitest';
 
 const makeUpdate = (text?: string, chatId = '12345', fromId = '99') => ({
   message: {
@@ -22,7 +23,7 @@ const makeUpdate = (text?: string, chatId = '12345', fromId = '99') => ({
 
 describe('TelegramBotAdapter', () => {
   let adapter: TelegramBotAdapter;
-  let configService: vi.Mocked<Pick<ConfigService, 'get'>>;
+  let configService: { get: Mock<(key: string) => string | undefined> };
   let httpService: vi.Mocked<Pick<HttpService, 'post'>>;
   let loggerService: vi.Mocked<Pick<LoggerService, 'log' | 'warn' | 'error'>>;
 
@@ -164,13 +165,15 @@ describe('TelegramBotAdapter', () => {
 
   describe('buildImmediateResponse', () => {
     it('returns ok:true with default message', () => {
-      const res = adapter.buildImmediateResponse(BotResponseType.DEFERRED);
+      const res = adapter.buildImmediateResponse(
+        BotResponseType.DEFERRED_CHANNEL_MESSAGE,
+      );
       expect(res).toEqual({ message: 'ok', ok: true });
     });
 
     it('returns provided message text', () => {
       const res = adapter.buildImmediateResponse(
-        BotResponseType.DEFERRED,
+        BotResponseType.DEFERRED_CHANNEL_MESSAGE,
         'processing',
       );
       expect(res).toEqual({ message: 'processing', ok: true });

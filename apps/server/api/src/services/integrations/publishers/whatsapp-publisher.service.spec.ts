@@ -9,10 +9,33 @@ import {
   PostCategory,
   PostStatus,
 } from '@genfeedai/contracts';
+import type { IWhatsappMessageResponse } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+
+/** A complete Twilio message response for the given SID. */
+function makeMessageResponse(sid: string): IWhatsappMessageResponse {
+  return {
+    body: 'Hello',
+    dateCreated: '2026-01-01T00:00:00.000Z',
+    dateSent: null,
+    dateUpdated: '2026-01-01T00:00:00.000Z',
+    direction: 'outbound-api',
+    errorCode: null,
+    errorMessage: null,
+    from: 'whatsapp:+15550000000',
+    numMedia: '0',
+    numSegments: '1',
+    price: null,
+    priceUnit: 'USD',
+    sid,
+    status: 'queued',
+    to: 'whatsapp:+15551111111',
+    uri: `/Messages/${sid}.json`,
+  };
+}
 
 describe('WhatsappPublisherService', () => {
   let service: WhatsappPublisherService;
@@ -133,7 +156,9 @@ describe('WhatsappPublisherService', () => {
 
   describe('publish — text-only', () => {
     it('should send a text message for text-only posts', async () => {
-      whatsappService.sendTextMessage.mockResolvedValue({ sid: 'SM-text-001' });
+      whatsappService.sendTextMessage.mockResolvedValue(
+        makeMessageResponse('SM-text-001'),
+      );
       const context = makeContext(makePost());
 
       const result = await service.publish(context);
@@ -149,7 +174,9 @@ describe('WhatsappPublisherService', () => {
     });
 
     it('should strip HTML from the message body', async () => {
-      whatsappService.sendTextMessage.mockResolvedValue({ sid: 'SM-text-002' });
+      whatsappService.sendTextMessage.mockResolvedValue(
+        makeMessageResponse('SM-text-002'),
+      );
       const context = makeContext(
         makePost({ description: '<p>Hello <b>World</b></p>' }),
       );
@@ -175,7 +202,9 @@ describe('WhatsappPublisherService', () => {
     };
 
     it('should send a media message for image posts', async () => {
-      whatsappService.sendMediaMessage.mockResolvedValue({ sid: 'SM-img-001' });
+      whatsappService.sendMediaMessage.mockResolvedValue(
+        makeMessageResponse('SM-img-001'),
+      );
       const context = makeContext(imagePost);
 
       const result = await service.publish(context);
@@ -212,9 +241,9 @@ describe('WhatsappPublisherService', () => {
     });
 
     it('should return a failed result when Twilio returns no SID', async () => {
-      whatsappService.sendTextMessage.mockResolvedValue({
-        sid: null as unknown as string,
-      });
+      whatsappService.sendTextMessage.mockResolvedValue(
+        makeMessageResponse(null as unknown as string),
+      );
       const context = makeContext(makePost());
 
       const result = await service.publish(context);

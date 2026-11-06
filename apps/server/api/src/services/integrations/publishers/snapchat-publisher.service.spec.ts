@@ -119,6 +119,7 @@ describe('SnapchatPublisherService', () => {
     it('should fail when post has no ingredients', () => {
       const result = service.validatePost(makeContext(), {
         hasIngredients: false,
+        ingredientIds: [],
         isCarousel: false,
         isImagePost: false,
         mediaUrls: [],
@@ -130,6 +131,7 @@ describe('SnapchatPublisherService', () => {
     it('should fail for carousel posts', () => {
       const result = service.validatePost(makeContext(), {
         hasIngredients: true,
+        ingredientIds: [],
         isCarousel: true,
         isImagePost: false,
         mediaUrls: ['url1', 'url2'],
@@ -141,6 +143,7 @@ describe('SnapchatPublisherService', () => {
     it('should pass for single image post', () => {
       const result = service.validatePost(makeContext(), {
         hasIngredients: true,
+        ingredientIds: [],
         isCarousel: false,
         isImagePost: true,
         mediaUrls: ['url1'],

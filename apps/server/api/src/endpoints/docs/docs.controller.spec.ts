@@ -60,8 +60,8 @@ describe('DocsController', () => {
 
       expect(docsService.getOpenApiDocument).toHaveBeenCalled();
       expect(result).toEqual(mockOpenApiDoc);
-      expect(result.openapi).toBe('3.0.0');
-      expect(result.info.title).toBe('GenFeed API');
+      expect(result).toHaveProperty('openapi', '3.0.0');
+      expect(result).toHaveProperty('info.title', 'GenFeed API');
     });
 
     it('should return specification with paths', async () => {
@@ -82,8 +82,8 @@ describe('DocsController', () => {
 
       const result = await controller.getOpenApiSpec();
 
-      expect(Object.keys(result.paths)).toContain('/v1/brands');
-      expect(Object.keys(result.paths)).toContain('/v1/posts');
+      expect(result).toHaveProperty(['paths', '/v1/brands']);
+      expect(result).toHaveProperty(['paths', '/v1/posts']);
     });
   });
 
@@ -113,7 +113,7 @@ describe('DocsController', () => {
 
       expect(docsService.getGptActionsSpec).toHaveBeenCalled();
       expect(result).toEqual(mockGptActionsSpec);
-      expect(result.info.title).toBe('GenFeed GPT Actions');
+      expect(result).toHaveProperty('info.title', 'GenFeed GPT Actions');
     });
 
     it('should return spec with operation IDs', async () => {
@@ -143,11 +143,14 @@ describe('DocsController', () => {
 
       const result = await controller.getGptActionsSpec();
 
-      const operations = Object.values(result.paths).map(
-        (p: never) => p.post?.operationId,
+      expect(result).toHaveProperty(
+        ['paths', '/v1/action1', 'post', 'operationId'],
+        'action1',
       );
-      expect(operations).toContain('action1');
-      expect(operations).toContain('action2');
+      expect(result).toHaveProperty(
+        ['paths', '/v1/action2', 'post', 'operationId'],
+        'action2',
+      );
     });
 
     it('should handle empty paths', async () => {

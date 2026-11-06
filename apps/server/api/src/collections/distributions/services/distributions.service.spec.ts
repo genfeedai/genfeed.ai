@@ -1,7 +1,11 @@
 import { DistributionsService } from '@api/collections/distributions/services/distributions.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
-import { DistributionPlatform, PublishStatus } from '@genfeedai/contracts';
+import {
+  DistributionContentType,
+  DistributionPlatform,
+  PublishStatus,
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -61,6 +65,7 @@ describe('DistributionsService', () => {
         userId,
         {
           chatId: '-1001234567890',
+          contentType: DistributionContentType.TEXT,
           text: 'Hello',
         },
         DistributionPlatform.TELEGRAM,

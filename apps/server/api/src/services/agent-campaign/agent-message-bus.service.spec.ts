@@ -128,17 +128,17 @@ describe('AgentMessageBusService', () => {
 
     it('calls handler with deserialized message on channel event', async () => {
       const handler = vi.fn();
-      let capturedCallback: ((msg: unknown) => void) | null = null;
+      const captured: { callback?: (msg: unknown) => void } = {};
 
       redisService.subscribe.mockImplementation((_channel, cb) => {
-        capturedCallback = cb as (msg: unknown) => void;
+        captured.callback = cb as (msg: unknown) => void;
         return Promise.resolve();
       });
 
       await service.subscribe('campaign-xyz', handler);
 
       const inbound = { campaignId: 'campaign-xyz', type: 'update' };
-      capturedCallback?.(inbound);
+      captured.callback?.(inbound);
 
       expect(handler).toHaveBeenCalledWith(inbound);
     });

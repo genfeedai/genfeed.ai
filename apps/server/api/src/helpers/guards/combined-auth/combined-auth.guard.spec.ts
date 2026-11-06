@@ -3,6 +3,7 @@ import type { RequestContextMiddleware } from '@api/common/middleware/request-co
 import { OPTIONAL_AUTH_KEY } from '@api/helpers/decorators/optional-auth.decorator';
 import type { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { createMockExecutionContext } from '@api-test/mocks/controller.mocks';
 import {
   UNATTRIBUTED_FORWARDED_HEADER,
   UNATTRIBUTED_FORWARDED_VALUE,
@@ -54,13 +55,7 @@ describe('CombinedAuthGuard', () => {
     getAllAndOverride: ReturnType<typeof vi.fn>;
   };
 
-  const mockExecutionContext = {
-    getClass: vi.fn(),
-    getHandler: vi.fn(),
-    switchToHttp: vi.fn().mockReturnValue({
-      getRequest: vi.fn(),
-    }),
-  } as ExecutionContext;
+  const mockExecutionContext = createMockExecutionContext();
 
   const instantiateGuard = async (
     mode: 'cloud' | 'hybrid' | 'local' = 'cloud',

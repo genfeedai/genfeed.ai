@@ -97,7 +97,7 @@ describe('RawCutClipService', () => {
     await service.dispatchClip(makeInput({ captionSrt }));
 
     const call = fileQueueService.processVideo.mock.calls[0][0];
-    expect(call.params?.captionContent).toBe(captionSrt);
+    expect(call).toHaveProperty('params.captionContent', captionSrt);
   });
 
   it('prefers an S3 key but falls back to a source URL', async () => {
@@ -109,8 +109,8 @@ describe('RawCutClipService', () => {
     );
 
     const call = fileQueueService.processVideo.mock.calls[0][0];
-    expect(call.params?.s3Key).toBeUndefined();
-    expect(call.params?.inputPath).toBe('https://cdn/source.mp4');
+    expect(call).toHaveProperty('params.s3Key', undefined);
+    expect(call).toHaveProperty('params.inputPath', 'https://cdn/source.mp4');
   });
 
   it('returns the files job id tagged with the raw-cut provider', async () => {

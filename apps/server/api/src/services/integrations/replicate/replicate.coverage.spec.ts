@@ -14,7 +14,7 @@ import { ReplicateService } from '@api/services/integrations/replicate/services/
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 type MockClient = {
   models?: { create: ReturnType<typeof vi.fn> };
@@ -44,9 +44,7 @@ function makeClient(overrides: Partial<MockClient> = {}): MockClient {
 describe('ReplicateService (coverage)', () => {
   let service: ReplicateService;
   let mockLoggerService: vi.Mocked<LoggerService>;
-  let mockConfigService: Partial<ConfigService> & {
-    get: ReturnType<typeof vi.fn>;
-  };
+  let mockConfigService: { get: Mock<(key?: string) => string> };
 
   beforeEach(async () => {
     mockConfigService = {

@@ -5,6 +5,7 @@ import type { AiActionResult } from '@api/endpoints/ai-actions/ai-actions.servic
 import { AiActionsService } from '@api/endpoints/ai-actions/ai-actions.service';
 import { ExecuteAiActionDto } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { AiActionType } from '@genfeedai/contracts';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('AiActionsController', () => {
@@ -41,7 +42,7 @@ describe('AiActionsController', () => {
     it('should execute AI action successfully', async () => {
       const orgId = 'org_123';
       const dto: ExecuteAiActionDto = {
-        action: 'caption_generate',
+        action: AiActionType.REWRITE,
         content: 'A beautiful sunset over the ocean',
         context: { brand: 'TestBrand' },
       };
@@ -72,7 +73,7 @@ describe('AiActionsController', () => {
     it('should handle execution with BYOK', async () => {
       const orgId = 'org_456';
       const dto: ExecuteAiActionDto = {
-        action: 'hook_improve',
+        action: AiActionType.HOOK_GENERATOR,
         content: 'Original hook text',
       };
 
@@ -93,7 +94,7 @@ describe('AiActionsController', () => {
     it('should propagate service errors', async () => {
       const orgId = 'org_789';
       const dto: ExecuteAiActionDto = {
-        action: 'invalid_action',
+        action: 'invalid_action' as AiActionType,
         content: 'test',
       };
 

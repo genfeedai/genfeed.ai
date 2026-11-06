@@ -475,16 +475,15 @@ describe('EvaluationsOperationsService', () => {
       expect(
         mockServices.replicateService.generateTextCompletionSync,
       ).toHaveBeenCalled();
-      expect(result).toBeDefined();
-      expect(result.overallScore).toBe(85);
+      expect(result).toHaveProperty('overallScore', 85);
     });
 
     it('should throw error when services not initialized', async () => {
       const serviceWithoutServices = new EvaluationsOperationsService(
         runtimeSettingsMock(),
-        undefined as unknown as string,
-        undefined as unknown as string,
-        undefined as unknown as string,
+        undefined as unknown as ModelsService,
+        undefined as unknown as ReplicateService,
+        undefined as unknown as PromptBuilderService,
         loggerService,
         undefined as unknown as FilesClientService,
         undefined as unknown as MediaUrlService,
@@ -643,8 +642,7 @@ describe('EvaluationsOperationsService', () => {
       expect(
         mockServices.replicateService.generateTextCompletionSync,
       ).toHaveBeenCalled();
-      expect(result).toBeDefined();
-      expect(result.overallScore).toBe(90);
+      expect(result).toHaveProperty('overallScore', 90);
     });
 
     it('should handle Replicate API errors', async () => {
@@ -707,8 +705,7 @@ describe('EvaluationsOperationsService', () => {
       expect(
         mockServices.replicateService.generateTextCompletionSync,
       ).toHaveBeenCalled();
-      expect(result).toBeDefined();
-      expect(result.overallScore).toBe(88);
+      expect(result).toHaveProperty('overallScore', 88);
     });
   });
   describe('canonical persuasion producer (#4616)', () => {

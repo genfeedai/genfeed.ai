@@ -95,6 +95,7 @@ describe('OptimizersController', () => {
     it('should analyze content and return score', async () => {
       const dto: AnalyzeContentDto = {
         content: 'Test content for analysis',
+        contentType: 'caption',
         platform: 'instagram',
       };
 
@@ -122,6 +123,7 @@ describe('OptimizersController', () => {
     it('should optimize content', async () => {
       const dto: OptimizeContentDto = {
         content: 'Original content',
+        contentType: 'caption',
         goals: ['engagement', 'reach'],
         platform: 'twitter',
       };
@@ -176,8 +178,9 @@ describe('OptimizersController', () => {
     it('should generate A/B test variants', async () => {
       const dto: GenerateVariantsDto = {
         content: 'Original post',
+        contentType: 'caption',
         count: 3,
-        style: 'engaging',
+        variationType: 'style',
       };
 
       const variants = {

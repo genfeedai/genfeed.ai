@@ -28,11 +28,11 @@ const makeConfig = (
   filters: ReplyBotConfigDocument['filters'] = {},
 ): ReplyBotConfigDocument =>
   ({
-    _id: 'bot-1',
     filters,
-    organization: 'org-1',
+    id: 'bot-1',
+    organizationId: 'org-1',
     type: ReplyBotType.REPLY_GUY,
-  }) as ReplyBotConfigDocument;
+  }) as unknown as ReplyBotConfigDocument;
 
 describe('ReplyCandidatePrefilterService', () => {
   let service: ReplyCandidatePrefilterService;

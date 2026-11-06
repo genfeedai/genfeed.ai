@@ -1,6 +1,7 @@
 import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
 import { ClientClosedRequestException } from '@api/helpers/exceptions/client-closed-request/client-closed-request.exception';
 import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
+import { createMockExecutionContext } from '@api-test/mocks/controller.mocks';
 import { runWithWideEvent } from '@libs/logger/wide-event/wide-event.context';
 import { startWideEvent } from '@libs/logger/wide-event/wide-event.lifecycle';
 import { type ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
@@ -68,7 +69,13 @@ describe('HttpExceptionFilter', () => {
     status: ReturnType<typeof vi.fn>;
     json: ReturnType<typeof vi.fn>;
   };
-  let mockRequest: { url: string; method: string };
+  let mockRequest: {
+    body: Record<string, unknown>;
+    headers: Record<string, string>;
+    method: string;
+    originalUrl: string;
+    url: string;
+  };
 
   beforeAll(async () => {
     const module = await import(
@@ -117,12 +124,10 @@ describe('HttpExceptionFilter', () => {
       status: vi.fn().mockReturnThis(),
     };
 
-    mockArgumentsHost = {
-      switchToHttp: vi.fn().mockReturnValue({
-        getRequest: vi.fn().mockReturnValue(mockRequest),
-        getResponse: vi.fn().mockReturnValue(mockResponse),
-      }),
-    };
+    mockArgumentsHost = createMockExecutionContext({
+      request: mockRequest,
+      response: mockResponse,
+    });
 
     filter = new HttpExceptionFilterClass(mockLoggerService, mockConfigService);
   });
@@ -396,7 +401,7 @@ describe('HttpExceptionFilter', () => {
 
     it('should handle null and undefined error messages', () => {
       const exception = new HttpException(
-        null,
+        null as unknown as string,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
 

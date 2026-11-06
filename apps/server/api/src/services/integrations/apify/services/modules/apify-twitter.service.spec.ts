@@ -128,7 +128,7 @@ describe('ApifyTwitterService', () => {
       id: '123456',
       text: 'Hello world #ai',
     });
-    expect(result[0].metrics.likes).toBe(100);
+    expect(result[0]).toHaveProperty('metrics.likes', 100);
   });
 
   it('getTwitterMentions filters by sinceId', async () => {

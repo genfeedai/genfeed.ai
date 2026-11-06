@@ -35,7 +35,8 @@ describe('AgentSpawnService', () => {
       strict: false,
     });
     expect(
-      (service as { orchestratorService?: unknown }).orchestratorService,
+      (service as unknown as { orchestratorService?: unknown })
+        .orchestratorService,
     ).toBe(orchestratorService);
   });
 

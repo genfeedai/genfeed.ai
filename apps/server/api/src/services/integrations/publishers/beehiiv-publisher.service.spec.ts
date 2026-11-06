@@ -1,3 +1,4 @@
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
 import {
   type PublishContext,
@@ -38,6 +39,7 @@ describe('BeehiivPublisherService', () => {
     brandId: 'brand-123',
     credential: mockCredential as never,
     isDraft: false,
+    organization: { id: 'org-123' } as unknown as OrganizationDocument,
     organizationId: 'org-123',
     post: {
       description: '<p>Post content</p>',
@@ -175,7 +177,6 @@ describe('BeehiivPublisherService', () => {
 
     it('should use "Untitled" when post label is missing', async () => {
       const context: PublishContext = {
-        settings: {},
         ...baseContext,
         post: { ...baseContext.post, label: undefined } as never,
       };
@@ -191,7 +192,6 @@ describe('BeehiivPublisherService', () => {
 
     it('should use empty string for content when description is missing', async () => {
       const context: PublishContext = {
-        settings: {},
         ...baseContext,
         post: { ...baseContext.post, description: undefined } as never,
       };

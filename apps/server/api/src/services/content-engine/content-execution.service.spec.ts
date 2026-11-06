@@ -11,7 +11,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 
 function makeItem(overrides: Record<string, unknown> = {}) {
   return {
-    _id: 'test-object-id',
+    id: 'test-object-id',
     pipelineSteps: [],
     plan: 'test-object-id',
     platforms: ['instagram'],
@@ -42,7 +42,7 @@ describe('ContentExecutionService', () => {
 
   beforeEach(() => {
     mockContentPlansService = {
-      getByIdOrFail: vi.fn().mockResolvedValue({ _id: planId }),
+      getByIdOrFail: vi.fn().mockResolvedValue({ id: planId }),
       incrementExecutedCount: vi.fn().mockResolvedValue(undefined),
       updateStatus: vi.fn().mockResolvedValue(undefined),
     };

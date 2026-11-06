@@ -283,7 +283,7 @@ describe('FacebookController', () => {
 
     it('should upload image post', async () => {
       const body = {
-        mediaType: 'image',
+        mediaType: 'image' as const,
         mediaUrl: 'https://example.com/image.jpg',
         message: 'Image post',
         pageAccessToken: 'token123',
@@ -306,7 +306,7 @@ describe('FacebookController', () => {
 
     it('should upload video post', async () => {
       const body = {
-        mediaType: 'video',
+        mediaType: 'video' as const,
         mediaUrl: 'https://example.com/video.mp4',
         message: 'Video post',
         pageAccessToken: 'token123',

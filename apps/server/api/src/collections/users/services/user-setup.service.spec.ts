@@ -242,13 +242,13 @@ describe('UserSetupService', () => {
       );
     });
 
-    it('should call organizationsService.create with PERSONAL category when provided', async () => {
+    it('should call organizationsService.create with the CREATOR category when provided', async () => {
       // The service uses OrganizationCategory.BUSINESS as default; we verify the
       // create call happens (category is passed through even if entity constructor
       // doesn't expose it in the test environment due to SWC class-field behavior)
       await service.initializeUserResources(
         userId,
-        OrganizationCategory.PERSONAL,
+        OrganizationCategory.CREATOR,
       );
 
       expect(mockOrganizationsService.create).toHaveBeenCalledTimes(1);

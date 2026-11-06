@@ -73,7 +73,7 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
       platforms: ['twitter'],
     },
     voice: {
-      audience: 'founders',
+      audience: ['founders'],
       style: 'direct',
       tone: 'confident',
       values: ['clarity'],

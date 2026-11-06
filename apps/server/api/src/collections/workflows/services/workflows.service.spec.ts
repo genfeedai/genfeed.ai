@@ -115,8 +115,8 @@ describe('WorkflowsService template creation', () => {
     });
     expect(createInput.organizationId).toBe('org-1');
     expect(createInput.userId).toBe('user-1');
-    expect(createInput.organization).toBeUndefined();
-    expect(createInput.user).toBeUndefined();
+    expect(createInput).not.toHaveProperty('organization');
+    expect(createInput).not.toHaveProperty('user');
     expect(createInput.nodes?.map((node) => node.type)).toEqual(
       expect.arrayContaining(['workflowInput', 'genfeedAction', 'reviewGate']),
     );
@@ -302,10 +302,7 @@ describe('WorkflowsService template creation', () => {
       'brand-1',
     );
 
-    const createInput = vi.mocked(service.create).mock.calls[0]?.[0] as Record<
-      string,
-      unknown
-    >;
+    const createInput = vi.mocked(service.create).mock.calls[0]?.[0];
 
     expect(createInput).toMatchObject({
       brandId: 'brand-1',
@@ -317,12 +314,12 @@ describe('WorkflowsService template creation', () => {
     });
     expect(createInput.isPublic).toBeUndefined();
     expect(createInput.isTemplate).toBeUndefined();
-    expect(createInput.organization).toBeUndefined();
+    expect(createInput).not.toHaveProperty('organization');
     expect(createInput.scheduledFor).toBeUndefined();
     expect(createInput.sourceAsset).toBeUndefined();
     expect(createInput.templateId).toBeUndefined();
     expect(createInput.trigger).toBe('manual');
-    expect(createInput.user).toBeUndefined();
+    expect(createInput).not.toHaveProperty('user');
   });
 
   it('rejects workflow brands outside the authenticated organization', async () => {
@@ -680,10 +677,7 @@ describe('WorkflowsService system workflow guardrails', () => {
 
     await service.cloneWorkflow('workflow-1', 'user-1', 'org-1', 'brand-2');
 
-    const createInput = vi.mocked(service.create).mock.calls[0]?.[0] as Record<
-      string,
-      unknown
-    >;
+    const createInput = vi.mocked(service.create).mock.calls[0]?.[0];
 
     expect(createInput).toMatchObject({
       brandId: 'brand-2',
@@ -699,9 +693,9 @@ describe('WorkflowsService system workflow guardrails', () => {
       status: WorkflowStatus.DRAFT,
       userId: 'user-1',
     });
-    expect(createInput.id).toBeUndefined();
-    expect(createInput.organization).toBeUndefined();
-    expect(createInput.user).toBeUndefined();
+    expect(createInput).not.toHaveProperty('id');
+    expect(createInput).not.toHaveProperty('organization');
+    expect(createInput).not.toHaveProperty('user');
   });
 
   it('prefers an explicit body brandId over the session brand when cloning via create', async () => {

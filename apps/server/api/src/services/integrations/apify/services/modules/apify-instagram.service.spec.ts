@@ -190,8 +190,8 @@ describe('ApifyInstagramService', () => {
       id: 'comment-1',
       text: 'Amazing content!',
     });
-    expect(result[0].metrics.likes).toBe(10);
-    expect(result[0].metrics.replies).toBe(3);
+    expect(result[0]).toHaveProperty('metrics.likes', 10);
+    expect(result[0]).toHaveProperty('metrics.replies', 3);
   });
 
   it('getInstagramPostComments returns empty on error', async () => {

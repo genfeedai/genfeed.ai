@@ -50,7 +50,7 @@ describe('ReplicateMediaBuilder', () => {
 
   describe('buildPrompt - MusicGen', () => {
     const baseParams: PromptBuilderParams = {
-      modelCategory: ModelCategory.AUDIO,
+      modelCategory: ModelCategory.MUSIC,
       prompt: 'upbeat electronic music',
     };
 

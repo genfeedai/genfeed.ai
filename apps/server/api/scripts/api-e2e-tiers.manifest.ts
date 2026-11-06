@@ -59,12 +59,6 @@ export const API_E2E_TIER_MANIFEST: ApiE2eTierManifest = {
       trackingIssue: 71,
     },
     {
-      file: 'test/integration/trainings.schema.integration.spec.ts',
-      reason:
-        'Still seeds fields from the removed Mongo training schema that are invalid for the current Prisma model.',
-      trackingIssue: 71,
-    },
-    {
       file: 'test/integration/video-generation.integration.spec.ts',
       reason:
         'The legacy FFmpeg/AWS mock expectations no longer match the current video generation workflow.',
