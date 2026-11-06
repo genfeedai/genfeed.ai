@@ -1,5 +1,8 @@
 import { paginatedResponse } from '@app-tests/paginated-response';
-import { queryClientWrapper } from '@app-tests/query-client.harness';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 
@@ -568,6 +571,59 @@ describe('LibraryCharactersPage', () => {
         });
       });
 
+      it('paints the cached grants at once when the dialog is reopened', async () => {
+        mocks.role = MemberRole.OWNER;
+        mocks.listCharactersPage.mockResolvedValue(
+          paginatedResponse([privateCharacter]),
+        );
+        mocks.listGrants.mockResolvedValue([
+          {
+            availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
+            availableBrandIds: [],
+            grantedAt: '2026-10-04T00:00:00.000Z',
+            id: 'grant-1',
+            recipientOrganizationId: 'org-2',
+            recipientOrganizationName: 'ShipShit Show',
+          },
+        ]);
+        mocks.listGrantableOrganizations.mockResolvedValue(organizations);
+        const client = createTestQueryClient();
+        const firstVisit = render(<LibraryCharactersPage />, {
+          wrapper: queryClientWrapper(client),
+        });
+        fireEvent.click(
+          await screen.findByRole('button', {
+            name: 'Manage availability for Ben',
+          }),
+        );
+        expect(
+          await screen.findByRole('button', {
+            name: 'Revoke the grant to ShipShit Show',
+          }),
+        ).toBeInTheDocument();
+        firstVisit.unmount();
+
+        mocks.listGrants.mockReturnValue(new Promise(() => {}));
+        mocks.listGrantableOrganizations.mockReturnValue(new Promise(() => {}));
+        render(<LibraryCharactersPage />, {
+          wrapper: queryClientWrapper(client),
+        });
+        fireEvent.click(
+          await screen.findByRole('button', {
+            name: 'Manage availability for Ben',
+          }),
+        );
+
+        expect(
+          screen.getByRole('button', {
+            name: 'Revoke the grant to ShipShit Show',
+          }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('radio', { name: 'ShipShit Show' }),
+        ).toBeInTheDocument();
+      });
+
       it('offers no grant control when the member administers no other organization', async () => {
         mocks.role = MemberRole.OWNER;
         mocks.listCharactersPage.mockResolvedValue(
@@ -582,9 +638,11 @@ describe('LibraryCharactersPage', () => {
         );
         await screen.findByTestId('character-availability');
 
-        expect(
-          screen.queryByTestId('character-grants'),
-        ).not.toBeInTheDocument();
+        await waitFor(() =>
+          expect(
+            screen.queryByTestId('character-grants'),
+          ).not.toBeInTheDocument(),
+        );
       });
     });
 

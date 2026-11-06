@@ -2,6 +2,7 @@ import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -20,7 +21,7 @@ import { Cpu, ExternalLink, User } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { usePlanningConversation } from '../workspace/use-planning-conversation';
 import { WorkspaceTaskDetail } from '../workspace/workspace-task-inspector';
 
@@ -123,24 +124,15 @@ function TaskDetailLeading({ task }: { task: Task }) {
 /** The task's comment thread, rendered below the shared detail body. */
 function TaskDetailComments({ task }: { task: Task }) {
   const translate = useTranslations('pages.tasks.inspector');
-  const [comments, setComments] = useState<TaskComment[]>(EMPTY_COMMENTS);
-  const getCommentsService = useAuthedService((token) =>
-    TaskCommentsService.getInstanceForTask(token, task.id),
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setComments(EMPTY_COMMENTS);
-    void getCommentsService()
-      .then((service) => service.list())
-      .then((data) => {
-        if (!controller.signal.aborted) setComments(data);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setComments(EMPTY_COMMENTS);
-      });
-    return () => controller.abort();
-  }, [getCommentsService]);
+  // Cached per viewer and task: reopening a task in the sidebar lists its
+  // comments at once and refreshes them in the background.
+  const commentsQuery = useAuthedQuery<TaskCommentsService, TaskComment[]>({
+    queryFn: (service, signal) => service.list(signal),
+    queryKey: ['task-comments', task.id],
+    service: (token: string) =>
+      TaskCommentsService.getInstanceForTask(token, task.id),
+  });
+  const comments = commentsQuery.data ?? EMPTY_COMMENTS;
 
   return (
     <section className="flex flex-col gap-3 px-6 py-4">

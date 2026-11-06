@@ -17,6 +17,7 @@ import { storyboardSourceSelectorSchema } from '@genfeedai/contracts/api-types/c
 import type { StoryboardStillQuote } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
 import { parseScopedAppPath } from '@genfeedai/contracts/constants';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { ContentRunsService } from '@services/content/content-runs.service';
@@ -26,7 +27,8 @@ import {
   getJsonApiErrorMember,
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   StoryboardDraftTransport,
   StoryboardEditablePlan,
@@ -50,11 +52,20 @@ function hasLiveChunks(run: StoryboardRun | null): boolean {
   );
 }
 
-/** Neutral persisted drafts use the brand-scoped API, never a local run substitute. */
+/**
+ * Neutral persisted drafts use the brand-scoped API, never a local run
+ * substitute. The run is cached per server, organization, session, brand and
+ * run, so reopening a storyboard paints its last saved revision at once and
+ * refreshes it in the background; the draft queue re-reads the run before it
+ * saves, and only adopts a newer revision while nothing is pending, so a
+ * cached revision never overwrites newer work. Saves and reconciles write the
+ * run they return into the cache, never replacing a newer revision.
+ */
 export function useDurableStoryboardRun(runId: string) {
   const { brandId, organizationId } = useBrand();
   const { userId, orgId, sessionId } = useAuthIdentity();
   const { orgSlug } = useOrgUrl();
+  const queryClient = useQueryClient();
   const server = JSON.stringify([
     EnvironmentService.apiEndpoint,
     globalThis.__GENFEED_DESKTOP_ENV__?.authEndpoint,
@@ -77,231 +88,272 @@ export function useDurableStoryboardRun(runId: string) {
   ]);
   const activeScope = useRef(scope);
   activeScope.current = scope;
-  const [result, setResult] = useState<{
-    scope: string;
-    run: StoryboardRun | null;
-    error: string | null;
-    notFound: boolean;
-  }>({ scope, run: null, error: null, notFound: false });
+  const runQueryKey = useMemo(
+    () =>
+      [
+        'storyboard-run',
+        server,
+        organizationId ?? null,
+        sessionId ?? null,
+        brandId ?? null,
+        runId,
+      ] as const,
+    [server, organizationId, sessionId, brandId, runId],
+  );
   const latestRun = useRef<StoryboardRun | null>(null);
-  latestRun.current = result.scope === scope ? result.run : null;
-  const [attempt, setAttempt] = useState(0);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: attempt is the explicit retry trigger.
+  /** Counts runs written by saves and reconciles, to spot one during a read. */
+  const runWrites = useRef(0);
+  const runQuery = useAuthedQuery<ContentRunsService, StoryboardRun>({
+    enabled: Boolean(brandId),
+    queryFn: async (service, signal) => {
+      // A read superseded while it waited for its token never reaches the API.
+      signal.throwIfAborted();
+      const writesBefore = runWrites.current;
+      const run = await service.getStoryboardRun(brandId, runId, signal);
+      if (run.organizationId !== organizationId)
+        throw new Error('Storyboard organization changed.');
+      if (run.brandId !== brandId || run.id !== runId)
+        throw new Error('Storyboard scope changed.');
+      // A save that landed while this read was in flight is newer, whether
+      // this page or an earlier visit wrote it into the cache. A reconcile
+      // written during the read keeps its revision but carries newer
+      // progress, so it wins a tie.
+      const isWrittenDuringRead = runWrites.current !== writesBefore;
+      return [
+        latestRun.current,
+        ...queryClient
+          .getQueriesData<StoryboardRun>({ queryKey: runQueryKey })
+          .map(([, cached]) => cached ?? null),
+      ].reduce<StoryboardRun>(
+        (newest, known) =>
+          known &&
+          known.id === run.id &&
+          known.brandId === run.brandId &&
+          known.organizationId === run.organizationId &&
+          (known.config.revision > newest.config.revision ||
+            (isWrittenDuringRead &&
+              known === latestRun.current &&
+              known.config.revision === newest.config.revision))
+            ? known
+            : newest,
+        run,
+      );
+    },
+    queryKey: runQueryKey,
+    // A missing or foreign run is an answer, not a transient failure.
+    retry: false,
+    service: (token: string) => ContentRunsService.getInstance(token),
+  });
+  // A deleted run is gone: a 404 on refresh stops showing the cached copy.
+  const isRunMissing = getJsonApiErrorMember(runQuery.error)?.status === 404;
+  const currentRun = brandId && !isRunMissing ? (runQuery.data ?? null) : null;
+  latestRun.current = currentRun;
+  const readError = brandId && !currentRun ? runQuery.error : null;
+  const hasRun = currentRun !== null;
+
+  /** Writes a returned run into this scope's cache, never over a newer revision. */
+  const writeCachedRun = useCallback(
+    (run: StoryboardRun) => {
+      queryClient.setQueriesData<StoryboardRun>(
+        { queryKey: runQueryKey },
+        (current) =>
+          !current || run.config.revision >= current.config.revision
+            ? run
+            : current,
+      );
+    },
+    [queryClient, runQueryKey],
+  );
+  /** Adopts a returned run on this page and in the cache. */
+  const writeRun = useCallback(
+    (run: StoryboardRun) => {
+      runWrites.current += 1;
+      latestRun.current =
+        !latestRun.current ||
+        run.config.revision >= latestRun.current.config.revision
+          ? run
+          : latestRun.current;
+      writeCachedRun(run);
+    },
+    [writeCachedRun],
+  );
+
+  // The draft transport is bound to the scope the run was read in. It is
+  // built once a run of this scope is on screen, cached or fresh.
   useEffect(() => {
-    const controller = new AbortController();
-    setResult({ scope, run: null, error: null, notFound: false });
     setTransport(undefined);
-    if (brandId)
-      void getService()
-        .then(async (service) => {
-          const run = await service.getStoryboardRun(
-            brandId,
-            runId,
-            controller.signal,
+    if (!brandId || !hasRun || !userId || !organizationId) return;
+    const controller = new AbortController();
+    void (async () => {
+      const [service, voiceService] = await Promise.all([
+        getService(),
+        getVoiceService(),
+      ]);
+      if (controller.signal.aborted) return;
+      const capturedScope = {
+        server,
+        userId,
+        organizationId,
+        brandId,
+        runId,
+      };
+      const canDispatch = async () => {
+        if (
+          JSON.stringify([
+            EnvironmentService.apiEndpoint,
+            globalThis.__GENFEED_DESKTOP_ENV__?.authEndpoint,
+          ]) !== server
+        )
+          return false;
+        // Route scope remains observable after this component detaches. A brand change in the same org is allowed.
+        if (parseScopedAppPath(window.location.pathname)?.orgSlug !== orgSlug)
+          return false;
+        const session = await getSession();
+        const currentOrg = sessionActiveOrganizationId(session);
+        return (
+          !session.error &&
+          session.data?.user.id === userId &&
+          (!currentOrg || currentOrg === capturedScope.organizationId)
+        );
+      };
+      const adoptIfMounted = (saved: StoryboardRun) => {
+        if (
+          saved.id !== runId ||
+          saved.brandId !== brandId ||
+          saved.organizationId !== capturedScope.organizationId
+        )
+          throw new Error('Storyboard scope changed.');
+        if (!controller.signal.aborted && activeScope.current === scope)
+          writeRun(saved);
+        // A save that finishes after the page left still updates the cached
+        // run, so reopening it shows the saved plan.
+        else writeCachedRun(saved);
+        return saved;
+      };
+      setTransport({
+        scope: capturedScope,
+        canDispatch,
+        read: async () => {
+          if (!(await canDispatch()))
+            throw new Error('Storyboard account or organization changed.');
+          return adoptIfMounted(await service.getStoryboardRun(brandId, runId));
+        },
+        write: async (channel, revision, value) => {
+          if (!(await canDispatch()))
+            throw new Error('Storyboard account or organization changed.');
+          const parsed =
+            channel === 'source'
+              ? storyboardSourceSelectorSchema.safeParse(value.source)
+              : storyboardPlanSchema.safeParse(value.plan);
+          if (!parsed.success)
+            throw {
+              errors: [
+                {
+                  status: '422',
+                  detail:
+                    parsed.error.issues[0]?.message ??
+                    'Correct the draft before saving.',
+                },
+              ],
+            };
+          if (channel === 'source')
+            return adoptIfMounted(
+              await service.updateStoryboardSource(brandId, runId, {
+                expectedRevision: revision,
+                source: value.source,
+              }),
+            );
+          const selectedVoices = value.plan.cast.flatMap((member) =>
+            member.voiceId ? [member.voiceId] : [],
           );
-          if (run.organizationId !== organizationId)
-            throw new Error('Storyboard organization changed.');
-          if (!controller.signal.aborted && userId && organizationId) {
-            const voiceService = await getVoiceService();
-            if (controller.signal.aborted) return run;
-            const capturedScope = {
-              server,
-              userId,
-              organizationId,
+          if (selectedVoices.length) {
+            const rows = await voiceService.findAllPages({
+              category: IngredientCategory.VOICE,
+              status: [
+                IngredientStatus.UPLOADED,
+                IngredientStatus.GENERATED,
+                IngredientStatus.VALIDATED,
+              ],
+              organizationId: capturedScope.organizationId,
+              isDeleted: false,
+            });
+            const eligible = eligibleStoryboardVoices(
+              rows,
+              capturedScope.organizationId,
               brandId,
-              runId,
-            };
-            const canDispatch = async () => {
-              if (
-                JSON.stringify([
-                  EnvironmentService.apiEndpoint,
-                  globalThis.__GENFEED_DESKTOP_ENV__?.authEndpoint,
-                ]) !== server
+            );
+            if (
+              selectedVoices.some(
+                (id) => !eligible.some((voice) => voice.id === id),
               )
-                return false;
-              // Route scope remains observable after this component detaches. A brand change in the same org is allowed.
-              if (
-                parseScopedAppPath(window.location.pathname)?.orgSlug !==
-                orgSlug
-              )
-                return false;
-              const session = await getSession();
-              const currentOrg = sessionActiveOrganizationId(session);
-              return (
-                !session.error &&
-                session.data?.user.id === userId &&
-                (!currentOrg || currentOrg === capturedScope.organizationId)
-              );
-            };
-            const adoptIfMounted = (saved: StoryboardRun) => {
-              if (
-                saved.id !== runId ||
-                saved.brandId !== brandId ||
-                saved.organizationId !== capturedScope.organizationId
-              )
-                throw new Error('Storyboard scope changed.');
-              if (!controller.signal.aborted && activeScope.current === scope) {
-                latestRun.current = saved;
-                setResult((current) =>
-                  current.scope === scope &&
-                  (!current.run ||
-                    saved.config.revision >= current.run.config.revision)
-                    ? { scope, run: saved, error: null, notFound: false }
-                    : current,
-                );
-              }
-              return saved;
-            };
-            setTransport({
-              scope: capturedScope,
-              canDispatch,
-              read: async () => {
-                if (!(await canDispatch()))
-                  throw new Error(
-                    'Storyboard account or organization changed.',
-                  );
-                return adoptIfMounted(
-                  await service.getStoryboardRun(brandId, runId),
-                );
-              },
-              write: async (channel, revision, value) => {
-                if (!(await canDispatch()))
-                  throw new Error(
-                    'Storyboard account or organization changed.',
-                  );
-                const parsed =
-                  channel === 'source'
-                    ? storyboardSourceSelectorSchema.safeParse(value.source)
-                    : storyboardPlanSchema.safeParse(value.plan);
-                if (!parsed.success)
-                  throw {
-                    errors: [
-                      {
-                        status: '422',
-                        detail:
-                          parsed.error.issues[0]?.message ??
-                          'Correct the draft before saving.',
-                      },
-                    ],
-                  };
-                if (channel === 'source')
-                  return adoptIfMounted(
-                    await service.updateStoryboardSource(brandId, runId, {
-                      expectedRevision: revision,
-                      source: value.source,
-                    }),
-                  );
-                const selectedVoices = value.plan.cast.flatMap((member) =>
-                  member.voiceId ? [member.voiceId] : [],
-                );
-                if (selectedVoices.length) {
-                  const rows = await voiceService.findAllPages({
-                    category: IngredientCategory.VOICE,
-                    status: [
-                      IngredientStatus.UPLOADED,
-                      IngredientStatus.GENERATED,
-                      IngredientStatus.VALIDATED,
-                    ],
-                    organizationId: capturedScope.organizationId,
-                    isDeleted: false,
-                  });
-                  const eligible = eligibleStoryboardVoices(
-                    rows,
-                    capturedScope.organizationId,
-                    brandId,
-                  );
-                  if (
-                    selectedVoices.some(
-                      (id) => !eligible.some((voice) => voice.id === id),
-                    )
-                  )
-                    throw {
-                      errors: [
-                        {
-                          status: '422',
-                          detail:
-                            'Replace or clear unavailable saved voices before saving.',
-                        },
-                      ],
-                    };
-                }
-                const current = await service.getStoryboardRun(brandId, runId);
-                if (current.config.revision !== revision)
-                  throw {
-                    errors: [
-                      {
-                        status: '409',
-                        detail: 'Storyboard changed. Review the saved version.',
-                      },
-                    ],
-                  };
-                if (!current.config.plan)
-                  throw {
-                    errors: [
-                      {
-                        status: '422',
-                        detail: 'Storyboard has no plan.',
-                      },
-                    ],
-                  };
-                const timing = requiresStoryboardTimingCapabilities(
-                  current.config.plan,
-                  value.plan,
-                );
-                const capabilities = timing
-                  ? await service.getStoryboardRunCapabilities(brandId, runId)
-                  : undefined;
-                if (
-                  capabilities &&
-                  (capabilities.runId !== runId ||
-                    capabilities.runRevision !== revision)
-                )
-                  throw {
-                    errors: [
-                      {
-                        status: '409',
-                        code: 'STORYBOARD_CAPABILITIES_CHANGED',
-                        detail:
-                          'Model capabilities changed. Review the saved version.',
-                      },
-                    ],
-                  };
-                if (!(await canDispatch()))
-                  throw new Error(
-                    'Storyboard account or organization changed.',
-                  );
-                return adoptIfMounted(
-                  await service.updateStoryboardPlan(brandId, runId, {
-                    expectedRevision: revision,
-                    plan: value.plan,
-                    ...(capabilities
-                      ? { capabilityVersion: capabilities.capabilityVersion }
-                      : {}),
-                  }),
-                );
-              },
-            });
+            )
+              throw {
+                errors: [
+                  {
+                    status: '422',
+                    detail:
+                      'Replace or clear unavailable saved voices before saving.',
+                  },
+                ],
+              };
           }
-          return run;
-        })
-        .then((run) => {
-          if (run.brandId !== brandId || run.id !== runId)
-            throw new Error('Storyboard scope changed.');
-          if (!controller.signal.aborted)
-            setResult({ scope, run, error: null, notFound: false });
-        })
-        .catch((error) => {
-          if (!controller.signal.aborted)
-            setResult({
-              scope,
-              run: null,
-              notFound: getJsonApiErrorMember(error)?.status === 404,
-              error: getJsonApiErrorMessage(
-                error,
-                'Could not load storyboard.',
-              ),
-            });
-        });
+          const current = await service.getStoryboardRun(brandId, runId);
+          if (current.config.revision !== revision)
+            throw {
+              errors: [
+                {
+                  status: '409',
+                  detail: 'Storyboard changed. Review the saved version.',
+                },
+              ],
+            };
+          if (!current.config.plan)
+            throw {
+              errors: [
+                {
+                  status: '422',
+                  detail: 'Storyboard has no plan.',
+                },
+              ],
+            };
+          const timing = requiresStoryboardTimingCapabilities(
+            current.config.plan,
+            value.plan,
+          );
+          const capabilities = timing
+            ? await service.getStoryboardRunCapabilities(brandId, runId)
+            : undefined;
+          if (
+            capabilities &&
+            (capabilities.runId !== runId ||
+              capabilities.runRevision !== revision)
+          )
+            throw {
+              errors: [
+                {
+                  status: '409',
+                  code: 'STORYBOARD_CAPABILITIES_CHANGED',
+                  detail:
+                    'Model capabilities changed. Review the saved version.',
+                },
+              ],
+            };
+          if (!(await canDispatch()))
+            throw new Error('Storyboard account or organization changed.');
+          return adoptIfMounted(
+            await service.updateStoryboardPlan(brandId, runId, {
+              expectedRevision: revision,
+              plan: value.plan,
+              ...(capabilities
+                ? { capabilityVersion: capabilities.capabilityVersion }
+                : {}),
+            }),
+          );
+        },
+      });
+    })().catch(() => {
+      /* Without services the draft stays read-only until the scope changes. */
+    });
     return () => controller.abort();
   }, [
     brandId,
@@ -310,10 +362,12 @@ export function useDurableStoryboardRun(runId: string) {
     scope,
     getService,
     getVoiceService,
-    attempt,
+    hasRun,
     userId,
     orgSlug,
     server,
+    writeCachedRun,
+    writeRun,
   ]);
 
   const adopt = useCallback(
@@ -324,16 +378,10 @@ export function useDurableStoryboardRun(runId: string) {
         run.id !== runId
       )
         throw new Error('Storyboard scope changed.');
-      latestRun.current = run;
-      setResult((current) =>
-        current.scope === scope &&
-        (!current.run || run.config.revision >= current.run.config.revision)
-          ? { scope, run, error: null, notFound: false }
-          : current,
-      );
+      writeRun(run);
       return run;
     },
-    [scope, brandId, runId],
+    [scope, brandId, runId, writeRun],
   );
   const savePlan = useCallback(
     async (
@@ -638,7 +686,6 @@ export function useDurableStoryboardRun(runId: string) {
     },
     [brandId, runId, getService, scope],
   );
-  const currentRun = result.scope === scope ? result.run : null;
   const isGeneratingStills = Boolean(
     currentRun?.config.plan?.shots.some(
       (shot) => shot.stillFreshness === 'generating',
@@ -731,10 +778,15 @@ export function useDurableStoryboardRun(runId: string) {
   return {
     transport,
     reread: transport?.read,
-    run: result.scope === scope ? result.run : null,
-    error: result.scope === scope ? result.error : null,
-    notFound: result.scope === scope && result.notFound,
-    refresh: () => setAttempt((value) => value + 1),
+    run: currentRun,
+    error: readError
+      ? getJsonApiErrorMessage(readError, 'Could not load storyboard.')
+      : null,
+    notFound:
+      Boolean(readError) && getJsonApiErrorMember(readError)?.status === 404,
+    refresh: () => {
+      void runQuery.refetch();
+    },
     savePlan,
     saveSource,
     resetPlan,

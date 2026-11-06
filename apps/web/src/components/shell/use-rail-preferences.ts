@@ -7,9 +7,17 @@ import {
   normalizeHiddenAppIds,
   normalizeRailAppOrder,
 } from '@genfeedai/contracts/constants';
+import type { ISetting } from '@genfeedai/contracts/interfaces';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { UsersService } from '@services/organization/users.service';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import type { UsersService } from '@services/organization/users.service';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  createUsersService,
+  ME_SETTINGS_QUERY_KEY,
+  writeMeSettings,
+} from '@/components/shell/me-settings-query';
 
 interface RailPreferenceValues {
   hiddenAppIds: string[];
@@ -27,6 +35,11 @@ type RailPreferenceUpdate<Field extends RailPreferenceField> = (
 type RailPreferenceEdit = <Field extends RailPreferenceField>(
   field: Field,
   update: RailPreferenceUpdate<Field>,
+) => void;
+
+type RailPreferenceSync = (
+  saved: RailPreferenceValues | null,
+  hasReadFailed: boolean,
 ) => void;
 
 const FIELDS: readonly RailPreferenceField[] = [
@@ -53,13 +66,38 @@ const NORMALIZERS: {
     normalizeRailAppOrder(Array.isArray(value) ? value : []),
 };
 
+const EMPTY_VALUES: RailPreferenceValues = {
+  hiddenAppIds: [],
+  homeAppId: null,
+  pinnedAppIds: [],
+  railAppOrder: [],
+};
+
 function emptyValues(): RailPreferenceValues {
+  return { ...EMPTY_VALUES };
+}
+
+function toRailValues(settings: ISetting): RailPreferenceValues {
   return {
-    hiddenAppIds: [],
-    homeAppId: null,
-    pinnedAppIds: [],
-    railAppOrder: [],
+    hiddenAppIds: NORMALIZERS.hiddenAppIds(settings.hiddenAppIds),
+    homeAppId: NORMALIZERS.homeAppId(settings.homeAppId),
+    pinnedAppIds: NORMALIZERS.pinnedAppIds(settings.pinnedAppIds),
+    railAppOrder: NORMALIZERS.railAppOrder(settings.railAppOrder),
   };
+}
+
+/** Normalized values are strings, null or arrays of strings. */
+function isSameValue(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function withField<Field extends RailPreferenceField>(
+  values: RailPreferenceValues,
+  field: Field,
+  value: RailPreferenceValues[Field],
+): RailPreferenceValues {
+  // The union of field types cannot be narrowed through a computed key.
+  return Object.assign({ ...values }, { [field]: value });
 }
 
 function toggledIds(ids: readonly string[], appId: string): string[] {
@@ -70,10 +108,13 @@ function toggledIds(ids: readonly string[], appId: string): string[] {
 
 /**
  * The signed-in user's rail preferences: which secondary apps are pinned, which
- * core apps are hidden, the order of the rail, and the home app. They live on their settings row and
- * share one read. `isLoaded` turns true once the read settles, failed or not,
- * so callers can wait for saved preferences before acting on defaults.
- * `onSaveError` fires when a save fails, so the caller can tell the member.
+ * core apps are hidden, the order of the rail, and the home app. They live on
+ * their settings row, which is cached under `ME_SETTINGS_QUERY_KEY`, so the
+ * rail paints the saved preferences at once on return. `isLoaded` turns true
+ * once the read settles, failed or not, so callers can wait for saved
+ * preferences before acting on defaults. `onSaveError` fires when a save
+ * fails, so the caller can tell the member. A saved change is written into the
+ * cache, and a later read never replaces an edit that is still being saved.
  */
 export function useRailPreferences({
   onSaveError,
@@ -82,13 +123,30 @@ export function useRailPreferences({
 } = {}) {
   const onSaveErrorRef = useRef(onSaveError);
   onSaveErrorRef.current = onSaveError;
-  const getUsers = useAuthedService((token) => UsersService.getInstance(token));
-  const [values, setValues] = useState<RailPreferenceValues>(emptyValues);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const queryClient = useQueryClient();
+  const getUsers = useAuthedService(createUsersService);
+  const settingsQuery = useAuthedQuery<UsersService, ISetting>({
+    queryFn: (users, signal) => users.findMeSettings(signal),
+    queryKey: ME_SETTINGS_QUERY_KEY,
+    service: createUsersService,
+  });
+  const saved = useMemo(
+    () => (settingsQuery.data ? toRailValues(settingsQuery.data) : null),
+    [settingsQuery.data],
+  );
+  const hasReadFailed = !saved && settingsQuery.isError;
+  const syncInputRef = useRef({ hasReadFailed, saved });
+  syncInputRef.current = { hasReadFailed, saved };
+
+  // Local values take over once an edit has been made or the saved
+  // preferences have been merged; until then the cached preferences show.
+  const [published, setPublished] = useState<RailPreferenceValues | null>(null);
   const editRef = useRef<RailPreferenceEdit>(() => {});
+  const syncRef = useRef<RailPreferenceSync>(() => {});
 
   useEffect(() => {
     const controller = new AbortController();
+    const { signal } = controller;
     let desired = emptyValues();
     let confirmed = emptyValues();
     const revision: Record<RailPreferenceField, number> = {
@@ -99,46 +157,48 @@ export function useRailPreferences({
     };
     const dirty = new Set<RailPreferenceField>();
     let isReady = false;
+    let hasFailed = false;
     let isSaving = false;
-    const queuedEdits: Array<(next: RailPreferenceValues) => void> = [];
-    setValues(emptyValues());
-    setIsLoaded(false);
+    let queuedEdits: Array<(next: RailPreferenceValues) => void> = [];
+    setPublished(null);
 
-    const publish = () => setValues({ ...desired });
+    const publish = () => setPublished({ ...desired });
 
     // One write at a time prevents the server from storing out-of-order values.
     // Responses from earlier revisions never replace a newer optimistic edit.
     const save = async () => {
-      if (!isReady || isSaving || controller.signal.aborted) return;
+      if (!isReady || isSaving || signal.aborted) return;
       isSaving = true;
       try {
-        while (!controller.signal.aborted) {
+        while (!signal.aborted) {
           const field = FIELDS.find((candidate) => dirty.has(candidate));
           if (!field) return;
           const submittedRevision = revision[field];
           const next = desired[field];
           try {
             const users = await getUsers();
-            if (controller.signal.aborted) return;
-            const saved = await users.patchMeSettings({ [field]: next });
-            if (controller.signal.aborted) return;
-            confirmed = {
-              ...confirmed,
-              [field]: NORMALIZERS[field](saved[field]),
-            };
+            if (signal.aborted) return;
+            const response = await users.patchMeSettings({ [field]: next });
+            if (signal.aborted) return;
+            confirmed = withField(
+              confirmed,
+              field,
+              NORMALIZERS[field](response[field]),
+            );
             if (submittedRevision === revision[field]) {
-              desired = { ...desired, [field]: confirmed[field] };
+              desired = withField(desired, field, confirmed[field]);
               dirty.delete(field);
               publish();
             }
+            await writeMeSettings(queryClient, { [field]: response[field] });
           } catch {
-            if (controller.signal.aborted) return;
+            if (signal.aborted) return;
             if (submittedRevision === revision[field]) {
               // A failed order stays on screen; the next change sends the whole
               // order again. Pins, hidden apps and the home app return to the
               // saved value.
               if (field !== 'railAppOrder') {
-                desired = { ...desired, [field]: confirmed[field] };
+                desired = withField(desired, field, confirmed[field]);
               }
               dirty.delete(field);
               publish();
@@ -152,9 +212,8 @@ export function useRailPreferences({
     };
 
     const edit: RailPreferenceEdit = (field, update) => {
-      if (controller.signal.aborted) return;
+      if (signal.aborted || hasFailed) return;
       const apply = (target: RailPreferenceValues) => {
-        // The union of field types cannot be narrowed through a computed key.
         Object.assign(target, {
           [field]: NORMALIZERS[field](update(target[field])),
         });
@@ -167,45 +226,65 @@ export function useRailPreferences({
       publish();
       void save();
     };
-    editRef.current = edit;
 
-    void (async () => {
-      try {
-        const users = await getUsers();
-        if (controller.signal.aborted) return;
-        const settings = await users.findMeSettings(controller.signal);
-        if (controller.signal.aborted) return;
-        confirmed = {
-          hiddenAppIds: NORMALIZERS.hiddenAppIds(settings.hiddenAppIds),
-          homeAppId: NORMALIZERS.homeAppId(settings.homeAppId),
-          pinnedAppIds: NORMALIZERS.pinnedAppIds(settings.pinnedAppIds),
-          railAppOrder: NORMALIZERS.railAppOrder(settings.railAppOrder),
-        };
-        desired = { ...confirmed };
+    // Merges the saved preferences: the first time it rebases edits made
+    // during the read; after that a field the server changed replaces the
+    // local value unless an edit of it is still being saved.
+    const sync: RailPreferenceSync = (savedValues, hasReadFailedNow) => {
+      if (signal.aborted) return;
+      if (!savedValues) {
+        if (hasReadFailedNow && !isReady) {
+          // Do not replace unknown saved preferences after a failed read.
+          hasFailed = true;
+          queuedEdits = [];
+          desired = emptyValues();
+          setPublished(null);
+        }
+        return;
+      }
+      if (!isReady) {
+        confirmed = { ...savedValues };
+        desired = { ...savedValues };
         for (const apply of queuedEdits) apply(desired);
+        const hadQueuedEdits = queuedEdits.length > 0;
+        queuedEdits = [];
         isReady = true;
+        hasFailed = false;
         publish();
-        setIsLoaded(true);
-        if (queuedEdits.length > 0) {
+        if (hadQueuedEdits) {
           for (const field of FIELDS) {
             if (revision[field] > 0) dirty.add(field);
           }
           void save();
         }
-      } catch {
-        if (controller.signal.aborted) return;
-        // Do not replace unknown saved preferences after a failed initial read.
-        setValues(emptyValues());
-        setIsLoaded(true);
-        editRef.current = () => {};
+        return;
       }
-    })();
+      let hasChanged = false;
+      for (const field of FIELDS) {
+        if (isSameValue(savedValues[field], confirmed[field])) continue;
+        confirmed = withField(confirmed, field, savedValues[field]);
+        if (!dirty.has(field)) {
+          desired = withField(desired, field, savedValues[field]);
+          hasChanged = true;
+        }
+      }
+      if (hasChanged) publish();
+    };
+
+    editRef.current = edit;
+    syncRef.current = sync;
+    sync(syncInputRef.current.saved, syncInputRef.current.hasReadFailed);
 
     return () => {
       controller.abort();
       if (editRef.current === edit) editRef.current = () => {};
+      if (syncRef.current === sync) syncRef.current = () => {};
     };
-  }, [getUsers]);
+  }, [getUsers, queryClient]);
+
+  useEffect(() => {
+    syncRef.current(saved, hasReadFailed);
+  }, [hasReadFailed, saved]);
 
   // A secondary app is pinned by listing it; a core app is always on the rail
   // until it is listed as hidden, so pinning it back removes that entry.
@@ -230,15 +309,21 @@ export function useRailPreferences({
     editRef.current('homeAppId', () => appId);
   }, []);
 
-  return {
-    hiddenAppIds: values.hiddenAppIds,
-    homeAppId: values.homeAppId,
-    isLoaded,
-    pinnedAppIds: values.pinnedAppIds,
-    railAppOrder: values.railAppOrder,
-    resetRail,
-    setHomeAppId,
-    setRailAppOrder,
-    togglePin,
-  };
+  const values = published ?? saved ?? EMPTY_VALUES;
+  const isLoaded = saved !== null || hasReadFailed;
+
+  return useMemo(
+    () => ({
+      hiddenAppIds: values.hiddenAppIds,
+      homeAppId: values.homeAppId,
+      isLoaded,
+      pinnedAppIds: values.pinnedAppIds,
+      railAppOrder: values.railAppOrder,
+      resetRail,
+      setHomeAppId,
+      setRailAppOrder,
+      togglePin,
+    }),
+    [isLoaded, resetRail, setHomeAppId, setRailAppOrder, togglePin, values],
+  );
 }

@@ -44,8 +44,8 @@ export class TaskCommentsService extends BaseService<
     ) as TaskCommentsService;
   }
 
-  async list(): Promise<TaskComment[]> {
-    return this.findAll();
+  async list(signal?: AbortSignal): Promise<TaskComment[]> {
+    return this.findAll({}, signal);
   }
 
   async addComment(body: string): Promise<TaskComment> {
