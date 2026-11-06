@@ -17,7 +17,7 @@ function makeCommand(
 ): ICommand {
   return {
     action: vi.fn(),
-    category: 'test',
+    category: 'actions',
     description: `${label} description`,
     id,
     keywords: [label.toLowerCase()],

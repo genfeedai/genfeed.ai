@@ -1,4 +1,9 @@
 import {
+  TemplateCategory,
+  TemplateDifficulty,
+  TemplateSortBy,
+} from '@genfeedai/contracts';
+import {
   axiosResponse,
   collectionDocument,
   installMockHttp,
@@ -34,19 +39,19 @@ describe('TemplateService', () => {
       );
 
       const result = await service.getTemplates({
-        category: ['marketing', 'sales'],
-        difficulty: ['easy'],
+        category: [TemplateCategory.MARKETING, TemplateCategory.EMAIL],
+        difficulty: [TemplateDifficulty.BEGINNER],
         isPremium: true,
         minRating: 4,
         scope: 'organization',
         search: 'hook',
-        sortBy: 'rating',
+        sortBy: TemplateSortBy.RATING,
       });
 
       expect(http.get).toHaveBeenCalledWith('', {
         params: {
-          category: 'marketing,sales',
-          difficulty: 'easy',
+          category: 'marketing,email',
+          difficulty: 'beginner',
           isPremium: 'true',
           minRating: '4',
           scope: 'organization',

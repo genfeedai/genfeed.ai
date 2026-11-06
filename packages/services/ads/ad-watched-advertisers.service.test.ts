@@ -1,29 +1,21 @@
-import type { AdWatchedAdvertiser } from '@genfeedai/contracts/interfaces';
+import {
+  AdsPlatform,
+  type AdWatchedAdvertiser,
+} from '@genfeedai/contracts/interfaces';
+import {
+  installMockHttp,
+  type MockHttpInstance,
+} from '@services/__mocks__/http.mock';
 import { AdWatchedAdvertisersService } from '@services/ads/ad-watched-advertisers.service';
 import type { JsonApiResponseDocument } from '@services/core/json-api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-type MockHttpClient = {
-  delete: ReturnType<typeof vi.fn>;
-  get: ReturnType<typeof vi.fn>;
-  post: ReturnType<typeof vi.fn>;
-};
-
-type TestableService = AdWatchedAdvertisersService & {
-  instance: MockHttpClient;
-};
-
 function createService(): {
-  http: MockHttpClient;
+  http: MockHttpInstance;
   service: AdWatchedAdvertisersService;
 } {
   const service = new AdWatchedAdvertisersService('test-token');
-  const http: MockHttpClient = {
-    delete: vi.fn(),
-    get: vi.fn(),
-    post: vi.fn(),
-  };
-  (service as TestableService).instance = http;
+  const http = installMockHttp(service);
 
   return { http, service };
 }
@@ -77,7 +69,7 @@ describe('AdWatchedAdvertisersService', () => {
         freshnessState: 'fresh',
         id: 'watched-1',
         lastSnapshotRecordCount: 12,
-        platform: 'meta',
+        platform: AdsPlatform.META,
       },
     ] satisfies AdWatchedAdvertiser[]);
   });
@@ -104,7 +96,7 @@ describe('AdWatchedAdvertisersService', () => {
     const result = await service.create({
       advertiserHandle: 'gymshark',
       brandId: 'brand-1',
-      platform: 'tiktok',
+      platform: AdsPlatform.TIKTOK,
     });
 
     expect(http.post).toHaveBeenCalledWith('', {

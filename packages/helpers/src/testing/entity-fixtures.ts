@@ -2,6 +2,7 @@ import {
   AssetScope,
   IngredientCategory,
   IngredientStatus,
+  TagCategory,
 } from '@genfeedai/contracts';
 import type {
   IBrand,
@@ -10,6 +11,7 @@ import type {
   IOrganization,
   IOrganizationSetting,
   ISetting,
+  ITag,
   IUser,
 } from '@genfeedai/contracts/interfaces';
 
@@ -154,5 +156,18 @@ export const createMetadataFixture = (
 ): IMetadata => ({
   ...createBaseEntity<IMetadata>(partial),
   label: 'Test metadata',
+  ...partial,
+});
+
+/** A complete ingredient tag owned by the default brand. */
+export const createTagFixture = (partial: Partial<ITag> = {}): ITag => ({
+  ...createBaseEntity<ITag>(partial),
+  backgroundColor: '#000000',
+  brand: createBrand(),
+  category: TagCategory.INGREDIENT,
+  label: 'Test tag',
+  organization: createOrganization(),
+  textColor: '#ffffff',
+  user: createUser(),
   ...partial,
 });

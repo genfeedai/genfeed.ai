@@ -419,10 +419,12 @@ describe('BrandsService HTTP methods', () => {
 
     const result = await service.applyBrandKitDraft(brandId, {
       draftId: 'draft_1',
+      fields: {},
     });
 
     expect(http.post).toHaveBeenCalledWith(`/${brandId}/brand-kit/apply`, {
       draftId: 'draft_1',
+      fields: {},
     });
     expect(result).toMatchObject({ isApplied: true });
   });
