@@ -4,6 +4,7 @@ import {
 } from '@api/collections/content-learning/services/learning-dataset-graph.service';
 import { resolveLearningPublicationSourceV1 } from '@api/collections/content-learning/services/learning-publication-source.helper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ContentLearningRunStatus as RunStatus } from '@genfeedai/contracts';
 import {
   isLearningDerivedDependencyKind,
   isLearningGlobalDependencyKind,
@@ -268,7 +269,7 @@ export async function invalidateLearningDependencySource(
         if (edge.derivedKind === 'run')
           await tx.contentLearningRun.updateMany({
             where: { id: edge.derivedId, isDeleted: false },
-            data: { status: 'invalidated' },
+            data: { status: RunStatus.INVALIDATED },
           });
         if (edge.derivedKind === 'shared-policy')
           await tx.contentLearningSharedPolicy.updateMany({
@@ -639,7 +640,7 @@ export class LearningDependencyService {
     }
     if (kind === 'run') {
       const row = await tx.contentLearningRun.findFirst({
-        where: { id, isDeleted: false, status: { not: 'invalidated' } },
+        where: { id, isDeleted: false, status: { not: RunStatus.INVALIDATED } },
       });
       return row ? row.configHash : null;
     }

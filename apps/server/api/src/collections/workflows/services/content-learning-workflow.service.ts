@@ -29,8 +29,10 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
+  CONTENT_LEARNING_ACTIVE_STATUSES,
   CredentialPlatform,
   fromPrismaCredentialPlatform,
+  ContentLearningOperationStatus as OperationStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
@@ -403,9 +405,12 @@ export class ContentLearningWorkflowService implements OnModuleInit {
           id: operationId,
           organizationId,
           isDeleted: false,
-          status: { in: ['pending', 'running'] },
+          status: { in: [...CONTENT_LEARNING_ACTIVE_STATUSES] },
         },
-        data: { status: 'failed', error: 'dispatch_receipt_invalid' },
+        data: {
+          status: OperationStatus.FAILED,
+          error: 'dispatch_receipt_invalid',
+        },
       });
     });
   }
@@ -757,7 +762,7 @@ export class ContentLearningWorkflowService implements OnModuleInit {
       where: {
         organizationId,
         isDeleted: false,
-        status: { in: ['pending', 'running'] },
+        status: { in: [...CONTENT_LEARNING_ACTIVE_STATUSES] },
         type: { in: ['dataset-train', 'dataset-evaluate'] },
       },
       orderBy: { createdAt: 'asc' },

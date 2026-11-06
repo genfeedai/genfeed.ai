@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { learningFence } from '@api/collections/content-learning/services/learning-dependency.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ContentLearningOperationStatus as OperationStatus } from '@genfeedai/contracts';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { sha256Hex, stableStringify } from '@libs/utils/canonical-hash.util';
@@ -138,7 +139,7 @@ export class LearningOperationService {
           type: input.type,
           beforeRevision: account.revision,
           afterRevision: account.revision + 1,
-          status: 'completed',
+          status: OperationStatus.COMPLETED,
           resultReferences: toPrismaJson(result),
         },
       });

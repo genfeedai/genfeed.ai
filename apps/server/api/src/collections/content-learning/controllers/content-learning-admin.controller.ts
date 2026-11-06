@@ -27,6 +27,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { ContentLearningRunStatus as RunStatus } from '@genfeedai/contracts';
 import type { LearningPromptSlotOutcomeReport } from '@genfeedai/contracts/interfaces';
 import {
   ContentLearningAccountSerializer,
@@ -233,7 +234,12 @@ export class ContentLearningAdminController {
     @Body() body: LearningRunDto,
   ) {
     const parent = await this.prisma.contentLearningRun.findFirst({
-      where: { id, type: 'train', status: 'completed', isDeleted: false },
+      where: {
+        id,
+        type: 'train',
+        status: RunStatus.COMPLETED,
+        isDeleted: false,
+      },
       select: { datasetId: true, resultArtifactId: true },
     });
     if (!parent)
