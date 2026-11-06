@@ -51,7 +51,7 @@ const SWITCH_CONTRAST_CLASSNAME = cn(
   'data-[state=checked]:[&>span]:!bg-primary-foreground',
   '[&>span]:![transition:translate_300ms_cubic-bezier(0.32,0.72,0,1),width_200ms_cubic-bezier(0.32,0.72,0,1),background-color_200ms_cubic-bezier(0.32,0.72,0,1)]',
   'motion-reduce:[&>span]:!transition-none',
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+  'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
 );
 
 /**

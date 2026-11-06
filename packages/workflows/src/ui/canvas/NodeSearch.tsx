@@ -138,7 +138,7 @@ export function NodeSearch() {
           <FormSearchbar
             ariaLabel="Search nodes"
             className="mb-3"
-            inputClassName="bg-muted border-border outline-none focus:ring-2 focus:ring-ring"
+            inputClassName="bg-muted border-border outline-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             inputRef={inputRef}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search nodes by name, type, or comment..."

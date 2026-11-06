@@ -104,7 +104,7 @@ export default function ListRowSound({
         </div>
 
         <Button
-          className="grid min-w-0 grid-cols-1 items-center gap-3 rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[minmax(0,2.4fr)_minmax(8rem,1.4fr)] lg:grid-cols-[minmax(0,2.4fr)_minmax(11.25rem,1.4fr)_minmax(7.5rem,0.8fr)] lg:gap-4"
+          className="grid min-w-0 grid-cols-1 items-center gap-3 rounded text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:grid-cols-[minmax(0,2.4fr)_minmax(8rem,1.4fr)] lg:grid-cols-[minmax(0,2.4fr)_minmax(11.25rem,1.4fr)_minmax(7.5rem,0.8fr)] lg:gap-4"
           onClick={activateRow}
           type="button"
           variant={ButtonVariant.UNSTYLED}

@@ -75,7 +75,7 @@ export function TrendingHashtags({
                   {onHashtagClick ? (
                     <Button
                       ariaLabel={`#${hashtag.hashtag}`}
-                      className="absolute inset-0 z-10 rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="absolute inset-0 z-10 rounded-card focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                       onClick={() => onHashtagClick(hashtag)}
                       type="button"
                       variant={ButtonVariant.UNSTYLED}

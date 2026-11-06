@@ -97,7 +97,7 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
             value={nodeData.outputName || 'output'}
             onChange={handleNameChange}
             placeholder="Enter output name..."
-            className="flex h-9 w-full border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex h-9 w-full border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           />
         </div>
 
@@ -135,7 +135,7 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
             value={nodeData.description || ''}
             onChange={handleDescriptionChange}
             placeholder="Describe this output..."
-            className="flex h-9 w-full border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex h-9 w-full border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           />
         </div>
 

@@ -277,7 +277,7 @@ function IngredientLedgerAssetCell({
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         {detailHref ? (
           <Link
-            className="truncate text-sm font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="truncate text-sm font-medium hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             href={detailHref}
             prefetch={false}
             title={label || undefined}

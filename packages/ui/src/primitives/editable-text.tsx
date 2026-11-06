@@ -121,7 +121,7 @@ function EditableText({
   };
 
   const editorClassName = cn(
-    'block w-full min-w-0 rounded-sm border-0 bg-transparent px-1 py-0.5 font-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60',
+    'block w-full min-w-0 rounded-sm border-0 bg-transparent px-1 py-0.5 font-[inherit] outline-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-wait disabled:opacity-60',
     isMultiline && 'field-sizing-content max-h-48 resize-none overflow-y-auto',
     displayClassName,
   );
@@ -164,7 +164,7 @@ function EditableText({
         <button
           aria-label={ariaLabel}
           className={cn(
-            'group flex max-w-full cursor-text items-center gap-1 rounded-sm bg-transparent px-1 py-0.5 text-left transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60',
+            'group flex max-w-full cursor-text items-center gap-1 rounded-sm bg-transparent px-1 py-0.5 text-left transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-60',
           )}
           disabled={isDisabled}
           onClick={handleEdit}

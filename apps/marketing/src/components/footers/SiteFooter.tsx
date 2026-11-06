@@ -111,7 +111,7 @@ export default function SiteFooter({
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                  className="group rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   aria-label={social.label}
                 >
                   <div className="flex size-11 items-center justify-center rounded-md text-muted-foreground transition-colors group-hover:bg-foreground/5 group-hover:text-foreground">

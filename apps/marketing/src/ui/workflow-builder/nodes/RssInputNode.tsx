@@ -166,7 +166,7 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
             value={data.rawXml || ''}
             onChange={handleRawXmlChange}
             placeholder="Paste RSS XML here…"
-            className="h-20 w-full resize-none border border-border bg-background px-2 py-1.5 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+            className="h-20 w-full resize-none border border-border bg-background px-2 py-1.5 font-mono text-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           />
           <Button
             onClick={handleFetchFeed}
