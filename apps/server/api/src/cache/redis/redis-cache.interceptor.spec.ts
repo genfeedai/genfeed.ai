@@ -361,8 +361,8 @@ describe('RedisCacheInterceptor', () => {
 
     it('should respect custom condition function', async () => {
       const cacheOptions: CacheOptions = {
-        condition: (result: { shouldCache?: boolean }) =>
-          result.shouldCache === true,
+        condition: (result) =>
+          (result as { shouldCache?: boolean }).shouldCache === true,
         ttl: 300,
       };
       reflector.get.mockReturnValue(cacheOptions);
@@ -388,8 +388,8 @@ describe('RedisCacheInterceptor', () => {
 
     it('should not cache when condition returns false', async () => {
       const cacheOptions: CacheOptions = {
-        condition: (result: { shouldCache?: boolean }) =>
-          result.shouldCache === true,
+        condition: (result) =>
+          (result as { shouldCache?: boolean }).shouldCache === true,
         ttl: 300,
       };
       reflector.get.mockReturnValue(cacheOptions);

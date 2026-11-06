@@ -34,8 +34,10 @@ function buildContext(user?: User | null): ExecutionContext {
 
 function buildUser(overrides: Partial<User> = {}): User {
   return {
+    brandId: 'brand_123',
     id: 'user_123',
     isSuperAdmin: false,
+    organizationId: 'org_123',
     userId: 'user_123',
     ...overrides,
   };

@@ -21,7 +21,9 @@ type MockWatchedAdvertiserDelegate = {
 const TENANT_RESEARCH_SOURCES = [...PAID_CREATIVE_RESEARCH_SOURCES];
 
 const buildRecord = (
-  overrides: Partial<AdPerformance> & { data?: Record<string, unknown> } = {},
+  overrides: Omit<Partial<AdPerformance>, 'data'> & {
+    data?: Record<string, unknown>;
+  } = {},
 ): AdPerformance =>
   ({
     adPlatform: 'meta',

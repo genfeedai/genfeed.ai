@@ -960,7 +960,7 @@ describe('VideoGenerationService', () => {
 
     await service.generateVideo(
       buildUser(),
-      baseDto({ brand: 'brand-from-token' }),
+      baseDto({ brandId: 'brand-from-token' }),
       buildRequest(),
     );
 
