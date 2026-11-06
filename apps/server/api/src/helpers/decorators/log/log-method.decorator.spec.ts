@@ -13,6 +13,7 @@ describe('LogMethod Decorator', () => {
     debug: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
     log: ReturnType<typeof vi.fn>;
+    verbose: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
 
@@ -24,6 +25,10 @@ describe('LogMethod Decorator', () => {
       verbose: vi.fn(),
       warn: vi.fn(),
     };
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   describe('LogMethod', () => {
@@ -447,86 +452,71 @@ describe('LogMethod Decorator', () => {
     });
 
     it('should respect explicit logEnd configuration in production', async () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
+      vi.stubEnv('NODE_ENV', 'production');
 
-      try {
-        class TestClass {
-          logger = mockLogger;
+      class TestClass {
+        logger = mockLogger;
 
-          @LogPerformance()
-          async testMethod() {
-            await Promise.resolve();
-            return 'result';
-          }
+        @LogPerformance()
+        async testMethod() {
+          await Promise.resolve();
+          return 'result';
         }
-
-        const instance = new TestClass();
-        await instance.testMethod();
-
-        // LogPerformance explicitly sets logEnd: true, so it should work in production
-        expect(mockLogger.debug).toHaveBeenCalledTimes(1); // Only end log
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          'TestClass.testMethod completed',
-          expect.objectContaining({
-            executionTime: expect.any(String),
-          }),
-        );
-      } finally {
-        process.env.NODE_ENV = originalEnv;
       }
+
+      const instance = new TestClass();
+      await instance.testMethod();
+
+      // LogPerformance explicitly sets logEnd: true, so it should work in production
+      expect(mockLogger.debug).toHaveBeenCalledTimes(1); // Only end log
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'TestClass.testMethod completed',
+        expect.objectContaining({
+          executionTime: expect.any(String),
+        }),
+      );
     });
   });
 
   describe('production behavior', () => {
     it('should disable logStart and logEnd by default in production', async () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
+      vi.stubEnv('NODE_ENV', 'production');
 
-      try {
-        class TestClass {
-          logger = mockLogger;
+      class TestClass {
+        logger = mockLogger;
 
-          @LogMethod()
-          async testMethod() {
-            await Promise.resolve();
-            return 'result';
-          }
+        @LogMethod()
+        async testMethod() {
+          await Promise.resolve();
+          return 'result';
         }
-
-        const instance = new TestClass();
-        await instance.testMethod();
-
-        // In production, default LogMethod should not log start or end
-        expect(mockLogger.log).not.toHaveBeenCalled();
-        expect(mockLogger.debug).not.toHaveBeenCalled();
-      } finally {
-        process.env.NODE_ENV = originalEnv;
       }
+
+      const instance = new TestClass();
+      await instance.testMethod();
+
+      // In production, default LogMethod should not log start or end
+      expect(mockLogger.log).not.toHaveBeenCalled();
+      expect(mockLogger.debug).not.toHaveBeenCalled();
     });
 
     it('should still log errors in production by default', async () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
+      vi.stubEnv('NODE_ENV', 'production');
 
-      try {
-        class TestClass {
-          logger = mockLogger;
+      class TestClass {
+        logger = mockLogger;
 
-          @LogMethod()
-          async testMethod() {
-            await Promise.resolve();
-            throw new Error('Test error');
-          }
+        @LogMethod()
+        async testMethod() {
+          await Promise.resolve();
+          throw new Error('Test error');
         }
-
-        const instance = new TestClass();
-
-        await expect(instance.testMethod()).rejects.toThrow('Test error');
-        expect(mockLogger.error).toHaveBeenCalled();
-      } finally {
-        process.env.NODE_ENV = originalEnv;
       }
+
+      const instance = new TestClass();
+
+      await expect(instance.testMethod()).rejects.toThrow('Test error');
+      expect(mockLogger.error).toHaveBeenCalled();
     });
   });
 

@@ -4,9 +4,11 @@ import { CompareEvaluationsDto } from '@api/collections/evaluations/dto/compare-
 import { EvaluateContentDto } from '@api/collections/evaluations/dto/evaluate-content.dto';
 import { EvaluateExternalDto } from '@api/collections/evaluations/dto/evaluate-external.dto';
 import { EvaluationFiltersDto } from '@api/collections/evaluations/dto/evaluation-filters.dto';
+import { EvaluationsQueryDto } from '@api/collections/evaluations/dto/evaluations-query.dto';
 import { RecordEvaluationReviewDto } from '@api/collections/evaluations/dto/record-evaluation-review.dto';
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import {
   EvaluationType,
@@ -193,10 +195,10 @@ describe('EvaluationsController', () => {
 
   describe('buildFindAllQuery', () => {
     it('should scope by organization and filter by entityType/entityId', () => {
-      const query = {
+      const query = tenantReadQuery(EvaluationsQueryDto, {
         entityId: contentId,
-        entityType: 'posts' as const,
-      };
+        entityType: 'posts',
+      });
 
       const result = controller.buildFindAllQuery(mockUser, query);
 
@@ -209,7 +211,10 @@ describe('EvaluationsController', () => {
     });
 
     it('should scope by organization without entityType/entityId', () => {
-      const result = controller.buildFindAllQuery(mockUser, {});
+      const result = controller.buildFindAllQuery(
+        mockUser,
+        tenantReadQuery(EvaluationsQueryDto),
+      );
 
       expect(result.where).toMatchObject({
         isDeleted: false,

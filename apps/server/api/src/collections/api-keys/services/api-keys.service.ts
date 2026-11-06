@@ -511,7 +511,12 @@ export class ApiKeysService extends BaseService<
     });
   }
 
-  resolveActionOrigin(apiKey: ApiKeyDocument): ActionOrigin {
+  resolveActionOrigin(
+    apiKey: Pick<
+      ApiKeyDocument,
+      'keyFingerprint' | 'metadata' | 'organizationId' | 'userId'
+    >,
+  ): ActionOrigin {
     const metadata =
       apiKey.metadata &&
       typeof apiKey.metadata === 'object' &&

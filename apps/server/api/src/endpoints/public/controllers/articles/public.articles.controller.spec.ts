@@ -397,7 +397,7 @@ describe('PublicArticlesController', () => {
       const result = await controller.findPublicArticleById(request, id);
 
       expect(result).toBeDefined();
-      expect(result.errors).toBeDefined();
+      expect(result).toHaveProperty('errors');
     });
   });
 });

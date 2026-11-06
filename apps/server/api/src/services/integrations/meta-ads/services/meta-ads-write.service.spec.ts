@@ -7,6 +7,7 @@ import type {
   MetaVideoUploadResponse,
 } from '@api/services/integrations/meta-ads/interfaces/meta-ads.interface';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
+import { axiosResponse } from '@api-test/helpers/axios-response';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
 import { HttpService } from '@nestjs/axios';
@@ -23,14 +24,7 @@ describe('MetaAdsService - Write Operations', () => {
   const mockAccessToken = 'EAABsbCS1iHgBO0ZCtest';
   const mockAdAccountId = 'act_123456789';
 
-  const mockAxiosResponse = <T>(data: T) =>
-    of({
-      config: {} as never,
-      data,
-      headers: {},
-      status: 200,
-      statusText: 'OK',
-    });
+  const mockAxiosResponse = <T>(data: T) => of(axiosResponse(data));
 
   beforeEach(async () => {
     const mockHttpService = {

@@ -7,11 +7,13 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+import { SocialSourcesQueryDto } from '@api/collections/social-sources/dto/social-sources-query.dto';
 import { SocialSourcesService } from '@api/collections/social-sources/services/social-sources.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { SourceCollectionFailedException } from '@api/services/source-collector/source-collection-failed.exception';
 import type { SourceCollectorFailure } from '@api/services/source-collector/source-collector.types';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import { SocialSourcePlatform, SocialSourceType } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 
@@ -125,7 +127,7 @@ describe('SocialSourcesService', () => {
 
     await service.getFeed(
       { brandId: 'brand-1', organizationId: 'org-1' },
-      { sourceId: 'source-1' },
+      tenantReadQuery(SocialSourcesQueryDto, { sourceId: 'source-1' }),
     );
 
     expect(sourcePostsService.listByBrand).toHaveBeenCalledWith(

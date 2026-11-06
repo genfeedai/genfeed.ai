@@ -1,4 +1,4 @@
-import { BaseFactory, TestIdFactory } from '@test/factories/base.factory';
+import { BaseFactory, TestIdFactory } from '@api-test/factories/base.factory';
 import {
   clearAllMocks,
   generateTestEmail,
@@ -6,7 +6,7 @@ import {
   generateTestUrl,
   testErrors,
   waitFor,
-} from '@test/mocks/test.helpers';
+} from '@api-test/mocks/test.helpers';
 
 type TestEntity = {
   id?: string;

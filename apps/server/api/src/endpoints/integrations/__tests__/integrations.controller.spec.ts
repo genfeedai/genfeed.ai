@@ -252,7 +252,7 @@ describe('OrganizationsIntegrationsController', () => {
         'integration-456',
         partialDto,
       );
-      expect(result.status).toBe(IntegrationStatus.ERROR);
+      expect(result).toHaveProperty('status', IntegrationStatus.ERROR);
     });
   });
 

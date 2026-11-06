@@ -380,10 +380,10 @@ describe('ContentPlannerService', () => {
       (message: { role: string }) => message.role === 'user',
     );
 
-    expect(userMessage.content).toContain(
+    expect(userMessage?.content).toContain(
       'instagram: carousel (2-10 images) or reel (9:16 video under 90s)',
     );
-    expect(userMessage.content).toContain(
+    expect(userMessage?.content).toContain(
       'twitter: text + image by default, use a thread when depth is needed',
     );
   });
@@ -401,10 +401,10 @@ describe('ContentPlannerService', () => {
       (message: { role: string }) => message.role === 'user',
     );
 
-    expect(userMessage.content).toContain(
+    expect(userMessage?.content).toContain(
       'instagram: carousel (2-10 images) or reel (9:16 video under 90s)',
     );
-    expect(userMessage.content).toContain(
+    expect(userMessage?.content).toContain(
       'tiktok: short-form vertical video (9:16, ideally under 60s)',
     );
   });

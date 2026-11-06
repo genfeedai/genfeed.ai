@@ -123,7 +123,7 @@ describe('Custom Exceptions Test Suite', () => {
     it('should generate ISO timestamp', () => {
       const exception = new TestException('Test detail');
       const response = getResponsePayload(exception);
-      const timestamp = new Date(response.timestamp);
+      const timestamp = new Date(String(response.timestamp));
 
       expect(timestamp.toISOString()).toBe(response.timestamp);
       expect(timestamp.getTime()).toBeLessThanOrEqual(Date.now());
@@ -290,7 +290,7 @@ describe('Custom Exceptions Test Suite', () => {
     it('should use custom error code', () => {
       const exception = new BusinessLogicException(
         'Error',
-        null,
+        undefined,
         'CUSTOM_CODE',
       );
       const response = getResponsePayload(exception);
@@ -590,42 +590,28 @@ describe('Custom Exceptions Test Suite', () => {
       );
       const response = getResponsePayload(outerException);
 
-      expect(response.meta.innerError).toBeDefined();
-      expect(response.meta.innerError.title).toBe('Validation Error');
+      expect(response.meta?.innerError).toMatchObject({
+        title: 'Validation Error',
+      });
     });
 
     it('should maintain exception chain', () => {
-      const exceptions: HttpException[] = [];
+      const initial = new ValidationException('Initial validation error');
+      const businessRule = new BusinessLogicException(
+        'Business rule violation',
+        { cause: getResponsePayload(initial) },
+      );
+      const finalException = new APIError(
+        'Final API error',
+        HttpStatus.BAD_REQUEST,
+        'FINAL_ERROR',
+        { chain: [initial, businessRule].map((e) => getResponsePayload(e)) },
+      );
 
-      try {
-        throw new ValidationException('Initial validation error');
-      } catch (error: unknown) {
-        if (error instanceof HttpException) {
-          exceptions.push(error);
-        }
-        try {
-          throw new BusinessLogicException('Business rule violation', {
-            cause: getResponsePayload(error),
-          });
-        } catch (error: unknown) {
-          if (error instanceof HttpException) {
-            exceptions.push(error);
-          }
-          const finalException = new APIError(
-            'Final API error',
-            HttpStatus.BAD_REQUEST,
-            'FINAL_ERROR',
-            { chain: exceptions.map((e) => getResponsePayload(e)) },
-          );
-          const response = getResponsePayload(finalException);
-          const chain = (response.meta as { chain?: ExceptionResponse[] })
-            .chain;
-
-          expect(chain).toHaveLength(2);
-          expect(chain?.[0]?.title).toBe('Validation Error');
-          expect(chain?.[1]?.title).toBe('Business Logic Error');
-        }
-      }
+      expect(getResponsePayload(finalException).meta?.chain).toEqual([
+        expect.objectContaining({ title: 'Validation Error' }),
+        expect.objectContaining({ title: 'Business Logic Error' }),
+      ]);
     });
 
     it('should handle async exception scenarios', async () => {
@@ -851,9 +837,9 @@ describe('Custom Exceptions Test Suite', () => {
       const exception = new BusinessLogicException('Error', complexMeta);
       const response = getResponsePayload(exception);
 
-      expect(response.meta.array).toEqual([1, 2, 3]);
-      expect(response.meta.nested.deep.value).toBe('test');
-      expect(typeof response.meta.fn).toBe('function');
+      expect(response.meta?.array).toEqual([1, 2, 3]);
+      expect(response.meta?.nested).toEqual({ deep: { value: 'test' } });
+      expect(typeof response.meta?.fn).toBe('function');
     });
   });
 

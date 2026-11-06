@@ -41,7 +41,11 @@ function requireUserCreateHooks(
   if (!before || !after) {
     throw new Error('Better Auth user-create hooks are required');
   }
-  return { after, before };
+  // The hooks ignore Better Auth's endpoint context, so specs pass none.
+  return {
+    after: (user: Parameters<typeof after>[0]) => after(user, null),
+    before: (user: Parameters<typeof before>[0]) => before(user, null),
+  };
 }
 
 function createPrismaMock() {
@@ -473,7 +477,7 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
     const hooks = requireUserCreateHooks(undefined, () => true);
 
     await expect(
-      hooks.before({ email: 'farmer@mailinator.com' } as never, null),
+      hooks.before({ email: 'farmer@mailinator.com' } as never),
     ).rejects.toMatchObject({ body: { code: 'DISPOSABLE_EMAIL' } });
   });
 
@@ -481,7 +485,7 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
     const hooks = requireUserCreateHooks(undefined, () => false);
 
     await expect(
-      hooks.before({ email: 'farmer@mailinator.com' } as never, null),
+      hooks.before({ email: 'farmer@mailinator.com' } as never),
     ).resolves.toEqual({
       data: expect.objectContaining({ email: 'farmer@mailinator.com' }),
     });
@@ -491,7 +495,7 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
     const hooks = requireUserCreateHooks(undefined, () => true);
 
     await expect(
-      hooks.before({ email: 'person@genfeed.ai' } as never, null),
+      hooks.before({ email: 'person@genfeed.ai' } as never),
     ).resolves.toEqual({
       data: expect.objectContaining({ email: 'person@genfeed.ai' }),
     });

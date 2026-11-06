@@ -3,6 +3,7 @@ import { BrandsAgentConfigController } from '@api/collections/brands/controllers
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { SkillsService } from '@api/collections/skills/services/skills.service';
+import { echoSerialize } from '@api-test/helpers/json-api-resource';
 import { BrandSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { Request } from 'express';
@@ -54,9 +55,7 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
     );
 
     vi.clearAllMocks();
-    vi.spyOn(BrandSerializer, 'serialize').mockImplementation((data) => ({
-      data,
-    }));
+    vi.spyOn(BrandSerializer, 'serialize').mockImplementation(echoSerialize);
   });
 
   afterEach(() => {

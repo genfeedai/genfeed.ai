@@ -4,7 +4,7 @@
  */
 import { afterAll, beforeAll } from 'vitest';
 
-process.env.NODE_ENV = 'test';
+Object.assign(process.env, { NODE_ENV: 'test' });
 
 import { join } from 'node:path';
 import { config as loadEnv } from 'dotenv';

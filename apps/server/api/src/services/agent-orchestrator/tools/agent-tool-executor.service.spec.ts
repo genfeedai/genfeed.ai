@@ -7035,14 +7035,14 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(result.data.count).toBe(1);
-    expect(result.data.workflows[0]).toEqual(
+    expect(result.data?.count).toBe(1);
+    expect(result.data?.workflows).toEqual([
       expect.objectContaining({
         id: testId('content'),
         name: 'Content Pipeline',
         status: 'active',
       }),
-    );
+    ]);
   });
 
   it('get_workflows returns empty when no workflows exist', async () => {
@@ -7053,8 +7053,8 @@ describe('AgentToolExecutorService', () => {
     const result = await service.executeTool('get_workflows', {}, CTX);
 
     expect(result.success).toBe(true);
-    expect(result.data.count).toBe(0);
-    expect(result.data.workflows).toEqual([]);
+    expect(result.data?.count).toBe(0);
+    expect(result.data?.workflows).toEqual([]);
   });
 
   it('inspect_workflow returns one workflow without mutating it', async () => {
@@ -7081,7 +7081,7 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(result.data.workflow).toEqual(
+    expect(result.data?.workflow).toEqual(
       expect.objectContaining({
         id: 'wf-1',
         isScheduleEnabled: true,
@@ -7106,11 +7106,11 @@ describe('AgentToolExecutorService', () => {
       'wf-1',
       CTX.userId,
       CTX.organizationId,
-      CTX.brandId,
+      undefined,
       undefined,
       undefined,
     );
-    expect(result.data.workflow).toEqual(
+    expect(result.data?.workflow).toEqual(
       expect.objectContaining({
         id: 'workflow-copy-1',
         label: 'System Workflow (Copy)',
@@ -7290,7 +7290,7 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(result.data.count).toBe(1);
+    expect(result.data?.count).toBe(1);
     expect(workflowExecutionsService.findAll).toHaveBeenCalledWith(
       {
         orderBy: { createdAt: -1 },
@@ -7319,7 +7319,7 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(result.data.run).toEqual({
+    expect(result.data?.run).toEqual({
       id: 'run-1',
       attributes: { progress: 100 },
     });
@@ -7362,17 +7362,17 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(result.data.workflowId).toBe('wf-3');
-    expect(result.data.workflowName).toBe('Weekly Pipeline');
-    expect(result.data.inputs).toHaveLength(2);
-    expect(result.data.inputs[0]).toEqual(
+    expect(result.data?.workflowId).toBe('wf-3');
+    expect(result.data?.workflowName).toBe('Weekly Pipeline');
+    expect(result.data?.inputs).toEqual([
       expect.objectContaining({
         key: 'topic',
         label: 'Topic',
         required: true,
         type: 'text',
       }),
-    );
+      expect.anything(),
+    ]);
   });
 
   it('get_workflow_inputs returns error for non-existent workflow', async () => {

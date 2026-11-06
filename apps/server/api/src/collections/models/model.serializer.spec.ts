@@ -1,32 +1,19 @@
 import { buildCrunContract } from '@api/services/integrations/crun/contracts/crun-contract-import.service';
 import { CRUN_VIDEO_MANIFEST } from '@api/services/integrations/crun/contracts/crun-manifest';
+import { singleResourceAttributes } from '@api-test/helpers/json-api-resource';
 import { IngredientCategory } from '@genfeedai/contracts';
 import { projectCrunInputControls } from '@genfeedai/helpers';
 import { ModelSerializer } from '@genfeedai/serializers';
 
-function serializedAttributes(
-  result: ReturnType<typeof ModelSerializer.serialize>,
-): Record<string, unknown> {
-  if (
-    !result.data ||
-    Array.isArray(result.data) ||
-    result.data.attributes === undefined
-  ) {
-    throw new Error('Expected one serialized model resource');
-  }
-
-  return result.data.attributes;
-}
-
 describe('ModelSerializer', () => {
   it('projects verified audio-reference capability instead of trusting stored flags', () => {
     expect(
-      serializedAttributes(
+      singleResourceAttributes(
         ModelSerializer.serialize({ id: 'h3', key: 'minimax/h3' }),
       ),
     ).toMatchObject({ hasAudioReferences: true, maxAudioReferences: 3 });
     expect(
-      serializedAttributes(
+      singleResourceAttributes(
         ModelSerializer.serialize({
           id: 'other',
           key: 'other/model',
@@ -51,7 +38,7 @@ describe('ModelSerializer', () => {
       updatedAt: now,
     });
 
-    const attributes = serializedAttributes(result);
+    const attributes = singleResourceAttributes(result);
 
     expect(attributes).toHaveProperty('cost', 5);
     expect(attributes).toHaveProperty('isActive', true);
@@ -74,7 +61,7 @@ describe('ModelSerializer', () => {
       credentialFingerprint: 'private',
       providerCostUsd: 0.1,
     });
-    const attributes = serializedAttributes(result);
+    const attributes = singleResourceAttributes(result);
     expect(attributes.inputControls).toEqual({
       version: 'reviewed',
       fields: { resolution: { enum: ['2K', '4K'], default: '2K' } },
@@ -112,7 +99,7 @@ describe('ModelSerializer', () => {
       updatedAt: now,
     });
 
-    const attributes = serializedAttributes(result);
+    const attributes = singleResourceAttributes(result);
 
     expect(attributes).toMatchObject({
       isDiscovered: true,
@@ -132,7 +119,7 @@ describe('Reviewed video model serializer', () => {
     'keeps safe controls for $endpoint and excludes raw evidence',
     (entry) => {
       const contract = buildCrunContract(entry);
-      const result = serializedAttributes(
+      const result = singleResourceAttributes(
         ModelSerializer.serialize({
           id: 'video-model',
           inputControls: projectCrunInputControls(contract),

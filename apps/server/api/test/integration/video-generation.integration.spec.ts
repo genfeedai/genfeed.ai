@@ -5,17 +5,17 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
+import { TestIdFactory } from '@api-test/factories/base.factory';
+import {
+  mockCacheService,
+  mockConfigService,
+  mockLoggerService,
+} from '@api-test/mocks/service.mocks';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { TestIdFactory } from '@test/factories/base.factory';
-import {
-  mockCacheService,
-  mockConfigService,
-  mockLoggerService,
-} from '@test/mocks/service.mocks';
 
 // Mock AWS Service interface (service doesn't exist in codebase)
 interface AWSService {

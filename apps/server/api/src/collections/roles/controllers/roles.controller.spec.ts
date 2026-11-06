@@ -7,8 +7,15 @@ import { RolesController } from '@api/collections/roles/controllers/roles.contro
 import { CreateRoleDto } from '@api/collections/roles/dto/create-role.dto';
 import { UpdateRoleDto } from '@api/collections/roles/dto/update-role.dto';
 import { RoleEntity } from '@api/collections/roles/entities/role.entity';
+import type { RoleDocument } from '@api/collections/roles/schemas/role.schema';
 import { RolesService } from '@api/collections/roles/services/roles.service';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { createPaginatedFixture } from '@api-test/fixtures/ingredient-document.fixture';
+import {
+  adminUser,
+  tenantReadQuery,
+} from '@api-test/helpers/tenant-read.fixture';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -16,18 +23,17 @@ describe('RolesController', () => {
   let controller: RolesController;
   let rolesService: vi.Mocked<RolesService>;
 
-  const mockRole = {
+  const mockRole: RoleDocument = {
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
     id: 'role-id',
     isDeleted: false,
     key: 'admin',
     label: 'admin',
     primaryColor: '#000000',
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   };
 
-  const mockUser = {
-    emailAddresses: [{ emailAddress: 'test@example.com' }],
-    id: 'user-id',
-  };
+  const mockUser = adminUser;
 
   const mockReq = {} as import('express').Request;
 
@@ -95,12 +101,14 @@ describe('RolesController', () => {
 
   describe('findAll', () => {
     it('should return all roles', async () => {
-      rolesService.findAll.mockResolvedValue({
-        docs: [mockRole],
-        totalDocs: 1,
-      });
+      rolesService.findAll.mockResolvedValue(
+        createPaginatedFixture([mockRole]),
+      );
 
-      const result = await controller.findAll(mockReq, {});
+      const result = await controller.findAll(
+        mockReq,
+        tenantReadQuery(BaseQueryDto),
+      );
 
       expect(rolesService.findAll).toHaveBeenCalledWith(
         { where: { isDeleted: false } },
@@ -112,9 +120,9 @@ describe('RolesController', () => {
     it('should throw HttpException when findAll fails', async () => {
       rolesService.findAll.mockRejectedValue(new Error('Fetch failed'));
 
-      await expect(controller.findAll(mockReq, {})).rejects.toThrow(
-        HttpException,
-      );
+      await expect(
+        controller.findAll(mockReq, tenantReadQuery(BaseQueryDto)),
+      ).rejects.toThrow(HttpException);
     });
   });
 

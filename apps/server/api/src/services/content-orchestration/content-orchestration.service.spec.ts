@@ -684,7 +684,7 @@ describe('ContentOrchestrationService', () => {
           c[0].name === 'content.pipeline.step.text-to-image',
       );
       expect(stepCall).toBeDefined();
-      expect(stepCall[0].attributes).toMatchObject({
+      expect(stepCall?.[0].attributes).toMatchObject({
         'pipeline.step.index': 0,
         'pipeline.step.type': 'text-to-image',
       });

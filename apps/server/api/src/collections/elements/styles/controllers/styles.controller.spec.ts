@@ -3,7 +3,9 @@ import { ElementsStylesController } from '@api/collections/elements/styles/contr
 import { CreateElementStyleDto } from '@api/collections/elements/styles/dto/create-style.dto';
 import { UpdateElementStyleDto } from '@api/collections/elements/styles/dto/update-style.dto';
 import { ElementsStylesService } from '@api/collections/elements/styles/services/styles.service';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -92,7 +94,7 @@ describe('ElementsStylesController', () => {
 
   describe('buildFindAllQuery', () => {
     it('should build query with organization filter', () => {
-      const inputQuery = {};
+      const inputQuery = tenantReadQuery(BaseQueryDto);
       const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
       expect(query).toBeDefined();
@@ -113,7 +115,7 @@ describe('ElementsStylesController', () => {
         userId: userId,
       } as unknown as User;
 
-      const inputQuery = {};
+      const inputQuery = tenantReadQuery(BaseQueryDto);
       const query = controller.buildFindAllQuery(userWithoutOrg, inputQuery);
 
       expect(query).toBeDefined();
@@ -124,6 +126,7 @@ describe('ElementsStylesController', () => {
     it('should create a style', async () => {
       const createDto: CreateElementStyleDto = {
         description: 'Modern video style',
+        key: 'modern-style',
         label: 'Modern Style',
       };
 

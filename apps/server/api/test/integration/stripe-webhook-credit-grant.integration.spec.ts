@@ -2,8 +2,7 @@
  * Real-backend proof of the Stripe subscription -> credit-grant money path
  * (#1398, linking #334).
  *
- * Unlike `payment-processing.integration.spec.ts` (which mocks the entire
- * Stripe SDK AND the database), this spec:
+ * Unlike a mocked Stripe flow, this spec:
  *  - Constructs a REAL Stripe webhook signature via the real Stripe SDK
  *    (`stripe.webhooks.generateTestHeaderString` / `constructEventAsync`) and
  *    invokes `StripeWebhookController.handleStripe` directly with the raw,

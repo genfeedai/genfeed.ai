@@ -8,6 +8,7 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { createSafeWebhookHttpsAgent } from '@api/shared/utils/webhook-validator/webhook-validator.util';
+import { axiosResponse } from '@api-test/helpers/axios-response';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -17,8 +18,6 @@ import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GhostService } from './ghost.service';
-
-const makeAxiosResponse = <T>(data: T) => ({ data });
 
 describe('GhostService', () => {
   let service: GhostService;
@@ -114,7 +113,7 @@ describe('GhostService', () => {
         url: 'https://myblog.ghost.io/post-1',
       };
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [mockPost] })),
+        of(axiosResponse({ posts: [mockPost] })),
       );
 
       const result = await service.createPost(
@@ -129,7 +128,7 @@ describe('GhostService', () => {
 
     it('should default to draft status', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
+        of(axiosResponse({ posts: [{ id: '1' }] })),
       );
 
       await service.createPost(ghostUrl, apiKey, 'Title', '<p>Body</p>');
@@ -142,7 +141,7 @@ describe('GhostService', () => {
 
     it('should use published status when specified', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
+        of(axiosResponse({ posts: [{ id: '1' }] })),
       );
 
       await service.createPost(
@@ -161,7 +160,7 @@ describe('GhostService', () => {
 
     it('should include feature image when provided', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
+        of(axiosResponse({ posts: [{ id: '1' }] })),
       );
 
       await service.createPost(
@@ -181,7 +180,7 @@ describe('GhostService', () => {
 
     it('should include tags when provided', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
+        of(axiosResponse({ posts: [{ id: '1' }] })),
       );
 
       await service.createPost(
@@ -202,7 +201,7 @@ describe('GhostService', () => {
 
     it('should set Authorization header with Ghost token', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
+        of(axiosResponse({ posts: [{ id: '1' }] })),
       );
 
       await service.createPost(ghostUrl, apiKey, 'Title', '<p>Body</p>');
@@ -215,7 +214,7 @@ describe('GhostService', () => {
 
     it('should call the correct API URL', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
+        of(axiosResponse({ posts: [{ id: '1' }] })),
       );
 
       await service.createPost(ghostUrl, apiKey, 'Title', '<p>Body</p>');
@@ -229,7 +228,7 @@ describe('GhostService', () => {
 
     it('should name HTML as the content source', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
+        of(axiosResponse({ posts: [{ id: '1' }] })),
       );
 
       await service.createPost(ghostUrl, apiKey, 'Title', '<p>Body</p>');
@@ -252,7 +251,7 @@ describe('GhostService', () => {
 
     it('should normalize URL without protocol', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
+        of(axiosResponse({ posts: [{ id: '1' }] })),
       );
 
       await service.createPost(
@@ -271,7 +270,7 @@ describe('GhostService', () => {
 
     it('should strip trailing slashes from URL', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
+        of(axiosResponse({ posts: [{ id: '1' }] })),
       );
 
       await service.createPost(
@@ -290,7 +289,7 @@ describe('GhostService', () => {
 
     it('should handle a long trailing-slash run without backtracking', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
+        of(axiosResponse({ posts: [{ id: '1' }] })),
       );
 
       await service.createPost(
@@ -313,7 +312,7 @@ describe('GhostService', () => {
 
     it('pins requests to the checked address and refuses redirects', async () => {
       httpService.get.mockReturnValue(
-        of(makeAxiosResponse({ site: { title: 'Blog' } })),
+        of(axiosResponse({ site: { title: 'Blog' } })),
       );
 
       await service.getSiteInfo('https://myblog.ghost.io', apiKey);
@@ -349,9 +348,7 @@ describe('GhostService', () => {
   describe('getSiteInfo', () => {
     it('should return site info from the API', async () => {
       const mockSite = { title: 'My Blog', url: 'https://myblog.ghost.io' };
-      httpService.get.mockReturnValue(
-        of(makeAxiosResponse({ site: mockSite })),
-      );
+      httpService.get.mockReturnValue(of(axiosResponse({ site: mockSite })));
 
       const result = await service.getSiteInfo(
         'https://myblog.ghost.io',
@@ -363,7 +360,7 @@ describe('GhostService', () => {
 
     it('should call the correct site API URL', async () => {
       httpService.get.mockReturnValue(
-        of(makeAxiosResponse({ site: { title: 'Blog' } })),
+        of(axiosResponse({ site: { title: 'Blog' } })),
       );
 
       await service.getSiteInfo(
@@ -389,7 +386,7 @@ describe('GhostService', () => {
       ['myblog.ghost.io', 'https://myblog.ghost.io/ghost/api/admin/site/'],
     ])('reads %s at %s', async (ghostUrl, endpoint) => {
       httpService.get.mockReturnValue(
-        of(makeAxiosResponse({ site: { title: 'Blog' } })),
+        of(axiosResponse({ site: { title: 'Blog' } })),
       );
 
       await service.getSiteInfo(ghostUrl, 'keyid:keysecret0123456789abcdef');
@@ -398,7 +395,7 @@ describe('GhostService', () => {
     });
 
     it('returns no site when the address answers with a page instead', async () => {
-      httpService.get.mockReturnValue(of(makeAxiosResponse('<html></html>')));
+      httpService.get.mockReturnValue(of(axiosResponse('<html></html>')));
 
       const result = await service.getSiteInfo(
         'https://myblog.com',

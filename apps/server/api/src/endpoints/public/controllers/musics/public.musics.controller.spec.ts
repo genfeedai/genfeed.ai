@@ -9,6 +9,7 @@ import {
   createIngredientDocumentFixture,
   createPaginatedFixture,
 } from '@api-test/fixtures/ingredient-document.fixture';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { AssetScope, IngredientStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -118,7 +119,7 @@ describe('PublicMusicsController', () => {
 
   describe('findPublicMusics', () => {
     it('should return public musics list', async () => {
-      const query: BaseQueryDto = { limit: 10, page: 1 };
+      const query = tenantReadQuery(BaseQueryDto, { limit: 10, page: 1 });
       const mockMusics = createPaginatedFixture([
         createIngredientDocumentFixture({ id: 'music1', title: 'Song 1' }),
         createIngredientDocumentFixture({ id: 'music2', title: 'Song 2' }),
@@ -140,7 +141,7 @@ describe('PublicMusicsController', () => {
     });
 
     it('should filter by brand when provided', async () => {
-      const query: BaseQueryDto = { limit: 10, page: 1 };
+      const query = tenantReadQuery(BaseQueryDto, { limit: 10, page: 1 });
       const brandId = testId('brand');
       const mockMusics = createPaginatedFixture([
         createIngredientDocumentFixture({ brandId, id: 'music1' }),
@@ -157,7 +158,7 @@ describe('PublicMusicsController', () => {
     });
 
     it('should filter by tag when provided', async () => {
-      const query: BaseQueryDto = { limit: 10, page: 1 };
+      const query = tenantReadQuery(BaseQueryDto, { limit: 10, page: 1 });
       const tag = 'electronic';
       const mockMusics = createPaginatedFixture([
         createIngredientDocumentFixture({

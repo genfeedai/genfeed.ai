@@ -7,6 +7,7 @@ import {
   ManagedInferenceProvider,
 } from '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
 import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
+import { axiosResponse } from '@api-test/helpers/axios-response';
 import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException } from '@nestjs/common';
@@ -30,8 +31,8 @@ describe('ManagedInferenceClientService', () => {
 
   it('posts genfeedai video requests to the managed inference endpoint', async () => {
     vi.mocked(httpService.post).mockReturnValue(
-      of({
-        data: {
+      of(
+        axiosResponse({
           creditsDebited: 1,
           model: 'genfeedai/wan-i2v-lora',
           operation: ManagedInferenceOperation.VIDEO,
@@ -40,8 +41,8 @@ describe('ManagedInferenceClientService', () => {
             url: 'https://video.test/out.mp4',
           },
           provider: ManagedInferenceProvider.GENFEEDAI,
-        },
-      }),
+        }),
+      ),
     );
 
     const result = await service.generateVideo({
@@ -78,14 +79,14 @@ describe('ManagedInferenceClientService', () => {
 
   it('throws when video output has no URL or job id', async () => {
     vi.mocked(httpService.post).mockReturnValue(
-      of({
-        data: {
+      of(
+        axiosResponse({
           creditsDebited: 1,
           model: 'genfeedai/wan-i2v-lora',
           output: {},
           provider: ManagedInferenceProvider.GENFEEDAI,
-        },
-      }),
+        }),
+      ),
     );
 
     await expect(

@@ -85,7 +85,13 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService as LibsPrismaService } from '@libs/prisma/prisma.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
-import { DynamicModule, ExecutionContext, Module, Type } from '@nestjs/common';
+import {
+  DynamicModule,
+  ExecutionContext,
+  Module,
+  type Provider,
+  Type,
+} from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { TestingModule } from '@nestjs/testing';
@@ -415,7 +421,7 @@ export interface E2ETestModuleOptions {
   /** Additional controllers to include */
   controllers?: Type<unknown>[];
   /** Additional providers to include */
-  providers?: unknown[];
+  providers?: Provider[];
   /** Custom config overrides */
   configOverrides?: Record<string, unknown>;
   /** Whether to use mock guards (default: true) */

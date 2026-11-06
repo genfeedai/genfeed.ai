@@ -153,8 +153,11 @@ describe('SpeechController', () => {
 
       expect(replicateService.transcribeAudio).toHaveBeenCalled();
       expect(result).toBeDefined();
-      expect(result.confidence).toBe(mockTranscriptionResult.confidence);
-      expect(result.text).toBe(mockTranscriptionResult.text);
+      expect(result).toHaveProperty(
+        'confidence',
+        mockTranscriptionResult.confidence,
+      );
+      expect(result).toHaveProperty('text', mockTranscriptionResult.text);
     });
 
     it('should transcribe with custom language', async () => {
@@ -214,7 +217,7 @@ describe('SpeechController', () => {
 
       expect(replicateService.transcribeAudio).toHaveBeenCalled();
       expect(result).toBeDefined();
-      expect(result.text).toBe(mockTranscriptionResult.text);
+      expect(result).toHaveProperty('text', mockTranscriptionResult.text);
     });
 
     it('should throw HttpException when URL is missing', async () => {

@@ -9,6 +9,7 @@ import { WorkflowsService } from '@api/collections/workflows/services/workflows.
 import { EXCLUDE_SYSTEM_WORKFLOW } from '@api/collections/workflows/utils/workflow-list-where.util';
 import { toWorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import { WorkflowStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
@@ -162,7 +163,11 @@ describe('WorkflowCrudController', () => {
         totalDocs: 0,
       });
 
-      await controller.findAll(mockRequest, mockUser, { referencable: true });
+      await controller.findAll(
+        mockRequest,
+        mockUser,
+        tenantReadQuery(WorkflowQueryDto, { referencable: true }),
+      );
 
       expect(mockWorkflowsService.findAll).toHaveBeenCalled();
       const [aggregateArg] =
@@ -187,7 +192,11 @@ describe('WorkflowCrudController', () => {
         totalPages: 1,
       });
 
-      const result = await controller.findAll(mockRequest, mockUser, {});
+      const result = await controller.findAll(
+        mockRequest,
+        mockUser,
+        tenantReadQuery(WorkflowQueryDto),
+      );
 
       expect(service.findAll).toHaveBeenCalled();
       const [aggregateArg] =
@@ -237,7 +246,11 @@ describe('WorkflowCrudController', () => {
         totalDocs: 0,
       });
 
-      await controller.findAll(mockRequest, mockUser, { brandId });
+      await controller.findAll(
+        mockRequest,
+        mockUser,
+        tenantReadQuery(WorkflowQueryDto, { brandId }),
+      );
 
       const [aggregateArg] =
         mockWorkflowsService.findAll.mock.calls[
@@ -255,9 +268,13 @@ describe('WorkflowCrudController', () => {
       const stats = { active: 5, completed: 2, draft: 3, total: 10 };
       mockWorkflowsService.getWorkflowStatistics.mockResolvedValue(stats);
 
-      const result = await controller.findAll(mockRequest, mockUser, {
-        view: 'statistics',
-      });
+      const result = await controller.findAll(
+        mockRequest,
+        mockUser,
+        tenantReadQuery(WorkflowQueryDto, {
+          view: 'statistics',
+        }),
+      );
 
       expect(service.getWorkflowStatistics).toHaveBeenCalledWith(
         mockUser.userId,
@@ -280,9 +297,13 @@ describe('WorkflowCrudController', () => {
         catalog,
       );
 
-      const result = await controller.findAll(mockRequest, mockUser, {
-        source: 'system-catalog',
-      });
+      const result = await controller.findAll(
+        mockRequest,
+        mockUser,
+        tenantReadQuery(WorkflowQueryDto, {
+          source: 'system-catalog',
+        }),
+      );
 
       expect(
         mockSystemWorkflowCatalogService.listCatalogForOrganization,

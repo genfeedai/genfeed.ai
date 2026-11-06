@@ -1,5 +1,6 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { axiosResponse } from '@api-test/helpers/axios-response';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -12,8 +13,6 @@ import { SnapchatService } from './snapchat.service';
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn() },
 }));
-
-const makeAxiosResponse = <T>(data: T) => ({ data });
 
 describe('SnapchatService', () => {
   let service: SnapchatService;
@@ -120,7 +119,7 @@ describe('SnapchatService', () => {
     it('returns accessToken and refreshToken on success', async () => {
       httpService.post.mockReturnValue(
         of(
-          makeAxiosResponse({
+          axiosResponse({
             access_token: 'acc-tok',
             refresh_token: 'ref-tok',
           }),
@@ -137,7 +136,7 @@ describe('SnapchatService', () => {
 
     it('sends correct grant_type in request body', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ access_token: 'tok' })),
+        of(axiosResponse({ access_token: 'tok' })),
       );
 
       await service.exchangeCodeForToken('code');
@@ -148,7 +147,7 @@ describe('SnapchatService', () => {
 
     it('uses Basic auth header with base64-encoded credentials', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ access_token: 'tok' })),
+        of(axiosResponse({ access_token: 'tok' })),
       );
 
       await service.exchangeCodeForToken('code');
@@ -195,7 +194,7 @@ describe('SnapchatService', () => {
       credentialsService.findOne.mockResolvedValue(mockCredential);
       vi.mocked(EncryptionUtil.decrypt).mockReturnValue('plain-refresh-token');
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ access_token: 'new-acc', expires_in: 3600 })),
+        of(axiosResponse({ access_token: 'new-acc', expires_in: 3600 })),
       );
       credentialsService.patch.mockResolvedValue({} as never);
 
@@ -208,7 +207,7 @@ describe('SnapchatService', () => {
       credentialsService.findOne.mockResolvedValue(mockCredential);
       vi.mocked(EncryptionUtil.decrypt).mockReturnValue('plain-refresh-token');
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ access_token: 'new-acc', expires_in: 3600 })),
+        of(axiosResponse({ access_token: 'new-acc', expires_in: 3600 })),
       );
       credentialsService.patch.mockResolvedValue({} as never);
 
@@ -247,7 +246,7 @@ describe('SnapchatService', () => {
   describe('createMedia', () => {
     it('returns the media ID from the API response', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ media: [{ media: { id: 'media-id-1' } }] })),
+        of(axiosResponse({ media: [{ media: { id: 'media-id-1' } }] })),
       );
 
       const result = await service.createMedia(
@@ -263,7 +262,7 @@ describe('SnapchatService', () => {
 
     it('uses Bearer token in Authorization header', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ media: [{ media: { id: 'x' } }] })),
+        of(axiosResponse({ media: [{ media: { id: 'x' } }] })),
       );
 
       await service.createMedia(
@@ -296,7 +295,7 @@ describe('SnapchatService', () => {
     it('returns the creative ID from the API response', async () => {
       httpService.post.mockReturnValue(
         of(
-          makeAxiosResponse({
+          axiosResponse({
             creatives: [{ creative: { id: 'creative-123' } }],
           }),
         ),
@@ -309,7 +308,7 @@ describe('SnapchatService', () => {
 
     it('includes the headline in the request when provided', async () => {
       httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ creatives: [{ creative: { id: 'x' } }] })),
+        of(axiosResponse({ creatives: [{ creative: { id: 'x' } }] })),
       );
 
       await service.publishStory('tok', 'acct', 'media-123', 'Check this out!');

@@ -6,6 +6,7 @@ import type { FolderDocument } from '@api/collections/folders/schemas/folder.sch
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { echoSerialize } from '@api-test/helpers/json-api-resource';
 import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { FolderSerializer } from '@genfeedai/serializers';
@@ -130,9 +131,7 @@ describe('FoldersController', () => {
     foldersService = module.get(FoldersService);
     _loggerService = module.get(LoggerService);
 
-    vi.spyOn(FolderSerializer, 'serialize').mockImplementation((data) => ({
-      data,
-    }));
+    vi.spyOn(FolderSerializer, 'serialize').mockImplementation(echoSerialize);
   });
 
   afterEach(() => {
@@ -145,7 +144,7 @@ describe('FoldersController', () => {
 
   describe('buildFindAllQuery', () => {
     it('should build query with current brand and organization scope', () => {
-      const query: BaseQueryDto = {};
+      const query = tenantReadQuery(BaseQueryDto);
 
       const result = controller.buildFindAllQuery(mockUser, query);
 
@@ -168,7 +167,7 @@ describe('FoldersController', () => {
     });
 
     it('should handle deleted items', () => {
-      const query: BaseQueryDto = { isDeleted: true };
+      const query = tenantReadQuery(BaseQueryDto, { isDeleted: true });
 
       const result = controller.buildFindAllQuery(mockUser, query);
 
@@ -983,11 +982,11 @@ describe('FoldersController', () => {
 
       foldersService.findAll.mockResolvedValue(mockFolders);
 
-      const query: BaseQueryDto = {
+      const query = tenantReadQuery(BaseQueryDto, {
         isDeleted: false,
         limit: 10,
         page: 1,
-      };
+      });
 
       const result = await controller.findAll(mockRequest, mockUser, query);
 
@@ -1011,11 +1010,11 @@ describe('FoldersController', () => {
 
       foldersService.findAll.mockResolvedValue(mockFolders);
 
-      const query: BaseQueryDto = {
+      const query = tenantReadQuery(BaseQueryDto, {
         isDeleted: false,
         limit: 10,
         page: 1,
-      };
+      });
 
       const result = await controller.findAll(mockRequest, mockUser, query);
 

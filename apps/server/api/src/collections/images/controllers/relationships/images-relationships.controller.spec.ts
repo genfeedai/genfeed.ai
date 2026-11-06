@@ -1,7 +1,9 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { ImagesRelationshipsController } from '@api/collections/images/controllers/relationships/images-relationships.controller';
+import { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -67,14 +69,22 @@ describe('ImagesRelationshipsController', () => {
 
   describe('findChildren', () => {
     it('should return child images', async () => {
-      const result = await controller.findChildren(mockRequest, imageId, {});
+      const result = await controller.findChildren(
+        mockRequest,
+        imageId,
+        tenantReadQuery(ImagesQueryDto),
+      );
 
       expect(imagesService.findAll).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
     it('should filter by canonical parentId in aggregate pipeline', async () => {
-      await controller.findChildren(mockRequest, imageId, {});
+      await controller.findChildren(
+        mockRequest,
+        imageId,
+        tenantReadQuery(ImagesQueryDto),
+      );
 
       const callArgs = (imagesService.findAll as ReturnType<typeof vi.fn>).mock
         .calls[0];
@@ -84,7 +94,11 @@ describe('ImagesRelationshipsController', () => {
     });
 
     it('should include isDeleted filter in pipeline', async () => {
-      await controller.findChildren(mockRequest, imageId, {});
+      await controller.findChildren(
+        mockRequest,
+        imageId,
+        tenantReadQuery(ImagesQueryDto),
+      );
 
       const callArgs = (imagesService.findAll as ReturnType<typeof vi.fn>).mock
         .calls[0];
@@ -93,7 +107,11 @@ describe('ImagesRelationshipsController', () => {
     });
 
     it('should include orderBy stage in pipeline', async () => {
-      await controller.findChildren(mockRequest, imageId, {});
+      await controller.findChildren(
+        mockRequest,
+        imageId,
+        tenantReadQuery(ImagesQueryDto),
+      );
 
       const callArgs = (imagesService.findAll as ReturnType<typeof vi.fn>).mock
         .calls[0];
@@ -102,7 +120,11 @@ describe('ImagesRelationshipsController', () => {
     });
 
     it('should pass pagination options to findAll', async () => {
-      await controller.findChildren(mockRequest, imageId, {});
+      await controller.findChildren(
+        mockRequest,
+        imageId,
+        tenantReadQuery(ImagesQueryDto),
+      );
 
       const callArgs = (imagesService.findAll as ReturnType<typeof vi.fn>).mock
         .calls[0];

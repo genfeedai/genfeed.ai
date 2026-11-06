@@ -280,7 +280,7 @@ describe('GifsController', () => {
         id: 'cmvote00000000000000000001',
       });
       const result = await controller.findOne(mockRequest, gifId, mockUser);
-      expect(result.hasVoted).toBe(true);
+      expect(result).toHaveProperty('hasVoted', true);
     });
   });
 

@@ -150,8 +150,8 @@ describe('GenerateController', () => {
         brandId: 'b1',
       } as never);
 
-      expect(result.meta.page).toBe(1);
-      expect(result.meta.totalDocs).toBe(1);
+      expect(result.meta?.page).toBe(1);
+      expect(result.meta?.totalDocs).toBe(1);
     });
 
     it('should pass organizationId as ObjectId to service', async () => {

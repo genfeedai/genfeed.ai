@@ -9,6 +9,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import { echoSerialize } from '@api-test/helpers/json-api-resource';
 import { BrandVoiceFailureCode } from '@genfeedai/contracts/interfaces';
 import { BrandSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -51,9 +52,7 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
     generateBrandVoice = vi.fn();
     updateAgentConfig = vi.fn().mockResolvedValue(mockBrand);
 
-    vi.spyOn(BrandSerializer, 'serialize').mockImplementation((data) => ({
-      data,
-    }));
+    vi.spyOn(BrandSerializer, 'serialize').mockImplementation(echoSerialize);
 
     const moduleRef = await Test.createTestingModule({
       controllers: [BrandsAgentConfigController],

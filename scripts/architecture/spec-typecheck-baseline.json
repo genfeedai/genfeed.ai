@@ -1,46 +1,6 @@
 {
   "entries": [
     {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/auth/better-auth/better-auth.factory.spec.ts",
-      "fingerprint": "066075da7594fbbe6592",
-      "message": "Expected 2 arguments, but got 1.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 2,
-      "file": "apps/server/api/src/auth/better-auth/better-auth.factory.spec.ts",
-      "fingerprint": "2b6dd83ae3d8ca55ceed",
-      "message": "Expected 2 arguments, but got 1.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/auth/better-auth/better-auth.factory.spec.ts",
-      "fingerprint": "7e1c60104d9567ba8a33",
-      "message": "Expected 2 arguments, but got 1.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/auth/better-auth/better-auth.factory.spec.ts",
-      "fingerprint": "8e15853a570f1101e59a",
-      "message": "Expected 2 arguments, but got 1.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/auth/better-auth/better-auth.factory.spec.ts",
-      "fingerprint": "aba598d6663e4953096d",
-      "message": "Expected 2 arguments, but got 1.",
-      "workspace": "api"
-    },
-    {
       "code": 5097,
       "count": 1,
       "file": "apps/server/api/src/auth/services/auth-desktop.service.spec.ts",
@@ -81,62 +41,6 @@
       "workspace": "api"
     },
     {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/api-keys/entities/api-key.entity.spec.ts",
-      "fingerprint": "298af8a3426d3e23c2ea",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/api-keys/services/api-keys.service.spec.ts",
-      "fingerprint": "6c7ee7e98711fa0856b6",
-      "message": "Type 'Mock<Procedure | Constructable>' is not assignable to type '((keyId: string) => Promise<{ description: string | null; id: string; key: string; createdAt: Date; expiresAt: Date | null; organizationId: string; userId: string; updatedAt: Date; ... 12 more ...; keyFingerprint: string | null; } | null>) & Mock<...>'.   Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '((keyId: string) => Promise<{ description: string | null; id: string; key: string; createdAt: Date; expiresAt: Date | null; organizationId: string; userId: string; updatedAt: Date; ... 12 more ...; keyFingerprint: string | null; } | null>) & Mock<...>'.     Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '((keyId: string) => Promise<{ description: string | null; id: string; key: string; createdAt: Date; expiresAt: Date | null; organizationId: string; userId: string; updatedAt: Date; ... 12 more ...; keyFingerprint: string | null; } | null>) & MockInstance<...> & { ...; } & {}'.       Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '(keyId: string) => Promise<{ description: string | null; id: string; key: string; createdAt: Date; expiresAt: Date | null; organizationId: string; userId: string; updatedAt: Date; ... 12 more ...; keyFingerprint: string | null; } | null>'.         Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' provides no match for the signature '(keyId: string): Promise<{ description: string | null; id: string; key: string; createdAt: Date; expiresAt: Date | null; organizationId: string; userId: string; updatedAt: Date; ... 12 more ...; keyFingerprint: string | null; } | null>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/api-keys/services/api-keys.service.spec.ts",
-      "fingerprint": "77b4f74ba18d230486d2",
-      "message": "Type 'Mock<Procedure | Constructable>' is not assignable to type '((createApiKeyDto: CreateApiKeyDto & { userId: string; organizationId: string; }, trustedOrigin?: ActionOrigin.CLI | ActionOrigin.MCP | ActionOrigin.UI | undefined) => Promise<...>) & Mock<...>'.   Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '((createApiKeyDto: CreateApiKeyDto & { userId: string; organizationId: string; }, trustedOrigin?: ActionOrigin.CLI | ActionOrigin.MCP | ActionOrigin.UI | undefined) => Promise<...>) & Mock<...>'.     Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '((createApiKeyDto: CreateApiKeyDto & { userId: string; organizationId: string; }, trustedOrigin?: ActionOrigin.CLI | ActionOrigin.MCP | ActionOrigin.UI | undefined) => Promise<...>) & MockInstance<...> & { ...; } & {}'.       Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '(createApiKeyDto: CreateApiKeyDto & { userId: string; organizationId: string; }, trustedOrigin?: ActionOrigin.CLI | ActionOrigin.MCP | ActionOrigin.UI | undefined) => Promise<...>'.         Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' provides no match for the signature '(createApiKeyDto: CreateApiKeyDto & { userId: string; organizationId: string; }, trustedOrigin?: ActionOrigin.CLI | ActionOrigin.MCP | ActionOrigin.UI | undefined): Promise<...>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2352,
-      "count": 3,
-      "file": "apps/server/api/src/collections/api-keys/services/api-keys.service.spec.ts",
-      "fingerprint": "4365980f4f7baf5e24cf",
-      "message": "Conversion of type '{ metadata: { actionOrigin: ActionOrigin; actionOriginProof: string; }; keyFingerprint: string; organizationId: string; userId: string; }' to type '{ description: string | null; id: string; key: string; createdAt: Date; expiresAt: Date | null; organizationId: string; userId: string; updatedAt: Date; label: string; category: ApiKeyCategory; ... 10 more ...; keyFingerprint: string | null; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ metadata: { actionOrigin: ActionOrigin; actionOriginProof: string; }; keyFingerprint: string; organizationId: string; userId: string; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; expiresAt: Date | null; organizationId: string; userId: string; updatedAt: Date; label: string; category: ApiKeyCategory; ... 10 more ...; keyFingerprint: string | null; }': description, id, key, createdAt, and 13 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/articles/entities/article.entity.spec.ts",
-      "fingerprint": "fc39f5918d38a7dcd001",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/collections/assets/controllers/assets.controller.spec.ts",
-      "fingerprint": "1bf359b4112326fbb057",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'AssetQueryDto'.   Type '{}' is missing the following properties from type 'AssetQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/assets/entities/asset.entity.spec.ts",
-      "fingerprint": "9cfa1dda2e6c0eb76234",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
       "code": 2339,
       "count": 1,
       "file": "apps/server/api/src/collections/avatars/controllers/avatars.controller.spec.ts",
@@ -145,99 +49,11 @@
       "workspace": "api"
     },
     {
-      "code": 18047,
-      "count": 3,
-      "file": "apps/server/api/src/collections/avatars/controllers/avatars.controller.spec.ts",
-      "fingerprint": "df30707110727ba96479",
-      "message": "'result.data' is possibly 'null'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 3,
-      "file": "apps/server/api/src/collections/avatars/controllers/avatars.controller.spec.ts",
-      "fingerprint": "117c8a34da82f9702ba1",
-      "message": "'result.data.attributes' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/avatars/entities/avatar.entity.spec.ts",
-      "fingerprint": "43264196607e7f6f8402",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/bookmarks/entities/bookmark.entity.spec.ts",
-      "fingerprint": "309febe07e3a76133930",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/bots/entities/bot.entity.spec.ts",
-      "fingerprint": "8edf10ab116633389b6f",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/brands/controllers/brands-agent-config.controller.http.spec.ts",
-      "fingerprint": "7cf96935958dc3cb98df",
-      "message": "Type 'unknown' is not assignable to type 'JsonApiResource | JsonApiResource[] | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/brands/controllers/brands-agent-config.controller.spec.ts",
-      "fingerprint": "2d02c0bee1ef4705d0cc",
-      "message": "Type 'unknown' is not assignable to type 'JsonApiResource | JsonApiResource[] | undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "apps/server/api/src/collections/brands/controllers/brands-agent-config.controller.spec.ts",
       "fingerprint": "a29dc8bdefd547ba81ba",
       "message": "Type 'string' is not assignable to type 'string[]'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/brands/controllers/brands.controller.spec.ts",
-      "fingerprint": "d2670ff52a19086fe4f9",
-      "message": "Type 'unknown' is not assignable to type 'JsonApiResource | JsonApiResource[] | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/brands/controllers/brands.controller.spec.ts",
-      "fingerprint": "e805658c2a3192efe1bc",
-      "message": "Argument of type 'AggregatePaginateResult<unknown>' is not assignable to parameter of type 'AggregatePaginateResult<BrandDocument>'.   Type 'unknown' is not assignable to type 'BrandDocument'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/server/api/src/collections/brands/controllers/brands.controller.spec.ts",
-      "fingerprint": "7a3f299d91a69d25b33b",
-      "message": "Property 'sort' is missing in type '{ isDeleted: false; limit: number; page: number; }' but required in type 'BaseQueryDto'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/brands/entities/brand.entity.spec.ts",
-      "fingerprint": "5237dab96be56af47835",
-      "message": "Expected 1 arguments, but got 0.",
       "workspace": "api"
     },
     {
@@ -273,131 +89,11 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-intelligence/controllers/generate.controller.spec.ts",
-      "fingerprint": "0ce2d2f59f203677bfd7",
-      "message": "'result.meta' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-intelligence/controllers/generate.controller.spec.ts",
-      "fingerprint": "e36841351cb2b2969047",
-      "message": "'result.meta' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2820,
       "count": 1,
       "file": "apps/server/api/src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts",
       "fingerprint": "08f4a05eebc729f1f53b",
       "message": "Type '\"video\"' is not assignable to type 'PostCategory'. Did you mean '\"VIDEO\"'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-runs/content-run.serializer.spec.ts",
-      "fingerprint": "8ca3e8679499b26057d4",
-      "message": "Property 'attributes' does not exist on type 'JsonApiResource | JsonApiResource[]'.   Property 'attributes' does not exist on type 'JsonApiResource[]'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-runs/content-run.serializer.spec.ts",
-      "fingerprint": "8d3da97b969cf4dd3ca9",
-      "message": "Property 'attributes' does not exist on type 'JsonApiResource | JsonApiResource[]'.   Property 'attributes' does not exist on type 'JsonApiResource[]'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-runs/content-run.serializer.spec.ts",
-      "fingerprint": "cf93ef0386d0c15a529b",
-      "message": "Property 'attributes' does not exist on type 'JsonApiResource | JsonApiResource[]'.   Property 'attributes' does not exist on type 'JsonApiResource[]'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-runs/content-run.serializer.spec.ts",
-      "fingerprint": "d423e9f337547ceac7b9",
-      "message": "Property 'attributes' does not exist on type 'JsonApiResource | JsonApiResource[]'.   Property 'attributes' does not exist on type 'JsonApiResource[]'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 5,
-      "file": "apps/server/api/src/collections/content-runs/content-run.serializer.spec.ts",
-      "fingerprint": "e7816eb740a7ba4b37a0",
-      "message": "Property 'attributes' does not exist on type 'JsonApiResource | JsonApiResource[]'.   Property 'attributes' does not exist on type 'JsonApiResource[]'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-runs/content-run.serializer.spec.ts",
-      "fingerprint": "0997a7f08e7ecd346bfc",
-      "message": "'result.data' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-runs/content-run.serializer.spec.ts",
-      "fingerprint": "15fdb44a70664d229e2b",
-      "message": "'result.data' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-runs/content-run.serializer.spec.ts",
-      "fingerprint": "1e9d11706ec8c85d7a8c",
-      "message": "'result.data' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-runs/content-run.serializer.spec.ts",
-      "fingerprint": "36be62caa4fb1998ee44",
-      "message": "'result.data' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 5,
-      "file": "apps/server/api/src/collections/content-runs/content-run.serializer.spec.ts",
-      "fingerprint": "5efc622e5d5e457aabd0",
-      "message": "'result.data' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/credits/entities/credit-balance.entity.spec.ts",
-      "fingerprint": "c06811f67ff6582b64bc",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/credits/entities/credit-transactions.entity.spec.ts",
-      "fingerprint": "8a0d8d3324a5a5127480",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/customers/entities/customer.entity.spec.ts",
-      "fingerprint": "358798b83ecb496d215e",
-      "message": "Expected 1 arguments, but got 0.",
       "workspace": "api"
     },
     {
@@ -417,118 +113,6 @@
       "workspace": "api"
     },
     {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/elements/blacklists/entities/blacklist.entity.spec.ts",
-      "fingerprint": "e070317523fa16e3b7c5",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/elements/camera-movements/entities/camera-movement.entity.spec.ts",
-      "fingerprint": "d4201b46dbb07d24b37f",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/elements/cameras/entities/camera.entity.spec.ts",
-      "fingerprint": "742d392cb7dd27767afc",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 10,
-      "file": "apps/server/api/src/collections/elements/elements.controller.spec.ts",
-      "fingerprint": "fdb1d0a346179bd8f428",
-      "message": "Argument of type '{ blacklists: { _id: string; label: string; }[]; cameraMovements: { _id: string; label: string; }[]; cameras: { _id: string; label: string; }[]; lenses: { _id: string; label: string; }[]; lightings: { _id: string; label: string; }[]; moods: { ...; }[]; scenes: { ...; }[]; sounds: { ...; }[]; styles: { ...; }[]; }' is not assignable to parameter of type '{ blacklists: { description: string | null; id: string; key: string | null; createdAt: Date; organizationId: string; isDeleted: boolean; updatedAt: Date; label: string | null; category: string | null; }[]; ... 7 more ...; styles: ({ ...; } & { ...; })[]; }'.   Types of property 'blacklists' are incompatible.     Type '{ _id: string; label: string; }[]' is not assignable to type '{ description: string | null; id: string; key: string | null; createdAt: Date; organizationId: string; isDeleted: boolean; updatedAt: Date; label: string | null; category: string | null; }[]'.       Type '{ _id: string; label: string; }' is missing the following properties from type '{ description: string | null; id: string; key: string | null; createdAt: Date; organizationId: string; isDeleted: boolean; updatedAt: Date; label: string | null; category: string | null; }': description, id, key, createdAt, and 4 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/elements/lenses/entities/lens.entity.spec.ts",
-      "fingerprint": "6c8460e5a5175656dcbe",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/elements/lightings/entities/lighting.entity.spec.ts",
-      "fingerprint": "5461c4eec4d526de0293",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/elements/moods/entities/mood.entity.spec.ts",
-      "fingerprint": "b8fdf2c6922b4e544f3d",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/elements/scenes/entities/scene.entity.spec.ts",
-      "fingerprint": "ffe775f2a579e2ad8fa3",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/elements/styles/controllers/styles.controller.spec.ts",
-      "fingerprint": "1557dba457f3ac8c085b",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'BaseQueryDto'.   Type '{}' is missing the following properties from type 'BaseQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/elements/styles/controllers/styles.controller.spec.ts",
-      "fingerprint": "9a66be989d73567820a0",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'BaseQueryDto'.   Type '{}' is missing the following properties from type 'BaseQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/server/api/src/collections/elements/styles/controllers/styles.controller.spec.ts",
-      "fingerprint": "5d3219c41f5d612b678e",
-      "message": "Property 'key' is missing in type '{ description: string; label: string; }' but required in type 'CreateElementStyleDto'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/elements/styles/entities/style.entity.spec.ts",
-      "fingerprint": "002cba638f76fc3d124e",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/evaluations/controllers/evaluations.controller.spec.ts",
-      "fingerprint": "262253cdeffec90f0288",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'EvaluationsQueryDto'.   Type '{}' is missing the following properties from type 'EvaluationsQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/evaluations/controllers/evaluations.controller.spec.ts",
-      "fingerprint": "fa8702eac43c38e8bac4",
-      "message": "Argument of type '{ entityId: string; entityType: \"posts\"; }' is not assignable to parameter of type 'EvaluationsQueryDto'.   Type '{ entityId: string; entityType: \"posts\"; }' is missing the following properties from type 'EvaluationsQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/evaluations/services/evaluations-operations.service.spec.ts",
@@ -545,67 +129,11 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "11eac354e7ac2f46c174",
-      "message": "Type 'unknown' is not assignable to type 'JsonApiResource | JsonApiResource[] | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "28a927ab4276eae0d82f",
-      "message": "Type '{ isDeleted: true; }' is missing the following properties from type 'BaseQueryDto': page, limit, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "a4cddb3220efdfcb3c98",
-      "message": "Type '{}' is missing the following properties from type 'BaseQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2741,
-      "count": 2,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "368aa8918b7b455a2bcc",
-      "message": "Property 'sort' is missing in type '{ isDeleted: false; limit: number; page: number; }' but required in type 'BaseQueryDto'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/folders/entities/folder.entity.spec.ts",
-      "fingerprint": "b1217f9a381ccee4c02a",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
       "code": 2353,
       "count": 1,
       "file": "apps/server/api/src/collections/font-families/controllers/font-families.controller.spec.ts",
       "fingerprint": "0303f8532346134c3bba",
       "message": "Object literal may only specify known properties, and 'category' does not exist in type 'ElementDto'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/font-families/entities/font-family.entity.spec.ts",
-      "fingerprint": "4f4846d32ef60e937f8d",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/gifs/controllers/gifs.controller.spec.ts",
-      "fingerprint": "84c73fd2c5f83ab98451",
-      "message": "Property 'hasVoted' does not exist on type 'JsonApiSingleResponse<unknown>'.",
       "workspace": "api"
     },
     {
@@ -622,30 +150,6 @@
       "file": "apps/server/api/src/collections/images/controllers/operations/images-operations.controller.spec.ts",
       "fingerprint": "0481d5ba5cf7633047ad",
       "message": "Property 'text' is missing in type '{ height: number; width: number; }' but required in type 'CreateImageDto'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 4,
-      "file": "apps/server/api/src/collections/images/controllers/relationships/images-relationships.controller.spec.ts",
-      "fingerprint": "1fb229bfeaf8276b585d",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'ImagesQueryDto'.   Type '{}' is missing the following properties from type 'ImagesQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/images/controllers/relationships/images-relationships.controller.spec.ts",
-      "fingerprint": "e521f065eca920632714",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'ImagesQueryDto'.   Type '{}' is missing the following properties from type 'ImagesQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/images/entities/image.entity.spec.ts",
-      "fingerprint": "4de0ba2062a7b0354f4f",
-      "message": "Expected 1 arguments, but got 0.",
       "workspace": "api"
     },
     {
@@ -678,126 +182,6 @@
       "file": "apps/server/api/src/collections/insights/controllers/insights.controller.spec.ts",
       "fingerprint": "7a3239c7597c2c6a008f",
       "message": "Variable 'insights' implicitly has type 'any[]' in some locations where its type cannot be determined.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/links/entities/link.entity.spec.ts",
-      "fingerprint": "fc4fdccd7cfb9a680db9",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "ca93bd38d2c42db43dd6",
-      "message": "Type 'unknown' is not assignable to type 'JsonApiResource | JsonApiResource[] | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "377c68b120fe7b510be4",
-      "message": "Argument of type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; }': description, createdAt, organizationId, isDeleted, and 65 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "430ef02eaed2cb56ea1e",
-      "message": "Argument of type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is not assignable to parameter of type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; } & ServerModelRecord'.   Type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; }': description, createdAt, organizationId, isDeleted, and 65 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "434982dad1c60fba0b12",
-      "message": "Argument of type '{ docs: { id: string; key: string; label: string; type: string; }[]; hasNextPage: boolean; hasPrevPage: boolean; limit: number; nextPage: null; page: number; pagingCounter: number; prevPage: null; totalDocs: number; totalPages: number; }' is not assignable to parameter of type 'AggregatePaginateResult<ModelDocument>'.   Types of property 'docs' are incompatible.     Type '{ id: string; key: string; label: string; type: string; }[]' is not assignable to type 'ModelDocument[]'.       Type '{ id: string; key: string; label: string; type: string; }' is not assignable to type 'ModelDocument'.         Type '{ id: string; key: string; label: string; type: string; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; }': description, createdAt, organizationId, isDeleted, and 68 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "68abc46b70741edbef50",
-      "message": "Argument of type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; }': description, createdAt, organizationId, isDeleted, and 65 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "713a1c1fc74fc89c9699",
-      "message": "Argument of type '{ id: string; isActive: boolean; key: string; reviewStatus: string; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isActive: boolean; key: string; reviewStatus: string; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; }': description, createdAt, organizationId, isDeleted, and 67 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "cafd4c3013631abde491",
-      "message": "Argument of type '{ label: string; description?: string; category: ModelCategory; key: string; endpoint?: string; provider: ModelProvider; cost: number; lifecycle?: ModelLifecycle; succeededBy?: string; ... 15 more ...; id: string; }' is not assignable to parameter of type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; } & ServerModelRecord'.   Type '{ label: string; description?: string | undefined; category: ModelCategory; key: string; endpoint?: string | undefined; provider: ModelProvider; cost: number; ... 17 more ...; id: string; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; }': createdAt, isDeleted, updatedAt, aspectRatios, and 47 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "d26e34dbcca19b34feae",
-      "message": "Argument of type '{ id: string; isActive: boolean; key: string; reviewStatus: string; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isActive: boolean; key: string; reviewStatus: string; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; }': description, createdAt, organizationId, isDeleted, and 67 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "da69cb86d621d7e36308",
-      "message": "Argument of type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; }': description, createdAt, organizationId, isDeleted, and 65 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 2,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "227c75fd69efbd467a8c",
-      "message": "Type '{ isDeleted: true; sort: string; }' is missing the following properties from type 'ModelsQueryDto': page, limit",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 3,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "698933e8bc773c620bf5",
-      "message": "Type '{}' is missing the following properties from type 'ModelsQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "2481be6d856b50a34bcf",
-      "message": "Property 'sort' is missing in type '{ isDeleted: false; limit: number; page: number; }' but required in type 'ModelsQueryDto'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/entities/model.entity.spec.ts",
-      "fingerprint": "616b4cd8953278802f9f",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/musics/entities/music.entity.spec.ts",
-      "fingerprint": "9d365df5d82121d73ba3",
-      "message": "Expected 1 arguments, but got 0.",
       "workspace": "api"
     },
     {
@@ -841,22 +225,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/collections/organizations/controllers/organizations-members.controller.spec.ts",
-      "fingerprint": "c9673d9a733c5dbdb78b",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'BaseQueryDto'.   Type '{}' is missing the following properties from type 'BaseQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/organizations/entities/organization.entity.spec.ts",
-      "fingerprint": "af1291dc1ed1c5f116b2",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
       "code": 2353,
       "count": 1,
       "file": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.spec.ts",
@@ -873,75 +241,11 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/post-groups/services/post-group-readiness.service.spec.ts",
-      "fingerprint": "8a73ef47e8e2c4ab4fd0",
-      "message": "Argument of type '{ credential: { findMany: Mock<Procedure | Constructable>; }; }' is not assignable to parameter of type 'Pick<TransactionClient, \"credential\">'.   Types of property 'credential' are incompatible.     Type '{ findMany: Mock<Procedure | Constructable>; }' is missing the following properties from type 'CredentialDelegate<DefaultArgs, { omit: GlobalOmitConfig | undefined; }>': findUnique, findUniqueOrThrow, findFirst, findFirstOrThrow, and 13 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/post-groups/services/post-group-readiness.service.spec.ts",
-      "fingerprint": "bf5495cf3117ed8c4cfd",
-      "message": "Argument of type '{ credential: { findMany: Mock<Procedure | Constructable>; }; }' is not assignable to parameter of type 'Pick<TransactionClient, \"credential\">'.   Types of property 'credential' are incompatible.     Type '{ findMany: Mock<Procedure | Constructable>; }' is missing the following properties from type 'CredentialDelegate<DefaultArgs, { omit: GlobalOmitConfig | undefined; }>': findUnique, findUniqueOrThrow, findFirst, findFirstOrThrow, and 13 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 6,
-      "file": "apps/server/api/src/collections/post-groups/services/post-group-readiness.service.spec.ts",
-      "fingerprint": "fba79a3bebc3d9e367da",
-      "message": "Argument of type '{ credential: { findMany: Mock<Procedure | Constructable>; }; }' is not assignable to parameter of type 'Pick<TransactionClient, \"credential\">'.   Types of property 'credential' are incompatible.     Type '{ findMany: Mock<Procedure | Constructable>; }' is missing the following properties from type 'CredentialDelegate<DefaultArgs, { omit: GlobalOmitConfig | undefined; }>': findUnique, findUniqueOrThrow, findFirst, findFirstOrThrow, and 13 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/posts/entities/post-analytics.entity.spec.ts",
-      "fingerprint": "d3c2e0f75b5c2d425190",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/posts/entities/post.entity.spec.ts",
-      "fingerprint": "5f5adb0878e0824693f6",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
       "code": 2353,
       "count": 1,
       "file": "apps/server/api/src/collections/posts/services/posts.service.spec.ts",
       "fingerprint": "50ac6813080e0cdb847b",
       "message": "Object literal may only specify known properties, and 'reviewTurboRunId' does not exist in type 'PostCreateInput'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 3,
-      "file": "apps/server/api/src/collections/presets/controllers/presets.controller.spec.ts",
-      "fingerprint": "596ecf535c98f1274513",
-      "message": "Type '\"video\"' is not assignable to type 'ModelCategory'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/presets/controllers/presets.controller.spec.ts",
-      "fingerprint": "75038cdf01c90c5a7452",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'PresetsQueryDto'.   Type '{}' is missing the following properties from type 'PresetsQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 3,
-      "file": "apps/server/api/src/collections/presets/controllers/presets.controller.spec.ts",
-      "fingerprint": "c73ee49dfe9add4069f2",
-      "message": "Argument of type '{ category: string; }' is not assignable to parameter of type 'PresetsQueryDto'.   Type '{ category: string; }' is missing the following properties from type 'PresetsQueryDto': page, limit, isDeleted, sort",
       "workspace": "api"
     },
     {
@@ -969,163 +273,11 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/collections/roles/controllers/roles.controller.spec.ts",
-      "fingerprint": "05910c2dbb73f90ee0d1",
-      "message": "Argument of type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is not assignable to parameter of type '{ id: string; key: string; createdAt: Date; isDeleted: boolean; updatedAt: Date; label: string; primaryColor: string | null; }'.   Type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is missing the following properties from type '{ id: string; key: string; createdAt: Date; isDeleted: boolean; updatedAt: Date; label: string; primaryColor: string | null; }': createdAt, updatedAt",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/roles/controllers/roles.controller.spec.ts",
-      "fingerprint": "22c4e63cfc5263434264",
-      "message": "Argument of type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is not assignable to parameter of type '{ id: string; key: string; createdAt: Date; isDeleted: boolean; updatedAt: Date; label: string; primaryColor: string | null; }'.   Type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is missing the following properties from type '{ id: string; key: string; createdAt: Date; isDeleted: boolean; updatedAt: Date; label: string; primaryColor: string | null; }': createdAt, updatedAt",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/roles/controllers/roles.controller.spec.ts",
-      "fingerprint": "885194ab8078f24f98e7",
-      "message": "Argument of type '{ emailAddresses: { emailAddress: string; }[]; id: string; }' is not assignable to parameter of type 'AuthenticatedUser'.   Type '{ emailAddresses: { emailAddress: string; }[]; id: string; }' is missing the following properties from type 'AuthenticatedUser': userId, organizationId, brandId",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/roles/controllers/roles.controller.spec.ts",
-      "fingerprint": "b2ba9623cc021e036f64",
-      "message": "Argument of type '{ emailAddresses: { emailAddress: string; }[]; id: string; }' is not assignable to parameter of type 'AuthenticatedUser'.   Type '{ emailAddresses: { emailAddress: string; }[]; id: string; }' is missing the following properties from type 'AuthenticatedUser': userId, organizationId, brandId",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/roles/controllers/roles.controller.spec.ts",
-      "fingerprint": "b59f19362d3b1eed4a10",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'BaseQueryDto'.   Type '{}' is missing the following properties from type 'BaseQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/roles/controllers/roles.controller.spec.ts",
-      "fingerprint": "c412b594713214f6efff",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'BaseQueryDto'.   Type '{}' is missing the following properties from type 'BaseQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/roles/controllers/roles.controller.spec.ts",
-      "fingerprint": "cc11b2ae780185003546",
-      "message": "Argument of type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is not assignable to parameter of type '{ id: string; key: string; createdAt: Date; isDeleted: boolean; updatedAt: Date; label: string; primaryColor: string | null; }'.   Type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is missing the following properties from type '{ id: string; key: string; createdAt: Date; isDeleted: boolean; updatedAt: Date; label: string; primaryColor: string | null; }': createdAt, updatedAt",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/server/api/src/collections/roles/controllers/roles.controller.spec.ts",
-      "fingerprint": "b113f58f5d3068273ee8",
-      "message": "Type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is missing the following properties from type '{ id: string; key: string; createdAt: Date; isDeleted: boolean; updatedAt: Date; label: string; primaryColor: string | null; }': createdAt, updatedAt",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/roles/entities/role.entity.spec.ts",
-      "fingerprint": "11f258c7c0b006211114",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
       "code": 2353,
       "count": 1,
       "file": "apps/server/api/src/collections/schedules/controllers/schedules.controller.spec.ts",
       "fingerprint": "674fd675606d7a127fe7",
       "message": "Object literal may only specify known properties, and 'interval' does not exist in type 'BulkScheduleDto'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/social-sources/services/social-sources.service.spec.ts",
-      "fingerprint": "b36d9e9b293eb318d8e9",
-      "message": "Argument of type '{ sourceId: string; }' is not assignable to parameter of type 'SocialSourcesQueryDto'.   Type '{ sourceId: string; }' is missing the following properties from type 'SocialSourcesQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/speech/controllers/speech.controller.spec.ts",
-      "fingerprint": "7329a021d94b81ac42ae",
-      "message": "Property 'confidence' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 2,
-      "file": "apps/server/api/src/collections/speech/controllers/speech.controller.spec.ts",
-      "fingerprint": "b40f163e4d0d7e228a33",
-      "message": "Property 'text' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 5,
-      "file": "apps/server/api/src/collections/streaks/controllers/streaks.controller.spec.ts",
-      "fingerprint": "3991796152636baf4693",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'RequestWithContext'.   Type '{}' is missing the following properties from type 'RequestWithContext': cookies, signedCookies, get, header, and 103 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/streaks/controllers/streaks.controller.spec.ts",
-      "fingerprint": "9755e67e2fc882ab064b",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'RequestWithContext'.   Type '{}' is missing the following properties from type 'RequestWithContext': cookies, signedCookies, get, header, and 103 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/streaks/controllers/streaks.controller.spec.ts",
-      "fingerprint": "c1c419dddfae373249bd",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'RequestWithContext'.   Type '{}' is missing the following properties from type 'RequestWithContext': cookies, signedCookies, get, header, and 103 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/streaks/controllers/streaks.controller.spec.ts",
-      "fingerprint": "c957286e38e79caef130",
-      "message": "Argument of type '{ readonly context: { readonly organizationId: \"org-abc-123\"; readonly userId: \"user-xyz-456\"; }; }' is not assignable to parameter of type 'RequestWithContext'.   Type '{ readonly context: { readonly organizationId: \"org-abc-123\"; readonly userId: \"user-xyz-456\"; }; }' is missing the following properties from type 'RequestWithContext': cookies, signedCookies, get, header, and 103 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/streaks/controllers/streaks.controller.spec.ts",
-      "fingerprint": "e4bf532039e235279d8f",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'RequestWithContext'.   Type '{}' is missing the following properties from type 'RequestWithContext': cookies, signedCookies, get, header, and 103 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/streaks/controllers/streaks.controller.spec.ts",
-      "fingerprint": "f6c0d18be8e15f386a55",
-      "message": "Argument of type '{ readonly context: { readonly organizationId: \"org-abc-123\"; readonly userId: \"user-xyz-456\"; }; }' is not assignable to parameter of type 'RequestWithContext'.   Type '{ readonly context: { readonly organizationId: \"org-abc-123\"; readonly userId: \"user-xyz-456\"; }; }' is missing the following properties from type 'RequestWithContext': cookies, signedCookies, get, header, and 103 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/streaks/controllers/streaks.controller.spec.ts",
-      "fingerprint": "ff8efb70e5eba45045c9",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'RequestWithContext'.   Type '{}' is missing the following properties from type 'RequestWithContext': cookies, signedCookies, get, header, and 103 more.",
       "workspace": "api"
     },
     {
@@ -1142,14 +294,6 @@
       "file": "apps/server/api/src/collections/trainings/controllers/trainings.controller.spec.ts",
       "fingerprint": "0b3bca3b69a506d3fc28",
       "message": "Property 'id' does not exist on type 'never'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/trainings/entities/training.entity.spec.ts",
-      "fingerprint": "13a08ef1c4fe005c1216",
-      "message": "Expected 1 arguments, but got 0.",
       "workspace": "api"
     },
     {
@@ -1177,70 +321,6 @@
       "workspace": "api"
     },
     {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/videos/controllers/batch-interpolation.controller.spec.ts",
-      "fingerprint": "662c811d967b85c77f34",
-      "message": "Property 'totalJobs' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/videos/controllers/batch-interpolation.controller.spec.ts",
-      "fingerprint": "89ee73e4ebc89ae777a7",
-      "message": "Property 'groupId' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 2,
-      "file": "apps/server/api/src/collections/videos/controllers/batch-interpolation.controller.spec.ts",
-      "fingerprint": "b459c17e800e91f89841",
-      "message": "Property 'groupId' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/videos/controllers/batch-interpolation.controller.spec.ts",
-      "fingerprint": "d7aea6a5a3b1b9254170",
-      "message": "Property 'isMergeEnabled' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/videos/controllers/batch-interpolation.controller.spec.ts",
-      "fingerprint": "f138b8b7d0a113d6ca70",
-      "message": "Property 'groupId' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 2,
-      "file": "apps/server/api/src/collections/videos/controllers/relationships/videos-relationships.controller.spec.ts",
-      "fingerprint": "4ad4370812702099e38b",
-      "message": "Type '{}' is missing the following properties from type 'VideosQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/videos/controllers/transformations/reframe/videos-reframe.controller.spec.ts",
-      "fingerprint": "61a4c2eedf60d88f9d1a",
-      "message": "Property 'id' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/videos/controllers/transformations/upscale/videos-upscale.controller.spec.ts",
-      "fingerprint": "2d79467ac817f767301d",
-      "message": "Property 'id' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
       "code": 2561,
       "count": 1,
       "file": "apps/server/api/src/collections/videos/controllers/videos.controller.spec.ts",
@@ -1254,14 +334,6 @@
       "file": "apps/server/api/src/collections/videos/controllers/videos.controller.spec.ts",
       "fingerprint": "f7ac8ecc7515dc3d366d",
       "message": "Object literal may only specify known properties, but 'brand' does not exist in type 'VideosQueryDto'. Did you mean to write 'brandId'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/videos/entities/video.entity.spec.ts",
-      "fingerprint": "588e80a9768b0ae00ab3",
-      "message": "Expected 1 arguments, but got 0.",
       "workspace": "api"
     },
     {
@@ -1281,22 +353,6 @@
       "workspace": "api"
     },
     {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/voices/entities/voice.entity.spec.ts",
-      "fingerprint": "38fd41462a13e4eca0a1",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/votes/entities/vote.entity.spec.ts",
-      "fingerprint": "476b179b84df9f01853d",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
       "code": 2698,
       "count": 1,
       "file": "apps/server/api/src/collections/watchlists/controllers/watchlists.controller.spec.ts",
@@ -1313,67 +369,11 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/controllers/workflow-crud.controller.spec.ts",
-      "fingerprint": "6f9b3a4dc36ba99935df",
-      "message": "Argument of type '{ brandId: string; }' is not assignable to parameter of type 'WorkflowQueryDto'.   Type '{ brandId: string; }' is missing the following properties from type 'WorkflowQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/controllers/workflow-crud.controller.spec.ts",
-      "fingerprint": "a0a62f5999cec3876aae",
-      "message": "Argument of type '{ referencable: true; }' is not assignable to parameter of type 'WorkflowQueryDto'.   Type '{ referencable: true; }' is missing the following properties from type 'WorkflowQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/controllers/workflow-crud.controller.spec.ts",
-      "fingerprint": "bc37ba1f146b8961df09",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'WorkflowQueryDto'.   Type '{}' is missing the following properties from type 'WorkflowQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/collections/workflows/controllers/workflow-crud.controller.spec.ts",
-      "fingerprint": "d601b9cac6f1fc22c210",
-      "message": "Argument of type '{ view: \"statistics\"; }' is not assignable to parameter of type 'WorkflowQueryDto'.   Type '{ view: \"statistics\"; }' is missing the following properties from type 'WorkflowQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/controllers/workflow-marketplace.controller.spec.ts",
-      "fingerprint": "2f79fe3d5abbe657101c",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'BaseQueryDto'.   Type '{}' is missing the following properties from type 'BaseQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/entities/workflow.entity.spec.ts",
-      "fingerprint": "069bdc94e4b4660126f8",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
       "code": 2741,
       "count": 1,
       "file": "apps/server/api/src/collections/workflows/services/adapters/instagram-social.adapter.spec.ts",
       "fingerprint": "a53fb457a78c831c4530",
       "message": "Property 'warn' is missing in type '{ debug: Mock<Procedure | Constructable>; error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; }' but required in type '{ debug: Mock<Procedure | Constructable>; error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; warn: Mock<...>; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/services/review-gate-notification.service.spec.ts",
-      "fingerprint": "0a6c9bef986a3205f81a",
-      "message": "Expected 0 arguments, but got 1.",
       "workspace": "api"
     },
     {
@@ -1425,30 +425,6 @@
       "workspace": "api"
     },
     {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/admin/announcements/announcements.controller.spec.ts",
-      "fingerprint": "1a6b2c05db0c5820ef4c",
-      "message": "Conversion of type '{ channels: \"discord\"[]; message: string; }' to type 'BroadcastAnnouncementDto' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property 'body' is missing in type '{ channels: \"discord\"[]; message: string; }' but required in type 'BroadcastAnnouncementDto'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/admin/announcements/announcements.controller.spec.ts",
-      "fingerprint": "b43d25a76faf1f7024e4",
-      "message": "Conversion of type '{ channels: \"discord\"[]; message: string; }' to type 'BroadcastAnnouncementDto' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property 'body' is missing in type '{ channels: \"discord\"[]; message: string; }' but required in type 'BroadcastAnnouncementDto'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2353,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/admin/announcements/announcements.controller.spec.ts",
-      "fingerprint": "a2391553adc9a55d509d",
-      "message": "Object literal may only specify known properties, and 'message' does not exist in type 'BroadcastAnnouncementDto'.",
-      "workspace": "api"
-    },
-    {
       "code": 2322,
       "count": 3,
       "file": "apps/server/api/src/endpoints/ai-actions/ai-actions.controller.spec.ts",
@@ -1497,14 +473,6 @@
       "workspace": "api"
     },
     {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/integrations/__tests__/integrations.controller.spec.ts",
-      "fingerprint": "8562ad4ac81949834424",
-      "message": "Property 'status' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
       "code": 2698,
       "count": 1,
       "file": "apps/server/api/src/endpoints/integrations/__tests__/integrations.controller.spec.ts",
@@ -1529,46 +497,6 @@
       "workspace": "api"
     },
     {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/public/controllers/articles/public.articles.controller.spec.ts",
-      "fingerprint": "db80c7b79d268f06106a",
-      "message": "Property 'errors' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/public/controllers/images/public.images.controller.spec.ts",
-      "fingerprint": "ef12977ea04230e140ad",
-      "message": "Type 'unknown' is not assignable to type 'JsonApiResource | JsonApiResource[] | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 4,
-      "file": "apps/server/api/src/endpoints/public/controllers/images/public.images.controller.spec.ts",
-      "fingerprint": "f9e364f8d7b27237126b",
-      "message": "Type '{ limit: number; page: number; }' is missing the following properties from type 'BaseQueryDto': isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 3,
-      "file": "apps/server/api/src/endpoints/public/controllers/musics/public.musics.controller.spec.ts",
-      "fingerprint": "db1a7d7417f83f986032",
-      "message": "Type '{ limit: number; page: number; }' is missing the following properties from type 'BaseQueryDto': isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/endpoints/v1/managed-inference/managed-inference-client.service.spec.ts",
-      "fingerprint": "64634f6b213bc9c28070",
-      "message": "Argument of type 'Observable<{ data: { creditsDebited: number; model: string; operation: ManagedInferenceOperation; output: { jobId: string; url: string; }; provider: ManagedInferenceProvider; }; }>' is not assignable to parameter of type 'Observable<AxiosResponse<unknown, unknown, {}, any>>'.   Types of property 'operator' are incompatible.     Type 'Operator<any, { data: { creditsDebited: number; model: string; operation: ManagedInferenceOperation; output: { jobId: string; url: string; }; provider: ManagedInferenceProvider; }; }> | undefined' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>> | undefined'.       Type 'Operator<any, { data: { creditsDebited: number; model: string; operation: ManagedInferenceOperation; output: { jobId: string; url: string; }; provider: ManagedInferenceProvider; }; }>' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>>'.         Type '{ data: { creditsDebited: number; model: string; operation: ManagedInferenceOperation; output: { jobId: string; url: string; }; provider: ManagedInferenceProvider; }; }' is missing the following properties from type 'AxiosResponse<unknown, unknown, {}, any>': status, statusText, headers, config",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 5,
       "file": "apps/server/api/src/endpoints/webhooks/opuspro/webhooks.opuspro.controller.spec.ts",
@@ -1590,126 +518,6 @@
       "file": "apps/server/api/src/endpoints/webhooks/stripe/webhooks.stripe.service.spec.ts",
       "fingerprint": "d2f65fa3d907f592968f",
       "message": "Element implicitly has an 'any' type because expression of type '\"handleSubscriptionCreated\" | \"handleSubscriptionUpdated\" | \"handleSubscriptionDeleted\" | \"handleCheckoutCompleted\" | \"handleInvoicePaid\" | \"handleInvoicePaymentFailed\" | \"handleCustomerCreated\" | \"handleCustomerUpdated\"' can't be used to index type '{ handleSubscriptionCreated: Mock<Procedure>; handleSubscriptionDeleted: Mock<Procedure>; handleSubscriptionUpdated: Mock<Procedure>; } | { ...; } | { ...; } | { ...; }'.   Property 'handleSubscriptionCreated' does not exist on type '{ handleSubscriptionCreated: Mock<Procedure>; handleSubscriptionDeleted: Mock<Procedure>; handleSubscriptionUpdated: Mock<Procedure>; } | { ...; } | { ...; } | { ...; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 2,
-      "file": "apps/server/api/src/helpers/decorators/log/log-method.decorator.spec.ts",
-      "fingerprint": "ab6617106ecdfe893fee",
-      "message": "Property 'verbose' does not exist on type '{ debug: Mock<Procedure | Constructable>; error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; warn: Mock<...>; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/decorators/log/log-method.decorator.spec.ts",
-      "fingerprint": "c03644b6ef71db59d46f",
-      "message": "Property 'verbose' does not exist on type '{ debug: Mock<Procedure | Constructable>; error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; warn: Mock<...>; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2353,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/decorators/log/log-method.decorator.spec.ts",
-      "fingerprint": "c78a81da74a4fd346b0f",
-      "message": "Object literal may only specify known properties, and 'verbose' does not exist in type '{ debug: Mock<Procedure | Constructable>; error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; warn: Mock<...>; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2540,
-      "count": 3,
-      "file": "apps/server/api/src/helpers/decorators/log/log-method.decorator.spec.ts",
-      "fingerprint": "16c38569ed4514df863a",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "api"
-    },
-    {
-      "code": 2540,
-      "count": 3,
-      "file": "apps/server/api/src/helpers/decorators/log/log-method.decorator.spec.ts",
-      "fingerprint": "451a3376d80ff129935a",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/exceptions/exceptions.spec.ts",
-      "fingerprint": "12fbda7d459534d0d43b",
-      "message": "Argument of type 'null' is not assignable to parameter of type 'BusinessErrorDetails | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/exceptions/exceptions.spec.ts",
-      "fingerprint": "32cc8baf076e3e87de69",
-      "message": "Argument of type 'unknown' is not assignable to parameter of type 'HttpException'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2769,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/exceptions/exceptions.spec.ts",
-      "fingerprint": "c426fbf75f63b451aa4f",
-      "message": "No overload matches this call.   Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.     Argument of type 'string | undefined' is not assignable to parameter of type 'string | number | Date'.       Type 'undefined' is not assignable to type 'string | number | Date'.   Overload 2 of 4, '(value: string | number): Date', gave the following error.     Argument of type 'string | undefined' is not assignable to parameter of type 'string | number'.       Type 'undefined' is not assignable to type 'string | number'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18046,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/exceptions/exceptions.spec.ts",
-      "fingerprint": "3241cf5169b3c3fa611f",
-      "message": "'response.meta.nested' is of type 'unknown'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18046,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/exceptions/exceptions.spec.ts",
-      "fingerprint": "3273e3e7d781d6f9634e",
-      "message": "'response.meta.innerError' is of type 'unknown'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/exceptions/exceptions.spec.ts",
-      "fingerprint": "0a6c3ef558e6291ff901",
-      "message": "'response.meta' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/exceptions/exceptions.spec.ts",
-      "fingerprint": "0cd1e3cd8aa5ed41e531",
-      "message": "'response.meta' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/exceptions/exceptions.spec.ts",
-      "fingerprint": "117519c36b2b5ce54413",
-      "message": "'response.meta' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/exceptions/exceptions.spec.ts",
-      "fingerprint": "57eaed245d6f14c2c5c2",
-      "message": "'response.meta' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/exceptions/exceptions.spec.ts",
-      "fingerprint": "e82fb7de0ca0f85be47e",
-      "message": "'response.meta' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -1777,22 +585,6 @@
       "workspace": "api"
     },
     {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/guards/api-key/api-key.guard.spec.ts",
-      "fingerprint": "2de3f2b95d75b0569681",
-      "message": "Cannot find module '@test/mocks/controller.mocks' or its corresponding type declarations.",
-      "workspace": "api"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/guards/api-key/api-key.guard.spec.ts",
-      "fingerprint": "66c8f14d8b850f7f5686",
-      "message": "Cannot find module '@test/mocks/service.mocks' or its corresponding type declarations.",
-      "workspace": "api"
-    },
-    {
       "code": 2352,
       "count": 1,
       "file": "apps/server/api/src/helpers/guards/combined-auth/combined-auth.guard.spec.ts",
@@ -1814,14 +606,6 @@
       "file": "apps/server/api/src/helpers/guards/subscription/subscription.guard.spec.ts",
       "fingerprint": "6f59be3905102b7a9fea",
       "message": "Type '{ id: string; userId: string; organizationId?: string | undefined; brandId?: string | undefined; isSuperAdmin: boolean; apiKeyId?: string | undefined; actionOrigin?: ActionOrigin | undefined; ... 8 more ...; primaryEmailAddressId?: string | null | undefined; }' is not assignable to type 'AuthenticatedUser'.   Types of property 'organizationId' are incompatible.     Type 'string | undefined' is not assignable to type 'string'.       Type 'undefined' is not assignable to type 'string'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2540,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/memory/monitor/memory-monitor.service.spec.ts",
-      "fingerprint": "f39f3e6601834c738155",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
       "workspace": "api"
     },
     {
@@ -2001,102 +785,6 @@
       "workspace": "api"
     },
     {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
-      "fingerprint": "eb8a124b730eebcb3588",
-      "message": "Property 'brandId' does not exist on type '{ organizationId: string; userId: string; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18046,
-      "count": 1,
-      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
-      "fingerprint": "b346004708e99a61ef05",
-      "message": "'result.data.workflows' is of type 'unknown'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18046,
-      "count": 1,
-      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
-      "fingerprint": "bd73bcdb9e0b443c5e46",
-      "message": "'result.data.inputs' is of type 'unknown'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
-      "fingerprint": "0366c82765325742b2f0",
-      "message": "'result.data' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
-      "fingerprint": "0674ca31a1dba3af3f2b",
-      "message": "'result.data' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 3,
-      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
-      "fingerprint": "0bda65164bb636a3c6ba",
-      "message": "'result.data' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
-      "fingerprint": "18a2d17eb59c29697ae3",
-      "message": "'result.data' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
-      "fingerprint": "1ebfba82a441aab32040",
-      "message": "'result.data' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
-      "fingerprint": "20c3d78a571013c6fda0",
-      "message": "'result.data' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
-      "fingerprint": "b145fc6e1c2b9f08c6bf",
-      "message": "'result.data' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
-      "fingerprint": "fad11448180c9a592230",
-      "message": "'result.data' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 2,
-      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
-      "fingerprint": "fe3b3d7b36708d468de4",
-      "message": "'result.data' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2352,
       "count": 1,
       "file": "apps/server/api/src/services/agent-spawn/agent-spawn.service.spec.ts",
@@ -2177,62 +865,6 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/brand-scraper/brand-scraper.service.spec.ts",
-      "fingerprint": "7122dba483b96f6b1a29",
-      "message": "'result.socialLinks' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/brand-scraper/brand-scraper.service.spec.ts",
-      "fingerprint": "7650dbfcab39a9eee4f8",
-      "message": "'result.socialLinks' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/brand-scraper/brand-scraper.service.spec.ts",
-      "fingerprint": "a115e723cb1a5b2e706d",
-      "message": "'result.socialLinks' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/brand-scraper/brand-scraper.service.spec.ts",
-      "fingerprint": "a229d75871478ebed399",
-      "message": "'result.socialLinks' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/brand-scraper/brand-scraper.service.spec.ts",
-      "fingerprint": "b217dadc043e8e0679cd",
-      "message": "'result.socialLinks' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/brand-scraper/brand-scraper.service.spec.ts",
-      "fingerprint": "d4e7794ba6e0581a97fc",
-      "message": "'result.valuePropositions' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/brand-scraper/brand-scraper.service.spec.ts",
-      "fingerprint": "eba308f45734e0fa8d63",
-      "message": "'result.socialLinks' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 2,
       "file": "apps/server/api/src/services/byok/byok-provider-factory.service.spec.ts",
@@ -2281,14 +913,6 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 4,
-      "file": "apps/server/api/src/services/content-engine/content-planner.service.spec.ts",
-      "fingerprint": "fd5c5ef2751a6a3c8feb",
-      "message": "'userMessage' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2322,
       "count": 2,
       "file": "apps/server/api/src/services/content-orchestration/content-orchestration.service.spec.ts",
@@ -2318,14 +942,6 @@
       "file": "apps/server/api/src/services/content-orchestration/content-orchestration.service.spec.ts",
       "fingerprint": "7d365434c53e58a68862",
       "message": "No overload matches this call.   Overload 1 of 2, '(predicate: (value: any[], index: number, obj: any[][]) => value is any[], thisArg?: any): any[] | undefined', gave the following error.     Argument of type '(c: [{ name: string; }, unknown]) => boolean' is not assignable to parameter of type '(value: any[], index: number, obj: any[][]) => value is any[]'.       Types of parameters 'c' and 'value' are incompatible.         Type 'any[]' is not assignable to type '[{ name: string; }, unknown]'.           Target requires 2 element(s) but source may have fewer.   Overload 2 of 2, '(predicate: (value: any[], index: number, obj: any[][]) => unknown, thisArg?: any): any[] | undefined', gave the following error.     Argument of type '(c: [{ name: string; }, unknown]) => boolean' is not assignable to parameter of type '(value: any[], index: number, obj: any[][]) => unknown'.       Types of parameters 'c' and 'value' are incompatible.         Type 'any[]' is not assignable to type '[{ name: string; }, unknown]'.           Target requires 2 element(s) but source may have fewer.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/content-orchestration/content-orchestration.service.spec.ts",
-      "fingerprint": "f5a56b85b19e10f75377",
-      "message": "'stepCall' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -2555,46 +1171,6 @@
     {
       "code": 2345,
       "count": 2,
-      "file": "apps/server/api/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
-      "fingerprint": "27d6d15e6439c66e82ae",
-      "message": "Argument of type 'Observable<{ data: { access_token: string; }; }>' is not assignable to parameter of type 'Observable<AxiosResponse<unknown, unknown, {}, any>>'.   Types of property 'operator' are incompatible.     Type 'Operator<any, { data: { access_token: string; }; }> | undefined' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>> | undefined'.       Type 'Operator<any, { data: { access_token: string; }; }>' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>>'.         Type '{ data: { access_token: string; }; }' is missing the following properties from type 'AxiosResponse<unknown, unknown, {}, any>': status, statusText, headers, config",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
-      "fingerprint": "2ae4de2d9d89dbeb25ac",
-      "message": "Argument of type 'Observable<{ data: { media: { media: { id: string; }; }[]; }; }>' is not assignable to parameter of type 'Observable<AxiosResponse<unknown, unknown, {}, any>>'.   Types of property 'operator' are incompatible.     Type 'Operator<any, { data: { media: { media: { id: string; }; }[]; }; }> | undefined' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>> | undefined'.       Type 'Operator<any, { data: { media: { media: { id: string; }; }[]; }; }>' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>>'.         Type '{ data: { media: { media: { id: string; }; }[]; }; }' is missing the following properties from type 'AxiosResponse<unknown, unknown, {}, any>': status, statusText, headers, config",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
-      "fingerprint": "a97d8016b62dbb2e578a",
-      "message": "Argument of type 'Observable<{ data: { access_token: string; refresh_token: string; }; }>' is not assignable to parameter of type 'Observable<AxiosResponse<unknown, unknown, {}, any>>'.   Types of property 'operator' are incompatible.     Type 'Operator<any, { data: { access_token: string; refresh_token: string; }; }> | undefined' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>> | undefined'.       Type 'Operator<any, { data: { access_token: string; refresh_token: string; }; }>' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>>'.         Type '{ data: { access_token: string; refresh_token: string; }; }' is missing the following properties from type 'AxiosResponse<unknown, unknown, {}, any>': status, statusText, headers, config",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
-      "fingerprint": "abc3d6b933d788b247c4",
-      "message": "Argument of type 'Observable<{ data: { access_token: string; expires_in: number; }; }>' is not assignable to parameter of type 'Observable<AxiosResponse<unknown, unknown, {}, any>>'.   Types of property 'operator' are incompatible.     Type 'Operator<any, { data: { access_token: string; expires_in: number; }; }> | undefined' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>> | undefined'.       Type 'Operator<any, { data: { access_token: string; expires_in: number; }; }>' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>>'.         Type '{ data: { access_token: string; expires_in: number; }; }' is missing the following properties from type 'AxiosResponse<unknown, unknown, {}, any>': status, statusText, headers, config",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
-      "fingerprint": "b02f8f2bed347e1d4701",
-      "message": "Argument of type 'Observable<{ data: { creatives: { creative: { id: string; }; }[]; }; }>' is not assignable to parameter of type 'Observable<AxiosResponse<unknown, unknown, {}, any>>'.   Types of property 'operator' are incompatible.     Type 'Operator<any, { data: { creatives: { creative: { id: string; }; }[]; }; }> | undefined' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>> | undefined'.       Type 'Operator<any, { data: { creatives: { creative: { id: string; }; }[]; }; }>' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>>'.         Type '{ data: { creatives: { creative: { id: string; }; }[]; }; }' is missing the following properties from type 'AxiosResponse<unknown, unknown, {}, any>': status, statusText, headers, config",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
       "file": "apps/server/api/src/services/integrations/stripe/services/stripe.coverage.spec.ts",
       "fingerprint": "9e27ce2ffeb7e4ebaa67",
       "message": "Argument of type 'Session' is not assignable to parameter of type 'Session & { lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.   Property 'lastResponse' is missing in type 'Session' but required in type '{ lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.",
@@ -2606,78 +1182,6 @@
       "file": "apps/server/api/src/services/integrations/threads/services/threads.coverage.spec.ts",
       "fingerprint": "efd7bc55b9d11479e102",
       "message": "Argument of type '{ mediaType: ThreadsMediaType; url: string; }[]' is not assignable to parameter of type 'ThreadsCarouselMediaItem[]'.   Type '{ mediaType: ThreadsMediaType; url: string; }' is not assignable to type 'ThreadsCarouselMediaItem'.     Types of property 'mediaType' are incompatible.       Type 'ThreadsMediaType' is not assignable to type 'ThreadsMediaType.IMAGE | ThreadsMediaType.VIDEO'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/tiktok/controllers/tiktok.controller.spec.ts",
-      "fingerprint": "8e7c64d09e12eac96b63",
-      "message": "Conversion of type 'JsonApiSingleResponse<unknown>' to type '{ url: string; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property 'url' is missing in type 'JsonApiSingleResponse<unknown>' but required in type '{ url: string; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/twitter/controllers/twitter.controller.spec.ts",
-      "fingerprint": "638ae1da8b8235f94dda",
-      "message": "Property 'url' does not exist on type 'JsonApiResource<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18047,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/twitter/controllers/twitter.controller.spec.ts",
-      "fingerprint": "693d863c026689b27626",
-      "message": "'result.data' is possibly 'null'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
-      "fingerprint": "44c3ecd1615f2f642cc4",
-      "message": "'result' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 2,
-      "file": "apps/server/api/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
-      "fingerprint": "714bfcb27a9b70dead24",
-      "message": "'result' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
-      "fingerprint": "9c60b671ed8d70241f72",
-      "message": "'result' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
-      "fingerprint": "b01404ccff7dc117b23f",
-      "message": "'result' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 2,
-      "file": "apps/server/api/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
-      "fingerprint": "b7d075bf4125a6b436d7",
-      "message": "'result' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 5,
-      "file": "apps/server/api/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
-      "fingerprint": "c4dda1596492f329d372",
-      "message": "'result' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -2702,22 +1206,6 @@
       "file": "apps/server/api/src/services/prompt-builder/builders/replicate/replicate-media.builder.spec.ts",
       "fingerprint": "364ebf8c1a7dce532527",
       "message": "Property 'AUDIO' does not exist on type 'typeof ModelCategory'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/services/prompt-builder/builders/replicate/replicate-text.builder.spec.ts",
-      "fingerprint": "3116eb3115b7c701b4a4",
-      "message": "Property 'thinkingLevel' does not exist on type 'Partial<PromptBuilderParams> | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/services/prompt-builder/builders/replicate/replicate-text.builder.spec.ts",
-      "fingerprint": "21485ddfb1df9bdd89a1",
-      "message": "Expected 1 arguments, but got 0.",
       "workspace": "api"
     },
     {
@@ -2755,22 +1243,6 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/api/src/services/task-queue-client/task-queue-client.service.spec.ts",
-      "fingerprint": "32a1556912c0bf8493ad",
-      "message": "Argument of type 'Observable<{ data: { jobId: string; progress: number; result: { url: string; }; status: string; }; }>' is not assignable to parameter of type 'Observable<AxiosResponse<unknown, unknown, {}, any>>'.   Types of property 'operator' are incompatible.     Type 'Operator<any, { data: { jobId: string; progress: number; result: { url: string; }; status: string; }; }> | undefined' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>> | undefined'.       Type 'Operator<any, { data: { jobId: string; progress: number; result: { url: string; }; status: string; }; }>' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>>'.         Type '{ data: { jobId: string; progress: number; result: { url: string; }; status: string; }; }' is missing the following properties from type 'AxiosResponse<unknown, unknown, {}, any>': status, statusText, headers, config",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 8,
-      "file": "apps/server/api/src/services/task-queue-client/task-queue-client.service.spec.ts",
-      "fingerprint": "58fec90c98e2998224d3",
-      "message": "Argument of type 'Observable<{ data: { jobId: string; status: string; }; }>' is not assignable to parameter of type 'Observable<AxiosResponse<unknown, unknown, {}, any>>'.   Types of property 'operator' are incompatible.     Type 'Operator<any, { data: { jobId: string; status: string; }; }> | undefined' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>> | undefined'.       Type 'Operator<any, { data: { jobId: string; status: string; }; }>' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>>'.         Type '{ data: { jobId: string; status: string; }; }' is missing the following properties from type 'AxiosResponse<unknown, unknown, {}, any>': status, statusText, headers, config",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
       "file": "apps/server/api/src/services/telegram-bot/__tests__/telegram-bot.service.spec.ts",
       "fingerprint": "719bf0b6e37a8740321a",
       "message": "Argument of type '{ get: Mock<Procedure | Constructable>; isDevTelegramPollingEnabled: boolean; }' is not assignable to parameter of type 'ConfigService'.   Type '{ get: Mock<Procedure | Constructable>; isDevTelegramPollingEnabled: boolean; }' is missing the following properties from type 'ConfigService': isDevOptionalInitEnabled, isDevSchedulersEnabled, cdnUrl, cdnSigningKeyPairId, and 17 more.",
@@ -2794,322 +1266,10 @@
     },
     {
       "code": 2345,
-      "count": 6,
-      "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
-      "fingerprint": "1d8b538e98e9dd17e0da",
-      "message": "Argument of type 'ModelFieldMeta' is not assignable to parameter of type 'never'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 5,
-      "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
-      "fingerprint": "5461135de79a68b6eef2",
-      "message": "Argument of type 'ModelFieldMeta' is not assignable to parameter of type 'never'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
-      "fingerprint": "c03f9004867a934694dd",
-      "message": "Argument of type 'ModelFieldMeta' is not assignable to parameter of type 'never'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 11,
-      "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
-      "fingerprint": "c6e83cd4436fbec415dc",
-      "message": "Argument of type 'ModelFieldMeta' is not assignable to parameter of type 'never'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
-      "fingerprint": "d823f009b1b4b59c1b46",
-      "message": "Argument of type 'ModelFieldMeta' is not assignable to parameter of type 'never'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 4,
-      "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
-      "fingerprint": "f5758e96c3efef5df4f7",
-      "message": "Argument of type 'ModelFieldMeta' is not assignable to parameter of type 'never'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
-      "fingerprint": "f8c406d1db5be58da129",
-      "message": "Argument of type 'ModelFieldMeta' is not assignable to parameter of type 'never'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2558,
-      "count": 1,
-      "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
-      "fingerprint": "30c7230b364f9c42121b",
-      "message": "Expected 0-1 type arguments, but got 2.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/test/e2e-test.module.ts",
-      "fingerprint": "4165a802e2e285a9464a",
-      "message": "Type 'unknown[]' is not assignable to type 'Provider[]'.   Type 'unknown' is not assignable to type 'Provider'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
       "count": 1,
       "file": "apps/server/api/test/e2e/e2e-test.utils.ts",
       "fingerprint": "d2a945dd70869512106b",
       "message": "Argument of type 'T[]' is not assignable to parameter of type 'Record<string, unknown>[]'.   Type 'T' is not assignable to type 'Record<string, unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2540,
-      "count": 1,
-      "file": "apps/server/api/test/env.ts",
-      "fingerprint": "f014cc46719369b6f063",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "api"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/api/test/factories/base.factory.spec.ts",
-      "fingerprint": "4dd1205fc4b0ba1cd5e6",
-      "message": "Cannot find module '@test/mocks/test.helpers' or its corresponding type declarations.",
-      "workspace": "api"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/api/test/factories/base.factory.spec.ts",
-      "fingerprint": "e9f24e1c924ee2dfd940",
-      "message": "Cannot find module '@test/factories/base.factory' or its corresponding type declarations.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/test/factories/base.factory.spec.ts",
-      "fingerprint": "3436de6db7af679aed05",
-      "message": "Property 'create' does not exist on type 'TestEntityFactory'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/test/factories/base.factory.spec.ts",
-      "fingerprint": "5e3d4f57ccb6ab5a36ff",
-      "message": "Property 'createManyAsync' does not exist on type 'TestEntityFactory'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/test/factories/base.factory.spec.ts",
-      "fingerprint": "d854f2ce2cc08b8c88e8",
-      "message": "Property 'createAsync' does not exist on type 'TestEntityFactory'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/test/factories/base.factory.spec.ts",
-      "fingerprint": "e33517f6afb1526afd04",
-      "message": "Property 'createMany' does not exist on type 'TestEntityFactory'.",
-      "workspace": "api"
-    },
-    {
-      "code": 7006,
-      "count": 1,
-      "file": "apps/server/api/test/factories/base.factory.spec.ts",
-      "fingerprint": "e7422922f71ee3ed2c0d",
-      "message": "Parameter 'e' implicitly has an 'any' type.",
-      "workspace": "api"
-    },
-    {
-      "code": 2307,
-      "count": 2,
-      "file": "apps/server/api/test/factories/user.factory.spec.ts",
-      "fingerprint": "76a80e398f24cf7bfd29",
-      "message": "Cannot find module '@test/mocks/controller.mocks' or its corresponding type declarations.",
-      "workspace": "api"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "499a3942789762722173",
-      "message": "Cannot find module '@test/mocks/service.mocks' or its corresponding type declarations.",
-      "workspace": "api"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "c32cc35a9a8a0de498e8",
-      "message": "Cannot find module '@test/factories/base.factory' or its corresponding type declarations.",
-      "workspace": "api"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "db7c1db59e5101ed3456",
-      "message": "Cannot find module '@customers/services/customers.service' or its corresponding type declarations.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "14d361f3bd2be3a0a431",
-      "message": "Property 'createPaymentIntent' does not exist on type 'StripeService'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "260b0be3cf6ac12cdb84",
-      "message": "Property 'refundPayment' does not exist on type 'StripeService'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "2aa7cf488b3b3b9707c6",
-      "message": "Property 'confirmPayment' does not exist on type 'StripeService'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "2d168e2f0009b6f2cfb7",
-      "message": "Property 'getCustomer' does not exist on type 'StripeService'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "4041c2a290999ade4c0c",
-      "message": "Property 'handleWebhook' does not exist on type 'StripeService'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "4cf9e3c32a59faada27d",
-      "message": "Property 'refundPayment' does not exist on type 'StripeService'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 2,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "a1ac9d670b3ab2cc969a",
-      "message": "Property 'handleWebhook' does not exist on type 'StripeService'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 3,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "a1e3827f08881c73c292",
-      "message": "Property 'handleWebhook' does not exist on type 'StripeService'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "af1284eee09dc1258b03",
-      "message": "Property 'getCustomer' does not exist on type 'StripeService'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "d7757456830d99295727",
-      "message": "Property 'createPaymentIntent' does not exist on type 'StripeService'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "e616a8db7f601ae7bbc3",
-      "message": "Property 'confirmPayment' does not exist on type 'StripeService'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2551,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "0985eec888b24d6546d6",
-      "message": "Property 'updateSubscription' does not exist on type 'StripeService'. Did you mean 'getSubscription'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2551,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "492eff98574934fc2625",
-      "message": "Property 'updateSubscription' does not exist on type 'StripeService'. Did you mean 'getSubscription'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2551,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "77f22542b2ffe6278d5e",
-      "message": "Property 'createCustomer' does not exist on type 'StripeService'. Did you mean 'createUserCustomer'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2551,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "87153a7d038564f4ded0",
-      "message": "Property 'createSubscription' does not exist on type 'StripeService'. Did you mean 'getSubscription'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2551,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "92325114290d7bbad1c3",
-      "message": "Property 'createSubscription' does not exist on type 'StripeService'. Did you mean 'getSubscription'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2551,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "ba25d149eb2e5cfb17ae",
-      "message": "Property 'createCustomer' does not exist on type 'StripeService'. Did you mean 'createUserCustomer'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2551,
-      "count": 1,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "ded8731828862aa81550",
-      "message": "Property 'createCustomer' does not exist on type 'StripeService'. Did you mean 'createUserCustomer'?",
       "workspace": "api"
     },
     {
@@ -3121,155 +1281,11 @@
       "workspace": "api"
     },
     {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/api/test/integration/social-media-publishing.integration.spec.ts",
-      "fingerprint": "1d1e46fed0d5d9b3e412",
-      "message": "Cannot find module '@test/mocks/service.mocks' or its corresponding type declarations.",
-      "workspace": "api"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/api/test/integration/social-media-publishing.integration.spec.ts",
-      "fingerprint": "bae59b05cf344723d263",
-      "message": "Cannot find module '@test/factories/base.factory' or its corresponding type declarations.",
-      "workspace": "api"
-    },
-    {
       "code": 2339,
       "count": 1,
       "file": "apps/server/api/test/integration/trainings.schema.integration.spec.ts",
       "fingerprint": "14034a62236ba0899dd2",
       "message": "Property 'provider' does not exist on type '{ description: string | null; id: string; brandId: string | null; createdAt: Date; organizationId: string; userId: string; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string | null; config: JsonValue; personaId: string | null; stage: TrainingStage; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/api/test/integration/video-generation.integration.spec.ts",
-      "fingerprint": "4634e4e2fe72a8c8d9d6",
-      "message": "Cannot find module '@test/factories/base.factory' or its corresponding type declarations.",
-      "workspace": "api"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/api/test/integration/video-generation.integration.spec.ts",
-      "fingerprint": "8f42bbbb90fcab58f6c3",
-      "message": "Cannot find module '@test/mocks/service.mocks' or its corresponding type declarations.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/test/mocks/controller.mocks.ts",
-      "fingerprint": "0e426b11842e750b716b",
-      "message": "Argument of type '{ controllers?: unknown[] | undefined; providers?: unknown[] | undefined; imports?: unknown[] | undefined; }' is not assignable to parameter of type 'ModuleMetadata'.   Types of property 'imports' are incompatible.     Type 'unknown[] | undefined' is not assignable to type '(Type<any> | ForwardReference<any> | DynamicModule | Promise<DynamicModule>)[] | undefined'.       Type 'unknown[]' is not assignable to type '(Type<any> | ForwardReference<any> | DynamicModule | Promise<DynamicModule>)[]'.         Type 'unknown' is not assignable to type 'Type<any> | ForwardReference<any> | DynamicModule | Promise<DynamicModule>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/api/test/mocks/service.mocks.ts",
-      "fingerprint": "1af10f5b581a343c8119",
-      "message": "Cannot find module '@api/services/file-queue/file-queue.service' or its corresponding type declarations.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/test/mocks/service.mocks.ts",
-      "fingerprint": "390371ec5a3aaf073df8",
-      "message": "Type 'null' is not assignable to type 'Readable'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/test/mocks/service.mocks.ts",
-      "fingerprint": "7e92693de0d288d595be",
-      "message": "Type 'Mock<(key: string) => unknown>' is not assignable to type '(<K extends keyof ApiEnvConfig>(key: K) => ApiEnvConfig[K]) | undefined'.   Type 'Mock<(key: string) => unknown>' is not assignable to type '<K extends keyof ApiEnvConfig>(key: K) => ApiEnvConfig[K]'.     Types of parameters 'key' and 'key' are incompatible.       Type 'K' is not assignable to type 'string'.         Type 'keyof ApiEnvConfig' is not assignable to type 'string'.           Type 'number' is not assignable to type 'string'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2353,
-      "count": 1,
-      "file": "apps/server/api/test/mocks/service.mocks.ts",
-      "fingerprint": "6c0c4da29b774a1046b0",
-      "message": "Object literal may only specify known properties, and 'clear' does not exist in type 'Partial<CacheService>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2698,
-      "count": 1,
-      "file": "apps/server/api/test/mocks/service.mocks.ts",
-      "fingerprint": "5499ffe1927e21f4a7c9",
-      "message": "Spread types may only be created from object types.",
-      "workspace": "api"
-    },
-    {
-      "code": 18046,
-      "count": 1,
-      "file": "apps/server/api/test/mocks/service.mocks.ts",
-      "fingerprint": "1504b114b1687c5e6844",
-      "message": "'res' is of type 'unknown'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18046,
-      "count": 1,
-      "file": "apps/server/api/test/mocks/service.mocks.ts",
-      "fingerprint": "4486fd4b1e11f85a2449",
-      "message": "'res' is of type 'unknown'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18046,
-      "count": 1,
-      "file": "apps/server/api/test/mocks/service.mocks.ts",
-      "fingerprint": "a6c9a307233b86e4179f",
-      "message": "'res' is of type 'unknown'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18046,
-      "count": 1,
-      "file": "apps/server/api/test/mocks/service.mocks.ts",
-      "fingerprint": "cbf5ed46204e8ee22459",
-      "message": "'res' is of type 'unknown'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18046,
-      "count": 1,
-      "file": "apps/server/api/test/mocks/service.mocks.ts",
-      "fingerprint": "e15c285529b156bade0e",
-      "message": "'res' is of type 'unknown'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2540,
-      "count": 1,
-      "file": "apps/server/api/test/setup-e2e.ts",
-      "fingerprint": "380debf735fc4597dcdd",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "api"
-    },
-    {
-      "code": 2540,
-      "count": 1,
-      "file": "apps/server/api/test/setup-unit.ts",
-      "fingerprint": "50036d6af2b5a5e7d3e7",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "api"
-    },
-    {
-      "code": 2540,
-      "count": 1,
-      "file": "apps/server/api/test/setup.ts",
-      "fingerprint": "072da96cb3f70efbe712",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
       "workspace": "api"
     }
   ],

@@ -15,6 +15,7 @@ import { ReplicateTextBuilder } from '@api/services/prompt-builder/builders/repl
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { ModelCategory } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { ConfigService } from '@libs/config/config.service';
 
 const makeParams = (
   overrides: Partial<PromptBuilderParams> = {},
@@ -31,7 +32,9 @@ describe('ReplicateTextBuilder', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    builder = new ReplicateTextBuilder();
+    builder = new ReplicateTextBuilder({
+      get: vi.fn(),
+    } as unknown as ConfigService);
   });
 
   describe('getSupportedModels', () => {
@@ -255,9 +258,7 @@ describe('ReplicateTextBuilder', () => {
       const result = builder.buildPrompt(
         model,
         makeParams({
-          thinkingLevel: 'high' as Parameters<
-            typeof makeParams
-          >[0]['thinkingLevel'],
+          thinkingLevel: 'high',
         }),
         'q',
       ) as AnyInput;
