@@ -33,6 +33,12 @@ describe('VideoGenerationCreditsService', () => {
     resolveApiKey: vi.fn(),
   };
 
+  const ledger = {
+    releases: [] as unknown[],
+    reservations: [] as IReserveCreditsInput[],
+    settlements: [] as unknown[],
+  };
+
   let service: VideoGenerationCreditsService;
 
   it.each([
@@ -95,12 +101,12 @@ describe('VideoGenerationCreditsService', () => {
       );
       if (change === 'same') {
         await expect(admission).resolves.toBeUndefined();
-        expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+        expect(ledger.reservations).toEqual([
           expect.objectContaining({ amount: snapshot.credits }),
-        );
+        ]);
       } else {
         await expect(admission).rejects.toThrow('fresh quote');
-        expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+        expect(ledger.reservations).toEqual([]);
         expect(
           creditsUtilsService.checkOrganizationCreditsAvailable,
         ).not.toHaveBeenCalled();
@@ -111,19 +117,34 @@ describe('VideoGenerationCreditsService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    ledger.releases = [];
+    ledger.reservations = [];
+    ledger.settlements = [];
+    creditsUtilsService.settleReservation.mockImplementation(
+      async (input: unknown) => {
+        ledger.settlements.push(input);
+      },
+    );
+    creditsUtilsService.releaseReservation.mockImplementation(
+      async (input: unknown) => {
+        ledger.releases.push(input);
+      },
+    );
     modelsService.findOne.mockResolvedValue({ cost: 10 });
     byokService.resolveApiKey.mockResolvedValue(undefined);
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       true,
     );
     creditsUtilsService.reserveCredits.mockImplementation(
-      (input: IReserveCreditsInput) =>
-        Promise.resolve({
+      async (input: IReserveCreditsInput) => {
+        ledger.reservations.push(input);
+        return {
           amount: input.amount,
           metadata: input.metadata,
           id: 'reservation-1',
           status: 'RESERVED',
-        }),
+        };
+      },
     );
     service = new VideoGenerationCreditsService(
       creditsUtilsService as never,
@@ -192,11 +213,11 @@ describe('VideoGenerationCreditsService', () => {
       );
       if (!hasEvidence) {
         await expect(check).rejects.toThrow();
-        expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+        expect(ledger.reservations).toEqual([]);
         return;
       }
       await expect(check).resolves.toBeUndefined();
-      expect(creditsUtilsService.reserveCredits).toHaveBeenCalledTimes(1);
+      expect(ledger.reservations).toHaveLength(1);
       expect(request.creditsConfig).toMatchObject({
         modelQuote: {
           provider: 'fal',
@@ -288,7 +309,7 @@ describe('VideoGenerationCreditsService', () => {
       request as never,
     );
 
-    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+    expect(ledger.reservations).toEqual([
       expect.objectContaining({
         actorUserId: 'user-1',
         amount: 10,
@@ -298,7 +319,7 @@ describe('VideoGenerationCreditsService', () => {
         workloadId: 'video-action-1',
         workloadType: 'generation',
       }),
-    );
+    ]);
     expect(request.creditsConfig).toMatchObject({
       reservationId: 'reservation-1',
     });
@@ -338,10 +359,9 @@ describe('VideoGenerationCreditsService', () => {
       'fabricated',
     );
 
-    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledOnce();
-    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+    expect(ledger.reservations).toEqual([
       expect.objectContaining({ amount: 11 }),
-    );
+    ]);
   });
 
   it('does not add a stitch cost to native extension', async () => {
@@ -487,7 +507,7 @@ describe('VideoGenerationCreditsService', () => {
       detail: `Insufficient credits: ${requiredCredits} required, ${affordableCredits} available`,
       title: 'Insufficient credits',
     });
-    expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+    expect(ledger.reservations).toEqual([]);
     expect(
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).toHaveBeenCalledWith('org-1', requiredCredits);
@@ -508,9 +528,9 @@ describe('VideoGenerationCreditsService', () => {
       request as never,
     );
 
-    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+    expect(ledger.reservations).toEqual([
       expect.objectContaining({ amount: requiredCredits }),
-    );
+    ]);
     expect(request.creditsConfig).toMatchObject({
       amount: requiredCredits,
       deferred: true,
@@ -541,7 +561,7 @@ describe('VideoGenerationCreditsService', () => {
       isByokBypass: true,
       provider: 'replicate',
     });
-    expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+    expect(ledger.reservations).toEqual([]);
     expect(
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).not.toHaveBeenCalled();
@@ -558,19 +578,20 @@ describe('VideoGenerationCreditsService', () => {
       reservedCredits,
     });
 
-    expect(creditsUtilsService.settleReservation).toHaveBeenCalledTimes(1);
-    expect(creditsUtilsService.settleReservation).toHaveBeenCalledWith({
-      actualAmount: reservedCredits,
-      actorUserId: 'user-1',
-      description: 'Clip-chain video reservation settlement',
-      organizationId: 'org-1',
-      reservationId: 'reservation-1',
-      source: ActivitySource.VIDEO_GENERATION,
-    });
+    expect(ledger.settlements).toEqual([
+      {
+        actualAmount: reservedCredits,
+        actorUserId: 'user-1',
+        description: 'Clip-chain video reservation settlement',
+        organizationId: 'org-1',
+        reservationId: 'reservation-1',
+        source: ActivitySource.VIDEO_GENERATION,
+      },
+    ]);
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
     ).not.toHaveBeenCalled();
-    expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
+    expect(ledger.releases).toEqual([]);
   });
 
   it('settles completed segments and releases the remainder when a run fails mid-chain', async () => {
@@ -585,13 +606,12 @@ describe('VideoGenerationCreditsService', () => {
       reservedCredits,
     });
 
-    expect(creditsUtilsService.settleReservation).toHaveBeenCalledTimes(1);
-    expect(creditsUtilsService.settleReservation).toHaveBeenCalledWith(
+    expect(ledger.settlements).toEqual([
       expect.objectContaining({
         actualAmount: completedCredits,
         reservationId: 'reservation-1',
       }),
-    );
+    ]);
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
     ).not.toHaveBeenCalled();
@@ -606,11 +626,13 @@ describe('VideoGenerationCreditsService', () => {
       reservedCredits: estimateClipChainCredits(5),
     });
 
-    expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
-      organizationId: 'org-1',
-      reservationId: 'reservation-1',
-    });
-    expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
+    expect(ledger.releases).toEqual([
+      {
+        organizationId: 'org-1',
+        reservationId: 'reservation-1',
+      },
+    ]);
+    expect(ledger.settlements).toEqual([]);
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
     ).not.toHaveBeenCalled();
@@ -662,9 +684,9 @@ describe('VideoGenerationCreditsService', () => {
         request as never,
       );
 
-      expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+      expect(ledger.reservations).toEqual([
         expect.objectContaining({ amount: 10 }),
-      );
+      ]);
       expect(request.creditsConfig).not.toHaveProperty('isByokBypass');
       expect(request.creditsConfig).not.toHaveProperty('byokApiKeyOverride');
     });
@@ -686,7 +708,7 @@ describe('VideoGenerationCreditsService', () => {
         request as never,
       );
 
-      expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+      expect(ledger.reservations).toEqual([]);
       expect(request.creditsConfig).toMatchObject({
         amount: 10,
         byokApiKeyOverride: 'replicate-org-key',

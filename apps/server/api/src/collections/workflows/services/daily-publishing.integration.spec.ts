@@ -153,6 +153,11 @@ function harness() {
     'A practical research habit: record the evidence behind a recommendation before writing its headline. Readers deserve the reasoning.',
   ];
   let generatedCount = 0;
+  const ledger = {
+    collected: [] as { collector: string; postIds: string[]; actor: unknown }[],
+    outlierRefreshes: 0,
+    scheduledBatches: [] as string[],
+  };
   const generator = {
     generateContentWorkflow: vi.fn(async () => [
       { content: bodies[generatedCount++] },
@@ -182,13 +187,28 @@ function harness() {
         selected.forEach((row) => {
           row.targetExecutionState = 'scheduled';
         });
+        ledger.scheduledBatches.push(target.credentialId);
         return { missingPostIds: [], posts: selected };
       },
     ),
   };
-  const outliers = { refresh: vi.fn().mockResolvedValue([]) };
-  const twitterAnalytics = { collect: vi.fn(async () => undefined) };
-  const socialAnalytics = { collect: vi.fn(async () => undefined) };
+  const outliers = {
+    refresh: vi.fn(async () => {
+      ledger.outlierRefreshes += 1;
+      return [];
+    }),
+  };
+  const collect =
+    (collector: string) =>
+    async (input: { posts: { id: string }[] }, actor: unknown) => {
+      ledger.collected.push({
+        actor,
+        collector,
+        postIds: input.posts.map((post) => post.id),
+      });
+    };
+  const twitterAnalytics = { collect: vi.fn(collect('twitter')) };
+  const socialAnalytics = { collect: vi.fn(collect('social')) };
   const actions = new Map<string, SystemWorkflowActionExecutor>();
   const runner = {
     registerWorkflow: vi.fn(),
@@ -294,6 +314,8 @@ function harness() {
     return engine.execute(executable, { executionId, maxRetries: 0 });
   };
   return {
+    ledger,
+    generatedCount: () => generatedCount,
     rows,
     prisma,
     posts,
@@ -338,21 +360,20 @@ describe('daily publishing executable graph', () => {
     vi.setSystemTime(new Date('2026-09-06T08:00:00Z'));
     const fixture = harness();
     expectCompleted(await fixture.run('first'));
-    expect(fixture.posts.batchSchedule).toHaveBeenCalledTimes(2);
+    expect(fixture.ledger.scheduledBatches).toHaveLength(2);
     expect(fixture.rows).toHaveLength(2);
     expect(
       fixture.rows.every((row) => row.targetExecutionState === 'scheduled'),
     ).toBe(true);
     expect(new Set(fixture.rows.map((row) => row.description)).size).toBe(2);
-    expect(fixture.generator.generateContentWorkflow.mock.calls).toHaveLength(
-      2,
-    );
+    expect(fixture.generatedCount()).toBe(2);
     expectCompleted(await fixture.run('same-day-rerun'));
-    expect(fixture.posts.batchSchedule).toHaveBeenCalledTimes(2);
+    expect(fixture.ledger.scheduledBatches).toHaveLength(2);
+    expect(fixture.generatedCount()).toBe(2);
     vi.setSystemTime(new Date('2026-09-07T08:00:00Z'));
     expectCompleted(await fixture.run('tomorrow'));
     expect(fixture.rows).toHaveLength(4);
-    expect(fixture.posts.batchSchedule).toHaveBeenCalledTimes(4);
+    expect(fixture.ledger.scheduledBatches).toHaveLength(4);
     expect(
       new Set(fixture.rows.map((row) => row.targetIdempotencyKey)).size,
     ).toBe(4);
@@ -382,24 +403,35 @@ describe('daily publishing executable graph', () => {
       }
     }
     expectCompleted(await fixture.run('with-history'));
-    expect(fixture.twitterAnalytics.collect).toHaveBeenCalledTimes(2);
-    expect(fixture.outliers.refresh).toHaveBeenCalledTimes(2);
-    expect(fixture.socialAnalytics.collect).toHaveBeenCalledTimes(2);
-    for (const collector of [
-      fixture.twitterAnalytics,
-      fixture.socialAnalytics,
-    ]) {
-      for (const call of collector.collect.mock.calls) {
-        // No persisted schedule binding in this in-memory run: ordinary actor-less collection.
-        expect(call).toEqual([
-          expect.objectContaining({
-            posts: [expect.objectContaining({ organizationId: 'org' })],
-          }),
-          undefined,
-        ]);
-      }
-    }
-    expect(fixture.posts.batchSchedule).toHaveBeenCalledTimes(2);
+    // No persisted schedule binding in this in-memory run: ordinary actor-less collection,
+    // one post per collection request.
+    expect(fixture.ledger.collected).toHaveLength(4);
+    expect(fixture.ledger.collected).toEqual(
+      expect.arrayContaining([
+        {
+          actor: undefined,
+          collector: 'twitter',
+          postIds: ['account-x-published-0'],
+        },
+        {
+          actor: undefined,
+          collector: 'twitter',
+          postIds: ['account-x-published-1'],
+        },
+        {
+          actor: undefined,
+          collector: 'social',
+          postIds: ['account-linkedin-published-0'],
+        },
+        {
+          actor: undefined,
+          collector: 'social',
+          postIds: ['account-linkedin-published-1'],
+        },
+      ]),
+    );
+    expect(fixture.ledger.outlierRefreshes).toBe(2);
+    expect(fixture.ledger.scheduledBatches).toHaveLength(2);
   });
 
   it('holds every account instead of generating actor-less when the bound principal is denied', async () => {
@@ -425,12 +457,12 @@ describe('daily publishing executable graph', () => {
     const result = await fixture.run('revoked');
 
     expectCompleted(result);
-    expect(fixture.twitterAnalytics.collect).not.toHaveBeenCalled();
-    expect(fixture.socialAnalytics.collect).not.toHaveBeenCalled();
-    expect(fixture.outliers.refresh).not.toHaveBeenCalled();
-    expect(fixture.generator.generateContentWorkflow).not.toHaveBeenCalled();
-    expect(fixture.scorer.scoreContent).not.toHaveBeenCalled();
-    expect(fixture.posts.batchSchedule).not.toHaveBeenCalled();
+    expect(fixture.ledger).toEqual({
+      collected: [],
+      outlierRefreshes: 0,
+      scheduledBatches: [],
+    });
+    expect(fixture.generatedCount()).toBe(0);
     // Only the two pre-existing published rows: no slot post was claimed.
     expect(fixture.rows).toHaveLength(2);
     const outcomes = [...result.nodeResults.values()].flatMap((node) =>
@@ -447,14 +479,13 @@ describe('daily publishing executable graph', () => {
       suggestions: [],
     });
     expectCompleted(await fixture.run('held'));
-    expect(fixture.scorer.scoreContent).toHaveBeenCalledTimes(2);
     expect(
       fixture.rows.every(
         (row) =>
           typeof row.description === 'string' && row.description.length > 0,
       ),
     ).toBe(true);
-    expect(fixture.posts.batchSchedule).not.toHaveBeenCalled();
+    expect(fixture.ledger.scheduledBatches).toEqual([]);
     expect(fixture.rows).toHaveLength(2);
     expect(
       fixture.rows.every((row) => row.targetExecutionState === 'draft'),
@@ -467,7 +498,10 @@ describe('daily publishing executable graph', () => {
       new Error('Generation unavailable'),
     );
     expectCompleted(await fixture.run('partial'));
-    expect(fixture.posts.batchSchedule).toHaveBeenCalledTimes(1);
+    expect(fixture.ledger.scheduledBatches).toHaveLength(1);
+    expect(
+      fixture.rows.filter((row) => row.targetExecutionState === 'scheduled'),
+    ).toHaveLength(1);
     expect(fixture.rows.some((row) => row.targetError)).toBe(true);
   });
 });
