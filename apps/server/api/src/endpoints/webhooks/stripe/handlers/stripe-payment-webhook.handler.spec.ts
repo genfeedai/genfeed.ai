@@ -1,4 +1,4 @@
-import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
+import type { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { StripePaymentWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-payment-webhook.handler';
 import type { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import type {
@@ -7,112 +7,142 @@ import type {
 } from '@api/services/integrations/stripe/services/stripe.service';
 import type { StripePaymentRevenueReferenceService } from '@api/services/integrations/stripe/services/stripe-payment-revenue-reference.service';
 import { BillingRevenueSource } from '@genfeedai/contracts';
-import { LoggerService } from '@libs/logger/logger.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('StripePaymentWebhookHandler', () => {
-  const referrals = { applyPaymentReversal: vi.fn() };
-  const logger = { warn: vi.fn() };
-  const references = { resolve: vi.fn() };
-  const support = { recordRevenueAdjustment: vi.fn() };
-  const handler = new StripePaymentWebhookHandler(
-    referrals as unknown as ReferralsService,
-    logger as unknown as LoggerService,
-    references as unknown as StripePaymentRevenueReferenceService,
-    support as unknown as StripeWebhookSupportService,
-  );
+  // Stripe knows checkout cs_1 for payment intent pi_1.
+  let paymentReferences: Map<
+    string,
+    { grossAmountMinor: number; revenueObjectId: string }
+  >;
+  let isStripeDown: boolean;
+  let reversals: unknown[];
+  let adjustments: Array<Record<string, unknown>>;
+  let warnings: string[];
+  let handler: StripePaymentWebhookHandler;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    references.resolve.mockResolvedValue({
-      grossAmountMinor: 10_000,
-      revenueObjectId: 'cs_1',
-    });
+    paymentReferences = new Map([
+      ['pi_1', { grossAmountMinor: 10_000, revenueObjectId: 'cs_1' }],
+    ]);
+    isStripeDown = false;
+    reversals = [];
+    adjustments = [];
+    warnings = [];
+
+    handler = new StripePaymentWebhookHandler(
+      {
+        applyPaymentReversal: async (input: unknown) => {
+          reversals.push(input);
+        },
+      } as unknown as ReferralsService,
+      {
+        warn: (message: string) => {
+          warnings.push(message);
+        },
+      } as unknown as LoggerService,
+      {
+        resolve: async (paymentIntentId: string) => {
+          if (isStripeDown) {
+            throw new Error('stripe unavailable');
+          }
+          return paymentReferences.get(paymentIntentId) ?? null;
+        },
+      } as unknown as StripePaymentRevenueReferenceService,
+      {
+        recordRevenueAdjustment: async (input: Record<string, unknown>) => {
+          adjustments.push(input);
+        },
+      } as unknown as StripeWebhookSupportService,
+    );
   });
 
-  it('forwards the cumulative refunded amount for a charge', async () => {
-    await handler.handleChargeRefunded({
-      amount_refunded: 2_500,
-      id: 'ch_1',
-      payment_intent: 'pi_1',
-    } as StripeCharge);
+  const refund = {
+    amount_refunded: 2_500,
+    id: 'ch_1',
+    payment_intent: 'pi_1',
+  } as StripeCharge;
 
-    expect(referrals.applyPaymentReversal).toHaveBeenCalledWith({
-      disputed: false,
-      refundedAmountCents: 2_500,
-      stripePaymentIntentId: 'pi_1',
-    });
-  });
+  it('subtracts a refund from revenue and reverses the referral by the cumulative amount', async () => {
+    await handler.handleChargeRefunded(refund);
 
-  it('fully reverses a disputed payment', async () => {
-    await handler.handleDisputeCreated({
-      amount: 10_000,
-      id: 'dp_1',
-      payment_intent: { id: 'pi_1' },
-    } as unknown as StripeDispute);
-
-    expect(referrals.applyPaymentReversal).toHaveBeenCalledWith({
-      disputed: true,
-      refundedAmountCents: 10_000,
-      stripePaymentIntentId: 'pi_1',
-    });
-  });
-
-  it('subtracts a refund from the revenue the payment was recorded under', async () => {
-    await handler.handleChargeRefunded({
-      amount_refunded: 2_500,
-      id: 'ch_1',
-      payment_intent: 'pi_1',
-    } as StripeCharge);
-
-    expect(support.recordRevenueAdjustment).toHaveBeenCalledWith(
-      expect.objectContaining({
+    expect(adjustments).toEqual([
+      {
         adjustedGrossMinor: 2_500,
         adjustmentId: 'refund:ch_1',
+        occurredAt: expect.any(Date),
         originalGrossMinor: 10_000,
         originalStripeObjectId: 'cs_1',
         source: BillingRevenueSource.REFUND,
-      }),
-    );
+      },
+    ]);
+    expect(reversals).toEqual([
+      {
+        disputed: false,
+        refundedAmountCents: 2_500,
+        stripePaymentIntentId: 'pi_1',
+      },
+    ]);
   });
 
-  it('subtracts a dispute from revenue', async () => {
+  it.each([
+    ['an expanded payment intent', { id: 'pi_1' }],
+    ['a payment intent id', 'pi_1'],
+  ])('fully reverses a dispute on %s', async (_label, paymentIntent) => {
     await handler.handleDisputeCreated({
       amount: 10_000,
       id: 'dp_1',
-      payment_intent: 'pi_1',
+      payment_intent: paymentIntent,
     } as unknown as StripeDispute);
 
-    expect(support.recordRevenueAdjustment).toHaveBeenCalledWith(
+    expect(adjustments).toEqual([
       expect.objectContaining({
+        adjustedGrossMinor: 10_000,
         adjustmentId: 'dispute:dp_1',
         source: BillingRevenueSource.DISPUTE,
       }),
-    );
+    ]);
+    expect(reversals).toEqual([
+      {
+        disputed: true,
+        refundedAmountCents: 10_000,
+        stripePaymentIntentId: 'pi_1',
+      },
+    ]);
   });
 
   it('leaves revenue alone when Stripe knows no checkout or invoice for the payment', async () => {
-    references.resolve.mockResolvedValue(null);
+    paymentReferences.clear();
 
-    await handler.handleChargeRefunded({
-      amount_refunded: 2_500,
-      id: 'ch_1',
-      payment_intent: 'pi_1',
-    } as StripeCharge);
+    await handler.handleChargeRefunded(refund);
 
-    expect(support.recordRevenueAdjustment).not.toHaveBeenCalled();
-    expect(referrals.applyPaymentReversal).toHaveBeenCalled();
+    expect(adjustments).toEqual([]);
+    expect(reversals).toHaveLength(1);
+    expect(warnings).toEqual([
+      'Stripe payment is not in the revenue ledger; nothing to subtract',
+    ]);
+  });
+
+  it('ignores a dispute without a payment intent', async () => {
+    await handler.handleDisputeCreated({
+      amount: 10_000,
+      id: 'dp_1',
+    } as unknown as StripeDispute);
+
+    expect(adjustments).toEqual([]);
+    expect(reversals).toEqual([]);
+    expect(warnings).toEqual([
+      'Stripe dispute missing payment intent; no referral reward matched',
+    ]);
   });
 
   it('lets a Stripe lookup failure propagate so the event is redelivered', async () => {
-    references.resolve.mockRejectedValue(new Error('stripe unavailable'));
+    isStripeDown = true;
 
-    await expect(
-      handler.handleChargeRefunded({
-        amount_refunded: 2_500,
-        id: 'ch_1',
-        payment_intent: 'pi_1',
-      } as StripeCharge),
-    ).rejects.toThrow('stripe unavailable');
+    await expect(handler.handleChargeRefunded(refund)).rejects.toThrow(
+      'stripe unavailable',
+    );
+    expect(reversals).toEqual([]);
   });
 });
