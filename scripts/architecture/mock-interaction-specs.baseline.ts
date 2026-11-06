@@ -179,7 +179,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/server/api/src/collections/turbo-projects/services/turbo-project-reconcile.service.spec.ts',
   'apps/server/api/src/collections/turbo-projects/services/turbo-project-scheduling.service.spec.ts',
   'apps/server/api/src/collections/turbo-projects/services/turbo-projects.service.spec.ts',
-  'apps/server/api/src/collections/user-subscriptions/services/user-subscriptions.service.spec.ts',
   'apps/server/api/src/collections/users/controllers/users.controller.spec.ts',
   'apps/server/api/src/collections/users/services/user-setup.service.spec.ts',
   'apps/server/api/src/collections/videos/controllers/batch-interpolation.controller.spec.ts',

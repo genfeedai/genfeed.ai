@@ -47,19 +47,37 @@ export class UserSubscriptionsService implements IUserSubscriptionsService {
   async getOrCreateSubscription(
     userId: string,
   ): Promise<UserSubscriptionDocument> {
-    let subscription = await this.findByUser(userId);
+    const existing = await this.prisma.userSubscription.findUnique({
+      where: { userId },
+    });
 
-    if (!subscription) {
-      const newSubscription: Prisma.UserSubscriptionUncheckedCreateInput = {
-        cancelAtPeriodEnd: false,
-        isDeleted: false,
-        status: SubscriptionStatus.ACTIVE,
-        userId,
-      };
-      subscription = await this.create(newSubscription);
+    if (existing && !existing.isDeleted) {
+      return existing;
     }
 
-    return subscription;
+    const fresh = {
+      cancelAtPeriodEnd: false,
+      isDeleted: false,
+      status: SubscriptionStatus.ACTIVE,
+    };
+
+    // `userId` is unique, so a soft-deleted row is revived as a fresh
+    // subscription instead of colliding with a second insert.
+    if (existing) {
+      return this.prisma.userSubscription.update({
+        data: {
+          ...fresh,
+          currentPeriodEnd: null,
+          currentPeriodStart: null,
+          plan: null,
+          stripePriceId: null,
+          stripeSubscriptionId: null,
+        },
+        where: { id: existing.id },
+      });
+    }
+
+    return this.create({ ...fresh, userId });
   }
 
   @HandleErrors('update from stripe session', 'user-subscriptions')
