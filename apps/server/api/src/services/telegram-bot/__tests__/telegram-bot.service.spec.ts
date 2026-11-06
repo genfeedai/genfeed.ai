@@ -3,156 +3,233 @@ import { TelegramBotService } from '@api/services/telegram-bot/telegram-bot.serv
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { Bot } from 'grammy';
 
-vi.mock('grammy', () => ({
-  Bot: vi.fn().mockImplementation(function Bot() {
-    return {
-      command: vi.fn(),
-      handleUpdate: vi.fn(),
-      on: vi.fn(),
-      start: vi.fn(),
-      stop: vi.fn(),
-      token: 'test-token',
-      use: vi.fn(),
-    };
-  }),
-  InlineKeyboard: vi.fn().mockImplementation(() => ({
-    row: vi.fn().mockReturnThis(),
-    text: vi.fn().mockReturnThis(),
-  })),
-  InputFile: vi.fn(),
+type Handler = (ctx: unknown, next?: () => Promise<void>) => unknown;
+
+// Every bot the service creates, with what it wired and whether it runs.
+const telegram = vi.hoisted(() => ({
+  bots: [] as Array<{
+    commands: unknown[];
+    filters: Map<string, Handler>;
+    isRunning: boolean;
+    middlewares: Handler[];
+    token: string;
+  }>,
 }));
 
+vi.mock('grammy', () => {
+  class FakeBot {
+    readonly commands: unknown[] = [];
+    readonly filters = new Map<string, Handler>();
+    isRunning = false;
+    readonly middlewares: Handler[] = [];
+
+    constructor(readonly token: string) {
+      telegram.bots.push(this);
+    }
+
+    command(names: unknown) {
+      this.commands.push(names);
+    }
+
+    on(filter: string, handler: Handler) {
+      this.filters.set(filter, handler);
+    }
+
+    use(middleware: Handler) {
+      this.middlewares.push(middleware);
+    }
+
+    start() {
+      this.isRunning = true;
+    }
+
+    stop() {
+      this.isRunning = false;
+    }
+
+    async handleUpdate() {}
+  }
+
+  class FakeInlineKeyboard {
+    row() {
+      return this;
+    }
+    text() {
+      return this;
+    }
+  }
+
+  return {
+    Bot: FakeBot,
+    InlineKeyboard: FakeInlineKeyboard,
+    InputFile: class {},
+  };
+});
+
 describe('TelegramBotService', () => {
+  let config: Record<string, string>;
+  let isDevPollingEnabled: boolean;
+  let registeredWorkflows: unknown[];
+  let logs: string[];
   let service: TelegramBotService;
-  let mockConfigService: {
-    get: ReturnType<typeof vi.fn>;
-    isDevTelegramPollingEnabled: boolean;
-  };
-  let mockLoggerService: {
-    log: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-  };
-  let mockSystemWorkflowRunner: {
-    registerWorkflow: ReturnType<typeof vi.fn>;
-    runWorkflow: ReturnType<typeof vi.fn>;
-  };
-  let mockPrisma: { brand: { findFirst: ReturnType<typeof vi.fn> } };
 
   beforeEach(() => {
-    mockConfigService = {
-      get: vi.fn((key: string) => {
-        const config: Record<string, string> = {
-          TELEGRAM_ALLOWED_USER_IDS: '123,456',
-          TELEGRAM_BOT_MODE: 'polling',
-          TELEGRAM_BOT_TOKEN: 'test-token-123',
-        };
-        return config[key];
-      }),
-      isDevTelegramPollingEnabled: true,
+    telegram.bots.length = 0;
+    config = {
+      TELEGRAM_ALLOWED_USER_IDS: '123,456',
+      TELEGRAM_BOT_MODE: 'polling',
+      TELEGRAM_BOT_TOKEN: 'test-token-123',
     };
+    isDevPollingEnabled = true;
+    registeredWorkflows = [];
+    logs = [];
 
-    mockLoggerService = {
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
+    const record = (message: string) => {
+      logs.push(message);
     };
-
-    mockSystemWorkflowRunner = {
-      registerWorkflow: vi.fn(),
-      runWorkflow: vi.fn(),
-    };
-    mockPrisma = { brand: { findFirst: vi.fn() } };
-
     service = new TelegramBotService(
-      mockConfigService as unknown as ConfigService,
-      mockLoggerService as unknown as LoggerService,
-      mockSystemWorkflowRunner as unknown as SystemWorkflowRunnerService,
-      mockPrisma as unknown as PrismaService,
+      {
+        get: (key: string) => config[key],
+        get isDevTelegramPollingEnabled() {
+          return isDevPollingEnabled;
+        },
+      } as unknown as ConfigService,
+      { error: record, log: record, warn: record } as unknown as LoggerService,
+      {
+        registerWorkflow: (definition: unknown) => {
+          registeredWorkflows.push(definition);
+        },
+        runWorkflow: async () => undefined,
+      } as unknown as SystemWorkflowRunnerService,
+      { brand: { findFirst: async () => null } } as unknown as PrismaService,
     );
   });
 
-  afterEach(async () => {
-    await service.onModuleDestroy();
+  afterEach(() => {
+    service.onModuleDestroy();
   });
 
-  describe('getStatus', () => {
-    it('should return bot status', () => {
-      const status = service.getStatus();
-      expect(status).toEqual({
-        activeConversations: 0,
-        allowedUsers: 0,
-        connectedChats: 0,
-        engineReady: false,
-        hasDefaultContext: false,
-        running: false,
-        workflowsLoaded: 0,
-      });
+  it('reports an idle bot before initialization', () => {
+    expect(service.getStatus()).toEqual({
+      activeConversations: 0,
+      allowedUsers: 0,
+      connectedChats: 0,
+      engineReady: false,
+      hasDefaultContext: false,
+      running: false,
+      workflowsLoaded: 0,
     });
+    expect(service.getWorkflows().size).toBe(0);
   });
 
-  describe('getWorkflows', () => {
-    it('should return empty map initially', () => {
-      const workflows = service.getWorkflows();
-      expect(workflows.size).toBe(0);
-    });
+  it('stays disabled without a bot token', async () => {
+    config = {};
+
+    await service.onModuleInit();
+
+    expect(telegram.bots).toEqual([]);
+    expect(service.getStatus().running).toBe(false);
+    expect(logs).toEqual([
+      expect.stringContaining('TELEGRAM_BOT_TOKEN not set'),
+    ]);
   });
 
-  describe('onModuleInit', () => {
-    it('should skip initialization when no token is set', async () => {
-      mockConfigService.get = vi.fn(() => undefined);
-      await service.onModuleInit();
-      expect(mockLoggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('TELEGRAM_BOT_TOKEN not set'),
-      );
+  it('skips heavy initialization when local dev polling is disabled', async () => {
+    isDevPollingEnabled = false;
+
+    await service.onModuleInit();
+
+    expect(telegram.bots).toEqual([]);
+    expect(registeredWorkflows).toEqual([]);
+    expect(service.getStatus().workflowsLoaded).toBe(0);
+  });
+
+  it('starts polling with the loaded workflows and media input handlers', async () => {
+    await service.onModuleInit();
+
+    const status = service.getStatus();
+    expect(status).toMatchObject({
+      allowedUsers: 2,
+      engineReady: true,
+      running: true,
     });
-
-    it('should skip heavy initialization when local dev polling is disabled', async () => {
-      mockConfigService.isDevTelegramPollingEnabled = false;
-      mockConfigService.get = vi.fn((key: string) => {
-        const config: Record<string, string> = {
-          TELEGRAM_BOT_MODE: 'polling',
-          TELEGRAM_BOT_TOKEN: 'test-token-123',
-        };
-        return config[key];
-      });
-
-      await service.onModuleInit();
-
-      expect(service.getStatus().workflowsLoaded).toBe(0);
-      expect(Bot).not.toHaveBeenCalled();
-      expect(mockLoggerService.log).toHaveBeenCalledWith(
-        'TelegramBotService: polling disabled for local development',
-      );
-    });
-
-    it('registers audio and video workflow input handlers', async () => {
-      await service.onModuleInit();
-
-      expect(mockSystemWorkflowRunner.registerWorkflow).toHaveBeenCalled();
-
-      const botInstance = vi.mocked(Bot).mock.results.at(-1)?.value as
-        | { on: ReturnType<typeof vi.fn> }
-        | undefined;
-
-      expect(botInstance?.on).toHaveBeenCalledWith(
+    expect(registeredWorkflows).toHaveLength(status.workflowsLoaded);
+    expect(telegram.bots).toHaveLength(1);
+    expect(telegram.bots[0]?.token).toBe('test-token-123');
+    expect([...(telegram.bots[0]?.filters.keys() ?? [])]).toEqual(
+      expect.arrayContaining([
         'message:audio',
-        expect.any(Function),
-      );
-      expect(botInstance?.on).toHaveBeenCalledWith(
         'message:voice',
-        expect.any(Function),
-      );
-      expect(botInstance?.on).toHaveBeenCalledWith(
         'message:video',
-        expect.any(Function),
-      );
-      expect(botInstance?.on).toHaveBeenCalledWith(
         'message:document',
-        expect.any(Function),
-      );
+      ]),
+    );
+  });
+
+  async function sendFrom(userId: number) {
+    const replies: string[] = [];
+    let isNextReached = false;
+    await telegram.bots[0]?.middlewares[0]?.(
+      {
+        from: { id: userId },
+        reply: async (text: string) => {
+          replies.push(text);
+        },
+      },
+      async () => {
+        isNextReached = true;
+      },
+    );
+    return { isNextReached, replies };
+  }
+
+  it('passes an allowlisted user on to the command handlers', async () => {
+    await service.onModuleInit();
+
+    await expect(sendFrom(123)).resolves.toEqual({
+      isNextReached: true,
+      replies: [],
     });
+  });
+
+  it('refuses a user who is not on the allowlist', async () => {
+    await service.onModuleInit();
+
+    await expect(sendFrom(999)).resolves.toEqual({
+      isNextReached: false,
+      replies: ['⛔ You are not authorized to use this bot.'],
+    });
+  });
+
+  it('refuses everyone when the allowlist names nobody', async () => {
+    config = { ...config, TELEGRAM_ALLOWED_USER_IDS: '' };
+
+    await service.onModuleInit();
+
+    expect(service.getStatus().allowedUsers).toBe(0);
+    await expect(sendFrom(123)).resolves.toMatchObject({
+      isNextReached: false,
+    });
+    expect(logs).toContainEqual(
+      expect.stringContaining(
+        'names no user, so every command will be refused',
+      ),
+    );
+  });
+
+  it('stops the polling bot on module destroy', async () => {
+    await service.onModuleInit();
+
+    service.onModuleDestroy();
+
+    expect(telegram.bots[0]?.isRunning).toBe(false);
+    expect(service.getStatus().running).toBe(false);
+  });
+
+  it('rejects a webhook update before the bot exists', async () => {
+    await expect(service.handleWebhookUpdate({})).rejects.toThrow(
+      'Bot not initialized',
+    );
   });
 });
