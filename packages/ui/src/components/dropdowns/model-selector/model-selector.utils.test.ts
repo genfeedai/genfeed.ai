@@ -37,8 +37,6 @@ function createModel(
     isActive: true,
     isDefault: false,
     isDeleted: false,
-    key: overrides.key,
-    label: overrides.label,
     provider: ModelProvider.REPLICATE,
     updatedAt: '2026-01-01',
     ...overrides,

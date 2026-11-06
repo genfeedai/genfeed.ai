@@ -142,22 +142,4 @@ describe('Pagination', () => {
       expect(link).toBeInTheDocument();
     });
   });
-
-  it('defaults to page 1 when currentPage not provided', () => {
-    const handlePageChange = vi.fn();
-    render(<Pagination totalPages={5} onPageChange={handlePageChange} />);
-
-    const page1Link = screen.getByText('1').closest('a');
-    expect(page1Link).toHaveAttribute('aria-current', 'page');
-  });
-
-  it('defaults to 1 total page when totalPages not provided', () => {
-    const handlePageChange = vi.fn();
-    const { container } = render(
-      <Pagination currentPage={1} onPageChange={handlePageChange} />,
-    );
-
-    // Component renders nothing when there's only 1 page
-    expect(container.querySelector('.inline-flex')).not.toBeInTheDocument();
-  });
 });

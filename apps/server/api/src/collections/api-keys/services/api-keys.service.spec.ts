@@ -558,6 +558,27 @@ describe('ApiKeysService', () => {
       ).resolves.toBeUndefined();
     });
 
+    it('assertValidDefaultBrandId accepts a default brand inside the key brand limit (#9130)', async () => {
+      const { prisma, service } = createBrandHarness();
+      prisma.brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+
+      await expect(
+        service.assertValidDefaultBrandId('org-1', 'brand-1', [
+          'brand-1',
+          'brand-2',
+        ]),
+      ).resolves.toBeUndefined();
+    });
+
+    it('assertValidDefaultBrandId refuses a default brand outside the key brand limit (#9130)', async () => {
+      const { prisma, service } = createBrandHarness();
+      prisma.brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+
+      await expect(
+        service.assertValidDefaultBrandId('org-1', 'brand-1', ['brand-2']),
+      ).rejects.toThrow('defaultBrandId must be one of the allowedBrandIds.');
+    });
+
     it('assertValidDefaultBrandId throws BadRequestException for an org mismatch or deleted brand', async () => {
       const { prisma, service } = createBrandHarness();
       prisma.brand.findFirst.mockResolvedValue(null);

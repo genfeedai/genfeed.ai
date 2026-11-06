@@ -1,3 +1,8 @@
+import {
+  createBaseEntity,
+  createOrganization,
+  createUser,
+} from '@genfeedai/helpers/testing/entity-fixtures';
 import { fireEvent, render, screen } from '@testing-library/react';
 import DropZoneFolder from '@ui/drag-drop/zone-folder/DropZoneFolder';
 import { describe, expect, it, vi } from 'vitest';
@@ -8,7 +13,13 @@ describe('DropZoneFolder', () => {
 
     render(
       <DropZoneFolder
-        folder={{ id: 'folder-456', label: 'Target Folder' }}
+        folder={{
+          ...createBaseEntity({ id: 'folder-456' }),
+          label: 'Target Folder',
+          organization: createOrganization(),
+          tags: [],
+          user: createUser(),
+        }}
         onDrop={onDrop}
       />,
     );

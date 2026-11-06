@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@ui-constants/pwa/pwa-apps.constant', () => ({
   PWA_APPS: {
     app: {
-      appId: 'app',
+      appName: 'app',
       backgroundColor: '#101820',
       description: 'Content hub',
       displayName: 'Genfeed Content Hub',
@@ -17,9 +17,9 @@ vi.mock('@ui-constants/pwa/pwa-apps.constant', () => ({
       startUrl: '/overview',
       themeColorDark: '#101820',
       themeColorLight: '#ffffff',
-    } as PWAAppConfig,
+    } satisfies PWAAppConfig,
     manager: {
-      appId: 'manager',
+      appName: 'manager',
       backgroundColor: '#1a1a1a',
       description: 'Content management platform',
       displayName: 'Genfeed Manager',
@@ -28,9 +28,9 @@ vi.mock('@ui-constants/pwa/pwa-apps.constant', () => ({
       startUrl: '/manager',
       themeColorDark: '#0a0a0a',
       themeColorLight: '#f5f5f5',
-    } as PWAAppConfig,
+    } satisfies PWAAppConfig,
     studio: {
-      appId: 'studio',
+      appName: 'studio',
       backgroundColor: '#000000',
       description: 'AI-powered content creation studio',
       displayName: 'Genfeed Studio',
@@ -39,7 +39,7 @@ vi.mock('@ui-constants/pwa/pwa-apps.constant', () => ({
       startUrl: '/studio',
       themeColorDark: '#1a1a1a',
       themeColorLight: '#ffffff',
-    } as PWAAppConfig,
+    } satisfies PWAAppConfig,
   } as Record<string, PWAAppConfig>,
 }));
 
@@ -199,7 +199,7 @@ describe('pwa.helper', () => {
     it('should generate apple touch icon', () => {
       const { metadata } = generatePWAMetadata('studio' as PWAAppNameKey);
 
-      expect(metadata.icons?.apple).toEqual([
+      expect(metadata.icons).toHaveProperty('apple', [
         {
           sizes: '180x180',
           url: 'https://cdn.genfeed.ai/assets/pwa/studio/apple-touch-icon.png',
@@ -210,13 +210,13 @@ describe('pwa.helper', () => {
     it('should generate favicon icons', () => {
       const { metadata } = generatePWAMetadata('studio' as PWAAppNameKey);
 
-      expect(metadata.icons?.icon).toHaveLength(3);
-      expect(metadata.icons?.icon?.[0]).toEqual({
+      expect(metadata.icons).toHaveProperty('icon.length', 3);
+      expect(metadata.icons).toHaveProperty('icon.0', {
         rel: 'icon',
         type: 'image/x-icon',
         url: '/favicon.ico',
       });
-      expect(metadata.icons?.icon?.[1]).toEqual({
+      expect(metadata.icons).toHaveProperty('icon.1', {
         sizes: '192x192',
         type: 'image/png',
         url: 'https://cdn.genfeed.ai/assets/pwa/studio/icon-192x192.png',

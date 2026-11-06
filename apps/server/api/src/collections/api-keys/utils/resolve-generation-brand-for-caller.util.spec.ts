@@ -245,4 +245,69 @@ describe('resolveGenerationBrandIdForCaller', () => {
       expect(result).toBe('owner-current-brand');
     });
   });
+
+  describe('API-key callers limited to some brands (#9130)', () => {
+    const restrictedKeyUser = {
+      apiKeyId: 'apikey-1',
+      id: userId,
+      isApiKey: true,
+      organizationId,
+      userId,
+    };
+
+    it('answers 404 for an explicit sibling brand', async () => {
+      stubValidBrands(['own-brand', 'sibling-brand']);
+      apiKeysService.findOne.mockResolvedValue({
+        defaultBrandId: 'own-brand',
+        metadata: { allowedBrandIds: ['own-brand'] },
+      });
+
+      await expect(
+        resolveGenerationBrandIdForCaller({
+          ...messages,
+          explicitBrandId: 'sibling-brand',
+          services: services(),
+          user: restrictedKeyUser,
+        }),
+      ).rejects.toThrow('Brand not found');
+    });
+
+    it('uses its first allowed brand when it has no default brand', async () => {
+      stubValidBrands(['own-brand', 'sibling-brand']);
+      apiKeysService.findOne.mockResolvedValue({
+        defaultBrandId: null,
+        metadata: { allowedBrandIds: ['own-brand'] },
+      });
+      membersService.findOne.mockResolvedValue({
+        currentBrandId: 'sibling-brand',
+      });
+
+      const result = await resolveGenerationBrandIdForCaller({
+        ...messages,
+        services: services(),
+        user: restrictedKeyUser,
+      });
+
+      expect(result).toBe('own-brand');
+    });
+
+    it("never lands on the owner's current brand outside its list", async () => {
+      stubValidBrands(['sibling-brand']);
+      apiKeysService.findOne.mockResolvedValue({
+        defaultBrandId: null,
+        metadata: { allowedBrandIds: ['deleted-brand'] },
+      });
+      membersService.findOne.mockResolvedValue({
+        currentBrandId: 'sibling-brand',
+      });
+
+      await expect(
+        resolveGenerationBrandIdForCaller({
+          ...messages,
+          services: services(),
+          user: restrictedKeyUser,
+        }),
+      ).rejects.toThrow(new BadRequestException('no api key default brand'));
+    });
+  });
 });

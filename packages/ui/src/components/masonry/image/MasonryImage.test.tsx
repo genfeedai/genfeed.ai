@@ -99,6 +99,10 @@ vi.mock('next-intl', async () => {
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { IngredientStatus } from '@genfeedai/contracts';
 import type { IImage } from '@genfeedai/contracts/interfaces';
+import {
+  createIngredientFixture,
+  createMetadataFixture,
+} from '@genfeedai/helpers/testing/entity-fixtures';
 import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
 import MasonryImage from '@ui/masonry/image/MasonryImage';
 
@@ -107,13 +111,12 @@ const defaultBrandContext = {
   settings: { isFleetNsfwVisible: false },
 } as ReturnType<typeof useBrand>;
 
-const mockImage: IImage = {
+const mockImage: IImage = createIngredientFixture({
   id: 'img-123',
   ingredientUrl: 'https://example.com/image.png',
-  metadata: { height: 1920, width: 1080 },
+  metadata: createMetadataFixture({ height: 1920, width: 1080 }),
   promptText: 'A test image',
-  status: 'active',
-} as IImage;
+});
 
 describe('MasonryImage', () => {
   it.each([false, true])(
@@ -246,7 +249,7 @@ describe('MasonryImage', () => {
       <MasonryImage
         image={{
           ...mockImage,
-          metadata: { height: 1080, width: 1080 },
+          metadata: createMetadataFixture({ height: 1080, width: 1080 }),
         }}
       />,
     );

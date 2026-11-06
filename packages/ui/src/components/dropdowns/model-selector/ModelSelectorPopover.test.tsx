@@ -249,8 +249,6 @@ function createModel(
     isActive: true,
     isDefault: false,
     isDeleted: false,
-    key: overrides.key,
-    label: overrides.label,
     lifecycle: ModelLifecycle.AVAILABLE,
     provider: ModelProvider.REPLICATE,
     updatedAt: '2026-01-01',

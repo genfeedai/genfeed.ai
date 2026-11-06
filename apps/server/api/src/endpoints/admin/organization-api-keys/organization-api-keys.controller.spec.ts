@@ -20,6 +20,13 @@ interface StoredKey {
 
 const OPERATOR_REQUEST = { context: { userId: 'operator-1' } } as never;
 
+/** Live brands and the organization each belongs to. */
+const ORGANIZATION_BRANDS: Readonly<Record<string, string>> = {
+  'brand-1': 'org-1',
+  'brand-2': 'org-1',
+  'brand-other-org': 'org-2',
+};
+
 /** The slice of Prisma the mint path reads and writes, kept in memory. */
 function createFakeDatabase() {
   const keys: StoredKey[] = [];
@@ -32,6 +39,14 @@ function createFakeDatabase() {
       },
     },
     brand: {
+      findMany: async ({
+        where,
+      }: {
+        where: { id: { in: string[] }; organizationId: string };
+      }) =>
+        where.id.in
+          .filter((id) => ORGANIZATION_BRANDS[id] === where.organizationId)
+          .map((id) => ({ id })),
       findFirst: async ({
         where,
       }: {
@@ -107,6 +122,67 @@ describe('admin partner API key mint', () => {
       kind: 'partner',
       mintedByUserId: 'operator-1',
     });
+  });
+
+  it('limits a key to the brands the admin names (#9130)', async () => {
+    const { controller, keys } = createController();
+
+    const { data } = await controller.mintPartnerKey(
+      OPERATOR_REQUEST,
+      'org-1',
+      {
+        allowedBrandIds: ['brand-1'],
+        defaultBrandId: 'brand-1',
+        label: 'One-brand partner',
+      },
+    );
+
+    expect(data.allowedBrandIds).toEqual(['brand-1']);
+    expect(keys[0].metadata).toEqual({
+      allowedBrandIds: ['brand-1'],
+      kind: 'partner',
+      mintedByUserId: 'operator-1',
+    });
+  });
+
+  it('leaves a key without a brand list on every brand', async () => {
+    const { controller } = createController();
+
+    const { data } = await controller.mintPartnerKey(
+      OPERATOR_REQUEST,
+      'org-1',
+      { label: 'All-brands partner' },
+    );
+
+    expect(data.allowedBrandIds).toBeNull();
+  });
+
+  it.each([
+    [
+      'a brand of another organization',
+      { allowedBrandIds: ['brand-other-org'] },
+      "allowedBrandIds must reference brands in this API key's organization.",
+    ],
+    [
+      'a default brand outside the list',
+      { allowedBrandIds: ['brand-2'], defaultBrandId: 'brand-1' },
+      'defaultBrandId must be one of the allowedBrandIds.',
+    ],
+    [
+      'an empty list',
+      { allowedBrandIds: [] },
+      'A label is required; levels must be none, read or write for a known resource; allowedBrandIds needs at least one brand id',
+    ],
+  ])('refuses %s', async (_case, body, message) => {
+    const { controller, keys } = createController();
+
+    await expect(
+      controller.mintPartnerKey(OPERATOR_REQUEST, 'org-1', {
+        ...body,
+        label: 'Partner',
+      }),
+    ).rejects.toThrow(message);
+    expect(keys).toHaveLength(0);
   });
 
   it('mints the levels the admin asks for', async () => {

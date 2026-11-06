@@ -15,7 +15,12 @@ const mockOptions = [
 describe('ButtonDropdown', () => {
   it('should render without crashing', () => {
     const { container } = render(
-      <ButtonDropdown name="test" options={mockOptions} onChange={vi.fn()} />,
+      <ButtonDropdown
+        name="test"
+        options={mockOptions}
+        onChange={vi.fn()}
+        value=""
+      />,
     );
     expect(container.firstChild).toBeInTheDocument();
   });
@@ -27,6 +32,7 @@ describe('ButtonDropdown', () => {
         options={mockOptions}
         onChange={vi.fn()}
         placeholder="Pick one"
+        value=""
       />,
     );
     expect(screen.getByText('Pick one')).toBeInTheDocument();

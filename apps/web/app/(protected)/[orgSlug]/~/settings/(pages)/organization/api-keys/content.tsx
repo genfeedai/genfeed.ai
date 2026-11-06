@@ -10,6 +10,7 @@ import {
   API_KEY_SCOPE_PRESETS,
   EMPTY_PAGE_TOTALS,
   ITEMS_PER_PAGE,
+  readApiKeyAllowedBrandIds,
   resolveApiKeyPermissionLevels,
   resolveApiKeyPermissionScopes,
 } from '@genfeedai/contracts/constants';
@@ -33,6 +34,7 @@ import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { SelectField } from '@ui/primitives/select';
 import Spinner from '@ui/primitives/spinner';
 import {
   Clipboard,
@@ -87,12 +89,25 @@ function levelsMatch(
 function createInitialProductApiKeyForm(label: string): ProductApiKeyForm {
   return {
     allowedIps: '',
+    brandId: '',
     description: '',
     expiresAt: '',
     label,
     permissionLevels: PRODUCT_API_KEY_PRESETS[0].levels,
     rateLimit: '',
   };
+}
+
+function formatBrandLabels(
+  brandIds: readonly string[],
+  brands: readonly { id: string; label: string }[],
+): string {
+  return brandIds
+    .map(
+      (brandId) =>
+        brands.find((brand) => brand.id === brandId)?.label ?? brandId,
+    )
+    .join(', ');
 }
 
 function parseCommaSeparated(value: string): string[] | undefined {
@@ -187,7 +202,7 @@ function AuthorizedApiKeysContent({
   isKeylessSelfHosted,
 }: AuthorizedApiKeysContentProps) {
   const translate = useTranslations('common.settings.apiKeys');
-  const { isReady } = useBrand();
+  const { brands, isReady } = useBrand();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
   const defaultKeyName = translate('fields.keyNamePlaceholder');
@@ -356,6 +371,12 @@ function AuthorizedApiKeysContent({
           ? Number.parseInt(productForm.rateLimit, 10)
           : undefined,
         scopes: selectedScopes,
+        ...(productForm.brandId
+          ? {
+              allowedBrandIds: [productForm.brandId],
+              defaultBrandId: productForm.brandId,
+            }
+          : {}),
       });
       if (!isCurrent()) return;
       const key = getVisibleKey(apiKey);
@@ -541,6 +562,25 @@ function AuthorizedApiKeysContent({
                 placeholder={translate('fields.allowedIpsPlaceholder')}
               />
             </div>
+            {brands.length > 1 ? (
+              <div className="md:col-span-2">
+                <SelectField
+                  label={translate('fields.brandAccess')}
+                  name="api-key-brand-access"
+                  value={productForm.brandId}
+                  onChange={(event) =>
+                    handleProductFormChange('brandId', event.target.value)
+                  }
+                >
+                  <option value="">{translate('fields.allBrands')}</option>
+                  {brands.map((brand) => (
+                    <option key={brand.id} value={brand.id}>
+                      {translate('fields.onlyBrand', { brand: brand.label })}
+                    </option>
+                  ))}
+                </SelectField>
+              </div>
+            ) : null}
             <div className="md:col-span-2">
               <span className="text-xs text-muted-foreground mb-1 block">
                 {translate('fields.description')}
@@ -643,6 +683,16 @@ function AuthorizedApiKeysContent({
                         {(apiKey.scopes ?? []).join(', ') ||
                           translate('list.noScopes')}
                       </p>
+                      {readApiKeyAllowedBrandIds(apiKey.metadata) ? (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {translate('list.limitedTo', {
+                            brands: formatBrandLabels(
+                              readApiKeyAllowedBrandIds(apiKey.metadata) ?? [],
+                              brands,
+                            ),
+                          })}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="flex items-center gap-2">
                       <Button

@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { ExternalCredentialProfile } from '@api/collections/credentials/credential.types';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import {
   returnBadRequest,
@@ -65,6 +66,7 @@ describe('GhostController', () => {
             createPendingForBrand: vi
               .fn()
               .mockResolvedValue({ id: 'pending-credential-id' }),
+            findBrandAccounts: vi.fn().mockResolvedValue([]),
             updateExternalProfile: vi.fn(),
           },
         },
@@ -91,7 +93,8 @@ describe('GhostController', () => {
 
   describe('connect', () => {
     const validBody = {
-      apiKey: 'ghost-admin-key',
+      // A fake Admin key in Ghost's `id:secret` hex shape.
+      apiKey: `${'a'.repeat(24)}:${'b'.repeat(64)}`,
       brandId: mockBrandId,
       ghostUrl: 'https://myblog.ghost.io',
     };
@@ -150,24 +153,125 @@ describe('GhostController', () => {
       expect(result).toMatchObject({ data: mockCredential });
     });
 
-    it('returns internal server error when getSiteInfo throws', async () => {
-      brandsService.findOne.mockResolvedValue(mockBrand as never);
-      ghostService.getSiteInfo.mockRejectedValue(new Error('Network error'));
+    it.each([
+      [
+        'an http:// site',
+        { ghostUrl: 'http://myblog.ghost.io' },
+        undefined,
+        { code: 'API_KEY_CONNECT_HTTPS_REQUIRED', status: 400 },
+      ],
+      [
+        'a Content API key instead of an Admin key',
+        { apiKey: 'c'.repeat(26) },
+        undefined,
+        { code: 'API_KEY_CONNECT_INVALID_KEY_FORMAT', status: 400 },
+      ],
+      [
+        'Ghost refusing the key',
+        {},
+        { isAxiosError: true, response: { status: 401 } },
+        { code: 'API_KEY_CONNECT_KEY_REJECTED', status: 400 },
+      ],
+      [
+        'an address that is not a Ghost site',
+        {},
+        { isAxiosError: true, response: { status: 404 } },
+        { code: 'API_KEY_CONNECT_API_NOT_FOUND', status: 400 },
+      ],
+      [
+        'a site that never answers',
+        {},
+        { code: 'ECONNABORTED', isAxiosError: true },
+        { code: 'API_KEY_CONNECT_SITE_UNREACHABLE', status: 400 },
+      ],
+      [
+        'an unclassified failure',
+        {},
+        new Error('Network error'),
+        { code: 'API_KEY_CONNECT_UNKNOWN', status: 500 },
+      ],
+    ])(
+      'refuses %s with its own reason and stores nothing',
+      async (_case, override, siteError, expected) => {
+        brandsService.findOne.mockResolvedValue(mockBrand as never);
+        ghostService.getSiteInfo.mockRejectedValue(siteError);
 
-      const result = await controller.connect(mockRequest, mockUser, validBody);
-      expect(returnInternalServerError).toHaveBeenCalled();
-      expect(result).toMatchObject({ error: expect.any(String) });
+        const failure = await controller
+          .connect(mockRequest, mockUser, { ...validBody, ...override })
+          .catch((error: HttpException) => ({
+            code: (error.getResponse() as { code: string }).code,
+            status: error.getStatus(),
+          }));
+
+        expect(failure).toEqual(expected);
+        expect(credentialsService.createPendingForBrand).not.toHaveBeenCalled();
+      },
+    );
+
+    it('refuses an address that answers without a Ghost site', async () => {
+      brandsService.findOne.mockResolvedValue(mockBrand as never);
+      ghostService.getSiteInfo.mockResolvedValue(undefined as never);
+
+      const failure = await controller
+        .connect(mockRequest, mockUser, validBody)
+        .catch((error: HttpException) => ({
+          code: (error.getResponse() as { code: string }).code,
+          status: error.getStatus(),
+        }));
+
+      expect(failure).toEqual({
+        code: 'API_KEY_CONNECT_API_NOT_FOUND',
+        status: 400,
+      });
     });
 
-    it('rethrows HttpException from getSiteInfo', async () => {
-      brandsService.findOne.mockResolvedValue(mockBrand as never);
-      const httpEx = new HttpException('Forbidden', HttpStatus.FORBIDDEN);
-      ghostService.getSiteInfo.mockRejectedValue(httpEx);
+    it.each([
+      [
+        'without the Ghost Admin path',
+        'https://myblog.ghost.io/ghost/#/dashboard',
+        [],
+        'https://myblog.ghost.io',
+      ],
+      [
+        'as the brand already stores it, so a reconnect updates that account',
+        'https://MyBlog.ghost.io',
+        [{ externalId: 'myblog.ghost.io/' }],
+        'myblog.ghost.io/',
+      ],
+    ])(
+      'stores the site address %s',
+      async (_case, ghostUrl, existingAccounts, storedId) => {
+        brandsService.findOne.mockResolvedValue(mockBrand as never);
+        ghostService.getSiteInfo.mockResolvedValue({
+          title: 'My Ghost Blog',
+        } as never);
+        credentialsService.findBrandAccounts.mockResolvedValue(
+          existingAccounts as never,
+        );
+        credentialsService.updateExternalProfile.mockImplementation(
+          async (
+            _id: string,
+            _organizationId: string,
+            profile: ExternalCredentialProfile,
+          ) => ({ externalProfile: profile }) as never,
+        );
 
-      await expect(
-        controller.connect(mockRequest, mockUser, validBody),
-      ).rejects.toThrow(HttpException);
-    });
+        const result = await controller.connect(mockRequest, mockUser, {
+          ...validBody,
+          ghostUrl,
+        });
+
+        expect(result).toEqual({
+          data: {
+            externalProfile: {
+              handle: undefined,
+              id: storedId,
+              name: 'My Ghost Blog',
+            },
+          },
+        });
+      },
+    );
   });
 
   // createPost

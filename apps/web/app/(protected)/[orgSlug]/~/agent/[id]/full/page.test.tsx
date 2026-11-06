@@ -3,7 +3,9 @@ import { render } from '@testing-library/react';
 import ChatThreadFullPage, * as PageModule from './page';
 
 const replaceMock = vi.fn();
-const paramsState = { current: { id: 'thread-1', orgSlug: 'test-org' } };
+const paramsState: { current: Record<string, string> } = {
+  current: { id: 'thread-1', orgSlug: 'test-org' },
+};
 
 vi.mock('@genfeedai/agent', () => ({
   isRenderableThreadId: (value: unknown) =>
@@ -42,5 +44,18 @@ describe('ChatThreadFullPage', () => {
     render(<ChatThreadFullPage />);
 
     expect(replaceMock).toHaveBeenCalledWith('/test-org/~/agent');
+  });
+
+  // A prerendered fallback shell carries opaque placeholders until Next
+  // resolves the params; recovering then built /undefined/~/agent.
+  it.each([
+    ['both params are', { id: '%%drp:id:1%%', orgSlug: '%%drp:orgSlug:1%%' }],
+    ['the organization is', { id: 'undefined', orgSlug: '%%drp:orgSlug:1%%' }],
+    ['the thread id is', { id: '%%drp:id:1%%', orgSlug: 'test-org' }],
+  ])('waits while %s unresolved', (_label, params) => {
+    paramsState.current = params;
+    render(<ChatThreadFullPage />);
+
+    expect(replaceMock).not.toHaveBeenCalled();
   });
 });
