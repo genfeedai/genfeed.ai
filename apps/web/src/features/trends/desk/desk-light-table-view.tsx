@@ -148,7 +148,7 @@ function DeskLightCard({
             />
             <Badge
               className={cn(
-                'pointer-events-none absolute top-2 right-2',
+                'pointer-events-none absolute top-2 left-2',
                 hoverConcealClassName(),
               )}
               icon={getPlatformIcon(item.platform, 'size-3.5')}
@@ -223,7 +223,7 @@ function DeskLightCard({
 
       <div
         className={cn(
-          'absolute top-2 left-2 z-20 transition-opacity duration-200',
+          'absolute top-2 right-2 z-20 transition-opacity duration-200',
           isSelected || isSelectionActive
             ? 'opacity-100'
             : hoverRevealClassName({ focus: 'within' }),
