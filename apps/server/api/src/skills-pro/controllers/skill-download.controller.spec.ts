@@ -9,25 +9,30 @@ import type { Request } from 'express';
 
 describe('SkillDownloadController', () => {
   let controller: SkillDownloadController;
-  let installations: unknown[];
+  let installs: Array<{
+    organizationId: string;
+    receiptId: string;
+    skillSlug: string;
+  }>;
+  let rollbacks: unknown[];
   const user = { organizationId: 'org-1' } as AuthenticatedUser;
   const request = {
     originalUrl: '/v1/skills-pro/install',
   } as Request;
-
-  // Each answer names the path that resolved it: the organization-scoped
-  // lookup, or the receipt-secret (bearer) lookup.
-  const receipt = (via: string) => ({
+  const entitlement = {
     email: 'buyer@example.com',
     productType: 'skill',
     skills: ['image-gen-pro'],
     valid: true,
-    via,
-  });
+  };
 
   beforeEach(() => {
-    installations = [];
-    controller = new SkillDownloadController({
+    installs = [];
+    rollbacks = [];
+
+    // Each path answers with where it resolved the receipt, so a result
+    // shows whether the organization or the bearer secret was used.
+    const skillDownloadService = {
       getDownloadUrl: async (
         organizationId: string,
         receiptId: string,
@@ -43,7 +48,7 @@ describe('SkillDownloadController', () => {
         receiptId: string,
         skillSlug: string,
       ) => {
-        installations.push({ organizationId, receiptId, skillSlug });
+        installs.push({ organizationId, receiptId, skillSlug });
         return {
           files: [{ content: 'private', path: 'SKILL.md' }],
           id: 'skill-1',
@@ -54,11 +59,23 @@ describe('SkillDownloadController', () => {
           version: '1.0.0',
         };
       },
-      verifyReceipt: async (organizationId: string, receiptId: string) =>
-        receipt(`${organizationId}:${receiptId}`),
-      verifyReceiptBearer: async (receiptId: string) =>
-        receipt(`bearer:${receiptId}`),
-    } as unknown as SkillDownloadService);
+      rollbackInstalledSkill: async (...args: unknown[]) => {
+        rollbacks.push(args);
+        return {};
+      },
+      verifyReceipt: async (organizationId: string, receiptId: string) => ({
+        ...entitlement,
+        resolvedBy: `${organizationId}:${receiptId}`,
+      }),
+      verifyReceiptBearer: async (receiptId: string) => ({
+        ...entitlement,
+        resolvedBy: `bearer:${receiptId}`,
+      }),
+    };
+
+    controller = new SkillDownloadController(
+      skillDownloadService as unknown as SkillDownloadService,
+    );
   });
 
   it.each(['verifyReceipt', 'downloadSkill'] as const)(
@@ -97,47 +114,51 @@ describe('SkillDownloadController', () => {
     },
   );
 
-  it('verifies the receipt inside the current organization', async () => {
+  it.each([
+    ['the current organization', user, 'org-1:sk_rcpt_one'],
+    [
+      'the receipt secret without an organization',
+      undefined,
+      'bearer:sk_rcpt_one',
+    ],
+    [
+      'the receipt secret for a blank organization',
+      { organizationId: '  ' } as AuthenticatedUser,
+      'bearer:sk_rcpt_one',
+    ],
+  ])('verifies the receipt through %s', async (_label, caller, resolvedBy) => {
     await expect(
-      controller.verifyReceipt(user, { receiptId: 'sk_rcpt_one' }),
-    ).resolves.toMatchObject({ via: 'org-1:sk_rcpt_one' });
+      controller.verifyReceipt(caller, { receiptId: 'sk_rcpt_one' }),
+    ).resolves.toEqual({ ...entitlement, resolvedBy });
   });
 
-  it('verifies a receipt secret when the caller has no organization', async () => {
+  it.each([
+    [
+      'inside the current organization',
+      user,
+      'https://cdn.example/org-1/sk_rcpt_one/image-gen-pro',
+    ],
+    [
+      'with the receipt secret without an organization',
+      undefined,
+      'https://cdn.example/bearer/sk_rcpt_one/image-gen-pro',
+    ],
+  ])('downloads %s', async (_label, caller, downloadUrl) => {
     await expect(
-      controller.verifyReceipt(undefined, { receiptId: 'sk_rcpt_one' }),
-    ).resolves.toMatchObject({ via: 'bearer:sk_rcpt_one' });
-  });
-
-  it('downloads only inside the current organization', async () => {
-    await expect(
-      controller.downloadSkill(user, {
+      controller.downloadSkill(caller, {
         receiptId: 'sk_rcpt_one',
         skillSlug: 'image-gen-pro',
       }),
-    ).resolves.toEqual({
-      downloadUrl: 'https://cdn.example/org-1/sk_rcpt_one/image-gen-pro',
-    });
+    ).resolves.toEqual({ downloadUrl });
   });
 
-  it('downloads with the receipt secret when the caller has no organization', async () => {
-    await expect(
-      controller.downloadSkill(undefined, {
-        receiptId: 'sk_rcpt_one',
-        skillSlug: 'image-gen-pro',
-      }),
-    ).resolves.toEqual({
-      downloadUrl: 'https://cdn.example/bearer/sk_rcpt_one/image-gen-pro',
-    });
-  });
-
-  it('returns a metadata-only serialized installation result', async () => {
+  it('installs into the current organization and returns metadata only', async () => {
     const result = await controller.installSkill(request, user, {
       receiptId: 'sk_rcpt_one',
       skillSlug: 'image-gen-pro',
     });
 
-    expect(installations).toEqual([
+    expect(installs).toEqual([
       {
         organizationId: 'org-1',
         receiptId: 'sk_rcpt_one',
@@ -172,6 +193,30 @@ describe('SkillDownloadController', () => {
       },
       status: 403,
     });
-    expect(installations).toEqual([]);
+    expect(installs).toEqual([]);
+  });
+
+  it.each([
+    [
+      'a user',
+      { organizationId: 'org-1' } as AuthenticatedUser,
+      'User context is required',
+    ],
+    [
+      'an organization',
+      { userId: 'user-1' } as AuthenticatedUser,
+      'Organization context is required',
+    ],
+  ])('rejects rollback without %s context', async (_label, caller, detail) => {
+    await expect(
+      controller.rollbackSkill(request, caller, {
+        skillSlug: 'image-gen-pro',
+        versionId: 'version-1',
+      }),
+    ).rejects.toMatchObject({
+      response: { detail, title: 'Forbidden' },
+      status: 403,
+    });
+    expect(rollbacks).toEqual([]);
   });
 });
