@@ -63,10 +63,7 @@ const sampleUrls = imageFiles.map((file) => `${SAMPLE_HOST}/${file}`);
 const sampleUrl = (index: number): string | null =>
   sampleUrls.length ? sampleUrls[index % sampleUrls.length] : null;
 
-const tile = (
-  index: number,
-  kind: EmailThumbnail['kind'],
-): EmailThumbnail => ({
+const tile = (index: number, kind: EmailThumbnail['kind']): EmailThumbnail => ({
   href: `${APP}/acme/~/posts`,
   imageUrl: kind === 'audio' || kind === 'article' ? null : sampleUrl(index),
   kind,
@@ -117,7 +114,10 @@ emails.push(
         views: 3920,
       }),
       {
-        action: { label: 'Review your content', url: `${APP}/acme/main/studio` },
+        action: {
+          label: 'Review your content',
+          url: `${APP}/acme/main/studio`,
+        },
         footerNote: prefs,
       },
     ),
@@ -168,7 +168,10 @@ emails.push(
         interactions: 9,
       }),
       {
-        action: { label: 'Review your content', url: `${APP}/acme/main/studio` },
+        action: {
+          label: 'Review your content',
+          url: `${APP}/acme/main/studio`,
+        },
         footerNote: prefs,
       },
     ),
@@ -211,7 +214,9 @@ emails.push(
         isFailed: false,
         kind: 'video',
       }),
-      { action: { label: 'View content', url: `${APP}/acme/trailhead/library` } },
+      {
+        action: { label: 'View content', url: `${APP}/acme/trailhead/library` },
+      },
     ),
     id: 'generation-ready',
     name: 'Generation ready',
@@ -227,7 +232,10 @@ emails.push(
         kind: 'video',
       }),
       {
-        action: { label: 'Review generation', url: `${APP}/acme/trailhead/library` },
+        action: {
+          label: 'Review generation',
+          url: `${APP}/acme/trailhead/library`,
+        },
       },
     ),
     id: 'generation-failed',
@@ -239,11 +247,13 @@ emails.push(
 
 const trends: TrendDigestItem[] = [
   {
-    angle: 'Your audience watches notebook flat-lays; this format is up 4x this week.',
+    angle:
+      'Your audience watches notebook flat-lays; this format is up 4x this week.',
     matchedTerms: ['notebook', 'stationery'],
     platform: 'youtube',
     postIdea: {
-      caption: 'Three notebooks, one desk, zero excuses. Which one are you taking on the trail?',
+      caption:
+        'Three notebooks, one desk, zero excuses. Which one are you taking on the trail?',
       format: 'Video · 30s',
       hook: 'The only notebook that survives a rainstorm',
     },
@@ -310,7 +320,10 @@ emails.push({
     'Weekly Performance Digest',
     `${buildPerformanceStats()}${buildSystemEmailParagraph('Top performers, platform breakdown and best posting times follow in the live email.')}`,
     {
-      action: { label: 'Review and publish content', url: `${APP}/acme/main/analytics` },
+      action: {
+        label: 'Review and publish content',
+        url: `${APP}/acme/main/analytics`,
+      },
       footerNote:
         'This is an automated performance digest. To unsubscribe, update your notification preferences in Genfeed.',
     },
@@ -379,7 +392,11 @@ emails.push(
   },
 );
 
-for (const key of ['trial-ending', 'trial-credits-low', 'trial-ended'] as const) {
+for (const key of [
+  'trial-ending',
+  'trial-credits-low',
+  'trial-ended',
+] as const) {
   const definition = FREE_TRIAL_EMAILS[key];
   emails.push({
     group: 'Credits and billing',
@@ -394,7 +411,8 @@ for (const key of ['trial-ending', 'trial-credits-low', 'trial-ended'] as const)
         },
         footerNote: prefs,
         secondaryAction: {
-          label: definition.action === 'plans' ? 'Buy credits' : 'Compare plans',
+          label:
+            definition.action === 'plans' ? 'Buy credits' : 'Compare plans',
           url: `${APP}/acme/~/settings/credits`,
         },
       },
@@ -412,14 +430,17 @@ for (const definition of LIFECYCLE_SYSTEM_EMAILS) {
     html: shell(
       definition.title,
       definition.paragraphs
-        .map((p) => buildSystemEmailParagraph(p.replace('{{greeting}}', 'Hi Vincent')))
+        .map((p) =>
+          buildSystemEmailParagraph(p.replace('{{greeting}}', 'Hi Vincent')),
+        )
         .join('') + buildLifecycleVisualHtml(definition.step),
       {
         action: { label: definition.action.label, url: APP },
         footerNote:
           'You are receiving this account lifecycle email because you signed up for Genfeed.ai.',
         preheader: definition.preheader,
-        unsubscribeUrl: 'https://api.genfeed.ai/lifecycle-emails/unsubscribe?token=t',
+        unsubscribeUrl:
+          'https://api.genfeed.ai/lifecycle-emails/unsubscribe?token=t',
       },
     ),
     id: definition.id,
@@ -467,12 +488,19 @@ emails.push(
     html: shell(
       'Agent run completed: Weekly content agent',
       buildWorkflowStatusEmailBody({
-        details: ['Drafted 3 posts for Trailhead Notebook and queued them for review.'],
+        details: [
+          'Drafted 3 posts for Trailhead Notebook and queued them for review.',
+        ],
         isFailed: false,
         kind: 'agent-run',
         label: 'Weekly content agent',
       }),
-      { action: { label: 'View agent', url: `${APP}/acme/main/automation/agents/x` } },
+      {
+        action: {
+          label: 'View agent',
+          url: `${APP}/acme/main/automation/agents/x`,
+        },
+      },
     ),
     id: 'agent-completed',
     name: 'Agent run completed',
@@ -493,7 +521,12 @@ emails.push(
         kind: 'agent-run',
         label: 'Weekly content agent',
       }),
-      { action: { label: 'View agent', url: `${APP}/acme/main/automation/agents/x` } },
+      {
+        action: {
+          label: 'View agent',
+          url: `${APP}/acme/main/automation/agents/x`,
+        },
+      },
     ),
     id: 'agent-failed',
     name: 'Agent run failed',
@@ -509,7 +542,12 @@ emails.push(
         label: 'Weekly content agent',
         summary: '3 drafts are waiting for your approval.',
       }),
-      { action: { label: 'View agent', url: `${APP}/acme/main/automation/agents/x` } },
+      {
+        action: {
+          label: 'View agent',
+          url: `${APP}/acme/main/automation/agents/x`,
+        },
+      },
     ),
     id: 'agent-review',
     name: 'Agent review',
@@ -526,7 +564,8 @@ emails.push(
       bodyHtml: buildSystemEmailParagraph(
         'Click the button below to sign in. This link expires shortly and can only be used once.',
       ),
-      footerNote: 'If you did not request this sign-in link, you can safely ignore this email.',
+      footerNote:
+        'If you did not request this sign-in link, you can safely ignore this email.',
       title: 'Sign in to Genfeed.ai',
     }),
     id: 'magic-link',
@@ -541,7 +580,8 @@ emails.push(
       bodyHtml: buildSystemEmailParagraph(
         'An invitation was sent to you@example.com. Accept it to join Acme. This link expires in 7 days and can only be used once.',
       ),
-      footerNote: 'If you did not expect this invitation, you can safely ignore this email.',
+      footerNote:
+        'If you did not expect this invitation, you can safely ignore this email.',
       title: 'Join Acme on Genfeed.ai',
     }),
     id: 'invitation',
@@ -596,10 +636,7 @@ const nav = groups
     (group) =>
       `<div class="group">${group}</div>${emails
         .filter((email) => email.group === group)
-        .map(
-          (email) =>
-            `<a href="#${email.id}">${attr(email.name)}</a>`,
-        )
+        .map((email) => `<a href="#${email.id}">${attr(email.name)}</a>`)
         .join('')}`,
   )
   .join('');
