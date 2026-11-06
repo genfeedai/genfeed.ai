@@ -1,9 +1,14 @@
+import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   SOCKET_CONNECTION_UI_GRACE_MS,
   useStableSocketConnectionState,
 } from './use-stable-socket-connection-state';
+
+function stateProps(state: AgentSocketConnectionState) {
+  return { state };
+}
 
 describe('useStableSocketConnectionState', () => {
   beforeEach(() => {
@@ -17,7 +22,7 @@ describe('useStableSocketConnectionState', () => {
   it('surfaces connected immediately', () => {
     const { result, rerender } = renderHook(
       ({ state }) => useStableSocketConnectionState(state, 1_000),
-      { initialProps: { state: 'reconnecting' as const } },
+      { initialProps: stateProps('reconnecting') },
     );
 
     act(() => {
@@ -33,7 +38,7 @@ describe('useStableSocketConnectionState', () => {
     const { result, rerender } = renderHook(
       ({ state }) =>
         useStableSocketConnectionState(state, SOCKET_CONNECTION_UI_GRACE_MS),
-      { initialProps: { state: 'connected' as const } },
+      { initialProps: stateProps('connected') },
     );
 
     rerender({ state: 'reconnecting' });
@@ -55,7 +60,7 @@ describe('useStableSocketConnectionState', () => {
   it('shows reconnect only after a sustained outage', () => {
     const { result, rerender } = renderHook(
       ({ state }) => useStableSocketConnectionState(state, 500),
-      { initialProps: { state: 'connected' as const } },
+      { initialProps: stateProps('connected') },
     );
 
     rerender({ state: 'reconnecting' });

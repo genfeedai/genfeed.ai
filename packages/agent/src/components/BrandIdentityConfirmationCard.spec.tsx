@@ -223,7 +223,7 @@ describe('BrandIdentityConfirmationCard', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm create' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect((await screen.findByRole('alert')).textContent).toMatch(
       /Could not create the brand/i,
     );
     expect(screen.getByLabelText('Brand label')).toHaveValue('Edited brand');
@@ -244,7 +244,7 @@ describe('BrandIdentityConfirmationCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm rename' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect((await screen.findByRole('alert')).textContent).toMatch(
       /Could not rename the brand/i,
     );
     expect(screen.queryByText(/Brand renamed to/i)).not.toBeInTheDocument();
@@ -282,7 +282,7 @@ describe('BrandIdentityConfirmationCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm create' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect((await screen.findByRole('alert')).textContent).toMatch(
       /Could not create the brand/i,
     );
     expect(screen.queryByText(/Brand .* created/i)).not.toBeInTheDocument();

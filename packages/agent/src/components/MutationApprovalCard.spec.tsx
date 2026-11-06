@@ -38,6 +38,7 @@ function approval(
   return {
     id: 'card-1',
     type: 'mutation_approval_card',
+    title: 'Delete draft',
     data: {
       approvalId: 'approval-1',
       brandId: null,
@@ -182,7 +183,7 @@ describe('MutationApprovalCard', () => {
       render(
         <MutationApprovalCard action={approval(status)} onUiAction={vi.fn()} />,
       );
-      expect(screen.getByRole('status')).toHaveTextContent(
+      expect(screen.getByRole('status').textContent).toMatch(
         new RegExp(status, 'i'),
       );
       expect(screen.queryByRole('button')).toBeNull();

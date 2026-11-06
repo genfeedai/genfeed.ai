@@ -8,17 +8,35 @@ import {
   projectAgentStreamEntry,
   resetAgentStreamRuntime,
 } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
-import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { AgentThreadStatus } from '@genfeedai/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  vi,
+} from 'vitest';
+
+type ApiOverrides = Partial<Record<keyof AgentApiService, Mock>>;
 
 const handlers = new Map<string, (data: unknown) => void>();
-const subscribe = vi.fn((event: string, handler: (data: unknown) => void) => {
-  handlers.set(event, handler);
-  return () => handlers.delete(event);
-});
+function createTransport() {
+  const subscribedEvents = vi.fn<(event: string) => void>();
+  function subscribe<T>(event: string, handler: (payload: T) => void) {
+    subscribedEvents(event);
+    handlers.set(event, (data) => handler(data as T));
+    return () => {
+      handlers.delete(event);
+    };
+  }
+  return { subscribe, subscribedEvents };
+}
+const transport = createTransport();
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason: unknown) => void;
@@ -38,15 +56,21 @@ function accepted(threadId: string, executionId = `run-${threadId}`) {
 }
 function entry(
   threadId: string | null,
-  api: Partial<AgentApiService> = {},
+  api: ApiOverrides = {},
   clientRequestId = `request-${threadId}`,
 ) {
   const owner = createAgentStreamEntry(threadId, clientRequestId);
   const controller = createAgentStreamController(owner, {
-    apiService: {
-      chatStream: vi.fn().mockResolvedValue(accepted(threadId ?? 'new')),
-      ...api,
-    } as unknown as AgentApiService,
+    apiService: Object.assign(
+      new AgentApiService({
+        baseUrl: 'http://genfeed.localhost:3010',
+        getToken: async () => null,
+      }),
+      {
+        chatStream: vi.fn().mockResolvedValue(accepted(threadId ?? 'new')),
+        ...api,
+      },
+    ),
   });
   owner.controller = controller;
   return { owner, controller };
@@ -74,7 +98,7 @@ function show(threadId: string) {
 beforeEach(() => {
   resetAgentStreamRuntime();
   handlers.clear();
-  subscribe.mockClear();
+  transport.subscribedEvents.mockClear();
   vi.useFakeTimers();
   useAgentChatStore.getState().resetActiveConversationState();
   useAgentChatStore.setState({
@@ -88,7 +112,7 @@ beforeEach(() => {
       updatedAt: '2026-09-24T12:00:00Z',
     })),
   });
-  bindAgentStreamTransport(subscribe);
+  bindAgentStreamTransport(transport.subscribe);
 });
 afterEach(() => {
   resetAgentStreamRuntime();
@@ -103,7 +127,9 @@ describe('thread stream registry', () => {
     const b = entry('b');
     await b.controller.sendMessage('B');
     expect(
-      subscribe.mock.calls.filter(([event]) => event === 'agent:token'),
+      transport.subscribedEvents.mock.calls.filter(
+        ([event]) => event === 'agent:token',
+      ),
     ).toHaveLength(1);
     emit('agent:token', 'a', { token: 'alpha' });
     emit('agent:token', 'b', { token: 'beta' });
@@ -278,10 +304,12 @@ describe('thread stream registry', () => {
     await a.controller.sendMessage('A');
     const b = entry('b');
     await b.controller.sendMessage('B');
-    const replacement = vi.fn(subscribe.getMockImplementation());
-    bindAgentStreamTransport(replacement, {});
+    const replacement = createTransport();
+    bindAgentStreamTransport(replacement.subscribe, {});
     expect(
-      replacement.mock.calls.filter(([event]) => event === 'agent:token'),
+      replacement.subscribedEvents.mock.calls.filter(
+        ([event]) => event === 'agent:token',
+      ),
     ).toHaveLength(1);
     resetAgentStreamRuntime();
     expect(handlers.size).toBe(0);
@@ -396,7 +424,15 @@ it('preserves visible UI mutations when another token arrives', async () => {
   await a.controller.sendMessage('A');
   useAgentChatStore.getState().setActiveRunStatus('cancelling');
   useAgentChatStore.getState().prependOlderMessages({
-    messages: [{ id: 'old', threadId: 'a', role: 'user', content: 'Older' }],
+    messages: [
+      {
+        content: 'Older',
+        createdAt: '2026-09-24T11:00:00Z',
+        id: 'old',
+        role: 'user',
+        threadId: 'a',
+      },
+    ],
     hasMore: false,
     nextCursor: null,
   });
@@ -555,7 +591,13 @@ it.each([false, true])(
     });
     useAgentChatStore.getState().prependOlderMessages({
       messages: [
-        { id: 'older-a', threadId: 'a', role: 'user', content: 'Older A' },
+        {
+          content: 'Older A',
+          createdAt: '2026-09-24T11:00:00Z',
+          id: 'older-a',
+          role: 'user',
+          threadId: 'a',
+        },
       ],
       nextCursor: 'a-page-3',
       hasMore: true,

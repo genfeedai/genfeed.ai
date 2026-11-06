@@ -1,5 +1,8 @@
 import DynamicChartView from '@genfeedai/agent/components/blocks/DynamicChartView';
-import type { ChartBlock } from '@genfeedai/contracts/interfaces';
+import type {
+  ChartBlock,
+  ChartSeriesConfig,
+} from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -150,7 +153,12 @@ describe('DynamicChartView', () => {
 
   it('falls back to the palette and the raw key when unconfigured', () => {
     render(
-      <DynamicChartView block={makeBlock({ series: [{ key: 'views' }] })} />,
+      <DynamicChartView
+        block={makeBlock({
+          // Agent payloads arrive as JSON; a series can omit its label.
+          series: [{ key: 'views' } as ChartSeriesConfig],
+        })}
+      />,
     );
 
     const bar = screen.getByTestId('bar');

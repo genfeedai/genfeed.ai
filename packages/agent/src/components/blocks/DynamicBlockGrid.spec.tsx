@@ -96,7 +96,9 @@ describe('DynamicBlockGrid', () => {
   });
 
   it('renders an unknown block type as a placeholder', () => {
-    renderBlocks([block({ id: 'b-1', type: 'not_a_block' } as AgentUIBlock)]);
+    renderBlocks([
+      block({ id: 'b-1', type: 'not_a_block' } as unknown as AgentUIBlock),
+    ]);
 
     expect(screen.getByText('Unknown block type')).toBeInTheDocument();
   });

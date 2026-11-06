@@ -41,6 +41,7 @@ describe('TimelineStreamingRow', () => {
           streamState: {
             activeToolCalls: [
               {
+                arguments: {},
                 id: 'tool-1',
                 name: 'get_sources',
                 startedAt: '2026-03-23T12:00:00.000Z',
@@ -139,6 +140,7 @@ describe('TimelineStreamingRow', () => {
           streamState: {
             activeToolCalls: [
               {
+                arguments: {},
                 id: 'tool-1',
                 name: 'check_onboarding_status',
                 startedAt: '2026-03-23T12:00:00.000Z',

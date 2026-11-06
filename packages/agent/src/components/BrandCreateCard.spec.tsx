@@ -49,7 +49,7 @@ describe('BrandCreateCard', () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByRole('alert')).toHaveTextContent(
+      expect(screen.getByRole('alert').textContent).toMatch(
         /could not create brand/i,
       ),
     );

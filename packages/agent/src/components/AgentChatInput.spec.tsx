@@ -1,4 +1,4 @@
-import { AgentThreadMode } from '@genfeedai/contracts';
+import { AgentThreadMode, UploadStatus } from '@genfeedai/contracts';
 import {
   fireEvent,
   render,
@@ -313,7 +313,7 @@ describe('AgentChatInput', () => {
             kind: 'image',
             name: 'draft.png',
             previewUrl: '',
-            status: 'uploading',
+            status: UploadStatus.UPLOADING,
           },
         ]}
         isUploading
@@ -431,7 +431,7 @@ describe('AgentChatInput', () => {
             kind: 'image',
             name: 'image.png',
             previewUrl: 'blob:image-preview',
-            status: 'completed',
+            status: UploadStatus.COMPLETED,
           },
         ]}
         removeAttachment={removeAttachment}
@@ -457,7 +457,7 @@ describe('AgentChatInput', () => {
             kind: 'video',
             name: 'draft.mp4',
             previewUrl: '',
-            status: 'failed',
+            status: UploadStatus.FAILED,
           },
         ]}
         onSend={vi.fn()}

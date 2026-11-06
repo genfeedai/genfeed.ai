@@ -3,9 +3,17 @@ import {
   ContextSidebarProvider,
   useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
+import type {
+  AgentChatMessage,
+  AgentThreadSnapshot,
+} from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentMessagesPage } from '@genfeedai/agent/services/agent-api/agent-api.threads';
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentRunRecord } from '@genfeedai/agent/stores/agent-chat.store.run';
-import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversation-hydration-flight';
+import {
+  type ConversationHydrationResult,
+  conversationHydrationFlights,
+} from '@genfeedai/agent/utils/conversation-hydration-flight';
 import { THREAD_SWITCH_DEBOUNCE_MS } from '@genfeedai/agent/utils/plan-thread-switch-fetches';
 import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
@@ -560,7 +568,7 @@ describe('AgentFullPage', () => {
   });
 
   it('adopts an in-flight prefetch instead of stacking a second messages set (#2790)', async () => {
-    const messages = [
+    const messages: AgentChatMessage[] = [
       {
         content: 'Prefetched prompt',
         createdAt: '2026-03-10T10:00:00.000Z',
@@ -570,30 +578,12 @@ describe('AgentFullPage', () => {
       },
     ];
     let resolvePrefetch:
-      | ((result: {
-          page: {
-            hasMore: boolean;
-            messages: typeof messages;
-            nextCursor: string | null;
-          };
-          snapshot: {
-            activeRun: null;
-            lastAssistantMessage: null;
-            lastSequence: number;
-            latestProposedPlan: null;
-            latestUiBlocks: null;
-            memorySummaryRefs: never[];
-            pendingApprovals: never[];
-            pendingInputRequests: never[];
-            profileSnapshot: null;
-            sessionBinding: null;
-            source: string;
-            threadId: string;
-            threadStatus: typeof AgentThreadStatus.ACTIVE;
-            timeline: never[];
-            title: string;
-          };
-        }) => void)
+      | ((
+          result: ConversationHydrationResult<
+            AgentMessagesPage,
+            AgentThreadSnapshot
+          >,
+        ) => void)
       | undefined;
     conversationHydrationFlights.begin(
       'thread-1',

@@ -3,6 +3,7 @@ import type {
   AgentChatMessage,
   AgentThreadSnapshot,
 } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentMessagesPage } from '@genfeedai/agent/services/agent-api/agent-api.threads';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversation-hydration-flight';
@@ -22,7 +23,7 @@ function makeMessages(threadId: string): AgentChatMessage[] {
   ];
 }
 
-function makeMessagesPage(threadId: string) {
+function makeMessagesPage(threadId: string): AgentMessagesPage {
   return {
     hasMore: true,
     messages: makeMessages(threadId),
@@ -203,7 +204,7 @@ describe('useAgentThreadPrefetch', () => {
           if (threadId === 'thread-a') {
             capturedSignal = signal;
           }
-          return new Promise<ReturnType<typeof makeMessagesPage>>((resolve) => {
+          return new Promise<AgentMessagesPage>((resolve) => {
             // Never resolves within the test — only the abort matters.
             signal?.addEventListener('abort', () =>
               resolve({ hasMore: false, messages: [], nextCursor: null }),
@@ -357,7 +358,7 @@ describe('useAgentThreadPrefetch', () => {
       getMessagesPage: vi.fn(
         (_threadId: string, _params, signal?: AbortSignal) => {
           capturedSignal = signal;
-          return new Promise<ReturnType<typeof makeMessagesPage>>((resolve) => {
+          return new Promise<AgentMessagesPage>((resolve) => {
             signal?.addEventListener('abort', () =>
               resolve({ hasMore: false, messages: [], nextCursor: null }),
             );
@@ -385,7 +386,7 @@ describe('useAgentThreadPrefetch', () => {
     const apiService = makeApiService({
       getMessagesPage: vi.fn(
         (_threadId: string, _params, signal?: AbortSignal) =>
-          new Promise<ReturnType<typeof makeMessagesPage>>((resolve) => {
+          new Promise<AgentMessagesPage>((resolve) => {
             signal?.addEventListener('abort', () =>
               resolve({ hasMore: false, messages: [], nextCursor: null }),
             );
@@ -408,7 +409,7 @@ describe('useAgentThreadPrefetch', () => {
       getMessagesPage: vi.fn(
         (_threadId: string, _params, signal?: AbortSignal) => {
           capturedSignal = signal;
-          return new Promise<ReturnType<typeof makeMessagesPage>>((resolve) => {
+          return new Promise<AgentMessagesPage>((resolve) => {
             signal?.addEventListener('abort', () =>
               resolve({ hasMore: false, messages: [], nextCursor: null }),
             );

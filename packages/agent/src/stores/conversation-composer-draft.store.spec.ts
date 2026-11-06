@@ -1,3 +1,4 @@
+import { UploadStatus } from '@genfeedai/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   attachContentToConversationDraft,
@@ -104,7 +105,7 @@ describe('conversation composer draft persistence', () => {
         ingredientId: 'ingredient-1',
         kind: 'image',
         name: 'reference.png',
-        status: 'completed',
+        status: UploadStatus.COMPLETED,
         url: 'https://cdn.example/reference.png',
       },
     ]);
