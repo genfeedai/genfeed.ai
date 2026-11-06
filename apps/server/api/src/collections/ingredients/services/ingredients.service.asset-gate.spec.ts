@@ -1,3 +1,4 @@
+import type { IngredientServerCreate } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -15,6 +16,25 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+type Row = Record<string, unknown> & { id: string };
+type Where = Record<string, unknown>;
+
+// A small Prisma `where` interpreter: equality, `in`, and nested AND/OR.
+function matches(row: Row, where: Where): boolean {
+  return Object.entries(where).every(([key, expected]) => {
+    if (key === 'AND') {
+      return (expected as Where[]).every((part) => matches(row, part));
+    }
+    if (key === 'OR') {
+      return (expected as Where[]).some((part) => matches(row, part));
+    }
+    if (expected && typeof expected === 'object' && 'in' in expected) {
+      return (expected as { in: unknown[] }).in.includes(row[key]);
+    }
+    return (row[key] ?? null) === (expected ?? null);
+  });
+}
+
 /**
  * First-asset unlock gate interception. Every generation completion flows
  * through IngredientsService.create / patch / patchAll (Images/Videos/Voices all
@@ -22,24 +42,58 @@ vi.mock('@genfeedai/prisma', async () => {
  * transition, keyed on the owning org.
  */
 describe('IngredientsService — asset-gate interception', () => {
+  let marked: string[];
+  let rows: Map<string, Row>;
   let service: IngredientsService;
-  let markFirstAssetGenerated: ReturnType<typeof vi.fn>;
-  let delegate: {
-    create: ReturnType<typeof vi.fn>;
-    findFirst: ReturnType<typeof vi.fn>;
-    findMany: ReturnType<typeof vi.fn>;
-    update: ReturnType<typeof vi.fn>;
-    updateMany: ReturnType<typeof vi.fn>;
-  };
+
+  const seed = (row: Row) => rows.set(row.id, { isDeleted: false, ...row });
+  const matching = (where: Where = {}) =>
+    [...rows.values()].filter((row) => matches(row, where));
 
   beforeEach(async () => {
-    markFirstAssetGenerated = vi.fn().mockResolvedValue(undefined);
-    delegate = {
-      create: vi.fn(),
-      findFirst: vi.fn(),
-      findMany: vi.fn(),
-      update: vi.fn().mockResolvedValue({ id: 'ing-1' }),
-      updateMany: vi.fn(),
+    marked = [];
+    rows = new Map();
+    let nextId = 1;
+
+    const delegate = {
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        const row = {
+          isDeleted: false,
+          ...data,
+          id: `ing-new-${nextId++}`,
+        };
+        rows.set(row.id, row);
+        return row;
+      },
+      findFirst: async ({ where }: { where?: Where }) =>
+        matching(where)[0] ?? null,
+      findMany: async ({ where }: { where?: Where }) => matching(where),
+      update: async ({
+        data,
+        where,
+      }: {
+        data: Record<string, unknown>;
+        where: Where;
+      }) => {
+        const [row] = matching(where);
+        if (!row) {
+          throw new Error('Record to update not found');
+        }
+        return Object.assign(row, data);
+      },
+      updateMany: async ({
+        data,
+        where,
+      }: {
+        data: Record<string, unknown>;
+        where: Where;
+      }) => {
+        const hits = matching(where);
+        for (const row of hits) {
+          Object.assign(row, data);
+        }
+        return { count: hits.length };
+      },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -51,10 +105,21 @@ describe('IngredientsService — asset-gate interception', () => {
         },
         {
           provide: LoggerService,
-          useValue: { debug: vi.fn(), error: vi.fn(), warn: vi.fn() },
+          useValue: {
+            debug: () => undefined,
+            error: () => undefined,
+            warn: () => undefined,
+          },
         },
         // Resolved by IngredientsService via moduleRef.get(AssetGateService).
-        { provide: AssetGateService, useValue: { markFirstAssetGenerated } },
+        {
+          provide: AssetGateService,
+          useValue: {
+            markFirstAssetGenerated: async (organizationId: string) => {
+              marked.push(organizationId);
+            },
+          },
+        },
       ],
     }).compile();
 
@@ -62,121 +127,98 @@ describe('IngredientsService — asset-gate interception', () => {
   });
 
   describe('patch', () => {
-    it('marks the org on a GENERATED transition', async () => {
-      delegate.findFirst.mockResolvedValue({
-        id: 'ing-1',
-        organizationId: 'org-1',
-        status: 'GENERATED',
-      });
+    beforeEach(() => {
+      seed({ id: 'ing-1', organizationId: 'org-1', status: 'PROCESSING' });
+    });
 
+    it('marks the org on a GENERATED transition', async () => {
       await service.patch('ing-1', { status: IngredientStatus.GENERATED });
 
-      expect(markFirstAssetGenerated).toHaveBeenCalledWith('org-1');
+      expect(rows.get('ing-1')?.status).toBe(IngredientStatus.GENERATED);
+      expect(marked).toEqual(['org-1']);
     });
 
     it('does NOT mark on a non-GENERATED patch', async () => {
-      delegate.findFirst.mockResolvedValue({
-        id: 'ing-1',
-        organizationId: 'org-1',
-        status: 'PROCESSING',
-      });
+      await service.patch('ing-1', { status: IngredientStatus.VALIDATED });
 
-      await service.patch('ing-1', { status: IngredientStatus.PROCESSING });
-
-      expect(markFirstAssetGenerated).not.toHaveBeenCalled();
+      expect(rows.get('ing-1')?.status).toBe(IngredientStatus.VALIDATED);
+      expect(marked).toEqual([]);
     });
   });
 
   describe('create', () => {
     it('marks the org when an asset is created directly as GENERATED', async () => {
-      delegate.create.mockResolvedValue({
-        id: 'ing-2',
-        organizationId: 'org-2',
-        status: 'GENERATED',
-      });
-      // create() re-reads via getPopulationForContext include path.
-      delegate.findFirst.mockResolvedValue({
-        id: 'ing-2',
-        organizationId: 'org-2',
-        status: 'GENERATED',
-      });
-
       await service.create({
-        brand: 'brand-1',
+        brandId: 'brand-1',
+        organizationId: 'org-2',
         status: IngredientStatus.GENERATED,
-      } as never);
+      } as IngredientServerCreate);
 
-      expect(markFirstAssetGenerated).toHaveBeenCalledWith('org-2');
+      expect(matching({ organizationId: 'org-2' })).toEqual([
+        expect.objectContaining({ status: IngredientStatus.GENERATED }),
+      ]);
+      expect(marked).toEqual(['org-2']);
     });
 
     it('does NOT mark when created as a draft', async () => {
-      delegate.create.mockResolvedValue({
-        id: 'ing-3',
+      await service.create({
+        brandId: 'brand-1',
         organizationId: 'org-3',
-        status: 'DRAFT',
-      });
-      delegate.findFirst.mockResolvedValue({
-        id: 'ing-3',
-        organizationId: 'org-3',
-        status: 'DRAFT',
-      });
+      } as IngredientServerCreate);
 
-      await service.create({ brand: 'brand-1' } as never);
-
-      expect(markFirstAssetGenerated).not.toHaveBeenCalled();
+      expect(matching({ organizationId: 'org-3' })).toHaveLength(1);
+      expect(marked).toEqual([]);
     });
   });
 
   describe('patchAll', () => {
+    beforeEach(() => {
+      seed({
+        brandId: 'brand-1',
+        id: 'ing-a',
+        organizationId: 'org-a',
+        status: 'PROCESSING',
+      });
+      seed({
+        brandId: 'brand-2',
+        id: 'ing-b',
+        organizationId: 'org-b',
+        status: 'PROCESSING',
+      });
+    });
+
     it('captures owning orgs BEFORE the update and marks each distinct org', async () => {
-      // Distinct orgs of the rows matched by the filter, read pre-update.
-      delegate.findMany.mockResolvedValue([
-        { organizationId: 'org-a' },
-        { organizationId: 'org-b' },
-      ]);
-      delegate.updateMany.mockResolvedValue({ count: 2 });
+      // The status flip would hide the rows from any read made after it.
+      await expect(
+        service.patchAll(
+          { status: IngredientStatus.PROCESSING },
+          { status: IngredientStatus.GENERATED },
+        ),
+      ).resolves.toEqual({ modifiedCount: 2 });
 
-      await service.patchAll(
-        { status: IngredientStatus.PROCESSING },
-        { status: IngredientStatus.GENERATED },
-      );
-
-      // Pre-update read happened, so the status flip can't hide the rows.
-      expect(delegate.findMany).toHaveBeenCalled();
-      expect(markFirstAssetGenerated).toHaveBeenCalledWith('org-a');
-      expect(markFirstAssetGenerated).toHaveBeenCalledWith('org-b');
-      expect(markFirstAssetGenerated).toHaveBeenCalledTimes(2);
+      expect(matching({ status: IngredientStatus.GENERATED })).toHaveLength(2);
+      expect([...marked].sort()).toEqual(['org-a', 'org-b']);
     });
 
     it('does NOT mark when no rows changed', async () => {
-      delegate.findMany.mockResolvedValue([{ organizationId: 'org-a' }]);
-      delegate.updateMany.mockResolvedValue({ count: 0 });
+      await expect(
+        service.patchAll(
+          { id: 'missing' },
+          { status: IngredientStatus.GENERATED },
+        ),
+      ).resolves.toEqual({ modifiedCount: 0 });
 
-      await service.patchAll(
-        { id: 'missing' },
-        { status: IngredientStatus.GENERATED },
-      );
-
-      expect(markFirstAssetGenerated).not.toHaveBeenCalled();
+      expect(marked).toEqual([]);
     });
 
     it('scopes a non-GENERATED bulk update to its owner without marking the asset gate', async () => {
-      delegate.findMany.mockResolvedValue([{ organizationId: 'org-a' }]);
-      delegate.updateMany.mockResolvedValue({ count: 5 });
+      await expect(
+        service.patchAll({ brandId: 'brand-1' }, { isDeleted: true }),
+      ).resolves.toEqual({ modifiedCount: 1 });
 
-      await service.patchAll({ brandId: 'brand-1' }, { isDeleted: true });
-
-      expect(delegate.findMany).toHaveBeenCalledOnce();
-      expect(delegate.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            AND: [{ brandId: 'brand-1', isDeleted: false }],
-            organizationId: 'org-a',
-            isDeleted: false,
-          },
-        }),
-      );
-      expect(markFirstAssetGenerated).not.toHaveBeenCalled();
+      expect(rows.get('ing-a')?.isDeleted).toBe(true);
+      expect(rows.get('ing-b')?.isDeleted).toBe(false);
+      expect(marked).toEqual([]);
     });
   });
 });
