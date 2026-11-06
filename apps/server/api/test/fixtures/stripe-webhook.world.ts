@@ -13,6 +13,7 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { CreditTransactionCategory } from '@genfeedai/contracts';
 import type { ISubscriptionsService } from '@genfeedai/contracts/interfaces/billing';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
@@ -21,20 +22,15 @@ export type WorldRow = Record<string, unknown>;
 /** The clock every Stripe webhook world runs on (install with fake timers). */
 export const STRIPE_WORLD_NOW = new Date('2026-09-27T00:00:00.000Z');
 
-function isRecord(value: unknown): value is WorldRow {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    !Array.isArray(value) &&
-    !(value instanceof Date)
-  );
-}
+/** A nested matcher object; dates compare as values, not as records. */
+const isRowMatcher = (value: unknown): value is WorldRow =>
+  isRecord(value) && !(value instanceof Date);
 
 const timeOf = (value: unknown) =>
   value instanceof Date ? value.getTime() : Number(value);
 
 function matchesField(actual: unknown, expected: unknown): boolean {
-  if (!isRecord(expected)) return actual === expected;
+  if (!isRowMatcher(expected)) return actual === expected;
   if ('startsWith' in expected) {
     return String(actual).startsWith(String(expected.startsWith));
   }
@@ -47,7 +43,7 @@ function matchesField(actual: unknown, expected: unknown): boolean {
   if (Array.isArray(expected.path) && 'equals' in expected) {
     const value = expected.path.reduce<unknown>(
       (current, segment) =>
-        isRecord(current) ? current[String(segment)] : undefined,
+        isRowMatcher(current) ? current[String(segment)] : undefined,
       actual,
     );
     return value === expected.equals;
