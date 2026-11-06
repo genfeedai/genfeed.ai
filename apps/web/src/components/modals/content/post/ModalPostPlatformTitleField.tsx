@@ -51,7 +51,7 @@ export default function ModalPostPlatformTitleField({
           }
           isDisabled={!isEnabled || isLoading || isGenerating}
           isLoading={isGenerating}
-          icon={<Sparkles className="size-3" />}
+          icon={<Sparkles className="size-3.5" />}
           label={isGenerating ? 'Generating…' : 'Generate'}
         />
       </div>

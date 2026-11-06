@@ -467,7 +467,7 @@ export default function SocialIntelligenceInbox({
                                     target="_blank"
                                   >
                                     {translate('openSource')}
-                                    <ExternalLink className="size-3" />
+                                    <ExternalLink className="size-3.5" />
                                   </Link>
                                 ) : null}
                               </div>

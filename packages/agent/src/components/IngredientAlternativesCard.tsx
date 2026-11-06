@@ -180,7 +180,7 @@ export function IngredientAlternativesCard({
                 <Button
                   ariaLabel={`View full prompt for ${alt.label}`}
                   className="mt-2 h-7 px-0 text-2xs"
-                  icon={<Expand className="size-3" />}
+                  icon={<Expand className="size-3.5" />}
                   isDisabled={status === 'generating'}
                   label="View full prompt"
                   onClick={() => handleViewPrompt(index)}
@@ -241,7 +241,7 @@ export function IngredientAlternativesCard({
                 onClick={handleReset}
                 className="flex-1"
               >
-                <RefreshCw className="size-3" />
+                <RefreshCw className="size-3.5" />
                 Try Another
               </Button>
             </div>

@@ -56,7 +56,7 @@ export default function TagColorPicker({
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
           >
-            {isSelected ? <Check className="size-3" /> : null}
+            {isSelected ? <Check className="size-3.5" /> : null}
           </Button>
         );
       })}

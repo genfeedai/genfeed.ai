@@ -792,7 +792,7 @@ export function PublishPostCard({
           htmlFor="publish-schedule"
           className="text-2xs uppercase tracking-wider text-muted-foreground"
         >
-          <Calendar className="mr-1 inline size-3" />
+          <Calendar className="mr-1 inline size-3.5" />
           {translate('scheduleForLater')}
         </Label>
         <Input

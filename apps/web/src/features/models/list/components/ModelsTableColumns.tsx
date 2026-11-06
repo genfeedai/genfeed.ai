@@ -260,7 +260,7 @@ function ModelLifecycleControl({
           {isPricingLocked ? (
             <LockKeyhole
               aria-hidden="true"
-              className="size-3 shrink-0 text-muted-foreground"
+              className="size-3.5 shrink-0 text-muted-foreground"
             />
           ) : null}
           <SelectValue />

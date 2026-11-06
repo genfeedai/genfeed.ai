@@ -24,7 +24,7 @@ function PromptBarContextChip({
   const glyph = item.thumbnailUrl ? (
     <Image
       alt=""
-      className="size-5 shrink-0 rounded-[5px] object-cover outline-media"
+      className="size-5 shrink-0 rounded-sm object-cover outline-media"
       height={20}
       sizes="20px"
       src={item.thumbnailUrl}
@@ -70,7 +70,7 @@ function PromptBarContextChip({
       <Button
         ariaLabel={item.removeLabel ?? item.label}
         className="size-6 shrink-0 p-0"
-        icon={<X className="size-3" />}
+        icon={<X className="size-3.5" />}
         onClick={item.onRemove}
         size={ButtonSize.ICON}
         variant={ButtonVariant.GHOST}

@@ -52,7 +52,7 @@ export default function PromptBarCompactSelect({
         {icon === 'source' ? (
           <ChevronsUpDown
             aria-hidden="true"
-            className="size-3 shrink-0 text-muted-foreground"
+            className="size-3.5 shrink-0 text-muted-foreground"
           />
         ) : null}
       </SelectTrigger>

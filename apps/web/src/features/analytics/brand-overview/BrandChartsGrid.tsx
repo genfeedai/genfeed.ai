@@ -75,7 +75,7 @@ export default function BrandChartsGrid({
                 >
                   {getPlatformIcon(platform, 'size-4')}
                   <span className="capitalize">{platform}</span>
-                  <ArrowRight className="size-3" />
+                  <ArrowRight className="size-3.5" />
                 </Link>
               </Button>
             ))}

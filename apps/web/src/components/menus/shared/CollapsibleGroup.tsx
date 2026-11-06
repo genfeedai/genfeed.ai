@@ -147,7 +147,7 @@ export default function CollapsibleGroup({
         >
           <ChevronDown
             className={cn(
-              'size-3 transition-transform duration-200',
+              'size-3.5 transition-transform duration-200',
               isCollapsed && '-rotate-90',
             )}
           />

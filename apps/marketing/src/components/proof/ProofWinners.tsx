@@ -68,7 +68,7 @@ function PublishedLinkedInPost({ winner }: { winner: Winner }) {
               'flex size-5 items-center justify-center rounded-full bg-platform-linkedin text-white' /* design-system-allow-content-color -- glyph on LinkedIn brand fill */
             }
           >
-            <ThumbsUp className="size-3" />
+            <ThumbsUp className="size-3.5" />
           </span>
           {proof.reactions}
         </span>

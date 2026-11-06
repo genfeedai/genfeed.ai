@@ -139,7 +139,7 @@ export default function ArticlePublicPageCard({
           </div>
         ) : (
           <div className="flex aspect-[1200/630] w-full items-center justify-center bg-muted">
-            <Globe className="size-6 text-muted-foreground" />
+            <Globe className="size-5 text-muted-foreground" />
           </div>
         )}
         <div className="space-y-1 p-3">

@@ -40,7 +40,7 @@ function OrganizationUnavailable() {
         <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-destructive/10">
           <TriangleAlert
             aria-hidden="true"
-            className="size-6 text-destructive"
+            className="size-5 text-destructive"
           />
         </div>
         <h1 className="text-xl font-semibold text-foreground">

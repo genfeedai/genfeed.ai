@@ -95,21 +95,21 @@ function RunOptionsMenuItems({
   return (
     <DropdownMenuContent align="start" className="min-w-[180px]" side="top">
       <DropdownMenuItem disabled={!canRunWorkflow} onSelect={onRunWorkflow}>
-        <Play className="size-3" />
+        <Play className="size-3.5" />
         Run Workflow
       </DropdownMenuItem>
       <DropdownMenuItem
         disabled={!hasSelection || isRunning}
         onSelect={onRunSelected}
       >
-        <CirclePlay className="size-3" />
+        <CirclePlay className="size-3.5" />
         Run Selected ({selectedCount})
       </DropdownMenuItem>
       {showResume && (
         <>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={onResume}>
-            <RotateCcw className="size-3" />
+            <RotateCcw className="size-3.5" />
             Resume from Failed
           </DropdownMenuItem>
         </>

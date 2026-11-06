@@ -235,7 +235,7 @@ export function ClipperRunCard({
               className="flex items-center gap-1 text-xs font-medium text-success underline-offset-2 hover:underline "
             >
               View Final Output
-              <ExternalLink className="size-3" />
+              <ExternalLink className="size-3.5" />
             </a>
           </Alert>
         )}

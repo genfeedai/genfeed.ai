@@ -332,7 +332,7 @@ export default function IssueDetail({
           href={href(APP_ROUTES.WORKSPACE.TASKS)}
           className="inline-flex items-center gap-1 text-xs text-gray-800 transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="size-3" />
+          <ArrowLeft className="size-3.5" />
           Back to issues
         </Link>
       </div>

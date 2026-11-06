@@ -139,7 +139,7 @@ export function AgentOAuthConnectMenu({
           </span>
           <ChevronDown
             className={cn(
-              'size-3 text-muted-foreground transition-transform',
+              'size-3.5 text-muted-foreground transition-transform',
               open && 'rotate-180',
             )}
           />

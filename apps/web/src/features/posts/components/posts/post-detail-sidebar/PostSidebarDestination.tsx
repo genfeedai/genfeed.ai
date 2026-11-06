@@ -149,7 +149,7 @@ export default function PostSidebarDestination({
           rel="noopener noreferrer"
           className="inline-flex w-fit items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
         >
-          <ExternalLink className="size-3" />
+          <ExternalLink className="size-3.5" />
           <span>{translate('openOnPlatform')}</span>
         </Link>
       ) : null}

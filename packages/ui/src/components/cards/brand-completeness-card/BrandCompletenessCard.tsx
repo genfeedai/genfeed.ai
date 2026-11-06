@@ -103,7 +103,7 @@ function GroupRow({
               href={href(field.href)}
               className="flex items-center gap-2 rounded px-2 py-1 text-2xs text-muted-foreground transition-colors duration-150 hover:bg-foreground/5 hover:text-foreground/70"
             >
-              <ChevronRight className="size-3 flex-shrink-0 text-foreground/20" />
+              <ChevronRight className="size-3.5 flex-shrink-0 text-foreground/20" />
               {field.label}
             </Link>
           ))}

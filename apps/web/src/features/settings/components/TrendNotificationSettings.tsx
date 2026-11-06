@@ -132,7 +132,7 @@ export default function TrendNotificationSettings({
                   isDisabled={isDisabled}
                 />
                 <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
-                  <Info className="size-3" />
+                  <Info className="size-3.5" />
                   Message @userinfobot on Telegram to get your chat ID
                 </p>
               </div>

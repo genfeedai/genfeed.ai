@@ -45,7 +45,7 @@ export default function BrandDetailExternalLinksCard({
     <CollectionSection
       actions={
         <Button
-          icon={<Plus className="size-3" />}
+          icon={<Plus className="size-3.5" />}
           label={t('addLink')}
           onClick={() => onOpenLinkModal()}
           size={ButtonSize.XS}

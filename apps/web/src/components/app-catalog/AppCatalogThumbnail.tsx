@@ -74,7 +74,7 @@ function ThumbnailArt({
               className={cn(PANEL_CLASSES, 'h-10 w-14 p-1')}
               style={{ opacity: 1 - frame * 0.2 }}
             >
-              <div className={cn('size-full rounded-[2px]', fill)} />
+              <div className={cn('size-full rounded-xs', fill)} />
             </div>
           ))}
         </div>
@@ -94,7 +94,7 @@ function ThumbnailArt({
           <div
             className={cn(PANEL_CLASSES, 'absolute left-8 top-6 h-10 w-16 p-1')}
           >
-            <div className={cn('size-full rounded-[2px]', fill)} />
+            <div className={cn('size-full rounded-xs', fill)} />
           </div>
         </div>
       );
@@ -102,7 +102,7 @@ function ThumbnailArt({
       return (
         <div className="flex w-28 flex-col gap-2">
           <div className={cn(PANEL_CLASSES, 'h-12 p-1.5')}>
-            <div className={cn('size-full rounded-[2px]', fill)} />
+            <div className={cn('size-full rounded-xs', fill)} />
           </div>
           <div className={cn(PANEL_CLASSES, 'flex h-5 items-center px-1.5')}>
             <div className="h-1 w-2/3 rounded-full bg-foreground/20" />

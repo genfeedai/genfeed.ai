@@ -42,7 +42,7 @@ export default function StudioPlaygroundFailureNotice({
         <Button
           aria-haspopup="dialog"
           className="h-auto px-2 py-1 text-2xs"
-          icon={<ChevronRight className="size-3" />}
+          icon={<ChevronRight className="size-3.5" />}
           label={translate('failure.showDetails')}
           onClick={onShowDetails}
           size={ButtonSize.SM}

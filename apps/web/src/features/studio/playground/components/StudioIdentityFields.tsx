@@ -281,7 +281,7 @@ export default function StudioIdentityFields({
 
   const avatarThumbnail = (
     <Avatar
-      fallback={<UserRound className="size-3" />}
+      fallback={<UserRound className="size-3.5" />}
       shape="square"
       size="xs"
       src={selectedAvatarOption?.preview}
@@ -578,7 +578,7 @@ export default function StudioIdentityFields({
                 <Avatar
                   className="aspect-[4/3]"
                   fallback={
-                    <UserRound className="size-6 text-muted-foreground" />
+                    <UserRound className="size-5 text-muted-foreground" />
                   }
                   shape="square"
                   size="fill"

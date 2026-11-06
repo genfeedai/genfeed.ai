@@ -263,7 +263,7 @@ export default function IngredientTabsTags({
                     }}
                     ariaLabel={`Add tag ${tag.label}`}
                   >
-                    <Tag className="size-3" />
+                    <Tag className="size-3.5" />
                     <span className="truncate">{tag.label}</span>
                     <Plus className="text-sm ml-auto" />
                   </Button>

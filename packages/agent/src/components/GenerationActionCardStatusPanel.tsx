@@ -132,7 +132,7 @@ export function GenerationActionCardStatusPanel({
             ariaLabel={translate('acceptFullRunAria')}
             className="flex-1"
           >
-            <Check className="size-3" />
+            <Check className="size-3.5" />
             {translate('acceptFullRun')}
           </Button>
           <Button
@@ -142,7 +142,7 @@ export function GenerationActionCardStatusPanel({
             ariaLabel={translate('rejectPilotAria')}
             className="flex-1"
           >
-            <X className="size-3" />
+            <X className="size-3.5" />
             {translate('rejectPilot')}
           </Button>
         </div>
@@ -196,7 +196,7 @@ export function GenerationActionCardStatusPanel({
               onClick={onUseAsReference}
               className="flex-1"
             >
-              <ImagePlus className="size-3" />
+              <ImagePlus className="size-3.5" />
               Use as input
             </Button>
           ) : null}
@@ -209,7 +209,7 @@ export function GenerationActionCardStatusPanel({
               withWrapper={false}
             >
               <Link href={editorHref}>
-                <Paintbrush className="size-3" />
+                <Paintbrush className="size-3.5" />
                 {translate('editResult')}
               </Link>
             </Button>
@@ -221,7 +221,7 @@ export function GenerationActionCardStatusPanel({
               onClick={onOpenInStudio}
               className="flex-1"
             >
-              <ExternalLink className="size-3" />
+              <ExternalLink className="size-3.5" />
               {translate('reuseSettings')}
             </Button>
           ) : null}
@@ -240,7 +240,7 @@ export function GenerationActionCardStatusPanel({
             onClick={onRetry}
             className="flex-1"
           >
-            <RefreshCw className="size-3" />
+            <RefreshCw className="size-3.5" />
             Regenerate
           </Button>
         </div>

@@ -81,7 +81,7 @@ function ClearButton({
       icon={
         <X
           className={
-            'size-3 text-white' /* design-system-allow-content-color -- media overlay */
+            'size-3.5 text-white' /* design-system-allow-content-color -- media overlay */
           }
         />
       }
@@ -286,7 +286,6 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
           references.length > 0 && 'p-0 overflow-hidden',
         )}
         onClick={openStartFrameGallery}
-        isPulsing={requiresReferences && references.length === 0}
         isDisabled={isStartFrameDisabled}
         tooltip={startFrameTooltip}
         data-testid="reference-button"

@@ -18,7 +18,7 @@ export function AgentComposerContextRail({
     <div className="flex min-h-0 items-center gap-1.5 px-3.5 pt-2.5">
       <MessageSquare
         aria-hidden="true"
-        className="size-3 shrink-0 text-muted-foreground"
+        className="size-3.5 shrink-0 text-muted-foreground"
       />
       <span className="min-w-0 truncate text-2xs font-medium text-foreground/60">
         {contextLabel}

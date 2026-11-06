@@ -45,9 +45,9 @@ export function ImageTransformCard({
               className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-primary/10  text-primary  hover:bg-primary/10 transition-colors"
             >
               {cta.label.toLowerCase().includes('upscale') ? (
-                <Maximize2 className="size-3" />
+                <Maximize2 className="size-3.5" />
               ) : (
-                <Sparkles className="size-3" />
+                <Sparkles className="size-3.5" />
               )}
               {cta.label}
             </a>

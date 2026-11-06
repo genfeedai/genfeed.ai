@@ -61,7 +61,7 @@ function AnnotationNodeComponent(props: NodeProps) {
           onClick={handleExpand}
           title="Expand preview"
         >
-          <Expand className="size-3" />
+          <Expand className="size-3.5" />
         </Button>
       ) : null,
     [inputImage, handleExpand],

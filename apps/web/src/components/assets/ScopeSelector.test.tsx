@@ -44,7 +44,7 @@ describe('ScopeSelector', () => {
 
     const groupedList = container.querySelector('[role="radiogroup"]');
 
-    expect(groupedList).toHaveClass('rounded-2xl');
+    expect(groupedList).toHaveClass('rounded-lg');
     expect(groupedList).toHaveClass('border');
     expect(groupedList).toHaveClass('border-border');
     expect(groupedList?.innerHTML).not.toMatch(

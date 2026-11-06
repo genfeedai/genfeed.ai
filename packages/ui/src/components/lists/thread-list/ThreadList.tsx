@@ -81,7 +81,7 @@ export function ThreadListSection({
           </span>
           <ChevronDown
             className={cn(
-              'size-3 transition-transform motion-reduce:transition-none',
+              'size-3.5 transition-transform motion-reduce:transition-none',
               !isOpen && '-rotate-90',
             )}
           />

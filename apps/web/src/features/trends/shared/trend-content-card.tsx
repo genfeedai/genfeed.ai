@@ -337,7 +337,7 @@ export default function TrendContentCard({
           />
           <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3">
             <Badge variant={getViralityVariant(item.trendViralityScore)}>
-              <Zap className="size-3" />
+              <Zap className="size-3.5" />
               {item.trendViralityScore}
             </Badge>
             <Badge variant="secondary">

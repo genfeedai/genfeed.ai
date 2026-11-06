@@ -129,9 +129,9 @@ export default function StreaksPage() {
               className="space-y-3"
               data-testid="streaks-milestones-skeleton"
             >
-              <Skeleton className="h-16 rounded-2xl" />
-              <Skeleton className="h-16 rounded-2xl" />
-              <Skeleton className="h-16 rounded-2xl" />
+              <Skeleton className="h-16 rounded-card" />
+              <Skeleton className="h-16 rounded-card" />
+              <Skeleton className="h-16 rounded-card" />
             </div>
           ) : (
             <>

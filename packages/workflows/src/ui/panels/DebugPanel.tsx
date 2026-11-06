@@ -92,7 +92,7 @@ function PayloadCard({ payload }: PayloadCardProps) {
               onClick={handleCopy}
               className="flex items-center gap-1 text-2xs text-primary"
             >
-              <Copy className="size-3" />
+              <Copy className="size-3.5" />
               {copied ? 'Copied!' : 'Copy'}
             </Button>
           </div>

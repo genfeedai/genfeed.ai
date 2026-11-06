@@ -68,7 +68,7 @@ export default function AssetGateGuard({ children }: LayoutProps) {
         isCentered
       >
         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <Lock className="h-6 w-6" aria-hidden="true" />
+          <Lock className="size-5" aria-hidden="true" />
         </span>
 
         <div className="flex flex-col gap-2">

@@ -649,7 +649,9 @@ italic blockquotes. Emphasis comes from weight and colour.
 
 Three heights, and nothing between them: `control-sm` 32px, `control-md` 36px,
 `control-lg` 40px. Icons ride along at `icon-sm` 14px, `icon-md` 16px, `icon-lg`
-20px, so a label and its glyph stay optically the same weight. A bare `h-[34px]` on
+20px, so a label and its glyph stay optically the same weight. In classes that is
+`size-3.5`, `size-4` and `size-5`; `check:design-system` flags `size-3` and
+`size-6` on Lucide icons. A bare `h-[34px]` on
 a toolbar row is always a mistake.
 
 ### Border radius
@@ -964,7 +966,8 @@ names, and unknown providers show an initial rather than an invented logo.
 Status is never encoded by a generic colored dot alone. A status pill renders a
 status-specific icon alongside its visible label; the semantic tint reinforces
 that meaning but does not carry it. Icon, tint, and canonical status key come from
-`packages/ui/src/tokens/status-colors.ts`. Status chrome does not pulse or glow.
+`packages/ui/src/tokens/status-colors.ts`. Status chrome does not pulse or glow. Pulse is for live work only (recording, a running
+agent); saving, enabled and needs-input states hold still.
 
 ## Brand OS Surfaces
 

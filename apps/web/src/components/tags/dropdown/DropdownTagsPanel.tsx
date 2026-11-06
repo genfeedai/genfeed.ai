@@ -162,7 +162,7 @@ export default function DropdownTagsPanel({
                     )}
                   >
                     {selected && (
-                      <Check className="size-3 text-primary-foreground" />
+                      <Check className="size-3.5 text-primary-foreground" />
                     )}
                   </div>
 

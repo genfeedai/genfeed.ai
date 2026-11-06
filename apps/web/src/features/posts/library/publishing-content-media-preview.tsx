@@ -43,7 +43,7 @@ export default function PublishingContentMediaPreview({
           <Play
             aria-hidden="true"
             className={
-              'size-3 fill-white text-white' /* design-system-allow-content-color -- play mark over media */
+              'size-3.5 fill-white text-white' /* design-system-allow-content-color -- play mark over media */
             }
           />
         </span>

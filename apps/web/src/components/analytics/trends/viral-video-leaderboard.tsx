@@ -124,7 +124,7 @@ export function ViralVideoLeaderboard({
                   />
                 ) : (
                   <div className="size-full flex items-center justify-center">
-                    <Play className="size-6 text-muted-foreground" />
+                    <Play className="size-5 text-muted-foreground" />
                   </div>
                 )}
               </div>

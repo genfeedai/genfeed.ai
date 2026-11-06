@@ -91,7 +91,7 @@ function PhaseTransitionLogInner() {
                 <span className="text-foreground/50">
                   {PHASE_LABELS[t.from]}
                 </span>
-                <ArrowRight className="size-3 text-foreground/20" />
+                <ArrowRight className="size-3.5 text-foreground/20" />
                 <span className="text-foreground/70">{PHASE_LABELS[t.to]}</span>
                 <Badge
                   casing="normal"

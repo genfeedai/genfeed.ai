@@ -75,7 +75,7 @@ function CheckboxInner<T extends FieldValues = FieldValues>({
       }}
       checked={resolvedChecked}
       className={cn(
-        'peer inline-flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-border bg-transparent text-primary-foreground shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary data-[state=checked]:bg-primary data-[state=unchecked]:hover:bg-hover',
+        'peer inline-flex size-4 shrink-0 items-center justify-center rounded-sm border border-border bg-transparent text-primary-foreground shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary data-[state=checked]:bg-primary data-[state=unchecked]:hover:bg-hover',
         className,
       )}
       disabled={isDisabled ?? disabled}

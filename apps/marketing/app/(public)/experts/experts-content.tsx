@@ -275,7 +275,7 @@ export default function ExpertsContent() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
               <div className="flex-shrink-0">
                 <div className="flex size-12 items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
-                  <ShieldCheck className="size-6 text-[color:hsl(var(--gen-accent))]" />
+                  <ShieldCheck className="size-5 text-[color:hsl(var(--gen-accent))]" />
                 </div>
               </div>
               <div className="flex flex-col gap-2">

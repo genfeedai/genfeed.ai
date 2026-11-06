@@ -117,7 +117,7 @@ export default function SocialMediaPlayer({
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
         >
-          <ExternalLink className="size-3" />
+          <ExternalLink className="size-3.5" />
           {translate('openSource')}
         </a>
       ) : null}

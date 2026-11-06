@@ -105,7 +105,7 @@ function AnalyticsPostCard({
         {hasMedia ? (
           <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-background/80 p-1.5 backdrop-blur">
             {item.isVideo ? (
-              <Play aria-hidden="true" className="size-3 text-foreground" />
+              <Play aria-hidden="true" className="size-3.5 text-foreground" />
             ) : null}
             {getPlatformIcon(item.platform, 'size-3.5')}
           </span>

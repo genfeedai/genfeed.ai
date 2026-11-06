@@ -120,10 +120,7 @@ export default function BotToggle({
           className={cn('mt-4 p-4', isEnabled ? 'bg-success/10' : 'bg-muted')}
         >
           <div className="flex items-center gap-2">
-            <StatusDot
-              isPulsing={isEnabled}
-              tone={isEnabled ? 'success' : 'muted'}
-            />
+            <StatusDot tone={isEnabled ? 'success' : 'muted'} />
             <span
               className={cn(
                 'text-sm font-medium',

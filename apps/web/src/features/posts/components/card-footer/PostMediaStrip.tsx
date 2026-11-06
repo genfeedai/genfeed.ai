@@ -101,7 +101,7 @@ export default function PostMediaStrip({
                   className={
                     'size-5 bg-black/60 text-white hover:bg-black/80' /* design-system-allow-content-color -- media overlay */
                   }
-                  icon={<ChevronLeft className="size-3" />}
+                  icon={<ChevronLeft className="size-3.5" />}
                   isDisabled={index === 0}
                   onClick={() => onChange(moveItem(media, index, index - 1))}
                   size={ButtonSize.ICON}
@@ -113,7 +113,7 @@ export default function PostMediaStrip({
                   className={
                     'size-5 bg-black/60 text-white hover:bg-black/80' /* design-system-allow-content-color -- media overlay */
                   }
-                  icon={<ChevronRight className="size-3" />}
+                  icon={<ChevronRight className="size-3.5" />}
                   isDisabled={index === media.length - 1}
                   onClick={() => onChange(moveItem(media, index, index + 1))}
                   size={ButtonSize.ICON}
@@ -126,7 +126,7 @@ export default function PostMediaStrip({
                 className={
                   'size-5 bg-black/60 text-white hover:bg-black/80' /* design-system-allow-content-color -- media overlay */
                 }
-                icon={<X className="size-3" />}
+                icon={<X className="size-3.5" />}
                 onClick={() =>
                   onChange(media.filter((entry) => entry.id !== item.id))
                 }

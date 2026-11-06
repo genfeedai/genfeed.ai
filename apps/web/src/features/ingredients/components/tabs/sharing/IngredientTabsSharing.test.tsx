@@ -40,7 +40,7 @@ describe('IngredientTabsSharing', () => {
 
     const groupedList = container.querySelector('[role="radiogroup"]');
 
-    expect(groupedList).toHaveClass('rounded-2xl');
+    expect(groupedList).toHaveClass('rounded-lg');
     expect(groupedList).toHaveClass('border-border');
     expect(screen.getByText('Access Control')).toHaveClass(
       'text-muted-foreground',

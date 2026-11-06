@@ -36,7 +36,7 @@ export default function IssueCommentsCard({
             className="flex items-center gap-1 text-2xs"
             onClick={onScrollToLatest}
           >
-            <ChevronsDown className="size-3" />
+            <ChevronsDown className="size-3.5" />
             Jump to latest
           </Button>
         )}
@@ -51,7 +51,7 @@ export default function IssueCommentsCard({
               className="flex w-full items-center justify-center gap-1.5 border-b border-border py-2 text-2xs text-gray-800 hover:bg-muted/40"
               onClick={onShowAllComments}
             >
-              <ChevronDown className="size-3" />
+              <ChevronDown className="size-3.5" />
               Show {hiddenCommentCount} earlier{' '}
               {hiddenCommentCount === 1 ? 'comment' : 'comments'}
             </Button>

@@ -404,7 +404,7 @@ function BaseNodeContent({
                 onClick={onRetry}
                 disabled={nodeExecuting}
               >
-                <RotateCcw className="size-3" />
+                <RotateCcw className="size-3.5" />
                 Retry
               </Button>
               <Button
@@ -414,7 +414,7 @@ function BaseNodeContent({
                 onClick={onCopyError}
                 title="Copy error"
               >
-                <Copy className="size-3" />
+                <Copy className="size-3.5" />
               </Button>
             </AlertActions>
           </Alert>

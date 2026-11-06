@@ -187,7 +187,7 @@ function Badge({
           }}
           type="button"
         >
-          <X aria-hidden="true" className="size-3" />
+          <X aria-hidden="true" className="size-3.5" />
         </button>
       )}
     </span>

@@ -292,7 +292,7 @@ export function MutationApprovalCard({
                 onClick={() => setDetailsOpen((open) => !open)}
               >
                 <ChevronDown
-                  className={`size-3 ${detailsOpen ? 'rotate-180' : ''}`}
+                  className={`size-3.5 ${detailsOpen ? 'rotate-180' : ''}`}
                   aria-hidden="true"
                 />
                 {translate('technicalDetails')}

@@ -654,7 +654,7 @@ export default function DeskTableView({
         key: 'virality',
         render: (item) => (
           <span className="inline-flex items-center gap-1">
-            <Zap className="size-3" />
+            <Zap className="size-3.5" />
             {Math.round(item.virality)}
           </span>
         ),

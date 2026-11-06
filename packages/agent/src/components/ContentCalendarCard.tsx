@@ -70,7 +70,7 @@ export function ContentCalendarCard({
                     className="mt-1 flex size-5 items-center justify-center rounded-full bg-info/10 text-info transition-colors hover:bg-info/10  "
                     tooltip="Fill Gap"
                   >
-                    <Plus className="size-3" />
+                    <Plus className="size-3.5" />
                   </Button>
                 ) : (
                   <span className="mt-1 flex size-5 items-center justify-center rounded-full bg-info/10 text-2xs font-medium text-info ">

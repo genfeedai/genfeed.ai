@@ -137,7 +137,7 @@ export default function IngredientTagsControl({
             <Button
               ariaLabel={translate('addTag')}
               className="inline-flex h-control-sm shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-dashed border-foreground/20 px-2.5 text-xs text-foreground/60 hover:text-foreground"
-              icon={<Plus className="size-3" />}
+              icon={<Plus className="size-3.5" />}
               label={translate('addTag')}
               type="button"
               variant={ButtonVariant.UNSTYLED}

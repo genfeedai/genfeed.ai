@@ -152,7 +152,7 @@ export default function IntegrationsContent() {
                   </Text>
                   <div className="flex flex-row items-center gap-1.5 text-xs font-medium text-foreground/60 transition-colors group-hover:text-[color:hsl(var(--gen-accent))]">
                     <Text>Explore</Text>
-                    <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+                    <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
                   </div>
                 </Link>
               );

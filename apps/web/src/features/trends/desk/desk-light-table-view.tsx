@@ -101,7 +101,7 @@ function DeskLightCard({
       {engagementLabel ? <span>{engagementLabel}</span> : null}
       {velocityLabel ? (
         <span className="inline-flex items-center gap-1">
-          <Zap aria-hidden="true" className="size-3" />
+          <Zap aria-hidden="true" className="size-3.5" />
           {velocityLabel}
         </span>
       ) : null}
@@ -169,7 +169,7 @@ function DeskLightCard({
                 )}
               >
                 <Badge
-                  icon={<Zap aria-hidden="true" className="size-3" />}
+                  icon={<Zap aria-hidden="true" className="size-3.5" />}
                   shape="pill"
                   variant="overlay"
                 >

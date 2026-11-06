@@ -202,6 +202,20 @@ describe('packages/ui design-system guards', () => {
     );
   });
 
+  it('flags lucide icons off the 14/16/20px icon scale', () => {
+    const findings = findPackageUiGuardFindings(
+      'import { Check, X as Close } from \'lucide-react\';\nconst a = <><Check className="size-3" /><Close className={cn(\'md:size-6\', \'size-5\')} /><Check className="size-3.5" /><div className="size-3" /></>;',
+      'apps/web/example.tsx',
+    );
+
+    expect(
+      findings
+        .filter((entry) => entry.kind === 'off-scale-icon-size')
+        .map((entry) => entry.token),
+    ).toEqual(['md:size-6', 'size-3']);
+    expect(formatDesignSystemRegressions(findings)).toContain('size-3.5');
+  });
+
   it('flags focus rings that fork the one focus treatment', () => {
     const findings = findPackageUiGuardFindings(
       '<><a className="focus:ring-2 focus-visible:ring-ring/60 focus-visible:ring-1 focus-visible:outline-2" /><b className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-inset focus-visible:ring-0 focus:outline-none" /></>',

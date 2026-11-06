@@ -387,7 +387,7 @@ export default function YoutubeClipperContent(): React.ReactElement {
             <li>One rendered vertical preview</li>
           </ul>
           <Text className="text-xs leading-5 text-foreground/60">
-            <Clock3 aria-hidden="true" className="mr-1 inline size-3" />
+            <Clock3 aria-hidden="true" className="mr-1 inline size-3.5" />
             Temporary results expire automatically. The source URL and media are
             never sent to product analytics.
           </Text>

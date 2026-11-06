@@ -217,7 +217,7 @@ function PlanUpgradePrompt({
                 )}
               >
                 {isRecommended ? (
-                  <Sparkles aria-hidden="true" className="size-3" />
+                  <Sparkles aria-hidden="true" className="size-3.5" />
                 ) : null}
                 {isRecommended
                   ? translate('recommended')

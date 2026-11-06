@@ -66,7 +66,7 @@ function VoiceChangeNodeComponent(props: NodeProps) {
           onClick={handleExpand}
           title="Expand preview"
         >
-          <Expand className="size-3" />
+          <Expand className="size-3.5" />
         </Button>
       ) : null,
     [nodeData.outputVideo, handleExpand],
@@ -134,7 +134,7 @@ function VoiceChangeNodeComponent(props: NodeProps) {
               disabled={nodeData.status === 'processing' || !canGenerate}
               className="absolute top-1 right-1 size-6"
             >
-              <RefreshCw className="size-3" />
+              <RefreshCw className="size-3.5" />
             </Button>
           </div>
         )}
@@ -167,7 +167,7 @@ function VoiceChangeNodeComponent(props: NodeProps) {
         {/* Help text for required inputs */}
         {!canGenerate && nodeData.status !== 'processing' && (
           <div className="text-xs text-muted-foreground flex items-center gap-1">
-            <AudioLines className="size-3" />
+            <AudioLines className="size-3.5" />
             Connect video + new audio
           </div>
         )}

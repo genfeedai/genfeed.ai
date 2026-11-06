@@ -240,7 +240,7 @@ function OutputGallery({
           size={ButtonSize.INLINE}
           onClick={onDownloadAll}
         >
-          <Download className="size-3" />
+          <Download className="size-3.5" />
           Download All
         </Button>
       </div>
@@ -292,7 +292,7 @@ function OutputGallery({
               >
                 <Download
                   className={
-                    'size-3 text-white' /* design-system-allow-content-color */
+                    'size-3.5 text-white' /* design-system-allow-content-color */
                   }
                 />
               </Button>
@@ -364,7 +364,7 @@ function SplitButton({
       className="w-full"
     >
       {variant === 'resplit' ? (
-        <RefreshCw className="size-3" />
+        <RefreshCw className="size-3.5" />
       ) : isProcessing ? (
         <Spinner className="size-4" />
       ) : (

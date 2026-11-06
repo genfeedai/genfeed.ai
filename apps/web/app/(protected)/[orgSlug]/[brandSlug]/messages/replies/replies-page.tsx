@@ -396,7 +396,7 @@ export default function RepliesPage() {
       <Card label="Inbox status" gap={CardGap.LG}>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">
-            <MessageCircleReply className="mr-1 size-3" />
+            <MessageCircleReply className="mr-1 size-3.5" />
             {platformLabel}
           </Badge>
           {username ? (

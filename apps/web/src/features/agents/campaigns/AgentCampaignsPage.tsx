@@ -336,7 +336,7 @@ export default function AgentCampaignsPage() {
       {isEmpty ? (
         <div className="flex flex-col items-center justify-center gap-4 py-20">
           <div className="flex size-12 items-center justify-center rounded-full border border-border bg-foreground/5">
-            <LayoutDashboard className="size-6 text-muted-foreground" />
+            <LayoutDashboard className="size-5 text-muted-foreground" />
           </div>
           <div className="text-center">
             <p className="text-sm font-medium text-foreground/60">

@@ -70,7 +70,7 @@ function LipSyncNodeComponent(props: NodeProps) {
           onClick={handleExpand}
           title="Expand preview"
         >
-          <Expand className="size-3" />
+          <Expand className="size-3.5" />
         </Button>
       ) : null,
     [nodeData.outputVideo, handleExpand],
@@ -157,7 +157,7 @@ function LipSyncNodeComponent(props: NodeProps) {
               disabled={nodeData.status === 'processing' || !canGenerate}
               className="absolute top-1 right-1 size-6"
             >
-              <RefreshCw className="size-3" />
+              <RefreshCw className="size-3.5" />
             </Button>
           </div>
         )}
@@ -188,7 +188,7 @@ function LipSyncNodeComponent(props: NodeProps) {
         {/* Help text for required inputs */}
         {!canGenerate && nodeData.status !== 'processing' && (
           <div className="text-xs text-muted-foreground flex items-center gap-1">
-            <Mic className="size-3" />
+            <Mic className="size-3.5" />
             {supportsImage
               ? 'Connect audio + image to generate'
               : 'Connect audio + video to generate'}
