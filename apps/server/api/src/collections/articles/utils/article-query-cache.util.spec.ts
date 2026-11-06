@@ -2,21 +2,9 @@ import {
   type ArticleQueryCachePorts,
   invalidateArticleListCaches,
 } from '@api/collections/articles/utils/article-query-cache.util';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-function ports() {
-  return {
-    cacheInvalidationService: {
-      invalidate: vi.fn().mockResolvedValue(undefined),
-      invalidateByTags: vi.fn().mockResolvedValue(1),
-    },
-    cacheService: { invalidateByTags: vi.fn().mockResolvedValue(3) },
-    collectionName: 'article',
-    logger: { debug: vi.fn() },
-    source: 'ArticlesService',
-  } satisfies ArticleQueryCachePorts;
-}
-const tags = [
+const collectionTags = [
   'articles',
   'article',
   'collection:article',
@@ -25,108 +13,172 @@ const tags = [
 ];
 
 describe('article query cache invalidation', () => {
+  // The cached entries both layers can evict, and what each layer did in order.
+  let entries: Map<string, string[]>;
+  let operations: string[];
+  let debugLogs: Array<{ context: unknown; message: string }>;
+  let failure: { keys?: Error; tags?: Error };
+  let ports: Required<ArticleQueryCachePorts>;
+
+  const evictTagged = (tags: string[]) => {
+    const evicted = [...entries].filter(([, entryTags]) =>
+      entryTags.some((tag) => tags.includes(tag)),
+    );
+    for (const [key] of evicted) {
+      entries.delete(key);
+    }
+    return evicted.length;
+  };
+
+  beforeEach(() => {
+    entries = new Map([
+      ['articles:list:org-1', []],
+      ['articles:list:org-2', []],
+      ['articles:single:article-1', []],
+      ['http:/articles?org=org-1', ['articles']],
+      ['query:article:page-1', ['query:paginated:article']],
+      ['public:articles', ['public']],
+      ['query:post:page-1', ['query:paginated:post']],
+    ]);
+    operations = [];
+    debugLogs = [];
+    failure = {};
+
+    ports = {
+      cacheInvalidationService: {
+        invalidate: async (...keys: string[]) => {
+          operations.push(`keys:${keys.join(',')}`);
+          if (failure.keys) throw failure.keys;
+          for (const key of keys) {
+            entries.delete(key);
+          }
+        },
+        invalidateByTags: async (tags: string[]) => {
+          operations.push(`invalidation-tags:${tags.join(',')}`);
+          return evictTagged(tags);
+        },
+      },
+      cacheService: {
+        invalidateByTags: async (tags: string[]) => {
+          operations.push(`cache-tags:${tags.join(',')}`);
+          if (failure.tags) throw failure.tags;
+          return evictTagged(tags);
+        },
+      },
+      collectionName: 'article',
+      logger: {
+        debug: (message: string, context?: unknown) => {
+          debugLogs.push({ context, message });
+        },
+      },
+      source: 'ArticlesService',
+    } as Required<ArticleQueryCachePorts>;
+  });
+
   it('invalidates canonical org/id keys before each independent tag layer', async () => {
-    const deps = ports();
     await invalidateArticleListCaches(
       'update',
       { articleId: 'article-1', organizationId: 'org-1' },
-      deps,
+      ports,
     );
-    expect(deps.cacheInvalidationService.invalidate).toHaveBeenCalledWith(
-      'articles:list:org-1',
-      'articles:single:article-1',
-    );
-    expect(deps.cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith(
-      ['articles'],
-    );
-    expect(deps.cacheService.invalidateByTags).toHaveBeenCalledWith(tags);
-    expect(
-      deps.cacheInvalidationService.invalidate.mock.invocationCallOrder[0],
-    ).toBeLessThan(
-      deps.cacheInvalidationService.invalidateByTags.mock
-        .invocationCallOrder[0],
-    );
-    expect(
-      deps.cacheInvalidationService.invalidateByTags.mock
-        .invocationCallOrder[0],
-    ).toBeLessThan(
-      deps.cacheService.invalidateByTags.mock.invocationCallOrder[0],
-    );
-    expect(deps.logger.debug).toHaveBeenCalledWith(
-      'ArticlesService invalidated 3 cache keys after update',
-      { tags },
-    );
-  });
-  it('adds the public tag only when requested and retains collection scoping', async () => {
-    const deps = ports();
-    await invalidateArticleListCaches('publish', { includePublic: true }, deps);
-    expect(deps.cacheService.invalidateByTags).toHaveBeenCalledWith([
-      ...tags,
-      'public',
+
+    expect(operations).toEqual([
+      'keys:articles:list:org-1,articles:single:article-1',
+      'invalidation-tags:articles',
+      `cache-tags:${collectionTags.join(',')}`,
     ]);
-    expect(deps.cacheService.invalidateByTags.mock.calls[0][0]).not.toContain(
-      'query:paginated:all',
-    );
-    expect(deps.cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+    expect([...entries.keys()]).toEqual([
+      'articles:list:org-2',
+      'public:articles',
+      'query:post:page-1',
+    ]);
+    expect(debugLogs).toEqual([
+      {
+        context: { tags: collectionTags },
+        message: 'ArticlesService invalidated 1 cache keys after update',
+      },
+    ]);
   });
+
+  it('evicts public pages only when requested and keeps other collections cached', async () => {
+    await invalidateArticleListCaches(
+      'publish',
+      { includePublic: true },
+      ports,
+    );
+
+    expect(operations.at(-1)).toBe(
+      `cache-tags:${[...collectionTags, 'public'].join(',')}`,
+    );
+    expect(entries.has('public:articles')).toBe(false);
+    expect(entries.has('query:post:page-1')).toBe(true);
+  });
+
   it('keeps tag-only invalidation when there are no explicit keys', async () => {
-    const deps = ports();
-    await invalidateArticleListCaches('create', {}, deps);
-    expect(deps.cacheInvalidationService.invalidate).not.toHaveBeenCalled();
-    expect(deps.cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith(
-      ['articles'],
-    );
+    await invalidateArticleListCaches('create', {}, ports);
+
+    expect(operations).toEqual([
+      'invalidation-tags:articles',
+      `cache-tags:${collectionTags.join(',')}`,
+    ]);
+    expect(entries.has('articles:list:org-1')).toBe(true);
   });
-  it('supports either optional cache layer independently', async () => {
-    const deps = ports();
+
+  it('busts canonical keys with only the invalidation layer present', async () => {
     await invalidateArticleListCaches(
       'delete',
       { articleId: 'article-1' },
-      { ...deps, cacheService: undefined },
+      { ...ports, cacheService: undefined },
     );
-    expect(deps.cacheInvalidationService.invalidate).toHaveBeenCalledWith(
-      'articles:single:article-1',
-    );
-    expect(deps.logger.debug).not.toHaveBeenCalled();
+
+    expect(operations).toEqual([
+      'keys:articles:single:article-1',
+      'invalidation-tags:articles',
+    ]);
+    expect(debugLogs).toEqual([]);
+  });
+
+  it('busts the collection tags with only the tag cache present', async () => {
     await invalidateArticleListCaches(
       'create',
       {},
-      { ...deps, cacheInvalidationService: undefined },
+      { ...ports, cacheInvalidationService: undefined },
     );
-    expect(deps.cacheService.invalidateByTags).toHaveBeenCalledWith(tags);
+
+    expect(operations).toEqual([`cache-tags:${collectionTags.join(',')}`]);
   });
+
   it('does nothing when both optional layers are absent', async () => {
-    const deps = ports();
     await invalidateArticleListCaches(
       'create',
       {},
       {
-        collectionName: deps.collectionName,
-        logger: deps.logger,
-        source: deps.source,
+        collectionName: ports.collectionName,
+        logger: ports.logger,
+        source: ports.source,
       },
     );
-    expect(deps.logger.debug).not.toHaveBeenCalled();
+
+    expect(operations).toEqual([]);
+    expect(entries.size).toBe(7);
+    expect(debugLogs).toEqual([]);
   });
+
   it('propagates a key-invalidation error before subsequent tag work', async () => {
-    const deps = ports();
-    const error = new Error('synthetic cache failure');
-    deps.cacheInvalidationService.invalidate.mockRejectedValue(error);
+    failure.keys = new Error('synthetic cache failure');
+
     await expect(
-      invalidateArticleListCaches('update', { organizationId: 'org-1' }, deps),
-    ).rejects.toBe(error);
-    expect(
-      deps.cacheInvalidationService.invalidateByTags,
-    ).not.toHaveBeenCalled();
-    expect(deps.cacheService.invalidateByTags).not.toHaveBeenCalled();
+      invalidateArticleListCaches('update', { organizationId: 'org-1' }, ports),
+    ).rejects.toBe(failure.keys);
+    expect(operations).toEqual(['keys:articles:list:org-1']);
   });
+
   it('propagates a tag-layer error without logging success', async () => {
-    const deps = ports();
-    const error = new Error('synthetic tag failure');
-    deps.cacheService.invalidateByTags.mockRejectedValue(error);
-    await expect(invalidateArticleListCaches('update', {}, deps)).rejects.toBe(
-      error,
+    failure.tags = new Error('synthetic tag failure');
+
+    await expect(invalidateArticleListCaches('update', {}, ports)).rejects.toBe(
+      failure.tags,
     );
-    expect(deps.logger.debug).not.toHaveBeenCalled();
+    expect(debugLogs).toEqual([]);
   });
 });

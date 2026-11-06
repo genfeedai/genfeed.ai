@@ -1,152 +1,160 @@
+import path from 'node:path';
 import { TempFileCleanupCron } from '@files/cron/temp-file-cleanup.cron';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, type TestingModule } from '@nestjs/testing';
-import type { Mock } from 'vitest';
+import type { LoggerService } from '@libs/logger/logger.service';
 
-const fsMock = vi.hoisted(() => ({
-  existsSync: vi.fn(),
-  readdirSync: vi.fn(),
-  statSync: vi.fn(),
-  unlinkSync: vi.fn(),
+// The metadata temp directory: file name -> modified time, or an error to
+// throw when the file is inspected. `null` means the directory is missing.
+const disk = vi.hoisted(() => ({
+  files: null as Map<string, number | Error> | null,
+  isBroken: false,
+  listings: 0,
 }));
-vi.mock('fs', () => fsMock);
-vi.mock('node:fs', () => fsMock);
 
-import * as fs from 'node:fs';
+vi.mock('node:fs', () => {
+  const entry = (filePath: string) => disk.files?.get(path.basename(filePath));
+  return {
+    existsSync: () => {
+      if (disk.isBroken) throw new Error('disk error');
+      return disk.files !== null;
+    },
+    readdirSync: () => {
+      disk.listings += 1;
+      return [...(disk.files?.keys() ?? [])];
+    },
+    statSync: (filePath: string) => {
+      const found = entry(filePath);
+      if (found instanceof Error) throw found;
+      return { mtimeMs: found };
+    },
+    unlinkSync: (filePath: string) => {
+      disk.files?.delete(path.basename(filePath));
+    },
+  };
+});
+
+const now = new Date('2026-11-06T12:00:00.000Z').getTime();
+const minutesAgo = (minutes: number) => now - minutes * 60 * 1000;
 
 describe('TempFileCleanupCron', () => {
+  let logs: Array<{ level: string; message: string }>;
   let cron: TempFileCleanupCron;
-  let logger: { log: Mock; error: Mock; warn: Mock };
 
-  beforeEach(async () => {
-    vi.clearAllMocks();
-
-    logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TempFileCleanupCron,
-        { provide: LoggerService, useValue: logger },
-      ],
-    }).compile();
-
-    cron = module.get<TempFileCleanupCron>(TempFileCleanupCron);
+  beforeEach(() => {
+    vi.useFakeTimers({ now });
+    disk.files = new Map();
+    disk.isBroken = false;
+    disk.listings = 0;
+    logs = [];
+    const logAt =
+      (level: string) =>
+      (message: string): void => {
+        logs.push({ level, message });
+      };
+    cron = new TempFileCleanupCron({
+      error: logAt('error'),
+      log: logAt('log'),
+      warn: logAt('warn'),
+    } as unknown as LoggerService);
   });
 
-  it('should be defined', () => {
-    expect(cron).toBeDefined();
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('manualCleanup', () => {
     it('reports nothing to clean up when the temp dir does not exist', () => {
-      (fs.existsSync as Mock).mockReturnValue(false);
+      disk.files = null;
 
-      const result = cron.manualCleanup();
-
-      expect(result).toEqual({
+      expect(cron.manualCleanup()).toEqual({
         filesDeleted: 0,
         message: 'Temp directory does not exist',
         totalFiles: 0,
       });
-      expect(fs.readdirSync).not.toHaveBeenCalled();
     });
 
-    it('deletes files older than the max age and keeps recent ones', () => {
-      const now = Date.now();
-      (fs.existsSync as Mock).mockReturnValue(true);
-      (fs.readdirSync as Mock).mockReturnValue(['old.json', 'new.json']);
-      (fs.statSync as Mock).mockImplementation((filePath: string) => {
-        if (filePath.includes('old.json')) {
-          return { mtimeMs: now - 60 * 60 * 1000 }; // 60 minutes old
-        }
-        return { mtimeMs: now }; // fresh
-      });
+    it('deletes files older than 30 minutes and keeps recent ones', () => {
+      disk.files = new Map([
+        ['old.json', minutesAgo(60)],
+        ['edge.json', minutesAgo(30)],
+        ['new.json', minutesAgo(1)],
+      ]);
 
-      const result = cron.manualCleanup();
-
-      expect(fs.unlinkSync).toHaveBeenCalledTimes(1);
-      expect(fs.unlinkSync).toHaveBeenCalledWith(
-        expect.stringContaining('old.json'),
-      );
-      expect(result).toEqual({
+      expect(cron.manualCleanup()).toEqual({
         filesDeleted: 1,
         message: 'Cleanup completed successfully',
-        totalFiles: 2,
+        totalFiles: 3,
       });
+      expect([...(disk.files?.keys() ?? [])]).toEqual([
+        'edge.json',
+        'new.json',
+      ]);
     });
 
-    it('does not run in verbose mode and skips per-file log lines', () => {
-      (fs.existsSync as Mock).mockReturnValue(true);
-      (fs.readdirSync as Mock).mockReturnValue(['old.json']);
-      (fs.statSync as Mock).mockReturnValue({
-        mtimeMs: Date.now() - 60 * 60 * 1000,
-      });
+    it('stays quiet about each deleted file', () => {
+      disk.files = new Map([['old.json', minutesAgo(60)]]);
 
       cron.manualCleanup();
 
-      expect(logger.log).not.toHaveBeenCalled();
+      expect(logs).toEqual([]);
     });
 
-    it('logs a warning and continues when processing a file throws', () => {
-      (fs.existsSync as Mock).mockReturnValue(true);
-      (fs.readdirSync as Mock).mockReturnValue(['broken.json', 'old.json']);
-      (fs.statSync as Mock).mockImplementation((filePath: string) => {
-        if (filePath.includes('broken.json')) {
-          throw new Error('permission denied');
-        }
-        return { mtimeMs: Date.now() - 60 * 60 * 1000 };
+    it('warns about a file it cannot inspect and keeps cleaning the rest', () => {
+      disk.files = new Map<string, number | Error>([
+        ['broken.json', new Error('permission denied')],
+        ['old.json', minutesAgo(60)],
+      ]);
+
+      expect(cron.manualCleanup()).toMatchObject({
+        filesDeleted: 1,
+        totalFiles: 2,
       });
-
-      const result = cron.manualCleanup();
-
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('broken.json'),
-        'permission denied',
-      );
-      expect(result.filesDeleted).toBe(1);
-      expect(result.totalFiles).toBe(2);
+      expect(logs).toEqual([
+        {
+          level: 'warn',
+          message: 'Failed to process file broken.json during cleanup:',
+        },
+      ]);
+      expect([...(disk.files?.keys() ?? [])]).toEqual(['broken.json']);
     });
   });
 
   describe('cleanupTempFiles', () => {
-    it('runs opportunistic cleanup and logs a summary', () => {
-      (fs.existsSync as Mock).mockReturnValue(true);
-      (fs.readdirSync as Mock).mockReturnValue(['old.json']);
-      (fs.statSync as Mock).mockReturnValue({
-        mtimeMs: Date.now() - 60 * 60 * 1000,
-      });
+    it('cleans up on metadata traffic and logs each deletion and a summary', () => {
+      disk.files = new Map([['old.json', minutesAgo(60)]]);
 
       cron.cleanupTempFiles();
 
-      expect(logger.log).toHaveBeenCalledWith(
-        'Starting local temp file cleanup...',
-      );
-      expect(logger.log).toHaveBeenCalledWith(
-        expect.stringContaining('Cleanup completed: 1 files deleted'),
-      );
+      expect(disk.files?.size).toBe(0);
+      expect(logs).toEqual([
+        { level: 'log', message: 'Starting local temp file cleanup...' },
+        {
+          level: 'log',
+          message: 'Deleted old temp file: old.json (age: 60 minutes)',
+        },
+        {
+          level: 'log',
+          message: 'Cleanup completed: 1 files deleted out of 1 total files',
+        },
+      ]);
     });
 
-    it('throttles repeated opportunistic cleanup calls', () => {
-      (fs.existsSync as Mock).mockReturnValue(true);
-      (fs.readdirSync as Mock).mockReturnValue([]);
-
+    it('runs at most once every five minutes', () => {
       cron.cleanupTempFiles();
       cron.cleanupTempFiles();
+      vi.advanceTimersByTime(5 * 60 * 1000);
+      cron.cleanupTempFiles();
 
-      expect(fs.readdirSync).toHaveBeenCalledTimes(1);
-      expect(logger.log).toHaveBeenCalledTimes(2);
+      expect(disk.listings).toBe(2);
     });
 
     it('logs an error instead of throwing when cleanup fails', () => {
-      (fs.existsSync as Mock).mockImplementation(() => {
-        throw new Error('disk error');
-      });
+      disk.isBroken = true;
 
       expect(() => cron.cleanupTempFiles()).not.toThrow();
-      expect(logger.error).toHaveBeenCalledWith(
-        'Failed to cleanup temp files:',
-        expect.any(Error),
-      );
+      expect(logs.at(-1)).toEqual({
+        level: 'error',
+        message: 'Failed to cleanup temp files:',
+      });
     });
   });
 });

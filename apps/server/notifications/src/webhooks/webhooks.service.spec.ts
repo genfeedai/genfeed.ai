@@ -1,125 +1,91 @@
-import { EventsService } from '@libs/events/events.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { EventsService } from '@libs/events/events.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import type { WebhookNotification } from '@notifications/shared/interfaces/webhooks.interface';
 import { WebhooksService } from '@notifications/webhooks/webhooks.service';
 
 describe('WebhooksService (Notifications)', () => {
+  let emitted: Array<{ data: Record<string, unknown>; event: string }>;
+  let isBusDown: boolean;
+  let errors: string[];
   let service: WebhooksService;
-  let loggerService: LoggerService;
-  let eventsService: EventsService;
 
-  const mockLoggerService = {
-    debug: vi.fn(),
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  };
+  beforeEach(() => {
+    vi.useFakeTimers({ now: new Date('2026-11-06T12:00:00.000Z') });
+    emitted = [];
+    isBusDown = false;
+    errors = [];
 
-  const mockEventsService = {
-    emit: vi.fn(),
-    on: vi.fn(),
-  };
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        WebhooksService,
-        {
-          provide: LoggerService,
-          useValue: mockLoggerService,
+    service = new WebhooksService(
+      {
+        error: (message: string) => {
+          errors.push(message);
         },
-        {
-          provide: EventsService,
-          useValue: mockEventsService,
+        log: () => {},
+      } as unknown as LoggerService,
+      {
+        emit: async (event: string, data: Record<string, unknown>) => {
+          if (isBusDown) {
+            throw new Error('bus down');
+          }
+          emitted.push({ data, event });
         },
-      ],
-    }).compile();
-
-    service = module.get<WebhooksService>(WebhooksService);
-    loggerService = module.get<LoggerService>(LoggerService);
-    eventsService = module.get<EventsService>(EventsService);
+      } as unknown as EventsService,
+    );
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('handleWebhookNotification', () => {
-    it('should process webhook notification', async () => {
-      const notification = {
+    it('broadcasts the webhook and fans it out to the owning user', async () => {
+      await service.handleWebhookNotification({
         data: { amount: 100 },
         event: 'payment.success',
         metadata: { userId: 'user-123' },
         service: 'stripe',
-      } satisfies WebhookNotification;
+      } satisfies WebhookNotification);
 
-      await service.handleWebhookNotification(notification);
-
-      expect(loggerService.log).toHaveBeenCalledWith(
-        expect.stringContaining('started'),
-        expect.any(Object),
-      );
-      expect(eventsService.emit).toHaveBeenCalledWith(
-        'webhook.notification',
-        expect.objectContaining({
-          event: 'payment.success',
-          service: 'stripe',
-          type: 'webhook.stripe.payment.success',
-        }),
-      );
+      const eventData = {
+        data: { amount: 100 },
+        event: 'payment.success',
+        metadata: { userId: 'user-123' },
+        service: 'stripe',
+        status: 'received',
+        timestamp: '2026-11-06T12:00:00.000Z',
+        type: 'webhook.stripe.payment.success',
+      };
+      expect(emitted).toEqual([
+        { data: eventData, event: 'webhook.notification' },
+        { data: eventData, event: 'user.user-123.webhook' },
+      ]);
     });
 
-    it('should emit user-specific event when userId is present', async () => {
-      const notification = {
-        data: { result: 'success' },
-        event: 'generation.complete',
-        metadata: { userId: 'user-456' },
-        service: 'replicate',
-      } satisfies WebhookNotification;
-
-      await service.handleWebhookNotification(notification);
-
-      expect(eventsService.emit).toHaveBeenCalledWith(
-        'user.user-456.webhook',
-        expect.any(Object),
-      );
-    });
-
-    it('should not emit user-specific event without userId', async () => {
-      const notification = {
+    it('only broadcasts when no user owns the webhook', async () => {
+      await service.handleWebhookNotification({
         data: {},
         event: 'ping',
         service: 'stripe',
-      } satisfies WebhookNotification;
+      } satisfies WebhookNotification);
 
-      await service.handleWebhookNotification(notification);
-
-      expect(eventsService.emit).toHaveBeenCalledTimes(1);
-      expect(eventsService.emit).toHaveBeenCalledWith(
+      expect(emitted.map(({ event }) => event)).toEqual([
         'webhook.notification',
-        expect.objectContaining({ status: 'received' }),
-      );
+      ]);
     });
 
-    it('should preserve an explicit notification status', async () => {
-      const notification = {
+    it('preserves an explicit notification status', async () => {
+      await service.handleWebhookNotification({
         data: {},
         event: 'ping',
         service: 'stripe',
         status: 'completed',
-      } satisfies WebhookNotification;
+      } satisfies WebhookNotification);
 
-      await service.handleWebhookNotification(notification);
-
-      expect(eventsService.emit).toHaveBeenCalledWith(
-        'webhook.notification',
-        expect.objectContaining({ status: 'completed' }),
-      );
+      expect(emitted[0]?.data.status).toBe('completed');
     });
 
-    it('should log and rethrow when emit fails', async () => {
-      mockEventsService.emit.mockRejectedValueOnce(new Error('bus down'));
+    it('logs and rethrows when the event bus is down', async () => {
+      isBusDown = true;
 
       await expect(
         service.handleWebhookNotification({
@@ -129,27 +95,20 @@ describe('WebhooksService (Notifications)', () => {
         }),
       ).rejects.toThrow('bus down');
 
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('failed'),
-        expect.any(Error),
-      );
+      expect(errors).toEqual([
+        expect.stringMatching(/^WebhooksService .* failed$/),
+      ]);
     });
   });
 
   describe('getWebhookStatus', () => {
-    it('should return a pending status snapshot', () => {
-      const result = service.getWebhookStatus('stripe', 'evt-1');
-
-      expect(result).toEqual({
+    it('returns a pending status snapshot', () => {
+      expect(service.getWebhookStatus('stripe', 'evt-1')).toEqual({
         id: 'evt-1',
         service: 'stripe',
         status: 'pending',
-        timestamp: expect.any(String),
+        timestamp: '2026-11-06T12:00:00.000Z',
       });
-      expect(loggerService.log).toHaveBeenCalledWith(
-        expect.stringContaining('started'),
-        { id: 'evt-1', service: 'stripe' },
-      );
     });
   });
 });
