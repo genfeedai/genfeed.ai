@@ -4027,6 +4027,106 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-11-04T10:53:13.000Z',
   },
   {
+    // fal model pages (read 2026-11-04 and again 2026-11-05): "For every
+    // second of video you generated, you will be charged $0.112 (audio off)
+    // or $0.168 (audio on), if voice control is used ... $0.196" for Pro, and
+    // $0.084 / $0.126 / $0.154 for Standard; the image-to-video pages state the
+    // same rates as text-to-video. The pricing API's flat $0.14 per second
+    // matches neither tier, so the pages are the source. Voice control is
+    // never reachable: the Kling offer adapter refuses voice ids.
+    endpoint: 'fal-ai/kling-video/v3/pro/text-to-video',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.112,
+        when: { generate_audio: false },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.168,
+        when: { generate_audio: true },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/fal-ai/kling-video/v3/pro/text-to-video',
+    verifiedAt: '2026-11-05T20:55:00.000Z',
+  },
+  {
+    // Same fal page rates as the Pro text-to-video entry above.
+    endpoint: 'fal-ai/kling-video/v3/pro/image-to-video',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.112,
+        when: { generate_audio: false },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.168,
+        when: { generate_audio: true },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/fal-ai/kling-video/v3/pro/image-to-video',
+    verifiedAt: '2026-11-05T20:55:00.000Z',
+  },
+  {
+    // Same fal page rates for Standard as noted on the Pro entry above.
+    endpoint: 'fal-ai/kling-video/v3/standard/text-to-video',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.084,
+        when: { generate_audio: false },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.126,
+        when: { generate_audio: true },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl:
+      'https://fal.ai/models/fal-ai/kling-video/v3/standard/text-to-video',
+    verifiedAt: '2026-11-05T20:55:00.000Z',
+  },
+  {
+    // Same fal page rates for Standard as noted on the Pro entry above.
+    endpoint: 'fal-ai/kling-video/v3/standard/image-to-video',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.084,
+        when: { generate_audio: false },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.126,
+        when: { generate_audio: true },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl:
+      'https://fal.ai/models/fal-ai/kling-video/v3/standard/image-to-video',
+    verifiedAt: '2026-11-05T20:55:00.000Z',
+  },
+  {
     // fal's pricing API (GET /v1/models/pricing, 2026-10-25) returns a flat
     // $0.01 per megapixel. The model page still prints the old 24 MP block
     // table ($0.08 to 24 MP), which is stale. fal states no rounding, so each

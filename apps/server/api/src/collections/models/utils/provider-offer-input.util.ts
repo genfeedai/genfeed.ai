@@ -1,3 +1,4 @@
+import { adaptFalKlingV3Request } from '@api/collections/models/utils/fal-kling-v3-offer.util';
 import type { ModelCreditQuoteInput } from '@api/helpers/utils/credits/model-credit-quote.util';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { z } from 'zod';
@@ -12,12 +13,20 @@ const ALIASES = [
   ['quality', 'resolution'],
 ] as const;
 
-/** Refuse an offer rather than silently dropping a feature the user requested. */
+/**
+ * Refuse an offer rather than silently dropping a feature the user requested.
+ * `offer.endpoint` selects a hand-reviewed adapter for providers that split
+ * one model across several endpoints (fal Kling v3).
+ */
 export function mapProviderOfferInput(
   schema: unknown,
   request: ModelCreditQuoteInput,
+  offer?: { endpoint?: string | null },
 ): Record<string, unknown> | null {
   if (!isRecord(schema) || !isRecord(schema.properties)) return null;
+  const falKling = adaptFalKlingV3Request(offer?.endpoint, request);
+  if (falKling === null) return null;
+  if (falKling) request = falKling;
   if (schema.$id === 'kie-kling-3.0' && request.providerInput) {
     const native = { ...request.providerInput };
     if (native.mode === 'standard') native.mode = 'std';
