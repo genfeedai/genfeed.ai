@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { queryClientWrapper } from '@app-tests/query-client.harness';
 import YoutubeChatBot from './YoutubeChatBot';
 import '@testing-library/jest-dom/vitest';
 
@@ -18,6 +19,11 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
     brandId: 'brand-123',
     organizationId: 'org-123',
   })),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -47,7 +53,7 @@ describe('YoutubeChatBot', () => {
   });
 
   it('renders the page chrome while the bot is still loading', () => {
-    render(<YoutubeChatBot />);
+    render(<YoutubeChatBot />, { wrapper: queryClientWrapper() });
 
     expect(
       screen.getByRole('heading', { name: 'Livestream Chat Bot' }),
