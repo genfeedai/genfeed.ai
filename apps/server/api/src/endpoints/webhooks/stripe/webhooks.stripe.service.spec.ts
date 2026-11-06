@@ -6,7 +6,7 @@ import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 describe('StripeWebhookService', () => {
   let service: StripeWebhookService;
@@ -56,7 +56,7 @@ describe('StripeWebhookService', () => {
     service = module.get(StripeWebhookService);
   });
 
-  it.each([
+  it.each<[string, Record<string, Mock>, string]>([
     [
       'customer.subscription.created',
       subscriptionHandler,
@@ -77,7 +77,7 @@ describe('StripeWebhookService', () => {
     ['invoice.payment_failed', invoiceHandler, 'handleInvoicePaymentFailed'],
     ['customer.created', customerHandler, 'handleCustomerCreated'],
     ['customer.updated', customerHandler, 'handleCustomerUpdated'],
-  ] as const)('routes %s to its handler', async (type, handler, method) => {
+  ])('routes %s to its handler', async (type, handler, method) => {
     const object = { id: 'obj_1' };
 
     await service.handleWebhookEvent(eventOf(type, object), 'test');

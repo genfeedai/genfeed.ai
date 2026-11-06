@@ -1,6 +1,10 @@
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata-lookup.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
 import { IngredientStatus } from '@genfeedai/contracts';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('MetadataLookupService', () => {
@@ -44,11 +48,13 @@ describe('MetadataLookupService', () => {
       warn: vi.fn(),
     };
 
+    // Cast at the constructor boundary: the spec stubs only the methods the
+    // lookup calls.
     service = new MetadataLookupService(
-      metadataService,
-      ingredientsService,
-      websocketService,
-      loggerService,
+      metadataService as unknown as MetadataService,
+      ingredientsService as unknown as IngredientsService,
+      websocketService as unknown as NotificationsPublisherService,
+      loggerService as unknown as LoggerService,
     );
   });
 
