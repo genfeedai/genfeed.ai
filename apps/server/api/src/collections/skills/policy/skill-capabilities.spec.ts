@@ -6,6 +6,7 @@ import {
   resolveSkillCapabilities,
   type SkillCapabilityActor,
   type SkillCapabilitySubject,
+  toSkillCapabilityGrant,
 } from './skill-capabilities';
 
 const owner: SkillCapabilityActor = {
@@ -278,4 +279,33 @@ describe('resolveSkillCapabilities', () => {
       }),
     ).toMatchObject({ canRead: false, canUse: false });
   });
+});
+
+describe('toSkillCapabilityGrant', () => {
+  it.each([
+    ['brand', 'use_and_read', 'brand', 'use_and_read'],
+    ['organization', 'use', 'organization', 'use'],
+    ['user', 'use', 'user', 'use'],
+    ['team', 'admin', 'user', 'use'],
+    [null, null, 'user', 'use'],
+  ])(
+    'reads a stored kind %s and access %s as %s / %s',
+    (recipientKind, access, expectedKind, expectedAccess) => {
+      expect(
+        toSkillCapabilityGrant({
+          access,
+          recipientKind,
+          recipientUserId: 'user-a',
+          revokedAt: new Date('2026-01-01T00:00:00.000Z'),
+        }),
+      ).toEqual({
+        access: expectedAccess,
+        isRevoked: true,
+        recipientBrandId: null,
+        recipientKind: expectedKind,
+        recipientOrganizationId: null,
+        recipientUserId: 'user-a',
+      });
+    },
+  );
 });

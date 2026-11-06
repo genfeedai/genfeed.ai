@@ -16,6 +16,7 @@ import {
   type SkillCapabilityGrant,
   type SkillOwnerKind,
   skillGrantRecipientClauses,
+  toSkillCapabilityGrant,
 } from '@api/collections/skills/policy/skill-capabilities';
 import { resolveSkillSourcePolicy } from '@api/collections/skills/policy/skill-source-policy';
 import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
@@ -907,17 +908,7 @@ export class SkillLibraryService {
     });
     const grouped = new Map<string, SkillCapabilityGrant[]>();
     for (const row of rows) {
-      const grant: SkillCapabilityGrant = {
-        access: row.access === 'use_and_read' ? 'use_and_read' : 'use',
-        isRevoked: row.revokedAt != null,
-        recipientBrandId: row.recipientBrandId,
-        recipientKind:
-          row.recipientKind === 'organization' || row.recipientKind === 'brand'
-            ? row.recipientKind
-            : 'user',
-        recipientOrganizationId: row.recipientOrganizationId,
-        recipientUserId: row.recipientUserId,
-      };
+      const grant = toSkillCapabilityGrant(row);
       if (!grantMatchesActor(grant, actor)) continue;
       grouped.set(row.skillId, [...(grouped.get(row.skillId) ?? []), grant]);
     }
