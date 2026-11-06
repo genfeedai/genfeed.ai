@@ -1,45 +1,64 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { OPTIONAL_AUTH_KEY } from '@api/helpers/decorators/optional-auth.decorator';
 import { SkillDownloadController } from '@api/skills-pro/controllers/skill-download.controller';
-import { SkillDownloadService } from '@api/skills-pro/services/skill-download.service';
+import type { SkillDownloadService } from '@api/skills-pro/services/skill-download.service';
 import { isPublicRoute } from '@libs/decorators/public.decorator';
 import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
 describe('SkillDownloadController', () => {
   let controller: SkillDownloadController;
-  const verifyReceipt = vi.fn();
-  const verifyReceiptBearer = vi.fn();
-  const getDownloadUrl = vi.fn();
-  const getDownloadUrlBearer = vi.fn();
-  const installSkill = vi.fn();
+  let installations: unknown[];
   const user = { organizationId: 'org-1' } as AuthenticatedUser;
   const request = {
     originalUrl: '/v1/skills-pro/install',
   } as Request;
 
-  beforeEach(async () => {
-    vi.clearAllMocks();
+  // Each answer names the path that resolved it: the organization-scoped
+  // lookup, or the receipt-secret (bearer) lookup.
+  const receipt = (via: string) => ({
+    email: 'buyer@example.com',
+    productType: 'skill',
+    skills: ['image-gen-pro'],
+    valid: true,
+    via,
+  });
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [SkillDownloadController],
-      providers: [
-        {
-          provide: SkillDownloadService,
-          useValue: {
-            getDownloadUrl,
-            getDownloadUrlBearer,
-            installSkill,
-            verifyReceipt,
-            verifyReceiptBearer,
-          },
-        },
-      ],
-    }).compile();
-
-    controller = module.get(SkillDownloadController);
+  beforeEach(() => {
+    installations = [];
+    controller = new SkillDownloadController({
+      getDownloadUrl: async (
+        organizationId: string,
+        receiptId: string,
+        skillSlug: string,
+      ) => ({
+        downloadUrl: `https://cdn.example/${organizationId}/${receiptId}/${skillSlug}`,
+      }),
+      getDownloadUrlBearer: async (receiptId: string, skillSlug: string) => ({
+        downloadUrl: `https://cdn.example/bearer/${receiptId}/${skillSlug}`,
+      }),
+      installSkill: async (
+        organizationId: string,
+        receiptId: string,
+        skillSlug: string,
+      ) => {
+        installations.push({ organizationId, receiptId, skillSlug });
+        return {
+          files: [{ content: 'private', path: 'SKILL.md' }],
+          id: 'skill-1',
+          instructions: 'private body',
+          name: 'Image Gen Pro',
+          slug: skillSlug,
+          status: 'installed',
+          version: '1.0.0',
+        };
+      },
+      verifyReceipt: async (organizationId: string, receiptId: string) =>
+        receipt(`${organizationId}:${receiptId}`),
+      verifyReceiptBearer: async (receiptId: string) =>
+        receipt(`bearer:${receiptId}`),
+    } as unknown as SkillDownloadService);
   });
 
   it.each(['verifyReceipt', 'downloadSkill'] as const)(
@@ -79,87 +98,52 @@ describe('SkillDownloadController', () => {
   );
 
   it('verifies the receipt inside the current organization', async () => {
-    verifyReceipt.mockResolvedValue({
-      email: 'buyer@example.com',
-      productType: 'skill',
-      skills: ['image-gen-pro'],
-      valid: true,
-    });
-
-    await controller.verifyReceipt(user, { receiptId: 'sk_rcpt_one' });
-
-    expect(verifyReceipt).toHaveBeenCalledWith('org-1', 'sk_rcpt_one');
-    expect(verifyReceiptBearer).not.toHaveBeenCalled();
+    await expect(
+      controller.verifyReceipt(user, { receiptId: 'sk_rcpt_one' }),
+    ).resolves.toMatchObject({ via: 'org-1:sk_rcpt_one' });
   });
 
   it('verifies a receipt secret when the caller has no organization', async () => {
-    verifyReceiptBearer.mockResolvedValue({
-      email: 'buyer@example.com',
-      productType: 'skill',
-      skills: ['image-gen-pro'],
-      valid: true,
-    });
-
-    await controller.verifyReceipt(undefined, { receiptId: 'sk_rcpt_one' });
-
-    expect(verifyReceiptBearer).toHaveBeenCalledWith('sk_rcpt_one');
-    expect(verifyReceipt).not.toHaveBeenCalled();
+    await expect(
+      controller.verifyReceipt(undefined, { receiptId: 'sk_rcpt_one' }),
+    ).resolves.toMatchObject({ via: 'bearer:sk_rcpt_one' });
   });
 
   it('downloads only inside the current organization', async () => {
-    getDownloadUrl.mockResolvedValue({ downloadUrl: 'https://cdn.example' });
-
-    await controller.downloadSkill(user, {
-      receiptId: 'sk_rcpt_one',
-      skillSlug: 'image-gen-pro',
+    await expect(
+      controller.downloadSkill(user, {
+        receiptId: 'sk_rcpt_one',
+        skillSlug: 'image-gen-pro',
+      }),
+    ).resolves.toEqual({
+      downloadUrl: 'https://cdn.example/org-1/sk_rcpt_one/image-gen-pro',
     });
-
-    expect(getDownloadUrl).toHaveBeenCalledWith(
-      'org-1',
-      'sk_rcpt_one',
-      'image-gen-pro',
-    );
-    expect(getDownloadUrlBearer).not.toHaveBeenCalled();
   });
 
   it('downloads with the receipt secret when the caller has no organization', async () => {
-    getDownloadUrlBearer.mockResolvedValue({
-      downloadUrl: 'https://cdn.example',
+    await expect(
+      controller.downloadSkill(undefined, {
+        receiptId: 'sk_rcpt_one',
+        skillSlug: 'image-gen-pro',
+      }),
+    ).resolves.toEqual({
+      downloadUrl: 'https://cdn.example/bearer/sk_rcpt_one/image-gen-pro',
     });
-
-    await controller.downloadSkill(undefined, {
-      receiptId: 'sk_rcpt_one',
-      skillSlug: 'image-gen-pro',
-    });
-
-    expect(getDownloadUrlBearer).toHaveBeenCalledWith(
-      'sk_rcpt_one',
-      'image-gen-pro',
-    );
-    expect(getDownloadUrl).not.toHaveBeenCalled();
   });
 
   it('returns a metadata-only serialized installation result', async () => {
-    installSkill.mockResolvedValue({
-      files: [{ content: 'private', path: 'SKILL.md' }],
-      id: 'skill-1',
-      instructions: 'private body',
-      name: 'Image Gen Pro',
-      slug: 'image-gen-pro',
-      status: 'installed',
-      version: '1.0.0',
-    });
-
     const result = await controller.installSkill(request, user, {
       receiptId: 'sk_rcpt_one',
       skillSlug: 'image-gen-pro',
     });
 
-    expect(installSkill).toHaveBeenCalledWith(
-      'org-1',
-      'sk_rcpt_one',
-      'image-gen-pro',
-    );
+    expect(installations).toEqual([
+      {
+        organizationId: 'org-1',
+        receiptId: 'sk_rcpt_one',
+        skillSlug: 'image-gen-pro',
+      },
+    ]);
     expect(result).toMatchObject({
       data: {
         attributes: {
@@ -188,6 +172,6 @@ describe('SkillDownloadController', () => {
       },
       status: 403,
     });
-    expect(installSkill).not.toHaveBeenCalled();
+    expect(installations).toEqual([]);
   });
 });
