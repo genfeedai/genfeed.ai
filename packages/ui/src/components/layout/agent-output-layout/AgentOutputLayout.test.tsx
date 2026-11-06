@@ -147,4 +147,58 @@ describe('AgentOutputLayout', () => {
     render(<Harness />);
     expect(screen.queryByTestId('agent-output-expand-output')).toBeNull();
   });
+
+  describe('draggable divider', () => {
+    const STORAGE_KEY = 'test:agent-split';
+
+    function renderResizable() {
+      return render(
+        <AgentOutputLayout
+          activeTabId="threads"
+          agent={<p>Agent transcript</p>}
+          labels={{ ...labels, resizePanes: 'Resize panes' }}
+          resizeStorageKey={STORAGE_KEY}
+          tabs={[
+            {
+              content: <p>Threads content</p>,
+              id: 'threads',
+              label: 'Threads',
+            },
+          ]}
+        />,
+      );
+    }
+
+    it('has no divider unless the page asks for one', () => {
+      render(<Harness />);
+
+      expect(
+        screen.queryByRole('separator', { name: 'Resize panes' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('moves the split with the arrow keys, remembers it, and resets on double-click', () => {
+      window.localStorage.removeItem(STORAGE_KEY);
+      renderResizable();
+      const divider = screen.getByRole('separator', { name: 'Resize panes' });
+
+      expect(divider).toHaveAttribute('aria-valuenow', '50');
+
+      fireEvent.keyDown(divider, { key: 'ArrowRight', shiftKey: true });
+      expect(divider).toHaveAttribute('aria-valuenow', '55');
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe('0.550');
+
+      fireEvent.doubleClick(divider);
+      expect(divider).toHaveAttribute('aria-valuenow', '50');
+    });
+
+    it('keeps each pane at least 30% wide', () => {
+      window.localStorage.setItem(STORAGE_KEY, '0.95');
+      renderResizable();
+
+      expect(
+        screen.getByRole('separator', { name: 'Resize panes' }),
+      ).toHaveAttribute('aria-valuenow', '70');
+    });
+  });
 });

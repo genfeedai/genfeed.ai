@@ -48,7 +48,7 @@ export default function AgentCampaignAgentsList({
                     {strategy?.agentType ?? translate('agents.unavailableRole')}
                   </span>
                 </span>
-                <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
+                <span className="shrink-0 font-mono text-2xs text-muted-foreground">
                   {agentId}
                 </span>
               </div>

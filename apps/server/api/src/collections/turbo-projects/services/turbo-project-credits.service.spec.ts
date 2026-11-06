@@ -1,3 +1,4 @@
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { TurboProjectCreditsService } from '@api/collections/turbo-projects/services/turbo-project-credits.service';
 import { UnsettleableReservationException } from '@api/exceptions/business-logic.exception';
 import { photoAnimationSnapshot } from '@api/helpers/utils/credits/avatar-duration-quote.fixture';
@@ -14,44 +15,167 @@ const dispatch: ITurboProjectItemDispatch = {
   state: 'queued',
 };
 
-describe('TurboProjectCreditsService', () => {
-  const credits = {
-    deductCreditsFromOrganization: vi.fn(),
-    findReservationForWorkload: vi.fn(),
-    releaseReservation: vi.fn(),
-    reserveCredits: vi.fn(),
-    settleReservation: vi.fn(),
+interface Reservation {
+  amount: number;
+  id: string;
+  idempotencyKey: string;
+  metadata?: Record<string, unknown>;
+  organizationId: string;
+  settledAmount: number | null;
+  status: CreditReservationStatus;
+  workloadId: string;
+  workloadType: string;
+}
+
+interface ReservationLookup {
+  idempotencyKey?: string;
+  organizationId: string;
+  reservationId?: string;
+}
+
+// The organization's credit ledger: holds keyed by idempotency key, and the
+// direct charges made outside a hold.
+function createLedger() {
+  const ledger = {
+    charges: [] as { amount: number; organizationId: string }[],
+    reservations: new Map<string, Reservation>(),
   };
-  const service = new TurboProjectCreditsService(credits as never);
+  const find = ({
+    idempotencyKey,
+    organizationId,
+    reservationId,
+  }: ReservationLookup) =>
+    [...ledger.reservations.values()].find(
+      (reservation) =>
+        reservation.organizationId === organizationId &&
+        (reservationId
+          ? reservation.id === reservationId
+          : reservation.idempotencyKey === idempotencyKey),
+    );
 
-  beforeEach(() => vi.clearAllMocks());
+  const credits = {
+    deductCreditsFromOrganization: async (
+      organizationId: string,
+      _actorUserId: string,
+      amount: number,
+    ) => {
+      ledger.charges.push({ amount, organizationId });
+    },
+    findReservationForWorkload: async (lookup: {
+      organizationId: string;
+      workloadId: string;
+      workloadType: string;
+    }) =>
+      [...ledger.reservations.values()].find(
+        (reservation) =>
+          reservation.organizationId === lookup.organizationId &&
+          reservation.workloadId === lookup.workloadId &&
+          reservation.workloadType === lookup.workloadType,
+      ) ?? null,
+    releaseReservation: async (lookup: ReservationLookup) => {
+      const reservation = find(lookup);
+      if (reservation) {
+        reservation.status = CreditReservationStatus.RELEASED;
+      }
+    },
+    reserveCredits: async (input: {
+      amount: number;
+      idempotencyKey: string;
+      metadata?: Record<string, unknown>;
+      organizationId: string;
+      workloadId: string;
+      workloadType: string;
+    }) => {
+      const existing = find(input);
+      if (existing) {
+        return existing;
+      }
+      const reservation: Reservation = {
+        amount: input.amount,
+        id: `reservation-${ledger.reservations.size + 1}`,
+        idempotencyKey: input.idempotencyKey,
+        metadata: input.metadata,
+        organizationId: input.organizationId,
+        settledAmount: null,
+        status: CreditReservationStatus.RESERVED,
+        workloadId: input.workloadId,
+        workloadType: input.workloadType,
+      };
+      ledger.reservations.set(reservation.id, reservation);
+      return reservation;
+    },
+    settleReservation: async (
+      input: ReservationLookup & { actualAmount: number },
+    ) => {
+      const reservation = find(input);
+      if (!reservation) {
+        throw new Error('Reservation not found');
+      }
+      if (reservation.status !== CreditReservationStatus.RESERVED) {
+        throw new UnsettleableReservationException(reservation.status);
+      }
+      reservation.status = CreditReservationStatus.SETTLED;
+      reservation.settledAmount = input.actualAmount;
+    },
+  };
+  return {
+    ledger,
+    service: new TurboProjectCreditsService(
+      credits as unknown as CreditsUtilsService,
+    ),
+  };
+}
 
+const settleInput = {
+  actorUserId: 'user-1',
+  description: 'Turbo idea video generation',
+  organizationId: 'org-1',
+  source: ActivitySource.VIDEO_GENERATION,
+};
+
+describe('TurboProjectCreditsService', () => {
   it('holds a paid line under its dispatch key', async () => {
-    credits.reserveCredits.mockResolvedValue({
-      id: 'reservation-1',
-      status: CreditReservationStatus.RESERVED,
+    const { ledger, service } = createLedger();
+
+    const reservationId = await service.reserve({
+      actorUserId: 'user-1',
+      dispatch,
+      organizationId: 'org-1',
     });
 
-    await expect(
+    expect(ledger.reservations.get(String(reservationId))).toMatchObject({
+      amount: 8,
+      idempotencyKey: dispatch.key,
+      status: CreditReservationStatus.RESERVED,
+      workloadType: 'turbo-project-idea',
+    });
+  });
+
+  it('reuses the hold when the same dispatch is reserved again', async () => {
+    const { ledger, service } = createLedger();
+    const reserve = () =>
       service.reserve({
         actorUserId: 'user-1',
         dispatch,
         organizationId: 'org-1',
-      }),
-    ).resolves.toBe('reservation-1');
-    expect(credits.reserveCredits).toHaveBeenCalledWith(
-      expect.objectContaining({
-        amount: 8,
-        idempotencyKey: dispatch.key,
-        workloadType: 'turbo-project-idea',
-      }),
-    );
+      });
+
+    const first = await reserve();
+
+    await expect(reserve()).resolves.toBe(first);
+    expect(ledger.reservations.size).toBe(1);
   });
 
   it('never reuses a refunded hold', async () => {
-    credits.reserveCredits.mockResolvedValue({
-      id: 'reservation-1',
-      status: CreditReservationStatus.RELEASED,
+    const { service } = createLedger();
+    const reservationId = await service.reserve({
+      actorUserId: 'user-1',
+      dispatch,
+      organizationId: 'org-1',
+    });
+    await service.release({
+      dispatch: { ...dispatch, reservationId },
+      organizationId: 'org-1',
     });
 
     await expect(
@@ -64,77 +188,82 @@ describe('TurboProjectCreditsService', () => {
   });
 
   it('never touches platform credits for a BYOK line', async () => {
+    const { ledger, service } = createLedger();
     const byok = { ...dispatch, billingMode: 'byok' as const, credits: 0 };
 
-    await service.reserve({
-      actorUserId: 'user-1',
-      dispatch: byok,
-      organizationId: 'org-1',
-    });
     await expect(
-      service.settle({
+      service.reserve({
         actorUserId: 'user-1',
-        description: 'Turbo idea',
         dispatch: byok,
         organizationId: 'org-1',
-        source: ActivitySource.VIDEO_GENERATION,
       }),
+    ).resolves.toBeUndefined();
+    await expect(
+      service.settle({ ...settleInput, dispatch: byok }),
     ).resolves.toEqual({ settledCredits: 0, state: 'settled' });
     await service.release({ dispatch: byok, organizationId: 'org-1' });
 
-    expect(credits.reserveCredits).not.toHaveBeenCalled();
-    expect(credits.settleReservation).not.toHaveBeenCalled();
-    expect(credits.releaseReservation).not.toHaveBeenCalled();
+    expect(ledger.reservations.size).toBe(0);
+    expect(ledger.charges).toEqual([]);
   });
 
   it('charges exactly the accepted line on settlement', async () => {
-    await service.settle({
+    const { ledger, service } = createLedger();
+    const reservationId = await service.reserve({
       actorUserId: 'user-1',
-      description: 'Turbo idea video generation',
-      dispatch: {
-        ...dispatch,
-        reservationId: 'reservation-1',
-        state: 'reserved',
-      },
+      dispatch,
       organizationId: 'org-1',
-      source: ActivitySource.VIDEO_GENERATION,
     });
-
-    expect(credits.settleReservation).toHaveBeenCalledWith(
-      expect.objectContaining({
-        actualAmount: 8,
-        organizationId: 'org-1',
-        reservationId: 'reservation-1',
-      }),
-    );
-  });
-
-  it('reports an expired hold as released instead of charging', async () => {
-    credits.settleReservation.mockRejectedValue(
-      new UnsettleableReservationException('EXPIRED'),
-    );
 
     await expect(
       service.settle({
+        ...settleInput,
+        dispatch: { ...dispatch, reservationId, state: 'reserved' },
+      }),
+    ).resolves.toEqual({ settledCredits: 8, state: 'settled' });
+    expect(ledger.reservations.get(String(reservationId))).toMatchObject({
+      settledAmount: 8,
+      status: CreditReservationStatus.SETTLED,
+    });
+  });
+
+  it('reports an expired hold as released instead of charging', async () => {
+    const { ledger, service } = createLedger();
+    const reservationId = String(
+      await service.reserve({
         actorUserId: 'user-1',
-        description: 'Turbo idea',
-        dispatch: { ...dispatch, reservationId: 'reservation-1' },
+        dispatch,
         organizationId: 'org-1',
-        source: ActivitySource.VIDEO_GENERATION,
+      }),
+    );
+    const reservation = ledger.reservations.get(reservationId) as Reservation;
+    reservation.status = CreditReservationStatus.EXPIRED;
+
+    await expect(
+      service.settle({
+        ...settleInput,
+        dispatch: { ...dispatch, reservationId },
       }),
     ).resolves.toEqual({ state: 'released' });
+    expect(reservation.settledAmount).toBeNull();
   });
 
   it('releases a failed line by its reservation', async () => {
-    await service.release({
-      dispatch: { ...dispatch, reservationId: 'reservation-1' },
+    const { ledger, service } = createLedger();
+    const reservationId = await service.reserve({
+      actorUserId: 'user-1',
+      dispatch,
       organizationId: 'org-1',
     });
 
-    expect(credits.releaseReservation).toHaveBeenCalledWith({
+    await service.release({
+      dispatch: { ...dispatch, reservationId },
       organizationId: 'org-1',
-      reservationId: 'reservation-1',
     });
+
+    expect(ledger.reservations.get(String(reservationId))?.status).toBe(
+      CreditReservationStatus.RELEASED,
+    );
   });
 
   describe('per-second avatar lines (#6933)', () => {
@@ -147,62 +276,47 @@ describe('TurboProjectCreditsService', () => {
       ...dispatch,
       credits: 154,
       model: 'heygen/avatar',
-      reservationId: 'reservation-1',
-      state: 'reserved',
+      state: 'queued',
     };
 
     it('keeps the frozen quote on the avatar hold', async () => {
-      credits.reserveCredits.mockResolvedValue({
-        id: 'reservation-1',
-        status: CreditReservationStatus.RESERVED,
-      });
+      const { ledger, service } = createLedger();
 
-      await service.reserve({
+      const reservationId = await service.reserve({
         actorUserId: 'user-1',
-        dispatch: { ...avatarDispatch, state: 'queued' },
+        dispatch: avatarDispatch,
         durationQuote,
         organizationId: 'org-1',
       });
 
-      expect(credits.reserveCredits).toHaveBeenCalledWith(
-        expect.objectContaining({
-          amount: 154,
-          metadata: { avatarDurationQuote: durationQuote },
-        }),
-      );
+      expect(ledger.reservations.get(String(reservationId))).toMatchObject({
+        amount: 154,
+        metadata: { avatarDurationQuote: durationQuote },
+      });
     });
 
     it('settles an avatar line to the measured clip length', async () => {
-      credits.settleReservation.mockResolvedValue(undefined);
-      credits.findReservationForWorkload.mockResolvedValue({
-        amount: 154,
-        id: 'reservation-1',
-        metadata: { avatarDurationQuote: durationQuote },
-        settledAmount: null,
-        status: CreditReservationStatus.RESERVED,
+      const { ledger, service } = createLedger();
+      const reservationId = await service.reserve({
+        actorUserId: 'user-1',
+        dispatch: avatarDispatch,
+        durationQuote,
+        organizationId: 'org-1',
       });
 
       await expect(
         service.settle({
-          actorUserId: 'user-1',
+          ...settleInput,
           clip: { durationSeconds: 8 },
           description: 'Turbo idea avatar generation',
-          dispatch: avatarDispatch,
-          organizationId: 'org-1',
-          source: ActivitySource.VIDEO_GENERATION,
+          dispatch: { ...avatarDispatch, reservationId, state: 'reserved' },
         }),
       ).resolves.toEqual({ settledCredits: 103, state: 'settled' });
-      expect(credits.findReservationForWorkload).toHaveBeenCalledWith({
-        organizationId: 'org-1',
-        workloadId: dispatch.key,
-        workloadType: 'turbo-project-idea',
+      expect(ledger.reservations.get(String(reservationId))).toMatchObject({
+        settledAmount: 103,
+        status: CreditReservationStatus.SETTLED,
       });
-      expect(credits.settleReservation).toHaveBeenCalledWith(
-        expect.objectContaining({
-          actualAmount: 103,
-          reservationId: 'reservation-1',
-        }),
-      );
+      expect(ledger.charges).toEqual([]);
     });
   });
 });

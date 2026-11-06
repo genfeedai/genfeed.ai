@@ -1,112 +1,35 @@
+import type { AgentStrategyScheduleAuthorityService } from '@api/services/agent-orchestrator/tools/agent-strategy-schedule-authority.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import type { AgentWorkflowToolCreateService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-create.service';
+import type { AgentWorkflowToolExecuteService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-execute.service';
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { AgentWorkflowToolInstallService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-describe('AgentWorkflowToolHandler routing', () => {
-  const installService = {
-    installOfficialWorkflow: vi.fn(),
-    installSystemWorkflow: vi.fn(),
-    listSystemWorkflowCatalog: vi.fn(),
-  };
-  const createService = {
-    createWorkflow: vi.fn(),
-  };
-  const executeService = {
-    duplicateWorkflow: vi.fn(),
-    executeWorkflow: vi.fn(),
-    getWorkflowInputs: vi.fn(),
-    getWorkflowRun: vi.fn(),
-    inspectWorkflow: vi.fn(),
-    listWorkflowRuns: vi.fn(),
-    listWorkflows: vi.fn(),
-    setWorkflowSchedule: vi.fn(),
-  };
-  const scheduleAuthority = {
-    withScheduleAuthority: vi.fn(
-      async (context: ToolExecutionContext) => context,
-    ),
-  };
-  const ctx = {
-    organizationId: 'org-1',
-    userId: 'user-1',
-  } as ToolExecutionContext;
-  const params = { workflowId: 'wf-1' };
+type HandlerMethod =
+  | 'createWorkflow'
+  | 'duplicateWorkflow'
+  | 'executeWorkflow'
+  | 'getWorkflowInputs'
+  | 'getWorkflowRun'
+  | 'inspectWorkflow'
+  | 'installOfficialWorkflow'
+  | 'installSystemWorkflow'
+  | 'listSystemWorkflowCatalog'
+  | 'listWorkflowRuns'
+  | 'listWorkflows'
+  | 'setWorkflowSchedule';
 
-  let handler: AgentWorkflowToolHandler;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    handler = new AgentWorkflowToolHandler(
-      installService as never,
-      createService as never,
-      executeService as never,
-      scheduleAuthority as never,
-    );
+// Each fake tool answers with where it ran and the context it ran under.
+const route =
+  (target: string) =>
+  async (params: Record<string, unknown>, ctx: ToolExecutionContext) => ({
+    creditsUsed: 0,
+    data: { ctx, params, target },
+    success: true,
   });
 
-  it('routes install, create, and execute clusters without changing params', async () => {
-    const ok = { creditsUsed: 0, success: true };
-    installService.listSystemWorkflowCatalog.mockResolvedValue(ok);
-    installService.installSystemWorkflow.mockResolvedValue(ok);
-    installService.installOfficialWorkflow.mockResolvedValue(ok);
-    createService.createWorkflow.mockResolvedValue(ok);
-    executeService.listWorkflows.mockResolvedValue(ok);
-    executeService.inspectWorkflow.mockResolvedValue(ok);
-    executeService.duplicateWorkflow.mockResolvedValue(ok);
-    executeService.setWorkflowSchedule.mockResolvedValue(ok);
-    executeService.listWorkflowRuns.mockResolvedValue(ok);
-    executeService.getWorkflowRun.mockResolvedValue(ok);
-    executeService.executeWorkflow.mockResolvedValue(ok);
-    executeService.getWorkflowInputs.mockResolvedValue(ok);
-
-    await expect(
-      handler.listSystemWorkflowCatalog(params, ctx),
-    ).resolves.toEqual(ok);
-    await expect(handler.installSystemWorkflow(params, ctx)).resolves.toEqual(
-      ok,
-    );
-    await expect(handler.installOfficialWorkflow(params, ctx)).resolves.toEqual(
-      ok,
-    );
-    await expect(handler.createWorkflow(params, ctx)).resolves.toEqual(ok);
-    await expect(handler.listWorkflows(params, ctx)).resolves.toEqual(ok);
-    await expect(handler.inspectWorkflow(params, ctx)).resolves.toEqual(ok);
-    await expect(handler.duplicateWorkflow(params, ctx)).resolves.toEqual(ok);
-    await expect(handler.setWorkflowSchedule(params, ctx)).resolves.toEqual(ok);
-    await expect(handler.listWorkflowRuns(params, ctx)).resolves.toEqual(ok);
-    await expect(handler.getWorkflowRun(params, ctx)).resolves.toEqual(ok);
-    await expect(handler.executeWorkflow(params, ctx)).resolves.toEqual(ok);
-    await expect(handler.getWorkflowInputs(params, ctx)).resolves.toEqual(ok);
-
-    expect(installService.listSystemWorkflowCatalog).toHaveBeenCalledWith(
-      params,
-      ctx,
-    );
-    expect(installService.installSystemWorkflow).toHaveBeenCalledWith(
-      params,
-      ctx,
-    );
-    expect(installService.installOfficialWorkflow).toHaveBeenCalledWith(
-      params,
-      ctx,
-    );
-    expect(createService.createWorkflow).toHaveBeenCalledWith(params, ctx);
-    expect(executeService.listWorkflows).toHaveBeenCalledWith(params, ctx);
-    expect(executeService.inspectWorkflow).toHaveBeenCalledWith(params, ctx);
-    expect(executeService.duplicateWorkflow).toHaveBeenCalledWith(params, ctx);
-    expect(executeService.setWorkflowSchedule).toHaveBeenCalledWith(
-      params,
-      ctx,
-    );
-    expect(executeService.listWorkflowRuns).toHaveBeenCalledWith(params, ctx);
-    expect(executeService.getWorkflowRun).toHaveBeenCalledWith(params, ctx);
-    expect(executeService.executeWorkflow).toHaveBeenCalledWith(params, ctx);
-    expect(executeService.getWorkflowInputs).toHaveBeenCalledWith(params, ctx);
-  });
-});
-
-describe('AgentWorkflowToolHandler schedule authority (#6689)', () => {
-  const ok = { creditsUsed: 0, success: true };
+describe('AgentWorkflowToolHandler', () => {
   const params = { workflowId: 'wf-1' };
   const ctx = {
     organizationId: 'org-1',
@@ -123,58 +46,74 @@ describe('AgentWorkflowToolHandler schedule authority (#6689)', () => {
     },
   } as ToolExecutionContext;
 
-  const installService = {
-    installOfficialWorkflow: vi.fn().mockResolvedValue(ok),
-    installSystemWorkflow: vi.fn().mockResolvedValue(ok),
-  };
-  const createService = { createWorkflow: vi.fn().mockResolvedValue(ok) };
-  const executeService = {
-    duplicateWorkflow: vi.fn().mockResolvedValue(ok),
-    inspectWorkflow: vi.fn().mockResolvedValue(ok),
-    listWorkflows: vi.fn().mockResolvedValue(ok),
-    setWorkflowSchedule: vi.fn().mockResolvedValue(ok),
-  };
-  const scheduleAuthority = {
-    withScheduleAuthority: vi.fn().mockResolvedValue(bound),
-  };
+  let authorityRequests: ToolExecutionContext[];
   let handler: AgentWorkflowToolHandler;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    authorityRequests = [];
     handler = new AgentWorkflowToolHandler(
-      installService as never,
-      createService as never,
-      executeService as never,
-      scheduleAuthority as never,
+      {
+        installOfficialWorkflow: route('install.installOfficialWorkflow'),
+        installSystemWorkflow: route('install.installSystemWorkflow'),
+        listSystemWorkflowCatalog: route('install.listSystemWorkflowCatalog'),
+      } as unknown as AgentWorkflowToolInstallService,
+      {
+        createWorkflow: route('create.createWorkflow'),
+      } as unknown as AgentWorkflowToolCreateService,
+      {
+        duplicateWorkflow: route('execute.duplicateWorkflow'),
+        executeWorkflow: route('execute.executeWorkflow'),
+        getWorkflowInputs: route('execute.getWorkflowInputs'),
+        getWorkflowRun: route('execute.getWorkflowRun'),
+        inspectWorkflow: route('execute.inspectWorkflow'),
+        listWorkflowRuns: route('execute.listWorkflowRuns'),
+        listWorkflows: route('execute.listWorkflows'),
+        setWorkflowSchedule: route('execute.setWorkflowSchedule'),
+      } as unknown as AgentWorkflowToolExecuteService,
+      {
+        withScheduleAuthority: async (context: ToolExecutionContext) => {
+          authorityRequests.push(context);
+          return bound;
+        },
+      } as unknown as AgentStrategyScheduleAuthorityService,
     );
   });
 
-  it.each([
-    ['createWorkflow', createService.createWorkflow],
-    ['duplicateWorkflow', executeService.duplicateWorkflow],
-    ['installOfficialWorkflow', installService.installOfficialWorkflow],
-    ['installSystemWorkflow', installService.installSystemWorkflow],
-    ['setWorkflowSchedule', executeService.setWorkflowSchedule],
-  ] as const)(
-    'runs %s with the strategy actor read live for this call',
+  it.each<[HandlerMethod, string]>([
+    ['executeWorkflow', 'execute.executeWorkflow'],
+    ['getWorkflowInputs', 'execute.getWorkflowInputs'],
+    ['getWorkflowRun', 'execute.getWorkflowRun'],
+    ['inspectWorkflow', 'execute.inspectWorkflow'],
+    ['listSystemWorkflowCatalog', 'install.listSystemWorkflowCatalog'],
+    ['listWorkflowRuns', 'execute.listWorkflowRuns'],
+    ['listWorkflows', 'execute.listWorkflows'],
+  ])(
+    'routes %s to %s with the caller context and no schedule authority',
     async (method, target) => {
-      await handler[method](params, ctx);
-
-      expect(scheduleAuthority.withScheduleAuthority).toHaveBeenCalledWith(ctx);
-      expect(target).toHaveBeenCalledWith(params, bound);
+      await expect(handler[method](params, ctx)).resolves.toEqual({
+        creditsUsed: 0,
+        data: { ctx, params, target },
+        success: true,
+      });
+      expect(authorityRequests).toEqual([]);
     },
   );
 
-  it.each([
-    ['listWorkflows', executeService.listWorkflows],
-    ['inspectWorkflow', executeService.inspectWorkflow],
-  ] as const)(
-    'does not resolve a schedule authority for %s',
+  it.each<[HandlerMethod, string]>([
+    ['createWorkflow', 'create.createWorkflow'],
+    ['duplicateWorkflow', 'execute.duplicateWorkflow'],
+    ['installOfficialWorkflow', 'install.installOfficialWorkflow'],
+    ['installSystemWorkflow', 'install.installSystemWorkflow'],
+    ['setWorkflowSchedule', 'execute.setWorkflowSchedule'],
+  ])(
+    'runs %s on %s with the strategy actor read live for this call (#6689)',
     async (method, target) => {
-      await handler[method](params, ctx);
-
-      expect(scheduleAuthority.withScheduleAuthority).not.toHaveBeenCalled();
-      expect(target).toHaveBeenCalledWith(params, ctx);
+      await expect(handler[method](params, ctx)).resolves.toEqual({
+        creditsUsed: 0,
+        data: { ctx: bound, params, target },
+        success: true,
+      });
+      expect(authorityRequests).toEqual([ctx]);
     },
   );
 });

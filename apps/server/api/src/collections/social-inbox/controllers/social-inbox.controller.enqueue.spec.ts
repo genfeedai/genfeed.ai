@@ -5,7 +5,7 @@ import type { SocialInboxSuggestedReplyService } from '@api/collections/social-i
 import type { SocialInboxSyncWorkflowService } from '@api/collections/social-inbox/services/social-inbox-sync-workflow.service';
 import { Platform, SocialConversationType } from '@genfeedai/contracts';
 import { UnauthorizedException } from '@nestjs/common';
-import { vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 function buildUser(): AuthenticatedUser {
   return {
@@ -16,22 +16,33 @@ function buildUser(): AuthenticatedUser {
 }
 
 function createController() {
-  const ingestYoutubeComments = vi.fn();
-  const enqueue = vi.fn().mockResolvedValue('job-1');
+  const queued: Array<Record<string, unknown>> = [];
+  const ingested: unknown[] = [];
   return {
     controller: new SocialInboxController(
-      { ingestYoutubeComments } as unknown as SocialInboxService,
-      { enqueue } as unknown as SocialInboxSyncWorkflowService,
-      { suggestReply: vi.fn() } as unknown as SocialInboxSuggestedReplyService,
+      {
+        ingestYoutubeComments: async (input: unknown) => {
+          ingested.push(input);
+        },
+      } as unknown as SocialInboxService,
+      {
+        enqueue: async (input: Record<string, unknown>) => {
+          queued.push(input);
+          return `job-${queued.length}`;
+        },
+      } as unknown as SocialInboxSyncWorkflowService,
+      {
+        suggestReply: async () => null,
+      } as unknown as SocialInboxSuggestedReplyService,
     ),
-    enqueue,
-    ingestYoutubeComments,
+    ingested,
+    queued,
   };
 }
 
 describe('SocialInboxController sync enqueue', () => {
   it('queues the YouTube sync workflow instead of ingesting inline', async () => {
-    const { controller, enqueue, ingestYoutubeComments } = createController();
+    const { controller, ingested, queued } = createController();
 
     await expect(
       controller.syncYoutubeComments(buildUser(), {
@@ -40,55 +51,49 @@ describe('SocialInboxController sync enqueue', () => {
       }),
     ).resolves.toEqual({ jobId: 'job-1', status: 'queued' });
 
-    expect(ingestYoutubeComments).not.toHaveBeenCalled();
-    expect(enqueue).toHaveBeenCalledWith({
-      brandId: 'brand-1',
-      conversationType: SocialConversationType.COMMENT,
-      credentialId: 'credential-1',
-      limit: 50,
-      organizationId: 'org-1',
-      platform: Platform.YOUTUBE,
-      userId: 'user-1',
-    });
+    expect(ingested).toEqual([]);
+    expect(queued).toEqual([
+      {
+        brandId: 'brand-1',
+        conversationType: SocialConversationType.COMMENT,
+        credentialId: 'credential-1',
+        limit: 50,
+        organizationId: 'org-1',
+        platform: Platform.YOUTUBE,
+        userId: 'user-1',
+      },
+    ]);
   });
 
   it('preserves each platform and conversation surface in workflow input', async () => {
-    const { controller, enqueue } = createController();
+    const { controller, queued } = createController();
 
-    await controller.syncInstagramDms(buildUser(), {});
-    await controller.syncXComments(buildUser(), { limit: 25 });
-    await controller.syncLinkedInComments(buildUser(), {});
+    await expect(controller.syncInstagramDms(buildUser(), {})).resolves.toEqual(
+      { jobId: 'job-1', status: 'queued' },
+    );
+    await expect(
+      controller.syncXComments(buildUser(), { limit: 25 }),
+    ).resolves.toEqual({ jobId: 'job-2', status: 'queued' });
+    await expect(
+      controller.syncLinkedInComments(buildUser(), {}),
+    ).resolves.toEqual({ jobId: 'job-3', status: 'queued' });
 
-    expect(enqueue).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        conversationType: SocialConversationType.DM,
-        platform: Platform.INSTAGRAM,
-      }),
-    );
-    expect(enqueue).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        conversationType: SocialConversationType.COMMENT,
-        platform: Platform.TWITTER,
-      }),
-    );
-    expect(enqueue).toHaveBeenNthCalledWith(
-      3,
-      expect.objectContaining({
-        conversationType: SocialConversationType.COMMENT,
-        platform: Platform.LINKEDIN,
-      }),
-    );
+    expect(
+      queued.map((job) => [job.platform, job.conversationType, job.limit]),
+    ).toEqual([
+      [Platform.INSTAGRAM, SocialConversationType.DM, undefined],
+      [Platform.TWITTER, SocialConversationType.COMMENT, 25],
+      [Platform.LINKEDIN, SocialConversationType.COMMENT, undefined],
+    ]);
   });
 
   it('rejects a request without an organization context', async () => {
-    const { controller, enqueue } = createController();
+    const { controller, queued } = createController();
     const anonymous = {} as unknown as AuthenticatedUser;
 
     await expect(controller.syncYoutubeComments(anonymous, {})).rejects.toThrow(
       UnauthorizedException,
     );
-    expect(enqueue).not.toHaveBeenCalled();
+    expect(queued).toEqual([]);
   });
 });

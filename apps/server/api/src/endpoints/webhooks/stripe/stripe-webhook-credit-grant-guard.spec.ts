@@ -44,10 +44,31 @@ const REPLACEMENT_ACCOUNT = {
   stripeCustomerId: null,
 };
 
+interface LedgerEntry {
+  amount: number;
+  balanceAfter: number;
+  balanceBefore: number;
+  organizationId: string;
+}
+
 describe('Stripe webhook credit grant guard (relink between persist and reconcile)', () => {
   let handler: StripeInvoiceWebhookHandler;
+  // What the webhook leaves behind: account balances, ledger rows, the
+  // subscription writes, the credit activity and every live update.
+  let balances: Map<string, number>;
+  let ledger: LedgerEntry[];
+  let subscriptionWrites: Record<string, unknown>[];
+  let creditActivity: unknown[];
+  let liveUpdates: unknown[];
+  let errors: unknown[];
 
-  const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+  const logger = {
+    error: (...entry: unknown[]) => {
+      errors.push(entry);
+    },
+    log: () => undefined,
+    warn: () => undefined,
+  };
   const subscriptionRow = {
     billingAccountId: 'ba_1',
     cancelAtPeriodEnd: false,
@@ -64,16 +85,38 @@ describe('Stripe webhook credit grant guard (relink between persist and reconcil
   const prisma = {
     customer: { findFirst: vi.fn(), findMany: vi.fn() },
     organization: { findFirst: vi.fn() },
-    subscription: { findMany: vi.fn(), updateMany: vi.fn() },
+    subscription: {
+      findMany: vi.fn(),
+      updateMany: async ({ data }: { data: Record<string, unknown> }) => {
+        subscriptionWrites.push(data);
+        return { count: 1 };
+      },
+    },
   };
   const accounts = { resolveForOrganization: vi.fn() };
   const creditBalanceService = {
     getOrCreateBalance: vi.fn(),
     toSnapshot: vi.fn(),
-    updateBalance: vi.fn(),
+    updateBalance: async (
+      _organizationId: string,
+      newBalance: number,
+      billingAccountId: string,
+    ) => {
+      balances.set(billingAccountId, newBalance);
+      return { balance: newBalance };
+    },
   };
   const creditTransactionsService = {
-    createTransactionEntry: vi.fn(),
+    createTransactionEntry: async (
+      organizationId: string,
+      _category: string,
+      amount: number,
+      balanceBefore: number,
+      balanceAfter: number,
+    ) => {
+      ledger.push({ amount, balanceAfter, balanceBefore, organizationId });
+      return {};
+    },
     findOne: vi.fn(),
     findOneSelect: delegateFindOneSelect(),
   };
@@ -88,17 +131,25 @@ describe('Stripe webhook credit grant guard (relink between persist and reconcil
     hasSubscriptionCreditGrant: vi.fn(),
     isUniqueConstraintError: vi.fn(() => false),
     markOnboardingComplete: vi.fn(),
-    recordCreditsActivity: vi.fn(),
+    recordCreditsActivity: async (...activity: unknown[]) => {
+      creditActivity.push(activity);
+    },
     recordProcessingFee: vi.fn(),
     recordRevenueEvent: vi.fn(),
     resolveSubscriptionPlan: vi.fn(() => SubscriptionPlan.MONTHLY),
     notifyOperatorOfBillingEvent: vi.fn(),
     resolveTierFromPriceId: vi.fn(() => null),
-    setHasEverHadCredits: vi.fn(),
+    setHasEverHadCredits: async (...flag: unknown[]) => {
+      creditActivity.push(flag);
+    },
     updateOrganizationTierAndModels: vi.fn(),
   };
   const subscriptions = { syncSubscriptionState: vi.fn() };
-  const websocket = { emit: vi.fn() };
+  const websocket = {
+    emit: async (...update: unknown[]) => {
+      liveUpdates.push(update);
+    },
+  };
   const accessBootstrapCache = {
     invalidateForOrganization: vi.fn(),
     invalidateForUser: vi.fn(),
@@ -130,8 +181,13 @@ describe('Stripe webhook credit grant guard (relink between persist and reconcil
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    balances = new Map();
+    ledger = [];
+    subscriptionWrites = [];
+    creditActivity = [];
+    liveUpdates = [];
+    errors = [];
     prisma.subscription.findMany.mockResolvedValue([subscriptionRow]);
-    prisma.subscription.updateMany.mockResolvedValue({ count: 1 });
     prisma.customer.findFirst.mockResolvedValue({
       billingAccountId: 'ba_1',
       id: 'customer_1',
@@ -158,8 +214,6 @@ describe('Stripe webhook credit grant guard (relink between persist and reconcil
         version: row.version,
       }),
     );
-    creditBalanceService.updateBalance.mockResolvedValue({ balance: 5_900 });
-    creditTransactionsService.createTransactionEntry.mockResolvedValue({});
     creditTransactionsService.findOne.mockResolvedValue(null);
     support.hasSubscriptionCreditGrant.mockResolvedValue(false);
     walletOn(ORIGINAL_ACCOUNT);
@@ -248,30 +302,27 @@ describe('Stripe webhook credit grant guard (relink between persist and reconcil
         isRetryable: true,
       });
       // The guarded subscription write already happened — that is the window.
-      expect(prisma.subscription.updateMany).toHaveBeenCalledTimes(1);
+      expect(subscriptionWrites).toHaveLength(1);
       // ...but not one credit moved, on either account.
-      expect(creditBalanceService.updateBalance).not.toHaveBeenCalled();
-      expect(
-        creditTransactionsService.createTransactionEntry,
-      ).not.toHaveBeenCalled();
-      expect(support.recordCreditsActivity).not.toHaveBeenCalled();
-      expect(support.setHasEverHadCredits).not.toHaveBeenCalled();
-      expect(websocket.emit).not.toHaveBeenCalled();
+      expect([...balances]).toEqual([]);
+      expect(ledger).toEqual([]);
+      expect(creditActivity).toEqual([]);
+      expect(liveUpdates).toEqual([]);
     },
   );
 
   it('grants onto the referenced account when no relink happens', async () => {
     await handler.handleInvoicePaid(invoiceWith('subscription_cycle'), 'test');
 
-    expect(creditBalanceService.updateBalance).toHaveBeenCalledExactlyOnceWith(
-      'org_1',
-      6_000,
-      'ba_1',
-      txClient,
-    );
-    expect(
-      creditTransactionsService.createTransactionEntry,
-    ).toHaveBeenCalledTimes(1);
-    expect(logger.error).not.toHaveBeenCalled();
+    expect([...balances]).toEqual([['ba_1', 6_000]]);
+    expect(ledger).toEqual([
+      {
+        amount: 5_900,
+        balanceAfter: 6_000,
+        balanceBefore: 100,
+        organizationId: 'org_1',
+      },
+    ]);
+    expect(errors).toEqual([]);
   });
 });

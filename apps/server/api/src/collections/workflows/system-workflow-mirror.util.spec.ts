@@ -9,7 +9,7 @@ import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/s
 import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 const definition: SystemWorkflowGraphDefinition = {
   canonicalId: 'clipper-hook-review',
@@ -27,7 +27,9 @@ const definition: SystemWorkflowGraphDefinition = {
   resultNodeId: 'review-hook',
 };
 
-function buildStaleMirror() {
+type MirrorRow = Record<string, unknown> & { id: string };
+
+function staleMirror(): MirrorRow {
   const immutableDefinition = buildWorkflowVersionDefinition(
     definition.definition,
   );
@@ -56,89 +58,104 @@ function buildStaleMirror() {
   };
 }
 
-function buildPrisma(options: {
-  inLockMirror?: ReturnType<typeof buildStaleMirror>;
-  mirror: ReturnType<typeof buildStaleMirror>;
-}) {
-  const transaction = {
-    $executeRaw: vi.fn().mockResolvedValue(1),
-    workflow: {
-      findFirst: vi
-        .fn()
-        .mockResolvedValue(options.inLockMirror ?? options.mirror),
-      update: vi
-        .fn()
-        .mockImplementation(({ data }) =>
-          Promise.resolve({ ...options.mirror, ...data }),
-        ),
-    },
-  };
-  const prisma = {
-    $transaction: vi.fn((callback) => callback(transaction)),
-    workflow: { findFirst: vi.fn().mockResolvedValue(options.mirror) },
-  };
-  return { prisma, transaction };
-}
+// Postgres jsonb drops `undefined` members and an unset schedule reads as null.
+const asStored = (row: MirrorRow): MirrorRow =>
+  JSON.parse(JSON.stringify({ ...row, schedule: row.schedule ?? null }));
 
 describe('ensureHiddenSystemWorkflowMirror', () => {
-  it('writes the mirror fields once when they differ from the definition', async () => {
-    const { prisma, transaction } = buildPrisma({
-      mirror: buildStaleMirror(),
+  // One hidden mirror row, plus what the database saw happen to it.
+  let row: MirrorRow;
+  let transactionsStarted: number;
+  let writes: number;
+  // Runs when a transaction takes the advisory lock: a competing run that
+  // won the lock first can change the row here.
+  let onLock: () => void;
+  let prisma: PrismaService;
+
+  beforeEach(() => {
+    row = asStored(staleMirror());
+    transactionsStarted = 0;
+    writes = 0;
+    onLock = () => {};
+
+    const findFirst = async () => structuredClone(row);
+    const transaction = {
+      $executeRaw: async () => {
+        onLock();
+        return 1;
+      },
+      workflow: {
+        findFirst,
+        update: async ({ data }: { data: Record<string, unknown> }) => {
+          writes += 1;
+          row = asStored({ ...row, ...data });
+          return structuredClone(row);
+        },
+      },
+    };
+    prisma = {
+      $transaction: async (callback: (tx: typeof transaction) => unknown) => {
+        transactionsStarted += 1;
+        return callback(transaction);
+      },
+      workflow: { findFirst },
+    } as unknown as PrismaService;
+  });
+
+  it('writes the definition fields onto a stale mirror once', async () => {
+    await ensureHiddenSystemWorkflowMirror(prisma, definition);
+
+    expect(writes).toBe(1);
+    expect(row).toMatchObject({
+      description: 'Review one generated hook clip.',
+      label: 'Clip Hook Review',
+      metadata: expect.objectContaining({
+        sourceTemplateId: 'clipper-hook-review',
+        sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+      }),
     });
-
-    await ensureHiddenSystemWorkflowMirror(
-      prisma as unknown as PrismaService,
-      definition,
-    );
-
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-    expect(transaction.workflow.update).toHaveBeenCalledTimes(1);
   });
 
   it('starts no transaction and writes nothing when the mirror is current', async () => {
-    const first = buildPrisma({ mirror: buildStaleMirror() });
-    const written = await ensureHiddenSystemWorkflowMirror(
-      first.prisma as unknown as PrismaService,
-      definition,
-    );
-    // What the database hands back after that write: jsonb drops `undefined`
-    // members, and an unset schedule is null.
-    const current = JSON.parse(
-      JSON.stringify({ ...written, schedule: written.schedule ?? null }),
-    );
-    const { prisma, transaction } = buildPrisma({ mirror: current });
+    await ensureHiddenSystemWorkflowMirror(prisma, definition);
+    const current = structuredClone(row);
+    transactionsStarted = 0;
+    writes = 0;
 
     await expect(
-      ensureHiddenSystemWorkflowMirror(
-        prisma as unknown as PrismaService,
-        definition,
-      ),
+      ensureHiddenSystemWorkflowMirror(prisma, definition),
     ).resolves.toEqual(current);
 
-    expect(prisma.$transaction).not.toHaveBeenCalled();
-    expect(transaction.workflow.update).not.toHaveBeenCalled();
+    expect(transactionsStarted).toBe(0);
+    expect(writes).toBe(0);
   });
 
   it('skips the write when a run queued behind the lock finds the winner already wrote it', async () => {
-    const first = buildPrisma({ mirror: buildStaleMirror() });
-    const written = await ensureHiddenSystemWorkflowMirror(
-      first.prisma as unknown as PrismaService,
-      definition,
-    );
-    const current = JSON.parse(
-      JSON.stringify({ ...written, schedule: written.schedule ?? null }),
-    );
-    const { prisma, transaction } = buildPrisma({
-      inLockMirror: current,
-      mirror: buildStaleMirror(),
-    });
+    const stale = structuredClone(row);
+    await ensureHiddenSystemWorkflowMirror(prisma, definition);
+    const winnerRow = structuredClone(row);
+    // This run read the stale row before the winner committed.
+    row = stale;
+    onLock = () => {
+      row = structuredClone(winnerRow);
+    };
+    writes = 0;
 
-    await ensureHiddenSystemWorkflowMirror(
-      prisma as unknown as PrismaService,
-      definition,
-    );
+    await expect(
+      ensureHiddenSystemWorkflowMirror(prisma, definition),
+    ).resolves.toEqual(winnerRow);
 
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-    expect(transaction.workflow.update).not.toHaveBeenCalled();
+    expect(writes).toBe(0);
+  });
+
+  it('refuses to adopt a principal workflow that is not a hidden mirror', async () => {
+    row = { ...row, metadata: { sourceType: 'user' } };
+
+    await expect(
+      ensureHiddenSystemWorkflowMirror(prisma, definition),
+    ).rejects.toThrow(
+      'System workflow clipper-hook-review collides with a non-hidden principal workflow',
+    );
+    expect(writes).toBe(0);
   });
 });

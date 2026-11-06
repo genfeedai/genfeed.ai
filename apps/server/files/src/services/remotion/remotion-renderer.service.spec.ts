@@ -1,42 +1,100 @@
+interface RenderRecord {
+  codec: string;
+  concurrency: number | string | null | undefined;
+  height: number;
+  inputProps: Record<string, unknown>;
+  outcome: 'cancelled' | 'finished' | 'running';
+  outputLocation: string | null | undefined;
+  serveUrl: string;
+  width: number;
+}
+
+// Remotion as the render worker sees it: a bundler, a composition picker and a
+// renderer that either finishes or keeps rendering until it is cancelled.
+const remotion = vi.hoisted(() => ({
+  bundleFailures: 0,
+  bundles: [] as string[],
+  hasPrebuiltBundle: false,
+  isRenderHanging: false,
+  progress: [] as number[],
+  renders: [] as RenderRecord[],
+  selectionGate: undefined as Promise<void> | undefined,
+  selections: [] as string[],
+}));
+
 vi.mock('node:fs', () => ({
-  existsSync: vi
-    .fn()
-    .mockImplementation((filePath: string) => !filePath.endsWith('index.html')),
+  existsSync: (filePath: string) =>
+    filePath.endsWith('src/remotion/index.tsx') ||
+    (remotion.hasPrebuiltBundle &&
+      filePath.endsWith('remotion-bundle/index.html')),
 }));
 
 vi.mock('@remotion/bundler', () => ({
-  bundle: vi.fn().mockResolvedValue('/tmp/remotion-bundle'),
+  bundle: async ({ entryPoint }: { entryPoint: string }) => {
+    remotion.bundles.push(entryPoint);
+    if (remotion.bundleFailures > 0) {
+      remotion.bundleFailures -= 1;
+      throw new Error('Webpack failed');
+    }
+    return '/tmp/remotion-bundle';
+  },
 }));
 
 vi.mock('@remotion/renderer', () => ({
-  makeCancelSignal: vi.fn(() => {
-    let cancelled = false;
-    let onCancel: (() => void) | undefined;
-
+  makeCancelSignal: () => {
+    const listeners: (() => void)[] = [];
     return {
-      cancel: vi.fn(() => {
-        cancelled = true;
-        onCancel?.();
-      }),
+      cancel: () => {
+        for (const listener of listeners) listener();
+      },
       cancelSignal: (listener: () => void) => {
-        onCancel = listener;
-        if (cancelled) {
-          listener();
-        }
+        listeners.push(listener);
       },
     };
-  }),
-  renderMedia: vi.fn().mockResolvedValue(undefined),
-  selectComposition: vi.fn().mockResolvedValue({
-    durationInFrames: 300,
-    fps: 30,
-    height: 1920,
-    id: 'EditorComposition',
-    width: 1080,
-  }),
+  },
+  renderMedia: (options: {
+    cancelSignal: (listener: () => void) => void;
+    codec: string;
+    composition: { height: number; width: number };
+    concurrency: number | string | null;
+    inputProps: Record<string, unknown>;
+    onProgress: (update: { progress: number }) => void;
+    outputLocation: string | null;
+    serveUrl: string;
+  }) => {
+    const record: RenderRecord = {
+      codec: options.codec,
+      concurrency: options.concurrency,
+      height: options.composition.height,
+      inputProps: options.inputProps,
+      outcome: 'running',
+      outputLocation: options.outputLocation,
+      serveUrl: options.serveUrl,
+      width: options.composition.width,
+    };
+    remotion.renders.push(record);
+    return new Promise<void>((resolve, reject) => {
+      options.cancelSignal(() => {
+        record.outcome = 'cancelled';
+        reject(new Error('renderer cancelled'));
+      });
+      if (!remotion.isRenderHanging) {
+        options.onProgress({ progress: 0.5 });
+        options.onProgress({ progress: 1 });
+        record.outcome = 'finished';
+        resolve();
+      }
+    });
+  },
+  selectComposition: async ({ id }: { id: string }) => {
+    remotion.selections.push(id);
+    await remotion.selectionGate;
+    return { durationInFrames: 300, fps: 30, height: 1920, id, width: 1080 };
+  },
 }));
 
 import { BRANDED_AVATAR_RENDER_FIXTURE } from '@files/services/remotion/fixtures/branded-avatar.fixture';
+import type { RemotionRenderCancellationService } from '@files/services/remotion/remotion-render-cancellation.service';
 import {
   EditorRenderCancelledError,
   EditorRenderTimeoutError,
@@ -45,20 +103,56 @@ import {
 import {
   EDITOR_RENDER_TIMEOUT_MS,
   EDITOR_RENDERER_VERSION,
+  type IEditorRenderJobParams,
 } from '@genfeedai/contracts/interfaces';
-import { bundle } from '@remotion/bundler';
-import { renderMedia, selectComposition } from '@remotion/renderer';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { VERSION as INSTALLED_REMOTION_VERSION } from 'remotion/version';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const params = BRANDED_AVATAR_RENDER_FIXTURE;
 
 describe('RemotionRendererService', () => {
-  const params = BRANDED_AVATAR_RENDER_FIXTURE;
-  const logger = { log: vi.fn() };
-  const cancellationService = {
-    register: vi.fn().mockReturnValue(vi.fn()),
+  let activeRenders: Map<string, () => void>;
+  let bundleSources: unknown[];
+  let service: RemotionRendererService;
+
+  const record = (progress: number) => {
+    remotion.progress.push(progress);
   };
+  const cancelJob = (jobId: string) => activeRenders.get(jobId)?.();
+
+  beforeEach(() => {
+    remotion.bundleFailures = 0;
+    remotion.bundles = [];
+    remotion.hasPrebuiltBundle = false;
+    remotion.isRenderHanging = false;
+    remotion.progress = [];
+    remotion.renders = [];
+    remotion.selectionGate = undefined;
+    remotion.selections = [];
+    activeRenders = new Map();
+    bundleSources = [];
+
+    // Cancellation requests reach whichever render registered the job id.
+    const cancellations = {
+      register: (jobId: string, cancel: () => void) => {
+        activeRenders.set(jobId, cancel);
+        return () => {
+          activeRenders.delete(jobId);
+        };
+      },
+    };
+    service = new RemotionRendererService(
+      {
+        log: (_message: string, context: { bundleSource: string }) => {
+          bundleSources.push(context.bundleSource);
+        },
+      } as unknown as LoggerService,
+      cancellations as unknown as RemotionRenderCancellationService,
+    );
+  });
 
   afterEach(() => {
-    vi.clearAllMocks();
     vi.useRealTimers();
   });
 
@@ -68,177 +162,115 @@ describe('RemotionRendererService', () => {
     );
   });
 
-  it('selects and renders the pinned composition with bounded concurrency', async () => {
-    const service = new RemotionRendererService(
-      logger as never,
-      cancellationService as never,
-    );
-    const onProgress = vi.fn();
+  it('renders the pinned composition at its size with bounded concurrency', async () => {
+    await service.render(params, '/tmp/output.mp4', record);
 
-    await service.render(params, '/tmp/output.mp4', onProgress);
-
-    expect(selectComposition).toHaveBeenCalledWith({
-      id: 'EditorComposition',
-      inputProps: { snapshot: params.snapshot },
-      serveUrl: '/tmp/remotion-bundle',
-    });
-    expect(renderMedia).toHaveBeenCalledWith(
-      expect.objectContaining({
+    expect(remotion.selections).toEqual(['EditorComposition']);
+    expect(remotion.renders).toEqual([
+      {
         codec: 'h264',
-        composition: expect.objectContaining({
-          height: 1920,
-          width: 1080,
-        }),
         concurrency: 1,
+        height: 1920,
         inputProps: { snapshot: params.snapshot },
+        outcome: 'finished',
         outputLocation: '/tmp/output.mp4',
         serveUrl: '/tmp/remotion-bundle',
-      }),
-    );
+        width: 1080,
+      },
+    ]);
+    expect(remotion.progress).toEqual([0.5, 1]);
+    expect(activeRenders.size).toBe(0);
   });
 
-  it('reuses the composition bundle across render jobs', async () => {
-    const service = new RemotionRendererService(
-      logger as never,
-      cancellationService as never,
-    );
+  it('bundles the composition once and reuses it across render jobs', async () => {
+    await service.render(params, '/tmp/first.mp4', record);
+    await service.render(params, '/tmp/second.mp4', record);
 
-    await service.render(params, '/tmp/first.mp4', vi.fn());
-    await service.render(params, '/tmp/second.mp4', vi.fn());
+    expect(remotion.bundles).toHaveLength(1);
+    expect(
+      remotion.renders.map(({ outputLocation }) => outputLocation),
+    ).toEqual(['/tmp/first.mp4', '/tmp/second.mp4']);
+  });
 
-    expect(bundle).toHaveBeenCalledTimes(1);
-    expect(renderMedia).toHaveBeenCalledTimes(2);
+  it('bundles again on the next job after a failed bundle', async () => {
+    remotion.bundleFailures = 1;
+
+    await expect(
+      service.render(params, '/tmp/first.mp4', record),
+    ).rejects.toThrow('Webpack failed');
+    await service.render(params, '/tmp/second.mp4', record);
+
+    expect(remotion.bundles).toHaveLength(2);
+    expect(
+      remotion.renders.map(({ outputLocation }) => outputLocation),
+    ).toEqual(['/tmp/second.mp4']);
+  });
+
+  it('serves a prebuilt bundle without bundling at runtime', async () => {
+    remotion.hasPrebuiltBundle = true;
+
+    await service.render(params, '/tmp/output.mp4', record);
+
+    expect(remotion.bundles).toEqual([]);
+    expect(bundleSources).toEqual(['prebuilt']);
+    expect(remotion.renders[0]?.serveUrl).toMatch(/remotion-bundle$/);
   });
 
   it('rejects a job for a different renderer version', async () => {
-    const service = new RemotionRendererService(
-      logger as never,
-      cancellationService as never,
-    );
+    const staleJob = {
+      ...params,
+      rendererVersion: 'remotion@0.0.0',
+    } as unknown as IEditorRenderJobParams;
 
     await expect(
-      service.render(
-        { ...params, rendererVersion: 'remotion@0.0.0' } as never,
-        '/tmp/output.mp4',
-        vi.fn(),
-      ),
+      service.render(staleJob, '/tmp/output.mp4', record),
     ).rejects.toThrow('Unsupported editor renderer version');
-    expect(renderMedia).not.toHaveBeenCalled();
+    expect(remotion.renders).toEqual([]);
   });
 
   it('cooperatively cancels an active renderer process', async () => {
-    let cancelActiveRender: (() => void) | undefined;
-    let signalRegistered: (() => void) | undefined;
-    const registered = new Promise<void>((resolve) => {
-      signalRegistered = resolve;
-    });
-    const cancellationService = {
-      register: vi.fn((_jobId: string, cancel: () => void) => {
-        cancelActiveRender = cancel;
-        signalRegistered?.();
-        return vi.fn();
-      }),
-    };
-    vi.mocked(renderMedia).mockImplementationOnce(
-      ({ cancelSignal }) =>
-        new Promise((_resolve, reject) => {
-          cancelSignal?.(() => reject(new Error('renderer cancelled')));
-        }),
-    );
-    const service = new RemotionRendererService(
-      logger as never,
-      cancellationService as never,
-    );
+    remotion.isRenderHanging = true;
 
-    const render = service.render(
-      params,
-      '/tmp/output.mp4',
-      vi.fn(),
-      'job-123',
-    );
-    await registered;
-    cancelActiveRender?.();
+    const render = service.render(params, '/tmp/output.mp4', record, 'job-123');
+    await vi.waitFor(() => expect(remotion.renders).toHaveLength(1));
+    cancelJob('job-123');
 
     await expect(render).rejects.toBeInstanceOf(EditorRenderCancelledError);
+    expect(remotion.renders[0]?.outcome).toBe('cancelled');
+    expect(activeRenders.size).toBe(0);
   });
 
-  it('does not arm a timeout or render after preflight cancellation', async () => {
-    let cancelActiveRender: (() => void) | undefined;
-    let resolveComposition:
-      | ((value: Awaited<ReturnType<typeof selectComposition>>) => void)
-      | undefined;
-    const pendingComposition = new Promise<
-      Awaited<ReturnType<typeof selectComposition>>
-    >((resolve) => {
-      resolveComposition = resolve;
+  it('never starts rendering when cancelled while choosing the composition', async () => {
+    let releaseSelection: () => void = () => undefined;
+    remotion.selectionGate = new Promise((resolve) => {
+      releaseSelection = resolve;
     });
-    vi.mocked(selectComposition).mockReturnValueOnce(pendingComposition);
-    const preflightCancellationService = {
-      register: vi.fn((_jobId: string, cancel: () => void) => {
-        cancelActiveRender = cancel;
-        return vi.fn();
-      }),
-    };
-    const service = new RemotionRendererService(
-      logger as never,
-      preflightCancellationService as never,
-    );
-    const render = service.render(
-      params,
-      '/tmp/output.mp4',
-      vi.fn(),
-      'job-123',
-    );
-    const cancellationAssertion = expect(render).rejects.toBeInstanceOf(
+
+    const render = service.render(params, '/tmp/output.mp4', record, 'job-123');
+    const cancelled = expect(render).rejects.toBeInstanceOf(
       EditorRenderCancelledError,
     );
-    await vi.waitFor(() => expect(selectComposition).toHaveBeenCalled());
-
-    cancelActiveRender?.();
-    await cancellationAssertion;
-    resolveComposition?.({
-      durationInFrames: 300,
-      fps: 30,
-      height: 1920,
-      id: 'EditorComposition',
-      width: 1080,
-    } as Awaited<ReturnType<typeof selectComposition>>);
-    await pendingComposition;
+    await vi.waitFor(() => expect(remotion.selections).toHaveLength(1));
+    cancelJob('job-123');
+    await cancelled;
+    releaseSelection();
+    await remotion.selectionGate;
     await Promise.resolve();
 
-    expect(renderMedia).not.toHaveBeenCalled();
+    expect(remotion.renders).toEqual([]);
   });
 
-  it('enforces an overall render deadline', async () => {
+  it('stops a render that runs past the overall deadline', async () => {
     vi.useFakeTimers();
-    let signalRegistered: (() => void) | undefined;
-    const registered = new Promise<void>((resolve) => {
-      signalRegistered = resolve;
-    });
-    const timeoutCancellationService = {
-      register: vi.fn(() => {
-        signalRegistered?.();
-        return vi.fn();
-      }),
-    };
-    vi.mocked(renderMedia).mockImplementationOnce(
-      ({ cancelSignal }) =>
-        new Promise((_resolve, reject) => {
-          cancelSignal?.(() => reject(new Error('renderer cancelled')));
-        }),
-    );
-    const service = new RemotionRendererService(
-      logger as never,
-      timeoutCancellationService as never,
-    );
-    const render = service.render(params, '/tmp/output.mp4', vi.fn());
-    const timeoutAssertion = expect(render).rejects.toBeInstanceOf(
+    remotion.isRenderHanging = true;
+
+    const render = service.render(params, '/tmp/output.mp4', record);
+    const timedOut = expect(render).rejects.toBeInstanceOf(
       EditorRenderTimeoutError,
     );
-
-    await registered;
     await vi.advanceTimersByTimeAsync(EDITOR_RENDER_TIMEOUT_MS);
 
-    await timeoutAssertion;
+    await timedOut;
+    expect(remotion.renders[0]?.outcome).toBe('cancelled');
   });
 });

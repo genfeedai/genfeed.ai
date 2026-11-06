@@ -32,6 +32,7 @@ import { useThreadResolution } from './use-thread-resolution';
 
 const THREADS_TAB_ID = 'threads';
 const CONTEXT_TAB_ID = 'context';
+const AGENT_SPLIT_STORAGE_KEY = 'genfeed:agent-master-split';
 
 /**
  * `/agent`, `/agent/threads` and `/agent/[id]`: the master conversation on the
@@ -207,7 +208,9 @@ export default function AgentMasterWorkspace({
         collapseOutput: translate('collapseOutput'),
         expandOutput: translate('expandOutput'),
         output: translate('threads'),
+        resizePanes: translate('resizePanes'),
       }}
+      resizeStorageKey={AGENT_SPLIT_STORAGE_KEY}
       tabs={tabs}
     />
   );

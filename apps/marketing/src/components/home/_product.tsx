@@ -37,7 +37,7 @@ export default function HomeProduct(): React.ReactElement {
             <Card variant={CardVariant.INSET}>
               <div className="flex items-center justify-between border-b border-foreground/5 pb-4">
                 <div>
-                  <Text className="text-[11px] font-bold uppercase tracking-[0.14em] text-foreground/60">
+                  <Text className="text-2xs font-bold uppercase tracking-[0.14em] text-foreground/60">
                     New campaign
                   </Text>
                   <Text className="mt-1 text-sm text-foreground">

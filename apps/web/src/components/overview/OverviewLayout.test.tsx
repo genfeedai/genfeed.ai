@@ -83,7 +83,7 @@ describe('OverviewLayout', () => {
     expect(screen.getByTestId('overview-quick-actions')).toHaveClass(
       '@container',
     );
-    expect(grid).toHaveClass('@[80rem]:grid-cols-4', 'gap-5');
+    expect(grid).toHaveClass('@[80rem]:grid-cols-4', 'gap-4');
     expect(grid.className).not.toMatch(/(^|\s)(sm|md|lg|xl|2xl):grid-cols/);
     expect(container.innerHTML).not.toContain('min-h-[220px]');
   });

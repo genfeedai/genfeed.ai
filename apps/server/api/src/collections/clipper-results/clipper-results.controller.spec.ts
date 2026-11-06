@@ -1,210 +1,227 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ClipperResultsController } from '@api/collections/clipper-results/clipper-results.controller';
 import type { ClipperResultsService } from '@api/collections/clipper-results/clipper-results.service';
-import type { ClipperResultDocument } from '@api/collections/clipper-results/schemas/clipper-result.schema';
-import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
-import { testId } from '@helpers/testing/test-id.helper';
+import type { CreateClipperResultDto } from '@api/collections/clipper-results/dto/create-clipper-result.dto';
+import type { UpdateClipperResultDto } from '@api/collections/clipper-results/dto/update-clipper-result.dto';
+import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { HttpStatus } from '@nestjs/common';
 import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/response/response.util', () => ({
-  returnNotFound: vi.fn().mockReturnValue({ errors: [{ status: '404' }] }),
-  serializeCollection: vi
-    .fn()
-    .mockImplementation((_req, _serializer, data) => ({ data: data.docs })),
-  serializeSingle: vi
-    .fn()
-    .mockImplementation((_req, _serializer, data) => ({ data })),
-}));
+// Serialization is out of scope: hand back the rows the controller read.
+vi.mock(
+  '@api/helpers/utils/response/response.util',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@api/helpers/utils/response/response.util')
+    >()),
+    serializeCollection: (
+      _req: unknown,
+      _serializer: unknown,
+      page: { docs: unknown[] },
+    ) => page.docs,
+    serializeSingle: (_req: unknown, _serializer: unknown, data: unknown) =>
+      data,
+  }),
+);
 
-function createMockLogger(): LoggerService {
-  return {
-    debug: vi.fn(),
-    error: vi.fn(),
-    log: vi.fn(),
-    verbose: vi.fn(),
-    warn: vi.fn(),
-  } as unknown as LoggerService;
+interface ClipResult {
+  id: string;
+  organizationId: string;
+  projectId: string;
+  status?: string;
+  title: string;
+  userId?: string;
 }
 
-function createMockService(): Record<string, ReturnType<typeof vi.fn>> {
-  return {
-    create: vi.fn(),
-    createForOrganization: vi.fn(),
-    findRecentByOrganization: vi.fn(),
-    findByProject: vi.fn(),
-    findOne: vi.fn(),
-    findOneSelect: delegateFindOneSelect(),
-    patch: vi.fn(),
-  };
-}
+const user = { organizationId: 'org-1', userId: 'user-1' } as User;
+const req = { url: '/clipper-results' } as Request;
+
+const notFound = (id: string) => ({
+  response: {
+    detail: `ClipperResultsController ${id} doesn't exist`,
+    title: 'ClipperResultsController not found',
+  },
+  status: HttpStatus.NOT_FOUND,
+});
 
 describe('ClipperResultsController', () => {
-  const organizationId = testId('org');
-  const userId = testId('user');
-
   let controller: ClipperResultsController;
-  let service: ReturnType<typeof createMockService>;
+  let results: ClipResult[];
 
-  const mockUser = {
-    organizationId: organizationId,
-    userId: userId,
-  } as unknown as User;
-
-  const mockReq = {
-    headers: {},
-    url: '/clipper-results',
-  } as unknown as Request;
+  const seed = (count: number, row: Omit<ClipResult, 'id' | 'title'>) => {
+    for (let index = 0; index < count; index += 1) {
+      const id = `${row.organizationId}-${row.projectId}-${index}`;
+      results.push({ ...row, id, title: id });
+    }
+  };
 
   beforeEach(() => {
-    service = createMockService();
-    controller = new ClipperResultsController(
-      service as unknown as ClipperResultsService,
-      createMockLogger(),
-    );
+    results = [];
+    const own = (id: string, organizationId: string) =>
+      results.find(
+        (row) => row.id === id && row.organizationId === organizationId,
+      ) ?? null;
+
+    const service = {
+      createForOrganization: async (dto: Omit<ClipResult, 'id'>) => {
+        const row = { ...dto, id: `clip-${results.length + 1}` };
+        results.push(row);
+        return row;
+      },
+      findByProject: async (
+        projectId: string,
+        organizationId: string,
+        limit: number,
+      ) =>
+        results
+          .filter(
+            (row) =>
+              row.projectId === projectId &&
+              row.organizationId === organizationId,
+          )
+          .slice(0, limit),
+      findOne: async (where: { id: string; organizationId: string }) =>
+        own(where.id, where.organizationId),
+      findOneSelect: async (where: { id: string; organizationId: string }) => {
+        const row = own(where.id, where.organizationId);
+        return row ? { id: row.id } : null;
+      },
+      findRecentByOrganization: async (organizationId: string, limit: number) =>
+        results
+          .filter((row) => row.organizationId === organizationId)
+          .slice(0, limit),
+      patch: async (id: string, dto: UpdateClipperResultDto) =>
+        Object.assign(results.find((row) => row.id === id) ?? {}, dto),
+    } as unknown as ClipperResultsService;
+
+    controller = new ClipperResultsController(service, {} as LoggerService);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
+  it('creates a clip result in the caller organization under the caller', async () => {
+    const dto = {
+      duration: 30,
+      endTime: 45,
+      index: 0,
+      projectId: 'project-1',
+      startTime: 15,
+      title: 'Clip title',
+    } as CreateClipperResultDto;
 
-  describe('create', () => {
-    it('should create a clip result with organization and user from metadata', async () => {
-      const dto = {
-        duration: 30,
-        endTime: 45,
-        index: 0,
-        projectId: 'project-1',
-        startTime: 15,
-        title: 'Clip title',
-      };
-      const created = {
-        id: 'cr-1',
+    await controller.create(req, dto, user);
+
+    expect(results).toEqual([
+      {
         ...dto,
-      } as unknown as ClipperResultDocument;
-      service.createForOrganization.mockResolvedValue(created);
-
-      const result = await controller.create(mockReq, dto as never, mockUser);
-
-      expect(service.createForOrganization).toHaveBeenCalledWith(
-        expect.objectContaining({
-          organizationId,
-          userId,
-        }),
-      );
-      expect(result).toEqual({ data: created });
-    });
+        id: 'clip-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+    ]);
   });
 
   describe('findAll', () => {
-    it('should find by project when projectId query param is provided', async () => {
-      const docs = [{ id: 'cr-1' }];
-      service.findByProject.mockResolvedValue(docs);
-
-      await controller.findAll(mockReq, 'project-1', '', mockUser);
-
-      expect(service.findByProject).toHaveBeenCalledWith(
-        'project-1',
-        organizationId,
-        100,
-      );
-      expect(service.findRecentByOrganization).not.toHaveBeenCalled();
+    beforeEach(() => {
+      seed(2, { organizationId: 'org-1', projectId: 'project-1' });
+      seed(1, { organizationId: 'org-1', projectId: 'project-2' });
+      seed(1, { organizationId: 'org-2', projectId: 'project-1' });
     });
 
-    it('should find by project when filter[project] query param is provided', async () => {
-      const docs = [{ id: 'cr-1' }];
-      service.findByProject.mockResolvedValue(docs);
-
-      await controller.findAll(mockReq, '', 'project-2', mockUser);
-
-      expect(service.findByProject).toHaveBeenCalledWith(
-        'project-2',
-        organizationId,
-        100,
-      );
+    it.each([
+      ['project', 'project-1', ''],
+      ['filter[project]', '', 'project-1'],
+    ])('lists one own project by %s', async (_param, project, filter) => {
+      await expect(
+        controller.findAll(req, project, filter, user),
+      ).resolves.toEqual([
+        expect.objectContaining({ id: 'org-1-project-1-0' }),
+        expect.objectContaining({ id: 'org-1-project-1-1' }),
+      ]);
     });
 
-    it('should find all by organization when no project filter is given', async () => {
-      const docs = [{ id: 'cr-1' }, { id: 'cr-2' }];
-      service.findRecentByOrganization.mockResolvedValue(docs);
+    it('lists every own clip without a project', async () => {
+      const listed = await controller.findAll(req, '', '', user);
 
-      await controller.findAll(mockReq, '', '', mockUser);
+      expect(listed).toEqual([
+        expect.objectContaining({ id: 'org-1-project-1-0' }),
+        expect.objectContaining({ id: 'org-1-project-1-1' }),
+        expect.objectContaining({ id: 'org-1-project-2-0' }),
+      ]);
+    });
 
-      expect(service.findRecentByOrganization).toHaveBeenCalledWith(
-        organizationId,
-        100,
+    it('reads the selected organization scope', async () => {
+      const listed = await runWithTenantReadScope(
+        { isOrganizationOverride: true, organizationId: 'org-2' },
+        () => controller.findAll(req, '', '', user),
       );
-      expect(service.findByProject).not.toHaveBeenCalled();
+
+      expect(listed).toEqual([
+        expect.objectContaining({ id: 'org-2-project-1-0' }),
+      ]);
+    });
+
+    it.each([
+      ['a project', 'project-3'],
+      ['the organization', ''],
+    ])('caps the list of %s at 100 clips', async (_case, project) => {
+      seed(120, { organizationId: 'org-1', projectId: 'project-3' });
+
+      await expect(
+        controller.findAll(req, project, '', user),
+      ).resolves.toHaveLength(100);
     });
   });
 
   describe('findOne', () => {
-    it('should return a serialized clip result when found', async () => {
-      const doc = { id: 'cr-1', isDeleted: false };
-      service.findOne.mockResolvedValue(doc);
-
-      const result = await controller.findOne(mockReq, 'cr-1', mockUser);
-
-      expect(service.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: 'cr-1',
-          organizationId,
-        }),
-      );
-      expect(result).toEqual({ data: doc });
+    beforeEach(() => {
+      seed(1, { organizationId: 'org-1', projectId: 'project-1' });
+      seed(1, { organizationId: 'org-2', projectId: 'project-1' });
     });
 
-    it('should return not found when clip result does not exist', async () => {
-      service.findOne.mockResolvedValue(null);
-
-      const result = await controller.findOne(mockReq, 'nonexistent', mockUser);
-
-      expect(result).toEqual({ errors: [{ status: '404' }] });
+    it('finds an own clip', async () => {
+      await expect(
+        controller.findOne(req, 'org-1-project-1-0', user),
+      ).resolves.toMatchObject({ id: 'org-1-project-1-0' });
     });
+
+    it.each(['org-2-project-1-0', 'missing'])(
+      'answers 404 for %s',
+      async (id) => {
+        await expect(controller.findOne(req, id, user)).rejects.toMatchObject(
+          notFound(id),
+        );
+      },
+    );
   });
 
   describe('update', () => {
-    it('should patch a clip result when it exists', async () => {
-      const existing = { id: 'cr-1', isDeleted: false };
-      const updated = {
-        id: 'cr-1',
-        status: 'completed',
-      } as unknown as ClipperResultDocument;
-      service.findOne.mockResolvedValue(existing);
-      service.patch.mockResolvedValue(updated);
-
-      const result = await controller.update(
-        mockReq,
-        'cr-1',
-        { status: 'completed' } as never,
-        mockUser,
-      );
-
-      expect(service.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: 'cr-1',
-          organizationId,
-        }),
-      );
-      expect(service.patch).toHaveBeenCalledWith('cr-1', {
-        status: 'completed',
-      });
-      expect(result).toEqual({ data: updated });
+    beforeEach(() => {
+      seed(1, { organizationId: 'org-1', projectId: 'project-1' });
+      seed(1, { organizationId: 'org-2', projectId: 'project-1' });
     });
 
-    it('should return not found when clip result to update does not exist', async () => {
-      service.findOne.mockResolvedValue(null);
-
-      const result = await controller.update(
-        mockReq,
-        'nonexistent',
-        {} as never,
-        mockUser,
+    it('patches an own clip', async () => {
+      await controller.update(
+        req,
+        'org-1-project-1-0',
+        { status: 'completed' } as UpdateClipperResultDto,
+        user,
       );
 
-      expect(result).toEqual({ errors: [{ status: '404' }] });
-      expect(service.patch).not.toHaveBeenCalled();
+      expect(results[0]?.status).toBe('completed');
+    });
+
+    it('answers 404 for another organization clip and leaves it alone', async () => {
+      await expect(
+        controller.update(
+          req,
+          'org-2-project-1-0',
+          { status: 'completed' } as UpdateClipperResultDto,
+          user,
+        ),
+      ).rejects.toMatchObject(notFound('org-2-project-1-0'));
+      expect(results[1]?.status).toBeUndefined();
     });
   });
 });

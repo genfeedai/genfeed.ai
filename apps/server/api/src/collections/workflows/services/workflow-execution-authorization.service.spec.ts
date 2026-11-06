@@ -1,5 +1,11 @@
 import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 
 const scope = {
   brandId: 'brand-1',
@@ -12,34 +18,100 @@ const scope = {
   userId: 'user-1',
 } as const;
 
-describe('WorkflowExecutionAuthorizationService', () => {
-  const prisma = {
-    workflow: {
-      findFirst: vi.fn(),
-    },
-  };
-  const agentScopeContextService = {
-    assertConsequentialBoundary: vi.fn(),
-    assertResourceBrand: vi.fn(),
-    prepareForTurn: vi.fn(),
-  };
-  const service = new WorkflowExecutionAuthorizationService(
-    prisma as never,
-    agentScopeContextService as never,
-  );
+type Workflow = {
+  brandId: string;
+  id: string;
+  isDeleted: boolean;
+  organizationId: string;
+};
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    agentScopeContextService.prepareForTurn.mockResolvedValue({
-      existingScope: scope,
-    });
-    prisma.workflow.findFirst.mockResolvedValue({
+/**
+ * Persisted thread scopes at a context version, the workflows table, and a
+ * scope validator that refuses stale versions, consequential actions on a
+ * legacy scope, and resources of another brand. Prepared turns are recorded.
+ */
+function buildService(options: { isLegacyScope?: boolean } = {}) {
+  const preparedTurns: unknown[] = [];
+  const workflows: Workflow[] = [
+    {
       brandId: 'brand-1',
       id: 'workflow-1',
-    });
-  });
+      isDeleted: false,
+      organizationId: 'org-1',
+    },
+    {
+      brandId: 'brand-2',
+      id: 'workflow-other-brand',
+      isDeleted: false,
+      organizationId: 'org-1',
+    },
+    {
+      brandId: 'brand-1',
+      id: 'workflow-other-org',
+      isDeleted: false,
+      organizationId: 'org-2',
+    },
+  ];
+  const threadScope = {
+    ...scope,
+    isLegacyFallback: Boolean(options.isLegacyScope),
+  };
+  const agentScope = {
+    assertConsequentialBoundary: async (current: typeof threadScope) => {
+      if (current.isLegacyFallback) {
+        throw new ForbiddenException(
+          'Confirm the brand before running workflows',
+        );
+      }
+    },
+    assertResourceBrand: (current: typeof scope, brandId: string) => {
+      if (brandId !== current.brandId)
+        throw new ForbiddenException('outside scope');
+    },
+    prepareForTurn: async (turn: {
+      expectedContextVersion: number;
+      threadId: string;
+    }) => {
+      preparedTurns.push(turn);
+      if (turn.threadId !== scope.threadId) return { existingScope: undefined };
+      if (turn.expectedContextVersion !== scope.contextVersion) {
+        throw new ConflictException('Thread context changed');
+      }
+      return { existingScope: threadScope };
+    },
+  };
+  const prisma = {
+    workflow: {
+      findFirst: async ({ where }: { where: Partial<Workflow> }) =>
+        workflows.find(
+          (row) =>
+            row.id === where.id &&
+            row.organizationId === where.organizationId &&
+            row.isDeleted === where.isDeleted,
+        ) ?? null,
+    },
+  };
+  const service = new WorkflowExecutionAuthorizationService(
+    prisma as unknown as PrismaService,
+    agentScope as unknown as ConstructorParameters<
+      typeof WorkflowExecutionAuthorizationService
+    >[1],
+  );
+  return { preparedTurns, service };
+}
 
-  it('preserves the existing direct-route authorization path without shell state', async () => {
+const threadRequest = {
+  expectedContextVersion: 3,
+  organizationId: 'org-1',
+  threadId: 'thread-1',
+  userId: 'user-1',
+  workflowId: 'workflow-1',
+};
+
+describe('WorkflowExecutionAuthorizationService', () => {
+  it('preserves the direct-route authorization path without shell state', async () => {
+    const { preparedTurns, service } = buildService();
+
     await expect(
       service.authorize({
         organizationId: 'org-1',
@@ -47,74 +119,69 @@ describe('WorkflowExecutionAuthorizationService', () => {
         workflowId: 'workflow-1',
       }),
     ).resolves.toBeUndefined();
-
-    expect(agentScopeContextService.prepareForTurn).not.toHaveBeenCalled();
-    expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
+    expect(preparedTurns).toEqual([]);
   });
 
   it('requires the thread and context version as one authorization unit', async () => {
+    const { preparedTurns, service } = buildService();
+
     await expect(
       service.authorize({
-        organizationId: 'org-1',
-        threadId: 'thread-1',
-        userId: 'user-1',
-        workflowId: 'workflow-1',
+        ...threadRequest,
+        expectedContextVersion: undefined,
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
-
-    expect(agentScopeContextService.prepareForTurn).not.toHaveBeenCalled();
+    expect(preparedTurns).toEqual([]);
   });
 
-  it('validates stale context and exact workflow brand before execution', async () => {
+  it('returns the validated thread scope for a workflow of the thread brand', async () => {
+    const { preparedTurns, service } = buildService();
+
     await expect(
-      service.authorize({
+      service.authorize({ ...threadRequest, requestedBrandId: 'brand-1' }),
+    ).resolves.toEqual(expect.objectContaining({ brandId: 'brand-1' }));
+    expect(preparedTurns).toEqual([
+      {
         expectedContextVersion: 3,
         organizationId: 'org-1',
         requestedBrandId: 'brand-1',
         threadId: 'thread-1',
         userId: 'user-1',
-        workflowId: 'workflow-1',
-      }),
-    ).resolves.toBe(scope);
-
-    expect(agentScopeContextService.prepareForTurn).toHaveBeenCalledWith({
-      expectedContextVersion: 3,
-      organizationId: 'org-1',
-      requestedBrandId: 'brand-1',
-      threadId: 'thread-1',
-      userId: 'user-1',
-    });
-    expect(
-      agentScopeContextService.assertConsequentialBoundary,
-    ).toHaveBeenCalledWith(scope, 'workflow');
-    expect(prisma.workflow.findFirst).toHaveBeenCalledWith({
-      select: { brandId: true, id: true },
-      where: {
-        id: 'workflow-1',
-        isDeleted: false,
-        organizationId: 'org-1',
       },
-    });
-    expect(agentScopeContextService.assertResourceBrand).toHaveBeenCalledWith(
-      scope,
-      'brand-1',
-      'workflow',
-    );
+    ]);
   });
 
-  it('rejects a workflow outside the validated thread brand before engine execution', async () => {
-    agentScopeContextService.assertResourceBrand.mockImplementationOnce(() => {
-      throw new ForbiddenException('outside scope');
-    });
+  it.each([
+    [
+      'a stale context version',
+      { expectedContextVersion: 2 },
+      {},
+      ConflictException,
+    ],
+    [
+      'a thread without saved context',
+      { threadId: 'thread-unknown' },
+      {},
+      BadRequestException,
+    ],
+    ['a legacy scope', {}, { isLegacyScope: true }, ForbiddenException],
+    [
+      'a workflow of another brand',
+      { workflowId: 'workflow-other-brand' },
+      {},
+      ForbiddenException,
+    ],
+    [
+      'a workflow of another organization',
+      { workflowId: 'workflow-other-org' },
+      {},
+      NotFoundException,
+    ],
+  ])('refuses %s before execution', async (_case, override, options, error) => {
+    const { service } = buildService(options);
 
     await expect(
-      service.authorize({
-        expectedContextVersion: 3,
-        organizationId: 'org-1',
-        threadId: 'thread-1',
-        userId: 'user-1',
-        workflowId: 'workflow-1',
-      }),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+      service.authorize({ ...threadRequest, ...override }),
+    ).rejects.toBeInstanceOf(error);
   });
 });

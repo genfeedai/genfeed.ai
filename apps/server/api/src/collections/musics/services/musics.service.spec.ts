@@ -5,7 +5,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientOrigin, IngredientStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
@@ -14,31 +14,86 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+type Row = Record<string, unknown> & { id: string };
+type Include = Record<string, unknown> | undefined;
+
+// Related rows the ingredient table joins in only when the query includes them.
+const relations: Record<string, Record<string, unknown>> = {
+  brand: { id: 'brand-1', label: 'Brand' },
+  metadata: { id: 'metadata-1', label: 'Focus' },
+  prompt: { id: 'prompt-1', original: 'Ambient focus track' },
+};
+
+const withIncluded = (row: Row, include: Include) => ({
+  ...row,
+  ...Object.fromEntries(
+    Object.keys(include ?? {}).map((key) => [key, relations[key]]),
+  ),
+});
+
 describe('MusicsService', () => {
   const sourceId = 'cmingredient000000000000001';
   const tagId = 'cmtag000000000000000000001';
-  let markFirstAssetGenerated: ReturnType<typeof vi.fn>;
+  let marked: string[];
+  let rows: Map<string, Row>;
   let service: MusicsService;
-  let ingredientDelegate: {
-    create: ReturnType<typeof vi.fn>;
-    findFirst: ReturnType<typeof vi.fn>;
-    update: ReturnType<typeof vi.fn>;
-  };
 
   beforeEach(async () => {
-    markFirstAssetGenerated = vi.fn().mockResolvedValue(undefined);
-    ingredientDelegate = {
-      create: vi.fn().mockResolvedValue({
-        id: 'music-1',
-        organizationId: 'org-1',
-        status: 'GENERATED',
-      }),
-      findFirst: vi.fn().mockResolvedValue({
-        id: 'music-1',
-        organizationId: 'org-1',
-        status: 'GENERATED',
-      }),
-      update: vi.fn().mockResolvedValue({ id: 'music-1' }),
+    marked = [];
+    rows = new Map([
+      [
+        'music-1',
+        {
+          id: 'music-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+          status: 'PROCESSING',
+        },
+      ],
+    ]);
+
+    const delegate = {
+      create: async ({
+        data,
+        include,
+      }: {
+        data: Record<string, unknown>;
+        include?: Include;
+      }) => {
+        const row = {
+          isDeleted: false,
+          organizationId: 'org-1',
+          ...data,
+          id: `music-new-${rows.size}`,
+        };
+        rows.set(row.id, row);
+        return withIncluded(row, include);
+      },
+      findFirst: async ({
+        include,
+        where,
+      }: {
+        include?: Include;
+        where: { id?: string };
+      }) => {
+        const row = where.id ? rows.get(where.id) : undefined;
+        return row ? withIncluded(row, include) : null;
+      },
+      update: async ({
+        data,
+        include,
+        where,
+      }: {
+        data: Record<string, unknown>;
+        include?: Include;
+        where: { id: string };
+      }) => {
+        const row = rows.get(where.id);
+        if (!row) {
+          throw new Error('Record to update not found');
+        }
+        return withIncluded(Object.assign(row, data), include);
+      },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -47,21 +102,23 @@ describe('MusicsService', () => {
         MusicsService,
         {
           provide: PrismaService,
-          useValue: {
-            ingredient: ingredientDelegate,
-          } as unknown as PrismaService,
+          useValue: { ingredient: delegate } as unknown as PrismaService,
         },
         {
           provide: LoggerService,
           useValue: {
-            debug: vi.fn(),
-            error: vi.fn(),
-            warn: vi.fn(),
+            debug: () => undefined,
+            error: () => undefined,
+            warn: () => undefined,
           },
         },
         {
           provide: AssetGateService,
-          useValue: { markFirstAssetGenerated },
+          useValue: {
+            markFirstAssetGenerated: async (organizationId: string) => {
+              marked.push(organizationId);
+            },
+          },
         },
       ],
     }).compile();
@@ -70,32 +127,24 @@ describe('MusicsService', () => {
   });
 
   it('marks the organization when music reaches GENERATED', async () => {
-    await service.patch('music-1', {
-      status: IngredientStatus.GENERATED,
-    });
+    await service.patch('music-1', { status: IngredientStatus.GENERATED });
 
-    expect(markFirstAssetGenerated).toHaveBeenCalledOnce();
-    expect(markFirstAssetGenerated).toHaveBeenCalledWith('org-1');
+    expect(rows.get('music-1')?.status).toBe(IngredientStatus.GENERATED);
+    expect(marked).toEqual(['org-1']);
   });
 
-  it('does not mark the organization for a non-GENERATED update', async () => {
+  it('stores tags as a replacement set without marking a non-GENERATED update', async () => {
     await service.patch('music-1', {
       status: IngredientStatus.PROCESSING,
       tags: [tagId],
     });
 
-    expect(markFirstAssetGenerated).not.toHaveBeenCalled();
-    expect(ingredientDelegate.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          tags: { set: [{ id: tagId }] },
-        }),
-      }),
-    );
+    expect(rows.get('music-1')?.tags).toEqual({ set: [{ id: tagId }] });
+    expect(marked).toEqual([]);
   });
 
-  it('normalizes relations for non-GENERATED creates', async () => {
-    await service.create({
+  it('stores sources and tags as relation connects on a non-GENERATED create', async () => {
+    const created = await service.create({
       origin: IngredientOrigin.GENERATED,
       sources: [sourceId],
       status: IngredientStatus.PROCESSING,
@@ -103,45 +152,36 @@ describe('MusicsService', () => {
       text: 'Ambient focus track',
     });
 
-    expect(ingredientDelegate.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          sources: {
-            connect: [{ id: sourceId }],
-          },
-          tags: { connect: [{ id: tagId }] },
-        }),
-      }),
-    );
+    expect(rows.get(String(created.id))).toMatchObject({
+      sources: { connect: [{ id: sourceId }] },
+      tags: { connect: [{ id: tagId }] },
+    });
+    expect(marked).toEqual([]);
   });
 
-  it('uses create-context population for a GENERATED create by default', async () => {
-    await service.create({
+  it('returns a GENERATED create with its brand, metadata and prompt', async () => {
+    const created = await service.create({
       origin: IngredientOrigin.GENERATED,
       status: IngredientStatus.GENERATED,
       text: 'Ambient focus track',
     });
 
-    expect(ingredientDelegate.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        include: {
-          brand: expect.objectContaining({ select: expect.any(Object) }),
-          metadata: expect.objectContaining({ select: expect.any(Object) }),
-          prompt: expect.objectContaining({ select: expect.any(Object) }),
-        },
-      }),
-    );
+    expect(created).toMatchObject({
+      brand: relations.brand,
+      metadata: relations.metadata,
+      prompt: relations.prompt,
+    });
+    expect(marked).toEqual(['org-1']);
   });
 
-  it('preserves requested population for a GENERATED update', async () => {
-    await service.patch('music-1', { status: IngredientStatus.GENERATED }, [
-      'metadata',
-    ]);
-
-    expect(ingredientDelegate.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        include: { metadata: true },
-      }),
+  it('returns a GENERATED update with the requested population', async () => {
+    const updated = await service.patch(
+      'music-1',
+      { status: IngredientStatus.GENERATED },
+      ['metadata'],
     );
+
+    expect(updated).toMatchObject({ metadata: relations.metadata });
+    expect(updated).not.toHaveProperty('prompt');
   });
 });

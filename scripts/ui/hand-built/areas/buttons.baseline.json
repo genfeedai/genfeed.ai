@@ -527,9 +527,6 @@
     "packages/agent/src/components/AgentChatInputAttachmentTray.tsx": {
       "unstyled-look": 2
     },
-    "packages/agent/src/components/AgentChatMessage.tsx": {
-      "button-restyle": 1
-    },
     "packages/agent/src/components/AgentCliTerminal.tsx": {
       "unstyled-look": 4
     },

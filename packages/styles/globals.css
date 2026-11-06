@@ -131,8 +131,8 @@
   --color-hover: hsl(var(--gray-300));
 
   --color-border-strong: hsl(var(--border-strong));
-  --color-accent-hover: var(--accent-hover);
-  --color-agent: var(--agent);
+  --color-accent-hover: hsl(var(--accent-hover));
+  --color-agent: hsl(var(--agent));
 
   /* 11px is the hard floor for product type: below it Satoshi's low x-height
      stops resolving at 1x. `text-2xs` replaces every text-[10px] / text-[11px]
@@ -161,20 +161,6 @@
   --spacing-icon-sm: var(--icon-sm);
   --spacing-icon-md: var(--icon-md);
   --spacing-icon-lg: var(--icon-lg);
-}
-
-:root {
-  /* One notch off a full-strength foreground fill — the only place the product
-     dims `gray-1000`, so it has no scale step of its own. */
-  --accent-hover: #cccccc;
-  /* Agent is the only product hue outside the status set. It is checked as
-     text against its own canvas: 9.25:1 on #0A0A0A. */
-  --agent: #38bdf8;
-}
-
-[data-theme="light"] {
-  --accent-hover: #383838;
-  --agent: #0369a1; /* #0284c7 is 3.92:1 on #FAFAFA — fails AA as text */
 }
 
 /* ──────────────────────────────────────────────────────────────────────────

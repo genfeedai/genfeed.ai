@@ -1,339 +1,234 @@
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { OpusProWebhookController } from '@api/endpoints/webhooks/opuspro/webhooks.opuspro.controller';
 import { OpusProWebhookService } from '@api/endpoints/webhooks/opuspro/webhooks.opuspro.service';
-import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
-import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import type { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import type { MicroservicesService } from '@api/services/microservices/microservices.service';
 import { IngredientCategory } from '@genfeedai/contracts';
-import { ConfigService } from '@libs/config/config.service';
+import type { ConfigService } from '@libs/config/config.service';
 import type { OpusProWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { Request } from 'express';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 const WEBHOOK_SECRET = 'opuspro-webhook-secret';
 
-// No default value here: a JS default parameter is substituted for an
-// explicit `undefined` argument too, which would silently defeat the
-// "no token" tests below (they call this with `undefined` to build an
-// unauthenticated request).
-function mockTokenRequest(token?: string) {
+interface MetadataRow {
+  error?: string | null;
+  id: string;
+  result?: string;
+}
+
+// No default value: a default would also replace an explicit `undefined`,
+// defeating the "no token" case.
+function tokenRequest(token?: string): Request {
   return {
     headers: {},
     query: token ? { token } : {},
-  } as unknown as import('express').Request;
+  } as unknown as Request;
 }
 
+const payload = (fields: Partial<OpusProWebhookPayload>) =>
+  fields as OpusProWebhookPayload;
+
 describe('OpusProWebhookController', () => {
+  // What a callback leaves behind: the metadata row, the notifications sent,
+  // the media imported, the generations failed and the errors logged.
+  let metadata: Map<string, MetadataRow>;
+  let notified: string[];
+  let imported: [string, string, string, string][];
+  let failed: [string, string][];
+  let errors: string[];
+  let configuredSecret: string | undefined;
+  let importFailure: Error | undefined;
   let controller: OpusProWebhookController;
-  let opusProWebhookService: vi.Mocked<OpusProWebhookService>;
-  let webhooksService: vi.Mocked<WebhooksService>;
-  let loggerService: vi.Mocked<LoggerService>;
-  let configService: { get: ReturnType<typeof vi.fn> };
 
-  beforeEach(async () => {
-    configService = { get: vi.fn().mockReturnValue(WEBHOOK_SECRET) };
+  beforeEach(() => {
+    metadata = new Map([['callback_1', { id: 'callback_1' }]]);
+    notified = [];
+    imported = [];
+    failed = [];
+    errors = [];
+    configuredSecret = WEBHOOK_SECRET;
+    importFailure = undefined;
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [OpusProWebhookController],
-      providers: [
-        {
-          provide: ConfigService,
-          useValue: configService,
-        },
-        {
-          provide: OpusProWebhookService,
-          useValue: {
-            extractVideoUrl: vi.fn(),
-            handleCallback: vi.fn(),
-          },
-        },
-        {
-          provide: WebhooksService,
-          useValue: {
-            handleFailedGeneration: vi.fn(),
-            processMediaFromWebhook: vi.fn(),
-          },
-        },
-        {
-          provide: LoggerService,
-          useValue: {
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
-          },
-        },
-      ],
-    })
-      .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+    const logger = {
+      error: (message: string) => {
+        errors.push(message);
+      },
+      log: () => undefined,
+      warn: () => undefined,
+    } as unknown as LoggerService;
 
-    controller = module.get<OpusProWebhookController>(OpusProWebhookController);
-    opusProWebhookService = module.get(OpusProWebhookService);
-    webhooksService = module.get(WebhooksService);
-    loggerService = module.get(LoggerService);
+    const opusPro = new OpusProWebhookService(
+      logger,
+      {
+        findOneSelect: async ({ id }: { id: string }) => {
+          const row = metadata.get(id);
+          return row ? { id: row.id } : null;
+        },
+        patch: async (id: string, update: Partial<MetadataRow>) =>
+          Object.assign(metadata.get(id) as MetadataRow, update),
+      } as unknown as MetadataService,
+      {
+        notifyWebhook: async (_provider: string, status: string) => {
+          notified.push(status);
+        },
+      } as unknown as MicroservicesService,
+    );
+
+    controller = new OpusProWebhookController(
+      { get: () => configuredSecret } as unknown as ConfigService,
+      logger,
+      opusPro,
+      {
+        handleFailedGeneration: async (id: string, message: string) => {
+          failed.push([id, message]);
+        },
+        processMediaFromWebhook: async (
+          provider: string,
+          category: string,
+          id: string,
+          url: string,
+        ) => {
+          if (importFailure) throw importFailure;
+          imported.push([provider, category, id, url]);
+        },
+      } as unknown as WebhooksService,
+    );
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
+  const deliver = (fields: Partial<OpusProWebhookPayload>) =>
+    controller.handleCallback(tokenRequest(WEBHOOK_SECRET), payload(fields));
 
-  describe('handleCallback', () => {
-    it('should handle completed webhook successfully', async () => {
-      const payload: OpusProWebhookPayload = {
-        callback_id: 'callback_123',
-        status: 'completed',
-        videoUrl: 'https://cdn.opuspro.ai/video123.mp4',
-      } as OpusProWebhookPayload;
+  it('imports a completed video and records it on the metadata row', async () => {
+    const result = await deliver({
+      callback_id: 'callback_1',
+      status: 'completed',
+      videoUrl: 'https://cdn.opuspro.ai/video123.mp4',
+    });
 
-      opusProWebhookService.extractVideoUrl.mockReturnValue(
-        'https://cdn.opuspro.ai/video123.mp4',
-      );
-      opusProWebhookService.handleCallback.mockResolvedValue(undefined);
-      webhooksService.processMediaFromWebhook.mockResolvedValue(
-        undefined as never,
-      );
-
-      const result = await controller.handleCallback(
-        mockTokenRequest(WEBHOOK_SECRET),
-        payload,
-      );
-
-      expect(loggerService.log).toHaveBeenCalledWith(
-        expect.stringContaining('OpusProWebhookController'),
-        payload,
-      );
-
-      expect(opusProWebhookService.handleCallback).toHaveBeenCalledWith(
-        payload,
-      );
-
-      expect(opusProWebhookService.extractVideoUrl).toHaveBeenCalledWith(
-        payload,
-      );
-
-      expect(webhooksService.processMediaFromWebhook).toHaveBeenCalledWith(
+    expect(result).toEqual({ detail: 'Webhook received' });
+    expect(imported).toEqual([
+      [
         'opuspro',
         IngredientCategory.VIDEO,
-        'callback_123',
+        'callback_1',
         'https://cdn.opuspro.ai/video123.mp4',
-      );
-
-      expect(result).toEqual({ detail: 'Webhook received' });
+      ],
+    ]);
+    expect(metadata.get('callback_1')).toEqual({
+      error: null,
+      id: 'callback_1',
+      result: 'https://cdn.opuspro.ai/video123.mp4',
     });
+    expect(failed).toEqual([]);
+  });
 
-    it('should handle failed webhook', async () => {
-      const payload: OpusProWebhookPayload = {
-        callback_id: 'callback_456',
-        error: 'Video generation timeout',
-        status: 'failed',
-      } as OpusProWebhookPayload;
+  it.each([
+    [
+      'the provider error',
+      'Video generation timeout',
+      'Video generation timeout',
+    ],
+    ['a default message', undefined, 'Opus Pro generation failed'],
+  ])('fails the generation with %s', async (_case, error, expected) => {
+    await deliver({ callback_id: 'callback_1', error, status: 'failed' });
 
-      opusProWebhookService.extractVideoUrl.mockReturnValue(undefined);
-      opusProWebhookService.handleCallback.mockResolvedValue(undefined);
-      webhooksService.handleFailedGeneration.mockResolvedValue(undefined);
-
-      const result = await controller.handleCallback(
-        mockTokenRequest(WEBHOOK_SECRET),
-        payload,
-      );
-
-      expect(opusProWebhookService.handleCallback).toHaveBeenCalledWith(
-        payload,
-      );
-
-      expect(webhooksService.handleFailedGeneration).toHaveBeenCalledWith(
-        'callback_456',
-        'Video generation timeout',
-      );
-
-      expect(webhooksService.processMediaFromWebhook).not.toHaveBeenCalled();
-
-      expect(result).toEqual({ detail: 'Webhook received' });
+    expect(failed).toEqual([['callback_1', expected]]);
+    expect(metadata.get('callback_1')).toEqual({
+      error: expected,
+      id: 'callback_1',
     });
+    expect(imported).toEqual([]);
+  });
 
-    it('should handle failed webhook without error message', async () => {
-      const payload: OpusProWebhookPayload = {
-        callback_id: 'callback_789',
-        status: 'failed',
-      } as OpusProWebhookPayload;
+  it.each([
+    [
+      'a processing update',
+      { callback_id: 'callback_1', status: 'processing' },
+      ['processing'],
+    ],
+    [
+      'a completed render without a video',
+      { callback_id: 'callback_1', status: 'completed' },
+      ['completed'],
+    ],
+    [
+      'a callback without an id',
+      { status: 'completed', videoUrl: 'https://cdn.opuspro.ai/x.mp4' },
+      [],
+    ],
+  ])(
+    'acknowledges %s without importing or failing anything',
+    async (_case, fields, expectedNotifications) => {
+      await expect(deliver(fields)).resolves.toEqual({
+        detail: 'Webhook received',
+      });
 
-      opusProWebhookService.extractVideoUrl.mockReturnValue(undefined);
-      opusProWebhookService.handleCallback.mockResolvedValue(undefined);
-      webhooksService.handleFailedGeneration.mockResolvedValue(undefined);
+      expect(notified).toEqual(expectedNotifications);
+      expect(imported).toEqual([]);
+      expect(failed).toEqual([]);
+      expect(metadata.get('callback_1')).toEqual({ id: 'callback_1' });
+    },
+  );
 
-      await controller.handleCallback(
-        mockTokenRequest(WEBHOOK_SECRET),
-        payload,
-      );
+  it.each([
+    ['array', []],
+    ['null', null],
+    ['string', 'invalid'],
+    ['number', 42],
+    ['boolean', false],
+    ['undefined', undefined],
+  ])('rejects a %s body', async (_type, body) => {
+    await expect(
+      controller.handleCallback(
+        tokenRequest(WEBHOOK_SECRET),
+        body as unknown as OpusProWebhookPayload,
+      ),
+    ).rejects.toThrow(BadRequestException);
 
-      expect(webhooksService.handleFailedGeneration).toHaveBeenCalledWith(
-        'callback_789',
-        'Opus Pro generation failed',
-      );
-    });
+    expect(notified).toEqual([]);
+  });
 
-    it('should handle webhook without callback_id', async () => {
-      const payload: OpusProWebhookPayload = {
-        status: 'processing',
-      } as OpusProWebhookPayload;
+  it('logs and rethrows when importing the media fails', async () => {
+    importFailure = new Error('Webhook service failed');
 
-      opusProWebhookService.extractVideoUrl.mockReturnValue(undefined);
-
-      const result = await controller.handleCallback(
-        mockTokenRequest(WEBHOOK_SECRET),
-        payload,
-      );
-
-      expect(opusProWebhookService.handleCallback).not.toHaveBeenCalled();
-      expect(webhooksService.processMediaFromWebhook).not.toHaveBeenCalled();
-      expect(webhooksService.handleFailedGeneration).not.toHaveBeenCalled();
-
-      expect(result).toEqual({ detail: 'Webhook received' });
-    });
-
-    it.each([
-      ['array', []],
-      ['null', null],
-      ['string', 'invalid'],
-      ['number', 42],
-      ['boolean', false],
-      ['undefined', undefined],
-    ])('rejects callbacks with a %s body', async (_type, body) => {
-      await expect(
-        controller.handleCallback(
-          mockTokenRequest(WEBHOOK_SECRET),
-          body as never,
-        ),
-      ).rejects.toThrow(BadRequestException);
-
-      expect(opusProWebhookService.handleCallback).not.toHaveBeenCalled();
-    });
-
-    it('should handle completed webhook without video URL', async () => {
-      const payload: OpusProWebhookPayload = {
-        callback_id: 'callback_999',
-        status: 'completed',
-      } as OpusProWebhookPayload;
-
-      opusProWebhookService.extractVideoUrl.mockReturnValue(undefined);
-      opusProWebhookService.handleCallback.mockResolvedValue(undefined);
-
-      const result = await controller.handleCallback(
-        mockTokenRequest(WEBHOOK_SECRET),
-        payload,
-      );
-
-      expect(opusProWebhookService.handleCallback).toHaveBeenCalledWith(
-        payload,
-      );
-      expect(webhooksService.processMediaFromWebhook).not.toHaveBeenCalled();
-
-      expect(result).toEqual({ detail: 'Webhook received' });
-    });
-
-    it('should handle processing status', async () => {
-      const payload: OpusProWebhookPayload = {
-        callback_id: 'callback_proc',
-        status: 'processing',
-      } as OpusProWebhookPayload;
-
-      opusProWebhookService.extractVideoUrl.mockReturnValue(undefined);
-      opusProWebhookService.handleCallback.mockResolvedValue(undefined);
-
-      const result = await controller.handleCallback(
-        mockTokenRequest(WEBHOOK_SECRET),
-        payload,
-      );
-
-      expect(opusProWebhookService.handleCallback).toHaveBeenCalledWith(
-        payload,
-      );
-      expect(webhooksService.processMediaFromWebhook).not.toHaveBeenCalled();
-      expect(webhooksService.handleFailedGeneration).not.toHaveBeenCalled();
-
-      expect(result).toEqual({ detail: 'Webhook received' });
-    });
-
-    it('should log and rethrow errors', async () => {
-      const payload: OpusProWebhookPayload = {
-        callback_id: 'callback_error',
+    await expect(
+      deliver({
+        callback_id: 'callback_1',
         status: 'completed',
         videoUrl: 'https://cdn.opuspro.ai/video.mp4',
-      } as OpusProWebhookPayload;
+      }),
+    ).rejects.toThrow('Webhook service failed');
 
-      const error = new Error('Database connection failed');
+    expect(errors).toEqual([
+      expect.stringContaining('OpusProWebhookController'),
+    ]);
+  });
 
-      opusProWebhookService.extractVideoUrl.mockReturnValue(
-        'https://cdn.opuspro.ai/video.mp4',
-      );
-      opusProWebhookService.handleCallback.mockRejectedValue(error);
+  it('rejects a callback carrying no token', async () => {
+    await expect(
+      controller.handleCallback(
+        tokenRequest(undefined),
+        payload({ callback_id: 'callback_1', status: 'failed' }),
+      ),
+    ).rejects.toThrow(UnauthorizedException);
 
-      await expect(
-        controller.handleCallback(mockTokenRequest(WEBHOOK_SECRET), payload),
-      ).rejects.toThrow('Database connection failed');
+    expect(failed).toEqual([]);
+    expect(notified).toEqual([]);
+  });
 
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('OpusProWebhookController'),
-        error,
-      );
-    });
+  it('rejects every caller when no secret is configured', async () => {
+    configuredSecret = undefined;
 
-    it('should handle webhook service error', async () => {
-      const payload: OpusProWebhookPayload = {
-        callback_id: 'callback_ws_error',
-        status: 'completed',
-        videoUrl: 'https://cdn.opuspro.ai/video.mp4',
-      } as OpusProWebhookPayload;
+    // Fail closed: an unconfigured deployment must not expose this
+    // @Public() job-completion handler to anonymous callers.
+    await expect(
+      deliver({ callback_id: 'callback_1', status: 'failed' }),
+    ).rejects.toThrow(UnauthorizedException);
 
-      const error = new Error('Webhook service failed');
-
-      opusProWebhookService.extractVideoUrl.mockReturnValue(
-        'https://cdn.opuspro.ai/video.mp4',
-      );
-      opusProWebhookService.handleCallback.mockResolvedValue(undefined);
-      webhooksService.processMediaFromWebhook.mockRejectedValue(error);
-
-      await expect(
-        controller.handleCallback(mockTokenRequest(WEBHOOK_SECRET), payload),
-      ).rejects.toThrow('Webhook service failed');
-
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('failed'),
-        error,
-      );
-    });
-
-    it('should reject a callback carrying no token', async () => {
-      const payload = {
-        callback_id: 'callback_anon',
-        status: 'completed',
-      } as OpusProWebhookPayload;
-
-      await expect(
-        controller.handleCallback(mockTokenRequest(undefined), payload),
-      ).rejects.toThrow(UnauthorizedException);
-
-      expect(opusProWebhookService.handleCallback).not.toHaveBeenCalled();
-    });
-
-    it('should reject every caller when no secret is configured', async () => {
-      configService.get.mockReturnValue(undefined);
-
-      const payload = {
-        callback_id: 'callback_anon',
-        status: 'completed',
-      } as OpusProWebhookPayload;
-
-      // Fail closed: an unconfigured deployment must not expose this
-      // @Public() job-completion handler to anonymous callers.
-      await expect(
-        controller.handleCallback(mockTokenRequest(WEBHOOK_SECRET), payload),
-      ).rejects.toThrow(UnauthorizedException);
-
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('OPUSPRO_WEBHOOK_SECRET'),
-      );
-      expect(opusProWebhookService.handleCallback).not.toHaveBeenCalled();
-    });
+    expect(errors).toEqual([expect.stringContaining('OPUSPRO_WEBHOOK_SECRET')]);
+    expect(failed).toEqual([]);
   });
 });

@@ -4,7 +4,6 @@ import { radiusTokens } from '@ui/core/radius';
 import { typographyTokens } from '@ui/core/typography';
 
 const INVARIANT_NATIVE_COLORS = {
-  agent: '#38BDF8',
   agentForeground: '#000000',
   black: '#000000',
   google: '#4285F4',
@@ -19,6 +18,7 @@ function toNativeThemeColors(colors: SemanticThemeColors) {
     accent: colors.accent.hex,
     accentDark: colors.accentForeground.hex,
     accentForeground: colors.accentForeground.hex,
+    agent: colors.agent.hex,
     bgBorder: colors.border.hex,
     bgPrimary: colors.background.hex,
     bgSecondary: colors.card.hex,

@@ -63,6 +63,7 @@ export type DesignSystemFindingKind =
   | 'dark-only-palette-text'
   | 'off-ladder-opacity'
   | 'off-scale-icon-size'
+  | 'off-scale-text-size'
   | 'raw-chrome-color'
   | 'sub-11-text'
   | 'tight-tracking'
@@ -391,6 +392,7 @@ const DESIGN_SYSTEM_FINDING_KINDS: readonly DesignSystemFindingKind[] = [
   'dark-only-palette-text',
   'off-ladder-opacity',
   'off-scale-icon-size',
+  'off-scale-text-size',
   'raw-chrome-color',
   'sub-11-text',
   'tight-tracking',
@@ -494,6 +496,21 @@ function completeTemplateTokens(part: TemplatePartNode): string[] {
     tokens.pop();
   }
   return tokens;
+}
+
+// Product sizes 11-16px all have a named step (text-2xs, xs, sm, md, base), so
+// an arbitrary value in that band is either a token in disguise or an
+// off-scale size such as 13px. Campaign display sizes above it stay legal.
+const MIN_TOKENIZED_TEXT_PX = 11;
+const MAX_TOKENIZED_TEXT_PX = 16;
+
+export function isOffScaleTextSizeToken(token: string): boolean {
+  const match = ARBITRARY_TEXT_SIZE_PATTERN.exec(baseClassToken(token));
+  if (!match) {
+    return false;
+  }
+  const px = match[2] === 'rem' ? Number(match[1]) * 16 : Number(match[1]);
+  return px >= MIN_TOKENIZED_TEXT_PX && px <= MAX_TOKENIZED_TEXT_PX;
 }
 
 const MIN_NEGATIVE_TRACKING_EM = -0.02;
@@ -635,6 +652,9 @@ export function findPackageUiGuardFindings(
         }
         if (isTightTrackingToken(token)) {
           addFinding(literal, 'tight-tracking', token);
+        }
+        if (isOffScaleTextSizeToken(token)) {
+          addFinding(literal, 'off-scale-text-size', token);
         }
         if (isOffLadderOpacityToken(token)) {
           addFinding(literal, 'off-ladder-opacity', token);
@@ -894,7 +914,9 @@ export function formatDesignSystemRegressions(
                   ? 'use an icon step: size-3.5 (14px), size-4 (16px) or size-5 (20px)'
                   : finding.kind === 'off-ladder-opacity'
                     ? 'use an opacity stop from the ladder: /5 /10 /20 /40 /50 /60 /70 /80 /90 (or /0, /100)'
-                    : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
+                    : finding.kind === 'off-scale-text-size'
+                      ? 'use the named step: text-2xs (11px), text-xs (12px), text-sm (14px), text-md (15px) or text-base (16px)'
+                      : 'use text-2xs (the 11px typography floor) or a larger semantic text token';
       return `${finding.file}:${finding.line}: ${finding.token} — ${remedy}\n  ${finding.source}`;
     })
     .join('\n');

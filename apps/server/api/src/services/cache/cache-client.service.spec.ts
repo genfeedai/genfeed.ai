@@ -1,275 +1,273 @@
 import { CacheClientService } from '@api/services/cache/cache-client.service';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import type { ConfigService } from '@libs/config/config.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-/* ---------- mock ioredis ---------- */
-const mockPipeline = { exec: vi.fn().mockResolvedValue([]) };
-const mockRedisClient = {
-  connect: vi.fn().mockResolvedValue(undefined),
-  disconnect: vi.fn().mockResolvedValue(undefined),
-  multi: vi.fn().mockReturnValue(mockPipeline),
-  on: vi.fn().mockReturnThis(),
-  quit: vi.fn().mockResolvedValue(undefined),
-  removeAllListeners: vi.fn().mockReturnThis(),
-  status: 'ready',
-};
+type Handler = (...args: unknown[]) => void;
 
-let capturedRetryStrategy: ((retries: number) => number | null) | undefined;
+interface ClientOptions {
+  db?: number;
+  host: string;
+  lazyConnect: boolean;
+  port: number;
+  retryStrategy: (retries: number) => number;
+}
 
-vi.mock('ioredis', () => ({
-  default: vi.fn(function mockRedisConstructor(opts?: {
-    retryStrategy?: (retries: number) => number | null;
-  }) {
-    capturedRetryStrategy = opts?.retryStrategy;
-    return mockRedisClient;
-  }),
-}));
+/**
+ * An ioredis stand-in: it keeps its status and listeners, and the test decides
+ * how the server answers connect and quit.
+ */
+const redis = vi.hoisted(() => {
+  const state: {
+    client?: FakeRedis;
+    connect: 'ok' | 'refused' | 'slow';
+    quit: 'ok' | 'fails' | 'hangs';
+  } = { connect: 'ok', quit: 'ok' };
+
+  class FakeRedis {
+    readonly handlers = new Map<string, Handler>();
+    status = 'wait';
+
+    constructor(readonly options: ClientOptions) {
+      state.client = this;
+    }
+
+    on(event: string, handler: Handler) {
+      this.handlers.set(event, handler);
+      return this;
+    }
+
+    emit(event: string, ...args: unknown[]) {
+      this.handlers.get(event)?.(...args);
+    }
+
+    removeAllListeners() {
+      this.handlers.clear();
+      return this;
+    }
+
+    async connect() {
+      if (state.connect === 'refused') throw new Error('ECONNREFUSED');
+      if (state.connect === 'slow') return new Promise(() => undefined);
+      this.status = 'ready';
+      this.emit('connect');
+      this.emit('ready');
+    }
+
+    async quit() {
+      if (state.quit === 'fails') throw new Error('quit failed');
+      if (state.quit === 'hangs') return new Promise(() => undefined);
+      this.status = 'end';
+      return 'OK';
+    }
+
+    disconnect() {
+      this.status = 'end';
+    }
+  }
+
+  return { FakeRedis, state };
+});
+
+vi.mock('ioredis', () => ({ default: redis.FakeRedis }));
+
+const OUTAGE = new Error('ECONNREFUSED');
 
 describe('CacheClientService', () => {
+  let env: Record<string, string>;
+  let logs: [string, string][];
   let service: CacheClientService;
-  let mockConfigService: { get: ReturnType<typeof vi.fn> };
-  let mockLogger: {
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
+
+  const client = () => {
+    if (!redis.state.client) throw new Error('No Redis client was created');
+    return redis.state.client;
   };
+  const build = () =>
+    new CacheClientService(
+      { get: (key: string) => env[key] } as unknown as ConfigService,
+      {
+        error: (message: string) => logs.push(['error', message]),
+        log: (message: string) => logs.push(['log', message]),
+        warn: (message: string) => logs.push(['warn', message]),
+      } as unknown as LoggerService,
+    );
+  /** One failed reconnect attempt: ioredis asks for a delay, then reports. */
+  const failAttempt = (retries: number) => {
+    const delay = client().options.retryStrategy(retries);
+    client().emit('error', OUTAGE);
+    return delay;
+  };
+  const failAttempts = (from: number, to: number) =>
+    Array.from({ length: to - from }, (_, index) => failAttempt(from + index));
 
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    mockConfigService = {
-      get: vi.fn().mockReturnValue('redis://localhost:6379'),
-    };
-    mockLogger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CacheClientService,
-        { provide: ConfigService, useValue: mockConfigService },
-        { provide: LoggerService, useValue: mockLogger },
-      ],
-    }).compile();
-
-    service = module.get<CacheClientService>(CacheClientService);
+  beforeEach(() => {
+    env = { REDIS_URL: 'redis://localhost:6379' };
+    logs = [];
+    redis.state.connect = 'ok';
+    redis.state.quit = 'ok';
+    service = build();
   });
 
-  // Fake timers leak into every later test in the file when the test that
-  // installed them fails before restoring them, turning one failure into a
-  // cascade of unrelated timeouts.
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  /**
-   * The listener the service registered for `event`, so a test can drive the
-   * connection lifecycle without standing up a real ioredis connection.
-   */
-  function getClientHandler(event: string): (...args: unknown[]) => void {
-    const registration = mockRedisClient.on.mock.calls.find(
-      ([eventName]) => eventName === event,
-    );
-    if (!registration) {
-      throw new Error(`No "${event}" handler registered on the Redis client`);
-    }
-    return registration[1];
-  }
+  describe('connection', () => {
+    it.each([
+      [{}, { db: 1, host: 'localhost', port: 6379 }],
+      [{ REDIS_CACHE_DB: '4' }, { db: 4, host: 'localhost', port: 6379 }],
+      [
+        { REDIS_CACHE_URL: 'redis://cache.internal:6380' },
+        { db: 1, host: 'cache.internal', port: 6380 },
+      ],
+    ])('isolates the cache workload (%o)', (overrides, expected) => {
+      Object.assign(env, overrides);
 
-  it('should register error, connect and ready event handlers on construction', () => {
-    const calls = mockRedisClient.on.mock.calls.map(([eventName]) => eventName);
-    expect(calls).toContain('error');
-    expect(calls).toContain('connect');
-    expect(calls).toContain('ready');
+      build();
+
+      expect(client().options).toMatchObject({
+        ...expected,
+        lazyConnect: true,
+      });
+    });
+
+    it('connects on module init and reports ready', async () => {
+      expect(service.isReady).toBe(false);
+
+      await service.onModuleInit();
+
+      expect(service.isReady).toBe(true);
+      expect(service.instance).toBe(client());
+      expect(logs).toContainEqual([
+        'log',
+        'CacheClientService initialized successfully',
+      ]);
+    });
+
+    it('disables the client without throwing when Redis refuses', async () => {
+      redis.state.connect = 'refused';
+
+      await expect(service.onModuleInit()).resolves.toBeUndefined();
+      expect(service.isReady).toBe(false);
+      expect(logs).toEqual([
+        ['warn', 'CacheClientService failed to connect - client disabled'],
+      ]);
+    });
+
+    it('gives up waiting for a slow connection after three seconds', async () => {
+      vi.useFakeTimers();
+      redis.state.connect = 'slow';
+
+      const init = service.onModuleInit();
+      await vi.advanceTimersByTimeAsync(3_000);
+      await init;
+
+      expect(service.isReady).toBe(false);
+      expect(logs).toEqual([
+        ['warn', 'CacheClientService failed to connect - client disabled'],
+      ]);
+    });
   });
 
-  it('should expose the redis client via instance getter', () => {
-    expect(service.instance).toBe(mockRedisClient);
-  });
-
-  it('should expose isReady reflecting the client state', () => {
-    mockRedisClient.status = 'ready';
-    expect(service.isReady).toBe(true);
-    mockRedisClient.status = 'connecting';
-    expect(service.isReady).toBe(false);
-    mockRedisClient.status = 'ready';
-  });
-
-  it('should resolve the isolated cache Redis connection from ConfigService', () => {
-    // The cache workload reads its own override first (#1186), falling back to
-    // the shared base URL, and applies its dedicated logical DB.
-    expect(mockConfigService.get).toHaveBeenCalledWith('REDIS_CACHE_URL');
-    expect(mockConfigService.get).toHaveBeenCalledWith('REDIS_CACHE_DB');
-  });
-
-  /* ---------- retry strategy ---------- */
-
-  it('should pass a retry strategy to the ioredis constructor', () => {
-    expect(capturedRetryStrategy).toBeTypeOf('function');
-  });
-
-  it('retry strategy returns exponential delay for early retries', () => {
-    const delay = capturedRetryStrategy?.(0);
-    expect(typeof delay).toBe('number');
-    expect(delay as number).toBeGreaterThan(0);
-    expect(delay as number).toBeLessThanOrEqual(30_000);
-  });
-
-  it('retry strategy caps delay at 30 seconds', () => {
-    const delay = capturedRetryStrategy?.(8);
-    expect(delay as number).toBeLessThanOrEqual(30_000);
-  });
-
-  it('retry strategy never gives up on the connection', () => {
-    // Returning a non-number permanently stops ioredis from reconnecting: the
-    // client parks at `status: 'end'`, `isReady` stays false forever, and every
-    // fail-open caller degrades silently with nothing left to log. Redis coming
-    // back must be reconnected to, however long the outage ran.
-    expect(capturedRetryStrategy?.(10)).toBe(30_000);
-    expect(capturedRetryStrategy?.(100)).toBe(30_000);
-    expect(capturedRetryStrategy?.(10_000)).toBe(30_000);
-  });
-
-  it('stops logging every reconnect attempt once the outage is no longer news', () => {
-    // Unbounded retries mean unbounded log lines unless the verbose window is
-    // bounded — one warning every 30 seconds forever buries the signal.
-    for (let retries = 0; retries < 10; retries += 1) {
-      capturedRetryStrategy?.(retries);
-    }
-    expect(mockLogger.warn).toHaveBeenCalledTimes(10);
-
-    mockLogger.warn.mockClear();
-    for (let retries = 10; retries < 30; retries += 1) {
-      capturedRetryStrategy?.(retries);
-    }
-    expect(mockLogger.warn).not.toHaveBeenCalled();
-  });
-
-  it('logs every connection error while an outage is new, then throttles', () => {
-    vi.useFakeTimers();
-    const handleError = getClientHandler('error');
-    const outageError = new Error('ECONNREFUSED');
-
-    for (let retries = 0; retries < 10; retries += 1) {
-      capturedRetryStrategy?.(retries);
-      handleError(outageError);
-    }
-    expect(mockLogger.error).toHaveBeenCalledTimes(10);
-
-    mockLogger.error.mockClear();
-    for (let retries = 10; retries < 20; retries += 1) {
-      capturedRetryStrategy?.(retries);
-      handleError(outageError);
-    }
-    expect(mockLogger.error).toHaveBeenCalledTimes(1);
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining('still unreachable'),
-      outageError,
+  describe('reconnecting', () => {
+    it.each([
+      [0, 100],
+      [3, 800],
+      [8, 25_600],
+      [9, 30_000],
+      [100, 30_000],
+      [10_000, 30_000],
+    ])(
+      'waits after attempt %i for %ims and never gives up',
+      (retries, delay) => {
+        expect(client().options.retryStrategy(retries)).toBe(delay);
+      },
     );
 
-    mockLogger.error.mockClear();
-    vi.advanceTimersByTime(60_000);
-    handleError(outageError);
-    expect(mockLogger.error).toHaveBeenCalledTimes(1);
-    // The throttled errors are accounted for, so the line reports outage volume
-    // rather than reading as the second failure in a minute.
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining('9 errors suppressed'),
-      outageError,
-    );
-    vi.useRealTimers();
+    it('logs every attempt while the outage is new, then only summaries', () => {
+      failAttempts(0, 10);
+      const early = logs.splice(0);
+      failAttempts(10, 30);
+
+      expect(early).toHaveLength(20);
+      expect(early.slice(0, 2)).toEqual([
+        ['warn', 'CacheClientService reconnecting in 100ms (attempt 1)'],
+        ['error', 'CacheClientService Redis client error'],
+      ]);
+      expect(logs).toEqual([
+        [
+          'error',
+          'CacheClientService Redis still unreachable after 11 reconnect attempts (0 errors suppressed since the last line), retrying every 30000ms',
+        ],
+      ]);
+    });
+
+    it('writes one summary a minute, counting the errors it swallowed', () => {
+      vi.useFakeTimers();
+      failAttempts(0, 20);
+      logs.splice(0);
+
+      vi.advanceTimersByTime(60_000);
+      client().emit('error', OUTAGE);
+
+      expect(logs).toEqual([
+        [
+          'error',
+          'CacheClientService Redis still unreachable after 20 reconnect attempts (9 errors suppressed since the last line), retrying every 30000ms',
+        ],
+      ]);
+    });
+
+    it('reports how many attempts a recovery took, then starts fresh', () => {
+      failAttempts(0, 15);
+      logs.splice(0);
+
+      client().emit('ready');
+      client().emit('error', OUTAGE);
+
+      expect(logs).toEqual([
+        [
+          'log',
+          'CacheClientService Redis client ready (recovered after 15 reconnect attempts)',
+        ],
+        ['error', 'CacheClientService Redis client error'],
+      ]);
+    });
   });
 
-  it('reports how many reconnect attempts a recovery took, then resets', () => {
-    const handleReady = getClientHandler('ready');
-    const handleError = getClientHandler('error');
-    const outageError = new Error('ECONNREFUSED');
+  describe('onModuleDestroy', () => {
+    beforeEach(async () => {
+      await service.onModuleInit();
+      logs.splice(0);
+    });
 
-    capturedRetryStrategy?.(4);
-    mockLogger.log.mockClear();
-    handleReady();
-    expect(mockLogger.log).toHaveBeenCalledWith(
-      expect.stringContaining('recovered after 5 reconnect attempts'),
-    );
+    it('quits gracefully and stops listening', async () => {
+      await service.onModuleDestroy();
 
-    // Reset, so the next outage gets full detail rather than inheriting the
-    // previous one's throttle.
-    mockLogger.error.mockClear();
-    handleError(outageError);
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining('Redis client error'),
-      outageError,
-    );
-  });
+      expect(client().status).toBe('end');
+      expect(client().handlers.size).toBe(0);
+      expect(logs).toEqual([['log', 'CacheClientService disconnected']]);
+    });
 
-  /* ---------- onModuleInit ---------- */
+    it('forces the connection closed when quit fails', async () => {
+      redis.state.quit = 'fails';
 
-  it('should call connect on module init', async () => {
-    await service.onModuleInit();
-    expect(mockRedisClient.connect).toHaveBeenCalledOnce();
-  });
+      await service.onModuleDestroy();
 
-  it('should log success when connection succeeds', async () => {
-    await service.onModuleInit();
-    expect(mockLogger.log).toHaveBeenCalledWith(
-      expect.stringContaining('initialized successfully'),
-    );
-  });
+      expect(client().status).toBe('end');
+      expect(logs).toEqual([['error', 'CacheClientService disconnect error']]);
+    });
 
-  it('should warn and not throw when connection times out', async () => {
-    mockRedisClient.connect.mockImplementationOnce(
-      () =>
-        new Promise((_r, reject) =>
-          setTimeout(() => reject(new Error('timeout')), 5),
-        ),
-    );
-    await expect(service.onModuleInit()).resolves.toBeUndefined();
-    expect(mockLogger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('failed to connect'),
-      expect.anything(),
-    );
-  });
+    it('forces the connection closed when quit hangs', async () => {
+      vi.useFakeTimers();
+      redis.state.quit = 'hangs';
 
-  it('should warn and not throw when connection rejects immediately', async () => {
-    mockRedisClient.connect.mockRejectedValueOnce(new Error('ECONNREFUSED'));
-    await expect(service.onModuleInit()).resolves.toBeUndefined();
-    expect(mockLogger.warn).toHaveBeenCalled();
-  });
+      const destroy = service.onModuleDestroy();
+      await vi.advanceTimersByTimeAsync(3_000);
+      await destroy;
 
-  /* ---------- onModuleDestroy ---------- */
-
-  it('should remove listeners and quit on module destroy', async () => {
-    await service.onModuleDestroy();
-    expect(mockRedisClient.removeAllListeners).toHaveBeenCalled();
-    expect(mockRedisClient.quit).toHaveBeenCalled();
-    expect(mockLogger.log).toHaveBeenCalledWith(
-      expect.stringContaining('disconnected'),
-    );
-  });
-
-  it('should log error when quit fails on module destroy', async () => {
-    mockRedisClient.quit.mockRejectedValueOnce(new Error('quit failed'));
-    await service.onModuleDestroy();
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining('disconnect error'),
-      expect.anything(),
-    );
-  });
-
-  it('should force close when quit hangs on module destroy', async () => {
-    vi.useFakeTimers();
-    mockRedisClient.quit.mockImplementationOnce(
-      () => new Promise<never>(() => undefined),
-    );
-
-    const destroyPromise = service.onModuleDestroy();
-    await vi.advanceTimersByTimeAsync(3_000);
-    await destroyPromise;
-
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining('disconnect error'),
-      expect.any(Error),
-    );
-    expect(mockRedisClient.disconnect).toHaveBeenCalled();
-    vi.useRealTimers();
+      expect(client().status).toBe('end');
+      expect(logs).toEqual([['error', 'CacheClientService disconnect error']]);
+    });
   });
 });

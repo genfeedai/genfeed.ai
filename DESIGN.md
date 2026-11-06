@@ -215,8 +215,9 @@ components:
     backgroundColor: "{colors.hover}"
     textColor: "{colors.foreground}"
   button-destructive:
-    backgroundColor: "{colors.destructive}"
-    textColor: "{colors.primary-foreground}"
+    # Tinted, not solid: the hue at /10 over the surface with a /20 border.
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.destructive}"
     typography: "{typography.label}"
     rounded: "{rounded.md}"
     height: 32px
@@ -261,13 +262,16 @@ components:
     rounded: "{rounded.sm}"
     height: 32px
   dropdown-item-active:
+    backgroundColor: "{colors.hover}"
+    textColor: "{colors.foreground}"
+  row-hover-on-card:
     backgroundColor: "{colors.accent}"
     textColor: "{colors.accent-foreground}"
     rounded: "{rounded.sm}"
   tooltip:
-    backgroundColor: "{colors.tertiary}"
+    backgroundColor: "{colors.elevated}"
     textColor: "{colors.foreground}"
-    typography: "{typography.caption}"
+    typography: "{typography.label}"
     rounded: "{rounded.md}"
   input:
     backgroundColor: "{colors.tertiary}"
@@ -500,12 +504,15 @@ Four planes, one step apart, and no fifth:
 1. `bg-background` — the page canvas. The app rail and the topbar sit on the
    `gray-100` window plane; the menu shares that step inside the page block —
    see Shell Layout.
-2. `bg-card` / `bg-elevated` — the raised content plane: cards, panels,
-   dropdowns, dialogs, the composer (`gray-100` in Dark, white in Light).
-   `bg-elevated` is the overlay member of this plane (`popover`).
+2. `bg-card` / `bg-elevated` — the raised content plane: cards, panels and
+   the composer on `bg-card` (`gray-100` in Dark, white in Light). Overlays
+   (dropdowns, dialogs, tooltips) sit on `bg-elevated` (`popover`): `#161616`
+   in Dark so they lift off the card plane, white in Light.
 3. `bg-tertiary` / `accent` — one step above the card: fills nested *inside* a
-   card, inputs, chips, and the hover state of a row that sits on a card
-   (`gray-200`).
+   card, inputs, chips, and the hover state of a row that sits on a card.
+   `accent` is `gray-200` in both themes; `tertiary` is `gray-200` in Light and
+   `#161616` in Dark, half a step below `gray-200` so a filled input stays
+   quieter than its hover.
 4. `bg-hover` — the hover step (`gray-300`). It is a step above `bg-tertiary`
    specifically so hover stays visible on all three planes beneath it.
 
@@ -557,6 +564,11 @@ agent blue (`#0284C7`) was 3.9:1 and failed AA.
 Platform brand colours are identifiers only. Do not use them for layout chrome or
 primary actions. They appear on platform icons, connection badges, and analytics
 breakdowns.
+
+Marks whose identity is monochrome render in the foreground colour: X, Threads,
+and TikTok. TikTok's `#FE2C55` is an accent of its mark, not the mark, and next
+to the other platforms it reads as an error. Its token stays for analytics series
+only.
 
 ## Typography
 
@@ -637,11 +649,10 @@ in `packages/ui/web-tokens.css`:
 inset by a single padding step takes the step *below* its parent, or the inner
 corner bulges.
 
-Conversation workspace geometry uses scoped aliases —
-`--radius-workspace-shell` (8px), `--radius-workspace-shell-emphasis` (10px),
-`--radius-workspace-composer` (10px), `--radius-workspace-overlay` (12px) — applied
-only through `[data-workspace-shell="true"]` and
-`[data-workspace-shell-overlay="true"]`.
+Conversation workspace geometry uses two scoped aliases —
+`--radius-workspace-composer` (`xl`, 10px) and `--radius-workspace-overlay`
+(`2xl`, 12px) — applied only inside `[data-workspace-shell="true"]`. The shell
+block itself is `rounded-lg` like every content panel.
 
 ## Elevation & Depth
 
@@ -695,10 +706,15 @@ styles describe layout; visual components remain owned by `packages/ui`.
 
 Semantic hierarchy: `default` (the one primary action on a surface) · `secondary`
 (ordinary neutral actions) · `ghost` (toolbar and icon-only chrome) · `destructive`
-(dangerous actions only) · `link` (inline navigation) · `unstyled` (internal
-composite primitives only).
+(dangerous actions only, tinted: the hue at `/10` with a `/20` border) · `link`
+(inline navigation) · `overlay` (controls drawn on top of media, on a fixed dark
+translucent fill) · `unstyled` (internal composite primitives only).
 
 All styled variants use `rounded-md` (6px) and `control-sm` (32px) by default.
+Sizes: `default`, `sm` and `xs` are all 32px and differ only in padding; `lg` is
+36px; `xl` and `public` are 40px (`public` is the uppercase marketing CTA);
+`icon` is a 32px square; `micro` is the 28px icon-only control from the
+components scale.
 `white`, `black`, `generate`, `soft`, `outline-white`, and `outline` are not button
 variants; pick the semantic role instead. Ghost is the standard for toolbar and
 topbar icon actions: transparent, no border, `hover:bg-hover`.
@@ -780,7 +796,9 @@ queries on the collection itself:
 
 Cards use `gap-4`, stat tiles `gap-3`, media masonry its own 4px gutter. No
 collection uses `gap-6`, and no collection picks columns from `sm:`/`md:`/`lg:`
-viewport breakpoints.
+viewport breakpoints. `CollectionGrid` (`@ui/collection/CollectionGrid`) owns
+this ladder: pass `maxColumns` (2–4), `density="tile"` for stat or type tiles,
+and `as="ul"` when the children are list items. Don't rebuild it with `grid-cols-*`.
 
 **Record detail pages** follow the same economy: one primary action in the header
 with the rest in overflow, known facts on one line with an "All details"
@@ -795,8 +813,9 @@ lower. Focus applies `--focus-ring` and lifts the border to `border-strong`.
 
 ### Dropdown
 
-`bg-elevated` panel with `shadow-dropdown`. Items are `rounded-sm` (4px), 32px tall,
-inset `mx-1` from the panel edge, and hover to `accent` (`gray-200`). Popovers use
+`bg-elevated` panel with `shadow-dropdown`. Items are `rounded-sm` (4px), at least
+32px tall, `body-md` type, inset `mx-1` from the panel edge, and hover to
+`bg-hover` (`gray-300`, two steps above the elevated panel so it reads). Popovers use
 the same overlay surface — never `bg-hover`, never the page canvas.
 
 ### Shell Layout

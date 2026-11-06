@@ -15,7 +15,6 @@ import type Stripe from 'stripe';
 describe('SkillCheckoutService', () => {
   let service: SkillCheckoutService;
   let configService: vi.Mocked<ConfigService>;
-  let loggerService: vi.Mocked<LoggerService>;
   let skillRegistryService: vi.Mocked<SkillRegistryService>;
   let stripeService: {
     stripe: { checkout: { sessions: { create: ReturnType<typeof vi.fn> } } };
@@ -34,8 +33,23 @@ describe('SkillCheckoutService', () => {
     return vi.fn((key: keyof IEnvConfig) => ({ ...defaults, ...values })[key]);
   };
 
+  let createdSessions: Stripe.Checkout.SessionCreateParams[];
+  let nextSession: Pick<Stripe.Checkout.Session, 'id' | 'url'>;
+  let logged: unknown[][];
+
   beforeEach(async () => {
-    const mockStripeSessionCreate = vi.fn();
+    createdSessions = [];
+    logged = [];
+    nextSession = {
+      id: 'cs_default',
+      url: 'https://checkout.stripe.com/session/cs_default',
+    };
+    const mockStripeSessionCreate = vi.fn(
+      async (params: Stripe.Checkout.SessionCreateParams) => {
+        createdSessions.push(params);
+        return nextSession;
+      },
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -55,7 +69,9 @@ describe('SkillCheckoutService', () => {
           useValue: {
             debug: vi.fn(),
             error: vi.fn(),
-            log: vi.fn(),
+            log: vi.fn((...args: unknown[]) => {
+              logged.push(args);
+            }),
             warn: vi.fn(),
           },
         },
@@ -85,7 +101,6 @@ describe('SkillCheckoutService', () => {
 
     service = module.get<SkillCheckoutService>(SkillCheckoutService);
     configService = module.get(ConfigService);
-    loggerService = module.get(LoggerService);
     skillRegistryService = module.get(SkillRegistryService);
     stripeService = module.get(StripeService);
     skillRegistryService.getRegistry.mockResolvedValue({
@@ -117,9 +132,7 @@ describe('SkillCheckoutService', () => {
         url: 'https://checkout.stripe.com/session/cs_test_123',
       } as unknown as Stripe.Checkout.Session;
 
-      stripeService.stripe.checkout.sessions.create.mockResolvedValue(
-        mockSession,
-      );
+      nextSession = mockSession;
 
       const dto: CreateSkillCheckoutDto = {
         email: 'buyer@example.com',
@@ -130,9 +143,7 @@ describe('SkillCheckoutService', () => {
       expect(result).toEqual({
         url: 'https://checkout.stripe.com/session/cs_test_123',
       });
-      expect(
-        stripeService.stripe.checkout.sessions.create,
-      ).toHaveBeenCalledWith(
+      expect(createdSessions).toEqual([
         expect.objectContaining({
           allow_promotion_codes: true,
           customer_email: 'buyer@example.com',
@@ -147,7 +158,7 @@ describe('SkillCheckoutService', () => {
           mode: 'payment',
           allowed_payment_method_types: ['card'],
         }),
-      );
+      ]);
     });
 
     it('should fall back to registry price ID when env is not set', async () => {
@@ -167,9 +178,7 @@ describe('SkillCheckoutService', () => {
         url: 'https://checkout.stripe.com/session/cs_test_456',
       } as unknown as Stripe.Checkout.Session;
 
-      stripeService.stripe.checkout.sessions.create.mockResolvedValue(
-        mockSession,
-      );
+      nextSession = mockSession;
 
       const dto: CreateSkillCheckoutDto = {};
 
@@ -178,14 +187,11 @@ describe('SkillCheckoutService', () => {
       expect(result.url).toBe(
         'https://checkout.stripe.com/session/cs_test_456',
       );
-      expect(skillRegistryService.getBundleStripePriceId).toHaveBeenCalled();
-      expect(
-        stripeService.stripe.checkout.sessions.create,
-      ).toHaveBeenCalledWith(
+      expect(createdSessions).toEqual([
         expect.objectContaining({
           line_items: [{ price: 'price_registry_456', quantity: 1 }],
         }),
-      );
+      ]);
     });
 
     it('creates a single-skill checkout with an exact entitlement grant', async () => {
@@ -204,16 +210,10 @@ describe('SkillCheckoutService', () => {
         updatedAt: '2026-08-31T00:00:00.000Z',
       });
       skillRegistryService.getSkillBySlug.mockReturnValue(selectedSkill);
-      stripeService.stripe.checkout.sessions.create.mockResolvedValue({
-        id: 'cs_single',
-        url: 'https://checkout.stripe.com/session/cs_single',
-      } as unknown as Stripe.Checkout.Session);
 
       await service.createCheckoutSession({ skillSlug: 'image-gen-pro' });
 
-      expect(
-        stripeService.stripe.checkout.sessions.create,
-      ).toHaveBeenCalledWith(
+      expect(createdSessions).toEqual([
         expect.objectContaining({
           line_items: [
             {
@@ -232,7 +232,7 @@ describe('SkillCheckoutService', () => {
             skillSlugs: 'image-gen-pro',
           }),
         }),
-      );
+      ]);
     });
 
     it('should fall back to registry bundle price when no price ID is available', async () => {
@@ -253,19 +253,14 @@ describe('SkillCheckoutService', () => {
         url: 'https://checkout.stripe.com/session/cs_test_price_data',
       } as unknown as Stripe.Checkout.Session;
 
-      stripeService.stripe.checkout.sessions.create.mockResolvedValue(
-        mockSession,
-      );
+      nextSession = mockSession;
 
       const result = await service.createCheckoutSession(dto);
 
       expect(result.url).toBe(
         'https://checkout.stripe.com/session/cs_test_price_data',
       );
-      expect(skillRegistryService.getBundlePriceCents).toHaveBeenCalled();
-      expect(
-        stripeService.stripe.checkout.sessions.create,
-      ).toHaveBeenCalledWith(
+      expect(createdSessions).toEqual([
         expect.objectContaining({
           line_items: [
             {
@@ -280,7 +275,7 @@ describe('SkillCheckoutService', () => {
             },
           ],
         }),
-      );
+      ]);
     });
 
     it('should throw BadRequestException when no price ID or bundle price is available', async () => {
@@ -311,9 +306,7 @@ describe('SkillCheckoutService', () => {
       await expect(service.createCheckoutSession({})).rejects.toThrow(
         ServiceUnavailableException,
       );
-      expect(
-        stripeService.stripe.checkout.sessions.create,
-      ).not.toHaveBeenCalled();
+      expect(createdSessions).toEqual([]);
     });
 
     it('should use default success and cancel URLs when not provided in DTO', async () => {
@@ -329,23 +322,19 @@ describe('SkillCheckoutService', () => {
         url: 'https://checkout.stripe.com/session/cs_test_789',
       } as unknown as Stripe.Checkout.Session;
 
-      stripeService.stripe.checkout.sessions.create.mockResolvedValue(
-        mockSession,
-      );
+      nextSession = mockSession;
 
       const dto: CreateSkillCheckoutDto = {};
 
       await service.createCheckoutSession(dto);
 
-      expect(
-        stripeService.stripe.checkout.sessions.create,
-      ).toHaveBeenCalledWith(
+      expect(createdSessions).toEqual([
         expect.objectContaining({
           cancel_url: 'https://app.genfeed.ai/skills-pro',
           success_url:
             'https://app.genfeed.ai/skills-pro/success?session_id={CHECKOUT_SESSION_ID}',
         }),
-      );
+      ]);
     });
 
     it('should use custom success and cancel URLs from configured origins', async () => {
@@ -362,9 +351,7 @@ describe('SkillCheckoutService', () => {
         url: 'https://checkout.stripe.com/session/cs_test_custom',
       } as unknown as Stripe.Checkout.Session;
 
-      stripeService.stripe.checkout.sessions.create.mockResolvedValue(
-        mockSession,
-      );
+      nextSession = mockSession;
 
       const dto: CreateSkillCheckoutDto = {
         cancelUrl: 'https://genfeed.ai/skills',
@@ -374,15 +361,13 @@ describe('SkillCheckoutService', () => {
 
       await service.createCheckoutSession(dto);
 
-      expect(
-        stripeService.stripe.checkout.sessions.create,
-      ).toHaveBeenCalledWith(
+      expect(createdSessions).toEqual([
         expect.objectContaining({
           cancel_url: 'https://genfeed.ai/skills',
           success_url:
             'https://genfeed.ai/skills/success?session_id={CHECKOUT_SESSION_ID}',
         }),
-      );
+      ]);
     });
 
     it('should ignore checkout redirect URLs from unknown origins', async () => {
@@ -399,9 +384,7 @@ describe('SkillCheckoutService', () => {
         url: 'https://checkout.stripe.com/session/cs_test_rejected_redirect',
       } as unknown as Stripe.Checkout.Session;
 
-      stripeService.stripe.checkout.sessions.create.mockResolvedValue(
-        mockSession,
-      );
+      nextSession = mockSession;
 
       const dto: CreateSkillCheckoutDto = {
         cancelUrl: 'https://evil.example/cancel',
@@ -410,15 +393,13 @@ describe('SkillCheckoutService', () => {
 
       await service.createCheckoutSession(dto);
 
-      expect(
-        stripeService.stripe.checkout.sessions.create,
-      ).toHaveBeenCalledWith(
+      expect(createdSessions).toEqual([
         expect.objectContaining({
           cancel_url: 'https://app.genfeed.ai/skills-pro',
           success_url:
             'https://app.genfeed.ai/skills-pro/success?session_id={CHECKOUT_SESSION_ID}',
         }),
-      );
+      ]);
     });
 
     it('should not set customer_email when email is not provided', async () => {
@@ -434,16 +415,13 @@ describe('SkillCheckoutService', () => {
         url: 'https://checkout.stripe.com/session/cs_test_no_email',
       } as unknown as Stripe.Checkout.Session;
 
-      stripeService.stripe.checkout.sessions.create.mockResolvedValue(
-        mockSession,
-      );
+      nextSession = mockSession;
 
       const dto: CreateSkillCheckoutDto = {};
 
       await service.createCheckoutSession(dto);
 
-      const callArgs = stripeService.stripe.checkout.sessions.create.mock
-        .calls[0][0] as Stripe.Checkout.SessionCreateParams;
+      const [callArgs] = createdSessions;
       expect(callArgs.customer_email).toBeUndefined();
     });
 
@@ -461,14 +439,11 @@ describe('SkillCheckoutService', () => {
         url: 'https://checkout.stripe.com/session/cs_test_discount',
       } as unknown as Stripe.Checkout.Session;
 
-      stripeService.stripe.checkout.sessions.create.mockResolvedValue(
-        mockSession,
-      );
+      nextSession = mockSession;
 
       await service.createCheckoutSession({});
 
-      const callArgs = stripeService.stripe.checkout.sessions.create.mock
-        .calls[0][0] as Stripe.Checkout.SessionCreateParams;
+      const [callArgs] = createdSessions;
       expect(callArgs.allow_promotion_codes).toBe(true);
       expect(callArgs).not.toHaveProperty('discounts');
     });
@@ -486,9 +461,7 @@ describe('SkillCheckoutService', () => {
         url: null,
       } as unknown as Stripe.Checkout.Session;
 
-      stripeService.stripe.checkout.sessions.create.mockResolvedValue(
-        mockSession,
-      );
+      nextSession = mockSession;
 
       const dto: CreateSkillCheckoutDto = {};
 
@@ -529,18 +502,18 @@ describe('SkillCheckoutService', () => {
         url: 'https://checkout.stripe.com/session/cs_test_log',
       } as unknown as Stripe.Checkout.Session;
 
-      stripeService.stripe.checkout.sessions.create.mockResolvedValue(
-        mockSession,
-      );
+      nextSession = mockSession;
 
       await service.createCheckoutSession({});
 
-      expect(loggerService.log).toHaveBeenCalledWith(
-        expect.stringContaining('createCheckoutSession'),
-      );
-      expect(loggerService.log).toHaveBeenCalledWith(
-        expect.stringContaining('checkout session created'),
-        expect.objectContaining({ sessionId: 'cs_test_log' }),
+      expect(logged).toEqual(
+        expect.arrayContaining([
+          [expect.stringContaining('createCheckoutSession')],
+          [
+            expect.stringContaining('checkout session created'),
+            expect.objectContaining({ sessionId: 'cs_test_log' }),
+          ],
+        ]),
       );
     });
   });

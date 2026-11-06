@@ -6,67 +6,38 @@ import type {
   ResolvedAutonomousPostPolicy,
 } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import { AgentAutonomyMode, AgentPublishDecision } from '@genfeedai/contracts';
+import type { ScheduleCanonicalPostInput } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 const SCHEDULED_AT = '2099-07-18T09:00:00.000Z';
 
+type ScheduledPost = {
+  groupId: string;
+  isUnderLock: boolean;
+  postId: string;
+  scheduledAt: string;
+};
+
+type BrandWorld = {
+  evaluations: number;
+  isLocked: boolean;
+  lockScopes: unknown[];
+  // Simulates another post taking a slot between the preview and the lock.
+  onLock?: () => void;
+  scheduled: ScheduledPost[];
+  slotsUsed: number;
+  weeklyCap: number;
+};
+
 function policy(
   decision: AgentPublishDecision,
-  reason = 'ok',
+  reason: string,
 ): ResolvedAutonomousPostPolicy {
   return {
     autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
     result: { decision, reason } as ResolvedAutonomousPostPolicy['result'],
     reviewTimeoutHours: 24,
-  };
-}
-
-function makeDeps() {
-  const resolveForPost = vi
-    .fn<AutonomousPublishPolicyService['resolveForPost']>()
-    .mockResolvedValue(policy(AgentPublishDecision.PERMITTED));
-  // A brand with caps: the policy is evaluated again under the lock.
-  const scheduleWithinPostCaps = vi.fn(
-    async (
-      _scope: unknown,
-      preview: ResolvedAutonomousPostPolicy,
-      evaluate: () => Promise<ResolvedAutonomousPostPolicy>,
-      schedule: () => Promise<unknown>,
-    ) => {
-      if (preview.result.decision !== AgentPublishDecision.PERMITTED)
-        return { policy: preview };
-      const decided = await evaluate();
-      return decided.result.decision === AgentPublishDecision.PERMITTED
-        ? { policy: decided, scheduled: await schedule() }
-        : { policy: decided };
-    },
-  );
-  const scheduleCanonicalPost = vi
-    .fn()
-    .mockResolvedValue({ creditsUsed: 1, success: true });
-  const deps = {
-    assertPublishingScope: vi.fn().mockResolvedValue(undefined),
-    autonomousPublishPolicyService: {
-      resolveForPost,
-      scheduleWithinPostCaps,
-    } as unknown as AutonomousPublishPolicyService,
-    logger: { error: vi.fn() } as unknown as LoggerService,
-    owner: 'test',
-    postsService: {
-      findOne: vi.fn().mockResolvedValue({
-        brandId: 'brand-1',
-        groupId: 'release-1',
-        id: 'post-1',
-      }),
-    } as unknown as PostsService,
-    scheduleCanonicalPost,
-  };
-  return {
-    deps,
-    resolveForPost,
-    scheduleCanonicalPost,
-    scheduleWithinPostCaps,
   };
 }
 
@@ -79,44 +50,109 @@ function context(overrides: Partial<ToolExecutionContext>) {
 }
 
 describe('scheduleAgentPost post caps (#7458)', () => {
-  it('counts the Policy post caps and schedules a proactive post under one brand lock', async () => {
-    const {
-      deps,
-      resolveForPost,
-      scheduleCanonicalPost,
-      scheduleWithinPostCaps,
-    } = makeDeps();
+  let world: BrandWorld;
+  let approvalRule: string | undefined;
 
+  const deps = () => ({
+    assertPublishingScope: async () => undefined,
+    autonomousPublishPolicyService: {
+      resolveForPost: async () => {
+        world.evaluations += 1;
+        if (approvalRule) {
+          return policy(AgentPublishDecision.DENIED, approvalRule);
+        }
+        return world.slotsUsed < world.weeklyCap
+          ? policy(AgentPublishDecision.PERMITTED, 'ok')
+          : policy(AgentPublishDecision.DENIED, 'The weekly cap is reached.');
+      },
+      scheduleWithinPostCaps: async (
+        scope: unknown,
+        preview: ResolvedAutonomousPostPolicy,
+        evaluate: () => Promise<ResolvedAutonomousPostPolicy>,
+        schedule: () => Promise<unknown>,
+      ) => {
+        world.lockScopes.push(scope);
+        world.isLocked = true;
+        try {
+          world.onLock?.();
+          const decided = await evaluate();
+          if (
+            preview.result.decision !== AgentPublishDecision.PERMITTED ||
+            decided.result.decision !== AgentPublishDecision.PERMITTED
+          ) {
+            return { policy: decided };
+          }
+          return { policy: decided, scheduled: await schedule() };
+        } finally {
+          world.isLocked = false;
+        }
+      },
+    } as unknown as AutonomousPublishPolicyService,
+    logger: { error: () => undefined } as unknown as LoggerService,
+    owner: 'test',
+    postsService: {
+      findOne: async () => ({
+        brandId: 'brand-1',
+        groupId: 'release-1',
+        id: 'post-1',
+      }),
+    } as unknown as PostsService,
+    scheduleCanonicalPost: async (input: ScheduleCanonicalPostInput) => {
+      world.slotsUsed += 1;
+      world.scheduled.push({
+        groupId: input.groupId,
+        isUnderLock: world.isLocked,
+        postId: input.postId,
+        scheduledAt: input.scheduledAt,
+      });
+      return { creditsUsed: 1, success: true };
+    },
+  });
+
+  beforeEach(() => {
+    approvalRule = undefined;
+    world = {
+      evaluations: 0,
+      isLocked: false,
+      lockScopes: [],
+      scheduled: [],
+      slotsUsed: 0,
+      weeklyCap: 1,
+    };
+  });
+
+  it('counts the Policy post caps and schedules a proactive post under one brand lock', async () => {
     const result = await scheduleAgentPost(
       { postId: 'post-1', scheduledAt: SCHEDULED_AT },
       context({ isProactive: true }),
-      deps,
+      deps(),
     );
 
     expect(result).toEqual({ creditsUsed: 1, success: true });
-    expect(scheduleWithinPostCaps).toHaveBeenCalledWith(
+    expect(world.lockScopes).toEqual([
       { brandId: 'brand-1', organizationId: 'org-1' },
-      expect.anything(),
-      expect.any(Function),
-      expect.any(Function),
-    );
+    ]);
     // Once before the lock, once under it.
-    expect(resolveForPost).toHaveBeenCalledTimes(2);
-    expect(scheduleCanonicalPost).toHaveBeenCalledTimes(1);
+    expect(world.evaluations).toBe(2);
+    expect(world.scheduled).toEqual([
+      {
+        groupId: 'release-1',
+        isUnderLock: true,
+        postId: 'post-1',
+        scheduledAt: SCHEDULED_AT,
+      },
+    ]);
   });
 
   it('does not schedule when the lock shows the last slot is gone', async () => {
-    const { deps, resolveForPost, scheduleCanonicalPost } = makeDeps();
-    resolveForPost
-      .mockResolvedValueOnce(policy(AgentPublishDecision.PERMITTED))
-      .mockResolvedValueOnce(
-        policy(AgentPublishDecision.DENIED, 'The weekly cap is reached.'),
-      );
+    world.onLock = () => {
+      world.slotsUsed += 1;
+    };
 
     const result = await scheduleAgentPost(
       { postId: 'post-1', scheduledAt: SCHEDULED_AT },
       context({ strategyId: 'strategy-1' }),
-      deps,
+      deps(),
     );
 
     expect(result).toEqual({
@@ -125,50 +161,40 @@ describe('scheduleAgentPost post caps (#7458)', () => {
       error: 'The weekly cap is reached.',
       success: false,
     });
-    expect(scheduleCanonicalPost).not.toHaveBeenCalled();
+    expect(world.scheduled).toEqual([]);
   });
 
   it('denies before taking the lock when the first evaluation denies', async () => {
-    const {
-      deps,
-      resolveForPost,
-      scheduleCanonicalPost,
-      scheduleWithinPostCaps,
-    } = makeDeps();
-    resolveForPost.mockResolvedValue(
-      policy(AgentPublishDecision.DENIED, 'Approval is required.'),
-    );
+    approvalRule = 'Approval is required.';
 
     const result = await scheduleAgentPost(
       { postId: 'post-1', scheduledAt: SCHEDULED_AT },
       context({ isProactive: true }),
-      deps,
+      deps(),
     );
 
     expect(result).toMatchObject({
       error: 'Approval is required.',
       success: false,
     });
-    expect(scheduleWithinPostCaps).not.toHaveBeenCalled();
-    expect(scheduleCanonicalPost).not.toHaveBeenCalled();
+    expect(world.lockScopes).toEqual([]);
+    expect(world.scheduled).toEqual([]);
   });
 
   it('schedules a member-run post without evaluating or locking', async () => {
-    const {
-      deps,
-      resolveForPost,
-      scheduleCanonicalPost,
-      scheduleWithinPostCaps,
-    } = makeDeps();
+    world.weeklyCap = 0;
 
-    await scheduleAgentPost(
+    const result = await scheduleAgentPost(
       { postId: 'post-1', scheduledAt: SCHEDULED_AT },
       context({}),
-      deps,
+      deps(),
     );
 
-    expect(resolveForPost).not.toHaveBeenCalled();
-    expect(scheduleWithinPostCaps).not.toHaveBeenCalled();
-    expect(scheduleCanonicalPost).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ creditsUsed: 1, success: true });
+    expect(world.evaluations).toBe(0);
+    expect(world.lockScopes).toEqual([]);
+    expect(world.scheduled).toEqual([
+      expect.objectContaining({ isUnderLock: false, postId: 'post-1' }),
+    ]);
   });
 });

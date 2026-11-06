@@ -1,128 +1,155 @@
-import { TurboProjectReconcileService } from '@api/collections/turbo-projects/services/turbo-project-reconcile.service';
-import { TurboRunReconcileService } from '@api/services/turbo-run/turbo-run-reconcile.service';
-import { TurboRunWorkflowService } from '@api/services/turbo-run/turbo-run-workflow.service';
+import type { TurboProjectReconcileService } from '@api/collections/turbo-projects/services/turbo-project-reconcile.service';
+import type { TurboRunReconcileService } from '@api/services/turbo-run/turbo-run-reconcile.service';
+import type { TurboRunWorkflowService } from '@api/services/turbo-run/turbo-run-workflow.service';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { CronTurboRunReconcileService } from '@workers/crons/turbo-run/cron.turbo-run-reconcile.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+const strandedTurboRuns = [
+  {
+    organizationId: 'org-1',
+    resumeCount: 1,
+    turboRunId: 'run-1',
+    userId: 'user-1',
+  },
+  {
+    organizationId: 'org-2',
+    resumeCount: 0,
+    turboRunId: 'run-2',
+    userId: 'user-2',
+  },
+];
 
 describe('CronTurboRunReconcileService', () => {
+  let stranded: typeof strandedTurboRuns;
+  let unqueueableRuns: Set<string>;
+  let queued: Array<{ dispatchClass: unknown; job: Record<string, unknown> }>;
+  let shortfallSweeps: number;
+  let generatingProjects: number;
+  let logs: Array<{ context: Record<string, unknown>; message: string }>;
+  let errors: string[];
   let service: CronTurboRunReconcileService;
-  let reconcileService: {
-    findStrandedTurboRuns: ReturnType<typeof vi.fn>;
-    reconcileSettlementShortfalls: ReturnType<typeof vi.fn>;
-  };
-  let queueService: { queueTurboRun: ReturnType<typeof vi.fn> };
-  const turboProjectReconcile = { reconcileGeneratingProjects: vi.fn() };
-  let logger: {
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-  };
 
-  const strandedTurboRuns = [
-    {
-      turboRunId: 'run-1',
-      organizationId: 'org-1',
-      resumeCount: 1,
-      userId: 'user-1',
-    },
-    {
-      turboRunId: 'run-2',
-      organizationId: 'org-2',
-      resumeCount: 0,
-      userId: 'user-2',
-    },
-  ];
+  beforeEach(() => {
+    stranded = [];
+    unqueueableRuns = new Set();
+    queued = [];
+    shortfallSweeps = 0;
+    generatingProjects = 0;
+    logs = [];
+    errors = [];
 
-  beforeEach(async () => {
-    reconcileService = {
-      findStrandedTurboRuns: vi.fn().mockResolvedValue([]),
-      reconcileSettlementShortfalls: vi.fn().mockResolvedValue(undefined),
-    };
-    queueService = { queueTurboRun: vi.fn().mockResolvedValue('job-1') };
-    logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CronTurboRunReconcileService,
-        { provide: LoggerService, useValue: logger },
-        {
-          provide: TurboRunReconcileService,
-          useValue: reconcileService,
-        },
-        { provide: TurboRunWorkflowService, useValue: queueService },
-        {
-          provide: TurboProjectReconcileService,
-          useValue: turboProjectReconcile,
-        },
-      ],
-    }).compile();
-
-    service = module.get(CronTurboRunReconcileService);
-  });
-
-  it('re-queues every stranded run as a resume', async () => {
-    reconcileService.findStrandedTurboRuns.mockResolvedValue(strandedTurboRuns);
-
-    await service.resumeStrandedTurboRuns();
-
-    expect(queueService.queueTurboRun).toHaveBeenCalledTimes(2);
-    expect(queueService.queueTurboRun).toHaveBeenCalledWith(
+    service = new CronTurboRunReconcileService(
       {
-        turboRunId: 'run-1',
-        isResume: true,
-        organizationId: 'org-1',
-        userId: 'user-1',
-      },
-      SystemWorkflowDispatchClass.BACKGROUND,
+        error: (message: string) => {
+          errors.push(message);
+        },
+        log: (message: string, context: Record<string, unknown>) => {
+          logs.push({ context, message });
+        },
+        warn: () => {},
+      } as unknown as LoggerService,
+      {
+        findStrandedTurboRuns: async () => stranded,
+        reconcileSettlementShortfalls: async () => {
+          shortfallSweeps += 1;
+        },
+      } as unknown as TurboRunReconcileService,
+      {
+        queueTurboRun: async (
+          job: Record<string, unknown>,
+          dispatchClass: unknown,
+        ) => {
+          if (unqueueableRuns.has(job.turboRunId as string)) {
+            throw new Error('redis unavailable');
+          }
+          queued.push({ dispatchClass, job });
+          return `job-${queued.length}`;
+        },
+      } as unknown as TurboRunWorkflowService,
+      {
+        reconcileGeneratingProjects: async () => generatingProjects,
+      } as unknown as TurboProjectReconcileService,
     );
   });
 
+  it('re-queues every stranded run as a background resume', async () => {
+    stranded = strandedTurboRuns;
+
+    await service.resumeStrandedTurboRuns();
+
+    expect(queued).toEqual([
+      {
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        job: {
+          isResume: true,
+          organizationId: 'org-1',
+          turboRunId: 'run-1',
+          userId: 'user-1',
+        },
+      },
+      {
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        job: {
+          isResume: true,
+          organizationId: 'org-2',
+          turboRunId: 'run-2',
+          userId: 'user-2',
+        },
+      },
+    ]);
+  });
+
   it('keeps sweeping after one run fails to enqueue', async () => {
-    reconcileService.findStrandedTurboRuns.mockResolvedValue(strandedTurboRuns);
-    queueService.queueTurboRun
-      .mockRejectedValueOnce(new Error('redis unavailable'))
-      .mockResolvedValue('job-2');
+    stranded = strandedTurboRuns;
+    unqueueableRuns.add('run-1');
 
     await service.resumeStrandedTurboRuns();
 
     // The second run still gets its chance — one bad run is not the sweep.
-    expect(queueService.queueTurboRun).toHaveBeenCalledTimes(2);
-    expect(logger.error).toHaveBeenCalledOnce();
-    expect(logger.log).toHaveBeenCalledWith(
-      'CronTurboRunReconcileService completed',
-      expect.objectContaining({ resumedCount: 1, strandedCount: 2 }),
-    );
+    expect(queued.map(({ job }) => job.turboRunId)).toEqual(['run-2']);
+    expect(errors).toEqual(['Failed to re-queue stranded run']);
+    expect(logs).toEqual([
+      {
+        context: expect.objectContaining({ resumedCount: 1, strandedCount: 2 }),
+        message: 'CronTurboRunReconcileService completed',
+      },
+    ]);
   });
 
   it('touches the queue only when something is stranded', async () => {
     await service.resumeStrandedTurboRuns();
 
-    expect(queueService.queueTurboRun).not.toHaveBeenCalled();
-    expect(logger.log).not.toHaveBeenCalled();
+    expect(queued).toEqual([]);
+    expect(logs).toEqual([]);
   });
 
-  it('delegates settlement shortfall reconciliation to the API service', async () => {
+  it('runs the API settlement shortfall reconciliation', async () => {
     await service.reconcileSettlementShortfalls();
 
-    expect(
-      reconcileService.reconcileSettlementShortfalls,
-    ).toHaveBeenCalledOnce();
+    expect(shortfallSweeps).toBe(1);
   });
 
-  it('advances every generating Studio Turbo project', async () => {
-    turboProjectReconcile.reconcileGeneratingProjects.mockResolvedValue(3);
+  it.each([
+    [
+      3,
+      [
+        {
+          context: expect.objectContaining({ projectCount: 3 }),
+          message: 'CronTurboRunReconcileService Turbo projects',
+        },
+      ],
+    ],
+    [0, []],
+  ])(
+    'reports %i advanced Studio Turbo projects',
+    async (count, expectedLogs) => {
+      generatingProjects = count;
 
-    await service.reconcileTurboProjects();
+      await service.reconcileTurboProjects();
 
-    expect(
-      turboProjectReconcile.reconcileGeneratingProjects,
-    ).toHaveBeenCalledTimes(1);
-    expect(logger.log).toHaveBeenCalledWith(
-      'CronTurboRunReconcileService Turbo projects',
-      expect.objectContaining({ projectCount: 3 }),
-    );
-  });
+      expect(logs).toEqual(expectedLogs);
+    },
+  );
 });

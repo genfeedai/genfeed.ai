@@ -185,6 +185,12 @@ export class OAuthAuthorizeService {
       );
     }
 
+    if (dto.brandId && dto.allowOrganizationSwitching === true) {
+      throw oauthError(
+        'invalid_request',
+        'A connection limited to one brand stays in that brand’s organization',
+      );
+    }
     if (dto.brandId) {
       const brand = await this.prisma.brand.findFirst({
         select: { id: true },
@@ -202,6 +208,7 @@ export class OAuthAuthorizeService {
       this.clampScopes(dto.scope, resource),
       resource,
       organization.members.map((member) => member.role.key),
+      Boolean(dto.brandId),
     );
     // "All my organizations": the connection may name any organization the
     // user belongs to on each call. Only meaningful with a second organization
@@ -290,6 +297,11 @@ export class OAuthAuthorizeService {
     const expiresAt = new Date(Date.now() + MCP_OAUTH_SESSION_TTL_MS);
     const { apiKey, plainKey } = await this.apiKeysService.createWithKey(
       {
+        // The brand picked at consent is the only brand this connection
+        // reaches, and its default; no pick reaches every brand.
+        ...(record.defaultBrandId
+          ? { allowedBrandIds: [record.defaultBrandId] }
+          : {}),
         category: ApiKeyCategory.GENFEEDAI,
         defaultBrandId: record.defaultBrandId ?? undefined,
         description: 'OAuth session for a remote MCP client',
@@ -358,13 +370,14 @@ export class OAuthAuthorizeService {
    * scope only unlocks what the live membership already allows: `/auth/whoami`
    * and the brand-access predicate still resolve the role from the current
    * membership row, so a demoted member's key stops being privileged. A client
-   * that asked for a narrower scope set, and every Claude connector session,
-   * stays below it.
+   * that asked for a narrower scope set, a connection limited to one brand,
+   * and every Claude connector session stay below it.
    */
   private withMembershipAdminScope(
     granted: string[],
     resource: string,
     roleKeys: readonly string[],
+    isBrandLimited: boolean,
   ): string[] {
     const isFullGrant = API_KEY_SCOPE_PRESETS.mcp.every((scope) =>
       granted.includes(scope),
@@ -374,7 +387,10 @@ export class OAuthAuthorizeService {
     const isOrganizationAdmin = roleKeys.some((key) =>
       ORGANIZATION_ADMIN_ROLE_KEYS.has(key),
     );
-    return isFullGrant && isStandardResource && isOrganizationAdmin
+    return isFullGrant &&
+      isStandardResource &&
+      isOrganizationAdmin &&
+      !isBrandLimited
       ? [...granted, ApiKeyScope.ADMIN]
       : granted;
   }

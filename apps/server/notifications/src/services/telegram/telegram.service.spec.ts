@@ -1,171 +1,164 @@
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, type TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@notifications/config/config.service';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { ConfigService } from '@notifications/config/config.service';
 import { TelegramService } from '@notifications/services/telegram/telegram.service';
 
-const mockSendMessage = vi.fn();
-const mockSendPhoto = vi.fn();
-const mockSendVideo = vi.fn();
-let shouldThrowOnConstruct = false;
-
-vi.mock('grammy', () => ({
-  Bot: vi.fn(function MockBot() {
-    if (shouldThrowOnConstruct) {
-      throw new Error('Invalid token');
-    }
-    return {
-      api: {
-        sendMessage: mockSendMessage,
-        sendPhoto: mockSendPhoto,
-        sendVideo: mockSendVideo,
-      },
-    };
-  }),
+// Telegram as the service sees it: the bots created and the messages delivered.
+const telegram = vi.hoisted(() => ({
+  bots: [] as Array<{ options: unknown; token: string }>,
+  delivered: [] as Array<{ chatId: string; options?: unknown; text: string }>,
+  isDown: false,
+  rejectsToken: false,
 }));
 
-vi.mock('@libs/utils/caller/caller.util', () => ({
-  CallerUtil: {
-    getCallerName: vi.fn().mockReturnValue('testCaller'),
+vi.mock('grammy', () => ({
+  Bot: class {
+    readonly api = {
+      sendMessage: async (chatId: string, text: string, options?: unknown) => {
+        if (telegram.isDown) throw new Error('network');
+        telegram.delivered.push({ chatId, options, text });
+      },
+    };
+
+    constructor(token: string, options: unknown) {
+      if (telegram.rejectsToken) throw new Error('Invalid token');
+      telegram.bots.push({ options, token });
+    }
   },
 }));
 
-interface TelegramTestConfig {
-  isEnabled: boolean;
-  values?: Record<string, string | undefined>;
-}
-
 describe('TelegramService', () => {
-  const mockLoggerService = {
-    debug: vi.fn(),
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  };
+  let logs: Array<{ level: string; message: string }>;
 
-  async function createService(
-    config: TelegramTestConfig,
-  ): Promise<TelegramService> {
-    const mockConfigService = {
-      get: vi.fn((key: string) => {
-        if (config.values && key in config.values) {
-          return config.values[key];
-        }
-        return key === 'TELEGRAM_ADMIN_IDS' ? '123,456,789' : undefined;
-      }),
-      isTelegramEnabled: vi.fn().mockReturnValue(config.isEnabled),
+  function createService(config: {
+    isEnabled: boolean;
+    token?: string;
+  }): TelegramService {
+    const record = (level: string) => (message: string) => {
+      logs.push({ level, message });
     };
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TelegramService,
-        { provide: ConfigService, useValue: mockConfigService },
-        { provide: LoggerService, useValue: mockLoggerService },
-      ],
-    }).compile();
-
-    return module.get<TelegramService>(TelegramService);
+    return new TelegramService(
+      {
+        get: (key: string) =>
+          key === 'TELEGRAM_BOT_TOKEN' ? config.token : undefined,
+        isTelegramEnabled: () => config.isEnabled,
+      } as unknown as ConfigService,
+      {
+        error: record('error'),
+        log: record('log'),
+        warn: record('warn'),
+      } as unknown as LoggerService,
+    );
   }
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    shouldThrowOnConstruct = false;
-  });
-
-  it('should be defined', async () => {
-    const service = await createService({ isEnabled: false });
-    expect(service).toBeDefined();
+    telegram.bots.length = 0;
+    telegram.delivered.length = 0;
+    telegram.isDown = false;
+    telegram.rejectsToken = false;
+    logs = [];
   });
 
   describe('initialization', () => {
-    it('should log when Telegram is not enabled', async () => {
-      await createService({ isEnabled: false });
+    it.each([
+      [
+        'disabled',
+        { isEnabled: false },
+        {
+          level: 'log',
+          message: 'Telegram bot not configured - skipping initialization',
+        },
+      ],
+      [
+        'enabled without a token',
+        { isEnabled: true },
+        {
+          level: 'warn',
+          message: 'Telegram bot enabled but TELEGRAM_BOT_TOKEN is missing',
+        },
+      ],
+    ])('creates no bot when %s', (_label, config, expectedLog) => {
+      createService(config);
 
-      expect(mockLoggerService.log).toHaveBeenCalledWith(
-        expect.stringContaining('skipping initialization'),
-        expect.any(Object),
-      );
+      expect(telegram.bots).toEqual([]);
+      expect(logs).toEqual([expectedLog]);
     });
 
-    it('should warn when enabled but token is missing', async () => {
-      await createService({
-        isEnabled: true,
-        values: { TELEGRAM_BOT_TOKEN: undefined },
-      });
+    it('creates an API-only bot with a short client timeout', () => {
+      createService({ isEnabled: true, token: 'bot-token' });
 
-      expect(mockLoggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('TELEGRAM_BOT_TOKEN is missing'),
-        expect.any(Object),
-      );
+      expect(telegram.bots).toEqual([
+        { options: { client: { timeoutSeconds: 10 } }, token: 'bot-token' },
+      ]);
     });
 
-    it('should initialize bot when enabled with a token', async () => {
-      await createService({
-        isEnabled: true,
-        values: { TELEGRAM_BOT_TOKEN: 'bot-token' },
-      });
+    it('logs instead of throwing when the token is rejected', () => {
+      telegram.rejectsToken = true;
 
-      expect(mockLoggerService.log).toHaveBeenCalledWith(
-        expect.stringContaining('initialized'),
-        expect.any(Object),
-      );
-    });
-
-    it('should log error when bot construction fails', async () => {
-      shouldThrowOnConstruct = true;
-
-      await createService({
-        isEnabled: true,
-        values: { TELEGRAM_BOT_TOKEN: 'bad-token' },
-      });
-
-      expect(mockLoggerService.error).toHaveBeenCalledWith(
-        'Failed to initialize Telegram bot',
-        expect.any(Error),
-        expect.any(Object),
-      );
+      expect(() =>
+        createService({ isEnabled: true, token: 'bad-token' }),
+      ).not.toThrow();
+      expect(logs).toEqual([
+        { level: 'error', message: 'Failed to initialize Telegram bot' },
+      ]);
     });
   });
 
   describe('sendMessage', () => {
-    it('should warn and skip when bot is not initialized', async () => {
-      const service = await createService({ isEnabled: false });
+    it('returns false and sends nothing when no bot exists', async () => {
+      const service = createService({ isEnabled: false });
 
-      await service.sendMessage('chat-1', 'hello');
-
-      expect(mockLoggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Bot not initialized'),
-        expect.any(Object),
-      );
-      expect(mockSendMessage).not.toHaveBeenCalled();
+      await expect(service.sendMessage('chat-1', 'hello')).resolves.toBe(false);
+      expect(telegram.delivered).toEqual([]);
     });
 
-    it('should send a markdown message via the bot api', async () => {
-      const service = await createService({
-        isEnabled: true,
-        values: { TELEGRAM_BOT_TOKEN: 'bot-token' },
-      });
+    it('delivers a markdown message', async () => {
+      const service = createService({ isEnabled: true, token: 'bot-token' });
 
-      await service.sendMessage('chat-1', 'hello');
-
-      expect(mockSendMessage).toHaveBeenCalledWith('chat-1', 'hello', {
-        parse_mode: 'Markdown',
-      });
+      await expect(service.sendMessage('chat-1', 'hello')).resolves.toBe(true);
+      expect(telegram.delivered).toEqual([
+        {
+          chatId: 'chat-1',
+          options: { parse_mode: 'Markdown' },
+          text: 'hello',
+        },
+      ]);
     });
 
-    it('should log error when send fails', async () => {
-      mockSendMessage.mockRejectedValueOnce(new Error('network'));
-      const service = await createService({
-        isEnabled: true,
-        values: { TELEGRAM_BOT_TOKEN: 'bot-token' },
-      });
+    it('logs and rethrows a delivery failure', async () => {
+      const service = createService({ isEnabled: true, token: 'bot-token' });
+      telegram.isDown = true;
 
-      await expect(service.sendMessage('chat-1', 'hello')).rejects.toThrow();
-
-      expect(mockLoggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to send message to chat-1'),
-        expect.any(Error),
-        expect.any(Object),
+      await expect(service.sendMessage('chat-1', 'hello')).rejects.toThrow(
+        'network',
       );
+      expect(logs.at(-1)).toEqual({
+        level: 'error',
+        message: expect.stringContaining('Failed to send message to chat-1'),
+      });
+    });
+  });
+
+  describe('sendSystemMessage', () => {
+    it('delivers plain text', async () => {
+      const service = createService({ isEnabled: true, token: 'bot-token' });
+
+      await service.sendSystemMessage('chat-1', 'deploy done');
+
+      expect(telegram.delivered).toEqual([
+        { chatId: 'chat-1', options: undefined, text: 'deploy done' },
+      ]);
+    });
+
+    it.each([
+      ['no bot exists', false, false, 'Telegram is not configured'],
+      ['delivery fails', true, true, 'Telegram system notification failed'],
+    ])('throws when %s', async (_label, isEnabled, isDown, message) => {
+      const service = createService({ isEnabled, token: 'bot-token' });
+      telegram.isDown = isDown;
+
+      await expect(
+        service.sendSystemMessage('chat-1', 'deploy done'),
+      ).rejects.toThrow(message);
     });
   });
 });

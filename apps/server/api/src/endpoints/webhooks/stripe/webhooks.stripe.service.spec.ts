@@ -1,112 +1,103 @@
-import { StripeCheckoutWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler';
-import { StripeCustomerWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-customer-webhook.handler';
-import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
-import { StripePaymentWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-payment-webhook.handler';
-import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
+import type { StripeCheckoutWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler';
+import type { StripeCustomerWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-customer-webhook.handler';
+import type { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
+import type { StripePaymentWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-payment-webhook.handler';
+import type { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+interface Routed {
+  args: unknown[];
+  route: string;
+}
 
 describe('StripeWebhookService', () => {
+  let routed: Routed[];
+  let logs: string[];
   let service: StripeWebhookService;
 
-  const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-  const subscriptionHandler = {
-    handleSubscriptionCreated: vi.fn(),
-    handleSubscriptionDeleted: vi.fn(),
-    handleSubscriptionUpdated: vi.fn(),
-  };
-  const checkoutHandler = { handleCheckoutCompleted: vi.fn() };
-  const invoiceHandler = {
-    handleInvoicePaid: vi.fn(),
-    handleInvoicePaymentFailed: vi.fn(),
-  };
-  const customerHandler = {
-    handleCustomerCreated: vi.fn(),
-    handleCustomerUpdated: vi.fn(),
-  };
-  const paymentHandler = {
-    handleChargeRefunded: vi.fn(),
-    handleDisputeCreated: vi.fn(),
-  };
+  // Each handler method records which route it served and its arguments.
+  function handler<T>(name: string, methods: string[]): T {
+    return Object.fromEntries(
+      methods.map((method) => [
+        method,
+        async (...args: unknown[]) => {
+          routed.push({ args, route: `${name}.${method}` });
+        },
+      ]),
+    ) as T;
+  }
 
   function eventOf(type: string, object: Record<string, unknown> = {}) {
     return { data: { object }, type };
   }
 
-  beforeEach(async () => {
-    vi.clearAllMocks();
+  beforeEach(() => {
+    routed = [];
+    logs = [];
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        StripeWebhookService,
-        { provide: LoggerService, useValue: loggerService },
-        {
-          provide: StripeSubscriptionWebhookHandler,
-          useValue: subscriptionHandler,
+    service = new StripeWebhookService(
+      {
+        error: () => {},
+        log: (message: string) => {
+          logs.push(message);
         },
-        { provide: StripeCheckoutWebhookHandler, useValue: checkoutHandler },
-        { provide: StripeInvoiceWebhookHandler, useValue: invoiceHandler },
-        { provide: StripeCustomerWebhookHandler, useValue: customerHandler },
-        { provide: StripePaymentWebhookHandler, useValue: paymentHandler },
-      ],
-    }).compile();
-
-    service = module.get(StripeWebhookService);
-  });
-
-  it.each<[string, Record<string, Mock>, string]>([
-    [
-      'customer.subscription.created',
-      subscriptionHandler,
-      'handleSubscriptionCreated',
-    ],
-    [
-      'customer.subscription.updated',
-      subscriptionHandler,
-      'handleSubscriptionUpdated',
-    ],
-    [
-      'customer.subscription.deleted',
-      subscriptionHandler,
-      'handleSubscriptionDeleted',
-    ],
-    ['checkout.session.completed', checkoutHandler, 'handleCheckoutCompleted'],
-    ['invoice.paid', invoiceHandler, 'handleInvoicePaid'],
-    ['invoice.payment_failed', invoiceHandler, 'handleInvoicePaymentFailed'],
-    ['customer.created', customerHandler, 'handleCustomerCreated'],
-    ['customer.updated', customerHandler, 'handleCustomerUpdated'],
-  ])('routes %s to its handler', async (type, handler, method) => {
-    const object = { id: 'obj_1' };
-
-    await service.handleWebhookEvent(eventOf(type, object), 'test');
-
-    expect(handler[method]).toHaveBeenCalledWith(object, 'test');
+        warn: () => {},
+      } as unknown as LoggerService,
+      handler<StripeSubscriptionWebhookHandler>('subscription', [
+        'handleSubscriptionCreated',
+        'handleSubscriptionDeleted',
+        'handleSubscriptionUpdated',
+      ]),
+      handler<StripeCheckoutWebhookHandler>('checkout', [
+        'handleCheckoutCompleted',
+      ]),
+      handler<StripeInvoiceWebhookHandler>('invoice', [
+        'handleInvoicePaid',
+        'handleInvoicePaymentFailed',
+      ]),
+      handler<StripeCustomerWebhookHandler>('customer', [
+        'handleCustomerCreated',
+        'handleCustomerUpdated',
+      ]),
+      handler<StripePaymentWebhookHandler>('payment', [
+        'handleChargeRefunded',
+        'handleDisputeCreated',
+      ]),
+    );
   });
 
   it.each([
-    ['charge.refunded', 'handleChargeRefunded'],
-    ['charge.dispute.created', 'handleDisputeCreated'],
-  ] as const)('routes %s to the payment handler', async (type, method) => {
-    const object = { id: 'obj_1' };
+    ['customer.subscription.created', 'subscription.handleSubscriptionCreated'],
+    ['customer.subscription.updated', 'subscription.handleSubscriptionUpdated'],
+    ['customer.subscription.deleted', 'subscription.handleSubscriptionDeleted'],
+    ['checkout.session.completed', 'checkout.handleCheckoutCompleted'],
+    ['invoice.paid', 'invoice.handleInvoicePaid'],
+    ['invoice.payment_failed', 'invoice.handleInvoicePaymentFailed'],
+    ['customer.created', 'customer.handleCustomerCreated'],
+    ['customer.updated', 'customer.handleCustomerUpdated'],
+  ])('routes %s to %s with the request url', async (type, route) => {
+    await service.handleWebhookEvent(eventOf(type, { id: 'obj_1' }), 'test');
 
-    await service.handleWebhookEvent(eventOf(type, object), 'test');
+    expect(routed).toEqual([{ args: [{ id: 'obj_1' }, 'test'], route }]);
+  });
 
-    expect(paymentHandler[method]).toHaveBeenCalledWith(object);
+  it.each([
+    ['charge.refunded', 'payment.handleChargeRefunded'],
+    ['charge.dispute.created', 'payment.handleDisputeCreated'],
+  ])('routes %s to %s', async (type, route) => {
+    await service.handleWebhookEvent(eventOf(type, { id: 'obj_1' }), 'test');
+
+    expect(routed).toEqual([{ args: [{ id: 'obj_1' }], route }]);
   });
 
   it('logs unhandled event types without touching any handler', async () => {
     await service.handleWebhookEvent(eventOf('charge.dispute.closed'), 'test');
 
-    expect(loggerService.log).toHaveBeenCalledWith(
+    expect(routed).toEqual([]);
+    expect(logs).toContainEqual(
       expect.stringContaining('unhandled event type: charge.dispute.closed'),
     );
-    expect(checkoutHandler.handleCheckoutCompleted).not.toHaveBeenCalled();
-    expect(invoiceHandler.handleInvoicePaid).not.toHaveBeenCalled();
-    expect(
-      subscriptionHandler.handleSubscriptionCreated,
-    ).not.toHaveBeenCalled();
-    expect(customerHandler.handleCustomerCreated).not.toHaveBeenCalled();
   });
 });
