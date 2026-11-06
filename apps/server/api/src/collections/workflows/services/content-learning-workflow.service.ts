@@ -30,9 +30,9 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   CONTENT_LEARNING_ACTIVE_STATUSES,
-  ContentLearningOperationStatus,
   CredentialPlatform,
   fromPrismaCredentialPlatform,
+  ContentLearningOperationStatus as OperationStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
@@ -408,7 +408,7 @@ export class ContentLearningWorkflowService implements OnModuleInit {
           status: { in: [...CONTENT_LEARNING_ACTIVE_STATUSES] },
         },
         data: {
-          status: ContentLearningOperationStatus.FAILED,
+          status: OperationStatus.FAILED,
           error: 'dispatch_receipt_invalid',
         },
       });

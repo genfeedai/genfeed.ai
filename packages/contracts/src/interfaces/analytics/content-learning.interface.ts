@@ -1,6 +1,7 @@
 import {
   type ContentLearningArm,
   type ContentLearningMode,
+  ContentLearningOperationStatus,
   ContentLearningRunStatus,
 } from '../../enums/content-learning.enum';
 
@@ -611,6 +612,21 @@ const LEARNING_RUN_TERMINAL_STATUSES: readonly string[] = [
   ContentLearningRunStatus.CANCELLED,
   ContentLearningRunStatus.INVALIDATED,
 ];
+
+export function isLearningRunTerminal(status: string): boolean {
+  return LEARNING_RUN_TERMINAL_STATUSES.includes(status);
+}
+
+/** Operations record a run that ended short of its target as completed. */
+export function learningRunOperationStatus(
+  status: string,
+): ContentLearningOperationStatus | null {
+  if (!Object.values<string>(ContentLearningRunStatus).includes(status))
+    return null;
+  return status === ContentLearningRunStatus.INSUFFICIENT_DATA
+    ? ContentLearningOperationStatus.COMPLETED
+    : (status as ContentLearningOperationStatus);
+}
 
 export interface LearningRunDispatchTerminalResultV1 {
   runStatus: LearningRunTerminalStatus;

@@ -17,8 +17,8 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   ContentLearningMode,
-  ContentLearningOperationStatus,
   fromPrismaCredentialPlatform,
+  ContentLearningOperationStatus as OperationStatus,
 } from '@genfeedai/contracts';
 import {
   learningContractIdSchema,
@@ -937,7 +937,7 @@ export class LearningAccountService {
           type: 'brand-receiving',
           beforeRevision: preference.revision,
           afterRevision: preference.revision + 1,
-          status: ContentLearningOperationStatus.COMPLETED,
+          status: OperationStatus.COMPLETED,
           resultReferences: toPrismaJson({
             brandId,
             preference: body.preference,

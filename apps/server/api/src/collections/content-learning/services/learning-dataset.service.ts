@@ -18,7 +18,7 @@ import {
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ContentLearningOperationStatus } from '@genfeedai/contracts';
+import { ContentLearningOperationStatus as OperationStatus } from '@genfeedai/contracts';
 import {
   type LearningDatasetSourceAccount,
   type LearningDependencyRefV1,
@@ -286,7 +286,7 @@ export class LearningDatasetService {
                 requestId: input.requestId,
                 payloadHash,
                 type: 'dataset-create',
-                status: ContentLearningOperationStatus.COMPLETED,
+                status: OperationStatus.COMPLETED,
                 resultReferences: toPrismaJson({
                   datasetId: dataset.id,
                   manifestHash: dataset.manifestHash,

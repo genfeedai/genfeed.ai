@@ -7,9 +7,9 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CONTENT_LEARNING_ACTIVE_STATUSES,
-  ContentLearningOperationStatus,
-  ContentLearningRunStatus,
+  ContentLearningOperationStatus as OperationStatus,
   PlatformRole,
+  ContentLearningRunStatus as RunStatus,
 } from '@genfeedai/contracts';
 import {
   type LearningRunDispatchReceiptV1,
@@ -29,8 +29,8 @@ export interface LearningRunControlInput {
   requestId: string;
 }
 const RETRYABLE_RUN_STATUSES: readonly string[] = [
-  ContentLearningRunStatus.FAILED,
-  ContentLearningRunStatus.CANCELLED,
+  RunStatus.FAILED,
+  RunStatus.CANCELLED,
 ];
 const CANCELLABLE_RUN_STATUSES: readonly string[] = [
   ...CONTENT_LEARNING_ACTIVE_STATUSES,
@@ -123,7 +123,7 @@ export class LearningRunControlService {
         const changed = await tx.contentLearningRun.updateMany({
           where: { id: run.id, isDeleted: false, status: run.status },
           data: {
-            status: ContentLearningRunStatus.PENDING,
+            status: RunStatus.PENDING,
             progress: 0,
             error: null,
             report: Prisma.DbNull,
@@ -149,7 +149,7 @@ export class LearningRunControlService {
             requestId: input.requestId,
             payloadHash,
             type: `dataset-${run.type}`,
-            status: ContentLearningOperationStatus.PENDING,
+            status: OperationStatus.PENDING,
             resultReferences: toPrismaJson(receipt),
           },
         });
@@ -158,10 +158,7 @@ export class LearningRunControlService {
           throw new ConflictException('Run cannot cancel');
         await tx.contentLearningRun.updateMany({
           where: { id: run.id, isDeleted: false, status: run.status },
-          data: {
-            status: ContentLearningRunStatus.CANCELLED,
-            completedAt: now,
-          },
+          data: { status: RunStatus.CANCELLED, completedAt: now },
         });
         for (const cycle of cycles.filter((cycle) =>
           CONTENT_LEARNING_ACTIVE_STATUSES.includes(cycle.status),
@@ -177,13 +174,13 @@ export class LearningRunControlService {
               status: cycle.status,
             },
             data: {
-              status: ContentLearningOperationStatus.CANCELLED,
+              status: OperationStatus.CANCELLED,
               error: null,
               resultReferences: toPrismaJson({
                 ...receipt,
                 nextAttemptAt: null,
                 terminalResult: {
-                  runStatus: ContentLearningRunStatus.CANCELLED,
+                  runStatus: RunStatus.CANCELLED,
                   reasonCode: 'cancelled',
                   resultArtifactId: null,
                   completedAt: now.toISOString(),
@@ -202,7 +199,7 @@ export class LearningRunControlService {
             requestId: input.requestId,
             payloadHash,
             type: 'run-cancel',
-            status: ContentLearningOperationStatus.COMPLETED,
+            status: OperationStatus.COMPLETED,
             resultReferences: toPrismaJson({
               runId: run.id,
               action,

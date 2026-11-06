@@ -6,8 +6,8 @@ import {
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
-  ContentLearningOperationStatus,
-  ContentLearningRunStatus,
+  ContentLearningOperationStatus as OperationStatus,
+  ContentLearningRunStatus as RunStatus,
 } from '@genfeedai/contracts';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
@@ -48,7 +48,7 @@ export class LearningReleaseService {
         where: {
           id: input.reportId,
           type: 'evaluate',
-          status: ContentLearningRunStatus.COMPLETED,
+          status: RunStatus.COMPLETED,
           isDeleted: false,
         },
         select: { id: true, synthetic: true },
@@ -130,7 +130,7 @@ export class LearningReleaseService {
           requestId: input.requestId,
           payloadHash,
           type: 'release-create',
-          status: ContentLearningOperationStatus.COMPLETED,
+          status: OperationStatus.COMPLETED,
           resultReferences: toPrismaJson({ releaseId: release.id }),
         },
       });
@@ -296,7 +296,7 @@ export class LearningReleaseService {
             type: 'release-control',
             beforeRevision: release.revision,
             afterRevision: release.revision + 1,
-            status: ContentLearningOperationStatus.COMPLETED,
+            status: OperationStatus.COMPLETED,
             resultReferences: toPrismaJson({ releaseId: release.id, stage }),
           },
         });
