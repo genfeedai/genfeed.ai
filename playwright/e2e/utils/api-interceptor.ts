@@ -29,6 +29,7 @@ import type {
   ICostReportSummary,
   ICreditsBreakdown,
   IEmailPerformanceReport,
+  IEntityStatsTotals,
   IExpertPathStatus,
   ILibrarySummary,
   IReferralProgram,
@@ -1293,9 +1294,17 @@ async function handleAnalyticsRoutes(route: Route): Promise<void> {
   const { pathname } = new URL(url);
 
   if (pathname.endsWith('/analytics/brands')) {
+    // The API always sends period totals beside the page of brands.
+    const totals: IEntityStatsTotals = {
+      growth: 0,
+      totalEngagement: 0,
+      totalPosts: 0,
+      totalViews: 0,
+    };
     const brands = {
       data: [],
       pagination: { limit: 64, page: 1, total: 0, totalPages: 1 },
+      totals,
     };
     await route.fulfill({
       body: JSON.stringify(
