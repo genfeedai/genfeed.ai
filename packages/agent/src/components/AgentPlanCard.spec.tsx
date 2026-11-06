@@ -2,7 +2,7 @@ import type { AgentProposedPlan } from '@genfeedai/agent/models/agent-chat.model
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import { AgentPlanCard } from './AgentPlanCard';
+import { AgentPlanCard, EMPTY_PLAN_REVISION_NOTE } from './AgentPlanCard';
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
@@ -113,5 +113,32 @@ describe('AgentPlanCard decision', () => {
       />,
     );
     expect(screen.queryByTestId('agent-plan-decision')).toBeNull();
+  });
+});
+
+describe('AgentPlanCard empty plan', () => {
+  const emptyPlan: AgentProposedPlan = { ...plan, content: '' };
+
+  it('offers to draft an empty plan again instead of a dead approval', () => {
+    const decision = buildDecision();
+    render(<AgentPlanCard decision={decision} plan={emptyPlan} />);
+
+    expect(screen.getByText('empty')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'approve' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'draftAgain' }));
+    expect(decision.onRequestChanges).toHaveBeenCalledWith(
+      EMPTY_PLAN_REVISION_NOTE,
+    );
+  });
+
+  it('offers nothing when the empty plan is no longer awaiting review', () => {
+    render(
+      <AgentPlanCard
+        decision={buildDecision()}
+        plan={{ ...emptyPlan, status: 'superseded' }}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'draftAgain' })).toBeNull();
   });
 });
