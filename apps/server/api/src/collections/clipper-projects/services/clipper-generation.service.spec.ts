@@ -6,7 +6,7 @@ import type { AvatarVideoService } from '@api/services/avatar-video/avatar-video
 import type { AvatarVideoProvider } from '@api/services/avatar-video/avatar-video-provider.interface';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   type ClipperGenerationInput,
   type ClipperGenerationResult,
@@ -43,63 +43,109 @@ const request: ClipperGenerationInput = {
   voiceId: 'voice-1',
 };
 
+interface ClipRow {
+  [key: string]: unknown;
+  id: string;
+}
+
+/**
+ * The workflow runner, clip-result store, avatar provider, raw-cut dispatch,
+ * project store and avatar billing behind the generation service. Registered
+ * workflows, started runs, clip rows, provider submissions, fundings and
+ * project patches are recorded as they happen.
+ */
 function createHarness() {
   const actions = new Map<string, SystemWorkflowActionExecutor>();
+  const workflows: { canonicalId: string }[] = [];
+  const startedRuns: unknown[] = [];
+  const clips: ClipRow[] = [];
+  const submissions: Parameters<AvatarVideoProvider['generateVideo']>[0][] = [];
+  const fundings: unknown[] = [];
+  const projectPatches: unknown[] = [];
+  const state = { execution: null as unknown };
   const runner = {
-    registerAction: vi.fn(
-      (actionId: string, executor: SystemWorkflowActionExecutor) => {
-        actions.set(actionId, executor);
-      },
-    ),
-    registerWorkflow: vi.fn(),
-    startWorkflow: vi.fn(),
+    registerAction: (
+      actionId: string,
+      executor: SystemWorkflowActionExecutor,
+    ) => {
+      actions.set(actionId, executor);
+    },
+    registerWorkflow: (definition: { canonicalId: string }) => {
+      workflows.push(definition);
+    },
+    startWorkflow: async (run: unknown) => {
+      startedRuns.push(run);
+      return state.execution;
+    },
   };
-  const moduleRef = {
-    get: vi.fn().mockReturnValue(runner),
+  const createClip = async (data: Record<string, unknown>) => {
+    const row = { ...data, id: `clipper-result-${clips.length + 1}` };
+    clips.push(row);
+    return { id: row.id };
   };
   const clipperResults = {
-    create: vi.fn().mockResolvedValue({ id: 'clipper-result-1' }),
-    createGenerated: vi.fn().mockResolvedValue({ id: 'clipper-result-1' }),
-    patch: vi.fn().mockResolvedValue({}),
-    transitionProviderTerminal: vi.fn().mockResolvedValue(true),
+    create: createClip,
+    createGenerated: createClip,
+    patch: async (id: string, data: Record<string, unknown>) => {
+      Object.assign(clips.find((row) => row.id === id) ?? {}, data);
+      return {};
+    },
+    transitionProviderTerminal: async () => true,
   };
   const provider: Pick<AvatarVideoProvider, 'generateVideo'> = {
-    generateVideo: vi.fn().mockResolvedValue({
-      jobId: 'job-1',
-      providerName: 'heygen',
-      status: 'processing',
-    }),
+    generateVideo: async (input) => {
+      submissions.push(input);
+      return { jobId: 'job-1', providerName: 'heygen', status: 'processing' };
+    },
   };
-  const avatarVideo = { getProvider: vi.fn().mockReturnValue(provider) };
-  const rawCut = { dispatchClip: vi.fn() };
-  const projects = { patch: vi.fn().mockResolvedValue({}) };
-  const logger = {
-    error: vi.fn(),
-    log: vi.fn(),
-  };
-  const clipperAvatarBilling = {
-    fund: vi.fn().mockResolvedValue({ release: vi.fn() }),
-  };
+  const silent = () => undefined;
   const service = new ClipperGenerationService(
     clipperResults as unknown as ClipperResultsService,
-    avatarVideo as unknown as AvatarVideoService,
-    rawCut as unknown as RawCutClipService,
-    logger as unknown as LoggerService,
-    clipperAvatarBilling as unknown as ClipperAvatarBillingService,
+    { getProvider: () => provider } as unknown as AvatarVideoService,
+    { dispatchClip: silent } as unknown as RawCutClipService,
+    { error: silent, log: silent } as unknown as LoggerService,
+    {
+      fund: async (funding: unknown) => {
+        fundings.push(funding);
+        return { release: silent };
+      },
+    } as unknown as ClipperAvatarBillingService,
     undefined,
-    projects as unknown as ClipperProjectsService,
-    moduleRef as unknown as ModuleRef,
+    {
+      patch: async (...args: unknown[]) => {
+        projectPatches.push(args);
+        return {};
+      },
+    } as unknown as ClipperProjectsService,
+    { get: () => runner } as unknown as ModuleRef,
   );
   service.onModuleInit();
+  const generateOne = async (originalIndex: number, input = request) => {
+    const executor = actions.get('clipper.generation.generate-one');
+    if (!executor) {
+      throw new Error('generate-one action was not registered');
+    }
+    return executor({
+      context: { organizationId: 'org-1', userId: 'user-1' } as never,
+      input: { originalIndex, request: input },
+      provenance: {
+        executionId: 'execution-1',
+        workflowId: 'workflow-1',
+        workflowLabel: 'Clip Generation',
+      },
+    });
+  };
   return {
     actions,
-    clipperAvatarBilling,
-    clipperResults,
-    moduleRef,
-    projects,
-    provider,
-    runner,
+    clips,
+    fundings,
+    generateOne,
+    projectPatches,
     service,
+    startedRuns,
+    state,
+    submissions,
+    workflows,
   };
 }
 
@@ -148,25 +194,25 @@ function completedExecution(result: ClipperGenerationResult) {
 
 describe('ClipperGenerationService workflow boundary', () => {
   it('registers one atomic generator and the immutable parent workflow', () => {
-    const { actions, runner } = createHarness();
+    const { actions, workflows } = createHarness();
 
     expect([...actions.keys()]).toEqual(['clipper.generation.generate-one']);
-    expect(runner.registerWorkflow).toHaveBeenCalledWith(
+    expect(workflows).toEqual([
       expect.objectContaining({ canonicalId: 'clipper.generation' }),
-    );
+    ]);
   });
 
   it('starts the immutable graph with all project state owned by its actions', async () => {
-    const { projects, runner, service } = createHarness();
+    const { projectPatches, service, startedRuns, state } = createHarness();
     const result: ClipperGenerationResult = {
       clipperResultIds: ['clip-1', 'clip-2'],
       providerJobIds: ['job-1', 'job-2'],
       queuedClipCount: 2,
     };
-    runner.startWorkflow.mockResolvedValue(completedExecution(result));
+    state.execution = completedExecution(result);
 
     await expect(service.generateClips(request)).resolves.toEqual(result);
-    expect(runner.startWorkflow).toHaveBeenCalledWith(
+    expect(startedRuns).toEqual([
       expect.objectContaining({
         actionType: 'clipper.generation',
         canonicalId: 'clipper.generation',
@@ -179,18 +225,18 @@ describe('ClipperGenerationService workflow boundary', () => {
         source: 'clipper.generation',
         userId: 'user-1',
       }),
-    );
-    expect(projects.patch).not.toHaveBeenCalled();
+    ]);
+    expect(projectPatches).toEqual([]);
   });
 
   it('returns only the hook output while its native review gate is pending', async () => {
-    const { runner, service } = createHarness();
+    const { service, state } = createHarness();
     const hookResult: ClipperGenerationResult = {
       clipperResultIds: ['hook-result'],
       providerJobIds: ['hook-job'],
       queuedClipCount: 1,
     };
-    runner.startWorkflow.mockResolvedValue({
+    state.execution = {
       ...completedExecution(hookResult),
       execution: {
         ...completedExecution(hookResult).execution,
@@ -214,7 +260,7 @@ describe('ClipperGenerationService workflow boundary', () => {
         ],
         status: 'RUNNING',
       },
-    });
+    };
 
     await expect(
       service.generateClips({ ...request, hookApprovalRequired: true }),
@@ -222,62 +268,33 @@ describe('ClipperGenerationService workflow boundary', () => {
   });
 
   it('rejects a substituted tenant before creating or dispatching a clip', async () => {
-    const { actions, clipperResults, provider } = createHarness();
+    const { clips, generateOne, submissions } = createHarness();
+
     await expect(
-      actions.get('clipper.generation.generate-one')?.({
-        context: { organizationId: 'org-1', userId: 'user-1' },
-        input: {
-          originalIndex: 0,
-          request: { ...request, orgId: 'foreign-org' },
-        },
-      } as never),
+      generateOne(0, { ...request, orgId: 'foreign-org' }),
     ).rejects.toThrow('does not match');
-    expect(clipperResults.create).not.toHaveBeenCalled();
-    expect(provider.generateVideo).not.toHaveBeenCalled();
+    expect(clips).toEqual([]);
+    expect(submissions).toEqual([]);
   });
 
   it('dispatches exactly the highlight selected by the action node', async () => {
-    const { actions, clipperResults, provider } = createHarness();
-    const executor = actions.get('clipper.generation.generate-one');
-    if (!executor) {
-      throw new Error('generate-one action was not registered');
-    }
+    const { clips, generateOne, submissions } = createHarness();
 
-    await executor({
-      context: { organizationId: 'org-1', userId: 'user-1' } as never,
-      input: { originalIndex: 1, request },
-      provenance: {
-        executionId: 'execution-1',
-        workflowId: 'workflow-1',
-        workflowLabel: 'Clip Generation',
-      },
-    });
+    await generateOne(1);
 
-    expect(provider.generateVideo).toHaveBeenCalledWith(
+    expect(submissions).toEqual([
       expect.objectContaining({ script: 'Body. Body summary' }),
-    );
-    expect(clipperResults.create).toHaveBeenCalledWith(
+    ]);
+    expect(clips).toEqual([
       expect.objectContaining({ index: 1, title: 'Body' }),
-    );
+    ]);
   });
 
   describe('avatar script', () => {
     async function scriptFor(overrides: Partial<ClipperGenerationInput>) {
-      const { actions, provider } = createHarness();
-      const executor = actions.get('clipper.generation.generate-one');
-      if (!executor) {
-        throw new Error('generate-one action was not registered');
-      }
-      await executor({
-        context: { organizationId: 'org-1', userId: 'user-1' } as never,
-        input: { originalIndex: 0, request: { ...request, ...overrides } },
-        provenance: {
-          executionId: 'execution-1',
-          workflowId: 'workflow-1',
-          workflowLabel: 'Clip Generation',
-        },
-      });
-      return vi.mocked(provider.generateVideo).mock.calls[0]?.[0].script;
+      const { generateOne, submissions } = createHarness();
+      await generateOne(0, { ...request, ...overrides });
+      return submissions[0]?.script;
     }
 
     it('says the reviewed script, not the clip description', async () => {
@@ -303,35 +320,24 @@ describe('ClipperGenerationService workflow boundary', () => {
   });
 
   it('funds each HeyGen clip on its own clip result before the provider submits', async () => {
-    const { actions, clipperAvatarBilling, provider } = createHarness();
-    const executor = actions.get('clipper.generation.generate-one');
-    if (!executor) {
-      throw new Error('generate-one action was not registered');
-    }
+    const { fundings, generateOne, submissions } = createHarness();
 
-    await executor({
-      context: { organizationId: 'org-1', userId: 'user-1' } as never,
-      input: { originalIndex: 0, request },
-      provenance: {
-        executionId: 'execution-1',
-        workflowId: 'workflow-1',
-        workflowLabel: 'Clip Generation',
-      },
-    });
+    await generateOne(0);
 
-    const input = vi.mocked(provider.generateVideo).mock.calls[0]?.[0];
-    expect(input?.callbackId).toBe('clipper-result-1');
+    expect(submissions[0]?.callbackId).toBe('clipper-result-1');
     const plan = {
       isByok: false,
       selection: { modelKey: 'heygen/avatar' },
     };
-    await input?.fundSubmission?.(plan);
-    expect(clipperAvatarBilling.fund).toHaveBeenCalledWith({
-      clipperResultId: 'clipper-result-1',
-      organizationId: 'org-1',
-      plan,
-      script: 'Hook. Hook summary',
-      userId: 'user-1',
-    });
+    await submissions[0]?.fundSubmission?.(plan);
+    expect(fundings).toEqual([
+      {
+        clipperResultId: 'clipper-result-1',
+        organizationId: 'org-1',
+        plan,
+        script: 'Hook. Hook summary',
+        userId: 'user-1',
+      },
+    ]);
   });
 });
