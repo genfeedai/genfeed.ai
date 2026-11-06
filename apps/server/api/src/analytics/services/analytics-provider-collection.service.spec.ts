@@ -51,12 +51,50 @@ function harness(platform: CredentialPlatform) {
     processFacebookAnalytics: vi.fn().mockResolvedValue(undefined),
     processThreadsAnalytics: vi.fn().mockResolvedValue(undefined),
   };
-  const state = { markReady: vi.fn(), markFailedTargets: vi.fn() };
-  const posts = { patch: vi.fn() };
+  const log = {
+    failed: [] as unknown[],
+    patched: [] as unknown[],
+    persisted: [] as {
+      context: Record<string, unknown>;
+      metrics: Record<string, unknown>;
+      platform: string;
+      postId: string;
+    }[],
+    providerCalls: [] as unknown[][],
+    ready: 0,
+  };
+  const persist =
+    (platform: string) =>
+    async (
+      postId: string,
+      metrics: Record<string, unknown>,
+      context: Record<string, unknown>,
+    ) => {
+      log.persisted.push({ context, metrics, platform, postId });
+    };
+  analytics.processFacebookAnalytics.mockImplementation(persist('facebook'));
+  analytics.processThreadsAnalytics.mockImplementation(persist('threads'));
+  const state = {
+    markReady: vi.fn(async () => {
+      log.ready += 1;
+    }),
+    markFailedTargets: vi.fn(async (targets: unknown[]) => {
+      log.failed.push(...targets);
+    }),
+  };
+  const posts = {
+    patch: vi.fn(async (...args: unknown[]) => {
+      log.patched.push(args);
+    }),
+  };
+  const recordProvider = async (...args: unknown[]) => {
+    log.providerCalls.push(args);
+    return { views: 42 };
+  };
   const facebook = {
-      getPostAnalytics: vi.fn().mockResolvedValue({ views: 42 }),
+      getPostAnalytics: vi.fn(recordProvider),
     },
-    threads = { getThreadInsights: vi.fn().mockResolvedValue({ views: 42 }) };
+    threads = { getThreadInsights: vi.fn(recordProvider) };
   const service = new AnalyticsProviderCollectionService(
     credentials as never,
     facebook as never,
@@ -67,7 +105,15 @@ function harness(platform: CredentialPlatform) {
     { error: vi.fn() } as never,
     { upsertDailySnapshot: vi.fn() } as never,
   );
-  return { service, analytics, state, posts, facebook, threads, credentials };
+  return {
+    service,
+    analytics,
+    log,
+    recordProvider,
+    facebook,
+    threads,
+    credentials,
+  };
 }
 describe('provider collection resolved account boundaries', () => {
   afterEach(() => vi.restoreAllMocks());
@@ -87,9 +133,9 @@ describe('provider collection resolved account boundaries', () => {
         platform === CredentialPlatform.FACEBOOK
           ? h.facebook.getPostAnalytics
           : h.threads.getThreadInsights;
-      provider.mockImplementation(async () => {
+      provider.mockImplementation(async (...args: unknown[]) => {
         revoked = true;
-        return { views: 42 };
+        return h.recordProvider(...args);
       });
       const data = {
         posts: [
@@ -107,12 +153,13 @@ describe('provider collection resolved account boundaries', () => {
           ? h.service.collectFacebook(data, authorization)
           : h.service.collectThreads(data, authorization),
       ).rejects.toBe(denied);
-      expect(provider).toHaveBeenCalledOnce();
-      expect(h.analytics.processFacebookAnalytics).not.toHaveBeenCalled();
-      expect(h.analytics.processThreadsAnalytics).not.toHaveBeenCalled();
-      expect(h.state.markFailedTargets).not.toHaveBeenCalled();
-      expect(h.state.markReady).not.toHaveBeenCalled();
-      expect(h.posts.patch).not.toHaveBeenCalled();
+      expect(h.log).toEqual({
+        failed: [],
+        patched: [],
+        persisted: [],
+        providerCalls: [expect.arrayContaining(['external'])],
+        ready: 0,
+      });
     },
   );
   it('stops retrying a Facebook credential that needs its Page identity restored', async () => {
@@ -141,8 +188,8 @@ describe('provider collection resolved account boundaries', () => {
         analyticsCollectionAuthorizationFixture,
       ),
     ).rejects.toMatchObject({ status: 401 });
-    expect(h.facebook.getPostAnalytics).not.toHaveBeenCalled();
-    expect(h.state.markFailedTargets).toHaveBeenCalledWith([
+    expect(h.log.providerCalls).toEqual([]);
+    expect(h.log.failed).toEqual([
       expect.objectContaining({
         failure: expect.objectContaining({
           code: 'analytics.authentication_failed',
@@ -169,12 +216,7 @@ describe('provider collection resolved account boundaries', () => {
       },
       analyticsCollectionAuthorizationFixture,
     );
-    expect(h.facebook.getPostAnalytics).toHaveBeenCalledWith(
-      'video-1',
-      'token',
-      'page',
-      true,
-    );
+    expect(h.log.providerCalls).toEqual([['video-1', 'token', 'page', true]]);
   });
 
   it.each([CredentialPlatform.FACEBOOK, CredentialPlatform.THREADS])(
@@ -210,32 +252,23 @@ describe('provider collection resolved account boundaries', () => {
           credentialId: 'resolved',
         },
       });
-      expect(h.state.markReady).toHaveBeenCalledOnce();
-      const persist =
-        platform === CredentialPlatform.FACEBOOK
-          ? h.analytics.processFacebookAnalytics
-          : h.analytics.processThreadsAnalytics;
-      expect(
-        persist.mock.calls[0]?.[2]?.learningObservation,
-      ).not.toHaveProperty('publicationSource');
-      expect(
-        platform === CredentialPlatform.FACEBOOK
-          ? h.facebook.getPostAnalytics
-          : h.threads.getThreadInsights,
-      ).toHaveBeenCalledOnce();
-      expect(persist).toHaveBeenCalledWith(
-        'post',
-        expect.objectContaining({ views: 42 }),
+      expect(h.log.ready).toBe(1);
+      expect(h.log.providerCalls).toHaveLength(1);
+      expect(h.log.persisted).toEqual([
         {
-          ...result.context,
-          learningObservation: {
-            receivedAt: expect.any(Date),
-            requestStartedAt: expect.any(Date),
-            sourceAttemptId: expect.any(String),
+          context: {
+            ...result.context,
+            learningObservation: {
+              receivedAt: expect.any(Date),
+              requestStartedAt: expect.any(Date),
+              sourceAttemptId: expect.any(String),
+            },
           },
+          metrics: expect.objectContaining({ views: 42 }),
+          platform: platform.toLowerCase(),
+          postId: 'post',
         },
-        analyticsCollectionAuthorizationFixture,
-      );
+      ]);
     },
   );
   it('propagates persistence failure without disabling valid providers', async () => {
@@ -259,9 +292,9 @@ describe('provider collection resolved account boundaries', () => {
         analyticsCollectionAuthorizationFixture,
       ),
     ).rejects.toThrow('database unavailable');
-    expect(h.state.markReady).not.toHaveBeenCalled();
-    expect(h.state.markFailedTargets).toHaveBeenCalledOnce();
-    expect(h.posts.patch).not.toHaveBeenCalled();
+    expect(h.log.ready).toBe(0);
+    expect(h.log.failed).toHaveLength(1);
+    expect(h.log.patched).toEqual([]);
   });
 });
 
@@ -325,19 +358,23 @@ describe('C3 Facebook/Threads pre-provider source transport', () => {
         trace: string[] = [];
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-09-30T11:59:59Z'));
-      h.analytics.prepareLearningObservation.mockImplementation(async () => {
-        trace.push('prepare');
-        vi.setSystemTime(new Date('2026-09-30T12:00:00Z'));
-        return source;
-      });
+      const prepared: unknown[] = [];
+      h.analytics.prepareLearningObservation.mockImplementation(
+        async (scope) => {
+          prepared.push(scope);
+          trace.push('prepare');
+          vi.setSystemTime(new Date('2026-09-30T12:00:00Z'));
+          return source;
+        },
+      );
       const provider =
         platform === CredentialPlatform.FACEBOOK
           ? h.facebook.getPostAnalytics
           : h.threads.getThreadInsights;
-      provider.mockImplementation(async () => {
+      provider.mockImplementation(async (...args: unknown[]) => {
         trace.push('provider');
         vi.setSystemTime(new Date('2026-09-30T12:00:01Z'));
-        return { views: 42 };
+        return h.recordProvider(...args);
       });
       const input = {
         posts: [
@@ -361,36 +398,29 @@ describe('C3 Facebook/Threads pre-provider source transport', () => {
           analyticsCollectionAuthorizationFixture,
         );
       expect(trace).toEqual(['prepare', 'provider']);
-      expect(
-        h.analytics.prepareLearningObservation,
-      ).toHaveBeenCalledExactlyOnceWith({
-        organizationId: 'org',
-        brandId: 'brand',
-        credentialId: 'resolved',
-        postId: 'post',
-        platform,
-        externalId: 'external',
-      });
-      const persist =
-        platform === CredentialPlatform.FACEBOOK
-          ? h.analytics.processFacebookAnalytics
-          : h.analytics.processThreadsAnalytics;
-      expect(persist.mock.calls[0]?.[2]?.learningObservation).toMatchObject({
-        requestStartedAt: new Date('2026-09-30T12:00:00Z'),
-        receivedAt: new Date('2026-09-30T12:00:01Z'),
-      });
-      expect(persist).toHaveBeenCalledWith(
-        'post',
-        expect.objectContaining({ views: 42 }),
+      expect(prepared).toEqual([
+        {
+          organizationId: 'org',
+          brandId: 'brand',
+          credentialId: 'resolved',
+          postId: 'post',
+          platform,
+          externalId: 'external',
+        },
+      ]);
+      expect(h.log.persisted).toEqual([
         expect.objectContaining({
-          learningObservation: expect.objectContaining({
-            publicationSource: source,
-            requestStartedAt: expect.any(Date),
-            receivedAt: expect.any(Date),
+          context: expect.objectContaining({
+            learningObservation: expect.objectContaining({
+              publicationSource: source,
+              receivedAt: new Date('2026-09-30T12:00:01Z'),
+              requestStartedAt: new Date('2026-09-30T12:00:00Z'),
+            }),
           }),
+          metrics: expect.objectContaining({ views: 42 }),
+          postId: 'post',
         }),
-        analyticsCollectionAuthorizationFixture,
-      );
+      ]);
     },
   );
   it.each([CredentialPlatform.FACEBOOK, CredentialPlatform.THREADS])(
@@ -421,8 +451,8 @@ describe('C3 Facebook/Threads pre-provider source transport', () => {
               analyticsCollectionAuthorizationFixture,
             ),
       ).rejects.toBe(error);
-      expect(h.facebook.getPostAnalytics).not.toHaveBeenCalled();
-      expect(h.threads.getThreadInsights).not.toHaveBeenCalled();
+      expect(h.log.providerCalls).toEqual([]);
+      expect(h.log.persisted).toEqual([]);
     },
   );
 });

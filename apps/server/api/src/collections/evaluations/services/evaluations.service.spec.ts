@@ -7,7 +7,47 @@ import { ByokProvider, Status } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+type EvaluatorRequest = {
+  byok: unknown;
+  kind: 'post' | 'video';
+  options: Record<string, unknown>;
+  organizationId: string;
+  source: string;
+};
+
+/** Records each evaluator request and answers with the configured outcome. */
+function createEvaluator() {
+  const requests: EvaluatorRequest[] = [];
+  const outcomes: Record<EvaluatorRequest['kind'], unknown> = {
+    post: undefined,
+    video: undefined,
+  };
+  const evaluate =
+    (kind: EvaluatorRequest['kind']) =>
+    async (
+      source: string,
+      options: Record<string, unknown>,
+      organizationId: string,
+      _onBilling: unknown,
+      byok: unknown,
+    ) => {
+      requests.push({ byok, kind, options, organizationId, source });
+      if (outcomes[kind] instanceof Error) throw outcomes[kind];
+      return outcomes[kind];
+    };
+  return {
+    outcomes,
+    requests,
+    service: {
+      evaluatePost: evaluate('post'),
+      evaluateVideo: evaluate('video'),
+    },
+  };
+}
+
 function createMocks() {
+  const evaluator = createEvaluator();
+  const emitted: unknown[][] = [];
   const prisma = {
     evaluation: {
       create: vi.fn(),
@@ -24,10 +64,9 @@ function createMocks() {
       getOrganizationCreditsBalance: vi.fn(),
       refundOrganizationCredits: vi.fn(),
     },
-    evaluationsOperationsService: {
-      evaluatePost: vi.fn(),
-      evaluateVideo: vi.fn(),
-    },
+    emitted,
+    evaluator,
+    evaluationsOperationsService: evaluator.service,
     logger: {
       debug: vi.fn(),
       error: vi.fn(),
@@ -48,7 +87,9 @@ function createMocks() {
       resolveDispatch: vi.fn().mockResolvedValue(undefined),
     },
     websocketService: {
-      emit: vi.fn(),
+      emit: vi.fn(async (...args: unknown[]) => {
+        emitted.push(args);
+      }),
     },
   };
 }
@@ -104,12 +145,12 @@ describe('EvaluationsService review and comparison workflow', () => {
         prompt: { original: 'A red apple on a table' },
         s3Key: 'ingredients/videos/video-1.mp4',
       });
-      mocks.evaluationsOperationsService.evaluateVideo.mockResolvedValue({
+      mocks.evaluator.outcomes.video = {
         analysis: { summary: 'ok' },
         flags: {},
         overallScore: 82,
         scores: {},
-      });
+      };
       mocks.creditsUtilsService.deductCreditsFromOrganization.mockResolvedValue(
         undefined,
       );
@@ -126,15 +167,14 @@ describe('EvaluationsService review and comparison workflow', () => {
       );
 
       expect(evaluation.id).toBe('eval-video-1');
-      expect(
-        mocks.evaluationsOperationsService.evaluateVideo,
-      ).toHaveBeenCalledWith(
-        'https://cdn.genfeed.ai/ingredients/videos/video-1.mp4',
-        expect.any(Object),
-        organizationId,
-        expect.any(Function),
-        undefined,
-      );
+      expect(mocks.evaluator.requests).toEqual([
+        expect.objectContaining({
+          byok: undefined,
+          kind: 'video',
+          organizationId,
+          source: 'https://cdn.genfeed.ai/ingredients/videos/video-1.mp4',
+        }),
+      ]);
     });
 
     it('passes the stored video duration so frame sampling needs no probe', async () => {
@@ -143,10 +183,10 @@ describe('EvaluationsService review and comparison workflow', () => {
         metadata: { duration: 42 },
         s3Key: 'ingredients/videos/video-1.mp4',
       });
-      mocks.evaluationsOperationsService.evaluateVideo.mockResolvedValue({
+      mocks.evaluator.outcomes.video = {
         overallScore: 82,
         scores: {},
-      });
+      };
       mocks.prisma.evaluation.create.mockResolvedValue({ id: 'eval-video-1' });
 
       await service.evaluateVideo(
@@ -157,15 +197,12 @@ describe('EvaluationsService review and comparison workflow', () => {
         'brand-1',
       );
 
-      expect(
-        mocks.evaluationsOperationsService.evaluateVideo,
-      ).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({ durationSeconds: 42 }),
-        organizationId,
-        expect.any(Function),
-        undefined,
-      );
+      expect(mocks.evaluator.requests).toEqual([
+        expect.objectContaining({
+          options: expect.objectContaining({ durationSeconds: 42 }),
+          organizationId,
+        }),
+      ]);
     });
 
     it('sends the evaluator a signed media URL when the deployment signs media', async () => {
@@ -192,12 +229,12 @@ describe('EvaluationsService review and comparison workflow', () => {
         prompt: { original: 'A red apple on a table' },
         s3Key: 'ingredients/videos/video-1.mp4',
       });
-      mocks.evaluationsOperationsService.evaluateVideo.mockResolvedValue({
+      mocks.evaluator.outcomes.video = {
         analysis: { summary: 'ok' },
         flags: {},
         overallScore: 82,
         scores: {},
-      });
+      };
       mocks.creditsUtilsService.deductCreditsFromOrganization.mockResolvedValue(
         undefined,
       );
@@ -213,15 +250,12 @@ describe('EvaluationsService review and comparison workflow', () => {
         'brand-1',
       );
 
-      expect(
-        mocks.evaluationsOperationsService.evaluateVideo,
-      ).toHaveBeenCalledWith(
-        'https://cdn.genfeed.ai/ingredients/videos/video-1.mp4?Signature=signed',
-        expect.any(Object),
-        organizationId,
-        expect.any(Function),
-        undefined,
-      );
+      expect(mocks.evaluator.requests).toEqual([
+        expect.objectContaining({
+          source:
+            'https://cdn.genfeed.ai/ingredients/videos/video-1.mp4?Signature=signed',
+        }),
+      ]);
     });
   });
 
@@ -288,9 +322,7 @@ describe('EvaluationsService review and comparison workflow', () => {
         data: { status: Status.FAILED },
         id: 'eval-1',
       });
-      mocks.evaluationsOperationsService.evaluatePost.mockRejectedValue(
-        new Error('provider unavailable'),
-      );
+      mocks.evaluator.outcomes.post = new Error('provider unavailable');
 
       const evaluation = await service.evaluatePost(
         'post-1',
@@ -313,13 +345,13 @@ describe('EvaluationsService review and comparison workflow', () => {
           },
         });
       });
-      expect(mocks.websocketService.emit).toHaveBeenCalledWith(
+      expect(mocks.emitted).toContainEqual([
         WebSocketPaths.evaluation('eval-1'),
         {
           error: 'provider unavailable',
           status: Status.FAILED,
         },
-      );
+      ]);
       expect(
         mocks.creditsUtilsService.deductCreditsFromOrganization,
       ).not.toHaveBeenCalled();
@@ -342,9 +374,9 @@ describe('EvaluationsService review and comparison workflow', () => {
       mocks.prisma.evaluation.create.mockResolvedValue({ id: 'eval-1' });
       mocks.prisma.evaluation.findFirst.mockResolvedValue(null);
       mocks.prisma.evaluation.update.mockResolvedValue({ id: 'eval-1' });
-      mocks.evaluationsOperationsService.evaluatePost.mockResolvedValue({
+      mocks.evaluator.outcomes.post = {
         overallScore: 80,
-      });
+      };
     });
 
     it("skips the credit floor and forwards the org's key to the evaluator", async () => {
@@ -368,15 +400,9 @@ describe('EvaluationsService review and comparison workflow', () => {
         mocks.creditsUtilsService.checkOrganizationCreditsAvailable,
       ).not.toHaveBeenCalled();
       await vi.waitFor(() => {
-        expect(
-          mocks.evaluationsOperationsService.evaluatePost,
-        ).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.any(Object),
-          organizationId,
-          expect.any(Function),
-          byok,
-        );
+        expect(mocks.evaluator.requests).toEqual([
+          expect.objectContaining({ byok, kind: 'post', organizationId }),
+        ]);
       });
     });
 
@@ -398,15 +424,13 @@ describe('EvaluationsService review and comparison workflow', () => {
         mocks.creditsUtilsService.checkOrganizationCreditsAvailable,
       ).toHaveBeenCalledWith(organizationId, 1);
       await vi.waitFor(() => {
-        expect(
-          mocks.evaluationsOperationsService.evaluatePost,
-        ).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.any(Object),
-          organizationId,
-          expect.any(Function),
-          undefined,
-        );
+        expect(mocks.evaluator.requests).toEqual([
+          expect.objectContaining({
+            byok: undefined,
+            kind: 'post',
+            organizationId,
+          }),
+        ]);
       });
     });
   });

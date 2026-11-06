@@ -17,58 +17,100 @@ const ctx: ToolExecutionContext = {
 };
 const goalId = testId('goal');
 
+type Capture = {
+  input: Record<string, unknown>;
+  organizationId: string;
+  provenance: unknown;
+  userId: string;
+};
+type Goal = {
+  currentValue: number;
+  id: string;
+  label: string;
+  metric: string;
+  organizationId: string;
+  progressPercent: number;
+  targetValue: number;
+};
+
 describe('AgentMemoryGoalsToolHandler', () => {
-  let agentMemoryCaptureService: {
-    capture: ReturnType<typeof vi.fn>;
-  };
-  let agentGoalsService: {
-    create: ReturnType<typeof vi.fn>;
-    refreshProgress: ReturnType<typeof vi.fn>;
-    update: ReturnType<typeof vi.fn>;
-  };
+  let captures: Capture[];
+  let goals: Goal[];
   let handlerWithServices: AgentMemoryGoalsToolHandler;
   let handlerWithoutServices: AgentMemoryGoalsToolHandler;
 
   beforeEach(() => {
-    agentMemoryCaptureService = {
-      capture: vi.fn().mockResolvedValue({
-        memory: {
-          id: 'memory-1',
-          content: 'Write concise newsletters with a strong hook.',
-          contentType: 'newsletter',
-          kind: 'preference',
-          scope: 'personal',
-          summary: 'Concise newsletter hook preference',
-        },
-        wroteBrandInsight: false,
-        wroteContextMemory: true,
-      }),
+    captures = [];
+    goals = [
+      {
+        currentValue: 250,
+        id: goalId,
+        label: 'Grow views',
+        metric: 'views',
+        organizationId: ctx.organizationId,
+        progressPercent: 0,
+        targetValue: 1000,
+      },
+    ];
+    const agentMemoryCaptureService = {
+      capture: async (
+        userId: string,
+        organizationId: string,
+        input: Record<string, unknown>,
+        provenance: unknown,
+      ) => {
+        captures.push({ input, organizationId, provenance, userId });
+        return {
+          memory: {
+            content: input.content,
+            contentType: input.contentType,
+            id: `memory-${captures.length}`,
+            kind: input.kind,
+            scope: input.scope,
+            summary: input.summary,
+          },
+          wroteBrandInsight: false,
+          wroteContextMemory: input.saveToContextMemory === true,
+        };
+      },
     };
-    agentGoalsService = {
-      create: vi.fn().mockResolvedValue({
-        currentValue: 250,
-        id: 'goal-1',
-        label: 'Grow views',
-        metric: 'views',
-        progressPercent: 25,
-        targetValue: 1000,
-      }),
-      refreshProgress: vi.fn().mockResolvedValue({
-        currentValue: 250,
-        id: 'goal-1',
-        label: 'Grow views',
-        metric: 'views',
-        progressPercent: 25,
-        targetValue: 1000,
-      }),
-      update: vi.fn().mockResolvedValue({
-        currentValue: 400,
-        id: 'goal-1',
-        label: 'Grow views',
-        metric: 'views',
-        progressPercent: 40,
-        targetValue: 1000,
-      }),
+    const progressOf = (goal: Goal) =>
+      Object.assign(goal, {
+        progressPercent: Math.round(
+          (goal.currentValue / goal.targetValue) * 100,
+        ),
+      });
+    const ownGoal = (id: string, organizationId: string) => {
+      const goal = goals.find(
+        (item) => item.id === id && item.organizationId === organizationId,
+      );
+      if (!goal) throw new Error(`Goal ${id} not found`);
+      return goal;
+    };
+    const agentGoalsService = {
+      create: async (
+        dto: { label: string; metric: string; targetValue: number },
+        organizationId: string,
+      ) => {
+        const goal = progressOf({
+          currentValue: 250,
+          id: `goal-${goals.length + 1}`,
+          label: dto.label,
+          metric: dto.metric,
+          organizationId,
+          progressPercent: 0,
+          targetValue: dto.targetValue,
+        });
+        goals.push(goal);
+        return goal;
+      },
+      refreshProgress: async (id: string, organizationId: string) =>
+        progressOf(ownGoal(id, organizationId)),
+      update: async (
+        id: string,
+        dto: Partial<Pick<Goal, 'label' | 'targetValue'>>,
+        organizationId: string,
+      ) => progressOf(Object.assign(ownGoal(id, organizationId), dto)),
     };
 
     handlerWithServices = new AgentMemoryGoalsToolHandler(
@@ -97,7 +139,16 @@ describe('AgentMemoryGoalsToolHandler', () => {
         ctx,
       );
 
-      expect(agentMemoryCaptureService.capture).toHaveBeenCalled();
+      expect(captures).toEqual([
+        expect.objectContaining({
+          input: expect.objectContaining({
+            content: 'Use short, curiosity-driven newsletter openings.',
+            scope: 'brand',
+          }),
+          organizationId: ctx.organizationId,
+          userId: ctx.userId,
+        }),
+      ]);
       expect(result).toEqual(
         expect.objectContaining({
           creditsUsed: 0,
@@ -105,8 +156,8 @@ describe('AgentMemoryGoalsToolHandler', () => {
             contentType: 'newsletter',
             destinations: ['agent memory', 'content memory'],
             id: 'memory-1',
-            kind: 'preference',
-            scope: 'personal',
+            kind: 'winner',
+            scope: 'brand',
           }),
           success: true,
         }),
@@ -121,7 +172,7 @@ describe('AgentMemoryGoalsToolHandler', () => {
         error: 'Memory capture requires content.',
         success: false,
       });
-      expect(agentMemoryCaptureService.capture).not.toHaveBeenCalled();
+      expect(captures).toEqual([]);
     });
 
     it('maps legacy user and campaign scopes onto personal and brand', async () => {
@@ -138,20 +189,12 @@ describe('AgentMemoryGoalsToolHandler', () => {
         ctx,
       );
 
-      expect(agentMemoryCaptureService.capture).toHaveBeenNthCalledWith(
-        1,
-        ctx.userId,
-        ctx.organizationId,
-        expect.objectContaining({ scope: 'personal' }),
-        { origin: 'ACTOR', actor: initiatingPrincipal },
-      );
-      expect(agentMemoryCaptureService.capture).toHaveBeenNthCalledWith(
-        2,
-        ctx.userId,
-        ctx.organizationId,
-        expect.objectContaining({ scope: 'brand' }),
-        { origin: 'ACTOR', actor: initiatingPrincipal },
-      );
+      expect(
+        captures.map(({ input, provenance }) => [input.scope, provenance]),
+      ).toEqual([
+        ['personal', { origin: 'ACTOR', actor: initiatingPrincipal }],
+        ['brand', { origin: 'ACTOR', actor: initiatingPrincipal }],
+      ]);
     });
 
     it.each([undefined, false])(
@@ -162,7 +205,7 @@ describe('AgentMemoryGoalsToolHandler', () => {
           { ...ctx, initiatingPrincipal: undefined, isProactive },
         );
         expect(result).toMatchObject({ success: false, creditsUsed: 0 });
-        expect(agentMemoryCaptureService.capture).not.toHaveBeenCalled();
+        expect(captures).toEqual([]);
       },
     );
     it('admits genuinely actorless server-marked proactive capture as derived authority', async () => {
@@ -170,24 +213,22 @@ describe('AgentMemoryGoalsToolHandler', () => {
         { content: 'Background', sourceContentId: 'forged-source' },
         { ...ctx, initiatingPrincipal: undefined, isProactive: true },
       );
-      expect(agentMemoryCaptureService.capture).toHaveBeenCalledWith(
-        ctx.userId,
-        ctx.organizationId,
-        expect.objectContaining({ content: 'Background' }),
-        { origin: 'DERIVED_MEMORY' },
-      );
+      expect(captures).toEqual([
+        expect.objectContaining({
+          input: expect.objectContaining({ content: 'Background' }),
+          provenance: { origin: 'DERIVED_MEMORY' },
+          userId: ctx.userId,
+        }),
+      ]);
     });
     it('retains an actual captured actor on proactive-marked work', async () => {
       await handlerWithServices.captureMemory(
         { content: 'Interactive' },
         { ...ctx, isProactive: true },
       );
-      expect(agentMemoryCaptureService.capture).toHaveBeenCalledWith(
-        ctx.userId,
-        ctx.organizationId,
-        expect.any(Object),
+      expect(captures.map((capture) => capture.provenance)).toEqual([
         { origin: 'ACTOR', actor: initiatingPrincipal },
-      );
+      ]);
     });
     it('uses trusted approving identity separately from requester memory ownership', async () => {
       const approving = {
@@ -206,12 +247,12 @@ describe('AgentMemoryGoalsToolHandler', () => {
           scheduleAuthorityPrincipal: approving,
         },
       );
-      expect(agentMemoryCaptureService.capture).toHaveBeenCalledWith(
-        ctx.userId,
-        ctx.organizationId,
-        expect.any(Object),
-        { origin: 'ACTOR', actor: approving },
-      );
+      expect(captures).toEqual([
+        expect.objectContaining({
+          provenance: { origin: 'ACTOR', actor: approving },
+          userId: ctx.userId,
+        }),
+      ]);
     });
     it('never downgrades a present cross-tenant actor into proactive derived authority', async () => {
       const result = await handlerWithServices.captureMemory(
@@ -226,7 +267,7 @@ describe('AgentMemoryGoalsToolHandler', () => {
         },
       );
       expect(result).toMatchObject({ success: false });
-      expect(agentMemoryCaptureService.capture).not.toHaveBeenCalled();
+      expect(captures).toEqual([]);
     });
     it('denies approval redemption without its actual approving principal even when proactive', async () => {
       const result = await handlerWithServices.captureMemory(
@@ -239,7 +280,7 @@ describe('AgentMemoryGoalsToolHandler', () => {
         },
       );
       expect(result).toMatchObject({ success: false });
-      expect(agentMemoryCaptureService.capture).not.toHaveBeenCalled();
+      expect(captures).toEqual([]);
     });
 
     it('fails when the memory capture service is unavailable', async () => {
@@ -267,20 +308,18 @@ describe('AgentMemoryGoalsToolHandler', () => {
         ctx,
       );
 
-      expect(agentGoalsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          label: 'Grow views',
-          metric: 'views',
-          targetValue: 1000,
-        }),
-        ctx.organizationId,
-        ctx.userId,
-      );
+      expect(goals.at(-1)).toMatchObject({
+        id: 'goal-2',
+        label: 'Grow views',
+        metric: 'views',
+        organizationId: ctx.organizationId,
+        targetValue: 1000,
+      });
       expect(result).toEqual(
         expect.objectContaining({
           creditsUsed: 0,
           data: expect.objectContaining({
-            goalId: 'goal-1',
+            goalId: 'goal-2',
             progressPercent: 25,
           }),
           success: true,
@@ -299,7 +338,7 @@ describe('AgentMemoryGoalsToolHandler', () => {
         error: 'create_goal requires label, metric, and numeric targetValue.',
         success: false,
       });
-      expect(agentGoalsService.create).not.toHaveBeenCalled();
+      expect(goals).toHaveLength(1);
     });
 
     it('fails when the agent goals service is unavailable', async () => {
@@ -323,20 +362,17 @@ describe('AgentMemoryGoalsToolHandler', () => {
         ctx,
       );
 
-      expect(agentGoalsService.refreshProgress).toHaveBeenCalledWith(
-        goalId,
-        ctx.organizationId,
-      );
       expect(result).toEqual(
         expect.objectContaining({
           creditsUsed: 0,
           data: expect.objectContaining({
-            goalId: 'goal-1',
+            goalId,
             progressPercent: 25,
           }),
           success: true,
         }),
       );
+      expect(goals[0].progressPercent).toBe(25);
     });
 
     it('rejects an invalid goalId', async () => {
@@ -350,7 +386,7 @@ describe('AgentMemoryGoalsToolHandler', () => {
         error: 'check_goal_progress requires a valid goalId.',
         success: false,
       });
-      expect(agentGoalsService.refreshProgress).not.toHaveBeenCalled();
+      expect(goals[0].progressPercent).toBe(0);
     });
 
     it('fails when the agent goals service is unavailable', async () => {
@@ -370,20 +406,16 @@ describe('AgentMemoryGoalsToolHandler', () => {
   describe('updateGoal', () => {
     it('updates a goal via the agent goals service', async () => {
       const result = await handlerWithServices.updateGoal(
-        { goalId, targetValue: 1000 },
+        { goalId, targetValue: 625 },
         ctx,
       );
 
-      expect(agentGoalsService.update).toHaveBeenCalledWith(
-        goalId,
-        expect.objectContaining({ targetValue: 1000 }),
-        ctx.organizationId,
-      );
+      expect(goals[0]).toMatchObject({ targetValue: 625 });
       expect(result).toEqual(
         expect.objectContaining({
           creditsUsed: 0,
           data: expect.objectContaining({
-            goalId: 'goal-1',
+            goalId,
             progressPercent: 40,
           }),
           success: true,
@@ -402,7 +434,7 @@ describe('AgentMemoryGoalsToolHandler', () => {
         error: 'update_goal requires a valid goalId.',
         success: false,
       });
-      expect(agentGoalsService.update).not.toHaveBeenCalled();
+      expect(goals[0].targetValue).toBe(1000);
     });
 
     it('fails when the agent goals service is unavailable', async () => {
