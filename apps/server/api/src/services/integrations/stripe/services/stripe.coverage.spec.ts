@@ -98,8 +98,11 @@ function makeMockPrice(
 function makeMockBillingPortalSession(
   id = 'bps_1',
   url = 'https://billing.stripe.com/session/bps_1',
-): Stripe.BillingPortal.Session {
-  return { id, url } as unknown as Stripe.BillingPortal.Session;
+): Stripe.Response<Stripe.BillingPortal.Session> {
+  return {
+    id,
+    url,
+  } as unknown as Stripe.Response<Stripe.BillingPortal.Session>;
 }
 
 // ---------------------------------------------------------------------------

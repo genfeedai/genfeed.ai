@@ -465,7 +465,7 @@ describe('InstagramPublisherService', () => {
 
         instagramService.uploadImage.mockResolvedValue({
           mediaId: null as unknown as string,
-          shortcode: null,
+          shortcode: '',
         });
 
         const result = await service.publish(context);

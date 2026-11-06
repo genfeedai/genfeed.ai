@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ContentPlanItemsService } from '@api/collections/content-plan-items/services/content-plan-items.service';
+import type { UpdateContentPlanDto } from '@api/collections/content-plans/dto/update-content-plan.dto';
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
@@ -455,7 +456,7 @@ describe('ContentEngineController', () => {
 
   describe('updatePlan', () => {
     it('should patch a plan with organization context', async () => {
-      const dto = { title: 'Updated Plan' } as never;
+      const dto: UpdateContentPlanDto = { name: 'Updated Plan' };
       const result = await controller.updatePlan(
         mockReq,
         mockUser,

@@ -20,6 +20,7 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
 
 import { SERVER_TOKENS } from '@api/server.dependencies';
 import {
+  type ThreadsCarouselMediaItem,
   ThreadsContainerStatus,
   ThreadsMediaType,
   ThreadsService,
@@ -813,10 +814,13 @@ describe('ThreadsService (coverage)', () => {
     });
 
     it('should throw when more than 20 media items are provided', async () => {
-      const tooMany = Array.from({ length: 21 }, (_, i) => ({
-        mediaType: ThreadsMediaType.IMAGE,
-        url: `https://example.com/${i}.jpg`,
-      }));
+      const tooMany: ThreadsCarouselMediaItem[] = Array.from(
+        { length: 21 },
+        (_, i) => ({
+          mediaType: ThreadsMediaType.IMAGE,
+          url: `https://example.com/${i}.jpg`,
+        }),
+      );
 
       await expect(
         service.publishCarousel('org-1', 'brand-1', tooMany),
