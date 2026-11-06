@@ -1,354 +1,354 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { PersonasService } from '@api/collections/personas/services/personas.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
-import { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
+import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { PersonasService } from '@api/collections/personas/services/personas.service';
+import type { PostsService } from '@api/collections/posts/services/posts.service';
+import type { OrganizationModuleAccessService } from '@api/common/organization-modules/organization-module-access.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
-import { PersonaPublisherService } from '@api/services/persona-content/persona-publisher.service';
-import { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
-import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+import type { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import {
+  PersonaPublisherService,
+  type PublishInput,
+} from '@api/services/persona-content/persona-publisher.service';
+import type { TurboRunService } from '@api/services/turbo-run/turbo-run.service';
+import {
+  AgentPublishDecision,
   PostCategory,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+type Row = Record<string, unknown>;
+
+interface ReviewRun {
+  approvedItems: string[];
+  id: string;
+  idempotencyKey: string;
+  items: Row[];
+}
+
+const INPUT: PublishInput = {
+  brandId: 'brand-1',
+  description: 'Draft caption',
+  organizationId: 'org-1',
+  personaId: 'persona-1',
+  userId: 'user-1',
+};
 
 describe('PersonaPublisherService', () => {
+  // The organization's personas, credentials and posts, the review runs
+  // opened for them, and the modules the organization can use.
+  let personas: Row[];
+  let credentials: Row[];
+  let posts: Row[];
+  let reviews: ReviewRun[];
+  let permittedPosts: Set<string>;
+  let accessDenial: Error | undefined;
+  let accessChecks: [string, string][];
+  let failingPlatforms: Set<string>;
+  let isReviewDown: boolean;
   let service: PersonaPublisherService;
-  let moduleAccess: { assertAccess: ReturnType<typeof vi.fn> };
-  let review: {
-    createManualReviewTurboRun: ReturnType<typeof vi.fn>;
-    approveAutonomousItems: ReturnType<typeof vi.fn>;
-  };
 
-  let personasService: {
-    findOne: ReturnType<typeof vi.fn>;
-    findOneSelect: ReturnType<typeof vi.fn>;
+  const seedPersona = (credentialIds: string[]) => {
+    personas.push({
+      credentials: credentialIds,
+      id: 'persona-1',
+      label: 'Persona',
+      organizationId: 'org-1',
+    });
   };
-  let credentialsService: {
-    findOne: ReturnType<typeof vi.fn>;
-    findOneSelect: ReturnType<typeof vi.fn>;
+  const seedCredential = (id: string, platform: string, fields: Row = {}) => {
+    credentials.push({
+      brandId: 'brand-1',
+      id,
+      isDeleted: false,
+      organizationId: 'org-1',
+      platform,
+      ...fields,
+    });
   };
-  let postsService: { create: ReturnType<typeof vi.fn> };
+  const matches = (row: Row, where: Row) =>
+    Object.entries(where).every(([key, value]) => row[key] === value);
 
-  beforeEach(async () => {
-    moduleAccess = { assertAccess: vi.fn().mockResolvedValue(undefined) };
-    personasService = {
-      findOne: vi.fn(),
-      findOneSelect: delegateFindOneSelect(),
-    };
-    credentialsService = {
-      findOne: vi.fn(),
-      findOneSelect: delegateFindOneSelect(),
-    };
-    postsService = {
-      create: vi.fn(),
-    };
+  beforeEach(() => {
+    personas = [];
+    credentials = [];
+    posts = [];
+    reviews = [];
+    permittedPosts = new Set();
+    accessDenial = undefined;
+    accessChecks = [];
+    failingPlatforms = new Set();
+    isReviewDown = false;
 
-    review = {
-      createManualReviewTurboRun: vi
-        .fn()
-        .mockResolvedValue({ id: 'batch-1', items: [{ id: 'item-1' }] }),
-      approveAutonomousItems: vi.fn(),
-    };
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        PersonaPublisherService,
-        { provide: OrganizationModuleAccessService, useValue: moduleAccess },
-        {
-          provide: TurboRunService,
-          useValue: review,
+    service = new PersonaPublisherService(
+      {
+        error: () => undefined,
+        log: () => undefined,
+      } as unknown as LoggerService,
+      {
+        findOne: async (where: Row) =>
+          personas.find((row) => matches(row, where)) ?? null,
+      } as unknown as PersonasService,
+      {
+        findOneSelect: async (where: Row) => {
+          const row = credentials.find((candidate) =>
+            matches(candidate, where),
+          );
+          return row ? { platform: row.platform } : null;
         },
-        {
-          provide: AutonomousPublishPolicyService,
-          useValue: {
-            resolveForPost: vi
-              .fn()
-              .mockResolvedValue({ result: { decision: 'DENIED' } }),
+      } as unknown as CredentialsService,
+      {
+        create: async (data: Row) => {
+          if (failingPlatforms.has(String(data.platform))) {
+            throw new Error('DB error');
+          }
+          const row = { ...data, id: `post-${posts.length + 1}` };
+          posts.push(row);
+          return row;
+        },
+      } as unknown as PostsService,
+      {
+        approveAutonomousItems: async (runId: string, itemIds: string[]) => {
+          reviews
+            .find((run) => run.id === runId)
+            ?.approvedItems.push(...itemIds);
+        },
+        createManualReviewTurboRun: async (
+          dto: { items: Row[] },
+          _userId: string,
+          _organizationId: string,
+          idempotencyKey: string,
+        ) => {
+          if (isReviewDown) throw new Error('Review unavailable');
+          const run = {
+            approvedItems: [],
+            id: `run-${reviews.length + 1}`,
+            idempotencyKey,
+            items: dto.items.map((item, index) => ({
+              ...item,
+              id: `run-${reviews.length + 1}-item-${index + 1}`,
+            })),
+          };
+          reviews.push(run);
+          return run;
+        },
+      } as unknown as TurboRunService,
+      {
+        resolveForPost: async ({ postId }: { postId: string }) => ({
+          result: {
+            decision: permittedPosts.has(postId)
+              ? AgentPublishDecision.PERMITTED
+              : AgentPublishDecision.DENIED,
           },
+        }),
+      } as unknown as AutonomousPublishPolicyService,
+      {
+        assertAccess: async (organizationId: string, moduleId: string) => {
+          accessChecks.push([organizationId, moduleId]);
+          if (accessDenial) throw accessDenial;
         },
-        {
-          provide: LoggerService,
-          useValue: {
-            debug: vi.fn(),
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
-          },
-        },
-        { provide: PersonasService, useValue: personasService },
-        { provide: CredentialsService, useValue: credentialsService },
-        { provide: PostsService, useValue: postsService },
-      ],
-    }).compile();
-
-    service = module.get<PersonaPublisherService>(PersonaPublisherService);
+      } as unknown as OrganizationModuleAccessService,
+    );
   });
 
-  it.each(['unreleased', 'unavailable'])(
-    'rejects %s module access before any publication effect',
-    async (reason) => {
-      const denied = new HttpException(
-        {
-          code:
-            reason === 'unreleased'
-              ? 'ORGANIZATION_MODULE_UNRELEASED'
-              : 'ORGANIZATION_MODULE_UNAVAILABLE',
-          moduleId: 'publishing',
-        },
-        reason === 'unreleased'
-          ? HttpStatus.FORBIDDEN
-          : HttpStatus.SERVICE_UNAVAILABLE,
+  it.each([
+    ['unreleased', 'ORGANIZATION_MODULE_UNRELEASED', HttpStatus.FORBIDDEN],
+    [
+      'unavailable',
+      'ORGANIZATION_MODULE_UNAVAILABLE',
+      HttpStatus.SERVICE_UNAVAILABLE,
+    ],
+  ])(
+    'rejects %s publishing access before any publication effect',
+    async (_reason, code, status) => {
+      seedPersona(['credential-1']);
+      seedCredential('credential-1', 'INSTAGRAM');
+      accessDenial = new HttpException(
+        { code, moduleId: 'publishing' },
+        status,
       );
-      moduleAccess.assertAccess.mockRejectedValueOnce(denied);
-      await expect(
-        service.publishToAll({
-          personaId: 'persona-1',
-          organizationId: 'org-1',
-          userId: 'user-1',
-          brandId: 'brand-1',
-          description: 'Draft caption',
-        }),
-      ).rejects.toBe(denied);
-      expect(moduleAccess.assertAccess).toHaveBeenCalledWith(
-        'org-1',
-        'publishing',
-      );
-      expect(personasService.findOne).not.toHaveBeenCalled();
-      expect(credentialsService.findOne).not.toHaveBeenCalled();
-      expect(postsService.create).not.toHaveBeenCalled();
-      expect(review.createManualReviewTurboRun).not.toHaveBeenCalled();
-      expect(review.approveAutonomousItems).not.toHaveBeenCalled();
+
+      await expect(service.publishToAll(INPUT)).rejects.toBe(accessDenial);
+      expect(accessChecks).toEqual([['org-1', 'publishing']]);
+      expect(posts).toEqual([]);
+      expect(reviews).toEqual([]);
     },
   );
 
   it('rechecks module access on the next publication attempt', async () => {
-    personasService.findOne.mockResolvedValue({
-      credentials: [],
-      label: 'Persona',
-    });
-    const input = {
-      personaId: 'persona-1',
-      organizationId: 'org-1',
-      userId: 'user-1',
-      brandId: 'brand-1',
-      description: 'Draft',
-    };
-    await service.publishToAll(input);
-    const denied = new Error('Publishing disabled after the prior attempt');
-    moduleAccess.assertAccess.mockRejectedValueOnce(denied);
-    await expect(service.publishToAll(input)).rejects.toBe(denied);
-    expect(moduleAccess.assertAccess).toHaveBeenCalledTimes(2);
-    expect(personasService.findOne).toHaveBeenCalledTimes(1);
+    seedPersona(['credential-1']);
+    seedCredential('credential-1', 'INSTAGRAM');
+    await service.publishToAll(INPUT);
+    accessDenial = new Error('Publishing disabled after the prior attempt');
+
+    await expect(service.publishToAll(INPUT)).rejects.toBe(accessDenial);
+    expect(accessChecks).toHaveLength(2);
+    expect(posts).toHaveLength(1);
   });
 
-  it('preserves a visible draft and reports failure when review linking fails', async () => {
-    personasService.findOne.mockResolvedValue({
-      credentials: ['credential-1'],
-      label: 'Persona',
-    });
-    credentialsService.findOne.mockResolvedValue({
-      id: 'credential-1',
-      platform: 'INSTAGRAM',
-    });
-    postsService.create.mockResolvedValue({ id: 'post-1' });
-    review.createManualReviewTurboRun.mockRejectedValue(
-      new Error('Review unavailable'),
-    );
+  it('creates a public draft per credential and opens a manual review for it', async () => {
+    seedPersona(['credential-1']);
+    seedCredential('credential-1', 'INSTAGRAM');
+    const scheduledDate = new Date('2026-12-31T00:00:00.000Z');
+
     const result = await service.publishToAll({
-      personaId: 'persona-1',
-      organizationId: 'org-1',
-      userId: 'user-1',
-      brandId: 'brand-1',
-      description: 'Draft caption',
+      ...INPUT,
+      ingredientIds: ['ingredient-1'],
+      scheduledDate,
     });
-    expect(result).toMatchObject({
+
+    expect(result).toEqual({
+      failedCredentials: [],
       postIds: ['post-1'],
-      failedCredentials: ['credential-1'],
       totalCreated: 1,
     });
-    expect(postsService.create).toHaveBeenCalledWith(
+    expect(posts).toEqual([
       expect.objectContaining({
-        targetExecutionState: TargetExecutionState.DRAFT,
-      }),
-    );
-    expect(review.approveAutonomousItems).not.toHaveBeenCalled();
-    expect(review.createManualReviewTurboRun).toHaveBeenCalledWith(
-      expect.objectContaining({
-        items: [expect.objectContaining({ postId: 'post-1' })],
-      }),
-      'user-1',
-      'org-1',
-      'persona-review:org-1:post-1',
-    );
-  });
-
-  it('publishes only matching platform credentials when platforms filter is provided', async () => {
-    const personaId = 'test-object-id';
-    const organizationId = 'test-object-id';
-    const userId = 'test-object-id';
-    const brandId = 'test-object-id';
-    const ingredientId = 'test-object-id';
-    const instagramCredentialId = 'test-object-id';
-    const tiktokCredentialId = 'test-object-id';
-
-    personasService.findOne.mockResolvedValue({
-      credentials: [instagramCredentialId, tiktokCredentialId],
-      label: 'Test Persona',
-    });
-    credentialsService.findOne
-      .mockResolvedValueOnce({
-        id: instagramCredentialId,
+        brandId: 'brand-1',
+        category: PostCategory.POST,
+        credentialId: 'credential-1',
+        description: 'Draft caption',
+        ingredients: ['ingredient-1'],
+        label: 'Persona',
+        personaId: 'persona-1',
         platform: 'instagram',
-      })
-      .mockResolvedValueOnce({
-        id: tiktokCredentialId,
-        platform: 'tiktok',
-      });
-    postsService.create.mockResolvedValueOnce({ id: 'test-object-id' });
-
-    const result = await service.publishToAll({
-      brandId,
-      category: PostCategory.POST,
-      description: 'Test post',
-      ingredientIds: [ingredientId],
-      organizationId,
-      personaId,
-      platforms: ['tiktok'],
-      userId,
-    });
-
-    expect(postsService.create).toHaveBeenCalledTimes(1);
-    expect(postsService.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        credentialId: tiktokCredentialId,
-        platform: 'tiktok',
-      }),
-    );
-    expect(result.failedCredentials).toEqual([]);
-    expect(result.totalCreated).toBe(1);
-  });
-
-  it('throws when persona does not exist', async () => {
-    personasService.findOne.mockResolvedValue(null);
-
-    await expect(
-      service.publishToAll({
-        brandId: 'test-object-id',
-        description: 'Test post',
-        organizationId: 'test-object-id',
-        personaId: 'test-object-id',
-        userId: 'test-object-id',
-      }),
-    ).rejects.toThrow(NotFoundException);
-  });
-
-  it('publishes to all credentials when no platforms filter', async () => {
-    const credId1 = 'test-object-id';
-    const credId2 = 'test-object-id';
-
-    personasService.findOne.mockResolvedValue({
-      credentials: [credId1, credId2],
-      label: 'All Platforms',
-    });
-    credentialsService.findOne
-      .mockResolvedValueOnce({ id: credId1, platform: 'instagram' })
-      .mockResolvedValueOnce({ id: credId2, platform: 'twitter' });
-    postsService.create
-      .mockResolvedValueOnce({ id: 'test-object-id' })
-      .mockResolvedValueOnce({ id: 'test-object-id' });
-
-    const result = await service.publishToAll({
-      brandId: 'test-object-id',
-      description: 'Post everywhere',
-      organizationId: 'test-object-id',
-      personaId: 'test-object-id',
-      userId: 'test-object-id',
-    });
-
-    expect(result.totalCreated).toBe(2);
-    expect(postsService.create).toHaveBeenCalledTimes(2);
-  });
-
-  it('tracks failed credentials when post creation throws', async () => {
-    const credId = 'test-object-id';
-
-    personasService.findOne.mockResolvedValue({
-      credentials: [credId],
-      label: 'Fail Persona',
-    });
-    credentialsService.findOne.mockResolvedValue({
-      id: credId,
-      platform: 'twitter',
-    });
-    postsService.create.mockRejectedValue(new Error('DB error'));
-
-    const result = await service.publishToAll({
-      brandId: 'test-object-id',
-      description: 'Will fail',
-      organizationId: 'test-object-id',
-      personaId: 'test-object-id',
-      userId: 'test-object-id',
-    });
-
-    expect(result.failedCredentials).toContain(String(credId));
-    expect(result.totalCreated).toBe(0);
-  });
-
-  it('skips credentials not found in database', async () => {
-    const credId = 'test-object-id';
-
-    personasService.findOne.mockResolvedValue({
-      credentials: [credId],
-      label: 'Missing Cred',
-    });
-    credentialsService.findOne.mockResolvedValue(null);
-
-    const result = await service.publishToAll({
-      brandId: 'test-object-id',
-      description: 'No cred',
-      organizationId: 'test-object-id',
-      personaId: 'test-object-id',
-      userId: 'test-object-id',
-    });
-
-    expect(result.failedCredentials).toContain(String(credId));
-    expect(result.totalCreated).toBe(0);
-    expect(postsService.create).not.toHaveBeenCalled();
-  });
-
-  it('sets scheduled execution state when scheduledDate is provided', async () => {
-    const credId = 'test-object-id';
-    const futureDate = new Date('2026-12-31');
-
-    personasService.findOne.mockResolvedValue({
-      credentials: [credId],
-      label: 'Scheduled',
-    });
-    credentialsService.findOne.mockResolvedValue({
-      id: credId,
-      platform: 'instagram',
-    });
-    postsService.create.mockResolvedValue({ id: 'test-object-id' });
-
-    await service.publishToAll({
-      brandId: 'test-object-id',
-      description: 'Scheduled post',
-      organizationId: 'test-object-id',
-      personaId: 'test-object-id',
-      scheduledDate: futureDate,
-      userId: 'test-object-id',
-    });
-
-    expect(postsService.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        scheduledDate: futureDate,
+        scheduledDate,
         targetExecutionState: TargetExecutionState.DRAFT,
         visibility: PostVisibility.PUBLIC,
       }),
+    ]);
+    expect(reviews).toEqual([
+      {
+        approvedItems: [],
+        id: 'run-1',
+        idempotencyKey: 'persona-review:org-1:post-1',
+        items: [
+          {
+            caption: 'Draft caption',
+            format: 'post',
+            id: 'run-1-item-1',
+            platform: 'instagram',
+            postId: 'post-1',
+            scheduledDate: '2026-12-31T00:00:00.000Z',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('approves the review only for posts the publish policy permits', async () => {
+    seedPersona(['credential-1', 'credential-2']);
+    seedCredential('credential-1', 'INSTAGRAM');
+    seedCredential('credential-2', 'TWITTER');
+    permittedPosts.add('post-2');
+
+    await service.publishToAll(INPUT);
+
+    expect(reviews.map(({ approvedItems, id }) => [id, approvedItems])).toEqual(
+      [
+        ['run-1', []],
+        ['run-2', ['run-2-item-1']],
+      ],
     );
+  });
+
+  it('groups all posts of one publication under one group id', async () => {
+    seedPersona(['credential-1', 'credential-2']);
+    seedCredential('credential-1', 'INSTAGRAM');
+    seedCredential('credential-2', 'TWITTER');
+
+    const result = await service.publishToAll(INPUT);
+
+    expect(result.totalCreated).toBe(2);
+    expect(new Set(posts.map((post) => post.groupId)).size).toBe(1);
+  });
+
+  it('publishes only credentials on the requested platforms', async () => {
+    seedPersona(['credential-1', 'credential-2']);
+    seedCredential('credential-1', 'INSTAGRAM');
+    seedCredential('credential-2', 'TIKTOK');
+
+    const result = await service.publishToAll({
+      ...INPUT,
+      platforms: ['TikTok'],
+    });
+
+    expect(result).toEqual({
+      failedCredentials: [],
+      postIds: ['post-1'],
+      totalCreated: 1,
+    });
+    expect(
+      posts.map(({ credentialId, platform }) => [credentialId, platform]),
+    ).toEqual([['credential-2', 'tiktok']]);
+  });
+
+  it.each([
+    ['missing', 'credential-x', {}],
+    ['soft-deleted', 'credential-1', { isDeleted: true }],
+    ['on another brand', 'credential-1', { brandId: 'brand-2' }],
+    ['in another organization', 'credential-1', { organizationId: 'org-2' }],
+  ])(
+    'reports a %s credential as failed without posting',
+    async (_case, personaCredential, fields) => {
+      seedPersona([personaCredential]);
+      seedCredential('credential-1', 'INSTAGRAM', fields);
+
+      expect(await service.publishToAll(INPUT)).toEqual({
+        failedCredentials: [personaCredential],
+        postIds: [],
+        totalCreated: 0,
+      });
+      expect(posts).toEqual([]);
+    },
+  );
+
+  it('keeps publishing other credentials when one post cannot be created', async () => {
+    seedPersona(['credential-1', 'credential-2']);
+    seedCredential('credential-1', 'TWITTER');
+    seedCredential('credential-2', 'INSTAGRAM');
+    failingPlatforms.add('twitter');
+
+    expect(await service.publishToAll(INPUT)).toEqual({
+      failedCredentials: ['credential-1'],
+      postIds: ['post-1'],
+      totalCreated: 1,
+    });
+  });
+
+  it('preserves a visible draft and reports failure when review linking fails', async () => {
+    seedPersona(['credential-1']);
+    seedCredential('credential-1', 'INSTAGRAM');
+    permittedPosts.add('post-1');
+    isReviewDown = true;
+
+    expect(await service.publishToAll(INPUT)).toEqual({
+      failedCredentials: ['credential-1'],
+      postIds: ['post-1'],
+      totalCreated: 1,
+    });
+    expect(posts).toEqual([
+      expect.objectContaining({
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    ]);
+    expect(reviews).toEqual([]);
+  });
+
+  it.each([
+    ['does not exist', []],
+    [
+      'belongs to another organization',
+      [{ credentials: [], id: 'persona-1', organizationId: 'org-2' }],
+    ],
+  ])('throws when the persona %s', async (_case, rows) => {
+    personas = rows;
+
+    await expect(service.publishToAll(INPUT)).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(posts).toEqual([]);
   });
 });

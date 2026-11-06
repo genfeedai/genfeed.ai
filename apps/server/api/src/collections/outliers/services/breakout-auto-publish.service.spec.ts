@@ -1,343 +1,394 @@
-import { BreakoutAutoPublishService } from '@api/collections/outliers/services/breakout-auto-publish.service';
-import { readBreakoutOutputRecovery } from '@api/collections/outliers/services/breakout-output-recovery.util';
+import type { PostsService } from '@api/collections/posts/services/posts.service';
+import type { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentPublishDecision,
   Platform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+type Recovery = Record<string, unknown>;
+
+// The recovery read as the response pipeline reports the output, plus the
+// timeline of authorizations and reads the service performs.
+const world = vi.hoisted(() => ({
+  recovery: {} as Record<string, unknown>,
+  timeline: [] as string[],
+}));
 
 vi.mock(
   '@api/collections/outliers/services/breakout-output-recovery.util',
-  () => ({ readBreakoutOutputRecovery: vi.fn() }),
+  () => ({
+    readBreakoutOutputRecovery: async () => {
+      world.timeline.push('recovery');
+      return world.recovery;
+    },
+  }),
 );
 
-const request = {
-  outputId: 'output-a',
-  reauthorize: vi.fn(async () => undefined),
-  responseId: 'response-a',
-  scope: {
-    brandId: 'brand-a',
-    credentialId: 'credential-a',
-    organizationId: 'org-a',
-    platform: Platform.TWITTER,
-  },
-  strategyId: 'strategy-a',
+import { BreakoutAutoPublishService } from '@api/collections/outliers/services/breakout-auto-publish.service';
+
+interface PostRow {
+  agentStrategyId: string;
+  brandId: string;
+  breakoutOutputId: string;
+  credentialId: string;
+  id: string;
+  isDeleted: boolean;
+  organizationId: string;
+  parentId: string | null;
+  platform: Platform;
+  reviewDecision: string | null;
+  scheduledDate?: Date;
+  targetExecutionState: TargetExecutionState;
+}
+
+interface Verdict {
+  decision: AgentPublishDecision;
+  reason: string;
+}
+
+const SCOPE = {
+  brandId: 'brand-a',
+  credentialId: 'credential-a',
+  organizationId: 'org-a',
+  platform: Platform.TWITTER,
 };
 
-type Settings = {
-  isBreakoutAutoPublishEnabled: boolean;
-  isBreakoutResponsesEnabled: boolean;
+const READY: Recovery = {
+  action: 'requires_admission',
+  externalId: null,
+  mayRepeatPaidRequest: false,
+  outputId: 'output-a',
+  postId: 'post-a',
+  reason: 'publication_admission_required',
+  responseId: 'response-a',
+  state: 'draft',
+  status: 'available',
 };
-const on: Settings = {
+
+const ON = {
   isBreakoutAutoPublishEnabled: true,
   isBreakoutResponsesEnabled: true,
 };
-
-type PostPolicy = {
-  result: { decision: AgentPublishDecision; reason: string };
+const PERMITTED: Verdict = {
+  decision: AgentPublishDecision.PERMITTED,
+  reason: 'ok',
 };
 
-function harness(settings: Settings | null = on) {
-  const prisma = {
-    organizationSetting: {
-      findFirst: vi.fn(async (): Promise<Settings | null> => settings),
-    },
-    post: {
-      findFirst: vi.fn(
-        async (): Promise<{
-          id: string;
-          reviewDecision: string | null;
-        } | null> => ({ id: 'post-a', reviewDecision: null }),
-      ),
-    },
-  };
-  const posts = { patch: vi.fn(async () => ({})) };
-  const policy = {
-    resolveForPost: vi.fn(async () => ({
-      result: { decision: AgentPublishDecision.PERMITTED, reason: 'ok' },
-    })),
-    // A brand with caps: the policy is evaluated again under the lock.
-    scheduleWithinPostCaps: vi.fn(
-      async (
-        _scope: unknown,
-        _preview: PostPolicy,
-        evaluate: () => Promise<PostPolicy>,
-        schedule: () => Promise<unknown>,
-      ) => {
-        const decided = await evaluate();
-        return decided.result.decision === AgentPublishDecision.PERMITTED
-          ? { policy: decided, scheduled: await schedule() }
-          : { policy: decided };
-      },
-    ),
-  };
-  const logger = { warn: vi.fn() };
-  const service = Reflect.construct(BreakoutAutoPublishService, [
-    prisma,
-    posts,
-    policy,
-    logger,
-  ]) as BreakoutAutoPublishService;
-  return { logger, policy, posts, prisma, service };
-}
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  vi.mocked(readBreakoutOutputRecovery).mockResolvedValue({
-    action: 'requires_admission',
-    externalId: null,
-    mayRepeatPaidRequest: false,
-    outputId: 'output-a',
-    postId: 'post-a',
-    reason: 'publication_admission_required',
-    responseId: 'response-a',
-    state: 'draft',
-    status: 'available',
-  });
+const draft = (fields: Partial<PostRow> = {}): PostRow => ({
+  agentStrategyId: 'strategy-a',
+  brandId: 'brand-a',
+  breakoutOutputId: 'output-a',
+  credentialId: 'credential-a',
+  id: 'post-a',
+  isDeleted: false,
+  organizationId: 'org-a',
+  parentId: null,
+  platform: Platform.TWITTER,
+  reviewDecision: null,
+  targetExecutionState: TargetExecutionState.DRAFT,
+  ...fields,
 });
 
 describe('BreakoutAutoPublishService (#6526)', () => {
-  it('schedules an untouched, fully checked draft through the shared scheduling write', async () => {
-    const h = harness();
-    expect(await h.service.schedule(request)).toEqual({
+  let settings: Map<string, Record<string, boolean>>;
+  let posts: PostRow[];
+  // Policy verdicts in the order they are resolved; PERMITTED once exhausted.
+  let verdicts: Verdict[];
+  let resolvedFor: Record<string, string>[];
+  let warnings: [string, Record<string, unknown>][];
+  let scheduleFailure: Error | undefined;
+  let revokeAtAuthorization: number;
+  let service: BreakoutAutoPublishService;
+
+  const post = () => posts.find((row) => row.id === 'post-a');
+  const request = () => ({
+    outputId: 'output-a',
+    reauthorize: async () => {
+      world.timeline.push('authorize');
+      const count = world.timeline.filter(
+        (step) => step === 'authorize',
+      ).length;
+      if (count === revokeAtAuthorization) throw new Error('revoked');
+    },
+    responseId: 'response-a',
+    scope: SCOPE,
+    strategyId: 'strategy-a',
+  });
+
+  beforeEach(() => {
+    world.recovery = READY;
+    world.timeline = [];
+    settings = new Map([['org-a', ON]]);
+    posts = [draft()];
+    verdicts = [];
+    resolvedFor = [];
+    warnings = [];
+    scheduleFailure = undefined;
+    revokeAtAuthorization = 0;
+
+    const prisma = {
+      organizationSetting: {
+        findFirst: async ({ where }: { where: { organizationId: string } }) => {
+          world.timeline.push('settings');
+          return settings.get(where.organizationId) ?? null;
+        },
+      },
+      post: {
+        findFirst: async ({ where }: { where: Partial<PostRow> }) => {
+          world.timeline.push('post');
+          const row = posts.find((candidate) =>
+            Object.entries(where).every(
+              ([key, value]) => candidate[key as keyof PostRow] === value,
+            ),
+          );
+          return row
+            ? { id: row.id, reviewDecision: row.reviewDecision }
+            : null;
+        },
+      },
+    };
+    const policy = {
+      resolveForPost: async (input: Record<string, string>) => {
+        resolvedFor.push(input);
+        return { result: verdicts.shift() ?? PERMITTED };
+      },
+      // A brand with caps: the policy is evaluated again under the lock.
+      scheduleWithinPostCaps: async (
+        _scope: unknown,
+        _preview: unknown,
+        evaluate: () => Promise<{ result: Verdict }>,
+        schedule: () => Promise<unknown>,
+      ) => {
+        const decided = await evaluate();
+        if (decided.result.decision !== AgentPublishDecision.PERMITTED) {
+          return { policy: decided };
+        }
+        return { policy: decided, scheduled: await schedule() };
+      },
+    };
+    service = new BreakoutAutoPublishService(
+      prisma as unknown as PrismaService,
+      {
+        patch: async (id: string, update: Partial<PostRow>) => {
+          if (scheduleFailure) throw scheduleFailure;
+          return Object.assign(
+            posts.find((row) => row.id === id) as PostRow,
+            update,
+          );
+        },
+      } as unknown as PostsService,
+      policy as unknown as AutonomousPublishPolicyService,
+      {
+        warn: (message: string, context: Record<string, unknown>) => {
+          warnings.push([message, context]);
+        },
+      } as unknown as LoggerService,
+    );
+  });
+
+  it('schedules an untouched, fully checked draft and re-checks the policy under the lock', async () => {
+    expect(await service.schedule(request())).toEqual({
       postId: 'post-a',
       status: 'scheduled',
     });
-    expect(h.posts.patch).toHaveBeenCalledWith('post-a', {
+
+    expect(post()).toMatchObject({
       scheduledDate: expect.any(Date),
       targetExecutionState: TargetExecutionState.SCHEDULED,
     });
-    expect(h.policy.resolveForPost).toHaveBeenCalledWith({
-      organizationId: 'org-a',
-      postId: 'post-a',
-      strategyId: 'strategy-a',
-    });
+    expect(resolvedFor).toEqual([
+      { organizationId: 'org-a', postId: 'post-a', strategyId: 'strategy-a' },
+      { organizationId: 'org-a', postId: 'post-a', strategyId: 'strategy-a' },
+    ]);
   });
 
-  it('only looks at a tenant-scoped, undeleted draft of this very output and strategy', async () => {
-    const h = harness();
-    await h.service.schedule(request);
-    expect(h.prisma.post.findFirst).toHaveBeenCalledWith({
-      select: { id: true, reviewDecision: true },
-      where: expect.objectContaining({
-        agentStrategyId: 'strategy-a',
-        brandId: 'brand-a',
-        breakoutOutputId: 'output-a',
-        credentialId: 'credential-a',
-        id: 'post-a',
-        isDeleted: false,
-        organizationId: 'org-a',
-        parentId: null,
-        targetExecutionState: TargetExecutionState.DRAFT,
-      }),
+  it.each([
+    ['soft-deleted', { isDeleted: true }],
+    ['in another organization', { organizationId: 'org-b' }],
+    ['for another strategy', { agentStrategyId: 'strategy-b' }],
+    ['for another output', { breakoutOutputId: 'output-b' }],
+    ['on another credential', { credentialId: 'credential-b' }],
+    ['a thread reply', { parentId: 'post-root' }],
+    [
+      'already scheduled',
+      { targetExecutionState: TargetExecutionState.SCHEDULED },
+    ],
+  ])('leaves a draft that is %s for review', async (_case, fields) => {
+    posts = [draft(fields)];
+
+    expect(await service.schedule(request())).toEqual({
+      reason: 'output_reviewed',
+      status: 'review_only',
     });
+    expect(post()?.scheduledDate).toBeUndefined();
   });
 
   it.each([
     [
       'the organization has auto-publish off',
-      { ...on, isBreakoutAutoPublishEnabled: false },
+      { ...ON, isBreakoutAutoPublishEnabled: false },
     ],
     [
       'auto-publish is on but breakout responses are off',
-      { ...on, isBreakoutResponsesEnabled: false },
+      { ...ON, isBreakoutResponsesEnabled: false },
     ],
-    ['the organization has no settings row', null],
-  ])('stays review-only when %s', async (_name, settings) => {
-    const h = harness(settings);
-    expect(await h.service.schedule(request)).toEqual({
-      reason: 'org_auto_publish_disabled',
-      status: 'review_only',
-    });
-    expect(h.posts.patch).not.toHaveBeenCalled();
-    expect(h.policy.resolveForPost).not.toHaveBeenCalled();
-    expect(readBreakoutOutputRecovery).not.toHaveBeenCalled();
-  });
+    ['the organization has no settings row', undefined],
+  ])(
+    'stays review-only without reading the output when %s',
+    async (_case, row) => {
+      settings = new Map(row ? [['org-a', row]] : []);
+
+      expect(await service.schedule(request())).toEqual({
+        reason: 'org_auto_publish_disabled',
+        status: 'review_only',
+      });
+      expect(world.timeline).toEqual(['authorize', 'settings']);
+      expect(resolvedFor).toEqual([]);
+      expect(post()?.targetExecutionState).toBe(TargetExecutionState.DRAFT);
+    },
+  );
 
   it.each([
     [
-      'it waits for a brand review (receipt not ready and passed, factual coverage unknown)',
+      'it waits for a brand review',
       {
+        action: 'none',
         reason: 'brand_review_required',
         state: 'awaiting_review',
-        action: 'none',
       },
     ],
     [
       'the quality gate blocked it',
       {
+        action: 'none',
         reason: 'platform_quality_blocked',
         state: 'awaiting_review',
-        action: 'none',
       },
     ],
     [
       'its quality evaluation is still pending',
       {
+        action: 'reconcile',
         reason: 'quality_evaluation_pending',
         state: 'reconciliation_required',
-        action: 'reconcile',
       },
     ],
+    ['it is already scheduled', { action: 'none', state: 'scheduled' }],
+    ['it has no post yet', { postId: null }],
     [
-      'it is already scheduled',
+      'the recovery is unavailable',
       {
-        reason: 'publication_admission_required',
-        state: 'scheduled',
-        action: 'none',
+        action: 'reconcile',
+        reason: 'artifact_binding_missing',
+        status: 'unavailable',
       },
     ],
-  ])('stays review-only when %s', async (_name, recovery) => {
-    vi.mocked(readBreakoutOutputRecovery).mockResolvedValue({
-      externalId: null,
-      mayRepeatPaidRequest: false,
-      outputId: 'output-a',
-      postId: 'post-a',
-      responseId: 'response-a',
-      status: 'available',
-      ...recovery,
-    } as Awaited<ReturnType<typeof readBreakoutOutputRecovery>>);
-    const h = harness();
-    expect(await h.service.schedule(request)).toEqual({
+  ])('stays review-only when %s', async (_case, fields) => {
+    world.recovery = { ...READY, ...fields };
+
+    expect(await service.schedule(request())).toEqual({
       reason: 'output_not_ready',
       status: 'review_only',
     });
-    expect(h.posts.patch).not.toHaveBeenCalled();
-  });
-
-  it('stays review-only when the recovery is unavailable', async () => {
-    vi.mocked(readBreakoutOutputRecovery).mockResolvedValue({
-      action: 'reconcile',
-      mayRepeatPaidRequest: false,
-      reason: 'artifact_binding_missing',
-      status: 'unavailable',
-    } as unknown as Awaited<ReturnType<typeof readBreakoutOutputRecovery>>);
-    const h = harness();
-    expect(await h.service.schedule(request)).toMatchObject({
-      status: 'review_only',
-    });
-    expect(h.posts.patch).not.toHaveBeenCalled();
+    expect(post()?.targetExecutionState).toBe(TargetExecutionState.DRAFT);
   });
 
   it('leaves a draft a person already decided on to that person', async () => {
-    const h = harness();
-    h.prisma.post.findFirst.mockResolvedValue({
-      id: 'post-a',
-      reviewDecision: 'APPROVED',
-    });
-    expect(await h.service.schedule(request)).toEqual({
+    posts = [draft({ reviewDecision: 'APPROVED' })];
+
+    expect(await service.schedule(request())).toEqual({
       reason: 'output_reviewed',
       status: 'review_only',
     });
-    expect(h.posts.patch).not.toHaveBeenCalled();
+    expect(resolvedFor).toEqual([]);
+    expect(post()?.targetExecutionState).toBe(TargetExecutionState.DRAFT);
   });
 
-  it('stays review-only when the draft is gone or changed', async () => {
-    const h = harness();
-    h.prisma.post.findFirst.mockResolvedValue(null);
-    expect(await h.service.schedule(request)).toMatchObject({
-      status: 'review_only',
-    });
-    expect(h.posts.patch).not.toHaveBeenCalled();
-  });
+  it.each([
+    [
+      'the strategy publish policy denies it',
+      [
+        {
+          decision: AgentPublishDecision.DENIED,
+          reason: 'brand_requires_approval',
+        },
+      ],
+      'publish_policy_brand_requires_approval',
+    ],
+    [
+      'the lock shows the last slot is gone',
+      [
+        PERMITTED,
+        { decision: AgentPublishDecision.DENIED, reason: 'weekly_cap' },
+      ],
+      'publish_policy_weekly_cap',
+    ],
+  ])(
+    'stays review-only and writes nothing when %s',
+    async (_case, queued, reason) => {
+      verdicts = queued;
 
-  it('stays review-only when the strategy publish policy denies it', async () => {
-    const h = harness();
-    h.policy.resolveForPost.mockResolvedValue({
-      result: {
-        decision: AgentPublishDecision.DENIED,
-        reason: 'brand_requires_approval',
-      },
-    });
-    expect(await h.service.schedule(request)).toEqual({
-      reason: 'publish_policy_brand_requires_approval',
-      status: 'review_only',
-    });
-    expect(h.posts.patch).not.toHaveBeenCalled();
-  });
-
-  it('counts the Policy post caps and schedules under one brand lock', async () => {
-    const h = harness();
-    await h.service.schedule(request);
-    expect(h.policy.scheduleWithinPostCaps).toHaveBeenCalledWith(
-      { brandId: 'brand-a', organizationId: 'org-a' },
-      expect.objectContaining({ result: expect.any(Object) }),
-      expect.any(Function),
-      expect.any(Function),
-    );
-    expect(h.policy.resolveForPost).toHaveBeenCalledTimes(2);
-  });
-
-  it('stays review-only and writes nothing when the lock shows the last slot is gone', async () => {
-    const h = harness();
-    h.policy.resolveForPost
-      .mockResolvedValueOnce({
-        result: { decision: AgentPublishDecision.PERMITTED, reason: 'ok' },
-      })
-      .mockResolvedValueOnce({
-        result: { decision: AgentPublishDecision.DENIED, reason: 'weekly_cap' },
+      expect(await service.schedule(request())).toEqual({
+        reason,
+        status: 'review_only',
       });
-    expect(await h.service.schedule(request)).toEqual({
-      reason: 'publish_policy_weekly_cap',
-      status: 'review_only',
-    });
-    expect(h.posts.patch).not.toHaveBeenCalled();
-  });
+      expect(post()?.targetExecutionState).toBe(TargetExecutionState.DRAFT);
+    },
+  );
 
   it('holds the draft when the actor loses authority while waiting on the lock', async () => {
-    const h = harness();
-    const permitted = {
-      result: { decision: AgentPublishDecision.PERMITTED, reason: 'ok' },
-    };
-    h.policy.resolveForPost
-      .mockResolvedValueOnce(permitted)
-      .mockImplementationOnce(async () => {
-        vi.mocked(request.reauthorize).mockRejectedValueOnce(
-          new Error('revoked'),
-        );
-        return permitted;
-      });
-    expect(await h.service.schedule(request)).toEqual({
+    // Settings, recovery, post and preview each re-authorize; the fifth runs under the lock.
+    revokeAtAuthorization = 5;
+
+    expect(await service.schedule(request())).toEqual({
       reason: 'publication_held',
       status: 'review_only',
     });
-    expect(h.posts.patch).not.toHaveBeenCalled();
+    expect(post()?.targetExecutionState).toBe(TargetExecutionState.DRAFT);
   });
 
   it('keeps the paid draft for review when the publication gate holds the schedule', async () => {
-    const h = harness();
-    h.posts.patch.mockRejectedValue(
-      new Error('Breakout publication held: quality_evidence_unavailable'),
+    scheduleFailure = new Error(
+      'Breakout publication held: quality_evidence_unavailable',
     );
-    expect(await h.service.schedule(request)).toEqual({
+
+    expect(await service.schedule(request())).toEqual({
       reason: 'publication_held',
       status: 'review_only',
     });
-    expect(h.logger.warn).toHaveBeenCalledWith(
-      'Breakout response was not auto-published',
-      expect.objectContaining({ outputId: 'output-a' }),
-    );
+    expect(warnings).toEqual([
+      [
+        'Breakout response was not auto-published',
+        {
+          error: 'Breakout publication held: quality_evidence_unavailable',
+          organizationId: 'org-a',
+          outputId: 'output-a',
+        },
+      ],
+    ]);
   });
 
   it('re-reads the setting on every call, so turning it off takes effect at once', async () => {
-    const h = harness();
-    await h.service.schedule(request);
-    h.prisma.organizationSetting.findFirst.mockResolvedValueOnce({
-      ...on,
-      isBreakoutAutoPublishEnabled: false,
-    });
-    expect(await h.service.schedule(request)).toMatchObject({
+    await service.schedule(request());
+    posts = [draft()];
+    settings.set('org-a', { ...ON, isBreakoutAutoPublishEnabled: false });
+
+    expect(await service.schedule(request())).toEqual({
+      reason: 'org_auto_publish_disabled',
       status: 'review_only',
     });
-    expect(h.posts.patch).toHaveBeenCalledTimes(1);
+    expect(post()?.targetExecutionState).toBe(TargetExecutionState.DRAFT);
   });
 
   it('denies before any read when the actor lost authority', async () => {
-    const h = harness();
-    vi.mocked(request.reauthorize).mockRejectedValueOnce(new Error('revoked'));
-    await expect(h.service.schedule(request)).rejects.toThrow('revoked');
-    expect(h.prisma.organizationSetting.findFirst).not.toHaveBeenCalled();
-    expect(h.posts.patch).not.toHaveBeenCalled();
+    revokeAtAuthorization = 1;
+
+    await expect(service.schedule(request())).rejects.toThrow('revoked');
+    expect(world.timeline).toEqual(['authorize']);
+    expect(post()?.targetExecutionState).toBe(TargetExecutionState.DRAFT);
   });
 });
