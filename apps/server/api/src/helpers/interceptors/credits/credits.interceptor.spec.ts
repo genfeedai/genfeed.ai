@@ -1,765 +1,457 @@
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
+import {
+  CreditsInterceptor,
+  type CreditsInterceptorRequest,
+  type DeferredCreditsConfig,
+} from '@api/helpers/interceptors/credits/credits.interceptor';
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ActivitySource } from '@genfeedai/contracts';
-import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
+import type { QueuedCreditChargeData } from '@genfeedai/contracts/queue';
 import { quoteModelBillablePricing } from '@genfeedai/pricing';
-import { testId } from '@helpers/testing/test-id.helper';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-import { Observable, of, throwError } from 'rxjs';
+import type { Queue } from 'bullmq';
+import { lastValueFrom, of, throwError } from 'rxjs';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-const organizationId = testId('org');
-const userId = testId('user');
+interface QueuedJob {
+  data: QueuedCreditChargeData;
+  id: string;
+  name: string;
+}
+
+const USER = {
+  id: 'user_123',
+  organizationId: 'org-1',
+  userId: 'user-1',
+} as AuthenticatedUser;
+
+const quote = quoteModelBillablePricing(
+  billableProfile(),
+  { modelKey: 'test/model', outputs: 2, provider: 'replicate', requests: 2 },
+  1,
+  '2026-09-30T00:00:00.000Z',
+);
+
+const respond = (response: unknown = { success: true }): CallHandler => ({
+  handle: () => of(response),
+});
+const fail = (error: unknown): CallHandler => ({
+  handle: () => throwError(() => error),
+});
 
 describe('CreditsInterceptor', () => {
+  // The credit-deduction queue, the holds released back to the wallet, the
+  // quote groups whose dispatch closed, and what was logged.
+  let jobs: QueuedJob[];
+  let releasedHolds: string[];
+  let closedGroups: string[];
+  let warnings: string[];
+  let errors: string[];
+  let isQueueDown: boolean;
+  let isWalletDown: boolean;
   let interceptor: CreditsInterceptor;
-  let creditDeductionQueueService: CreditDeductionQueueService;
-  let creditsUtilsService: { releaseReservation: ReturnType<typeof vi.fn> };
-  let loggerService: LoggerService;
-  const quoteGroups = { closeDispatch: vi.fn().mockResolvedValue(undefined) };
 
-  const mockRequest: {
-    creditsConfig?: CreditsConfig & {
-      deferred?: boolean;
-      reservationId?: string;
-    };
-    user?: {
-      id: string;
-      organizationId: string;
-      userId: string;
-    } | null;
-  } = {
-    creditsConfig: {
-      amount: 10,
-      description: 'Test operation',
-      source: ActivitySource.SCRIPT,
-    } as CreditsConfig,
-    user: {
-      id: 'user_123',
-      organizationId,
-      userId,
-    },
-  };
+  beforeEach(() => {
+    jobs = [];
+    releasedHolds = [];
+    closedGroups = [];
+    warnings = [];
+    errors = [];
+    isQueueDown = false;
+    isWalletDown = false;
 
-  const mockContext = {
-    switchToHttp: () => ({
-      getRequest: () => mockRequest,
-    }),
-  } as ExecutionContext;
-
-  const mockHandler = {
-    handle: () => of({ success: true }),
-  } as CallHandler;
-
-  beforeEach(async () => {
-    quoteGroups.closeDispatch.mockClear();
-    mockRequest.creditsConfig = {
-      amount: 10,
-      description: 'Test operation',
-      source: ActivitySource.SCRIPT,
-    };
-    mockRequest.user = {
-      id: 'user_123',
-      organizationId,
-      userId,
-    };
-    const mockCreditDeductionQueueService = {
-      queueByokUsage: vi.fn().mockResolvedValue(undefined),
-      queueDeduction: vi.fn().mockResolvedValue(undefined),
-    };
-    creditsUtilsService = {
-      releaseReservation: vi.fn().mockResolvedValue(undefined),
-    };
-
-    const mockLoggerService = {
-      debug: vi.fn(),
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
-    };
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CreditsInterceptor,
-        { provide: GenerationQuoteGroupService, useValue: quoteGroups },
-        {
-          provide: CreditDeductionQueueService,
-          useValue: mockCreditDeductionQueueService,
-        },
-        {
-          provide: LoggerService,
-          useValue: mockLoggerService,
-        },
-        {
-          provide: CreditsUtilsService,
-          useValue: creditsUtilsService,
-        },
-      ],
-    }).compile();
-
-    interceptor = module.get<CreditsInterceptor>(CreditsInterceptor);
-    creditDeductionQueueService = module.get<CreditDeductionQueueService>(
-      CreditDeductionQueueService,
-    );
-    loggerService = module.get<LoggerService>(LoggerService);
-  });
-
-  it('should be defined', () => {
-    expect(interceptor).toBeDefined();
-  });
-
-  describe('intercept', () => {
-    it('should pass through when no credits config', () => {
-      mockRequest.creditsConfig = undefined;
-
-      const result = interceptor.intercept(mockContext, mockHandler);
-
-      expect(result).toBeInstanceOf(Observable);
-      result.subscribe((data) => {
-        expect(data).toEqual({ success: true });
-      });
-      expect(creditDeductionQueueService.queueDeduction).not.toHaveBeenCalled();
-    });
-
-    it('should pass through when credits amount is undefined', () => {
-      mockRequest.creditsConfig = {
-        amount: undefined,
-        description: 'Test operation',
-      } as CreditsConfig;
-
-      const result = interceptor.intercept(mockContext, mockHandler);
-
-      expect(result).toBeInstanceOf(Observable);
-      result.subscribe((data) => {
-        expect(data).toEqual({ success: true });
-      });
-      expect(creditDeductionQueueService.queueDeduction).not.toHaveBeenCalled();
-    });
-
-    it('should pass through when no user', () => {
-      mockRequest.user = null;
-
-      const result = interceptor.intercept(mockContext, mockHandler);
-
-      expect(result).toBeInstanceOf(Observable);
-      result.subscribe((data) => {
-        expect(data).toEqual({ success: true });
-      });
-      expect(creditDeductionQueueService.queueDeduction).not.toHaveBeenCalled();
-    });
-
-    it('should queue credit deduction on successful operation', async () => {
-      mockRequest.creditsConfig = {
-        amount: 10,
-        description: 'Test operation',
-        source: ActivitySource.SCRIPT,
-      } as CreditsConfig;
-      mockRequest.user = {
-        id: 'user_123',
-        organizationId,
-        userId,
-      };
-
-      const result = interceptor.intercept(mockContext, mockHandler);
-
-      await new Promise<void>((resolve) => {
-        result.subscribe({
-          next: (data) => {
-            expect(data).toEqual({ success: true });
-            setTimeout(() => {
-              expect(
-                creditDeductionQueueService.queueDeduction,
-              ).toHaveBeenCalledWith({
-                amount: 10,
-                description: 'Test operation',
-                idempotencyKey: expect.stringMatching(/^credit-settle:/),
-                organizationId,
-                source: ActivitySource.SCRIPT,
-                type: 'deduct-credits',
-                userId,
-              });
-              expect(loggerService.log).toHaveBeenCalledWith(
-                'Credit deduction job queued',
-                {
-                  amount: 10,
-                  description: 'Test operation',
-                  isByokBypass: undefined,
-                  userId: 'user_123',
-                },
-              );
-              resolve();
-            }, 10);
-          },
-        });
-      });
-    });
-
-    it('attributes the queued deduction to the request identity brand', async () => {
-      mockRequest.creditsConfig = {
-        amount: 10,
-        description: 'Test operation',
-        source: ActivitySource.SCRIPT,
-      } as CreditsConfig;
-      mockRequest.user = {
-        brandId: 'brand-1',
-        id: 'user_123',
-        organizationId,
-        userId,
-      } as typeof mockRequest.user;
-
-      await new Promise<void>((resolve, reject) => {
-        interceptor.intercept(mockContext, mockHandler).subscribe({
-          complete: resolve,
-          error: reject,
-        });
-      });
-
-      expect(creditDeductionQueueService.queueDeduction).toHaveBeenCalledWith(
-        expect.objectContaining({ brandId: 'brand-1' }),
-      );
-    });
-
-    it('leaves the queued deduction brandless when the identity has no brand', async () => {
-      mockRequest.user = {
-        brandId: '',
-        id: 'user_123',
-        organizationId,
-        userId,
-      } as typeof mockRequest.user;
-
-      await new Promise<void>((resolve, reject) => {
-        interceptor.intercept(mockContext, mockHandler).subscribe({
-          complete: resolve,
-          error: reject,
-        });
-      });
-
-      const [job] = vi.mocked(creditDeductionQueueService.queueDeduction).mock
-        .calls[0];
-      expect(job).not.toHaveProperty('brandId');
-    });
-
-    describe('completion-settled routes', () => {
-      const asCompletion = (
-        overrides: Partial<NonNullable<typeof mockRequest.creditsConfig>> = {},
+    const logger = {
+      debug: () => undefined,
+      error: (message: string) => {
+        errors.push(message);
+      },
+      log: () => undefined,
+      warn: (message: string) => {
+        warnings.push(message);
+      },
+    } as unknown as LoggerService;
+    // BullMQ keeps one job per id.
+    const queue = {
+      add: async (
+        name: string,
+        data: QueuedCreditChargeData,
+        opts: { jobId: string },
       ) => {
-        mockRequest.creditsConfig = {
-          amount: 10,
-          description: 'Image generation',
-          reservationId: 'pool-1',
-          settlement: 'completion',
-          source: ActivitySource.IMAGE_GENERATION,
-          ...overrides,
-        };
-      };
-      const run = (handler: CallHandler) =>
-        new Promise<unknown>((resolve, reject) => {
-          interceptor.intercept(mockContext, handler).subscribe({
-            error: reject,
-            next: resolve,
-          });
-        });
+        if (isQueueDown) throw new Error('settlement queue unavailable');
+        jobs.push({ data, id: opts.jobId, name });
+      },
+      getJob: async (id: string) =>
+        jobs.some((job) => job.id === id)
+          ? { getState: async () => 'waiting' }
+          : undefined,
+    } as unknown as Queue;
 
-      it.each(['success', 'failure'])(
-        'closes frozen group dispatch on HTTP %s without releasing accepted funding',
-        async (outcome) => {
-          const quote = quoteModelBillablePricing(
-            billableProfile(),
-            {
-              modelKey: 'test/model',
-              provider: 'replicate',
-              outputs: 2,
-              requests: 2,
-            },
-            1,
-            '2026-09-30T00:00:00.000Z',
-          );
-          if (quote.status !== 'priced') throw new Error(quote.reason);
-          asCompletion({ boundOutputCount: 1, modelQuote: quote.snapshot });
-          if (outcome === 'success') await run(mockHandler);
-          else
-            await expect(
-              run({
-                handle: () =>
-                  throwError(() => new Error('second submission failed')),
-              }),
-            ).rejects.toThrow('second submission failed');
-          expect(quoteGroups.closeDispatch).toHaveBeenCalledExactlyOnceWith(
-            'pool-1',
-            organizationId,
-          );
-          expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
-          expect(
-            creditDeductionQueueService.queueDeduction,
-          ).not.toHaveBeenCalled();
+    interceptor = new CreditsInterceptor(
+      new CreditDeductionQueueService(queue, logger),
+      {
+        releaseReservation: async ({
+          reservationId,
+        }: {
+          reservationId: string;
+        }) => {
+          if (isWalletDown) throw new Error('wallet unavailable');
+          releasedHolds.push(reservationId);
         },
-      );
+      } as unknown as CreditsUtilsService,
+      logger,
+      {
+        closeDispatch: async (reservationId: string) => {
+          closedGroups.push(reservationId);
+        },
+      } as unknown as GenerationQuoteGroupService,
+    );
+  });
 
-      it('queues no settlement on the response; bound outputs settle on completion', async () => {
-        asCompletion({ boundOutputCount: 1 });
+  const intercept = (
+    handler: CallHandler,
+    creditsConfig?: DeferredCreditsConfig,
+    user: AuthenticatedUser | null = USER,
+  ) => {
+    // null stands for an anonymous request; a default would swallow undefined.
+    const request: CreditsInterceptorRequest = {
+      creditsConfig,
+      user: user ?? undefined,
+    };
+    return lastValueFrom(
+      interceptor.intercept(
+        {
+          switchToHttp: () => ({ getRequest: () => request }),
+        } as unknown as ExecutionContext,
+        handler,
+      ),
+    );
+  };
+  const settle = (creditsConfig: DeferredCreditsConfig, response?: unknown) =>
+    interceptor.settle({ creditsConfig, user: USER }, response);
 
-        await run(mockHandler);
+  const charge = (fields: Partial<DeferredCreditsConfig> = {}) =>
+    ({
+      amount: 10,
+      description: 'Test operation',
+      source: ActivitySource.SCRIPT,
+      ...fields,
+    }) as DeferredCreditsConfig;
 
-        expect(
-          creditDeductionQueueService.queueDeduction,
-        ).not.toHaveBeenCalled();
+  describe('successful requests', () => {
+    it('queues the charge for the requesting organization and user', async () => {
+      await expect(intercept(respond(), charge())).resolves.toEqual({
+        success: true,
       });
 
-      it('releases only what no output claimed', async () => {
-        asCompletion({ boundOutputCount: 1 });
-
-        await run(mockHandler);
-
-        expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
-          organizationId,
-          reservationId: 'pool-1',
-        });
-      });
-
-      it('releases the whole hold and warns when no output was accepted', async () => {
-        asCompletion();
-
-        await run(mockHandler);
-
-        expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
-          organizationId,
-          reservationId: 'pool-1',
-        });
-        expect(loggerService.warn).toHaveBeenCalledWith(
-          expect.stringContaining('bound no output'),
-          expect.objectContaining({ reservationId: 'pool-1' }),
-        );
-      });
-
-      it('leaves the hold open while the service is still binding outputs', async () => {
-        asCompletion({ boundOutputCount: 1, isPoolReleaseDeferred: true });
-
-        await run(mockHandler);
-
-        expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
-        expect(
-          creditDeductionQueueService.queueDeduction,
-        ).not.toHaveBeenCalled();
-      });
-
-      it('keeps a deferred hold open when the request later fails', async () => {
-        asCompletion({ boundOutputCount: 1, isPoolReleaseDeferred: true });
-        const failing = {
-          handle: () => throwError(() => new Error('gateway timeout')),
-        } as CallHandler;
-
-        await expect(run(failing)).rejects.toThrow('gateway timeout');
-
-        expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
-      });
-
-      it('releases the request hold when the request fails before any deferral', async () => {
-        asCompletion();
-        const failing = {
-          handle: () => throwError(() => new Error('provider rejected')),
-        } as CallHandler;
-
-        await expect(run(failing)).rejects.toThrow('provider rejected');
-
-        expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
-          organizationId,
-          reservationId: 'pool-1',
-        });
-      });
-
-      it('leaves BYOK completion usage to the linked output receipt', async () => {
-        asCompletion({ isByokBypass: true, reservationId: undefined });
-
-        await run(mockHandler);
-
-        expect(
-          creditDeductionQueueService.queueByokUsage,
-        ).not.toHaveBeenCalled();
-        expect(
-          creditDeductionQueueService.queueDeduction,
-        ).not.toHaveBeenCalled();
-      });
+      expect(jobs).toEqual([
+        {
+          data: {
+            amount: 10,
+            description: 'Test operation',
+            idempotencyKey: expect.stringMatching(/^credit-settle:/),
+            organizationId: 'org-1',
+            source: ActivitySource.SCRIPT,
+            type: 'deduct-credits',
+            userId: 'user-1',
+          },
+          id: expect.stringMatching(/^credit-deduct-org-1-credit-settle-/),
+          name: 'deduct-credits',
+        },
+      ]);
     });
 
-    it('releases the reservation when its settlement job cannot be persisted', async () => {
-      mockRequest.creditsConfig = {
-        amount: 10,
-        description: 'Image generation',
-        reservationId: 'reservation-queue-failure',
-        source: ActivitySource.IMAGE_GENERATION,
-      };
-      mockRequest.user = {
-        id: 'user_123',
-        organizationId,
-        userId,
-      };
-      vi.mocked(
-        creditDeductionQueueService.queueDeduction,
-      ).mockRejectedValueOnce(new Error('settlement queue unavailable'));
-      const handler = {
-        handle: () => of({ data: { id: 'asset-queue-failure' } }),
-      } as CallHandler;
+    it.each([
+      ['the identity brand', 'brand-1', 'brand-1'],
+      ['no brand without one', '', undefined],
+    ])('attributes the charge to %s', async (_case, brandId, charged) => {
+      await interceptor.settle(
+        { creditsConfig: charge(), user: { ...USER, brandId } },
+        undefined,
+      );
+
+      expect(jobs[0]?.data.brandId).toBe(charged);
+    });
+
+    it('charges the scripted source when the route names none', async () => {
+      await intercept(respond(), charge({ source: undefined }));
+
+      expect(jobs[0]?.data.source).toBe(ActivitySource.SCRIPT);
+    });
+
+    it('forwards the pricing audit stamp with the generated asset id', async () => {
+      await intercept(
+        respond({ data: { id: 'asset-9' } }),
+        charge({
+          amount: 4,
+          pricingMetadata: {
+            marginMultiplier: 1,
+            pricingType: 'per-image',
+            providerCostUsd: 0.04,
+          },
+          reservationId: 'reservation-1',
+        }),
+      );
+
+      expect(jobs).toEqual([
+        expect.objectContaining({
+          data: expect.objectContaining({
+            amount: 4,
+            idempotencyKey: 'credit-settle:reservation-1',
+            metadata: {
+              assetId: 'asset-9',
+              marginMultiplier: 1,
+              pricingType: 'per-image',
+              providerCostUsd: 0.04,
+            },
+            reservationId: 'reservation-1',
+          }),
+        }),
+      ]);
+    });
+
+    it('queues BYOK usage instead of a deduction', async () => {
+      await intercept(respond(), charge({ amount: 5, isByokBypass: true }));
+
+      expect(jobs).toEqual([
+        {
+          data: {
+            amount: 5,
+            description: 'Test operation',
+            idempotencyKey: expect.stringMatching(/^byok-usage:/),
+            organizationId: 'org-1',
+            source: ActivitySource.SCRIPT,
+            type: 'record-byok-usage',
+          },
+          id: expect.stringMatching(/^byok-usage-org-1-byok-usage-/),
+          name: 'record-byok-usage',
+        },
+      ]);
+    });
+
+    it.each([
+      ['there is no credits config', undefined, USER],
+      ['there is no user', charge(), null],
+      ['the amount is unknown', charge({ amount: undefined }), USER],
+      ['the amount is zero', charge({ amount: 0 }), USER],
+    ])('charges nothing when %s', async (_case, config, user) => {
+      await expect(intercept(respond(), config, user)).resolves.toEqual({
+        success: true,
+      });
+
+      expect(jobs).toEqual([]);
+      expect(releasedHolds).toEqual([]);
+    });
+
+    it('gives back a hold whose final amount came to nothing', async () => {
+      await intercept(respond(), charge({ amount: 0, reservationId: 'r-0' }));
+
+      expect(jobs).toEqual([]);
+      expect(releasedHolds).toEqual(['r-0']);
+    });
+
+    it('keeps a deferred clip-chain hold open', async () => {
+      await intercept(
+        respond(),
+        charge({ deferred: true, reservationId: 'reservation-clip-chain' }),
+      );
+
+      expect(jobs).toEqual([]);
+      expect(releasedHolds).toEqual([]);
+    });
+
+    it('releases the hold and fails the request when the charge cannot be queued', async () => {
+      isQueueDown = true;
 
       await expect(
-        new Promise((resolve, reject) => {
-          interceptor.intercept(mockContext, handler).subscribe({
-            error: reject,
-            next: resolve,
-          });
-        }),
+        intercept(
+          respond({ data: { id: 'asset-1' } }),
+          charge({ reservationId: 'reservation-queue-failure' }),
+        ),
       ).rejects.toThrow('settlement queue unavailable');
-      expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
-        organizationId,
-        reservationId: 'reservation-queue-failure',
-      });
+
+      expect(releasedHolds).toEqual(['reservation-queue-failure']);
+    });
+  });
+
+  describe('charge identity', () => {
+    it('settles a reserved charge once however often it is settled', async () => {
+      const config = charge({ amount: 4, reservationId: 'reservation-7' });
+
+      await settle(config, { data: { id: 'asset-1' } });
+      await settle(config, { data: { id: 'asset-1' } });
+
+      expect(jobs.map(({ id }) => id)).toEqual([
+        'credit-deduct-org-1-credit-settle-reservation-7',
+      ]);
     });
 
-    describe('charge identity', () => {
-      const settle = (
-        creditsConfig: CreditsConfig & { reservationId?: string },
-      ) =>
-        interceptor.settle(
-          {
-            creditsConfig,
-            user: { id: 'user_123', organizationId, userId },
-          } as never,
-          { data: { id: 'asset-1' } },
-        );
-      const queued = (method: 'queueDeduction' | 'queueByokUsage') =>
-        vi
-          .mocked(creditDeductionQueueService[method])
-          .mock.calls.map(([job]) => job.idempotencyKey);
+    it('gives each unreserved settlement its own job, even in the same millisecond', async () => {
+      const config = charge({ amount: 4 });
 
-      it('keys a reserved charge by its reservation, identically on every settle of it', async () => {
-        const config = {
-          amount: 4,
-          description: 'Image generation',
-          reservationId: 'reservation-7',
-          source: ActivitySource.IMAGE_GENERATION,
-        };
+      await settle(config);
+      await settle(config);
 
-        await settle(config);
-        await settle(config);
-
-        expect(queued('queueDeduction')).toEqual([
-          'credit-settle:reservation-7',
-          'credit-settle:reservation-7',
-        ]);
-      });
-
-      it('gives each unreserved charge its own key, fixed once per settlement', async () => {
-        const config = {
-          amount: 4,
-          description: 'Image generation',
-          source: ActivitySource.IMAGE_GENERATION,
-        };
-
-        await settle(config);
-        await settle(config);
-
-        const [first, second] = queued('queueDeduction');
-        expect(first).toMatch(/^credit-settle:/);
-        expect(second).toMatch(/^credit-settle:/);
-        expect(first).not.toBe(second);
-      });
-
-      it('keys BYOK usage the same way', async () => {
-        await settle({
-          amount: 5,
-          description: 'BYOK operation',
-          isByokBypass: true,
-          source: ActivitySource.SCRIPT,
-        });
-        await settle({
-          amount: 5,
-          description: 'BYOK operation',
-          isByokBypass: true,
-          reservationId: 'reservation-8',
-          source: ActivitySource.SCRIPT,
-        });
-
-        const [unreserved, reserved] = queued('queueByokUsage');
-        expect(unreserved).toMatch(/^byok-usage:/);
-        expect(reserved).toBe('byok-usage:reservation-8');
-      });
-
-      it('never lets two same-millisecond settlements share a queue job id', async () => {
-        vi.useFakeTimers();
-        vi.setSystemTime(new Date('2026-10-03T00:00:00.000Z'));
-        try {
-          const queue = { add: vi.fn(), getJob: vi.fn() };
-          const realQueueService = new CreditDeductionQueueService(
-            queue as never,
-            { log: vi.fn() } as never,
-          );
-          const wired = new CreditsInterceptor(
-            realQueueService,
-            creditsUtilsService as never,
-            loggerService,
-            quoteGroups as never,
-          );
-          const config = {
-            amount: 4,
-            description: 'Image generation',
-            source: ActivitySource.IMAGE_GENERATION,
-          };
-          const request = {
-            creditsConfig: config,
-            user: { id: 'user_123', organizationId, userId },
-          } as never;
-
-          await wired.settle(request, {});
-          await wired.settle(request, {});
-
-          const jobIds = queue.add.mock.calls.map((call) => call[2].jobId);
-          expect(jobIds).toHaveLength(2);
-          expect(new Set(jobIds).size).toBe(2);
-        } finally {
-          vi.useRealTimers();
-        }
-      });
+      expect(jobs).toHaveLength(2);
+      expect(jobs[0]?.id).not.toBe(jobs[1]?.id);
     });
 
-    it('should forward the pricing audit stamp as deduction metadata', async () => {
-      mockRequest.creditsConfig = {
-        amount: 120,
-        description: 'Video generation',
-        pricingMetadata: {
-          marginMultiplier: 1.2,
-          pricingType: 'per-second',
-          providerCostUsd: 0.24,
-        },
-        source: ActivitySource.SCRIPT,
-      } as CreditsConfig;
-      mockRequest.user = {
-        id: 'user_123',
-        organizationId,
-        userId,
-      };
+    it('keys BYOK usage by its reservation the same way', async () => {
+      await settle(charge({ isByokBypass: true }));
+      await settle(charge({ isByokBypass: true, reservationId: 'r-8' }));
+      await settle(charge({ isByokBypass: true, reservationId: 'r-8' }));
 
-      const result = interceptor.intercept(mockContext, mockHandler);
+      expect(jobs.map(({ data }) => data.idempotencyKey)).toEqual([
+        expect.stringMatching(/^byok-usage:/),
+        'byok-usage:r-8',
+      ]);
+    });
+  });
 
-      await new Promise<void>((resolve) => {
-        result.subscribe({
-          next: () => {
-            setTimeout(() => {
-              expect(
-                creditDeductionQueueService.queueDeduction,
-              ).toHaveBeenCalledWith({
-                amount: 120,
-                description: 'Video generation',
-                idempotencyKey: expect.stringMatching(/^credit-settle:/),
-                metadata: {
-                  marginMultiplier: 1.2,
-                  pricingType: 'per-second',
-                  providerCostUsd: 0.24,
-                },
-                organizationId,
-                source: ActivitySource.SCRIPT,
-                type: 'deduct-credits',
-                userId,
-              });
-              resolve();
-            }, 10);
-          },
-        });
-      });
+  describe('failed requests', () => {
+    it('releases the hold and charges nothing', async () => {
+      await expect(
+        intercept(
+          fail(new Error('Operation failed')),
+          charge({ reservationId: 'reservation-1' }),
+        ),
+      ).rejects.toThrow('Operation failed');
+
+      expect(jobs).toEqual([]);
+      expect(releasedHolds).toEqual(['reservation-1']);
     });
 
-    it('should stamp the generated asset id without changing the charge identity', async () => {
-      mockRequest.creditsConfig = {
-        amount: 4,
+    it('still surfaces the failure when the hold cannot be released', async () => {
+      isWalletDown = true;
+
+      await expect(
+        intercept(
+          fail(new Error('Operation failed')),
+          charge({ reservationId: 'reservation-1' }),
+        ),
+      ).rejects.toThrow('Operation failed');
+
+      expect(errors).toEqual(['Credit reservation release failed']);
+    });
+
+    it('charges a failure that already incurred a known provider cost', async () => {
+      await expect(
+        intercept(
+          fail(
+            Object.assign(new Error('blocked after render'), {
+              isBillableFailure: true,
+            }),
+          ),
+          charge({ reservationId: 'reservation-2' }),
+        ),
+      ).rejects.toThrow('blocked after render');
+
+      expect(jobs.map(({ data }) => data.idempotencyKey)).toEqual([
+        'credit-settle:reservation-2',
+      ]);
+      expect(releasedHolds).toEqual([]);
+    });
+
+    it('releases a billable failure whose charge cannot be queued', async () => {
+      isQueueDown = true;
+
+      await expect(
+        intercept(
+          fail(
+            Object.assign(new Error('blocked'), { isBillableFailure: true }),
+          ),
+          charge({ reservationId: 'reservation-3' }),
+        ),
+      ).rejects.toThrow('blocked');
+
+      expect(releasedHolds).toEqual(['reservation-3']);
+      expect(errors).toEqual([
+        'Known-cost charge for a failed request could not be queued',
+      ]);
+    });
+  });
+
+  describe('completion-settled routes', () => {
+    const completion = (fields: Partial<DeferredCreditsConfig> = {}) =>
+      charge({
         description: 'Image generation',
-        pricingMetadata: {
-          marginMultiplier: 1,
-          pricingType: 'per-image',
-          providerCostUsd: 0.04,
-        },
-        reservationId: 'reservation-1',
+        reservationId: 'pool-1',
+        settlement: 'completion',
         source: ActivitySource.IMAGE_GENERATION,
-      } as CreditsConfig;
-      mockRequest.user = { id: 'user_123', organizationId, userId };
-      const handler = {
-        handle: () => of({ data: { id: 'asset-9' } }),
-      } as CallHandler;
-
-      interceptor.intercept(mockContext, handler).subscribe();
-
-      await vi.waitFor(() => {
-        const job = vi.mocked(creditDeductionQueueService.queueDeduction).mock
-          .calls[0][0];
-        expect(job).toMatchObject({
-          amount: 4,
-          metadata: { assetId: 'asset-9', pricingType: 'per-image' },
-          reservationId: 'reservation-1',
-        });
-        expect(job.idempotencyKey).toBe('credit-settle:reservation-1');
-        expect(job).not.toHaveProperty('referenceId');
-        expect(job).not.toHaveProperty('settlementAssetId');
+        ...fields,
       });
+    const frozenQuote = () =>
+      completion({
+        boundOutputCount: 1,
+        modelQuote: quote.status === 'priced' ? quote.snapshot : undefined,
+      });
+
+    it.each([
+      ['success', respond()],
+      ['failure', fail(new Error('second submission failed'))],
+    ])(
+      'closes the frozen group dispatch on HTTP %s without releasing accepted funding',
+      async (_case, handler) => {
+        await intercept(handler, frozenQuote()).catch(() => undefined);
+
+        expect(closedGroups).toEqual(['pool-1']);
+        expect(releasedHolds).toEqual([]);
+        expect(jobs).toEqual([]);
+      },
+    );
+
+    it('queues nothing on the response and releases only what no output claimed', async () => {
+      await intercept(respond(), completion({ boundOutputCount: 1 }));
+
+      expect(jobs).toEqual([]);
+      expect(releasedHolds).toEqual(['pool-1']);
+      expect(warnings).toEqual([]);
     });
 
-    it('should queue BYOK usage when isByokBypass is true', async () => {
-      mockRequest.creditsConfig = {
-        amount: 5,
-        description: 'BYOK operation',
-        isByokBypass: true,
-        source: ActivitySource.SCRIPT,
-      } as CreditsConfig;
-      mockRequest.user = {
-        id: 'user_123',
-        organizationId,
-        userId,
-      };
+    it('releases the whole hold and warns when no output was accepted', async () => {
+      await intercept(respond(), completion());
 
-      const result = interceptor.intercept(mockContext, mockHandler);
-
-      await new Promise<void>((resolve) => {
-        result.subscribe({
-          next: () => {
-            setTimeout(() => {
-              expect(
-                creditDeductionQueueService.queueByokUsage,
-              ).toHaveBeenCalledWith({
-                amount: 5,
-                description: 'BYOK operation',
-                idempotencyKey: expect.stringMatching(/^byok-usage:/),
-                organizationId,
-                source: ActivitySource.SCRIPT,
-                type: 'record-byok-usage',
-              });
-              expect(
-                creditDeductionQueueService.queueDeduction,
-              ).not.toHaveBeenCalled();
-              resolve();
-            }, 10);
-          },
-        });
-      });
+      expect(releasedHolds).toEqual(['pool-1']);
+      expect(warnings).toEqual([
+        'Completion-settled request bound no output; releasing its hold',
+      ]);
     });
 
-    it('keeps a deferred clip-chain reservation held on HTTP success', async () => {
-      mockRequest.creditsConfig = {
-        amount: 61,
-        deferred: true,
-        description: 'Clip-chain video',
-        reservationId: 'reservation-clip-chain',
-        source: ActivitySource.VIDEO_GENERATION,
-      };
-      mockRequest.user = {
-        id: 'user_123',
-        organizationId,
-        userId,
-      };
+    it.each([
+      ['succeeds', respond()],
+      ['later fails', fail(new Error('gateway timeout'))],
+    ])(
+      'keeps the hold open while the service is still binding outputs and the request %s',
+      async (_case, handler) => {
+        await intercept(
+          handler,
+          completion({ boundOutputCount: 1, isPoolReleaseDeferred: true }),
+        ).catch(() => undefined);
 
-      const result = interceptor.intercept(mockContext, mockHandler);
+        expect(releasedHolds).toEqual([]);
+        expect(jobs).toEqual([]);
+      },
+    );
 
-      await new Promise<void>((resolve) => {
-        result.subscribe({
-          next: () => {
-            setTimeout(() => {
-              expect(
-                creditDeductionQueueService.queueDeduction,
-              ).not.toHaveBeenCalled();
-              expect(
-                creditDeductionQueueService.queueByokUsage,
-              ).not.toHaveBeenCalled();
-              expect(
-                creditsUtilsService.releaseReservation,
-              ).not.toHaveBeenCalled();
-              resolve();
-            }, 10);
-          },
-        });
-      });
+    it('releases the request hold when the request fails before any deferral', async () => {
+      await expect(
+        intercept(fail(new Error('provider rejected')), completion()),
+      ).rejects.toThrow('provider rejected');
+
+      expect(releasedHolds).toEqual(['pool-1']);
     });
 
-    it('should not deduct credits on operation failure', async () => {
-      mockRequest.creditsConfig = {
-        amount: 10,
-        description: 'Test operation',
-        reservationId: 'reservation-1',
-        source: ActivitySource.SCRIPT,
-      };
-      mockRequest.user = {
-        id: 'user_123',
-        organizationId,
-        userId,
-      };
+    it('leaves BYOK completion usage to the linked output receipt', async () => {
+      await intercept(
+        respond(),
+        completion({ isByokBypass: true, reservationId: undefined }),
+      );
 
-      const mockHandlerWithError = {
-        handle: () => throwError(() => new Error('Operation failed')),
-      } as CallHandler;
-
-      vi.spyOn(loggerService, 'debug').mockImplementation(() => {
-        /* noop */
-      });
-
-      const result = interceptor.intercept(mockContext, mockHandlerWithError);
-
-      await new Promise<void>((resolve) => {
-        result.subscribe({
-          error: (error) => {
-            expect(error.message).toBe('Operation failed');
-            expect(loggerService.debug).toHaveBeenCalledWith(
-              'Operation failed, credits not deducted',
-              {
-                amount: 10,
-                organizationId,
-              },
-            );
-            expect(
-              creditDeductionQueueService.queueDeduction,
-            ).not.toHaveBeenCalled();
-            expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith(
-              {
-                organizationId,
-                reservationId: 'reservation-1',
-              },
-            );
-            resolve();
-          },
-        });
-      });
-    });
-
-    it('should use default source when not provided', async () => {
-      mockRequest.creditsConfig = {
-        amount: 5,
-        description: 'Test operation',
-      } as CreditsConfig;
-      mockRequest.user = {
-        id: 'user_123',
-        organizationId,
-        userId,
-      };
-
-      const result = interceptor.intercept(mockContext, mockHandler);
-
-      await new Promise<void>((resolve) => {
-        result.subscribe({
-          next: () => {
-            setTimeout(() => {
-              expect(
-                creditDeductionQueueService.queueDeduction,
-              ).toHaveBeenCalledWith({
-                amount: 5,
-                description: 'Test operation',
-                idempotencyKey: expect.stringMatching(/^credit-settle:/),
-                organizationId,
-                source: ActivitySource.SCRIPT, // Default source
-                type: 'deduct-credits',
-                userId,
-              });
-              resolve();
-            }, 10);
-          },
-        });
-      });
+      expect(jobs).toEqual([]);
+      expect(releasedHolds).toEqual([]);
     });
   });
 });
