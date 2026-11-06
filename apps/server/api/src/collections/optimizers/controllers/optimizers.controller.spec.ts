@@ -1,309 +1,266 @@
 vi.mock('@api/helpers/utils/response/response.util', () => ({
-  serializeCollection: vi.fn((_req, _serializer, data) => data.docs || data),
-  serializeSingle: vi.fn((_req, _serializer, data) => data),
+  serializeCollection: vi.fn(
+    (_req: unknown, _serializer: unknown, data: { docs: unknown[] }) =>
+      data.docs,
+  ),
 }));
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { ModelsService } from '@api/collections/models/services/models.service';
 import { OptimizersController } from '@api/collections/optimizers/controllers/optimizers.controller';
-import { AnalyzeContentDto } from '@api/collections/optimizers/dto/analyze.dto';
-import { SuggestHashtagsDto } from '@api/collections/optimizers/dto/hashtags.dto';
-import { OptimizeContentDto } from '@api/collections/optimizers/dto/optimize.dto';
-import { GenerateVariantsDto } from '@api/collections/optimizers/dto/variants.dto';
-import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
-import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import type { AnalyzeContentDto } from '@api/collections/optimizers/dto/analyze.dto';
+import type { GeneratePromptsDto } from '@api/collections/optimizers/dto/generate-prompts.dto';
+import type { SuggestHashtagsDto } from '@api/collections/optimizers/dto/hashtags.dto';
+import type { OptimizeContentDto } from '@api/collections/optimizers/dto/optimize.dto';
+import type { GenerateVariantsDto } from '@api/collections/optimizers/dto/variants.dto';
+import type { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
+import { TEXT_MAX_OVERDRAFT_CREDITS } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import { testId } from '@helpers/testing/test-id.helper';
-import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
-describe('OptimizersController', () => {
-  let controller: OptimizersController;
-  let service: OptimizersService;
+const organizationId = testId('org');
+const user = {
+  id: 'user_123',
+  organizationId,
+  userId: testId('user'),
+} as unknown as User;
 
-  const mockUser: User = {
-    id: 'user_123',
-    organizationId: testId('org'),
-    userId: testId('user'),
-  } as unknown as User;
+type Bill = (amount: number) => void;
 
-  const mockOptimizersService = {
-    analyzeContent: vi.fn(),
-    generateVariants: vi.fn(),
-    getBestPostingTimes: vi.fn(),
-    getOptimizationHistory: vi.fn(),
-    optimizeContent: vi.fn(),
-    suggestHashtags: vi.fn(),
+/** One text-model run: what the optimizer was asked and what it billed. */
+interface OptimizerRun {
+  args: unknown[];
+  method: string;
+}
+
+/**
+ * The optimizer with a fixed per-call text-model cost, the organization's
+ * credit balance and the default text model's minimum charge. Each run bills
+ * the cost through the callback the controller hands it.
+ */
+function setup({ balance = 100, cost = 3, minimum = 2 } = {}) {
+  const runs: OptimizerRun[] = [];
+  const run =
+    (method: string, result: unknown) =>
+    async (...args: unknown[]) => {
+      const bill = args.at(-1) as Bill;
+      runs.push({ args: args.slice(0, -1), method });
+      bill(cost);
+      return result;
+    };
+  const optimizers = {
+    analyzeContent: run('analyzeContent', { score: 75 }),
+    generatePrompts: run('generatePrompts', { prompts: [{ id: 'p1' }] }),
+    generateVariants: run('generateVariants', {
+      variants: [{ content: 'Variant 1', score: 85 }],
+    }),
+    getBestPostingTimes: run('getBestPostingTimes', {
+      times: [{ day: 'Monday', hour: 9 }],
+    }),
+    getOptimizationHistory: async (
+      organization: string,
+      userId: string,
+      limit: number,
+    ) => {
+      runs.push({
+        args: [organization, userId, limit],
+        method: 'getOptimizationHistory',
+      });
+      return [{ id: 'opt-1' }];
+    },
+    optimizeContent: run('optimizeContent', { optimized: 'Better post' }),
+    suggestHashtags: run('suggestHashtags', { hashtags: ['#AI'] }),
   };
+  const credits = {
+    checkOrganizationCreditsAvailable: async (_org: string, required: number) =>
+      balance >= required,
+    getOrganizationCreditsBalance: async () => balance,
+  };
+  const models = {
+    findOne: async () => ({ cost: minimum, pricingType: 'flat' }),
+  };
+  const controller = new OptimizersController(
+    optimizers as unknown as OptimizersService,
+    credits as unknown as CreditsUtilsService,
+    models as unknown as ModelsService,
+  );
+  return { controller, runs };
+}
 
-  let mockReq: Request;
+interface CreditsRequest {
+  creditsConfig: {
+    amount?: number;
+    deferred: boolean;
+    maxOverdraftCredits?: number;
+  };
+}
 
-  beforeEach(async () => {
-    mockReq = {} as Request;
+const deferredRequest = () =>
+  ({ creditsConfig: { deferred: true } }) as unknown as Request &
+    CreditsRequest;
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [OptimizersController],
-      providers: [
-        {
-          provide: CreditsUtilsService,
-          useValue: {
-            checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
-            getOrganizationCreditsBalance: vi.fn().mockResolvedValue(0),
-          },
-        },
-        {
-          provide: ModelsService,
-          useValue: {
-            findOne: vi.fn().mockResolvedValue(null),
-          },
-        },
-        {
-          provide: OptimizersService,
-          useValue: mockOptimizersService,
-        },
-      ],
-    })
-      .overrideInterceptor(CreditsInterceptor)
-      .useValue({
-        intercept: (_context: unknown, next: { handle: () => unknown }) =>
-          next.handle(),
-      })
-      .overrideGuard(SubscriptionGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(CreditsGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+const analyzeDto: AnalyzeContentDto = {
+  content: 'Check out our new product!',
+  contentType: 'caption',
+};
+const optimizeDto: OptimizeContentDto = {
+  content: 'Original content',
+  contentType: 'caption',
+};
+const hashtagsDto: SuggestHashtagsDto = {
+  content: 'AI technology breakthrough',
+  count: 10,
+  platform: 'instagram',
+};
+const variantsDto: GenerateVariantsDto = {
+  content: 'Original post',
+  contentType: 'caption',
+  count: 3,
+  variationType: 'style',
+};
+const promptsDto: GeneratePromptsDto = {
+  count: 3,
+  input: 'A cat in space',
+  mode: 'idea',
+  targetMedia: 'image',
+};
 
-    controller = module.get<OptimizersController>(OptimizersController);
-    service = module.get<OptimizersService>(OptimizersService);
+type Call = (
+  controller: OptimizersController,
+  request: Request,
+) => Promise<unknown>;
+
+const billedEndpoints: [string, Call, unknown[], unknown][] = [
+  [
+    'analyzeContent',
+    (c, r) => c.analyzeContent(r, analyzeDto, user),
+    [analyzeDto, organizationId, 'user_123'],
+    { score: 75 },
+  ],
+  [
+    'optimizeContent',
+    (c, r) => c.optimizeContent(r, optimizeDto, user),
+    [optimizeDto, organizationId, 'user_123'],
+    { optimized: 'Better post' },
+  ],
+  [
+    'suggestHashtags',
+    (c, r) => c.suggestHashtags(r, hashtagsDto, user),
+    [hashtagsDto, organizationId],
+    { hashtags: ['#AI'] },
+  ],
+  [
+    'generateVariants',
+    (c, r) => c.generateVariants(r, variantsDto, user),
+    [variantsDto, organizationId],
+    { variants: [{ content: 'Variant 1', score: 85 }] },
+  ],
+  [
+    'generatePrompts',
+    (c, r) => c.generatePrompts(r, promptsDto, user),
+    [promptsDto, organizationId],
+    { prompts: [{ id: 'p1' }] },
+  ],
+  [
+    'getBestPostingTimes',
+    (c, r) => c.getBestPostingTimes(r, 'instagram', 'America/New_York', user),
+    ['instagram', 'America/New_York', organizationId],
+    { times: [{ day: 'Monday', hour: 9 }] },
+  ],
+];
+
+describe('OptimizersController', () => {
+  it.each(billedEndpoints)(
+    '%s runs the optimizer for the organization and bills what it used',
+    async (method, call, args, result) => {
+      const { controller, runs } = setup({ cost: 3 });
+      const request = deferredRequest();
+
+      await expect(call(controller, request)).resolves.toEqual(result);
+
+      expect(runs).toEqual([{ args, method }]);
+      expect(request.creditsConfig).toEqual({
+        amount: 3,
+        deferred: false,
+        maxOverdraftCredits: TEXT_MAX_OVERDRAFT_CREDITS,
+      });
+    },
+  );
+
+  it.each(billedEndpoints)(
+    '%s refuses with 402 before running when the balance is below the text minimum',
+    async (_method, call) => {
+      const { controller, runs } = setup({ balance: 1, minimum: 2 });
+      const request = deferredRequest();
+
+      await expect(call(controller, request)).rejects.toMatchObject({
+        status: 402,
+      });
+      expect(runs).toEqual([]);
+      expect(request.creditsConfig).toEqual({ deferred: true });
+    },
+  );
+
+  it('leaves a non-deferred charge untouched', async () => {
+    const { controller } = setup({ cost: 3 });
+    const request = {
+      creditsConfig: { amount: 7, deferred: false },
+    } as unknown as Request & CreditsRequest;
+
+    await controller.analyzeContent(request, analyzeDto, user);
+
+    expect(request.creditsConfig).toEqual({ amount: 7, deferred: false });
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
+  it('defaults the posting-times timezone to UTC', async () => {
+    const { controller, runs } = setup();
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
+    await controller.getBestPostingTimes(
+      deferredRequest(),
+      'twitter',
+      undefined,
+      user,
+    );
 
-  describe('analyzeContent', () => {
-    it('should analyze content and return score', async () => {
-      const dto: AnalyzeContentDto = {
-        content: 'Test content for analysis',
-        contentType: 'caption',
-        platform: 'instagram',
-      };
-
-      const analysis = {
-        score: 85,
-        strengths: ['Good length', 'Engaging tone'],
-        suggestions: ['Add more hashtags', 'Include a call to action'],
-      };
-
-      mockOptimizersService.analyzeContent.mockResolvedValue(analysis);
-
-      const result = await controller.analyzeContent(mockReq, dto, mockUser);
-
-      expect(service.analyzeContent).toHaveBeenCalledWith(
-        dto,
-        mockUser.organizationId,
-        mockUser.id,
-        expect.any(Function),
-      );
-      expect(result).toEqual(analysis);
-    });
-  });
-
-  describe('optimizeContent', () => {
-    it('should optimize content', async () => {
-      const dto: OptimizeContentDto = {
-        content: 'Original content',
-        contentType: 'caption',
-        goals: ['engagement', 'reach'],
-        platform: 'twitter',
-      };
-
-      const optimized = {
-        improvements: ['Added trending hashtags', 'Shortened for Twitter'],
-        optimized: 'Optimized content with hashtags #ai #tech',
-        original: 'Original content',
-      };
-
-      mockOptimizersService.optimizeContent.mockResolvedValue(optimized);
-
-      const result = await controller.optimizeContent(mockReq, dto, mockUser);
-
-      expect(service.optimizeContent).toHaveBeenCalledWith(
-        dto,
-        mockUser.organizationId,
-        mockUser.id,
-        expect.any(Function),
-      );
-      expect(result).toEqual(optimized);
-    });
-  });
-
-  describe('suggestHashtags', () => {
-    it('should suggest relevant hashtags', async () => {
-      const dto: SuggestHashtagsDto = {
-        content: 'AI technology breakthrough',
-        count: 10,
-        platform: 'instagram',
-      };
-
-      const hashtags = {
-        hashtags: ['#AI', '#Technology', '#Innovation', '#Tech'],
-        trending: ['#AI', '#Tech'],
-      };
-
-      mockOptimizersService.suggestHashtags.mockResolvedValue(hashtags);
-
-      const result = await controller.suggestHashtags(mockReq, dto, mockUser);
-
-      expect(service.suggestHashtags).toHaveBeenCalledWith(
-        dto,
-        mockUser.organizationId,
-        expect.any(Function),
-      );
-      expect(result).toEqual(hashtags);
-    });
-  });
-
-  describe('generateVariants', () => {
-    it('should generate A/B test variants', async () => {
-      const dto: GenerateVariantsDto = {
-        content: 'Original post',
-        contentType: 'caption',
-        count: 3,
-        variationType: 'style',
-      };
-
-      const variants = {
-        original: 'Original post',
-        variants: [
-          { content: 'Variant 1', score: 85 },
-          { content: 'Variant 2', score: 82 },
-          { content: 'Variant 3', score: 80 },
-        ],
-      };
-
-      mockOptimizersService.generateVariants.mockResolvedValue(variants);
-
-      const result = await controller.generateVariants(mockReq, dto, mockUser);
-
-      expect(service.generateVariants).toHaveBeenCalledWith(
-        dto,
-        mockUser.organizationId,
-        expect.any(Function),
-      );
-      expect(result).toEqual(variants);
-    });
-  });
-
-  describe('getBestPostingTimes', () => {
-    it('should return best posting times', async () => {
-      const platform = 'instagram';
-      const timezone = 'America/New_York';
-
-      const times = {
-        platform,
-        reasoning: 'Based on audience activity',
-        times: ['14:00', '18:00', '20:00'],
-        timezone,
-      };
-
-      mockOptimizersService.getBestPostingTimes.mockResolvedValue(times);
-
-      const result = await controller.getBestPostingTimes(
-        mockReq,
-        platform,
-        timezone,
-        mockUser,
-      );
-
-      expect(service.getBestPostingTimes).toHaveBeenCalledWith(
-        platform,
-        timezone,
-        mockUser.organizationId,
-        expect.any(Function),
-      );
-      expect(result).toEqual(times);
-    });
-
-    it('should use UTC as default timezone', async () => {
-      const platform = 'twitter';
-      const times = {
-        platform,
-        times: ['12:00', '16:00'],
-        timezone: 'UTC',
-      };
-
-      mockOptimizersService.getBestPostingTimes.mockResolvedValue(times);
-
-      await controller.getBestPostingTimes(
-        mockReq,
-        platform,
-        undefined,
-        mockUser,
-      );
-
-      expect(service.getBestPostingTimes).toHaveBeenCalledWith(
-        platform,
-        'UTC',
-        mockUser.organizationId,
-        expect.any(Function),
-      );
-    });
+    expect(runs).toEqual([
+      {
+        args: ['twitter', 'UTC', organizationId],
+        method: 'getBestPostingTimes',
+      },
+    ]);
   });
 
   describe('getOptimizationHistory', () => {
-    it('should return optimization history', async () => {
-      const history = [
-        {
-          content: 'Content 1',
-          createdAt: new Date(),
-          id: '1',
-          score: 85,
-        },
-        {
-          content: 'Content 2',
-          createdAt: new Date(),
-          id: '2',
-          score: 90,
-        },
-      ];
+    it('returns the requested number of entries for the current user', async () => {
+      const { controller, runs } = setup();
 
-      mockOptimizersService.getOptimizationHistory.mockResolvedValue(history);
-
-      const result = await controller.getOptimizationHistory(
-        mockReq,
-        '20',
-        mockUser,
+      const history = await controller.getOptimizationHistory(
+        {} as Request,
+        '10',
+        user,
       );
 
-      expect(service.getOptimizationHistory).toHaveBeenCalledWith(
-        mockUser.organizationId,
-        mockUser.id,
-        20,
-      );
-      expect(result).toEqual(history);
+      expect(history).toEqual([{ id: 'opt-1' }]);
+      expect(runs).toEqual([
+        {
+          args: [organizationId, 'user_123', 10],
+          method: 'getOptimizationHistory',
+        },
+      ]);
     });
 
-    it('should use default limit if not provided', async () => {
-      mockOptimizersService.getOptimizationHistory.mockResolvedValue([]);
+    it('defaults to the latest 20 entries', async () => {
+      const { controller, runs } = setup();
 
-      await controller.getOptimizationHistory(mockReq, undefined, mockUser);
+      await controller.getOptimizationHistory({} as Request, undefined, user);
 
-      expect(service.getOptimizationHistory).toHaveBeenCalledWith(
-        mockUser.organizationId,
-        mockUser.id,
-        20,
-      );
+      expect(runs).toEqual([
+        {
+          args: [organizationId, 'user_123', 20],
+          method: 'getOptimizationHistory',
+        },
+      ]);
     });
   });
 });
