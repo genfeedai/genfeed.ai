@@ -1,305 +1,278 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
-import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { ActivityKey, IngredientCategory } from '@genfeedai/contracts';
-import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import {
+  ActivityKey,
+  IngredientCategory,
+  parseActivityKey,
+} from '@genfeedai/contracts';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+interface Activity {
+  createdAt?: Date;
+  entityId: string;
+  id: string;
+  key: ActivityKey;
+  organizationId: string | null;
+  userId: string;
+  value: string;
+}
+
+const INGREDIENT = 'ingredient-1';
+const DB_USER = 'user-1';
+const ORG = 'org-1';
+const TIMING = {
+  completedAt: '2026-09-08T18:52:19Z',
+  startedAt: '2026-09-08T18:52:06Z',
+};
+
+const success = {
+  brandId: 'brand-1',
+  category: IngredientCategory.VIDEO,
+  dbUserId: DB_USER,
+  ingredientId: INGREDIENT,
+  organizationId: ORG,
+  userId: 'authProvider_abc',
+  userRoom: 'user-authProvider_abc',
+};
+const failure = { ...success, errorMessage: 'GPU timeout' };
+
+/** Every key of the same generation lifecycle, as the activities lookup widens it. */
+const lifecycleOf = (key: ActivityKey) => {
+  const { operation, subject } = parseActivityKey(key);
+  return Object.values(ActivityKey).filter((candidate) => {
+    const parsed = parseActivityKey(candidate);
+    return parsed.subject === subject && parsed.operation === operation;
+  });
+};
 
 describe('ActivityUpdateService', () => {
+  // The activities table and the live updates sent to the user's room.
+  let activities: Activity[];
+  let published: Record<string, unknown>[];
   let service: ActivityUpdateService;
-  let activitiesService: {
-    findGenerationActivity: ReturnType<typeof vi.fn>;
-    record: ReturnType<typeof vi.fn>;
-    update: ReturnType<typeof vi.fn>;
+
+  const seed = (key: ActivityKey, value: Record<string, unknown> = {}) => {
+    activities.push({
+      createdAt: new Date('2026-09-08T18:52:00Z'),
+      entityId: INGREDIENT,
+      id: 'activity-1',
+      key,
+      organizationId: ORG,
+      userId: DB_USER,
+      value: JSON.stringify(value),
+    });
   };
-  let websocketService: {
-    publishBackgroundTaskUpdate: ReturnType<typeof vi.fn>;
-  };
+  const storedValue = (activity?: Activity) =>
+    JSON.parse(activity?.value ?? '{}') as Record<string, unknown>;
 
-  const mockObjectId = 'test-object-id';
+  beforeEach(() => {
+    activities = [];
+    published = [];
 
-  beforeEach(async () => {
-    activitiesService = {
-      record: vi.fn().mockResolvedValue({ id: mockObjectId }),
-      findGenerationActivity: vi.fn(),
-      update: vi.fn().mockResolvedValue({ id: mockObjectId }),
+    const store = {
+      findGenerationActivity: async (
+        keys: ActivityKey[],
+        entityId: string,
+        userId: string,
+        organizationId?: string,
+      ) =>
+        activities.find(
+          (row) =>
+            [...keys, ...lifecycleOf(keys[0] as ActivityKey)].includes(
+              row.key,
+            ) &&
+            row.entityId === entityId &&
+            row.userId === userId &&
+            row.organizationId === (organizationId ?? null),
+        ) ?? null,
+      record: async (input: Omit<Activity, 'id'>) => {
+        const row = { ...input, id: `activity-${activities.length + 1}` };
+        activities.push(row);
+        return row;
+      },
+      update: async (existing: Activity, mutation: Partial<Activity>) =>
+        Object.assign(existing, mutation),
     };
-    websocketService = {
-      publishBackgroundTaskUpdate: vi.fn(),
-    };
 
-    const module = await Test.createTestingModule({
-      providers: [
-        ActivityUpdateService,
-        { provide: ActivitiesService, useValue: activitiesService },
-        { provide: ActivityRecorderService, useValue: activitiesService },
-        { provide: NotificationsPublisherService, useValue: websocketService },
-      ],
-    }).compile();
-    service = module.get(ActivityUpdateService);
+    service = new ActivityUpdateService(
+      store as unknown as ActivitiesService,
+      store as unknown as ActivityRecorderService,
+      {
+        publishBackgroundTaskUpdate: async (
+          update: Record<string, unknown>,
+        ) => {
+          published.push(update);
+        },
+      } as unknown as NotificationsPublisherService,
+    );
   });
 
   describe('updateSuccessActivity', () => {
-    const baseParams = {
-      brandId: 'test-object-id',
-      category: IngredientCategory.VIDEO,
-      dbUserId: 'test-object-id',
-      ingredientId: 'test-object-id',
-      organizationId: 'test-object-id',
-      userId: 'authProvider_abc',
-      userRoom: 'user-authProvider_abc',
-    };
+    it('finishes the processing row of the generation', async () => {
+      seed(ActivityKey.VIDEO_PROCESSING, { ingredientId: 'old' });
 
-    it('should update existing processing activity', async () => {
-      const existingActivity = {
-        id: mockObjectId,
-        value: JSON.stringify({ ingredientId: 'old', type: 'generation' }),
-      };
-      activitiesService.findGenerationActivity.mockResolvedValue(
-        existingActivity,
-      );
+      await service.updateSuccessActivity(success);
 
-      await service.updateSuccessActivity(baseParams);
-
-      expect(activitiesService.update).toHaveBeenCalledWith(
-        expect.objectContaining({ id: mockObjectId }),
+      expect(activities).toEqual([
         expect.objectContaining({
+          id: 'activity-1',
           key: ActivityKey.VIDEO_GENERATED,
         }),
-      );
+      ]);
+      expect(storedValue(activities[0])).toMatchObject({
+        startedAt: '2026-09-08T18:52:00.000Z',
+      });
     });
 
     it('reuses a finished row on repeated completion callbacks and preserves its timing', async () => {
-      const value = {
-        startedAt: '2026-09-08T18:52:06Z',
-        completedAt: '2026-09-08T18:52:19Z',
-        ingredientId: mockObjectId,
-      };
-      activitiesService.findGenerationActivity.mockResolvedValue({
-        id: mockObjectId,
-        key: ActivityKey.VIDEO_GENERATED,
-        value: JSON.stringify(value),
-      });
-      await service.updateSuccessActivity(baseParams);
-      await service.updateSuccessActivity(baseParams);
-      expect(activitiesService.record).not.toHaveBeenCalled();
-      expect(activitiesService.findGenerationActivity).toHaveBeenCalledWith(
-        [ActivityKey.VIDEO_PROCESSING, ActivityKey.VIDEO_GENERATED],
-        mockObjectId,
-        mockObjectId,
-        mockObjectId,
-      );
-      const mutation = activitiesService.update.mock.calls[0][1];
-      expect(JSON.parse(mutation.value)).toMatchObject(value);
+      seed(ActivityKey.VIDEO_GENERATED, TIMING);
+
+      await service.updateSuccessActivity(success);
+      await service.updateSuccessActivity(success);
+
+      expect(activities).toHaveLength(1);
+      expect(storedValue(activities[0])).toMatchObject(TIMING);
     });
 
     it('finishes a recovered generation on the failed row instead of creating another activity', async () => {
-      activitiesService.findGenerationActivity.mockResolvedValue({
-        id: mockObjectId,
-        key: ActivityKey.VIDEO_FAILED,
-        value: JSON.stringify({
-          startedAt: '2026-09-08T18:52:06Z',
-          completedAt: '2026-09-08T18:52:19Z',
-        }),
+      seed(ActivityKey.VIDEO_FAILED, TIMING);
+
+      await service.updateSuccessActivity(success);
+
+      expect(activities).toHaveLength(1);
+      expect(activities[0]?.key).toBe(ActivityKey.VIDEO_GENERATED);
+      expect(storedValue(activities[0])).toMatchObject({
+        startedAt: TIMING.startedAt,
       });
-      await service.updateSuccessActivity(baseParams);
-      expect(activitiesService.record).not.toHaveBeenCalled();
-      const value = JSON.parse(activitiesService.update.mock.calls[0][1].value);
-      expect(value.startedAt).toBe('2026-09-08T18:52:06Z');
-      expect(value.completedAt).not.toBe('2026-09-08T18:52:19Z');
+      expect(storedValue(activities[0]).completedAt).not.toBe(
+        TIMING.completedAt,
+      );
     });
 
-    it('should create new activity when no existing found', async () => {
-      activitiesService.findGenerationActivity.mockResolvedValue(null);
+    it('records a new activity when the generation has none in this organization', async () => {
+      seed(ActivityKey.VIDEO_PROCESSING);
+      activities[0] = {
+        ...(activities[0] as Activity),
+        organizationId: 'org-2',
+      };
 
-      await service.updateSuccessActivity(baseParams);
+      await service.updateSuccessActivity(success);
 
-      expect(activitiesService.record).toHaveBeenCalled();
+      expect(
+        activities.map(({ key, organizationId }) => [key, organizationId]),
+      ).toEqual([
+        [ActivityKey.VIDEO_PROCESSING, 'org-2'],
+        [ActivityKey.VIDEO_GENERATED, ORG],
+      ]);
     });
 
-    it('should publish background task update when userId available', async () => {
-      activitiesService.findGenerationActivity.mockResolvedValue(null);
+    it.each([
+      ['a video', {}, ActivityKey.VIDEO_GENERATED],
+      [
+        'a reframe',
+        { transformations: ['reframed'] },
+        ActivityKey.VIDEO_REFRAME_COMPLETED,
+      ],
+      [
+        'an upscale',
+        { transformations: ['upscaled'] },
+        ActivityKey.VIDEO_UPSCALE_COMPLETED,
+      ],
+      [
+        'an image',
+        { category: IngredientCategory.IMAGE },
+        ActivityKey.IMAGE_GENERATED,
+      ],
+      [
+        'a music track',
+        { category: IngredientCategory.MUSIC },
+        ActivityKey.MUSIC_GENERATED,
+      ],
+    ])('records %s under its completion key', async (_case, fields, key) => {
+      await service.updateSuccessActivity({ ...success, ...fields });
 
-      await service.updateSuccessActivity(baseParams);
+      expect(activities.map((row) => row.key)).toEqual([key]);
+    });
 
-      expect(websocketService.publishBackgroundTaskUpdate).toHaveBeenCalledWith(
+    it('tells the user the task completed', async () => {
+      await service.updateSuccessActivity(success);
+
+      expect(published).toEqual([
         expect.objectContaining({
+          activityId: 'activity-1',
           progress: 100,
+          resultId: INGREDIENT,
+          room: 'user-authProvider_abc',
           status: 'completed',
+          taskId: INGREDIENT,
           userId: 'authProvider_abc',
         }),
-      );
+      ]);
     });
 
-    it('should handle reframe transformation', async () => {
-      activitiesService.findGenerationActivity.mockResolvedValue(null);
-
+    it('records nothing for an unsupported category', async () => {
       await service.updateSuccessActivity({
-        ...baseParams,
-        transformations: ['reframed'],
-      });
-
-      expect(activitiesService.record).toHaveBeenCalledWith(
-        expect.objectContaining({
-          key: ActivityKey.VIDEO_REFRAME_COMPLETED,
-        }),
-      );
-    });
-
-    it('should handle upscale transformation', async () => {
-      activitiesService.findGenerationActivity.mockResolvedValue(null);
-
-      await service.updateSuccessActivity({
-        ...baseParams,
-        transformations: ['upscaled'],
-      });
-
-      expect(activitiesService.record).toHaveBeenCalledWith(
-        expect.objectContaining({
-          key: ActivityKey.VIDEO_UPSCALE_COMPLETED,
-        }),
-      );
-    });
-
-    it('should handle image category', async () => {
-      activitiesService.findGenerationActivity.mockResolvedValue(null);
-
-      await service.updateSuccessActivity({
-        ...baseParams,
-        category: IngredientCategory.IMAGE,
-      });
-
-      expect(activitiesService.record).toHaveBeenCalledWith(
-        expect.objectContaining({
-          key: ActivityKey.IMAGE_GENERATED,
-        }),
-      );
-    });
-
-    it('should handle music category', async () => {
-      activitiesService.findGenerationActivity.mockResolvedValue(null);
-
-      await service.updateSuccessActivity({
-        ...baseParams,
-        category: IngredientCategory.MUSIC,
-      });
-
-      expect(activitiesService.record).toHaveBeenCalledWith(
-        expect.objectContaining({
-          key: ActivityKey.MUSIC_GENERATED,
-        }),
-      );
-    });
-
-    it('should skip unsupported categories', async () => {
-      await service.updateSuccessActivity({
-        ...baseParams,
+        ...success,
         category: 'unsupported',
       });
 
-      expect(activitiesService.findGenerationActivity).not.toHaveBeenCalled();
-      expect(activitiesService.record).not.toHaveBeenCalled();
+      expect(activities).toEqual([]);
+      expect(published).toEqual([]);
     });
 
-    it('should not publish websocket when userId is missing', async () => {
-      activitiesService.findGenerationActivity.mockResolvedValue(null);
+    it('records the activity but sends no live update without a user', async () => {
+      await service.updateSuccessActivity({ ...success, userId: undefined });
 
-      await service.updateSuccessActivity({
-        ...baseParams,
-        userId: undefined,
-      });
-
-      expect(
-        websocketService.publishBackgroundTaskUpdate,
-      ).not.toHaveBeenCalled();
+      expect(activities).toHaveLength(1);
+      expect(published).toEqual([]);
     });
   });
 
   describe('updateFailureActivity', () => {
-    const baseParams = {
-      brandId: 'test-object-id',
-      category: IngredientCategory.VIDEO,
-      dbUserId: 'test-object-id',
-      errorMessage: 'GPU timeout',
-      ingredientId: 'test-object-id',
-      organizationId: 'test-object-id',
-      userId: 'authProvider_abc',
-      userRoom: 'user-authProvider_abc',
-    };
+    it('fails the processing row of the generation', async () => {
+      seed(ActivityKey.VIDEO_PROCESSING, { ingredientId: 'old' });
 
-    it('should update existing processing activity with failure', async () => {
-      const existingActivity = {
-        id: mockObjectId,
-        value: JSON.stringify({ ingredientId: 'old' }),
-      };
-      activitiesService.findGenerationActivity.mockResolvedValue(
-        existingActivity,
-      );
+      await service.updateFailureActivity(failure);
 
-      await service.updateFailureActivity(baseParams);
-
-      expect(activitiesService.update).toHaveBeenCalledWith(
-        expect.objectContaining({ id: mockObjectId }),
+      expect(activities).toEqual([
         expect.objectContaining({
+          id: 'activity-1',
           key: ActivityKey.VIDEO_FAILED,
         }),
-      );
+      ]);
     });
 
-    it('should create new failure activity when no existing found', async () => {
-      activitiesService.findGenerationActivity.mockResolvedValue(null);
+    it.each([
+      ['a video', IngredientCategory.VIDEO, ActivityKey.VIDEO_FAILED],
+      ['an image', IngredientCategory.IMAGE, ActivityKey.IMAGE_FAILED],
+    ])(
+      'records a failed %s under its failure key',
+      async (_case, category, key) => {
+        await service.updateFailureActivity({ ...failure, category });
 
-      await service.updateFailureActivity(baseParams);
+        expect(activities.map((row) => row.key)).toEqual([key]);
+      },
+    );
 
-      expect(activitiesService.record).toHaveBeenCalledWith(
-        expect.objectContaining({
-          key: ActivityKey.VIDEO_FAILED,
-        }),
-      );
-    });
+    it.each([
+      ['the provider error', 'GPU timeout', 'GPU timeout'],
+      ['a default message', undefined, 'Generation failed'],
+    ])(
+      'tells the user the task failed with %s',
+      async (_case, errorMessage, error) => {
+        await service.updateFailureActivity({ ...failure, errorMessage });
 
-    it('should publish failure event', async () => {
-      activitiesService.findGenerationActivity.mockResolvedValue(null);
-
-      await service.updateFailureActivity(baseParams);
-
-      expect(websocketService.publishBackgroundTaskUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: 'GPU timeout',
-          status: 'failed',
-        }),
-      );
-    });
-
-    it('should handle image failure', async () => {
-      activitiesService.findGenerationActivity.mockResolvedValue(null);
-
-      await service.updateFailureActivity({
-        ...baseParams,
-        category: IngredientCategory.IMAGE,
-      });
-
-      expect(activitiesService.record).toHaveBeenCalledWith(
-        expect.objectContaining({
-          key: ActivityKey.IMAGE_FAILED,
-        }),
-      );
-    });
-
-    it('should use default error message', async () => {
-      activitiesService.findGenerationActivity.mockResolvedValue(null);
-
-      await service.updateFailureActivity({
-        ...baseParams,
-        errorMessage: undefined,
-      });
-
-      expect(websocketService.publishBackgroundTaskUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: 'Generation failed',
-        }),
-      );
-    });
+        expect(published).toEqual([
+          expect.objectContaining({
+            error,
+            room: 'user-authProvider_abc',
+            status: 'failed',
+            taskId: INGREDIENT,
+          }),
+        ]);
+      },
+    );
   });
 });

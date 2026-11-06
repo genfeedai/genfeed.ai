@@ -1,94 +1,101 @@
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { OpusProWebhookService } from '@api/endpoints/webhooks/opuspro/webhooks.opuspro.service';
-import { MicroservicesService } from '@api/services/microservices/microservices.service';
-import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
-import { testId } from '@helpers/testing/test-id.helper';
+import type { MicroservicesService } from '@api/services/microservices/microservices.service';
 import type { OpusProWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+interface MetadataRow {
+  error?: string | null;
+  id: string;
+  result?: string;
+}
+
+interface Notification {
+  body: Record<string, unknown>;
+  provider: string;
+  status: string;
+}
+
+const payload = (fields: Partial<OpusProWebhookPayload>) =>
+  fields as OpusProWebhookPayload;
 
 describe('OpusProWebhookService', () => {
+  // The metadata table, the notifications sent and the warnings logged.
+  let metadata: Map<string, MetadataRow>;
+  let notifications: Notification[];
+  let warnings: string[];
+  let errors: string[];
+  let isNotifierDown: boolean;
+  let isDatabaseDown: boolean;
   let service: OpusProWebhookService;
-  let metadataService: vi.Mocked<MetadataService>;
-  let microservicesService: vi.Mocked<MicroservicesService>;
-  let loggerService: vi.Mocked<LoggerService>;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        OpusProWebhookService,
-        {
-          provide: MetadataService,
-          useValue: {
-            findOne: vi.fn(),
-            findOneSelect: delegateFindOneSelect(),
-            patch: vi.fn(),
-          },
-        },
-        {
-          provide: MicroservicesService,
-          useValue: {
-            notifyWebhook: vi.fn(),
-          },
-        },
-        {
-          provide: LoggerService,
-          useValue: {
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
-          },
-        },
-      ],
-    }).compile();
+  beforeEach(() => {
+    metadata = new Map([['meta_1', { id: 'meta_1' }]]);
+    notifications = [];
+    warnings = [];
+    errors = [];
+    isNotifierDown = false;
+    isDatabaseDown = false;
 
-    service = module.get<OpusProWebhookService>(OpusProWebhookService);
-    metadataService = module.get(MetadataService);
-    microservicesService = module.get(MicroservicesService);
-    loggerService = module.get(LoggerService);
-  });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+    service = new OpusProWebhookService(
+      {
+        error: (message: string) => {
+          errors.push(message);
+        },
+        log: () => undefined,
+        warn: (message: string) => {
+          warnings.push(message);
+        },
+      } as unknown as LoggerService,
+      {
+        findOneSelect: async ({ id }: { id: string }) => {
+          if (isDatabaseDown) throw new Error('DB write failed');
+          const row = metadata.get(id);
+          return row ? { id: row.id } : null;
+        },
+        patch: async (id: string, update: Partial<MetadataRow>) =>
+          Object.assign(metadata.get(id) as MetadataRow, update),
+      } as unknown as MetadataService,
+      {
+        notifyWebhook: async (
+          provider: string,
+          status: string,
+          body: Record<string, unknown>,
+        ) => {
+          if (isNotifierDown) {
+            throw new Error('Request failed with status code 404');
+          }
+          notifications.push({ body, provider, status });
+        },
+      } as unknown as MicroservicesService,
+    );
   });
 
   describe('extractVideoUrl', () => {
-    it('should return videoUrl when present', () => {
-      const payload = {
-        videoUrl: 'https://cdn.opuspro.ai/video.mp4',
-      } as OpusProWebhookPayload;
-
-      expect(service.extractVideoUrl(payload)).toBe(
+    it.each([
+      [
+        'videoUrl',
+        { videoUrl: 'https://cdn.opuspro.ai/video.mp4' },
         'https://cdn.opuspro.ai/video.mp4',
-      );
-    });
-
-    it('should fall back to video_url when videoUrl is absent', () => {
-      const payload = {
-        video_url: 'https://cdn.opuspro.ai/video_url.mp4',
-      } as OpusProWebhookPayload;
-
-      expect(service.extractVideoUrl(payload)).toBe(
+      ],
+      [
+        'video_url when videoUrl is absent',
+        { video_url: 'https://cdn.opuspro.ai/video_url.mp4' },
         'https://cdn.opuspro.ai/video_url.mp4',
-      );
-    });
-
-    it('should return undefined when neither videoUrl nor video_url is present', () => {
-      const payload = { status: 'completed' } as OpusProWebhookPayload;
-
-      expect(service.extractVideoUrl(payload)).toBeUndefined();
-    });
-
-    it('should prefer videoUrl over video_url', () => {
-      const payload = {
-        video_url: 'https://cdn.example.com/fallback.mp4',
-        videoUrl: 'https://cdn.example.com/primary.mp4',
-      } as OpusProWebhookPayload;
-
-      expect(service.extractVideoUrl(payload)).toBe(
+      ],
+      [
+        'videoUrl over video_url',
+        {
+          video_url: 'https://cdn.example.com/fallback.mp4',
+          videoUrl: 'https://cdn.example.com/primary.mp4',
+        },
         'https://cdn.example.com/primary.mp4',
-      );
+      ],
+      ['nothing without a url', { status: 'completed' }, undefined],
+    ])('returns %s', (_case, fields, expected) => {
+      expect(service.extractVideoUrl(payload(fields))).toBe(expected);
     });
   });
 
@@ -99,205 +106,124 @@ describe('OpusProWebhookService', () => {
       ['string', 'invalid'],
       ['number', 42],
       ['boolean', false],
-    ])('should reject a %s body', async (_type, body) => {
+    ])('rejects a %s body without notifying', async (_type, body) => {
       await expect(
         service.handleCallback(body as unknown as OpusProWebhookPayload),
       ).rejects.toThrow(BadRequestException);
 
-      expect(microservicesService.notifyWebhook).not.toHaveBeenCalled();
+      expect(notifications).toEqual([]);
     });
 
-    it('should notify the microservice for every payload', async () => {
-      const mockId = testId('metadata');
-      const payload: OpusProWebhookPayload = {
-        callback_id: 'cb_001',
-        status: 'processing',
-      } as OpusProWebhookPayload;
-
-      microservicesService.notifyWebhook.mockResolvedValue(undefined);
-      metadataService.findOne.mockResolvedValue({
-        id: mockId,
-      } as never);
-
-      await service.handleCallback(payload);
-
-      expect(microservicesService.notifyWebhook).toHaveBeenCalledWith(
-        'opuspro',
-        'processing',
-        expect.objectContaining({
-          callback_id: 'cb_001',
-          metadata: expect.objectContaining({
-            callbackId: 'cb_001',
-            timestamp: expect.any(String),
-          }),
-        }),
+    it('notifies the microservice of every payload with its callback metadata', async () => {
+      await service.handleCallback(
+        payload({ callback_id: 'meta_1', status: 'processing' }),
       );
-    });
 
-    it('should warn and return early when callback_id is absent', async () => {
-      const payload = { status: 'completed' } as OpusProWebhookPayload;
-
-      microservicesService.notifyWebhook.mockResolvedValue(undefined);
-
-      await service.handleCallback(payload);
-
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('no callback_id provided'),
-      );
-      expect(metadataService.findOne).not.toHaveBeenCalled();
-    });
-
-    it('should warn and return when metadata is not found', async () => {
-      const payload: OpusProWebhookPayload = {
-        callback_id: 'cb_notfound',
-        status: 'completed',
-      } as OpusProWebhookPayload;
-
-      microservicesService.notifyWebhook.mockResolvedValue(undefined);
-      metadataService.findOne.mockResolvedValue(null);
-
-      await service.handleCallback(payload);
-
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('metadata not found'),
-        { callback_id: 'cb_notfound' },
-      );
-      expect(metadataService.patch).not.toHaveBeenCalled();
-    });
-
-    it('should patch metadata with videoUrl on completed status', async () => {
-      const mockId = testId('metadata');
-      const payload: OpusProWebhookPayload = {
-        callback_id: 'cb_complete',
-        status: 'completed',
-        videoUrl: 'https://cdn.opuspro.ai/result.mp4',
-      } as OpusProWebhookPayload;
-
-      microservicesService.notifyWebhook.mockResolvedValue(undefined);
-      metadataService.findOne.mockResolvedValue({ id: mockId } as never);
-      metadataService.patch.mockResolvedValue({} as never);
-
-      await service.handleCallback(payload);
-
-      expect(metadataService.patch).toHaveBeenCalledWith(
-        mockId,
-        expect.objectContaining({
-          error: null,
-          result: 'https://cdn.opuspro.ai/result.mp4',
-        }),
-      );
-    });
-
-    it('should patch metadata with error on failed status', async () => {
-      const mockId = testId('metadata');
-      const payload: OpusProWebhookPayload = {
-        callback_id: 'cb_fail',
-        error: 'GPU timeout',
-        status: 'failed',
-      } as OpusProWebhookPayload;
-
-      microservicesService.notifyWebhook.mockResolvedValue(undefined);
-      metadataService.findOne.mockResolvedValue({ id: mockId } as never);
-      metadataService.patch.mockResolvedValue({} as never);
-
-      await service.handleCallback(payload);
-
-      expect(metadataService.patch).toHaveBeenCalledWith(
-        mockId,
-        expect.objectContaining({ error: 'GPU timeout' }),
-      );
-    });
-
-    it('should use default error message when failed payload has no error field', async () => {
-      const mockId = testId('metadata');
-      const payload: OpusProWebhookPayload = {
-        callback_id: 'cb_fail_default',
-        status: 'failed',
-      } as OpusProWebhookPayload;
-
-      microservicesService.notifyWebhook.mockResolvedValue(undefined);
-      metadataService.findOne.mockResolvedValue({ id: mockId } as never);
-      metadataService.patch.mockResolvedValue({} as never);
-
-      await service.handleCallback(payload);
-
-      expect(metadataService.patch).toHaveBeenCalledWith(
-        mockId,
-        expect.objectContaining({
-          error: 'Opus Pro generation failed',
-        }),
-      );
-    });
-
-    it('should NOT patch metadata when status is neither completed nor failed', async () => {
-      const mockId = testId('metadata');
-      const payload: OpusProWebhookPayload = {
-        callback_id: 'cb_processing',
-        status: 'processing',
-      } as OpusProWebhookPayload;
-
-      microservicesService.notifyWebhook.mockResolvedValue(undefined);
-      metadataService.findOne.mockResolvedValue({ id: mockId } as never);
-
-      await service.handleCallback(payload);
-
-      expect(metadataService.patch).not.toHaveBeenCalled();
-    });
-
-    it('should log completion after successful handling', async () => {
-      const mockId = testId('metadata');
-      const payload: OpusProWebhookPayload = {
-        callback_id: 'cb_log',
-        status: 'processing',
-      } as OpusProWebhookPayload;
-
-      microservicesService.notifyWebhook.mockResolvedValue(undefined);
-      metadataService.findOne.mockResolvedValue({ id: mockId } as never);
-
-      await service.handleCallback(payload);
-
-      expect(loggerService.log).toHaveBeenCalledWith(
-        expect.stringContaining('completed'),
-        expect.objectContaining({
-          callback_id: 'cb_log',
+      expect(notifications).toEqual([
+        {
+          body: {
+            callback_id: 'meta_1',
+            metadata: { callbackId: 'meta_1', timestamp: expect.any(String) },
+            status: 'processing',
+          },
+          provider: 'opuspro',
           status: 'processing',
-        }),
-      );
+        },
+      ]);
     });
 
-    it('should log and rethrow errors', async () => {
-      const payload: OpusProWebhookPayload = {
-        callback_id: 'cb_err',
-        status: 'processing',
-      } as OpusProWebhookPayload;
-
-      const error = new Error('DB write failed');
-      metadataService.findOne.mockRejectedValue(error);
-
-      await expect(service.handleCallback(payload)).rejects.toThrow(
-        'DB write failed',
+    it.each([
+      [
+        'a completed render stores the video and clears the error',
+        {
+          status: 'completed',
+          videoUrl: 'https://cdn.opuspro.ai/result.mp4',
+        },
+        {
+          error: null,
+          id: 'meta_1',
+          result: 'https://cdn.opuspro.ai/result.mp4',
+        },
+      ],
+      [
+        'a completed render reads the snake_case video url',
+        {
+          status: 'completed',
+          video_url: 'https://cdn.opuspro.ai/snake.mp4',
+        },
+        {
+          error: null,
+          id: 'meta_1',
+          result: 'https://cdn.opuspro.ai/snake.mp4',
+        },
+      ],
+      [
+        'a failed render stores the provider error',
+        { error: 'GPU timeout', status: 'failed' },
+        { error: 'GPU timeout', id: 'meta_1' },
+      ],
+      [
+        'a failed render without detail stores the default error',
+        { status: 'failed' },
+        { error: 'Opus Pro generation failed', id: 'meta_1' },
+      ],
+      [
+        'a completed render without a url leaves the row alone',
+        { status: 'completed' },
+        { id: 'meta_1' },
+      ],
+      [
+        'a processing update leaves the row alone',
+        { status: 'processing' },
+        { id: 'meta_1' },
+      ],
+    ])('%s', async (_case, fields, expected) => {
+      await service.handleCallback(
+        payload({ callback_id: 'meta_1', ...fields }),
       );
 
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('failed'),
-        error,
-      );
+      expect(metadata.get('meta_1')).toEqual(expected);
     });
 
-    it('should keep processing when the notification call fails', async () => {
-      const payload: OpusProWebhookPayload = {
-        callback_id: 'cb_notify',
-        status: 'processing',
-      } as OpusProWebhookPayload;
-
-      microservicesService.notifyWebhook.mockRejectedValue(
-        new Error('Request failed with status code 404'),
+    it.each([
+      ['no callback id', {}, 'no callback_id provided'],
+      [
+        'an unknown callback id',
+        { callback_id: 'missing' },
+        'metadata not found',
+      ],
+    ])('warns and writes nothing for %s', async (_case, fields, warning) => {
+      await service.handleCallback(
+        payload({ ...fields, error: 'boom', status: 'failed' }),
       );
-      metadataService.findOne.mockResolvedValue(null);
 
-      await expect(service.handleCallback(payload)).resolves.toBeUndefined();
+      expect(metadata.get('meta_1')).toEqual({ id: 'meta_1' });
+      expect(warnings).toEqual([expect.stringContaining(warning)]);
+    });
 
-      expect(metadataService.findOne).toHaveBeenCalled();
+    it('still finalizes the render when the notification call fails', async () => {
+      isNotifierDown = true;
+
+      await service.handleCallback(
+        payload({ callback_id: 'meta_1', error: 'boom', status: 'failed' }),
+      );
+
+      expect(metadata.get('meta_1')).toEqual({ error: 'boom', id: 'meta_1' });
+      expect(warnings).toEqual([
+        expect.stringContaining('notification failed, continuing'),
+      ]);
+    });
+
+    it('logs and rethrows a metadata lookup failure', async () => {
+      isDatabaseDown = true;
+
+      await expect(
+        service.handleCallback(
+          payload({ callback_id: 'meta_1', status: 'processing' }),
+        ),
+      ).rejects.toThrow('DB write failed');
+
+      expect(errors).toEqual([expect.stringContaining('failed')]);
     });
   });
 });
