@@ -26,12 +26,17 @@ export interface IAxiosLikeError {
   code?: string;
 }
 
-export function getErrorMessage(error: unknown, fallback: string): string {
+/**
+ * Message to show for a failed client request: the API's `message` from an
+ * axios response, else the error's own message, else `fallback`. Server code
+ * uses `getErrorMessage` from `@libs/utils/error/get-error-message.util`.
+ */
+export function getApiErrorMessage(error: unknown, fallback: string): string {
   if (isAxiosError(error)) {
     return error.response?.data?.message || error.message || fallback;
   }
   if (error instanceof Error) {
-    return error.message;
+    return error.message.trim() || fallback;
   }
   return fallback;
 }

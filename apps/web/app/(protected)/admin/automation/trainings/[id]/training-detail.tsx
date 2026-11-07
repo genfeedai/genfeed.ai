@@ -21,7 +21,7 @@ import Loading from '@ui/loading/default/Loading';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EditableText } from '@ui/primitives/editable-text';
-import { getErrorMessage } from '@utils/error/error-handler.util';
+import { getApiErrorMessage } from '@utils/error/error-handler.util';
 import { Database, Image } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect } from 'react';
@@ -60,7 +60,7 @@ export default function TrainingDetail({
   } = trainingQuery;
   const training = trainingQuery.data ?? null;
   const error = isError
-    ? getErrorMessage(trainingQuery.error, translate('loadError'))
+    ? getApiErrorMessage(trainingQuery.error, translate('loadError'))
     : null;
   const loadTraining = useCallback(async () => {
     await refetch();

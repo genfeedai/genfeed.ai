@@ -16,7 +16,7 @@ import {
 } from '@ui/primitives/definition-list';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
-import { getErrorMessage } from '@utils/error/error-handler.util';
+import { getApiErrorMessage } from '@utils/error/error-handler.util';
 import { Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
@@ -107,7 +107,7 @@ export default function UserDetails({
       );
       onUpdated?.(updated);
     } catch (error) {
-      setError(getErrorMessage(error, translate('saveFailed')));
+      setError(getApiErrorMessage(error, translate('saveFailed')));
     } finally {
       saving.current = false;
       setIsSaving(false);

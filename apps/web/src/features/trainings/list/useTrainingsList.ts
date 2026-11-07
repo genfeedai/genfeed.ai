@@ -18,7 +18,7 @@ import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getErrorMessage } from '@utils/error/error-handler.util';
+import { getApiErrorMessage } from '@utils/error/error-handler.util';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
@@ -151,7 +151,7 @@ export function useTrainingsList({
   );
 
   const error = fetchError
-    ? getErrorMessage(fetchError, 'Failed to load trainings')
+    ? getApiErrorMessage(fetchError, 'Failed to load trainings')
     : null;
 
   // Mark component as mounted after first render
@@ -233,7 +233,7 @@ export function useTrainingsList({
 
         await handleRefresh();
       } catch (error) {
-        const errorMessage = getErrorMessage(
+        const errorMessage = getApiErrorMessage(
           error,
           'Failed to update training status',
         );
@@ -253,7 +253,7 @@ export function useTrainingsList({
 
         await handleRefresh();
       } catch (error) {
-        const errorMessage = getErrorMessage(
+        const errorMessage = getApiErrorMessage(
           error,
           'Failed to delete training',
         );
