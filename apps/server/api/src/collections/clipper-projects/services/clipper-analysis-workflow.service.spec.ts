@@ -270,6 +270,51 @@ describe('ClipperAnalysisWorkflowService', () => {
       expect.anything(),
     );
   });
+  it.each([
+    [
+      'an uploaded audio file by its storage key',
+      'voices/upload-1',
+      'https://cdn.test/audio.mp3',
+    ],
+    [
+      'remote audio without a stored copy by its URL',
+      undefined,
+      'https://cdn.test/ingredients/voices/upload-1',
+    ],
+  ])('transcribes %s', async (_label, storageKey, audioUrl) => {
+    http.post.mockReturnValue(of({ data: { jobId: 'audio-2' } }));
+    http.get.mockReturnValue(
+      of({
+        data: {
+          state: 'completed',
+          result: { url: 'https://cdn.test/audio.mp3' },
+        },
+      }),
+    );
+
+    const prepared = await actions.get('clipper.analysis.prepare-source')?.({
+      input: {
+        job: {
+          orgId: 'org-1',
+          projectId: 'project-1',
+          source: {
+            artifact: {
+              contentType: 'audio/mpeg',
+              mediaUrl: 'https://cdn.test/ingredients/voices/upload-1',
+              ...(storageKey ? { storageKey } : {}),
+            },
+            contentType: 'audio/mpeg',
+            ingredientId: 'upload-1',
+            kind: 'upload',
+          },
+          userId: 'user-1',
+          youtubeUrl: 'https://cdn.test/ingredients/voices/upload-1',
+        },
+      },
+    } as never);
+
+    expect(prepared).toMatchObject({ audioUrl });
+  });
   it('keeps the files service reason when audio extraction fails', async () => {
     http.post.mockReturnValue(of({ data: { jobId: 'job-7' } }));
     http.get.mockReturnValue(
