@@ -311,36 +311,48 @@ export function assembleStoryboardDraft(
     return narrator;
   };
 
-  const shots: StoryboardShot[] = output.shots.map((drafted, index) => {
-    const id = ids[index];
-    const old = previous.get(id);
-    const speaker = drafted.dialogue
-      ? resolveSpeaker(drafted.speakerId)
-      : undefined;
-    const dialogue = speaker ? drafted.dialogue || undefined : undefined;
-    return {
-      ...(old ?? { stillFreshness: 'missing' as const }),
-      id,
-      ordinal: index + 1,
-      sectionLabel: drafted.sectionLabel,
-      action: drafted.action,
-      dialogue,
-      speakerId: dialogue ? speaker?.id : undefined,
-      onScreenSpeaker: Boolean(
-        dialogue &&
-          speaker &&
-          speaker.id !== narratorId &&
-          drafted.isSpokenOnScreen,
-      ),
-      durationSeconds: durations[index],
-      transition: 'cut' as const,
-      cuts: fitStoryboardCuts(drafted.cuts, durations[index]),
-      sfx: drafted.sfx.length ? drafted.sfx : undefined,
-      // A prompt the person wrote describes the old action.
-      videoPrompt:
-        old && old.action === drafted.action ? old.videoPrompt : undefined,
-    };
-  });
+  const shots: StoryboardShot[] = output.shots
+    .map((drafted, index) => {
+      const id = ids[index];
+      const old = previous.get(id);
+      const speaker = drafted.dialogue
+        ? resolveSpeaker(drafted.speakerId)
+        : undefined;
+      const dialogue = speaker ? drafted.dialogue || undefined : undefined;
+      return {
+        ...(old ?? { stillFreshness: 'missing' as const }),
+        id,
+        ordinal: index + 1,
+        sectionLabel: drafted.sectionLabel,
+        action: drafted.action,
+        dialogue,
+        speakerId: dialogue ? speaker?.id : undefined,
+        onScreenSpeaker: Boolean(
+          dialogue &&
+            speaker &&
+            speaker.id !== narratorId &&
+            drafted.isSpokenOnScreen,
+        ),
+        durationSeconds: durations[index],
+        transition: 'cut' as const,
+        cuts: fitStoryboardCuts(drafted.cuts, durations[index]),
+        sfx: drafted.sfx.length ? drafted.sfx : undefined,
+      };
+    })
+    .map((shot) => {
+      // A prompt the person wrote describes the old direction: it survives
+      // only a revision that left the action, line, cuts and sound alone.
+      const old = previous.get(shot.id);
+      const direction = (value: StoryboardShot) =>
+        JSON.stringify([value.action, value.dialogue, value.cuts, value.sfx]);
+      return {
+        ...shot,
+        videoPrompt:
+          old && direction(old) === direction(shot)
+            ? old.videoPrompt
+            : undefined,
+      };
+    });
 
   if (mode === 'revise')
     shots.forEach((shot, index) => {

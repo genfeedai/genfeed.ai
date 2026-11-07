@@ -240,6 +240,52 @@ describe('assembleStoryboardDraft', () => {
     ).toThrow();
   });
 
+  it.each([
+    ['keeps', 'the direction is unchanged', {}, 'Handheld, rain.'],
+    ['drops', 'the sound changes', { sfx: ['thunder'] }, undefined],
+    [
+      'drops',
+      'the cuts change',
+      {
+        cuts: [
+          { startSeconds: 0, endSeconds: 2, framing: 'Wide', camera: null },
+        ],
+      },
+      undefined,
+    ],
+    ['drops', 'the action changes', { action: 'A hand drops it.' }, undefined],
+  ])(
+    '%s a hand-written video prompt when %s',
+    (_verb, _when, change, expected) => {
+      const current: StoryboardPlan = {
+        ...emptyPlan,
+        shots: [
+          {
+            id: 'a',
+            ordinal: 1,
+            action: 'A hand lifts the product.',
+            onScreenSpeaker: false,
+            durationSeconds: 4,
+            stillFreshness: 'missing',
+            transition: 'cut',
+            videoPrompt: 'Handheld, rain.',
+          },
+        ],
+      };
+      const plan = assembleStoryboardDraft(
+        request({ current, mode: 'revise' }),
+        {
+          title: 'T',
+          logline: '',
+          shots: [
+            drafted({ existingShotId: 'a', durationSeconds: 4, ...change }),
+          ],
+        },
+      );
+      expect(plan.shots[0].videoPrompt).toBe(expected);
+    },
+  );
+
   it('keeps ids and notes of referenced shots when revising', () => {
     const current: StoryboardPlan = {
       ...emptyPlan,
