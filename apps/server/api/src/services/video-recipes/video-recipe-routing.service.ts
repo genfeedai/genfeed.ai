@@ -100,7 +100,6 @@ export class VideoRecipeRoutingService {
     }
 
     const settings = await this.organizationSettingsService.findOne({
-      isDeleted: false,
       organizationId,
     });
     const organizationDefaults: CategoryDefaults | null = settings
