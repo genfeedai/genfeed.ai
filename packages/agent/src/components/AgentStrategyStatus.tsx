@@ -5,6 +5,7 @@ import {
   formatCreditBalanceExact,
   formatCreditCost,
 } from '@genfeedai/contracts/constants';
+import { formatElapsedTime } from '@genfeedai/helpers/formatting/date/date.helper';
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -15,29 +16,6 @@ import { type ReactElement, useCallback, useId, useRef, useState } from 'react';
 
 interface AgentStrategyStatusProps {
   apiService: AgentStrategyApiService;
-}
-
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60_000);
-  const diffHours = Math.floor(diffMs / 3_600_000);
-  const diffDays = Math.floor(diffMs / 86_400_000);
-
-  if (diffMins < 1) {
-    return 'Just now';
-  }
-  if (diffMins < 60) {
-    return `${diffMins}m ago`;
-  }
-  if (diffHours < 24) {
-    return `${diffHours}h ago`;
-  }
-  if (diffDays < 7) {
-    return `${diffDays}d ago`;
-  }
-  return date.toLocaleDateString();
 }
 
 function formatFutureTime(dateStr: string): string {
@@ -180,7 +158,7 @@ export function AgentStrategyStatus({
           <p className="text-2xs text-muted-foreground">Last run</p>
           <p className="text-xs font-medium text-foreground">
             {strategy.lastRunAt
-              ? formatRelativeTime(strategy.lastRunAt)
+              ? formatElapsedTime(strategy.lastRunAt, 'ago')
               : 'Never'}
           </p>
         </div>

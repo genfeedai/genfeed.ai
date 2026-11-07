@@ -1,6 +1,7 @@
 import {
   DATE_FORMATS,
   formatDate,
+  formatElapsedTime,
   getRelativeTime,
   isValidDate,
 } from '@helpers/formatting/date/date.helper';
@@ -78,5 +79,57 @@ describe('date.helper', () => {
     it('returns false for invalid Date object', () => {
       expect(isValidDate(new Date('invalid'))).toBe(false);
     });
+  });
+
+  describe('formatElapsedTime', () => {
+    const NOW = Date.UTC(2026, 10, 7, 12, 0, 0);
+    const minutesAgo = (minutes: number) => NOW - minutes * 60_000;
+
+    it.each([
+      [0.5, 'now', 'Just now'],
+      [30, '30m', '30m ago'],
+      [60 * 5, '5h', '5h ago'],
+      [60 * 49, '2d', '2d ago'],
+      [60 * 24 * 6, '6d', '6d ago'],
+    ])(
+      '%s minutes ago reads %j (compact) and %j (ago)',
+      (minutes, compact, ago) => {
+        expect(formatElapsedTime(minutesAgo(minutes), 'compact', NOW)).toBe(
+          compact,
+        );
+        expect(formatElapsedTime(minutesAgo(minutes), 'ago', NOW)).toBe(ago);
+      },
+    );
+
+    it('shows the date from seven days on', () => {
+      expect(
+        formatElapsedTime(
+          new Date(2026, 9, 20, 12),
+          'compact',
+          new Date(2026, 10, 7, 12).getTime(),
+        ),
+      ).toBe('Oct 20');
+    });
+
+    it('adds the year for dates outside the current year', () => {
+      expect(
+        formatElapsedTime(
+          new Date(2025, 11, 20, 12),
+          'ago',
+          new Date(2026, 0, 10, 12).getTime(),
+        ),
+      ).toBe('Dec 20, 2025');
+    });
+
+    it('treats future timestamps as now', () => {
+      expect(formatElapsedTime(NOW + 60_000, 'compact', NOW)).toBe('now');
+    });
+
+    it.each([[null], [undefined], [''], ['not a date']])(
+      'returns an empty string for %j',
+      (value) => {
+        expect(formatElapsedTime(value, 'ago', NOW)).toBe('');
+      },
+    );
   });
 });

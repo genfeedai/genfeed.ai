@@ -1,7 +1,7 @@
 import { ButtonVariant } from '@genfeedai/contracts';
+import { formatElapsedTime } from '@genfeedai/helpers/formatting/date/date.helper';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
-
 import type { Thread } from '~models/chat.model';
 
 interface ThreadItemProps {
@@ -45,33 +45,8 @@ export function ThreadItem({ thread, onOpen }: ThreadItemProps): ReactElement {
         )}
       </div>
       <span className="shrink-0 text-2xs text-muted-foreground">
-        {formatRelativeTime(thread.updatedAt)}
+        {formatElapsedTime(thread.updatedAt, 'compact')}
       </span>
     </Button>
   );
-}
-
-function formatRelativeTime(dateStr: string): string {
-  const now = Date.now();
-  const diff = now - new Date(dateStr).getTime();
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (minutes < 1) {
-    return 'now';
-  }
-  if (minutes < 60) {
-    return `${minutes}m`;
-  }
-  if (hours < 24) {
-    return `${hours}h`;
-  }
-  if (days < 7) {
-    return `${days}d`;
-  }
-  return new Date(dateStr).toLocaleDateString([], {
-    day: 'numeric',
-    month: 'short',
-  });
 }

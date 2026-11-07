@@ -51,3 +51,57 @@ export function getRelativeTime(date: Date | string | number): string {
 export function isValidDate(date: string | number | Date): boolean {
   return !Number.isNaN(parseDate(date).getTime());
 }
+
+export type ElapsedTimeStyle = 'compact' | 'ago';
+
+const MINUTE_MS = 60_000;
+const HOUR_MINUTES = 60;
+const DAY_HOURS = 24;
+const WEEK_DAYS = 7;
+
+/**
+ * Short elapsed-time label for lists and status rows.
+ *
+ * - `compact`: `now`, `5m`, `3h`, `2d`
+ * - `ago`: `Just now`, `5m ago`, `3h ago`, `2d ago`
+ *
+ * From seven days on, both styles show the date (`Nov 3`, or `Nov 3, 2025`
+ * outside the current year). Future timestamps
+ * count as "now"; missing or invalid input returns an empty string.
+ */
+export function formatElapsedTime(
+  value: Date | string | number | null | undefined,
+  style: ElapsedTimeStyle,
+  now: number = Date.now(),
+): string {
+  if (value === null || value === undefined || value === '') {
+    return '';
+  }
+
+  const date = parseDate(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const suffix = style === 'ago' ? ' ago' : '';
+  const minutes = Math.max(0, Math.floor((now - date.getTime()) / MINUTE_MS));
+  if (minutes < 1) {
+    return style === 'ago' ? 'Just now' : 'now';
+  }
+  if (minutes < HOUR_MINUTES) {
+    return `${minutes}m${suffix}`;
+  }
+
+  const hours = Math.floor(minutes / HOUR_MINUTES);
+  if (hours < DAY_HOURS) {
+    return `${hours}h${suffix}`;
+  }
+
+  const days = Math.floor(hours / DAY_HOURS);
+  if (days < WEEK_DAYS) {
+    return `${days}d${suffix}`;
+  }
+
+  const isSameYear = date.getFullYear() === new Date(now).getFullYear();
+  return format(date, isSameYear ? 'MMM d' : DATE_FORMATS.DISPLAY_DATE);
+}
