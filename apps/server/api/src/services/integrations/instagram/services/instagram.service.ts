@@ -5,6 +5,7 @@ import {
   type ServerCredentialStore,
 } from '@api/server.dependencies';
 import {
+  isMetaUnifiedLoginGrant,
   requireMetaScopes,
   resolveMetaPageAccess,
 } from '@api/services/integrations/_shared/meta-page-access.util';
@@ -278,7 +279,12 @@ export class InstagramService {
       );
     }
 
-    if (this.shouldRefreshAccessToken(credential.accessTokenExpiry)) {
+    // A Unified Login token never expires and has no refresh exchange, so the
+    // absent expiry must not trigger one.
+    if (
+      !isMetaUnifiedLoginGrant(credential.grantedScopes) &&
+      this.shouldRefreshAccessToken(credential.accessTokenExpiry)
+    ) {
       return this.refreshToken(organizationId, brandId, credentialId);
     }
 
@@ -298,8 +304,10 @@ export class InstagramService {
    */
   public async listAuthorizedInstagramAccounts(
     accessToken: string,
+    options: { isUnifiedLogin?: boolean } = {},
   ): Promise<InstagramPageResponse[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const isUnifiedLogin = options.isUnifiedLogin === true;
     const accounts: InstagramPageResponse[] = [];
     let afterCursor: string | undefined;
     let pageCount = 0;
@@ -316,18 +324,48 @@ export class InstagramService {
 
         const response = await firstValueFrom(
           this.httpService.get(
-            `${this.graphUrl}/${this.apiVersion}/me/accounts`,
+            `${this.graphUrl}/${this.apiVersion}/me/${
+              isUnifiedLogin ? 'assigned_instagram_accounts' : 'accounts'
+            }`,
             {
               timeout: 10_000,
               params: {
                 access_token: accessToken,
                 ...(afterCursor ? { after: afterCursor } : {}),
-                fields:
-                  'id,name,instagram_business_account{id,username,name,profile_picture_url}',
+                fields: isUnifiedLogin
+                  ? 'id,username'
+                  : 'id,name,instagram_business_account{id,username,name,profile_picture_url}',
               },
             },
           ),
         );
+
+        if (isUnifiedLogin) {
+          const assigned: Array<{ id?: string; username?: string }> =
+            response.data?.data ?? [];
+          accounts.push(
+            ...assigned.flatMap((account) =>
+              account?.id
+                ? [
+                    {
+                      id: account.id,
+                      image: undefined,
+                      label: account.username,
+                      platform: CredentialPlatform.INSTAGRAM,
+                      username: account.username,
+                    },
+                  ]
+                : [],
+            ),
+          );
+          const hasMore = typeof response.data?.paging?.next === 'string';
+          const after = response.data?.paging?.cursors?.after;
+          if (!hasMore || typeof after !== 'string') {
+            break;
+          }
+          afterCursor = after;
+          continue;
+        }
 
         const userPages: Array<{
           instagram_business_account?: {
@@ -439,6 +477,12 @@ export class InstagramService {
       throw new Error(
         'Instagram access token not found. Please reconnect your account.',
       );
+    }
+
+    // Unified Login tokens do not expire and cannot be exchanged for a
+    // longer-lived one; a dead token surfaces as an authorization error on use.
+    if (isMetaUnifiedLoginGrant(credential.grantedScopes)) {
+      return toInstagramCredentialResponse(credential);
     }
 
     // Decrypt access token before use
@@ -910,11 +954,17 @@ export class InstagramService {
         brandId,
         credentialId,
       );
-      requireMetaScopes(credential.grantedScopes, [
-        'instagram_manage_messages',
-        'pages_manage_metadata',
-        'pages_show_list',
-      ]);
+      const isUnified = isMetaUnifiedLoginGrant(credential.grantedScopes);
+      requireMetaScopes(
+        credential.grantedScopes,
+        isUnified
+          ? ['instagram_manage_messages']
+          : [
+              'instagram_manage_messages',
+              'pages_manage_metadata',
+              'pages_show_list',
+            ],
+      );
       const decryptedAccessToken = EncryptionUtil.decrypt(
         credential.accessToken,
       );
@@ -922,20 +972,27 @@ export class InstagramService {
         credential.externalId,
         'externalId',
       );
-      const page = await resolveMetaPageAccess(
-        this.httpService,
-        this.getGraphApiBaseUrl(),
-        decryptedAccessToken,
-        { instagramAccountId: instagramAccountId },
-      );
+      // Unified Login tokens act on the Instagram account directly; classic
+      // grants go through the linked Facebook Page.
+      const conversationSource = isUnified
+        ? { accessToken: decryptedAccessToken, id: instagramAccountId }
+        : await resolveMetaPageAccess(
+            this.httpService,
+            this.getGraphApiBaseUrl(),
+            decryptedAccessToken,
+            { instagramAccountId: instagramAccountId },
+          ).then((page) => ({
+            accessToken: page.accessToken,
+            id: page.pageId,
+          }));
       const boundedLimit = boundGraphLimit(limit);
 
       const response = await firstValueFrom(
         this.httpService.get<InstagramGraphConversationsResponse>(
-          `${this.graphUrl}/${this.apiVersion}/${page.pageId}/conversations`,
+          `${this.graphUrl}/${this.apiVersion}/${conversationSource.id}/conversations`,
           {
             params: {
-              access_token: page.accessToken,
+              access_token: conversationSource.accessToken,
               fields: `id,updated_time,participants{id,username,name},messages.limit(${boundedLimit}){${INSTAGRAM_MESSAGE_NODE_FIELDS}}`,
               limit: boundedLimit,
               platform: 'instagram',

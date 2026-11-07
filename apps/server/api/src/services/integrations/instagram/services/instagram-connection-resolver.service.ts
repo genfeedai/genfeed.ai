@@ -48,6 +48,7 @@ const INSTAGRAM_PAGES_SCOPE = 'pages_show_list';
 @Injectable()
 export class InstagramConnectionResolverService {
   private readonly redirectUri: string;
+  private readonly configId: string;
   private readonly graphUrl: string = META_GRAPH_URL;
   private readonly apiVersion: string;
 
@@ -61,6 +62,7 @@ export class InstagramConnectionResolverService {
     private readonly loggerService: LoggerService,
   ) {
     this.redirectUri = this.configService.get('INSTAGRAM_REDIRECT_URI') ?? '';
+    this.configId = this.configService.get('INSTAGRAM_CONFIG_ID') ?? '';
     this.apiVersion =
       this.configService.get('INSTAGRAM_API_VERSION') || META_GRAPH_API_VERSION;
   }
@@ -92,22 +94,41 @@ export class InstagramConnectionResolverService {
   }> {
     const { appId, appSecret, code, markStage } = params;
 
+    // Unified Login (a `config_id` login) returns a business-integration
+    // token that never expires and has no long-lived exchange, and it needs
+    // no Facebook Page.
+    const isUnifiedLogin = this.configId.length > 0;
+
     markStage('short_lived_token');
     const tokenRes: AxiosResponse<InstagramShortLivedTokenResponse> =
-      await firstValueFrom(
-        this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/oauth/access_token`,
-          null,
-          {
-            params: {
-              client_id: appId,
-              client_secret: appSecret,
-              code,
-              redirect_uri: this.redirectUri,
-            },
-          },
-        ),
-      );
+      isUnifiedLogin
+        ? await firstValueFrom(
+            this.httpService.get(
+              `${this.graphUrl}/${this.apiVersion}/oauth/access_token`,
+              {
+                params: {
+                  client_id: appId,
+                  client_secret: appSecret,
+                  code,
+                  redirect_uri: this.redirectUri,
+                },
+              },
+            ),
+          )
+        : await firstValueFrom(
+            this.httpService.post(
+              `${this.graphUrl}/${this.apiVersion}/oauth/access_token`,
+              null,
+              {
+                params: {
+                  client_id: appId,
+                  client_secret: appSecret,
+                  code,
+                  redirect_uri: this.redirectUri,
+                },
+              },
+            ),
+          );
 
     const shortLivedToken = tokenRes.data.access_token;
 
@@ -116,6 +137,7 @@ export class InstagramConnectionResolverService {
       {
         expiresIn: tokenRes.data.expires_in,
         hasToken: !!shortLivedToken,
+        isUnifiedLogin,
       },
     );
 
@@ -123,6 +145,15 @@ export class InstagramConnectionResolverService {
       return returnBadRequest({
         detail: 'Missing short-lived access token from Facebook',
         title: 'Invalid payload',
+      });
+    }
+
+    if (isUnifiedLogin) {
+      return this.discoverUnifiedAccounts({
+        accessToken: shortLivedToken,
+        expiresIn: tokenRes.data.expires_in,
+        markStage,
+        scope: tokenRes.data.scope,
       });
     }
 
@@ -157,37 +188,7 @@ export class InstagramConnectionResolverService {
     // eligible" error the empty-list case below throws.
     markStage('permission_check');
     if (scope == null) {
-      const permissions = await firstValueFrom(
-        this.httpService.get<unknown>(
-          `${this.graphUrl}/${this.apiVersion}/me/permissions`,
-          { params: { access_token }, timeout: 10_000 },
-        ),
-      );
-      const payload = permissions.data;
-      const entries =
-        payload &&
-        typeof payload === 'object' &&
-        'data' in payload &&
-        Array.isArray(payload.data)
-          ? payload.data
-          : [];
-      scope = parseInstagramGrantedScopes(
-        entries
-          .flatMap((entry: unknown) => {
-            if (
-              !entry ||
-              typeof entry !== 'object' ||
-              !('status' in entry) ||
-              entry.status !== 'granted' ||
-              !('permission' in entry) ||
-              typeof entry.permission !== 'string'
-            ) {
-              return [];
-            }
-            return [entry.permission];
-          })
-          .join(','),
-      ).join(',');
+      scope = await this.readGrantedScopes(access_token);
     }
     const grantedScopesList = parseInstagramGrantedScopes(scope);
     if (!grantedScopesList.includes(INSTAGRAM_PAGES_SCOPE)) {
@@ -222,6 +223,81 @@ export class InstagramConnectionResolverService {
       expiresIn: expires_in,
       scope,
     };
+  }
+
+  private async readGrantedScopes(accessToken: string): Promise<string> {
+    const permissions = await firstValueFrom(
+      this.httpService.get<unknown>(
+        `${this.graphUrl}/${this.apiVersion}/me/permissions`,
+        { params: { access_token: accessToken }, timeout: 10_000 },
+      ),
+    );
+    const payload = permissions.data;
+    const entries =
+      payload &&
+      typeof payload === 'object' &&
+      'data' in payload &&
+      Array.isArray(payload.data)
+        ? payload.data
+        : [];
+    return parseInstagramGrantedScopes(
+      entries
+        .flatMap((entry: unknown) => {
+          if (
+            !entry ||
+            typeof entry !== 'object' ||
+            !('status' in entry) ||
+            entry.status !== 'granted' ||
+            !('permission' in entry) ||
+            typeof entry.permission !== 'string'
+          ) {
+            return [];
+          }
+          return [entry.permission];
+        })
+        .join(','),
+    ).join(',');
+  }
+
+  /**
+   * Unified Login branch of `exchangeAndDiscoverAccounts`: the token is used as
+   * issued, accounts come from the business portfolio's assigned Instagram
+   * accounts, and no Facebook Page permission is involved.
+   */
+  private async discoverUnifiedAccounts(params: {
+    accessToken: string;
+    expiresIn: number | undefined;
+    markStage: (stage: string) => void;
+    scope: string | undefined;
+  }): Promise<{
+    accessToken: string;
+    accounts: InstagramPageResponse[];
+    expiresIn: number | undefined;
+    scope: string | undefined;
+  }> {
+    const { accessToken, expiresIn, markStage } = params;
+
+    markStage('permission_check');
+    const scope = params.scope ?? (await this.readGrantedScopes(accessToken));
+
+    markStage('account_discovery');
+    const accounts =
+      await this.instagramService.listAuthorizedInstagramAccounts(accessToken, {
+        isUnifiedLogin: true,
+      });
+
+    if (accounts.length === 0) {
+      throw new HttpException(
+        {
+          detail:
+            'No Instagram professional account (Business or Creator) was shared with this connection. Reconnect and select the account you want to connect.',
+          title: 'Instagram account not eligible',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    return { accessToken, accounts, expiresIn, scope };
   }
 
   /**

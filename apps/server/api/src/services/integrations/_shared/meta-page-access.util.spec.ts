@@ -1,6 +1,22 @@
 import type { HttpService } from '@nestjs/axios';
 import { of } from 'rxjs';
-import { readMetaPages, resolveMetaPageAccess } from './meta-page-access.util';
+import {
+  isMetaUnifiedLoginGrant,
+  readMetaPages,
+  resolveMetaPageAccess,
+} from './meta-page-access.util';
+
+describe('Meta Unified Login grant detection', () => {
+  it.each([
+    [['instagram_basic', 'instagram_manage_messages'], true],
+    [['instagram_basic', 'pages_show_list'], false],
+    [[], false],
+    [undefined, false],
+    [null, false],
+  ])('classifies %j as unified=%s', (grantedScopes, expected) => {
+    expect(isMetaUnifiedLoginGrant(grantedScopes)).toBe(expected);
+  });
+});
 
 describe('Meta Page access resolution', () => {
   it('selects the linked Instagram Page on later pages without following next URLs', async () => {

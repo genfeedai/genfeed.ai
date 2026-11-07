@@ -10,6 +10,25 @@ import { firstValueFrom } from 'rxjs';
 
 const MAX_PAGE_BATCHES = 25;
 
+const META_PAGES_SCOPE = 'pages_show_list';
+
+/**
+ * Instagram API with Unified Login hands back a Business Integration System
+ * User token that acts on the Instagram account directly, so its grant never
+ * carries `pages_show_list`. Every classic Facebook Login grant did (the
+ * connect flow refused one without it). A credential with no captured grant
+ * stays on the classic path.
+ */
+export function isMetaUnifiedLoginGrant(
+  grantedScopes: readonly string[] | null | undefined,
+): boolean {
+  return (
+    Array.isArray(grantedScopes) &&
+    grantedScopes.length > 0 &&
+    !grantedScopes.includes(META_PAGES_SCOPE)
+  );
+}
+
 /** Follow cursors against our configured origin; never follow a token-bearing next URL. */
 export async function readMetaPages(
   http: HttpService,

@@ -1,4 +1,5 @@
 import {
+  isMetaUnifiedLoginGrant,
   requireMetaScopes,
   resolveMetaPageAccess,
 } from '@api/services/integrations/_shared/meta-page-access.util';
@@ -83,6 +84,26 @@ export class InstagramPublishingService {
         brandId,
         credentialId,
       );
+      if (isMetaUnifiedLoginGrant(credential.grantedScopes)) {
+        requireMetaScopes(credential.grantedScopes, [
+          'instagram_manage_messages',
+        ]);
+        const unifiedResponse = await firstValueFrom(
+          this.httpService.post(
+            `${this.graphUrl}/${this.apiVersion}/${requireString(credential.externalId, 'externalId')}/subscribed_apps`,
+            null,
+            {
+              params: {
+                access_token: EncryptionUtil.decrypt(credential.accessToken),
+                subscribed_fields: 'messages',
+              },
+            },
+          ),
+        );
+
+        this.loggerService.log(`${url} succeeded`, unifiedResponse.data);
+        return;
+      }
       requireMetaScopes(credential.grantedScopes, [
         'instagram_manage_messages',
         'pages_manage_metadata',
@@ -153,29 +174,48 @@ export class InstagramPublishingService {
         brandId,
         credentialId,
       );
+      const isUnified = isMetaUnifiedLoginGrant(credential.grantedScopes);
+      const isPrivateReply = 'comment_id' in recipient;
       requireMetaScopes(
         credential.grantedScopes,
-        'comment_id' in recipient
-          ? ['instagram_manage_comments', 'pages_messaging', 'pages_show_list']
-          : ['instagram_manage_messages', 'pages_show_list'],
+        isUnified
+          ? [
+              isPrivateReply
+                ? 'instagram_manage_comments'
+                : 'instagram_manage_messages',
+            ]
+          : isPrivateReply
+            ? [
+                'instagram_manage_comments',
+                'pages_messaging',
+                'pages_show_list',
+              ]
+            : ['instagram_manage_messages', 'pages_show_list'],
       );
       const accessToken = EncryptionUtil.decrypt(credential.accessToken);
       const externalId = requireString(credential.externalId, 'externalId');
-      const page = await resolveMetaPageAccess(
-        this.httpService,
-        `${this.graphUrl}/${this.apiVersion}`,
-        accessToken,
-        { instagramAccountId: externalId },
-      );
+      // Unified Login acts on the Instagram account directly with its own
+      // token; the classic flow sends as the linked Page with a Page token.
+      const sender = isUnified
+        ? { accessToken, id: externalId }
+        : await resolveMetaPageAccess(
+            this.httpService,
+            `${this.graphUrl}/${this.apiVersion}`,
+            accessToken,
+            { instagramAccountId: externalId },
+          ).then((page) => ({
+            accessToken: page.accessToken,
+            id: page.pageId,
+          }));
       const response = await firstValueFrom(
         this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${page.pageId}/messages`,
+          `${this.graphUrl}/${this.apiVersion}/${sender.id}/messages`,
           {
             message: { text: message },
             ...('id' in recipient ? { messaging_type: 'RESPONSE' } : {}),
             recipient,
           },
-          { params: { access_token: page.accessToken } },
+          { params: { access_token: sender.accessToken } },
         ),
       );
 

@@ -248,6 +248,39 @@ describe('InstagramController', () => {
       expect(data.url).toContain('oauth');
     });
 
+    it.each([
+      {
+        configId: undefined,
+        expected: 'scope=',
+        label: 'requests scopes when no onboarding configuration is set',
+        unexpected: 'config_id=',
+      },
+      {
+        configId: 'config-123',
+        expected: 'config_id=config-123',
+        label: 'uses the Unified Login onboarding configuration when set',
+        unexpected: 'scope=',
+      },
+    ])('$label', async ({ configId, expected, unexpected }) => {
+      brandsFindOneMock.mockResolvedValue({
+        id: brandOid,
+        organizationId: instagramOrganizationId,
+        userId: instagramUserId,
+      });
+      (configMock.get as ReturnType<typeof vi.fn>).mockImplementation(
+        (key: string) =>
+          ({ ...instagramConfig, INSTAGRAM_CONFIG_ID: configId })[key],
+      );
+
+      const result = await controller.connect(mockRequest, mockUser, {
+        brandId: brandOid,
+      });
+
+      const { url } = result.data as unknown as { url: string };
+      expect(url).toContain(expected);
+      expect(url).not.toContain(unexpected);
+    });
+
     it('refuses to start OAuth when the app id is a placeholder', async () => {
       brandsFindOneMock.mockResolvedValue({
         id: brandOid,
@@ -1262,7 +1295,7 @@ describe('InstagramController', () => {
 
       expect(
         instagramServiceMock.listAuthorizedInstagramAccounts,
-      ).toHaveBeenCalledWith('encrypted-token');
+      ).toHaveBeenCalledWith('encrypted-token', { isUnifiedLogin: false });
       expect(credentialsUpdateExternalProfileMock).toHaveBeenCalledWith(
         credentialId,
         orgId,

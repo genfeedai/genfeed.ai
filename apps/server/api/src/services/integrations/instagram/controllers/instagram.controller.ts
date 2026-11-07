@@ -17,6 +17,7 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isMetaUnifiedLoginGrant } from '@api/services/integrations/_shared/meta-page-access.util';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
 import { InstagramConnectionResolverService } from '@api/services/integrations/instagram/services/instagram-connection-resolver.service';
@@ -158,11 +159,17 @@ export class InstagramController {
       redirectUri,
     });
 
-    // Facebook/Instagram OAuth endpoint
+    // Facebook/Instagram OAuth endpoint. A Meta Business Login configuration
+    // (`config_id`) replaces the scope list and signs in without a Facebook
+    // Page (Instagram API with Unified Login).
+    const configId = this.configService.get('INSTAGRAM_CONFIG_ID');
+    const grantParam = configId
+      ? `&config_id=${encodeURIComponent(configId)}`
+      : `&scope=${encodeURIComponent(this.scope.join(','))}`;
     const authUrl =
       `https://www.facebook.com/${this.apiVersion}/dialog/oauth?client_id=${appId}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      `&scope=${encodeURIComponent(this.scope.join(','))}` +
+      grantParam +
       `&response_type=code&state=${encodeURIComponent(state)}`;
 
     return serializeSingle(request, CredentialOAuthSerializer, {
@@ -351,6 +358,7 @@ export class InstagramController {
       {
         accessToken: true,
         externalId: true,
+        grantedScopes: true,
         id: true,
         isConnected: true,
         isDeleted: true,
@@ -390,6 +398,7 @@ export class InstagramController {
       const accounts =
         await this.instagramService.listAuthorizedInstagramAccounts(
           accessToken,
+          { isUnifiedLogin: isMetaUnifiedLoginGrant(credential.grantedScopes) },
         );
       const chosen = accounts.find((account) => account.id === body.externalId);
 

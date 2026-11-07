@@ -22,6 +22,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { isMetaUnifiedLoginGrant } from '@api/services/integrations/_shared/meta-page-access.util';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { GoogleSearchConsoleService } from '@api/services/integrations/google-search-console/services/google-search-console.service';
@@ -288,10 +289,10 @@ export class CredentialsController {
       }
 
       const accessToken = EncryptionUtil.decrypt(credential.accessToken);
-      const pages =
-        await this.instagramService.listAuthorizedInstagramAccounts(
-          accessToken,
-        );
+      const pages = await this.instagramService.listAuthorizedInstagramAccounts(
+        accessToken,
+        { isUnifiedLogin: isMetaUnifiedLoginGrant(credential.grantedScopes) },
+      );
 
       // Flag candidates already held by another live credential of this
       // brand, the same sibling exclusion

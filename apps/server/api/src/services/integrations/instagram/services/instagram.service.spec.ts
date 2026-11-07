@@ -515,6 +515,25 @@ describe('InstagramService', () => {
         }),
       );
     });
+
+    it('keeps a Unified Login token as is even when its expiry is near', async () => {
+      // The Business Integration System User token has no long-lived exchange,
+      // so the fb_exchange_token refresh must not run for it.
+      credentialsMock.findOne = vi.fn().mockResolvedValue({
+        accessToken: 'unified-token',
+        accessTokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
+        externalId: 'ig-account-id',
+        grantedScopes: ['instagram_basic', 'instagram_content_publish'],
+        id: 'credential-unified',
+        isConnected: true,
+      });
+      const refreshSpy = vi.spyOn(service, 'refreshToken');
+
+      const result = await service.getValidCredential('org-id', 'brand-id');
+
+      expect(result.accessToken).toBe('unified-token');
+      expect(refreshSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('handleAuthorizationError', () => {
@@ -640,6 +659,51 @@ describe('InstagramService', () => {
               'id,name,instagram_business_account{id,username,name,profile_picture_url}',
           },
         },
+      );
+    });
+
+    it('lists assigned Instagram accounts in Unified Login mode without a Page', async () => {
+      (httpServiceMock.get as Mock)
+        .mockReturnValueOnce(
+          of({
+            data: {
+              data: [{ id: 'ig-1', username: 'brandone' }],
+              paging: {
+                cursors: { after: 'cursor-1' },
+                next: 'https://graph.facebook.com/next',
+              },
+            },
+          }),
+        )
+        .mockReturnValueOnce(
+          of({ data: { data: [{ id: 'ig-2', username: 'brandtwo' }] } }),
+        );
+
+      const result = await service.listAuthorizedInstagramAccounts('token', {
+        isUnifiedLogin: true,
+      });
+
+      expect(result).toEqual([
+        {
+          id: 'ig-1',
+          image: undefined,
+          label: 'brandone',
+          platform: 'instagram',
+          username: 'brandone',
+        },
+        {
+          id: 'ig-2',
+          image: undefined,
+          label: 'brandtwo',
+          platform: 'instagram',
+          username: 'brandtwo',
+        },
+      ]);
+      expect(httpServiceMock.get).toHaveBeenCalledWith(
+        expect.stringContaining('/me/assigned_instagram_accounts'),
+        expect.objectContaining({
+          params: expect.objectContaining({ fields: 'id,username' }),
+        }),
       );
     });
 
