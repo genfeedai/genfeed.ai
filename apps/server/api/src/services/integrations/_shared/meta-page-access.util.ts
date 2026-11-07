@@ -15,7 +15,6 @@ export async function readMetaPages(
   http: HttpService,
   apiBaseUrl: string,
   userAccessToken: string,
-  isInstagramIncluded = false,
 ): Promise<FacebookPage[]> {
   const pages: FacebookPage[] = [];
   const seen = new Set<string>();
@@ -25,7 +24,7 @@ export async function readMetaPages(
       http.get<MetaPageListResponse>(`${apiBaseUrl}/me/accounts`, {
         params: {
           access_token: userAccessToken,
-          fields: `id,name,access_token,category,picture${isInstagramIncluded ? ',instagram_business_account{id}' : ''}`,
+          fields: 'id,name,access_token,category,picture',
           ...(after ? { after } : {}),
         },
         timeout: 10_000,
@@ -54,22 +53,12 @@ export async function resolveMetaPageAccess(
   userAccessToken: string,
   identity: MetaPageIdentity,
 ): Promise<MetaPageAccess> {
-  if (!identity.pageId && !identity.instagramAccountId)
+  if (!identity.pageId)
     throw new BadRequestException(
       'The connected Meta account is missing its identity. Reconnect the account.',
     );
-  const pages = await readMetaPages(
-    http,
-    apiBaseUrl,
-    userAccessToken,
-    Boolean(identity.instagramAccountId),
-  );
-  const page = pages.find((candidate) =>
-    identity.pageId
-      ? candidate.id === identity.pageId
-      : candidate.instagram_business_account?.id ===
-        identity.instagramAccountId,
-  );
+  const pages = await readMetaPages(http, apiBaseUrl, userAccessToken);
+  const page = pages.find((candidate) => candidate.id === identity.pageId);
   if (!page?.id || !page.access_token)
     throw new BadRequestException(
       'The selected account has no authorized Facebook Page token. Reconnect it and grant pages_show_list and the required messaging or Page permissions.',
