@@ -4,6 +4,7 @@ import type { ContentOptimizationService } from '@api/services/content-optimizat
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentRunStatus } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createdAt = new Date('2026-05-03T10:00:00.000Z');
@@ -262,6 +263,21 @@ describe('ContentRunRecommendationsService', () => {
       NotFoundException,
     );
     expect(contentPerformance.findMany).not.toHaveBeenCalled();
+    expect(contentRun.update).not.toHaveBeenCalled();
+  });
+
+  it('refuses to write recommendations onto a storyboard run', async () => {
+    contentRun.findFirst.mockResolvedValue({
+      config: runConfig,
+      contract: 'storyboard-run',
+      createdAt,
+      id: 'run-1',
+      status: ContentRunStatus.COMPLETED,
+    });
+
+    await expect(service.analyzeRun('org-1', 'run-1')).rejects.toThrow(
+      ConflictException,
+    );
     expect(contentRun.update).not.toHaveBeenCalled();
   });
 });

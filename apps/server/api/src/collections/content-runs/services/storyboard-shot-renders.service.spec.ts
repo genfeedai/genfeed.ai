@@ -323,15 +323,22 @@ describe('StoryboardShotRendersService quote', () => {
 
   it('prices each shot with as many references as it sends', async () => {
     const context = setup();
-    await context.service.quote('org-1', 'brand-1', 'run-1', {
+    context.estimate.estimate.mockImplementation(
+      async ({ modelKey, referenceUrls }: Record<string, unknown>) => ({
+        isAvailable: true,
+        credits: (referenceUrls as string[] | undefined)?.length ?? 0,
+        modelKey,
+      }),
+    );
+    const quote = await context.service.quote('org-1', 'brand-1', 'run-1', {
       expectedRevision: 7,
       stage: 'draft',
     });
-    expect(
-      context.estimate.estimate.mock.calls.map(
-        ([input]) => (input.referenceUrls as string[] | undefined)?.length,
-      ),
-    ).toEqual([4, 3]);
+    expect(quote.items).toEqual([
+      { shotId: 'shot-1', credits: 4, durationSeconds: 4 },
+      { shotId: 'shot-2', credits: 3, durationSeconds: 4 },
+    ]);
+    expect(quote.total).toBe(7);
   });
 
   it('refuses a long-form storyboard', async () => {
@@ -365,6 +372,16 @@ describe('StoryboardShotRendersService render', () => {
         text: 'Mia sprints down a wet alley. Keep every person consistent with the reference images. Visual style: Handheld 35mm.',
       }),
     ]);
+  });
+
+  it('keeps identity when the speaker avatar is the only cast reference', async () => {
+    const config = approvedConfig();
+    config.plan.cast[0].referenceAssetIds = [];
+    const context = setup(config);
+    await render(context, 'draft', ['shot-1']);
+    expect(context.dispatched[0]?.text).toBe(
+      'Mia sprints down a wet alley. Keep every person consistent with the reference images. Visual style: Handheld 35mm.',
+    );
   });
 
   it('shows a rendered draft on the run and charges it once', async () => {

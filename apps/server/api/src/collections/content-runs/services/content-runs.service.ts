@@ -1,5 +1,6 @@
 import type { CreateContentRunBriefDto } from '@api/collections/content-runs/dto/create-content-run-brief.dto';
 import {
+  assertNotStoryboardRun,
   hydrateContentRun,
   hydrateContentRuns,
   isContentRunRecord,
@@ -12,7 +13,6 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { ContentRunSource, ContentRunStatus } from '@genfeedai/contracts';
-import { STORYBOARD_RUN_CONTRACT } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type {
   ContentRunBrief,
   ContentRunPublishContext,
@@ -22,18 +22,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
-import { ConflictException, Injectable } from '@nestjs/common';
-
-/**
- * Storyboard runs hold paid render journals that change only through their
- * own compare-and-set routes; a generic config write could erase a hold.
- */
-function assertNotStoryboardRun(run: { contract: string | null }): void {
-  if (run.contract === STORYBOARD_RUN_CONTRACT)
-    throw new ConflictException(
-      'Storyboard runs change only through the storyboard routes.',
-    );
-}
+import { Injectable } from '@nestjs/common';
 
 @Traced()
 @Injectable()

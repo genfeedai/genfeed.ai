@@ -73,8 +73,11 @@ export function shotRenderLine(
   const promptFor = (referenceAssetIds: readonly string[]) =>
     storyboardShotRenderPrompt(plan, shot, {
       isAudioEnabled: model.audio.isEnabled,
+      // The on-screen speaker's avatar is a cast reference too.
       hasCastReferences: cast.some((member) =>
-        member.referenceAssetIds.some((id) => referenceAssetIds.includes(id)),
+        [member.avatarAssetId, ...member.referenceAssetIds].some(
+          (id) => id !== undefined && referenceAssetIds.includes(id),
+        ),
       ),
     });
   if (

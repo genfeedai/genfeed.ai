@@ -6,6 +6,7 @@ import type {
   CreateContentRunInput,
   UpdateContentRunInput,
 } from '@genfeedai/contracts/interfaces';
+import { ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createdAt = new Date('2026-05-03T10:00:00.000Z');
@@ -343,9 +344,7 @@ describe('ContentRunsService', () => {
       makeRun({ contract: 'storyboard-run' }),
     );
 
-    await expect(write(service)).rejects.toThrow(
-      'Storyboard runs change only through the storyboard routes.',
-    );
+    await expect(write(service)).rejects.toBeInstanceOf(ConflictException);
     expect(contentRun.update).not.toHaveBeenCalled();
   });
 
