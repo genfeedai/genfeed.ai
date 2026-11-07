@@ -2,6 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { ContentLearningController } from '@api/collections/content-learning/controllers/content-learning.controller';
 import type { LearningAccountService } from '@api/collections/content-learning/services/learning-account.service';
 import type { LearningOperationService } from '@api/collections/content-learning/services/learning-operation.service';
+import { LearningReadService } from '@api/collections/content-learning/services/learning-read.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
@@ -116,7 +117,10 @@ function buildController(data: Tables) {
   return new ContentLearningController(
     accounts as unknown as LearningAccountService,
     operations as unknown as LearningOperationService,
-    prisma as unknown as PrismaService,
+    new LearningReadService(
+      prisma as unknown as PrismaService,
+      accounts as unknown as LearningAccountService,
+    ),
   );
 }
 

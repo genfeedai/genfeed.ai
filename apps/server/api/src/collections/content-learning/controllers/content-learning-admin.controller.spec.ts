@@ -1,5 +1,6 @@
 import { ContentLearningAdminController } from '@api/collections/content-learning/controllers/content-learning-admin.controller';
 import type { LearningPromptSlotOutcomeService } from '@api/collections/content-learning/services/learning-prompt-slot-outcome.service';
+import { LearningReadService } from '@api/collections/content-learning/services/learning-read.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
@@ -79,7 +80,7 @@ function makeController(
     {} as never,
     {} as never,
     {} as never,
-    prisma as unknown as PrismaService,
+    new LearningReadService(prisma as unknown as PrismaService, {} as never),
     slotOutcomes as LearningPromptSlotOutcomeService,
   );
 }

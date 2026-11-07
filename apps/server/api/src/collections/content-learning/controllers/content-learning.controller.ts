@@ -8,7 +8,7 @@ import { LearningEligibilityDto } from '@api/collections/content-learning/dto/le
 import { LearningQueryDto } from '@api/collections/content-learning/dto/learning-query.dto';
 import { LearningAccountService } from '@api/collections/content-learning/services/learning-account.service';
 import { LearningOperationService } from '@api/collections/content-learning/services/learning-operation.service';
-import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { LearningReadService } from '@api/collections/content-learning/services/learning-read.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -17,7 +17,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/contracts';
 import {
   ContentLearningAccountSerializer,
@@ -53,7 +52,7 @@ export class ContentLearningController {
   constructor(
     private readonly accounts: LearningAccountService,
     private readonly operations: LearningOperationService,
-    private readonly prisma: PrismaService,
+    private readonly reads: LearningReadService,
   ) {}
   private async actor(user: AuthenticatedUser) {
     const actor = {
@@ -99,18 +98,12 @@ export class ContentLearningController {
     @Query() query: LearningQueryDto,
   ) {
     const actor = await this.actor(user);
-    await this.accounts.credential(actor.organizationId, credentialId);
     return serializeCollection(request, ContentLearningEvidenceSerializer, {
-      docs: await this.prisma.contentLearningCheckpoint.findMany({
-        where: {
-          organizationId: actor.organizationId,
-          credentialId,
-          isDeleted: false,
-        },
-        take: query.limit,
-        skip: (query.page - 1) * query.limit,
-        orderBy: { receivedAt: 'desc' },
-      }),
+      docs: await this.reads.evidence(
+        actor.organizationId,
+        credentialId,
+        query,
+      ),
     });
   }
   @TenantReadPolicy('owner')
@@ -121,12 +114,11 @@ export class ContentLearningController {
     @Param('id') id: string,
   ) {
     const actor = await this.actor(user);
-    const row = await this.prisma.contentLearningDecision.findFirst({
-      where: { id, organizationId: actor.organizationId, isDeleted: false },
-    });
-    if (!row) throw new NotFoundException('Decision not found');
-    await this.accounts.credential(actor.organizationId, row.credentialId);
-    return serializeSingle(request, ContentLearningEvidenceSerializer, row);
+    return serializeSingle(
+      request,
+      ContentLearningEvidenceSerializer,
+      await this.reads.decision(actor.organizationId, id),
+    );
   }
   /** The learning decision that generated, or was bound to, a post. */
   @TenantReadPolicy('owner')
@@ -137,36 +129,11 @@ export class ContentLearningController {
     @Param('postId') postId: string,
   ) {
     const actor = await this.actor(user);
-    const post = await this.prisma.post.findFirst({
-      where: {
-        id: postId,
-        organizationId: actor.organizationId,
-        isDeleted: false,
-      },
-      select: {
-        id: true,
-        brandId: true,
-        credentialId: true,
-        learningDecisionId: true,
-      },
-    });
-    if (!post?.credentialId) throw new NotFoundException('Decision not found');
-    await this.accounts.credential(actor.organizationId, post.credentialId);
-    const rows = await this.prisma.contentLearningDecision.findMany({
-      where: {
-        organizationId: actor.organizationId,
-        brandId: post.brandId,
-        credentialId: post.credentialId,
-        isDeleted: false,
-        OR: [
-          { generationId: post.id },
-          ...(post.learningDecisionId ? [{ id: post.learningDecisionId }] : []),
-        ],
-      },
-      take: 2,
-    });
-    if (rows.length !== 1) throw new NotFoundException('Decision not found');
-    return serializeSingle(request, ContentLearningEvidenceSerializer, rows[0]);
+    return serializeSingle(
+      request,
+      ContentLearningEvidenceSerializer,
+      await this.reads.postDecision(actor.organizationId, postId),
+    );
   }
   @TenantReadPolicy('owner')
   @Get('policies/:id')
@@ -176,12 +143,11 @@ export class ContentLearningController {
     @Param('id') id: string,
   ) {
     const actor = await this.actor(user);
-    const row = await this.prisma.contentLearningPolicyVersion.findFirst({
-      where: { id, organizationId: actor.organizationId, isDeleted: false },
-    });
-    if (!row) throw new NotFoundException('Policy not found');
-    await this.accounts.credential(actor.organizationId, row.credentialId);
-    return serializeSingle(request, ContentLearningPolicySerializer, row);
+    return serializeSingle(
+      request,
+      ContentLearningPolicySerializer,
+      await this.reads.policy(actor.organizationId, id),
+    );
   }
   @Post('accounts/:credentialId/control')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)

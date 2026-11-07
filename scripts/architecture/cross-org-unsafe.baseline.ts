@@ -301,13 +301,13 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin content-learning account inventory and health.
     {
       file: 'apps/server/api/src/collections/content-learning/controllers/content-learning-admin.controller.ts',
-      line: 92,
+      line: 77,
     },
     // #8168: superadmin prompt slot outcome report reads the organizations
     // named in the query, one organizationId-scoped query per organization.
     {
       file: 'apps/server/api/src/collections/content-learning/controllers/content-learning-admin.controller.ts',
-      line: 186,
+      line: 123,
     },
     // #6120: platform emergency pause locates any organization's learning
     // account.
