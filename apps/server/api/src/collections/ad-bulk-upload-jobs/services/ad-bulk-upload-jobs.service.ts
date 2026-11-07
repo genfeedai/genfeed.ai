@@ -10,14 +10,11 @@ import {
 } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { Prisma } from '@genfeedai/prisma';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { getTenantContext } from '@libs/prisma/tenant-context';
 import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Inject, Injectable } from '@nestjs/common';
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 function isBulkUploadStatus(value: unknown): value is BulkUploadStatus {
   return (
@@ -52,12 +49,12 @@ export class AdBulkUploadJobsService {
   private normalizeJob(
     record: Record<string, unknown>,
   ): AdBulkUploadJobDocument {
-    const data = isPlainObject(record.data) ? record.data : {};
+    const data = isRecord(record.data) ? record.data : {};
     const merged = { ...record, ...data };
     const uploadErrors = Array.isArray(merged.uploadErrors)
       ? merged.uploadErrors.flatMap((entry) => {
           if (
-            !isPlainObject(entry) ||
+            !isRecord(entry) ||
             typeof entry.message !== 'string' ||
             typeof entry.permutationIndex !== 'number'
           ) {
