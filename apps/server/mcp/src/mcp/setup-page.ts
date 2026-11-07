@@ -21,6 +21,7 @@ import {
   OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH,
   resolveMcpResourceIdentifier,
 } from '@genfeedai/helpers/integrations/mcp-resource.helper';
+import { escapeHtml } from '@genfeedai/helpers/security/escape-html.helper';
 import { staticSurfaceFontCss } from '@genfeedai/ui/static/font';
 import {
   staticSurfaceClassNames,
@@ -34,11 +35,7 @@ import {
 } from './server-identity';
 
 const TRAILING_SLASHES_PATTERN = /\/+$/;
-const AMPERSANDS_PATTERN = /&/g;
 const LESS_THAN_SIGNS_PATTERN = /</g;
-const GREATER_THAN_SIGNS_PATTERN = />/g;
-const DOUBLE_QUOTES_PATTERN = /"/g;
-const SINGLE_QUOTES_PATTERN = /'/g;
 const TRAILING_SLASH_PATTERN = /\/$/;
 const LINE_SEPARATORS_PATTERN = /\u2028/g;
 const PARAGRAPH_SEPARATORS_PATTERN = /\u2029/g;
@@ -130,15 +127,6 @@ export function resolveSetupPageTab(pathname: string): SetupTabId | null {
     return DEFAULT_SETUP_TAB_ID;
   }
   return SETUP_TABS.find((tab) => tab.path === path)?.id ?? null;
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(AMPERSANDS_PATTERN, '&amp;')
-    .replace(LESS_THAN_SIGNS_PATTERN, '&lt;')
-    .replace(GREATER_THAN_SIGNS_PATTERN, '&gt;')
-    .replace(DOUBLE_QUOTES_PATTERN, '&quot;')
-    .replace(SINGLE_QUOTES_PATTERN, '&#39;');
 }
 
 function trimTrailingSlash(value: string): string {

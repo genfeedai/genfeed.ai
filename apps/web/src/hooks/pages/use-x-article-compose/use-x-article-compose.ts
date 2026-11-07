@@ -2,6 +2,7 @@
 
 import type { IXArticleMetadata } from '@genfeedai/contracts/interfaces';
 import { sanitizeHtml } from '@genfeedai/helpers';
+import { escapeHtml } from '@genfeedai/helpers/security/escape-html.helper';
 import type { Article } from '@genfeedai/models/content/article.model';
 import type { GenerateArticlesRequest } from '@genfeedai/services/content/articles.service';
 import { ArticlesService } from '@genfeedai/services/content/articles.service';
@@ -12,11 +13,6 @@ import { downloadUrl } from '@helpers/media/download/download.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCallback, useState } from 'react';
 
-const AMPERSANDS_PATTERN = /&/g;
-const LESS_THAN_SIGNS_PATTERN = /</g;
-const GREATER_THAN_SIGNS_PATTERN = />/g;
-const DOUBLE_QUOTES_PATTERN = /"/g;
-const SINGLE_QUOTES_PATTERN = /'/g;
 const HTML_TAGS_PATTERN = /<[^>]*>/g;
 
 export type XArticlePhase = 'idle' | 'generating' | 'generated' | 'error';
@@ -32,15 +28,6 @@ export interface UseXArticleComposeReturn {
   handleCopyFullArticle: () => void;
   handleDownloadImage: (url: string, filename: string) => void;
   handleGenerateHeaderImage: () => Promise<void>;
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(AMPERSANDS_PATTERN, '&amp;')
-    .replace(LESS_THAN_SIGNS_PATTERN, '&lt;')
-    .replace(GREATER_THAN_SIGNS_PATTERN, '&gt;')
-    .replace(DOUBLE_QUOTES_PATTERN, '&quot;')
-    .replace(SINGLE_QUOTES_PATTERN, '&#039;');
 }
 
 function buildXArticleClipboardPayload(

@@ -1,6 +1,5 @@
-const AMPERSANDS_PATTERN = /&/g;
-const LESS_THAN_SIGNS_PATTERN = /</g;
-const GREATER_THAN_SIGNS_PATTERN = />/g;
+import { escapeHtmlText } from '@genfeedai/helpers/security/escape-html.helper';
+
 const AMP_ENTITIES_PATTERN = /&amp;/g;
 const LT_ENTITIES_PATTERN = /&lt;/g;
 const GT_ENTITIES_PATTERN = /&gt;/g;
@@ -15,13 +14,6 @@ const HTML_TAGS_PATTERN = /<[^>]+>/g;
  * etc.). `RichTextEditor` only speaks HTML. These helpers convert at the
  * view edge only — the service/API payload never sees HTML.
  */
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(AMPERSANDS_PATTERN, '&amp;')
-    .replace(LESS_THAN_SIGNS_PATTERN, '&lt;')
-    .replace(GREATER_THAN_SIGNS_PATTERN, '&gt;');
-}
 
 function decodeHtmlEntities(value: string): string {
   return value
@@ -50,7 +42,7 @@ export function harnessLinesToEditorHtml(
     return '';
   }
 
-  return trimmedLines.map((line) => `<p>${escapeHtml(line)}</p>`).join('');
+  return trimmedLines.map((line) => `<p>${escapeHtmlText(line)}</p>`).join('');
 }
 
 /**

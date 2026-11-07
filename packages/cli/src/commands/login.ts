@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import process from 'node:process';
+import { escapeHtml } from '@genfeedai/helpers/security/escape-html.helper';
 import { password, select } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
@@ -19,12 +20,6 @@ import {
 import { formatHeader, formatLabel, formatSuccess, formatWarning, print } from '@/ui/theme';
 import { openExternalUrl } from '@/utils/browser';
 import { ApiError, AuthError, GenfeedError, handleError } from '@/utils/errors';
-
-const AMPERSANDS_PATTERN = /&/g;
-const LESS_THAN_SIGNS_PATTERN = /</g;
-const GREATER_THAN_SIGNS_PATTERN = />/g;
-const DOUBLE_QUOTES_PATTERN = /"/g;
-const SINGLE_QUOTES_PATTERN = /'/g;
 
 const CALLBACK_TIMEOUT = 120_000; // 2 minutes
 
@@ -286,15 +281,6 @@ export async function waitForAdminSession(
   const exchange = await waitForOAuthExchange(endpoints, 'login', true);
   if (!exchange.session) throw new GenfeedError('No session returned by server');
   return exchange.session;
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(AMPERSANDS_PATTERN, '&amp;')
-    .replace(LESS_THAN_SIGNS_PATTERN, '&lt;')
-    .replace(GREATER_THAN_SIGNS_PATTERN, '&gt;')
-    .replace(DOUBLE_QUOTES_PATTERN, '&quot;')
-    .replace(SINGLE_QUOTES_PATTERN, '&#39;');
 }
 
 function callbackPage(title: string, message: string, success: boolean): string {
