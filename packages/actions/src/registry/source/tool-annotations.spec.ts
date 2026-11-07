@@ -542,6 +542,8 @@ const FROZEN_MCP_PRESENTATIONS = [
     true,
   ],
   ['get_posts', 'Get Posts', true, false, true, false],
+  ['get_preset', 'Get Preset', true, false, true, false],
+  ['get_presets', 'Get Presets', true, false, true, false],
   ['get_remix_run', 'Get Remix Run', false, true, true, false],
   ['get_scheduled_release', 'Get Scheduled Release', true, false, true, false],
   [
@@ -927,7 +929,7 @@ describe('MCP tool annotations', () => {
         tool?.annotations?.openWorldHint,
       ]).toEqual(row);
     }
-    expect(rows).toHaveLength(161);
+    expect(rows).toHaveLength(163);
     expect(rows.map((row) => row[0])).toEqual(expected.map((row) => row[0]));
     expect(rows).toEqual(expected);
   });

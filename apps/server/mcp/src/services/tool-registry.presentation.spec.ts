@@ -109,6 +109,7 @@ describe('MCP catalog presentation through the public registry', () => {
       if (tool.name === 'update_remix_concept')
         args.edits = { output: { count: 2 } };
       if (tool.name === 'onboard_brand') args.action = 'complete';
+      if (tool.name === 'get_preset') args.key = 'productLaunch';
       if (tool.name === 'create_clipper_project_from_youtube')
         args.brandId = 'input-private';
       if (tool.name === 'run_clipper') args.mode = 'raw-cut';
