@@ -4,6 +4,7 @@ import {
   invalidateLearningDependencySource,
   LearningDependencyService,
 } from '@api/collections/content-learning/services/learning-dependency.service';
+import { LearningReadService } from '@api/collections/content-learning/services/learning-read.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
@@ -152,9 +153,12 @@ describe('content-learning cross-organization paths (CLOUD tenant guard)', () =>
       {} as never,
       {} as never,
       {} as never,
-      {
-        contentLearningAccount: { count, findMany },
-      } as unknown as PrismaService,
+      new LearningReadService(
+        {
+          contentLearningAccount: { count, findMany },
+        } as unknown as PrismaService,
+        {} as never,
+      ),
       {} as never,
     );
 

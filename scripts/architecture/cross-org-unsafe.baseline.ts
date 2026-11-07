@@ -298,16 +298,16 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
       file: 'apps/server/api/src/collections/brands/services/brand-tenant-scope.util.ts',
       line: 17,
     },
-    // #6120: superadmin content-learning account inventory and health.
-    {
-      file: 'apps/server/api/src/collections/content-learning/controllers/content-learning-admin.controller.ts',
-      line: 92,
-    },
     // #8168: superadmin prompt slot outcome report reads the organizations
     // named in the query, one organizationId-scoped query per organization.
     {
       file: 'apps/server/api/src/collections/content-learning/controllers/content-learning-admin.controller.ts',
-      line: 186,
+      line: 122,
+    },
+    // #6120: superadmin content-learning account inventory and health.
+    {
+      file: 'apps/server/api/src/collections/content-learning/services/learning-read.service.ts',
+      line: 97,
     },
     // #6120: platform emergency pause locates any organization's learning
     // account.
