@@ -12,7 +12,6 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { ReferralsService } from '@services/billing/referrals.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
@@ -100,7 +99,6 @@ export default function SettingsReferralsPage() {
       return;
     }
     await ClipboardService.getInstance().copyToClipboard(shareUrl);
-    NotificationsService.getInstance().success(translate('copied'));
   };
 
   return (
