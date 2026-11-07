@@ -21,6 +21,7 @@ import type {
 } from '@genfeedai/contracts/api-types/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { assertSafeSegment } from '@libs/security';
+import { createBadRequest } from '@libs/utils/error/create-bad-request.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import sharp from 'sharp';
@@ -35,8 +36,6 @@ const SOURCE_EXTENSION: Record<MediaReadinessKind, string> = {
   image: '.png',
   video: '.mp4',
 };
-
-const createBadRequest = (message: string) => new BadRequestException(message);
 
 type SampledFrames = {
   diagnostics: MediaPerceptionDiagnostic[];

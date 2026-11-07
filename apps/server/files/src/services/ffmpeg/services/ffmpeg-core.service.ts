@@ -11,13 +11,12 @@ import {
 } from '@files/shared/interfaces/ffmpeg.interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { assertSafeSegment, resolveContainedPath } from '@libs/security';
+import { createBadRequest } from '@libs/utils/error/create-bad-request.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 
 const FFMPEG_PROGRESS_PATTERN =
   /frame=\s*(\d+)\s+fps=\s*([\d.]+).*?q=\s*([\d.-]+).*?size=\s*(\w+).*?time=\s*([\d:.]+).*?bitrate=\s*([\d.]+\w+\/s).*?speed=\s*([\d.]+x)/;
-
-const createBadRequest = (message: string) => new BadRequestException(message);
 
 const DEFAULT_FFMPEG_MAX_CONCURRENCY = 4;
 const FFMPEG_CAPTURE_TIMEOUT_MS = 5 * 60 * 1000;

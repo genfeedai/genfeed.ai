@@ -51,9 +51,9 @@ import {
 import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { resolveContainedPath } from '@libs/security';
+import { createBadRequest } from '@libs/utils/error/create-bad-request.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
-  BadRequestException,
   Body,
   Controller,
   HttpException,
@@ -70,7 +70,6 @@ import { diskStorage } from 'multer';
 
 const LARGE_MEDIA_BYTES = 1 * 1024 * 1024;
 const IMAGE_UPLOAD_TMP_ROOT = path.join(tmpdir(), 'genfeed-image-uploads');
-const createBadRequest = (message: string) => new BadRequestException(message);
 
 function imageUploadDiskStorage() {
   return diskStorage({

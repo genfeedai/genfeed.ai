@@ -21,8 +21,9 @@ import {
 } from '@libs/security';
 import { safeFetch } from '@libs/security/destination-guard';
 import { assertStoredObjectKey } from '@libs/security/stored-object-key';
+import { createBadRequest } from '@libs/utils/error/create-bad-request.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 const HTTP_STATUS_CODE_PATTERN = /:\s(\d+)/;
 
@@ -33,7 +34,6 @@ interface S3Error extends Error {
   statusCode?: number;
 }
 
-const createBadRequest = (message: string) => new BadRequestException(message);
 const MAX_DOWNLOAD_ERROR_BYTES = 64 * 1024;
 const DOWNLOAD_ERROR_BODY_TIMEOUT_MS = 10_000;
 

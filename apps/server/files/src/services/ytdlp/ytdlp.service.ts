@@ -6,11 +6,10 @@ import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { YT_DLP_PROCESS_TIMEOUT_MS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { resolveContainedPath } from '@libs/security';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { createBadRequest } from '@libs/utils/error/create-bad-request.util';
+import { Injectable } from '@nestjs/common';
 
 const YTDLP_ERROR_PREFIX_PATTERN = /^ERROR:/i;
-
-const createBadRequest = (message: string) => new BadRequestException(message);
 
 const YT_DLP_STDERR_TAIL_CHARS = 4000;
 

@@ -25,6 +25,7 @@ import {
   safeFetch,
 } from '@libs/security/destination-guard';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { createBadRequest } from '@libs/utils/error/create-bad-request.util';
 import {
   BadRequestException,
   HttpException,
@@ -69,7 +70,6 @@ type ProcessedUpload = PreparedUpload & {
   imageProcessingDuration: number;
 };
 
-const createBadRequest = (message: string) => new BadRequestException(message);
 const CDN_ROOT_UPLOAD_TYPES = new Set(['banners', 'logos', 'references']);
 const REMOTE_DOWNLOAD_MAX_BYTES = 200 * 1024 * 1024;
 const REMOTE_DOWNLOAD_IDLE_TIMEOUT_MS = 60_000;
