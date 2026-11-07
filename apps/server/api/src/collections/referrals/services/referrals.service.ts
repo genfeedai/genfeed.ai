@@ -1,6 +1,7 @@
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { buildReferralRewardOrderBy } from '@api/collections/referrals/utils/referral-reward-order.util';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import {
   billingAccountScopedWhere,
@@ -45,7 +46,6 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 
@@ -260,7 +260,7 @@ export class ReferralsService {
         })
       : null;
     if (input.brandId && !brand) {
-      throw new NotFoundException('Brand not found in this organization.');
+      throw new NotFoundException('Brand', input.brandId);
     }
 
     const requested = input.code?.trim() ? input.code : brand?.slug;
@@ -341,7 +341,7 @@ export class ReferralsService {
       where: { ...this.ownedCodesWhere(actor, account.id), id: codeId },
     });
     if (!code) {
-      throw new NotFoundException('Affiliate code not found.');
+      throw new NotFoundException('Affiliate code', codeId);
     }
     if (code.isPrimary && !isActive) {
       throw new BadRequestException(

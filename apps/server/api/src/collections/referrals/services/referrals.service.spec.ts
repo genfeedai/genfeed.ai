@@ -1,6 +1,7 @@
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -16,11 +17,7 @@ import {
   assertTenantScopedQuery,
   TenantIsolationError,
 } from '@libs/prisma/tenant-guard';
-import {
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const configMock = vi.hoisted(() => ({ organizationBilling: true }));
@@ -853,6 +850,7 @@ describe('ReferralsService', () => {
           status: ReferralRewardStatus.GRANTED,
         },
       ]);
+      prisma.referralReward.findMany.mockResolvedValue([]);
 
       const result = await service.getMine(ACTOR);
 
@@ -995,7 +993,7 @@ describe('ReferralsService', () => {
       ).resolves.toEqual({ id: 'code_2', isActive: false });
     });
 
-    it('does not find another member\'s code', async () => {
+    it("does not find another member's code", async () => {
       prisma.referralCode.findFirst.mockResolvedValue(null);
 
       await expect(

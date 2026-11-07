@@ -4,7 +4,7 @@ import { ButtonVariant, CardGap, CardPadding } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { Field } from '@ui/primitives/field';
+import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import {
@@ -136,7 +136,9 @@ export default function ReferralCodesCard({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={NO_BRAND}>{translate('codes.noBrand')}</SelectItem>
+              <SelectItem value={NO_BRAND}>
+                {translate('codes.noBrand')}
+              </SelectItem>
               {brands.map((brand) => (
                 <SelectItem key={brand.id} value={brand.id}>
                   {brand.label}

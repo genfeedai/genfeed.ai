@@ -2564,7 +2564,6 @@
   },
   "referrals": {
     "adminLoadErrorDescription": "Financial reward records could not be loaded. No empty audit result is shown until the request succeeds.",
-    "copied": "Affiliate link copied",
     "codes": {
       "activeLabel": "Accept sign-ups through {code}",
       "add": "Add code",

@@ -14,7 +14,6 @@ vi.mock('next-intl', async () => {
 
 const {
   brandState,
-  copyMock,
   createCodeMock,
   errorMock,
   getMineMock,
@@ -26,7 +25,6 @@ const {
     brands: [{ id: 'brand_1', label: 'Shayla', slug: 'itsshaylamonroe' }],
     organizationId: 'org_1',
   },
-  copyMock: vi.fn(),
   createCodeMock: vi.fn(),
   errorMock: vi.fn(),
   getMineMock: vi.fn(),
@@ -53,10 +51,6 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     getMine: getMineMock,
     setCodeActive: setCodeActiveMock,
   }),
-}));
-
-vi.mock('@services/core/clipboard.service', () => ({
-  ClipboardService: { getInstance: () => ({ copyToClipboard: copyMock }) },
 }));
 
 vi.mock('@services/core/notifications.service', () => ({
@@ -161,12 +155,49 @@ describe('SettingsReferralsPage', () => {
     expect(screen.getByText('Granted')).toBeInTheDocument();
     expect(screen.getByText('Reversed')).toBeInTheDocument();
 
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+
     fireEvent.click(screen.getByRole('button', { name: 'Copy link' }));
 
     await waitFor(() => {
-      expect(copyMock).toHaveBeenCalledWith(expectedShareUrl);
+      expect(writeText).toHaveBeenCalledWith(expectedShareUrl);
+      expect(successMock).toHaveBeenCalledTimes(1);
     });
-    expect(successMock).toHaveBeenCalledWith('Affiliate link copied');
+    // The clipboard service owns the one toast; the page adds none.
+    expect(successMock).toHaveBeenCalledWith('Copied to clipboard');
+    expect(errorMock).not.toHaveBeenCalled();
+  });
+
+  it('shows only the failure toast when the copy fails', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SettingsReferralsPage />
+      </QueryClientProvider>,
+    );
+    await screen.findByLabelText('Affiliate link');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Copy link' })).toBeEnabled();
+    });
+
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
+    });
+    document.execCommand = vi.fn().mockReturnValue(false);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy link' }));
+
+    await waitFor(() => {
+      expect(errorMock).toHaveBeenCalledWith('Copy to clipboard failed');
+    });
+    expect(successMock).not.toHaveBeenCalled();
   });
 
   it('shows a recoverable error instead of zero financial data', async () => {

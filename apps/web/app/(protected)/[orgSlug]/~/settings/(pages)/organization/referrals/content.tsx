@@ -104,7 +104,6 @@ export default function SettingsReferralsPage() {
       return;
     }
     await ClipboardService.getInstance().copyToClipboard(shareUrl);
-    NotificationsService.getInstance().success(translate('copied'));
   };
 
   const createCode = async (input: { brandId?: string; code?: string }) => {
