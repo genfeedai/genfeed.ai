@@ -85,6 +85,26 @@ describe('storyboard MCP tools', () => {
     });
   });
 
+  it('keeps the realistic video flow quoted for chat and MCP: free edits and a hash-bound stage', () => {
+    expect(getToolByName('storyboard_video')).toMatchObject({
+      creditCost: 0,
+      mutationPolicy: 'direct',
+      surfaces: { agent: true, mcp: true },
+      toolset: 'inspiration',
+    });
+    expect(getToolByName('start_storyboard_video')).toMatchObject({
+      creditCost: 0,
+      creditPricing: { mode: 'quote', quoteTool: 'storyboard_video' },
+      mutationPolicy: 'direct',
+      toolset: 'inspiration',
+    });
+    expect(getToolByName('start_storyboard_video')?.annotations).toMatchObject({
+      destructiveHint: true,
+      openWorldHint: true,
+      readOnlyHint: false,
+    });
+  });
+
   it('creates an uploaded-video storyboard run and replaces one shot', async () => {
     const createStoryboardRemix = vi.fn(async () => ({ id: 'run-1' }));
     const replaceStoryboardCharacter = vi.fn(async () => ({

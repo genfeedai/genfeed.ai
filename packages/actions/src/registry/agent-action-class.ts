@@ -70,6 +70,8 @@ const CREDIT_SPENDING_TOOL_NAMES = new Set<string>([
   'start_storyboard_long_form',
   // Starts the quoted slide images; chat approves it outside Auto mode.
   'start_storyboard_slideshow',
+  // Starts one quoted realistic video stage; chat approves it outside Auto mode.
+  'start_storyboard_video',
 ]);
 
 /**

@@ -52,7 +52,8 @@ const FOOTAGE_CATEGORIES = [
 ] as const;
 const READY_STATUSES = new Set(['GENERATED', 'VALIDATED', 'UPLOADED']);
 
-const SETTINGS: Record<
+/** Editor frame settings for each video shape. */
+export const STORYBOARD_EDIT_SETTINGS: Record<
   StoryboardVideoFormat,
   Pick<IEditorProjectSettings, 'format' | 'width' | 'height'>
 > = {
@@ -88,7 +89,7 @@ function captionTrack(
   format: StoryboardVideoFormat,
   totalDurationFrames: number,
 ): IEditorTrack {
-  const { width, height } = SETTINGS[format];
+  const { width, height } = STORYBOARD_EDIT_SETTINGS[format];
   const lineCharacters = CAPTION_LINE_CHARACTERS[format];
   const clips = buildLongFormCaptions(chunks, lineCharacters * 2).map(
     (caption): IEditorClip => {
@@ -258,7 +259,7 @@ export class StoryboardLongFormAssemblyService {
       config: {
         name: `${plan.title || 'Long-form video'}${isDraft ? ' (animatic)' : ''}`,
         settings: {
-          ...SETTINGS[storyboardVideoFormat(plan)],
+          ...STORYBOARD_EDIT_SETTINGS[storyboardVideoFormat(plan)],
           backgroundColor: '#000000',
           fps: LONG_FORM_EDIT_FPS,
         },
