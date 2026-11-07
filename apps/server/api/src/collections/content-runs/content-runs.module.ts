@@ -4,6 +4,7 @@ import { ContentIntelligenceModule } from '@api/collections/content-intelligence
 import { BrandRemixGenerationController } from '@api/collections/content-runs/controllers/brand-remix-generation.controller';
 import { ContentRunsController } from '@api/collections/content-runs/controllers/content-runs.controller';
 import { StoryboardRunsController } from '@api/collections/content-runs/controllers/storyboard-runs.controller';
+import { StoryboardShotRendersController } from '@api/collections/content-runs/controllers/storyboard-shot-renders.controller';
 import { BrandRemixGenerationService } from '@api/collections/content-runs/services/brand-remix-generation.service';
 import { BrandRemixPersonaResolutionService } from '@api/collections/content-runs/services/brand-remix-persona-resolution.service';
 import { BrandRemixRunExecutionService } from '@api/collections/content-runs/services/brand-remix-run-execution.service';
@@ -43,6 +44,7 @@ import { StoryboardPlanDraftService } from '@api/collections/content-runs/servic
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
+import { StoryboardShotRendersService } from '@api/collections/content-runs/services/storyboard-shot-renders.service';
 import { StoryboardSlideshowPostService } from '@api/collections/content-runs/services/storyboard-slideshow-post.service';
 import { StoryboardSourceService } from '@api/collections/content-runs/services/storyboard-source.service';
 import { StoryboardStillsService } from '@api/collections/content-runs/services/storyboard-stills.service';
@@ -81,12 +83,14 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [
     StoryboardRunsController,
+    StoryboardShotRendersController,
     BrandRemixGenerationController,
     ContentRunsController,
   ],
   exports: [
     StoryboardRunsService,
     StoryboardStillsService,
+    StoryboardShotRendersService,
     StoryboardARollService,
     StoryboardLongFormAssemblyService,
     StoryboardLongFormEstimateService,
@@ -138,6 +142,7 @@ import { Module } from '@nestjs/common';
     StoryboardRunStoreService,
     StoryboardSourceService,
     StoryboardStillsService,
+    StoryboardShotRendersService,
     StoryboardARollService,
     StoryboardAnimaticVoiceService,
     StoryboardLongFormAssemblyService,

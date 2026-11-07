@@ -15,6 +15,7 @@ import {
   type StoryboardShot,
   storyboardPlanSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import type { StoryboardShotRenderStage } from '@genfeedai/contracts/api-types/contracts/storyboard-shot-render.contract';
 import { NotificationsService } from '@services/core/notifications.service';
 import Container from '@ui/layout/container/Container';
 import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
@@ -40,6 +41,7 @@ import StoryboardRuntimeRail from '@/features/studio/storyboard/components/Story
 import StoryboardSaveIndicator from '@/features/studio/storyboard/components/StoryboardSaveIndicator';
 import StoryboardShotCard from '@/features/studio/storyboard/components/StoryboardShotCard';
 import StoryboardShotJoint from '@/features/studio/storyboard/components/StoryboardShotJoint';
+import StoryboardShotRenders from '@/features/studio/storyboard/components/StoryboardShotRenders';
 import StoryboardSlideshowBoard from '@/features/studio/storyboard/components/StoryboardSlideshowBoard';
 import { useStoryboardAssets } from '@/features/studio/storyboard/hooks/use-storyboard-assets';
 import { useStoryboardAutosave } from '@/features/studio/storyboard/hooks/use-storyboard-autosave';
@@ -86,6 +88,7 @@ export default function StoryboardPlanEditor({
   generateStills,
   longForm,
   slideshow,
+  renders,
   capabilities,
   capabilityError,
   refreshCapabilities,
@@ -104,6 +107,7 @@ export default function StoryboardPlanEditor({
   const translateSlideshow = useTranslations(
     'pages.studioStoryboard.slideshow',
   );
+  const translateRenders = useTranslations('pages.studioStoryboard.renders');
   const { openConfirm } = useConfirmModal();
   const { openGallery } = useGalleryModal();
   const {
@@ -188,6 +192,7 @@ export default function StoryboardPlanEditor({
   const pipeline = run.config.scenePipeline;
   const finalVideoAssetId =
     pipeline?.state === 'ready' ? pipeline.assembly?.assetId : undefined;
+  const shotRenders = run.config.shotRenders ?? [];
   const assets = useStoryboardAssets(
     `${run.id}:${autosave.revision}`,
     run.brandId,
@@ -195,6 +200,11 @@ export default function StoryboardPlanEditor({
       ...(finalVideoAssetId
         ? [{ id: finalVideoAssetId, kind: 'video' as const }]
         : []),
+      ...shotRenders.flatMap((render) =>
+        render.state === 'ready' && render.assetId
+          ? [{ id: render.assetId, kind: 'video' as const }]
+          : [],
+      ),
       ...plan.shots.flatMap((shot) =>
         shot.stillAssetId
           ? [{ id: shot.stillAssetId, kind: 'image' as const }]
@@ -248,6 +258,12 @@ export default function StoryboardPlanEditor({
   const approved =
     autosave.status === 'saved' &&
     run.config.approvedRevision === autosave.revision;
+  const canRender =
+    approved &&
+    Boolean(renders) &&
+    !isLongForm &&
+    !isSlideshow &&
+    !run.config.scenePipeline;
   const segments = plan.longForm?.segments ?? [];
   const hasShots = plan.shots.length > 0 || segments.length > 0;
   const ranges = storyboardRuntimeRanges(plan.shots);
@@ -334,6 +350,47 @@ export default function StoryboardPlanEditor({
             : translate('stillQuoteMessage', { count, credits: quote.total }),
       );
       await generateStills(quote);
+    });
+  }
+  /**
+   * Prices the draft or final render of the given shots, or of every shot
+   * that needs one, and starts it once the person accepts the price.
+   */
+  function requestRenders(
+    stage: StoryboardShotRenderStage,
+    shotIds?: readonly string[],
+  ) {
+    if (!renders) return;
+    void perform(async (revision) => {
+      const quote = await renders.quote(revision, stage, shotIds);
+      const count = quote.items.length;
+      const model =
+        currentCapabilities?.eligibleModels.find(
+          (candidate) => candidate.key === quote.modelKey,
+        )?.label ?? quote.modelKey;
+      const isPromotion = quote.items.some(
+        (item) => item.promotedFromOperationId,
+      );
+      openConfirm({
+        isOpen: true,
+        label: translateRenders(
+          stage === 'draft' ? 'confirmDraft' : 'confirmFinal',
+        ),
+        message: [
+          quote.billingMode === 'byok'
+            ? translateRenders('quoteByok', { count, model })
+            : translateRenders('quoteMessage', {
+                count,
+                model,
+                credits: quote.total,
+              }),
+          isPromotion ? translateRenders('promoteNote') : '',
+        ]
+          .filter(Boolean)
+          .join(' '),
+        confirmLabel: translateRenders('confirm'),
+        onConfirm: () => perform(() => renders.start(quote)),
+      });
     });
   }
   function reset() {
@@ -731,6 +788,27 @@ export default function StoryboardPlanEditor({
                   {translate('durationUntilResolved')}
                 </p>
               ) : null}
+              {canRender ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="mr-auto text-xs text-muted-foreground">
+                    {translateRenders('help')}
+                  </p>
+                  <Button
+                    label={translateRenders('draftAll')}
+                    variant={ButtonVariant.SECONDARY}
+                    size={ButtonSize.SM}
+                    disabled={isDisabled}
+                    onClick={() => requestRenders('draft')}
+                  />
+                  <Button
+                    label={translateRenders('finalAll')}
+                    variant={ButtonVariant.SECONDARY}
+                    size={ButtonSize.SM}
+                    disabled={isDisabled}
+                    onClick={() => requestRenders('final')}
+                  />
+                </div>
+              ) : null}
               <div className="flex flex-col gap-3">
                 {plan.shots.map((shot, index) => {
                   const asset = shot.stillAssetId
@@ -782,6 +860,40 @@ export default function StoryboardPlanEditor({
                             : undefined
                         }
                         supportedDurations={supportedDurations}
+                        renders={
+                          canRender ? (
+                            <StoryboardShotRenders
+                              ordinal={shot.ordinal}
+                              draft={shotRenders.find(
+                                (render) =>
+                                  render.shotId === shot.id &&
+                                  render.stage === 'draft',
+                              )}
+                              final={shotRenders.find(
+                                (render) =>
+                                  render.shotId === shot.id &&
+                                  render.stage === 'final',
+                              )}
+                              videoUrls={Object.fromEntries(
+                                shotRenders.flatMap((render) =>
+                                  render.assetId
+                                    ? [
+                                        [
+                                          render.assetId,
+                                          assets[`video:${render.assetId}`]
+                                            ?.cdnUrl ?? undefined,
+                                        ],
+                                      ]
+                                    : [],
+                                ),
+                              )}
+                              isDisabled={isDisabled}
+                              onRender={(stage) =>
+                                requestRenders(stage, [shot.id])
+                              }
+                            />
+                          ) : undefined
+                        }
                       />
                       {next ? (
                         <StoryboardShotJoint

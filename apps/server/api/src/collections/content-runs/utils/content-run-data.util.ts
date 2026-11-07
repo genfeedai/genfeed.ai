@@ -1,4 +1,6 @@
+import { STORYBOARD_RUN_CONTRACT } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { Prisma } from '@genfeedai/prisma';
+import { ConflictException } from '@nestjs/common';
 
 export type ContentRunRecord = Record<string, unknown>;
 
@@ -44,4 +46,18 @@ export function hydrateContentRuns(
     const hydrated = hydrateContentRun(run);
     return hydrated ? [hydrated] : [];
   });
+}
+
+/**
+ * Storyboard runs hold paid render journals that change only through their
+ * own compare-and-set routes; a generic config write could erase a hold or
+ * add fields the strict storyboard schema rejects.
+ */
+export function assertNotStoryboardRun(run: {
+  contract?: string | null;
+}): void {
+  if (run.contract === STORYBOARD_RUN_CONTRACT)
+    throw new ConflictException(
+      'Storyboard runs change only through the storyboard routes.',
+    );
 }

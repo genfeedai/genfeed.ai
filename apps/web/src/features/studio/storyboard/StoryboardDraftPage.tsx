@@ -51,6 +51,7 @@ export default function StoryboardDraftPage({
   generateStills,
   longForm,
   slideshow,
+  renders,
 }: StoryboardDraftPageProps) {
   const translate = useTranslations('pages.studioStoryboard');
   const translateAction = useTranslations('ui.quickActions');
@@ -120,21 +121,39 @@ export default function StoryboardDraftPage({
     Boolean(saveSource) &&
     sourceAutosave.value.kind === 'brief' &&
     !run.config.scenePipeline;
+  // Without an imported scene pipeline the clips are the shots' final renders.
+  const finalRenders = (run.config.shotRenders ?? []).filter(
+    (render) => render.stage === 'final' && render.isCurrent,
+  );
+  const isSaved =
+    planStatus === 'saved' &&
+    sourceAutosave.status === 'saved' &&
+    Boolean(draft.queue) &&
+    run.config.revision === draft.snapshot?.revision;
   const editorSeed = getStoryboardEditorSeed({
-    isReady:
-      pipeline?.state === 'ready' &&
-      run.config.state === 'ready' &&
-      planStatus === 'saved' &&
-      sourceAutosave.status === 'saved' &&
-      Boolean(draft.queue) &&
-      run.config.revision === draft.snapshot?.revision,
+    isReady: pipeline
+      ? pipeline.state === 'ready' && run.config.state === 'ready' && isSaved
+      : isSaved &&
+        hasShots &&
+        (run.config.plan?.shots ?? []).every((shot) =>
+          finalRenders.some(
+            (render) => render.shotId === shot.id && render.state === 'ready',
+          ),
+        ),
     shotIds: (run.config.plan?.shots ?? []).map((shot) => shot.id),
-    videos: Object.fromEntries(
-      Object.entries(pipeline?.scenes ?? {}).map(([id, scene]) => [
-        id,
-        scene.video,
-      ]),
-    ),
+    videos: pipeline
+      ? Object.fromEntries(
+          Object.entries(pipeline.scenes).map(([id, scene]) => [
+            id,
+            scene.video,
+          ]),
+        )
+      : Object.fromEntries(
+          finalRenders.map((render) => [
+            render.shotId,
+            { state: render.state, assetId: render.assetId },
+          ]),
+        ),
     assembly: pipeline?.assembly
       ? { state: pipeline.state, assetId: pipeline.assembly.assetId }
       : undefined,
@@ -257,6 +276,7 @@ export default function StoryboardDraftPage({
       generateStills={generateStills}
       longForm={longForm}
       slideshow={slideshow}
+      renders={renders}
       capabilities={capabilities}
       capabilityError={capabilityError}
       refreshCapabilities={refreshCapabilities}

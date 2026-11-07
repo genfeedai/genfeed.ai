@@ -6,6 +6,7 @@ import type {
   CreateContentRunInput,
   UpdateContentRunInput,
 } from '@genfeedai/contracts/interfaces';
+import { ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createdAt = new Date('2026-05-03T10:00:00.000Z');
@@ -14,6 +15,7 @@ const updatedAt = new Date('2026-05-03T10:05:00.000Z');
 type ContentRunRecord = {
   brandId: string;
   config: Record<string, unknown> | null;
+  contract?: string | null;
   createdAt: Date;
   id: string;
   isDeleted: boolean;
@@ -293,7 +295,7 @@ describe('ContentRunsService', () => {
 
     expect(contentRun.findFirst).toHaveBeenCalledWith({
       where: { id: 'run-1', isDeleted: false, organizationId: 'org-1' },
-      select: { config: true },
+      select: { config: true, contract: true },
     });
     expect(contentRun.update).toHaveBeenCalledWith({
       data: {
@@ -327,6 +329,22 @@ describe('ContentRunsService', () => {
         status: ContentRunStatus.FAILED,
       }),
     ).rejects.toThrow(NotFoundException);
+    expect(contentRun.update).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      'patch',
+      (s: ContentRunsService) =>
+        s.patchRun('org-1', 'run-1', { status: ContentRunStatus.FAILED }),
+    ],
+    ['remix', (s: ContentRunsService) => s.createRemixPack('org-1', 'run-1')],
+  ])('refuses a generic %s of a storyboard run', async (_name, write) => {
+    contentRun.findFirst.mockResolvedValue(
+      makeRun({ contract: 'storyboard-run' }),
+    );
+
+    await expect(write(service)).rejects.toBeInstanceOf(ConflictException);
     expect(contentRun.update).not.toHaveBeenCalled();
   });
 

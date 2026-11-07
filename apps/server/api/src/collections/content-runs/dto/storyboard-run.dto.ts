@@ -178,6 +178,36 @@ export class GenerateStoryboardStillsDto extends ControlStoryboardRunDto {
   inputHash!: string;
 }
 
+export class QuoteStoryboardShotRendersDto extends ControlStoryboardRunDto {
+  @ApiProperty({ enum: ['draft', 'final'] })
+  @IsIn(['draft', 'final'])
+  stage!: 'draft' | 'final';
+
+  @ApiProperty({ maxItems: 12, minItems: 1, required: false, type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(12)
+  @IsString({ each: true })
+  shotIds?: string[];
+}
+export class StartStoryboardShotRendersDto extends ControlStoryboardRunDto {
+  @ApiProperty({ enum: ['draft', 'final'] })
+  @IsIn(['draft', 'final'])
+  stage!: 'draft' | 'final';
+
+  @ApiProperty({ maxItems: 12, minItems: 1, type: [String] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(12)
+  @IsString({ each: true })
+  shotIds!: string[];
+
+  @ApiProperty()
+  @IsString()
+  inputHash!: string;
+}
+
 export class QuoteStoryboardARollDto extends ControlStoryboardRunDto {}
 export class TranslateStoryboardRunDto extends ControlStoryboardRunDto {
   @ApiProperty({ format: 'uuid' })

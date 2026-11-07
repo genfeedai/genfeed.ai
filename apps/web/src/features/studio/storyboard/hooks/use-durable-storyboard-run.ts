@@ -12,6 +12,10 @@ import type {
   StoryboardRun,
   StoryboardTranslationLanguage,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
+import type {
+  StoryboardShotRenderQuote,
+  StoryboardShotRenderStage,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-shot-render.contract';
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import { storyboardSourceSelectorSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import type { StoryboardStillQuote } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
@@ -39,6 +43,8 @@ import { sessionActiveOrganizationId } from '@/features/studio/storyboard/utils/
 
 /** How often a board with a generating still asks the server to record finished stills. */
 const STILL_RECONCILE_MS = 4_000;
+/** Shot videos take a minute or more each. */
+const SHOT_RENDER_RECONCILE_MS = 8_000;
 /** Presenter renders take minutes; the narration draft takes seconds. */
 const PRESENTER_RECONCILE_MS = 8_000;
 /** Cutaway stills are not marked on the plan; stop asking after this long. */
@@ -529,6 +535,53 @@ export function useDurableStoryboardRun(runId: string) {
     },
     [brandId, runId, getService, adopt, scope],
   );
+  const quoteRenders = useCallback(
+    async (
+      revision: number,
+      stage: StoryboardShotRenderStage,
+      shotIds?: readonly string[],
+    ) => {
+      if (!brandId || activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      const service = await getService();
+      try {
+        return await service.quoteStoryboardShotRenders(brandId, runId, {
+          expectedRevision: revision,
+          stage,
+          ...(shotIds ? { shotIds: [...shotIds] } : {}),
+        });
+      } catch (error) {
+        throw new Error(
+          getJsonApiErrorMessage(error, 'Could not price the shot videos.'),
+        );
+      }
+    },
+    [brandId, runId, getService, scope],
+  );
+  const startRenders = useCallback(
+    async (quote: StoryboardShotRenderQuote) => {
+      if (!brandId || activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      const service = await getService();
+      if (activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      let run: StoryboardRun;
+      try {
+        run = await service.startStoryboardShotRenders(brandId, runId, {
+          expectedRevision: quote.revision,
+          stage: quote.stage,
+          shotIds: quote.items.map((item) => item.shotId),
+          inputHash: quote.inputHash,
+        });
+      } catch (error) {
+        throw new Error(
+          getJsonApiErrorMessage(error, 'Could not start the shot videos.'),
+        );
+      }
+      return adopt(run);
+    },
+    [brandId, runId, getService, adopt, scope],
+  );
   /** Long-form cutaways asked for a still, until the still is attached. */
   const [pendingCutaways, setPendingCutaways] = useState<{
     ids: readonly string[];
@@ -720,6 +773,33 @@ export function useDurableStoryboardRun(runId: string) {
       if (timer) clearTimeout(timer);
     };
   }, [brandId, runId, isGeneratingStills, getService, adopt]);
+  const isRenderingShots = Boolean(
+    currentRun?.config.shotRenders?.some(
+      (render) => render.state === 'pending' || render.state === 'submitted',
+    ),
+  );
+  useEffect(() => {
+    if (!brandId || !isRenderingShots) return;
+    const controller = new AbortController();
+    const timer = setInterval(() => {
+      void getService()
+        .then((service) =>
+          service.reconcileStoryboardShotRenders(
+            brandId,
+            runId,
+            controller.signal,
+          ),
+        )
+        .then((run) => {
+          if (!controller.signal.aborted) adopt(run);
+        })
+        .catch(() => undefined);
+    }, SHOT_RENDER_RECONCILE_MS);
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+    };
+  }, [brandId, runId, isRenderingShots, getService, adopt]);
   const isRenderingPresenter = hasLiveChunks(currentRun);
   useEffect(() => {
     if (!brandId || !isRenderingPresenter) return;
@@ -795,6 +875,7 @@ export function useDurableStoryboardRun(runId: string) {
     quoteStills,
     generateStills,
     slideshow: { createPost: createSlideshowPost },
+    renders: { quote: quoteRenders, start: startRenders },
     longForm: {
       isDrawingCutaways,
       quoteCutaways,

@@ -2,6 +2,10 @@ import {
   characterJournalSchema,
   characterStructuralAssociation,
 } from '@api/collections/content-runs/services/storyboard-character-replace-state';
+import {
+  projectShotRenders,
+  shotRenderJournalSchema,
+} from '@api/collections/content-runs/services/storyboard-shot-render-state';
 import { stillJournalSchema } from '@api/collections/content-runs/services/storyboard-still-state';
 import { storyboardRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { z } from 'zod';
@@ -16,8 +20,14 @@ export const storyboardStoredRunConfigSchema = z
       });
       return z.NEVER;
     }
-    const { characterReplacementOperations, stillOperations, ...publicValue } =
-      value as Record<string, unknown>;
+    // `shotRenders` is projected from the render journal, never stored.
+    const {
+      characterReplacementOperations,
+      stillOperations,
+      shotRenderOperations,
+      shotRenders: _projected,
+      ...publicValue
+    } = value as Record<string, unknown>;
     const config = storyboardRunConfigSchema.safeParse(publicValue);
     if (!config.success) {
       for (const issue of config.error.issues)
@@ -50,12 +60,24 @@ export const storyboardStoredRunConfigSchema = z
       });
       return z.NEVER;
     }
+    const renders =
+      shotRenderOperations === undefined
+        ? undefined
+        : shotRenderJournalSchema.safeParse(shotRenderOperations);
+    if (renders && !renders.success) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Invalid shot render journal',
+      });
+      return z.NEVER;
+    }
     return {
       ...config.data,
       ...(journal?.success
         ? { characterReplacementOperations: journal.data }
         : {}),
       ...(stills?.success ? { stillOperations: stills.data } : {}),
+      ...(renders?.success ? { shotRenderOperations: renders.data } : {}),
     };
   });
 export type StoryboardStoredRunConfig = z.infer<
@@ -66,10 +88,12 @@ export function storyboardPublicConfig(config: StoryboardStoredRunConfig) {
   const {
     characterReplacementOperations: journal,
     stillOperations: _stills,
+    shotRenderOperations,
     ...publicValue
   } = config;
   return storyboardRunConfigSchema.parse({
     ...publicValue,
+    shotRenders: projectShotRenders(publicValue.plan, shotRenderOperations),
     characterReplacements: publicValue.characterReplacements?.filter((item) => {
       const op = journal?.find((op) =>
         op.receipts.some((r) => r.requestId === item.requestId),

@@ -23,6 +23,11 @@ import type {
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import type { StoryboardRunSummary } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
+import type {
+  StoryboardShotRender,
+  StoryboardShotRenderQuote,
+  StoryboardShotRenderStage,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-shot-render.contract';
 import type { StoryboardSlideshowPost } from '@genfeedai/contracts/api-types/contracts/storyboard-slideshow-tool.contract';
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import type { StoryboardStillQuote } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
@@ -230,6 +235,28 @@ export interface StoryboardPlanEditorProps {
   ) => Promise<StoryboardRun>;
   readonly longForm?: StoryboardLongFormActions;
   readonly slideshow?: StoryboardSlideshowActions;
+  readonly renders?: StoryboardShotRenderActions;
+}
+
+/** The paid draft and final video render of each approved shot (#9618). */
+export interface StoryboardShotRenderActions {
+  readonly quote: (
+    revision: number,
+    stage: StoryboardShotRenderStage,
+    shotIds?: readonly string[],
+  ) => Promise<StoryboardShotRenderQuote>;
+  /** Accepts a quote; the run polls until every started render lands. */
+  readonly start: (quote: StoryboardShotRenderQuote) => Promise<StoryboardRun>;
+}
+
+export interface StoryboardShotRendersProps {
+  readonly ordinal: number;
+  readonly draft?: StoryboardShotRender;
+  readonly final?: StoryboardShotRender;
+  /** Playable URLs of the rendered clips, by asset id. */
+  readonly videoUrls: Readonly<Record<string, string | undefined>>;
+  readonly isDisabled: boolean;
+  readonly onRender: (stage: StoryboardShotRenderStage) => void;
 }
 
 /** The slideshow step that follows approval (#8896). */
@@ -306,6 +333,7 @@ export type StoryboardDraftPageProps = Pick<
   | 'generateStills'
   | 'longForm'
   | 'slideshow'
+  | 'renders'
 > & {
   /** Drafts the plan from the brief, or revises it when `instruction` is set. */
   readonly draftPlan: (instruction?: string) => Promise<StoryboardRun>;
@@ -375,6 +403,8 @@ export interface StoryboardShotCardProps {
   readonly startSeconds: number;
   readonly still?: StoryboardShotCardStill;
   readonly supportedDurations: readonly number[];
+  /** The shot's draft and final video, once the storyboard is approved. */
+  readonly renders?: ReactNode;
 }
 
 export interface StoryboardShotJointProps {

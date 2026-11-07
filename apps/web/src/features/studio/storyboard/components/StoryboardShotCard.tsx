@@ -75,6 +75,7 @@ export default function StoryboardShotCard({
   startSeconds,
   still,
   supportedDurations,
+  renders,
 }: StoryboardShotCardProps) {
   const translate = useTranslations('pages.studioStoryboard.plan');
   const [isReplaceOpen, setIsReplaceOpen] = useState(
@@ -281,6 +282,8 @@ export default function StoryboardShotCard({
             />
           </div>
         ) : null}
+
+        {renders}
 
         <div className="flex items-center gap-2 border-t border-border px-4 py-2">
           <Button

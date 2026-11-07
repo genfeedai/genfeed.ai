@@ -3,6 +3,7 @@ import {
   isStoryboardSlideshow,
   type StoryboardCutaway,
   type StoryboardPlan,
+  type StoryboardShot,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import {
   DRAFT_GENERATION_CONFIG,
@@ -73,6 +74,18 @@ function mentions(action: string, name: string): boolean {
   ).test(action);
 }
 
+/** The shot's speaker, then every other cast member its action names. */
+export function storyboardShotCast(plan: StoryboardPlan, shot: StoryboardShot) {
+  const speaker = plan.cast.find((member) => member.id === shot.speakerId);
+  const cast = [
+    ...(speaker ? [speaker] : []),
+    ...plan.cast.filter(
+      (member) => member !== speaker && mentions(shot.action, member.name),
+    ),
+  ];
+  return { speaker, cast };
+}
+
 /**
  * The provider input for one shot's sketch still. Cast references come first
  * (the speaker, then members named in the action), then style references, up
@@ -82,13 +95,7 @@ function mentions(action: string, name: string): boolean {
 export function storyboardStillInput(plan: StoryboardPlan, shotId: string) {
   const shot = plan.shots.find((value) => value.id === shotId);
   if (!shot) return storyboardCutawayStillInput(plan, shotId);
-  const speaker = plan.cast.find((member) => member.id === shot.speakerId);
-  const cast = [
-    ...(speaker ? [speaker] : []),
-    ...plan.cast.filter(
-      (member) => member !== speaker && mentions(shot.action, member.name),
-    ),
-  ];
+  const { speaker, cast } = storyboardShotCast(plan, shot);
   const referenceAssetIds = [
     ...new Set([
       ...(shot.onScreenSpeaker && speaker?.avatarAssetId

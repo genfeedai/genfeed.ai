@@ -10,6 +10,7 @@ import {
   storyboardOperationProjectionSchema,
   storyboardRunQuoteSchema,
 } from './storyboard-run-quote.contract';
+import { storyboardShotRenderSchema } from './storyboard-shot-render.contract';
 import {
   storyboardIdSchema,
   storyboardSourceSelectorSchema,
@@ -59,6 +60,11 @@ export const storyboardNativeRunConfigSchema = z
       .array(storyboardCharacterReplacementSchema)
       .max(12)
       .optional(),
+    /**
+     * The latest draft and final render of each shot (#9618), derived from
+     * the private render journal; never stored on its own.
+     */
+    shotRenders: z.array(storyboardShotRenderSchema).max(24).optional(),
     error: z.string().max(1_000).optional(),
   })
   .strict();

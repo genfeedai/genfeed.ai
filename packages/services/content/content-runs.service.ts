@@ -65,6 +65,12 @@ import {
   storyboardRunSummarySchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
 import {
+  type QuoteStoryboardShotRenders,
+  type StartStoryboardShotRenders,
+  type StoryboardShotRenderQuote,
+  storyboardShotRenderQuoteSchema,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-shot-render.contract';
+import {
   type StoryboardSlideshowPost,
   storyboardSlideshowPostSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-slideshow-tool.contract';
@@ -366,6 +372,44 @@ export class ContentRunsService extends HTTPBaseService {
   ): Promise<StoryboardRun> {
     const response = await this.instance.post<JsonApiResponseDocument>(
       `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/stills/reconcile`,
+      {},
+      { signal },
+    );
+    return deserializeStoryboardRunDocument(response.data);
+  }
+
+  /** Prices a draft or final video render of approved shots. */
+  async quoteStoryboardShotRenders(
+    brandId: string,
+    runId: string,
+    input: QuoteStoryboardShotRenders,
+  ): Promise<StoryboardShotRenderQuote> {
+    const response = await this.instance.post<StoryboardShotRenderQuote>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/renders/quote`,
+      input,
+    );
+    return storyboardShotRenderQuoteSchema.parse(response.data);
+  }
+
+  async startStoryboardShotRenders(
+    brandId: string,
+    runId: string,
+    input: StartStoryboardShotRenders,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/renders`,
+      input,
+    );
+    return deserializeStoryboardRunDocument(response.data);
+  }
+
+  async reconcileStoryboardShotRenders(
+    brandId: string,
+    runId: string,
+    signal?: AbortSignal,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/renders/reconcile`,
       {},
       { signal },
     );

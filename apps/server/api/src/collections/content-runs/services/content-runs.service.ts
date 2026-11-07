@@ -1,5 +1,6 @@
 import type { CreateContentRunBriefDto } from '@api/collections/content-runs/dto/create-content-run-brief.dto';
 import {
+  assertNotStoryboardRun,
   hydrateContentRun,
   hydrateContentRuns,
   isContentRunRecord,
@@ -231,12 +232,13 @@ export class ContentRunsService {
   ): Promise<Record<string, unknown>> {
     const existing = await this.prisma.contentRun.findFirst({
       where: scopedWhere(organizationId, { id: runId }),
-      select: { config: true },
+      select: { config: true, contract: true },
     });
 
     if (!existing) {
       throw new NotFoundException('ContentRun', runId);
     }
+    assertNotStoryboardRun(existing);
 
     const updated = await this.prisma.contentRun.update({
       data: {
@@ -267,6 +269,7 @@ export class ContentRunsService {
     if (!existing) {
       throw new NotFoundException('ContentRun', runId);
     }
+    assertNotStoryboardRun(existing);
 
     const hydrated = hydrateContentRun(existing) ?? existing;
     const currentConfig = isContentRunRecord(existing.config)

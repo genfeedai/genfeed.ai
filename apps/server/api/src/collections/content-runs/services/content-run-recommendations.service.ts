@@ -3,6 +3,7 @@ import {
   rankByScoreDesc,
 } from '@api/collections/content-performance/utils/variant-performance-scoring.util';
 import {
+  assertNotStoryboardRun,
   hydrateContentRun,
   isContentRunRecord,
   toContentRunJsonValue,
@@ -26,6 +27,7 @@ import { Injectable } from '@nestjs/common';
 type ContentRunRow = {
   brandId?: string | null;
   config: unknown;
+  contract?: string | null;
   id: string;
   status: string;
 };
@@ -329,6 +331,7 @@ export class ContentRunRecommendationsService {
     if (!run) {
       throw new NotFoundException('ContentRun', runId);
     }
+    assertNotStoryboardRun(run);
 
     const config = this.readConfig(run);
     const variants = this.readVariants(config);
