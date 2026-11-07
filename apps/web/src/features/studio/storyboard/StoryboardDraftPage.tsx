@@ -138,7 +138,12 @@ export default function StoryboardDraftPage({
         hasShots &&
         (run.config.plan?.shots ?? []).every((shot) =>
           finalRenders.some(
-            (render) => render.shotId === shot.id && render.state === 'ready',
+            (render) =>
+              render.shotId === shot.id &&
+              render.state === 'ready' &&
+              // A final is assembled once QA ran and found no hard failure (#9621).
+              (render.qa?.state === 'passed' ||
+                render.qa?.state === 'unavailable'),
           ),
         ),
     shotIds: (run.config.plan?.shots ?? []).map((shot) => shot.id),

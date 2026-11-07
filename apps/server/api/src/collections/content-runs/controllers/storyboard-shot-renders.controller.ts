@@ -3,6 +3,7 @@ import {
   QuoteStoryboardShotRendersDto,
   StartStoryboardShotRendersDto,
 } from '@api/collections/content-runs/dto/storyboard-run.dto';
+import { StoryboardShotQaService } from '@api/collections/content-runs/services/storyboard-shot-qa.service';
 import { StoryboardShotRendersService } from '@api/collections/content-runs/services/storyboard-shot-renders.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
@@ -17,7 +18,10 @@ import { Body, Controller, Param, Post, Req } from '@nestjs/common';
 @Controller('brands/:brandId/storyboard-runs')
 @OrganizationModule('storyboard')
 export class StoryboardShotRendersController {
-  constructor(private readonly renders: StoryboardShotRendersService) {}
+  constructor(
+    private readonly renders: StoryboardShotRendersService,
+    private readonly qa: StoryboardShotQaService,
+  ) {}
 
   /** Prices a draft or final video render of approved shots (#9618). */
   @Post(':runId/renders/quote')
@@ -62,7 +66,10 @@ export class StoryboardShotRendersController {
     return serializeSingle(
       request,
       StoryboardRunSerializer,
-      await this.renders.reconcile(user.organizationId, brandId, runId),
+      // Finished finals are checked before they can be assembled (#9621).
+      await this.renders
+        .reconcile(user.organizationId, brandId, runId)
+        .then(() => this.qa.check(user.organizationId, brandId, runId)),
     );
   }
 }

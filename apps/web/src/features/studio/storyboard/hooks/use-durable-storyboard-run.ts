@@ -828,7 +828,13 @@ export function useDurableStoryboardRun(runId: string) {
   }, [brandId, runId, isGeneratingStills, getService, adopt]);
   const isRenderingShots = Boolean(
     currentRun?.config.shotRenders?.some(
-      (render) => render.state === 'pending' || render.state === 'submitted',
+      (render) =>
+        render.state === 'pending' ||
+        render.state === 'submitted' ||
+        // A finished final is checked by the same reconcile (#9621).
+        (render.stage === 'final' &&
+          render.state === 'ready' &&
+          (!render.qa || render.qa.state === 'checking')),
     ),
   );
   useEffect(() => {

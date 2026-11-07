@@ -23,6 +23,41 @@ export const storyboardShotRenderStateSchema = z.enum([
   'failed',
 ]);
 
+/**
+ * The checks a final render passes before assembly (#9621). Decode, black
+ * frames and freezes are hard failures that block assembly; continuity
+ * against the asset bible is advisory and only flags the shot.
+ */
+export const STORYBOARD_SHOT_QA_HARD_FAILURES = [
+  'DECODE_FAILED',
+  'BLACK_FRAMES',
+  'FREEZE_FRAMES',
+] as const;
+export const storyboardShotQaSchema = z
+  .object({
+    state: z.enum(['checking', 'passed', 'failed', 'unavailable']),
+    failures: z
+      .array(
+        z
+          .object({
+            code: z.enum(STORYBOARD_SHOT_QA_HARD_FAILURES),
+            message: z.string().max(300),
+            timestamp: z.number().finite().nonnegative().nullable(),
+          })
+          .strict(),
+      )
+      .max(20),
+    continuity: z
+      .object({
+        state: z.enum(['consistent', 'flagged', 'skipped']),
+        notes: z.array(z.string().max(300)).max(6),
+      })
+      .strict()
+      .optional(),
+    checkedAt: z.string().datetime(),
+  })
+  .strict();
+
 /** The latest render of one shot at one stage, as the run shows it. */
 export const storyboardShotRenderSchema = z
   .object({
@@ -44,6 +79,8 @@ export const storyboardShotRenderSchema = z
     /** False once the shot's action, dialogue, still or references changed. */
     isCurrent: z.boolean(),
     errorCode: z.string().max(200).optional(),
+    /** Final renders only, once checked. */
+    qa: storyboardShotQaSchema.optional(),
     updatedAt: z.string().datetime(),
   })
   .strict();
@@ -125,3 +162,4 @@ export type StoryboardShotRenderQuote = z.infer<
 export type StartStoryboardShotRenders = z.infer<
   typeof startStoryboardShotRendersSchema
 >;
+export type StoryboardShotQa = z.infer<typeof storyboardShotQaSchema>;

@@ -116,4 +116,38 @@ describe('StoryboardShotRenders', () => {
     expect(screen.getByText('Rendering')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Redo final' })).toBeDisabled();
   });
+
+  it('says why a final cannot be assembled and notes continuity drift', () => {
+    render(
+      <StoryboardShotRenders
+        ordinal={1}
+        final={shotRender('final', {
+          qa: {
+            state: 'failed',
+            failures: [
+              {
+                code: 'FREEZE_FRAMES',
+                message: 'Freeze segment 2.00s–5.00s',
+                timestamp: 2,
+              },
+            ],
+            continuity: {
+              state: 'flagged',
+              notes: ['Her jacket is blue, not red.'],
+            },
+            checkedAt: '2026-11-07T12:01:00.000Z',
+          },
+        })}
+        videoUrls={urls}
+        isDisabled={false}
+        onRender={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'This clip cannot be assembled: Freeze segment 2.00s–5.00s. Render the final again.',
+    );
+    expect(
+      screen.getByText('Continuity note: Her jacket is blue, not red.'),
+    ).toBeInTheDocument();
+  });
 });
