@@ -6,6 +6,10 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { CustomersService } from '@api/collections/customers/services/customers.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import {
+  creatorOrganizationOfMemberWhere,
+  organizationsOfMemberWhere,
+} from '@api/collections/organizations/utils/organization-membership.util';
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { UserEntity } from '@api/collections/users/entities/user.entity';
 import type { UserDocument } from '@api/collections/users/schemas/user.schema';
@@ -824,7 +828,7 @@ export class StripeCheckoutWebhookHandler {
 
       // Find user's creator org (every user gets a personal org on signup)
       const creatorOrg = await this.organizationsService.findOneSelect(
-        { category: OrganizationCategory.CREATOR, members: userId },
+        creatorOrganizationOfMemberWhere(userId),
         { id: true },
       );
 
@@ -836,7 +840,7 @@ export class StripeCheckoutWebhookHandler {
 
         // Fall back to first org the user belongs to
         const fallbackOrg = await this.organizationsService.findOneSelect(
-          { members: userId },
+          organizationsOfMemberWhere(userId),
           { id: true },
         );
 

@@ -179,11 +179,11 @@ function world() {
       },
       findOneSelect: async (where: {
         category?: OrganizationCategory;
-        members: string;
+        members: { some: { userId: string } };
       }) => {
         const org = state.orgs.find(
           (row) =>
-            row.members.includes(where.members) &&
+            row.members.includes(where.members.some.userId) &&
             (where.category === undefined || row.category === where.category),
         );
         return org ? { id: org.id } : null;
