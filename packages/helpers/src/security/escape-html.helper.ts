@@ -7,7 +7,7 @@ const SLASHES_PATTERN = /\//g;
 
 /**
  * Escapes `&`, `<` and `>`. Safe for HTML text nodes only; use
- * {@link escapeHtml} for anything that can land inside an attribute.
+ * {@link escapeHtml} for quoted attribute values.
  */
 export function escapeHtmlText(value: string): string {
   return value
@@ -18,7 +18,9 @@ export function escapeHtmlText(value: string): string {
 
 /**
  * Escapes `&`, `<`, `>`, `"` and `'`. Safe for HTML text nodes and for
- * quoted attribute values.
+ * quoted plain-text attribute values. It only stops HTML syntax breakout: it
+ * does not validate URLs (`javascript:` passes through), so `href`/`src`
+ * values and event-handler or `style` attributes need their own checks.
  */
 export function escapeHtml(value: string): string {
   return escapeHtmlText(value)
