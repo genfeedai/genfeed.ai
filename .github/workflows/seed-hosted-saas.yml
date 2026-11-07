@@ -183,7 +183,7 @@ jobs:
             const { Client } = require('pg');
             const REPORTS = {
               'backfill-report': 'SELECT id, "completedAt", report FROM data_backfills ORDER BY "completedAt" DESC LIMIT 100',
-              'instagram-reconnect-report': `SELECT count(*)::int AS "connected", count(DISTINCT "brandId")::int AS "brands", count(DISTINCT "organizationId")::int AS "organizations" FROM credentials WHERE "platform" = 'INSTAGRAM' AND "isConnected" = true AND "isDeleted" = false`,
+              'instagram-reconnect-report': `SELECT count(*)::int AS "connected", count(DISTINCT c."brandId")::int AS "brands", count(DISTINCT COALESCE(c."organizationId", b."organizationId"))::int AS "organizations" FROM credentials c LEFT JOIN brands b ON b.id = c."brandId" WHERE c."platform" = 'INSTAGRAM' AND c."isConnected" = true AND c."isDeleted" = false`,
               'webhook-id-report': `SELECT count(*) FILTER (WHERE config->>'webhookId' IS NOT NULL)::int AS "withWebhookId", count(*) FILTER (WHERE config->>'webhookId' IS NOT NULL AND config->>'webhookId' NOT LIKE 'wh\\_%')::int AS "withoutPrefix" FROM workflows WHERE "isDeleted" = false`,
             };
             const name = process.argv[1];
