@@ -9,7 +9,6 @@ import type { CreateTrainingDto } from '@api/collections/trainings/dto/create-tr
 import type { UpdateTrainingDto } from '@api/collections/trainings/dto/update-training.dto';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { scopedWhere } from '@api/index';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
@@ -196,9 +195,7 @@ export class TrainingsService extends BaseService<
               ],
             },
           ],
-          category: CategoryPrismaUtil.toIngredientCategory(
-            IngredientCategory.IMAGE,
-          ),
+          category: IngredientCategory.IMAGE,
         },
       },
       {
@@ -283,9 +280,7 @@ export class TrainingsService extends BaseService<
         ],
       },
       {
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.SOURCE,
-        ),
+        category: IngredientCategory.SOURCE,
         trainingId: training.id as string,
       },
     );
@@ -332,9 +327,7 @@ export class TrainingsService extends BaseService<
             id: {
               in: sourceIds,
             },
-            category: CategoryPrismaUtil.toIngredientCategory(
-              IngredientCategory.SOURCE,
-            ),
+            category: IngredientCategory.SOURCE,
             userId: ownerIds.userId,
           },
         },
@@ -418,9 +411,7 @@ export class TrainingsService extends BaseService<
         userId: ownerIds.userId,
       },
       {
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.SOURCE,
-        ),
+        category: IngredientCategory.SOURCE,
         trainingId: newTraining.id as string,
       },
     );

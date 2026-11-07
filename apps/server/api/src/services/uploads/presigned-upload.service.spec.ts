@@ -188,9 +188,7 @@ describe('PresignedUploadService', () => {
       expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         mockUser,
         {
-          category: CategoryPrismaUtil.toIngredientCategory(
-            IngredientCategory.IMAGE,
-          ),
+          category: IngredientCategory.IMAGE,
           extension: 'JPEG',
           label: body.filename,
           origin: IngredientOrigin.UPLOADED,
@@ -360,9 +358,7 @@ describe('PresignedUploadService', () => {
       expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         mockUser,
         expect.objectContaining({
-          category: CategoryPrismaUtil.toIngredientCategory(
-            IngredientCategory.IMAGE,
-          ),
+          category: IngredientCategory.IMAGE,
         }),
       );
     });

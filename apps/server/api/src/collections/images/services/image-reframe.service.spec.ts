@@ -4,7 +4,6 @@ import { ImageReframeService } from '@api/collections/images/services/image-refr
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
@@ -200,9 +199,7 @@ describe('ImageReframeService', () => {
     );
     expect(imagesService.findOne).toHaveBeenCalledWith(
       {
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.IMAGE,
-        ),
+        category: IngredientCategory.IMAGE,
         id: imageId,
         isDeleted: false,
         organizationId: user.organizationId,
@@ -224,9 +221,7 @@ describe('ImageReframeService', () => {
     expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(user, {
       origin: IngredientOrigin.GENERATED,
       brandId: parent.brandId,
-      category: CategoryPrismaUtil.toIngredientCategory(
-        IngredientCategory.IMAGE,
-      ),
+      category: IngredientCategory.IMAGE,
       extension: MetadataExtension.JPEG,
       generationPrompt: promptData.original,
       generationSeed: body.seed,

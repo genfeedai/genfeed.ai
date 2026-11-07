@@ -4,7 +4,6 @@ import {
   resolveCharacterFilter,
 } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import type { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -64,9 +63,7 @@ export async function buildVideoListAggregate(
         { organizationId: tenant.organizationId },
         {
           ...(brandId ? { brandId } : {}),
-          category: CategoryPrismaUtil.toIngredientCategory(
-            IngredientCategory.VIDEO,
-          ),
+          category: IngredientCategory.VIDEO,
           isDeleted,
           ...(scope !== undefined ? { scope } : {}),
           status,

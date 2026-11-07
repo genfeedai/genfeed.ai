@@ -100,9 +100,7 @@ export class VideoProvenanceService {
       // IngredientCategory as uppercase (e.g. 'VIDEO'). The JS enum value is
       // lowercase ('video'), so we convert via CategoryPrismaUtil to avoid a
       // silent mismatch that would cause findOne to return null on valid records.
-      category: CategoryPrismaUtil.toIngredientCategory(
-        IngredientCategory.VIDEO,
-      ),
+      category: IngredientCategory.VIDEO,
       isDeleted: false,
       // scope and status are also Prisma enums stored as UPPERCASE. Convert from
       // the lowercase JS enum values to avoid the same silent WHERE mismatch.
@@ -126,9 +124,7 @@ export class VideoProvenanceService {
     // Only reject when the category field is explicitly present AND is not VIDEO —
     // a missing category is already ruled out by the WHERE clause in the callers
     // that filter by category, but we keep the null-check for defensive coverage.
-    const prismaVideoCategory = CategoryPrismaUtil.toIngredientCategory(
-      IngredientCategory.VIDEO,
-    );
+    const prismaVideoCategory = IngredientCategory.VIDEO;
     if (
       !video ||
       (video.category !== undefined && video.category !== prismaVideoCategory)

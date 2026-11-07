@@ -55,7 +55,6 @@ import { VideoReferenceUrlService } from '@api/collections/videos/services/video
 import type { GenerationPlaceholderScope } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import {
   isImageToVideoRequest,
   resolveGenerationDefaultModel,
@@ -348,9 +347,7 @@ export class VideoGenerationPreparationService {
           ? (createVideoDto.bookmark as string)
           : undefined,
         brandId: brand.id,
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.VIDEO,
-        ),
+        category: IngredientCategory.VIDEO,
         duration: createVideoDto.duration,
         extension: MetadataExtension.MP4,
         generationPrompt: generationHarness.enhancedPrompt,

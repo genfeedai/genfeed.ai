@@ -9,7 +9,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
@@ -106,9 +105,7 @@ export class GifsController {
                   {
                     organizationId: tenant.organizationId,
                     ...(brandId ? { brandId } : {}),
-                    category: CategoryPrismaUtil.toIngredientCategory(
-                      IngredientCategory.GIF,
-                    ),
+                    category: IngredientCategory.GIF,
                     isDeleted,
                     ...(scope !== undefined ? { scope } : {}),
                     status,
@@ -122,9 +119,7 @@ export class GifsController {
               {
                 AND: [
                   {
-                    category: CategoryPrismaUtil.toIngredientCategory(
-                      IngredientCategory.GIF,
-                    ),
+                    category: IngredientCategory.GIF,
                     isDefault: true,
                     isDeleted,
                     OR: [
@@ -166,9 +161,7 @@ export class GifsController {
     const data = await this.gifsService.findOne(
       {
         id: gifId,
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.GIF,
-        ),
+        category: IngredientCategory.GIF,
         OR: [
           { organizationId: readScope.organizationId },
           { isDefault: true, organizationId: null },
@@ -214,9 +207,7 @@ export class GifsController {
     const gif = await this.gifsService.findOne(
       scopedWhere(user.organizationId, {
         id: gifId,
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.GIF,
-        ),
+        category: IngredientCategory.GIF,
       }),
     );
 

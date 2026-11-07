@@ -6,7 +6,6 @@ import {
   readSavedVoiceBinding,
   savedVoiceProviderData,
 } from '@api/collections/voices/utils/elevenlabs-voice-binding.schema';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   classifyElevenLabsFailure,
@@ -254,9 +253,7 @@ export class ElevenLabsAccountVoicesService {
     id: string,
   ): Promise<IngredientDocument | null> {
     const voice = await this.voicesService.findOne({
-      category: CategoryPrismaUtil.toIngredientCategory(
-        IngredientCategory.VOICE,
-      ),
+      category: IngredientCategory.VOICE,
       id,
       isDeleted: false,
       organizationId,
@@ -371,9 +368,7 @@ export class ElevenLabsAccountVoicesService {
       select: SAVED_VOICE_SELECT,
       where: {
         ...where,
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.VOICE,
-        ),
+        category: IngredientCategory.VOICE,
         isDeleted: false,
         organizationId,
       },
@@ -393,9 +388,7 @@ export class ElevenLabsAccountVoicesService {
       // At most one imported and one cloned reference per provider voice.
       take: externalVoiceIds.length * SAVED_REFERENCE_SOURCES.length,
       where: {
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.VOICE,
-        ),
+        category: IngredientCategory.VOICE,
         externalVoiceId: { in: externalVoiceIds },
         isDeleted: false,
         organizationId,

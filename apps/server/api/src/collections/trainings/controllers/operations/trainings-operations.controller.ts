@@ -20,7 +20,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -198,9 +197,7 @@ export class TrainingsOperationsController {
       const imageMatchConditions: Record<string, unknown> = {
         organizationId: resolveTenantReadScope(user).organizationId,
         isDeleted: false,
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.IMAGE,
-        ),
+        category: IngredientCategory.IMAGE,
         metadataId: { in: metadataIds },
       };
 
@@ -263,9 +260,7 @@ export class TrainingsOperationsController {
             id: {
               in: sources,
             },
-            category: CategoryPrismaUtil.toIngredientCategory(
-              IngredientCategory.SOURCE,
-            ),
+            category: IngredientCategory.SOURCE,
             isDeleted: false,
             status: IngredientStatus.UPLOADED,
           },

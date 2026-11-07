@@ -1,6 +1,5 @@
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { scopedWhere } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
@@ -434,10 +433,7 @@ export class VideoStitchService {
       where: scopedWhere(request.organizationId, {
         brandId: request.brandId,
         category: {
-          in: [
-            CategoryPrismaUtil.toIngredientCategory(IngredientCategory.VIDEO),
-            CategoryPrismaUtil.toIngredientCategory(IngredientCategory.AVATAR),
-          ],
+          in: [IngredientCategory.VIDEO, IngredientCategory.AVATAR],
         },
         id: { in: uniqueIds },
         // Finished media, or a draft whose media is already stored.
@@ -471,9 +467,7 @@ export class VideoStitchService {
       const music = await this.prisma.ingredient.findFirst({
         select: { id: true, s3Key: true },
         where: {
-          category: CategoryPrismaUtil.toIngredientCategory(
-            IngredientCategory.MUSIC,
-          ),
+          category: IngredientCategory.MUSIC,
           id: settings.music,
           isDeleted: false,
           OR: [
@@ -920,9 +914,7 @@ export class VideoStitchService {
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       select: OUTPUT_SELECT,
       where: scopedWhere(organizationId, {
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.VIDEO,
-        ),
+        category: IngredientCategory.VIDEO,
         // Same scope as the unique index: only stitch outputs own a key.
         generationSource: { startsWith: VIDEO_STITCH_GENERATION_SOURCE_PREFIX },
         sourceActionId: idempotencyKey,
@@ -937,9 +929,7 @@ export class VideoStitchService {
     const output = await this.prisma.ingredient.findFirst({
       select: OUTPUT_SELECT,
       where: scopedWhere(organizationId, {
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.VIDEO,
-        ),
+        category: IngredientCategory.VIDEO,
         id: outputId,
       }),
     });

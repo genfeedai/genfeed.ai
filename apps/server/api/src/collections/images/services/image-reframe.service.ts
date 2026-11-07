@@ -8,7 +8,6 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
@@ -96,9 +95,7 @@ export class ImageReframeService {
         id: imageId,
         organizationId: user.organizationId,
         isDeleted: false,
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.IMAGE,
-        ),
+        category: IngredientCategory.IMAGE,
         userId: user.userId ?? user.id,
       },
       [PopulatePatterns.metadataFull],
@@ -152,9 +149,7 @@ export class ImageReframeService {
       await this.sharedService.createMediaDocuments(user, {
         origin: IngredientOrigin.GENERATED,
         brandId: parent.brandId ?? user.brandId,
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.IMAGE,
-        ),
+        category: IngredientCategory.IMAGE,
         extension: MetadataExtension.JPEG,
         generationPrompt: promptData.original,
         generationSeed: createImageDto.seed,

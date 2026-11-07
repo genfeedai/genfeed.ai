@@ -7,7 +7,6 @@ import {
   readSavedVoiceBinding,
   savedVoiceProviderData,
 } from '@api/collections/voices/utils/elevenlabs-voice-binding.schema';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { scopedWhere } from '@api/index';
 import {
   classifyElevenLabsFailure,
@@ -101,9 +100,7 @@ export class VoiceCloneService {
     const voice = await this.voicesService.findOne(
       scopedWhere(user.organizationId, {
         id: id,
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.VOICE,
-        ),
+        category: IngredientCategory.VOICE,
         isCloned: true,
       }),
     );

@@ -7,7 +7,6 @@ import {
   parseVoiceProviders,
   toLibraryVoiceDocument,
 } from '@api/collections/voices/utils/voice-provider.util';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -64,9 +63,7 @@ export class VoiceLibraryService {
             { externalVoiceCatalogId: { not: null } },
             { voiceSource: 'imported' },
           ],
-          category: CategoryPrismaUtil.toIngredientCategory(
-            IngredientCategory.VOICE,
-          ),
+          category: IngredientCategory.VOICE,
         },
       );
 
@@ -217,9 +214,7 @@ export class VoiceLibraryService {
             ...(tenant.isOrganizationOverride && tenant.brandId
               ? { brandId: tenant.brandId }
               : {}),
-            category: CategoryPrismaUtil.toIngredientCategory(
-              IngredientCategory.VOICE,
-            ),
+            category: IngredientCategory.VOICE,
             isCloned: true,
           }),
         },
