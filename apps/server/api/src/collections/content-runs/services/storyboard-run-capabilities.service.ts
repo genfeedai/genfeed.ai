@@ -5,16 +5,13 @@ import { StoryboardRunStoreService } from '@api/collections/content-runs/service
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { isModelOnAllowlist } from '@api/collections/models/utils/enabled-model.util';
+import { toCapabilityModel } from '@api/collections/models/utils/registry-model-capability.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-video-generation-brief-families';
 import { getVideoGenerationBriefRegistryEntry } from '@api/services/generation-brief/video-generation-brief-registry';
 import { RouterService } from '@api/services/router/router.service';
-import {
-  ModelCategory,
-  ModelLifecycle,
-  ModelProvider,
-} from '@genfeedai/contracts';
+import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import {
   type CapabilityReason,
@@ -28,7 +25,6 @@ import {
   getModelDurations,
   hasInterpolation,
 } from '@genfeedai/contracts/constants';
-import type { IModel } from '@genfeedai/contracts/interfaces';
 import { getModelCapability } from '@genfeedai/helpers/model-capability.helper';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
@@ -89,28 +85,7 @@ export function storyboardCatalogCapability(model: ModelDocument): {
   capability: StoryboardVideoModelCapability | null;
   reason: CapabilityReason | null;
 } {
-  const document: IModel = {
-    id: model.id,
-    key: model.key,
-    label: model.label,
-    category: ModelCategory.VIDEO,
-    provider: model.provider as ModelProvider,
-    lifecycle: model.lifecycle as ModelLifecycle,
-    cost: model.cost,
-    isActive: model.isActive,
-    isDefault: model.isDefault,
-    isDeleted: model.isDeleted,
-    createdAt: model.createdAt.toISOString(),
-    updatedAt: model.updatedAt.toISOString(),
-    maxOutputs: model.maxOutputs ?? undefined,
-    maxReferences: model.maxReferences ?? undefined,
-    aspectRatios: model.aspectRatios ?? undefined,
-    defaultAspectRatio: model.defaultAspectRatio ?? undefined,
-    durations: model.durations ?? undefined,
-    defaultDuration: model.defaultDuration ?? undefined,
-    hasInterpolation: model.hasInterpolation ?? undefined,
-    hasEndFrame: model.hasEndFrame ?? undefined,
-  };
+  const document = toCapabilityModel(model, ModelCategory.VIDEO);
   const resolved = getModelCapability(document);
   if (!resolved || resolved.category !== ModelCategory.VIDEO)
     return { capability: null, reason: 'MODEL_CAPABILITIES_UNAVAILABLE' };

@@ -41,6 +41,7 @@ import { NotificationsPublisherModule } from '@api/services/notifications/publis
 import { RouterModule as ModelRouterModule } from '@api/services/router/router.module';
 import { TelegramBotModule } from '@api/services/telegram-bot/telegram-bot.module';
 import { VideoCompletionModule } from '@api/services/video-completion/video-completion.module';
+import { VideoRecipesModule } from '@api/services/video-recipes/video-recipes.module';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -65,6 +66,7 @@ import { Module } from '@nestjs/common';
     ManagedInferenceModule,
     MicroservicesModule,
     ModelRouterModule,
+    VideoRecipesModule,
     NotificationsModule,
     NotificationsPublisherModule,
     PinterestModule,
