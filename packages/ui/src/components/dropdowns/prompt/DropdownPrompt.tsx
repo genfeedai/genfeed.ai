@@ -2,9 +2,8 @@
 
 import { ButtonVariant, DropdownDirection } from '@genfeedai/contracts';
 import {
-  BG_BLUR,
-  BORDER_WHITE_30,
   cn,
+  FLOATING_PANEL_SURFACE,
 } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptDropdownProps } from '@genfeedai/props/prompts/prompt-dropdown.props';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
@@ -123,7 +122,7 @@ export default function DropdownPrompt({
               transform: direction === 'up' ? 'translateY(-100%)' : 'none',
               zIndex: 50,
             }}
-            className={cn(BG_BLUR, BORDER_WHITE_30, 'w-80')}
+            className={cn(FLOATING_PANEL_SURFACE, 'w-80')}
           >
             {/* Header with Copy and Reprompt Buttons */}
             <div className="p-3 border-b border-white/10 flex items-center justify-between">
