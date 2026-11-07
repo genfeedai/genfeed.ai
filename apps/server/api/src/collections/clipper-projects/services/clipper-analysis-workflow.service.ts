@@ -231,21 +231,26 @@ export class ClipperAnalysisWorkflowService implements OnModuleInit {
         sourceUrl,
       };
     }
-    const extraction: AudioExtractionResult =
-      data.source?.contentType?.startsWith('audio/')
-        ? { audioUrl: sourceUrl }
-        : await this.downloadAudio(
-            sourceUrl,
-            data.orgId,
-            data.userId,
-            data.projectId,
-            // A Library asset is shared across projects, so its audio and any
-            // stored copy of its source are keyed by this project instead.
-            data.source?.kind === 'library'
-              ? undefined
-              : data.source?.ingredientId,
-            sourceArtifact?.storageKey,
-          );
+    // An uploaded audio file is still read by its storage key: under
+    // authorized media delivery its canonical CDN URL is not publicly
+    // readable, so handing that URL to transcription would fail.
+    const isDirectAudioSource =
+      data.source?.contentType?.startsWith('audio/') === true &&
+      !sourceArtifact?.storageKey;
+    const extraction: AudioExtractionResult = isDirectAudioSource
+      ? { audioUrl: sourceUrl }
+      : await this.downloadAudio(
+          sourceUrl,
+          data.orgId,
+          data.userId,
+          data.projectId,
+          // A Library asset is shared across projects, so its audio and any
+          // stored copy of its source are keyed by this project instead.
+          data.source?.kind === 'library'
+            ? undefined
+            : data.source?.ingredientId,
+          sourceArtifact?.storageKey,
+        );
     const resolvedArtifact = extraction.sourceArtifact ?? sourceArtifact;
     if (extraction.sourceArtifact) {
       await this.persistSourceArtifact(data, extraction.sourceArtifact);
