@@ -43,6 +43,7 @@ import { StoryboardPlanDraftService } from '@api/collections/content-runs/servic
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
+import { StoryboardShotRendersService } from '@api/collections/content-runs/services/storyboard-shot-renders.service';
 import { StoryboardSlideshowPostService } from '@api/collections/content-runs/services/storyboard-slideshow-post.service';
 import { StoryboardSourceService } from '@api/collections/content-runs/services/storyboard-source.service';
 import { StoryboardStillsService } from '@api/collections/content-runs/services/storyboard-stills.service';
@@ -87,6 +88,7 @@ import { Module } from '@nestjs/common';
   exports: [
     StoryboardRunsService,
     StoryboardStillsService,
+    StoryboardShotRendersService,
     StoryboardARollService,
     StoryboardLongFormAssemblyService,
     StoryboardLongFormEstimateService,
@@ -138,6 +140,7 @@ import { Module } from '@nestjs/common';
     StoryboardRunStoreService,
     StoryboardSourceService,
     StoryboardStillsService,
+    StoryboardShotRendersService,
     StoryboardARollService,
     StoryboardAnimaticVoiceService,
     StoryboardLongFormAssemblyService,

@@ -7,10 +7,12 @@ import {
   GenerateStoryboardStillsDto,
   ListStoryboardRunsDto,
   QuoteStoryboardARollDto,
+  QuoteStoryboardShotRendersDto,
   QuoteStoryboardStillsDto,
   RenderStoryboardARollDto,
   ReplaceStoryboardCharacterDto,
   ResetStoryboardPlanDto,
+  StartStoryboardShotRendersDto,
   TranslateStoryboardRunDto,
   UpdateStoryboardPlanDto,
   UpdateStoryboardSourceDto,
@@ -22,6 +24,7 @@ import { StoryboardLongFormEstimateService } from '@api/collections/content-runs
 import { StoryboardLongFormTranslationService } from '@api/collections/content-runs/services/storyboard-long-form-translation.service';
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
+import { StoryboardShotRendersService } from '@api/collections/content-runs/services/storyboard-shot-renders.service';
 import { StoryboardSlideshowPostService } from '@api/collections/content-runs/services/storyboard-slideshow-post.service';
 import { StoryboardStillsService } from '@api/collections/content-runs/services/storyboard-stills.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
@@ -56,6 +59,7 @@ export class StoryboardRunsController {
     private readonly capabilities: StoryboardRunCapabilitiesService,
     private readonly characters: StoryboardCharacterReplaceService,
     private readonly stills: StoryboardStillsService,
+    private readonly renders: StoryboardShotRendersService,
     private readonly aRoll: StoryboardARollService,
     private readonly assembly: StoryboardLongFormAssemblyService,
     private readonly estimates: StoryboardLongFormEstimateService,
@@ -206,6 +210,52 @@ export class StoryboardRunsController {
       request,
       StoryboardRunSerializer,
       await this.stills.reconcile(user.organizationId, brandId, runId),
+    );
+  }
+
+  /** Prices a draft or final video render of approved shots (#9618). */
+  @Post(':runId/renders/quote')
+  quoteRenders(
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+    @Body() body: QuoteStoryboardShotRendersDto,
+  ) {
+    return this.renders.quote(user.organizationId, brandId, runId, body);
+  }
+
+  @Post(':runId/renders')
+  async startRenders(
+    @Req() request: Request,
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+    @Body() body: StartStoryboardShotRendersDto,
+  ) {
+    return serializeSingle(
+      request,
+      StoryboardRunSerializer,
+      await this.renders.start(
+        user.organizationId,
+        brandId,
+        runId,
+        user.userId,
+        body,
+      ),
+    );
+  }
+
+  @Post(':runId/renders/reconcile')
+  async reconcileRenders(
+    @Req() request: Request,
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+  ) {
+    return serializeSingle(
+      request,
+      StoryboardRunSerializer,
+      await this.renders.reconcile(user.organizationId, brandId, runId),
     );
   }
 

@@ -599,5 +599,32 @@
     "problemCount": "Add 2 to 12 slides.",
     "problemImage": "Slide {ordinal}: draw a fresh image.",
     "problemDescription": "Slide {ordinal}: describe the image."
+  },
+  "renders": {
+    "title": "Video",
+    "help": "Draft each shot cheaply to check the motion, then promote the keepers to the final render.",
+    "draft": "Draft",
+    "final": "Final",
+    "draftAll": "Draft every shot",
+    "finalAll": "Render every final",
+    "renderDraft": "Render draft",
+    "redoDraft": "Redo draft",
+    "promote": "Promote to final",
+    "renderFinal": "Render final",
+    "redoFinal": "Redo final",
+    "statePending": "Starting",
+    "stateSubmitted": "Rendering",
+    "stateReady": "Ready",
+    "stateFailed": "Failed",
+    "earlierVersion": "From an earlier version of this shot",
+    "notRendered": "Not rendered",
+    "videoAlt": "{stage} render of shot {ordinal}",
+    "confirmDraft": "Render drafts",
+    "confirmFinal": "Render finals",
+    "quoteMessage": "{count, plural, one {# shot} other {# shots}} on {model} for {credits, plural, one {# credit} other {# credits}}. You are charged only for renders that finish.",
+    "quoteByok": "{count, plural, one {# shot} other {# shots}} on {model} with your own provider key. No credits are charged.",
+    "promoteNote": "Promoted drafts keep their exact prompt and references.",
+    "confirm": "Render",
+    "approveFirst": "Approve the storyboard to render its shots."
   }
 }

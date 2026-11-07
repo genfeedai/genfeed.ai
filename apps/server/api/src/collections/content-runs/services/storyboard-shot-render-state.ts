@@ -1,0 +1,217 @@
+import { storyboardConfigHash } from '@api/collections/content-runs/services/storyboard-config-hash';
+import { storyboardShotCast } from '@api/collections/content-runs/services/storyboard-still-state';
+import type {
+  StoryboardPlan,
+  StoryboardShot,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import {
+  type StoryboardShotRender,
+  storyboardShotRenderSchema,
+  storyboardShotRenderStageSchema,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-shot-render.contract';
+import { z } from 'zod';
+
+/**
+ * Terminal operations beyond this are pruned oldest first. Live operations
+ * and the latest render of each shot and stage are never pruned.
+ */
+export const SHOT_RENDER_JOURNAL_CAPACITY = 64;
+/** A dispatch that left no placeholder for this long never reached a provider. */
+export const SHOT_RENDER_ABANDONED_MS = 10 * 60_000;
+
+export const shotRenderOperationSchema = z
+  .object({
+    version: z.literal(1),
+    operationId: z.string().uuid(),
+    shotId: z.string().min(1),
+    stage: storyboardShotRenderStageSchema,
+    actorUserId: z.string().min(1),
+    modelKey: z.string().min(1),
+    credits: z.number().finite().nonnegative(),
+    billingMode: z.enum(['platform', 'byok']),
+    /** The shot inputs the prompt and references were compiled from. */
+    inputFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+    prompt: z.string().min(1).max(8_000),
+    referenceAssetIds: z.array(z.string().min(1)).max(20),
+    aspectRatio: z.string().min(1),
+    durationSeconds: z.number().finite().positive().max(60),
+    resolution: z.string().min(1).optional(),
+    isAudioEnabled: z.boolean(),
+    promotedFromOperationId: z.string().uuid().optional(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+    state: z.enum(['pending', 'submitted', 'ready', 'failed']),
+    assetId: z.string().min(1).optional(),
+    reservationId: z.string().min(1).optional(),
+    billing: z.enum(['none', 'reserved', 'settled', 'released']),
+    errorCode: z.string().max(200).optional(),
+  })
+  .strict();
+export const shotRenderJournalSchema = z
+  .array(shotRenderOperationSchema)
+  .max(SHOT_RENDER_JOURNAL_CAPACITY);
+export type ShotRenderOperation = z.infer<typeof shotRenderOperationSchema>;
+
+export function isLiveShotRenderOperation(op: ShotRenderOperation): boolean {
+  return op.state === 'pending' || op.state === 'submitted';
+}
+
+function slotKey(op: Pick<ShotRenderOperation, 'shotId' | 'stage'>): string {
+  return `${op.shotId}:${op.stage}`;
+}
+
+/** The newest operation of each shot and stage, in journal order. */
+export function latestShotRenderOperations(
+  journal: readonly ShotRenderOperation[],
+): Map<string, ShotRenderOperation> {
+  const latest = new Map<string, ShotRenderOperation>();
+  for (const op of journal) latest.set(slotKey(op), op);
+  return latest;
+}
+
+/** The newest operation for one shot and stage. */
+export function latestShotRender(
+  journal: readonly ShotRenderOperation[] | undefined,
+  shotId: string,
+  stage: ShotRenderOperation['stage'],
+): ShotRenderOperation | undefined {
+  return latestShotRenderOperations(journal ?? []).get(
+    slotKey({ shotId, stage }),
+  );
+}
+
+/**
+ * Appends operations, dropping the oldest terminal ones that are no longer
+ * the latest render of their shot and stage.
+ */
+export function appendShotRenderOperations(
+  journal: readonly ShotRenderOperation[],
+  added: readonly ShotRenderOperation[],
+): ShotRenderOperation[] {
+  const next = [...journal, ...added];
+  const latest = new Set(latestShotRenderOperations(next).values());
+  let excess = next.length - SHOT_RENDER_JOURNAL_CAPACITY;
+  return next.filter((op) => {
+    if (excess <= 0 || isLiveShotRenderOperation(op) || latest.has(op)) {
+      return true;
+    }
+    excess -= 1;
+    return false;
+  });
+}
+
+/**
+ * Every reference a shot can give its video model, most important first: the
+ * shot's current still (the first frame on image-to-video models), the
+ * speaker's avatar when on screen, the references of the cast it names, then
+ * the style references. The caller caps the list at the model's limit.
+ */
+export function storyboardShotRenderReferences(
+  plan: StoryboardPlan,
+  shot: StoryboardShot,
+): string[] {
+  const { speaker, cast } = storyboardShotCast(plan, shot);
+  return [
+    ...new Set([
+      ...(shot.stillFreshness === 'fresh' && shot.stillAssetId
+        ? [shot.stillAssetId]
+        : []),
+      ...(shot.onScreenSpeaker && speaker?.avatarAssetId
+        ? [speaker.avatarAssetId]
+        : []),
+      ...cast.flatMap((member) => member.referenceAssetIds),
+      ...plan.styleReferenceAssetIds,
+    ]),
+  ];
+}
+
+/**
+ * The video prompt for a shot: its action, the spoken line when the model
+ * renders native audio, and the shared look. Names mean nothing to the video
+ * model; identity comes from the references.
+ */
+export function storyboardShotRenderPrompt(
+  plan: StoryboardPlan,
+  shot: StoryboardShot,
+  options: { isAudioEnabled: boolean; hasCastReferences: boolean },
+): string {
+  return [
+    shot.action.trim(),
+    options.isAudioEnabled && shot.dialogue?.trim()
+      ? `Spoken line: "${shot.dialogue.trim()}"`
+      : '',
+    options.hasCastReferences
+      ? 'Keep every person consistent with the reference images.'
+      : '',
+    plan.styleLabel?.trim() ? `Visual style: ${plan.styleLabel.trim()}.` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+/**
+ * Identifies the shot inputs a render is compiled from. Timing, notes and the
+ * transition are left out: they change the edit, not the clip.
+ */
+export function shotRenderInputFingerprint(
+  plan: StoryboardPlan,
+  shot: StoryboardShot,
+): string {
+  return storyboardConfigHash({
+    action: shot.action.trim(),
+    dialogue: shot.dialogue?.trim() || undefined,
+    references: storyboardShotRenderReferences(plan, shot),
+    styleLabel: plan.styleLabel?.trim() || undefined,
+    format: plan.format,
+  });
+}
+
+/**
+ * The clip length a model renders for a shot: the shortest supported length
+ * that covers the shot, else the longest one.
+ */
+export function snapShotRenderDuration(
+  seconds: number,
+  durations: readonly number[],
+): number | undefined {
+  const sorted = [...durations].sort((a, b) => a - b);
+  return sorted.find((value) => value >= seconds) ?? sorted.at(-1);
+}
+
+/** The latest draft and final of each shot, for the public run. */
+export function projectShotRenders(
+  plan: StoryboardPlan,
+  journal: readonly ShotRenderOperation[] | undefined,
+): StoryboardShotRender[] | undefined {
+  if (!journal?.length) return undefined;
+  const shots = new Map(plan.shots.map((shot) => [shot.id, shot]));
+  const renders = [...latestShotRenderOperations(journal).values()].flatMap(
+    (op) => {
+      const shot = shots.get(op.shotId);
+      if (!shot) return [];
+      return [
+        storyboardShotRenderSchema.parse({
+          operationId: op.operationId,
+          shotId: op.shotId,
+          stage: op.stage,
+          modelKey: op.modelKey,
+          state: op.state,
+          assetId: op.assetId,
+          credits: op.credits,
+          billingMode: op.billingMode,
+          prompt: op.prompt,
+          referenceAssetIds: op.referenceAssetIds,
+          durationSeconds: op.durationSeconds,
+          resolution: op.resolution,
+          isAudioEnabled: op.isAudioEnabled,
+          promotedFromOperationId: op.promotedFromOperationId,
+          isCurrent:
+            op.inputFingerprint === shotRenderInputFingerprint(plan, shot),
+          errorCode: op.errorCode,
+          updatedAt: op.updatedAt,
+        }),
+      ];
+    },
+  );
+  return renders.length ? renders : undefined;
+}
