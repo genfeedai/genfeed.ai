@@ -4401,7 +4401,10 @@ async function executeDedicatedAcceptance(identity, env, baseline = false) {
         !result.streamError,
       'CHILD_FAILED',
     );
-    return (await safeFile(identity.state, handle.stdoutRelative, 65536))
+    // Capture is already bounded by RAW_LIMIT (outputLimit fails the child).
+    // A tighter read cap fails on output that grows with the repo, such as
+    // `prisma migrate deploy` listing every migration.
+    return (await safeFile(identity.state, handle.stdoutRelative))
       .toString('utf8')
       .trim();
   };
