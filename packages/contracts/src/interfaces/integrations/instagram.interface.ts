@@ -29,12 +29,6 @@ export interface InstagramCredentialResponse {
   accessToken: string;
   externalId?: string;
   isConnected?: boolean;
-  /**
-   * True for an Instagram API with Unified Login connection (a Business
-   * Integration System User token, no Facebook Page). False for a historical
-   * Facebook Login connection, which reaches messaging through its Page.
-   */
-  isUnifiedLogin?: boolean;
   /** Present only when the grant was captured; omitted for unknown historical grants. */
   grantedScopes?: string[];
 }

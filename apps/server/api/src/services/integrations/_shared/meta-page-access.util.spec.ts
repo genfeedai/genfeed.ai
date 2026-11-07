@@ -3,19 +3,13 @@ import { of } from 'rxjs';
 import { readMetaPages, resolveMetaPageAccess } from './meta-page-access.util';
 
 describe('Meta Page access resolution', () => {
-  it('selects the linked Instagram Page on later pages without following next URLs', async () => {
+  it('selects the connected Page on a later batch without following next URLs', async () => {
     const get = vi
       .fn()
       .mockReturnValueOnce(
         of({
           data: {
-            data: [
-              {
-                id: 'wrong',
-                access_token: 'wrong',
-                instagram_business_account: { id: 'other' },
-              },
-            ],
+            data: [{ id: 'wrong', access_token: 'wrong' }],
             paging: {
               next: 'https://untrusted.example/?access_token=secret',
               cursors: { after: 'cursor' },
@@ -26,13 +20,7 @@ describe('Meta Page access resolution', () => {
       .mockReturnValueOnce(
         of({
           data: {
-            data: [
-              {
-                id: 'selected',
-                access_token: 'page-token',
-                instagram_business_account: { id: 'ig' },
-              },
-            ],
+            data: [{ id: 'selected', access_token: 'page-token' }],
           },
         }),
       );
@@ -41,7 +29,7 @@ describe('Meta Page access resolution', () => {
         { get } as unknown as HttpService,
         'https://graph.facebook.com/v26.0',
         'user-token',
-        { instagramAccountId: 'ig' },
+        { pageId: 'selected' },
       ),
     ).toEqual({ pageId: 'selected', accessToken: 'page-token' });
     expect(get).toHaveBeenLastCalledWith(
@@ -65,7 +53,7 @@ describe('Meta Page access resolution', () => {
         { get } as unknown as HttpService,
         'https://graph.facebook.com/v26.0',
         'user-token',
-        { instagramAccountId: 'ig' },
+        { pageId: 'selected' },
       ),
     ).rejects.toThrow('Reconnect');
   });
@@ -86,7 +74,7 @@ describe('Meta Page access resolution', () => {
       ),
     ).rejects.toThrow('did not advance');
   });
-  it('does not request Instagram fields for Facebook-only grants', async () => {
+  it('requests only Page fields', async () => {
     const get = vi
       .fn()
       .mockReturnValue(
