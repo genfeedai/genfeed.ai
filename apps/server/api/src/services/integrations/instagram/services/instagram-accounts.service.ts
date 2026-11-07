@@ -2,6 +2,7 @@ import { getSafeInstagramOAuthErrorLog } from '@api/services/integrations/instag
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type { InstagramPageResponse } from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Traced } from '@libs/tracing/traced';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
@@ -35,6 +36,7 @@ export class InstagramAccountsService {
    * The list edge documents only `id` and `username`; the display name and
    * avatar are read per account and are best-effort.
    */
+  @Traced()
   public async listAuthorizedInstagramAccounts(
     accessToken: string,
   ): Promise<InstagramPageResponse[]> {
@@ -107,6 +109,7 @@ export class InstagramAccountsService {
   }
 
   /** Display name and avatar for one account; a failed read leaves them out. */
+  @Traced()
   private async readInstagramAccountProfile(
     accountId: string,
     username: string | undefined,
