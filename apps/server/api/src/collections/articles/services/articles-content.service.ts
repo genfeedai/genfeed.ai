@@ -65,6 +65,7 @@ import type {
   ArticleGenerationResponse,
   GeneratedArticleData,
 } from '@genfeedai/contracts/interfaces/content/article.interface';
+import { escapeHtml } from '@genfeedai/helpers/security/escape-html.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -81,11 +82,6 @@ export type {
 } from '@api/collections/articles/services/articles-content.types';
 
 const TRAILING_SLASH_PATTERN = /\/$/;
-const AMPERSANDS_PATTERN = /&/g;
-const LESS_THAN_SIGNS_PATTERN = /</g;
-const GREATER_THAN_SIGNS_PATTERN = />/g;
-const DOUBLE_QUOTES_PATTERN = /"/g;
-const SINGLE_QUOTES_PATTERN = /'/g;
 const WHITESPACE_RUN_PATTERN = /\s+/;
 
 type HarnessPersonaInput = Parameters<typeof buildHarnessInput>[0]['persona'];
@@ -537,14 +533,6 @@ export class ArticlesContentService {
     // Headings and pull quotes are plain-text fields; escape them before
     // wrapping in HTML so generated text can't inject markup. section.content
     // is intentionally HTML and passes through unescaped.
-    const escapeHtml = (value: string): string =>
-      value
-        .replace(AMPERSANDS_PATTERN, '&amp;')
-        .replace(LESS_THAN_SIGNS_PATTERN, '&lt;')
-        .replace(GREATER_THAN_SIGNS_PATTERN, '&gt;')
-        .replace(DOUBLE_QUOTES_PATTERN, '&quot;')
-        .replace(SINGLE_QUOTES_PATTERN, '&#39;');
-
     // Build full HTML content by concatenating sections
     const htmlParts: string[] = [];
     for (const section of sections) {

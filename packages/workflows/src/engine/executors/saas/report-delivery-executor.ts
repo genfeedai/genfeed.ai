@@ -9,6 +9,7 @@ const AMPERSANDS_PATTERN = /&/g;
 const LESS_THAN_SIGNS_PATTERN = /</g;
 const GREATER_THAN_SIGNS_PATTERN = />/g;
 const DOUBLE_QUOTES_PATTERN = /"/g;
+const SINGLE_QUOTES_PATTERN = /'/g;
 
 export type ReportDeliveryChannel = 'notification' | 'email' | 'both';
 
@@ -187,12 +188,16 @@ export class ReportDeliveryExecutor extends BaseExecutor {
   }
 }
 
+// Local on purpose: the engine executors keep a minimal dependency surface
+// (see trend-digest-executor.ts). Keep the escaped set equal to
+// `escapeHtml` in `@genfeedai/helpers/security/escape-html.helper`.
 function escapeHtml(value: string): string {
   return value
     .replace(AMPERSANDS_PATTERN, '&amp;')
     .replace(LESS_THAN_SIGNS_PATTERN, '&lt;')
     .replace(GREATER_THAN_SIGNS_PATTERN, '&gt;')
-    .replace(DOUBLE_QUOTES_PATTERN, '&quot;');
+    .replace(DOUBLE_QUOTES_PATTERN, '&quot;')
+    .replace(SINGLE_QUOTES_PATTERN, '&#39;');
 }
 
 export function createReportDeliveryExecutor(options: {

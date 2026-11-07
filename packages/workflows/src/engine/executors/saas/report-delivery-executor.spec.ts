@@ -69,6 +69,29 @@ describe('ReportDeliveryExecutor', () => {
     );
   });
 
+  it('escapes markup and quotes in report content before it reaches the email body', async () => {
+    const executor = new ReportDeliveryExecutor();
+    const emailSender = vi.fn().mockResolvedValue(undefined);
+    executor.setEmailSender(emailSender);
+
+    await executor.execute({
+      context: { organizationId: 'org', userId: 'user' } as never,
+      inputs: new Map([['content', `<b onclick='x'>Tom & "Jerry"</b>`]]),
+      node: {
+        config: { channel: 'email', email: 'ops@example.com' },
+        id: 'n1',
+        inputs: [],
+        label: 'Deliver Report',
+        type: 'reportDelivery',
+      },
+    });
+
+    const [sent] = emailSender.mock.calls[0] as [{ html: string }];
+    expect(sent.html).toContain(
+      '&lt;b onclick=&#39;x&#39;&gt;Tom &amp; &quot;Jerry&quot;&lt;/b&gt;',
+    );
+  });
+
   it('fails closed without content', async () => {
     const executor = new ReportDeliveryExecutor();
     executor.setNotificationSender(vi.fn());

@@ -5,6 +5,7 @@ import {
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ArticleCategory, ArticleStatus } from '@genfeedai/contracts';
 import { PUBLIC_ARTICLES_ORGANIZATION_SLUG } from '@genfeedai/contracts/constants';
+import { escapeHtml } from '@genfeedai/helpers/security/escape-html.helper';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { Article } from '@genfeedai/models/content/article.model';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
@@ -29,25 +30,11 @@ import ArticleDetailHeader from './article-detail-header';
 import ArticleEditForm from './article-edit-form';
 import ArticleSidebar from './article-sidebar';
 
-const AMPERSANDS_PATTERN = /&/g;
-const LESS_THAN_SIGNS_PATTERN = /</g;
-const GREATER_THAN_SIGNS_PATTERN = />/g;
-const DOUBLE_QUOTES_PATTERN = /"/g;
-const SINGLE_QUOTES_PATTERN = /'/g;
 const PARAGRAPH_BREAKS_PATTERN = /\n{2,}/g;
 const NEWLINES_PATTERN = /\n/g;
 const HTML_TAGS_PATTERN = /<[^>]*>/g;
 
 type TeaserFormat = 'post' | 'thread';
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(AMPERSANDS_PATTERN, '&amp;')
-    .replace(LESS_THAN_SIGNS_PATTERN, '&lt;')
-    .replace(GREATER_THAN_SIGNS_PATTERN, '&gt;')
-    .replace(DOUBLE_QUOTES_PATTERN, '&quot;')
-    .replace(SINGLE_QUOTES_PATTERN, '&#39;');
-}
 
 export function applyDraftSuggestionToHtml(
   currentContent: string,

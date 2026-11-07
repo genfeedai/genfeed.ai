@@ -1,10 +1,8 @@
 import sanitize from 'sanitize-html';
+import { escapeHtmlText } from './escape-html.helper';
 
 export { stripHtmlToPlainText } from './strip-html.helper';
 
-const AMPERSANDS_PATTERN = /&/g;
-const LESS_THAN_SIGNS_PATTERN = /</g;
-const GREATER_THAN_SIGNS_PATTERN = />/g;
 const CR_LINE_ENDINGS_PATTERN = /\r\n?/g;
 const PARAGRAPH_BREAK_PATTERN = /\n{2,}/;
 const NEWLINES_PATTERN = /\n/g;
@@ -214,13 +212,6 @@ export function createMarkup(html: string): { __html: string } {
 }
 
 const HTML_TAG_PATTERN = /<\/?[a-z][^>]*>/i;
-
-function escapeHtmlText(text: string): string {
-  return text
-    .replace(AMPERSANDS_PATTERN, '&amp;')
-    .replace(LESS_THAN_SIGNS_PATTERN, '&lt;')
-    .replace(GREATER_THAN_SIGNS_PATTERN, '&gt;');
-}
 
 /**
  * Turn AI or pasted text into editor HTML. Text that already carries markup is

@@ -49,6 +49,7 @@ export * from './onboarding/signup-brand-domain.helper';
 export * from './publisher/permission-scope-readiness.helper';
 export * from './publisher/publishing-diagnostics.helper';
 export * from './quality-routing.helper';
+export * from './security/escape-html.helper';
 export * from './security/redact-sensitive-value.helper';
 export * from './security/sanitize-html.helper';
 export * from './serializer.helper';
