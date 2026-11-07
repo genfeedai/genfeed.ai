@@ -62,6 +62,8 @@ export interface ModelCatalogSeedEntry {
   defaultAspectRatio?: string;
   defaultDuration?: number;
   description: string;
+  /** Cheaper siblings a video draft runs on, tried in order. */
+  draftModelKeys?: readonly string[];
   durations?: readonly number[];
   /** Exact provider endpoint when the collision-safe public key is prefixed. */
   endpoint?: string;
@@ -71,8 +73,10 @@ export interface ModelCatalogSeedEntry {
   hasDurationEditing?: boolean;
   hasEndFrame?: boolean;
   hasInterpolation?: boolean;
+  hasNativeExtend?: boolean;
   hasResolutionOptions?: boolean;
   hasSpeech?: boolean;
+  hasVideoReferences?: boolean;
   inputCostPerMillionTokens?: number;
   isActive: boolean;
   isBatchSupported?: boolean;
@@ -97,6 +101,7 @@ export interface ModelCatalogSeedEntry {
   label: string;
   maxOutputs?: number;
   maxReferences?: number;
+  maxVideoReferences?: number;
   /** Floor credits charged for a run (legacy path only). */
   minCost?: number;
   outputCostPerMillionTokens?: number;
@@ -371,6 +376,21 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
     }
     if ('hasInterpolation' in capability) {
       entry.hasInterpolation = capability.hasInterpolation;
+    }
+    if ('hasNativeExtend' in capability) {
+      entry.hasNativeExtend = capability.hasNativeExtend;
+    }
+    if ('hasVideoReferences' in capability) {
+      entry.hasVideoReferences = capability.hasVideoReferences;
+    }
+    if (
+      'maxVideoReferences' in capability &&
+      typeof capability.maxVideoReferences === 'number'
+    ) {
+      entry.maxVideoReferences = capability.maxVideoReferences;
+    }
+    if ('draftModelKeys' in capability && capability.draftModelKeys) {
+      entry.draftModelKeys = capability.draftModelKeys;
     }
     if ('hasResolutionOptions' in capability) {
       entry.hasResolutionOptions = capability.hasResolutionOptions;
