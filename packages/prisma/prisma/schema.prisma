@@ -4456,6 +4456,7 @@ model Model {
   aspectRatios          String[] @default([])
   capabilities          String[] @default([])
   durations             Int[]    @default([])
+  draftModelKeys        String[] @default([])
   recommendedFor        String[] @default([])
   supportsFeatures      String[] @default([])
   defaultAspectRatio    String?
@@ -4464,12 +4465,15 @@ model Model {
   minDimensions         Json?
   maxOutputs            Int?
   maxReferences         Int?
+  maxVideoReferences    Int?
   hasAudioToggle        Boolean?
   hasDurationEditing    Boolean?
   hasEndFrame           Boolean?
   hasInterpolation      Boolean?
+  hasNativeExtend       Boolean?
   hasResolutionOptions  Boolean?
   hasSpeech             Boolean?
+  hasVideoReferences    Boolean?
   isBatchSupported      Boolean?
   isImagenModel         Boolean?
   isReferencesMandatory Boolean?

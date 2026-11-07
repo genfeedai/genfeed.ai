@@ -4,12 +4,7 @@ import {
   type ModelLifecycle,
   type ModelProvider,
 } from '@genfeedai/contracts';
-import {
-  getModelMaxVideoReferences,
-  hasNativeExtend,
-  hasVideoReferences,
-  type ModelOutputCapability,
-} from '@genfeedai/contracts/constants';
+import type { ModelOutputCapability } from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { getModelCapability } from '@genfeedai/helpers/model-capability.helper';
 
@@ -41,12 +36,16 @@ export function toCapabilityModel(
     updatedAt: model.updatedAt.toISOString(),
     maxOutputs: model.maxOutputs ?? undefined,
     maxReferences: model.maxReferences ?? undefined,
+    maxVideoReferences: model.maxVideoReferences ?? undefined,
+    draftModelKeys: model.draftModelKeys ?? undefined,
     aspectRatios: model.aspectRatios ?? undefined,
     defaultAspectRatio: model.defaultAspectRatio ?? undefined,
     durations: model.durations ?? undefined,
     defaultDuration: model.defaultDuration ?? undefined,
     hasInterpolation: model.hasInterpolation ?? undefined,
     hasEndFrame: model.hasEndFrame ?? undefined,
+    hasNativeExtend: model.hasNativeExtend ?? undefined,
+    hasVideoReferences: model.hasVideoReferences ?? undefined,
     hasSpeech: model.hasSpeech ?? undefined,
     hasAudioToggle: model.hasAudioToggle ?? undefined,
     hasDurationEditing: model.hasDurationEditing ?? undefined,
@@ -54,27 +53,11 @@ export function toCapabilityModel(
   };
 }
 
-/**
- * Capability of a registry row: catalog fields first, the static constant as
- * fallback. Video reference and native-extend support have no catalog column
- * yet, so they come from the same key-based lookups video generation admission
- * uses (`video-generation-preparation.service.ts`).
- */
+/** Capability of a registry row, read from its catalog columns. */
 export function getRegistryModelCapability(
   model: ModelDocument,
 ): ModelOutputCapability | null {
   const category = String(model.category);
   if (!isModelCategory(category)) return null;
-
-  const capability = getModelCapability(toCapabilityModel(model, category));
-  if (!capability || capability.category !== ModelCategory.VIDEO) {
-    return capability;
-  }
-
-  return {
-    ...capability,
-    hasNativeExtend: hasNativeExtend(model.key),
-    hasVideoReferences: hasVideoReferences(model.key),
-    maxVideoReferences: getModelMaxVideoReferences(model.key),
-  };
+  return getModelCapability(toCapabilityModel(model, category));
 }

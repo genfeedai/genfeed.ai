@@ -134,6 +134,25 @@ describe('VideoRecipeRoutingService', () => {
     });
   });
 
+  it('routes the final render to a new catalog model from its registry columns alone', async () => {
+    const routing = await resolveRouting({
+      rows: [
+        registryModel(VEO, { isDefault: true }),
+        registryModel('acme/next-video', {
+          hasVideoReferences: true,
+          maxOutputs: 1,
+          maxReferences: 5,
+          maxVideoReferences: 4,
+        }),
+      ],
+    });
+
+    expect(step(routing, 'final-video')).toMatchObject({
+      eligibleModelCount: 1,
+      modelKey: 'acme/next-video',
+    });
+  });
+
   it.each([
     { defaultKey: VEO, expected: VEO },
     { defaultKey: SEEDANCE, expected: SEEDANCE },

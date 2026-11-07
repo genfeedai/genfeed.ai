@@ -72,14 +72,19 @@ export interface IModel extends IBaseEntity {
   defaultAspectRatio?: string;
   maxOutputs?: number;
   maxReferences?: number;
+  maxVideoReferences?: number;
   isBatchSupported?: boolean;
+  /** Cheaper siblings a video draft runs on, tried in order. */
+  draftModelKeys?: string[];
   durations?: number[];
   /** Lengths the provider runs per resolution (lowercase keys), from its reviewed rates. */
   durationsByResolution?: Record<string, number[]>;
   defaultDuration?: number;
   hasEndFrame?: boolean;
   hasInterpolation?: boolean;
+  hasNativeExtend?: boolean;
   hasSpeech?: boolean;
+  hasVideoReferences?: boolean;
   hasAudioToggle?: boolean;
   hasAudioReferences?: boolean;
   maxAudioReferences?: number;

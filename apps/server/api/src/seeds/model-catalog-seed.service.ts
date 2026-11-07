@@ -31,6 +31,7 @@ type ExistingModelRow = {
   defaultAspectRatio: unknown;
   defaultDuration: unknown;
   description: unknown;
+  draftModelKeys: unknown;
   durations: unknown;
   endpoint: unknown;
   externalId: unknown;
@@ -38,8 +39,10 @@ type ExistingModelRow = {
   hasDurationEditing: unknown;
   hasEndFrame: unknown;
   hasInterpolation: unknown;
+  hasNativeExtend: unknown;
   hasResolutionOptions: unknown;
   hasSpeech: unknown;
+  hasVideoReferences: unknown;
   id: string;
   inputCostPerMillionTokens: unknown;
   isActive: boolean;
@@ -56,6 +59,7 @@ type ExistingModelRow = {
   lifecycle: string;
   maxOutputs: unknown;
   maxReferences: unknown;
+  maxVideoReferences: unknown;
   minCost: unknown;
   outputCostPerMillionTokens: unknown;
   pricingType: unknown;
@@ -81,6 +85,7 @@ const EXISTING_MODEL_SELECT = {
   defaultAspectRatio: true,
   defaultDuration: true,
   description: true,
+  draftModelKeys: true,
   durations: true,
   endpoint: true,
   externalId: true,
@@ -88,8 +93,10 @@ const EXISTING_MODEL_SELECT = {
   hasDurationEditing: true,
   hasEndFrame: true,
   hasInterpolation: true,
+  hasNativeExtend: true,
   hasResolutionOptions: true,
   hasSpeech: true,
+  hasVideoReferences: true,
   id: true,
   inputCostPerMillionTokens: true,
   isActive: true,
@@ -106,6 +113,7 @@ const EXISTING_MODEL_SELECT = {
   lifecycle: true,
   maxOutputs: true,
   maxReferences: true,
+  maxVideoReferences: true,
   minCost: true,
   outputCostPerMillionTokens: true,
   pricingType: true,
@@ -258,6 +266,8 @@ export class ModelCatalogSeedService {
       ...(entry.defaultDuration != null
         ? { defaultDuration: entry.defaultDuration }
         : {}),
+      // Always written, so a sibling the catalog drops is cleared from the row.
+      draftModelKeys: [...(entry.draftModelKeys ?? [])],
       ...(entry.durations ? { durations: [...entry.durations] } : {}),
       ...(entry.externalId ? { externalId: entry.externalId } : {}),
       ...(entry.hasAudioToggle != null
@@ -270,10 +280,16 @@ export class ModelCatalogSeedService {
       ...(entry.hasInterpolation != null
         ? { hasInterpolation: entry.hasInterpolation }
         : {}),
+      ...(entry.hasNativeExtend != null
+        ? { hasNativeExtend: entry.hasNativeExtend }
+        : {}),
       ...(entry.hasResolutionOptions != null
         ? { hasResolutionOptions: entry.hasResolutionOptions }
         : {}),
       ...(entry.hasSpeech != null ? { hasSpeech: entry.hasSpeech } : {}),
+      ...(entry.hasVideoReferences != null
+        ? { hasVideoReferences: entry.hasVideoReferences }
+        : {}),
       ...(entry.inputCostPerMillionTokens != null
         ? { inputCostPerMillionTokens: entry.inputCostPerMillionTokens }
         : {}),
@@ -289,6 +305,9 @@ export class ModelCatalogSeedService {
       ...(entry.maxOutputs != null ? { maxOutputs: entry.maxOutputs } : {}),
       ...(entry.maxReferences != null
         ? { maxReferences: entry.maxReferences }
+        : {}),
+      ...(entry.maxVideoReferences != null
+        ? { maxVideoReferences: entry.maxVideoReferences }
         : {}),
       ...(entry.outputCostPerMillionTokens != null
         ? { outputCostPerMillionTokens: entry.outputCostPerMillionTokens }

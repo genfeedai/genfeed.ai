@@ -111,6 +111,19 @@ function buildVideoCapability(model: IModel): VideoModelCapability {
     ...(model.hasInterpolation != null && {
       hasInterpolation: model.hasInterpolation,
     }),
+    ...(model.hasNativeExtend != null && {
+      hasNativeExtend: model.hasNativeExtend,
+    }),
+    ...(model.hasVideoReferences != null && {
+      hasVideoReferences: model.hasVideoReferences,
+    }),
+    ...(model.maxVideoReferences != null && {
+      maxVideoReferences: model.maxVideoReferences,
+    }),
+    ...(model.draftModelKeys != null &&
+      model.draftModelKeys.length > 0 && {
+        draftModelKeys: model.draftModelKeys,
+      }),
     ...(model.hasSpeech != null && { hasSpeech: model.hasSpeech }),
     ...(model.hasAudioToggle != null && {
       hasAudioToggle: model.hasAudioToggle,

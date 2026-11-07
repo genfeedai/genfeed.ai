@@ -475,6 +475,35 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(row).not.toHaveProperty('hasResolutionOptions');
   });
 
+  it.each([
+    {
+      expected: {
+        draftModelKeys: [
+          MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE,
+          MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
+        ],
+      },
+      key: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
+    },
+    {
+      expected: { draftModelKeys: [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST] },
+      key: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
+    },
+    {
+      expected: {
+        hasNativeExtend: true,
+        hasVideoReferences: true,
+        maxReferences: 30,
+        maxVideoReferences: 10,
+      },
+      key: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+    },
+  ])('seeds the video routing capabilities of $key', ({ key, expected }) => {
+    expect(
+      UNIFIED_MODEL_CATALOG.find((entry) => entry.key === key),
+    ).toMatchObject(expected);
+  });
+
   it('activates MiniMax H3 Max Director with per-second list price and session minimum', () => {
     const row = UNIFIED_MODEL_CATALOG.find(
       (entry) => entry.key === MODEL_KEYS.FAL_MINIMAX_H3_MAX_DIRECTOR,

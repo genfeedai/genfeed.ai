@@ -1841,6 +1841,11 @@ describe('pinned Auto submission', () => {
 describe('video draft submission', () => {
   const full = 'google/veo-3.1';
   const fast = 'google/veo-3.1-fast';
+  /** Veo 3.1 as the catalog seeds it: Lite first, then fast. */
+  const fullModel = {
+    durations: [4, 6, 8],
+    draftModelKeys: ['google/veo-3.1-lite', fast],
+  };
   const videoSettings = {
     ...getDefaultStudioPlaygroundSettings('video'),
     duration: 8,
@@ -1854,7 +1859,7 @@ describe('video draft submission', () => {
     const { result } = renderStudioGeneration({
       type: 'video',
       models: [
-        makeModel(full, { durations: [4, 6, 8] }),
+        makeModel(full, fullModel),
         makeModel(fast, { durations: [4, 6, 8] }),
       ],
       settings: videoSettings,
@@ -1877,7 +1882,7 @@ describe('video draft submission', () => {
     const { result } = renderStudioGeneration({
       type: 'video',
       models: [
-        makeModel(full, { durations: [4, 6, 8] }),
+        makeModel(full, fullModel),
         makeModel(fast, { durations: [4, 6, 8] }),
       ],
       settings: videoSettings,
@@ -1891,7 +1896,7 @@ describe('video draft submission', () => {
   it('refuses a draft it cannot price rather than charging the full render', async () => {
     const { result } = renderStudioGeneration({
       type: 'video',
-      models: [makeModel(full, { durations: [4, 6, 8] })],
+      models: [makeModel(full, fullModel)],
       settings: videoSettings,
     });
     await act(async () => {

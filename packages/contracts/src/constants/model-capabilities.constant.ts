@@ -37,6 +37,12 @@ export interface ImageModelCapability extends BaseModelCapability {
 
 export interface VideoModelCapability extends BaseModelCapability {
   category: ModelCategory.VIDEO;
+  /**
+   * Cheaper siblings a draft runs on, tried in order: same family, a fraction
+   * of the provider rate. A model without siblings drafts on itself at its
+   * lowest resolution and shortest length.
+   */
+  draftModelKeys?: readonly string[];
   hasEndFrame?: boolean;
   hasNativeExtend?: boolean;
   hasAudioReferences?: boolean;
@@ -484,6 +490,7 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       category: ModelCategory.VIDEO,
       defaultAspectRatio: '16:9',
       defaultDuration: 8,
+      draftModelKeys: [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST],
       durations: [4, 6, 8],
       hasDurationEditing: true,
       hasResolutionOptions: true,
@@ -510,6 +517,10 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       category: ModelCategory.VIDEO,
       defaultAspectRatio: '16:9',
       defaultDuration: 8,
+      draftModelKeys: [
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
+      ],
       durations: [4, 6, 8],
       hasAudioToggle: true,
       hasDurationEditing: true,
@@ -526,6 +537,10 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       category: ModelCategory.VIDEO,
       defaultAspectRatio: '16:9',
       defaultDuration: 8,
+      draftModelKeys: [
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
+      ],
       durations: [4, 6, 8],
       hasAudioToggle: true,
       hasDurationEditing: true,

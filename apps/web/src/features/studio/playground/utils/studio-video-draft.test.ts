@@ -8,6 +8,14 @@ function model(key: string, overrides: Partial<IModel> = {}): IModel {
   return { durations: [4, 6, 8], key, ...overrides } as IModel;
 }
 
+/** Veo 3.1 as the catalog seeds it: Lite first, then fast. */
+const VEO_3_1 = model(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1, {
+  draftModelKeys: [
+    MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE,
+    MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
+  ],
+});
+
 const videoSettings = {
   ...getDefaultStudioPlaygroundSettings('video'),
   duration: 8,
@@ -20,7 +28,7 @@ const videoSettings = {
 describe('buildVideoDraftSettings', () => {
   it('drafts Veo 3.1 on Lite, shortest, silent and single', () => {
     const draft = buildVideoDraftSettings(videoSettings, [
-      model(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1),
+      VEO_3_1,
       model(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST),
       model(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE),
     ]);
@@ -35,7 +43,7 @@ describe('buildVideoDraftSettings', () => {
 
   it('drafts Veo 3.1 on its fast sibling when Lite is not on offer', () => {
     const draft = buildVideoDraftSettings(videoSettings, [
-      model(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1),
+      VEO_3_1,
       model(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST),
     ]);
 
@@ -50,10 +58,7 @@ describe('buildVideoDraftSettings', () => {
   it('keeps every other setting of the real request', () => {
     const draft = buildVideoDraftSettings(
       { ...videoSettings, aspectRatio: '9:16' },
-      [
-        model(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1),
-        model(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST),
-      ],
+      [VEO_3_1, model(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST)],
     );
 
     expect(draft?.aspectRatio).toBe('9:16');
@@ -81,15 +86,11 @@ describe('buildVideoDraftSettings', () => {
   });
 
   it('has no draft when the sibling is not on offer', () => {
-    expect(
-      buildVideoDraftSettings(videoSettings, [
-        model(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1),
-      ]),
-    ).toBeNull();
+    expect(buildVideoDraftSettings(videoSettings, [VEO_3_1])).toBeNull();
   });
 
   it('has no draft for Auto or an unknown model', () => {
-    const models = [model(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1)];
+    const models = [VEO_3_1];
     expect(
       buildVideoDraftSettings({ ...videoSettings, modelKey: 'auto' }, models),
     ).toBeNull();

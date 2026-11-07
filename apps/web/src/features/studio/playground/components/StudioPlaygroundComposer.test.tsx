@@ -2456,6 +2456,10 @@ describe('StudioPlaygroundComposer', () => {
       const veo = {
         category: ModelCategory.VIDEO,
         cost: 100,
+        draftModelKeys: [
+          MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE,
+          MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
+        ],
         durations: [4, 6, 8],
         isActive: true,
         key: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
