@@ -3,6 +3,7 @@ import type { IReferralProgram } from '@genfeedai/contracts/interfaces';
 
 export class ReferralProgram extends BaseEntity implements IReferralProgram {
   declare public code: string;
+  declare public codes: IReferralProgram['codes'];
   declare public shareUrl: string;
   declare public referralCount: number;
   declare public convertedCount: number;

@@ -3,6 +3,7 @@ import {
   buildMagicLinkCallbackURL,
   resolveAuthContinuation,
 } from '@genfeedai/auth-client/callback';
+import { parseReferralCode } from '@genfeedai/contracts/constants';
 import type { ISignupAttribution } from '@genfeedai/contracts/interfaces';
 import {
   hasSignupAttribution,
@@ -13,7 +14,6 @@ import {
   extractBrandDomain,
   parseOnboardingAccountType,
   parsePositiveInteger,
-  parseReferralCode,
   resolveSelectedPlanParam,
 } from '@/lib/onboarding/onboarding-access.util';
 import type { AuthCallbackURLOptions } from '@/props/auth/auth-callback-url.props';

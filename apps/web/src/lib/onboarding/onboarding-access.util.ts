@@ -3,6 +3,7 @@ import {
   SubscriptionStatus,
   SubscriptionTier,
 } from '@genfeedai/contracts';
+import { parseReferralCode } from '@genfeedai/contracts/constants';
 import type {
   DashboardPreferences,
   ISetting,
@@ -113,13 +114,6 @@ export function resolveBrandStepAccountType(
   }
 
   return requestedAccountType ?? OrganizationCategory.CREATOR;
-}
-
-const REFERRAL_CODE_PATTERN = /^[23456789abcdefghjkmnpqrstuvwxyz]{8,32}$/;
-
-export function parseReferralCode(value?: string | null): string | null {
-  const code = value?.trim().toLowerCase();
-  return code && REFERRAL_CODE_PATTERN.test(code) ? code : null;
 }
 
 type OnboardingHandoffStorage = Pick<Storage, 'setItem'> &

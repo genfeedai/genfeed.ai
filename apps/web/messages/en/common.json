@@ -2565,6 +2565,21 @@
   "referrals": {
     "adminLoadErrorDescription": "Financial reward records could not be loaded. No empty audit result is shown until the request succeeds.",
     "copied": "Affiliate link copied",
+    "codes": {
+      "activeLabel": "Accept sign-ups through {code}",
+      "add": "Add code",
+      "brandLabel": "Brand",
+      "codeLabel": "Code",
+      "codePlaceholder": "Optional, e.g. launch10",
+      "copyLabel": "Copy link for {code}",
+      "createFailed": "The code could not be added.",
+      "description": "Share a different link per brand or campaign. Leave the code empty to use the brand handle, or a random code when no brand is chosen. Rewards from every code go to the same credit balance.",
+      "noBrand": "No brand",
+      "primary": "Primary",
+      "stats": "{referred} referred · {earned} credits earned",
+      "title": "Your codes",
+      "updateFailed": "The code could not be updated."
+    },
     "copyLink": "Copy link",
     "creditsAmount": "{count} credits",
     "description": "Share your link. You earn 10% of each referred customer's pay-as-you-go credit purchases for 12 months. Rewards settle after seven days; granted credits expire 12 months after they are added.",

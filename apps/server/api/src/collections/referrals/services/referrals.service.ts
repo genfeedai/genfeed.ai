@@ -22,20 +22,31 @@ import {
   AFFILIATE_REWARD_RATE_PERCENT,
   AFFILIATE_REWARD_WINDOW_MONTHS,
   AFFILIATE_SETTLEMENT_DELAY_DAYS,
+  findReferralCodeProblem,
+  normalizeReferralCode,
+  REFERRAL_CODES_PER_OWNER_LIMIT,
   REFERRAL_REWARD_REVERSAL_REFERENCE_TYPE,
 } from '@genfeedai/contracts/constants';
 import type {
+  ICreateReferralCodeInput,
   IReferralAdminReward,
   IReferralClaimResult,
+  IReferralCode,
   IReferralProgram,
   IReferralReward,
 } from '@genfeedai/contracts/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
+import type { Prisma, ReferralCode } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Traced } from '@libs/tracing/traced';
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 
 const TRAILING_SLASH_PATTERN = /\/$/;
@@ -106,87 +117,251 @@ export class ReferralsService {
 
   async getMine(actor: ReferralActor): Promise<IReferralProgram> {
     const account = await this.resolveActorAccount(actor);
-    const referralCode = await this.ensureCode(actor, account.id);
-    const referralWhere = {
-      codeId: referralCode.id,
-      isDeleted: false,
-    } as const;
+    const primary = await this.ensureCode(actor, account.id);
+    const codes = await this.prisma.referralCode.findMany({
+      include: { brand: { select: { label: true, slug: true } } },
+      orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+      where: this.ownedCodesWhere(actor, account.id),
+    });
+    const codeIds = codes.map((code) => code.id);
     const rewardWhere = {
       isDeleted: false,
-      referralCodeId: referralCode.id,
+      referralCodeId: { in: codeIds },
     } as const;
-    const [referralCount, convertedCount, totals, recentRewards] =
-      await Promise.all([
-        this.prisma.referral.count({ where: referralWhere }),
-        this.prisma.referral.count({
-          where: {
-            ...referralWhere,
-            rewards: {
-              some: {
-                isDeleted: false,
-                status: {
-                  in: [...CONVERSION_REWARD_STATUSES],
-                },
-              },
+    const [signUps, converted, totals, recentRewards] = await Promise.all([
+      this.prisma.referral.groupBy({
+        _count: { _all: true },
+        by: ['codeId'],
+        where: { codeId: { in: codeIds }, isDeleted: false },
+      }),
+      this.prisma.referral.findMany({
+        select: { codeId: true, id: true },
+        where: {
+          codeId: { in: codeIds },
+          isDeleted: false,
+          rewards: {
+            some: {
+              isDeleted: false,
+              status: { in: [...CONVERSION_REWARD_STATUSES] },
             },
           },
-        }),
-        this.prisma.referralReward.groupBy({
-          by: ['status'],
-          _sum: { reversedCredits: true, rewardCredits: true },
-          where: rewardWhere,
-        }),
-        this.prisma.referralReward.findMany({
-          orderBy: { createdAt: 'desc' },
-          take: 20,
-          where: rewardWhere,
-        }),
-      ]);
-    const sumFor = (statuses: readonly ReferralRewardStatus[]) =>
-      totals
+        },
+      }),
+      this.prisma.referralReward.groupBy({
+        _sum: { reversedCredits: true, rewardCredits: true },
+        by: ['referralCodeId', 'status'],
+        where: rewardWhere,
+      }),
+      this.prisma.referralReward.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        where: rewardWhere,
+      }),
+    ]);
+    const signUpsByCode = new Map(
+      signUps.map((row) => [row.codeId, row._count._all]),
+    );
+    const convertedByCode = new Map<string, number>();
+    for (const referral of converted) {
+      convertedByCode.set(
+        referral.codeId,
+        (convertedByCode.get(referral.codeId) ?? 0) + 1,
+      );
+    }
+    const creditsFor = (
+      rows: typeof totals,
+      statuses: readonly ReferralRewardStatus[],
+    ) =>
+      rows
         .filter((row) => statuses.includes(row.status as ReferralRewardStatus))
         .reduce((sum, row) => sum + (row._sum.rewardCredits ?? 0), 0);
-    const reversedCredits = totals.reduce(
-      (sum, row) => sum + (row._sum.reversedCredits ?? 0),
-      0,
-    );
-    const configuredBaseUrl = String(
-      this.configService.get('GENFEEDAI_APP_URL') ?? '',
-    ).replace(TRAILING_SLASH_PATTERN, '');
+    const earnedFor = (rows: typeof totals) =>
+      creditsFor(rows, [
+        ReferralRewardStatus.GRANTED,
+        ReferralRewardStatus.REVERSED,
+      ]) - rows.reduce((sum, row) => sum + (row._sum.reversedCredits ?? 0), 0);
+
+    const presentedCodes: IReferralCode[] = codes.map((code) => {
+      const own = totals.filter((row) => row.referralCodeId === code.id);
+      return {
+        brandId: code.brandId,
+        brandLabel: code.brand?.label ?? null,
+        brandSlug: code.brand?.slug ?? null,
+        code: code.code,
+        convertedCount: convertedByCode.get(code.id) ?? 0,
+        createdAt: code.createdAt.toISOString(),
+        earnedCredits: earnedFor(own),
+        id: code.id,
+        isActive: code.isActive,
+        isDeleted: code.isDeleted,
+        isPrimary: code.isPrimary,
+        pendingCredits: creditsFor(own, PENDING_REWARD_STATUSES),
+        referralCount: signUpsByCode.get(code.id) ?? 0,
+        shareUrl: this.buildShareUrl(code.code),
+        updatedAt: code.updatedAt.toISOString(),
+      };
+    });
 
     return {
-      code: referralCode.code,
-      convertedCount,
-      createdAt: referralCode.createdAt.toISOString(),
-      earnedCredits:
-        sumFor([ReferralRewardStatus.GRANTED, ReferralRewardStatus.REVERSED]) -
-        reversedCredits,
-      id: referralCode.id,
-      isDeleted: referralCode.isDeleted,
-      pendingCredits: sumFor(PENDING_REWARD_STATUSES),
+      code: primary.code,
+      codes: presentedCodes,
+      convertedCount: converted.length,
+      createdAt: primary.createdAt.toISOString(),
+      earnedCredits: earnedFor(totals),
+      id: primary.id,
+      isDeleted: primary.isDeleted,
+      pendingCredits: creditsFor(totals, PENDING_REWARD_STATUSES),
       recentRewards: recentRewards.map((reward) => this.presentReward(reward)),
-      referralCount,
-      reversedCredits,
+      referralCount: signUps.reduce((sum, row) => sum + row._count._all, 0),
+      reversedCredits: totals.reduce(
+        (sum, row) => sum + (row._sum.reversedCredits ?? 0),
+        0,
+      ),
       rewardRatePercent: AFFILIATE_REWARD_RATE_PERCENT,
       rewardWindowMonths: AFFILIATE_REWARD_WINDOW_MONTHS,
       settlementDelayDays: AFFILIATE_SETTLEMENT_DELAY_DAYS,
-      shareUrl: `${configuredBaseUrl}/sign-up?ref=${referralCode.code}`,
-      updatedAt: referralCode.updatedAt.toISOString(),
+      shareUrl: this.buildShareUrl(primary.code),
+      updatedAt: primary.updatedAt.toISOString(),
     };
+  }
+
+  /**
+   * Adds a code next to the member's primary one. With a brand and no code the
+   * brand handle becomes the code, so a sign-up traces back to the brand that
+   * shared it; with neither, the code is random. A taken code is refused, never
+   * reassigned, so a link already shared keeps pointing at its owner.
+   */
+  async createCode(
+    actor: ReferralActor,
+    input: ICreateReferralCodeInput,
+  ): Promise<IReferralCode> {
+    const account = await this.resolveActorAccount(actor);
+    await this.ensureCode(actor, account.id);
+    const held = await this.prisma.referralCode.count({
+      where: {
+        ownerUserId: actor.userId,
+        rewardBillingAccountId: account.id,
+      },
+    });
+    if (held >= REFERRAL_CODES_PER_OWNER_LIMIT) {
+      throw new BadRequestException(
+        `You can hold up to ${REFERRAL_CODES_PER_OWNER_LIMIT} affiliate codes.`,
+      );
+    }
+
+    const brand = input.brandId
+      ? await this.prisma.brand.findFirst({
+          select: { id: true, label: true, slug: true },
+          where: {
+            id: input.brandId,
+            isDeleted: false,
+            organizationId: actor.organizationId,
+          },
+        })
+      : null;
+    if (input.brandId && !brand) {
+      throw new NotFoundException('Brand not found in this organization.');
+    }
+
+    const requested = input.code?.trim() ? input.code : brand?.slug;
+    if (requested) {
+      const problem = findReferralCodeProblem(requested);
+      if (problem === 'reserved') {
+        throw new BadRequestException('That code is reserved.');
+      }
+      if (problem === 'invalid') {
+        throw new BadRequestException(
+          input.code?.trim()
+            ? 'Use 3 to 32 lowercase letters, numbers or hyphens.'
+            : 'This brand handle cannot be used as a code. Enter a code instead.',
+        );
+      }
+    }
+
+    let created: ReferralCode | null = null;
+    if (requested) {
+      created = await this.createCodeRow(
+        actor,
+        account.id,
+        normalizeReferralCode(requested),
+        brand?.id ?? null,
+      ).catch((error: unknown) => {
+        if (hasPrismaCode(error, 'P2002')) {
+          throw new ConflictException('That code is already taken.');
+        }
+        throw error;
+      });
+    } else {
+      for (let attempt = 0; attempt < 5 && !created; attempt += 1) {
+        created = await this.createCodeRow(
+          actor,
+          account.id,
+          generateReferralCode(),
+          null,
+        ).catch((error: unknown) => {
+          if (hasPrismaCode(error, 'P2002')) {
+            return null;
+          }
+          throw error;
+        });
+      }
+    }
+    if (!created) {
+      throw new Error('Could not allocate a referral code');
+    }
+
+    return {
+      brandId: brand?.id ?? null,
+      brandLabel: brand?.label ?? null,
+      brandSlug: brand?.slug ?? null,
+      code: created.code,
+      convertedCount: 0,
+      createdAt: created.createdAt.toISOString(),
+      earnedCredits: 0,
+      id: created.id,
+      isActive: created.isActive,
+      isDeleted: created.isDeleted,
+      isPrimary: false,
+      pendingCredits: 0,
+      referralCount: 0,
+      shareUrl: this.buildShareUrl(created.code),
+      updatedAt: created.updatedAt.toISOString(),
+    };
+  }
+
+  /** Stops (or resumes) new sign-ups through a code; history stays intact. */
+  async setCodeActive(
+    actor: ReferralActor,
+    codeId: string,
+    isActive: boolean,
+  ): Promise<{ id: string; isActive: boolean }> {
+    const account = await this.resolveActorAccount(actor);
+    const code = await this.prisma.referralCode.findFirst({
+      select: { id: true, isPrimary: true },
+      where: { ...this.ownedCodesWhere(actor, account.id), id: codeId },
+    });
+    if (!code) {
+      throw new NotFoundException('Affiliate code not found.');
+    }
+    if (code.isPrimary && !isActive) {
+      throw new BadRequestException(
+        'The primary affiliate code cannot be turned off.',
+      );
+    }
+    await this.prisma.referralCode.update({
+      data: { isActive },
+      where: { id: code.id },
+    });
+    return { id: code.id, isActive };
   }
 
   async listMyRewards(actor: ReferralActor): Promise<IReferralReward[]> {
     const account = await this.resolveActorAccount(actor);
-    const code = await this.prisma.referralCode.findFirst({
-      where: {
-        isActive: true,
-        isDeleted: false,
-        ownerUserId: actor.userId,
-        rewardBillingAccountId: account.id,
-      },
+    const codes = await this.prisma.referralCode.findMany({
       select: { id: true },
+      where: this.ownedCodesWhere(actor, account.id),
     });
-    if (!code) {
+    if (codes.length === 0) {
       return [];
     }
     const rewards = await this.prisma.referralReward.findMany({
@@ -194,7 +369,7 @@ export class ReferralsService {
       take: 100,
       where: {
         isDeleted: false,
-        referralCodeId: code.id,
+        referralCodeId: { in: codes.map((code) => code.id) },
       },
     });
     return rewards.map((reward) => this.presentReward(reward));
@@ -355,6 +530,7 @@ export class ReferralsService {
     } as const;
     const owned = input.userId
       ? await this.prisma.referralCode.findFirst({
+          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
           select: { code: true },
           where: { ...where, ownerUserId: input.userId },
         })
@@ -362,7 +538,7 @@ export class ReferralsService {
     const referralCode =
       owned ??
       (await this.prisma.referralCode.findFirst({
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
         select: { code: true },
         where,
       }));
@@ -837,9 +1013,43 @@ export class ReferralsService {
     }
   }
 
+  /** Every live code the member holds on this billing account. */
+  private ownedCodesWhere(actor: ReferralActor, billingAccountId: string) {
+    return {
+      isDeleted: false,
+      ownerUserId: actor.userId,
+      rewardBillingAccountId: billingAccountId,
+    } as const;
+  }
+
+  private buildShareUrl(code: string): string {
+    const configuredBaseUrl = String(
+      this.configService.get('GENFEEDAI_APP_URL') ?? '',
+    ).replace(TRAILING_SLASH_PATTERN, '');
+    return `${configuredBaseUrl}/sign-up?ref=${code}`;
+  }
+
+  private createCodeRow(
+    actor: ReferralActor,
+    billingAccountId: string,
+    code: string,
+    brandId: string | null,
+  ): Promise<ReferralCode> {
+    return this.prisma.referralCode.create({
+      data: {
+        brandId,
+        code,
+        ownerUserId: actor.userId,
+        rewardBillingAccountId: billingAccountId,
+        rewardOrganizationId: actor.organizationId,
+      },
+    });
+  }
+
   private async ensureCode(actor: ReferralActor, billingAccountId: string) {
     const existing = await this.prisma.referralCode.findFirst({
       where: {
+        isPrimary: true,
         ownerUserId: actor.userId,
         rewardBillingAccountId: billingAccountId,
       },
@@ -861,6 +1071,7 @@ export class ReferralsService {
         return await this.prisma.referralCode.create({
           data: {
             code: generateReferralCode(),
+            isPrimary: true,
             ownerUserId: actor.userId,
             rewardBillingAccountId: billingAccountId,
             rewardOrganizationId: actor.organizationId,
@@ -872,6 +1083,7 @@ export class ReferralsService {
         }
         const concurrent = await this.prisma.referralCode.findFirst({
           where: {
+            isPrimary: true,
             ownerUserId: actor.userId,
             rewardBillingAccountId: billingAccountId,
           },

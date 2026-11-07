@@ -2,6 +2,7 @@ import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const referralProgramAttributes = createEntityAttributes([
   'code',
+  'codes',
   'shareUrl',
   'referralCount',
   'convertedCount',

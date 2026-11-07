@@ -11,8 +11,34 @@ export interface IReferralReward extends IBaseEntity {
   reversedAt: string | null;
 }
 
-export interface IReferralProgram extends IBaseEntity {
+/** One shareable code and what sign-ups through it have earned. */
+export interface IReferralCode extends IBaseEntity {
   code: string;
+  shareUrl: string;
+  /** The brand this code is shared for; null for an account-level code. */
+  brandId: string | null;
+  brandLabel: string | null;
+  brandSlug: string | null;
+  /** The owner's first, random code; it cannot be deactivated. */
+  isPrimary: boolean;
+  isActive: boolean;
+  referralCount: number;
+  convertedCount: number;
+  pendingCredits: number;
+  earnedCredits: number;
+}
+
+export interface ICreateReferralCodeInput {
+  /** Any readable, unique code. Omit for the brand handle, else a random one. */
+  code?: string;
+  /** Share the code for this brand; without `code` the brand handle is used. */
+  brandId?: string;
+}
+
+export interface IReferralProgram extends IBaseEntity {
+  /** The primary code; totals below cover every code of the owner. */
+  code: string;
+  codes: IReferralCode[];
   shareUrl: string;
   referralCount: number;
   convertedCount: number;
