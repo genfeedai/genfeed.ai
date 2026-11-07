@@ -3,6 +3,7 @@ import {
   MCP_OAUTH_SESSION_KIND,
 } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
+import { traced } from '@libs/tracing/traced';
 
 export interface ActorApiKeyLookup {
   apiKeyId?: string;
@@ -36,35 +37,38 @@ function isSwitchableMcpSession(metadata: Prisma.JsonValue): boolean {
  * Organization is a root model, so reading the key through it does not
  * inherit the request tenant, which is the acting organization here.
  */
-export async function findActorApiKey(
-  tx: Prisma.TransactionClient,
-  actor: ActorApiKeyLookup,
-): Promise<ActorApiKey | null> {
-  if (!actor.apiKeyId?.trim()) {
-    return null;
-  }
-  const keyWhere: Prisma.ApiKeyWhereInput = {
-    id: actor.apiKeyId,
-    userId: actor.userId,
-    isRevoked: false,
-    OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-  };
-  const issuer = await tx.organization.findFirst({
-    where: { apiKeys: { some: keyWhere } },
-    select: {
-      id: true,
-      apiKeys: { where: keyWhere, select: { metadata: true, scopes: true } },
-    },
-  });
-  const key = issuer?.apiKeys[0];
-  if (!issuer || !key) {
-    return null;
-  }
-  if (
-    issuer.id !== actor.organizationId &&
-    !isSwitchableMcpSession(key.metadata)
-  ) {
-    return null;
-  }
-  return key;
-}
+export const findActorApiKey = traced(
+  'findActorApiKey',
+  async (
+    tx: Prisma.TransactionClient,
+    actor: ActorApiKeyLookup,
+  ): Promise<ActorApiKey | null> => {
+    if (!actor.apiKeyId?.trim()) {
+      return null;
+    }
+    const keyWhere: Prisma.ApiKeyWhereInput = {
+      id: actor.apiKeyId,
+      userId: actor.userId,
+      isRevoked: false,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+    };
+    const issuer = await tx.organization.findFirst({
+      where: { apiKeys: { some: keyWhere } },
+      select: {
+        id: true,
+        apiKeys: { where: keyWhere, select: { metadata: true, scopes: true } },
+      },
+    });
+    const key = issuer?.apiKeys[0];
+    if (!issuer || !key) {
+      return null;
+    }
+    if (
+      issuer.id !== actor.organizationId &&
+      !isSwitchableMcpSession(key.metadata)
+    ) {
+      return null;
+    }
+    return key;
+  },
+);
