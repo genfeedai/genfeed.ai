@@ -714,6 +714,57 @@ describe('McpApprovalsService', () => {
     });
   });
 
+  describe('findLinkScope', () => {
+    const organization = { findFirst: vi.fn() };
+    const brand = { findFirst: vi.fn() };
+    const scoped = () =>
+      new McpApprovalsService(
+        { brand, mcpApproval, organization } as unknown as PrismaService,
+        mockLogger as LoggerService,
+        mockNotificationsPublisher as ActivityRecorderService,
+      );
+
+    it('returns the organization and brand slugs for a brand-scoped call', async () => {
+      organization.findFirst.mockResolvedValue({ slug: 'genfeedai' });
+      brand.findFirst.mockResolvedValue({ slug: 'shayla' });
+
+      await expect(
+        scoped().findLinkScope({
+          arguments: { brandId: 'brand-1' },
+          organizationId: 'org-1',
+        }),
+      ).resolves.toEqual({
+        brandSlug: 'shayla',
+        organizationSlug: 'genfeedai',
+      });
+      expect(brand.findFirst).toHaveBeenCalledWith({
+        select: { slug: true },
+        where: { id: 'brand-1', isDeleted: false, organizationId: 'org-1' },
+      });
+    });
+
+    it('leaves the brand slug empty when the call named no brand', async () => {
+      organization.findFirst.mockResolvedValue({ slug: 'genfeedai' });
+
+      await expect(
+        scoped().findLinkScope({ arguments: {}, organizationId: 'org-1' }),
+      ).resolves.toEqual({ brandSlug: null, organizationSlug: 'genfeedai' });
+      expect(brand.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('leaves the brand slug empty when the brand is outside the organization', async () => {
+      organization.findFirst.mockResolvedValue({ slug: 'genfeedai' });
+      brand.findFirst.mockResolvedValue(null);
+
+      await expect(
+        scoped().findLinkScope({
+          arguments: { brandId: 'other-orgs-brand' },
+          organizationId: 'org-1',
+        }),
+      ).resolves.toEqual({ brandSlug: null, organizationSlug: 'genfeedai' });
+    });
+  });
+
   describe('findByOrganization', () => {
     it('pages in SQL with organizationId + isDeleted filter and desc ordering', async () => {
       mcpApproval.findMany.mockResolvedValue([{ id: 'a-1' }]);

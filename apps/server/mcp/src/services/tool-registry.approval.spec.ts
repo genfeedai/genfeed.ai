@@ -304,7 +304,7 @@ describe('ToolRegistryService — approval queue', () => {
       structuredContent: { approvalId: 'apr-1', code: 'approval_pending' },
     });
     expect(result.content[0].text).not.toContain('apr-1');
-    // The structured link opens this exact approval in the review inbox.
+    // The link opens this exact approval in the review inbox.
     expect(result).toMatchObject({
       structuredContent: {
         nextStepUrl: expect.stringContaining(

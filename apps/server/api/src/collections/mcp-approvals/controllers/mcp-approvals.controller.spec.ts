@@ -40,6 +40,7 @@ describe('McpApprovalsController', () => {
     claimExecutionForActor: vi.fn(),
     createPending: vi.fn(),
     findByOrganization: vi.fn(),
+    findLinkScope: vi.fn(),
     findOne: vi.fn(),
     findStatusForActor: vi.fn(),
     findPricingForActor: vi.fn(),
@@ -50,6 +51,10 @@ describe('McpApprovalsController', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockServiceMethods.findLinkScope.mockResolvedValue({
+      brandSlug: 'shayla',
+      organizationSlug: 'genfeedai',
+    });
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [McpApprovalsController],
@@ -163,6 +168,8 @@ describe('McpApprovalsController', () => {
           status: 'PENDING',
           toolName: 'delete_file',
           arguments: { path: '/tmp/test.txt' },
+          brandSlug: 'shayla',
+          organizationSlug: 'genfeedai',
         }),
       });
     });
@@ -267,7 +274,11 @@ describe('McpApprovalsController', () => {
         isDeleted: false,
       });
       expect(result).toEqual({
-        data: expect.objectContaining({ id: 'approval-1' }),
+        data: expect.objectContaining({
+          brandSlug: 'shayla',
+          id: 'approval-1',
+          organizationSlug: 'genfeedai',
+        }),
       });
     });
 

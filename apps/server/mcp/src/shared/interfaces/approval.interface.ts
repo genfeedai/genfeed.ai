@@ -10,6 +10,10 @@ export interface McpApprovalResource {
   resolvedAt?: string | null;
   createdAt?: string;
   generationQuote?: AgentGenerationQuote;
+  /** Slug of the approval's organization, for its web link. */
+  organizationSlug?: string | null;
+  /** Slug of the brand the call named; null for an organization-level call. */
+  brandSlug?: string | null;
 }
 
 export type McpApprovalDecision = 'approve' | 'decline';
