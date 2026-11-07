@@ -19,6 +19,7 @@ const baseRecap = {
   period: 'week' as const,
   periodRange: '2026-10-26 to 2026-11-01 (UTC)',
   published: 5,
+  ready: 7,
 };
 
 describe('content recap email', () => {
@@ -32,15 +33,13 @@ describe('content recap email', () => {
     expect(html).toContain('Ready to publish');
   });
 
-  it('never shows a negative ready count', () => {
-    const html = buildContentRecapEmailBody({
-      ...baseRecap,
-      generated: 2,
-      published: 3,
-    });
-
-    expect(html).not.toContain('>-1<');
-    expect(html).toContain('>0<');
+  it('shows the ready count it is given, never a negative one', () => {
+    expect(buildContentRecapEmailBody({ ...baseRecap, ready: 3 })).toMatch(
+      />3<\/div><div[^>]*>Ready to publish</,
+    );
+    expect(buildContentRecapEmailBody({ ...baseRecap, ready: -1 })).toMatch(
+      />0<\/div><div[^>]*>Ready to publish</,
+    );
   });
 
   it('omits performance when nothing was measured', () => {

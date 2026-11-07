@@ -20,15 +20,34 @@ describe('system email blocks', () => {
     expect(html).toContain('>12<');
     expect(html).toContain('>1,840<');
     expect(html).toContain('Credits used');
-    expect(html.match(/<tr><td width/g)).toHaveLength(1);
   });
 
-  it('wraps five or more stats onto a second row', () => {
+  it.each([
+    [1, 494],
+    [2, 247],
+    [4, 123],
+    [5, 123],
+    [6, 164],
+  ])(
+    'caps each of %i stats at its share of the card (%ipx), so phones wrap them',
+    (count, cellWidth) => {
+      const html = buildEmailStatRow(
+        Array.from({ length: count }, (_, index) => ({
+          label: `Stat ${index}`,
+          value: '1',
+        })),
+      );
+
+      expect(html.split(`max-width:${cellWidth}px`)).toHaveLength(count + 1);
+    },
+  );
+
+  it('rebuilds fixed rows of four for Outlook desktop', () => {
     const html = buildEmailStatRow(
       ['a', 'b', 'c', 'd', 'e'].map((label) => ({ label, value: '1' })),
     );
 
-    expect(html.match(/<tr><td width/g)).toHaveLength(2);
+    expect(html.split('</td></tr><tr><td width="123"')).toHaveLength(2);
   });
 
   it('escapes stat text', () => {
@@ -75,6 +94,27 @@ describe('system email blocks', () => {
     expect(
       buildEmailThumbnailGrid([{ kind: 'image' }], { moreCount: 6 }),
     ).toContain('+ 6 more in your library');
+  });
+
+  it('counts pieces past the six shown together with those the caller left out', () => {
+    const items = Array.from({ length: 8 }, () => ({ kind: 'image' as const }));
+
+    expect(buildEmailThumbnailGrid(items, { moreCount: 2 })).toContain(
+      '+ 4 more in your library',
+    );
+  });
+
+  it('lets image and text tiles shrink below 152px in narrow clients', () => {
+    const html = buildEmailThumbnailGrid([
+      {
+        imageUrl: 'https://cdn.genfeed.ai/ingredients/images/abc',
+        kind: 'image',
+      },
+      { kind: 'article' },
+    ]);
+
+    expect(html).toContain('table-layout:fixed');
+    expect(html.match(/max-width:152px;[^"]*width:100%/g)).toHaveLength(2);
   });
 
   it('renders a hero image at full width', () => {

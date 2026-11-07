@@ -278,7 +278,7 @@ export class TrendNotificationWorkflowService {
                 action: 'send_email',
                 payload: {
                   html: this.requiredString(state.summaryHtml, 'summaryHtml'),
-                  subject: buildTrendDigestSubject(trends),
+                  subject: buildTrendDigestSubject(trends, cadence),
                   to,
                 },
                 type: 'email',

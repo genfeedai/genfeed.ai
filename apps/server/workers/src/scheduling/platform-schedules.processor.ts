@@ -211,7 +211,15 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     }
 
     if (!isPlatformScheduledTaskName(job.name)) {
-      throw new Error(`Unknown platform scheduled task: ${job.name}`);
+      // Workers of two versions share the queue during a rollout, and a newer
+      // process registers its schedulers before older workers drain. Skip the
+      // tick here instead of failing it: the next tick reaches a worker that
+      // knows the task, and a name no version knows is still reported.
+      this.logger.warn(
+        `Skipping platform schedule ${job.name}: this worker version does not know the task`,
+        this.context,
+      );
+      return;
     }
 
     await this.handlers[job.name](job);

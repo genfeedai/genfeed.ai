@@ -241,6 +241,64 @@ describe('system recap policy', () => {
       'content.weekly',
     ]);
   });
+  it('previews the most recently completed items across ingredients and articles', async () => {
+    const { service, prisma, queueEmail } = fixture(0);
+    prisma.ingredient.findMany.mockResolvedValue(
+      Array.from({ length: 4 }, (_, index) => ({
+        id: `asset-${index}`,
+        brandId: 'brand-1',
+        category: 'IMAGE',
+        generationCompletedAt: new Date(Date.UTC(2026, 8, 7 + index, 10)),
+      })),
+    );
+    prisma.article.findMany.mockResolvedValue(
+      Array.from({ length: 4 }, (_, index) => ({
+        id: `article-${index}`,
+        brandId: 'brand-1',
+        label: `Article ${index}`,
+        status: 'DRAFT',
+        generationCompletedAt: new Date(Date.UTC(2026, 8, 10 + index, 12)),
+      })),
+    );
+    await service.recaps(request);
+    const { html } = queueEmail.mock.calls[0][0];
+    // Articles 0-3 finished last, then assets 3 and 2; assets 1 and 0 are hidden.
+    expect(html).toContain('Article 3');
+    expect(html).toContain('ingredients/images/asset-2');
+    expect(html).not.toContain('ingredients/images/asset-1');
+    expect(html).not.toContain('ingredients/images/asset-0');
+    expect(html.indexOf('Article 3')).toBeLessThan(
+      html.indexOf('ingredients/images/asset-3'),
+    );
+    expect(html).toContain('+ 2 more in your library');
+  });
+  it('leaves archived articles out of the ready to publish count', async () => {
+    const { service, prisma, queueEmail } = fixture(0);
+    prisma.article.findMany.mockResolvedValue(
+      ['DRAFT', 'DRAFT', 'ARCHIVED', 'PUBLISHED', 'ARCHIVED'].map(
+        (status, index) => ({
+          id: `article-${index}`,
+          brandId: 'brand-1',
+          label: `Article ${index}`,
+          status,
+          generationCompletedAt: new Date('2026-09-10T12:00:00Z'),
+        }),
+      ),
+    );
+    await service.recaps(request);
+    const { html } = queueEmail.mock.calls[0][0];
+    expect(html).toMatch(/>5<\/div><div[^>]*>Created</);
+    expect(html).toMatch(/>3<\/div><div[^>]*>Ready to publish</);
+  });
+  it('tracks only the primary action, not preview tiles that open the same page', async () => {
+    const { service, queueEmail } = fixture(5);
+    await service.recaps(request);
+    const { html, destinationUrl } = queueEmail.mock.calls[0][0];
+    expect(html.match(/href="\{\{emailActionUrl\}\}"/g)).toHaveLength(1);
+    expect(
+      html.match(new RegExp(`href="${destinationUrl}"`, 'g')),
+    ).toHaveLength(5);
+  });
 });
 
 function creditsFixture(overrides: {

@@ -402,14 +402,25 @@ function queuedDrafts(rest: TrendDigestItem[]): TrendDigestItem[] {
   return rest.filter((trend) => trend.postIdea).slice(0, DIGEST_DRAFT_LIMIT);
 }
 
+export type TrendDigestCadence = 'daily' | 'hourly' | 'weekly';
+
+const CADENCE_PERIOD_LABELS: Record<TrendDigestCadence, string> = {
+  daily: 'today',
+  hourly: 'this hour',
+  weekly: 'this week',
+};
+
 /** Email subject: lead with the posts the reader can make, not the count of trends. */
-export function buildTrendDigestSubject(trends: TrendDigestItem[]): string {
+export function buildTrendDigestSubject(
+  trends: TrendDigestItem[],
+  cadence: TrendDigestCadence = 'daily',
+): string {
   const drafts = readyPostCount(trends);
   const topics = `${trends.length} ${trends.length === 1 ? 'topic' : 'topics'}`;
   if (drafts > 0) {
-    return `${drafts} ${drafts === 1 ? 'post' : 'posts'} ready for today, from ${topics} in your niche`;
+    return `${drafts} ${drafts === 1 ? 'post' : 'posts'} ready for ${CADENCE_PERIOD_LABELS[cadence]}, from ${topics} in your niche`;
   }
-  return `Your daily trends — ${topics}`;
+  return `Your ${cadence} trends — ${topics}`;
 }
 
 /** Branded HTML email body: a lead story, drafts ready to post, then more topics. */

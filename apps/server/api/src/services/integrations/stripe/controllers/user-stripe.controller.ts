@@ -7,6 +7,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { creatorOrganizationOfMemberWhere } from '@api/collections/organizations/utils/organization-membership.util';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -19,7 +20,6 @@ import {
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { classifyStripeFailure } from '@api/services/integrations/stripe/services/stripe-error.util';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import { OrganizationCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   type IUserSubscriptionsService,
@@ -277,7 +277,7 @@ export class UserStripeController {
       // Get user's creator org credit balance
       let balance = 0;
       const creatorOrg = await this.organizationsService.findOneSelect(
-        { category: OrganizationCategory.CREATOR, members: dbUser.id },
+        creatorOrganizationOfMemberWhere(dbUser.id),
         { id: true },
       );
 

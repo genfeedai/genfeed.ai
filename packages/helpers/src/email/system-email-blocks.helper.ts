@@ -76,8 +76,18 @@ export interface EmailStat {
 }
 
 /**
- * A row of counters. Up to four tiles share the card width; five or more wrap
- * to a second row. Tiles use fixed percentage widths so they hold in Outlook.
+ * Width of the shell card's body: the 560px card less its 1px borders and 32px
+ * side padding (`buildSystemEmailHtml`).
+ */
+const EMAIL_CONTENT_WIDTH_PX = 494;
+const STAT_GAP_PX = 8;
+
+/**
+ * A grid of counters. Up to four tiles share a desktop row; five or more wrap
+ * by threes or fours. Each tile is an inline block capped at its share of the
+ * card, so a phone fits as many as the screen holds and wraps the rest instead
+ * of squeezing four into 300px. Outlook desktop ignores `max-width` on a div,
+ * so a conditional table rebuilds the fixed rows there.
  */
 export function buildEmailStatRow(stats: readonly EmailStat[]): string {
   if (stats.length === 0) {
@@ -85,29 +95,25 @@ export function buildEmailStatRow(stats: readonly EmailStat[]): string {
   }
   const perRow =
     stats.length <= 4 ? stats.length : stats.length % 3 === 0 ? 3 : 4;
-  const rows: EmailStat[][] = [];
-  for (let index = 0; index < stats.length; index += perRow) {
-    rows.push(stats.slice(index, index + perRow));
-  }
-  const width = Math.floor(100 / perRow);
-  const body = rows
-    .map((row, rowIndex) => {
-      const cells = Array.from({ length: perRow }, (_, cellIndex) => {
-        const stat = row[cellIndex];
-        const gap = cellIndex === perRow - 1 ? '' : 'padding-right:8px;';
-        if (!stat) {
-          return `<td width="${width}%" style="${gap}"></td>`;
-        }
-        const tone = TONE_STYLES[stat.tone ?? 'neutral'];
-        const hint = stat.hint
-          ? `<div style="color:${EMAIL_BLOCK_COLORS.muted};font-size:11px;line-height:16px;margin-top:2px;">${esc(stat.hint)}</div>`
-          : '';
-        return `<td width="${width}%" valign="top" style="${gap}padding-bottom:${rowIndex === rows.length - 1 ? 0 : 8}px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${tone.soft};border:1px solid ${EMAIL_BLOCK_COLORS.border};border-collapse:separate;border-radius:8px;width:100%;"><tr><td style="padding:14px 12px;"><div style="color:${tone.accent};font-size:28px;font-weight:700;letter-spacing:-0.02em;line-height:32px;">${esc(stat.value)}</div><div style="color:${EMAIL_BLOCK_COLORS.secondary};font-size:12px;line-height:18px;margin-top:4px;">${esc(stat.label)}</div>${hint}</td></tr></table></td>`;
-      }).join('');
-      return `<tr>${cells}</tr>`;
-    })
-    .join('');
-  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin:0 0 24px;width:100%;">${body}</table>`;
+  const cellWidth = Math.floor(EMAIL_CONTENT_WIDTH_PX / perRow);
+  const cells = stats.map((stat, index) => {
+    const tone = TONE_STYLES[stat.tone ?? 'neutral'];
+    const hint = stat.hint
+      ? `<div style="color:${EMAIL_BLOCK_COLORS.muted};font-size:11px;line-height:16px;margin-top:2px;">${esc(stat.hint)}</div>`
+      : '';
+    const msoBreak =
+      index === 0
+        ? ''
+        : index % perRow === 0
+          ? '<!--[if mso]></td></tr><tr><td width="' +
+            cellWidth +
+            '" valign="top"><![endif]-->'
+          : `<!--[if mso]></td><td width="${cellWidth}" valign="top"><![endif]-->`;
+    return `${msoBreak}<div style="display:inline-block;max-width:${cellWidth}px;vertical-align:top;width:100%;"><div style="padding:0 ${STAT_GAP_PX}px ${STAT_GAP_PX}px 0;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${tone.soft};border:1px solid ${EMAIL_BLOCK_COLORS.border};border-collapse:separate;border-radius:8px;width:100%;"><tr><td style="padding:14px 12px;"><div style="color:${tone.accent};font-size:28px;font-weight:700;letter-spacing:-0.02em;line-height:32px;">${esc(stat.value)}</div><div style="color:${EMAIL_BLOCK_COLORS.secondary};font-size:12px;line-height:18px;margin-top:4px;">${esc(stat.label)}</div>${hint}</td></tr></table></div></div>`;
+  });
+  // font-size:0 drops the whitespace gap between inline blocks; the tiles'
+  // bottom gap stands in for 8px of the block's 24px bottom margin.
+  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin:0 0 ${24 - STAT_GAP_PX}px;width:100%;"><tr><td style="font-size:0;line-height:0;"><!--[if mso]><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="${cellWidth}" valign="top"><![endif]-->${cells.join('')}<!--[if mso]></td></tr></table><![endif]--></td></tr></table>`;
 }
 
 export interface EmailBigNumberInput {
@@ -158,8 +164,8 @@ function thumbnailTile(
   const src = httpUrl(item.imageUrl);
   const kindLabel = KIND_LABELS[item.kind];
   const visual = src
-    ? `<img src="${esc(src)}" alt="${esc(item.label ?? kindLabel)}" width="${size}" height="${size}" style="background:${EMAIL_BLOCK_COLORS.panel};border:0;border-radius:8px;display:block;height:${size}px;object-fit:cover;width:${size}px;">`
-    : `<table role="presentation" width="${size}" height="${size}" cellspacing="0" cellpadding="0" style="background:${EMAIL_BLOCK_COLORS.panel};border:1px solid ${EMAIL_BLOCK_COLORS.border};border-collapse:separate;border-radius:8px;height:${size}px;width:${size}px;"><tr><td align="center" valign="middle" style="color:${EMAIL_BLOCK_COLORS.muted};font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">${esc(kindLabel)}</td></tr></table>`;
+    ? `<img src="${esc(src)}" alt="${esc(item.label ?? kindLabel)}" width="${size}" height="${size}" style="aspect-ratio:1/1;background:${EMAIL_BLOCK_COLORS.panel};border:0;border-radius:8px;display:block;height:auto;max-width:${size}px;object-fit:cover;width:100%;">`
+    : `<div style="aspect-ratio:1/1;background:${EMAIL_BLOCK_COLORS.panel};border:1px solid ${EMAIL_BLOCK_COLORS.border};border-radius:8px;box-sizing:border-box;max-width:${size}px;overflow:hidden;width:100%;"><table role="presentation" width="100%" height="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;height:100%;width:100%;"><tr><td align="center" valign="middle" style="color:${EMAIL_BLOCK_COLORS.muted};font-size:12px;letter-spacing:0.08em;padding:34px 0;text-transform:uppercase;">${esc(kindLabel)}</td></tr></table></div>`;
   const kindBadge =
     item.kind === 'video' && src
       ? `<span style="color:${EMAIL_BLOCK_COLORS.secondary};font-size:11px;">&#9654; Video</span>`
@@ -169,7 +175,7 @@ function thumbnailTile(
     : '';
   const caption = [
     item.label && !isCompact
-      ? `<div style="color:${EMAIL_BLOCK_COLORS.primary};font-size:12px;line-height:17px;margin-top:6px;">${esc(item.label.length > 48 ? `${item.label.slice(0, 45)}...` : item.label)}</div>`
+      ? `<div style="color:${EMAIL_BLOCK_COLORS.primary};font-size:12px;line-height:17px;margin-top:6px;overflow-wrap:anywhere;">${esc(item.label.length > 48 ? `${item.label.slice(0, 45)}...` : item.label)}</div>`
       : '',
     status || kindBadge
       ? `<div style="line-height:16px;margin-top:2px;">${[status, kindBadge].filter(Boolean).join(' &middot; ')}</div>`
@@ -181,6 +187,8 @@ function thumbnailTile(
 /**
  * A grid of content previews, three across. A tile without an image shows its
  * kind as text, so an article or audio piece still takes a place in the grid.
+ * Tiles are 152px on desktop and shrink with their cell in narrow clients.
+ * `moreCount` is what the caller left out; items past `maxItems` are added to it.
  */
 export function buildEmailThumbnailGrid(
   items: readonly EmailThumbnail[],
@@ -207,11 +215,13 @@ export function buildEmailThumbnailGrid(
       return `<tr>${cells}</tr>`;
     })
     .join('');
+  const hiddenCount =
+    Math.max(0, options.moreCount ?? 0) + (items.length - visible.length);
   const more =
-    options.moreCount && options.moreCount > 0
-      ? `<p style="color:${EMAIL_BLOCK_COLORS.muted};font-size:12px;line-height:18px;margin:12px 0 0;">+ ${options.moreCount.toLocaleString('en-US')} more in your library</p>`
+    hiddenCount > 0
+      ? `<p style="color:${EMAIL_BLOCK_COLORS.muted};font-size:12px;line-height:18px;margin:12px 0 0;">+ ${hiddenCount.toLocaleString('en-US')} more in your library</p>`
       : '';
-  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;">${body}</table>${more}<div style="height:24px;line-height:24px;">&nbsp;</div>`;
+  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;table-layout:fixed;width:100%;">${body}</table>${more}<div style="height:24px;line-height:24px;">&nbsp;</div>`;
 }
 
 export interface EmailHeroInput {

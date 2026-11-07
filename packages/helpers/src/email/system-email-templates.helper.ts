@@ -42,6 +42,8 @@ export interface ContentRecapEmailInput {
   periodRange: string;
   generated: number;
   published: number;
+  /** Eligible outputs not yet published; archived or ineligible pieces are left out. */
+  ready: number;
   creditsUsed: number;
   /** Measured views and interactions of the published pieces; absent without analytics. */
   views?: number | null;
@@ -58,7 +60,7 @@ export interface ContentRecapEmailInput {
 export function buildContentRecapEmailBody(
   input: ContentRecapEmailInput,
 ): string {
-  const ready = Math.max(0, input.generated - input.published);
+  const ready = Math.max(0, input.ready);
   const periodWord = input.period === 'week' ? 'this week' : 'today';
   const stats: EmailStat[] = [
     { label: 'Created', value: formatCount(input.generated) },

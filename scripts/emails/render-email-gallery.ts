@@ -104,6 +104,7 @@ emails.push(
       buildContentRecapEmailBody({
         creditsUsed: 1840,
         generated: 12,
+        ready: 7,
         hasMissingConnection: false,
         interactions: 214,
         items: recapItems,
@@ -133,6 +134,7 @@ emails.push(
       buildContentRecapEmailBody({
         creditsUsed: 920,
         generated: 7,
+        ready: 7,
         hasMissingConnection: true,
         items: recapItems.slice(0, 4),
         period: 'week',
@@ -159,6 +161,7 @@ emails.push(
       buildContentRecapEmailBody({
         creditsUsed: 310,
         generated: 3,
+        ready: 2,
         hasMissingConnection: false,
         items: recapItems.slice(0, 3),
         period: 'day',
