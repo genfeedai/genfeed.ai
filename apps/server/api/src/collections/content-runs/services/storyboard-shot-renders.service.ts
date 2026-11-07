@@ -419,6 +419,7 @@ export class StoryboardShotRendersService {
         String(finalRow.provider),
         finalCapability,
         effective.supportedDurationsSeconds,
+        finalCapability,
       );
     const sibling = (finalCapability.draftModelKeys ?? [])
       .map((key) =>
@@ -439,6 +440,7 @@ export class StoryboardShotRendersService {
           String(row.provider),
           capability,
           sibling.supportedDurationsSeconds,
+          finalCapability,
         );
     }
     return shotRenderStageModel(
@@ -447,6 +449,7 @@ export class StoryboardShotRendersService {
       String(finalRow.provider),
       finalCapability,
       effective.supportedDurationsSeconds,
+      finalCapability,
     );
   }
 

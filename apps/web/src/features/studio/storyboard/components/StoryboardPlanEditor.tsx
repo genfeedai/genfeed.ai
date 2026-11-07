@@ -12,6 +12,8 @@ import {
 } from '@genfeedai/contracts';
 import {
   isStoryboardSlideshow,
+  STORYBOARD_SHOT_LIMITS,
+  type StoryboardReferenceRole,
   type StoryboardShot,
   storyboardPlanSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
@@ -40,6 +42,7 @@ import StoryboardReferencesPanel from '@/features/studio/storyboard/components/S
 import StoryboardRuntimeRail from '@/features/studio/storyboard/components/StoryboardRuntimeRail';
 import StoryboardSaveIndicator from '@/features/studio/storyboard/components/StoryboardSaveIndicator';
 import StoryboardShotCard from '@/features/studio/storyboard/components/StoryboardShotCard';
+import StoryboardShotDirection from '@/features/studio/storyboard/components/StoryboardShotDirection';
 import StoryboardShotJoint from '@/features/studio/storyboard/components/StoryboardShotJoint';
 import StoryboardShotRenders from '@/features/studio/storyboard/components/StoryboardShotRenders';
 import StoryboardSlideshowBoard from '@/features/studio/storyboard/components/StoryboardSlideshowBoard';
@@ -214,6 +217,12 @@ export default function StoryboardPlanEditor({
         id,
         kind: 'image' as const,
       })),
+      ...plan.shots.flatMap((shot) =>
+        (shot.referenceRoles ?? []).map((reference) => ({
+          id: reference.assetId,
+          kind: 'image' as const,
+        })),
+      ),
       ...(plan.longForm?.segments ?? []).flatMap((segment) =>
         segment.cutaways.flatMap((cutaway) =>
           cutaway.assetId
@@ -470,6 +479,36 @@ export default function StoryboardPlanEditor({
             ].slice(0, 20),
           }),
         );
+      },
+    });
+  }
+  /** Adds Library images to a shot's references with one role. */
+  function pickShotReferences(
+    shot: StoryboardShot,
+    role: StoryboardReferenceRole,
+  ) {
+    const existing = shot.referenceRoles ?? [];
+    openGallery({
+      category: IngredientCategory.IMAGE,
+      maxSelectableItems: Math.max(
+        1,
+        STORYBOARD_SHOT_LIMITS.maxReferenceRoles - existing.length,
+      ),
+      title: translate('shot', { ordinal: shot.ordinal }),
+      onSelect: (selected) => {
+        const ids = selected
+          .filter((item) => item.brandId === run.brandId && !item.isDeleted)
+          .map((item) => item.id)
+          .filter(
+            (id) => !existing.some((reference) => reference.assetId === id),
+          );
+        if (!ids.length) return;
+        patchShot(shot, {
+          referenceRoles: [
+            ...existing,
+            ...ids.map((assetId) => ({ assetId, role })),
+          ].slice(0, STORYBOARD_SHOT_LIMITS.maxReferenceRoles),
+        });
       },
     });
   }
@@ -860,6 +899,26 @@ export default function StoryboardPlanEditor({
                             : undefined
                         }
                         supportedDurations={supportedDurations}
+                        direction={
+                          <StoryboardShotDirection
+                            key={`${shot.id}:${JSON.stringify(shot.cuts ?? [])}:${(shot.sfx ?? []).join('|')}`}
+                            plan={plan}
+                            shot={shot}
+                            model={model ?? undefined}
+                            referenceUrls={Object.fromEntries(
+                              (shot.referenceRoles ?? []).map((reference) => [
+                                reference.assetId,
+                                assets[`image:${reference.assetId}`]?.cdnUrl ??
+                                  undefined,
+                              ]),
+                            )}
+                            isDisabled={isDisabled}
+                            onPatch={(patch) => patchShot(shot, patch)}
+                            onAddReference={(role) =>
+                              pickShotReferences(shot, role)
+                            }
+                          />
+                        }
                         renders={
                           canRender ? (
                             <StoryboardShotRenders

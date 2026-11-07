@@ -3,13 +3,11 @@ import {
   latestShotRender,
   shotRenderInputFingerprint,
   snapShotRenderDuration,
-  storyboardShotRenderPrompt,
-  storyboardShotRenderReferences,
 } from '@api/collections/content-runs/services/storyboard-shot-render-state';
-import { storyboardShotCast } from '@api/collections/content-runs/services/storyboard-still-state';
 import { getRegistryModelCapability } from '@api/collections/models/utils/registry-model-capability.util';
 import { ModelCategory } from '@genfeedai/contracts';
 import type { StoryboardShot } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import { compileStoryboardShotPrompt } from '@genfeedai/contracts/api-types/contracts/storyboard-shot-prompt.contract';
 import type { StoryboardShotRenderStage } from '@genfeedai/contracts/api-types/contracts/storyboard-shot-render.contract';
 import type { VideoModelCapability } from '@genfeedai/contracts/constants';
 import {
@@ -26,6 +24,11 @@ export interface StageModel {
   resolution?: string;
   /** Sent to the provider only when the model has an audio switch. */
   audio: { isEnabled: boolean; hasToggle: boolean };
+  /**
+   * The final model renders sound, so the prompt carries the spoken line and
+   * sound effects at both stages: a draft is promoted with its exact prompt.
+   */
+  isPromptWithSound: boolean;
   maxReferences: number;
 }
 
@@ -69,17 +72,6 @@ export function shotRenderLine(
     stage === 'final'
       ? latestShotRender(config.shotRenderOperations, shot.id, 'draft')
       : undefined;
-  const { cast } = storyboardShotCast(plan, shot);
-  const promptFor = (referenceAssetIds: readonly string[]) =>
-    storyboardShotRenderPrompt(plan, shot, {
-      isAudioEnabled: model.audio.isEnabled,
-      // The on-screen speaker's avatar is a cast reference too.
-      hasCastReferences: cast.some((member) =>
-        [member.avatarAssetId, ...member.referenceAssetIds].some(
-          (id) => id !== undefined && referenceAssetIds.includes(id),
-        ),
-      ),
-    });
   if (
     draft?.state === 'ready' &&
     draft.inputFingerprint === shotRenderInputFingerprint(plan, shot, 'draft')
@@ -91,25 +83,25 @@ export function shotRenderLine(
     return {
       shotId: shot.id,
       inputFingerprint,
-      // A silent draft left the spoken line out; a final with sound needs it.
-      prompt:
-        draft.isAudioEnabled === model.audio.isEnabled
-          ? draft.prompt
-          : promptFor(draft.referenceAssetIds),
+      prompt: draft.prompt,
       referenceAssetIds: draft.referenceAssetIds,
       durationSeconds,
       promotedFromOperationId: draft.operationId,
     };
   }
-  const referenceAssetIds = storyboardShotRenderReferences(plan, shot).slice(
-    0,
-    model.maxReferences,
-  );
+  const compiled = compileStoryboardShotPrompt(plan, shot, {
+    isAudioEnabled: model.isPromptWithSound,
+    maxReferences: model.maxReferences,
+  });
+  if (compiled.namedReferenceCount > model.maxReferences)
+    throw new BadRequestException(
+      `Shot ${shot.ordinal} names ${compiled.namedReferenceCount} reference images; ${model.modelKey} accepts ${model.maxReferences}. Remove a reference role or choose another model.`,
+    );
   return {
     shotId: shot.id,
     inputFingerprint,
-    prompt: promptFor(referenceAssetIds),
-    referenceAssetIds,
+    prompt: compiled.prompt,
+    referenceAssetIds: compiled.referenceAssetIds,
     durationSeconds,
   };
 }
@@ -121,6 +113,7 @@ export function shotRenderStageModel(
   provider: string,
   capability: VideoModelCapability,
   durations: readonly number[],
+  finalCapability: VideoModelCapability,
 ): StageModel {
   const resolution =
     stage === 'draft'
@@ -137,6 +130,9 @@ export function shotRenderStageModel(
     durations: durations.filter((value) => allowed.includes(value)),
     ...(resolution ? { resolution } : {}),
     audio: { isEnabled: stage === 'final' && hasToggle, hasToggle },
+    isPromptWithSound: Boolean(
+      finalCapability.hasAudioToggle || finalCapability.hasSpeech,
+    ),
     maxReferences: Math.max(0, capability.maxReferences),
   };
 }

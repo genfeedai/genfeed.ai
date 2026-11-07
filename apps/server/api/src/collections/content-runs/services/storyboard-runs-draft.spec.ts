@@ -45,6 +45,8 @@ function shotJson(index: number, overrides: Record<string, unknown> = {}) {
     speakerId: null,
     isSpokenOnScreen: false,
     durationSeconds: 5,
+    cuts: [],
+    sfx: [],
     ...overrides,
   };
 }

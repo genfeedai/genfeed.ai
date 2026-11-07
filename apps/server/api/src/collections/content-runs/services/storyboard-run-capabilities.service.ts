@@ -121,6 +121,8 @@ export function storyboardCatalogCapability(model: ModelDocument): {
       hasInterpolation:
         hasInterpolation(model.key, capability) &&
         storyboardProviderMapping(model.key).startEnd,
+      maxReferences: Math.max(0, capability.maxReferences),
+      hasAudio: Boolean(capability.hasAudioToggle || capability.hasSpeech),
       supportedFormats: (capability.aspectRatios ?? []).filter(
         (format): format is '9:16' | '16:9' | '1:1' | '4:5' =>
           ['9:16', '16:9', '1:1', '4:5'].includes(format),
