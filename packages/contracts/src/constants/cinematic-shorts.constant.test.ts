@@ -116,10 +116,73 @@ describe('compileCinematicShort', () => {
       slots: { ...slots, runtimeSeconds: 30 },
     });
     expect(result.frameCount).toBe(720);
+    expect(result.runtimeSeconds).toBe(30);
+    expect(result.shots.map((shot) => shot.frameCount)).toEqual([
+      84, 84, 48, 84, 84, 84, 60, 96, 96,
+    ]);
     expect(
       result.shots.reduce((total, shot) => total + shot.frameCount, 0),
     ).toBe(720);
     expect(result.shots[8].endSeconds).toBe(30);
+  });
+
+  it('reports the frame-snapped runtime', () => {
+    const result = compileCinematicShort({
+      preset,
+      slots: { ...slots, runtimeSeconds: 30.01 },
+    });
+    expect(result.frameCount).toBe(720);
+    expect(result.runtimeSeconds).toBe(30);
+    expect(result.prompt).toContain('30 seconds, 24 fps');
+  });
+
+  it('keeps inherited palette stops inside a film with replaced shots', () => {
+    const result = compileCinematicShort({
+      preset,
+      slots: {
+        ...slots,
+        shots: [
+          {
+            action: 'One',
+            camera: 'Wide',
+            endSeconds: 15,
+            key: 'one',
+            sound: 'Wind',
+            startSeconds: 0,
+            title: 'One',
+          },
+          {
+            action: 'Two',
+            camera: 'Close',
+            endSeconds: 30,
+            key: 'two',
+            sound: 'Piano',
+            startSeconds: 15,
+            title: 'Two',
+          },
+        ],
+      },
+    });
+    expect(result.paletteArc.map((stop) => stop.fromSecond)).toEqual([
+      0, 12.5, 16, 19.5, 26,
+    ]);
+  });
+
+  it('leaves seal text out when the preset has no seal', () => {
+    const result = compileCinematicShort({
+      preset: { ...preset, titleCard: { ...preset.titleCard, hasSeal: false } },
+      slots,
+    });
+    expect(result.titleCard).not.toHaveProperty('sealText');
+    expect(result.prompt).not.toContain('Seal:');
+  });
+
+  it('accepts ordinary words that resemble a studio name', () => {
+    const result = compileCinematicShort({
+      preset,
+      slots: { ...slots, styleByFeel: 'A madhouse of swirling ink and motion' },
+    });
+    expect(result.prompt).toContain('madhouse of swirling ink');
   });
 
   it('is deterministic', () => {
@@ -130,6 +193,7 @@ describe('compileCinematicShort', () => {
 
   it.each<[CinematicShortCompileErrorCode, Partial<CinematicShortSlots>]>([
     ['RUNTIME_OUT_OF_RANGE', { runtimeSeconds: 91 }],
+    ['RUNTIME_OUT_OF_RANGE', { runtimeSeconds: 0.1 }],
     ['QA_LIMIT_ABOVE_PRESET', { qaPassLimit: 3 }],
     [
       'NAMED_STYLE_REFERENCE',

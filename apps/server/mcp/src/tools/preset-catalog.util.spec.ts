@@ -37,6 +37,32 @@ const rows = [
   { attributes: { category: 'image', key: 'no-label' }, id: 'row-3' },
 ];
 
+describe('describePreset precedence', () => {
+  const platform = {
+    attributes: { category: 'image', key: 'shared', label: 'Platform' },
+  };
+  const organization = {
+    attributes: {
+      category: 'image',
+      key: 'shared',
+      label: 'Organization',
+      organizationId: 'org-1',
+    },
+  };
+
+  it.each([
+    ['platform first', [platform, organization]],
+    ['organization first', [organization, platform]],
+  ])(
+    'prefers the organization preset for a shared key (%s)',
+    (_name, candidates) => {
+      expect(describePreset(candidates, { key: 'shared' })).toMatchObject({
+        label: 'Organization',
+      });
+    },
+  );
+});
+
 describe('listPresetSummaries', () => {
   it('lists image, video and storyboard presets and skips malformed rows', () => {
     expect(

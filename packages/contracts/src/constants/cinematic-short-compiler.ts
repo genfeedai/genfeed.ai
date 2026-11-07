@@ -64,11 +64,9 @@ const NAMED_STYLE_REFERENCES = [
   'disney',
   'dreamworks',
   'shinkai',
-  'makoto',
   'kyoto animation',
   'studio trigger',
   'ufotable',
-  'madhouse',
   'in the style of',
   'in the style',
   'style of',
@@ -158,6 +156,7 @@ export function compileCinematicShort(
 
   const scale = runtimeSeconds / sourceEnd;
   const totalFrames = toFrames(runtimeSeconds, fps);
+  const snappedRuntimeSeconds = totalFrames / fps;
   const boundary = (seconds: number, isLast: boolean) =>
     isLast ? totalFrames : toFrames(seconds * scale, fps);
 
@@ -168,12 +167,28 @@ export function compileCinematicShort(
     tagline: values.tagline ?? '',
     titleText: values.titleText,
   };
+  // Inherited stops sit on the preset's own timeline, so they scale against it
+  // even when the caller replaced the shots.
+  const presetEnd =
+    definition.shots[definition.shots.length - 1]?.endSeconds ?? sourceEnd;
+  const paletteScale = values.paletteArc ? scale : runtimeSeconds / presetEnd;
   const paletteArc = (values.paletteArc ?? definition.paletteArc)
     .map((stop) => ({
       ...stop,
-      fromSecond: Math.round(stop.fromSecond * scale * 1000) / 1000,
+      fromSecond: Math.round(stop.fromSecond * paletteScale * 1000) / 1000,
     }))
     .sort((left, right) => left.fromSecond - right.fromSecond);
+
+  const hasEmptyShot = sourceShots.some(
+    (shot, index) =>
+      boundary(shot.endSeconds, index === sourceShots.length - 1) <=
+      boundary(shot.startSeconds, false),
+  );
+  if (hasEmptyShot)
+    throw new CinematicShortCompileError(
+      'RUNTIME_OUT_OF_RANGE',
+      'The runtime is too short for this shot list: a shot would have no frames.',
+    );
 
   const shots = sourceShots.map((shot, index): CompiledCinematicShot => {
     const startFrame = boundary(shot.startSeconds, false);
@@ -216,14 +231,16 @@ export function compileCinematicShort(
     ...(values.extraNegatives ?? []),
   ];
   const titleCard = {
-    ...(values.sealText ? { sealText: values.sealText } : {}),
+    ...(definition.titleCard.hasSeal && values.sealText
+      ? { sealText: values.sealText }
+      : {}),
     ...(values.tagline ? { tagline: values.tagline } : {}),
     text: values.titleText,
   };
   const deliveryFormat = values.deliveryFormat ?? definition.delivery.format;
 
   const prompt = [
-    `## Film\n${definition.label}${input.brandName ? ` for ${input.brandName.trim()}` : ''}: ${values.subject} in ${values.setting}. ${runtimeSeconds} seconds, ${fps} fps, ${definition.aspectRatio}.`,
+    `## Film\n${definition.label}${input.brandName ? ` for ${input.brandName.trim()}` : ''}: ${values.subject} in ${values.setting}. ${snappedRuntimeSeconds} seconds, ${fps} fps, ${definition.aspectRatio}.`,
     `## Style\n${styleByFeel}`,
     `## Palette arc\n${paletteArc
       .map(
@@ -239,11 +256,7 @@ export function compileCinematicShort(
     `## Sound\n${soundSpec}`,
     `## Title card\n${definition.titleCard.treatment}\nText: ${titleCard.text}${
       titleCard.tagline ? `\nLine below: ${titleCard.tagline}` : ''
-    }${
-      definition.titleCard.hasSeal && titleCard.sealText
-        ? `\nSeal: ${titleCard.sealText}`
-        : ''
-    }`,
+    }${titleCard.sealText ? `\nSeal: ${titleCard.sealText}` : ''}`,
     `## Avoid\n${negatives.map((negative) => `- ${negative}`).join('\n')}`,
   ].join('\n\n');
 
@@ -259,7 +272,7 @@ export function compileCinematicShort(
     paletteArc,
     prompt,
     qaPassLimit,
-    runtimeSeconds,
+    runtimeSeconds: snappedRuntimeSeconds,
     shots,
     soundSpec,
     titleCard,

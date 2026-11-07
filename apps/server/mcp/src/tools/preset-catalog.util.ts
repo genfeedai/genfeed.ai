@@ -209,6 +209,7 @@ export function describePreset(
   }
   const {
     aspectRatio,
+    blacklists,
     camera,
     cameraMovement,
     duration,
@@ -225,6 +226,7 @@ export function describePreset(
     prompt,
     values: {
       aspectRatio,
+      blacklists,
       camera,
       cameraMovement,
       duration,

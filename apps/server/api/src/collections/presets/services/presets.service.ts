@@ -8,6 +8,10 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import { b2bPlaybookSchema } from '@genfeedai/contracts/api-types/contracts/b2b-playbook.contract';
 import { cinematicShortSchema } from '@genfeedai/contracts/api-types/contracts/cinematic-short.contract';
+import {
+  CinematicShortCompileError,
+  compileCinematicShort,
+} from '@genfeedai/contracts/constants/cinematic-short-compiler';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { platformTenantProof } from '@libs/prisma/platform-scope';
@@ -85,6 +89,16 @@ function assertValidCinematicShort(cinematicShort: unknown): void {
             `${issue.path.join('.') || 'cinematicShort'} ${issue.message}`,
         )
         .join('; ')}`,
+    );
+  }
+  // The defaults and the advertised example must compile, or callers hit the
+  // error later when they read the preset and fill its slots.
+  try {
+    compileCinematicShort({ preset: parsed.data, slots: parsed.data.example });
+  } catch (error) {
+    if (!(error instanceof CinematicShortCompileError)) throw error;
+    throw new BadRequestException(
+      `Invalid cinematic short: its example does not compile (${error.message})`,
     );
   }
 }
