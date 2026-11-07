@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CaptionsQueryDto } from '@api/collections/captions/dto/captions-query.dto';
 import { CreateCaptionDto } from '@api/collections/captions/dto/create-caption.dto';
 import { UpdateCaptionDto } from '@api/collections/captions/dto/update-caption.dto';
-import { type CaptionDocument } from '@api/collections/captions/schemas/caption.schema';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -26,6 +25,7 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
+import type { Caption } from '@genfeedai/prisma';
 import { CaptionSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -114,7 +114,7 @@ export class CaptionsController {
       where: matchConditions,
     };
 
-    const data: AggregatePaginateResult<CaptionDocument> =
+    const data: AggregatePaginateResult<Caption> =
       await this.captionsService.findAll(aggregate, options);
     return serializeCollection(request, CaptionSerializer, data);
   }
@@ -125,7 +125,7 @@ export class CaptionsController {
     @Req() request: Request,
     @Param('captionId') captionId: string,
   ): Promise<JsonApiSingleResponse> {
-    const data: CaptionDocument | null = await this.captionsService.findOne(
+    const data: Caption | null = await this.captionsService.findOne(
       { id: captionId },
       [
         {
@@ -217,8 +217,7 @@ export class CaptionsController {
       organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     };
-    const data: CaptionDocument =
-      await this.captionsService.create(captionInput);
+    const data: Caption = await this.captionsService.create(captionInput);
     return serializeSingle(request, CaptionSerializer, data);
   }
 
@@ -229,7 +228,7 @@ export class CaptionsController {
     @Param('captionId') captionId: string,
     @Body() updateCaptionDto: UpdateCaptionDto,
   ): Promise<JsonApiSingleResponse> {
-    const data: CaptionDocument | null = await this.captionsService.patch(
+    const data: Caption | null = await this.captionsService.patch(
       captionId,
       updateCaptionDto,
     );
@@ -244,8 +243,7 @@ export class CaptionsController {
     @Req() request: Request,
     @Param('captionId') captionId: string,
   ): Promise<JsonApiSingleResponse> {
-    const data: CaptionDocument | null =
-      await this.captionsService.remove(captionId);
+    const data: Caption | null = await this.captionsService.remove(captionId);
     return data
       ? serializeSingle(request, CaptionSerializer, data)
       : returnNotFound(this.constructorName, captionId);

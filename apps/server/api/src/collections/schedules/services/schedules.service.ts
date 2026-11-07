@@ -3,7 +3,6 @@ import {
   MAX_BULK_SCHEDULE_CONTENT_IDS,
 } from '@api/collections/schedules/dto/bulk-schedule.dto';
 import { GetOptimalTimeDto } from '@api/collections/schedules/dto/optimal-time.dto';
-import type { ScheduleDocument } from '@api/collections/schedules/schemas/schedule.schema';
 import {
   buildPostingTimeRecommendation,
   generateDefaultPostingTimes,
@@ -27,11 +26,10 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import type { PostingTimeRecommendation } from '@genfeedai/contracts/interfaces';
 import { computePostingWindows } from '@genfeedai/helpers';
+import type { Schedule } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
-
-type Schedule = ScheduleDocument;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

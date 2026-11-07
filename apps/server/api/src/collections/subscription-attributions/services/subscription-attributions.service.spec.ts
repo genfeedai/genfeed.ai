@@ -1,7 +1,7 @@
 import type { TrackSubscriptionDto } from '@api/collections/subscription-attributions/dto/track-subscription.dto';
-import type { SubscriptionAttributionDocument } from '@api/collections/subscription-attributions/schemas/subscription-attribution.schema';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/contracts';
+import type { SubscriptionAttribution } from '@genfeedai/prisma';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SubscriptionAttributionsService } from './subscription-attributions.service';
 
@@ -20,21 +20,21 @@ const ORGANIZATION_ID = 'org_1';
  * override drops the strict shape.
  */
 type AttributionOverrides = Partial<
-  Omit<SubscriptionAttributionDocument, 'metadata'>
+  Omit<SubscriptionAttribution, 'metadata'>
 > & {
   metadata?: Record<string, unknown> | string | null;
 };
 
 function buildAttribution(
   overrides: AttributionOverrides = {},
-): SubscriptionAttributionDocument {
+): SubscriptionAttribution {
   const { metadata, ...rest } = overrides;
 
   return {
     channel: null,
     createdAt: new Date('2026-01-10T00:00:00.000Z'),
     id: 'attr_1',
-    metadata: (metadata ?? null) as SubscriptionAttributionDocument['metadata'],
+    metadata: (metadata ?? null) as SubscriptionAttribution['metadata'],
     organizationId: ORGANIZATION_ID,
     referrer: null,
     sourceContentId: null,

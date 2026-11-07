@@ -805,7 +805,6 @@ const ANALYTICS_MODEL_REASON =
 export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
   'ad-bulk-upload-job:AdBulkUploadJob': OPERATIONAL_MODEL_REASON,
   'ad-creative-mapping:AdCreativeMapping': INTERNAL_MODEL_REASON,
-  'ad-optimization-audit-log:AdOptimizationAuditLog': OPERATIONAL_MODEL_REASON,
   'ad-optimization-config:AdOptimizationConfig': INTERNAL_MODEL_REASON,
   'ad-optimization-recommendation:AdOptimizationRecommendation':
     INTERNAL_MODEL_REASON,
@@ -823,7 +822,6 @@ export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
   'credit-balance:CreditBalance': OPERATIONAL_MODEL_REASON,
   'customer-instance:CustomerInstance': INTERNAL_MODEL_REASON,
   'customer:Customer': INTERNAL_MODEL_REASON,
-  'forecast:Forecast': ANALYTICS_MODEL_REASON,
   'mcp-approval:McpApproval': OPERATIONAL_MODEL_REASON,
   'pattern-playbook:PatternPlaybook': INTERNAL_MODEL_REASON,
   'processed-tweet:ProcessedTweet': OPERATIONAL_MODEL_REASON,

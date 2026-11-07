@@ -1,7 +1,6 @@
 import { isIP } from 'node:net';
 import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-tracked-link.dto';
 import { TrackClickDto } from '@api/collections/tracked-links/dto/track-click.dto';
-import type { TrackedLinkDocument } from '@api/collections/tracked-links/schemas/tracked-link.schema';
 import { getShortLinkBaseUrl } from '@api/collections/tracked-links/utils/short-link-base-url.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/paginated-result.util';
@@ -9,7 +8,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { Prisma, type TrackedLink, toPrismaJson } from '@genfeedai/prisma';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Traced } from '@libs/tracing/traced';
 import {
@@ -35,7 +34,6 @@ type TrackedLinkUpdatePayload = {
   title?: string;
 };
 
-type TrackedLink = TrackedLinkDocument;
 type LinkPageOptions = { limit: number; page: number };
 type CountryCacheEntry = { country?: string; expiresAt: number };
 type ClickRateEntry = { count: number; resetAt: number };

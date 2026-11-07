@@ -1,15 +1,15 @@
 import { CreateElementSoundDto } from '@api/collections/elements/sounds/dto/create-sound.dto';
 import { UpdateElementSoundDto } from '@api/collections/elements/sounds/dto/update-sound.dto';
-import type { ElementSoundDocument } from '@api/collections/elements/sounds/schemas/sound.schema';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { ElementSound } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ElementsSoundsService extends BaseService<
-  ElementSoundDocument,
+  ElementSound,
   CreateElementSoundDto,
   UpdateElementSoundDto
 > {

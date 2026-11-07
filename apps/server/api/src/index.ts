@@ -41,7 +41,6 @@ export {
   type CreateAdCreativeMappingInput,
   type UpdateAdCreativeMappingInput,
 } from './collections/ad-creative-mappings/services/ad-creative-mappings.service';
-export type { AdOptimizationAuditLogDocument } from './collections/ad-optimization-audit-logs/schemas/ad-optimization-audit-log.schema';
 export { AdOptimizationAuditLogsService } from './collections/ad-optimization-audit-logs/services/ad-optimization-audit-logs.service';
 export {
   AD_OPTIMIZATION_CONFIG_KEYS,

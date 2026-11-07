@@ -1,13 +1,10 @@
 import type { TrackSubscriptionDto } from '@api/collections/subscription-attributions/dto/track-subscription.dto';
-import type { SubscriptionAttributionDocument } from '@api/collections/subscription-attributions/schemas/subscription-attribution.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/contracts';
 import type { ISubscriptionAttributionsService } from '@genfeedai/contracts/interfaces/billing';
-import { Prisma } from '@genfeedai/prisma';
+import { Prisma, type SubscriptionAttribution } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Logger } from '@nestjs/common';
-
-type SubscriptionAttribution = SubscriptionAttributionDocument;
 
 type SubscriptionAttributionSource = {
   content: string;
@@ -96,7 +93,7 @@ export class SubscriptionAttributionsService
   }
 
   private normalizeAttribution(
-    attribution: SubscriptionAttributionDocument,
+    attribution: SubscriptionAttribution,
   ): NormalizedSubscriptionAttribution {
     const metadata = this.isPlainObject(attribution.metadata)
       ? (attribution.metadata as SubscriptionAttributionMetadata)

@@ -1,7 +1,7 @@
 import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
-import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { Trend } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   isCrossOrgUnsafe,
@@ -42,7 +42,7 @@ describe('TrendAnalysisService', () => {
   const mockBrandId = 'brand-id-5678';
 
   const makeTrendDoc = (
-    overrides: Partial<TrendDocument & { data: unknown }> = {},
+    overrides: Partial<Trend & { data: unknown }> = {},
   ) => ({
     createdAt: new Date('2026-03-10T00:00:00Z'),
     data: {
