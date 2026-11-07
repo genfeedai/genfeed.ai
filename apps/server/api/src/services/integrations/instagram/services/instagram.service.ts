@@ -10,7 +10,6 @@ import {
 } from '@api/services/integrations/_shared/meta-page-access.util';
 import {
   getInstagramErrorCode,
-  getSafeInstagramOAuthErrorLog,
   isInstagramAuthorizationError,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
@@ -41,6 +40,7 @@ import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
+import { InstagramAccountsService } from './instagram-accounts.service';
 import {
   InstagramAnalyticsService,
   type InstagramMediaAnalytics,
@@ -61,11 +61,6 @@ function requireString(
 }
 
 const INSTAGRAM_TOKEN_REFRESH_BUFFER_MS = 7 * 24 * 60 * 60 * 1000;
-/** Defensive cap on account-list pagination batches — a portfolio sharing an
- * unreasonable number of Instagram accounts should not be able to make this
- * request loop indefinitely. */
-const INSTAGRAM_ACCOUNT_LIST_MAX_PAGES = 25;
-
 const INSTAGRAM_COMMENT_NODE_FIELDS =
   'id,text,timestamp,username,from{id,username}';
 const INSTAGRAM_COMMENT_FIELDS = `${INSTAGRAM_COMMENT_NODE_FIELDS},replies{${INSTAGRAM_COMMENT_NODE_FIELDS}}`;
@@ -187,6 +182,7 @@ export class InstagramService {
   private readonly apiVersion: string;
   private readonly analyticsService: InstagramAnalyticsService;
   private readonly publishingService: InstagramPublishingService;
+  private readonly accountsService: InstagramAccountsService;
 
   constructor(
     private readonly configService: ConfigService,
@@ -197,6 +193,12 @@ export class InstagramService {
   ) {
     this.apiVersion =
       this.configService.get('INSTAGRAM_API_VERSION') || META_GRAPH_API_VERSION;
+    this.accountsService = new InstagramAccountsService(
+      this.httpService,
+      this.loggerService,
+      this.graphUrl,
+      this.apiVersion,
+    );
     this.publishingService = new InstagramPublishingService(
       this.httpService,
       this.loggerService,
@@ -313,136 +315,20 @@ export class InstagramService {
   }
 
   /**
-   * Every Instagram professional (Business or Creator) account the client's
-   * Business Integration System User token was assigned, via
-   * `me/assigned_instagram_accounts` — no Facebook Page is involved. Paginates
-   * with the `after` cursor (never the raw `paging.next` URL, which embeds
-   * `access_token` in a string that ends up in request logs and history) and
-   * stops after `INSTAGRAM_ACCOUNT_LIST_MAX_PAGES` batches so a
-   * pathologically large or looping result set cannot hang the request.
-   * This is the single source of truth for "which accounts can this token
-   * act as" — both verify-time resolution and the reconnect picker
-   * (`CredentialsController.findAllInstagramPages`) read it directly.
-   *
-   * The list edge documents only `id` and `username`; the display name and
-   * avatar are read per account and are best-effort.
-   */
-  public async listAuthorizedInstagramAccounts(
-    accessToken: string,
-  ): Promise<InstagramPageResponse[]> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const accounts: InstagramPageResponse[] = [];
-    let afterCursor: string | undefined;
-    let pageCount = 0;
-
-    try {
-      for (;;) {
-        pageCount += 1;
-        if (pageCount > INSTAGRAM_ACCOUNT_LIST_MAX_PAGES) {
-          this.loggerService.warn(`${url} stopped at the pagination cap`, {
-            maxPages: INSTAGRAM_ACCOUNT_LIST_MAX_PAGES,
-          });
-          break;
-        }
-
-        const response = await firstValueFrom(
-          this.httpService.get(
-            `${this.graphUrl}/${this.apiVersion}/me/assigned_instagram_accounts`,
-            {
-              timeout: 10_000,
-              params: {
-                access_token: accessToken,
-                ...(afterCursor ? { after: afterCursor } : {}),
-                fields: 'id,username',
-              },
-            },
-          ),
-        );
-
-        const assigned: Array<{ id?: string; username?: string }> =
-          response.data?.data ?? [];
-
-        for (const account of assigned) {
-          if (!account?.id) {
-            continue;
-          }
-
-          accounts.push({
-            ...(await this.readInstagramAccountProfile(
-              account.id,
-              account.username,
-              accessToken,
-            )),
-          });
-        }
-
-        const hasNext = typeof response.data?.paging?.next === 'string';
-        const nextAfter = response.data?.paging?.cursors?.after;
-        if (!hasNext || typeof nextAfter !== 'string') {
-          break;
-        }
-        afterCursor = nextAfter;
-      }
-
-      this.loggerService.log(`${url} succeeded`, {
-        count: accounts.length,
-        pageCount,
-      });
-      return accounts;
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${url} failed`,
-        getSafeInstagramOAuthErrorLog(error),
-      );
-      throw error;
-    }
-  }
-
-  /** Display name and avatar for one account; a failed read leaves them out. */
-  private async readInstagramAccountProfile(
-    accountId: string,
-    username: string | undefined,
-    accessToken: string,
-  ): Promise<InstagramPageResponse> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.graphUrl}/${this.apiVersion}/${accountId}`,
-          {
-            timeout: 10_000,
-            params: {
-              access_token: accessToken,
-              fields: 'username,name,profile_picture_url',
-            },
-          },
-        ),
-      );
-
-      return {
-        id: accountId,
-        image: response.data?.profile_picture_url,
-        label: response.data?.name,
-        platform: CredentialPlatform.INSTAGRAM,
-        username: response.data?.username ?? username,
-      };
-    } catch (error: unknown) {
-      this.loggerService.warn(
-        `${this.constructorName} account profile unavailable`,
-        getSafeInstagramOAuthErrorLog(error),
-      );
-      return {
-        id: accountId,
-        platform: CredentialPlatform.INSTAGRAM,
-        username,
-      };
-    }
-  }
-
-  /**
    * Reuse the integration's reconnect lifecycle from auxiliary Instagram reads.
    * Returns false for permission, professional-account, and provider errors so
    * callers can preserve those states without disconnecting a valid credential.
    */
+  /**
+   * Every Instagram professional account the client's Business Integration
+   * System User token was assigned. See `InstagramAccountsService`.
+   */
+  public async listAuthorizedInstagramAccounts(
+    accessToken: string,
+  ): Promise<InstagramPageResponse[]> {
+    return this.accountsService.listAuthorizedInstagramAccounts(accessToken);
+  }
+
   public async handleAuthorizationError(
     credentialId: string,
     error: unknown,
