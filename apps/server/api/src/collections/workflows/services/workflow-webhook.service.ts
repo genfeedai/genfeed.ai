@@ -18,6 +18,13 @@ import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
 
 /**
+ * Every workflow webhook ID starts with this prefix. The public trigger route
+ * matches on it, so fixed provider callbacks such as `/v1/webhooks/instagram`
+ * never land on the workflow trigger.
+ */
+export const WORKFLOW_WEBHOOK_ID_PREFIX = 'wh_';
+
+/**
  * Per-workflow inbound webhook subsystem: credential generation/rotation,
  * webhook-id lookup, and the public trigger path. Split out of
  * `WorkflowsService` (#754) — webhook crypto and trigger accounting are a
@@ -208,7 +215,7 @@ export class WorkflowWebhookService {
    * genfeedai/genfeed.ai#5248.
    */
   private generateWebhookId(): string {
-    return `wh_${randomBytes(16).toString('base64url')}`;
+    return `${WORKFLOW_WEBHOOK_ID_PREFIX}${randomBytes(16).toString('base64url')}`;
   }
 
   private getWorkflowConfigRecord(config: unknown): Record<string, unknown> {
