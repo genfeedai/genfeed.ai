@@ -2564,7 +2564,6 @@
   },
   "referrals": {
     "adminLoadErrorDescription": "Financial reward records could not be loaded. No empty audit result is shown until the request succeeds.",
-    "copied": "Affiliate link copied",
     "copyLink": "Copy link",
     "creditsAmount": "{count} credits",
     "description": "Share your link. You earn 10% of each referred customer's pay-as-you-go credit purchases for 12 months. Rewards settle after seven days; granted credits expire 12 months after they are added.",
