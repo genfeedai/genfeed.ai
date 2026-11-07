@@ -21,6 +21,12 @@ run-name: Seed hosted SaaS | ${{ inputs.seed }} | ${{ inputs.live && 'live' || '
 #                        report each batched backfill migration writes).
 #   webhook-id-report    Read-only: counts live workflows whose webhook id lacks
 #                        the wh_ prefix the trigger route requires (#9610).
+#   instagram-reconnect-report
+#                        Read-only: counts live connected Instagram credentials,
+#                        with their brands and organizations. Before the
+#                        externalBusinessId column exists, every one of them is
+#                        disconnected by the #9608 hard-cut migration and must
+#                        reconnect.
 #
 # The *-report entries run a fixed query from READ_ONLY_REPORT_SCRIPT in a READ
 # ONLY transaction in the migrate task; `live` is ignored and they never write.
@@ -40,6 +46,7 @@ on:
           - reference-data-sync
           - backfill-report
           - webhook-id-report
+          - instagram-reconnect-report
       live:
         description: "apply the seed; unchecked is a dry run"
         required: false
@@ -176,6 +183,7 @@ jobs:
             const { Client } = require('pg');
             const REPORTS = {
               'backfill-report': 'SELECT id, "completedAt", report FROM data_backfills ORDER BY "completedAt" DESC LIMIT 100',
+              'instagram-reconnect-report': `SELECT count(*)::int AS "connected", count(DISTINCT c."brandId")::int AS "brands", count(DISTINCT COALESCE(c."organizationId", b."organizationId"))::int AS "organizations" FROM credentials c LEFT JOIN brands b ON b.id = c."brandId" WHERE c."platform" = 'INSTAGRAM' AND c."isConnected" = true AND c."isDeleted" = false`,
               'webhook-id-report': `SELECT count(*) FILTER (WHERE config->>'webhookId' IS NOT NULL)::int AS "withWebhookId", count(*) FILTER (WHERE config->>'webhookId' IS NOT NULL AND config->>'webhookId' NOT LIKE 'wh\\_%')::int AS "withoutPrefix" FROM workflows WHERE "isDeleted" = false`,
             };
             const name = process.argv[1];
@@ -245,7 +253,7 @@ jobs:
                 done
               fi
               ;;
-            backfill-report | webhook-id-report)
+            backfill-report | webhook-id-report | instagram-reconnect-report)
               TASK_DEFINITION=$(tofu output -raw migrate_task_definition_arn)
               CONTAINER=migrate
               LOG_GROUP="/ecs/${PROJECT}-production/migrate"

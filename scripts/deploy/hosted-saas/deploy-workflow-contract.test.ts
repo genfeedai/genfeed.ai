@@ -276,11 +276,17 @@ describe('hosted SaaS on-demand seed contract', () => {
 
     expect(seed).toContain('          - backfill-report');
     expect(seed).toContain('          - webhook-id-report');
-    expect(seed).toContain('            backfill-report | webhook-id-report)');
+    expect(seed).toContain('          - instagram-reconnect-report');
+    expect(seed).toContain(
+      '            backfill-report | webhook-id-report | instagram-reconnect-report)',
+    );
     expect(seed).toContain('migrate_task_definition_arn');
     expect(reader).toContain("await client.query('BEGIN READ ONLY');");
     expect(reader).toContain('FROM data_backfills');
     expect(reader).toContain("NOT LIKE 'wh\\\\_%'");
+    expect(reader).toContain(
+      `c."platform" = 'INSTAGRAM' AND c."isConnected" = true AND c."isDeleted" = false`,
+    );
     expect(reader).not.toMatch(
       /\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|COMMIT)\b/,
     );
