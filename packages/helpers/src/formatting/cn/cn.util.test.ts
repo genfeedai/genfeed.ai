@@ -1,4 +1,4 @@
-import { BG_BLUR, BORDER_WHITE_30, cn } from '@helpers/formatting/cn/cn.util';
+import { cn, FLOATING_PANEL_SURFACE } from '@helpers/formatting/cn/cn.util';
 import { describe, expect, it } from 'vitest';
 
 describe('cn.util', () => {
@@ -94,15 +94,10 @@ describe('cn.util', () => {
   });
 
   describe('constants', () => {
-    it('BG_BLUR should contain translucent surface and blur classes', () => {
-      expect(BG_BLUR).toContain('bg-popover/80');
-      expect(BG_BLUR).toContain('backdrop-blur-xl');
-      expect(BG_BLUR).toContain('supports-[backdrop-filter]');
-    });
-
-    it('BORDER_WHITE_30 should contain rounded and shadow-dropdown token classes', () => {
-      expect(BORDER_WHITE_30).toContain('rounded-lg');
-      expect(BORDER_WHITE_30).toContain('shadow-dropdown');
+    it('FLOATING_PANEL_SURFACE carries the translucent fill, blur, ring and radius', () => {
+      expect(FLOATING_PANEL_SURFACE).toBe(
+        'rounded-lg shadow-dropdown bg-popover/80 backdrop-blur-xl supports-[backdrop-filter]:bg-popover/70',
+      );
     });
   });
 });

@@ -9,9 +9,8 @@ import {
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IQuickAction } from '@genfeedai/contracts/interfaces/ui/quick-actions.interface';
 import {
-  BG_BLUR,
-  BORDER_WHITE_30,
   cn,
+  FLOATING_PANEL_SURFACE,
 } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { StudioQuickActionsProps } from '@genfeedai/props/studio/studio.props';
@@ -414,12 +413,12 @@ function IngredientQuickActionsContent(
       : items;
 
   const alignmentClass = align === 'start' ? 'justify-start' : 'justify-end';
-  // Shell radius comes from BORDER_WHITE_30 (rounded-lg) — square buttons in a
+  // Shell radius comes from FLOATING_PANEL_SURFACE (rounded-lg) — square buttons in a
   // pill shell was exactly the mismatch the quick-action sweep removed.
   const sharedShellClassName = cn(
     isMasonryCompact
       ? 'rounded-lg bg-background/90 backdrop-blur shadow-border p-0.5'
-      : cn(BG_BLUR, BORDER_WHITE_30, 'p-1'),
+      : cn(FLOATING_PANEL_SURFACE, 'p-1'),
     'quick-actions-wrapper transition-colors duration-300',
   );
 

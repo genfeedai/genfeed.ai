@@ -4,8 +4,8 @@ import { vi } from 'vitest';
 const cn = vi.fn((...classes: unknown[]) => classes.filter(Boolean).join(' '));
 
 vi.mock('@genfeedai/helpers/formatting/cn/cn.util', () => ({
-  BG_BLUR: '!bg-black/90 backdrop-blur-sm',
-  BORDER_WHITE_30: 'rounded-lg shadow-dropdown',
+  FLOATING_PANEL_SURFACE:
+    'rounded-lg shadow-dropdown bg-popover/80 backdrop-blur-xl supports-[backdrop-filter]:bg-popover/70',
   cn,
 }));
 
