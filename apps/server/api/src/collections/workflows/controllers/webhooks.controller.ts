@@ -6,7 +6,10 @@
  */
 
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
+import {
+  WORKFLOW_WEBHOOK_ID_PREFIX,
+  WorkflowWebhookService,
+} from '@api/collections/workflows/services/workflow-webhook.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import {
@@ -64,16 +67,23 @@ export class WebhooksController {
    * unauthenticated by design (`@Public()`), so a caller must not be able to
    * use the response to tell an unknown ID apart from a known one with the
    * wrong credential (see genfeedai/genfeed.ai#5248).
+   *
+   * The path is `wh_:webhookId`, not a bare `:webhookId`. A bare param shares
+   * the single segment of every fixed `/v1/webhooks/<provider>` route, and
+   * Nest registers routes in module scan order, so it swallowed Meta's
+   * `POST /v1/webhooks/instagram` deliveries. `webhookId` here is the part
+   * after the prefix; the rate limit keys on it.
    */
-  @Post(':webhookId')
+  @Post(`${WORKFLOW_WEBHOOK_ID_PREFIX}:webhookId`)
   @RateLimit(RateLimitPresets.webhook)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async triggerWebhook(
-    @Param('webhookId') webhookId: string,
+    @Param('webhookId') webhookIdSuffix: string,
     @Body() payload: WebhookPayload,
     @Headers('x-webhook-secret') secretHeader?: string,
     @Headers('authorization') authHeader?: string,
   ): Promise<{ data: { runId: string; status: string; message: string } }> {
+    const webhookId = `${WORKFLOW_WEBHOOK_ID_PREFIX}${webhookIdSuffix}`;
     const workflow =
       await this.workflowWebhookService.findByWebhookId(webhookId);
 

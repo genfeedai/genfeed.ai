@@ -17,6 +17,8 @@
  * limited, keyed on webhookId + IP.
  */
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import { InstagramWebhookController } from '@api/collections/social-inbox/controllers/instagram-webhook.controller';
+import { InstagramWebhookService } from '@api/collections/social-inbox/services/instagram-webhook.service';
 import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
 import { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
@@ -133,11 +135,23 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
     fakeCache = new FakeCacheService();
 
     const module = await Test.createTestingModule({
-      controllers: [WebhooksController],
+      // WebhooksController is listed first on purpose: Nest registers routes
+      // in order, and before the `wh_` prefix its bare `:webhookId` route
+      // captured Meta's `POST /webhooks/instagram` deliveries.
+      controllers: [WebhooksController, InstagramWebhookController],
       providers: [
         {
           provide: WorkflowWebhookService,
           useValue: mockWorkflowWebhookService,
+        },
+        {
+          provide: InstagramWebhookService,
+          useValue: {
+            receiveEvent: vi
+              .fn()
+              .mockResolvedValue({ accounts: 1, enqueued: 1 }),
+            verifyChallenge: vi.fn(),
+          },
         },
         {
           provide: LoggerService,
@@ -216,7 +230,7 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
 
     it('succeeds with no Authorization header at all — the route is public, the secret is the only gate', async () => {
       const response = await request(app.getHttpServer())
-        .post('/webhooks/workflow_1')
+        .post('/webhooks/wh_workflow_1')
         .set('X-Webhook-Secret', 'my-secret-key')
         .send({ key: 'value' });
 
@@ -226,7 +240,7 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
 
     it("rejects a missing secret with the controller's own 401, not the auth guard's", async () => {
       const response = await request(app.getHttpServer())
-        .post('/webhooks/workflow_1')
+        .post('/webhooks/wh_workflow_1')
         .send({ key: 'value' });
 
       expect(response.status).toBe(401);
@@ -241,7 +255,7 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
 
     it("rejects an invalid secret with the controller's own 401 (timing-safe compare)", async () => {
       const response = await request(app.getHttpServer())
-        .post('/webhooks/workflow_1')
+        .post('/webhooks/wh_workflow_1')
         .set('X-Webhook-Secret', 'wrong-secret')
         .send({});
 
@@ -258,7 +272,7 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
       );
 
       const response = await request(app.getHttpServer())
-        .post('/webhooks/workflow_4')
+        .post('/webhooks/wh_workflow_4')
         .set('X-Webhook-Secret', 'anything')
         .send({});
 
@@ -286,7 +300,7 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
       // exact header shape (the secret is neither a gf_ API key nor a valid
       // Better Auth JWT) before the controller ever saw it.
       const response = await request(app.getHttpServer())
-        .post('/webhooks/workflow_2')
+        .post('/webhooks/wh_workflow_2')
         .set('Authorization', 'Bearer my-bearer-token')
         .send({});
 
@@ -296,7 +310,7 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
 
     it("rejects a missing Authorization header with the controller's own 401", async () => {
       const response = await request(app.getHttpServer())
-        .post('/webhooks/workflow_2')
+        .post('/webhooks/wh_workflow_2')
         .send({});
 
       expect(response.status).toBe(401);
@@ -308,7 +322,7 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
 
     it("rejects an invalid bearer token with the controller's own 401", async () => {
       const response = await request(app.getHttpServer())
-        .post('/webhooks/workflow_2')
+        .post('/webhooks/wh_workflow_2')
         .set('Authorization', 'Bearer wrong-token')
         .send({});
 
@@ -324,7 +338,7 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
       ['wrong scheme', 'Basic my-bearer-token'],
     ])('rejects a %s Authorization header', async (_label, authorization) => {
       const response = await request(app.getHttpServer())
-        .post('/webhooks/workflow_2')
+        .post('/webhooks/wh_workflow_2')
         .set('Authorization', authorization)
         .send({});
 
@@ -344,7 +358,7 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
       });
 
       const response = await request(app.getHttpServer())
-        .post('/webhooks/workflow_3')
+        .post('/webhooks/wh_workflow_3')
         .send({});
 
       expect(response.status).toBe(201);
@@ -362,7 +376,7 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
       );
 
       const response = await request(app.getHttpServer())
-        .post('/webhooks/workflow_5')
+        .post('/webhooks/wh_workflow_5')
         .send({});
 
       expect(response.status).toBe(401);
@@ -373,19 +387,42 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
     });
   });
 
+  describe('route ownership', () => {
+    it('delivers POST /webhooks/instagram to the Instagram webhook, not the workflow trigger', async () => {
+      const result = await request(app.getHttpServer())
+        .post('/webhooks/instagram')
+        .send({ object: 'instagram', entry: [] });
+
+      expect(result.status).toBe(200);
+      expect(result.body).toEqual({
+        accounts: 1,
+        enqueued: 1,
+        status: 'accepted',
+      });
+    });
+
+    it('does not treat an unprefixed path segment as a workflow webhook id', async () => {
+      const result = await request(app.getHttpServer())
+        .post('/webhooks/not-a-workflow-id')
+        .send({});
+
+      expect(result.status).toBe(404);
+    });
+  });
+
   describe('no existence oracle', () => {
     it('returns the identical 401 for an unknown webhook id and a known id with a bad secret', async () => {
       mockWorkflowWebhookService.findByWebhookId.mockImplementation(
-        async (id: string) => (id === 'workflow_1' ? secretWorkflow : null),
+        async (id: string) => (id === 'wh_workflow_1' ? secretWorkflow : null),
       );
 
       const unknownIdResponse = await request(app.getHttpServer())
-        .post('/webhooks/does-not-exist')
+        .post('/webhooks/wh_does-not-exist')
         .set('X-Webhook-Secret', 'anything')
         .send({});
 
       const badSecretResponse = await request(app.getHttpServer())
-        .post('/webhooks/workflow_1')
+        .post('/webhooks/wh_workflow_1')
         .set('X-Webhook-Secret', 'wrong-secret')
         .send({});
 
@@ -407,7 +444,7 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
       });
 
       const first = await request(app.getHttpServer())
-        .post('/webhooks/workflow_1')
+        .post('/webhooks/wh_workflow_1')
         .set('X-Webhook-Secret', 'my-secret-key')
         .send({});
       expect(first.status).toBe(201);
@@ -424,13 +461,13 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
       fakeCache.setCount(key, limit - 1);
 
       const atLimit = await request(app.getHttpServer())
-        .post('/webhooks/workflow_1')
+        .post('/webhooks/wh_workflow_1')
         .set('X-Webhook-Secret', 'my-secret-key')
         .send({});
       expect(atLimit.status).toBe(201);
 
       const overLimit = await request(app.getHttpServer())
-        .post('/webhooks/workflow_1')
+        .post('/webhooks/wh_workflow_1')
         .set('X-Webhook-Secret', 'my-secret-key')
         .send({});
       expect(overLimit.status).toBe(429);
@@ -440,7 +477,7 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
     it('keys the limit by webhookId, so a busy webhook does not exhaust another one sharing the same IP', async () => {
       mockWorkflowWebhookService.findByWebhookId.mockImplementation(
         async (id: string) =>
-          id === 'workflow_1' ? secretWorkflow : bearerWorkflow,
+          id === 'wh_workflow_1' ? secretWorkflow : bearerWorkflow,
       );
       mockWorkflowWebhookService.triggerViaWebhook.mockResolvedValue({
         runId: 'run_1',
@@ -448,7 +485,7 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
       });
 
       const first = await request(app.getHttpServer())
-        .post('/webhooks/workflow_1')
+        .post('/webhooks/wh_workflow_1')
         .set('X-Webhook-Secret', 'my-secret-key')
         .send({});
       expect(first.status).toBe(201);
@@ -462,7 +499,7 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
       fakeCache.setCount(key, limit);
 
       const exhausted = await request(app.getHttpServer())
-        .post('/webhooks/workflow_1')
+        .post('/webhooks/wh_workflow_1')
         .set('X-Webhook-Secret', 'my-secret-key')
         .send({});
       expect(exhausted.status).toBe(429);
@@ -470,7 +507,7 @@ describe('Workflow webhook HTTP composition (through the real guard stack)', () 
       // A different webhook (same IP, same test client) must not be
       // affected — it has its own counter.
       const otherWebhook = await request(app.getHttpServer())
-        .post('/webhooks/workflow_2')
+        .post('/webhooks/wh_workflow_2')
         .set('Authorization', 'Bearer my-bearer-token')
         .send({});
       expect(otherWebhook.status).toBe(201);
