@@ -188,6 +188,7 @@ describe('ModelCatalogSeedService', () => {
         if (!entry) return null;
         return {
           ...entry,
+          draftModelKeys: entry.draftModelKeys ?? [],
           endpoint: entry.endpoint ?? entry.key,
           id: `id-${entry.key}`,
           isActive: entry.isActive,
@@ -665,6 +666,30 @@ describe('ModelCatalogSeedService', () => {
         qualityTier: sunburst.qualityTier,
         speedTier: sunburst.speedTier,
       });
+    });
+  });
+
+  it('clears draft siblings the catalog no longer names', async () => {
+    const entry = UNIFIED_MODEL_CATALOG.find(
+      (candidate) =>
+        candidate.key === MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+    );
+    if (!entry) {
+      throw new Error('Expected Seedance 2.5 in the real catalog');
+    }
+    expect(entry.draftModelKeys).toBeUndefined();
+    prisma.model.findUnique.mockResolvedValue({
+      cost: entry.cost,
+      draftModelKeys: [MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0_FAST],
+      id: 'existing',
+      isLegacy: false,
+      lifecycle: entry.lifecycle,
+    });
+
+    await service.reconcileCatalog([entry]);
+
+    expect(callForKey(entry.key)?.update).toMatchObject({
+      draftModelKeys: [],
     });
   });
 

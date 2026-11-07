@@ -266,9 +266,8 @@ export class ModelCatalogSeedService {
       ...(entry.defaultDuration != null
         ? { defaultDuration: entry.defaultDuration }
         : {}),
-      ...(entry.draftModelKeys
-        ? { draftModelKeys: [...entry.draftModelKeys] }
-        : {}),
+      // Always written, so a sibling the catalog drops is cleared from the row.
+      draftModelKeys: [...(entry.draftModelKeys ?? [])],
       ...(entry.durations ? { durations: [...entry.durations] } : {}),
       ...(entry.externalId ? { externalId: entry.externalId } : {}),
       ...(entry.hasAudioToggle != null
