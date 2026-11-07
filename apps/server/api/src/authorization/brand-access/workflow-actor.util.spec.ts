@@ -1,3 +1,4 @@
+import { organizationIssuerLookup } from '@api/authorization/brand-access/actor-api-key.fixture';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import {
   parseWorkflowActor,
@@ -32,7 +33,7 @@ function harness() {
     .mockResolvedValue({ scopes: ['admin', 'content:read'] });
   const prisma = {
     member: { findFirst: findMember },
-    apiKey: { findFirst: findKey },
+    organization: { findFirst: organizationIssuerLookup(findKey, 'org') },
   } as unknown as PrismaService;
   return {
     findKey,
@@ -123,13 +124,15 @@ describe('shared automatic workflow actor', () => {
     expect(result?.scopes).toEqual(['admin']);
     expect(h.findKey).toHaveBeenCalledWith(
       expect.objectContaining({
-        select: { scopes: true },
-        where: expect.objectContaining({
-          id: 'key',
-          userId: actor.userId,
-          organizationId: 'org',
-          isRevoked: false,
-        }),
+        where: {
+          apiKeys: {
+            some: expect.objectContaining({
+              id: 'key',
+              userId: actor.userId,
+              isRevoked: false,
+            }),
+          },
+        },
       }),
     );
     expect(h.findMember).toHaveBeenCalled();

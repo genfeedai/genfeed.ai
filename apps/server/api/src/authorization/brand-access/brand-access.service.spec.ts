@@ -1,3 +1,4 @@
+import { organizationIssuerLookup } from '@api/authorization/brand-access/actor-api-key.fixture';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-workflow.contract';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -39,7 +40,7 @@ function fixture() {
         : null;
     });
   const prisma = {
-    apiKey: { findFirst: findKey },
+    organization: { findFirst: organizationIssuerLookup(findKey, 'org-a') },
     member: { findFirst: findMember },
     brand: { findFirst: findBrand },
   } as unknown as PrismaService;
@@ -157,20 +158,77 @@ describe('live Cloud member brand policy', () => {
     await expect(f.service.assert(keyActor, 'brand-b')).rejects.toThrow(
       'Brand access denied',
     );
-    expect(f.findKey).toHaveBeenLastCalledWith({
-      where: {
-        id: 'key-a',
-        userId: actor.userId,
-        organizationId: actor.organizationId,
-        isRevoked: false,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: expect.any(Date) } }],
-      },
-      select: { metadata: true, scopes: true },
-    });
+    expect(f.findKey).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: {
+          apiKeys: {
+            some: expect.objectContaining({
+              id: 'key-a',
+              userId: actor.userId,
+              isRevoked: false,
+            }),
+          },
+        },
+      }),
+    );
     f.findKey.mockResolvedValue(null);
     await expect(f.service.assert(keyActor, 'brand-b')).rejects.toThrow(
       'Brand access denied',
     );
+  });
+
+  describe('a key issued for another organization', () => {
+    const keyActor = {
+      ...actor,
+      isApiKey: true,
+      apiKeyId: 'key-a',
+      scopes: ['admin'],
+    };
+    const switchableSession = {
+      kind: 'mcp-oauth-session',
+      canSwitchOrganizations: true,
+    };
+
+    it('reaches brands in the acting organization when it is a switchable MCP session', async () => {
+      const f = fixture();
+      f.member.role.key = MemberRole.OWNER;
+      f.findKey.mockResolvedValue({
+        scopes: ['admin'],
+        metadata: switchableSession,
+        issuedOrganizationId: 'org-home',
+      });
+      expect(await f.service.predicate(keyActor)).toEqual({
+        organizationId: 'org-a',
+        isDeleted: false,
+      });
+      await f.service.assert(keyActor, 'brand-b');
+    });
+
+    it('is denied when the key is not a switchable MCP session', async () => {
+      const f = fixture();
+      f.member.role.key = MemberRole.OWNER;
+      f.findKey.mockResolvedValue({
+        scopes: ['admin'],
+        metadata: { kind: 'mcp-oauth-session' },
+        issuedOrganizationId: 'org-home',
+      });
+      await expect(f.service.assert(keyActor, 'brand-b')).rejects.toThrow(
+        'Brand access denied',
+      );
+    });
+
+    it('is denied without membership in the acting organization', async () => {
+      const f = fixture();
+      f.findKey.mockResolvedValue({
+        scopes: ['admin'],
+        metadata: switchableSession,
+        issuedOrganizationId: 'org-home',
+      });
+      f.findMember.mockResolvedValue(null);
+      await expect(f.service.assert(keyActor, 'brand-b')).rejects.toThrow(
+        'Brand access denied',
+      );
+    });
   });
 
   it('requires key identity and uses the transaction for key admission', async () => {

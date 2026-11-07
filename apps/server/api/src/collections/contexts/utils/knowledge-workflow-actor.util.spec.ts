@@ -1,3 +1,4 @@
+import { organizationIssuerLookup } from '@api/authorization/brand-access/actor-api-key.fixture';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import {
   type ExecutionFixture,
@@ -77,7 +78,7 @@ function fixture() {
     .mockResolvedValue({ scopes: ['admin', 'knowledge:read'] });
   const prisma = {
     member: { findFirst: findMember },
-    apiKey: { findFirst: findKey },
+    organization: { findFirst: organizationIssuerLookup(findKey, 'org') },
     workflowExecution: { findFirst: findExecution },
   } as unknown as PrismaService;
   const action = {
@@ -155,13 +156,15 @@ describe('server-owned queued Knowledge authority', () => {
     expect(result?.scopes).toEqual(['admin']);
     expect(f.findKey).toHaveBeenCalledWith(
       expect.objectContaining({
-        select: { scopes: true },
-        where: expect.objectContaining({
-          id: 'key',
-          userId: actor.userId,
-          organizationId: 'org',
-          isRevoked: false,
-        }),
+        where: {
+          apiKeys: {
+            some: expect.objectContaining({
+              id: 'key',
+              userId: actor.userId,
+              isRevoked: false,
+            }),
+          },
+        },
       }),
     );
     f.findKey.mockResolvedValue(null);

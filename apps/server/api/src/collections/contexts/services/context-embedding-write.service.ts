@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { findActorApiKey } from '@api/authorization/brand-access/actor-api-key.util';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import {
   type HiddenWorkflowRule,
@@ -556,15 +557,9 @@ export class ContextEmbeddingWriteService {
     if (!user || !organization)
       throw new ForbiddenException('Context access denied');
     if (captured.isApiKey) {
-      const key = await tx.apiKey.findFirst({
-        where: {
-          id: captured.apiKeyId,
-          userId: captured.userId,
-          organizationId,
-          isRevoked: false,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-        },
-        select: { scopes: true },
+      const key = await findActorApiKey(tx, {
+        ...captured,
+        organizationId,
       });
       if (
         !captured.apiKeyId ||

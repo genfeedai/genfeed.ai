@@ -51,6 +51,11 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
+/** Admin tools whose handler enforces the organization owner/admin role. */
+const ORGANIZATION_ROLE_CHECKED_TOOLS: ReadonlySet<string> = new Set([
+  'create_brand_from_url',
+]);
+
 @ApiTags('Agent Tools')
 @FeatureFlag('agent')
 @Controller('agent-tools')
@@ -93,10 +98,15 @@ export class AgentToolsController {
         if (tool.requiredRole === 'superadmin' && !isSuperAdmin) {
           throw new ForbiddenException(`Tool ${name} requires superadmin`);
         }
-        // The removed role metadata had no writers, and the current registry
-        // exposes no organization-admin tools. Keep the prior deny-by-default
-        // behavior without introducing a new membership authorization path.
-        if (tool.requiredRole === 'admin' && !isSuperAdmin) {
+        // An organization-admin tool must prove the caller's owner or admin
+        // role in the acting organization itself; the platform superadmin
+        // flag says nothing about that. Every other admin tool stays
+        // superadmin-only.
+        if (
+          tool.requiredRole === 'admin' &&
+          !isSuperAdmin &&
+          !ORGANIZATION_ROLE_CHECKED_TOOLS.has(name)
+        ) {
           throw new ForbiddenException(`Tool ${name} requires admin`);
         }
       }
