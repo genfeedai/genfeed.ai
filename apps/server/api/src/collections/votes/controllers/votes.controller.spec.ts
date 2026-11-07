@@ -17,7 +17,6 @@ import { VotesController } from '@api/collections/votes/controllers/votes.contro
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { VoteEntityModel } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -33,10 +32,9 @@ describe('VotesController', () => {
   let controller: VotesController;
   let service: {
     addVote: ReturnType<typeof vi.fn>;
+    isEntityInOrganization: ReturnType<typeof vi.fn>;
     removeVote: ReturnType<typeof vi.fn>;
   };
-  let ingredientFindFirst: ReturnType<typeof vi.fn>;
-  let promptFindFirst: ReturnType<typeof vi.fn>;
 
   const mockReq = {} as Request;
 
@@ -54,23 +52,14 @@ describe('VotesController', () => {
   beforeEach(async () => {
     service = {
       addVote: vi.fn(),
+      isEntityInOrganization: vi.fn().mockResolvedValue(true),
       removeVote: vi.fn().mockResolvedValue({ removedCount: 1 }),
     };
-
-    ingredientFindFirst = vi.fn().mockResolvedValue({ id: validEntityId });
-    promptFindFirst = vi.fn().mockResolvedValue({ id: validEntityId });
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [VotesController],
       providers: [
         { provide: VotesService, useValue: service },
-        {
-          provide: PrismaService,
-          useValue: {
-            ingredient: { findFirst: ingredientFindFirst },
-            prompt: { findFirst: promptFindFirst },
-          },
-        },
         {
           provide: LoggerService,
           useValue: { error: vi.fn(), log: vi.fn() },
@@ -84,15 +73,9 @@ describe('VotesController', () => {
     controller = module.get<VotesController>(VotesController);
   });
 
-  it.each([
-    {
-      delegate: () => ingredientFindFirst,
-      entityModel: VoteEntityModel.INGREDIENT,
-    },
-    { delegate: () => promptFindFirst, entityModel: VoteEntityModel.PROMPT },
-  ])(
-    'adds a $entityModel vote after validating the tenant',
-    async ({ delegate, entityModel }) => {
+  it.each([VoteEntityModel.INGREDIENT, VoteEntityModel.PROMPT])(
+    'adds a %s vote in the caller organization',
+    async (entityModel) => {
       const mockVote = { id: testId('vote'), entity: validEntityId };
       service.addVote.mockResolvedValue({ created: true, vote: mockVote });
 
@@ -102,10 +85,6 @@ describe('VotesController', () => {
         mockUser,
       );
 
-      expect(delegate()).toHaveBeenCalledWith({
-        select: { id: true },
-        where: { id: validEntityId, isDeleted: false, organizationId },
-      });
       expect(service.addVote).toHaveBeenCalledWith({
         entityId: validEntityId,
         entityModel,
@@ -134,18 +113,12 @@ describe('VotesController', () => {
   it.each([VoteEntityModel.INGREDIENT, VoteEntityModel.PROMPT])(
     'returns 404 for a %s outside the caller organization without writing a vote',
     async (entityModel) => {
-      // The delegate only answers for the caller's own organization.
-      const ownOrganizationOnly = vi.fn(
-        ({ where }: { where: { organizationId: string } }) =>
-          Promise.resolve(where.organizationId ? null : null),
-      );
-      ingredientFindFirst.mockImplementation(ownOrganizationOnly);
-      promptFindFirst.mockImplementation(ownOrganizationOnly);
+      service.isEntityInOrganization.mockResolvedValue(false);
 
       const result = controller.create(
         mockReq,
         { entity: validEntityId, entityModel },
-        { ...mockUser, organizationId: testId('other-org') },
+        mockUser,
       );
 
       await expect(result).rejects.toBeInstanceOf(NotFoundException);
@@ -153,25 +126,6 @@ describe('VotesController', () => {
       expect(service.addVote).not.toHaveBeenCalled();
     },
   );
-
-  it('returns 404 for a prompt that belongs to another organization', async () => {
-    promptFindFirst.mockImplementation(({ where }) =>
-      Promise.resolve(
-        where.organizationId === testId('foreign-org')
-          ? { id: validEntityId }
-          : null,
-      ),
-    );
-
-    await expect(
-      controller.create(
-        mockReq,
-        { entity: validEntityId, entityModel: VoteEntityModel.PROMPT },
-        mockUser,
-      ),
-    ).rejects.toMatchObject({ status: 404 });
-    expect(service.addVote).not.toHaveBeenCalled();
-  });
 
   it('fails closed when the authenticated organization is missing', async () => {
     await expect(
@@ -181,7 +135,7 @@ describe('VotesController', () => {
       }),
     ).rejects.toMatchObject({ status: 404 });
 
-    expect(ingredientFindFirst).not.toHaveBeenCalled();
+    expect(service.isEntityInOrganization).not.toHaveBeenCalled();
     expect(service.addVote).not.toHaveBeenCalled();
   });
 

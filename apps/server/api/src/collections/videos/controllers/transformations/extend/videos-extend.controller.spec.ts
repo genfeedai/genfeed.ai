@@ -7,7 +7,6 @@ import { ORGANIZATION_MODULE_KEY } from '@api/common/organization-modules/organi
 import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientCategory } from '@genfeedai/contracts';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import { describe, expect, it, vi } from 'vitest';
@@ -26,30 +25,26 @@ const dto = {
 };
 function fixture() {
   const videos = { findOne: vi.fn().mockResolvedValue({ id: 'source' }) };
-  const extension = {
-    enqueue: vi
-      .fn()
-      .mockResolvedValue({ executionId: 'execution', status: 'PENDING' }),
-  };
   const execution = {
     id: 'execution',
     status: 'PENDING',
     organizationId: 'org',
     userId: 'actor',
   };
-  const prisma = {
-    workflowExecution: { findFirst: vi.fn().mockResolvedValue(execution) },
+  const extension = {
+    enqueue: vi
+      .fn()
+      .mockResolvedValue({ executionId: 'execution', status: 'PENDING' }),
+    findQueuedExecution: vi.fn().mockResolvedValue(execution),
   };
   const controller = new VideosExtendController(
     videos as unknown as VideosService,
     extension as unknown as VideoExtensionExecutionService,
-    prisma as unknown as PrismaService,
   );
   return {
     videos,
     extension,
     execution,
-    prisma,
     run: () => controller.extendVideo({} as Request, user, 'source', dto),
   };
 }
@@ -64,14 +59,10 @@ describe('VideosExtendController execution admission', () => {
       category: IngredientCategory.VIDEO,
     });
     expect(f.extension.enqueue).toHaveBeenCalledWith(user, 'source', dto);
-    expect(f.prisma.workflowExecution.findFirst).toHaveBeenCalledWith({
-      where: {
-        id: 'execution',
-        organizationId: 'org',
-        userId: 'actor',
-        isDeleted: false,
-      },
-    });
+    expect(f.extension.findQueuedExecution).toHaveBeenCalledWith(
+      user,
+      'execution',
+    );
     expect(serializeSingle).toHaveBeenCalledWith(
       expect.anything(),
       WorkflowExecutionSerializer,
@@ -88,7 +79,7 @@ describe('VideosExtendController execution admission', () => {
     const f = fixture();
     f.extension.enqueue.mockRejectedValue(new Error('Queue unavailable'));
     await expect(f.run()).rejects.toThrow('Queue unavailable');
-    expect(f.prisma.workflowExecution.findFirst).not.toHaveBeenCalled();
+    expect(f.extension.findQueuedExecution).not.toHaveBeenCalled();
   });
   it('keeps model validation and Playground policy while funding only the execution', () => {
     const handler = VideosExtendController.prototype.extendVideo;

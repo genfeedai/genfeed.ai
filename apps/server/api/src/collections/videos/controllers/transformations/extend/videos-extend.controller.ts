@@ -16,7 +16,6 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ApiKeyScope,
   IngredientCategory,
@@ -41,7 +40,6 @@ export class VideosExtendController {
   constructor(
     private readonly videosService: VideosService,
     private readonly extensionExecution: VideoExtensionExecutionService,
-    private readonly prisma: PrismaService,
   ) {}
 
   @Post(':videoId/extend')
@@ -66,14 +64,10 @@ export class VideosExtendController {
     // The existing workflow funding compiler owns the hold and terminal settlement.
     // Creating a draft or an ordinary HTTP hold cannot execute a continuation.
     const queued = await this.extensionExecution.enqueue(user, videoId, dto);
-    const execution = await this.prisma.workflowExecution.findFirst({
-      where: {
-        id: queued.executionId,
-        organizationId: user.organizationId,
-        userId: user.userId ?? user.id,
-        isDeleted: false,
-      },
-    });
+    const execution = await this.extensionExecution.findQueuedExecution(
+      user,
+      queued.executionId,
+    );
     if (!execution)
       return returnNotFound(VideosExtendController.name, queued.executionId);
     return serializeSingle(request, WorkflowExecutionSerializer, execution);

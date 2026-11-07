@@ -7,8 +7,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { VoteEntityModel } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { VoteSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -30,7 +28,6 @@ export class VotesController {
   constructor(
     readonly _loggerService: LoggerService,
     private readonly votesService: VotesService,
-    private readonly prisma: PrismaService,
   ) {}
 
   @Post()
@@ -55,7 +52,7 @@ export class VotesController {
       // Fail closed: only an entity in the caller's own organization can be
       // voted on, so a foreign or unknown id never reaches the votes table.
       if (
-        !(await this.isEntityInOrganization(
+        !(await this.votesService.isEntityInOrganization(
           createVoteDto.entityModel,
           createVoteDto.entity,
           user.organizationId,
@@ -98,23 +95,5 @@ export class VotesController {
       organizationId: user.organizationId || undefined,
       userId: user.userId ?? user.id,
     });
-  }
-
-  private async isEntityInOrganization(
-    entityModel: VoteEntityModel,
-    entityId: string,
-    organizationId: string,
-  ): Promise<boolean> {
-    const where = { id: entityId, isDeleted: false, organizationId };
-
-    const row =
-      entityModel === VoteEntityModel.PROMPT
-        ? await this.prisma.prompt.findFirst({ select: { id: true }, where })
-        : await this.prisma.ingredient.findFirst({
-            select: { id: true },
-            where,
-          });
-
-    return Boolean(row);
   }
 }

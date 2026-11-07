@@ -211,6 +211,18 @@ export class VideoExtensionExecutionService {
     return { frameIngredientId, frameEvidence, image };
   }
 
+  /** The caller's own queued execution, or null when it is gone or not theirs. */
+  findQueuedExecution(user: AuthenticatedUser, executionId: string) {
+    return this.prisma.workflowExecution.findFirst({
+      where: {
+        id: executionId,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
+        isDeleted: false,
+      },
+    });
+  }
+
   async enqueue(
     user: AuthenticatedUser,
     sourceId: string,

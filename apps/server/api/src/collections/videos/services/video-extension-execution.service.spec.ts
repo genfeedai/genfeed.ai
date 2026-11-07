@@ -48,6 +48,22 @@ describe('video continuation execution preparation', () => {
   let revoked: Set<string>;
   let thumbnails: string[];
   let service: VideoExtensionExecutionService;
+  const executionRows: IngredientRow[] = [
+    { id: 'mine', isDeleted: false, organizationId: 'org', userId: 'actor' },
+    { id: 'deleted', isDeleted: true, organizationId: 'org', userId: 'actor' },
+    {
+      id: 'teammate',
+      isDeleted: false,
+      organizationId: 'org',
+      userId: 'other',
+    },
+    {
+      id: 'foreign',
+      isDeleted: false,
+      organizationId: 'org-2',
+      userId: 'actor',
+    },
+  ];
 
   const user = {
     apiKeyId: 'key',
@@ -121,6 +137,10 @@ describe('video continuation execution preparation', () => {
             }
             return { count: hits.length };
           },
+        },
+        workflowExecution: {
+          findFirst: async ({ where }: { where: Where }) =>
+            executionRows.find((row) => matches(row, where)) ?? null,
         },
         model: {
           findFirst: async () => ({
@@ -282,4 +302,18 @@ describe('video continuation execution preparation', () => {
     expect(ingredients.get('frame')?.status).toBe(IngredientStatus.FAILED);
     expect(executions).toEqual([]);
   });
+
+  it.each([
+    ['mine', 'mine'],
+    ['deleted', null],
+    ['teammate', null],
+    ['foreign', null],
+    ['missing', null],
+  ])(
+    'findQueuedExecution(%s) returns only the caller own live execution',
+    async (id, expectedId) => {
+      const execution = await service.findQueuedExecution(user, id);
+      expect(execution?.id ?? null).toBe(expectedId);
+    },
+  );
 });
