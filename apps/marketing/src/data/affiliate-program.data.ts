@@ -54,7 +54,7 @@ export const AFFILIATE_PROGRAM = {
 
 export const AFFILIATE_STEPS: readonly AffiliateTerm[] = [
   {
-    description: `Open ${AFFILIATE_PROGRAM.hubLocation} in a billing organization and copy your link.`,
+    description: `Open ${AFFILIATE_PROGRAM.hubLocation} in a billing organization and copy your link. Add codes you name yourself, or one per brand.`,
     title: 'Get your link',
   },
   {

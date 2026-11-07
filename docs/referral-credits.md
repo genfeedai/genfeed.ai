@@ -33,7 +33,8 @@ reward settlement, and the credit ledger portable across supported deployments.
 
 The customer Affiliate Hub is on the organization **Settings → Affiliates**
 page, linked from the Credits page. It
-shows aggregate counts, credit totals, and the referrer's own reward values;
+shows aggregate counts, credit totals, the same figures per code, and the
+referrer's own reward values;
 it never returns referred-customer identity, purchase amounts, or purchased
 credit quantities. Platform administrators can audit full reward records under
 **Administration → Affiliate Rewards**.

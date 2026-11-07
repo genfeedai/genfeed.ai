@@ -32,7 +32,7 @@ access to customer or Stripe data.
 
 ## Program Contract
 
-- Each user may have one opaque referral code per billing account.
+- Each user has one random primary referral code per billing account and may add named or per-brand codes (#9643); rewards still go to the billing account.
 - Referral links use `https://app.genfeed.ai/sign-up?ref=<code>`.
 - Attribution is first-touch and immutable for a referred billing account.
 - A referral may be claimed only by a newly provisioned billing account before
