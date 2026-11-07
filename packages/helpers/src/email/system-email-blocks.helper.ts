@@ -76,8 +76,18 @@ export interface EmailStat {
 }
 
 /**
- * A row of counters. Up to four tiles share the card width; five or more wrap
- * to a second row. Tiles use fixed percentage widths so they hold in Outlook.
+ * Width of the shell card's body: the 560px card less its 1px borders and 32px
+ * side padding (`buildSystemEmailHtml`).
+ */
+const EMAIL_CONTENT_WIDTH_PX = 494;
+const STAT_GAP_PX = 8;
+
+/**
+ * A grid of counters. Up to four tiles share a desktop row; five or more wrap
+ * by threes or fours. Each tile is an inline block capped at its share of the
+ * card, so a phone fits as many as the screen holds and wraps the rest instead
+ * of squeezing four into 300px. Outlook desktop ignores `max-width` on a div,
+ * so a conditional table rebuilds the fixed rows there.
  */
 export function buildEmailStatRow(stats: readonly EmailStat[]): string {
   if (stats.length === 0) {
@@ -85,29 +95,25 @@ export function buildEmailStatRow(stats: readonly EmailStat[]): string {
   }
   const perRow =
     stats.length <= 4 ? stats.length : stats.length % 3 === 0 ? 3 : 4;
-  const rows: EmailStat[][] = [];
-  for (let index = 0; index < stats.length; index += perRow) {
-    rows.push(stats.slice(index, index + perRow));
-  }
-  const width = Math.floor(100 / perRow);
-  const body = rows
-    .map((row, rowIndex) => {
-      const cells = Array.from({ length: perRow }, (_, cellIndex) => {
-        const stat = row[cellIndex];
-        const gap = cellIndex === perRow - 1 ? '' : 'padding-right:8px;';
-        if (!stat) {
-          return `<td width="${width}%" style="${gap}"></td>`;
-        }
-        const tone = TONE_STYLES[stat.tone ?? 'neutral'];
-        const hint = stat.hint
-          ? `<div style="color:${EMAIL_BLOCK_COLORS.muted};font-size:11px;line-height:16px;margin-top:2px;">${esc(stat.hint)}</div>`
-          : '';
-        return `<td width="${width}%" valign="top" style="${gap}padding-bottom:${rowIndex === rows.length - 1 ? 0 : 8}px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${tone.soft};border:1px solid ${EMAIL_BLOCK_COLORS.border};border-collapse:separate;border-radius:8px;width:100%;"><tr><td style="padding:14px 12px;"><div style="color:${tone.accent};font-size:28px;font-weight:700;letter-spacing:-0.02em;line-height:32px;">${esc(stat.value)}</div><div style="color:${EMAIL_BLOCK_COLORS.secondary};font-size:12px;line-height:18px;margin-top:4px;">${esc(stat.label)}</div>${hint}</td></tr></table></td>`;
-      }).join('');
-      return `<tr>${cells}</tr>`;
-    })
-    .join('');
-  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin:0 0 24px;width:100%;">${body}</table>`;
+  const cellWidth = Math.floor(EMAIL_CONTENT_WIDTH_PX / perRow);
+  const cells = stats.map((stat, index) => {
+    const tone = TONE_STYLES[stat.tone ?? 'neutral'];
+    const hint = stat.hint
+      ? `<div style="color:${EMAIL_BLOCK_COLORS.muted};font-size:11px;line-height:16px;margin-top:2px;">${esc(stat.hint)}</div>`
+      : '';
+    const msoBreak =
+      index === 0
+        ? ''
+        : index % perRow === 0
+          ? '<!--[if mso]></td></tr><tr><td width="' +
+            cellWidth +
+            '" valign="top"><![endif]-->'
+          : `<!--[if mso]></td><td width="${cellWidth}" valign="top"><![endif]-->`;
+    return `${msoBreak}<div style="display:inline-block;max-width:${cellWidth}px;vertical-align:top;width:100%;"><div style="padding:0 ${STAT_GAP_PX}px ${STAT_GAP_PX}px 0;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${tone.soft};border:1px solid ${EMAIL_BLOCK_COLORS.border};border-collapse:separate;border-radius:8px;width:100%;"><tr><td style="padding:14px 12px;"><div style="color:${tone.accent};font-size:28px;font-weight:700;letter-spacing:-0.02em;line-height:32px;">${esc(stat.value)}</div><div style="color:${EMAIL_BLOCK_COLORS.secondary};font-size:12px;line-height:18px;margin-top:4px;">${esc(stat.label)}</div>${hint}</td></tr></table></div></div>`;
+  });
+  // font-size:0 drops the whitespace gap between inline blocks; the tiles'
+  // bottom gap stands in for 8px of the block's 24px bottom margin.
+  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin:0 0 ${24 - STAT_GAP_PX}px;width:100%;"><tr><td style="font-size:0;line-height:0;"><!--[if mso]><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="${cellWidth}" valign="top"><![endif]-->${cells.join('')}<!--[if mso]></td></tr></table><![endif]--></td></tr></table>`;
 }
 
 export interface EmailBigNumberInput {
