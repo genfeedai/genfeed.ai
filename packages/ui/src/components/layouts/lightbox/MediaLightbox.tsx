@@ -4,9 +4,11 @@ import { IngredientCategory, MetadataExtension } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useDominantColor } from '@genfeedai/hooks/ui/use-dominant-color/use-dominant-color';
 import type { MediaLightboxProps } from '@genfeedai/props/layout/media-lightbox.props';
-import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import {
+  LightboxSlide,
+  LightboxThumbnail,
+} from '@ui/layouts/lightbox/LightboxMedia';
 import dynamic from 'next/dynamic';
-import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import type { Plugin } from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/plugins/thumbnails.css';
@@ -18,17 +20,6 @@ type Slide = {
   title?: string;
   description?: string;
   [key: string]: unknown;
-};
-
-// Custom properties for video slides
-type VideoSlideProps = {
-  thumbnailSrc?: string;
-  type?: 'video';
-  sources?: Array<{ src: string; type: string }>;
-  controls?: boolean;
-  playsInline?: boolean;
-  preload?: string;
-  poster?: string;
 };
 
 // Dynamically import lightbox to avoid SSR issues
@@ -86,62 +77,30 @@ export default function MediaLightbox({
     };
   }, []);
 
-  // Map ingredients to lightbox slides with their thumbnail URLs
-  const slides: Slide[] = useMemo(() => {
-    return items.reduce<Slide[]>((acc, item: IIngredient) => {
-      if (!item.ingredientUrl && !item.thumbnailUrl) {
-        return acc;
-      }
-      // Detect video types by category or file extension
-      const isVideoCategory =
-        item.category === IngredientCategory.VIDEO ||
-        item.category === IngredientCategory.VIDEO_EDIT;
+  // One slide per item, so a slide index is always an item index. The media
+  // itself is resolved inside each slide, from the item's authorized grant.
+  const slides: Slide[] = useMemo(
+    () =>
+      items.map((item: IIngredient) => {
+        const isVideo =
+          item.category === IngredientCategory.VIDEO ||
+          item.category === IngredientCategory.VIDEO_EDIT ||
+          item.metadataExtension === MetadataExtension.MP4 ||
+          item.metadataExtension === MetadataExtension.MOV ||
+          item.metadataExtension === MetadataExtension.WEBM;
 
-      const isVideoExtension =
-        item.metadataExtension === MetadataExtension.MP4 ||
-        item.metadataExtension === MetadataExtension.MOV ||
-        item.metadataExtension === MetadataExtension.WEBM;
-
-      const isVideo = isVideoCategory || isVideoExtension;
-
-      const src = item.ingredientUrl || item.thumbnailUrl || '';
-
-      const slide: Slide & VideoSlideProps = {
-        alt: item.metadataLabel || 'Media',
-        height: item.height || 1920,
-        src,
-        width: item.width || 1080,
-      } as Slide & VideoSlideProps;
-
-      if (isVideo) {
-        // Configure video slide per yet-another-react-lightbox docs
-        slide.type = 'video';
-        slide.sources = [
-          {
-            src,
-            type: `video/${String(item.metadataExtension || MetadataExtension.MP4).toLowerCase()}`,
-          },
-        ];
-        slide.controls = true;
-        slide.playsInline = true;
-        slide.preload = 'metadata';
-
-        // Only image thumbnails can be used as video posters.
-        const posterUrl =
-          item.thumbnailUrl && item.thumbnailUrl !== src
-            ? item.thumbnailUrl
-            : undefined;
-
-        slide.poster = posterUrl;
-
-        // Store the poster URL as a custom property for thumbnail rendering
-        slide.thumbnailSrc = posterUrl;
-      }
-
-      acc.push(slide);
-      return acc;
-    }, []);
-  }, [items]);
+        return {
+          alt: item.metadataLabel || 'Media',
+          height: item.height || 1920,
+          ingredient: item,
+          isVideo,
+          src: item.ingredientUrl || '',
+          type: isVideo ? 'video' : undefined,
+          width: item.width || 1080,
+        };
+      }),
+    [items],
+  );
 
   const isReady = plugins.length > 0 && slides.length > 0;
   if (!open || !isReady) {
@@ -184,69 +143,19 @@ export default function MediaLightbox({
       render={{
         buttonNext: slides.length <= 1 ? () => null : undefined,
         buttonPrev: slides.length <= 1 ? () => null : undefined,
-        // Custom slide render to show poster before video loads
-        slide: ({ slide, offset }) => {
-          const videoSlide = slide as Slide & VideoSlideProps;
-          const isVideo = videoSlide.type === 'video';
-          const thumbnailSrc = videoSlide.thumbnailSrc;
-
-          if (isVideo) {
-            return (
-              <div
-                style={{
-                  alignItems: 'center',
-                  backgroundColor: 'black',
-                  display: 'flex',
-                  height: '100%',
-                  justifyContent: 'center',
-                  position: 'relative',
-                  width: '100%',
-                }}
-              >
-                <VideoPlayer
-                  ariaLabel="Media lightbox video"
-                  isActive={offset === 0 && open}
-                  src={videoSlide.sources?.[0]?.src}
-                  thumbnail={thumbnailSrc}
-                  config={{
-                    controls: true,
-                    playsInline: true,
-                    preload: 'none',
-                    muted: false,
-                    loop: false,
-                    autoPlay: false,
-                  }}
-                  mediaProps={{ poster: thumbnailSrc }}
-                />
-              </div>
-            );
-          }
-
-          // For images and videos without custom handling, use default rendering
-          return undefined;
-        },
-        // Custom thumbnail render for video slides to show poster images
-        thumbnail: ({ slide }) => {
-          const videoSlide = slide as Slide & VideoSlideProps;
-          const thumbnailSrc = videoSlide.thumbnailSrc;
-          const isVideo = videoSlide.type === 'video';
-
-          if (isVideo && thumbnailSrc) {
-            return (
-              <Image
-                src={thumbnailSrc}
-                alt={'Video thumbnail'}
-                fill
-                sizes="96px"
-                className="object-cover outline-media"
-                unoptimized
-              />
-            );
-          }
-
-          // For images, use default rendering
-          return undefined;
-        },
+        slide: ({ slide, offset }) => (
+          <LightboxSlide
+            isActive={offset === 0 && open}
+            isVideo={(slide as Slide).isVideo === true}
+            item={(slide as Slide).ingredient as IIngredient}
+          />
+        ),
+        thumbnail: ({ slide }) => (
+          <LightboxThumbnail
+            isVideo={(slide as Slide).isVideo === true}
+            item={(slide as Slide).ingredient as IIngredient}
+          />
+        ),
       }}
     />
   );

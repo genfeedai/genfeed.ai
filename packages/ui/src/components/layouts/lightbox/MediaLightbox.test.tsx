@@ -13,6 +13,20 @@ vi.mock('@genfeedai/hooks/ui/use-dominant-color/use-dominant-color', () => ({
   useDominantColor: () => null,
 }));
 
+const grants = vi.hoisted(() => ({
+  current: null as null | {
+    expiresAt: string | null;
+    id: string;
+    purpose: string;
+    state: string;
+    url: string | null;
+  },
+}));
+
+vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
+  useAuthorizedMediaPreview: () => grants.current,
+}));
+
 const image = {
   id: 'apple',
   ingredientUrl: 'https://example.com/apple.jpg',
@@ -21,7 +35,64 @@ const image = {
 } as IIngredient;
 
 describe('MediaLightbox', () => {
-  it('does not use video files as image posters when thumbnails are missing', async () => {
+  it('plays the video from its authorized grant when the row URL is empty', async () => {
+    grants.current = {
+      expiresAt: null,
+      id: 'clip',
+      purpose: 'preview',
+      state: 'READY',
+      url: 'https://cdn.test/signed-video.mp4',
+    };
+    render(
+      <MediaLightbox
+        items={[
+          {
+            ...image,
+            category: IngredientCategory.VIDEO,
+            ingredientUrl: '',
+            thumbnailUrl: 'https://assets.test/placeholders/portrait.jpg',
+          },
+        ]}
+        startIndex={0}
+        open
+        onClose={vi.fn()}
+      />,
+    );
+    const video = await screen.findByLabelText('Media lightbox video');
+    expect(video).toHaveAttribute('src', 'https://cdn.test/signed-video.mp4');
+    expect(video).not.toHaveAttribute('poster');
+  });
+
+  it('waits on a pending grant instead of loading a placeholder video', async () => {
+    grants.current = {
+      expiresAt: null,
+      id: 'clip',
+      purpose: 'preview',
+      state: 'PENDING',
+      url: null,
+    };
+    render(
+      <MediaLightbox
+        items={[
+          {
+            ...image,
+            category: IngredientCategory.VIDEO,
+            ingredientUrl: '',
+          },
+        ]}
+        startIndex={0}
+        open
+        onClose={vi.fn()}
+      />,
+    );
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Media lightbox video'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('plays a video without a grant from its own URL', async () => {
+    grants.current = null;
     render(
       <MediaLightbox
         items={[
@@ -40,7 +111,6 @@ describe('MediaLightbox', () => {
     const video = await screen.findByLabelText('Media lightbox video');
     expect(video).toHaveAttribute('src', 'https://cdn.test/video.mp4');
     expect(video).not.toHaveAttribute('poster');
-    expect(screen.queryByAltText('Video thumbnail')).not.toBeInTheDocument();
   });
 
   it('opens the real viewer while the dominant colour is unavailable', async () => {
