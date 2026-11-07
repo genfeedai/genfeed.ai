@@ -3,7 +3,7 @@ import { UpdateVoteDto } from '@api/collections/votes/dto/update-vote.dto';
 import type { VoteDocument } from '@api/collections/votes/schemas/vote.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { VoteEntityModel } from '@genfeedai/contracts';
+import { VoteEntityModel } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { platformOrTenantScope } from '@libs/prisma/platform-scope';
 import { Traced } from '@libs/tracing/traced';
@@ -31,6 +31,29 @@ export class VotesService extends BaseService<
     public readonly logger: LoggerService,
   ) {
     super(prisma, 'vote', logger);
+  }
+
+  /**
+   * Whether the voted-on entity (a prompt or an ingredient) exists, is not
+   * deleted and belongs to `organizationId`. Callers check this before
+   * `addVote` so a foreign or unknown id never reaches the votes table.
+   */
+  async isEntityInOrganization(
+    entityModel: VoteEntityModel,
+    entityId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    const where = { id: entityId, isDeleted: false, organizationId };
+
+    const row =
+      entityModel === VoteEntityModel.PROMPT
+        ? await this.prisma.prompt.findFirst({ select: { id: true }, where })
+        : await this.prisma.ingredient.findFirst({
+            select: { id: true },
+            where,
+          });
+
+    return Boolean(row);
   }
 
   /**

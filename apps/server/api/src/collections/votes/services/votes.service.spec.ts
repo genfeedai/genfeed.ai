@@ -243,3 +243,58 @@ describe('VotesService votes', () => {
     });
   });
 });
+
+describe('VotesService.isEntityInOrganization', () => {
+  interface EntityRow {
+    id: string;
+    isDeleted: boolean;
+    organizationId: string;
+  }
+
+  function fakeEntityDelegate(rows: EntityRow[]) {
+    return {
+      findFirst: async ({ where }: { where: EntityRow }) =>
+        rows.find(
+          (row) =>
+            row.id === where.id &&
+            row.isDeleted === where.isDeleted &&
+            row.organizationId === where.organizationId,
+        ) ?? null,
+    };
+  }
+
+  const service = new VotesService(
+    {
+      ingredient: fakeEntityDelegate([
+        { id: 'ingredient-1', isDeleted: false, organizationId: 'org-1' },
+        { id: 'ingredient-deleted', isDeleted: true, organizationId: 'org-1' },
+      ]),
+      prompt: fakeEntityDelegate([
+        { id: 'prompt-1', isDeleted: false, organizationId: 'org-1' },
+      ]),
+    } as unknown as PrismaService,
+    {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    } as unknown as LoggerService,
+  );
+
+  it.each([
+    [VoteEntityModel.INGREDIENT, 'ingredient-1', 'org-1', true],
+    [VoteEntityModel.INGREDIENT, 'ingredient-1', 'org-2', false],
+    [VoteEntityModel.INGREDIENT, 'ingredient-deleted', 'org-1', false],
+    [VoteEntityModel.INGREDIENT, 'prompt-1', 'org-1', false],
+    [VoteEntityModel.PROMPT, 'prompt-1', 'org-1', true],
+    [VoteEntityModel.PROMPT, 'prompt-1', 'org-2', false],
+    [VoteEntityModel.PROMPT, 'ingredient-1', 'org-1', false],
+  ])(
+    '%s %s in %s -> %s',
+    async (entityModel, entityId, organizationId, expected) => {
+      await expect(
+        service.isEntityInOrganization(entityModel, entityId, organizationId),
+      ).resolves.toBe(expected);
+    },
+  );
+});
