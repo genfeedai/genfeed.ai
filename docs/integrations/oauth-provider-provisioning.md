@@ -105,33 +105,39 @@ and [v26.0 migration changes](https://developers.facebook.com/docs/graph-api/cha
 ### Instagram
 
 1. Create a Meta app in the [Meta App Dashboard](https://developers.facebook.com/apps/)
-   and configure Instagram API with Facebook Login.
-2. Add `{APP_ORIGIN}/oauth/instagram` to the valid OAuth redirect URIs.
-3. Request the scopes used by Genfeed (`INSTAGRAM_OAUTH_SCOPES` in
-   `packages/integrations/src/constants.ts`): `business_management`,
-   `instagram_basic`, `pages_show_list`, `pages_read_engagement`,
-   `instagram_content_publish`, `instagram_manage_insights`,
-   `instagram_manage_comments`, `instagram_manage_messages`,
-   `pages_messaging`, `pages_manage_metadata`, `pages_manage_posts`,
-   `public_profile`, `ads_management`, and `ads_read`. Direct messages need
-   `instagram_manage_messages`, `pages_manage_metadata`, and
-   `pages_show_list`; private replies to comments need
-   `instagram_manage_comments` and `pages_messaging`. Direct messages are
-   read from the Page `conversations` edge, fetched by the Messages Sync
-   button and, once the webhook below is registered, whenever Meta reports a
-   new inbound message.
+   owned by a business portfolio, with the use case "Manage messaging &
+   content on Instagram" (Instagram API with Unified Login). Customers sign in
+   with Instagram or Facebook credentials; no Facebook Page is required.
+2. Under that use case, "API setup with Unified login", create a
+   configuration for an Instagram account asset. It must carry the
+   permissions in `INSTAGRAM_UNIFIED_LOGIN_PERMISSIONS`
+   (`packages/integrations/src/constants.ts`): `instagram_basic`,
+   `instagram_content_publish`, `instagram_manage_comments`,
+   `instagram_manage_insights`, and `instagram_manage_messages`. Set its
+   redirect URL to `{APP_ORIGIN}/oauth/instagram` and record the
+   configuration's `config_id` (not a secret). Permissions are not sent on the
+   login URL; the configuration decides them.
+3. Direct messages need `instagram_manage_messages`; private replies to
+   comments need `instagram_manage_comments` and `instagram_manage_messages`.
+   Direct messages are read from the account's `conversations` edge (fetched
+   by the Messages Sync button and, once the webhook below is registered,
+   whenever Meta reports a new inbound message). Advanced Access on the
+   `instagram_*` permissions carries over from the Facebook Login setup; it is
+   not requested again.
 4. Add operator/test accounts while the Meta app is in development mode. Live
    use requires the applicable permissions to pass Meta App Review.
-5. Set `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`,
+5. Set `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`, `INSTAGRAM_CONFIG_ID`,
    `INSTAGRAM_REDIRECT_URI`, `INSTAGRAM_API_VERSION`, and
-   `INSTAGRAM_GRAPH_URL=https://graph.facebook.com`.
+   `INSTAGRAM_GRAPH_URL=https://graph.facebook.com`. Use the Meta app ID and
+   secret, not an Instagram app ID or secret.
 6. Optional real-time Direct messages: choose a random string for
    `INSTAGRAM_WEBHOOK_VERIFY_TOKEN`, then in the Meta app dashboard register
    `{API_ORIGIN}/v1/webhooks/instagram` as the Instagram webhook callback with
    that verify token and subscribe the `messages` field. Deliveries are
    checked against `INSTAGRAM_APP_SECRET` (or `FACEBOOK_APP_SECRET`). Genfeed
-   subscribes each Page to the app when an account is connected, so accounts
-   connected earlier must reconnect. Meta only delivers webhooks for people
+   subscribes each Instagram account to the app when it is connected, so
+   accounts connected earlier must reconnect. Register the callback under
+   "Configure webhooks" on the "API setup with Unified login" tab. Meta only delivers webhooks for people
    without an app role once the app is live and the messaging permissions are
    approved.
 

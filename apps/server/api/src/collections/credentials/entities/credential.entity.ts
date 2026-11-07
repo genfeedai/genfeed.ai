@@ -13,6 +13,7 @@ export class CredentialEntity extends BaseEntity implements Credential {
   declare readonly externalHandle: Credential['externalHandle'];
   declare readonly externalName: Credential['externalName'];
   declare readonly externalAvatar: Credential['externalAvatar'];
+  declare readonly externalBusinessId: Credential['externalBusinessId'];
   declare readonly oauthState: Credential['oauthState'];
   declare readonly oauthToken: Credential['oauthToken'];
   declare readonly oauthTokenHash: Credential['oauthTokenHash'];

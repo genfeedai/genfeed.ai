@@ -10,7 +10,6 @@ import {
 } from '@api/services/integrations/_shared/meta-page-access.util';
 import {
   getInstagramErrorCode,
-  getSafeInstagramOAuthErrorLog,
   isInstagramAuthorizationError,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
@@ -41,6 +40,7 @@ import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
+import { InstagramAccountsService } from './instagram-accounts.service';
 import {
   InstagramAnalyticsService,
   type InstagramMediaAnalytics,
@@ -61,11 +61,6 @@ function requireString(
 }
 
 const INSTAGRAM_TOKEN_REFRESH_BUFFER_MS = 7 * 24 * 60 * 60 * 1000;
-/** Defensive cap on `me/accounts` pagination batches — an operator managing
- * an unreasonable number of Facebook Pages should not be able to make this
- * request loop indefinitely. */
-const INSTAGRAM_ACCOUNT_LIST_MAX_PAGES = 25;
-
 const INSTAGRAM_COMMENT_NODE_FIELDS =
   'id,text,timestamp,username,from{id,username}';
 const INSTAGRAM_COMMENT_FIELDS = `${INSTAGRAM_COMMENT_NODE_FIELDS},replies{${INSTAGRAM_COMMENT_NODE_FIELDS}}`;
@@ -171,6 +166,7 @@ function toInstagramCredentialResponse(
     accessToken: requireString(credential.accessToken, 'accessToken'),
     externalId: credential.externalId ?? undefined,
     isConnected: credential.isConnected,
+    isUnifiedLogin: Boolean(credential.externalBusinessId),
     ...(credential.grantedScopesCapturedAt
       ? { grantedScopes: credential.grantedScopes }
       : {}),
@@ -186,6 +182,7 @@ export class InstagramService {
   private readonly apiVersion: string;
   private readonly analyticsService: InstagramAnalyticsService;
   private readonly publishingService: InstagramPublishingService;
+  private readonly accountsService: InstagramAccountsService;
 
   constructor(
     private readonly configService: ConfigService,
@@ -196,6 +193,12 @@ export class InstagramService {
   ) {
     this.apiVersion =
       this.configService.get('INSTAGRAM_API_VERSION') || META_GRAPH_API_VERSION;
+    this.accountsService = new InstagramAccountsService(
+      this.httpService,
+      this.loggerService,
+      this.graphUrl,
+      this.apiVersion,
+    );
     this.publishingService = new InstagramPublishingService(
       this.httpService,
       this.loggerService,
@@ -216,6 +219,15 @@ export class InstagramService {
 
   public getGraphApiBaseUrl(): string {
     return `${this.graphUrl}/${this.apiVersion}`;
+  }
+
+  private isBusinessTokenExpired(expiresAt?: Date | string | null): boolean {
+    if (!expiresAt) {
+      return false;
+    }
+
+    const expiresAtMs = new Date(expiresAt).getTime();
+    return Number.isFinite(expiresAtMs) && expiresAtMs <= Date.now();
   }
 
   private shouldRefreshAccessToken(expiresAt?: Date | string | null): boolean {
@@ -278,6 +290,23 @@ export class InstagramService {
       );
     }
 
+    if (credential.externalBusinessId) {
+      // A Business Integration System User token has no refresh exchange. It
+      // lasts as configured (never, by default) until the client removes the
+      // app or moves the account, so the only local question is a stored
+      // expiry; anything else is found out by the call itself.
+      if (this.isBusinessTokenExpired(credential.accessTokenExpiry)) {
+        await this.credentialsService.patch(credential.id, {
+          isConnected: false,
+        });
+        throw new Error(
+          'Instagram connection expired. Please reconnect your account.',
+        );
+      }
+
+      return toInstagramCredentialResponse(credential);
+    }
+
     if (this.shouldRefreshAccessToken(credential.accessTokenExpiry)) {
       return this.refreshToken(organizationId, brandId, credentialId);
     }
@@ -286,104 +315,20 @@ export class InstagramService {
   }
 
   /**
-   * Every Instagram professional (Business or Creator) account this token can
-   * reach, via the Facebook Pages the token's user manages. Paginates with
-   * the `after` cursor (never the raw `paging.next` URL, which embeds
-   * `access_token` in a string that ends up in request logs and history) and
-   * stops after `INSTAGRAM_ACCOUNT_LIST_MAX_PAGES` batches so a
-   * pathologically large or looping result set cannot hang the request.
-   * This is the single source of truth for "which accounts can this token
-   * act as" — both verify-time resolution and the reconnect picker
-   * (`CredentialsController.findAllInstagramPages`) read it directly.
-   */
-  public async listAuthorizedInstagramAccounts(
-    accessToken: string,
-  ): Promise<InstagramPageResponse[]> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const accounts: InstagramPageResponse[] = [];
-    let afterCursor: string | undefined;
-    let pageCount = 0;
-
-    try {
-      for (;;) {
-        pageCount += 1;
-        if (pageCount > INSTAGRAM_ACCOUNT_LIST_MAX_PAGES) {
-          this.loggerService.warn(`${url} stopped at the pagination cap`, {
-            maxPages: INSTAGRAM_ACCOUNT_LIST_MAX_PAGES,
-          });
-          break;
-        }
-
-        const response = await firstValueFrom(
-          this.httpService.get(
-            `${this.graphUrl}/${this.apiVersion}/me/accounts`,
-            {
-              timeout: 10_000,
-              params: {
-                access_token: accessToken,
-                ...(afterCursor ? { after: afterCursor } : {}),
-                fields:
-                  'id,name,instagram_business_account{id,username,name,profile_picture_url}',
-              },
-            },
-          ),
-        );
-
-        const userPages: Array<{
-          instagram_business_account?: {
-            id: string;
-            name?: string;
-            username?: string;
-            profile_picture_url?: string;
-          };
-        }> = response.data?.data ?? [];
-
-        accounts.push(
-          ...userPages.flatMap((page) => {
-            const account = page.instagram_business_account;
-            if (!account?.id) {
-              return [];
-            }
-
-            return [
-              {
-                id: account.id,
-                image: account.profile_picture_url,
-                label: account.name,
-                platform: CredentialPlatform.INSTAGRAM,
-                username: account.username,
-              },
-            ];
-          }),
-        );
-
-        const hasNext = typeof response.data?.paging?.next === 'string';
-        const nextAfter = response.data?.paging?.cursors?.after;
-        if (!hasNext || typeof nextAfter !== 'string') {
-          break;
-        }
-        afterCursor = nextAfter;
-      }
-
-      this.loggerService.log(`${url} succeeded`, {
-        count: accounts.length,
-        pageCount,
-      });
-      return accounts;
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${url} failed`,
-        getSafeInstagramOAuthErrorLog(error),
-      );
-      throw error;
-    }
-  }
-
-  /**
    * Reuse the integration's reconnect lifecycle from auxiliary Instagram reads.
    * Returns false for permission, professional-account, and provider errors so
    * callers can preserve those states without disconnecting a valid credential.
    */
+  /**
+   * Every Instagram professional account the client's Business Integration
+   * System User token was assigned. See `InstagramAccountsService`.
+   */
+  public async listAuthorizedInstagramAccounts(
+    accessToken: string,
+  ): Promise<InstagramPageResponse[]> {
+    return this.accountsService.listAuthorizedInstagramAccounts(accessToken);
+  }
+
   public async handleAuthorizationError(
     credentialId: string,
     error: unknown,
@@ -444,6 +389,10 @@ export class InstagramService {
     // Decrypt access token before use
     const decryptedAccessToken = EncryptionUtil.decrypt(credential.accessToken);
 
+    if (credential.externalBusinessId) {
+      return this.revalidateBusinessToken(credential, decryptedAccessToken);
+    }
+
     try {
       const response = await firstValueFrom(
         this.httpService.get(
@@ -493,6 +442,73 @@ export class InstagramService {
       await this.credentialsService.patch(credential.id, {
         isConnected: false,
       });
+      throw error;
+    }
+  }
+
+  /**
+   * A Business Integration System User token cannot be exchanged for a fresh
+   * one; "refresh" re-reads what Meta says about it. The token is kept and its
+   * granted permissions and expiry are re-recorded. Only a token Meta reports
+   * invalid, or rejects, disconnects the account; a transient failure leaves
+   * it connected for the next attempt.
+   */
+  private async revalidateBusinessToken(
+    credential: CredentialDocument,
+    decryptedAccessToken: string,
+  ): Promise<InstagramCredentialResponse> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(
+          `${this.graphUrl}/${this.apiVersion}/debug_token`,
+          {
+            params: {
+              access_token: `${this.configService.get('INSTAGRAM_APP_ID')}|${this.configService.get('INSTAGRAM_APP_SECRET')}`,
+              input_token: decryptedAccessToken,
+            },
+            timeout: 10_000,
+          },
+        ),
+      );
+      const tokenInfo = response.data?.data;
+
+      if (!tokenInfo?.is_valid) {
+        await this.credentialsService.patch(credential.id, {
+          isConnected: false,
+        });
+        throw new Error(
+          'Instagram connection is no longer valid. Please reconnect your account.',
+        );
+      }
+
+      this.loggerService.log(`${url} succeeded`, {
+        hasExpiry: Boolean(tokenInfo.expires_at),
+      });
+
+      const updatedCredential = await this.credentialsService.patch(
+        credential.id,
+        {
+          // `expires_at: 0` is Meta's "never expires".
+          accessTokenExpiry: tokenInfo.expires_at
+            ? new Date(tokenInfo.expires_at * 1000)
+            : null,
+          isConnected: true,
+          ...buildGrantedScopesCredentialPatch(
+            Array.isArray(tokenInfo.scopes) ? tokenInfo.scopes : undefined,
+          ),
+        },
+      );
+
+      return toInstagramCredentialResponse(updatedCredential);
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      if (isInstagramAuthorizationError(error)) {
+        await this.credentialsService.patch(credential.id, {
+          isConnected: false,
+        });
+      }
       throw error;
     }
   }
@@ -626,12 +642,12 @@ export class InstagramService {
     );
   }
 
-  public async subscribePageToMessageWebhooks(
+  public async subscribeToMessageWebhooks(
     organizationId: string,
     brandId: string,
     credentialId?: string,
   ): Promise<void> {
-    return this.publishingService.subscribePageToMessageWebhooks(
+    return this.publishingService.subscribeToMessageWebhooks(
       organizationId,
       brandId,
       credentialId,
@@ -910,11 +926,16 @@ export class InstagramService {
         brandId,
         credentialId,
       );
-      requireMetaScopes(credential.grantedScopes, [
-        'instagram_manage_messages',
-        'pages_manage_metadata',
-        'pages_show_list',
-      ]);
+      requireMetaScopes(
+        credential.grantedScopes,
+        credential.isUnifiedLogin
+          ? ['instagram_manage_messages']
+          : [
+              'instagram_manage_messages',
+              'pages_manage_metadata',
+              'pages_show_list',
+            ],
+      );
       const decryptedAccessToken = EncryptionUtil.decrypt(
         credential.accessToken,
       );
@@ -922,20 +943,28 @@ export class InstagramService {
         credential.externalId,
         'externalId',
       );
-      const page = await resolveMetaPageAccess(
-        this.httpService,
-        this.getGraphApiBaseUrl(),
-        decryptedAccessToken,
-        { instagramAccountId: instagramAccountId },
-      );
+      // Unified Login reads conversations on the account itself with the
+      // client's token. A historical Facebook-Login connection reads them on
+      // its Page with the Page token.
+      const conversationsOwner = credential.isUnifiedLogin
+        ? { accessToken: decryptedAccessToken, nodeId: instagramAccountId }
+        : await resolveMetaPageAccess(
+            this.httpService,
+            this.getGraphApiBaseUrl(),
+            decryptedAccessToken,
+            { instagramAccountId: instagramAccountId },
+          ).then((page) => ({
+            accessToken: page.accessToken,
+            nodeId: page.pageId,
+          }));
       const boundedLimit = boundGraphLimit(limit);
 
       const response = await firstValueFrom(
         this.httpService.get<InstagramGraphConversationsResponse>(
-          `${this.graphUrl}/${this.apiVersion}/${page.pageId}/conversations`,
+          `${this.graphUrl}/${this.apiVersion}/${conversationsOwner.nodeId}/conversations`,
           {
             params: {
-              access_token: page.accessToken,
+              access_token: conversationsOwner.accessToken,
               fields: `id,updated_time,participants{id,username,name},messages.limit(${boundedLimit}){${INSTAGRAM_MESSAGE_NODE_FIELDS}}`,
               limit: boundedLimit,
               platform: 'instagram',

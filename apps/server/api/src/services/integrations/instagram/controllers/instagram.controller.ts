@@ -27,10 +27,7 @@ import {
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
-import {
-  INSTAGRAM_OAUTH_SCOPES,
-  META_GRAPH_API_VERSION,
-} from '@genfeedai/integrations';
+import { INSTAGRAM_UNIFIED_LOGIN_DIALOG_URL } from '@genfeedai/integrations';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -58,9 +55,6 @@ export class InstagramController {
 
   private readonly redirectUri: string;
 
-  private readonly apiVersion: string;
-  private readonly scope = INSTAGRAM_OAUTH_SCOPES;
-
   constructor(
     private readonly configService: ConfigService,
 
@@ -72,8 +66,6 @@ export class InstagramController {
     private readonly loggerService: LoggerService,
   ) {
     this.redirectUri = this.configService.get('INSTAGRAM_REDIRECT_URI') ?? '';
-    this.apiVersion =
-      this.configService.get('INSTAGRAM_API_VERSION') || META_GRAPH_API_VERSION;
   }
 
   /**
@@ -125,13 +117,16 @@ export class InstagramController {
     }
 
     const appId = this.configService.get('INSTAGRAM_APP_ID');
+    const configId = this.configService.get('INSTAGRAM_CONFIG_ID');
 
     const redirectUri =
       this.configService.get('INSTAGRAM_REDIRECT_URI') ?? this.redirectUri;
     if (
       !appId ||
+      !configId ||
       !redirectUri ||
       isUnconfiguredSecret(appId) ||
+      isUnconfiguredSecret(configId) ||
       isUnconfiguredSecret(redirectUri)
     ) {
       throw new ServiceUnavailableException(
@@ -155,14 +150,18 @@ export class InstagramController {
 
     this.loggerService.log(`${url} - Generating OAuth URL`, {
       appId: 'configured',
+      configId: 'configured',
       redirectUri,
     });
 
-    // Facebook/Instagram OAuth endpoint
+    // Instagram API with Unified Login: the login dialog and its permissions
+    // come from the App Dashboard configuration (`config_id`), so the URL
+    // carries no `scope`. The customer signs in with Instagram or Facebook and
+    // no Facebook Page is needed.
     const authUrl =
-      `https://www.facebook.com/${this.apiVersion}/dialog/oauth?client_id=${appId}` +
+      `${INSTAGRAM_UNIFIED_LOGIN_DIALOG_URL}?client_id=${encodeURIComponent(appId)}` +
+      `&config_id=${encodeURIComponent(configId)}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      `&scope=${encodeURIComponent(this.scope.join(','))}` +
       `&response_type=code&state=${encodeURIComponent(state)}`;
 
     return serializeSingle(request, CredentialOAuthSerializer, {
@@ -171,10 +170,11 @@ export class InstagramController {
   }
 
   /**
-   * Step 2: Handle the OAuth callback, exchange code for a long-lived access token,
-   * and save it to the database. The user will select their Instagram brand later.
+   * Step 2: Handle the OAuth callback, exchange the code for the customer's
+   * Business Integration System User access token, and save it to the
+   * database. The user will select their Instagram brand later.
    *
-   * The Facebook API exchange, account discovery, account-resolution decision
+   * The Graph API exchange, account discovery, account-resolution decision
    * tree, and post-connection persistence steps live on
    * `InstagramConnectionResolverService` — this method is the request/response
    * shell plus the failure-stage bookkeeping for observability.
@@ -239,6 +239,7 @@ export class InstagramController {
       const {
         accessToken: access_token,
         accounts,
+        businessId,
         expiresIn: expires_in,
         scope,
       } = await this.connectionResolver.exchangeAndDiscoverAccounts({
@@ -261,13 +262,18 @@ export class InstagramController {
           accessToken: access_token,
           accessTokenExpiry: expires_in
             ? new Date(Date.now() + expires_in * 1000)
-            : undefined,
+            : null,
+          externalBusinessId: businessId,
           isConnected: false,
           isDeleted: false,
           oauthState: null,
           refreshToken: undefined,
           refreshTokenExpiry: undefined,
-          ...buildGrantedScopesCredentialPatch(scope),
+          // Unknown scopes must not inherit a previous token's grant.
+          ...(buildGrantedScopesCredentialPatch(scope) ?? {
+            grantedScopes: [],
+            grantedScopesCapturedAt: null,
+          }),
         },
       );
 

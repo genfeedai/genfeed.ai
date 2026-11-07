@@ -62,22 +62,25 @@ export const FACEBOOK_OAUTH_SCOPES = [
   'publish_video',
 ] as const;
 
-export const INSTAGRAM_OAUTH_SCOPES = [
-  'business_management',
+/**
+ * Instagram API with Unified Login: Meta renders the login dialog from a
+ * configuration (`config_id`) created in the App Dashboard, so permissions are
+ * not sent on the URL. These are the permissions that configuration must carry;
+ * Instagram connect is not complete without them.
+ *
+ * @see https://developers.facebook.com/documentation/instagram-platform/instagram-api-with-unified-login/get-started
+ */
+export const INSTAGRAM_UNIFIED_LOGIN_PERMISSIONS = [
   'instagram_basic',
-  'pages_show_list',
-  'pages_read_engagement',
   'instagram_content_publish',
-  'instagram_manage_insights',
   'instagram_manage_comments',
+  'instagram_manage_insights',
   'instagram_manage_messages',
-  'pages_messaging',
-  'pages_manage_metadata',
-  'pages_manage_posts',
-  'public_profile',
-  'ads_management',
-  'ads_read',
 ] as const;
+
+/** Unified Login dialog; unlike Facebook Login it is not versioned in the path. */
+export const INSTAGRAM_UNIFIED_LOGIN_DIALOG_URL =
+  'https://www.facebook.com/dialog/oauth';
 
 /** Campaign creation uses ODAX objectives; historical read responses may contain older values. */
 export const META_CAMPAIGN_OBJECTIVES = [

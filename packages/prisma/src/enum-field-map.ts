@@ -2980,6 +2980,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'createdAt',
       'description',
       'externalAvatar',
+      'externalBusinessId',
       'externalHandle',
       'externalId',
       'externalName',
