@@ -56,9 +56,11 @@ async function openAvatarRow(page: Page, label: string): Promise<Locator> {
     name: 'Asset details',
     exact: true,
   });
+  // The name is edited in place since #9636: an "Asset name" button that
+  // shows the label until it is clicked.
   await expect(
-    inspector.getByRole('heading', { name: label, exact: true }),
-  ).toBeVisible();
+    inspector.getByRole('button', { name: 'Asset name', exact: true }),
+  ).toHaveText(label);
   return inspector;
 }
 
