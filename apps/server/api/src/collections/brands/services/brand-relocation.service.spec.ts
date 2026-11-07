@@ -952,6 +952,13 @@ describe('BrandRelocationService', () => {
       where: { defaultRecurringBrandId: BRAND_ID },
     });
 
+    // An affiliate code stays with its owner's billing account; only its
+    // optional brand label is cleared so it never points into another tenant.
+    expect(getDelegate('referralCode').updateMany).toHaveBeenCalledWith({
+      data: { brandId: null },
+      where: { brandId: BRAND_ID },
+    });
+
     // Auditor part A ran against every first-order target.
     for (const target of FIRST_ORDER_TARGETS) {
       expect(getDelegate(target.delegate).count).toHaveBeenCalled();

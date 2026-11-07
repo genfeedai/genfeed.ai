@@ -777,6 +777,14 @@ export class BrandRelocationService {
       },
     });
 
+    // An affiliate code belongs to its owner's billing account and never moves
+    // with the brand. Its brand link is only a label, so clear it rather than
+    // leave it pointing into another tenant.
+    await tx.referralCode.updateMany({
+      data: { brandId: null },
+      where: { brandId },
+    });
+
     await unlinkStraddlingAgentThreadParents(tx, brandId);
     // 1. The brand row itself (+ any co-patched scalar fields). The workflow
     // composite FK cascades workflow.organizationId with the brand.
