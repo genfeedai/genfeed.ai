@@ -287,11 +287,28 @@ describe('buildTrendDigestSubject', () => {
   it.each([
     [
       [leadTrend, postTrend],
+      undefined,
       '2 posts ready for today, from 2 topics in your niche',
     ],
-    [[leadTrend], '1 post ready for today, from 1 topic in your niche'],
-    [[sampleTrends[0]], 'Your daily trends — 1 topic'],
-  ])('writes %#', (trends, expected) => {
-    expect(buildTrendDigestSubject(trends)).toBe(expected);
+    [
+      [leadTrend],
+      'daily',
+      '1 post ready for today, from 1 topic in your niche',
+    ],
+    [
+      [leadTrend],
+      'hourly',
+      '1 post ready for this hour, from 1 topic in your niche',
+    ],
+    [
+      [leadTrend, postTrend],
+      'weekly',
+      '2 posts ready for this week, from 2 topics in your niche',
+    ],
+    [[sampleTrends[0]], undefined, 'Your daily trends — 1 topic'],
+    [[sampleTrends[0]], 'hourly', 'Your hourly trends — 1 topic'],
+    [[sampleTrends[0]], 'weekly', 'Your weekly trends — 1 topic'],
+  ] as const)('writes %#', (trends, cadence, expected) => {
+    expect(buildTrendDigestSubject([...trends], cadence)).toBe(expected);
   });
 });
