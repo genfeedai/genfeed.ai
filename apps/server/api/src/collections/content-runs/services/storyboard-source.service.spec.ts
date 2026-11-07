@@ -171,4 +171,26 @@ describe('Storyboard plan character admission (#6040)', () => {
     const where = prisma.ingredient.findMany.mock.calls[0]?.[0]?.where;
     expect(where.OR).toContainEqual({ id: { in: ['avatar-1'] } });
   });
+
+  it('refuses a shot reference role on an image the brand cannot use', async () => {
+    const { prisma, service } = setup();
+    prisma.ingredient.findMany.mockResolvedValue([
+      { category: 'IMAGE', id: 'avatar-1' },
+      { category: 'IMAGE', id: 'style-1' },
+    ]);
+    prisma.asset.findMany.mockResolvedValue([]);
+    const withRole = {
+      ...(plan as object),
+      shots: [
+        {
+          id: 'shot-1',
+          referenceRoles: [{ assetId: 'other-brand-image', role: 'character' }],
+        },
+      ],
+    } as never;
+
+    await expect(
+      service.validatePlanAssets('org-1', 'brand-1', withRole),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
 });

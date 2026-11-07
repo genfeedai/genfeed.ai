@@ -127,9 +127,10 @@ export class StoryboardSourceService {
           ...(member.avatarAssetId ? [member.avatarAssetId] : []),
           ...(member.voiceId ? [member.voiceId] : []),
         ]),
-        ...plan.shots.flatMap((shot) =>
-          shot.stillAssetId ? [shot.stillAssetId] : [],
-        ),
+        ...plan.shots.flatMap((shot) => [
+          ...(shot.stillAssetId ? [shot.stillAssetId] : []),
+          ...(shot.referenceRoles ?? []).map((reference) => reference.assetId),
+        ]),
       ]),
     ];
     if (!ids.length) return;
