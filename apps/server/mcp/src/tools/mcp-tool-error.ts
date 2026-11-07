@@ -225,24 +225,33 @@ export function approvalPendingToolResult(
       'Review the pending action in Genfeed before continuing.' +
       (canResolveApproval ? ' You can also approve or decline it here.' : '') +
       approvalCostNote(estimate),
-    nextStepUrl: approvalReviewUrl(approval),
+    nextStepUrl: approvalsUrl(approval, createPublishingApprovalsRoute()),
   });
-  return result;
+  // Display text stays free of ids; the structured link opens this exact
+  // approval in the Genfeed review inbox (#7340).
+  return {
+    ...result,
+    structuredContent: {
+      ...result.structuredContent,
+      nextStepUrl: approvalsUrl(
+        approval,
+        createPublishingApprovalsRoute({
+          approval: buildReviewInboxItemId({
+            approvalId: approval.id,
+            kind: 'mcp_approval',
+          }),
+        }),
+      ),
+    },
+  };
 }
 
 /**
- * Opens this exact approval in the review inbox of the organization and brand
- * it belongs to (#7340, #9646). Without an organization slug the link falls
- * back to the unscoped queue, which the app resolves to the member's default
- * workspace.
+ * A review-inbox path under the organization and brand the approval belongs to
+ * (#9646). Without an organization slug the link falls back to the unscoped
+ * path, which the app resolves to the member's default workspace.
  */
-function approvalReviewUrl(approval: McpApprovalResource): string {
-  const path = createPublishingApprovalsRoute({
-    approval: buildReviewInboxItemId({
-      approvalId: approval.id,
-      kind: 'mcp_approval',
-    }),
-  });
+function approvalsUrl(approval: McpApprovalResource, path: string): string {
   if (!approval.organizationSlug) {
     return appUrl(path);
   }

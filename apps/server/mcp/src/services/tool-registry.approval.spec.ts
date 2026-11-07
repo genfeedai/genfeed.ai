@@ -303,7 +303,7 @@ describe('ToolRegistryService — approval queue', () => {
     expect(result).toMatchObject({
       structuredContent: { approvalId: 'apr-1', code: 'approval_pending' },
     });
-    expect(result.content[0].text.split('\n')[0]).not.toContain('apr-1');
+    expect(result.content[0].text).not.toContain('apr-1');
     // The link opens this exact approval in the review inbox.
     expect(result).toMatchObject({
       structuredContent: {

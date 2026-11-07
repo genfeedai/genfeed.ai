@@ -18,10 +18,7 @@ describe('pending approval guidance (#6596)', () => {
     const result = approvalPendingToolResult(approval, undefined, true);
     expect(result.content[0].text).toContain('approve or decline');
     expect(result.structuredContent.canResolveApproval).toBe(true);
-    // Only the link carries the id; the message line stays free of it.
-    expect(result.content[0].text.split('\n')[0]).not.toContain(
-      'approval-fixture',
-    );
+    expect(result.content[0].text).not.toContain('approval-fixture');
     expect(result.structuredContent.approvalId).toBe('approval-fixture');
   });
 });
@@ -40,9 +37,14 @@ describe('pending approval link scope (#9646)', () => {
       brandSlug: 'itsshaylamonroe',
       organizationSlug: 'genfeedai',
     });
-    const link = `https://app.genfeed.ai/genfeedai/itsshaylamonroe/publishing/approvals?${approvalQuery}`;
-    expect(result.structuredContent.nextStepUrl).toBe(link);
-    expect(result.content[0].text).toContain(`Continue in Genfeed: ${link}`);
+    expect(result.structuredContent.nextStepUrl).toBe(
+      `https://app.genfeed.ai/genfeedai/itsshaylamonroe/publishing/approvals?${approvalQuery}`,
+    );
+    // The display text links the same brand's queue, without the id.
+    expect(result.content[0].text).toContain(
+      'Continue in Genfeed: https://app.genfeed.ai/genfeedai/itsshaylamonroe/publishing/approvals',
+    );
+    expect(result.content[0].text).not.toContain('apr_1');
   });
 
   it('opens an organization-level approval under the ~ scope', () => {
