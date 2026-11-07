@@ -1,6 +1,6 @@
 import { TemplateUsageEntity } from '@api/collections/template-usage/entities/template-usage.entity';
-import type { TemplateUsageDocument } from '@api/collections/template-usage/schemas/template-usage.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { TemplateUsage } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
@@ -9,7 +9,7 @@ import { Injectable } from '@nestjs/common';
 export class TemplateUsageService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private normalizeUsage(usage: TemplateUsageDocument): TemplateUsageEntity {
+  private normalizeUsage(usage: TemplateUsage): TemplateUsageEntity {
     return {
       ...(usage as unknown as TemplateUsageEntity),
       organization: usage.organizationId,

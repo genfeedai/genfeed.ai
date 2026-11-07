@@ -21,7 +21,6 @@ import { loadPostExposurePublication } from '@api/collections/outliers/services/
 import { CreatePostAnalyticsDto } from '@api/collections/posts/dto/create-post-analytics.dto';
 import { PostAnalyticsEntity } from '@api/collections/posts/entities/post-analytics.entity';
 import { type PostDocument } from '@api/collections/posts/post.schema';
-import type { PostAnalyticsDocument } from '@api/collections/posts/schemas/post-analytics.schema';
 import {
   CREDENTIAL_PLATFORM,
   type InstagramPostMetrics,
@@ -51,7 +50,11 @@ import type {
 import { type LearningMetrics } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
-import type { CredentialPlatform, Prisma } from '@genfeedai/prisma';
+import type {
+  CredentialPlatform,
+  PostAnalytics,
+  Prisma,
+} from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Optional } from '@nestjs/common';
@@ -59,7 +62,7 @@ import { Injectable, Optional } from '@nestjs/common';
 @Traced()
 @Injectable()
 export class PostAnalyticsService extends BaseService<
-  PostAnalyticsDocument,
+  PostAnalytics,
   CreatePostAnalyticsDto,
   Partial<CreatePostAnalyticsDto>
 > {
@@ -427,9 +430,7 @@ export class PostAnalyticsService extends BaseService<
       authorization,
     );
     await admitAnalyticsCollection(authorization);
-    return result
-      ? new PostAnalyticsEntity(result as PostAnalyticsDocument)
-      : null;
+    return result ? new PostAnalyticsEntity(result as PostAnalytics) : null;
   }
 
   async getPostAnalyticsSummary(
@@ -584,9 +585,7 @@ export class PostAnalyticsService extends BaseService<
       ),
     });
 
-    return results.map(
-      (doc) => new PostAnalyticsEntity(doc as PostAnalyticsDocument),
-    );
+    return results.map((doc) => new PostAnalyticsEntity(doc as PostAnalytics));
   }
 
   private resolvePostOwner(post: PostDocument): {

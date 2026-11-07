@@ -1,16 +1,16 @@
-import type { AnalyticDocument } from '@api/endpoints/analytics/schemas/analytic.schema';
+import type { Analytic } from '@genfeedai/prisma';
 
-export class AnalyticEntity implements AnalyticDocument {
+export class AnalyticEntity implements Analytic {
   declare readonly id: string;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
-  declare readonly data: AnalyticDocument['data'];
+  declare readonly data: Analytic['data'];
   declare readonly totalClaimed: number;
   declare readonly totalHoursWatched: number;
   declare readonly totalVideos: number;
   declare readonly totalImages: number;
 
-  constructor(partial: Partial<AnalyticDocument>) {
+  constructor(partial: Partial<Analytic>) {
     Object.assign(this, partial);
   }
 }

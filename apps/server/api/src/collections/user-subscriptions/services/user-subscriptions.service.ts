@@ -1,7 +1,7 @@
-import type { UserSubscriptionDocument } from '@api/collections/user-subscriptions/schemas/user-subscription.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { IUserSubscriptionsService } from '@genfeedai/contracts/interfaces/billing';
+import type { UserSubscription } from '@genfeedai/prisma';
 import { type Prisma, SubscriptionStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -26,7 +26,7 @@ export class UserSubscriptionsService implements IUserSubscriptionsService {
   @HandleErrors('create user subscription', 'user-subscriptions')
   async create(
     subscription: Prisma.UserSubscriptionUncheckedCreateInput,
-  ): Promise<UserSubscriptionDocument> {
+  ): Promise<UserSubscription> {
     const result = await this.prisma.userSubscription.create({
       data: subscription,
     });
@@ -34,7 +34,7 @@ export class UserSubscriptionsService implements IUserSubscriptionsService {
   }
 
   @HandleErrors('find by user', 'user-subscriptions')
-  async findByUser(userId: string): Promise<UserSubscriptionDocument | null> {
+  async findByUser(userId: string): Promise<UserSubscription | null> {
     const result = await this.prisma.userSubscription.findUnique({
       where: {
         userId,
@@ -44,9 +44,7 @@ export class UserSubscriptionsService implements IUserSubscriptionsService {
   }
 
   @HandleErrors('get or create subscription', 'user-subscriptions')
-  async getOrCreateSubscription(
-    userId: string,
-  ): Promise<UserSubscriptionDocument> {
+  async getOrCreateSubscription(userId: string): Promise<UserSubscription> {
     const existing = await this.prisma.userSubscription.findUnique({
       where: { userId },
     });
@@ -84,7 +82,7 @@ export class UserSubscriptionsService implements IUserSubscriptionsService {
   async updateFromStripeSession(
     userId: string,
     session: CheckoutSession,
-  ): Promise<UserSubscriptionDocument | null> {
+  ): Promise<UserSubscription | null> {
     const subscription = await this.findByUser(userId);
 
     if (!subscription) {
@@ -114,7 +112,7 @@ export class UserSubscriptionsService implements IUserSubscriptionsService {
     status: SubscriptionStatus,
     currentPeriodEnd?: Date,
     cancelAtPeriodEnd?: boolean,
-  ): Promise<UserSubscriptionDocument | null> {
+  ): Promise<UserSubscription | null> {
     const subscription = await this.findByUser(userId);
 
     if (!subscription) {

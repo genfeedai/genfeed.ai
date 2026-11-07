@@ -1,6 +1,6 @@
-import type { UserSubscriptionDocument } from '@api/collections/user-subscriptions/schemas/user-subscription.schema';
 import { UserSubscriptionsService } from '@api/collections/user-subscriptions/services/user-subscriptions.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { UserSubscription } from '@genfeedai/prisma';
 import { SubscriptionStatus } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type StripeConstructor from 'stripe';
@@ -17,14 +17,14 @@ const session = (subscription: string | null) =>
   ({ subscription }) as unknown as CheckoutSession;
 
 describe('UserSubscriptionsService', () => {
-  let rows: UserSubscriptionDocument[];
+  let rows: UserSubscription[];
   let isDatabaseDown: boolean;
   let errors: string[];
   let warnings: string[];
   let service: UserSubscriptionsService;
 
   const row = () => rows[0];
-  const seed = (fields: Partial<UserSubscriptionDocument> = {}) => {
+  const seed = (fields: Partial<UserSubscription> = {}) => {
     rows.push({
       cancelAtPeriodEnd: false,
       createdAt: CREATED_AT,
@@ -50,7 +50,7 @@ describe('UserSubscriptionsService', () => {
 
     // The user_subscriptions table: `userId` is unique, as in the schema.
     const userSubscription = {
-      create: async ({ data }: { data: Partial<UserSubscriptionDocument> }) => {
+      create: async ({ data }: { data: Partial<UserSubscription> }) => {
         if (isDatabaseDown) throw new Error('database unavailable');
         if (rows.some(({ userId }) => userId === data.userId)) {
           throw Object.assign(new Error('Unique constraint failed on userId'), {
@@ -68,7 +68,7 @@ describe('UserSubscriptionsService', () => {
         data,
         where,
       }: {
-        data: Partial<UserSubscriptionDocument>;
+        data: Partial<UserSubscription>;
         where: { id: string };
       }) => {
         if (isDatabaseDown) throw new Error('row locked');
