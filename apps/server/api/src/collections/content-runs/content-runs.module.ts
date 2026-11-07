@@ -4,6 +4,7 @@ import { ContentIntelligenceModule } from '@api/collections/content-intelligence
 import { BrandRemixGenerationController } from '@api/collections/content-runs/controllers/brand-remix-generation.controller';
 import { ContentRunsController } from '@api/collections/content-runs/controllers/content-runs.controller';
 import { StoryboardRunsController } from '@api/collections/content-runs/controllers/storyboard-runs.controller';
+import { StoryboardShotRendersController } from '@api/collections/content-runs/controllers/storyboard-shot-renders.controller';
 import { BrandRemixGenerationService } from '@api/collections/content-runs/services/brand-remix-generation.service';
 import { BrandRemixPersonaResolutionService } from '@api/collections/content-runs/services/brand-remix-persona-resolution.service';
 import { BrandRemixRunExecutionService } from '@api/collections/content-runs/services/brand-remix-run-execution.service';
@@ -82,6 +83,7 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [
     StoryboardRunsController,
+    StoryboardShotRendersController,
     BrandRemixGenerationController,
     ContentRunsController,
   ],
