@@ -25,6 +25,9 @@ export const instagramSchema = {
   INSTAGRAM_API_VERSION: conditionalRequired(),
   INSTAGRAM_APP_ID: conditionalRequired(),
   INSTAGRAM_APP_SECRET: conditionalRequired(),
+  // Optional in every mode: without it Instagram connect answers "not
+  // configured" instead of the API refusing to boot.
+  INSTAGRAM_CONFIG_ID: Joi.string().optional().allow(''),
   INSTAGRAM_GRAPH_URL: conditionalRequired(Joi.string().uri()),
   INSTAGRAM_REDIRECT_URI: conditionalRequired(Joi.string().uri()),
 };

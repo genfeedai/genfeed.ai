@@ -7,7 +7,7 @@ import {
   getSafeInstagramOAuthErrorLog,
   parseInstagramGrantedScopes,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
-import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import type { InstagramPageResponse } from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
 import {
   META_GRAPH_API_VERSION,
@@ -21,27 +21,39 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import type { AxiosResponse } from 'axios';
 import { firstValueFrom } from 'rxjs';
 
-interface InstagramShortLivedTokenResponse {
+interface InstagramTokenExchangeResponse {
   access_token: string;
   expires_in?: number;
   scope?: string;
 }
 
-interface InstagramLongLivedTokenResponse {
-  access_token: string;
-  expires_in?: number;
-  scope?: string;
+/** `GET /me` with a Business Integration System User token. */
+interface InstagramBusinessIdentityResponse {
+  client_business_id?: string;
 }
 
-/** Required to list the Facebook Pages (and their linked IG accounts) an authorization can see. */
-const INSTAGRAM_PAGES_SCOPE = 'pages_show_list';
+/** `GET /debug_token`: what Meta says about the exchanged token. */
+interface InstagramDebugTokenResponse {
+  data?: {
+    expires_at?: number;
+    is_valid?: boolean;
+    scopes?: string[];
+  };
+}
 
 /**
- * The Facebook/Instagram OAuth orchestration behind `InstagramController.verify`
- * and `.selectAccount`: exchanging the authorization code for a long-lived
- * token, resolving which authorized account the grant refers to, and the
- * best-effort post-connection work that follows. Split out of the controller
- * (a `Controller`/`Service` line-count ratchet) so the HTTP layer stays a thin
+ * The permission without which an authorization can never publish, read
+ * insights, or tell which account it refers to.
+ */
+const INSTAGRAM_BASIC_SCOPE = 'instagram_basic';
+
+/**
+ * The Instagram API with Unified Login orchestration behind
+ * `InstagramController.verify` and `.selectAccount`: exchanging the
+ * authorization code for the client's Business Integration System User token,
+ * resolving which authorized account the grant refers to, and the best-effort
+ * post-connection work that follows. Split out of the controller (a
+ * `Controller`/`Service` line-count ratchet) so the HTTP layer stays a thin
  * request/response shell around this orchestration.
  */
 @Traced()
@@ -66,9 +78,12 @@ export class InstagramConnectionResolverService {
   }
 
   /**
-   * Exchange the OAuth `code` for a long-lived Facebook access token and
-   * discover the Instagram accounts it authorizes, confirming the grant can
-   * list Facebook Pages along the way.
+   * Exchange the OAuth `code` for the client's Business Integration System
+   * User access token, record the business portfolio it belongs to, and
+   * discover the Instagram accounts it authorizes.
+   *
+   * That token is issued once for the portfolio and has no short-lived to
+   * long-lived exchange: its lifetime is set by the dashboard configuration.
    *
    * Accounts are discovered BEFORE `verify` persists anything: a grant that
    * resolves to zero accounts must never leave a tokened, unidentified row
@@ -76,8 +91,7 @@ export class InstagramConnectionResolverService {
    * only an account the operator has to notice and delete.
    *
    * `markStage` mirrors the caller's own failure-stage tracking so a token-
-   * exchange failure logs exactly which sub-step it happened at, the same
-   * granularity `verify` recorded before this call was extracted.
+   * exchange failure logs exactly which sub-step it happened at.
    */
   async exchangeAndDiscoverAccounts(params: {
     appId: string;
@@ -87,17 +101,17 @@ export class InstagramConnectionResolverService {
   }): Promise<{
     accessToken: string;
     accounts: InstagramPageResponse[];
+    businessId: string | undefined;
     expiresIn: number | undefined;
     scope: string | undefined;
   }> {
     const { appId, appSecret, code, markStage } = params;
 
-    markStage('short_lived_token');
-    const tokenRes: AxiosResponse<InstagramShortLivedTokenResponse> =
+    markStage('token_exchange');
+    const tokenRes: AxiosResponse<InstagramTokenExchangeResponse> =
       await firstValueFrom(
-        this.httpService.post(
+        this.httpService.get(
           `${this.graphUrl}/${this.apiVersion}/oauth/access_token`,
-          null,
           {
             params: {
               client_id: appId,
@@ -109,92 +123,45 @@ export class InstagramConnectionResolverService {
         ),
       );
 
-    const shortLivedToken = tokenRes.data.access_token;
+    const { access_token, expires_in } = tokenRes.data || {};
 
     this.loggerService.log(
-      'InstagramConnectionResolverService - Short-lived token obtained',
-      {
-        expiresIn: tokenRes.data.expires_in,
-        hasToken: !!shortLivedToken,
-      },
+      'InstagramConnectionResolverService - Business token obtained',
+      { expiresIn: expires_in, hasToken: !!access_token },
     );
-
-    if (!shortLivedToken) {
-      return returnBadRequest({
-        detail: 'Missing short-lived access token from Facebook',
-        title: 'Invalid payload',
-      });
-    }
-
-    markStage('long_lived_token');
-    const longTokenRes: AxiosResponse<InstagramLongLivedTokenResponse> =
-      await firstValueFrom(
-        this.httpService.get(
-          `${this.graphUrl}/${this.apiVersion}/oauth/access_token`,
-          {
-            params: {
-              client_id: appId,
-              client_secret: appSecret,
-              fb_exchange_token: shortLivedToken,
-              grant_type: OAuthGrantType.FB_EXCHANGE_TOKEN,
-            },
-          },
-        ),
-      );
-
-    const { access_token, expires_in } = longTokenRes.data || {};
-    let scope = tokenRes.data.scope ?? longTokenRes.data?.scope;
 
     if (!access_token) {
       return returnBadRequest({
-        detail: 'Failed to get long-lived access token',
+        detail: 'Missing access token from Meta',
         title: 'Invalid payload',
       });
     }
 
-    // A grant without permission to list Facebook Pages can never resolve an
-    // account — surface that specifically, rather than the generic "not
-    // eligible" error the empty-list case below throws.
-    markStage('permission_check');
-    if (scope == null) {
-      const permissions = await firstValueFrom(
-        this.httpService.get<unknown>(
-          `${this.graphUrl}/${this.apiVersion}/me/permissions`,
-          { params: { access_token }, timeout: 10_000 },
-        ),
+    markStage('business_identity');
+    const identityRes: AxiosResponse<InstagramBusinessIdentityResponse> =
+      await firstValueFrom(
+        this.httpService.get(`${this.graphUrl}/${this.apiVersion}/me`, {
+          params: { access_token, fields: 'client_business_id' },
+          timeout: 10_000,
+        }),
       );
-      const payload = permissions.data;
-      const entries =
-        payload &&
-        typeof payload === 'object' &&
-        'data' in payload &&
-        Array.isArray(payload.data)
-          ? payload.data
-          : [];
-      scope = parseInstagramGrantedScopes(
-        entries
-          .flatMap((entry: unknown) => {
-            if (
-              !entry ||
-              typeof entry !== 'object' ||
-              !('status' in entry) ||
-              entry.status !== 'granted' ||
-              !('permission' in entry) ||
-              typeof entry.permission !== 'string'
-            ) {
-              return [];
-            }
-            return [entry.permission];
-          })
-          .join(','),
-      ).join(',');
-    }
-    const grantedScopesList = parseInstagramGrantedScopes(scope);
-    if (!grantedScopesList.includes(INSTAGRAM_PAGES_SCOPE)) {
+    const businessId = identityRes.data?.client_business_id;
+
+    // The token response documents no `scope`; ask Meta what it granted. When
+    // Meta does not say, the grant stays "unknown" and each call is checked by
+    // Meta itself rather than guessed here.
+    markStage('permission_check');
+    const scope =
+      tokenRes.data.scope ??
+      (await this.readGrantedScopes(access_token, appId, appSecret));
+    if (
+      scope !== undefined &&
+      !parseInstagramGrantedScopes(scope).includes(INSTAGRAM_BASIC_SCOPE)
+    ) {
       throw new HttpException(
         {
           detail:
-            'Instagram needs permission to see the Facebook Pages you manage. Please reconnect and approve that permission.',
+            'Instagram needs permission to see your professional account. Please reconnect and approve that permission.',
           title: 'Missing permission',
         },
         HttpStatus.BAD_REQUEST,
@@ -209,7 +176,7 @@ export class InstagramConnectionResolverService {
       throw new HttpException(
         {
           detail:
-            'The Instagram account must be a professional account (Business or Creator) linked to a Facebook Page you manage. Please connect an eligible account and try again.',
+            'The Instagram account must be a professional account (Business or Creator). Please share an eligible account with Genfeed and try again.',
           title: 'Instagram account not eligible',
         },
         HttpStatus.BAD_REQUEST,
@@ -219,9 +186,41 @@ export class InstagramConnectionResolverService {
     return {
       accessToken: access_token,
       accounts,
+      businessId,
       expiresIn: expires_in,
       scope,
     };
+  }
+
+  /** Granted permissions as Meta reports them for this token, if it will say. */
+  private async readGrantedScopes(
+    accessToken: string,
+    appId: string,
+    appSecret: string,
+  ): Promise<string | undefined> {
+    try {
+      const response: AxiosResponse<InstagramDebugTokenResponse> =
+        await firstValueFrom(
+          this.httpService.get(
+            `${this.graphUrl}/${this.apiVersion}/debug_token`,
+            {
+              params: {
+                access_token: `${appId}|${appSecret}`,
+                input_token: accessToken,
+              },
+              timeout: 10_000,
+            },
+          ),
+        );
+      const scopes = response.data?.data?.scopes;
+      return Array.isArray(scopes) ? scopes.join(',') : undefined;
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        'InstagramConnectionResolverService - Could not read granted scopes',
+        getSafeInstagramOAuthErrorLog(error),
+      );
+      return undefined;
+    }
   }
 
   /**
@@ -375,7 +374,7 @@ export class InstagramConnectionResolverService {
     }
     try {
       if (credential.brandId) {
-        await this.instagramService.subscribePageToMessageWebhooks(
+        await this.instagramService.subscribeToMessageWebhooks(
           organizationId,
           credential.brandId,
           credential.id.toString(),

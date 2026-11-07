@@ -2042,6 +2042,10 @@ contentLearningPolicyVersions ContentLearningPolicyVersion[]
   externalHandle                  String?
   externalName                    String?
   externalAvatar                  String?
+  /// Business portfolio the connection's Business Integration System User
+  /// token belongs to (Instagram Unified Login). Null for a Facebook-Login
+  /// connection (a Facebook User token reached through a linked Page).
+  externalBusinessId              String?
   oauthState                      String?
   oauthToken                      String?
   oauthTokenHash                  String?

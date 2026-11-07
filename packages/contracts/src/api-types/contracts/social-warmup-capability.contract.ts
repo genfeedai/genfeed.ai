@@ -206,17 +206,13 @@ export const SOCIAL_WARMUP_CAPABILITY_MATRIX = {
   }),
   [CredentialPlatform.INSTAGRAM]: capability({
     accountType:
-      'Instagram professional account via Facebook Login / Graph, Page-linked.',
+      'Instagram professional account via Instagram API with Unified Login (Business Integration System User token, no Facebook Page required).',
     connectionScopes: [
-      'business_management',
       'instagram_basic',
-      'pages_show_list',
-      'pages_read_engagement',
       'instagram_content_publish',
+      'instagram_manage_comments',
       'instagram_manage_insights',
-      'pages_manage_posts',
-      'public_profile',
-      'ads_management',
+      'instagram_manage_messages',
     ],
     evidenceFreshness: `Reviewed ${SOCIAL_WARMUP_CAPABILITY_REVIEWED_ON} against the published catalog blueprint and Instagram OAuth scopes. Authorized-signal adapter is a sibling issue.`,
     nativeOnlyActions: [

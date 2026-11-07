@@ -64,13 +64,16 @@ export class InstagramPublishingService {
   }
 
   /**
-   * Subscribes the Page linked to the Instagram account to the app's `messages`
-   * webhook so new Direct messages are pushed instead of polled.
+   * Subscribes the Instagram account to the app's `messages` webhook so new
+   * Direct messages are pushed instead of polled. A Unified Login connection
+   * subscribes the account itself with the client's token; a historical
+   * Facebook-Login connection subscribes the Page linked to it.
    *
+   * @see https://developers.facebook.com/documentation/instagram-platform/webhooks/setup
    * @see https://developers.facebook.com/documentation/business-messaging/messenger-platform/webhooks
    */
   @Traced()
-  async subscribePageToMessageWebhooks(
+  async subscribeToMessageWebhooks(
     organizationId: string,
     brandId: string,
     credentialId?: string,
@@ -83,29 +86,36 @@ export class InstagramPublishingService {
         brandId,
         credentialId,
       );
-      requireMetaScopes(credential.grantedScopes, [
-        'instagram_manage_messages',
-        'pages_manage_metadata',
-        'pages_show_list',
-      ]);
-      const page = await resolveMetaPageAccess(
-        this.httpService,
-        `${this.graphUrl}/${this.apiVersion}`,
-        EncryptionUtil.decrypt(credential.accessToken),
-        {
-          instagramAccountId: requireString(
-            credential.externalId,
-            'externalId',
-          ),
-        },
+      requireMetaScopes(
+        credential.grantedScopes,
+        credential.isUnifiedLogin
+          ? ['instagram_manage_messages']
+          : [
+              'instagram_manage_messages',
+              'pages_manage_metadata',
+              'pages_show_list',
+            ],
       );
+      const accessToken = EncryptionUtil.decrypt(credential.accessToken);
+      const externalId = requireString(credential.externalId, 'externalId');
+      const subscriber = credential.isUnifiedLogin
+        ? { accessToken, nodeId: externalId }
+        : await resolveMetaPageAccess(
+            this.httpService,
+            `${this.graphUrl}/${this.apiVersion}`,
+            accessToken,
+            { instagramAccountId: externalId },
+          ).then((page) => ({
+            accessToken: page.accessToken,
+            nodeId: page.pageId,
+          }));
       const response = await firstValueFrom(
         this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${page.pageId}/subscribed_apps`,
+          `${this.graphUrl}/${this.apiVersion}/${subscriber.nodeId}/subscribed_apps`,
           null,
           {
             params: {
-              access_token: page.accessToken,
+              access_token: subscriber.accessToken,
               subscribed_fields: 'messages',
             },
           },
@@ -153,29 +163,46 @@ export class InstagramPublishingService {
         brandId,
         credentialId,
       );
+      const isPrivateReply = 'comment_id' in recipient;
       requireMetaScopes(
         credential.grantedScopes,
-        'comment_id' in recipient
-          ? ['instagram_manage_comments', 'pages_messaging', 'pages_show_list']
-          : ['instagram_manage_messages', 'pages_show_list'],
+        credential.isUnifiedLogin
+          ? isPrivateReply
+            ? ['instagram_manage_comments', 'instagram_manage_messages']
+            : ['instagram_manage_messages']
+          : isPrivateReply
+            ? [
+                'instagram_manage_comments',
+                'pages_messaging',
+                'pages_show_list',
+              ]
+            : ['instagram_manage_messages', 'pages_show_list'],
       );
       const accessToken = EncryptionUtil.decrypt(credential.accessToken);
       const externalId = requireString(credential.externalId, 'externalId');
-      const page = await resolveMetaPageAccess(
-        this.httpService,
-        `${this.graphUrl}/${this.apiVersion}`,
-        accessToken,
-        { instagramAccountId: externalId },
-      );
+      // Unified Login sends from the account itself with the client's token
+      // (no Facebook Page exists). A historical Facebook-Login connection
+      // sends from its Page with the Page token.
+      const sender = credential.isUnifiedLogin
+        ? { accessToken, nodeId: externalId }
+        : await resolveMetaPageAccess(
+            this.httpService,
+            `${this.graphUrl}/${this.apiVersion}`,
+            accessToken,
+            { instagramAccountId: externalId },
+          ).then((page) => ({
+            accessToken: page.accessToken,
+            nodeId: page.pageId,
+          }));
       const response = await firstValueFrom(
         this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${page.pageId}/messages`,
+          `${this.graphUrl}/${this.apiVersion}/${sender.nodeId}/messages`,
           {
             message: { text: message },
             ...('id' in recipient ? { messaging_type: 'RESPONSE' } : {}),
             recipient,
           },
-          { params: { access_token: page.accessToken } },
+          { params: { access_token: sender.accessToken } },
         ),
       );
 

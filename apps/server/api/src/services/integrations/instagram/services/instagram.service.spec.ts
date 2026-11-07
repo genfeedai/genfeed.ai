@@ -449,8 +449,50 @@ describe('InstagramService', () => {
         accessToken: 'fresh-token',
         externalId: 'ig-account-id',
         isConnected: true,
+        isUnifiedLogin: false,
       });
       expect(refreshSpy).not.toHaveBeenCalled();
+    });
+
+    it('keeps a Unified Login token without a stored expiry and never exchanges it', async () => {
+      credentialsMock.findOne = vi.fn().mockResolvedValue({
+        accessToken: 'business-token',
+        accessTokenExpiry: null,
+        externalBusinessId: 'business-1',
+        externalId: 'ig-account-id',
+        id: 'credential-id',
+        isConnected: true,
+      });
+
+      const result = await service.getValidCredential('org-id', 'brand-id');
+
+      expect(result).toEqual({
+        accessToken: 'business-token',
+        externalId: 'ig-account-id',
+        id: 'credential-id',
+        isConnected: true,
+        isUnifiedLogin: true,
+      });
+      expect(httpServiceMock.get).not.toHaveBeenCalled();
+    });
+
+    it('disconnects a Unified Login token whose stored expiry has passed', async () => {
+      credentialsMock.findOne = vi.fn().mockResolvedValue({
+        accessToken: 'business-token',
+        accessTokenExpiry: new Date(Date.now() - 1000),
+        externalBusinessId: 'business-1',
+        externalId: 'ig-account-id',
+        id: 'credential-id',
+        isConnected: true,
+      });
+      credentialsMock.patch = vi.fn().mockResolvedValue({});
+
+      await expect(
+        service.getValidCredential('org-id', 'brand-id'),
+      ).rejects.toThrow('Please reconnect your account');
+      expect(credentialsMock.patch).toHaveBeenCalledWith('credential-id', {
+        isConnected: false,
+      });
     });
 
     it('refreshes when access token is inside the refresh buffer', async () => {
@@ -517,6 +559,220 @@ describe('InstagramService', () => {
     });
   });
 
+  describe('refreshToken for a Unified Login connection', () => {
+    const unifiedRow = {
+      accessToken: 'business-token',
+      accessTokenExpiry: null,
+      externalBusinessId: 'business-1',
+      externalId: 'ig-account-id',
+      id: 'credential-id',
+      isConnected: true,
+    };
+
+    it('keeps the token and re-records scopes and expiry from debug_token', async () => {
+      credentialsMock.findOne = vi.fn().mockResolvedValue(unifiedRow);
+      credentialsMock.patch = vi
+        .fn()
+        .mockImplementation(
+          async (_id: string, update: Record<string, unknown>) => ({
+            ...unifiedRow,
+            ...update,
+          }),
+        );
+      (httpServiceMock.get as Mock).mockReturnValue(
+        of({
+          data: {
+            data: {
+              expires_at: 0,
+              is_valid: true,
+              scopes: ['instagram_basic', 'instagram_manage_messages'],
+            },
+          },
+        }),
+      );
+
+      const result = await service.refreshToken('org-id', 'brand-id');
+
+      expect(result.accessToken).toBe('business-token');
+      expect(result.grantedScopes).toEqual([
+        'instagram_basic',
+        'instagram_manage_messages',
+      ]);
+      expect(result.isUnifiedLogin).toBe(true);
+      const request = (httpServiceMock.get as Mock).mock.calls[0];
+      expect(request[0]).toBe('https://graph.facebook.com/v26.0/debug_token');
+      expect(request[1].params.input_token).toBe('business-token');
+      expect(request[1].params).not.toHaveProperty('fb_exchange_token');
+      expect(credentialsMock.patch).toHaveBeenCalledWith(
+        'credential-id',
+        expect.objectContaining({ accessTokenExpiry: null, isConnected: true }),
+      );
+    });
+
+    it('disconnects a token Meta reports invalid', async () => {
+      credentialsMock.findOne = vi.fn().mockResolvedValue(unifiedRow);
+      credentialsMock.patch = vi.fn().mockResolvedValue({});
+      (httpServiceMock.get as Mock).mockReturnValue(
+        of({ data: { data: { is_valid: false } } }),
+      );
+
+      await expect(service.refreshToken('org-id', 'brand-id')).rejects.toThrow(
+        'no longer valid',
+      );
+      expect(credentialsMock.patch).toHaveBeenCalledWith('credential-id', {
+        isConnected: false,
+      });
+    });
+
+    it('leaves the account connected when Meta is only temporarily unavailable', async () => {
+      credentialsMock.findOne = vi.fn().mockResolvedValue(unifiedRow);
+      credentialsMock.patch = vi.fn().mockResolvedValue({});
+      (httpServiceMock.get as Mock).mockReturnValue(
+        throwError(() => new Error('Meta unavailable')),
+      );
+
+      await expect(service.refreshToken('org-id', 'brand-id')).rejects.toThrow(
+        'Meta unavailable',
+      );
+      expect(credentialsMock.patch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Unified Login messaging', () => {
+    const unifiedCredential = {
+      accessToken: 'business-token',
+      externalId: 'ig-account-id',
+      id: 'credential-id',
+      isUnifiedLogin: true,
+    };
+
+    it('sends a direct message from the account itself, with no Facebook Page lookup', async () => {
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue(
+        unifiedCredential,
+      );
+      (httpServiceMock.post as Mock).mockReturnValue(
+        of({ data: { message_id: 'msg-1', recipient_id: 'user' } }),
+      );
+
+      const result = await service.sendDirectMessage(
+        'org',
+        'brand',
+        'user',
+        'hello',
+      );
+
+      expect(result).toBe('msg-1');
+      expect(httpServiceMock.post).toHaveBeenCalledWith(
+        'https://graph.facebook.com/v26.0/ig-account-id/messages',
+        {
+          message: { text: 'hello' },
+          messaging_type: 'RESPONSE',
+          recipient: { id: 'user' },
+        },
+        { params: { access_token: 'business-token' } },
+      );
+      expect(httpServiceMock.get).not.toHaveBeenCalled();
+    });
+
+    it('sends a private reply to a comment from the account itself', async () => {
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue(
+        unifiedCredential,
+      );
+      (httpServiceMock.post as Mock).mockReturnValue(
+        of({ data: { message_id: 'msg-2' } }),
+      );
+
+      await service.sendPrivateReply('org', 'brand', 'comment-9', 'thanks');
+
+      expect(httpServiceMock.post).toHaveBeenCalledWith(
+        'https://graph.facebook.com/v26.0/ig-account-id/messages',
+        {
+          message: { text: 'thanks' },
+          recipient: { comment_id: 'comment-9' },
+        },
+        { params: { access_token: 'business-token' } },
+      );
+    });
+
+    it('asks for a reconnect when the captured grant lacks the messaging permission', async () => {
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue({
+        ...unifiedCredential,
+        grantedScopes: ['instagram_basic'],
+      });
+
+      await expect(
+        service.sendDirectMessage('org', 'brand', 'user', 'hello'),
+      ).rejects.toThrow('instagram_manage_messages');
+      expect(httpServiceMock.post).not.toHaveBeenCalled();
+    });
+
+    it('subscribes the account itself to message webhooks', async () => {
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue(
+        unifiedCredential,
+      );
+      (httpServiceMock.post as Mock).mockReturnValue(
+        of({ data: { success: true } }),
+      );
+
+      await service.subscribeToMessageWebhooks('org', 'brand');
+
+      expect(httpServiceMock.post).toHaveBeenCalledWith(
+        'https://graph.facebook.com/v26.0/ig-account-id/subscribed_apps',
+        null,
+        {
+          params: {
+            access_token: 'business-token',
+            subscribed_fields: 'messages',
+          },
+        },
+      );
+    });
+
+    it('lists conversations on the account with the business token', async () => {
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue(
+        unifiedCredential,
+      );
+      (httpServiceMock.get as Mock).mockReturnValue(
+        of({
+          data: {
+            data: [
+              {
+                id: 'conversation-1',
+                messages: {
+                  data: [
+                    {
+                      created_time: '2026-08-01T11:00:00+0000',
+                      from: { id: 'participant-1', username: 'taylor' },
+                      id: 'message-1',
+                      message: 'Do you ship to the EU?',
+                    },
+                  ],
+                },
+                participants: {
+                  data: [{ id: 'participant-1' }, { id: 'ig-account-id' }],
+                },
+              },
+            ],
+          },
+        }),
+      );
+
+      const result = await service.listConversations('org', 'brand', 10);
+
+      expect(httpServiceMock.get).toHaveBeenCalledTimes(1);
+      expect(httpServiceMock.get).toHaveBeenCalledWith(
+        'https://graph.facebook.com/v26.0/ig-account-id/conversations',
+        expect.objectContaining({
+          params: expect.objectContaining({
+            access_token: 'business-token',
+            platform: 'instagram',
+          }),
+        }),
+      );
+      expect(result[0]?.messages[0]?.text).toBe('Do you ship to the EU?');
+    });
+  });
+
   describe('handleAuthorizationError', () => {
     it('disconnects only on Graph authorization failures', async () => {
       credentialsMock.patch = vi.fn().mockResolvedValue({});
@@ -553,47 +809,37 @@ describe('InstagramService', () => {
   });
 
   describe('listAuthorizedInstagramAccounts', () => {
-    it('paginates with the after cursor, not the raw paging.next URL', async () => {
-      (httpServiceMock.get as Mock)
-        .mockReturnValueOnce(
-          of({
-            data: {
-              data: [
-                {
-                  id: 'page-1',
-                  instagram_business_account: {
-                    id: 'ig-1',
-                    name: 'Brand One',
-                    profile_picture_url: 'https://cdn.example.com/one.jpg',
-                    username: 'brandone',
+    it('lists assigned accounts, enriches each, and paginates with the after cursor', async () => {
+      (httpServiceMock.get as Mock).mockImplementation(
+        (url: string, config: { params: Record<string, string> }) => {
+          if (url.endsWith('/me/assigned_instagram_accounts')) {
+            return config.params.after === 'cursor-1'
+              ? of({ data: { data: [{ id: 'ig-2', username: 'brandtwo' }] } })
+              : of({
+                  data: {
+                    data: [{ id: 'ig-1', username: 'brandone' }, {}],
+                    paging: {
+                      cursors: { after: 'cursor-1' },
+                      next: 'https://graph.facebook.com/v26.0/me/assigned_instagram_accounts?after=cursor-1&access_token=token',
+                    },
                   },
-                },
-                { id: 'page-2' },
-              ],
-              paging: {
-                cursors: { after: 'cursor-1' },
-                next: 'https://graph.facebook.com/v26.0/me/accounts?after=cursor-1&access_token=token',
-              },
+                });
+          }
+          const profiles: Record<string, unknown> = {
+            'https://graph.facebook.com/v26.0/ig-1': {
+              name: 'Brand One',
+              profile_picture_url: 'https://cdn.example.com/one.jpg',
+              username: 'brandone',
             },
-          }),
-        )
-        .mockReturnValueOnce(
-          of({
-            data: {
-              data: [
-                {
-                  id: 'page-3',
-                  instagram_business_account: {
-                    id: 'ig-2',
-                    name: 'Brand Two',
-                    profile_picture_url: 'https://cdn.example.com/two.jpg',
-                    username: 'brandtwo',
-                  },
-                },
-              ],
+            'https://graph.facebook.com/v26.0/ig-2': {
+              name: 'Brand Two',
+              profile_picture_url: 'https://cdn.example.com/two.jpg',
+              username: 'brandtwo',
             },
-          }),
-        );
+          };
+          return of({ data: profiles[url] });
+        },
+      );
 
       const result = await service.listAuthorizedInstagramAccounts('token');
 
@@ -615,32 +861,42 @@ describe('InstagramService', () => {
       ]);
       expect(httpServiceMock.get).toHaveBeenNthCalledWith(
         1,
-        'https://graph.facebook.com/v26.0/me/accounts',
+        'https://graph.facebook.com/v26.0/me/assigned_instagram_accounts',
         {
           timeout: 10_000,
-          params: {
-            access_token: 'token',
-            fields:
-              'id,name,instagram_business_account{id,username,name,profile_picture_url}',
-          },
+          params: { access_token: 'token', fields: 'id,username' },
         },
       );
-      // The second request never touches the `paging.next` URL (it embeds
+      // The next page never touches the `paging.next` URL (it embeds
       // access_token in a string that ends up in logs/history) — it reuses
       // the same endpoint with an `after` cursor param instead.
-      expect(httpServiceMock.get).toHaveBeenNthCalledWith(
-        2,
-        'https://graph.facebook.com/v26.0/me/accounts',
-        {
-          timeout: 10_000,
-          params: {
-            access_token: 'token',
-            after: 'cursor-1',
-            fields:
-              'id,name,instagram_business_account{id,username,name,profile_picture_url}',
-          },
-        },
+      const secondPageCall = (httpServiceMock.get as Mock).mock.calls.find(
+        ([url, config]) =>
+          String(url).endsWith('/me/assigned_instagram_accounts') &&
+          config.params.after === 'cursor-1',
       );
+      expect(secondPageCall?.[1]).toEqual({
+        timeout: 10_000,
+        params: {
+          access_token: 'token',
+          after: 'cursor-1',
+          fields: 'id,username',
+        },
+      });
+    });
+
+    it('keeps an account whose profile read fails, with the username the list gave', async () => {
+      (httpServiceMock.get as Mock).mockImplementation((url: string) =>
+        url.endsWith('/me/assigned_instagram_accounts')
+          ? of({ data: { data: [{ id: 'ig-1', username: 'brandone' }] } })
+          : throwError(() => new Error('profile unavailable')),
+      );
+
+      const result = await service.listAuthorizedInstagramAccounts('token');
+
+      expect(result).toEqual([
+        { id: 'ig-1', platform: 'instagram', username: 'brandone' },
+      ]);
     });
 
     it('returns an empty list when the token manages no professional account', async () => {
@@ -658,7 +914,7 @@ describe('InstagramService', () => {
             data: [],
             paging: {
               cursors: { after: 'always-more' },
-              next: 'https://graph.facebook.com/v26.0/me/accounts?after=always-more',
+              next: 'https://graph.facebook.com/v26.0/me/assigned_instagram_accounts?after=always-more',
             },
           },
         }),

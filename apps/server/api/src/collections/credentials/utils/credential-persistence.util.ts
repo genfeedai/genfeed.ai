@@ -11,6 +11,7 @@ const CARRIED_CONNECTION_COLUMNS = [
   'accessToken',
   'accessTokenExpiry',
   'accessTokenSecret',
+  'externalBusinessId',
   'grantedScopes',
   'grantedScopesCapturedAt',
   'oauthToken',

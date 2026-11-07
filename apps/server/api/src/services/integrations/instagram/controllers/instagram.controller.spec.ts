@@ -51,8 +51,11 @@ import { of, throwError } from 'rxjs';
 const instagramBrandId = testId('brand');
 const instagramOrganizationId = testId('org');
 const instagramUserId = testId('user');
-const GRANTED_SCOPE_WITH_PAGES =
-  'business_management,instagram_basic,pages_show_list,instagram_content_publish';
+const GRANTED_UNIFIED_SCOPES = [
+  'instagram_basic',
+  'instagram_content_publish',
+  'instagram_manage_comments',
+];
 
 async function captureHttpException(
   action: Promise<unknown>,
@@ -110,6 +113,7 @@ describe('InstagramController', () => {
     INSTAGRAM_API_VERSION: 'v26.0',
     INSTAGRAM_APP_ID: 'test_app_id',
     INSTAGRAM_APP_SECRET: 'test_app_secret',
+    INSTAGRAM_CONFIG_ID: 'test_config_id',
     INSTAGRAM_GRAPH_URL: 'https://graph.facebook.com',
     INSTAGRAM_REDIRECT_URI: 'https://app.genfeed.ai/oauth/instagram',
   };
@@ -243,9 +247,38 @@ describe('InstagramController', () => {
       );
       expect(result).toHaveProperty('data');
       const data = result.data as unknown as { url: string };
-      expect(data).toHaveProperty('url');
-      expect(data.url).toContain('facebook.com');
-      expect(data.url).toContain('oauth');
+      const loginUrl = new URL(data.url);
+      expect(`${loginUrl.origin}${loginUrl.pathname}`).toBe(
+        'https://www.facebook.com/dialog/oauth',
+      );
+      expect(Object.fromEntries(loginUrl.searchParams)).toEqual({
+        client_id: 'test_app_id',
+        config_id: 'test_config_id',
+        redirect_uri: 'https://app.genfeed.ai/oauth/instagram',
+        response_type: 'code',
+        state: 'opaque-oauth-state',
+      });
+    });
+
+    it('refuses to start OAuth when the Unified Login configuration is not set', async () => {
+      brandsFindOneMock.mockResolvedValue({
+        id: brandOid,
+        organizationId: instagramOrganizationId,
+        userId: instagramUserId,
+      });
+      (configMock.get as ReturnType<typeof vi.fn>).mockImplementation(
+        (key: string) =>
+          ({ ...instagramConfig, INSTAGRAM_CONFIG_ID: undefined })[key],
+      );
+
+      await expect(
+        controller.connect(mockRequest, mockUser, { brandId: brandOid }),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(credentialsBeginOAuthForBrandMock).not.toHaveBeenCalled();
+
+      (configMock.get as ReturnType<typeof vi.fn>).mockImplementation(
+        (key: string) => instagramConfig[key],
+      );
     });
 
     it('refuses to start OAuth when the app id is a placeholder', async () => {
@@ -283,7 +316,7 @@ describe('InstagramController', () => {
       expect(brandsFindOneMock).toHaveBeenCalled();
     });
 
-    it('should include correct scopes in auth URL', async () => {
+    it('leaves permissions to the configuration instead of sending a scope', async () => {
       brandsFindOneMock.mockResolvedValue({
         id: brandOid,
         organizationId: instagramOrganizationId,
@@ -295,8 +328,8 @@ describe('InstagramController', () => {
       });
 
       const url = (result.data as unknown as { url: string }).url;
-      expect(url).toContain('instagram_basic');
-      expect(url).toContain('instagram_content_publish');
+      expect(new URL(url).searchParams.has('scope')).toBe(false);
+      expect(url).not.toContain('pages_show_list');
     });
 
     it('should include only the opaque server-issued state', async () => {
@@ -372,17 +405,48 @@ describe('InstagramController', () => {
     const state = 'opaque-oauth-state';
     const mockRequest = {} as unknown as Request;
 
-    function mockSuccessfulTokenExchange(
-      scope: string = GRANTED_SCOPE_WITH_PAGES,
+    /**
+     * Unified Login verify makes three Graph reads: the code exchange, the
+     * business portfolio, and (when the exchange does not report scopes) the
+     * token's granted permissions.
+     */
+    function mockGraphReads(
+      overrides: {
+        exchange?: Record<string, unknown>;
+        businessId?: string;
+        debugToken?: () => unknown;
+      } = {},
     ) {
-      httpPostMock.mockReturnValue(
-        of({ data: { access_token: 'short-lived-token', scope } }),
-      );
-      httpGetMock.mockReturnValue(
-        of({
-          data: { access_token: 'long-lived-token', expires_in: 5184000 },
-        }),
-      );
+      httpGetMock.mockImplementation((url: string) => {
+        if (url.endsWith('/oauth/access_token')) {
+          return of({
+            data: overrides.exchange ?? { access_token: 'business-token' },
+          });
+        }
+        if (url.endsWith('/me')) {
+          return of({
+            data: {
+              client_business_id: overrides.businessId ?? 'business-1',
+              id: 'system-user-1',
+            },
+          });
+        }
+        if (url.endsWith('/debug_token')) {
+          return (
+            overrides.debugToken?.() ??
+            of({
+              data: {
+                data: { is_valid: true, scopes: GRANTED_UNIFIED_SCOPES },
+              },
+            })
+          );
+        }
+        throw new Error(`Unexpected GET ${url}`);
+      });
+    }
+
+    function mockSuccessfulTokenExchange() {
+      mockGraphReads();
     }
 
     beforeEach(() => {
@@ -424,7 +488,7 @@ describe('InstagramController', () => {
 
       expect(
         instagramServiceMock.listAuthorizedInstagramAccounts,
-      ).toHaveBeenCalledWith('long-lived-token');
+      ).toHaveBeenCalledWith('business-token');
       // Discovery happens before the token is ever persisted.
       const discoveryCallOrder =
         instagramServiceMock.listAuthorizedInstagramAccounts.mock
@@ -435,7 +499,9 @@ describe('InstagramController', () => {
       expect(credentialsPatchMock).toHaveBeenCalledWith(
         'test-object-id',
         expect.objectContaining({
-          accessToken: 'long-lived-token',
+          accessToken: 'business-token',
+          externalBusinessId: 'business-1',
+          grantedScopes: GRANTED_UNIFIED_SCOPES,
           isConnected: false,
           isDeleted: false,
           oauthState: null,
@@ -454,10 +520,10 @@ describe('InstagramController', () => {
       expect(
         instagramAuthorizedSignalsServiceMock.refresh,
       ).toHaveBeenCalledWith({
-        accessToken: 'long-lived-token',
+        accessToken: 'business-token',
         credentialId: 'test-object-id',
         force: true,
-        grantedScopes: GRANTED_SCOPE_WITH_PAGES,
+        grantedScopes: GRANTED_UNIFIED_SCOPES.join(','),
         organizationId: orgId,
       });
       expect(result.data).toEqual({
@@ -496,8 +562,38 @@ describe('InstagramController', () => {
       expect(profileUpdate.handle).toBeUndefined();
     });
 
-    it('rejects a grant missing pages_show_list with a permission-specific error, writing nothing', async () => {
-      mockSuccessfulTokenExchange('instagram_basic,instagram_content_publish');
+    it('exchanges the code with the Meta app and no Facebook Page token exchange', async () => {
+      mockSuccessfulTokenExchange();
+
+      await controller.verify(mockRequest, { code: 'auth-code', state });
+
+      expect(httpGetMock).toHaveBeenCalledWith(
+        'https://graph.facebook.com/v26.0/oauth/access_token',
+        {
+          params: {
+            client_id: 'test_app_id',
+            client_secret: 'test_app_secret',
+            code: 'auth-code',
+            redirect_uri: 'https://app.genfeed.ai/oauth/instagram',
+          },
+        },
+      );
+      expect(httpGetMock).not.toHaveBeenCalledWith(
+        expect.stringContaining('/me/accounts'),
+        expect.anything(),
+      );
+      expect(httpPostMock).not.toHaveBeenCalled();
+    });
+
+    it('rejects a grant missing instagram_basic with a permission-specific error, writing nothing', async () => {
+      mockGraphReads({
+        debugToken: () =>
+          of({
+            data: {
+              data: { is_valid: true, scopes: ['instagram_content_publish'] },
+            },
+          }),
+      });
 
       const failure = await captureHttpException(
         controller.verify(mockRequest, { code: 'auth-code', state }),
@@ -513,146 +609,66 @@ describe('InstagramController', () => {
       expect(credentialsPatchMock).not.toHaveBeenCalled();
     });
 
-    it.each([
-      { short: 'pages_show_list', long: 'declined_scope', shouldPass: true },
-      { short: '', long: 'pages_show_list', shouldPass: false },
-      { short: null, long: 'pages_show_list', shouldPass: true },
-      { short: undefined, long: '', shouldPass: false },
-    ])(
-      'preserves token scope precedence: $short / $long',
-      async ({ short, long, shouldPass }) => {
-        httpPostMock.mockReturnValue(
-          of({ data: { access_token: 'short-lived-token', scope: short } }),
-        );
-        httpGetMock.mockReturnValue(
-          of({ data: { access_token: 'long-lived-token', scope: long } }),
-        );
-        if (shouldPass) {
-          await controller.verify(mockRequest, { code: 'auth-code', state });
-          expect(credentialsPatchMock).toHaveBeenCalled();
-        } else {
-          const failure = await captureHttpException(
-            controller.verify(mockRequest, { code: 'auth-code', state }),
-          );
-          expect(failure.getResponse()).toMatchObject({
-            title: 'Missing permission',
-          });
-          expect(credentialsPatchMock).not.toHaveBeenCalled();
-        }
-        expect(httpGetMock).toHaveBeenCalledTimes(1);
-      },
-    );
-
-    it('recovers missing scope from granted permissions and persists the same evidence', async () => {
-      credentialsUpdateExternalProfileMock.mockResolvedValue({
-        brandId,
-        id: 'test-object-id',
-        isConnected: true,
-        externalId: 'ig-account-id',
-      });
-      httpPostMock.mockReturnValue(
-        of({ data: { access_token: 'short-lived-token' } }),
-      );
-      httpGetMock
-        .mockReturnValueOnce(of({ data: { access_token: 'long-lived-token' } }))
-        .mockReturnValueOnce(
-          of({
-            data: {
-              data: [
-                { permission: 'pages_show_list', status: 'granted' },
-                { permission: 'instagram_basic', status: 'granted' },
-                { permission: 'pages_show_list', status: 'granted' },
-                { permission: 'pages_read_engagement', status: 'declined' },
-                { permission: 42, status: 'granted' },
-                null,
-              ],
-            },
-          }),
-        );
-      await controller.verify(mockRequest, { code: 'auth-code', state });
-      expect(httpGetMock).toHaveBeenNthCalledWith(
-        2,
-        'https://graph.facebook.com/v26.0/me/permissions',
-        {
-          params: { access_token: 'long-lived-token' },
-          timeout: 10_000,
+    it('takes granted permissions from the exchange response when Meta includes them', async () => {
+      mockGraphReads({
+        exchange: {
+          access_token: 'business-token',
+          scope: 'instagram_basic,instagram_manage_messages',
         },
+      });
+
+      await controller.verify(mockRequest, { code: 'auth-code', state });
+
+      expect(httpGetMock).not.toHaveBeenCalledWith(
+        expect.stringContaining('/debug_token'),
+        expect.anything(),
       );
       expect(credentialsPatchMock).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          grantedScopes: ['instagram_basic', 'pages_show_list'],
-        }),
-      );
-      expect(
-        instagramAuthorizedSignalsServiceMock.refresh,
-      ).toHaveBeenCalledWith(
-        expect.objectContaining({
-          grantedScopes: 'instagram_basic,pages_show_list',
+          grantedScopes: ['instagram_basic', 'instagram_manage_messages'],
         }),
       );
     });
 
-    it.each([
-      { data: [{ permission: 'pages_show_list', status: 'declined' }] },
-      {
-        data: [
-          { permission: 'pages_show_list' },
-          { permission: 42, status: 'granted' },
-          null,
-        ],
-      },
-      { data: 'malformed' },
-      null,
-    ])(
-      'fails closed on missing or malformed permissions %j',
-      async (payload) => {
-        httpPostMock.mockReturnValue(
-          of({ data: { access_token: 'short-lived-token', scope: null } }),
-        );
-        httpGetMock
-          .mockReturnValueOnce(
-            of({ data: { access_token: 'long-lived-token', scope: null } }),
-          )
-          .mockReturnValueOnce(of({ data: payload }));
-        const failure = await captureHttpException(
-          controller.verify(mockRequest, { code: 'auth-code', state }),
-        );
-        expect(failure.getResponse()).toMatchObject({
-          title: 'Missing permission',
-        });
-        expect(credentialsPatchMock).not.toHaveBeenCalled();
-        expect(
-          instagramServiceMock.listAuthorizedInstagramAccounts,
-        ).not.toHaveBeenCalled();
-      },
-    );
+    it('stores the expiry only when Meta reports one', async () => {
+      mockGraphReads({
+        exchange: { access_token: 'business-token', expires_in: 3600 },
+      });
+      const before = Date.now();
+
+      await controller.verify(mockRequest, { code: 'auth-code', state });
+
+      const patch = credentialsPatchMock.mock.calls[0][1] as {
+        accessTokenExpiry?: Date;
+      };
+      expect(patch.accessTokenExpiry?.getTime()).toBeGreaterThanOrEqual(
+        before + 3_600_000,
+      );
+    });
 
     it.each(['ECONNABORTED', 'ERR_BAD_RESPONSE'])(
-      'sanitizes permission failure %s before persistence',
+      'leaves the grant unknown and sanitizes the log when Meta will not report permissions (%s)',
       async (code) => {
-        httpPostMock.mockReturnValue(
-          of({ data: { access_token: 'short-lived-token' } }),
-        );
-        httpGetMock
-          .mockReturnValueOnce(
-            of({ data: { access_token: 'private-permission-token' } }),
-          )
-          .mockReturnValueOnce(
+        mockGraphReads({
+          debugToken: () =>
             throwError(() => ({
               code,
-              message: 'private-permission-token',
               config: {
-                url: 'https://graph.facebook.com/me/permissions?access_token=private-permission-token',
+                url: 'https://graph.facebook.com/debug_token?input_token=private-permission-token',
               },
+              message: 'private-permission-token',
             })),
-          );
-        const failure = await captureHttpException(
-          controller.verify(mockRequest, { code: 'auth-code', state }),
-        );
-        expect(JSON.stringify(failure.getResponse())).not.toContain(
-          'private-permission-token',
-        );
+        });
+
+        await controller.verify(mockRequest, { code: 'auth-code', state });
+
+        const patch = credentialsPatchMock.mock.calls[0][1] as Record<
+          string,
+          unknown
+        >;
+        expect(patch).not.toHaveProperty('grantedScopes');
+        expect(patch).toHaveProperty('accessToken', 'business-token');
         expect(
           JSON.stringify([
             loggerErrorMock.mock.calls,
@@ -660,7 +676,6 @@ describe('InstagramController', () => {
             loggerWarnMock.mock.calls,
           ]),
         ).not.toContain('private-permission-token');
-        expect(credentialsPatchMock).not.toHaveBeenCalled();
       },
     );
 
@@ -956,7 +971,7 @@ describe('InstagramController', () => {
       async (providerCode) => {
         const callbackCode = 'sensitive-callback-code';
         const providerMessage = 'sensitive-provider-message';
-        httpPostMock.mockReturnValue(
+        httpGetMock.mockReturnValue(
           throwError(() => ({
             response: {
               data: {
@@ -986,7 +1001,7 @@ describe('InstagramController', () => {
             category: 'authorization',
             httpStatus: 400,
             providerCode,
-            stage: 'short_lived_token',
+            stage: 'token_exchange',
           }),
         );
         const logs = JSON.stringify([
@@ -1002,7 +1017,7 @@ describe('InstagramController', () => {
     it('returns a safe client response for a nested redirect mismatch', async () => {
       const providerMessage =
         'redirect_uri mismatch at https://private.example/callback';
-      httpPostMock.mockReturnValue(
+      httpGetMock.mockReturnValue(
         throwError(() => ({
           response: {
             data: {
@@ -1036,7 +1051,7 @@ describe('InstagramController', () => {
         expect.objectContaining({
           category: 'redirect_mismatch',
           providerCode: 100,
-          stage: 'short_lived_token',
+          stage: 'token_exchange',
         }),
       );
       expect(JSON.stringify(loggerErrorMock.mock.calls)).not.toContain(
@@ -1046,7 +1061,7 @@ describe('InstagramController', () => {
 
     it('returns a safe provider error for a malformed Facebook response', async () => {
       const rawPayloadMarker = 'raw-provider-payload';
-      httpPostMock.mockReturnValue(
+      httpGetMock.mockReturnValue(
         throwError(() => ({
           response: {
             data: { error: { error: null }, raw: rawPayloadMarker },
@@ -1076,14 +1091,14 @@ describe('InstagramController', () => {
         expect.objectContaining({
           category: 'provider_failure',
           httpStatus: 400,
-          stage: 'short_lived_token',
+          stage: 'token_exchange',
         }),
       );
     });
 
     it('classifies an unrecognized Facebook failure without exposing it', async () => {
       const providerMessage = 'unclassified private provider detail';
-      httpPostMock.mockReturnValue(
+      httpGetMock.mockReturnValue(
         throwError(() => ({
           response: {
             data: {
@@ -1107,7 +1122,7 @@ describe('InstagramController', () => {
         expect.objectContaining({
           category: 'provider_failure',
           providerCode: 999,
-          stage: 'short_lived_token',
+          stage: 'token_exchange',
         }),
       );
       expect(JSON.stringify(failure.getResponse())).not.toContain(
@@ -1119,7 +1134,7 @@ describe('InstagramController', () => {
     });
 
     it('returns a service error for invalid Facebook app configuration', async () => {
-      httpPostMock.mockReturnValue(
+      httpGetMock.mockReturnValue(
         throwError(() => ({
           response: {
             data: {
@@ -1144,25 +1159,24 @@ describe('InstagramController', () => {
       });
     });
 
-    it('classifies long-lived token authorization failures consistently', async () => {
-      const shortLivedToken = 'sensitive-short-lived-token';
-      httpPostMock.mockReturnValue(
-        of({ data: { access_token: shortLivedToken } }),
-      );
-      httpGetMock.mockReturnValue(
-        throwError(() => ({
-          response: {
-            data: {
-              error: { code: 190, message: 'Token already expired' },
-            },
-            status: 400,
-          },
-        })),
+    it('classifies business identity authorization failures consistently', async () => {
+      const businessToken = 'sensitive-business-token';
+      httpGetMock.mockImplementation((url: string) =>
+        url.endsWith('/oauth/access_token')
+          ? of({ data: { access_token: businessToken } })
+          : throwError(() => ({
+              response: {
+                data: {
+                  error: { code: 190, message: 'Token already expired' },
+                },
+                status: 400,
+              },
+            })),
       );
 
       const failure = await captureHttpException(
         controller.verify(mockRequest, {
-          code: 'long-token-code',
+          code: 'identity-code',
           state,
         }),
       );
@@ -1175,12 +1189,13 @@ describe('InstagramController', () => {
         expect.stringContaining('failed'),
         expect.objectContaining({
           category: 'authorization',
-          stage: 'long_lived_token',
+          stage: 'business_identity',
         }),
       );
       expect(JSON.stringify(loggerErrorMock.mock.calls)).not.toContain(
-        shortLivedToken,
+        businessToken,
       );
+      expect(credentialsPatchMock).not.toHaveBeenCalled();
     });
 
     it('should return not found when credential does not exist', async () => {
@@ -1195,8 +1210,8 @@ describe('InstagramController', () => {
       expect(JSON.stringify(result)).not.toContain(state);
     });
 
-    it('should return bad request when short-lived token is missing', async () => {
-      httpPostMock.mockReturnValue(of({ data: { access_token: null } }));
+    it('should return bad request when the exchange returns no access token', async () => {
+      httpGetMock.mockReturnValue(of({ data: { access_token: null } }));
       // This check now lives inside InstagramConnectionResolverService, not
       // directly in `verify`. The suite-wide `returnBadRequest` mock returns
       // a value instead of throwing (so `connect`/`selectAccount` tests can
@@ -1209,7 +1224,7 @@ describe('InstagramController', () => {
       vi.mocked(returnBadRequest).mockImplementationOnce(() => {
         throw new HttpException(
           {
-            detail: 'Missing short-lived access token from Facebook',
+            detail: 'Missing access token from Meta',
             title: 'Invalid payload',
           },
           HttpStatus.BAD_REQUEST,
