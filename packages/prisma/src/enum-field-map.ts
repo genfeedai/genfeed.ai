@@ -1390,6 +1390,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'prompts',
       'publishApprovals',
       'receivedSkillGrants',
+      'referralCodes',
       'relocations',
       'rssFeedItems',
       'rssSources',
@@ -6821,11 +6822,14 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   ReferralCode: {
     allFields: [
+      'brand',
+      'brandId',
       'code',
       'createdAt',
       'id',
       'isActive',
       'isDeleted',
+      'isPrimary',
       'ownerUser',
       'ownerUserId',
       'rewardBillingAccount',
@@ -6837,6 +6841,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: ['referrals', 'rewards'],
     enumFields: {},
     relationIdFields: {
+      brand: 'brandId',
       ownerUser: 'ownerUserId',
       rewardBillingAccount: 'rewardBillingAccountId',
       rewardOrganization: 'rewardOrganizationId',
