@@ -35,7 +35,7 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
 
 import {
   ErrorHandler,
-  getErrorMessage,
+  getApiErrorMessage,
   hasErrorDetail,
   type IApiError,
 } from '@utils/error/error-handler.util';
@@ -139,14 +139,14 @@ describe('error-handler.util', () => {
     });
   });
 
-  describe('getErrorMessage', () => {
+  describe('getApiErrorMessage', () => {
     it('should extract message from axios error response data', () => {
       const error = {
         isAxiosError: true,
         message: 'fallback message',
         response: { data: { message: 'API error' }, status: 400 },
       };
-      expect(getErrorMessage(error, 'default')).toBe('API error');
+      expect(getApiErrorMessage(error, 'default')).toBe('API error');
     });
 
     it('should fall back to axios error.message when no response data', () => {
@@ -155,23 +155,27 @@ describe('error-handler.util', () => {
         message: 'Network Error',
         response: { data: {} },
       };
-      expect(getErrorMessage(error, 'default')).toBe('Network Error');
+      expect(getApiErrorMessage(error, 'default')).toBe('Network Error');
     });
 
     it('should extract message from standard Error', () => {
-      expect(getErrorMessage(new Error('something failed'), 'default')).toBe(
+      expect(getApiErrorMessage(new Error('something failed'), 'default')).toBe(
         'something failed',
       );
     });
 
     it('should return fallback for unknown error types', () => {
-      expect(getErrorMessage('string error', 'fallback text')).toBe(
+      expect(getApiErrorMessage('string error', 'fallback text')).toBe(
         'fallback text',
       );
     });
 
     it('should return fallback for null', () => {
-      expect(getErrorMessage(null, 'fallback')).toBe('fallback');
+      expect(getApiErrorMessage(null, 'fallback')).toBe('fallback');
+    });
+
+    it('should return fallback for an Error with a blank message', () => {
+      expect(getApiErrorMessage(new Error('   '), 'fallback')).toBe('fallback');
     });
   });
 

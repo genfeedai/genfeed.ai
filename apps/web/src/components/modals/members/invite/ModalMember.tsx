@@ -19,7 +19,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import Modal from '@ui/modals/modal/Modal';
 import {
-  getErrorMessage,
+  getApiErrorMessage,
   hasErrorDetail,
 } from '@utils/error/error-handler.util';
 import { isAxiosError } from '@utils/error/json-api-status.util';
@@ -158,7 +158,7 @@ export default function ModalMember({
       }
 
       if (isAxiosError(error)) {
-        setError(getErrorMessage(error, 'Failed to send invitation'));
+        setError(getApiErrorMessage(error, 'Failed to send invitation'));
         return;
       }
 

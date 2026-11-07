@@ -2,7 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { PostAnalyticsService } from '@genfeedai/services/analytics/publication-analytics.service';
-import { getErrorMessage } from '@genfeedai/utils/error/error-handler.util';
+import { getApiErrorMessage } from '@genfeedai/utils/error/error-handler.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { Button } from '@ui/primitives/button';
 import {
@@ -64,7 +64,7 @@ export default function TrackPostLinkModal({
       onTracked(result);
       onClose();
     } catch (failure) {
-      setError(getErrorMessage(failure, translate('error')));
+      setError(getApiErrorMessage(failure, translate('error')));
     } finally {
       setIsSubmitting(false);
     }

@@ -8,7 +8,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  getErrorMessage,
+  getApiErrorMessage,
   hasRenderableThreadId,
   isAuthError,
   isThreadGoneError,
@@ -252,7 +252,7 @@ export function useAgentThreadList({
         return false;
       }
       setLoadError(
-        getErrorMessage(error, 'Failed to load threads. Please try again.'),
+        getApiErrorMessage(error, 'Failed to load threads. Please try again.'),
       );
       setListRevision((revision) => revision + 1);
       return false;
@@ -453,7 +453,7 @@ export function useAgentThreadList({
           return;
         }
         setLoadError(
-          getErrorMessage(error, 'Failed to open thread. Please try again.'),
+          getApiErrorMessage(error, 'Failed to open thread. Please try again.'),
         );
       }
     },

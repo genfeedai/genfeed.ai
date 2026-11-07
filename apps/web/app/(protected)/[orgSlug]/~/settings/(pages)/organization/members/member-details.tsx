@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { getErrorMessage } from '@utils/error/error-handler.util';
+import { getApiErrorMessage } from '@utils/error/error-handler.util';
 import { Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
@@ -83,7 +83,7 @@ export default function MemberDetails({
       setIsEditing(false);
       setNotice(t('saved'));
     } catch (error) {
-      setError(getErrorMessage(error, t('saveFailed')));
+      setError(getApiErrorMessage(error, t('saveFailed')));
     } finally {
       saving.current = false;
       setIsSaving(false);

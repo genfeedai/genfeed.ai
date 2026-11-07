@@ -5,7 +5,7 @@ import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 import { AgentThreadKind, AgentThreadStatus } from '@genfeedai/contracts';
 import type { StatusKey } from '@genfeedai/ui';
 
-export { getErrorMessage } from '@genfeedai/utils/error/error-handler.util';
+export { getApiErrorMessage } from '@genfeedai/utils/error/error-handler.util';
 export { sortThreads };
 
 export type AgentThreadListFilter = 'all' | 'needs-you' | 'working' | 'pinned';

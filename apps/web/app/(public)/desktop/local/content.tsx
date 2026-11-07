@@ -14,6 +14,7 @@ import type {
   IDesktopWorkspace,
 } from '@genfeedai/contracts/desktop';
 import { getDesktopLocalCostState } from '@genfeedai/services/core/desktop-runtime.service';
+import { getApiErrorMessage } from '@genfeedai/utils/error/error-handler.util';
 import Card from '@ui/card/Card';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -27,10 +28,6 @@ import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProvi
 import { useDesktopRuntimeContext } from '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
 import { useDesktopLocalWorkspaceFlag } from '@/lib/desktop/use-desktop-local-workspace-flag';
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
-}
 
 export default function LocalDesktopContent() {
   const translate = useTranslations('common.desktop.local');
@@ -70,7 +67,9 @@ export default function LocalDesktopContent() {
         setBootstrap(nextBootstrap);
       } catch (nextError) {
         if (signal?.aborted) return;
-        setError(getErrorMessage(nextError, translate('errors.actionFailed')));
+        setError(
+          getApiErrorMessage(nextError, translate('errors.actionFailed')),
+        );
       } finally {
         if (!signal?.aborted) setIsBusy(false);
       }
@@ -121,7 +120,7 @@ export default function LocalDesktopContent() {
       await bridge.workspace.openWorkspace();
       await refreshBootstrap();
     } catch (nextError) {
-      setError(getErrorMessage(nextError, translate('errors.actionFailed')));
+      setError(getApiErrorMessage(nextError, translate('errors.actionFailed')));
     }
   };
 
@@ -160,7 +159,7 @@ export default function LocalDesktopContent() {
         }),
       );
     } catch (nextError) {
-      setError(getErrorMessage(nextError, translate('errors.actionFailed')));
+      setError(getApiErrorMessage(nextError, translate('errors.actionFailed')));
     } finally {
       setIsBusy(false);
     }
@@ -172,7 +171,7 @@ export default function LocalDesktopContent() {
     try {
       await bridge.app.switchToCloudMode();
     } catch (nextError) {
-      setError(getErrorMessage(nextError, translate('errors.actionFailed')));
+      setError(getApiErrorMessage(nextError, translate('errors.actionFailed')));
     }
   };
 
@@ -182,7 +181,7 @@ export default function LocalDesktopContent() {
     try {
       await bridge.app.revealLogs();
     } catch (nextError) {
-      setError(getErrorMessage(nextError, translate('errors.actionFailed')));
+      setError(getApiErrorMessage(nextError, translate('errors.actionFailed')));
     }
   };
 

@@ -6,6 +6,7 @@ import type {
   SocialReplyCampaignQuery,
 } from '@genfeedai/contracts/interfaces';
 import type { SocialReplyCampaignModel } from '@genfeedai/models/social/social-reply-campaign.model';
+import { getApiErrorMessage } from '@genfeedai/utils/error/error-handler.util';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { SocialMessagesService } from '@services/social/messages.service';
@@ -16,13 +17,6 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 import type { ReplyCampaignEnrollableConversation } from '@/features/messages/props/reply-campaigns-panel.props';
-
-function getErrorMessage(err: unknown): string {
-  if (err instanceof Error && err.message.trim()) {
-    return err.message;
-  }
-  return 'An unexpected error occurred';
-}
 
 const REPLY_CAMPAIGNS_KEY = 'reply-campaigns';
 const ENROLLABLE_CONVERSATIONS_KEY = 'reply-campaign-enrollable-conversations';
@@ -101,7 +95,11 @@ export function useReplyCampaigns() {
   const loadError =
     (campaignsQuery.data === undefined ? campaignsQuery.error : null) ??
     (conversationsQuery.data === undefined ? conversationsQuery.error : null);
-  const error = actionError ?? (loadError ? getErrorMessage(loadError) : null);
+  const error =
+    actionError ??
+    (loadError
+      ? getApiErrorMessage(loadError, 'An unexpected error occurred')
+      : null);
 
   const { refetch: refetchCampaigns } = campaignsQuery;
   const { refetch: refetchConversations } = conversationsQuery;
@@ -141,7 +139,7 @@ export function useReplyCampaigns() {
           ...current,
         ]);
       } catch (err: unknown) {
-        setActionError(getErrorMessage(err));
+        setActionError(getApiErrorMessage(err, 'An unexpected error occurred'));
       } finally {
         setIsCreating(false);
       }
@@ -161,7 +159,7 @@ export function useReplyCampaigns() {
           current.map((item) => (item.id === campaign.id ? campaign : item)),
         );
       } catch (err: unknown) {
-        setActionError(getErrorMessage(err));
+        setActionError(getApiErrorMessage(err, 'An unexpected error occurred'));
       } finally {
         setBusyCampaignId(null);
       }

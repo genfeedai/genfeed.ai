@@ -33,7 +33,7 @@ vi.mock('@services/core/notifications.service', () => ({
 }));
 
 import {
-  getErrorMessage,
+  getApiErrorMessage,
   hasErrorDetail,
 } from '@utils/error/error-handler.util';
 import {
@@ -89,14 +89,14 @@ describe('axios-error.util (via error-handler)', () => {
     });
   });
 
-  describe('getErrorMessage — axios response variations', () => {
+  describe('getApiErrorMessage — axios response variations', () => {
     it('should prefer response.data.message over error.message', () => {
       const error = {
         isAxiosError: true,
         message: 'Generic message',
         response: { data: { message: 'Specific API message' } },
       };
-      expect(getErrorMessage(error, 'default')).toBe('Specific API message');
+      expect(getApiErrorMessage(error, 'default')).toBe('Specific API message');
     });
 
     it('should use error.message when data.message is empty', () => {
@@ -105,7 +105,7 @@ describe('axios-error.util (via error-handler)', () => {
         message: 'Network Error',
         response: { data: { message: '' } },
       };
-      expect(getErrorMessage(error, 'default')).toBe('Network Error');
+      expect(getApiErrorMessage(error, 'default')).toBe('Network Error');
     });
 
     it('should use fallback when both data.message and error.message are empty', () => {
@@ -114,7 +114,7 @@ describe('axios-error.util (via error-handler)', () => {
         message: '',
         response: { data: {} },
       };
-      expect(getErrorMessage(error, 'Something failed')).toBe(
+      expect(getApiErrorMessage(error, 'Something failed')).toBe(
         'Something failed',
       );
     });
