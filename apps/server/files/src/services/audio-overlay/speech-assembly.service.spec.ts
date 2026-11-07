@@ -69,8 +69,9 @@ describe('SpeechAssemblyService', () => {
       'adelay=3000:all=1',
     );
     expect(args[args.indexOf('-filter_complex') + 1]).toContain(
-      'apad,atrim=duration=30',
+      'apad=whole_dur=30,atrim=duration=30',
     );
+    expect(args[args.indexOf('-t') + 1]).toBe('30');
   });
   it('reports speech overruns instead of truncating spoken words', async () => {
     ffmpeg.probe.mockResolvedValue({

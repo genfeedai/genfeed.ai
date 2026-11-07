@@ -108,7 +108,7 @@ export class SpeechAssemblyService {
         );
       }
       filters.push(
-        `${body.segments.map((_, index) => `[a${index}]`).join('')}amix=inputs=${body.segments.length}:duration=longest:normalize=0,apad,atrim=duration=${body.durationSeconds}[out]`,
+        `${body.segments.map((_, index) => `[a${index}]`).join('')}amix=inputs=${body.segments.length}:duration=longest:normalize=0,apad=whole_dur=${body.durationSeconds},atrim=duration=${body.durationSeconds}[out]`,
       );
       const output = path.join(dir, 'speech.wav');
       const result = await this.ffmpeg.executeFFmpegCapture([
@@ -117,6 +117,9 @@ export class SpeechAssemblyService {
         filters.join(';'),
         '-map',
         '[out]',
+        // Hard stop at the timeline length, whatever the filter graph does.
+        '-t',
+        String(body.durationSeconds),
         '-ar',
         '48000',
         '-c:a',
