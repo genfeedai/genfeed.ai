@@ -4,11 +4,11 @@ import { APP_ROUTES, getOrgSwitchHref } from '@genfeedai/contracts/constants';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import { Button } from '@ui/primitives/button';
-import Spinner from '@ui/primitives/spinner';
 import { Building2, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import WorkspaceFrameSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceFrameSkeleton';
 
 function OrganizationRoutePending() {
   const { status } = useRoutedOrganization();
@@ -16,17 +16,9 @@ function OrganizationRoutePending() {
   const label =
     status === 'switching' ? translate('switching') : translate('loading');
 
-  return (
-    <main
-      className="flex min-h-dvh w-full items-center justify-center bg-background px-4 py-10 sm:px-6"
-      data-testid="organization-route-pending"
-    >
-      <div className="flex flex-col items-center gap-3" role="status">
-        <Spinner aria-hidden="true" className="size-6 text-foreground" />
-        <p className="text-sm text-muted-foreground">{label}</p>
-      </div>
-    </main>
-  );
+  // The app frame, not a splash: nothing tenant-scoped mounts until the routed
+  // organization is confirmed, but the rail, topbar and page block are there.
+  return <WorkspaceFrameSkeleton label={label} />;
 }
 
 function OrganizationUnavailable() {

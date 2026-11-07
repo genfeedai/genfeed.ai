@@ -1,3 +1,15 @@
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+
+export interface BrandMarkProps {
+  /**
+   * For marks drawn at icon size (the rail logo, about 20px). The full-size
+   * stroke disappears below a pixel there and the first trace takes over a
+   * second to show, so the compact mark draws a thicker stroke over a faint
+   * G that is readable from the first frame, on a shorter loop.
+   */
+  isCompact?: boolean;
+}
+
 /**
  * The animated Genfeed G (trace, then fill). Single source for BrandLoader,
  * Spinner, and the Button loading state. Inherits `currentColor` and fills its
@@ -47,10 +59,28 @@ const ANIMATION_STYLES = `
     100% { opacity: 0; }
   }
 
+  .genfeed-mark-compact .genfeed-loader-trace {
+    stroke-width: 360;
+    animation: genfeed-loader-draw 1.6s cubic-bezier(0.72, 0, 0.2, 1) infinite;
+  }
+
+  .genfeed-mark-compact .genfeed-loader-fill {
+    opacity: 0.18;
+    animation: genfeed-mark-compact-fill 1.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+
+  @keyframes genfeed-mark-compact-fill {
+    0%, 50% { opacity: 0.18; }
+    66%, 88% { opacity: 1; }
+    100% { opacity: 0.18; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .genfeed-loader-root { animation: none; opacity: 1; }
-    .genfeed-loader-trace { display: none; }
-    .genfeed-loader-fill { animation: none; opacity: 1; }
+    .genfeed-loader-trace,
+    .genfeed-mark-compact .genfeed-loader-trace { display: none; }
+    .genfeed-loader-fill,
+    .genfeed-mark-compact .genfeed-loader-fill { animation: none; opacity: 1; }
   }
 `;
 
@@ -62,7 +92,7 @@ const ANIMATION_STYLES = `
  * sibling `<style>` next to it before React hydrates (#6601). A hoisted style
  * must sit outside the SVG, so it is a sibling of the `<svg>`.
  */
-export default function BrandMark() {
+export default function BrandMark({ isCompact = false }: BrandMarkProps = {}) {
   return (
     <>
       <style href="genfeed-brand-mark" precedence="genfeed-component">
@@ -70,7 +100,10 @@ export default function BrandMark() {
       </style>
       <svg
         aria-hidden="true"
-        className="size-full overflow-visible"
+        className={cn(
+          'size-full overflow-visible',
+          isCompact && 'genfeed-mark-compact',
+        )}
         viewBox="0 0 500 500"
       >
         <g transform="translate(0,500) scale(0.1,-0.1)">

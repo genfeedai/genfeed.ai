@@ -22,6 +22,7 @@ import ThemePreferenceSync from '@providers/theme-sync/theme-preference-sync';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
+import type { ProtectedAuthGateProps } from '@/props/providers/protected-auth-gate.props';
 import { GlobalModalsProvider } from '@/providers/global-modals/global-modals.provider';
 
 export interface ProtectedProvidersProps extends LayoutProps {
@@ -33,9 +34,14 @@ export interface ProtectedProvidersProps extends LayoutProps {
   initialBootstrap?: ProtectedBootstrapData | null;
   renderModal?: GlobalModalRenderer;
   additionalProviders?: (children: ReactNode) => ReactNode;
+  /** Rendered by the auth gate while the session token resolves. */
+  authPendingFallback?: ReactNode;
 }
 
-export function ProtectedAuthGate({ children }: LayoutProps): ReactNode {
+export function ProtectedAuthGate({
+  children,
+  fallback = null,
+}: ProtectedAuthGateProps): ReactNode {
   const {
     getToken,
     isLoaded: isAuthLoaded,
@@ -114,7 +120,7 @@ export function ProtectedAuthGate({ children }: LayoutProps): ReactNode {
   ]);
 
   if (!effectiveIsAuthLoaded || !effectiveIsSignedIn || !hasJwtToken) {
-    return null;
+    return fallback;
   }
 
   return children;
@@ -129,6 +135,7 @@ export default function ProtectedProviders({
   includeApiStatusCheck = true,
   initialBootstrap,
   additionalProviders,
+  authPendingFallback,
   renderModal,
 }: ProtectedProvidersProps): ReactNode {
   const isDesktop = useIsDesktopClient();
@@ -213,5 +220,9 @@ export default function ProtectedProviders({
     return content;
   }
 
-  return <ProtectedAuthGate>{content}</ProtectedAuthGate>;
+  return (
+    <ProtectedAuthGate fallback={authPendingFallback}>
+      {content}
+    </ProtectedAuthGate>
+  );
 }

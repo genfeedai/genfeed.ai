@@ -5,11 +5,11 @@ import { RoutedOrganizationProvider } from '@genfeedai/contexts/user/organizatio
 import type { ProtectedBootstrapProps } from '@props/layout/protected-bootstrap.props';
 import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import DesktopRuntimeKeepAlive from '@/components/desktop/DesktopRuntimeKeepAlive';
 import AppProtectedLayout from '@/components/layouts/protected/app-protected-layout';
+import WorkspaceFrameSkeleton from '@/components/shell/workspace-frame-skeleton/WorkspaceFrameSkeleton';
 import { useAuthUser } from '@/hooks/auth/use-auth-user';
 import { FeatureFlagProvider } from '@/hooks/feature-flags/provider';
 import { identifyAnalyticsUser } from '@/lib/analytics';
@@ -26,6 +26,7 @@ export default function ProtectedLayoutClient({
 }: ProtectedBootstrapProps) {
   const { user } = useAuthUser();
   const translate = useTranslations('pages.platformFlags.unavailable');
+  const translatePending = useTranslations('pages.organizationRouting.pending');
   // Admin module and feature flags (#5468), server-rendered with the shell.
   const {
     flags: platformFlags,
@@ -74,7 +75,9 @@ export default function ProtectedLayoutClient({
       />
     </main>
   ) : (
-    <LazyLoadingFallback variant="full" />
+    // The same frame the organization check shows next, so the first paint
+    // is already the app and nothing swaps while flags and session resolve.
+    <WorkspaceFrameSkeleton label={translatePending('loading')} />
   );
 
   return (

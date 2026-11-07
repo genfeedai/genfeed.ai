@@ -77,9 +77,6 @@ vi.mock('@/components/layouts/protected/app-protected-layout', () => ({
 vi.mock('@ui/display/error-boundary/ErrorBoundary', () => ({
   ErrorBoundary: ({ children }: { children: ReactNode }) => children,
 }));
-vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
-  default: () => <div role="status">Loading settings</div>,
-}));
 vi.mock('@ui/error/ErrorFallback', () => ({
   ErrorFallback: ({
     title,
@@ -111,7 +108,9 @@ describe('protected shell platform flags recovery', () => {
       </ProtectedLayoutClient>,
     );
 
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: 'Loading your workspace' }),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Workspace')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('region', { name: 'Module route gate' }),

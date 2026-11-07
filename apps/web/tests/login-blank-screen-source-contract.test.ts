@@ -7,12 +7,14 @@ function readAppSource(path: string) {
 }
 
 describe('post-login loading source contracts', () => {
-  it('keeps the protected app Suspense boundary non-blocking while it resolves', () => {
+  it('keeps the app frame, not a blank page or spinner, while the protected app resolves', () => {
     const source = readAppSource(
       'src/components/layouts/protected/app-protected-layout.tsx',
     );
 
-    expect(source).toContain('<Suspense fallback={null}>');
+    expect(source).toContain(
+      "fallback={<WorkspaceFrameSkeleton label={translatePending('loading')} />}",
+    );
     expect(source).not.toContain('PageLoadingState');
   });
 
