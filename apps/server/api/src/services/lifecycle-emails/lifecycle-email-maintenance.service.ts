@@ -24,7 +24,11 @@ import {
   getLifecycleSystemEmailDefinition,
 } from '@genfeedai/contracts/constants';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
-import { BillingAccountMemberRole, Prisma } from '@genfeedai/prisma';
+import {
+  ArticleStatus,
+  BillingAccountMemberRole,
+  Prisma,
+} from '@genfeedai/prisma';
 import {
   buildSystemEmailHtml,
   escapeSystemEmailHtml,
@@ -65,6 +69,8 @@ const DAY_MS = 86_400_000;
  * waits a week.
  */
 const CREDIT_ALERT_COOLDOWN_MS = 7 * DAY_MS;
+/** Stands in for the body while the action link is swapped for its tracking placeholder. */
+const EMAIL_BODY_SLOT = '<!--genfeed-email-body-->';
 /** Previews in one recap or reminder: two rows of three. */
 const RECAP_PREVIEW_LIMIT = 6;
 const CREDIT_ALERT_TEMPLATE_KEYS = ['credit-low', 'credit-exhausted'] as const;
@@ -310,12 +316,24 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
           ...scope,
           generationCompletedAt: { gte: start, lt: end },
         },
-        select: { id: true, brandId: true, category: true },
+        select: {
+          id: true,
+          brandId: true,
+          category: true,
+          generationCompletedAt: true,
+        },
         orderBy: { generationCompletedAt: 'desc' },
       }),
       this.prisma.article.findMany({
         where: { ...scope, generationCompletedAt: { gte: start, lt: end } },
-        select: { id: true, brandId: true, label: true },
+        select: {
+          id: true,
+          brandId: true,
+          label: true,
+          status: true,
+          generationCompletedAt: true,
+        },
+        orderBy: { generationCompletedAt: 'desc' },
       }),
     ]);
     const generated = new Set([
@@ -384,18 +402,35 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         )
       : null;
     const periodLabel = weekly ? 'week' : 'day';
+    // Ingredients are already filtered to generated, live outputs; an archived
+    // article was created this period but can no longer be published.
+    const ready = new Set([
+      ...ingredients.map(({ id }) => `ingredient:${id}`),
+      ...articles
+        .filter(({ status }) => status !== ArticleStatus.ARCHIVED)
+        .map(({ id }) => `article:${id}`),
+    ]);
+    for (const key of publishedIds) ready.delete(key);
     const previews: EmailThumbnail[] = [
-      ...ingredients.map((item) =>
-        this.ingredientThumbnail(item, destinationUrl),
-      ),
-      ...articles.map(
-        (article): EmailThumbnail => ({
+      ...ingredients.map((item) => ({
+        completedAt: item.generationCompletedAt,
+        thumbnail: this.ingredientThumbnail(item, destinationUrl),
+      })),
+      ...articles.map((article) => ({
+        completedAt: article.generationCompletedAt,
+        thumbnail: {
           href: destinationUrl,
           kind: 'article',
           label: article.label,
-        }),
-      ),
-    ];
+        } satisfies EmailThumbnail,
+      })),
+    ]
+      .sort(
+        (left, right) =>
+          (right.completedAt?.getTime() ?? 0) -
+          (left.completedAt?.getTime() ?? 0),
+      )
+      .map(({ thumbnail }) => thumbnail);
     const bodyHtml = buildContentRecapEmailBody({
       creditsUsed,
       generated,
@@ -406,6 +441,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
       period: weekly ? 'week' : 'day',
       periodRange: `${start.toISOString().slice(0, 10)} to ${new Date(end.getTime() - 1).toISOString().slice(0, 10)} (UTC)`,
       published: publishedIds.size,
+      ready: ready.size,
       views: metrics.length ? views : undefined,
     });
     await this.queueProductEmail({
@@ -765,18 +801,22 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     periodStart?: string;
     periodEnd?: string;
   }): Promise<void> {
+    // Only the primary action is tracked as a CTA visit. The body goes in
+    // after the swap so preview tiles that open the same page keep their link.
     const html = buildSystemEmailHtml({
       appUrl: this.appUrl(),
       title: input.subject,
       preheader: input.preheader,
-      bodyHtml: input.bodyHtml,
+      bodyHtml: EMAIL_BODY_SLOT,
       action: { label: input.actionLabel, url: input.destinationUrl },
       footerNote:
         'Manage these emails in your Genfeed notification preferences.',
-    }).replaceAll(
-      `href="${escapeSystemEmailHtml(input.destinationUrl)}"`,
-      'href="{{emailActionUrl}}"',
-    );
+    })
+      .replaceAll(
+        `href="${escapeSystemEmailHtml(input.destinationUrl)}"`,
+        'href="{{emailActionUrl}}"',
+      )
+      .replace(EMAIL_BODY_SLOT, () => input.bodyHtml);
     await this.emails.queueEmail({
       organizationId: input.request.organizationId,
       userId: input.userId,
