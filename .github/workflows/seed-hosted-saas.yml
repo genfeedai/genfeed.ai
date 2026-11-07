@@ -17,6 +17,10 @@ run-name: Seed hosted SaaS | ${{ inputs.seed }} | ${{ inputs.live && 'live' || '
 #   reference-data-sync  Model catalog, rates, skills, presets, elements, fonts.
 #                        The dry run only validates that the catalogs load, since
 #                        the sync has no diff mode. Live is idempotent.
+#   backfill-report      Read-only: prints the newest data_backfills rows (the
+#                        report each batched backfill migration writes) from a
+#                        READ ONLY transaction in the migrate task. `live` is
+#                        ignored; it never writes.
 #
 # Dispatch from master.
 on:
@@ -29,6 +33,7 @@ on:
         options:
           - articles
           - reference-data-sync
+          - backfill-report
       live:
         description: "apply the seed; unchecked is a dry run"
         required: false
@@ -156,6 +161,29 @@ jobs:
           PROJECT: ${{ vars.PROJECT }}
           HOSTED_OWNER_EMAIL: ${{ vars.HOSTED_OWNER_EMAIL }}
           HOSTED_ORGANIZATION_LABEL: ${{ vars.HOSTED_ORGANIZATION_LABEL }}
+          # backfill-report reader. The image of the last deploy may predate any
+          # repo script, so it is inline. TLS matches
+          # packages/libs/prisma/prisma-pg-config.ts (configured or bundled RDS CA).
+          BACKFILL_REPORT_SCRIPT: |
+            const { readFileSync, existsSync } = require('node:fs');
+            const { Client } = require('pg');
+            const url = new URL(process.env.DATABASE_URL);
+            for (const key of ['sslmode', 'ssl', 'connection_limit', 'pool_timeout']) url.searchParams.delete(key);
+            const ca = [process.env.PRISMA_POSTGRES_CA_FILE, process.env.PGSSLROOTCERT, '/certs/rds-ca.pem']
+              .find((file) => file && existsSync(file));
+            const client = new Client({ connectionString: url.toString(), ssl: ca ? { ca: readFileSync(ca, 'utf8'), rejectUnauthorized: true } : undefined });
+            (async () => {
+              await client.connect();
+              await client.query('BEGIN READ ONLY');
+              const { rows } = await client.query('SELECT id, "completedAt", report FROM data_backfills ORDER BY "completedAt" DESC LIMIT 100');
+              for (const row of rows) console.log(`backfill-report ${JSON.stringify(row)}`);
+              console.log(`backfill-report rows=${rows.length}`);
+              await client.query('ROLLBACK');
+              await client.end();
+            })().catch((error) => {
+              console.error(`backfill-report failed: ${error.message}`);
+              process.exit(1);
+            });
         run: |
           set -euo pipefail
           CLUSTER=$(tofu output -raw cluster_name)
@@ -199,6 +227,13 @@ jobs:
                   override+=(--command-arg "${arg}")
                 done
               fi
+              ;;
+            backfill-report)
+              TASK_DEFINITION=$(tofu output -raw migrate_task_definition_arn)
+              CONTAINER=migrate
+              LOG_GROUP="/ecs/${PROJECT}-production/migrate"
+              # BACKFILL_REPORT_SCRIPT (step env) is a fixed query, no user input.
+              override=(--container-name "${CONTAINER}" --command-arg node --command-arg=-e --command-arg "${BACKFILL_REPORT_SCRIPT}")
               ;;
             *)
               echo "::error::Unknown seed '${SEED}'"

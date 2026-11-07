@@ -269,6 +269,20 @@ describe('hosted SaaS on-demand seed contract', () => {
     expect(seed).toContain('A seed needs a reason.');
   });
 
+  test('backfill-report reads data_backfills in a read-only transaction', async () => {
+    const seed = await workflow('seed-hosted-saas.yml');
+    const start = seed.indexOf('BACKFILL_REPORT_SCRIPT: |');
+    const reader = seed.slice(start, seed.indexOf('        run: |', start));
+
+    expect(seed).toContain('          - backfill-report');
+    expect(seed).toContain('migrate_task_definition_arn');
+    expect(reader).toContain("await client.query('BEGIN READ ONLY');");
+    expect(reader).toContain('FROM data_backfills');
+    expect(reader).not.toMatch(
+      /\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|COMMIT)\b/,
+    );
+  });
+
   test('passes user input through env, never into the script text', async () => {
     const seed = await workflow('seed-hosted-saas.yml');
 
