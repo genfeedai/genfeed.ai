@@ -394,3 +394,47 @@ describe('loadServerSuperAdmin', () => {
     await expect(loadServerSuperAdmin()).resolves.toBe(false);
   });
 });
+
+describe('isReportableTokenExchangeFailure', () => {
+  it.each([
+    [
+      'a network failure that a retry follows',
+      { attempt: 1, error: 'fetch failed', isFinal: false, reason: 'network' },
+      false,
+    ],
+    [
+      'a network failure that ends the exchange',
+      { attempt: 2, error: 'fetch failed', isFinal: true, reason: 'network' },
+      true,
+    ],
+    [
+      'a 5xx that ends the exchange',
+      { attempt: 2, isFinal: true, reason: 'http', status: 503 },
+      true,
+    ],
+    [
+      'a rate-limited exchange',
+      { attempt: 1, isFinal: true, reason: 'http', status: 429 },
+      true,
+    ],
+    [
+      'a signed-out visitor',
+      { attempt: 1, isFinal: true, reason: 'http', status: 401 },
+      false,
+    ],
+    [
+      'a prerender that ended first',
+      { attempt: 1, isFinal: true, reason: 'prerender-ended' },
+      false,
+    ],
+  ] as const)(
+    'decides whether to report %s',
+    async (_case, failure, expected) => {
+      const { isReportableTokenExchangeFailure } = await import(
+        './protected-bootstrap.server'
+      );
+
+      expect(isReportableTokenExchangeFailure(failure)).toBe(expected);
+    },
+  );
+});

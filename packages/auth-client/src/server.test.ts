@@ -73,11 +73,9 @@ describe('getBetterAuthServerToken', () => {
     ).resolves.toBe('jwt');
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(onFailure).toHaveBeenCalledWith({
-      attempt: 1,
-      reason: 'http',
-      status: 503,
-    });
+    expect(onFailure.mock.calls.map(([failure]) => failure)).toEqual([
+      { attempt: 1, isFinal: false, reason: 'http', status: 503 },
+    ]);
   });
 
   it('retries once after a network error and returns null when both fail', async () => {
@@ -93,9 +91,58 @@ describe('getBetterAuthServerToken', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(onFailure.mock.calls.map(([failure]) => failure)).toEqual([
-      { attempt: 1, error: 'fetch failed', reason: 'network' },
-      { attempt: 2, error: 'fetch failed', reason: 'network' },
+      { attempt: 1, error: 'fetch failed', isFinal: false, reason: 'network' },
+      { attempt: 2, error: 'fetch failed', isFinal: true, reason: 'network' },
     ]);
+  });
+
+  it('keeps the system error code of a network failure', async () => {
+    const fetchMock = vi.fn(async () => {
+      throw new TypeError('fetch failed', {
+        cause: Object.assign(
+          new Error('connect ECONNREFUSED 10.0.0.1:443 api.internal'),
+          { code: 'ECONNREFUSED' },
+        ),
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const onFailure = vi.fn();
+
+    await getBetterAuthServerToken('session=abc', { onFailure });
+
+    expect(onFailure.mock.calls.map(([failure]) => failure)).toEqual([
+      {
+        attempt: 1,
+        code: 'ECONNREFUSED',
+        error: 'fetch failed',
+        isFinal: false,
+        reason: 'network',
+      },
+      {
+        attempt: 2,
+        code: 'ECONNREFUSED',
+        error: 'fetch failed',
+        isFinal: true,
+        reason: 'network',
+      },
+    ]);
+  });
+
+  it('waits 250ms before the retry', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('fetch failed'))
+      .mockResolvedValueOnce(Response.json({ token: 'jwt' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const token = getBetterAuthServerToken('session=abc');
+    await vi.advanceTimersByTimeAsync(249);
+    const attemptsBeforePause = fetchMock.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(1);
+
+    expect(attemptsBeforePause).toBe(1);
+    await expect(token).resolves.toBe('jwt');
   });
 
   it('does not retry a refused session', async () => {
@@ -110,6 +157,7 @@ describe('getBetterAuthServerToken', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(onFailure).toHaveBeenCalledWith({
       attempt: 1,
+      isFinal: true,
       reason: 'http',
       status: 401,
     });
@@ -127,6 +175,7 @@ describe('getBetterAuthServerToken', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(onFailure).toHaveBeenCalledWith({
       attempt: 1,
+      isFinal: true,
       reason: 'missing-token',
       status: 200,
     });
@@ -182,7 +231,7 @@ describe('getBetterAuthServerToken', () => {
     ).resolves.toBeNull();
 
     expect(onFailure.mock.calls.map(([failure]) => failure)).toEqual([
-      { attempt: 1, reason: 'prerender-ended' },
+      { attempt: 1, isFinal: true, reason: 'prerender-ended' },
     ]);
   });
 

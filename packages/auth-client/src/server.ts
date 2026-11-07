@@ -16,10 +16,16 @@ interface BetterAuthTokenResponse {
 /** Why one `/token` attempt produced no token. Carries no cookie or token. */
 export interface BetterAuthServerTokenFailure {
   attempt: number;
+  /** The system error code under a network failure, such as `ECONNRESET`. */
+  code?: string;
   error?: string;
+  /** No further attempt follows, so this failure is the exchange's outcome. */
+  isFinal: boolean;
   reason: 'http' | 'missing-token' | 'network' | 'prerender-ended';
   status?: number;
 }
+
+type TokenAttemptFailure = Omit<BetterAuthServerTokenFailure, 'isFinal'>;
 
 export interface BetterAuthServerTokenOptions {
   onFailure?: (failure: BetterAuthServerTokenFailure) => void;
@@ -28,6 +34,13 @@ export interface BetterAuthServerTokenOptions {
 }
 
 const TOKEN_ATTEMPTS = 2;
+/**
+ * Pause before the retry. Both attempts of one production exchange failed 31ms
+ * apart (APP-GENFEED-AI-1P, #9561), too soon for a reset connection or a
+ * restarting API task to recover.
+ */
+const TOKEN_RETRY_DELAY_MS = 250;
+const SYSTEM_ERROR_CODE_PATTERN = /^[A-Z][A-Z0-9_]{1,63}$/;
 
 /**
  * Digest Next.js puts on the rejection of a fetch still pending when the
@@ -127,7 +140,7 @@ function pruneServerTokenCache(): void {
  * Network errors and 5xx answers are transient; a 4xx means the session itself
  * is missing or refused, and asking again returns the same answer.
  */
-function isRetryable(failure: BetterAuthServerTokenFailure): boolean {
+function isRetryable(failure: TokenAttemptFailure): boolean {
   return (
     failure.reason === 'network' ||
     (failure.reason === 'http' && (failure.status ?? 0) >= 500)
@@ -138,7 +151,7 @@ async function requestToken(
   cookieHeader: string,
   attempt: number,
   tokenUrl?: string,
-): Promise<string | BetterAuthServerTokenFailure> {
+): Promise<string | TokenAttemptFailure> {
   try {
     const response = await fetch(
       tokenUrl ?? `${getApiOrigin()}${BETTER_AUTH_BASE_PATH}/token`,
@@ -163,8 +176,10 @@ async function requestToken(
     if (isPrerenderEndedError(error)) {
       return { attempt, reason: 'prerender-ended' };
     }
+    const code = getSystemErrorCode(error);
     return {
       attempt,
+      ...(code ? { code } : {}),
       error: error instanceof Error ? error.message : String(error),
       reason: 'network',
     };
@@ -172,13 +187,37 @@ async function requestToken(
 }
 
 /**
+ * Undici rejects every transport fault with the same `fetch failed` and keeps
+ * the reason on `cause`. Only a code-shaped string is kept, never the cause's
+ * message, which can carry the request URL.
+ */
+function getSystemErrorCode(error: unknown): string | undefined {
+  const cause =
+    error instanceof Error && typeof error.cause === 'object'
+      ? error.cause
+      : null;
+  const code =
+    cause !== null && 'code' in cause && typeof cause.code === 'string'
+      ? cause.code
+      : null;
+  return code && SYSTEM_ERROR_CODE_PATTERN.test(code) ? code : undefined;
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+/**
  * Server-side Bearer JWT retrieval for RSC bootstrap. Forwards the incoming
  * Better Auth session cookies to the `jwt` plugin's `/token` endpoint and
  * returns the minted JWT (the same token the API guard verifies via JWKS).
  *
- * Retries once after a network error or 5xx. Returns `null` when there is no
- * session cookie or no attempt succeeded, so callers degrade gracefully instead
- * of throwing during render; `onFailure` reports each failed attempt. A token is
+ * Retries once, 250ms later, after a network error or 5xx. Returns `null` when
+ * there is no session cookie or no attempt succeeded, so callers degrade
+ * gracefully instead of throwing during render; `onFailure` reports each failed
+ * attempt and marks the one that ends the exchange `isFinal`. A token is
  * reused for the same cookie header for up to 30 seconds (never past its own
  * expiry), and concurrent callers share one request. Failures are not cached.
  *
@@ -251,14 +290,20 @@ async function fetchServerToken(
       return result;
     }
 
-    options.onFailure?.(result);
-    if (result.reason === 'prerender-ended') {
+    const isPrerenderEnded = result.reason === 'prerender-ended';
+    const willRetry =
+      !isPrerenderEnded && isRetryable(result) && attempt < TOKEN_ATTEMPTS;
+    options.onFailure?.({ ...result, isFinal: !willRetry });
+    if (isPrerenderEnded) {
       // Callers that joined from a live request still deserve a token.
       entry.hasTransientFailure = true;
       return null;
     }
     if (!isRetryable(result)) {
       return null;
+    }
+    if (willRetry) {
+      await wait(TOKEN_RETRY_DELAY_MS);
     }
   }
 
