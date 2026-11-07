@@ -594,6 +594,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'preset:Preset': [
     'adPreset',
     'playbook',
+    'cinematicShort',
     'aspectRatio',
     'cameraMovement',
     'duration',

@@ -1,6 +1,7 @@
 import type { ModelCategory, ModelProvider, Platform } from '../..';
 import type { AdPreset } from '../../api-types/contracts/ad-preset.contract';
 import type { B2bPlaybook } from '../../api-types/contracts/b2b-playbook.contract';
+import type { CinematicShort } from '../../api-types/contracts/cinematic-short.contract';
 import type { IBaseEntity, IBrand, IOrganization } from '../index';
 
 export interface IPreset extends IBaseEntity {
@@ -15,6 +16,7 @@ export interface IPreset extends IBaseEntity {
   prompt?: string;
   adPreset?: AdPreset;
   playbook?: B2bPlaybook;
+  cinematicShort?: CinematicShort;
   key: string;
   category: ModelCategory;
   model?: string;

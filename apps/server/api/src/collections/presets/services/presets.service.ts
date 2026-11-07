@@ -7,6 +7,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import { b2bPlaybookSchema } from '@genfeedai/contracts/api-types/contracts/b2b-playbook.contract';
+import { cinematicShortSchema } from '@genfeedai/contracts/api-types/contracts/cinematic-short.contract';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { platformTenantProof } from '@libs/prisma/platform-scope';
@@ -36,6 +37,7 @@ const PRESET_CONFIG_FIELDS = [
   'blacklists',
   'camera',
   'cameraMovement',
+  'cinematicShort',
   'description',
   'duration',
   'ingredientId',
@@ -65,6 +67,22 @@ function assertValidPlaybook(playbook: unknown): void {
       `Invalid playbook: ${parsed.error.issues
         .map(
           (issue) => `${issue.path.join('.') || 'playbook'} ${issue.message}`,
+        )
+        .join('; ')}`,
+    );
+  }
+}
+
+/** Same rule as playbooks: a cinematic short an admin saves must compile later. */
+function assertValidCinematicShort(cinematicShort: unknown): void {
+  if (cinematicShort === undefined || cinematicShort === null) return;
+  const parsed = cinematicShortSchema.safeParse(cinematicShort);
+  if (!parsed.success) {
+    throw new BadRequestException(
+      `Invalid cinematic short: ${parsed.error.issues
+        .map(
+          (issue) =>
+            `${issue.path.join('.') || 'cinematicShort'} ${issue.message}`,
         )
         .join('; ')}`,
     );
@@ -108,6 +126,7 @@ export class PresetsService extends BaseService<
     populate: PopulateOption[] = [],
   ): Promise<PresetDocument> {
     assertValidPlaybook(createDto.playbook);
+    assertValidCinematicShort(createDto.cinematicShort);
     await this.assertKeyAvailable(createDto.key, createDto.organizationId);
 
     try {
@@ -271,6 +290,7 @@ export class PresetsService extends BaseService<
     updateDto: Partial<UpdatePresetDto>,
   ): Promise<Record<string, unknown> | undefined> {
     assertValidPlaybook(updateDto.playbook);
+    assertValidCinematicShort(updateDto.cinematicShort);
     const hasConfigPatch = this.hasConfigPatch(updateDto);
     const changesScope = updateDto.organizationId !== undefined;
 

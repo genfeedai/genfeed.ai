@@ -42,6 +42,7 @@ import {
 import { LinkedInClient } from '@mcp/services/client/linkedin.client';
 import type { LinkedInConnectionStatus } from '@mcp/services/client/linkedin.client.types';
 import { MediaClient } from '@mcp/services/client/media.client';
+import { PresetsClient } from '@mcp/services/client/presets.client';
 import { RemixClient } from '@mcp/services/client/remix.client';
 import {
   type ScheduledReleaseControlAction,
@@ -147,6 +148,7 @@ export class ClientService {
   private readonly workspaceApp: WorkspaceAppClient;
   private readonly scheduler: SchedulerClient;
   private readonly campaigns: CampaignClient;
+  private readonly presets: PresetsClient;
   private readonly remix: RemixClient;
   private readonly workflows: WorkflowClient;
   private readonly workspace: WorkspaceClient;
@@ -172,6 +174,7 @@ export class ClientService {
     this.workspaceApp = new WorkspaceAppClient(this.base);
     this.scheduler = new SchedulerClient(this.base);
     this.campaigns = new CampaignClient(this.base);
+    this.presets = new PresetsClient(this.base);
     this.remix = new RemixClient(this.base);
     this.workflows = new WorkflowClient(this.base);
     this.workspace = new WorkspaceClient(this.base);
@@ -435,6 +438,10 @@ export class ClientService {
     params: ListWorkspaceActivityParams = {},
   ): Promise<Array<Record<string, unknown>>> {
     return this.workspaceApp.listActivity(params);
+  }
+
+  listPresets() {
+    return this.presets.listPresets();
   }
 
   importSourcePost(input: RemixToolInput<'import_source_post'>) {

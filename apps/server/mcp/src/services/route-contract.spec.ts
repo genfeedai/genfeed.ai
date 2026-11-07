@@ -76,6 +76,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/articles/controllers/articles.controller.ts',
     prefix: 'articles',
   },
+  presets: {
+    file: 'collections/presets/controllers/presets.controller.ts',
+    prefix: 'presets',
+  },
   credentials: {
     file: 'collections/credentials/controllers/credentials.controller.ts',
     prefix: 'credentials',
@@ -299,6 +303,12 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     sub: 'content-runs/:id/remix/scenes/resume',
     controller: 'remixRuns',
     tools: ['control_remix_generation'],
+  },
+  {
+    method: 'Get',
+    sub: '',
+    controller: 'presets',
+    tools: ['get_presets', 'get_preset'],
   },
   // ── Skills Pro organization entitlements ──
   {

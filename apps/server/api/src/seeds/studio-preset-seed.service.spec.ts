@@ -2,6 +2,7 @@ import { StudioPresetSeedService } from '@api/seeds/studio-preset-seed.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AD_PRESETS } from '@genfeedai/contracts/constants/ad-presets.constant';
 import { B2B_PLAYBOOKS } from '@genfeedai/contracts/constants/b2b-playbooks.constant';
+import { CINEMATIC_SHORTS } from '@genfeedai/contracts/constants/cinematic-shorts.constant';
 import {
   STUDIO_SYSTEM_PRESETS,
   studioSystemPresetId,
@@ -19,7 +20,10 @@ type PresetRow = {
 };
 
 const CATALOG_SIZE =
-  STUDIO_SYSTEM_PRESETS.length + AD_PRESETS.length + B2B_PLAYBOOKS.length;
+  STUDIO_SYSTEM_PRESETS.length +
+  AD_PRESETS.length +
+  B2B_PLAYBOOKS.length +
+  CINEMATIC_SHORTS.length;
 const [conflicting] = STUDIO_SYSTEM_PRESETS;
 
 /**
@@ -104,6 +108,20 @@ describe('StudioPresetSeedService', () => {
         row.config?.playbook ? [[row.category, row.config.playbook]] : [],
       ),
     ).toEqual(B2B_PLAYBOOKS.map((playbook) => [playbook.mediaType, playbook]));
+  });
+
+  it('stores every cinematic short in its config as a video preset', async () => {
+    const { rows, service } = fixture();
+
+    await service.reconcileCatalog();
+
+    expect(
+      rows.flatMap((row) =>
+        row.config?.cinematicShort
+          ? [[row.category, row.config.cinematicShort]]
+          : [],
+      ),
+    ).toEqual(CINEMATIC_SHORTS.map((short) => ['video', short]));
   });
 
   it('does not overwrite a tenant or brand-owned row with a colliding id', async () => {

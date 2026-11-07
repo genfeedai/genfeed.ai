@@ -3,6 +3,7 @@ import { ElementDto } from '@api/shared/dto/element/element.dto';
 import { ModelCategory, Platform } from '@genfeedai/contracts';
 import type { AdPreset } from '@genfeedai/contracts/api-types/contracts/ad-preset.contract';
 import type { B2bPlaybook } from '@genfeedai/contracts/api-types/contracts/b2b-playbook.contract';
+import type { CinematicShort } from '@genfeedai/contracts/api-types/contracts/cinematic-short.contract';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
@@ -36,6 +37,15 @@ export class CreatePresetDto extends ElementDto {
     required: false,
   })
   playbook?: B2bPlaybook;
+
+  @IsOptional()
+  @IsObject()
+  @ApiProperty({
+    description:
+      'Cinematic short: timed shot list, palette arc, style by feel, sound spec, negative list and title card',
+    required: false,
+  })
+  cinematicShort?: CinematicShort;
 
   @IsEntityId()
   @IsOptional()
