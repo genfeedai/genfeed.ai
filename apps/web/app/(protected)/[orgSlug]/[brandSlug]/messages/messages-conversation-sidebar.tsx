@@ -5,6 +5,7 @@ import {
   Platform,
   SocialConversationType,
 } from '@genfeedai/contracts';
+import { formatElapsedTime } from '@genfeedai/helpers/formatting/date/date.helper';
 import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
 import {
   ConversationSidebarSearch,
@@ -30,35 +31,6 @@ import type {
 import MessagesFilterMenu from './messages-filter-menu';
 
 export type { MessagesInboxView, MessagesSurface };
-
-function formatRelativeTime(value?: string | null): string {
-  if (!value) {
-    return '';
-  }
-
-  const timestamp = new Date(value).getTime();
-  if (Number.isNaN(timestamp)) {
-    return '';
-  }
-
-  const diffMinutes = Math.max(
-    0,
-    Math.floor((Date.now() - timestamp) / 60_000),
-  );
-  if (diffMinutes < 1) {
-    return 'now';
-  }
-  if (diffMinutes < 60) {
-    return `${diffMinutes}m`;
-  }
-
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) {
-    return `${diffHours}h`;
-  }
-
-  return `${Math.floor(diffHours / 24)}d`;
-}
 
 export function getParticipantLabel(
   conversation: SocialConversationModel,
@@ -109,7 +81,10 @@ function ConversationRow({
   onSelect: (conversationId: string) => void;
 }) {
   const translate = useTranslations('common.messages');
-  const relativeTime = formatRelativeTime(conversation.latestMessageAt);
+  const relativeTime = formatElapsedTime(
+    conversation.latestMessageAt,
+    'compact',
+  );
   const needsReview =
     conversation.needsReview || conversation.status === 'needs_review';
   const participantLabel = getParticipantLabel(conversation);

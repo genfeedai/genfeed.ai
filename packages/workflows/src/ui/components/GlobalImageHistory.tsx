@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { formatElapsedTime } from '@genfeedai/helpers/formatting/date/date.helper';
 import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Clock3, X } from 'lucide-react';
@@ -11,17 +12,6 @@ import { useWorkflowStore } from '../stores/workflow';
 import type { ImageHistoryItem } from '../stores/workflow/types';
 
 const EMPTY_HISTORY: ImageHistoryItem[] = [];
-
-function formatRelativeTime(timestamp: number): string {
-  const diff = Date.now() - timestamp;
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-
-  if (hours > 0) return `${hours}h ago`;
-  if (minutes > 0) return `${minutes}m ago`;
-  return 'Just now';
-}
 
 function calculateFanPosition(index: number, _total: number) {
   const verticalSpacing = 60;
@@ -63,7 +53,7 @@ function FanItem({
           zIndex: 10 - index,
         } as React.CSSProperties
       }
-      title={`${formatRelativeTime(item.timestamp)}\n${item.prompt?.substring(0, 50) || ''}...`}
+      title={`${formatElapsedTime(item.timestamp, 'ago')}\n${item.prompt?.substring(0, 50) || ''}...`}
     >
       <Image
         src={item.image}
@@ -188,7 +178,7 @@ function HistorySidebar({
                 {item.prompt?.substring(0, 60) || 'No prompt'}
               </p>
               <p className="text-2xs text-muted-foreground mt-0.5">
-                {formatRelativeTime(item.timestamp)}
+                {formatElapsedTime(item.timestamp, 'ago')}
                 {item.model ? ` · ${item.model}` : ''}
               </p>
             </div>

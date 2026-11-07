@@ -165,7 +165,7 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
   legacyUiAllowance(
     'packages/agent/src/components/AgentStrategyStatus.tsx',
     'to-locale-date-string',
-    2,
+    1,
   ),
   legacyUiAllowance(
     'packages/agent/src/components/ContentCalendarCard.tsx',
