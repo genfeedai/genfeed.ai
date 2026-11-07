@@ -221,7 +221,6 @@ describe('host global modal catalog boundary', () => {
     'upload',
     'export',
     'prompt',
-    'metadata',
     'illustration',
     'postRemix',
     'postRepurpose',
