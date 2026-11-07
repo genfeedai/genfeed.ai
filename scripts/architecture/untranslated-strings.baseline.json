@@ -500,7 +500,7 @@
     "packages/ui/src/components/error/ErrorFallback.tsx": 2,
     "packages/ui/src/components/error/not-found/not-found-page.tsx": 2,
     "packages/ui/src/components/layout/container-title/ContainerTitle.tsx": 1,
-    "packages/ui/src/components/layouts/lightbox/MediaLightbox.tsx": 2,
+    "packages/ui/src/components/layouts/lightbox/MediaLightbox.tsx": 1,
     "packages/ui/src/components/loading/fallback/LazyLoadingFallback.tsx": 1,
     "packages/ui/src/components/masonry/image/MasonryImageMediaArea.tsx": 3,
     "packages/ui/src/components/masonry/shared/MasonryBrandLogo.tsx": 2,

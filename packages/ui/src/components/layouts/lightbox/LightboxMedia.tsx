@@ -14,6 +14,7 @@ interface LightboxMediaProps {
 }
 
 interface LightboxSlideProps extends LightboxMediaProps {
+  ariaLabel: string;
   isActive: boolean;
 }
 
@@ -44,13 +45,18 @@ function useLightboxMedia(item: IIngredient) {
   return { isUnavailable, poster, url };
 }
 
-export function LightboxSlide({ isActive, isVideo, item }: LightboxSlideProps) {
+export function LightboxSlide({
+  ariaLabel,
+  isActive,
+  isVideo,
+  item,
+}: LightboxSlideProps) {
   const { isUnavailable, poster, url } = useLightboxMedia(item);
   const label = item.metadataLabel || 'Media';
 
   if (!url) {
     return (
-      <div className="flex size-full items-center justify-center bg-black text-sm text-white/70">
+      <div className="flex size-full items-center justify-center bg-card text-sm text-muted-foreground">
         {isUnavailable ? 'Media unavailable' : <Spinner />}
       </div>
     );
@@ -58,9 +64,13 @@ export function LightboxSlide({ isActive, isVideo, item }: LightboxSlideProps) {
 
   if (isVideo) {
     return (
-      <div className="relative flex size-full items-center justify-center bg-black">
+      <div
+        className={
+          'relative flex size-full items-center justify-center bg-black' /* design-system-allow-content-color -- video letterbox */
+        }
+      >
         <VideoPlayer
-          ariaLabel="Media lightbox video"
+          ariaLabel={ariaLabel}
           isActive={isActive}
           src={url}
           thumbnail={poster}

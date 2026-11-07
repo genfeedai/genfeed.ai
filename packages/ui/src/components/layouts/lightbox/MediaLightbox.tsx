@@ -145,6 +145,7 @@ export default function MediaLightbox({
         buttonPrev: slides.length <= 1 ? () => null : undefined,
         slide: ({ slide, offset }) => (
           <LightboxSlide
+            ariaLabel="Media lightbox video"
             isActive={offset === 0 && open}
             isVideo={(slide as Slide).isVideo === true}
             item={(slide as Slide).ingredient as IIngredient}
