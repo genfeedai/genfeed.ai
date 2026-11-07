@@ -583,7 +583,7 @@ describe('InstagramService', () => {
         of({
           data: {
             data: {
-              expires_at: 0,
+              expires_at: 1_700_000_000,
               is_valid: true,
               scopes: ['instagram_basic', 'instagram_manage_messages'],
             },
@@ -605,7 +605,10 @@ describe('InstagramService', () => {
       expect(request[1].params).not.toHaveProperty('fb_exchange_token');
       expect(credentialsMock.patch).toHaveBeenCalledWith(
         'credential-id',
-        expect.objectContaining({ accessTokenExpiry: null, isConnected: true }),
+        expect.objectContaining({
+          accessTokenExpiry: new Date(1_700_000_000 * 1000),
+          isConnected: true,
+        }),
       );
     });
 

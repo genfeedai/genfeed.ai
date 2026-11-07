@@ -72,19 +72,20 @@ export class InstagramAccountsService {
         const assigned: Array<{ id?: string; username?: string }> =
           response.data?.data ?? [];
 
-        for (const account of assigned) {
-          if (!account?.id) {
-            continue;
-          }
-
-          accounts.push({
-            ...(await this.readInstagramAccountProfile(
-              account.id,
-              account.username,
-              accessToken,
-            )),
-          });
-        }
+        // Profile reads are best-effort and independent: run them together so
+        // the wait is one timeout per batch, not one per account.
+        const batch = await Promise.all(
+          assigned
+            .filter((account) => Boolean(account?.id))
+            .map((account) =>
+              this.readInstagramAccountProfile(
+                account.id as string,
+                account.username,
+                accessToken,
+              ),
+            ),
+        );
+        accounts.push(...batch);
 
         const hasNext = typeof response.data?.paging?.next === 'string';
         const nextAfter = response.data?.paging?.cursors?.after;

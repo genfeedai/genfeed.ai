@@ -631,6 +631,29 @@ describe('InstagramController', () => {
       );
     });
 
+    it('clears a stale expiry when Meta reports none', async () => {
+      mockGraphReads();
+
+      await controller.verify(mockRequest, { code: 'auth-code', state });
+
+      const patch = credentialsPatchMock.mock.calls[0][1] as Record<
+        string,
+        unknown
+      >;
+      expect(patch).toHaveProperty('accessTokenExpiry', null);
+    });
+
+    it('refuses a token Meta cannot tie to a business', async () => {
+      mockGraphReads({ businessId: '' });
+
+      const failure = await captureHttpException(
+        controller.verify(mockRequest, { code: 'auth-code', state }),
+      );
+
+      expect(failure.getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+      expect(credentialsPatchMock).not.toHaveBeenCalled();
+    });
+
     it('stores the expiry only when Meta reports one', async () => {
       mockGraphReads({
         exchange: { access_token: 'business-token', expires_in: 3600 },
@@ -667,7 +690,8 @@ describe('InstagramController', () => {
           string,
           unknown
         >;
-        expect(patch).not.toHaveProperty('grantedScopes');
+        expect(patch).toHaveProperty('grantedScopes', []);
+        expect(patch).toHaveProperty('grantedScopesCapturedAt', null);
         expect(patch).toHaveProperty('accessToken', 'business-token');
         expect(
           JSON.stringify([

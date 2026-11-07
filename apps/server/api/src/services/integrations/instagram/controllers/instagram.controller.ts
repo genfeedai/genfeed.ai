@@ -262,14 +262,18 @@ export class InstagramController {
           accessToken: access_token,
           accessTokenExpiry: expires_in
             ? new Date(Date.now() + expires_in * 1000)
-            : undefined,
+            : null,
           externalBusinessId: businessId,
           isConnected: false,
           isDeleted: false,
           oauthState: null,
           refreshToken: undefined,
           refreshTokenExpiry: undefined,
-          ...buildGrantedScopesCredentialPatch(scope),
+          // Unknown scopes must not inherit a previous token's grant.
+          ...(buildGrantedScopesCredentialPatch(scope) ?? {
+            grantedScopes: [],
+            grantedScopesCapturedAt: null,
+          }),
         },
       );
 

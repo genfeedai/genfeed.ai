@@ -146,6 +146,17 @@ export class InstagramConnectionResolverService {
         }),
       );
     const businessId = identityRes.data?.client_business_id;
+    if (!businessId) {
+      // `externalBusinessId` is what marks a credential as Unified Login;
+      // without it the row would silently be treated as a Page-linked one.
+      throw new HttpException(
+        {
+          detail: 'Meta did not identify the connected business.',
+          title: 'Instagram connection failed',
+        },
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
 
     // The token response documents no `scope`; ask Meta what it granted. When
     // Meta does not say, the grant stays "unknown" and each call is checked by
