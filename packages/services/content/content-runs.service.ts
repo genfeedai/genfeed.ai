@@ -30,6 +30,12 @@ import {
   storyboardLongFormEstimateSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-a-roll.contract';
 import {
+  type QuoteStoryboardAssets,
+  type StartStoryboardAssets,
+  type StoryboardAssetQuote,
+  storyboardAssetQuoteSchema,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-asset-bible.contract';
+import {
   type ReplaceStoryboardCharacter,
   type StoryboardCharacterOperationReceipt,
   type StoryboardCharacterReplacement,
@@ -410,6 +416,44 @@ export class ContentRunsService extends HTTPBaseService {
   ): Promise<StoryboardRun> {
     const response = await this.instance.post<JsonApiResponseDocument>(
       `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/renders/reconcile`,
+      {},
+      { signal },
+    );
+    return deserializeStoryboardRunDocument(response.data);
+  }
+
+  /** Prices one asset bible generation call (#9616). Spends nothing. */
+  async quoteStoryboardAssets(
+    brandId: string,
+    runId: string,
+    input: QuoteStoryboardAssets,
+  ): Promise<StoryboardAssetQuote> {
+    const response = await this.instance.post<StoryboardAssetQuote>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/assets/quote`,
+      input,
+    );
+    return storyboardAssetQuoteSchema.parse(response.data);
+  }
+
+  async startStoryboardAssets(
+    brandId: string,
+    runId: string,
+    input: StartStoryboardAssets,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/assets`,
+      input,
+    );
+    return deserializeStoryboardRunDocument(response.data);
+  }
+
+  async reconcileStoryboardAssets(
+    brandId: string,
+    runId: string,
+    signal?: AbortSignal,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/assets/reconcile`,
       {},
       { signal },
     );

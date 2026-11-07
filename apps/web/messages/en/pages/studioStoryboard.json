@@ -457,7 +457,8 @@
     "stillGenerating": "Still is generating",
     "stillOutOfDate": "Still is out of date",
     "subtitle": "Storyboard · {state}",
-    "tabs": "Storyboard details"
+    "tabs": "Storyboard details",
+    "assets": "Assets"
   },
   "agentThread": {
     "board": "Shots",
@@ -661,5 +662,53 @@
     "promptUnavailable": "The prompt is compiled once the storyboard's video model is known.",
     "useCompiledPrompt": "Use the compiled prompt",
     "overLimit": "This shot names {count, plural, one {# reference image} other {# reference images}}; {model} accepts {limit}. Remove a role or choose another model."
+  },
+  "assets": {
+    "title": "Asset bible",
+    "help": "The faces, costumes, props and places this video is made from. The chosen face and body of each cast member go to every shot they appear in.",
+    "kindFace": "Face",
+    "kindBody": "Body and costume",
+    "kindProp": "Prop",
+    "kindEnvironment": "Environment",
+    "labelFor": "Name of {label}",
+    "remove": "Remove {label}",
+    "castFor": "Cast member for {label}",
+    "chooseCast": "Choose a cast member",
+    "briefFor": "Brief for {label}",
+    "briefPlaceholder": {
+      "character_face": "Age, features, hair. Leave empty when you add real photos.",
+      "character_body": "Build, costume, shoes, accessories.",
+      "prop": "What it is, its materials and colors.",
+      "environment": "The place, the time of day, the mood."
+    },
+    "sheetFor": "Character sheet setting for {label}",
+    "sheetOutdoor": "Empty outdoor place (realistic light)",
+    "sheetNeutral": "Neutral studio",
+    "imagesFor": "Images of {label}",
+    "sourceImage": "Photo of {label}",
+    "variant": "Variant of {label}",
+    "chosen": "{label}, chosen",
+    "choose": "Choose {label}",
+    "generating": "{count, plural, one {# image generating} other {# images generating}}",
+    "addPhotos": "Add photos",
+    "addReferences": "Add reference images",
+    "countFor": "How many variants of {label}",
+    "generateVariants": "Generate variants",
+    "costumeSwap": "Dress the real person",
+    "anglesFor": "Angles for {label}",
+    "anglesPlaceholder": "the back, the left side, above",
+    "moreAngles": "More angles",
+    "editFor": "Change to {label}",
+    "editPlaceholder": "Make it night with the lights off",
+    "edit": "Edit",
+    "newKind": "Kind of asset",
+    "newLabel": "Name of the new asset",
+    "newLabelPlaceholder": "Mia, the kitchen, the brass clock",
+    "newCast": "Cast member for the new asset",
+    "add": "Add asset",
+    "confirmTitle": "Generate asset images",
+    "quoteMessage": "{count, plural, one {# image} other {# images}} on {model} for {credits, plural, one {# credit} other {# credits}}. You are charged only for images that finish.",
+    "quoteByok": "{count, plural, one {# image} other {# images}} on {model} with your own provider key. No credits are charged.",
+    "confirm": "Generate"
   }
 }

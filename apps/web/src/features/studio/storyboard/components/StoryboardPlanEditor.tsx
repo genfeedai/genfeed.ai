@@ -10,6 +10,7 @@ import {
   ButtonVariant,
   IngredientCategory,
 } from '@genfeedai/contracts';
+import { STORYBOARD_ASSET_BIBLE_LIMITS } from '@genfeedai/contracts/api-types/contracts/storyboard-asset-bible.contract';
 import {
   isStoryboardSlideshow,
   STORYBOARD_SHOT_LIMITS,
@@ -29,10 +30,12 @@ import { useTranslations } from 'next-intl';
 import { Fragment, useEffect, useImperativeHandle, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type {
+  StoryboardAssetBibleRequest,
   StoryboardEditablePlan,
   StoryboardPlanEditorProps,
 } from '@/features/studio/props/storyboard.props';
 import StoryboardAnimatic from '@/features/studio/storyboard/components/StoryboardAnimatic';
+import StoryboardAssetBible from '@/features/studio/storyboard/components/StoryboardAssetBible';
 import StoryboardCastPanel from '@/features/studio/storyboard/components/StoryboardCastPanel';
 import StoryboardDetailsPanel from '@/features/studio/storyboard/components/StoryboardDetailsPanel';
 import StoryboardInspector from '@/features/studio/storyboard/components/StoryboardInspector';
@@ -92,6 +95,7 @@ export default function StoryboardPlanEditor({
   longForm,
   slideshow,
   renders,
+  assets: assetActions,
   capabilities,
   capabilityError,
   refreshCapabilities,
@@ -111,6 +115,7 @@ export default function StoryboardPlanEditor({
     'pages.studioStoryboard.slideshow',
   );
   const translateRenders = useTranslations('pages.studioStoryboard.renders');
+  const translateAssets = useTranslations('pages.studioStoryboard.assets');
   const { openConfirm } = useConfirmModal();
   const { openGallery } = useGalleryModal();
   const {
@@ -235,6 +240,9 @@ export default function StoryboardPlanEditor({
           ...(member.avatarAssetId ? [member.avatarAssetId] : []),
           ...member.referenceAssetIds,
         ])
+        .map((id) => ({ id, kind: 'image' as const })),
+      ...(plan.assetBible ?? [])
+        .flatMap((entry) => [...entry.sourceAssetIds, ...entry.variantAssetIds])
         .map((id) => ({ id, kind: 'image' as const })),
     ],
   );
@@ -400,6 +408,62 @@ export default function StoryboardPlanEditor({
         confirmLabel: translateRenders('confirm'),
         onConfirm: () => perform(() => renders.start(quote)),
       });
+    });
+  }
+  /** Prices one asset bible call and starts it once the person accepts. */
+  function requestAssets(request: StoryboardAssetBibleRequest) {
+    if (!assetActions) return;
+    void perform(async (revision) => {
+      const quote = await assetActions.quote(revision, request);
+      const count = quote.items.length;
+      openConfirm({
+        isOpen: true,
+        label: translateAssets('confirmTitle'),
+        message:
+          quote.billingMode === 'byok'
+            ? translateAssets('quoteByok', { count, model: quote.modelKey })
+            : translateAssets('quoteMessage', {
+                count,
+                model: quote.modelKey,
+                credits: quote.total,
+              }),
+        confirmLabel: translateAssets('confirm'),
+        onConfirm: () => perform(() => assetActions.start(request, quote)),
+      });
+    });
+  }
+  /** Adds Library images to an entry as its photos or reference stills. */
+  function pickAssetSources(entryId: string) {
+    const entry = plan.assetBible?.find((item) => item.id === entryId);
+    if (!entry) return;
+    openGallery({
+      category: IngredientCategory.IMAGE,
+      maxSelectableItems: Math.max(
+        1,
+        STORYBOARD_ASSET_BIBLE_LIMITS.maxSources - entry.sourceAssetIds.length,
+      ),
+      title: entry.label,
+      onSelect: (selected) => {
+        const ids = selected
+          .filter((item) => item.brandId === run.brandId && !item.isDeleted)
+          .map((item) => item.id);
+        if (!ids.length) return;
+        const sourceAssetIds = [
+          ...new Set([...entry.sourceAssetIds, ...ids]),
+        ].slice(0, STORYBOARD_ASSET_BIBLE_LIMITS.maxSources);
+        edit({
+          ...plan,
+          assetBible: (plan.assetBible ?? []).map((item) =>
+            item.id === entryId
+              ? {
+                  ...item,
+                  sourceAssetIds,
+                  chosenAssetId: item.chosenAssetId ?? sourceAssetIds[0],
+                }
+              : item,
+          ),
+        });
+      },
     });
   }
   function reset() {
@@ -1063,6 +1127,36 @@ export default function StoryboardPlanEditor({
         }}
       >
         <StoryboardInspector
+          assetCount={plan.assetBible?.length ?? 0}
+          assets={
+            isLongForm || isSlideshow ? undefined : (
+              <StoryboardAssetBible
+                canGenerate={Boolean(assetActions)}
+                generations={run.config.assetGenerations}
+                imageUrls={Object.fromEntries(
+                  (plan.assetBible ?? [])
+                    .flatMap((entry) => [
+                      ...entry.sourceAssetIds,
+                      ...entry.variantAssetIds,
+                    ])
+                    .map((id) => [
+                      id,
+                      assets[`image:${id}`]?.cdnUrl ?? undefined,
+                    ]),
+                )}
+                isDisabled={isDisabled}
+                onAddSources={pickAssetSources}
+                onChange={(assetBible) =>
+                  edit({
+                    ...plan,
+                    assetBible: assetBible.length ? assetBible : undefined,
+                  })
+                }
+                onGenerate={requestAssets}
+                plan={plan}
+              />
+            )
+          }
           cast={
             <StoryboardCastPanel
               brandId={run.brandId}

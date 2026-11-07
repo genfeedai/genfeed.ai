@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class ComposeCharacterSheetDto {
   @IsString()
@@ -16,4 +22,14 @@ export class ComposeCharacterSheetDto {
     required: false,
   })
   readonly isNonHumanoid?: boolean;
+
+  @IsOptional()
+  @IsIn(['neutral', 'outdoor'])
+  @ApiProperty({
+    description:
+      'Where the sheet is shot: a neutral studio, or an empty outdoor place for realistic light',
+    enum: ['neutral', 'outdoor'],
+    required: false,
+  })
+  readonly environment?: 'neutral' | 'outdoor';
 }

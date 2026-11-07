@@ -90,6 +90,53 @@ describe('compileStoryboardShotPrompt', () => {
     });
   });
 
+  it('names the chosen face and body of each cast member in the shot', () => {
+    const value = shot({ dialogue: undefined });
+    expect(
+      compileStoryboardShotPrompt(
+        {
+          ...plan([value]),
+          assetBible: [
+            {
+              id: 'mia-face',
+              kind: 'character_face',
+              label: 'Mia face',
+              castMemberId: 'mia',
+              sourceAssetIds: ['photo-1'],
+              variantAssetIds: [],
+              chosenAssetId: 'photo-1',
+            },
+            {
+              id: 'mia-body',
+              kind: 'character_body',
+              label: 'Mia costume',
+              castMemberId: 'mia',
+              sourceAssetIds: [],
+              variantAssetIds: ['body-1', 'body-2'],
+              chosenAssetId: 'body-2',
+            },
+            {
+              id: 'clock',
+              kind: 'prop',
+              label: 'Clock',
+              sourceAssetIds: [],
+              variantAssetIds: ['clock-1'],
+              chosenAssetId: 'clock-1',
+            },
+          ],
+        },
+        value,
+        { isAudioEnabled: true, maxReferences: 9 },
+      ),
+    ).toEqual({
+      prompt:
+        'Reference images: image 1 is the opening frame; image 2 is the face of Mia; image 3 is the body and costume of Mia. Mia checks the clock and runs for the door. Keep every person consistent with the reference images.',
+      referenceAssetIds: ['still-1', 'photo-1', 'body-2', 'mia-1', 'style-1'],
+      namedReferenceCount: 3,
+      isCustom: false,
+    });
+  });
+
   it('sends the prompt the person wrote in place of the compiled one', () => {
     const value = shot({ videoPrompt: 'Handheld, rain on the window.' });
     expect(
@@ -161,5 +208,32 @@ describe('storyboardPlanSchema shot cuts', () => {
         ]),
       ),
     ).toContain('Give each reference image one role.');
+  });
+});
+
+describe('storyboardPlanSchema asset bible', () => {
+  const entry = {
+    id: 'mia-body',
+    kind: 'character_body' as const,
+    label: 'Mia costume',
+    sourceAssetIds: [],
+    variantAssetIds: ['body-1'],
+  };
+  it.each([
+    [
+      [{ ...entry, castMemberId: 'nobody' }],
+      'Choose a member of the storyboard cast.',
+    ],
+    [
+      [{ ...entry, chosenAssetId: 'other' }],
+      'Choose one of the entry’s own images.',
+    ],
+    [[entry, entry], 'Asset bible entry IDs must be unique.'],
+    [
+      [{ ...entry, kind: 'prop' as const, castMemberId: 'mia' }],
+      'Only a face or body belongs to a cast member.',
+    ],
+  ])('rejects %j', (assetBible, message) => {
+    expect(issueMessages({ ...plan(), assetBible })).toContain(message);
   });
 });
