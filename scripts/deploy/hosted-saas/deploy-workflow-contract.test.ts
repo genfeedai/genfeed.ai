@@ -269,15 +269,18 @@ describe('hosted SaaS on-demand seed contract', () => {
     expect(seed).toContain('A seed needs a reason.');
   });
 
-  test('backfill-report reads data_backfills in a read-only transaction', async () => {
+  test('report seeds run fixed queries in a read-only transaction', async () => {
     const seed = await workflow('seed-hosted-saas.yml');
-    const start = seed.indexOf('BACKFILL_REPORT_SCRIPT: |');
+    const start = seed.indexOf('READ_ONLY_REPORT_SCRIPT: |');
     const reader = seed.slice(start, seed.indexOf('        run: |', start));
 
     expect(seed).toContain('          - backfill-report');
+    expect(seed).toContain('          - webhook-id-report');
+    expect(seed).toContain('            backfill-report | webhook-id-report)');
     expect(seed).toContain('migrate_task_definition_arn');
     expect(reader).toContain("await client.query('BEGIN READ ONLY');");
     expect(reader).toContain('FROM data_backfills');
+    expect(reader).toContain("NOT LIKE 'wh\\\\_%'");
     expect(reader).not.toMatch(
       /\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|COMMIT)\b/,
     );
