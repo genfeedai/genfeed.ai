@@ -5,7 +5,6 @@ import { buildPaginatedResult } from '@api/helpers/utils/paginated-result/pagina
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { ContentLearningRunStatus as RunStatus } from '@genfeedai/contracts';
-import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
 
@@ -92,25 +91,26 @@ export class LearningReadService {
     return row;
   }
 
-  /** Every live learning account on the platform, most recently edited first. */
+  /**
+   * Every live learning account on the platform, most recently edited first.
+   * Platform-wide: the superadmin controller runs it inside crossOrgUnsafe.
+   */
   accountInventory(query: LearningPage) {
-    return crossOrgUnsafe(() =>
-      this.page(
-        query,
-        ({ skip, take }) =>
-          // tenant-scope-ignore: superadmin inventory is platform-wide
-          this.prisma.contentLearningAccount.findMany({
-            orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
-            skip,
-            take,
-            where: { isDeleted: false },
-          }),
-        () =>
-          // tenant-scope-ignore: superadmin inventory is platform-wide
-          this.prisma.contentLearningAccount.count({
-            where: { isDeleted: false },
-          }),
-      ),
+    return this.page(
+      query,
+      ({ skip, take }) =>
+        // tenant-scope-ignore: superadmin inventory is platform-wide
+        this.prisma.contentLearningAccount.findMany({
+          orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+          skip,
+          take,
+          where: { isDeleted: false },
+        }),
+      () =>
+        // tenant-scope-ignore: superadmin inventory is platform-wide
+        this.prisma.contentLearningAccount.count({
+          where: { isDeleted: false },
+        }),
     );
   }
 

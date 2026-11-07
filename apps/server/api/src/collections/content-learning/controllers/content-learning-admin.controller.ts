@@ -73,7 +73,8 @@ export class ContentLearningAdminController {
     return serializeCollection(
       request,
       ContentLearningAccountSerializer,
-      await this.reads.accountInventory(query),
+      // #6120: superadmin account inventory spans every organization.
+      await crossOrgUnsafe(() => this.reads.accountInventory(query)),
     );
   }
   @Get('datasets') async datasetList(
