@@ -56,7 +56,7 @@ export function shotRenderLine(
   model: StageModel,
 ): Omit<RenderLine, 'credits'> {
   const { plan } = config;
-  const inputFingerprint = shotRenderInputFingerprint(plan, shot);
+  const inputFingerprint = shotRenderInputFingerprint(plan, shot, stage);
   const durationSeconds =
     stage === 'draft'
       ? Math.min(...model.durations)
@@ -69,7 +69,18 @@ export function shotRenderLine(
     stage === 'final'
       ? latestShotRender(config.shotRenderOperations, shot.id, 'draft')
       : undefined;
-  if (draft?.state === 'ready' && draft.inputFingerprint === inputFingerprint) {
+  const { cast } = storyboardShotCast(plan, shot);
+  const promptFor = (referenceAssetIds: readonly string[]) =>
+    storyboardShotRenderPrompt(plan, shot, {
+      isAudioEnabled: model.audio.isEnabled,
+      hasCastReferences: cast.some((member) =>
+        member.referenceAssetIds.some((id) => referenceAssetIds.includes(id)),
+      ),
+    });
+  if (
+    draft?.state === 'ready' &&
+    draft.inputFingerprint === shotRenderInputFingerprint(plan, shot, 'draft')
+  ) {
     if (draft.referenceAssetIds.length > model.maxReferences)
       throw new BadRequestException(
         `The final model accepts ${model.maxReferences} references; the draft of shot ${shot.ordinal} used ${draft.referenceAssetIds.length}.`,
@@ -77,13 +88,16 @@ export function shotRenderLine(
     return {
       shotId: shot.id,
       inputFingerprint,
-      prompt: draft.prompt,
+      // A silent draft left the spoken line out; a final with sound needs it.
+      prompt:
+        draft.isAudioEnabled === model.audio.isEnabled
+          ? draft.prompt
+          : promptFor(draft.referenceAssetIds),
       referenceAssetIds: draft.referenceAssetIds,
       durationSeconds,
       promotedFromOperationId: draft.operationId,
     };
   }
-  const { cast } = storyboardShotCast(plan, shot);
   const referenceAssetIds = storyboardShotRenderReferences(plan, shot).slice(
     0,
     model.maxReferences,
@@ -91,12 +105,7 @@ export function shotRenderLine(
   return {
     shotId: shot.id,
     inputFingerprint,
-    prompt: storyboardShotRenderPrompt(plan, shot, {
-      isAudioEnabled: model.audio.isEnabled,
-      hasCastReferences: cast.some((member) =>
-        member.referenceAssetIds.some((id) => referenceAssetIds.includes(id)),
-      ),
-    }),
+    prompt: promptFor(referenceAssetIds),
     referenceAssetIds,
     durationSeconds,
   };

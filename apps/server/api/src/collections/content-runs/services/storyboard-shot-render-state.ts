@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import {
   type StoryboardShotRender,
+  type StoryboardShotRenderStage,
   storyboardShotRenderSchema,
   storyboardShotRenderStageSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-shot-render.contract';
@@ -82,14 +83,20 @@ export function latestShotRender(
 
 /**
  * Appends operations, dropping the oldest terminal ones that are no longer
- * the latest render of their shot and stage.
+ * the latest render of a shot and stage in the plan. The latest render of a
+ * shot the plan no longer has is prunable like any older render.
  */
 export function appendShotRenderOperations(
   journal: readonly ShotRenderOperation[],
   added: readonly ShotRenderOperation[],
+  planShotIds: ReadonlySet<string>,
 ): ShotRenderOperation[] {
   const next = [...journal, ...added];
-  const latest = new Set(latestShotRenderOperations(next).values());
+  const latest = new Set(
+    [...latestShotRenderOperations(next).values()].filter((op) =>
+      planShotIds.has(op.shotId),
+    ),
+  );
   let excess = next.length - SHOT_RENDER_JOURNAL_CAPACITY;
   return next.filter((op) => {
     if (excess <= 0 || isLiveShotRenderOperation(op) || latest.has(op)) {
@@ -150,12 +157,16 @@ export function storyboardShotRenderPrompt(
 }
 
 /**
- * Identifies the shot inputs a render is compiled from. Timing, notes and the
- * transition are left out: they change the edit, not the clip.
+ * Identifies the shot inputs a render of one stage is compiled from. Both
+ * stages follow the chosen video model, since the draft model is its cheaper
+ * sibling. Only the final follows the shot length: a draft always renders the
+ * shortest clip. Notes and the transition are left out: they change the
+ * edit, not the clip.
  */
 export function shotRenderInputFingerprint(
   plan: StoryboardPlan,
   shot: StoryboardShot,
+  stage: StoryboardShotRenderStage,
 ): string {
   return storyboardConfigHash({
     action: shot.action.trim(),
@@ -163,6 +174,9 @@ export function shotRenderInputFingerprint(
     references: storyboardShotRenderReferences(plan, shot),
     styleLabel: plan.styleLabel?.trim() || undefined,
     format: plan.format,
+    videoModelKey: plan.videoModelKey ?? undefined,
+    durationSeconds:
+      stage === 'final' ? (shot.durationSeconds ?? undefined) : undefined,
   });
 }
 
@@ -206,7 +220,8 @@ export function projectShotRenders(
           isAudioEnabled: op.isAudioEnabled,
           promotedFromOperationId: op.promotedFromOperationId,
           isCurrent:
-            op.inputFingerprint === shotRenderInputFingerprint(plan, shot),
+            op.inputFingerprint ===
+            shotRenderInputFingerprint(plan, shot, op.stage),
           errorCode: op.errorCode,
           updatedAt: op.updatedAt,
         }),

@@ -51,7 +51,11 @@ describe('appendShotRenderOperations', () => {
       { length: SHOT_RENDER_JOURNAL_CAPACITY },
       (_, index) => operation(index, index === 0 ? 'shot-keep' : 'shot-busy'),
     );
-    const next = appendShotRenderOperations(journal, [operation(900, 'new')]);
+    const next = appendShotRenderOperations(
+      journal,
+      [operation(900, 'new')],
+      new Set(['shot-keep', 'shot-busy', 'new']),
+    );
     expect(next).toHaveLength(SHOT_RENDER_JOURNAL_CAPACITY);
     expect(next.map((op) => op.shotId)).toContain('shot-keep');
     expect(next.at(-1)?.shotId).toBe('new');
@@ -62,7 +66,28 @@ describe('appendShotRenderOperations', () => {
       { length: SHOT_RENDER_JOURNAL_CAPACITY },
       (_, index) => operation(index, `shot-${index}`, 'submitted'),
     );
-    const next = appendShotRenderOperations(journal, [operation(900, 'new')]);
+    const next = appendShotRenderOperations(
+      journal,
+      [operation(900, 'new')],
+      new Set(['new']),
+    );
     expect(next).toHaveLength(SHOT_RENDER_JOURNAL_CAPACITY + 1);
+  });
+
+  it('prunes the latest render of a shot the plan no longer has', () => {
+    const journal = Array.from(
+      { length: SHOT_RENDER_JOURNAL_CAPACITY },
+      (_, index) => operation(index, `shot-${index}`),
+    );
+    const next = appendShotRenderOperations(
+      journal,
+      [operation(900, 'new')],
+      new Set(['shot-1', 'new']),
+    );
+    expect(next).toHaveLength(SHOT_RENDER_JOURNAL_CAPACITY);
+    expect(next.map((op) => op.shotId).slice(0, 2)).toEqual([
+      'shot-1',
+      'shot-2',
+    ]);
   });
 });

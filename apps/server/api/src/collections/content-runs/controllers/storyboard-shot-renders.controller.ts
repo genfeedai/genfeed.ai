@@ -6,8 +6,10 @@ import {
 import { StoryboardShotRendersService } from '@api/collections/content-runs/services/storyboard-shot-renders.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { StoryboardRunSerializer } from '@genfeedai/serializers';
 import { Body, Controller, Param, Post, Req } from '@nestjs/common';
 
@@ -29,6 +31,7 @@ export class StoryboardShotRendersController {
   }
 
   @Post(':runId/renders')
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async startRenders(
     @Req() request: Request,
     @Param('brandId') brandId: string,

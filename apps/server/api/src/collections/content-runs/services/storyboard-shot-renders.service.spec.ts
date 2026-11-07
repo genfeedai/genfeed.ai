@@ -183,9 +183,9 @@ function setup(initial: StoryboardNativeRunConfig = approvedConfig()) {
     [FINAL]: FINAL_PRICE,
   };
   const estimate = {
-    estimate: vi.fn(async ({ modelKey }: { modelKey: string }) => ({
+    estimate: vi.fn(async ({ modelKey }: Record<string, unknown>) => ({
       isAvailable: true,
-      credits: prices[modelKey] ?? null,
+      credits: prices[String(modelKey)] ?? null,
       modelKey,
     })),
   };
@@ -246,6 +246,7 @@ function setup(initial: StoryboardNativeRunConfig = approvedConfig()) {
     dispatched,
     ingredients,
     credits,
+    estimate,
     publicConfig,
     edit,
   };
@@ -320,6 +321,19 @@ describe('StoryboardShotRendersService quote', () => {
     ]);
   });
 
+  it('prices each shot with as many references as it sends', async () => {
+    const context = setup();
+    await context.service.quote('org-1', 'brand-1', 'run-1', {
+      expectedRevision: 7,
+      stage: 'draft',
+    });
+    expect(
+      context.estimate.estimate.mock.calls.map(
+        ([input]) => (input.referenceUrls as string[] | undefined)?.length,
+      ),
+    ).toEqual([4, 3]);
+  });
+
   it('refuses a long-form storyboard', async () => {
     const config = approvedConfig();
     config.plan.shots = [];
@@ -371,7 +385,7 @@ describe('StoryboardShotRendersService render', () => {
     ]);
   });
 
-  it('promotes a current draft with its exact prompt and references', async () => {
+  it('promotes a current draft with its references, adding the spoken line the silent draft left out', async () => {
     const context = setup();
     await render(context, 'draft', ['shot-1']);
     await finish(context);
@@ -391,10 +405,29 @@ describe('StoryboardShotRendersService render', () => {
         model: FINAL,
         isDraft: false,
         isAudioEnabled: true,
-        text: draft?.prompt,
+        text: 'Mia sprints down a wet alley. Spoken line: "Not tonight." Keep every person consistent with the reference images. Visual style: Handheld 35mm.',
         references: draft?.referenceAssetIds,
       }),
     );
+  });
+
+  it('marks a final stale once the shot length changes, keeping its draft current', async () => {
+    const context = setup();
+    await render(context, 'draft', ['shot-1']);
+    await finish(context);
+    await render(context, 'final', ['shot-1']);
+    await finish(context);
+    context.edit((config) => {
+      config.plan.shots[0].durationSeconds = 8;
+    });
+    expect(
+      context
+        .publicConfig()
+        .shotRenders?.map(({ stage, isCurrent }) => ({ stage, isCurrent })),
+    ).toEqual([
+      { stage: 'draft', isCurrent: true },
+      { stage: 'final', isCurrent: false },
+    ]);
   });
 
   it('compiles a fresh final once the shot changed after its draft', async () => {

@@ -190,7 +190,19 @@ export class StoryboardShotRendersService {
     }));
     await this.mutate(organizationId, brandId, runId, (current) => {
       // The quote was bound to this exact revision and these render inputs.
-      if (current.revision !== quote.revision)
+      // A still can land without a new revision, so compare the inputs too.
+      const shots = new Map(current.plan.shots.map((shot) => [shot.id, shot]));
+      if (
+        current.revision !== quote.revision ||
+        lines.some((line) => {
+          const shot = shots.get(line.shotId);
+          return (
+            !shot ||
+            shotRenderInputFingerprint(current.plan, shot, input.stage) !==
+              line.inputFingerprint
+          );
+        })
+      )
         throw new ConflictException(
           'The storyboard changed. Review the new quote.',
         );
@@ -211,6 +223,7 @@ export class StoryboardShotRendersService {
         shotRenderOperations: appendShotRenderOperations(
           current.shotRenderOperations ?? [],
           operations,
+          new Set(current.plan.shots.map((shot) => shot.id)),
         ),
       });
     });
@@ -283,7 +296,7 @@ export class StoryboardShotRendersService {
     ) =>
       Boolean(op) &&
       op?.state !== 'failed' &&
-      op?.inputFingerprint === shotRenderInputFingerprint(plan, shot);
+      op?.inputFingerprint === shotRenderInputFingerprint(plan, shot, stage);
     const targets = shotIds
       ? shotIds.map((id) => {
           const shot = plan.shots.find((candidate) => candidate.id === id);
@@ -318,23 +331,19 @@ export class StoryboardShotRendersService {
       stage,
     );
     const billingMode = await this.billingMode(organizationId, model);
-    const priced = new Map<number, number>();
+    // Prices follow the clip length and the number of references.
+    const priced = new Map<string, number>();
     const lines: RenderLine[] = [];
     for (const shot of targets) {
       const line = shotRenderLine(config, shot, stage, model);
-      let credits = priced.get(line.durationSeconds);
+      const priceKey = `${line.durationSeconds}:${line.referenceAssetIds.length}`;
+      let credits = priced.get(priceKey);
       if (credits === undefined) {
         credits =
           billingMode === 'byok'
             ? 0
-            : await this.price(
-                organizationId,
-                config,
-                model,
-                line.durationSeconds,
-                line,
-              );
-        priced.set(line.durationSeconds, credits);
+            : await this.price(organizationId, config, model, line);
+        priced.set(priceKey, credits);
       }
       lines.push({ ...line, credits });
     }
@@ -456,8 +465,7 @@ export class StoryboardShotRendersService {
     organizationId: string,
     config: StoryboardStoredRunConfig,
     model: StageModel,
-    durationSeconds: number,
-    line: Pick<RenderLine, 'prompt'>,
+    line: Pick<RenderLine, 'prompt' | 'durationSeconds' | 'referenceAssetIds'>,
   ): Promise<number> {
     const estimate = await this.estimate.estimate({
       organizationId,
@@ -466,7 +474,16 @@ export class StoryboardShotRendersService {
       prompt: line.prompt,
       aspectRatio: config.plan.format,
       dimensions: resolveAgentGenerationDimensions(config.plan.format),
-      duration: durationSeconds,
+      duration: line.durationSeconds,
+      // Stand-ins: a price depends on how many references there are, never
+      // on which ones.
+      ...(line.referenceAssetIds.length
+        ? {
+            referenceUrls: line.referenceAssetIds.map(
+              (_id, index) => `https://quote.invalid/reference-${index}.png`,
+            ),
+          }
+        : {}),
       ...(model.resolution ? { resolution: model.resolution } : {}),
       ...(model.audio.hasToggle
         ? { isAudioEnabled: model.audio.isEnabled }
