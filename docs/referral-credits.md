@@ -9,8 +9,16 @@ reward settlement, and the credit ledger portable across supported deployments.
 
 ## Customer contract
 
-- A billing-account member can create one opaque affiliate code for each billing
-  account they belong to.
+- A billing-account member gets one random primary affiliate code for each
+  billing account they belong to, and can add up to 25 more: a code they name
+  themselves (3 to 32 lowercase letters, numbers or hyphens, unique across
+  Genfeed, not on the reserved list), a code per brand that defaults to the
+  brand handle, or another random one. A taken code is refused, never
+  reassigned. A code can be turned off without losing its history (the primary
+  code stays on). If a brand's handle changes later, its existing code keeps
+  working. Every code pays into the same billing-account wallet; only the
+  attribution differs, so a sign-up can be traced to the code and brand that
+  brought it.
 - A new billing account can claim one code before it has paid activity. The
   first valid claim is immutable.
 - The referrer earns credits equal to 10% of the referred account's net,
