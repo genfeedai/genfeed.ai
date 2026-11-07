@@ -45,6 +45,7 @@ export interface IngredientsMediaGridProps {
   onReverse?: (ingredient: IIngredient) => Promise<void> | void;
   onMirror?: (ingredient: IIngredient) => Promise<void> | void;
   onSeeDetails?: (ingredient: IIngredient) => Promise<void> | void;
+  onRename?: (ingredient: IIngredient) => void;
   onUpdateParent?: (
     ingredient: IIngredient,
     parentId: string | null,
@@ -94,6 +95,13 @@ export interface IngredientTileOverlaysProps {
   /** Review (validate / reject) needs a persisted, actionable asset. */
   isReviewEnabled: boolean;
   onReviewUpdated: (ingredient: IIngredient) => void;
+}
+
+/** An asset field a person edits inline in the inspector. */
+export type IngredientMetadataField = 'description' | 'label';
+
+export interface IngredientMetadataFieldsProps {
+  ingredient: IIngredient;
 }
 
 export interface IngredientInspectorRailProps {

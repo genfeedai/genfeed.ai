@@ -1150,7 +1150,7 @@ describe('all current route namespace delivery', () => {
     const checkedModals = new Set<string>();
     const routeCatalogs = new Map<string, Catalog>();
     const modalEntries = coverage.modalEntries();
-    expect(new Set(modalEntries.map((entry) => entry.kind)).size).toBe(11);
+    expect(new Set(modalEntries.map((entry) => entry.kind)).size).toBe(10);
     let routes = 0;
     for (const page of routePages(path.join(APP, 'app'))) {
       const layouts = ancestors(page);

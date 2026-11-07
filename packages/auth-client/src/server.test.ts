@@ -22,6 +22,30 @@ function settleLater(outcome: Error | Response): Promise<Response> {
   });
 }
 
+/**
+ * Holds every cookie digest until the test releases it, so the order in which
+ * concurrent callers reach the shared cache is the test's, not the thread
+ * pool's.
+ */
+function holdCookieDigests(): { release: (call: number) => void } {
+  const releases: Array<() => void> = [];
+  vi.spyOn(globalThis.crypto.subtle, 'digest').mockImplementation(
+    () =>
+      new Promise<ArrayBuffer>((resolve) => {
+        releases.push(() => resolve(new ArrayBuffer(32)));
+      }),
+  );
+  return {
+    release: (call: number) => {
+      const release = releases[call - 1];
+      if (!release) {
+        throw new Error(`cookie digest ${call} was never requested`);
+      }
+      release();
+    },
+  };
+}
+
 describe('getBetterAuthServerToken', () => {
   beforeEach(() => {
     resetBetterAuthServerTokenCache();
@@ -30,6 +54,7 @@ describe('getBetterAuthServerToken', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it('forwards the session cookie and declares the visitor unknown', async () => {
@@ -130,6 +155,11 @@ describe('getBetterAuthServerToken', () => {
 
   it('waits 250ms before the retry', async () => {
     vi.useFakeTimers();
+    // A real digest settles on the thread pool, outside fake time, so the
+    // first attempt could start after the clock has already moved.
+    vi.spyOn(globalThis.crypto.subtle, 'digest').mockResolvedValue(
+      new ArrayBuffer(32),
+    );
     const fetchMock = vi
       .fn()
       .mockRejectedValueOnce(new TypeError('fetch failed'))
@@ -280,13 +310,28 @@ describe('getBetterAuthServerToken', () => {
         settleLater(Response.json({ token: 'live' })),
       );
     vi.stubGlobal('fetch', fetchMock);
+    const digests = holdCookieDigests();
+    const digest = vi.mocked(globalThis.crypto.subtle.digest);
 
+    // The first prerender starts the shared request and the live request
+    // joins it.
     const firstPrerender = getBetterAuthServerToken('session=abc');
     const liveRequest = getBetterAuthServerToken('session=abc');
+    digests.release(1);
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    digests.release(2);
 
+    // The prerender ends, killing its fetch, and a second prerender arrives
+    // while the live request is on its way back to ask for itself.
     endFirstPrerender();
     const secondPrerender = getBetterAuthServerToken('session=abc');
+    await vi.waitFor(() => expect(digest).toHaveBeenCalledTimes(4));
+
+    // The second prerender's replacement goes out first; the live request
+    // must not join it.
+    digests.release(3);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    digests.release(4);
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
     endSecondPrerender();
 

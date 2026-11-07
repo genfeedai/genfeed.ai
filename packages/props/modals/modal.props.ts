@@ -5,7 +5,6 @@ import type {
   PromptTextareaSchema,
 } from '@genfeedai/client/schemas';
 import type {
-  AssetScope,
   ComponentSize,
   IngredientCategory,
   ModalEnum,
@@ -21,12 +20,10 @@ import type {
   IElementCamera,
   IElementMood,
   IElementStyle,
-  IFolder,
   IFontFamily,
   IIngredient,
   ILink,
   IMember,
-  IMetadata,
   IModel,
   IMonitoredAccount,
   IOrganizationSetting,
@@ -438,15 +435,6 @@ export interface ModalPromptProps extends ModalVisibilityProps {
     sounds?: string[];
   }) => void;
   error?: string | null;
-}
-
-export interface ModalMetadataProps extends ModalVisibilityProps {
-  ingredientId: string;
-  ingredientCategory: string;
-  metadata?: IMetadata;
-  scope?: AssetScope;
-  folder?: IFolder | null;
-  onConfirm: () => void;
 }
 
 export interface ModalExportProps extends ModalVisibilityProps {

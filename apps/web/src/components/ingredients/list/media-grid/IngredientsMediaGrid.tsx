@@ -54,6 +54,7 @@ export default function IngredientsMediaGrid({
   onReverse,
   onMirror,
   onSeeDetails,
+  onRename,
   onUpdateParent,
   onRefresh,
   onReviewUpdated,
@@ -134,6 +135,7 @@ export default function IngredientsMediaGrid({
             onReprompt={onReprompt}
             onMarkArchived={onMarkArchived}
             onSeeDetails={onSeeDetails}
+            onRename={onRename}
             onReverse={onReverse}
             onMirror={onMirror}
             onUpdateParent={onUpdateParent}
@@ -167,6 +169,7 @@ export default function IngredientsMediaGrid({
           onReprompt={onReprompt}
           onMarkArchived={onMarkArchived}
           onSeeDetails={onSeeDetails}
+          onRename={onRename}
           onUpdateParent={onUpdateParent}
           onRefresh={onRefresh}
           onClickIngredient={onClickIngredient}

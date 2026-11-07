@@ -10,7 +10,6 @@ import {
   LazyModalExport,
   LazyModalGallery,
   LazyModalGenerateIllustration,
-  LazyModalMetadata,
   LazyModalPostBatch,
   LazyModalPostRemix,
   LazyModalPostRepurpose,
@@ -46,7 +45,6 @@ export default function GlobalModalsRenderer({
   generateIllustrationConfig,
   generateIllustrationTrigger,
   handleBrandCreateConfirm,
-  metadataConfig,
   openTrigger,
   postRemixData,
   postRemixTrigger,
@@ -173,20 +171,6 @@ export default function GlobalModalsRenderer({
               promptConfig.onConfirm(promptData.text);
               closePromptModal();
             }}
-          />,
-        )}
-
-      {metadataConfig &&
-        renderModal(
-          'metadata',
-          <LazyModalMetadata
-            isOpen={Boolean(metadataConfig)}
-            ingredientId={metadataConfig.ingredientId}
-            ingredientCategory={metadataConfig.ingredientCategory}
-            metadata={metadataConfig.metadata}
-            scope={metadataConfig.scope}
-            folder={metadataConfig.folder}
-            onConfirm={metadataConfig.onConfirm}
           />,
         )}
 

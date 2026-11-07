@@ -13,3 +13,19 @@ export const LIBRARY_ASSET_TAGS_EVENT = 'library:asset-tags-changed';
  * cards and the inspector follow without refetching the assets.
  */
 export const LIBRARY_TAG_UPDATED_EVENT = 'library:tag-updated';
+
+/**
+ * Dispatched on `window` after an asset's label or description is saved, with
+ * an `ILibraryAssetMetadataChange` as `detail`. The list swaps the new values
+ * into its row, so the card, the table and the inspector follow without
+ * refetching.
+ */
+export const LIBRARY_ASSET_METADATA_EVENT = 'library:asset-metadata-changed';
+
+/**
+ * Dispatched on `window` when a Rename action asks the inspector to put an
+ * asset's title into edit mode, with an `ILibraryAssetRenameRequest` as
+ * `detail`.
+ */
+export const LIBRARY_ASSET_RENAME_REQUEST_EVENT =
+  'library:asset-rename-requested';

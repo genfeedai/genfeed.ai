@@ -327,6 +327,7 @@
     "remixThisVideoTooltip": "Remix this video",
     "openInEditor": "Open in Editor",
     "openInEditorTooltip": "Open in the Studio editor",
+    "rename": "Rename",
     "resizeFormats": {
       "landscape": "Landscape",
       "portrait": "Portrait",

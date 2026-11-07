@@ -71,6 +71,8 @@ export interface BaseMasonryProps<T extends IIngredient = IIngredient> {
   onEditIngredient?: (ingredient: T) => void;
   onShareIngredient?: (ingredient: T) => void;
   onSeeDetails?: (ingredient: T) => void;
+  /** Put this asset's title into edit mode (the inspector owns the field). */
+  onRename?: (ingredient: T) => void;
   onConvertToVideo?: (ingredient: T) => void;
   onUseAsVideoReference?: (ingredient: T) => void;
   onCreateVariation?: (ingredient: T) => void;

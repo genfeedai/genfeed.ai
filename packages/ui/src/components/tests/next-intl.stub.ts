@@ -557,6 +557,7 @@ const UI_TEST_MESSAGES = {
       editImage: 'Edit image',
       editImageDescription: 'Change this image with an instruction',
       more: 'More',
+      rename: 'Rename',
       groups: { reframe: 'Reframe', convert: 'Convert', prompt: 'Prompt' },
     },
     brandGenerate: {

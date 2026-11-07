@@ -13,11 +13,13 @@ import {
   PageScope,
 } from '@genfeedai/contracts';
 import {
+  LIBRARY_ASSET_METADATA_EVENT,
   LIBRARY_ASSET_TAGS_EVENT,
   LIBRARY_TAG_UPDATED_EVENT,
 } from '@genfeedai/contracts/constants';
 import type {
   IIngredient,
+  ILibraryAssetMetadataChange,
   ILibraryAssetTagsChange,
   ILibraryTagUpdate,
 } from '@genfeedai/contracts/interfaces';
@@ -36,6 +38,7 @@ import { Button } from '@ui/primitives/button';
 import { format } from 'date-fns';
 import { useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { applyLibraryAssetMetadataChange } from '@/components/ingredients/inspector/library-asset-metadata-event';
 import { LazyModalImageToVideo } from '@/components/lazy/modal/LazyModal';
 import {
   applyLibraryAssetTagsChange,
@@ -256,6 +259,33 @@ export default function IngredientsList({
       window.removeEventListener(LIBRARY_TAG_UPDATED_EVENT, handleTagUpdate);
     };
   }, [setIngredients]);
+
+  // A rename or description edit lands in the row at once. Sorted by name,
+  // the renamed asset may belong elsewhere in the list, so the list reloads
+  // in the server's order.
+  const isSortedByName = String(query?.sort ?? '').startsWith('label');
+  useEffect(() => {
+    const handleMetadataChange = (event: Event) => {
+      const change = (event as CustomEvent<ILibraryAssetMetadataChange>).detail;
+      if (!change) {
+        return;
+      }
+
+      setIngredients((current) =>
+        applyLibraryAssetMetadataChange(current, change),
+      );
+      if (isSortedByName && change.label !== undefined) {
+        void handleRefresh(true);
+      }
+    };
+
+    window.addEventListener(LIBRARY_ASSET_METADATA_EVENT, handleMetadataChange);
+    return () =>
+      window.removeEventListener(
+        LIBRARY_ASSET_METADATA_EVENT,
+        handleMetadataChange,
+      );
+  }, [handleRefresh, isSortedByName, setIngredients]);
 
   useIngredientDeepLink({
     ingredients: filteredIngredients,

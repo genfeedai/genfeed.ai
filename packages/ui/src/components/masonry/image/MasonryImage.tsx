@@ -89,6 +89,7 @@ function MasonryImageTile({
   onMarkRejected,
   onMarkArchived,
   onSeeDetails,
+  onRename,
   onConvertToVideo,
   onUseAsVideoReference,
   onCreateVariation,
@@ -310,6 +311,7 @@ function MasonryImageTile({
           onVoteIngredient={onVoteIngredient}
           onPublishIngredient={onPublishIngredient}
           onSeeDetails={onSeeDetails}
+          onRename={onRename}
           onShareIngredient={onShareIngredient}
           onToggleFavorite={onToggleFavorite}
           onCopyPrompt={onCopyPrompt}

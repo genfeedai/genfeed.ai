@@ -38,7 +38,7 @@ export interface IActionHandlers {
   onEditIngredient?: (ingredient: IIngredient) => void;
   onEditCaption?: (ingredient: IIngredient) => void;
   onFullscreenMobile?: (ingredient: IIngredient) => void;
-  onRename?: (ingredient: IIngredient, newName: string) => void;
+  onRename?: (ingredient: IIngredient) => void;
   onCopy?: (ingredient: IIngredient) => void;
   onCopyPrompt?: (ingredient: IIngredient) => void;
   onMoreOptions?: (ingredient: IIngredient) => void;
@@ -57,6 +57,7 @@ export interface IActionHandlers {
 export interface IQuickActionCopy {
   openInEditor: { label: string; tooltip: string };
   remixThisVideo?: { label: string; tooltip: string };
+  rename: string;
   resize: Record<IngredientFormat, string>;
 }
 

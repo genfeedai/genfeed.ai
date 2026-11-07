@@ -32,6 +32,7 @@ import {
   Square,
   Star,
   Terminal,
+  TextCursorInput,
   ThumbsUp,
   Trash2,
   Upload,
@@ -819,6 +820,22 @@ export const createSetAsBannerAction = (
     },
     isLoading,
   );
+
+/** The label is passed in so the caller resolves it from the translation catalog. */
+export const createRenameAction = (
+  ingredient: IIngredient,
+  handler: IActionHandlers['onRename'] | undefined,
+  label: string,
+): IQuickAction | null =>
+  createStandardAction(ingredient, handler, {
+    dividerBefore: true,
+    icon: <TextCursorInput className={ICON_CLASS} />,
+    id: 'rename',
+    label,
+    showInMenu: true,
+    tooltip: label,
+    tooltipPosition: 'top',
+  });
 
 export const createTagsAction = (
   ingredient: IIngredient,

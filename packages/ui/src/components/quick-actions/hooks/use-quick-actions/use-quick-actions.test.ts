@@ -101,6 +101,9 @@ vi.mock('@ui/quick-actions/config/quick-actions.config', () => ({
   createSquareAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('square', 'Square') : null,
   ),
+  createRenameAction: vi.fn((_ingredient, handler, label) =>
+    handler ? createAction('rename', label) : null,
+  ),
   createTagsAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('manage-tags', 'Tags') : null,
   ),
@@ -198,6 +201,7 @@ const mockLoadingStates = {
 
 const quickActionCopy = {
   openInEditor: { label: 'Open in Editor', tooltip: 'Open in the editor' },
+  rename: 'Rename',
   resize: {
     [IngredientFormat.LANDSCAPE]: 'Resize to Landscape',
     [IngredientFormat.PORTRAIT]: 'Resize to Portrait',
@@ -390,6 +394,42 @@ describe('useQuickActions', () => {
     result.current.menuActions.forEach((action) => {
       expect(primaryIds.has(action.id)).toBe(false);
     });
+  });
+
+  it.each([
+    ['an image', false, IngredientCategory.IMAGE],
+    ['a video', true, IngredientCategory.VIDEO],
+  ])('offers Rename in the menu of %s', (_kind, isVideo, category) => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        copy: quickActionCopy,
+        handlers: { ...mockHandlers, onRename: vi.fn() },
+        isVideo,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient({ category }),
+      }),
+    );
+
+    expect(
+      result.current.menuActions.find((action) => action.id === 'rename')
+        ?.label,
+    ).toBe('Rename');
+  });
+
+  it('leaves Rename out where the surface cannot rename', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        copy: quickActionCopy,
+        handlers: mockHandlers,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+
+    expect(result.current.actions.map((action) => action.id)).not.toContain(
+      'rename',
+    );
   });
 
   it('keeps displaced download and publish actions in the menu', () => {

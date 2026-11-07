@@ -52,9 +52,11 @@ import IngredientOriginBadge from '@/components/ingredients/ingredient-origin-ba
 import LibraryAssetTypeBadge from '@/components/ingredients/library-asset-type-badge';
 import type { IngredientInspectorRailProps } from '@/props/content/ingredient.props';
 import IngredientLineageStrip from './IngredientLineageStrip';
+import IngredientMetadataFields from './IngredientMetadataFields';
 import IngredientPromptBlock from './IngredientPromptBlock';
 import IngredientTagsControl from './IngredientTagsControl';
 import { getIngredientShelf } from './ingredient-shelf.util';
+import { requestLibraryAssetRename } from './library-asset-metadata-event';
 import { useIngredientGenerationCost } from './use-ingredient-generation-cost';
 
 const SHELF_VARIANTS: Record<
@@ -162,6 +164,9 @@ export default function IngredientInspectorRail({
       push(detailHref);
     }
   }, [detailHref, push]);
+  const handleRename = useCallback((asset: IIngredient) => {
+    requestLibraryAssetRename(asset.id);
+  }, []);
   const handleCreateVariation = useCallback(
     (image: IIngredient) => {
       if (image.status === IngredientStatus.PROCESSING) {
@@ -248,6 +253,7 @@ export default function IngredientInspectorRail({
               : undefined
           }
           onPublish={handlers.handlePublish}
+          onRename={handleRename}
           onSeeDetails={detailHref ? handleSeeDetails : undefined}
           onShare={handlers.handleShare}
           onUsePrompt={ingredient.promptText ? handleUsePrompt : undefined}
@@ -300,9 +306,7 @@ export default function IngredientInspectorRail({
       ) : null}
 
       <div className="flex flex-col gap-2">
-        <h3 className="truncate text-sm font-semibold text-foreground">
-          {ingredient.metadataLabel || translate('untitled')}
-        </h3>
+        <IngredientMetadataFields key={ingredient.id} ingredient={ingredient} />
         {shelf ? (
           <Badge className="w-fit" variant={SHELF_VARIANTS[shelf]}>
             {LIBRARY_SHELF_LABELS[shelf]}

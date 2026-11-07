@@ -32,6 +32,7 @@ import {
   createPromptAction,
   createPublishAction,
   createRemixVideoAction,
+  createRenameAction,
   createResizeAction,
   createReverseAction,
   createSeeDetailsAction,
@@ -429,6 +430,9 @@ export function useQuickActions({
     }
 
     actionsList.push(
+      copy
+        ? createRenameAction(selectedIngredient, handlers.onRename, copy.rename)
+        : null,
       createTagsAction(selectedIngredient, handlers.onManageTags),
       // Hide "Upscale" for GIFs
       !isGif

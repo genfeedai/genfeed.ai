@@ -8,7 +8,6 @@ import {
   useExportModal,
   useGalleryModal,
   useGenerateIllustrationModal,
-  useMetadataModal,
   usePostModal,
   usePostRemixModal,
   usePromptModal,
@@ -18,7 +17,6 @@ import type { IngredientCategory } from '@genfeedai/contracts';
 import type {
   IAsset,
   IIngredient,
-  IMetadata,
   IPost,
 } from '@genfeedai/contracts/interfaces';
 import type { ModalExportProps } from '@genfeedai/props/modals/modal.props';
@@ -87,7 +85,6 @@ vi.mock('@/components/lazy/modal/LazyModal', () => ({
   LazyModalExport: makeStub('ModalExport'),
   LazyModalGallery: makeStub('ModalGallery'),
   LazyModalGenerateIllustration: makeStub('ModalGenerateIllustration'),
-  LazyModalMetadata: makeStub('ModalMetadata'),
   LazyModalPostBatch: makeStub('ModalPostBatch'),
   LazyModalPostRemix: makeStub('ModalPostRemix'),
   LazyModalPostRepurpose: makeStub('ModalPostRepurpose'),
@@ -106,7 +103,6 @@ interface HarnessApi {
   exportModal: ReturnType<typeof useExportModal>;
   gallery: ReturnType<typeof useGalleryModal>;
   generateIllustration: ReturnType<typeof useGenerateIllustrationModal>;
-  metadata: ReturnType<typeof useMetadataModal>;
   postModal: ReturnType<typeof usePostModal>;
   postRemix: ReturnType<typeof usePostRemixModal>;
   prompt: ReturnType<typeof usePromptModal>;
@@ -127,7 +123,6 @@ function Harness(): null {
     exportModal: useExportModal(),
     gallery: useGalleryModal(),
     generateIllustration: useGenerateIllustrationModal(),
-    metadata: useMetadataModal(),
     postModal: usePostModal({
       onClose: postCloseMock,
       onRefresh: postRefreshMock,
@@ -170,7 +165,6 @@ describe('GlobalModals hooks outside the provider', () => {
     ['useExportModal', () => useExportModal()],
     ['usePromptModal', () => usePromptModal()],
     ['useConfirmDeleteModal', () => useConfirmDeleteModal()],
-    ['useMetadataModal', () => useMetadataModal()],
     ['useBrandCreateModal', () => useBrandCreateModal()],
     ['useGenerateIllustrationModal', () => useGenerateIllustrationModal()],
     ['usePostRemixModal', () => usePostRemixModal()],
@@ -426,27 +420,6 @@ describe('GlobalModals interactions', () => {
       api.prompt.closePromptModal();
     });
     expect(captured.record.ModalPrompt).toBeUndefined();
-  });
-
-  it('opens and closes the metadata modal', () => {
-    renderProvider();
-    const onConfirm = vi.fn();
-
-    act(() => {
-      api.metadata.openMetadataModal({
-        ingredientCategory: 'image' as IngredientCategory,
-        ingredientId: 'ing_3',
-        metadata: { id: 'meta_1' } as unknown as IMetadata,
-        onConfirm,
-      });
-    });
-    expect(captured.record.ModalMetadata?.ingredientId).toBe('ing_3');
-
-    captured.record = {};
-    act(() => {
-      api.metadata.closeMetadataModal();
-    });
-    expect(captured.record.ModalMetadata).toBeUndefined();
   });
 
   it('confirm-delete builds a labeled confirm and skips null entities', async () => {
