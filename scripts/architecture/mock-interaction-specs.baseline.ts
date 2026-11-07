@@ -375,7 +375,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'packages/libs/logger/logger.service.spec.ts',
   'packages/libs/redis/in-process-redis.service.spec.ts',
   'packages/libs/redis/redis.service.spec.ts',
-  'packages/libs/s3/s3.service.spec.ts',
   'packages/libs/websockets/websockets.gateway.spec.ts',
   'packages/libs/websockets/websockets.service.spec.ts',
   'packages/services/ai/evaluations.service.test.ts',
