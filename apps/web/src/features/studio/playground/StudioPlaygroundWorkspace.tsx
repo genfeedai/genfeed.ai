@@ -116,8 +116,10 @@ import StudioPlaygroundEmptyState from '@/features/studio/playground/components/
 import StudioPlaygroundFocusedPreview from '@/features/studio/playground/components/StudioPlaygroundFocusedPreview';
 import StudioPlaygroundInspector from '@/features/studio/playground/components/StudioPlaygroundInspector';
 import StudioPlaygroundResults from '@/features/studio/playground/components/StudioPlaygroundResults';
+import { useElementHeight } from '@/features/studio/playground/hooks/useElementHeight';
 import { useStudioAudioLibrary } from '@/features/studio/playground/hooks/useStudioAudioLibrary';
 import { useStudioGeneration } from '@/features/studio/playground/hooks/useStudioGeneration';
+import { useStudioJobSelection } from '@/features/studio/playground/hooks/useStudioJobSelection';
 import { useStudioPendingPreviews } from '@/features/studio/playground/hooks/useStudioPendingPreviews';
 import { useStudioPlaygroundAssetActions } from '@/features/studio/playground/hooks/useStudioPlaygroundAssetActions';
 import { useStudioPlaygroundDraft } from '@/features/studio/playground/hooks/useStudioPlaygroundDraft';
@@ -128,6 +130,7 @@ import { useStudioPlaygroundPreviewRecovery } from '@/features/studio/playground
 import { useStudioPlaygroundSettings } from '@/features/studio/playground/hooks/useStudioPlaygroundSettings';
 import { useStudioPlaygroundTransformActions } from '@/features/studio/playground/hooks/useStudioPlaygroundTransformActions';
 import { useStudioReferenceMentions } from '@/features/studio/playground/hooks/useStudioReferenceMentions';
+import { useStudioResultsFilters } from '@/features/studio/playground/hooks/useStudioResultsFilters';
 import {
   buildRepromptData,
   buildStudioCrunQuoteRequest,
@@ -141,7 +144,6 @@ import {
 } from '@/features/studio/playground/utils/studio-image-edit-entry';
 import {
   canUseStudioJobAsReference,
-  filterStudioPlaygroundJobs,
   isStudioImageContinuationSource,
   mergeStudioPlaygroundJobs,
   replaceStudioContentReference,
@@ -157,7 +159,6 @@ import {
   studioHandoffReferenceRole,
 } from '@/features/studio/playground/utils/studio-playground-handoff';
 import {
-  groupStudioPlaygroundJobsByRun,
   readStudioCrunRecipeControls,
   readStudioOriginalPrompt,
   recipeFromIngredient,
@@ -196,7 +197,6 @@ import { selectStoppableStudioJobs } from '@/features/studio/playground/utils/st
 import type { PromptBarContextItem } from '@/features/studio/props/prompt-bar-context-row.props';
 import type {
   StudioPlaygroundComposerProps,
-  StudioPlaygroundFilter,
   StudioPlaygroundStarterSelection,
 } from '@/features/studio/props/studio-playground.props';
 import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
@@ -385,13 +385,6 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     useState<PromptEditorDocumentSeed | null>(null);
   const [agentPromptSeed, setAgentPromptSeed] =
     useState<StudioAgentPromptSeed | null>(null);
-  const [search, setSearch] = useState('');
-  const [resultType, setResultType] = useState<StudioPlaygroundFilter>('all');
-  const [resultSort, setResultSort] = useState<'newest' | 'oldest'>('newest');
-  const [resultsView, setResultsView] = useState<ViewType.GRID | ViewType.LIST>(
-    ViewType.GRID,
-  );
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [focusedScope, setFocusedScope] = useState<string | null>(null);
   // The scope epoch fences A → B → A changes without reviving the old selection.
   const focusedScopeKey = `${crunRestoreScope}:${scopeEpochRef.current}`;
@@ -400,16 +393,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   // The composer overlays the gallery, so the last card needs scroll room for
   // however tall the composer currently is (it grows with attachments, notices
   // and context rows).
-  const [composerHeight, setComposerHeight] = useState<number | null>(null);
-  useEffect(() => {
-    const dock = composerDockRef.current;
-    if (!dock || typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(() =>
-      setComposerHeight(dock.offsetHeight),
-    );
-    observer.observe(dock);
-    return () => observer.disconnect();
-  }, []);
+  const composerHeight = useElementHeight(composerDockRef);
   const composerResting = usePromptBarResting({
     composerRef: composerDockRef,
     scrollRef: galleryScrollRef,
@@ -991,13 +975,25 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       contentLibraryRole,
     );
   }, [audioLibrary.items, contentLibraryRole, galleryJobs, mentions]);
-  const visibleJobs = useMemo(() => {
-    const filtered = filterStudioPlaygroundJobs(galleryJobs, {
-      search,
-      type: resultType,
-    });
-    return resultSort === 'oldest' ? [...filtered].reverse() : filtered;
-  }, [galleryJobs, resultSort, resultType, search]);
+  const {
+    clearFilters,
+    resultSort,
+    resultType,
+    resultsView,
+    search,
+    setResultSort,
+    setResultType,
+    setResultsView,
+    setSearch,
+    visibleJobs,
+  } = useStudioResultsFilters(galleryJobs);
+  const {
+    selectedJob,
+    selectedJobId,
+    selectedParentJob,
+    selectedRunJobs,
+    setSelectedJobId,
+  } = useStudioJobSelection(visibleJobs);
   const { previewRevisions, recoverPreview, recoveredJobs } =
     useStudioPlaygroundPreviewRecovery(visibleJobs);
   useStudioPendingPreviews({
@@ -1023,7 +1019,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         if (job.id === selectedJobId) revealInspector?.();
       }
     },
-    [revealInspector, selectedJobId, visibleJobs],
+    [revealInspector, selectedJobId, visibleJobs, setSelectedJobId],
   );
   const { transformActions, confirmation: transformConfirmation } =
     useStudioPlaygroundTransformActions({
@@ -1047,40 +1043,8 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     onRefresh: refresh,
   });
 
-  const selectedJob = useMemo(
-    () => visibleJobs.find((job) => job.id === selectedJobId) ?? null,
-    [selectedJobId, visibleJobs],
-  );
   const isFocusedPreview =
     focusedScope === focusedScopeKey && Boolean(selectedJob);
-  const selectedRunJobs = useMemo(() => {
-    if (!selectedJob) {
-      return [];
-    }
-
-    const runId = selectedJob.runId;
-    if (!runId) {
-      return [selectedJob];
-    }
-
-    return (
-      groupStudioPlaygroundJobsByRun(visibleJobs).find(
-        (run) => run.id === runId,
-      )?.jobs ?? [selectedJob]
-    );
-  }, [selectedJob, visibleJobs]);
-  const selectedParentJob = useMemo(() => {
-    const parentId = selectedJob?.parentId;
-    return parentId
-      ? visibleJobs.find((job) => job.ingredientId === parentId)
-      : undefined;
-  }, [selectedJob, visibleJobs]);
-
-  useEffect(() => {
-    if (selectedJobId && !selectedJob) {
-      setSelectedJobId(null);
-    }
-  }, [selectedJob, selectedJobId]);
 
   const referenceOrderRef = useRef<StudioReferenceMentionSource[]>([]);
   const orderedReferenceSources = useMemo(() => {
@@ -2647,12 +2611,12 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       // effect; re-clicking the selected card must reveal a collapsed panel.
       if (job.id === selectedJobId) revealInspector?.();
     },
-    [revealInspector, selectedJobId],
+    [revealInspector, selectedJobId, setSelectedJobId],
   );
   const handleCloseInspector = useCallback(() => {
     setSelectedJobId(null);
     setFocusedScope(null);
-  }, []);
+  }, [setSelectedJobId]);
   const handleOpenFocusedPreview = useCallback(() => {
     focusReturnRef.current =
       document.activeElement instanceof HTMLElement
@@ -2862,10 +2826,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                 },
               ]}
               isAttached
-              onClear={() => {
-                setResultType('all');
-                setResultSort('newest');
-              }}
+              onClear={clearFilters}
             />
           </SearchField>
         }
