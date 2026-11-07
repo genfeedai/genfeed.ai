@@ -43,6 +43,8 @@ const ALLOWED_FILES = new Set([
   'reservation-duration-settlement.ts',
   // Storyboard sketch stills: a quoted Studio route, not an agent tool; its spec verifies settle-on-render and release-on-failure.
   'storyboard-stills.service.ts',
+  // Storyboard shot draft and final renders (#9618): a quoted Studio route, not an agent tool; its spec verifies settle-on-render and release-on-failure.
+  'storyboard-shot-renders.service.ts',
   'voice-credits.service.ts',
   'workflow-generation-billing.service.ts',
   'workflow-trend-publish-executor-registrar.service.ts',
