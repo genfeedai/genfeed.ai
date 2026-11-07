@@ -9,6 +9,7 @@ import {
   admitAnalyticsCollection,
   isAnalyticsCollectionAuthorizationFailure,
 } from '@api/analytics/analytics-collection-authorization';
+import { organizationIssuerLookup } from '@api/authorization/brand-access/actor-api-key.fixture';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import {
   CHAIN_ACTOR,
@@ -78,7 +79,7 @@ function harness(rows: ExecutionFixture[]) {
   const findKey = vi.fn().mockResolvedValue({ scopes: ['admin'] });
   const findBrand = vi.fn().mockResolvedValue({ id: 'brand-1' });
   const prisma = {
-    apiKey: { findFirst: findKey },
+    organization: { findFirst: organizationIssuerLookup(findKey, 'org') },
     brand: { findFirst: findBrand },
     member: { findFirst: findMember },
     workflowExecution: { findFirst: findExecution },

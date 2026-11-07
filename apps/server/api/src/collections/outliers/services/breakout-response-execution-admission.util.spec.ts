@@ -1,3 +1,4 @@
+import { organizationIssuerLookup } from '@api/authorization/brand-access/actor-api-key.fixture';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import {
   admitBreakoutResponseExecution,
@@ -99,6 +100,7 @@ function fixture(overrides: { memberBrands?: Array<{ id: string }> } = {}) {
     member: { findFirst: findMember },
     brand: { findFirst: findBrand },
     apiKey: { findFirst: findKey },
+    organization: { findFirst: organizationIssuerLookup(findKey, 'org') },
     workflowExecution: { findFirst: findExecution },
   } as unknown as PrismaService;
   const action = {

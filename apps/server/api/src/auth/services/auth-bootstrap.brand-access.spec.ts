@@ -2,6 +2,7 @@ import {
   type AuthBootstrapRequest,
   AuthBootstrapService,
 } from '@api/auth/services/auth-bootstrap.service';
+import { organizationIssuerLookup } from '@api/authorization/brand-access/actor-api-key.fixture';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { AccessBootstrapCachePayload } from '@api/common/services/access-bootstrap-cache.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -43,7 +44,7 @@ function fixture() {
     .fn()
     .mockResolvedValue({ scopes: ['read', 'write', 'admin'] });
   const policy = new BrandAccessService({
-    apiKey: { findFirst: findKey },
+    organization: { findFirst: organizationIssuerLookup(findKey, 'org-a') },
     member: { findFirst: findMember },
   } as unknown as PrismaService);
   const rows = [
@@ -212,16 +213,19 @@ describe('Cloud bootstrap live brand policy across warmed caches', () => {
     const result = await f.service.getBootstrap(keyRequest);
     expect(result.brands).toEqual([]);
     expect(result.access.memberRole).toBe(MemberRole.USER);
-    expect(f.findKey).toHaveBeenCalledWith({
-      where: {
-        id: 'key-a',
-        userId: 'opaque-user',
-        organizationId: 'org-a',
-        isRevoked: false,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: expect.any(Date) } }],
-      },
-      select: { metadata: true, scopes: true },
-    });
+    expect(f.findKey).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          apiKeys: {
+            some: expect.objectContaining({
+              id: 'key-a',
+              userId: 'opaque-user',
+              isRevoked: false,
+            }),
+          },
+        },
+      }),
+    );
     f.findKey.mockResolvedValue(null);
     await expect(f.service.getBootstrap(keyRequest)).rejects.toThrow(
       'Brand access denied',

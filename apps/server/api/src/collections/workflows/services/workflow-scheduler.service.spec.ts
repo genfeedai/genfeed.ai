@@ -1,3 +1,4 @@
+import { organizationIssuerLookup } from '@api/authorization/brand-access/actor-api-key.fixture';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { EXECUTABLE_WORKFLOW_SELECT } from '@api/collections/workflows/services/workflow-executor.service';
@@ -30,10 +31,13 @@ function createMockLogger() {
 }
 
 function createMockPrisma() {
+  const findKey = vi.fn().mockResolvedValue(null);
   return {
-    apiKey: { findFirst: vi.fn().mockResolvedValue(null) },
+    apiKey: { findFirst: findKey },
     brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand-1' }) },
-    organization: { findFirst: vi.fn().mockResolvedValue(null) },
+    organization: {
+      findFirst: organizationIssuerLookup(findKey, 'org-1', null),
+    },
     member: {
       findFirst: vi
         .fn()

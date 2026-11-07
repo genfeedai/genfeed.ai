@@ -1,3 +1,4 @@
+import { organizationIssuerLookup } from '@api/authorization/brand-access/actor-api-key.fixture';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
 import 'reflect-metadata';
@@ -253,10 +254,13 @@ describe('AgentToolExecutorService mutation policy', () => {
     );
     Object.assign(service, {
       brandAccessService: new BrandAccessService({
-        apiKey: {
-          findFirst: vi.fn().mockResolvedValue({
-            scopes: ['brands:read', ApiKeyScope.POSTS_DRAFT],
-          }),
+        organization: {
+          findFirst: organizationIssuerLookup(
+            vi.fn().mockResolvedValue({
+              scopes: ['brands:read', ApiKeyScope.POSTS_DRAFT],
+            }),
+            testId('org'),
+          ),
         },
         member: { findFirst: findMember },
         brand: { findFirst: brandLookup },

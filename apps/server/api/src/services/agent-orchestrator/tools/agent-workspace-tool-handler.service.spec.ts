@@ -1,3 +1,4 @@
+import { organizationIssuerLookup } from '@api/authorization/brand-access/actor-api-key.fixture';
 import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
@@ -986,7 +987,12 @@ describe('AgentWorkspaceToolHandler live Cloud brand discovery', () => {
     );
     Object.assign(handler, {
       brandAccessService: brandAccessFixture({
-        apiKey: { findFirst: vi.fn().mockResolvedValue({ scopes: [] }) },
+        organization: {
+          findFirst: organizationIssuerLookup(
+            vi.fn().mockResolvedValue({ scopes: [] }),
+            'org-a',
+          ),
+        },
         member: { findFirst: findMember },
       } as unknown as PrismaService),
     });

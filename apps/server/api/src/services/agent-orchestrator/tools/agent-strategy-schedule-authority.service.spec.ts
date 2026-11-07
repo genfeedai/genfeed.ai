@@ -1,3 +1,4 @@
+import { organizationIssuerLookup } from '@api/authorization/brand-access/actor-api-key.fixture';
 import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { AgentStrategyScheduleAuthorityService } from '@api/services/agent-orchestrator/tools/agent-strategy-schedule-authority.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -28,6 +29,7 @@ describe('AgentStrategyScheduleAuthorityService (#6689)', () => {
   let prisma: {
     agentStrategy: { findFirst: ReturnType<typeof vi.fn> };
     apiKey: { findFirst: ReturnType<typeof vi.fn> };
+    organization: { findFirst: ReturnType<typeof vi.fn> };
   };
   let brandAccess: {
     assert: ReturnType<typeof vi.fn>;
@@ -46,11 +48,13 @@ describe('AgentStrategyScheduleAuthorityService (#6689)', () => {
   }
 
   beforeEach(() => {
+    const findKey = vi.fn();
     prisma = {
       agentStrategy: {
         findFirst: vi.fn().mockResolvedValue(strategy()),
       },
-      apiKey: { findFirst: vi.fn() },
+      apiKey: { findFirst: findKey },
+      organization: { findFirst: organizationIssuerLookup(findKey, 'org-1') },
     };
     brandAccess = {
       assert: vi.fn().mockResolvedValue(undefined),
