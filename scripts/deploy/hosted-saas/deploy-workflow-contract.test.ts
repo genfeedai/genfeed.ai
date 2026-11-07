@@ -284,7 +284,9 @@ describe('hosted SaaS on-demand seed contract', () => {
     expect(reader).toContain("await client.query('BEGIN READ ONLY');");
     expect(reader).toContain('FROM data_backfills');
     expect(reader).toContain("NOT LIKE 'wh\\\\_%'");
-    expect(reader).toContain(`"platform" = 'INSTAGRAM' AND "isConnected" = true`);
+    expect(reader).toContain(
+      `"platform" = 'INSTAGRAM' AND "isConnected" = true`,
+    );
     expect(reader).not.toMatch(
       /\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|COMMIT)\b/,
     );
