@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import path from 'node:path';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { resolveContainedPath } from '@libs/security';
+import { createBadRequest } from '@libs/utils/error/create-bad-request.util';
 import { BadRequestException } from '@nestjs/common';
 import { diskStorage } from 'multer';
 
@@ -10,7 +11,6 @@ type S3KeyGenerator = (type: string, key: string) => string;
 
 const SKILLS_PRO_DOWNLOAD_KEY_PREFIX = 'skills/v1/';
 const MULTIPART_UPLOAD_ROOT = path.join(FILES_TMP_ROOT, 'multipart-uploads');
-const createBadRequest = (message: string) => new BadRequestException(message);
 
 export const MULTIPART_UPLOAD_LIMIT_BYTES = 200 * 1024 * 1024;
 

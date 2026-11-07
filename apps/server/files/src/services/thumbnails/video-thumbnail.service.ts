@@ -9,10 +9,9 @@ import type { ICoverStyle } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { assertSafeSegment, resolveContainedPath } from '@libs/security';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import { createBadRequest } from '@libs/utils/error/create-bad-request.util';
+import { Injectable, Optional } from '@nestjs/common';
 import sharp from 'sharp';
-
-const createBadRequest = (message: string) => new BadRequestException(message);
 
 @Injectable()
 export class VideoThumbnailService {

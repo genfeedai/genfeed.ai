@@ -17,9 +17,8 @@ import {
   resolveContainedPath,
 } from '@libs/security';
 import { safeFetch } from '@libs/security/destination-guard';
-import { BadRequestException, Injectable, Optional } from '@nestjs/common';
-
-const createBadRequest = (message: string) => new BadRequestException(message);
+import { createBadRequest } from '@libs/utils/error/create-bad-request.util';
+import { Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
 export class HookRemixService {
