@@ -77,6 +77,27 @@ describe('system email blocks', () => {
     ).toContain('+ 6 more in your library');
   });
 
+  it('counts pieces past the six shown together with those the caller left out', () => {
+    const items = Array.from({ length: 8 }, () => ({ kind: 'image' as const }));
+
+    expect(buildEmailThumbnailGrid(items, { moreCount: 2 })).toContain(
+      '+ 4 more in your library',
+    );
+  });
+
+  it('lets image and text tiles shrink below 152px in narrow clients', () => {
+    const html = buildEmailThumbnailGrid([
+      {
+        imageUrl: 'https://cdn.genfeed.ai/ingredients/images/abc',
+        kind: 'image',
+      },
+      { kind: 'article' },
+    ]);
+
+    expect(html).toContain('table-layout:fixed');
+    expect(html.match(/max-width:152px;[^"]*width:100%/g)).toHaveLength(2);
+  });
+
   it('renders a hero image at full width', () => {
     const html = buildEmailHero({
       imageUrl: 'https://cdn.genfeed.ai/ingredients/images/abc',

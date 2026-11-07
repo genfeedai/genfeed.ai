@@ -158,8 +158,8 @@ function thumbnailTile(
   const src = httpUrl(item.imageUrl);
   const kindLabel = KIND_LABELS[item.kind];
   const visual = src
-    ? `<img src="${esc(src)}" alt="${esc(item.label ?? kindLabel)}" width="${size}" height="${size}" style="background:${EMAIL_BLOCK_COLORS.panel};border:0;border-radius:8px;display:block;height:${size}px;object-fit:cover;width:${size}px;">`
-    : `<table role="presentation" width="${size}" height="${size}" cellspacing="0" cellpadding="0" style="background:${EMAIL_BLOCK_COLORS.panel};border:1px solid ${EMAIL_BLOCK_COLORS.border};border-collapse:separate;border-radius:8px;height:${size}px;width:${size}px;"><tr><td align="center" valign="middle" style="color:${EMAIL_BLOCK_COLORS.muted};font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">${esc(kindLabel)}</td></tr></table>`;
+    ? `<img src="${esc(src)}" alt="${esc(item.label ?? kindLabel)}" width="${size}" height="${size}" style="aspect-ratio:1/1;background:${EMAIL_BLOCK_COLORS.panel};border:0;border-radius:8px;display:block;height:auto;max-width:${size}px;object-fit:cover;width:100%;">`
+    : `<div style="aspect-ratio:1/1;background:${EMAIL_BLOCK_COLORS.panel};border:1px solid ${EMAIL_BLOCK_COLORS.border};border-radius:8px;box-sizing:border-box;max-width:${size}px;overflow:hidden;width:100%;"><table role="presentation" width="100%" height="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;height:100%;width:100%;"><tr><td align="center" valign="middle" style="color:${EMAIL_BLOCK_COLORS.muted};font-size:12px;letter-spacing:0.08em;padding:34px 0;text-transform:uppercase;">${esc(kindLabel)}</td></tr></table></div>`;
   const kindBadge =
     item.kind === 'video' && src
       ? `<span style="color:${EMAIL_BLOCK_COLORS.secondary};font-size:11px;">&#9654; Video</span>`
@@ -169,7 +169,7 @@ function thumbnailTile(
     : '';
   const caption = [
     item.label && !isCompact
-      ? `<div style="color:${EMAIL_BLOCK_COLORS.primary};font-size:12px;line-height:17px;margin-top:6px;">${esc(item.label.length > 48 ? `${item.label.slice(0, 45)}...` : item.label)}</div>`
+      ? `<div style="color:${EMAIL_BLOCK_COLORS.primary};font-size:12px;line-height:17px;margin-top:6px;overflow-wrap:anywhere;">${esc(item.label.length > 48 ? `${item.label.slice(0, 45)}...` : item.label)}</div>`
       : '',
     status || kindBadge
       ? `<div style="line-height:16px;margin-top:2px;">${[status, kindBadge].filter(Boolean).join(' &middot; ')}</div>`
@@ -181,6 +181,8 @@ function thumbnailTile(
 /**
  * A grid of content previews, three across. A tile without an image shows its
  * kind as text, so an article or audio piece still takes a place in the grid.
+ * Tiles are 152px on desktop and shrink with their cell in narrow clients.
+ * `moreCount` is what the caller left out; items past `maxItems` are added to it.
  */
 export function buildEmailThumbnailGrid(
   items: readonly EmailThumbnail[],
@@ -207,11 +209,13 @@ export function buildEmailThumbnailGrid(
       return `<tr>${cells}</tr>`;
     })
     .join('');
+  const hiddenCount =
+    Math.max(0, options.moreCount ?? 0) + (items.length - visible.length);
   const more =
-    options.moreCount && options.moreCount > 0
-      ? `<p style="color:${EMAIL_BLOCK_COLORS.muted};font-size:12px;line-height:18px;margin:12px 0 0;">+ ${options.moreCount.toLocaleString('en-US')} more in your library</p>`
+    hiddenCount > 0
+      ? `<p style="color:${EMAIL_BLOCK_COLORS.muted};font-size:12px;line-height:18px;margin:12px 0 0;">+ ${hiddenCount.toLocaleString('en-US')} more in your library</p>`
       : '';
-  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;">${body}</table>${more}<div style="height:24px;line-height:24px;">&nbsp;</div>`;
+  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;table-layout:fixed;width:100%;">${body}</table>${more}<div style="height:24px;line-height:24px;">&nbsp;</div>`;
 }
 
 export interface EmailHeroInput {

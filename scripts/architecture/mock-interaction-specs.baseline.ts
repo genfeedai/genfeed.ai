@@ -251,7 +251,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/server/api/src/services/integrations/llm/llm-dispatcher.service.spec.ts',
   'apps/server/api/src/services/integrations/meta-ads/controllers/meta-ads.controller.spec.ts',
   'apps/server/api/src/services/integrations/replicate/replicate.contract.spec.ts',
-  'apps/server/api/src/services/lifecycle-emails/lifecycle-email-maintenance.service.spec.ts',
   'apps/server/api/src/services/media-localization/media-localization.service.spec.ts',
   'apps/server/api/src/services/media-urls/media-derivative-preparation.service.spec.ts',
   'apps/server/api/src/services/media-urls/media-variant-recovery.service.spec.ts',
