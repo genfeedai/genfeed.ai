@@ -70,7 +70,7 @@ describe('PlatformSchedulesProcessor', () => {
     recoverAgentTransfers: handler(),
   };
   const crun = { reconcile: handler(), synchronizeContracts: handler() };
-  const logger = { debug: vi.fn() };
+  const logger = { debug: vi.fn(), warn: vi.fn() };
 
   const cases: Array<[PlatformScheduledTaskName, ReturnType<typeof handler>]> =
     [
@@ -381,10 +381,16 @@ describe('PlatformSchedulesProcessor', () => {
     },
   );
 
-  it('fails closed for unknown task names', async () => {
+  it('skips a task name this worker version does not know without failing the job', async () => {
     await expect(
       processor.process({ name: 'unknown-task' } as Job),
-    ).rejects.toThrow('Unknown platform scheduled task: unknown-task');
+    ).resolves.toBeUndefined();
+
+    expect(posts.publishScheduledPosts).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('unknown-task'),
+      expect.any(String),
+    );
   });
 
   it('skips all dispatch when local schedulers are disabled', async () => {
