@@ -1,6 +1,9 @@
 import 'server-only';
 
-import { getBetterAuthServerToken } from '@genfeedai/auth-client/server';
+import {
+  type BetterAuthServerTokenFailure,
+  getBetterAuthServerToken,
+} from '@genfeedai/auth-client/server';
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
 import { AuthService } from '@services/auth/auth.service';
@@ -54,6 +57,22 @@ export const isPlaywrightAdminDenied = cache(async (): Promise<boolean> => {
   return cookieStore.get('__playwright_admin_denied')?.value === 'true';
 });
 
+/**
+ * A 401/403 is a signed-out visitor and a prerender that ended first cut its
+ * own fetch off; anything else is a fault. Only the attempt that ends the
+ * exchange is its outcome: a retried one stays in the logs and reaches Sentry
+ * only when the retry fails too.
+ */
+export function isReportableTokenExchangeFailure(
+  failure: BetterAuthServerTokenFailure,
+): boolean {
+  return (
+    failure.isFinal &&
+    failure.reason !== 'prerender-ended' &&
+    (failure.reason !== 'http' || (failure.status ?? 0) >= 429)
+  );
+}
+
 export const getServerAuthToken = cache(async (): Promise<string> => {
   if (await isProtectedBootstrapBypassed()) {
     return '';
@@ -73,11 +92,7 @@ export const getServerAuthToken = cache(async (): Promise<string> => {
         onFailure: (failure) =>
           logger.warn('Better Auth token exchange failed', {
             ...failure,
-            // A 401/403 is a signed-out visitor and a prerender that ended
-            // first cut its own fetch off; anything else is a fault.
-            reportToSentry:
-              failure.reason !== 'prerender-ended' &&
-              (failure.reason !== 'http' || (failure.status ?? 0) >= 429),
+            reportToSentry: isReportableTokenExchangeFailure(failure),
           }),
       })) ?? ''
     );
