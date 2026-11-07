@@ -1,5 +1,5 @@
-import type { TaskCounterDocument } from '@api/collections/task-counters/schemas/task-counter.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { TaskCounter } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
@@ -25,7 +25,7 @@ export class TaskCountersService {
       create: { counter: 1, organizationId },
       update: { counter: { increment: 1 } },
       where: { organizationId },
-    })) as unknown as TaskCounterDocument;
+    })) as unknown as TaskCounter;
 
     if (!result) {
       this.logger.error('Failed to get next task number', { organizationId });
