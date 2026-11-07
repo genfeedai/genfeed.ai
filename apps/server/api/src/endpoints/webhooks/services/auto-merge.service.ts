@@ -1,6 +1,5 @@
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { VideoStitchService } from '@api/services/video-stitch/video-stitch.service';
 import type {
@@ -166,9 +165,7 @@ export class AutoMergeService {
     const result = await this.ingredientsService.findAll(
       {
         where: {
-          category: CategoryPrismaUtil.toIngredientCategory(
-            IngredientCategory.VIDEO,
-          ),
+          category: IngredientCategory.VIDEO,
           groupId,
           isDeleted: false,
           organizationId,

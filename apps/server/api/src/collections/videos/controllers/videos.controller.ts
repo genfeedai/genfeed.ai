@@ -30,7 +30,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
@@ -150,9 +149,7 @@ export class VideosController {
           AND: [
             {
               ...(latestBrand ? { brandId: latestBrand } : {}),
-              category: CategoryPrismaUtil.toIngredientCategory(
-                IngredientCategory.VIDEO,
-              ),
+              category: IngredientCategory.VIDEO,
               isDeleted: latestIsDeleted,
               organizationId: tenant.organizationId,
               // Exclude training source videos by default
@@ -228,9 +225,7 @@ export class VideosController {
       where: scopedWhere(readScope.organizationId, {
         id: videoId,
         isDeleted: false,
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.VIDEO,
-        ),
+        category: IngredientCategory.VIDEO,
       }),
     };
 
@@ -249,9 +244,7 @@ export class VideosController {
       scopedWhere(readScope.organizationId, {
         id: videoId,
         isDeleted: false,
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.VIDEO,
-        ),
+        category: IngredientCategory.VIDEO,
       }),
       [
         // Metadata has no organizationId; the scoped parent ingredient query
@@ -409,9 +402,7 @@ export class VideosController {
     const video = await this.videosService.findOne(
       scopedWhere(user.organizationId, {
         id: videoId,
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.VIDEO,
-        ),
+        category: IngredientCategory.VIDEO,
       }),
     );
 

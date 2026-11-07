@@ -8,7 +8,6 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import type { AnalyticsAdminSummary } from '@api/endpoints/analytics/analytics.types';
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -74,9 +73,7 @@ export class AnalyticsAdminSummaryService {
       this.ingredientsService.findAll(
         {
           where: {
-            category: CategoryPrismaUtil.toIngredientCategory(
-              IngredientCategory.VIDEO,
-            ),
+            category: IngredientCategory.VIDEO,
           },
         },
         options,
@@ -84,9 +81,7 @@ export class AnalyticsAdminSummaryService {
       this.ingredientsService.findAll(
         {
           where: {
-            category: CategoryPrismaUtil.toIngredientCategory(
-              IngredientCategory.IMAGE,
-            ),
+            category: IngredientCategory.IMAGE,
           },
         },
         options,

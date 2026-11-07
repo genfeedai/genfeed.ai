@@ -2,7 +2,6 @@ import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -69,9 +68,7 @@ export class PublicMusicsController {
     };
 
     const matchQuery: PrismaWhereQuery = {
-      category: CategoryPrismaUtil.toIngredientCategory(
-        IngredientCategory.MUSIC,
-      ),
+      category: IngredientCategory.MUSIC,
       isDeleted: false,
       scope: AssetScope.PUBLIC,
       status: IngredientStatus.GENERATED,
@@ -115,9 +112,7 @@ export class PublicMusicsController {
     const music = await this.musicsService.findOne(
       {
         id: musicId,
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.MUSIC,
-        ),
+        category: IngredientCategory.MUSIC,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
       },
@@ -154,9 +149,7 @@ export class PublicMusicsController {
     const music = await this.musicsService.findOneSelect(
       {
         id: musicId,
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.MUSIC,
-        ),
+        category: IngredientCategory.MUSIC,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
       },

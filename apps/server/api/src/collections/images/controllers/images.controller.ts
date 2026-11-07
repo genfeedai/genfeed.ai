@@ -96,9 +96,7 @@ export class ImagesController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { query });
 
-    const imageCategory = CategoryPrismaUtil.toIngredientCategory(
-      IngredientCategory.IMAGE,
-    );
+    const imageCategory = IngredientCategory.IMAGE;
 
     // `latest=true` shorthand for brand-scoped user images with training sources
     // excluded, plus the org's brand-default images, ordered by createdAt desc
@@ -216,9 +214,7 @@ export class ImagesController {
       {
         id: imageId,
         isDeleted: false,
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.IMAGE,
-        ),
+        category: IngredientCategory.IMAGE,
         OR: [
           {
             organizationId: readScope.organizationId,
@@ -288,9 +284,7 @@ export class ImagesController {
     const image = await this.imagesService.findOne(
       scopedWhere(user.organizationId, {
         id: imageId,
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.IMAGE,
-        ),
+        category: IngredientCategory.IMAGE,
         ...brandRestrictionWhere(user),
       }),
     );

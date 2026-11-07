@@ -21,7 +21,6 @@ import {
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
@@ -333,9 +332,7 @@ export class VideoGenerationExecutionService {
     return this.sharedService.createMediaDocuments(context.user, {
       origin: IngredientOrigin.GENERATED,
       brandId: context.brand.id,
-      category: CategoryPrismaUtil.toIngredientCategory(
-        IngredientCategory.VIDEO,
-      ),
+      category: IngredientCategory.VIDEO,
       duration: context.createVideoDto.duration,
       extension: MetadataExtension.MP4,
       generationPrompt:

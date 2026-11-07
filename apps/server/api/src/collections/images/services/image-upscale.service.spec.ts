@@ -3,7 +3,6 @@ import type { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
 import { ImageUpscaleService } from '@api/collections/images/services/image-upscale.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -178,9 +177,7 @@ describe('ImageUpscaleService', () => {
     expect(imagesService.findOne).toHaveBeenCalledWith(
       {
         OR: [{ userId: user.userId }, { organizationId: user.organizationId }],
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.IMAGE,
-        ),
+        category: IngredientCategory.IMAGE,
         id: imageId,
         isDeleted: false,
         organizationId: user.organizationId,
@@ -190,9 +187,7 @@ describe('ImageUpscaleService', () => {
     expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(user, {
       origin: IngredientOrigin.GENERATED,
       brandId: parent.brandId,
-      category: CategoryPrismaUtil.toIngredientCategory(
-        IngredientCategory.IMAGE,
-      ),
+      category: IngredientCategory.IMAGE,
       extension: body.outputFormat,
       model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
       organizationId: parent.organizationId,

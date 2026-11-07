@@ -6,7 +6,6 @@ import { ImagesService } from '@api/collections/images/services/images.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
@@ -105,9 +104,7 @@ export class ImageUpscaleService {
           { userId: user.userId ?? user.id },
           { organizationId: user.organizationId },
         ],
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.IMAGE,
-        ),
+        category: IngredientCategory.IMAGE,
       },
       [PopulatePatterns.metadataFull],
     );
@@ -132,9 +129,7 @@ export class ImageUpscaleService {
       await this.sharedService.createMediaDocuments(user, {
         origin: IngredientOrigin.GENERATED,
         brandId: parent.brandId ?? undefined,
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.IMAGE,
-        ),
+        category: IngredientCategory.IMAGE,
         extension: imageEditDto.outputFormat || MetadataExtension.JPG,
         model,
         organizationId: parent.organizationId ?? undefined,

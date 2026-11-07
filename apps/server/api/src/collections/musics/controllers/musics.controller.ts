@@ -11,7 +11,6 @@ import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenan
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
@@ -225,9 +224,7 @@ export class MusicsController {
         OR: [
           {
             ...(brandId ? { brandId } : {}),
-            category: CategoryPrismaUtil.toIngredientCategory(
-              IngredientCategory.MUSIC,
-            ),
+            category: IngredientCategory.MUSIC,
             isDeleted: query.isDeleted ?? false,
             ...metadataFilter,
             organizationId: tenant.organizationId,
@@ -241,9 +238,7 @@ export class MusicsController {
               { organizationId: tenant.organizationId },
               { organizationId: null },
             ],
-            category: CategoryPrismaUtil.toIngredientCategory(
-              IngredientCategory.MUSIC,
-            ),
+            category: IngredientCategory.MUSIC,
             isDefault,
             isDeleted: query.isDeleted ?? false,
             ...metadataFilter,
@@ -273,9 +268,7 @@ export class MusicsController {
         },
         { isDefault: true, organizationId: null },
       ],
-      category: CategoryPrismaUtil.toIngredientCategory(
-        IngredientCategory.MUSIC,
-      ),
+      category: IngredientCategory.MUSIC,
       isDeleted: false,
     };
   }
