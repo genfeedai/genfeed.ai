@@ -51,6 +51,9 @@ type McpApprovalResponse = {
   result: Record<string, unknown> | null;
   resolvedAt: Date | null;
   createdAt: Date;
+  /** Slugs that scope the approval's web link; null when unresolved. */
+  organizationSlug?: string | null;
+  brandSlug?: string | null;
 };
 
 type McpApprovalListResponse = {
@@ -81,6 +84,15 @@ export class McpApprovalsController {
     };
   }
 
+  private async toScopedResponse(
+    approval: McpApprovalDocument,
+  ): Promise<McpApprovalResponse> {
+    return {
+      ...this.toResponse(approval),
+      ...(await this.service.findLinkScope(approval)),
+    };
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a pending MCP approval request' })
@@ -98,7 +110,7 @@ export class McpApprovalsController {
       dto.toolName,
       dto.arguments,
     );
-    return { data: this.toResponse(result) };
+    return { data: await this.toScopedResponse(result) };
   }
 
   @TenantReadPolicy('selected')
@@ -185,7 +197,7 @@ export class McpApprovalsController {
       throw new NotFoundException('MCP approval');
     }
 
-    return { data: this.toResponse(approval) };
+    return { data: await this.toScopedResponse(approval) };
   }
 
   @Post(':id/resolve')

@@ -480,6 +480,38 @@ export class McpApprovalsService extends BaseService<
     return this.findOneWithOrganization(id, organizationId);
   }
 
+  /**
+   * Slugs the web app needs to open this approval: its organization, and the
+   * brand the call named (`arguments.brandId`) when that brand belongs to the
+   * same organization. A call without a brand, or naming one outside the
+   * organization, resolves to an organization-level link.
+   */
+  async findLinkScope(
+    approval: Pick<McpApprovalDocument, 'arguments' | 'organizationId'>,
+  ): Promise<{ brandSlug: string | null; organizationSlug: string | null }> {
+    const args = isRecord(approval.arguments) ? approval.arguments : {};
+    const brandId =
+      typeof args.brandId === 'string' && args.brandId.length > 0
+        ? args.brandId
+        : null;
+    const [organization, brand] = await Promise.all([
+      this.prisma.organization.findFirst({
+        select: { slug: true },
+        where: { id: approval.organizationId, isDeleted: false },
+      }),
+      brandId
+        ? this.prisma.brand.findFirst({
+            select: { slug: true },
+            where: scopedWhere(approval.organizationId, { id: brandId }),
+          })
+        : Promise.resolve(null),
+    ]);
+    return {
+      brandSlug: brand?.slug ?? null,
+      organizationSlug: organization?.slug ?? null,
+    };
+  }
+
   async findActiveByIdempotencyKey(
     organizationId: string,
     idempotencyKey: string,

@@ -1,5 +1,7 @@
 import {
   APP_ROUTES,
+  createBrandAppRoute,
+  createOrganizationAppRoute,
   createPublishingApprovalsRoute,
 } from '@genfeedai/contracts/constants';
 import { buildReviewInboxItemId } from '@genfeedai/contracts/interfaces';
@@ -110,8 +112,6 @@ function appUrl(path: string): string {
 
 function nextStepUrl(code: McpToolErrorCode): string | undefined {
   switch (code) {
-    case 'approval_pending':
-      return appUrl(APP_ROUTES.PUBLISHING.APPROVALS);
     case 'insufficient_credits':
       return appUrl(APP_ROUTES.SETTINGS.CREDITS);
     case 'plan_required':
@@ -225,24 +225,32 @@ export function approvalPendingToolResult(
       'Review the pending action in Genfeed before continuing.' +
       (canResolveApproval ? ' You can also approve or decline it here.' : '') +
       approvalCostNote(estimate),
-    nextStepUrl: nextStepUrl('approval_pending'),
+    nextStepUrl: approvalReviewUrl(approval),
   });
-  // Display text stays free of ids; the structured link opens this exact
-  // approval in the Genfeed review inbox (#7340).
-  return {
-    ...result,
-    structuredContent: {
-      ...result.structuredContent,
-      nextStepUrl: appUrl(
-        createPublishingApprovalsRoute({
-          approval: buildReviewInboxItemId({
-            approvalId: approval.id,
-            kind: 'mcp_approval',
-          }),
-        }),
-      ),
-    },
-  };
+  return result;
+}
+
+/**
+ * Opens this exact approval in the review inbox of the organization and brand
+ * it belongs to (#7340, #9646). Without an organization slug the link falls
+ * back to the unscoped queue, which the app resolves to the member's default
+ * workspace.
+ */
+function approvalReviewUrl(approval: McpApprovalResource): string {
+  const path = createPublishingApprovalsRoute({
+    approval: buildReviewInboxItemId({
+      approvalId: approval.id,
+      kind: 'mcp_approval',
+    }),
+  });
+  if (!approval.organizationSlug) {
+    return appUrl(path);
+  }
+  return appUrl(
+    approval.brandSlug
+      ? createBrandAppRoute(approval.organizationSlug, approval.brandSlug, path)
+      : createOrganizationAppRoute(approval.organizationSlug, path),
+  );
 }
 
 function constraintMessage(constraints: unknown): string | undefined {
