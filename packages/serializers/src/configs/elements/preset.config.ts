@@ -9,6 +9,7 @@ export const presetSerializerConfig = {
     [
       'adPreset',
       'playbook',
+      'cinematicShort',
       'label',
       'description',
       'prompt',

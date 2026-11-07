@@ -92,6 +92,7 @@ import {
   ONBOARDING_TOOL_NAMES,
   resolveOnboardBrandCall,
 } from '@mcp/tools/onboarding.tool';
+import { handlePresetTool, PRESET_TOOL_NAMES } from '@mcp/tools/presets.tool';
 import { handleRemixTool, REMIX_TOOL_NAMES } from '@mcp/tools/remix.tool';
 import {
   mcpToolFailureResult,
@@ -217,6 +218,7 @@ type ExecutorKind =
   | 'editor'
   | 'workspace-app'
   | 'storyboard-capabilities'
+  | 'presets'
   | 'remix'
   | 'scheduler'
   | 'skills-pro'
@@ -531,6 +533,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (EDITOR_TOOL_NAMES.has(name)) return 'editor';
     if (WORKSPACE_APP_TOOL_NAMES.has(name)) return 'workspace-app';
     if (STORYBOARD_TOOL_NAMES.has(name)) return 'storyboard-capabilities';
+    if (PRESET_TOOL_NAMES.has(name)) return 'presets';
     if (REMIX_TOOL_NAMES.has(name)) return 'remix';
     if (SCHEDULER_TOOL_NAMES.has(name)) return 'scheduler';
     if (SKILLS_PRO_TOOL_NAMES.has(name)) return 'skills-pro';
@@ -618,6 +621,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleWorkspaceAppTool(this.clientService, name, args);
       case 'storyboard-capabilities':
         return handleStoryboardTool(this.clientService, name, args);
+      case 'presets':
+        return handlePresetTool(this.clientService, name, args);
       case 'remix':
         return handleRemixTool(this.clientService, name, args);
       case 'scheduler':

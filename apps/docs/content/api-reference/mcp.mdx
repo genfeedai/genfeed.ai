@@ -324,6 +324,24 @@ submit exactly what you reviewed.
 Client skills such as `image-prompt-engineer` stay optional. If one already
 rewrote your prompt, send `harness: false` so it is not enhanced twice.
 
+## Presets
+
+The presets you see in Studio and the Storyboard are readable over MCP. Both
+tools are read only: nothing is generated and no credits are spent. They are in
+the `inspiration` toolset, so they are not on the bare MCP URL; add
+`?toolsets=inspiration` (see [Toolsets](#toolsets)).
+
+- `get_presets` lists presets with a key, kind, label and description. `kind` is
+  `image`, `image-edit`, `video`, `storyboard`, `ad`, `playbook` or
+  `cinematic-short`. Pass `kind` or `search` to narrow the list.
+- `get_preset` reads one preset by key. For a `cinematic-short` it returns the
+  slots to fill and a worked example. Pass `slots` (and optionally `brandName`)
+  to also get the compiled prompt, the timed shot plan in whole frames, the
+  negative prompt and the sound spec. Slots are only compiled for cinematic
+  shorts.
+
+Pass the compiled prompt to `generate`. Approval and credits stay on that call.
+
 ## Publishing readiness
 
 Before scheduling, call `check_channel` with `action: capabilities` and

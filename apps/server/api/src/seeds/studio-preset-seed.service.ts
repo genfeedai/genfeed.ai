@@ -2,6 +2,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelCategory } from '@genfeedai/contracts';
 import { AD_PRESETS } from '@genfeedai/contracts/constants/ad-presets.constant';
 import { B2B_PLAYBOOKS } from '@genfeedai/contracts/constants/b2b-playbooks.constant';
+import { CINEMATIC_SHORTS } from '@genfeedai/contracts/constants/cinematic-shorts.constant';
 import { STUDIO_SYSTEM_PRESETS } from '@genfeedai/contracts/constants/studio-system-presets.constant';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -19,6 +20,14 @@ const catalog = [
     prompt: '',
     type: 'video' as const,
     values: { adPreset: preset },
+  })),
+  ...CINEMATIC_SHORTS.map((cinematicShort) => ({
+    description: cinematicShort.description,
+    key: cinematicShort.key,
+    label: cinematicShort.label,
+    prompt: '',
+    type: 'video' as const,
+    values: { cinematicShort },
   })),
   ...B2B_PLAYBOOKS.map((playbook) => ({
     description: playbook.description,
