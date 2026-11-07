@@ -1,3 +1,4 @@
+import { organizationIssuerLookup } from '@api/authorization/brand-access/actor-api-key.fixture';
 import type { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import type { ContextEmbeddingProviderService } from '@api/collections/contexts/services/context-embedding-provider.service';
 import type { ContextEmbeddingQueueService } from '@api/collections/contexts/services/context-embedding-queue.service';
@@ -15,12 +16,11 @@ function fixture() {
     isApiKey: false,
     scopes: [] as string[],
   };
+  const findKey = vi.fn().mockResolvedValue({ scopes: ['memory:write'] });
   const tx = {
     user: { findFirst: vi.fn().mockResolvedValue({ id: 'actual-user' }) },
-    organization: { findFirst: vi.fn().mockResolvedValue({ id: 'org' }) },
-    apiKey: {
-      findFirst: vi.fn().mockResolvedValue({ scopes: ['memory:write'] }),
-    },
+    organization: { findFirst: organizationIssuerLookup(findKey, 'org') },
+    apiKey: { findFirst: findKey },
     contextBase: {
       findFirst: vi.fn().mockResolvedValue({
         id: 'base',

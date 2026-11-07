@@ -1,3 +1,4 @@
+import { organizationIssuerLookup } from '@api/authorization/brand-access/actor-api-key.fixture';
 import type { BrandAccessActor } from '@api/authorization/brand-access/brand-access.service';
 import { runWithRequestPrincipal } from '@api/authorization/brand-access/request-principal.context';
 import { admitBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-admission.util';
@@ -146,7 +147,7 @@ function harness(options: { actor?: Record<string, unknown> } = {}) {
     workflowExecution: { findFirst: findExecution },
     member: { findFirst: findMember },
     brand: { findFirst: findBrand },
-    apiKey: { findFirst: findKey },
+    organization: { findFirst: organizationIssuerLookup(findKey, 'org-a') },
   } as unknown as Prisma.TransactionClient;
   const prisma = {
     $transaction: vi.fn(

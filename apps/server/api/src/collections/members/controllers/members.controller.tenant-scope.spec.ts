@@ -1,3 +1,4 @@
+import { organizationIssuerLookup } from '@api/authorization/brand-access/actor-api-key.fixture';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { MembersController } from '@api/collections/members/controllers/members.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -123,7 +124,12 @@ describe('roster live brand relation authorization', () => {
       return emptyPage();
     });
     const policy = new BrandAccessService({
-      apiKey: { findFirst: vi.fn().mockResolvedValue({ scopes: [] }) },
+      organization: {
+        findFirst: organizationIssuerLookup(
+          vi.fn().mockResolvedValue({ scopes: [] }),
+          sessionOrganizationId,
+        ),
+      },
       member: { findFirst: findMember },
     } as unknown as PrismaService);
     const controller = Object.create(

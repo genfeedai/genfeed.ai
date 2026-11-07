@@ -241,6 +241,42 @@ describe('mandatory Cloud brand authorization with real PostgreSQL and Prisma', 
       }),
     ).rejects.toThrow('Brand access denied');
   });
+  it('lets a switchable MCP session act in another organization of its user, and nothing else', async () => {
+    await pool.query(
+      `INSERT INTO "${schema}".members(id,"organizationId","userId","roleId","roleKey","currentBrandId") VALUES ('member-a-org-b','org-b','opaque-a','owner',null,'foreign-brand')`,
+    );
+    try {
+      const keyInOrgB = {
+        userId: 'opaque-a',
+        organizationId: 'org-b',
+        isApiKey: true,
+        apiKeyId: 'key-a',
+        scopes: ['admin'],
+      };
+      await expect(policy.predicate(keyInOrgB)).rejects.toThrow(
+        'Brand access denied',
+      );
+      await pool.query(
+        `UPDATE "${schema}".api_keys SET metadata='{"kind":"mcp-oauth-session","canSwitchOrganizations":true}'::jsonb WHERE id='key-a'`,
+      );
+      expect(
+        await prisma.brand.count({ where: await policy.predicate(keyInOrgB) }),
+      ).toBe(1);
+      await expect(
+        policy.predicate({ ...keyInOrgB, userId: 'foreign-user' }),
+      ).rejects.toThrow('Brand access denied');
+      await pool.query(
+        `UPDATE "${schema}".members SET "isActive"=false WHERE id='member-a-org-b'`,
+      );
+      await expect(policy.predicate(keyInOrgB)).rejects.toThrow(
+        'Brand access denied',
+      );
+    } finally {
+      await pool.query(
+        `DELETE FROM "${schema}".members WHERE id='member-a-org-b'`,
+      );
+    }
+  });
   it('refreshes key scopes, expiry and revocation against real PostgreSQL', async () => {
     await pool.query(
       `UPDATE "${schema}".members SET "roleId"='owner' WHERE id='member-a'`,

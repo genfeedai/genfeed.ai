@@ -146,6 +146,29 @@ describe('AgentToolsController publishing scopes', () => {
     );
   });
 
+  it('lets an organization admin tool reach its own role check without the superadmin flag', async () => {
+    executor.executeTool.mockResolvedValue({ creditsUsed: 0, success: true });
+    await expect(
+      controller.execute(
+        'create_brand_from_url',
+        { parameters: { url: 'https://example.com' } },
+        apiKeyUser(MCP_SCOPES),
+        request,
+      ),
+    ).resolves.toMatchObject({ success: true });
+  });
+
+  it('keeps every other admin tool superadmin-only', async () => {
+    await expect(
+      controller.execute(
+        'resolve_approval',
+        { parameters: { approvalId: 'approval-1', decision: 'decline' } },
+        apiKeyUser(MCP_SCOPES),
+        request,
+      ),
+    ).rejects.toThrow('Tool resolve_approval requires admin');
+  });
+
   describe('MCP generation brand requirement (#5786)', () => {
     const brandListing = {
       creditsUsed: 0,

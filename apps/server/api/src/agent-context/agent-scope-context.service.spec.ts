@@ -1,3 +1,4 @@
+import { organizationIssuerLookup } from '@api/authorization/brand-access/actor-api-key.fixture';
 import type { ServerLogger, ServerPrisma } from '@api/server.dependencies';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { brandAccessFixture } from '@api/shared/testing/brand-access.fixture';
@@ -1018,7 +1019,7 @@ describe('Cloud actor authorization across persisted thread reuse', () => {
       .mockResolvedValue(makeThread({ brandId: 'brand-1' }));
     const updateThread = vi.fn();
     const prisma = {
-      apiKey: { findFirst: findKey },
+      organization: { findFirst: organizationIssuerLookup(findKey, 'org-1') },
       member: { findFirst: findMember },
       brand: { findFirst: findBrand },
       agentThread: { findFirst: findThread, updateMany: updateThread },
@@ -1138,11 +1139,14 @@ describe('Cloud actor authorization across persisted thread reuse', () => {
     ).rejects.toThrow(ForbiddenException);
     expect(f.findKey).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          id: 'key-1',
-          userId: request.userId,
-          organizationId: request.organizationId,
-        }),
+        where: {
+          apiKeys: {
+            some: expect.objectContaining({
+              id: 'key-1',
+              userId: request.userId,
+            }),
+          },
+        },
       }),
     );
     expect(f.updateThread).not.toHaveBeenCalled();

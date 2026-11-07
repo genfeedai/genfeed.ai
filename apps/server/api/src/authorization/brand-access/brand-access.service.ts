@@ -1,3 +1,4 @@
+import { findActorApiKey } from '@api/authorization/brand-access/actor-api-key.util';
 import { isSystemBrandPrincipal } from '@api/authorization/brand-access/system-brand-principal.util';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -54,16 +55,7 @@ export class BrandAccessService {
       if (!actor.apiKeyId?.trim()) {
         throw new ForbiddenException('Brand access denied');
       }
-      const key = await tx.apiKey.findFirst({
-        where: {
-          id: actor.apiKeyId,
-          userId: actor.userId,
-          organizationId: actor.organizationId,
-          isRevoked: false,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-        },
-        select: { metadata: true, scopes: true },
-      });
+      const key = await findActorApiKey(tx, actor);
       if (!key) throw new ForbiddenException('Brand access denied');
       keyBrandIds = readApiKeyAllowedBrandIds(key.metadata);
       effectiveActor = {

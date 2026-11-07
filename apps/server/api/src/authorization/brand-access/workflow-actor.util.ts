@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { findActorApiKey } from '@api/authorization/brand-access/actor-api-key.util';
 import type {
   BrandAccessActor,
   BrandAccessService,
@@ -103,16 +104,7 @@ export async function refreshWorkflowActor(
   if (value === undefined && !isCloudDeployment()) return undefined;
   const actor = parseWorkflowActor(value, organizationId, deny);
   if (actor.isApiKey && isCloudDeployment()) {
-    const key = await tx.apiKey.findFirst({
-      where: {
-        id: actor.apiKeyId,
-        userId: actor.userId,
-        organizationId,
-        isRevoked: false,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-      },
-      select: { scopes: true },
-    });
+    const key = await findActorApiKey(tx, { ...actor, organizationId });
     if (!key) deny();
     actor.scopes = actor.scopes.filter((scope) => key.scopes.includes(scope));
   }

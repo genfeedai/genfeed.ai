@@ -1,3 +1,4 @@
+import { organizationIssuerLookup } from '@api/authorization/brand-access/actor-api-key.fixture';
 import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import type { AssembleContextParams } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
@@ -33,7 +34,12 @@ function fixture() {
     };
 
   const policy = new BrandAccessService({
-    apiKey: { findFirst: async () => ({ scopes: [] }) },
+    organization: {
+      findFirst: organizationIssuerLookup(
+        vi.fn().mockResolvedValue({ scopes: [] }),
+        'org-a',
+      ),
+    },
     brand: {
       findFirst: async ({
         where,
