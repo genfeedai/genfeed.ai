@@ -1,8 +1,6 @@
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { GetForecastDto } from '@api/collections/insights/dto/forecast.dto';
 import { PredictViralDto } from '@api/collections/insights/dto/predict-viral.dto';
-import type { ForecastDocument } from '@api/collections/insights/schemas/forecast.schema';
-import type { InsightDocument } from '@api/collections/insights/schemas/insight.schema';
 import {
   buildInsightGenerationWorkflowDefinition,
   INSIGHT_GENERATION_ACTION_IDS,
@@ -33,6 +31,7 @@ import {
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { InsightGenerationWorkflowInput } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import type { Forecast, Insight } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import {
@@ -47,8 +46,6 @@ import type { ZodType } from 'zod';
 /** Brands whose performance grounds an organisation-level insight prompt. */
 const INSIGHT_GROUNDING_BRAND_LIMIT = 3;
 
-type Forecast = ForecastDocument;
-type Insight = InsightDocument;
 const INSIGHTS_TEXT_MODEL = LLM_DEFAULTS.planning;
 
 type InsightData = {

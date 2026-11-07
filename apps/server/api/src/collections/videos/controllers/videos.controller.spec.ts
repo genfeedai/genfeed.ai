@@ -20,6 +20,7 @@ import { MediaGenerationReceiptsService } from '@api/services/media-generation-r
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import { delegateFindOneSelect } from '@api-test/mocks/service.mocks';
+import type { Vote } from '@genfeedai/prisma';
 import { VideoGenerationSerializer } from '@genfeedai/serializers';
 
 vi.mock('@api/collections/templates/services/templates.service', () => ({
@@ -64,7 +65,6 @@ import { VideoGenerationPreparationService } from '@api/collections/videos/servi
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { VideoReferenceUrlService } from '@api/collections/videos/services/video-reference-url.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import type { VoteDocument } from '@api/collections/votes/schemas/vote.schema';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
@@ -1160,9 +1160,7 @@ describe('VideosController', () => {
         userId: mockUserId,
       };
 
-      votesService.findOne.mockResolvedValue(
-        mockVote as unknown as VoteDocument,
-      );
+      votesService.findOne.mockResolvedValue(mockVote as unknown as Vote);
 
       const result = await controller.findOne(
         mockRequest,

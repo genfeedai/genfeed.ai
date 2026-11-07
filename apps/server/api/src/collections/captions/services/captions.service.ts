@@ -1,14 +1,14 @@
 import { CreateCaptionDto } from '@api/collections/captions/dto/create-caption.dto';
 import { UpdateCaptionDto } from '@api/collections/captions/dto/update-caption.dto';
-import type { CaptionDocument } from '@api/collections/captions/schemas/caption.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { Caption } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class CaptionsService extends BaseService<
-  CaptionDocument,
+  Caption,
   CreateCaptionDto,
   UpdateCaptionDto
 > {

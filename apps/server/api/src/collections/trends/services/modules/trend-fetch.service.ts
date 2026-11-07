@@ -4,7 +4,6 @@ import type {
   ApifyTrendItem,
   TrendData,
 } from '@api/collections/trends/interfaces/trend.interfaces';
-import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
 import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import { getRejectedGrokTrendReason } from '@api/collections/trends/utils/grok-trend-rejection.util';
 import {
@@ -28,7 +27,7 @@ import { XaiService } from '@api/services/integrations/xai/services/xai.service'
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { TrendRefreshReason } from '@genfeedai/contracts/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
+import type { Prisma, Trend } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 
@@ -976,6 +975,6 @@ export class TrendFetchService {
     return new TrendEntity({
       ...savedTrend,
       ...(savedTrend.data as Record<string, unknown>),
-    } as unknown as TrendDocument);
+    } as unknown as Trend);
   }
 }

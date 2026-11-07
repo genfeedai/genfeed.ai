@@ -1,6 +1,6 @@
 import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
-import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { Trend } from '@genfeedai/prisma';
 import {
   platformOrTenantScope,
   withPlatformTenantArm,
@@ -151,7 +151,7 @@ export class TrendQueryService {
     return new TrendEntity({
       ...doc,
       ...(doc.data as Record<string, unknown>),
-    } as unknown as TrendDocument);
+    } as unknown as Trend);
   }
 
   private isUnobservedTrend(doc: {

@@ -3,8 +3,8 @@ import type {
   HistoricalTrendsOptions,
   TrendPatternAnalysis,
 } from '@api/collections/trends/interfaces/trend.interfaces';
-import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { Trend } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Traced } from '@libs/tracing/traced';
@@ -115,7 +115,7 @@ export class TrendAnalysisService {
         new TrendEntity({
           ...doc,
           ...(doc.data as Record<string, unknown>),
-        } as unknown as TrendDocument),
+        } as unknown as Trend),
     );
   }
 

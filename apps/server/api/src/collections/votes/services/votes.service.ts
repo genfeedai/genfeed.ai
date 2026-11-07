@@ -1,9 +1,9 @@
 import { CreateVoteDto } from '@api/collections/votes/dto/create-vote.dto';
 import { UpdateVoteDto } from '@api/collections/votes/dto/update-vote.dto';
-import type { VoteDocument } from '@api/collections/votes/schemas/vote.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { VoteEntityModel } from '@genfeedai/contracts';
+import type { Vote } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { platformOrTenantScope } from '@libs/prisma/platform-scope';
 import { Traced } from '@libs/tracing/traced';
@@ -22,7 +22,7 @@ function isUniqueConstraintViolation(error: unknown): boolean {
 @Traced()
 @Injectable()
 export class VotesService extends BaseService<
-  VoteDocument,
+  Vote,
   CreateVoteDto,
   UpdateVoteDto
 > {
@@ -70,7 +70,7 @@ export class VotesService extends BaseService<
     entityModel: VoteEntityModel;
     organizationId?: string;
     userId: string;
-  }): Promise<{ created: boolean; vote: VoteDocument }> {
+  }): Promise<{ created: boolean; vote: Vote }> {
     const { entityId, entityModel, organizationId, userId } = input;
 
     for (let attempt = 0; attempt < ADD_VOTE_MAX_ATTEMPTS; attempt++) {

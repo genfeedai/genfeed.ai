@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import type { CaptionDocument } from '@api/collections/captions/schemas/caption.schema';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
@@ -46,6 +45,7 @@ import {
   WebSocketEventType,
 } from '@genfeedai/contracts';
 import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
+import type { Caption } from '@genfeedai/prisma';
 import {
   CaptionSerializer,
   IngredientSerializer,
@@ -177,7 +177,7 @@ export class VideosCaptionsController {
       return returnNotFound(this.constructorName, videoId);
     }
 
-    let caption: CaptionDocument | { id: string } | undefined;
+    let caption: Caption | { id: string } | undefined;
     if (isEntityId(createVideoWithCaptionsDto.caption)) {
       caption =
         (await this.captionsService.findOne(
