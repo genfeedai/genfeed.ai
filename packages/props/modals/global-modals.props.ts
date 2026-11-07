@@ -12,7 +12,6 @@ import type { AccountMediaReference } from '@genfeedai/contracts/interfaces/comp
 import type {
   ModalConfirmProps,
   ModalExportProps,
-  ModalMetadataProps,
   ModalPromptProps,
 } from '@genfeedai/props/modals/modal.props';
 import type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.props';
@@ -82,8 +81,6 @@ export interface GlobalModalsContextValue {
     },
   ) => void;
   closePromptModal: () => void;
-  openMetadataModal: (config: ModalMetadataProps) => void;
-  closeMetadataModal: () => void;
   openBrandCreateModal: (onConfirm?: () => void) => void;
   closeBrandCreateModal: () => void;
   openGenerateIllustration: (config: GlobalModalIllustrationConfig) => void;
@@ -107,7 +104,6 @@ export type GlobalModalKind =
   | 'gallery'
   | 'export'
   | 'prompt'
-  | 'metadata'
   | 'brand'
   | 'illustration'
   | 'postRemix'

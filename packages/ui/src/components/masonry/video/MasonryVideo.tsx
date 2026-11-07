@@ -83,6 +83,7 @@ function MasonryVideoTile({
   onMarkValidated,
   onMarkRejected,
   onSeeDetails,
+  onRename,
   onReverse,
   onMirror,
   onUpdateParent,
@@ -230,6 +231,7 @@ function MasonryVideoTile({
           onVoteIngredient={onVoteIngredient}
           onShareIngredient={onShareIngredient}
           onSeeDetails={onSeeDetails}
+          onRename={onRename}
           onMarkValidated={onMarkValidated}
           onMarkRejected={onMarkRejected}
           onToggleFavorite={onToggleFavorite}

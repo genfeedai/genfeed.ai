@@ -105,11 +105,6 @@ describe('LazyModal', () => {
       expect(typeof LazyModals.LazyModalGallery).toBe('function');
     });
 
-    it('should export LazyModalMetadata', () => {
-      expect(LazyModals.LazyModalMetadata).toBeDefined();
-      expect(typeof LazyModals.LazyModalMetadata).toBe('function');
-    });
-
     it('should export LazyModalNewsletter', () => {
       expect(LazyModals.LazyModalNewsletter).toBeDefined();
       expect(typeof LazyModals.LazyModalNewsletter).toBe('function');

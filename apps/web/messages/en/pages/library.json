@@ -51,11 +51,15 @@
     }
   },
   "inspector": {
+    "addDescription": "Add a description",
+    "assetName": "Asset name",
     "copyPrompt": "Copy prompt",
     "created": "Created",
     "credits": "Credits",
     "creditsReserved": "{count} (running)",
     "deletedReference": "Deleted reference",
+    "description": "Description",
+    "descriptionFailed": "Could not save the description. Try again.",
     "dimensions": "Dimensions",
     "duration": "Duration",
     "failureReason": "Why it failed",
@@ -69,6 +73,7 @@
     "origin": "Origin",
     "prompt": "Prompt",
     "provider": "Provider",
+    "renameFailed": "Could not rename this asset. Try again.",
     "showFullPrompt": "Show full prompt",
     "showLess": "Show less",
     "showMore": "Show more",

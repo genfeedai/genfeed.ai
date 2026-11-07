@@ -238,4 +238,49 @@ describe('EditableText', () => {
       screen.getByRole('button', { name: 'Edit brand name' }),
     ).toHaveTextContent('Acme');
   });
+
+  it('opens the editor when an edit is requested from outside', () => {
+    const { rerender } = render(
+      <EditableText ariaLabel="Asset name" onSave={vi.fn()} value="Sunset" />,
+    );
+
+    rerender(
+      <EditableText
+        ariaLabel="Asset name"
+        editRequest={1}
+        onSave={vi.fn()}
+        value="Sunset"
+      />,
+    );
+
+    expect(screen.getByRole('textbox', { name: 'Asset name' })).toHaveValue(
+      'Sunset',
+    );
+  });
+
+  it('does not reopen for a request it already handled', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <EditableText
+        ariaLabel="Asset name"
+        editRequest={1}
+        onSave={vi.fn()}
+        value="Sunset"
+      />,
+    );
+
+    await user.keyboard('{Escape}');
+    rerender(
+      <EditableText
+        ariaLabel="Asset name"
+        editRequest={1}
+        onSave={vi.fn()}
+        value="Sunset v2"
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Asset name' }),
+    ).toHaveTextContent('Sunset v2');
+  });
 });

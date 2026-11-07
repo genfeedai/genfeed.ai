@@ -5,10 +5,6 @@ import {
   ingredientImageToVideoSchema,
   ingredientSchema,
 } from '@genfeedai/client/schemas/ingredients/ingredient.schema';
-import {
-  metadataSchema,
-  metadataWithScopeSchema,
-} from '@genfeedai/client/schemas/ingredients/metadata.schema';
 import { musicSchema } from '@genfeedai/client/schemas/ingredients/music.schema';
 import {
   canMergeStoryboard,
@@ -26,7 +22,7 @@ import {
   convertToFormData,
   videoMergeSchema,
 } from '@genfeedai/client/schemas/ingredients/video-merge.schema';
-import { AssetScope, IngredientFormat } from '@genfeedai/contracts';
+import { IngredientFormat } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('ingredient schemas', () => {
@@ -168,29 +164,6 @@ describe('ingredient schemas', () => {
         upscaleSchema.safeParse({ format: 'mp4', height: 1080, width: 5000 })
           .success,
       ).toBe(false);
-    });
-  });
-
-  describe('metadataSchema', () => {
-    it('accepts minimal', () => {
-      expect(metadataSchema.safeParse({ tags: [] }).success).toBe(true);
-    });
-  });
-
-  describe('metadataWithScopeSchema', () => {
-    it('requires scope', () => {
-      expect(metadataWithScopeSchema.safeParse({ tags: [] }).success).toBe(
-        false,
-      );
-    });
-
-    it('accepts with scope', () => {
-      expect(
-        metadataWithScopeSchema.safeParse({
-          scope: AssetScope.ORGANIZATION,
-          tags: [],
-        }).success,
-      ).toBe(true);
     });
   });
 });

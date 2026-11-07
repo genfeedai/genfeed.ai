@@ -37,6 +37,7 @@ type MasonryImageActionsBarProps = {
   onVoteIngredient?: MasonryImageProps['onVoteIngredient'];
   onPublishIngredient?: MasonryImageProps['onPublishIngredient'];
   onSeeDetails?: MasonryImageProps['onSeeDetails'];
+  onRename?: MasonryImageProps['onRename'];
   onShareIngredient?: MasonryImageProps['onShareIngredient'];
   onToggleFavorite?: MasonryImageProps['onToggleFavorite'];
   onCopyPrompt?: MasonryImageProps['onCopyPrompt'];
@@ -90,6 +91,7 @@ interface QuickActionsWrapperProps {
   handleQuickActionsMouseLeave: (e: MouseEvent) => void;
   onPublishIngredient?: MasonryImageProps['onPublishIngredient'];
   onSeeDetails?: MasonryImageProps['onSeeDetails'];
+  onRename?: MasonryImageProps['onRename'];
   onShareIngredient?: MasonryImageProps['onShareIngredient'];
   onToggleFavorite?: MasonryImageProps['onToggleFavorite'];
   onCopyPrompt?: MasonryImageProps['onCopyPrompt'];
@@ -118,6 +120,7 @@ function QuickActionsWrapper({
   handleQuickActionsMouseLeave,
   onPublishIngredient,
   onSeeDetails,
+  onRename,
   onShareIngredient,
   onToggleFavorite,
   onCopyPrompt,
@@ -153,6 +156,7 @@ function QuickActionsWrapper({
         onUpscale={handlers.handleUpscale}
         onClone={handlers.handleClone}
         onSeeDetails={onSeeDetails}
+        onRename={onRename}
         onShare={onShareIngredient || handlers.handleShare}
         onDelete={handlers.handleDelete}
         onToggleFavorite={onToggleFavorite}
@@ -198,6 +202,7 @@ export default function MasonryImageActionsBar({
   onVoteIngredient,
   onPublishIngredient,
   onSeeDetails,
+  onRename,
   onShareIngredient,
   onToggleFavorite,
   onCopyPrompt,
@@ -243,6 +248,7 @@ export default function MasonryImageActionsBar({
               handleQuickActionsMouseLeave={handleQuickActionsMouseLeave}
               onPublishIngredient={onPublishIngredient}
               onSeeDetails={onSeeDetails}
+              onRename={onRename}
               onShareIngredient={onShareIngredient}
               onToggleFavorite={onToggleFavorite}
               onCopyPrompt={onCopyPrompt}

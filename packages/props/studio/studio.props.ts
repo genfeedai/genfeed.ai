@@ -72,6 +72,7 @@ export interface StudioQuickActionsProps {
   isUpdatingTags?: boolean;
   onManageTags?: (ingredient: IIngredient) => void;
   onPublish?: (ingredient: IIngredient, platform: string) => void;
+  onRename?: (ingredient: IIngredient) => void;
   onUpscale?: (ingredient: IIngredient) => void;
   onExtend?: (ingredient: IIngredient) => void;
   onDelete?: (ingredient: IIngredient) => void;

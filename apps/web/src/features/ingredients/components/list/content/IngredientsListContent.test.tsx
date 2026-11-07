@@ -16,6 +16,7 @@ import {
 import type DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import type { ComponentProps, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { claimPendingLibraryAssetRename } from '@/components/ingredients/inspector/library-asset-metadata-event';
 import IngredientsListContent from '@/features/ingredients/components/list/content/IngredientsListContent';
 
 const previewVisibility = vi.hoisted(() => ({ visible: false }));
@@ -558,10 +559,22 @@ describe('IngredientsListContent', () => {
 
     expect(row).not.toBeNull();
 
-    fireEvent.click(within(row as HTMLElement).getByTestId('action-button'));
+    fireEvent.click(
+      within(row as HTMLElement).getByRole('button', { name: 'View' }),
+    );
 
     expect(setSelectedAsset).toHaveBeenCalledWith(baseIngredient);
     expect(onOpenLightbox).not.toHaveBeenCalled();
+  });
+
+  it('renames a row by opening the inspector with its name field ready', () => {
+    renderContent({ scope: PageScope.BRAND });
+    const row = screen.getByText('Avatar Source').closest('tr') as HTMLElement;
+
+    fireEvent.click(within(row).getByRole('button', { name: 'Rename' }));
+
+    expect(setSelectedAsset).toHaveBeenCalledWith(baseIngredient);
+    expect(claimPendingLibraryAssetRename(baseIngredient.id)).toBe(true);
   });
 
   it('names the empty audio library instead of rendering a blank pane', () => {
@@ -855,7 +868,7 @@ describe('IngredientsListContent inspector handoff', () => {
         row,
         within(row).getByRole('img'),
         title,
-        within(row).getByTestId('action-button'),
+        within(row).getByRole('button', { name: 'View' }),
       ]) {
         setSelectedAsset.mockClear();
         fireEvent.click(target);

@@ -14,12 +14,18 @@ export interface EditableTextProps {
   maxLength?: number;
   className?: string;
   displayClassName?: string;
+  /**
+   * Opens the editor from outside, such as a menu's Rename item. Each new
+   * non-zero value opens it once.
+   */
+  editRequest?: number;
 }
 
 function EditableText({
   ariaLabel,
   className,
   displayClassName,
+  editRequest = 0,
   isDisabled = false,
   isMultiline = false,
   isRequired = false,
@@ -61,6 +67,24 @@ function EditableText({
     setDraftValue(value);
     setIsEditing(true);
   };
+
+  // Every value is handled once, including the one present on mount.
+  const handledEditRequestRef = useRef(0);
+  useEffect(() => {
+    if (editRequest === 0 || editRequest === handledEditRequestRef.current) {
+      return;
+    }
+
+    handledEditRequestRef.current = editRequest;
+    if (isDisabled) {
+      return;
+    }
+
+    isCancellingRef.current = false;
+    originalValueRef.current = value;
+    setDraftValue(value);
+    setIsEditing(true);
+  }, [editRequest, isDisabled, value]);
 
   const handleSave = async () => {
     if (isSavingRef.current) {

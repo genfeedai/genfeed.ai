@@ -28,7 +28,6 @@ export enum ModalEnum {
   LIGHTING = 'modal-lighting',
   MCP = 'modal-mcp',
   MEMBER = 'modal-member',
-  METADATA = 'modal-metadata',
   MODEL = 'modal-model',
   MONITORED_ACCOUNT = 'modal-monitored-account',
   MOOD = 'modal-mood',

@@ -56,6 +56,7 @@ type MasonryVideoActionsBarProps = {
   onVoteIngredient?: (ingredient: IVideo) => void;
   onShareIngredient?: (ingredient: IVideo) => void;
   onSeeDetails?: (ingredient: IVideo) => void;
+  onRename?: (ingredient: IVideo) => void;
   onMarkValidated?: (ingredient: IVideo) => void;
   onMarkRejected?: (ingredient: IVideo) => void;
   onToggleFavorite?: (ingredient: IVideo) => void;
@@ -90,6 +91,7 @@ export default function MasonryVideoActionsBar({
   onVoteIngredient,
   onShareIngredient,
   onSeeDetails,
+  onRename,
   onMarkValidated,
   onMarkRejected,
   onToggleFavorite,
@@ -164,6 +166,7 @@ export default function MasonryVideoActionsBar({
                   onOpenInEditor={onOpenInEditor}
                   onResize={onResize}
                   onSeeDetails={onSeeDetails}
+                  onRename={onRename}
                   onMarkArchived={handlers.handleMarkArchived}
                   onMarkValidated={
                     onMarkValidated || handlers.handleMarkValidated

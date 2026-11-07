@@ -18,7 +18,6 @@ import type {
 import type {
   ModalConfirmProps,
   ModalExportProps,
-  ModalMetadataProps,
   ModalPromptProps,
 } from '@genfeedai/props/modals/modal.props';
 import type { PostRepurposeSource } from '@genfeedai/props/modals/modal-post-repurpose.props';
@@ -73,9 +72,6 @@ export function useGlobalModalsState() {
     onConfirm: (prompt: string) => void;
   } | null>(null);
 
-  const [metadataConfig, setMetadataConfig] =
-    useState<ModalMetadataProps | null>(null);
-
   const [brandCreateData, setBrandCreateData] = useState<{
     onConfirm?: () => void;
   } | null>(null);
@@ -106,7 +102,6 @@ export function useGlobalModalsState() {
     galleryConfig != null ||
     exportConfig != null ||
     promptConfig != null ||
-    metadataConfig != null ||
     brandCreateData != null ||
     generateIllustrationConfig != null ||
     postRemixData != null ||
@@ -192,15 +187,6 @@ export function useGlobalModalsState() {
   const closePromptModal = useCallback(() => {
     setPromptConfig(null);
     closeModal(ModalEnum.PROMPT);
-  }, []);
-
-  const openMetadataModal = useCallback((config: ModalMetadataProps) => {
-    setMetadataConfig(config);
-  }, []);
-
-  const closeMetadataModal = useCallback(() => {
-    setMetadataConfig(null);
-    closeModal(ModalEnum.METADATA);
   }, []);
 
   const openBrandCreateModal = useCallback((onConfirm?: () => void) => {
@@ -290,7 +276,6 @@ export function useGlobalModalsState() {
     closeExport,
     closeGallery,
     closeGenerateIllustration,
-    closeMetadataModal,
     closePostRemixModal,
     closePostRepurposeModal,
     closePromptModal,
@@ -301,7 +286,6 @@ export function useGlobalModalsState() {
     openExport,
     openGallery,
     openGenerateIllustration,
-    openMetadataModal,
     openPostBatchModal,
     openPostRemixModal,
     openPostRepurposeModal,
@@ -320,7 +304,6 @@ export function useGlobalModalsState() {
     generateIllustrationTrigger,
     handleBrandCreateConfirm,
     hasOpenGlobalModal,
-    metadataConfig,
     openTrigger,
     postRemixData,
     postRemixTrigger,

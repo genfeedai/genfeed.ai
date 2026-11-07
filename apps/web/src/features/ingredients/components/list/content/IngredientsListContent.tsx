@@ -51,7 +51,14 @@ import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
-import { Eye, Film, ImageIcon, Music, RefreshCw } from 'lucide-react';
+import {
+  Eye,
+  Film,
+  ImageIcon,
+  Music,
+  RefreshCw,
+  TextCursorInput,
+} from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -60,6 +67,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import IngredientReviewActions from '@/components/ingredients/IngredientReviewActions';
 import IngredientOriginBadge from '@/components/ingredients/ingredient-origin-badge';
 import IngredientTagChips from '@/components/ingredients/ingredient-tag-chips';
+import { requestLibraryAssetRename } from '@/components/ingredients/inspector/library-asset-metadata-event';
 import LibraryAssetTypeBadge from '@/components/ingredients/library-asset-type-badge';
 import IngredientsMediaGrid from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
 import {
@@ -614,6 +622,15 @@ export default function IngredientsListContent({
     },
     [revealInspector, setSelectedAsset],
   );
+  // The name is edited in the inspector, so Rename opens it on the asset with
+  // its title field ready to type in.
+  const renameIngredient = useCallback(
+    (ingredient: IIngredient) => {
+      inspectIngredient(ingredient);
+      requestLibraryAssetRename(ingredient.id);
+    },
+    [inspectIngredient],
+  );
 
   // The lightbox is the full-size view; when it cannot open (an asset with no
   // media to show) the sidebar still has the record.
@@ -659,6 +676,12 @@ export default function IngredientsListContent({
           storyboardEntry.pendingAssetId === ingredient.id,
       },
       {
+        icon: <TextCursorInput />,
+        isVisible: () => isWorkspaceScope && isActionsEnabled,
+        onClick: renameIngredient,
+        tooltip: translateActions('rename'),
+      },
+      {
         icon: <RefreshCw />,
         isVisible: (ingredient: IIngredient) =>
           Boolean(onReprompt) && isFailedIngredient(ingredient),
@@ -670,6 +693,7 @@ export default function IngredientsListContent({
       inspectIngredient,
       isActionsEnabled,
       onReprompt,
+      renameIngredient,
       translateRetry,
       isWorkspaceScope,
       storyboardEntry.canCreateFromAsset,
@@ -806,6 +830,7 @@ export default function IngredientsListContent({
               onReverse={onReverse}
               onMirror={onMirror}
               onSeeDetails={inspectIngredient}
+              onRename={isWorkspaceScope ? renameIngredient : undefined}
               onUpdateParent={onUpdateParent}
               onRefresh={onRefresh}
               onReviewUpdated={handleReviewUpdated}
@@ -889,6 +914,7 @@ export default function IngredientsListContent({
     isPlaygroundAvailable,
     isPortraiting,
     isReversing,
+    isWorkspaceScope,
     onArchiveIngredient,
     onConvertToPortrait,
     onConvertToVideo,
@@ -905,6 +931,7 @@ export default function IngredientsListContent({
     onDeleteIngredient,
     onPublishIngredient,
     nonVisualIngredients,
+    renameIngredient,
     selectedIngredientIds,
     singularType,
     tableActions,

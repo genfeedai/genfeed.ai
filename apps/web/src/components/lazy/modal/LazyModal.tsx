@@ -16,7 +16,6 @@ import type {
   ModalGenerateIllustrationProps,
   ModalImageToVideoProps,
   ModalMemberProps,
-  ModalMetadataProps,
   ModalModelProps,
   ModalNewsletterProps,
   ModalPostBatchProps,
@@ -130,11 +129,6 @@ export const LazyModalGallery = dynamic(
   () => import('@/components/modals/gallery/ModalGallery'),
   { ssr: false },
 ) as ComponentType<ModalGalleryProps>;
-
-export const LazyModalMetadata = dynamic(
-  () => import('@/components/modals/content/metadata/ModalMetadata'),
-  { ssr: false },
-) as ComponentType<ModalMetadataProps>;
 
 export const LazyModalPrompt = dynamic(
   () => import('@/components/modals/content/prompt/ModalPrompt'),

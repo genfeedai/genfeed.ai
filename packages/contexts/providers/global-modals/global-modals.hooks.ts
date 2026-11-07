@@ -154,22 +154,6 @@ export function useConfirmDeleteModal() {
   };
 }
 
-export function useMetadataModal(): Pick<
-  GlobalModalsContextValue,
-  'closeMetadataModal' | 'openMetadataModal'
-> {
-  const context = use(GlobalModalsContext);
-  if (!context) {
-    throw new Error(
-      'useMetadataModal must be used within GlobalModalsProvider',
-    );
-  }
-  return {
-    closeMetadataModal: context.closeMetadataModal,
-    openMetadataModal: context.openMetadataModal,
-  };
-}
-
 export function useBrandCreateModal(): Pick<
   GlobalModalsContextValue,
   'closeBrandCreateModal' | 'openBrandCreateModal'
