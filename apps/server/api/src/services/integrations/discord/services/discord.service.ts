@@ -1,5 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
@@ -8,10 +9,6 @@ import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 @Traced()
 @Injectable()
@@ -40,9 +37,9 @@ export class DiscordService {
   }
 
   private getErrorDetail(error: unknown, fallback: string): string {
-    if (isPlainObject(error) && isPlainObject(error.response)) {
+    if (isRecord(error) && isRecord(error.response)) {
       const responseData = error.response.data;
-      if (isPlainObject(responseData)) {
+      if (isRecord(responseData)) {
         if (typeof responseData.error_description === 'string') {
           return responseData.error_description;
         }

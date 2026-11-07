@@ -5,6 +5,7 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { RedisService } from '@libs/redis/redis.service';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
@@ -46,10 +47,6 @@ type YoutubeUploadCompletionEvent = {
   timestamp: string;
 };
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
 function isYoutubeUploadStatus(value: unknown): value is YoutubeUploadStatus {
   return (
     typeof value === 'string' &&
@@ -61,7 +58,7 @@ function isYoutubeUploadCompletionEvent(
   value: unknown,
 ): value is YoutubeUploadCompletionEvent {
   if (
-    !isPlainObject(value) ||
+    !isRecord(value) ||
     typeof value.postId !== 'string' ||
     typeof value.userId !== 'string' ||
     typeof value.organizationId !== 'string' ||
@@ -77,7 +74,7 @@ function isYoutubeUploadCompletionEvent(
 
   if (value.result !== undefined && value.result !== null) {
     if (
-      !isPlainObject(value.result) ||
+      !isRecord(value.result) ||
       typeof value.result.externalId !== 'string' ||
       typeof value.result.videoUrl !== 'string'
     ) {
@@ -190,7 +187,7 @@ function buildYoutubeWebhookPostSnapshot(
   data: YoutubeUploadCompletionEvent,
   patchedPost: unknown,
 ): Record<string, unknown> {
-  if (isPlainObject(patchedPost)) {
+  if (isRecord(patchedPost)) {
     return patchedPost;
   }
 

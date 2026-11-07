@@ -1,4 +1,5 @@
 import { getDeserializer, type JsonApiDocument } from '@genfeedai/helpers';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import {
   type ArgumentMetadata,
   BadRequestException,
@@ -79,10 +80,6 @@ interface UnknownPropertyAwareMetatype {
   [RESOLVE_QUERY_ALIASES]?: QueryAliasResolver;
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
 @Injectable()
 export class ValidationPipe implements PipeTransform<unknown> {
   async transform(
@@ -92,12 +89,9 @@ export class ValidationPipe implements PipeTransform<unknown> {
     const { metatype } = metadata;
 
     // Check if this is JSON API format with data.attributes
-    const valueRecord = isPlainObject(value) ? value : null;
-    const dataRecord = isPlainObject(valueRecord?.data)
-      ? valueRecord.data
-      : null;
-    const isJsonApiFormat =
-      !!dataRecord && isPlainObject(dataRecord.attributes);
+    const valueRecord = isRecord(value) ? value : null;
+    const dataRecord = isRecord(valueRecord?.data) ? valueRecord.data : null;
+    const isJsonApiFormat = !!dataRecord && isRecord(dataRecord.attributes);
 
     if (isJsonApiFormat) {
       // Deserialize the JSON API data
@@ -172,7 +166,7 @@ export class ValidationPipe implements PipeTransform<unknown> {
     metatype: Type<unknown>,
     source: unknown,
   ): unknown {
-    if (this.allowsUnknownProperties(metatype) && isPlainObject(source)) {
+    if (this.allowsUnknownProperties(metatype) && isRecord(source)) {
       const instance = Object.create(metatype.prototype) as Record<
         string,
         unknown
@@ -190,7 +184,7 @@ export class ValidationPipe implements PipeTransform<unknown> {
     const aliasResolver = (metatype as unknown as UnknownPropertyAwareMetatype)[
       RESOLVE_QUERY_ALIASES
     ];
-    if (aliasResolver && isPlainObject(source)) {
+    if (aliasResolver && isRecord(source)) {
       aliasResolver(source, instance as object);
     }
     return instance;
@@ -200,7 +194,7 @@ export class ValidationPipe implements PipeTransform<unknown> {
     object: unknown,
     metatype: unknown,
   ): Promise<void> {
-    if (!isPlainObject(object)) {
+    if (!isRecord(object)) {
       return;
     }
 

@@ -17,6 +17,7 @@ import {
   STREAK_MILESTONES,
 } from '@genfeedai/contracts/types';
 import { Prisma } from '@genfeedai/prisma';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Traced } from '@libs/tracing/traced';
 import {
@@ -91,10 +92,6 @@ function toTypeLabel(key: ActivityKey): string {
   }
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
 function toDate(value: unknown): Date | null {
   if (value instanceof Date) {
     return value;
@@ -135,7 +132,7 @@ export class StreaksService {
   private normalizeStreakRecord(
     record: Record<string, unknown>,
   ): StreakDocument {
-    const data = isPlainObject(record.data) ? record.data : {};
+    const data = isRecord(record.data) ? record.data : {};
     const merged = { ...record, ...data };
     const milestones = Array.isArray(merged.milestones)
       ? merged.milestones.filter(
@@ -145,7 +142,7 @@ export class StreaksService {
     const milestoneHistory = Array.isArray(merged.milestoneHistory)
       ? merged.milestoneHistory.flatMap((entry) => {
           if (
-            !isPlainObject(entry) ||
+            !isRecord(entry) ||
             typeof entry.milestone !== 'number' ||
             typeof entry.reward !== 'string'
           ) {

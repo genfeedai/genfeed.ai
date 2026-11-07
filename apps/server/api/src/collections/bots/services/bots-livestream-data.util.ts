@@ -13,6 +13,7 @@ import type {
   LivestreamTranscriptChunk,
 } from '@api/collections/bots/schemas/livestream-bot-session.schema';
 import { Prisma } from '@genfeedai/prisma';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 function isLivestreamMessageType(
   messageType: string,
@@ -24,15 +25,11 @@ function isLivestreamMessageType(
   );
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
 function mergeJsonPayload(
   target: Record<string, unknown>,
   source: unknown,
 ): void {
-  if (!isPlainObject(source)) {
+  if (!isRecord(source)) {
     return;
   }
 
@@ -65,7 +62,7 @@ function toJsonCompatible(value: unknown): unknown {
     return value.map((item) => toJsonCompatible(item));
   }
 
-  if (isPlainObject(value)) {
+  if (isRecord(value)) {
     return Object.fromEntries(
       Object.entries(value)
         .filter(([, entryValue]) => entryValue !== undefined)
@@ -95,7 +92,7 @@ export function normalizeLivestreamBotDocument(bot: BotDocument): BotDocument {
 
   normalized.targets = Array.isArray(normalized.targets)
     ? normalized.targets.flatMap((target) => {
-        if (!isPlainObject(target)) {
+        if (!isRecord(target)) {
           return [];
         }
 
@@ -137,7 +134,7 @@ export function normalizeLivestreamBotDocument(bot: BotDocument): BotDocument {
       })
     : [];
 
-  if (isPlainObject(normalized.livestreamSettings)) {
+  if (isRecord(normalized.livestreamSettings)) {
     const livestreamSettings = {
       ...normalized.livestreamSettings,
     } as Record<string, unknown>;
@@ -145,7 +142,7 @@ export function normalizeLivestreamBotDocument(bot: BotDocument): BotDocument {
     livestreamSettings.links = Array.isArray(livestreamSettings.links)
       ? livestreamSettings.links.flatMap((link) => {
           if (
-            !isPlainObject(link) ||
+            !isRecord(link) ||
             typeof link.id !== 'string' ||
             typeof link.label !== 'string' ||
             typeof link.url !== 'string'
@@ -169,7 +166,7 @@ export function normalizeLivestreamBotDocument(bot: BotDocument): BotDocument {
     )
       ? livestreamSettings.messageTemplates.flatMap((template) => {
           if (
-            !isPlainObject(template) ||
+            !isRecord(template) ||
             typeof template.id !== 'string' ||
             typeof template.text !== 'string' ||
             typeof template.type !== 'string' ||
@@ -210,10 +207,10 @@ export function normalizeLivestreamBotDocument(bot: BotDocument): BotDocument {
 function normalizeLivestreamSessionContext(
   context: unknown,
 ): LivestreamSessionContext {
-  const normalized = isPlainObject(context)
+  const normalized = isRecord(context)
     ? { ...context }
     : ({} as Record<string, unknown>);
-  const manualOverride = isPlainObject(normalized.manualOverride)
+  const manualOverride = isRecord(normalized.manualOverride)
     ? { ...normalized.manualOverride }
     : undefined;
 
@@ -250,7 +247,7 @@ export function normalizeLivestreamSessionDocument(
   normalized.platformStates = Array.isArray(normalized.platformStates)
     ? normalized.platformStates.flatMap((platformState) => {
         if (
-          !isPlainObject(platformState) ||
+          !isRecord(platformState) ||
           typeof platformState.platform !== 'string'
         ) {
           return [];
@@ -277,7 +274,7 @@ export function normalizeLivestreamSessionDocument(
   normalized.deliveryHistory = Array.isArray(normalized.deliveryHistory)
     ? normalized.deliveryHistory.flatMap((record) => {
         if (
-          !isPlainObject(record) ||
+          !isRecord(record) ||
           typeof record.id !== 'string' ||
           typeof record.message !== 'string' ||
           typeof record.platform !== 'string' ||
@@ -308,7 +305,7 @@ export function normalizeLivestreamSessionDocument(
     : [];
   normalized.transcriptChunks = Array.isArray(normalized.transcriptChunks)
     ? normalized.transcriptChunks.flatMap((chunk) => {
-        if (!isPlainObject(chunk) || typeof chunk.text !== 'string') {
+        if (!isRecord(chunk) || typeof chunk.text !== 'string') {
           return [];
         }
 

@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import {
   ingredientMediaUrl,
   type MediaUrlConfig,
@@ -28,15 +29,11 @@ export type MediaUrlExtension = {
   };
 };
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
 function withoutDerivedField(data: unknown): unknown {
   if (Array.isArray(data)) {
     return data.map(withoutDerivedField);
   }
-  if (!isPlainObject(data) || !(DERIVED_FIELD in data)) {
+  if (!isRecord(data) || !(DERIVED_FIELD in data)) {
     return data;
   }
   const { [DERIVED_FIELD]: _derived, ...rest } = data;
@@ -52,7 +49,7 @@ function withoutDerivedField(data: unknown): unknown {
  * from `s3Key`. Stripping it keeps the field read-only by construction.
  */
 function stripDerivedFromWriteArgs(args: unknown): unknown {
-  if (!isPlainObject(args)) {
+  if (!isRecord(args)) {
     return args;
   }
 

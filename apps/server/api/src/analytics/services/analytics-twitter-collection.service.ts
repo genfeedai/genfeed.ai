@@ -30,6 +30,7 @@ import type {
   ServerAnalyticsCollectionState,
 } from '@genfeedai/contracts/interfaces';
 import type { LearningPublicationSourceV1 } from '@genfeedai/contracts/interfaces/analytics/outlier-persistence.interface';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { Traced } from '@libs/tracing/traced';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Inject, Injectable } from '@nestjs/common';
@@ -37,10 +38,6 @@ import {
   classifyAnalyticsCollectionError,
   delayedAnalyticsCollectionFailure,
 } from '../analytics-collection-state';
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 type TwitterBatchOutcome = {
   readyTargets: AnalyticsCollectionAttemptRef[];
@@ -395,6 +392,6 @@ export class AnalyticsTwitterCollectionService {
   }
 
   private isRateLimitError(error: unknown): boolean {
-    return isPlainObject(error) && 'rateLimitReset' in error;
+    return isRecord(error) && 'rateLimitReset' in error;
   }
 }
