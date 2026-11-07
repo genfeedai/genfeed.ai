@@ -53,7 +53,7 @@ export function storyboardShotCast(plan: StoryboardPlan, shot: StoryboardShot) {
 }
 
 function seconds(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  return String(value);
 }
 
 function cutLine(cut: StoryboardShotCut): string {
@@ -67,16 +67,6 @@ function cutLine(cut: StoryboardShotCut): string {
  * images the person gave a role, by role.
  */
 export function storyboardShotNamedReferences(shot: StoryboardShot) {
-  const still =
-    shot.stillFreshness === 'fresh' && shot.stillAssetId
-      ? [
-          {
-            assetId: shot.stillAssetId,
-            phrase: 'the opening frame',
-            hasRole: false,
-          },
-        ]
-      : [];
   const roles = ROLE_ORDER.flatMap((role) =>
     (shot.referenceRoles ?? [])
       .filter((reference) => reference.role === role)
@@ -86,12 +76,21 @@ export function storyboardShotNamedReferences(shot: StoryboardShot) {
         hasRole: true,
       })),
   );
-  const seen = new Set<string>();
-  return [...still, ...roles].filter((reference) => {
-    if (seen.has(reference.assetId)) return false;
-    seen.add(reference.assetId);
-    return true;
-  });
+  const stillId =
+    shot.stillFreshness === 'fresh' ? shot.stillAssetId : undefined;
+  if (!stillId) return roles;
+  // A still that also has a role is sent once and described both ways.
+  const stillRole = roles.find((reference) => reference.assetId === stillId);
+  return [
+    {
+      assetId: stillId,
+      phrase: stillRole
+        ? `the opening frame and ${stillRole.phrase}`
+        : 'the opening frame',
+      hasRole: Boolean(stillRole),
+    },
+    ...roles.filter((reference) => reference !== stillRole),
+  ];
 }
 
 export interface StoryboardShotPromptOptions {

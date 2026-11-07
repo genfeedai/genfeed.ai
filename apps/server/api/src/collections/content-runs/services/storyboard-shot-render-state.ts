@@ -19,6 +19,8 @@ import { z } from 'zod';
 export const SHOT_RENDER_JOURNAL_CAPACITY = 64;
 /** A dispatch that left no placeholder for this long never reached a provider. */
 export const SHOT_RENDER_ABANDONED_MS = 10 * 60_000;
+/** The longest video prompt a render journals and sends. */
+export const SHOT_RENDER_PROMPT_MAX_CHARACTERS = 8_000;
 
 export const shotRenderOperationSchema = z
   .object({
@@ -32,7 +34,7 @@ export const shotRenderOperationSchema = z
     billingMode: z.enum(['platform', 'byok']),
     /** The shot inputs the prompt and references were compiled from. */
     inputFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
-    prompt: z.string().min(1).max(8_000),
+    prompt: z.string().min(1).max(SHOT_RENDER_PROMPT_MAX_CHARACTERS),
     referenceAssetIds: z.array(z.string().min(1)).max(20),
     aspectRatio: z.string().min(1),
     durationSeconds: z.number().finite().positive().max(60),
@@ -111,8 +113,9 @@ export function appendShotRenderOperations(
  * Identifies the shot inputs a render of one stage is compiled from:
  * everything that can enter its prompt or references, and the chosen video
  * model, since the draft model is its cheaper sibling. Only the final follows
- * the shot length: a draft always renders the shortest clip. Notes and the
- * transition are left out: they change the edit, not the clip.
+ * the shot length: a draft renders the shortest clip that holds its cuts,
+ * and the cuts are already in the prompt. Notes and the transition are left
+ * out: they change the edit, not the clip.
  */
 export function shotRenderInputFingerprint(
   plan: StoryboardPlan,

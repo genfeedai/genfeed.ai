@@ -1,6 +1,7 @@
 import type { StoryboardStoredRunConfig } from '@api/collections/content-runs/services/storyboard-imported-run-state.schema';
 import {
   latestShotRender,
+  SHOT_RENDER_PROMPT_MAX_CHARACTERS,
   shotRenderInputFingerprint,
   snapShotRenderDuration,
 } from '@api/collections/content-runs/services/storyboard-shot-render-state';
@@ -60,13 +61,30 @@ export function shotRenderLine(
 ): Omit<RenderLine, 'credits'> {
   const { plan } = config;
   const inputFingerprint = shotRenderInputFingerprint(plan, shot, stage);
-  const durationSeconds =
-    stage === 'draft'
-      ? Math.min(...model.durations)
-      : snapShotRenderDuration(shot.durationSeconds ?? 0, model.durations);
+  // A draft renders the shortest clip that still holds the timed cuts.
+  const cutsEndSeconds = Math.max(
+    0,
+    ...(shot.cuts ?? []).map((cut) => cut.endSeconds),
+  );
+  const durationSeconds = snapShotRenderDuration(
+    stage === 'draft' ? cutsEndSeconds : (shot.durationSeconds ?? 0),
+    model.durations,
+  );
   if (!durationSeconds || !Number.isFinite(durationSeconds))
     throw new ConflictException(
       `The ${stage} model has no clip length for shot ${shot.ordinal}.`,
+    );
+  if (cutsEndSeconds > durationSeconds)
+    throw new BadRequestException(
+      `Shot ${shot.ordinal}'s cuts run to ${cutsEndSeconds}s; ${model.modelKey} renders at most ${durationSeconds}s. Shorten the cuts or choose another model.`,
+    );
+  const compiled = compileStoryboardShotPrompt(plan, shot, {
+    isAudioEnabled: model.isPromptWithSound,
+    maxReferences: model.maxReferences,
+  });
+  if (compiled.namedReferenceCount > model.maxReferences)
+    throw new BadRequestException(
+      `Shot ${shot.ordinal} names ${compiled.namedReferenceCount} reference images; ${model.modelKey} accepts ${model.maxReferences}. Remove a reference role or choose another model.`,
     );
   const draft =
     stage === 'final'
@@ -89,13 +107,9 @@ export function shotRenderLine(
       promotedFromOperationId: draft.operationId,
     };
   }
-  const compiled = compileStoryboardShotPrompt(plan, shot, {
-    isAudioEnabled: model.isPromptWithSound,
-    maxReferences: model.maxReferences,
-  });
-  if (compiled.namedReferenceCount > model.maxReferences)
+  if (compiled.prompt.length > SHOT_RENDER_PROMPT_MAX_CHARACTERS)
     throw new BadRequestException(
-      `Shot ${shot.ordinal} names ${compiled.namedReferenceCount} reference images; ${model.modelKey} accepts ${model.maxReferences}. Remove a reference role or choose another model.`,
+      `Shot ${shot.ordinal}'s video prompt is ${compiled.prompt.length} characters; the limit is ${SHOT_RENDER_PROMPT_MAX_CHARACTERS}. Shorten its action, cuts or sound effects.`,
     );
   return {
     shotId: shot.id,

@@ -3,6 +3,7 @@ import type {
   StoryboardShot,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import StoryboardShotDirection from './StoryboardShotDirection';
 
@@ -59,6 +60,27 @@ function renderDirection(
   return { onPatch };
 }
 
+/** Saves like the plan editor, whose schema trims the prompt. */
+function TrimmingEditor({ saved }: { saved: (string | undefined)[] }) {
+  const [current, setCurrent] = useState(shot);
+  return (
+    <StoryboardShotDirection
+      plan={{ ...plan, shots: [current] }}
+      shot={current}
+      model={{ label: 'Cine 2', maxReferences: 4, hasAudio: true }}
+      referenceUrls={{}}
+      isDisabled={false}
+      onPatch={(patch) => {
+        // The plan schema trims the saved prompt.
+        const videoPrompt = patch.videoPrompt?.trim();
+        saved.push(videoPrompt);
+        setCurrent((value) => ({ ...value, ...patch, videoPrompt }));
+      }}
+      onAddReference={vi.fn()}
+    />
+  );
+}
+
 describe('StoryboardShotDirection', () => {
   it('shows the prompt compiled for the storyboard model before any spend', () => {
     renderDirection();
@@ -99,5 +121,28 @@ describe('StoryboardShotDirection', () => {
     expect(onPatch).toHaveBeenLastCalledWith({
       sfx: ['ticking clock', 'door slam'],
     });
+  });
+
+  it('keeps a trailing space while the prompt is typed into a saved, trimmed shot', () => {
+    const saved: (string | undefined)[] = [];
+    render(<TrimmingEditor saved={saved} />);
+    const field = screen.getByLabelText('Video prompt');
+    fireEvent.change(field, { target: { value: 'Handheld ' } });
+    expect(field).toHaveValue('Handheld ');
+    fireEvent.change(field, { target: { value: 'Handheld rain' } });
+    expect(field).toHaveValue('Handheld rain');
+    expect(saved.at(-1)).toBe('Handheld rain');
+  });
+
+  it('keeps an unfinished cut on screen instead of dropping it', () => {
+    const { onPatch } = renderDirection();
+    const framing = screen.getByLabelText('Cut 1 framing');
+    fireEvent.change(framing, { target: { value: '' } });
+    fireEvent.blur(framing);
+    expect(onPatch).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Cut 1 start, seconds')).toHaveValue('0');
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Give each cut a start, an end and a framing, or remove it.',
+    );
   });
 });

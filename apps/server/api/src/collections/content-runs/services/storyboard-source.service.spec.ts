@@ -4,6 +4,7 @@ import { StoryboardSourceService } from '@api/collections/content-runs/services/
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
+import { ConflictException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 function setup() {
@@ -192,5 +193,28 @@ describe('Storyboard plan character admission (#6040)', () => {
     await expect(
       service.validatePlanAssets('org-1', 'brand-1', withRole),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('refuses a voice given a reference role', async () => {
+    const { prisma, service } = setup();
+    prisma.ingredient.findMany.mockResolvedValue([
+      { category: 'IMAGE', id: 'avatar-1' },
+      { category: 'IMAGE', id: 'style-1' },
+      { category: 'VOICE', id: 'voice-1' },
+    ]);
+    prisma.asset.findMany.mockResolvedValue([]);
+    const withVoice = {
+      ...(plan as object),
+      shots: [
+        {
+          id: 'shot-1',
+          referenceRoles: [{ assetId: 'voice-1', role: 'prop' }],
+        },
+      ],
+    } as never;
+
+    await expect(
+      service.validatePlanAssets('org-1', 'brand-1', withVoice),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 });

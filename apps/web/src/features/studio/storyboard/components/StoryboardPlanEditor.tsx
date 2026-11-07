@@ -901,7 +901,7 @@ export default function StoryboardPlanEditor({
                         supportedDurations={supportedDurations}
                         direction={
                           <StoryboardShotDirection
-                            key={`${shot.id}:${JSON.stringify(shot.cuts ?? [])}:${(shot.sfx ?? []).join('|')}`}
+                            key={shot.id}
                             plan={plan}
                             shot={shot}
                             model={model ?? undefined}

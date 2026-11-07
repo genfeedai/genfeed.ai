@@ -87,6 +87,21 @@ export default function StoryboardShotDirection({
     (shot.cuts ?? []).map(toDraft),
   );
   const [sfxText, setSfxText] = useState((shot.sfx ?? []).join(', '));
+  // Saved cuts and sound effects that change elsewhere (an undo, the server)
+  // replace the local text without remounting, so focus stays put.
+  const savedCuts = JSON.stringify(shot.cuts ?? []);
+  const savedSfx = (shot.sfx ?? []).join(', ');
+  const [synced, setSynced] = useState({ cuts: savedCuts, sfx: savedSfx });
+  if (synced.cuts !== savedCuts || synced.sfx !== savedSfx) {
+    setSynced({ cuts: savedCuts, sfx: savedSfx });
+    if (synced.cuts !== savedCuts) setCutDrafts((shot.cuts ?? []).map(toDraft));
+    if (synced.sfx !== savedSfx) setSfxText(savedSfx);
+  }
+  const [isCutIncomplete, setIsCutIncomplete] = useState(false);
+  // What the person is typing; the saved value is trimmed, so a trailing
+  // space would otherwise vanish before the next word.
+  const [promptDraft, setPromptDraft] = useState<string>();
+  const [labelDrafts, setLabelDrafts] = useState<Record<string, string>>({});
   const [newRole, setNewRole] =
     useState<StoryboardReferenceRole>('environment');
   const compiled = model
@@ -110,6 +125,11 @@ export default function StoryboardShotDirection({
       const cut = fromDraft(draft);
       return cut ? [cut] : [];
     });
+    // An incomplete cut stays on screen unsaved until it is finished or
+    // removed, so nothing the person wrote is dropped.
+    const isIncomplete = cuts.length !== drafts.length;
+    setIsCutIncomplete(isIncomplete);
+    if (isIncomplete) return;
     onPatch({ cuts: cuts.length ? cuts : undefined });
   }
   function editCut(index: number, patch: Partial<CutDraft>) {
@@ -250,6 +270,11 @@ export default function StoryboardShotDirection({
                 />
               </div>
             ))}
+            {isCutIncomplete ? (
+              <p role="alert" className="text-xs text-destructive">
+                {translate('cutIncomplete')}
+              </p>
+            ) : null}
             <Button
               className="self-start"
               icon={<Plus className="size-4" />}
@@ -322,11 +347,23 @@ export default function StoryboardShotDirection({
                     placeholder={translate('labelPlaceholder')}
                     maxLength={60}
                     disabled={isDisabled}
-                    value={reference.label ?? ''}
-                    onChange={(event) =>
+                    value={
+                      labelDrafts[reference.assetId] ?? reference.label ?? ''
+                    }
+                    onChange={(event) => {
+                      const label = event.target.value;
+                      setLabelDrafts((current) => ({
+                        ...current,
+                        [reference.assetId]: label,
+                      }));
                       editRole(reference.assetId, {
-                        label: event.target.value || undefined,
-                      })
+                        label: label.trim() ? label : undefined,
+                      });
+                    }}
+                    onBlur={() =>
+                      setLabelDrafts(
+                        ({ [reference.assetId]: _left, ...rest }) => rest,
+                      )
                     }
                   />
                   <Button
@@ -379,16 +416,18 @@ export default function StoryboardShotDirection({
               disabled={isDisabled}
               maxLength={STORYBOARD_SHOT_LIMITS.maxVideoPromptCharacters}
               rows={4}
-              value={shot.videoPrompt ?? compiled?.prompt ?? ''}
-              onChange={(event) =>
+              value={promptDraft ?? shot.videoPrompt ?? compiled?.prompt ?? ''}
+              onChange={(event) => {
+                const value = event.target.value;
+                setPromptDraft(value);
                 onPatch({
                   videoPrompt:
-                    event.target.value.trim() &&
-                    event.target.value !== compiled?.prompt
-                      ? event.target.value
+                    value.trim() && value !== compiled?.prompt
+                      ? value
                       : undefined,
-                })
-              }
+                });
+              }}
+              onBlur={() => setPromptDraft(undefined)}
             />
           </Field>
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -406,7 +445,10 @@ export default function StoryboardShotDirection({
               <Button
                 isDisabled={isDisabled}
                 label={translate('useCompiledPrompt')}
-                onClick={() => onPatch({ videoPrompt: undefined })}
+                onClick={() => {
+                  setPromptDraft(undefined);
+                  onPatch({ videoPrompt: undefined });
+                }}
                 size={ButtonSize.SM}
                 variant={ButtonVariant.GHOST}
               />

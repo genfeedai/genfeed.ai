@@ -308,6 +308,42 @@ describe('StoryboardShotRendersService quote', () => {
     });
   });
 
+  it('drafts a shot with timed cuts at the shortest length that holds them', async () => {
+    const config = approvedConfig();
+    config.plan.shots[0].cuts = [
+      { startSeconds: 0, endSeconds: 2, framing: 'Wide' },
+      { startSeconds: 2, endSeconds: 5, framing: 'Close-up' },
+    ];
+    const { service } = setup(config);
+    const quote = await service.quote('org-1', 'brand-1', 'run-1', {
+      expectedRevision: 7,
+      stage: 'draft',
+    });
+    expect(quote.items).toEqual([
+      { shotId: 'shot-1', credits: DRAFT_PRICE, durationSeconds: 6 },
+      { shotId: 'shot-2', credits: DRAFT_PRICE, durationSeconds: 4 },
+    ]);
+  });
+
+  it('refuses to quote a shot whose video prompt runs past the limit', async () => {
+    const config = approvedConfig();
+    config.plan.shots[0].action = 'a'.repeat(4_000);
+    config.plan.shots[0].cuts = Array.from({ length: 8 }, (_, index) => ({
+      startSeconds: index * 0.5,
+      endSeconds: (index + 1) * 0.5,
+      framing: 'f'.repeat(200),
+      camera: 'c'.repeat(200),
+    }));
+    config.plan.shots[0].sfx = Array.from({ length: 8 }, () => 's'.repeat(200));
+    const { service } = setup(config);
+    await expect(
+      service.quote('org-1', 'brand-1', 'run-1', {
+        expectedRevision: 7,
+        stage: 'draft',
+      }),
+    ).rejects.toThrow("Shot 1's video prompt is");
+  });
+
   it('renders a final at the shortest model length that covers the shot', async () => {
     const { service } = setup();
     const quote = await service.quote('org-1', 'brand-1', 'run-1', {

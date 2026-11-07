@@ -91,8 +91,8 @@ function parseInput<T>(schema: ZodType<T>, value: unknown): T {
 /**
  * Draft and final video renders for the shots of an approved storyboard
  * (#9618). A draft runs on the final model's cheaper catalog sibling, or on
- * the final model at its lowest resolution and shortest length, with no
- * audio. A final of a shot with a current draft promotes that draft: same
+ * the final model at its lowest resolution and the shortest length that
+ * holds the shot's cuts, with no audio. A final of a shot with a current draft promotes that draft: same
  * prompt, same references, full settings. Each render is quoted, its credits
  * held by the video pipeline, and settled here only once it renders.
  */

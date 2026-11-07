@@ -99,7 +99,30 @@ describe('compileStoryboardShotPrompt', () => {
       }),
     ).toMatchObject({
       prompt: 'Handheld, rain on the window.',
+      referenceAssetIds: ['still-1', 'mia-1', 'style-1'],
       isCustom: true,
+    });
+  });
+
+  it('describes a still that also has a role both ways and sends it once', () => {
+    const value = shot({
+      dialogue: undefined,
+      cuts: [{ startSeconds: 0.25, endSeconds: 1.05, framing: 'Close-up' }],
+      referenceRoles: [
+        { assetId: 'still-1', role: 'environment', label: 'Kitchen' },
+      ],
+    });
+    expect(
+      compileStoryboardShotPrompt(plan([value]), value, {
+        isAudioEnabled: false,
+        maxReferences: 9,
+      }),
+    ).toEqual({
+      prompt:
+        'Reference images: image 1 is the opening frame and the environment (Kitchen). Mia checks the clock and runs for the door. 0.25-1.05s: Close-up. Keep every person consistent with the reference images.',
+      referenceAssetIds: ['still-1', 'mia-1', 'style-1'],
+      namedReferenceCount: 1,
+      isCustom: false,
     });
   });
 });

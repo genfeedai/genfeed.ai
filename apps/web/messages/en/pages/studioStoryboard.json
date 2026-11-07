@@ -638,6 +638,7 @@
     "cameraPlaceholder": "Slow push-in",
     "removeCut": "Remove cut {ordinal}",
     "addCut": "Add cut",
+    "cutIncomplete": "Give each cut a start, an end and a framing, or remove it. Unfinished cuts are not saved.",
     "sfx": "Sound effects",
     "sfxPlaceholder": "Rain on a tin roof, distant siren",
     "references": "Reference images",
