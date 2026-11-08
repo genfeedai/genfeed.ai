@@ -166,20 +166,20 @@ export class LinkedInController {
       const expiryDate = new Date();
       expiryDate.setSeconds(expiryDate.getSeconds() + expiresIn);
 
-      // The token is stored but the connection is held back: the member must
-      // still choose whether this brand posts as a company page they run or as
-      // their own profile (see `selectAccount`).
-      const credential =
-        await this.credentialsService.storeTokenAwaitingAccountSelection(
-          existingCredential.id,
-          {
-            accessToken,
-            accessTokenExpiry: expiryDate,
-            isDeleted: false, // Reactivate if previously disconnected
-            oauthState: null,
-            ...buildGrantedScopesCredentialPatch(scope),
-          },
-        );
+      // The token is stored but the connection is held back (no identity, not
+      // live): the member must still choose whether this brand posts as a
+      // company page they run or as their own profile (see `selectAccount`).
+      const credential = await this.credentialsService.patch(
+        existingCredential.id,
+        {
+          accessToken,
+          accessTokenExpiry: expiryDate,
+          isConnected: false,
+          isDeleted: false, // Reactivate if previously disconnected
+          oauthState: null,
+          ...buildGrantedScopesCredentialPatch(scope),
+        },
+      );
 
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {

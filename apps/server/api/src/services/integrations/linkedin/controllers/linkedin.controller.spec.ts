@@ -62,7 +62,6 @@ describe('LinkedInController', () => {
     findOneSelect: vi.fn(),
     findPendingOAuthCredential: vi.fn(),
     patch: vi.fn(),
-    storeTokenAwaitingAccountSelection: vi.fn(),
     updateExternalProfile: vi.fn(),
   };
   const mockLinkedInService = {
@@ -255,9 +254,10 @@ describe('LinkedInController', () => {
         organizationId: orgId,
         userId,
       });
-      mockCredentialsService.storeTokenAwaitingAccountSelection.mockResolvedValue(
-        { id: credId, isConnected: false },
-      );
+      mockCredentialsService.patch.mockResolvedValue({
+        id: credId,
+        isConnected: false,
+      });
 
       const result = await controller.verify(mockRequest, {
         code: 'auth-code',
@@ -270,12 +270,11 @@ describe('LinkedInController', () => {
       ).toHaveBeenCalledWith('opaque-oauth-state', 'linkedin');
       // The token is stored without an account and not live, so nothing can
       // publish as the member who authorized before they choose.
-      expect(
-        mockCredentialsService.storeTokenAwaitingAccountSelection,
-      ).toHaveBeenCalledWith(
+      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
         credId,
         expect.objectContaining({
           accessToken: 'linkedin-token',
+          isConnected: false,
           isDeleted: false,
           oauthState: null,
           grantedScopes: [

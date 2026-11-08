@@ -30,14 +30,12 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
-import {
-  LinkedInService,
-  resolveLinkedInVisibility,
-} from '@api/services/integrations/linkedin/services/linkedin.service';
+import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import {
   LINKEDIN_DM_NOT_IMPLEMENTED_REASON,
   LINKEDIN_DM_UNAVAILABLE_REASON,
 } from '@api/services/integrations/linkedin/services/linkedin-inbox.constants';
+import { resolveLinkedInVisibility } from '@api/services/integrations/linkedin/utils/linkedin-author.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';

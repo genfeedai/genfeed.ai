@@ -1,3 +1,8 @@
+import {
+  type ChannelTargetSettings,
+  readChannelSettingString,
+} from '@genfeedai/contracts/api-types/contracts';
+
 /**
  * Who a LinkedIn credential posts as.
  *
@@ -54,4 +59,24 @@ export function resolveLinkedInAuthorUrn(
   }
 
   throw new Error('LinkedIn credential identity is not a member or page');
+}
+
+/**
+ * LinkedIn's member-network visibility for this release.
+ *
+ * `PUBLIC` stays the fallback because it is what every share used before the
+ * setting existed, so an unset value keeps the previous behaviour. The catalog
+ * stays platform-neutral, so this is the only place the provider spelling is
+ * decided.
+ */
+export function resolveLinkedInVisibility(
+  settings: ChannelTargetSettings,
+  authorUrn: string,
+): string {
+  // A company page has no connections to limit a post to.
+  if (isLinkedInOrganizationUrn(authorUrn)) {
+    return 'PUBLIC';
+  }
+  const visibility = readChannelSettingString(settings, 'visibility');
+  return visibility === 'CONNECTIONS' ? 'CONNECTIONS' : 'PUBLIC';
 }
