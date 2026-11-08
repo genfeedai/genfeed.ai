@@ -983,6 +983,8 @@ describe('McpApprovalsService', () => {
       status: 'PENDING',
       result: null,
       resolvedAt: null,
+      resolvedOrigin: null,
+      resolvedByUserId: null,
       executedAt: null,
       executionClaimedAt: null,
       isDeleted: false,
