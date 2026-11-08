@@ -23,6 +23,21 @@ const CARRIED_CONNECTION_COLUMNS = [
   'username',
 ] as const;
 
+/**
+ * What an abandoned pending connection keeps once it is reaped: nothing that
+ * could still authenticate against the provider.
+ */
+export const REAPED_PENDING_CREDENTIAL_DATA = {
+  accessToken: null,
+  accessTokenSecret: null,
+  isDeleted: true,
+  oauthState: null,
+  oauthToken: null,
+  oauthTokenHash: null,
+  oauthTokenSecret: null,
+  refreshToken: null,
+} as const;
+
 export function hashOAuthRequestToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }

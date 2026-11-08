@@ -20,6 +20,7 @@ import {
 import { ProviderAccountPurgeService } from '@api/collections/credentials/services/provider-account-purge.service';
 import {
   hashOAuthRequestToken,
+  REAPED_PENDING_CREDENTIAL_DATA,
   requireCredentialRelationId,
 } from '@api/collections/credentials/utils/credential-persistence.util';
 import { emitCredentialProfileSynced } from '@api/collections/credentials/utils/credential-profile-event.util';
@@ -441,16 +442,7 @@ export class CredentialsService
     }
 
     await this.prisma.credential.updateMany({
-      data: {
-        accessToken: null,
-        accessTokenSecret: null,
-        isDeleted: true,
-        oauthState: null,
-        oauthToken: null,
-        oauthTokenHash: null,
-        oauthTokenSecret: null,
-        refreshToken: null,
-      },
+      data: REAPED_PENDING_CREDENTIAL_DATA,
       where: {
         brandId,
         externalId: null,
