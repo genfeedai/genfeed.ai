@@ -14,6 +14,7 @@ import {
   scheduleCanonicalPostAction,
 } from '@api/services/agent-orchestrator/tools/agent-publish-canonical-actions';
 import { resolveConfirmedPublishTargets } from '@api/services/agent-orchestrator/tools/agent-publish-confirmed-targets.util';
+import { resolveDraftMediaUrls } from '@api/services/agent-orchestrator/tools/agent-publish-draft-media.util';
 import {
   blockMcpCreatePost,
   isMcpActionOrigin,
@@ -944,7 +945,24 @@ export class AgentPublishToolHandler {
     if (ctx.isProactive)
       return this.createProactiveTextPost(params, ctx, visibility);
 
-    return createAgentTextDraft(this.postsService, params, ctx, visibility);
+    const media = await resolveDraftMediaUrls({
+      brandId: ctx.validatedScope?.brandId,
+      ingredients: this.ingredientsService,
+      organizationId: ctx.organizationId,
+      platforms: this.readPublishRequest(params).platforms,
+      value: params.mediaUrls,
+    });
+    if (media.error !== undefined) {
+      return { creditsUsed: 0, error: media.error, success: false };
+    }
+
+    return createAgentTextDraft(
+      this.postsService,
+      params,
+      ctx,
+      visibility,
+      media,
+    );
   }
 
   private createProactiveTextPost(

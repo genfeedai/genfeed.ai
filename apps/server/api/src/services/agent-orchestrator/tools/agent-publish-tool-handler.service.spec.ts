@@ -996,6 +996,161 @@ describe('AgentPublishToolHandler server-owned confirmation (#4306)', () => {
   });
 });
 
+describe('create_post mediaUrls through the MCP (#9673)', () => {
+  const LIBRARY = {
+    'img-1': { brandId: 'brand-1', category: 'IMAGE', status: 'UPLOADED' },
+    'img-2': { brandId: 'brand-1', category: 'IMAGE', status: 'GENERATED' },
+    'img-3': { brandId: 'brand-1', category: 'IMAGE', status: 'UPLOADED' },
+    'img-pending': {
+      brandId: 'brand-1',
+      category: 'IMAGE',
+      status: 'PROCESSING',
+    },
+    'img-other-brand': {
+      brandId: 'brand-2',
+      category: 'IMAGE',
+      status: 'UPLOADED',
+    },
+    'vid-1': { brandId: 'brand-1', category: 'VIDEO', status: 'GENERATED' },
+  } as const;
+
+  function mcpDraft(params: Record<string, unknown>) {
+    const f = createHandler();
+    f.ingredientsService.findOne.mockImplementation(
+      async (where: { id: string }) => {
+        const found = LIBRARY[where.id as keyof typeof LIBRARY];
+        return found ? { id: where.id, ...found } : null;
+      },
+    );
+    f.postsService.create.mockImplementation(
+      async (dto: Record<string, unknown>) => ({ id: 'post-1', ...dto }),
+    );
+    const run = runWithActionOrigin({ origin: ActionOrigin.MCP }, () =>
+      f.handler.createPost(
+        { content: 'Carousel caption', ...params },
+        scopedContext('brand-1'),
+      ),
+    );
+    return { ...f, run };
+  }
+
+  const url = (kind: 'images' | 'videos', id: string) =>
+    `https://cdn.test/ingredients/${kind}/${id}`;
+
+  it('saves a draft whose media matches the URLs, in order', async () => {
+    const f = mcpDraft({
+      mediaUrls: [
+        url('images', 'img-3'),
+        url('images', 'img-1'),
+        url('images', 'img-2'),
+      ],
+    });
+
+    const result = await f.run;
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({
+      media: [
+        { assetId: 'img-3', order: 0 },
+        { assetId: 'img-1', order: 1 },
+        { assetId: 'img-2', order: 2 },
+      ],
+    });
+    await expect(
+      f.postsService.create.mock.results[0].value,
+    ).resolves.toMatchObject({
+      category: 'IMAGE',
+      ingredients: ['img-3', 'img-1', 'img-2'],
+    });
+  });
+
+  it('saves a video draft as a video post', async () => {
+    const f = mcpDraft({ mediaUrls: [url('videos', 'vid-1')] });
+
+    const result = await f.run;
+
+    expect(result.success).toBe(true);
+    await expect(
+      f.postsService.create.mock.results[0].value,
+    ).resolves.toMatchObject({
+      category: 'VIDEO',
+      ingredients: ['vid-1'],
+    });
+  });
+
+  it('still saves a text-only draft without media', async () => {
+    const f = mcpDraft({});
+
+    const result = await f.run;
+
+    expect(result.success).toBe(true);
+    await expect(
+      f.postsService.create.mock.results[0].value,
+    ).resolves.toMatchObject({
+      ingredients: [],
+    });
+  });
+
+  it.each([
+    [
+      'an external URL',
+      ['https://example.com/photo.jpg'],
+      'not a Library asset',
+    ],
+    [
+      'an unknown asset',
+      [url('images', 'missing')],
+      'not found in the Library',
+    ],
+    [
+      'another brand asset',
+      [url('images', 'img-other-brand')],
+      'different brand',
+    ],
+    ['an unfinished upload', [url('images', 'img-pending')], 'not ready yet'],
+    [
+      'a repeated asset',
+      [url('images', 'img-1'), url('images', 'img-1')],
+      'more than once',
+    ],
+    [
+      'images mixed with a video',
+      [url('images', 'img-1'), url('videos', 'vid-1')],
+      'not a mix',
+    ],
+  ])(
+    'fails the call for %s instead of dropping it',
+    async (_name, mediaUrls, message) => {
+      const f = mcpDraft({ mediaUrls });
+
+      const result = await f.run;
+
+      expect(result).toMatchObject({
+        error: expect.stringContaining(message),
+        success: false,
+      });
+      expect(f.postsService.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects more images than the target channel carousel takes', async () => {
+    const f = mcpDraft({
+      mediaUrls: Array.from({ length: 11 }, (_, index) =>
+        url('images', `img-${index}`),
+      ),
+      platforms: ['instagram'],
+    });
+
+    const result = await f.run;
+
+    expect(result).toMatchObject({
+      error: expect.stringContaining('Instagram carousels take 2-10 images'),
+      success: false,
+    });
+    expect(f.postsService.create).not.toHaveBeenCalled();
+  });
+});
+
 describe('proactive publishing review boundary', () => {
   it('retains scheduled supervised content as a draft and links the same posts to review', async () => {
     const h = createHandler();

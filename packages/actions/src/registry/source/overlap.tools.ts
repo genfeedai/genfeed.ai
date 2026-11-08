@@ -46,7 +46,8 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           type: 'string',
         },
         mediaUrls: {
-          description: 'Media URLs for a standalone draft post.',
+          description:
+            'Library media URLs for a standalone draft post (the url from upload_media or a generated asset), in slide order. A URL that is not a Library asset fails the call.',
           items: { type: 'string' },
           type: 'array',
         },

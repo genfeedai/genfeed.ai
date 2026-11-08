@@ -21,6 +21,7 @@ import type { TurboRunService } from '@api/services/turbo-run/turbo-run.service'
 import {
   AgentAutonomyMode,
   AgentPublishDecision,
+  type PostCategory,
   PostVisibility,
   ReleaseStatus,
   TargetExecutionState,
@@ -442,6 +443,7 @@ export async function createAgentTextDraft(
   params: Record<string, unknown>,
   ctx: ToolExecutionContext,
   visibility: PostVisibility,
+  media?: { category?: PostCategory; ingredientIds: readonly string[] },
 ): Promise<AgentToolResult> {
   const post = await postsService.create({
     ...(ctx.runId ? { workflowExecutionId: ctx.runId } : {}),
@@ -451,6 +453,8 @@ export async function createAgentTextDraft(
     agentThreadId: ctx.validatedScope?.threadId,
     brandId: ctx.validatedScope?.brandId,
     description: params.content as string,
+    ingredients: media?.ingredientIds ?? [],
+    ...(media?.category ? { category: media.category } : {}),
     label: ((params.content as string) || '').substring(0, 100),
     organizationId: ctx.organizationId,
     source: 'agent',
@@ -464,6 +468,14 @@ export async function createAgentTextDraft(
     data: {
       id: String(post.id),
       executionState: TargetExecutionState.DRAFT,
+      ...(media && media.ingredientIds.length > 0
+        ? {
+            media: media.ingredientIds.map((assetId, order) => ({
+              assetId,
+              order,
+            })),
+          }
+        : {}),
       visibility,
     },
     success: true,

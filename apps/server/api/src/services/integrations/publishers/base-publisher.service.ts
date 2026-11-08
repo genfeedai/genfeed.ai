@@ -232,7 +232,45 @@ export abstract class BasePublisherService implements IPublisher {
       };
     }
 
+    const carouselError = this.validateCarouselImageCount(mediaInfo);
+    if (carouselError) {
+      return carouselError;
+    }
+
     return this.validateCaptionLength(context);
+  }
+
+  /**
+   * Validate the image count of a photo carousel against the channel
+   * capability catalog (the single source of truth for per-platform limits).
+   * Runs before any provider call so an over-limit carousel fails here, not
+   * halfway through creating provider containers. Platforms without catalog
+   * image limits have no known limit and skip the check.
+   */
+  protected validateCarouselImageCount(
+    mediaInfo: MediaInfo,
+  ): PostValidationResult | undefined {
+    if (!mediaInfo.isCarousel || !mediaInfo.isImagePost) {
+      return undefined;
+    }
+
+    const capability = getChannelCapability(this.platform);
+    const images = capability?.media.images;
+    if (!capability || !images) {
+      return undefined;
+    }
+
+    const count = mediaInfo.ingredientIds.length;
+    const min = Math.max(2, images.minItems);
+    if (count >= min && count <= images.maxItems) {
+      return undefined;
+    }
+
+    return {
+      error: `${capability.label} carousels take ${min}-${images.maxItems} images`,
+      errorCode: 'carousel_image_count',
+      valid: false,
+    };
   }
 
   /**
