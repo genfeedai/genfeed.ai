@@ -935,6 +935,11 @@ test.describe('Clip Factory', () => {
       .getByRole('button', { name: /import & transcribe/i })
       .click();
 
+    // Import resets the avatar and voice ids when it resolves, so fill them
+    // only once the review step is up.
+    await expect(
+      authenticatedPage.getByRole('heading', { name: /review highlights/i }),
+    ).toBeVisible();
     await authenticatedPage.getByLabel(/avatar id/i).fill('heygen-avatar-1');
     await authenticatedPage.getByLabel(/voice id/i).fill('heygen-voice-1');
 
