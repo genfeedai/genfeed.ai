@@ -281,12 +281,13 @@ export class AgentVoiceToolHandler {
     };
     const voice = await this.accountVoices.import(user, externalVoiceId);
     return {
-      externalVoiceId: voice.externalVoiceId ?? externalVoiceId,
+      externalVoiceId: readString(voice.externalVoiceId) ?? externalVoiceId,
       id: String(voice.id),
-      label: voice.label ?? null,
-      sampleAudioUrl: voice.sampleAudioUrl ?? null,
-      voiceProvider: voice.voiceProvider ?? VoiceProvider.ELEVENLABS,
-      voiceSource: voice.voiceSource ?? 'imported',
+      label: readString(voice.label) ?? null,
+      sampleAudioUrl: readString(voice.sampleAudioUrl) ?? null,
+      voiceProvider:
+        readString(voice.voiceProvider) ?? VoiceProvider.ELEVENLABS,
+      voiceSource: readString(voice.voiceSource) ?? 'imported',
     };
   }
 
