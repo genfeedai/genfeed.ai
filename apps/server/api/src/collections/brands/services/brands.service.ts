@@ -36,6 +36,7 @@ import {
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { assertValidMergedAgentSchedule } from '@api/collections/brands/utils/brand-agent-schedule-validation.util';
 import {
+  BOOTSTRAP_CREDENTIAL_VISIBLE,
   bootstrapCredentialInclude,
   mapBootstrapCredentials,
 } from '@api/collections/brands/utils/brand-bootstrap-credentials.util';
@@ -324,14 +325,15 @@ export class BrandsService extends BaseService<
 
     const decoratedById = new Map<string, BrandDocument>();
     for (const [organizationId, group] of brandsByOrganization) {
-      const { orderBy, select, where } =
-        bootstrapCredentialInclude(organizationId);
+      const { orderBy, select } = bootstrapCredentialInclude(organizationId);
       const credentials = await this.prisma.credential.findMany({
         orderBy,
         select,
         where: {
-          ...where,
+          OR: BOOTSTRAP_CREDENTIAL_VISIBLE,
           brandId: { in: group.map((brand) => String(brand.id)) },
+          isDeleted: false,
+          organizationId,
         },
       });
 

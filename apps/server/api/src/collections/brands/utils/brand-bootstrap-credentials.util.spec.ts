@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  bootstrapCredentialWhere,
+  BOOTSTRAP_CREDENTIAL_VISIBLE,
   isBootstrapCredentialWrite,
   mapBootstrapCredentials,
 } from './brand-bootstrap-credentials.util';
@@ -67,12 +67,11 @@ describe('mapBootstrapCredentials', () => {
   });
 });
 
-describe('bootstrapCredentialWhere', () => {
-  it('embeds live credentials that are connected or identified, never bare pending OAuth starts', () => {
-    expect(bootstrapCredentialWhere('org-1')).toEqual({
-      OR: [{ isConnected: true }, { externalId: { not: null } }],
-      isDeleted: false,
-      organizationId: 'org-1',
-    });
+describe('BOOTSTRAP_CREDENTIAL_VISIBLE', () => {
+  it('embeds credentials that are connected or identified, never bare pending OAuth starts', () => {
+    expect(BOOTSTRAP_CREDENTIAL_VISIBLE).toEqual([
+      { isConnected: true },
+      { externalId: { not: null } },
+    ]);
   });
 });
