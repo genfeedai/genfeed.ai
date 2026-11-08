@@ -50,8 +50,8 @@ describe('conversation scope location', () => {
     expect(extractAgentThreadIdFromPathname('/agent/new')).toBeNull();
     expect(extractAgentThreadIdFromPathname('/agent/journey')).toBeNull();
     expect(extractAgentThreadIdFromPathname('/agent/threads')).toBeNull();
-    expect(extractAgentThreadIdFromPathname(`/agent/${threadId}/full`)).toBe(
-      threadId,
-    );
+    expect(
+      extractAgentThreadIdFromPathname(`/agent/${threadId}/full`),
+    ).toBeNull();
   });
 });

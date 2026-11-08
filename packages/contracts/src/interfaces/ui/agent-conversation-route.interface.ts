@@ -7,7 +7,7 @@
  *   open thread (`threadId`) on the right (`/agent`, `/agent/threads`,
  *   `/agent/:threadId`).
  * - `single`: one full-width conversation (`/agent/new`, and a thread opened
- *   full size at `/agent/:threadId/full`).
+ *   full size at `/agent/:threadId?view=full`).
  */
 export interface AgentConversationRoute {
   layout: 'master' | 'single';

@@ -1,4 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { isAgentFullView } from '@/lib/navigation/operator-shell';
 
 /**
  * Routes whose page renders `AgentOutputShell`: the agent on the left, the
@@ -11,7 +12,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   // The master conversation beside the Threads list (`/agent`,
   // `/agent/threads`) or one open thread (`/agent/[id]`). `/agent/new` and
-  // `/agent/[id]/full` are the one full-width conversation.
+  // `/agent/[id]?view=full` are the one full-width conversation.
   new RegExp(`^${APP_ROUTES.AGENT.ROOT}(?:/(?!new/?$|journey/?$)[^/]+)?/?$`),
   // Turbo: `/turbo` is the prompt that starts a project beside the project
   // list, `/turbo/[projectId]` is one open project.
@@ -32,7 +33,19 @@ const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   new RegExp(`^${APP_ROUTES.STUDIO.EDITOR}(?:/[^/]+)?/?$`),
 ];
 
-export function isAgentOutputRoute(normalizedPathname: string): boolean {
+const AGENT_ROUTE_PATTERN = new RegExp(`^${APP_ROUTES.AGENT.ROOT}(?:/|$)`);
+
+export function isAgentOutputRoute(
+  normalizedPathname: string,
+  searchParams?: Pick<URLSearchParams, 'get'> | null,
+): boolean {
+  // A thread opened full size has no output pane beside it.
+  if (
+    AGENT_ROUTE_PATTERN.test(normalizedPathname) &&
+    isAgentFullView(searchParams)
+  ) {
+    return false;
+  }
   return AGENT_OUTPUT_ROUTE_PATTERNS.some((pattern) =>
     pattern.test(normalizedPathname),
   );

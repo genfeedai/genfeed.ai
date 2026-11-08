@@ -27,7 +27,15 @@ describe('isAgentOutputRoute', () => {
   it('leaves the full-width conversations and the journey off the split layout', () => {
     expect(isAgentOutputRoute('/agent/new')).toBe(false);
     expect(isAgentOutputRoute('/agent/journey')).toBe(false);
-    expect(isAgentOutputRoute('/agent/thread-1/full')).toBe(false);
+    expect(
+      isAgentOutputRoute('/agent/thread-1', new URLSearchParams('view=full')),
+    ).toBe(false);
+  });
+
+  it('keeps the split layout for other search params on a thread', () => {
+    expect(
+      isAgentOutputRoute('/agent/thread-1', new URLSearchParams('view=list')),
+    ).toBe(true);
   });
 
   it('matches the workflow editor, new or saved', () => {

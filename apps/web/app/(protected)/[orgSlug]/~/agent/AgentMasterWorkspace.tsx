@@ -12,6 +12,7 @@ import {
   AgentThreadResolutionProvider,
   useAgentChatStore,
 } from '@genfeedai/agent';
+import { useAgentThreadPrefetch } from '@genfeedai/agent/components/useAgentThreadPrefetch';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -60,6 +61,17 @@ export default function AgentMasterWorkspace({
     isLoaded,
   );
   const resolution = useThreadResolution(agentApiService, isLoaded);
+  const { prefetchThread } = useAgentThreadPrefetch({
+    apiService: agentApiService,
+  });
+
+  // The thread open in the panel is the one full view would show: warm its
+  // conversation now, so expanding it paints from the cache with no request.
+  useEffect(() => {
+    if (isLoaded && openThreadId) {
+      prefetchThread(openThreadId);
+    }
+  }, [isLoaded, openThreadId, prefetchThread]);
   const {
     hasMoreResolved,
     isLoadingMoreResolved,
@@ -132,8 +144,19 @@ export default function AgentMasterWorkspace({
     [activeHref, openThreadInPanel, push],
   );
 
+  // Full view is `?view=full` on the thread's own URL. When that URL is the
+  // page already open, rewrite it in place: the App Router follows
+  // `history.pushState` without a route request, so the swap is immediate.
   const openFullThread = useCallback(
-    (threadId: string) => push(buildThreadHref(threadId, { isFull: true })),
+    (threadId: string) => {
+      const href = buildThreadHref(threadId, { isFull: true });
+      const [hrefPathname] = href.split('?');
+      if (hrefPathname === window.location.pathname) {
+        window.history.pushState(null, '', href);
+        return;
+      }
+      push(href);
+    },
     [buildThreadHref, push],
   );
 

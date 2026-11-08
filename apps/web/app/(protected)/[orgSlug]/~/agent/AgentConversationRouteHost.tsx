@@ -1,15 +1,14 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import { Minimize2 } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { AgentConversationRouteHostProps } from '@/features/agents/props/agent-conversation-route-host.props';
 import {
-  buildAgentThreadHref,
+  AGENT_VIEW_PARAM,
   normalizeProtectedPathname,
   resolveAgentConversationRoute,
 } from '@/lib/navigation/operator-shell';
@@ -33,8 +32,13 @@ import { AgentWorkspacePageShell } from './AgentWorkspacePageShell';
  * - `/agent`, `/agent/threads` and `/agent/[id]` are the master conversation
  *   on the left with the Threads list, or the thread named in the URL, on the
  *   right.
- * - `/agent/new` and `/agent/[id]/full` are one full-width conversation. A
- *   thread opened full size shows a button back to `/agent/[id]`.
+ * - `/agent/new` and `/agent/[id]?view=full` are one full-width conversation.
+ *   A thread opened full size shows a button back to `/agent/[id]`.
+ *
+ * Full view is a search param, not a route: entering and leaving it rewrites
+ * the URL in place (`history.pushState`, which the App Router follows), so it
+ * never waits on a route request and the thread the panel already loaded is
+ * the one shown.
  *
  * The routes' `page.tsx` files stay the owners of route intent (reset on
  * `/agent/new`, malformed-id redirect on `/agent/[id]`) and render nothing
@@ -44,8 +48,7 @@ export default function AgentConversationRouteHost({
   children,
 }: AgentConversationRouteHostProps) {
   const rawPathname = usePathname();
-  const { push } = useRouter();
-  const { orgHref } = useOrgUrl();
+  const searchParams = useSearchParams();
   const translate = useTranslations('common.agentWorkspace');
   const route = useMemo(() => {
     // `usePathname()` is null during the first App Router paint. Treat that
@@ -57,8 +60,23 @@ export default function AgentConversationRouteHost({
 
     return resolveAgentConversationRoute(
       normalizeProtectedPathname(rawPathname),
+      searchParams,
     );
-  }, [rawPathname]);
+  }, [rawPathname, searchParams]);
+
+  const exitFullView = useCallback(() => {
+    if (!rawPathname) {
+      return;
+    }
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete(AGENT_VIEW_PARAM);
+    const query = nextParams.toString();
+    window.history.pushState(
+      null,
+      '',
+      query ? `${rawPathname}?${query}` : rawPathname,
+    );
+  }, [rawPathname, searchParams]);
 
   if (!route) {
     return children;
@@ -81,7 +99,7 @@ export default function AgentConversationRouteHost({
             ariaLabel={translate('exitFullPage')}
             className="absolute right-3 top-2 z-10"
             icon={<Minimize2 className="size-4" />}
-            onClick={() => push(orgHref(buildAgentThreadHref(fullThreadId)))}
+            onClick={exitFullView}
             size={ButtonSize.ICON}
             tooltip={translate('exitFullPage')}
             variant={ButtonVariant.GHOST}

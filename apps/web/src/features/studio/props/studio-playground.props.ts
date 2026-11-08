@@ -91,8 +91,6 @@ export interface StudioPlaygroundComposerProps {
   isDragActive?: boolean;
   isListening: boolean;
   isLoadingModels: boolean;
-  /** One-line resting bar while the gallery scrolls under it. */
-  isResting?: boolean;
   isTranscribing: boolean;
   isUploading: boolean;
   /** A generation is generating and the server can cancel it: Stop takes the slot. */

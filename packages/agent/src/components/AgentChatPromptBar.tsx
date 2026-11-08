@@ -44,8 +44,6 @@ type AgentChatPromptBarProps = {
   isBusy: boolean;
   isComposerUnavailable?: boolean;
   isReadOnly: boolean;
-  /** One-line resting bar while the transcript scrolls under it. */
-  isResting?: boolean;
   isRunActive: boolean;
   isTurnStalled?: boolean;
   onKeepWaiting?: () => void;
@@ -88,7 +86,6 @@ type AgentChatPromptBarProps = {
   socketConnectionState: AgentSocketConnectionState;
   creditsAvailable?: number | null;
   onOverlayElement?: (node: HTMLElement | null) => void;
-  onExpandResting?: () => void;
 };
 
 export function AgentChatPromptBar({
@@ -103,7 +100,6 @@ export function AgentChatPromptBar({
   isBusy,
   isComposerUnavailable = false,
   isReadOnly,
-  isResting = false,
   isRunActive,
   isTurnStalled = false,
   onKeepWaiting,
@@ -138,7 +134,6 @@ export function AgentChatPromptBar({
   socketConnectionState,
   creditsAvailable = null,
   onOverlayElement,
-  onExpandResting,
 }: AgentChatPromptBarProps): ReactElement {
   const composerShell = useConversationComposerShell();
   const isDockComposer = composerShell?.placement === 'dock';
@@ -244,8 +239,6 @@ export function AgentChatPromptBar({
         // A failure notice is its own compact surface. Preserve the prompt's
         // top radius so the two controls do not read as one fused card.
         isTopAttached={!isReadOnly && hasRunningTasks && !error}
-        isResting={isResting}
-        onExpandResting={onExpandResting}
         hasQueuedFollowUps={followUps.length > 0}
         onPromoteQueuedFollowUp={onPromoteQueuedFollowUp}
         disabled={

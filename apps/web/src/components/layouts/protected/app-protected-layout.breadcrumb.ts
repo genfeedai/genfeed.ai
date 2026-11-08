@@ -1,6 +1,6 @@
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 
-const AGENT_CONVERSATION_PATH_PATTERN = /^\/agent\/([^/]+)(?:\/full)?\/?$/;
+const AGENT_CONVERSATION_PATH_PATTERN = /^\/agent\/([^/]+)\/?$/;
 const STORYBOARD_RUN_PATH_PATTERN = /^\/storyboard\/([^/]+)\/?$/;
 
 const AGENT_CONVERSATION_ID_EXCLUSIONS = new Set(['journey', 'new', 'threads']);
