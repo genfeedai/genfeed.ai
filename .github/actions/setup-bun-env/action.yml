@@ -27,7 +27,7 @@ inputs:
 outputs:
   resolved-bun-version:
     description: Actual resolved Bun version
-    value: ${{ steps.setup-bun.outputs.bun-version }}
+    value: ${{ steps.bun.outputs.version }}
   dependency-cache-hit:
     description: Exact Bun download-cache key hit (empty when disabled)
     value: ${{ steps.bun-cache.outputs.cache-hit }}
@@ -40,18 +40,42 @@ runs:
       with:
         node-version: ${{ inputs.node-version }}
 
+    # setup-bun downloads from GitHub release assets. When those return 5xx
+    # (2026-11-08: every job failed on bun-v1.4.4 with 504 for 2h+), the same
+    # Bun build is installed from the npm registry instead.
     - name: Setup Bun
       id: setup-bun
+      continue-on-error: true
       uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
       with:
         bun-version-file: .bun-version
+
+    - name: Setup Bun from npm (GitHub release download failed)
+      if: ${{ steps.setup-bun.outcome == 'failure' }}
+      shell: bash
+      run: |
+        version="$(tr -d '[:space:]' < .bun-version)"
+        echo "::warning::setup-bun could not download Bun; installing bun@${version} from npm"
+        for attempt in 1 2 3; do
+          if npm install --global "bun@${version}"; then
+            exit 0
+          fi
+          sleep $((10 * attempt))
+        done
+        echo "::error::Bun could not be installed from GitHub releases or npm"
+        exit 1
+
+    - name: Resolve Bun version
+      id: bun
+      shell: bash
+      run: echo "version=$(bun --version)" >> "$GITHUB_OUTPUT"
 
     # Cacheable filesystem guards include the actual rolling toolchain in
     # their Turbo hash; a Bun/Node update must not reuse an older receipt.
     - name: Export check runtime identity
       shell: bash
       env:
-        SETUP_BUN_VERSION: ${{ steps.setup-bun.outputs.bun-version }}
+        SETUP_BUN_VERSION: ${{ steps.bun.outputs.version }}
       run: echo "CI_CHECK_RUNTIME=${RUNNER_OS}/${RUNNER_ARCH}/${SETUP_BUN_VERSION}/$(node --version)" >> "$GITHUB_ENV"
 
     - name: Cache bun modules
@@ -60,9 +84,9 @@ runs:
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.bun/install/cache
-        key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-version }}-${{ hashFiles('**/bun.lock') }}
+        key: ${{ runner.os }}-bun-${{ steps.bun.outputs.version }}-${{ hashFiles('**/bun.lock') }}
         restore-keys: |
-          ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-version }}-
+          ${{ runner.os }}-bun-${{ steps.bun.outputs.version }}-
 
     # No local `.turbo` cache: the Turbo remote cache (TURBO_TOKEN) already
     # serves task outputs, and a lockfile-keyed local snapshot was a ~1 GB
