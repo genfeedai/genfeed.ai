@@ -143,9 +143,8 @@ export class ArticleTrafficService {
       WHERE timestamp >= toDateTime('${base.startDate}') AND timestamp <= toDateTime('${endDate}')
         AND properties.$host = '${hostname}'
         AND ((event = '$pageview'
-          AND (properties.$pathname = '/articles/${slug}'
-            OR (startsWith(properties.$pathname, '/@')
-              AND endsWith(properties.$pathname, '/articles/${slug}')))
+          AND startsWith(properties.$pathname, '/@')
+          AND endsWith(properties.$pathname, '/articles/${slug}')
           AND properties.$current_url NOT LIKE '%previewToken=%')
           OR (event = 'article_cta_clicked' AND properties.articleSlug = '${slug}'))
       GROUP BY day ORDER BY day LIMIT 10000`;

@@ -85,14 +85,14 @@ describe('website next.config', () => {
     });
   });
 
-  it('moves the pre-handle article addresses to the @genfeedai profile', async () => {
+  it('retires the pre-handle article addresses without a redirect', async () => {
     const redirects = await config.redirects?.();
 
-    expect(redirects).toContainEqual({
-      destination: '/@genfeedai/articles/:slug/:path*',
-      permanent: true,
-      source: '/articles/:slug/:path*',
-    });
+    expect(redirects).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: '/articles/:slug/:path*' }),
+      ]),
+    );
   });
 
   it('delegates authorization-server discovery without redirecting origin-bound resource metadata', async () => {

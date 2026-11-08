@@ -18,16 +18,3 @@ export const CREATOR_PROFILE_REWRITES = [
     source: `/@${HANDLE_SEGMENT}/:path*`,
   },
 ];
-
-/**
- * Until creator handles, genfeed.ai only hosted Genfeed's own articles, at
- * `/articles/<slug>`. Those addresses are indexed and linked from published
- * articles, so they move permanently to the @genfeedai profile.
- */
-export const LEGACY_ARTICLE_REDIRECTS = [
-  {
-    destination: '/@genfeedai/articles/:slug/:path*',
-    permanent: true,
-    source: '/articles/:slug/:path*',
-  },
-];

@@ -8,9 +8,9 @@ import ArticlesList from './articles-list';
 import { getPublicArticlesPageCached } from './articles-loader';
 
 const articlesDescription =
-  'Discover insights, tutorials, and case studies about AI-powered content creation and digital marketing strategies.';
+  'Read what creators publish on Genfeed: guides, case studies and stories, each on its author profile at genfeed.ai/@handle.';
 
-const ARTICLES_TITLE = 'Articles and Blog: AI Content Insights';
+const ARTICLES_TITLE = 'Articles from the Genfeed Community';
 const ARTICLES_PATH = '/articles';
 
 const articlesJsonLd = {
@@ -22,7 +22,7 @@ const articlesJsonLd = {
     name: metadata.name,
     url: metadata.url,
   },
-  name: 'Genfeed Articles & Blog',
+  name: 'Genfeed Community Articles',
   url: `${metadata.url}${ARTICLES_PATH}`,
 };
 

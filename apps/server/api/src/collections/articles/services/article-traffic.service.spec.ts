@@ -120,6 +120,9 @@ describe('ArticleTrafficService', () => {
     const body = JSON.parse(String(request?.body));
     expect(body.query.query).toContain("properties.$host = 'genfeed.ai'");
     expect(body.query.query).toContain(
+      "startsWith(properties.$pathname, '/@')",
+    );
+    expect(body.query.query).not.toContain(
       "properties.$pathname = '/articles/tested-guide'",
     );
     expect(body.query.query).toContain(

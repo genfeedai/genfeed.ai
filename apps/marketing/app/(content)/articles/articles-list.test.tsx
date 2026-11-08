@@ -9,16 +9,24 @@ const ARTICLE = {
   slug: 'shipping-faster',
 } as unknown as Article;
 
-describe('ArticlesList empty state', () => {
-  it('retains the page H1 and a same-origin internal link', () => {
+describe('ArticlesList header', () => {
+  it('names the page and points to publishing and the community', () => {
     render(<ArticlesList articles={[]} />);
 
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Articles' }),
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Written by the Genfeed community',
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'Genfeed features' }),
-    ).toHaveAttribute('href', '/features');
+      screen.getByRole('link', { name: 'Explore the community' }),
+    ).toHaveAttribute('href', '/community');
+    expect(screen.getByRole('link', { name: 'Publish yours' })).toHaveAttribute(
+      'href',
+      expect.stringContaining('sign-up'),
+    );
+    expect(screen.getByText('No articles published yet')).toBeInTheDocument();
   });
 });
 
@@ -70,11 +78,11 @@ describe('ArticlesList pagination', () => {
 
 describe('ArticlesList creator links', () => {
   it.each([
-    [ARTICLE, '/@genfeedai/articles/shipping-faster', 'by @genfeedai'],
+    [ARTICLE, '/@genfeedai/articles/shipping-faster', '@genfeedai ·'],
     [
       { ...ARTICLE, brand: { slug: 'shayla' } } as unknown as Article,
       '/@shayla/articles/shipping-faster',
-      'by @shayla',
+      '@shayla ·',
     ],
   ])('files each article under its creator', (article, href, byline) => {
     render(<ArticlesList articles={[article]} />);
