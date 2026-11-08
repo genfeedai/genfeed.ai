@@ -31,6 +31,17 @@ export interface HeyGenAvatarRef {
   connection: HeyGenConnectionRef;
 }
 
+/**
+ * A look chosen by id. The server reads it at the provider and stores the
+ * full `HeyGenAvatarRef`, so a client never vouches for readiness itself.
+ */
+export interface HeyGenAvatarSelection {
+  source: 'heygen-look';
+  lookId: string;
+  groupId: string | null;
+  ownership: 'private' | 'public';
+}
+
 /** HeyGen's catalogue gender, normalized; null when HeyGen does not say. */
 export type HeyGenGender = 'female' | 'male';
 

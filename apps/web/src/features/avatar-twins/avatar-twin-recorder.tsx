@@ -6,6 +6,7 @@ import Card from '@ui/card/Card';
 import CameraPreview from '@ui/display/camera-preview/CameraPreview';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import { Progress } from '@ui/primitives/progress';
 import { Camera, Circle, Square } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -43,6 +44,7 @@ export default function AvatarTwinRecorder({
     stream,
   } = useVideoRecording({ maxSeconds: AVATAR_TWIN_MAX_SECONDS });
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isRecordingKept, setIsRecordingKept] = useState(false);
 
   const isSubmitting = submitPhase !== null;
   const isTooShort = elapsedSeconds < AVATAR_TWIN_MIN_SECONDS;
@@ -54,7 +56,7 @@ export default function AvatarTwinRecorder({
     if (!recording) return;
     setSubmitError(null);
     try {
-      await onSubmit(recording);
+      await onSubmit(recording, isRecordingKept);
     } catch (cause: unknown) {
       setSubmitError(
         cause instanceof Error && cause.message
@@ -134,6 +136,22 @@ export default function AvatarTwinRecorder({
               })}
             </AlertDescription>
           </Alert>
+        ) : null}
+
+        {recording && !isRecording ? (
+          <div className="flex flex-col gap-1">
+            <Checkbox
+              isChecked={isRecordingKept}
+              isDisabled={isSubmitting}
+              label={translate('record.keepCopy')}
+              onCheckedChange={(checked) =>
+                setIsRecordingKept(checked === true)
+              }
+            />
+            <p className="text-muted-foreground text-sm">
+              {translate('record.retention')}
+            </p>
+          </div>
         ) : null}
 
         {isSubmitting ? (

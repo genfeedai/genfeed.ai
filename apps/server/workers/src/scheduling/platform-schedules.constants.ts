@@ -1,4 +1,5 @@
 import { PROVIDER_PRICE_SYNC_TASKS } from '@genfeedai/contracts/queue';
+import { AVATAR_TWIN_TRACKING_SCHEDULE } from '@workers/crons/avatar-twins/cron.avatar-twins.service';
 import { BRANDED_DISPATCH_RECOVERY_SCHEDULE } from '@workers/crons/branded-dispatch-recovery/branded-dispatch-recovery.constants';
 import { FREE_TRIAL_EXPIRY_SCHEDULE } from '@workers/crons/credits/free-trial-expiry.constants';
 import { MEDIA_DELIVERY_RECOVERY_SCHEDULE } from '@workers/crons/media-delivery-recovery/media-delivery-recovery.constants';
@@ -67,6 +68,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   WORKSPACE_TASK_ROLLUP_RECOVERY: 'workspace-task-rollup-recovery',
   AGENT_TRANSFER_RECOVERY: 'agent-transfer-recovery',
   X_REPLY_WATCH: 'x-reply-watch',
+  AVATAR_TWIN_TRACKING: 'avatar-twin-tracking',
   EXTERNAL_VOICE_CATALOG_SYNC: 'external-voice-catalog-sync',
   YOUTUBE_MESSAGES: 'youtube-messages',
   YOUTUBE_STATUS: 'youtube-status',
@@ -286,6 +288,10 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.X_REPLY_WATCH]: {
     pattern: X_REPLY_WATCH_SCHEDULE,
+    timezone: 'UTC',
+  },
+  [PLATFORM_SCHEDULED_TASKS.AVATAR_TWIN_TRACKING]: {
+    pattern: AVATAR_TWIN_TRACKING_SCHEDULE,
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.EXTERNAL_VOICE_CATALOG_SYNC]: {

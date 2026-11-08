@@ -105,9 +105,27 @@ describe('AvatarTwinRecorder', () => {
     await recordFor(30);
     fireEvent.click(screen.getByRole('button', { name: 'Use this take' }));
 
-    const [file] = onSubmit.mock.calls[0] ?? [];
+    const [file, isRecordingKept] = onSubmit.mock.calls[0] ?? [];
     expect(file).toBeInstanceOf(File);
     expect(file).toMatchObject({ type: 'video/webm' });
+    expect(isRecordingKept).toBe(false);
+  });
+
+  it('deletes the recording after training unless the person keeps a copy', async () => {
+    renderRecorder();
+
+    await recordFor(30);
+    expect(
+      screen.getByText(/we delete the recording as soon as HeyGen has it/),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('checkbox', {
+        name: 'Keep a copy of this recording in my Library',
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Use this take' }));
+
+    expect(onSubmit.mock.calls[0]?.[1]).toBe(true);
   });
 
   it('starts over on a retake', async () => {

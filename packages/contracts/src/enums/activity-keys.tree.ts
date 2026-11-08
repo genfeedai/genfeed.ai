@@ -17,6 +17,12 @@ export const ActivityKeys = {
       processing: ActivityKey.ARTICLE_PROCESSING,
     },
   },
+  avatarTwin: {
+    train: {
+      completed: ActivityKey.AVATAR_TWIN_TRAINING_COMPLETED,
+      failed: ActivityKey.AVATAR_TWIN_TRAINING_FAILED,
+    },
+  },
   brand: {
     relocate: {
       completed: ActivityKey.BRAND_RELOCATED,

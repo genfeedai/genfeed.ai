@@ -165,6 +165,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/settings/agent': 'Agent settings',
   '/:orgSlug/:brandSlug/library/avatars': 'Assets',
   '/:orgSlug/:brandSlug/library/avatars/twin': 'Digital twin',
+  '/:orgSlug/:brandSlug/library/voices/record': 'Record your voice',
   '/:orgSlug/:brandSlug/library/captions': 'Assets',
   '/:orgSlug/:brandSlug/library/gifs': 'Assets',
   '/:orgSlug/:brandSlug/library/images': 'Assets',
@@ -253,6 +254,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/agent/:id': 'Conversation',
   '/:orgSlug/~/agent/threads': 'Threads',
   '/:orgSlug/~/agent/new': 'New Conversation',
+  '/:orgSlug/~/library/voices/record': 'Record your voice',
   '/:orgSlug/~/library/:type': ':type',
   '/:orgSlug/~/library/shelf/:shelf': ':shelf',
   '/:orgSlug/~/connect/social': 'Social account',
@@ -723,6 +725,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/~/library',
+      '/:orgSlug/~/library/voices/record',
       '/:orgSlug/~/library/:type',
       '/:orgSlug/~/library/shelf/:shelf',
     ],
@@ -926,6 +929,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/library/gifs',
       '/:orgSlug/:brandSlug/library/avatars',
       '/:orgSlug/:brandSlug/library/avatars/twin',
+      '/:orgSlug/:brandSlug/library/voices/record',
       '/:orgSlug/:brandSlug/library/voices',
       '/:orgSlug/:brandSlug/library/music',
       '/:orgSlug/:brandSlug/library/captions',

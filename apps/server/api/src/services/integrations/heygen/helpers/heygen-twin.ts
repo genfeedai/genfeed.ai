@@ -198,6 +198,91 @@ export function toTwinGroup(
   };
 }
 
+// Voice clone contracts: /docs/voices/heygen-voice-instant-clone.md,
+// /reference/create-or-retrain-an-audio-voice and /reference/get-an-audio-voice
+// (read 2026-11-08).
+
+/** Inline (base64) audio the provider accepts for an instant clone. */
+export const HEYGEN_VOICE_SAMPLE_CONTENT_TYPES = [
+  'audio/wav',
+  'audio/mpeg',
+] as const;
+/** Inline audio is capped at 16 MB after decoding. */
+export const HEYGEN_VOICE_SAMPLE_MAX_BYTES = 16 * 1000 * 1000;
+/** The provider names a voice with at most 64 characters. */
+export const HEYGEN_VOICE_NAME_MAX_LENGTH = 64;
+
+export type HeyGenVoiceStatus = 'pending' | 'active' | 'failed';
+
+export interface HeyGenClonedVoice {
+  failureReason: string | null;
+  previewAudioUrl: string | null;
+  status: HeyGenVoiceStatus;
+  voiceId: string;
+}
+
+export const voiceCreateSchema = wrap(
+  z.object({ voice_id: z.string().trim().min(1) }),
+);
+
+export const voiceSchema = wrap(
+  z.object({
+    failure_reason: z.string().nullish(),
+    preview_audio_url: z.string().nullish(),
+    status: z.string().trim().min(1),
+    voice_id: z.string().trim().min(1),
+  }),
+);
+
+export function toClonedVoice(
+  voice: z.infer<typeof voiceSchema>['data'],
+): HeyGenClonedVoice {
+  const status = voice.status.toUpperCase();
+  return {
+    failureReason: voice.failure_reason ?? null,
+    previewAudioUrl: voice.preview_audio_url ?? null,
+    status:
+      status === 'ACTIVE'
+        ? 'active'
+        : status === 'FAILED'
+          ? 'failed'
+          : 'pending',
+    voiceId: voice.voice_id,
+  };
+}
+
+/** Why the provider will not clone from this sample, or null when it can. */
+export function voiceSampleProblem(input: {
+  contentType: string;
+  sizeBytes: number;
+}): string | null {
+  const contentType = input.contentType.split(';')[0]?.trim().toLowerCase();
+  if (
+    !HEYGEN_VOICE_SAMPLE_CONTENT_TYPES.some(
+      (allowed) => allowed === contentType,
+    )
+  )
+    return 'The voice sample must be a WAV or MP3 file.';
+  if (!Number.isSafeInteger(input.sizeBytes) || input.sizeBytes <= 0)
+    return 'The voice sample is empty.';
+  if (input.sizeBytes > HEYGEN_VOICE_SAMPLE_MAX_BYTES)
+    return 'The voice sample is over 16 MB. Record a shorter sample.';
+  return null;
+}
+
+/** A plain sentence for the reason the provider gives for a failed clone. */
+export function describeVoiceCloneFailure(reason: string | null): string {
+  switch (reason) {
+    case 'INVALID_AUDIO':
+    case 'INSUFFICIENT_AUDIO':
+      return 'HeyGen could not use this sample. Record at least a minute of clear speech and try again.';
+    case 'PREPROCESSING_FAILED':
+      return 'HeyGen could not clean up this sample. Record again in a quieter room.';
+    default:
+      return 'HeyGen could not create the voice. Try again in a moment.';
+  }
+}
+
 /** Why the provider will not train from this footage, or null when it can. */
 export function footageProblem(input: {
   contentType: string;
