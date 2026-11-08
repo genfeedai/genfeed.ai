@@ -1,8 +1,12 @@
 'use client';
 
 import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
-import type { ElevenLabsAccountVoicePage } from '@genfeedai/contracts/interfaces';
+import type {
+  ElevenLabsAccountVoicePage,
+  IHeyGenConnectionStatus,
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { HeyGenService } from '@services/ingredients/heygen.service';
 import { VoicesService } from '@services/ingredients/voices.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -17,12 +21,13 @@ import type { VoiceCreateCalloutProps } from '@/features/library/props/voice-cre
  */
 export default function VoiceCreateCallout({
   connectHref,
-  onCloneVoice,
+  onUploadSample,
+  recordHref,
   twinHref,
 }: VoiceCreateCalloutProps) {
   const translate = useTranslations('pages.library.createVoice');
-  // Same key as the account-voices dialog's first page, so they share one read.
-  const accountQuery = useAuthedQuery<
+  // Same keys as the account-voices dialog and the voice studio: one read each.
+  const elevenLabsQuery = useAuthedQuery<
     VoicesService,
     ElevenLabsAccountVoicePage
   >({
@@ -30,13 +35,20 @@ export default function VoiceCreateCallout({
     queryKey: ['elevenlabs-account-voices', ''],
     service: (token: string) => VoicesService.getInstance(token),
   });
-  const status = accountQuery.data?.connection.status;
-  if (!status) return null;
+  const heyGenQuery = useAuthedQuery<HeyGenService, IHeyGenConnectionStatus>({
+    queryFn: (service, signal) => service.fetchConnectionStatus(signal),
+    queryKey: ['heygen-connection-status'],
+    service: (token: string) => HeyGenService.getInstance(token),
+  });
+  const elevenLabsStatus = elevenLabsQuery.data?.connection.status;
+  const heyGenState = heyGenQuery.data?.state;
+  if (!elevenLabsStatus && !heyGenState) return null;
 
-  const isConnected = status === 'connected';
+  const hasElevenLabs = elevenLabsStatus === 'connected';
+  const isConnected = hasElevenLabs || heyGenState === 'connected';
   const state = isConnected
     ? 'connected'
-    : status === 'invalid'
+    : elevenLabsStatus === 'invalid' || heyGenState === 'invalid'
       ? 'invalid'
       : 'disconnected';
 
@@ -50,12 +62,21 @@ export default function VoiceCreateCallout({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {isConnected ? (
-          <Button label={translate('clone')} onClick={onCloneVoice} />
+          <Button asChild withWrapper={false}>
+            <Link href={recordHref}>{translate('record')}</Link>
+          </Button>
         ) : (
           <Button asChild withWrapper={false}>
             <Link href={connectHref}>{translate('connect')}</Link>
           </Button>
         )}
+        {hasElevenLabs ? (
+          <Button
+            label={translate('upload')}
+            onClick={onUploadSample}
+            variant={ButtonVariant.SECONDARY}
+          />
+        ) : null}
         <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
           <Link href={twinHref}>{translate('twin')}</Link>
         </Button>

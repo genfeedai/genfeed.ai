@@ -191,7 +191,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/server/api/src/collections/videos/services/video-reference-mentions.integration.spec.ts',
   'apps/server/api/src/collections/visual-projects/services/visual-project-dispatch.service.spec.ts',
   'apps/server/api/src/collections/visual-projects/services/visual-projects.service.spec.ts',
-  'apps/server/api/src/collections/voices/services/voice-clone.service.spec.ts',
   'apps/server/api/src/collections/voices/services/voice-generation.service.spec.ts',
   'apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.spec.ts',
   'apps/server/api/src/collections/workflows/controllers/workflow-execution.controller.spec.ts',

@@ -4,6 +4,12 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface UseAudioRecordingOptions {
+  /**
+   * Browser noise suppression, echo cancellation and gain control. On by
+   * default; a voice-clone sample turns them off, because their artifacts
+   * end up in the cloned voice.
+   */
+  hasVoiceProcessing?: boolean;
   onError?: (error: string) => void;
   preferredMimeType?: string;
 }
@@ -15,6 +21,7 @@ const DEFAULT_MIME_TYPES = [
 ];
 
 export function useAudioRecording({
+  hasVoiceProcessing = true,
   onError,
   preferredMimeType,
 }: UseAudioRecordingOptions = {}) {
@@ -79,9 +86,10 @@ export function useAudioRecording({
 
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          autoGainControl: true,
-          echoCancellation: true,
-          noiseSuppression: true,
+          autoGainControl: hasVoiceProcessing,
+          channelCount: 1,
+          echoCancellation: hasVoiceProcessing,
+          noiseSuppression: hasVoiceProcessing,
         },
       });
 
@@ -155,7 +163,7 @@ export function useAudioRecording({
       cleanup();
       return false;
     }
-  }, [cleanup, onError, preferredMimeType]);
+  }, [cleanup, hasVoiceProcessing, onError, preferredMimeType]);
 
   return {
     clearRecordedFile: () => setRecordedFile(null),
