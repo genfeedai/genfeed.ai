@@ -3,6 +3,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { Suspense } from 'react';
 import { IngredientsMediaGridSkeleton } from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
+import AvatarTwinEntry from '@/features/avatar-twins/avatar-twin-entry';
 import IngredientsList from '@/features/ingredients/list/ingredients-list';
 import LibraryBrowser from '@/features/library/browser/library-browser';
 import { LIBRARY_TYPE_PRESETS } from '@/features/library/browser/library-browser.config';
@@ -24,6 +25,7 @@ export default function LibraryAvatarsPage() {
       scope={PageScope.BRAND}
       seededCategories={PRESET.categories}
     >
+      <AvatarTwinEntry />
       <Suspense fallback={<IngredientsMediaGridSkeleton />}>
         <IngredientsList
           folderNavigation="shell"

@@ -152,14 +152,22 @@ export interface IHeyGenAvatarsResponse {
   };
 }
 
+/**
+ * The workspace's own HeyGen connection: `invalid` means a key is saved but
+ * HeyGen rejects it.
+ */
+export type HeyGenConnectionState = 'connected' | 'disconnected' | 'invalid';
+
+export interface IHeyGenConnectionStatus {
+  provider: string;
+  isConnected: boolean;
+  hasCustomKey: boolean;
+  state: HeyGenConnectionState;
+}
+
 export interface IHeyGenStatusResponse {
   data: {
     type: 'service-status';
-    attributes: {
-      provider: string;
-      isConnected: boolean;
-      hasCustomKey: boolean;
-      error: string | null;
-    };
+    attributes: IHeyGenConnectionStatus;
   };
 }
