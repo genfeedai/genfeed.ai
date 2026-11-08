@@ -17,6 +17,7 @@ import { AgentTransfersModule } from '@api/collections/agent-transfers/agent-tra
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { AssetsModule } from '@api/collections/assets/assets.module';
+import { AvatarTwinsModule } from '@api/collections/avatar-twins/avatar-twins.module';
 import { AvatarsModule } from '@api/collections/avatars/avatars.module';
 import { BillingAccountsModule } from '@api/collections/billing-accounts/billing-accounts.module';
 import { BookmarksModule } from '@api/collections/bookmarks/bookmarks.module';
@@ -148,6 +149,7 @@ import { Module } from '@nestjs/common';
     ApiKeysModule,
     ArticlesModule,
     AssetsModule,
+    AvatarTwinsModule,
     AvatarsModule,
     TurboProjectsModule,
     BookmarksModule,

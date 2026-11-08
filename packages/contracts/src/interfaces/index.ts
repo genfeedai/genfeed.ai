@@ -256,6 +256,7 @@ export * from './ingredients/video-upscale-quote.interface';
 export * from './integrations/ads-discovery.interface';
 export * from './integrations/ads-gateway.interface';
 export * from './integrations/ads-research.interface';
+export * from './integrations/avatar-twin.interface';
 export * from './integrations/connect-genfeed.interface';
 export * from './integrations/elevenlabs.interface';
 export * from './integrations/external-connection-request.interface';
