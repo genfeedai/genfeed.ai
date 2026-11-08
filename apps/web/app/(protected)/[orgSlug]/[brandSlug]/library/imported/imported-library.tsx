@@ -23,7 +23,11 @@ const IMPORTED_ORIGINS = [
  * only. It is the same browser with the origin axis seeded, so type, folder,
  * tags and search keep working here.
  */
-export default function ImportedLibrary() {
+export default function ImportedLibrary({
+  scope = PageScope.BRAND,
+}: {
+  scope?: PageScope.BRAND | PageScope.ORGANIZATION;
+}) {
   const translate = useTranslations('pages.library.imported');
 
   return (
@@ -32,7 +36,7 @@ export default function ImportedLibrary() {
       preset={{
         label: translate('label'),
       }}
-      scope={PageScope.BRAND}
+      scope={scope}
       seededOrigins={IMPORTED_ORIGINS}
     >
       <LibraryCreditNotice />
@@ -41,7 +45,7 @@ export default function ImportedLibrary() {
         <IngredientsList
           folderNavigation="shell"
           type="ingredients"
-          scope={PageScope.BRAND}
+          scope={scope}
         />
       </Suspense>
     </LibraryBrowser>

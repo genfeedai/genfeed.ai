@@ -120,19 +120,15 @@ export default function LibraryOverview({
       id: 'starred',
       label: translate('cards.starred.label'),
     },
-    ...(scope === PageScope.BRAND
-      ? [
-          {
-            color: 'bg-categorical-violet/10 text-categorical-violet',
-            cta: translate('cards.references.cta'),
-            description: translate('cards.references.description'),
-            href: href(APP_ROUTES.LIBRARY.REFERENCES),
-            icon: ScanFace,
-            id: 'references',
-            label: translate('cards.references.label'),
-          },
-        ]
-      : []),
+    {
+      color: 'bg-categorical-violet/10 text-categorical-violet',
+      cta: translate('cards.references.cta'),
+      description: translate('cards.references.description'),
+      href: href(APP_ROUTES.LIBRARY.REFERENCES),
+      icon: ScanFace,
+      id: 'references',
+      label: translate('cards.references.label'),
+    },
   ];
 
   return (

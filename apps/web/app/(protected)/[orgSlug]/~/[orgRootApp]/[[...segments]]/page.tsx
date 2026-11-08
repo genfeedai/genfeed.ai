@@ -37,7 +37,9 @@ import type { PostsListSearchParams } from '@/props/publishing/publishing-list-p
 import { loadProtectedBootstrap } from '@/server/protected-bootstrap.server';
 import AssetDeepLink from '../../../[brandSlug]/library/assets/asset-deep-link';
 import LibraryCaptionsPage from '../../../[brandSlug]/library/captions/page';
+import ImportedLibrary from '../../../[brandSlug]/library/imported/imported-library';
 import LibraryCreditNotice from '../../../[brandSlug]/library/library-credit-notice';
+import LibraryCharactersPage from '../../../[brandSlug]/library/references/content';
 import LibraryVoicesPage from '../../../[brandSlug]/library/voices/library-voices-page';
 import OutreachSequenceNewRoute from '../../../[brandSlug]/messages/outreach/new/page';
 import OutreachSequencesRoute from '../../../[brandSlug]/messages/outreach/page';
@@ -277,6 +279,18 @@ export default async function OrgRootAppPage({
 
     if (segments[0] === 'overview' && segments.length === 1) {
       return <LibraryOverview scope={PageScope.ORGANIZATION} />;
+    }
+
+    if (segments[0] === 'imported' && segments.length === 1) {
+      return <ImportedLibrary scope={PageScope.ORGANIZATION} />;
+    }
+
+    if (segments[0] === 'references' && segments.length === 1) {
+      return (
+        <Suspense fallback={null}>
+          <LibraryCharactersPage scope={PageScope.ORGANIZATION} />
+        </Suspense>
+      );
     }
 
     if (segments[0] === 'voices' && segments[1] === 'record') {

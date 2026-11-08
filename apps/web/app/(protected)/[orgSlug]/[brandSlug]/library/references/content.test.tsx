@@ -12,6 +12,7 @@ import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props'
 import {
   IngredientStatus,
   MemberRole,
+  PageScope,
   PersonaAvailabilityMode,
 } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -116,6 +117,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
       { id: 'brand-2', label: 'Podcast' },
       { id: 'brand-3', label: 'Newsletter' },
     ],
+    organizationId: 'org-1',
   }),
 }));
 
@@ -281,6 +283,32 @@ describe('LibraryCharactersPage', () => {
     await waitFor(() => {
       expect(screen.getByText('References')).toBeInTheDocument();
     });
+  });
+
+  it("lists every brand's characters at organization scope without a create action", async () => {
+    mocks.listCharactersPage.mockResolvedValue(
+      paginatedResponse([
+        {
+          avatarIngredientId: null,
+          handle: 'anna',
+          id: 'p1',
+          label: 'Anna',
+          owningBrandName: 'Podcast',
+          referenceIngredientIds: [],
+        },
+      ]),
+    );
+
+    render(<LibraryCharactersPage scope={PageScope.ORGANIZATION} />, {
+      wrapper: queryClientWrapper(),
+    });
+
+    expect(await screen.findByText('Anna')).toBeInTheDocument();
+    expect(mocks.listCharactersPage).toHaveBeenCalledWith(
+      expect.objectContaining({ allBrands: true }),
+      expect.anything(),
+    );
+    expect(screen.queryByRole('button', { name: 'New character' })).toBeNull();
   });
 
   it('adds no footer link and a single creation action', async () => {

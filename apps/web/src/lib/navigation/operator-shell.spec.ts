@@ -171,10 +171,10 @@ describe('operator-shell helpers', () => {
     expect(resolveOrganizationScopePath('/settings/knowledge')).toBe(
       '/settings/brands',
     );
-    expect(resolveOrganizationScopePath('/library/references')).toBe(
-      '/settings/brands',
-    );
     // Shared surfaces keep their path under org scope.
+    expect(resolveOrganizationScopePath('/library/references')).toBe(
+      '/library/references',
+    );
     expect(resolveOrganizationScopePath('/settings')).toBe('/settings');
     expect(resolveOrganizationScopePath('/settings/brands')).toBe(
       '/settings/brands',

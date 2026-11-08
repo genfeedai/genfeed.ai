@@ -297,13 +297,15 @@ export default function CharactersTable({
           icon={UserRound}
           title={translate('list.title')}
           actions={
-            <Button
-              onClick={onCreate}
-              variant={ButtonVariant.DEFAULT}
-              withWrapper={false}
-            >
-              <Plus /> {translate('create.title')}
-            </Button>
+            onCreate ? (
+              <Button
+                onClick={onCreate}
+                variant={ButtonVariant.DEFAULT}
+                withWrapper={false}
+              >
+                <Plus /> {translate('create.title')}
+              </Button>
+            ) : undefined
           }
         />
       }
