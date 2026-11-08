@@ -75,10 +75,12 @@ describe('getPublicBrandBySlug', () => {
     });
   });
 
-  it('swallows a service failure and returns null', async () => {
+  it('throws on a service failure instead of returning null', async () => {
     findPublicProfileBySlug.mockRejectedValue(new Error('offline'));
 
-    await expect(getPublicBrandBySlug('loader-fail')).resolves.toBeNull();
+    await expect(getPublicBrandBySlug('loader-fail')).rejects.toThrow(
+      'offline',
+    );
   });
 });
 
@@ -202,22 +204,6 @@ describe('generateMetadata', () => {
     expect(meta.openGraph?.type).toBe('profile');
   });
 
-  it('still emits the plain profile card when the lookup throws', async () => {
-    // getPublicBrandBySlug swallows the failure, so the route sees "no brand"
-    // rather than an exception and must still answer with usable metadata.
-    findPublicProfileBySlug.mockImplementation(() => {
-      throw new Error('boom');
-    });
-
-    const meta = await generateMetadata(
-      { params: Promise.resolve({ handle: 'meta-throws' }) },
-      EMPTY_PARENT,
-    );
-
-    expect(meta.twitter?.card).toBe('summary');
-    expect(meta.description).toContain('meta-throws');
-  });
-
   it('returns the bare fallback when no handle is present', async () => {
     const meta = await generateMetadata(
       {
@@ -246,5 +232,13 @@ describe('PublicProfile', () => {
     expect(element.props.brand).toMatchObject({ id: 'brand-1' });
     expect(element.props.videos).toBe(VIDEOS);
     expect(element.props.articles).toBe(ARTICLES);
+  });
+
+  it('answers with a 404 when the handle is unknown or not public', async () => {
+    findPublicProfileBySlug.mockResolvedValue(null);
+
+    await expect(
+      PublicProfile({ params: Promise.resolve({ handle: 'route-missing' }) }),
+    ).rejects.toThrow('NEXT_HTTP_ERROR_FALLBACK;404');
   });
 });
